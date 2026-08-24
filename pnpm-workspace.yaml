@@ -29,7 +29,7 @@ catalog:
   "@types/node": 26.2.0
   "@types/react": 19.2.18
   "@types/react-dom": 19.2.4
-  "@vitest/coverage-v8": 4.1.10
+  "@vitest/coverage-v8": 4.1.11
   chokidar: 5.0.0
   knip: 6.32.2
   playwright: 1.62.1
@@ -37,20 +37,20 @@ catalog:
   react-dom: 19.2.8
   tsup: 8.5.1
   typescript: 6.0.3
-  vitest: 4.1.10
+  vitest: 4.1.11
   zod: 4.4.3
 
 catalogs:
   bundled:
-    "@anthropic-ai/sdk": 0.117.1
-    "@formatjs/icu-messageformat-parser": 3.5.16
-    "@google/genai": 2.17.1
+    "@anthropic-ai/sdk": 0.120.0
+    "@formatjs/icu-messageformat-parser": 3.5.17
+    "@google/genai": 2.18.0
     "@xmldom/xmldom": 0.9.11
     deepl-node: 1.28.0
     exceljs: 4.4.0
     jszip: 3.10.1
     loglevel: 1.9.2
-    openai: 7.4.0
+    openai: 7.5.0
     yaml: 2.9.0
 
 overrides:
