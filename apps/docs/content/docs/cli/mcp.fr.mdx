@@ -73,7 +73,7 @@ Si tu invoques déjà tout via la CLI `verbatra`, lance-le plutôt comme sous-co
 | `glossary.get` | chaque terme du glossaire et sa traduction, expurgé des secrets | oui | non |
 | `glossary.write` | ajoute, remplace ou supprime un terme du glossaire | non | non |
 | `lock.state` | version du fichier de verrouillage et taille de la référence par locale | oui | non |
-| `key.integrity` | verdict d'intégrité des placeholders et ICU d'une clé par locale | oui | non |
+| `key.integrity` | dérive des placeholders et ICU d'une clé par rapport à la référence du lock, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
 | `key.value` | texte source et cible actuel d'une clé | oui | non |
 | `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, vérifiée par la porte d'intégrité des placeholders et ICU | non | non |
 | `translation.retranslateEntry` | demande au fournisseur configuré de retraduire une clé dans une locale | non | oui |

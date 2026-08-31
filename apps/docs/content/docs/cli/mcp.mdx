@@ -73,7 +73,7 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 | `glossary.get` | every glossary term and its translation, secret-redacted | yes | no |
 | `glossary.write` | add, replace, or remove one glossary term | no | no |
 | `lock.state` | the lock file's version and per-locale baseline size | yes | no |
-| `key.integrity` | one key's placeholder and ICU integrity verdict per locale | yes | no |
+| `key.integrity` | one key's placeholder and ICU drift against the lock baseline, per locale (only checks keys whose source changed since the baseline; an empty `entries` array means checked and unchanged) | yes | no |
 | `key.value` | one key's current source and target text | yes | no |
 | `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder and ICU integrity | no | no |
 | `translation.retranslateEntry` | ask the configured provider to retranslate one key in one locale | no | yes |

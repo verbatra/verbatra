@@ -73,7 +73,7 @@ Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando
 | `glossary.get` | cada término del glosario y su traducción, redactado por secretos | sí | no |
 | `glossary.write` | añade, reemplaza o elimina un término del glosario | no | no |
 | `lock.state` | versión del archivo de bloqueo y tamaño de la línea base por locale | sí | no |
-| `key.integrity` | veredicto de integridad de placeholders e ICU de una clave por locale | sí | no |
+| `key.integrity` | deriva de placeholders e ICU de una clave respecto a la base del lock, por locale (solo revisa claves cuyo texto de origen cambió desde la base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
 | `key.value` | texto de origen y destino actual de una clave | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, verificada por la puerta de integridad de placeholders e ICU | no | no |
 | `translation.retranslateEntry` | pide al proveedor configurado que retraduzca una clave en un locale | no | sí |
