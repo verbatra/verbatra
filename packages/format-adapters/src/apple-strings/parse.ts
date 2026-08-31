@@ -2,7 +2,7 @@ import type { TranslationEntry } from "@verbatra/core";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { isEnoent } from "../shell.js";
+import { detectLineTerminator, isEnoent, type LineTerminator } from "../shell.js";
 import { extractAppleStringsPlaceholders } from "./placeholders.js";
 
 type Node =
@@ -18,8 +18,6 @@ type Node =
       readonly betweenKeyAndValue: string;
       readonly afterValueBeforeSemicolon: string;
     };
-
-type LineTerminator = "\n" | "\r\n" | "\r";
 
 const UNICODE_ESCAPE = /^[0-9a-fA-F]{4}$/;
 const TRAILING_BLOCK_COMMENT = /\/\*([\s\S]*?)\*\//g;
@@ -39,13 +37,6 @@ function skipInlineWhitespace(content: string, from: number): number {
 
 function lineOf(content: string, position: number): number {
   return content.slice(0, position).split("\n").length;
-}
-
-function detectLineTerminator(content: string): LineTerminator {
-  if (content.includes("\r\n")) {
-    return "\r\n";
-  }
-  return content.includes("\r") ? "\r" : "\n";
 }
 
 function hasUtf16Bom(content: string): boolean {

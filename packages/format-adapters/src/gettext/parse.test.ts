@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
-import { detectLineTerminator, parsePoEntries, scanPo, splitPhysicalLines } from "./parse.js";
+import { detectLineTerminator, splitPhysicalLines } from "../shell.js";
+import { parsePoEntries, scanPo } from "./parse.js";
 
 const EN_HEADER = [
   'msgid ""',

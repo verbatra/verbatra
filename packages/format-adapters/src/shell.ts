@@ -20,6 +20,29 @@ export type ValidateTree = (tree: JsonRecord) => void;
 
 export type Sniff = (sample: string) => boolean;
 
+export type LineTerminator = "\n" | "\r\n" | "\r";
+
+const LINE_TERMINATOR_SPLIT = /\r\n|\r|\n/;
+const TRAILING_LINE_TERMINATOR = /(?:\r\n|\r|\n)$/;
+
+export function detectLineTerminator(content: string): LineTerminator {
+  if (content.includes("\r\n")) {
+    return "\r\n";
+  }
+  return content.includes("\r") ? "\r" : "\n";
+}
+
+export function splitPhysicalLines(content: string): string[] {
+  if (content === "") {
+    return [];
+  }
+  const lines = content.split(LINE_TERMINATOR_SPLIT);
+  if (TRAILING_LINE_TERMINATOR.test(content)) {
+    lines.pop();
+  }
+  return lines;
+}
+
 export function scanTokens(
   value: string,
   pattern: RegExp,

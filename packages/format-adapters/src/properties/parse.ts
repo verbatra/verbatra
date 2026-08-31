@@ -2,7 +2,12 @@ import type { TranslationEntry } from "@verbatra/core";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { isEnoent } from "../shell.js";
+import {
+  detectLineTerminator,
+  isEnoent,
+  type LineTerminator,
+  splitPhysicalLines,
+} from "../shell.js";
 import { extractPropertiesPlaceholders } from "./placeholders.js";
 
 type ParsedItem =
@@ -11,30 +16,9 @@ type ParsedItem =
 
 const UNICODE_ESCAPE = /^[0-9a-fA-F]{4}$/;
 const LEADING_WHITESPACE = /^[ \t\f]+/;
-const TRAILING_TERMINATOR = /(?:\r\n|\r|\n)$/;
-
-type LineTerminator = "\n" | "\r\n" | "\r";
-
-function detectLineTerminator(content: string): LineTerminator {
-  if (content.includes("\r\n")) {
-    return "\r\n";
-  }
-  return content.includes("\r") ? "\r" : "\n";
-}
 
 function isPropertiesWhitespace(char: string): boolean {
   return char === " " || char === "\t" || char === "\f";
-}
-
-function splitPhysicalLines(content: string): string[] {
-  if (content === "") {
-    return [];
-  }
-  const lines = content.split(/\r\n|\r|\n/);
-  if (TRAILING_TERMINATOR.test(content)) {
-    lines.pop();
-  }
-  return lines;
 }
 
 function countTrailingBackslashes(line: string): number {

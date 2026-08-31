@@ -1,29 +1,10 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { AdapterError } from "../errors.js";
+import { detectLineTerminator, type LineTerminator, splitPhysicalLines } from "../shell.js";
 import { decodeCString } from "./c-string.js";
 import { composeKey } from "./key-encoding.js";
 import { extractGettextPlaceholders } from "./placeholders.js";
 import { parseHeaderFields, parseNplurals } from "./plural-forms.js";
-
-export type LineTerminator = "\n" | "\r\n" | "\r";
-
-export function detectLineTerminator(content: string): LineTerminator {
-  if (content.includes("\r\n")) {
-    return "\r\n";
-  }
-  return content.includes("\r") ? "\r" : "\n";
-}
-
-export function splitPhysicalLines(content: string): string[] {
-  if (content === "") {
-    return [];
-  }
-  const lines = content.split(/\r\n|\r|\n/);
-  if (/(?:\r\n|\r|\n)$/.test(content)) {
-    lines.pop();
-  }
-  return lines;
-}
 
 export function joinSelfTerminated(lines: readonly string[], terminator: string): string {
   return lines.map((line) => `${line}${terminator}`).join("");
