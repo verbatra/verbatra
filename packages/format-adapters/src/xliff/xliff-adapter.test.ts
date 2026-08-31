@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
+import type { AdapterFs } from "../fs-port.js";
 import { createXliffAdapter } from "./xliff-adapter.js";
 
 const adapter = createXliffAdapter();
@@ -191,6 +192,21 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const missing = join(await mkdtemp(join(tmpdir(), "verbatra-xliff-")), "absent.xlf");
     const error = await readError(adapter.write(resource, missing));
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toMatch(/does not exist/);
+  });
+
+  it("raises INVALID_STRUCTURE with a non-misleading message when the destination cannot be read for a reason other than not existing", async () => {
+    const path = await tempFile("m.xlf", XLIFF_12);
+    const { resource } = await adapter.read(path, "de");
+    const eacces = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const brokenFs: AdapterFs = {
+      readBounded: () => Promise.reject(eacces),
+      writeFileAtomic: () => Promise.reject(new Error("not used")),
+    };
+    const brokenAdapter = createXliffAdapter(brokenFs);
+    const error = await readError(brokenAdapter.write(resource, path));
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).not.toMatch(/does not exist/);
   });
 
   it("falls back to the source value when the target is empty", async () => {

@@ -3,6 +3,7 @@ import { DOMParser, type Document, type Element, type Node, XMLSerializer } from
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
+import { isEnoent } from "../shell.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
 const ELEMENT_NODE = 1;
@@ -170,12 +171,20 @@ export function parseXliffEntries(
   return out;
 }
 
+function destinationReadErrorMessage(error: unknown): string {
+  if (isEnoent(error)) {
+    return "The destination XLIFF file does not exist.";
+  }
+  const reason = error instanceof Error ? error.message : String(error);
+  return `The destination XLIFF file could not be read: ${reason}`;
+}
+
 async function readDestination(filePath: string, fs: AdapterFs): Promise<string> {
   let outcome: BoundedReadOutcome;
   try {
     outcome = await readBoundedFile(fs, filePath);
-  } catch {
-    throw new AdapterError("INVALID_STRUCTURE", "The destination XLIFF file does not exist.");
+  } catch (error) {
+    throw new AdapterError("INVALID_STRUCTURE", destinationReadErrorMessage(error));
   }
   return outcomeToContent(outcome, "The destination path is not a regular file.");
 }
