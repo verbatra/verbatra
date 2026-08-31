@@ -1,0 +1,54 @@
+name: New format adapter or provider
+description: Request support for a new i18n file format or a new translation provider.
+title: "[Adapter/Provider]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you requesting?
+      options:
+        - A new format adapter (file format to read/write)
+        - A new translation provider
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Format or provider name
+      placeholder: e.g. gettext PO, Fluent FTL, Azure Translator
+    validations:
+      required: true
+
+  - type: input
+    id: docs-link
+    attributes:
+      label: Official documentation or spec link
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this matters
+      description: Who needs this and what ecosystem it serves.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample file or API shape
+      description: A small example file (for a format) or a link to the API reference (for a provider).
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to help implement this.
+          required: false
