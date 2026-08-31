@@ -97,6 +97,7 @@ interface DelimitedSource {
 interface DelimitedHandoff {
   readonly sources: readonly DelimitedSource[];
   readonly staleLocales: readonly string[];
+  readonly expectedLocales: readonly string[];
 }
 
 async function readDelimitedText(path: string, fs: SdkFs): Promise<string | undefined> {
@@ -121,7 +122,12 @@ async function collectDelimitedSources(
 ): Promise<DelimitedHandoff> {
   const single = await readDelimitedText(path, fs);
   if (single !== undefined) {
-    return { sources: [{ locale: basename(path, `.${format}`), text: single }], staleLocales: [] };
+    const locale = basename(path, `.${format}`);
+    return {
+      sources: [{ locale, text: single }],
+      staleLocales: [],
+      expectedLocales: [locale],
+    };
   }
   const exported = await readExportedLocales(fs, path, format);
   const sources: DelimitedSource[] = [];
@@ -143,7 +149,7 @@ async function collectDelimitedSources(
       `No ${format} file was found at ${path}, and it holds no <locale>.${format} file for any configured target locale.`,
     );
   }
-  return { sources, staleLocales };
+  return { sources, staleLocales, expectedLocales: config.targetLocales };
 }
 
 function parseDelimitedSources(
@@ -165,6 +171,7 @@ function parseDelimitedSources(
 interface ImportRead {
   readonly data: WorkbookData;
   readonly staleLocales: readonly string[];
+  readonly expectedLocales: readonly string[];
 }
 
 async function readImportData(
@@ -179,9 +186,14 @@ async function readImportData(
       return {
         data: parseDelimitedSources(handoff.sources, format),
         staleLocales: handoff.staleLocales,
+        expectedLocales: handoff.expectedLocales,
       };
     }
-    return { data: await readWorkbook(await readWorkbookBytes(path, fs)), staleLocales: [] };
+    return {
+      data: await readWorkbook(await readWorkbookBytes(path, fs)),
+      staleLocales: [],
+      expectedLocales: config.targetLocales,
+    };
   } catch (error) {
     if (error instanceof SdkError) {
       throw error;
@@ -286,7 +298,7 @@ class StaleHandoffFileError extends Error {
 }
 
 function absentLocaleFailures(
-  config: VerbatraConfig,
+  expectedLocales: readonly string[],
   sheets: readonly WorkbookSheet[],
   format: ExchangeFormat,
   staleLocales: readonly string[],
@@ -294,7 +306,7 @@ function absentLocaleFailures(
   const present = new Set(sheets.map((sheet) => sheet.locale));
   const stale = new Set(staleLocales);
   const failures: LocaleSummary[] = [];
-  for (const locale of config.targetLocales) {
+  for (const locale of expectedLocales) {
     if (present.has(locale)) {
       continue;
     }
@@ -430,7 +442,7 @@ export async function importWorkbook(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
-  const { data, staleLocales } = await readImportData(
+  const { data, staleLocales, expectedLocales } = await readImportData(
     resolve(cwd, input.workbook),
     config,
     fs,
@@ -485,7 +497,7 @@ export async function importWorkbook(
     }
   }
 
-  summaries.push(...absentLocaleFailures(config, data.sheets, format, staleLocales));
+  summaries.push(...absentLocaleFailures(expectedLocales, data.sheets, format, staleLocales));
 
   if (!dryRun) {
     await feedTranslationMemory(cwd, fs, computeFingerprint(config), cacheAdditions);
