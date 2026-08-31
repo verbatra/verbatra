@@ -30,26 +30,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ matrix.node }}
-
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Compute pnpm store path
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Guard against em dash (U+2014)
         run: pnpm check:no-em-dash
@@ -90,21 +74,6 @@ jobs:
           retention-days: 5
 
   codecov-upload:
-    # The only job holding id-token: write. It runs no pnpm install, build or test: it
-    # consumes the coverage artifact build-and-test produced and uploads it to Codecov
-    # over OIDC. if: always() (not a "!= skipped" guard) is deliberate: needs.build-and-test
-    # can be success, failure, or cancelled, but never skipped, so gate's uniform
-    # "!= success" loop never fires spuriously on this entry.
-    #
-    # Running unconditionally does not widen the OIDC surface to a broken build: no step
-    # here executes third-party or workspace code before the token is requested, and the
-    # download-artifact step below fails the job outright when build-and-test produced no
-    # artifact (a total failure, or the Node 22.14.0 leg itself failing under fail-fast:
-    # false), which halts the job before the Codecov step ever runs and before any OIDC
-    # token is requested. The one case a token is minted on a build that "failed" is the
-    # Node 24 leg failing independently while the Node 22.14.0 leg fully succeeded and
-    # uploaded a real artifact, which is the exact case today's per-leg Codecov step already
-    # uploads from, so this preserves existing behavior rather than widening it.
     name: Upload coverage to Codecov
     needs: build-and-test
     if: always()
@@ -169,16 +138,6 @@ jobs:
         run: node scripts/check-dependency-changeset.mjs
 
   e2e:
-    # No-key tier only. It never receives a provider secret, so it is safe to run on
-    # pull requests, including from forks. Live provider coverage lives in e2e-live.yml.
-    #
-    # This is the tier that gates a release. It installs the packed tarballs and drives every
-    # command surface, including a full watch lifecycle (successful startup run, a second run
-    # triggered by a source change, clean exit 0 on SIGINT) with no provider key and no network
-    # call, so it is deterministic: a failure here is always the product, never a third-party
-    # quota. e2e-live.yml covers the same commands against a real provider but stays advisory
-    # precisely because it is not deterministic; gating a publish on somebody else's rate limiter
-    # would make every release hostage to it. See .verbatra/adr for the full argument.
     name: Install tarballs and drive the CLI
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -190,16 +149,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
-
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
@@ -227,13 +180,6 @@ jobs:
         run: npm run test:nokey
 
   gate:
-    # Stable required status check. Aggregates the build-and-test matrix and the e2e
-    # job so the branch-protection context stays "Build and test gate" regardless of
-    # which Node versions the matrix runs, and release can trust a single CI result.
-    #
-    # This is also the release gate for end-to-end coverage, and it is a hard one: release.yml
-    # fires on workflow_run for THIS workflow and publishes only when its conclusion is success,
-    # so a failed e2e job fails this job, fails the workflow, and no publish happens.
     name: Build and test gate
     needs: [build-and-test, e2e, dependency-disclosure, codecov-upload]
     runs-on: ubuntu-latest
@@ -241,9 +187,6 @@ jobs:
       contents: read
     if: always()
     steps:
-      # One step over all four rather than one step each, so a run that fails more than one job
-      # reports every failure instead of only the first. Results arrive through env rather than
-      # direct interpolation, keeping the expressions out of the shell.
       - name: Verify every required job succeeded
         env:
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}

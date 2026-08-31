@@ -1,0 +1,45 @@
+name: SSH copy
+description: Copy a file or directory to a remote host over SCP.
+
+inputs:
+  host:
+    description: Remote hostname or IP address.
+    required: true
+  username:
+    description: SSH username.
+    required: true
+  private-key:
+    description: SSH private key.
+    required: true
+  port:
+    description: SSH port.
+    required: false
+    default: "22"
+  source:
+    description: Local file or directory to copy.
+    required: true
+  target:
+    description: Remote directory to copy the files into.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create remote directory
+      uses: ./.github/actions/ssh-connect
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.username }}
+        private-key: ${{ inputs.private-key }}
+        port: ${{ inputs.port }}
+        script: mkdir -p "${{ inputs.target }}"
+
+    - name: Copy files
+      uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.private-key }}
+        port: ${{ inputs.port }}
+        source: ${{ inputs.source }}
+        target: ${{ inputs.target }}

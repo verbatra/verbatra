@@ -1,19 +1,5 @@
 name: E2E (live)
 
-# Live tier: drives translate and watch against a real provider, so it needs GEMINI_API_KEY.
-# It never triggers on pull_request, so the secret is only ever exposed to already-merged or
-# maintainer-triggered code. The live-e2e environment gates the job, and the secret is scoped
-# to the final test step only, so the install, build, and pack steps never see it.
-#
-# ADVISORY, by design: this workflow never gates a publish. Its outcome depends on a third party's
-# rate limiter, and release.yml keys on the CI workflow's conclusion alone, so a provider outage
-# can never block shipping. The deterministic no-key tier in ci.yml is the required gate.
-#
-# Advisory is not the same as ignorable. The suite now reads each run's `--json` record and reports
-# a rate-limited, SDK-withheld key as a skipped test rather than a failure, so this workflow no
-# longer goes red for quota. A red run here means the CLI is genuinely broken against a real
-# provider, and must be investigated before the next release.
-
 on:
   push:
     branches: [main]
@@ -40,26 +26,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
-
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Compute pnpm store path
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
@@ -90,13 +60,6 @@ jobs:
           E2E_PROVIDER: gemini
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      # Says on the run itself what this tier is for and what its result means, so nobody has to
-      # reconstruct the gating policy from the workflow file. The outcome arrives through env
-      # rather than direct interpolation, keeping the expression out of the shell.
-      #
-      # The warning fires on "failure" specifically, never on "not success". A step that never ran
-      # because an earlier one failed (a flaky install, a build error) has an empty outcome, and
-      # blaming the CLI for that would make this warning exactly the noise it exists to replace.
       - name: Report what this tier's result means
         if: always()
         env:
