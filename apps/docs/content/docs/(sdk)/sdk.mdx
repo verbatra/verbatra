@@ -212,6 +212,23 @@ review reason codes, if any, that apply to the new value) or
 `translate`, a provider failure here throws: a `ProviderError` from `@verbatra/ai-providers` with a
 stable code such as `RATE_LIMITED` or `AUTH_FAILED`.
 
+## Bulk content reads
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Reads every key's current source and target text, across every requested target locale, in one
+pass over the files already on disk. It is the bulk counterpart to `keyValue`: use it when a
+caller needs translation content in bulk, for instance to search or scan values rather than key
+names, since `keyValue` only answers for one key at a time. Read-only.
+
+Input: `{ config, cwd?, locales? }`; an omitted `locales` covers every configured target locale.
+Returns an array of `{ locale, values }`, one entry per locale, where `values` maps each key to
+`{ source?, target? }`. An absent `target` means the key has not been translated in that locale
+yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
+the source.
+
 ## Locale-file snapshots
 
 The building blocks of a live-refresh watcher such as Studio's: capture a locale file's state, then
@@ -347,6 +364,19 @@ under), and `supportedFormats` (the closed set of format ids). Read the token-li
 because it takes no token limit. The `ScaffoldableProviderId` type
 covers the four hosted providers; `openai-compatible` is excluded because it has no single required
 environment variable.
+
+## Secret redaction
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Scrubs provider API key shapes and the exact current value of any configured provider environment
+variable out of a string, replacing each match with `[REDACTED]`. `@verbatra/studio` and
+`@verbatra/mcp` both apply it to every value they return to a caller that they did not themselves
+generate, such as a glossary term, a file path, or an upstream error message, so a key already
+present in your environment or written into a project file can never reach a browser tab, an
+agent, or a log line.
 
 ## The dependency seam
 

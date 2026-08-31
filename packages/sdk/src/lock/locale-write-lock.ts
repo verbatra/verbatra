@@ -1,12 +1,16 @@
 import { resolve } from "node:path";
+import type { SupportedFormat } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
+import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 
 const LOCAL_DIR_NAME = ".verbatra-local";
 
 const LOCK_FILE_GUARD_STEM = "_lockfile";
 
 const GLOSSARY_GUARD_STEM = "_glossary";
+
+const SHARED_CATALOGUE_STEM = "_catalogue";
 
 /**
  * Whatever could be read about the process currently holding a write lock. Both fields are optional
@@ -59,6 +63,10 @@ function lockPath(cwd: string, stem: string): string {
 
 export function localeLockPath(cwd: string, locale: string): string {
   return lockPath(cwd, locale);
+}
+
+export function writeLockKeyFor(format: SupportedFormat, locale: string): string {
+  return isSharedCatalogueFormat(format) ? SHARED_CATALOGUE_STEM : locale;
 }
 
 export function lockFileGuardPath(cwd: string): string {

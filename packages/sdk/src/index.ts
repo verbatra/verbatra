@@ -77,6 +77,13 @@ export {
   readLocaleFileSnapshot,
 } from "./flow/locale-snapshot.js";
 export {
+  type KeyValuePair,
+  type LocaleValues,
+  type LocaleValuesDeps,
+  type LocaleValuesInput,
+  localeValues,
+} from "./flow/locale-values.js";
+export {
   type LockLocaleState,
   type LockStateDeps,
   type LockStateInput,
@@ -158,6 +165,7 @@ export type {
   RunFinishedEvent,
   SubBatchProgressEvent,
 } from "./progress/types.js";
+export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
 export type { CreateProvider } from "./selection/select-provider.js";

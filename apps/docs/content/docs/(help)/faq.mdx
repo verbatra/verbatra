@@ -42,15 +42,16 @@ And that figure is the first-run cost only: runs are incremental, so day to day 
 handful of strings you changed, not the whole file. DeepL does not fit this formula at all, since
 it bills source characters rather than tokens.
 
-See [Estimating cost](/docs/estimating-cost) for the method, the DeepL case, and how to calibrate
+See [Estimating cost](/docs/estimating-cost) for the method, the machine-translation case, and how to calibrate
 against a real measured run.
 
 ## Which provider should I start with?
 
 Gemini: it has a free API tier, so you can translate a whole project at no cost, and switching
 later means editing one `id` in the config. Anthropic and OpenAI are the paid-LLM quality picks,
-DeepL is the dedicated machine-translation option, and `openai-compatible` keeps everything on
-your own hardware. See [Providers](/docs/providers) for the full comparison.
+DeepL and Google Cloud Translation are the dedicated machine-translation options, and
+`openai-compatible` keeps everything on your own hardware. See [Providers](/docs/providers) for
+the full comparison.
 
 ## Can I run a local model?
 
@@ -112,8 +113,9 @@ dynamically by the `studio` command.
 
 ## Where do API keys live?
 
-Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or
-`DEEPL_API_KEY`, plus whatever variable you name for `openai-compatible`. `translate`, `watch`,
+Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
+`DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`, plus whatever variable you name for
+`openai-compatible`. `translate`, `watch`,
 `doctor`, and `studio` load `.env` and `.env.local` from the working directory (real environment
 variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
 file, and error messages name the variable but never a value. See [Providers](/docs/providers).
@@ -140,7 +142,7 @@ for the full check table and exit codes.
 
 ## Can an AI agent set up or operate verbatra for me?
 
-Three different surfaces for three different jobs. [Set up verbatra with an AI agent](/docs/start-with-ai)
+Four different surfaces for four different jobs. [Set up verbatra with an AI agent](/docs/start-with-ai)
 is a copy-pasteable prompt for Claude Code, Cursor, or any coding agent that can read your project
 and run shell commands: it inspects an existing i18n setup, installs the CLI, scaffolds a config,
 runs `doctor`, `check`, `diff`, and `translate --dry-run` to preview the work, then stops and asks
@@ -149,10 +151,12 @@ is the reference for building your own agent loop on top of the same `--json` en
 codes those commands use. [Operate Studio with a browser agent](/docs/agent-tools-in-studio) is a
 different surface again: an opt-in `--expose-agent-tools` flag on `verbatra studio` that registers
 WebMCP tools so a browser AI agent can drive an already-set-up project from an open, authenticated
-dashboard tab; it is explicitly not for initial project setup.
+dashboard tab; it is explicitly not for initial project setup. [`verbatra mcp`](/docs/cli/mcp) is
+the fourth: a stdio MCP server for a terminal-hosted or headless MCP client (Claude Desktop, Claude
+Code, Cursor) that wants the same status, glossary, and editing tools without a browser at all.
 
-None of the three gives an agent a way to spend without a human in the loop. `translate` itself has
-no spend gate of its own, so every agent-facing surface puts a confirmation step, or the
+None of the four gives an agent a way to spend without a human in the loop. `translate` itself has
+no spend gate of its own, so every agent-facing surface puts a confirmation step, or an
 `--allow-spend` flag, between the agent and a real provider call.
 
 ## Does this site publish anything for AI agents and crawlers?

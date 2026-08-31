@@ -77,7 +77,7 @@ damit sich kein Geheimnis in einer committeten Datei verstecken kann.
 **Symptom**: `No adapter is registered for format "..."`, gefolgt von der Liste der unterstützten
 Formate.
 
-**Ursache**: Das `format` der Konfiguration ist keine der acht registrierten Format-Ids. Das
+**Ursache**: Das `format` der Konfiguration ist keine der neun registrierten Format-Ids. Das
 wird geprüft, bevor irgendeine Datei gelesen wird.
 
 **Lösung**: Verwende eine der Ids aus [Formate](/docs/formats), zum Beispiel `i18next-json` oder
@@ -272,6 +272,34 @@ von Dateien ist immer an und braucht kein Flag.
 können außerdem Studios eigene Drossel treffen, `METHOD_RATE_LIMITED: Too many calls to this
 method; wait before retrying.`; das löst sich von selbst. Siehe
 [Review in Studio](/docs/review-in-studio).
+
+## MCP: @verbatra/mcp ist nicht installiert
+
+**Symptom**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
+@verbatra/mcp`
+
+**Ursache**: `@verbatra/mcp` ist ein separates Paket, das der `mcp`-Befehl dynamisch lädt, der Rest
+der CLI funktioniert also ohne es.
+
+**Lösung**: Installiere es, wie der Hinweis sagt, und führe `verbatra mcp` erneut aus, oder führe
+das `verbatra-mcp`-Binary aus, das `@verbatra/mcp` direkt mitliefert. Installierst du mit pnpm,
+lies zuerst
+[pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
+
+## MCP: tools/list eines Agenten zeigt nie retranslateEntry oder translatePending
+
+**Symptom**: `key.value`, `translation.editEntry` und die anderen lokalen Tools funktionieren, aber
+`translation.retranslateEntry` und `translation.translatePending` fehlen in der Tool-Liste, und ein
+Aufruf beider Namen schlägt als unbekanntes Tool fehl.
+
+**Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst, und
+das bereitgestellte Tool-Set des MCP-Servers darf sich nicht pro Verbindung ändern, also werden die
+beiden kostenpflichtigen Tools ganz weggelassen, statt bereitgestellt und dann abgelehnt zu werden,
+wenn Ausgaben nicht erlaubt sind.
+
+**Lösung**: Starte den Server neu mit `verbatra mcp --allow-spend` (oder `verbatra-mcp
+--allow-spend`), oder setze `VERBATRA_MCP_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Siehe
+[`verbatra mcp`](/docs/cli/mcp).
 
 ## Einen Lauf rückgängig machen (kein Fehlercode)
 

@@ -12,7 +12,7 @@ export type ScaffoldableProviderId = Exclude<ProviderId, "openai-compatible">;
 const _envCoversAllProviders: Record<ScaffoldableProviderId, string> = PROVIDER_ENV;
 void _envCoversAllProviders;
 
-type ModelProviderId = Exclude<ScaffoldableProviderId, "deepl">;
+type ModelProviderId = Exclude<ScaffoldableProviderId, "deepl" | "google-translate">;
 
 const _tokenLimitKeysCoverAllModelProviders: Record<ModelProviderId, string> =
   SCAFFOLD_TOKEN_LIMIT_KEYS;
@@ -30,14 +30,17 @@ void _tokenLimitKeysCoverAllModelProviders;
 export const scaffoldingMetadata = {
   /** The environment variable each scaffoldable provider reads its API key from. */
   providerEnv: PROVIDER_ENV,
-  /** A reasonable default model to prefill per language-model provider. DeepL has none, since it takes no model. */
+  /**
+   * A reasonable default model to prefill per language-model provider. DeepL and Google Cloud
+   * Translation have none, since neither takes a model.
+   */
   scaffoldModels: SCAFFOLD_MODELS,
   /**
    * The option key each language-model provider takes its output token limit under, since they do
    * not agree: Anthropic calls it `maxTokens` and the others `maxOutputTokens`. A generator that
    * prefills a token limit must read the key from here rather than assume one, because
    * {@link verbatraConfigSchema} validates each provider's options strictly and rejects the wrong
-   * one. DeepL has no entry, since it takes no token limit.
+   * one. DeepL and Google Cloud Translation have no entry, since neither takes a token limit.
    */
   providerTokenLimitKeys: SCAFFOLD_TOKEN_LIMIT_KEYS,
   /** Every i18n file format the SDK can read and write. */

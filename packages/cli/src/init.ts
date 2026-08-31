@@ -71,7 +71,7 @@ function detectFormat(cwd: string): { format: string; detected: boolean } {
 }
 
 function buildProviderOptions(id: ScaffoldableProviderId): Record<string, unknown> {
-  if (id === "deepl") {
+  if (id === "deepl" || id === "google-translate") {
     return {};
   }
   return {
@@ -97,7 +97,9 @@ function renderProviderBlock(id: ScaffoldableProviderId, options: Record<string,
   const note =
     id === "deepl"
       ? ["    // DeepL needs no model; add an optional glossaryId here if you have one."]
-      : [];
+      : id === "google-translate"
+        ? ["    // Google Cloud Translation needs no model."]
+        : [];
   const body =
     optionLines.length === 0 ? ["    options: {},"] : ["    options: {", ...optionLines, "    },"];
   return ["  provider: {", `    id: ${JSON.stringify(id)},`, ...note, ...body, "  },"].join("\n");

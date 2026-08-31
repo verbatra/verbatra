@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { redact } from "./redaction.js";
+import { redact } from "./redact.js";
 
 describe("redact", () => {
   it("returns the input unchanged when nothing matches", () => {
@@ -32,6 +32,7 @@ describe("redact", () => {
       "OPENAI_API_KEY",
       "GEMINI_API_KEY",
       "DEEPL_API_KEY",
+      "GOOGLE_TRANSLATE_API_KEY",
       "OPENAI_COMPATIBLE_API_KEY",
     ];
 

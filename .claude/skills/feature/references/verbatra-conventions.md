@@ -31,12 +31,14 @@ and route the issue back rather than shipping around it.
 - Acyclic dependency direction:
   config <- core <- format-adapters / ai-providers / exchange <- sdk <- cli /
   framework-adapters. Never import against the arrow. Never introduce a cycle.
-- Abstract provider layer (Strategy + Factory). Five providers ship today: OpenAI,
-  Anthropic, Gemini (@google/genai), DeepL, and openai-compatible (a local or
-  self-hosted OpenAI-compatible server such as LM Studio, Ollama, or vLLM). The four
-  LLM providers run through the shared `runLlmTranslation` layer with one canonical
-  zod schema fed to each SDK's structured-output mechanism. DeepL is an MT API and implements `translateBatch`
-  directly, reusing only cross-cutting pieces. All providers sit behind one
+- Abstract provider layer (Strategy + Factory). Six providers ship today: OpenAI,
+  Anthropic, Gemini (@google/genai), DeepL, Google Cloud Translation (Basic, v2),
+  and openai-compatible (a local or self-hosted OpenAI-compatible server such as LM
+  Studio, Ollama, or vLLM). The four LLM providers run through the shared
+  `runLlmTranslation` layer with one canonical zod schema fed to each SDK's
+  structured-output mechanism. DeepL and Google Cloud Translation are MT APIs and
+  implement `translateBatch` directly, reusing only cross-cutting pieces. All
+  providers sit behind one
   shape-agnostic `TranslationProvider` interface, constructed by the id-to-factory
   table in `packages/sdk/src/config/provider-config.ts` (`buildProvider`) and
   wrapped by `selectProvider`. `ProviderRegistry` is exported from
@@ -94,7 +96,8 @@ It lives in github.com/verbatra/action and is consumed via `uses:`.
 ## Security (high priority)
 
 - API keys only from env (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY,
-  DEEPL_API_KEY) via the readers in `ai-providers/src/env.ts`. Never from config
+  DEEPL_API_KEY, GOOGLE_TRANSLATE_API_KEY) via the readers in
+  `ai-providers/src/env.ts`. Never from config
   files, CLI args, or function arguments. Never commit, never log. Route anything
   that could contain a key through `redact()`.
 - Errors are structured `ProviderError`s, never raw SDK errors.

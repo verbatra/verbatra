@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterAndCapKeys, MAX_RENDERED_KEYS } from "./filter.js";
+import { filterAndCapKeys, type KeyValuePair, MAX_RENDERED_KEYS } from "./filter.js";
 
 function keysNamed(count: number): readonly string[] {
   return Array.from({ length: count }, (_, index) => `key.${index.toString().padStart(6, "0")}`);
@@ -70,5 +70,100 @@ describe("filterAndCapKeys", () => {
     const result = filterAndCapKeys(keys, "one");
 
     expect(result.items).toEqual(["zebra.one", "apple.one", "mango.one"]);
+  });
+
+  it("matches on a key's source value when the key name does not match", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+    const values = new Map<string, KeyValuePair>([
+      ["greeting.hello", { source: "Welcome to the store" }],
+    ]);
+
+    const result = filterAndCapKeys(keys, "welcome", values);
+
+    expect(result).toEqual({ items: ["greeting.hello"], totalMatches: 1, truncated: false });
+  });
+
+  it("matches on a key's target value when neither the key name nor the source match", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+    const values = new Map<string, KeyValuePair>([
+      ["greeting.hello", { source: "Welcome", target: "Willkommen" }],
+    ]);
+
+    const result = filterAndCapKeys(keys, "willkommen", values);
+
+    expect(result.items).toEqual(["greeting.hello"]);
+  });
+
+  it("still matches on the key name when the query does not appear in any value", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+    const values = new Map<string, KeyValuePair>([
+      ["greeting.hello", { source: "Welcome" }],
+      ["greeting.bye", { source: "Farewell" }],
+    ]);
+
+    const result = filterAndCapKeys(keys, "hello", values);
+
+    expect(result.items).toEqual(["greeting.hello"]);
+  });
+
+  it("produces no false positive for a key whose value and name both miss the query", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+    const values = new Map<string, KeyValuePair>([
+      ["greeting.hello", { source: "Welcome" }],
+      ["greeting.bye", { source: "Farewell" }],
+    ]);
+
+    expect(filterAndCapKeys(keys, "nonexistent", values).items).toEqual([]);
+  });
+
+  it("tolerates a key with no entry in the values map (falls back to key-only matching)", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+    const values = new Map<string, KeyValuePair>([["greeting.bye", { source: "Farewell" }]]);
+
+    expect(filterAndCapKeys(keys, "hello", values).items).toEqual(["greeting.hello"]);
+  });
+
+  it("falls back to key-only matching when no values map is supplied at all", () => {
+    const keys = ["greeting.hello", "greeting.bye"];
+
+    expect(filterAndCapKeys(keys, "welcome").items).toEqual([]);
+  });
+
+  it("tolerates an orphaned key whose value pair has no source, matching on target instead", () => {
+    const keys = ["legacy.orphan"];
+    const values = new Map<string, KeyValuePair>([
+      ["legacy.orphan", { target: "Alte Übersetzung" }],
+    ]);
+
+    expect(filterAndCapKeys(keys, "übersetzung", values).items).toEqual(["legacy.orphan"]);
+  });
+
+  it("filters over the full list before capping even when only values match, not keys", () => {
+    const decoyKeys = keysNamed(MAX_RENDERED_KEYS);
+    const keys = [...decoyKeys, "needle.value.only"];
+    const values = new Map<string, KeyValuePair>([
+      ["needle.value.only", { source: "a very specific needle string" }],
+    ]);
+
+    const result = filterAndCapKeys(keys, "needle", values);
+
+    expect(result).toEqual({
+      items: ["needle.value.only"],
+      totalMatches: 1,
+      truncated: false,
+    });
+  });
+
+  it("counts value matches toward totalMatches and truncated, same as key matches", () => {
+    const keys = keysNamed(MAX_RENDERED_KEYS + 1);
+    const values = new Map<string, KeyValuePair>(
+      keys.map((key) => [key, { source: `value for ${key}` }] as const),
+    );
+
+    const result = filterAndCapKeys(keys, "value for", values);
+
+    expect(result.totalMatches).toBe(MAX_RENDERED_KEYS + 1);
+    expect(result.truncated).toBe(true);
+    expect(result.items).toHaveLength(MAX_RENDERED_KEYS);
   });
 });

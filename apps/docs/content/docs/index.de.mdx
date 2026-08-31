@@ -23,7 +23,7 @@ Eine committete Lock-Datei, `verbatra.lock.json`, hält für jeden übersetzten 
 
 Jeder String, den der Provider zurückgibt, wird vor dem Schreiben geprüft: Eine Übersetzung, die eine der Prüfungen des Integritäts-Gates nicht besteht, wird zurückgehalten statt ausgeliefert und beim nächsten Lauf erneut versucht. Die schreibgeschützten Befehle `check` und `diff` melden Drift, ohne etwas zu schreiben, sodass deine CI anhand ihrer Exit-Codes ein Gate setzen kann.
 
-verbatra liest und schreibt acht Formate (i18next-, vue-i18n-, next-intl- und ngx-translate-JSON, XLIFF, YAML, Flutter ARB und Java/Spring-Properties) und übersetzt über fünf Provider (Anthropic, OpenAI, Gemini, DeepL und jeden OpenAI-kompatiblen Server, auch lokale) hinter einer einzigen Schnittstelle. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
+verbatra liest und schreibt zwölf Formate (i18next-, vue-i18n-, next-intl- und ngx-translate-JSON, XLIFF, YAML, Flutter ARB, Java/Spring-Properties, Apple-`.strings`, Xcode String Catalogs, Android-`strings.xml` und gettext-`.po`/`.pot`) und übersetzt über sechs Provider (Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation und jeden OpenAI-kompatiblen Server, auch lokale) hinter einer einzigen Schnittstelle. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
 
 ## Die Pakete
 

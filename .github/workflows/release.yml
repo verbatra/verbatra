@@ -86,7 +86,7 @@ jobs:
       # ^build automatically) so this pre-flight never builds apps/docs. Each publishable package
       # is named explicitly rather than relying on a transitive devDependency edge to pull it in.
       - name: Build
-        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio
+        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio --filter=@verbatra/mcp
 
   publish:
     name: Version or publish
@@ -139,7 +139,7 @@ jobs:
       # Fonts over the network). Each publishable package is named explicitly rather than relying
       # on a transitive devDependency edge to pull it in.
       - name: Build
-        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio
+        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio --filter=@verbatra/mcp
 
       # Standing hazard when entering pre mode, recorded here because it is not obvious and a
       # wrapper script cannot fix it. `changeset publish` resolves a dist-tag per package: a

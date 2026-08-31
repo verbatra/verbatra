@@ -23,7 +23,7 @@ A committed lock file, `verbatra.lock.json`, records for every translated key th
 
 Every string the provider returns is checked before it is written: a translation that fails any of the integrity gate's checks is withheld instead of shipped, then retried on the next run. The read-only `check` and `diff` commands report drift without writing anything, so CI can gate on their exit codes.
 
-verbatra reads and writes eight formats (i18next, vue-i18n, next-intl, and ngx-translate JSON, XLIFF, YAML, Flutter ARB, and Java/Spring properties) and translates through five providers (Anthropic, OpenAI, Gemini, DeepL, and any OpenAI-compatible server, including local ones) behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
+verbatra reads and writes twelve formats (i18next, vue-i18n, next-intl, and ngx-translate JSON, XLIFF, YAML, Flutter ARB, Java/Spring properties, Apple `.strings`, Xcode String Catalogs, Android `strings.xml`, and gettext `.po`/`.pot`) and translates through six providers (Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, and any OpenAI-compatible server, including local ones) behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
 
 ## The packages
 

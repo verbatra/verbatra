@@ -51,7 +51,7 @@ The action fetches and runs `@verbatra/cli` at exactly the version you pin, so t
 
 ### Secret wiring
 
-The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `DEEPL_API_KEY`. The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
+The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`. The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
 
 ## Inputs
 

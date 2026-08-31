@@ -120,6 +120,16 @@ Relance le fournisseur pour exactement une clé et une locale : un appel à entr
 
 Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`.
 
+## Lectures de contenu en masse
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque. C'est le pendant en masse de `keyValue` : utilise-la quand tu as besoin de contenu de traduction en masse, par exemple pour chercher ou parcourir des valeurs plutôt que de simples noms de clé, puisque `keyValue` ne répond que pour une clé à la fois. En lecture seule.
+
+Entrée : `{ config, cwd?, locales? }` ; un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, values }`, une entrée par locale, où `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source.
+
 ## Instantanés de fichiers de locale
 
 Les briques d'un observateur à rafraîchissement en direct comme celui de Studio : capture l'état d'un fichier de locale, puis compte ce qui a changé depuis.
@@ -206,6 +216,20 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 ### scaffoldingMetadata
 
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` couvre les quatre fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
+
+## Expurgation des secrets
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Retire d'une chaîne les formes de clé API de fournisseur et la valeur exacte actuelle de toute
+variable d'environnement de fournisseur configurée, en remplaçant chaque correspondance par
+`[REDACTED]`. `@verbatra/studio` et `@verbatra/mcp` l'appliquent tous deux à chaque valeur qu'ils
+renvoient à un appelant qu'ils n'ont pas eux-mêmes générée, comme un terme de glossaire, un chemin
+de fichier ou un message d'erreur d'un système en amont, afin qu'une clé déjà présente dans ton
+environnement ou écrite dans un fichier du projet ne puisse jamais atteindre un onglet de
+navigateur, un agent ou une ligne de log.
 
 ## Le point d'injection de dépendances
 

@@ -13,6 +13,7 @@ const SENTINELS = {
   OPENAI_API_KEY: "sentinel-openai-2b77e4",
   GEMINI_API_KEY: "sentinel-gemini-11cd90",
   DEEPL_API_KEY: "sentinel-deepl-77aa02",
+  GOOGLE_TRANSLATE_API_KEY: "sentinel-google-translate-5c19f0",
 } as const;
 
 const ENV_VAR_NAMES = Object.keys(SENTINELS) as (keyof typeof SENTINELS)[];

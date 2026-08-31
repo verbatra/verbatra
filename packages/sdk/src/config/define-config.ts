@@ -58,6 +58,14 @@ export function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConf
  */
 export function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
 /**
+ * Types a `verbatra.config.ts` narrowed to the Google Cloud Translation provider. Like DeepL, it is
+ * a machine-translation API rather than a language model, so its options carry no model field.
+ *
+ * @param config - The config object, narrowed to the Google Cloud Translation provider.
+ * @returns The same object, typed as {@link VerbatraConfigInput}.
+ */
+export function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+/**
  * Types a `verbatra.config.ts` for any supported provider. This is the fallback overload, and the
  * one that serves `openai-compatible`, where the model is a free-form string because the endpoint
  * is a local or self-hosted server whose model list the SDK cannot know.

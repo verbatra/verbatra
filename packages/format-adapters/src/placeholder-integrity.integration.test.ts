@@ -1,6 +1,8 @@
 import { checkPlaceholders } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
+import { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 import { createArbAdapter } from "./arb/arb-adapter.js";
+import { createGettextAdapter } from "./gettext/gettext-adapter.js";
 import { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 import { analyzeIcuValue } from "./icu/analyze.js";
 import { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
@@ -91,6 +93,63 @@ describe("placeholder integrity is multiset-aware end to end", () => {
     const result = checkPlaceholders(source, translated);
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(['<x id="2"/>']);
+  });
+
+  it("apple-strings: dropping a printf placeholder is a mismatch", () => {
+    const adapter = createAppleStringsAdapter();
+    const source = adapter.extractPlaceholders("%1$@ has %2$d items");
+    const translated = adapter.extractPlaceholders("%1$@ has items");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["%2$d"]);
+  });
+
+  it("apple-strings: reordering positional printf placeholders still matches", () => {
+    const adapter = createAppleStringsAdapter();
+    const source = adapter.extractPlaceholders("%1$@ ordered %2$@");
+    const translated = adapter.extractPlaceholders("%2$@ was ordered by %1$@");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(true);
+    expect(result.reordered).toBe(true);
+  });
+
+  it("apple-strings: a percent sign followed by ordinary text extracts no placeholder", () => {
+    const adapter = createAppleStringsAdapter();
+    expect(adapter.extractPlaceholders("50% off")).toEqual([]);
+  });
+
+  it("apple-strings: dropping a printf placeholder inside a stringsdict plural category is a mismatch", () => {
+    const adapter = createAppleStringsAdapter();
+    const source = adapter.extractPlaceholders("%d photos");
+    const translated = adapter.extractPlaceholders("photos");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["%d"]);
+  });
+
+  it("apple-strings: a faithful translation of a stringsdict plural category still matches", () => {
+    const adapter = createAppleStringsAdapter();
+    const source = adapter.extractPlaceholders("%d photos");
+    const translated = adapter.extractPlaceholders("%d Fotos");
+    expect(checkPlaceholders(source, translated).matches).toBe(true);
+  });
+
+  it("gettext: dropping a printf %(name)s placeholder is a mismatch", () => {
+    const adapter = createGettextAdapter();
+    const source = adapter.extractPlaceholders("%(count)d items for %(user)s");
+    const translated = adapter.extractPlaceholders("%(count)d items");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["%(user)s"]);
+  });
+
+  it("gettext: reordering positional printf placeholders still matches", () => {
+    const adapter = createGettextAdapter();
+    const source = adapter.extractPlaceholders("%1$s gave %2$s a gift");
+    const translated = adapter.extractPlaceholders("%2$s received a gift from %1$s");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(true);
+    expect(result.reordered).toBe(true);
   });
 
   it("a faithful translation that preserves every occurrence still matches", () => {

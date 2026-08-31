@@ -775,7 +775,9 @@ describe("TranslationsPanel key explorer", () => {
 
     await switchToList(view);
 
-    expect(view.get('input[type="search"]').getAttribute("aria-label")).toBe("Filter keys");
+    expect(view.get('input[type="search"]').getAttribute("aria-label")).toBe(
+      "Filter by key or translation text",
+    );
     expect(view.all("details")).toHaveLength(2);
   });
 
@@ -839,6 +841,111 @@ describe("TranslationsPanel key explorer", () => {
       "Orphaned(0)",
     ]);
     expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.cta"]);
+  });
+
+  it("matches a query found only in a key's value, not its key name", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: {
+              "app.title": { source: "Welcome" },
+              "app.body": { source: "Please review your shipping address" },
+            },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    typeInto(filterInput(view), "shipping");
+
+    expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.body"]);
+  });
+
+  it("still matches a query found in the key name when no value matches", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: {
+              "app.title": { source: "Welcome" },
+              "app.body": { source: "Please review your shipping address" },
+            },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    typeInto(filterInput(view), "title");
+
+    expect(view.all("details ul button").map((button) => button.textContent)).toEqual([
+      "app.title",
+    ]);
+  });
+
+  it("produces no false positive for a key whose value and name both miss the query", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: ["app.title", "app.body"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 2, stale: 0, upToDate: 8 }]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: {
+              "app.title": { source: "Welcome" },
+              "app.body": { source: "Please review your shipping address" },
+            },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    typeInto(filterInput(view), "nothing matches this");
+
+    expect(view.all("details ul button")).toHaveLength(0);
+  });
+
+  it("keeps the 500 cap correct when a value match, not a key match, pushes the total over it", async () => {
+    const decoyKeys = Array.from({ length: MAX_RENDERED_KEYS }, (_, index) => `app.key${index}`);
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { missing: [...decoyKeys, "app.needle"] })]),
+      "status.check": checkResult([
+        { locale: "de", missing: decoyKeys.length + 1, stale: 0, upToDate: 0 },
+      ]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: { "app.needle": { source: "a very specific needle string" } },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    typeInto(filterInput(view), "needle");
+
+    expect(view.all("details ul button").map((button) => button.textContent)).toEqual([
+      "app.needle",
+    ]);
+    expect(view.text()).not.toContain("refine the filter to see more");
   });
 
   it("caps a long list and says how many keys it is hiding", async () => {

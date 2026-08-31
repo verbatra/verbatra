@@ -22,6 +22,7 @@ import {
   type LocaleWriteLockOptions,
   type LockWaitListener,
   withLocaleWriteLock,
+  writeLockKeyFor,
 } from "../lock/locale-write-lock.js";
 import {
   baselineFor,
@@ -248,7 +249,7 @@ async function runLiveLocale(
   };
   return withLocaleWriteLock(
     context.cwd,
-    targetLocale,
+    writeLockKeyFor(context.config.format, targetLocale),
     context.fs,
     async () => {
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);

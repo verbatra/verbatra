@@ -30,7 +30,7 @@ La barra lateral tiene cuatro páginas: **Traducciones**, **Revisión**, **Activ
 Traducciones es la vista de trabajo: todo lo pendiente en tus locales de destino y cuán avanzado va cada locale.
 
 - **La franja de estadísticas** responde la primera pregunta de un vistazo: cuántas claves necesitan atención, la cobertura media, cuántos locales están sincronizados y el uso de tokens de la última ejecución. Cuando no hay nada pendiente, un banner de todo en orden reemplaza al explorador de claves.
-- **El explorador de claves** lista cada clave faltante, modificada y huérfana, como una cuadrícula de clave por locale o como listas por locale con un filtro de claves.
+- **El explorador de claves** lista cada clave faltante, modificada y huérfana, como una cuadrícula de clave por locale o como listas por locale con un filtro que coincide con el nombre de una clave o con su texto de traducción.
 - **La tabla de locales** muestra la cobertura por locale (faltante, obsoleta, al día) combinada con el estado de [el archivo de bloqueo](/docs/the-lock-file), para que veas si la entrada del bloqueo de cada locale concuerda con sus archivos.
 
 Haz clic en cualquier clave para abrir su vista de detalle: los valores por locale, el estado de sincronización de cada locale y un indicador de integridad por traducción (los marcadores de posición coinciden, hay una discrepancia de marcadores con los tokens faltantes y sobrantes nombrados, o la sintaxis del mensaje es inválida). Desde ahí, **Edit** abre el editor para el valor de un locale.
@@ -51,7 +51,9 @@ La página Revisión lista cada entrada que las heurísticas de revisión marcar
   caption="La cola de revisión después de una ejecución. Studio viene en claro y oscuro; cambia la captura para compararlos."
 />
 
-Filtra por locale o por subcadena de la clave, y luego trabaja las filas:
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+Filtra por locale, o por una subcadena de la clave, el texto de origen o el texto de destino de una fila, y luego trabaja las filas:
 
 - **Edit** abre el mismo editor con puerta de integridad que la página Traducciones. Una edición aceptada quita la fila de la cola.
 - **Approve** descarta la fila como "vista, está bien así".

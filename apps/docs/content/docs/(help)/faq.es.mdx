@@ -44,16 +44,16 @@ más. Y esa cifra es solo el coste de la primera ejecución: las ejecuciones son
 que en el día a día pagas por el puñado de cadenas que cambiaste, no por el archivo entero. DeepL
 no encaja en esta fórmula en absoluto, ya que factura caracteres de origen en lugar de tokens.
 
-Consulta [Estimar el coste](/docs/estimating-cost) para el método, el caso de DeepL y cómo
+Consulta [Estimar el coste](/docs/estimating-cost) para el método, el caso de la traducción automática y cómo
 calibrar contra una ejecución real medida.
 
 ## ¿Con qué proveedor empiezo?
 
 Gemini: tiene un nivel de API gratuito, así que puedes traducir un proyecto entero sin coste, y
 cambiar más tarde es editar un solo `id` en la configuración. Anthropic y OpenAI son las opciones
-de calidad de LLM de pago, DeepL es la opción dedicada de traducción automática, y
-`openai-compatible` mantiene todo en tu propio hardware. Consulta [Proveedores](/docs/providers)
-para la comparación completa.
+de calidad de LLM de pago, DeepL y Google Cloud Translation son las opciones dedicadas de
+traducción automática, y `openai-compatible` mantiene todo en tu propio hardware. Consulta
+[Proveedores](/docs/providers) para la comparación completa.
 
 ## ¿Puedo usar un modelo local?
 
@@ -117,8 +117,9 @@ cargada dinámicamente por el comando `studio`.
 
 ## ¿Dónde viven las claves de API?
 
-Solo en variables de entorno: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` o
-`DEEPL_API_KEY`, más la variable que tú nombres para `openai-compatible`. `translate`, `watch`,
+Solo en variables de entorno: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
+`DEEPL_API_KEY` o `GOOGLE_TRANSLATE_API_KEY`, más la variable que tú nombres para
+`openai-compatible`. `translate`, `watch`,
 `doctor` y `studio` cargan `.env` y `.env.local` desde el directorio de trabajo (las variables del
 entorno real ganan). El esquema de configuración rechaza las claves desconocidas precisamente para que un
 secreto no pueda acabar en un archivo confirmado, y los mensajes de error nombran la variable pero
@@ -148,7 +149,7 @@ de salida.
 
 ## ¿Puede un agente de IA configurar o manejar verbatra por mí?
 
-Tres superficies distintas para tres trabajos distintos. [Configura verbatra con un agente de
+Cuatro superficies distintas para cuatro trabajos distintos. [Configura verbatra con un agente de
 IA](/docs/start-with-ai) es un prompt listo para copiar y pegar en Claude Code, Cursor o cualquier
 agente de código que pueda leer tu proyecto y ejecutar comandos de shell: inspecciona una
 configuración de i18n existente, instala la CLI, genera una configuración a medida, ejecuta
@@ -159,11 +160,14 @@ mismo envoltorio `--json` y los mismos códigos de salida que usan esos comandos
 un agente del navegador](/docs/agent-tools-in-studio) es otra superficie distinta: un flag
 opcional `--expose-agent-tools` en `verbatra studio` que registra herramientas WebMCP para que un
 agente de IA en el navegador pueda manejar un proyecto ya configurado desde una pestaña abierta y
-autenticada del panel; no está pensado para la configuración inicial.
+autenticada del panel; no está pensado para la configuración inicial. [`verbatra mcp`](/docs/cli/mcp)
+es la cuarta: un servidor MCP por stdio para un cliente MCP alojado en terminal o headless (Claude
+Desktop, Claude Code, Cursor) que quiere las mismas herramientas de estado, glosario y edición sin
+ningún navegador.
 
-Ninguna de las tres le da a un agente la manera de gastar sin un humano en el bucle. `translate`
+Ninguna de las cuatro le da a un agente la manera de gastar sin un humano en el bucle. `translate`
 en sí no tiene ninguna barrera de gasto propia, así que cada superficie orientada a agentes coloca
-un paso de confirmación, o el flag `--allow-spend`, entre el agente y una llamada real al
+un paso de confirmación, o un flag `--allow-spend`, entre el agente y una llamada real al
 proveedor.
 
 ## ¿Este sitio publica algo para agentes de IA y rastreadores?

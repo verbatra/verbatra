@@ -15,6 +15,7 @@ function makeConfig(
   return {
     sourceLocale: overrides.sourceLocale ?? "en",
     targetLocales: overrides.targetLocales ?? ["de"],
+    format: overrides.format ?? "i18next-json",
     files: {
       pattern,
       ...(overrides.localeStyle !== undefined ? { localeStyle: overrides.localeStyle } : {}),
@@ -394,5 +395,67 @@ describe("localeFor", () => {
     expect(resolver.localeFor(resolve(CWD, "res/values-de/strings.xml"))).toBe("de");
     expect(resolver.localeFor(resolve(CWD, "res/values-b+zh+Hans/strings.xml"))).toBe("zh-Hans");
     expect(resolver.localeFor(resolve(CWD, "res/values-zh/strings.xml"))).toBeUndefined();
+  });
+});
+
+describe("createLocalePathResolver, shared-catalogue formats", () => {
+  const SHARED_FORMAT: LocalePathResolverConfig["format"] = "apple-xcstrings";
+
+  it("resolves every target locale to the identical path", () => {
+    const config = makeConfig("{locale}Localizable.xcstrings", {
+      targetLocales: ["de", "fr", "es"],
+      format: SHARED_FORMAT,
+    });
+    const resolver = createLocalePathResolver(CWD, config);
+    const expected = resolve(CWD, "Localizable.xcstrings");
+    expect(resolver.pathFor("de")).toBe(expected);
+    expect(resolver.pathFor("fr")).toBe(expected);
+    expect(resolver.pathFor("es")).toBe(expected);
+  });
+
+  it("resolves the source locale to the same shared path as every target", () => {
+    const config = makeConfig("{locale}Localizable.xcstrings", {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: SHARED_FORMAT,
+    });
+    const resolver = createLocalePathResolver(CWD, config);
+    expect(resolver.pathFor("en")).toBe(resolver.pathFor("de"));
+  });
+
+  it("still requires the {locale} token in the pattern text", () => {
+    const config = makeConfig("Localizable.xcstrings", {
+      targetLocales: ["de"],
+      format: SHARED_FORMAT,
+    });
+    expectSdkError(() => createLocalePathResolver(CWD, config), "LOCALE_LAYOUT_INVALID");
+  });
+
+  it("does not throw LOCALE_PATH_COLLISION for locales sharing one path", () => {
+    const config = makeConfig("{locale}Localizable.xcstrings", {
+      targetLocales: ["de", "fr", "es", "it"],
+      format: SHARED_FORMAT,
+    });
+    expect(() => createLocalePathResolver(CWD, config)).not.toThrow();
+  });
+
+  it("ignores localeStyle entirely for a shared-catalogue format", () => {
+    const config = makeConfig("{locale}Localizable.xcstrings", {
+      targetLocales: ["pt-BR"],
+      format: SHARED_FORMAT,
+      localeStyle: "posix",
+    });
+    const resolver = createLocalePathResolver(CWD, config);
+    expect(resolver.pathFor("pt-BR")).toBe(resolve(CWD, "Localizable.xcstrings"));
+  });
+
+  it("returns undefined from localeFor for every path, including the shared one", () => {
+    const config = makeConfig("{locale}Localizable.xcstrings", {
+      targetLocales: ["de", "fr"],
+      format: SHARED_FORMAT,
+    });
+    const resolver = createLocalePathResolver(CWD, config);
+    expect(resolver.localeFor(resolve(CWD, "Localizable.xcstrings"))).toBeUndefined();
+    expect(resolver.localeFor(resolve(CWD, "nowhere.xcstrings"))).toBeUndefined();
   });
 });

@@ -296,6 +296,7 @@ describe("doctor: the API key check", () => {
       ["openai", "OPENAI_API_KEY", { model: "gpt-test", maxOutputTokens: 1024 }],
       ["gemini", "GEMINI_API_KEY", { model: "gemini-test", maxOutputTokens: 1024 }],
       ["deepl", "DEEPL_API_KEY", {}],
+      ["google-translate", "GOOGLE_TRANSLATE_API_KEY", {}],
     ] as const;
 
     for (const [id, envVar, options] of cases) {

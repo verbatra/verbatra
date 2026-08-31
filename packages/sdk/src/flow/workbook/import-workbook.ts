@@ -18,7 +18,7 @@ import { errorMessage, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
-import { withLocaleWriteLock } from "../../lock/locale-write-lock.js";
+import { withLocaleWriteLock, writeLockKeyFor } from "../../lock/locale-write-lock.js";
 import {
   baselineFor,
   lockFilePath,
@@ -461,15 +461,20 @@ export async function importWorkbook(
       if (dryRun) {
         summary = (await runSheet(ctx, sheet, lock)).summary;
       } else {
-        summary = await withLocaleWriteLock(cwd, sheet.locale, fs, async () => {
-          const result = await runSheet(ctx, sheet, lock);
-          await updateLockFileLocale(cwd, fs, sheet.locale, {
-            mode: "replace",
-            entries: result.lockEntries,
-          });
-          collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
-          return result.summary;
-        });
+        summary = await withLocaleWriteLock(
+          cwd,
+          writeLockKeyFor(config.format, sheet.locale),
+          fs,
+          async () => {
+            const result = await runSheet(ctx, sheet, lock);
+            await updateLockFileLocale(cwd, fs, sheet.locale, {
+              mode: "replace",
+              entries: result.lockEntries,
+            });
+            collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
+            return result.summary;
+          },
+        );
       }
       summaries.push(summary);
     } catch (error) {

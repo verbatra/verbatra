@@ -20,6 +20,7 @@ describe("scaffoldingMetadata", () => {
       openai: "OPENAI_API_KEY",
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
+      "google-translate": "GOOGLE_TRANSLATE_API_KEY",
     });
   });
 

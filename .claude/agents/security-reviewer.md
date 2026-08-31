@@ -17,7 +17,8 @@ Read `CLAUDE.md` at the repository root first.
 ## What you audit
 
 - API keys: only read from env (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY,
-  DEEPL_API_KEY) via the readers in `ai-providers/src/env.ts`. Never from config
+  DEEPL_API_KEY, GOOGLE_TRANSLATE_API_KEY) via the readers in
+  `ai-providers/src/env.ts`. Never from config
   files, CLI args, or function arguments. Never logged, never committed. Anything
   that could carry a key goes through `redact()`. A leak path is a blocking finding.
 - Errors: surfaced as structured ProviderError, never raw SDK errors that could leak

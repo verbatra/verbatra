@@ -30,7 +30,7 @@ Die Seitenleiste hat vier Seiten: **Übersetzungen**, **Review**, **Aktivität**
 Übersetzungen ist die Arbeitsansicht: alles Ausstehende über deine Ziel-Locales hinweg, und wie weit jedes Locale ist.
 
 - **Die Statistikleiste** beantwortet die erste Frage auf einen Blick: wie viele Keys Aufmerksamkeit brauchen, die durchschnittliche Abdeckung, wie viele Locales synchron sind und der Token-Verbrauch des letzten Laufs. Wenn nichts aussteht, ersetzt ein Alles-erledigt-Banner den Key-Explorer.
-- **Der Key-Explorer** listet jeden fehlenden, geänderten und verwaisten Key, als Raster Key mal Locale oder als Listen pro Locale mit einem Key-Filter.
+- **Der Key-Explorer** listet jeden fehlenden, geänderten und verwaisten Key, als Raster Key mal Locale oder als Listen pro Locale mit einem Filter, der auf den Namen eines Keys oder seinen Übersetzungstext passt.
 - **Die Locale-Tabelle** zeigt die Abdeckung pro Locale (fehlend, veraltet, aktuell), zusammengeführt mit dem Zustand der [Lock-Datei](/docs/the-lock-file), damit du siehst, ob der Lock-Eintrag jedes Locales mit seinen Dateien übereinstimmt.
 
 Klicke auf einen beliebigen Key, um seine Detailansicht zu öffnen: die Werte pro Locale, der Sync-Status jedes Locales und ein Integritätshinweis pro Übersetzung (Platzhalter stimmen, Platzhalter-Abweichung mit den fehlenden und überzähligen Tokens beim Namen genannt, oder ungültige Nachrichtensyntax). Von dort öffnet **Edit** den Editor für den Wert eines Locales.
@@ -51,7 +51,9 @@ Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `tr
   caption="Die Review-Warteschlange nach einem Lauf. Studio gibt es hell und dunkel; wechsle den Screenshot, um zu vergleichen."
 />
 
-Filtere nach Locale oder Key-Teilstring, dann arbeite die Zeilen ab:
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+Filtere nach Locale, oder nach einem Teilstring aus dem Key, dem Quelltext oder dem Zieltext einer Zeile, dann arbeite die Zeilen ab:
 
 - **Edit** öffnet denselben integritätsgesicherten Editor wie die Seite Übersetzungen. Eine akzeptierte Bearbeitung entfernt die Zeile aus der Warteschlange.
 - **Approve** verwirft die Zeile als "angesehen, passt so".

@@ -154,6 +154,7 @@ describe("GET /events: secret sweep", () => {
     OPENAI_API_KEY: "sentinel-openai-sse-4d5e6f",
     GEMINI_API_KEY: "sentinel-gemini-sse-7a8b9c",
     DEEPL_API_KEY: "sentinel-deepl-sse-0d1e2f",
+    GOOGLE_TRANSLATE_API_KEY: "sentinel-google-translate-sse-3f4a5b",
   } as const;
   const ENV_VAR_NAMES = Object.keys(SENTINELS) as (keyof typeof SENTINELS)[];
   const originalValues: Record<string, string | undefined> = {};

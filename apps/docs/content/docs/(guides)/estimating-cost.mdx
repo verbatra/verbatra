@@ -66,6 +66,7 @@ verbatra deliberately publishes no prices. Look up the current rate for your mod
 | Anthropic | input and output tokens | [Anthropic pricing](https://www.anthropic.com/pricing) |
 | OpenAI | input and output tokens | [OpenAI API pricing](https://openai.com/api/pricing/) |
 | DeepL | source **characters**, not tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
+| Google Cloud Translation | source **characters**, not tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nothing: your own hardware | no API cost |
 
 ## A worked example
@@ -139,6 +140,12 @@ DeepL is a machine-translation API, not a token-billed LLM, so it does not share
 - verbatra sends DeepL only the source text. There are no system rules, no key names, and no JSON envelope in the billed payload, so there is no per-request constant to amortize.
 - DeepL withholds strings carrying placeholders or ICU syntax rather than risking them, so the characters actually sent can be lower than the raw total.
 - DeepL reports no token usage, so a configured `maxTokens` budget is reported as unsupported rather than silently appearing to work.
+
+## Google Cloud Translation is billed the same way
+
+<AvailableFrom version="0.10.0" />
+
+Google Cloud Translation is also a machine-translation API, billed like DeepL above: the unit is source **characters**, not tokens (see [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra sends it only the source text, withholds strings carrying placeholders or ICU syntax rather than risking them, and it reports no token usage, so a configured `maxTokens` budget is reported as unsupported rather than silently appearing to work.
 
 ## Why the second run is nearly free
 

@@ -25,6 +25,7 @@ const code = await run(
     doctor,
     loadConfigWithMeta,
     importStudio: () => import("@verbatra/studio"),
+    importMcp: () => import("@verbatra/mcp"),
   },
   {
     out: (text) => {
@@ -40,6 +41,10 @@ const code = await run(
       process.on("SIGTERM", () => session.requestStop());
     },
     onStudioSession: (session) => {
+      process.on("SIGINT", () => session.requestStop());
+      process.on("SIGTERM", () => session.requestStop());
+    },
+    onMcpSession: (session) => {
       process.on("SIGINT", () => session.requestStop());
       process.on("SIGTERM", () => session.requestStop());
     },

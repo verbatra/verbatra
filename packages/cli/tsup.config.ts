@@ -5,5 +5,5 @@ export default createTsupConfig({
   format: ["esm"],
   dts: { entry: "src/lib.ts" },
   banner: { js: "#!/usr/bin/env node" },
-  external: ["@verbatra/studio"],
+  external: ["@verbatra/studio", "@verbatra/mcp"],
 });

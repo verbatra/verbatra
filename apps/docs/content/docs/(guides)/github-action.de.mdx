@@ -51,7 +51,7 @@ Die Action holt und startet `@verbatra/cli` in exakt der Version, die du pinnst;
 
 ### Secret-Verdrahtung
 
-Die Action führt die CLI aus, und die CLI liest den API-Key des Providers nur aus der Umgebung. Das gilt für den Standardbefehl `translate`: Übergib den Key aus deinen Repository-Secrets unter der Variable, die dein Provider erwartet (siehe [Provider](/docs/providers)): `ANTHROPIC_API_KEY` wie oben, `OPENAI_API_KEY`, `GEMINI_API_KEY` oder `DEEPL_API_KEY`. Die schreibgeschützten Befehle `check` und `diff` rufen keinen Provider auf und brauchen daher gar keinen Key - genau das macht sie als Gate auf einem Fork-Pull-Request nutzbar, wo Secrets nicht verfügbar sind. Es gibt keine Key-Eingabe; ein Key reist nie als Action-Eingabe oder CLI-Argument.
+Die Action führt die CLI aus, und die CLI liest den API-Key des Providers nur aus der Umgebung. Das gilt für den Standardbefehl `translate`: Übergib den Key aus deinen Repository-Secrets unter der Variable, die dein Provider erwartet (siehe [Provider](/docs/providers)): `ANTHROPIC_API_KEY` wie oben, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY`. Die schreibgeschützten Befehle `check` und `diff` rufen keinen Provider auf und brauchen daher gar keinen Key - genau das macht sie als Gate auf einem Fork-Pull-Request nutzbar, wo Secrets nicht verfügbar sind. Es gibt keine Key-Eingabe; ein Key reist nie als Action-Eingabe oder CLI-Argument.
 
 ## Eingaben
 

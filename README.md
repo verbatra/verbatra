@@ -5,7 +5,7 @@
 <h1 align="center">verbatra</h1>
 
 <p align="center">
-  Automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, or an openai-compatible local or self-hosted model.
+  Automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, or an openai-compatible local or self-hosted model.
 </p>
 
 <p align="center">
@@ -64,7 +64,7 @@ It ships in three packages. `@verbatra/cli` gives you a `verbatra` command for t
 ## Features
 
 - **Many locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, ARB, and Java/Spring properties ([Formats](https://verbatra.kreitz-webdev.de/docs/formats)).
-- **Five providers behind one interface.** Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted server such as LM Studio, Ollama, or vLLM) as LLMs, plus DeepL (machine translation) ([Providers](https://verbatra.kreitz-webdev.de/docs/providers)).
+- **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted server such as LM Studio, Ollama, or vLLM) as LLMs, plus DeepL and Google Cloud Translation (machine translation) ([Providers](https://verbatra.kreitz-webdev.de/docs/providers)).
 - **Incremental by default.** A lock file records what has been translated, so each run sends only new or changed strings to the provider.
 - **Project scaffolding.** `verbatra init` writes a config and a `.env.example` for your project, and gitignores the local files it must not commit.
 - **Dry runs.** `--dry-run` previews what would change without calling a provider or writing files.
@@ -104,7 +104,7 @@ export default defineConfig({
 
 `files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list the same locale twice (compared case-insensitively). The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, and `properties`. The optional `glossary` (a term map, given inline or as a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output.
 
-The `provider` block is selected by `id`. The LLM providers take a `model` and a token limit; DeepL needs no model:
+The `provider` block is selected by `id`. The LLM providers take a `model` and a token limit; DeepL and Google Cloud Translation need no model:
 
 ```ts
 // Anthropic (this provider's output-token limit option is maxTokens)
@@ -115,6 +115,9 @@ provider: { id: "openai", options: { model: "gpt-5.4-mini", maxOutputTokens: 409
 
 // DeepL (machine translation)
 provider: { id: "deepl", options: {} }
+
+// Google Cloud Translation (machine translation, Basic v2)
+provider: { id: "google-translate", options: {} }
 ```
 
 Each provider reads its API key from one environment variable:
@@ -125,6 +128,7 @@ Each provider reads its API key from one environment variable:
 | `openai` | `OPENAI_API_KEY` |
 | `gemini` | `GEMINI_API_KEY` |
 | `deepl` | `DEEPL_API_KEY` |
+| `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
 `openai-compatible` is not in this table: most local servers need no key at all, and when one is required it comes from `OPENAI_COMPATIBLE_API_KEY`, or from whichever variable the provider's `apiKeyEnvVar` option names. See the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers) for its key resolution.
 

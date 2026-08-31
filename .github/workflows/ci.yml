@@ -12,13 +12,14 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-and-test:
     name: Build and test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -80,12 +81,67 @@ jobs:
       - name: Test root scripts
         run: pnpm test:scripts
 
-      - name: Upload coverage to Codecov
+      - name: Upload coverage artifact
         if: ${{ matrix.node == '22.14.0' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-reports
+          path: packages/*/coverage/lcov.info
+          retention-days: 5
+
+  codecov-upload:
+    # The only job holding id-token: write. It runs no pnpm install, build or test: it
+    # consumes the coverage artifact build-and-test produced and uploads it to Codecov
+    # over OIDC. if: always() (not a "!= skipped" guard) is deliberate: needs.build-and-test
+    # can be success, failure, or cancelled, but never skipped, so gate's uniform
+    # "!= success" loop never fires spuriously on this entry.
+    #
+    # Running unconditionally does not widen the OIDC surface to a broken build: no step
+    # here executes third-party or workspace code before the token is requested, and the
+    # download-artifact step below fails the job outright when build-and-test produced no
+    # artifact (a total failure, or the Node 22.14.0 leg itself failing under fail-fast:
+    # false), which halts the job before the Codecov step ever runs and before any OIDC
+    # token is requested. The one case a token is minted on a build that "failed" is the
+    # Node 24 leg failing independently while the Node 22.14.0 leg fully succeeded and
+    # uploaded a real artifact, which is the exact case today's per-leg Codecov step already
+    # uploads from, so this preserves existing behavior rather than widening it.
+    name: Upload coverage to Codecov
+    needs: build-and-test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-reports
+          path: coverage-artifacts
+
+      - name: Guard against a silently empty coverage upload
+        run: |
+          shopt -s nullglob
+          files=(coverage-artifacts/*/coverage/lcov.info)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No lcov.info files found under coverage-artifacts/*/coverage/. Codecov would upload nothing." >&2
+            find coverage-artifacts -type f >&2
+            exit 1
+          fi
+          echo "Found ${#files[@]} lcov.info file(s):"
+          printf '%s\n' "${files[@]}"
+
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           use_oidc: true
-          files: ./packages/*/coverage/lcov.info
+          files: ./coverage-artifacts/*/coverage/lcov.info
 
   dependency-disclosure:
     name: Dependency disclosure
@@ -179,11 +235,13 @@ jobs:
     # fires on workflow_run for THIS workflow and publishes only when its conclusion is success,
     # so a failed e2e job fails this job, fails the workflow, and no publish happens.
     name: Build and test gate
-    needs: [build-and-test, e2e, dependency-disclosure]
+    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: always()
     steps:
-      # One step over all three rather than one step each, so a run that fails more than one job
+      # One step over all four rather than one step each, so a run that fails more than one job
       # reports every failure instead of only the first. Results arrive through env rather than
       # direct interpolation, keeping the expressions out of the shell.
       - name: Verify every required job succeeded
@@ -191,11 +249,13 @@ jobs:
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
           E2E: ${{ needs.e2e.result }}
           DEPENDENCY_DISCLOSURE: ${{ needs.dependency-disclosure.result }}
+          CODECOV_UPLOAD: ${{ needs.codecov-upload.result }}
         run: |
           failed=0
           for entry in "build-and-test:$BUILD_AND_TEST" \
                        "e2e:$E2E" \
-                       "dependency-disclosure:$DEPENDENCY_DISCLOSURE"; do
+                       "dependency-disclosure:$DEPENDENCY_DISCLOSURE" \
+                       "codecov-upload:$CODECOV_UPLOAD"; do
             job="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != "success" ]; then

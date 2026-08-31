@@ -2,6 +2,7 @@
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../client/diff-view.js";
+import { MAX_RENDERED_KEYS } from "../client/filter.js";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import { StatusGrid } from "./StatusGrid.js";
 import { click, flush, render, renderAsync, rpcError, stubRpc } from "./test-support.js";
@@ -332,6 +333,37 @@ describe("StatusGrid", () => {
     const inOrder = view.all("tbody button").filter((cell) => cell.tabIndex === 0);
     expect(inOrder).toHaveLength(1);
     expect(inOrder[0]?.getAttribute("aria-label")).toBe("a.missing in de: missing");
+  });
+
+  it("caps drift keys at the render limit and shows how many are hidden", async () => {
+    stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
+    const missingKeys = Array.from(
+      { length: MAX_RENDERED_KEYS + 1 },
+      (_, index) => `app.key${index.toString().padStart(4, "0")}`,
+    );
+
+    const view = await renderAsync(
+      <StatusGrid
+        locales={[localeDiff("de", missingKeys, [])]}
+        refreshToken={0}
+        onSelectKey={vi.fn()}
+      />,
+    );
+
+    expect(view.all("tbody tr")).toHaveLength(MAX_RENDERED_KEYS);
+    expect(view.text()).toContain(
+      `Showing the first ${MAX_RENDERED_KEYS} of ${missingKeys.length} keys. Switch to the List view to filter.`,
+    );
+  });
+
+  it("does not show a truncation notice when drift keys are within the render limit", async () => {
+    stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
+
+    const view = await renderAsync(
+      <StatusGrid locales={[DE_DRIFT, FR_CLEAN]} refreshToken={0} onSelectKey={vi.fn()} />,
+    );
+
+    expect(view.text()).not.toContain("Switch to the List view to filter.");
   });
 
   it("renders a right-to-left locale's header and cells in its own direction", async () => {

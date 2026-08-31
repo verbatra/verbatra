@@ -19,6 +19,10 @@ const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   yaml: "YAML",
   xliff: "XLIFF",
   properties: "Java/Spring properties",
+  "apple-strings": "Apple .strings",
+  "apple-xcstrings": "Xcode String Catalog",
+  "android-xml": "Android strings.xml",
+  "gettext-po": "gettext .po/.pot",
 };
 
 const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);

@@ -222,6 +222,24 @@ códigos de motivo de revisión, si los hay, que aplican al nuevo valor) o
 `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de `@verbatra/ai-providers` con un
 código estable como `RATE_LIMITED` o `AUTH_FAILED`.
 
+## Lecturas de contenido en bloque
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Lee el texto de origen y de destino actual de cada clave, en cada locale de destino solicitado, en
+un solo paso sobre los archivos que ya están en disco. Es la contraparte en bloque de `keyValue`:
+úsala cuando necesites contenido de traducción en bloque, por ejemplo para buscar o recorrer
+valores en lugar de solo nombres de clave, ya que `keyValue` solo responde para una clave a la vez.
+Solo lectura.
+
+Entrada: `{ config, cwd?, locales? }`; un `locales` omitido cubre cada locale de destino
+configurado. Devuelve un array de `{ locale, values }`, una entrada por locale, donde `values`
+asigna cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
+se ha traducido en ese locale; una `source` ausente significa que la clave está huérfana, presente
+en el locale de destino pero ya no en el origen.
+
 ## Instantáneas de archivos de locale
 
 Los bloques con los que se construye un vigilante de actualización en vivo como el de Studio: captura el
@@ -366,6 +384,19 @@ Anthropic la llama `maxTokens` y los demás `maxOutputTokens`, el esquema valida
 opciones de cada proveedor, y DeepL no tiene entrada porque no recibe límite de tokens. El
 tipo `ScaffoldableProviderId` cubre los cuatro proveedores alojados; `openai-compatible` queda excluido
 porque no tiene una única variable de entorno obligatoria.
+
+## Redacción de secretos
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Elimina de una cadena las formas de clave API de proveedor y el valor exacto actual de cualquier
+variable de entorno de proveedor configurada, reemplazando cada coincidencia por `[REDACTED]`.
+`@verbatra/studio` y `@verbatra/mcp` la aplican ambos a cada valor que devuelven a un llamador que
+ellos mismos no generaron, como un término del glosario, una ruta de archivo o un mensaje de error
+de un sistema previo, así una clave ya presente en tu entorno o escrita en un archivo del proyecto
+nunca puede llegar a una pestaña del navegador, un agente ni una línea de log.
 
 ## El punto de inyección de dependencias
 

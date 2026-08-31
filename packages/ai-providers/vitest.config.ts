@@ -7,6 +7,7 @@ export default createVitestConfig({
     "src/openai-compatible/client.ts",
     "src/gemini/client.ts",
     "src/deepl/client.ts",
+    "src/google-translate/client.ts",
     "src/test-support.ts",
   ],
 });

@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   createAnthropicProvider,
@@ -7,7 +7,9 @@ import {
 } from "@verbatra/ai-providers";
 import type { LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
 import {
+  createAndroidXmlAdapter,
   createDefaultRegistry,
+  createGettextAdapter,
   createNextIntlJsonAdapter,
   type FormatAdapter,
 } from "@verbatra/format-adapters";
@@ -19,6 +21,7 @@ import {
   makeStubProvider,
   makeTempDir,
   readJsonFile,
+  readTextFile,
   writeJsonFile,
 } from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
@@ -98,6 +101,7 @@ function makeParams(
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
       targetLocales: ["de"],
+      format: "i18next-json",
       files: { pattern: "locales/{locale}.json" },
     }),
     sourceLocale: "en",
@@ -375,6 +379,125 @@ describe("runLocale: pruning and orphans", () => {
     const de = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
     expect(de.orphan).toBe("x");
     expect(lockEntries.orphan).toBeUndefined();
+  });
+
+  it("keeps a target-only gettext plural index (a target needing more plural forms than the source declares) when prune is off (default)", async () => {
+    const gettext = createGettextAdapter();
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    const enPo = [
+      'msgid ""',
+      'msgstr ""',
+      '"Content-Type: text/plain; charset=UTF-8\\n"',
+      '"Plural-Forms: nplurals=2; plural=(n != 1);\\n"',
+      "",
+      'msgid "one item"',
+      'msgid_plural "%d items"',
+      'msgstr[0] "one item"',
+      'msgstr[1] "%d items"',
+      "",
+      'msgid "Hello"',
+      'msgstr "Hello"',
+      "",
+    ].join("\n");
+    const plPo = [
+      'msgid ""',
+      'msgstr ""',
+      '"Content-Type: text/plain; charset=UTF-8\\n"',
+      '"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && ' +
+        '(n%100<10 || n%100>=20) ? 1 : 2);\\n"',
+      "",
+      'msgid "one item"',
+      'msgid_plural "%d items"',
+      'msgstr[0] "jeden element"',
+      'msgstr[1] "kilka elementow"',
+      'msgstr[2] "wiele elementow"',
+      "",
+    ].join("\n");
+    await writeFile(join(dir, "locales", "en.po"), enPo, "utf8");
+    await writeFile(join(dir, "locales", "pl.po"), plPo, "utf8");
+    const sourceResource = (await gettext.read(join(dir, "locales", "en.po"), "en")).resource;
+    const stub = makeStubProvider();
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: stub.provider,
+        adapter: gettext,
+        format: "gettext-po",
+        targetLocale: "pl",
+        resolver: createLocalePathResolver(dir, {
+          sourceLocale: "en",
+          targetLocales: ["pl"],
+          format: "gettext-po",
+          files: { pattern: "locales/{locale}.po" },
+        }),
+      },
+    );
+
+    const { summary, lockEntries } = await runLocale(params);
+
+    expect(summary.translated).toEqual(["Hello"]);
+    expect(summary.orphaned).toEqual(["one item[2]"]);
+    expect(summary.pruned).toEqual([]);
+    expect(lockEntries["one item[2]"]).toBeUndefined();
+    const written = await readTextFile(join(dir, "locales", "pl.po"));
+    expect(written).toContain('msgstr[2] "wiele elementow"');
+    const rewritten = await gettext.read(join(dir, "locales", "pl.po"), "pl");
+    expect(rewritten.resource.entries.get("one item[2]")?.value).toBe("wiele elementow");
+  });
+
+  it("keeps a target-only android-xml plural quantity (a target needing more plural forms than the source declares) when prune is off (default)", async () => {
+    const androidXml = createAndroidXmlAdapter();
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    const enXml =
+      '<?xml version="1.0" encoding="utf-8"?>\n' +
+      "<resources>\n" +
+      '  <plurals name="count">\n' +
+      '    <item quantity="one">%d song</item>\n' +
+      '    <item quantity="other">%d songs</item>\n' +
+      "  </plurals>\n" +
+      '  <string name="hello">Hello</string>\n' +
+      "</resources>\n";
+    const plXml =
+      '<?xml version="1.0" encoding="utf-8"?>\n' +
+      "<resources>\n" +
+      '  <plurals name="count">\n' +
+      '    <item quantity="one">1 utwor</item>\n' +
+      '    <item quantity="few">kilka utworow</item>\n' +
+      '    <item quantity="other">wiele utworow</item>\n' +
+      "  </plurals>\n" +
+      "</resources>\n";
+    await writeFile(join(dir, "locales", "en.xml"), enXml, "utf8");
+    await writeFile(join(dir, "locales", "pl.xml"), plXml, "utf8");
+    const sourceResource = (await androidXml.read(join(dir, "locales", "en.xml"), "en")).resource;
+    const stub = makeStubProvider();
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: stub.provider,
+        adapter: androidXml,
+        format: "android-xml",
+        targetLocale: "pl",
+        resolver: createLocalePathResolver(dir, {
+          sourceLocale: "en",
+          targetLocales: ["pl"],
+          format: "android-xml",
+          files: { pattern: "locales/{locale}.xml" },
+        }),
+      },
+    );
+
+    const { summary, lockEntries } = await runLocale(params);
+
+    expect(summary.translated).toEqual(["hello"]);
+    expect(summary.orphaned).toEqual(["count[few]"]);
+    expect(summary.pruned).toEqual([]);
+    expect(lockEntries["count[few]"]).toBeUndefined();
+    const written = await readTextFile(join(dir, "locales", "pl.xml"));
+    expect(written).toContain('quantity="few"');
+    const rewritten = await androidXml.read(join(dir, "locales", "pl.xml"), "pl");
+    expect(rewritten.resource.entries.get("count[few]")?.value).toBe("kilka utworow");
   });
 });
 

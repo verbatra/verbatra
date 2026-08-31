@@ -12,6 +12,10 @@ describe("SupportedFormat", () => {
       "yaml",
       "arb",
       "properties",
+      "apple-strings",
+      "apple-xcstrings",
+      "android-xml",
+      "gettext-po",
     ]);
   });
 
@@ -24,6 +28,10 @@ describe("SupportedFormat", () => {
     expect(supportedFormatSchema.parse("yaml")).toBe("yaml");
     expect(supportedFormatSchema.parse("arb")).toBe("arb");
     expect(supportedFormatSchema.parse("properties")).toBe("properties");
+    expect(supportedFormatSchema.parse("apple-strings")).toBe("apple-strings");
+    expect(supportedFormatSchema.parse("apple-xcstrings")).toBe("apple-xcstrings");
+    expect(supportedFormatSchema.parse("android-xml")).toBe("android-xml");
+    expect(supportedFormatSchema.parse("gettext-po")).toBe("gettext-po");
   });
 
   it("rejects an unknown format", () => {

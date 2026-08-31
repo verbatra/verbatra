@@ -34,10 +34,26 @@ export interface CliDeps {
   doctor(input: DoctorInput): Promise<DoctorResult>;
   loadConfigWithMeta(options: LoadConfigOptions): Promise<LoadedConfig>;
   importStudio(): Promise<StudioModule>;
+  importMcp(): Promise<McpModule>;
 }
 
 export interface StudioModule {
   startStudioServer(options: StudioServerOptions): Promise<StudioServer>;
+}
+
+export interface McpServerHandle {
+  close(): Promise<void>;
+}
+
+export interface StartMcpServerOptions {
+  readonly cwd?: string;
+  readonly configPath?: string;
+  readonly allowSpend?: boolean;
+  readonly onLog?: (line: string) => void;
+}
+
+export interface McpModule {
+  startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
 }
 
 export interface WatchSession {
@@ -50,9 +66,15 @@ export interface StudioSession {
   requestStop(): void;
 }
 
+export interface McpSession {
+  readonly done: Promise<number>;
+  requestStop(): void;
+}
+
 export interface RunHooks {
   onWatchSession?(session: WatchSession): void;
   onStudioSession?(session: StudioSession): void;
+  onMcpSession?(session: McpSession): void;
 }
 
 export interface InitOpts {

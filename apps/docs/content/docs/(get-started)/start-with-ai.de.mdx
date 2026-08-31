@@ -2,7 +2,7 @@
 title: verbatra mit einem KI-Agenten einrichten
 description: "Ein Prompt zum Kopieren und Einfügen für Claude Code, Cursor oder einen beliebigen KI-Coding-Agenten, um verbatra in einem Projekt einzurichten, das bereits ein i18n-Setup hat, abgesichert durch eine ausdrückliche menschliche Bestätigung, bevor irgendetwas Geld kostet."
 ---
-Diese Seite ist für ein Projekt gedacht, das bereits Locale-Dateien hat: i18next, vue-i18n, next-intl, ngx-translate oder rohe JSON-, YAML-, XLIFF-, ARB- oder Properties-Dateien, bereits committet und bereits im Einsatz. Füge den Prompt unten in deinen KI-Coding-Agenten ein (Claude Code, Cursor oder jeden Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann), und er arbeitet sich selbst durch die Prüfung deines Setups, die Installation von verbatra, das Erstellen einer passenden Config und die Vorschau eines Laufs, bevor er stoppt und dich um Bestätigung bittet, bevor er je einen Provider für echt aufruft.
+Diese Seite ist für ein Projekt gedacht, das bereits Locale-Dateien hat: i18next, vue-i18n, next-intl, ngx-translate oder rohe JSON-, YAML-, XLIFF-, ARB-, Properties-, Apple-`.strings`-, Xcode-String-Catalog-`.xcstrings`-, Android-`strings.xml`- oder gettext-`.po`/`.pot`-Dateien, bereits committet und bereits im Einsatz. Füge den Prompt unten in deinen KI-Coding-Agenten ein (Claude Code, Cursor oder jeden Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann), und er arbeitet sich selbst durch die Prüfung deines Setups, die Installation von verbatra, das Erstellen einer passenden Config und die Vorschau eines Laufs, bevor er stoppt und dich um Bestätigung bittet, bevor er je einen Provider für echt aufruft.
 
 Wenn du verbatra selbst einrichtest, statt es einem Agenten zu überlassen, ist [Deine erste Übersetzung](/docs/your-first-translation) die menschliche Version desselben Wegs.
 
@@ -25,26 +25,50 @@ Before touching anything, find out what is already here:
 - Find the actual locale files (commonly under `locales/`, `src/locales/`,
   `public/locales/`, `i18n/`, or similar) and determine:
   - The file format: nested JSON, flat JSON, `.yml`/`.yaml`, `.xlf`/`.xliff`, `.arb`,
-    or `.properties`.
+    `.properties`, `.strings`, `.xcstrings`, Android's `res/values[-qualifier]/strings.xml`,
+    or gettext's `.po`/`.pot`.
   - The source locale: the language the strings are actually written in.
   - Every target locale already present.
   - The exact path pattern, written with a `{locale}` token, for example
-    `locales/{locale}.json`, `src/i18n/{locale}/common.json`, or
-    `res/{locale}/strings.xml`.
+    `locales/{locale}.json` or `src/i18n/{locale}/common.json`. For `.xcstrings`,
+    every locale lives in the same file, so the pattern still needs a `{locale}`
+    token but it resolves to that one file regardless of locale, for example
+    `{locale}Localizable.xcstrings`. For an Android project, use
+    `res/{locale}/strings.xml` with `files.localeStyle` set to `android`, so
+    `{locale}` expands to `values` for the source locale and to `values-de`,
+    `values-pt-rBR`, and similar resource-qualifier directories for the targets,
+    not to the BCP-47 tag itself.
 - Map what you found to one verbatra format id: i18next -> `i18next-json`,
   vue-i18n -> `vue-i18n-json`, next-intl -> `next-intl-json`,
   ngx-translate -> `ngx-translate-json`, `.yml`/`.yaml` -> `yaml`,
-  `.xlf`/`.xliff` -> `xliff`, `.arb` -> `arb`, `.properties` -> `properties`. Plain
+  `.xlf`/`.xliff` -> `xliff`, `.arb` -> `arb`, `.properties` -> `properties`,
+  `.strings` -> `apple-strings`, `.xcstrings` -> `apple-xcstrings`,
+  Android `strings.xml` -> `android-xml`, gettext `.po`/`.pot` -> `gettext-po`. Plain
   JSON with no matching library: pick by placeholder syntax, `{{name}}` means
   `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
 - If the format is `xliff`: verbatra only updates `<target>` elements in a file that
   already exists, it never creates one. Every target locale's XLIFF file must already
   be present before you run `translate`.
+- If the format is `apple-xcstrings`: verbatra does not create a new catalogue
+  either, and every locale, including the source, resolves to the same file, so
+  translate runs against this format one locale at a time internally even if
+  `--concurrency` is set higher.
+- If the format is `android-xml`: set `files.localeStyle` to `android` as shown
+  above. A `<string>` or `<plurals>` marked `translatable="false"`, a
+  `<string-array>`, and a `<string>` containing inline markup are all left
+  untouched; everything else is translated normally, `formatted="false"`
+  included.
+- If the format is `gettext-po`: a `msgctxt` before a `msgid` disambiguates it into
+  its own entry; a `#, fuzzy` entry's existing `msgstr` is treated as an existing
+  translation, not as missing, and the `fuzzy` flag is never added or cleared by
+  verbatra; a `.pot` template reads its empty `msgstr` values without error.
 
 Do not trust `verbatra init`'s own format auto-detection: it only inspects
 `package.json` for exactly one of `i18next`/`vue-i18n`/`next-intl`/
 `@ngx-translate/core` and never reads the locale directory itself, so it cannot see
-YAML, XLIFF, ARB, properties, or a project with more than one of those dependencies.
+YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalogs, Android
+`strings.xml`, gettext `.po`/`.pot`, or a project with more than one of those
+dependencies.
 Use what you found above instead of trusting its guess.
 
 ## 2. Install the CLI
@@ -58,24 +82,25 @@ pnpm and yarn work too. With pnpm, if it exits with `ERR_PNPM_IGNORED_BUILDS`, r
 
 Run `verbatra init` with explicit flags for what you found in step 1:
 
-npx verbatra init --provider <anthropic|openai|gemini|deepl> --source <source-locale> \
+npx verbatra init --provider <anthropic|openai|gemini|deepl|google-translate> --source <source-locale> \
   --targets <comma-separated-target-locales> --path <pattern-with-{locale}> --yes
 
 Ask the human which provider to use unless it is already obvious from the project
 (an existing key reference, a comment, a teammate's note). Do not pick a provider
 that spends against a service the human never agreed to.
 
-`init --provider` accepts only `anthropic`, `openai`, `gemini`, or `deepl`. For a
-local or self-hosted OpenAI-compatible server instead, scaffold with one of those
-four as a placeholder, then replace the whole `provider` block in
-`verbatra.config.ts` by hand with an `openai-compatible` block (it needs `baseUrl`,
-`model`, and `maxOutputTokens`); `doctor` in step 4 validates either shape the same
-way.
+`init --provider` accepts only `anthropic`, `openai`, `gemini`, `deepl`, or
+`google-translate`. For a local or self-hosted OpenAI-compatible server instead,
+scaffold with one of those five as a placeholder, then replace the whole
+`provider` block in `verbatra.config.ts` by hand with an `openai-compatible` block
+(it needs `baseUrl`, `model`, and `maxOutputTokens`); `doctor` in step 4 validates
+either shape the same way.
 
 `init` has no `--format` flag. Open the generated `verbatra.config.ts` right after
 and set `format` to the id you determined in step 1 - the scaffold's own guess is
 unreliable for anything beyond the four JSON dependencies, and is wrong outright for
-YAML, XLIFF, ARB, and properties projects.
+YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog, Android
+`strings.xml`, and gettext `.po`/`.pot` projects.
 
 If the project splits strings across several namespace files per locale (for
 example `common.json` and `auth.json` side by side), verbatra addresses exactly one
@@ -98,10 +123,10 @@ it again. Repeat until it passes with no errors.
 cp .env.example .env
 
 Open `.env` and confirm it names the right variable for the chosen provider
-(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `DEEPL_API_KEY`). Do not
-write, invent, or ask the human to paste a key value into anything you output.
-Leave the value blank and tell the human to fill it in themselves, directly in
-`.env`.
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or
+`GOOGLE_TRANSLATE_API_KEY`). Do not write, invent, or ask the human to paste a key
+value into anything you output. Leave the value blank and tell the human to fill
+it in themselves, directly in `.env`.
 
 ## 6. Preview - read-only, no spend
 

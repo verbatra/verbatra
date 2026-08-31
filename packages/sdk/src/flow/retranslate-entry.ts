@@ -7,7 +7,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { withLocaleWriteLock } from "../lock/locale-write-lock.js";
+import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
@@ -146,7 +146,7 @@ export async function retranslateEntry(
 
   const provider = selectProvider(config.provider, deps.createProvider);
 
-  return withLocaleWriteLock(cwd, locale, fs, async () => {
+  return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
     const target = await readTarget(cwd, config, adapter, fs, locale);
 
     const result = await provider.translateBatch(

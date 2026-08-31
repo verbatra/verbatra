@@ -1,8 +1,7 @@
 import { relative } from "node:path";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { type LoadedConfig, redact } from "@verbatra/sdk";
 import type { GlossaryIndicator } from "../shared/rpc/glossary.js";
 import type { ProjectSnapshotResult, StudioCapabilities } from "../shared/rpc/snapshot.js";
-import { redact } from "./redaction.js";
 
 function projectConfigSource(source: LoadedConfig["source"], projectRoot: string): string {
   if (source.kind === "override") {

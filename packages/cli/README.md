@@ -5,7 +5,7 @@
 <h1 align="center">@verbatra/cli</h1>
 
 <p align="center">
-  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, or an openai-compatible local or self-hosted model.
+  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, or an openai-compatible local or self-hosted model.
 </p>
 
 <p align="center">
@@ -53,7 +53,7 @@ npx verbatra translate
 npx verbatra translate --prune
 ```
 
-Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, and `deepl` work the same way; only the key variable and the config's `provider` block differ.
+Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ.
 
 Plural-category generation is opt-in too, but config/SDK only: set `generatePlurals: true` in the config. Unlike `--prune`, there is no `--generate-plurals` flag (the SDK `translate()` input accepts a per-run override).
 
@@ -107,6 +107,7 @@ Keys are read only from the environment, never from the config. Each provider re
 | `openai` | `OPENAI_API_KEY` |
 | `gemini` | `GEMINI_API_KEY` |
 | `deepl` | `DEEPL_API_KEY` |
+| `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
 `openai-compatible` is not in this table: most local servers need no key at all, and when one is required it comes from `OPENAI_COMPATIBLE_API_KEY` or from whichever variable the provider's `apiKeyEnvVar` option names. See the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers) for its key resolution.
 

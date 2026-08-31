@@ -83,11 +83,12 @@ Everything else is private or internal and must not be published by accident.
   `createDefaultRegistry`. Adapters: i18next, vue-i18n, next-intl, ngx-translate,
   XLIFF, YAML, Flutter ARB, and Java/Spring properties.
 - `@verbatra/ai-providers` (private): translation provider strategies behind one
-  interface. Five providers ship today: OpenAI, Anthropic, Gemini (@google/genai),
-  DeepL, and openai-compatible (a local or self-hosted OpenAI-compatible server).
-  The four LLM providers run through the shared `runLlmTranslation` layer with one
-  canonical zod schema. DeepL is an MT API and implements `translateBatch`
-  directly. All sit behind one `TranslationProvider` interface. The SDK constructs
+  interface. Six providers ship today: OpenAI, Anthropic, Gemini (@google/genai),
+  DeepL, Google Cloud Translation (Basic, v2), and openai-compatible (a local or
+  self-hosted OpenAI-compatible server). The four LLM providers run through the
+  shared `runLlmTranslation` layer with one canonical zod schema. DeepL and Google
+  Cloud Translation are MT APIs and implement `translateBatch` directly. All sit
+  behind one `TranslationProvider` interface. The SDK constructs
   the configured provider through the id-to-factory table in
   `packages/sdk/src/config/provider-config.ts` (`buildProvider`), wrapped by
   `selectProvider`. `ProviderRegistry` is exported from the package but is not on
@@ -192,9 +193,10 @@ and is consumed via `uses:`. Do not add it back here.
 ## Security
 
 - API keys come only from environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY,
-  GEMINI_API_KEY, DEEPL_API_KEY), read through `packages/ai-providers/src/env.ts`.
-  Never from config files, CLI args, or function arguments. Never log or commit a
-  key. Error messages name the variable but never include a key value.
+  GEMINI_API_KEY, DEEPL_API_KEY, GOOGLE_TRANSLATE_API_KEY), read through
+  `packages/ai-providers/src/env.ts`. Never from config files, CLI args, or function
+  arguments. Never log or commit a key. Error messages name the variable but never
+  include a key value.
 - Errors are structured `ProviderError`s, never raw SDK errors.
 - Prompt-injection boundary: system rules are compile-time constants; untrusted input
   travels only in the user-turn JSON payload; provider output is schema-bound and

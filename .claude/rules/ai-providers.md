@@ -17,17 +17,18 @@ editing anything under `packages/ai-providers`.
   that path today; keep it, do not treat it as the resolution mechanism. Do not
   reimplement provider plumbing per provider.
 - OpenAI, Anthropic, and Gemini (@google/genai) run through the shared
-  `runLlmTranslation` layer with one canonical zod schema. DeepL is an MT API and
-  implements `translateBatch` directly.
+  `runLlmTranslation` layer with one canonical zod schema. DeepL and Google Cloud
+  Translation (Basic, v2) are MT APIs and implement `translateBatch` directly.
 - When adding an LLM provider, build on `runLlmTranslation` and register it. Do not
   fork the shared layer or the schema.
 
 ## Security (hard rules)
 
 - API keys come only from environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY,
-  GEMINI_API_KEY, DEEPL_API_KEY), read through `packages/ai-providers/src/env.ts`.
-  Never from config files, CLI args, or function arguments. Never log or commit a
-  key. Error messages may name the variable but never include a key value.
+  GEMINI_API_KEY, DEEPL_API_KEY, GOOGLE_TRANSLATE_API_KEY), read through
+  `packages/ai-providers/src/env.ts`. Never from config files, CLI args, or function
+  arguments. Never log or commit a key. Error messages may name the variable but
+  never include a key value.
 - Errors are structured `ProviderError`s, never raw SDK errors.
 - Prompt-injection boundary: system rules are compile-time constants; untrusted
   input travels only in the user-turn JSON payload; provider output is schema-bound

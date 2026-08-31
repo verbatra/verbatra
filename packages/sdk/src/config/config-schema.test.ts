@@ -83,7 +83,7 @@ describe("the config JSON Schema document: refinements that cannot be expressed"
     expect(collectCustomCheckPaths(verbatraConfigSchema)).toEqual([
       "<root>",
       "<root>",
-      "provider[4].options.apiKeyEnvVar.innerType",
+      "provider[5].options.apiKeyEnvVar.innerType",
     ]);
   });
 });

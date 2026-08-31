@@ -13,6 +13,7 @@ import { loadEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
+import { runMcp } from "./mcp-command.js";
 import { readPackageManifest } from "./package-manifest.js";
 import { parsePositiveIntegerOption } from "./positive-integer-option.js";
 import {
@@ -411,6 +412,17 @@ async function runStudioCommand(
   return session.done;
 }
 
+async function runMcpCommand(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  hooks: RunHooks,
+): Promise<number> {
+  const session = await runMcp(rawOpts, deps, streams);
+  hooks.onMcpSession?.(session);
+  return session.done;
+}
+
 async function runExport(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("export", rawOpts, streams);
   return withParsedOpts(
@@ -803,6 +815,33 @@ function registerStudioCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+function registerMcpCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("mcp")
+    .description("Start a stdio MCP server exposing verbatra's tools to an MCP client")
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option(
+      "--allow-spend",
+      "advertise the tools that call a translation provider (also: VERBATRA_MCP_ALLOW_SPEND)",
+    )
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra mcp                 start the MCP server with only local, non-spending tools",
+        "  $ verbatra mcp --allow-spend    also advertise the provider-calling tools",
+        "",
+        "Nothing but MCP protocol messages is ever written to stdout; every log line goes to " +
+          "stderr.",
+      ].join("\n"),
+    );
+}
+
 function registerInitCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("init")
@@ -810,7 +849,8 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "write the config and env files to this directory")
     .option(
       "--provider <id>",
-      "translation provider to use: anthropic, openai, gemini, or deepl (required unless prompted)",
+      "translation provider to use: anthropic, openai, gemini, deepl, or google-translate " +
+        "(required unless prompted)",
     )
     .option("--source <locale>", "locale your source strings are written in (default en)")
     .option("--targets <locales>", "comma-separated locales to translate into (default de)")
@@ -830,6 +870,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "Examples:",
         "  $ verbatra init --provider anthropic        create config + .env example, prompting for the rest",
         "  $ verbatra init --provider deepl --yes      non-interactive, accept all defaults",
+        "  $ verbatra init --provider google-translate --yes  non-interactive, accept all defaults",
       ].join("\n"),
     );
 }
@@ -859,6 +900,7 @@ function buildProgram(
   registerDiffCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   registerStudioCommand(program, ctx);
+  registerMcpCommand(program, ctx);
   registerInitCommand(program, ctx);
 
   return program;
