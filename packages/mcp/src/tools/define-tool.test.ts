@@ -185,6 +185,109 @@ describe("defineTool", () => {
     expect(outcome).toEqual({ kind: "ok", result: { ok: true } });
   });
 
+  it("relativizes a cwd-rooted absolute path in a thrown SdkError message", async () => {
+    const cwd = "/Users/example/project";
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw new SdkError(
+          "SOURCE_UNREADABLE",
+          `The source locale file was not found at ${cwd}/locales/en.json.`,
+        );
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext({ cwd }));
+
+    expect(outcome.kind).toBe("error");
+    if (outcome.kind === "error") {
+      expect(outcome.message).not.toContain(cwd);
+      expect(outcome.message).toContain("locales/en.json");
+    }
+  });
+
+  it("relativizes a bare cwd occurrence with no trailing separator or subpath", async () => {
+    const cwd = "/Users/example/project";
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw new SdkError("SOURCE_UNREADABLE", `The source directory does not exist: ${cwd}`);
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext({ cwd }));
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message: "SOURCE_UNREADABLE: The source directory does not exist: .",
+    });
+  });
+
+  it("does not redact a longer path segment that merely starts with cwd", async () => {
+    const cwd = "/Users/example/project";
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw new Error(`boom at ${cwd}-backup/locales/en.json`);
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext({ cwd }));
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message: `boom at ${cwd}-backup/locales/en.json`,
+    });
+  });
+
+  it("leaves the error message untouched when cwd is empty", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw new Error("boom at /Users/example/project/locales/en.json");
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext({ cwd: "" }));
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message: "boom at /Users/example/project/locales/en.json",
+    });
+  });
+
   it("names the root when a non-object argument fails validation, not a nested field", async () => {
     const tool = defineTool({
       name: "test.tool",

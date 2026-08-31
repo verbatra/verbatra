@@ -16,7 +16,15 @@ interface BinOptions {
   readonly allowSpend: boolean;
 }
 
-function parseArgs(argv: readonly string[]): BinOptions {
+function requireFlagValue(argv: readonly string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`Missing value for ${flag}.`);
+  }
+  return value;
+}
+
+export function parseArgs(argv: readonly string[]): BinOptions {
   let cwd: string | undefined;
   let configPath: string | undefined;
   let allowSpend = isEnvValueTruthy(process.env[ALLOW_SPEND_ENV_VAR]);
@@ -24,10 +32,10 @@ function parseArgs(argv: readonly string[]): BinOptions {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--cwd") {
-      cwd = argv[index + 1];
+      cwd = requireFlagValue(argv, index, "--cwd");
       index += 1;
     } else if (arg === "--config") {
-      configPath = argv[index + 1];
+      configPath = requireFlagValue(argv, index, "--config");
       index += 1;
     } else if (arg === "--allow-spend") {
       allowSpend = true;

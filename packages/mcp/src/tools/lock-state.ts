@@ -25,7 +25,15 @@ async function readLockState(
   _params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
 ): Promise<LockStateResult> {
-  return lockState({ config: context.config.config, cwd: context.cwd });
+  return lockState(
+    { config: context.config.config, cwd: context.cwd },
+    {
+      ...(context.fs !== undefined ? { fs: context.fs } : {}),
+      ...(context.adapterRegistry !== undefined
+        ? { adapterRegistry: context.adapterRegistry }
+        : {}),
+    },
+  );
 }
 
 export const lockStateTool = defineTool({

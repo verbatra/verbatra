@@ -31,7 +31,10 @@ async function usageSummary(
   _params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
 ): Promise<UsageSummaryResult> {
-  const result = await runStatus({ cwd: context.cwd });
+  const result = await runStatus(
+    { cwd: context.cwd },
+    { ...(context.fs !== undefined ? { fs: context.fs } : {}) },
+  );
   if (!result.available) {
     return { available: false };
   }

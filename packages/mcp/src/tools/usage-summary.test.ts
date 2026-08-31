@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { makeContext, makeTempDir, writeJsonFile } from "../test-support.js";
+import { makeContext, makeTempDir, trackFsCalls, writeJsonFile } from "../test-support.js";
 import { usageSummaryTool } from "./usage-summary.js";
 
 describe("usage.summary", () => {
@@ -87,5 +87,15 @@ describe("usage.summary", () => {
     const outcome = await usageSummaryTool.execute({ bogus: true }, makeContext());
 
     expect(outcome.kind).toBe("invalid");
+  });
+
+  it("uses an injected fs to read the run status file rather than the real filesystem", async () => {
+    const dir = await makeTempDir();
+    const { fs, counts } = trackFsCalls();
+
+    const outcome = await usageSummaryTool.execute({}, makeContext({ cwd: dir, fs }));
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { available: false } });
+    expect(counts.readFileBounded).toBeGreaterThan(0);
   });
 });

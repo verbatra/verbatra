@@ -119,6 +119,53 @@ export async function makeProject(
   return dir;
 }
 
+export interface FsCallCounts {
+  readonly fileExists: number;
+  readonly readFileBounded: number;
+}
+
+export interface TrackedFs {
+  readonly fs: SdkFs;
+  readonly counts: FsCallCounts;
+}
+
+export function trackFsCalls(base: SdkFs = nodeFs): TrackedFs {
+  const counts: { fileExists: number; readFileBounded: number } = {
+    fileExists: 0,
+    readFileBounded: 0,
+  };
+  const fs: SdkFs = {
+    ...base,
+    async fileExists(path) {
+      counts.fileExists += 1;
+      return base.fileExists(path);
+    },
+    async readFileBounded(path, maxBytes) {
+      counts.readFileBounded += 1;
+      return base.readFileBounded(path, maxBytes);
+    },
+  };
+  return { fs, counts };
+}
+
+export interface TrackedAdapterRegistry {
+  readonly adapterRegistry: NonNullable<McpToolContext["adapterRegistry"]>;
+  readonly counts: { resolveCalls: number };
+}
+
+export function trackAdapterRegistryCalls(
+  base: NonNullable<McpToolContext["adapterRegistry"]> = defaultAdapterRegistry,
+): TrackedAdapterRegistry {
+  const counts = { resolveCalls: 0 };
+  const adapterRegistry = {
+    resolve(filePath: string, options?: Parameters<typeof base.resolve>[1]) {
+      counts.resolveCalls += 1;
+      return base.resolve(filePath, options);
+    },
+  } as unknown as NonNullable<McpToolContext["adapterRegistry"]>;
+  return { adapterRegistry, counts };
+}
+
 export function makeContext(overrides: Partial<McpToolContext> = {}): McpToolContext {
   return {
     config: baseLoadedConfig(),

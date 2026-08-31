@@ -124,4 +124,8 @@ describe("glossary.write", () => {
 
     expect(outcome.kind).toBe("invalid");
   });
+
+  it("is annotated as destructive, since passing translation: null deletes a term", () => {
+    expect(glossaryWriteTool.annotations.destructiveHint).toBe(true);
+  });
 });

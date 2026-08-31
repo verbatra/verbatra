@@ -9,7 +9,10 @@ async function reviewQueue(
   _params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
 ): Promise<RunStatusResult> {
-  return runStatus({ cwd: context.cwd });
+  return runStatus(
+    { cwd: context.cwd },
+    { ...(context.fs !== undefined ? { fs: context.fs } : {}) },
+  );
 }
 
 export const reviewQueueTool = defineTool({

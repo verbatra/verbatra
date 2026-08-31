@@ -1,7 +1,15 @@
 import { join } from "node:path";
 import { LOCK_FILE_NAME } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
-import { makeContext, makeProject, writeJsonFile } from "../test-support.js";
+import {
+  defaultAdapterRegistry,
+  makeContext,
+  makeProject,
+  nodeFs,
+  trackAdapterRegistryCalls,
+  trackFsCalls,
+  writeJsonFile,
+} from "../test-support.js";
 import { lockStateTool } from "./lock-state.js";
 
 describe("lock.state", () => {
@@ -33,5 +41,32 @@ describe("lock.state", () => {
     const outcome = await lockStateTool.execute({ bogus: true }, makeContext());
 
     expect(outcome.kind).toBe("invalid");
+  });
+
+  it("uses an injected fs to check for the lock file rather than the real filesystem", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+    const { fs, counts } = trackFsCalls();
+
+    const outcome = await lockStateTool.execute(
+      {},
+      makeContext({ cwd: dir, fs, adapterRegistry: defaultAdapterRegistry }),
+    );
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { exists: false } });
+    expect(counts.fileExists).toBeGreaterThan(0);
+  });
+
+  it("uses an injected adapter registry to resolve the configured format", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+    await writeJsonFile(join(dir, LOCK_FILE_NAME), { version: 1, locales: { de: {} } });
+    const { adapterRegistry, counts } = trackAdapterRegistryCalls();
+
+    const outcome = await lockStateTool.execute(
+      {},
+      makeContext({ cwd: dir, fs: nodeFs, adapterRegistry }),
+    );
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { exists: true } });
+    expect(counts.resolveCalls).toBeGreaterThan(0);
   });
 });

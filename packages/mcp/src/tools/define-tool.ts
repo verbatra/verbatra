@@ -1,3 +1,4 @@
+import { sep } from "node:path";
 import { SdkError } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
@@ -42,7 +43,7 @@ function formatValidationError(error: z.ZodError): string {
   return `Invalid input for field "${field}": ${issue.message}`;
 }
 
-function describeToolError(error: unknown): string {
+function rawErrorMessage(error: unknown): string {
   if (error instanceof SdkError) {
     return `${error.code}: ${error.message}`;
   }
@@ -50,6 +51,25 @@ function describeToolError(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function relativizeAbsolutePaths(message: string, cwd: string): string {
+  if (cwd.length === 0) {
+    return message;
+  }
+  const cwdPrefix = cwd.endsWith(sep) ? cwd : `${cwd}${sep}`;
+  const withRelativizedSubpaths = message.split(cwdPrefix).join("");
+  const escapedCwd = escapeRegExp(cwd);
+  const bareCwdPattern = new RegExp(`(?<![\\w.-])${escapedCwd}(?![\\w.-])`, "g");
+  return withRelativizedSubpaths.replace(bareCwdPattern, ".");
+}
+
+function describeToolError(error: unknown, cwd: string): string {
+  return relativizeAbsolutePaths(rawErrorMessage(error), cwd);
 }
 
 export function defineTool<Params, Result>(
@@ -80,7 +100,7 @@ export function defineTool<Params, Result>(
           ...(config.outputSchema !== undefined ? { structuredContent: result } : {}),
         };
       } catch (error) {
-        return { kind: "error", message: describeToolError(error) };
+        return { kind: "error", message: describeToolError(error, context.cwd) };
       }
     },
   };
