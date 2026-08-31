@@ -1,10 +1,5 @@
 name: Dependency audit
 
-# pnpm audit against the committed lockfile. Production advisories (what ships to users
-# of @verbatra/sdk and @verbatra/cli) gate the build; the full audit including dev
-# tooling is informational only, so an unfixable transitive dev advisory never red-walls
-# CI. Runs weekly so a newly published advisory fails even with no code change.
-
 on:
   pull_request:
     branches: [main]

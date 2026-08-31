@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   PROJECT_DIR: ~/verbatra
@@ -12,12 +16,15 @@ env:
 jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
@@ -43,24 +50,24 @@ jobs:
           push: true
           tags: ${{ steps.image.outputs.tag }}
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: Copy docker-compose.yml
+        uses: ./.github/actions/ssh-copy
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./docker-compose.yml
+          target: ${{ env.PROJECT_DIR }}
 
-      - name: Copy docker-compose.yml via SCP
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.PROJECT_DIR }}"
-          scp -i ~/.ssh/id_ed25519 ./docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.PROJECT_DIR }}/docker-compose.yml
-
-      - name: Deploy on VPS via SSH
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+      - name: Deploy on VPS
+        uses: ./.github/actions/ssh-connect
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
             set -e
-            cd ~/verbatra
+            cd ${{ env.PROJECT_DIR }}
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -af
-          EOF

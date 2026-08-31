@@ -1,9 +1,5 @@
 name: CodeQL
 
-# Static analysis (SAST) for JavaScript and TypeScript. Runs on its own schedule so
-# it does not slow the merge gate in ci.yml, and weekly so a newly disclosed pattern
-# is caught even without a code change.
-
 on:
   pull_request:
     branches: [main]

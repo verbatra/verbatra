@@ -1,13 +1,6 @@
 version: 2
 
 updates:
-  # Dependabot updates pnpm-workspace.yaml's catalog entries, in both the default "catalog"
-  # and "catalogs.bundled". This was previously recorded here as an upstream reliability gap
-  # requiring manual review; that is no longer accurate. Commit deda4f6 ("bump the npm-minor-patch
-  # group with 7 updates") moved @types/react and @types/react-dom in the default catalog and
-  # @formatjs/icu-messageformat-parser in catalogs.bundled, and single-package proposals have
-  # since arrived for catalog-pinned openai and typescript. Catalog versions are therefore
-  # Dependabot-maintained; do not bump them by hand in parallel, which only creates conflicts.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -20,29 +13,8 @@ updates:
     labels:
       - "dependencies"
     ignore:
-      # TypeScript 7 is the native Go port, not an incremental release of the 6.x line. It ships
-      # a tsc binary but effectively no JavaScript compiler API: `ts.sys` and `ts.createProgram`
-      # are undefined and the package exposes two runtime exports plus a separate, explicitly
-      # unstable "./unstable/*" surface. Typechecking survives (tsc --noEmit passes across every
-      # package), but the build does not: tsup inlines rollup-plugin-dts 6.1.1 into its own
-      # dist/rollup.js, and that copy reads ts.sys at import time, so every `pnpm build` dies with
-      # "Cannot read properties of undefined (reading 'useCaseSensitiveFileNames')". Because the
-      # plugin is bundled rather than resolved, a pnpm override cannot reach it, and tsup 8.5.1 is
-      # the current latest, so there is no version to upgrade to. Standalone rollup-plugin-dts
-      # 6.5.1 already declares a typescript ^7 peer, so the fix is upstream in tsup.
-      # Remove this entry once tsup ships a release carrying a TS7-capable dts path.
       - dependency-name: "typescript"
         versions: [">=7.0.0"]
-      # Every name below is a "catalogs.bundled" entry, so @verbatra/sdk re-declares it and it lands
-      # in a consumer's node_modules, lockfile, npm audit and SBOM. A major on one of these is a
-      # change to the published contract and needs a deliberate evaluation, not a routine weekly
-      # proposal: openai 6 to 7 arrived that way, went green, and was merged eight minutes later
-      # with no changeset and no changelog line. Minor and patch proposals still flow normally.
-      #
-      # This does not replace the disclosure gate. scripts/check-dependency-changeset.mjs fails any
-      # pull request that moves one of these versions without a changeset, whoever authors it. This
-      # entry only stops the proposal from arriving unbidden. To take a major deliberately, bump the
-      # entry by hand on a branch, verify the provider seam, and ship the changeset with it.
       - dependency-name: "@anthropic-ai/sdk"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@formatjs/icu-messageformat-parser"
@@ -63,17 +35,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "yaml"
         update-types: ["version-update:semver-major"]
-      # cosmiconfig is not a catalog entry: packages/sdk/package.json pins it as a literal
-      # "9.0.2", which is why it was missed when the list above was derived from the catalog. It
-      # still reaches a consumer's node_modules the same way, so it needs the same treatment.
-      # The specific hold: cosmiconfig 10 declares engines node "^22.18 || >= 24", while this
-      # repository declares ">=22.14.0". Merging a major would publish an sdk whose manifest
-      # contradicts its own dependency tree, and CI would not catch it, because engines is
-      # advisory at install time unless a consumer sets engine-strict. Raising the floor is a
-      # platform-support decision across three manifests, the CI node pins and the docs, not a
-      # routine weekly proposal. See .verbatra/specs/cosmiconfig-10-upgrade-evaluation.md.
-      # Remove this entry when the repository's own Node floor moves to ^22.18 || >= 24 or
-      # later, and take the cosmiconfig major in that same pull request.
       - dependency-name: "cosmiconfig"
         update-types: ["version-update:semver-major"]
     groups:
@@ -90,13 +51,6 @@ updates:
           - "minor"
           - "patch"
 
-  # The end-to-end harness in /e2e is deliberately outside the pnpm workspace: it installs the
-  # published tarballs with npm to mimic a real consumer, so it carries its own package.json and
-  # committed package-lock.json. Security updates already reach it without this entry, because that
-  # engine scans every manifest Dependabot detects (commit 7c3b619 bumped postcss in /e2e with no
-  # config block present). Version updates do not: they run only for the ecosystem and directory
-  # pairs listed here, which is why the harness drifted behind the workspace catalog. This entry
-  # covers that gap and nothing else.
   - package-ecosystem: "npm"
     directory: "/e2e"
     schedule:
@@ -108,8 +62,6 @@ updates:
     labels:
       - "dependencies"
     ignore:
-      # Same reasoning as the root entry above: the repository stays on the TypeScript 6.x line, and
-      # accepting a 7.x proposal here would only reopen the drift against the workspace catalog.
       - dependency-name: "typescript"
         versions: [">=7.0.0"]
     groups:

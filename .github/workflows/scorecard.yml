@@ -1,59 +1,9 @@
 name: Scorecard
 
-# OpenSSF Scorecard, as a regression guard on the supply-chain posture this repository already
-# invests in: OIDC Trusted Publishing with no NPM_TOKEN, build provenance, actions pinned to commit
-# SHAs, a committed lockfile, a least-privilege GITHUB_TOKEN, weekly pnpm audit and weekly CodeQL.
-# If a future edit unpins an action, widens a token, or drops a control, this surfaces it without
-# anyone having to notice by hand. Results go to the code-scanning dashboard; the score is not a
-# merge gate and this workflow is never a required status check.
-#
-# THE TWO-JOB SPLIT IS A SECURITY REQUIREMENT, NOT A STYLE CHOICE.
-#
-# ossf/scorecard-action is a Docker action whose own action.yaml ends with
-# `image: docker://ghcr.io/ossf/scorecard-action:v2.4.4`. That is a mutable tag, and `runs.image`
-# cannot be overridden by a consumer, so pinning `uses:` to a 40-character SHA does NOT pin the
-# code that actually executes. Priced honestly that is blocking-class for a job holding
-# `security-events: write`, because that scope can write AND DISMISS code-scanning alerts: a
-# compromised image could silently suppress the CodeQL findings that are this repository's real SAST
-# control. So the third-party action runs with read scopes only and hands off a SARIF artifact, and
-# a second job holding the write scope runs nothing but github/codeql-action/upload-sarif, which is
-# first-party and genuinely SHA-pinned. GitHub Actions permissions are job-scoped and never
-# step-scoped, so splitting into two steps would not confine anything.
-#
-# publish_results IS DELIBERATELY false, and "no badge" must mean exactly that. Setting it true
-# pushes the score to the public API whether or not a README badge exists. This repository is not in
-# the public dataset today, so publishing would be a new disclosure, and it would advertise the
-# three checks below rather than the posture the project actually has. Never store a PAT to raise
-# the number either: a long-lived admin-scoped credential is a net supply-chain regression, which is
-# the opposite of what this workflow is for.
-#
-# ACCEPTED WON'T-FIX, so nobody re-litigates them from a low score:
-#
-# - Code-Review scores 0 and Branch-Protection stalls around 4. GitHub forbids self-approval, so a
-#   solo maintainer requiring one approving review either deadlocks every merge or normalizes admin
-#   bypass. Branch-Protection is also tier-gated and cannot reach the top tier this repository
-#   substantively satisfies. Scorecard additionally cannot read classic branch protection without
-#   Administration: Read-only, which GITHUB_TOKEN lacks.
-# - Dangerous-Workflow scores 0 on three `${{ github.event.workflow_run.head_sha }}` checkouts in
-#   release.yml. Substantively a false positive: each of those jobs is guarded by a per-job
-#   `event == 'push'` condition. Note the guard is that condition and NOT the `branches: [main]`
-#   filter, since a fork branch can also be named main. Scorecard credits neither.
-# - Signed-Releases reports -1 and is excluded from the aggregate. npm provenance does not count for
-#   it, because the check reads GitHub release assets and this project attaches none. Do not attach
-#   unsigned tarballs to "fix" it: that would flip an excluded check into a scored 0 and LOWER the
-#   aggregate.
-#
-# If SARIF does not reach code scanning with publish_results: false, delete this workflow and
-# reopen the question. Do not flip publish_results to true as a workaround.
-
 on:
-  # No pull_request trigger. A fork pull request must never be able to run this, and the results
-  # are about the state of main, not about a proposed change.
   push:
     branches: [main]
   schedule:
-    # Weekly, on the same day as the audit and CodeQL runs but an hour later so the three do not
-    # contend for runners.
     - cron: "0 7 * * 1"
 
 concurrency:
@@ -68,8 +18,6 @@ jobs:
     name: Analyze supply-chain posture
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Read scopes only. `actions: read` lets the CI-Tests check enumerate workflow runs; without it
-    # that check degrades to inconclusive. No write scope of any kind reaches the Docker action.
     permissions:
       contents: read
       actions: read
@@ -80,8 +28,6 @@ jobs:
           persist-credentials: false
 
       - name: Run OpenSSF Scorecard
-        # The SHA below is the COMMIT for v2.4.4. The v2.4.4 ref itself (55891bbd) is an annotated
-        # tag object, not a commit, so pinning that would be wrong.
         uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
           results_file: results.sarif
@@ -100,7 +46,6 @@ jobs:
     needs: scorecard
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # The only job holding a write scope, and it runs no third-party code.
     permissions:
       contents: read
       security-events: write
