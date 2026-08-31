@@ -9,7 +9,9 @@
       "!**/.turbo",
       "!**/.next",
       "!**/.source",
-      "!**/next-env.d.ts"
+      "!**/next-env.d.ts",
+      "!**/.agents",
+      "!.claude/skills"
     ]
   },
   "css": {

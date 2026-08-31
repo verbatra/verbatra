@@ -1,131 +1,85 @@
----
-paths:
-  - "apps/docs/**"
----
+# Docs (apps/docs)
 
-# apps/docs rules (Fumadocs documentation site)
+`apps/docs` (`@verbatra/docs`, private) is a Fumadocs/Next.js site. It dogfoods verbatra for its
+own UI strings but hand-maintains its MDX content translations, because verbatra translates
+structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
 
-`apps/docs` (`@verbatra/docs`, private) is the user-facing documentation site, built
-with Fumadocs on Next.js. These rules are binding when editing anything under
-`apps/docs`. They sit on top of the repository rules in the root CLAUDE.md, not
-instead of them.
+## Two kinds of translated content, two mechanisms
 
-## What it is
+- **UI strings**: `apps/docs/messages/en.json` (source) plus `de.json`, `es.json`, `fr.json`.
+  Translated by running `pnpm i18n` from `apps/docs`, which runs `verbatra translate`
+  (`apps/docs/package.json` `scripts.i18n`) against `apps/docs/verbatra.config.ts`:
+  `format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`,
+  `targetLocales: ["de", "es", "fr"]`, provider `gemini`, `tone: "informal"`. This is real, running
+  verbatra. `.github/workflows/docs-i18n-check.yml` runs `verbatra/action` in `check` mode inside
+  `apps/docs` on every pull request that touches `apps/docs/messages/**`,
+  `apps/docs/content/docs/**`, `verbatra.config.ts`, or `verbatra.lock.json`. Its `check` only
+  validates what `verbatra.config.ts` covers, `files.pattern: "messages/{locale}.json"`, so it
+  detects drift in `messages/*.json` only. The `content/docs/**` path is a trigger, not something
+  the check inspects: MDX locale parity is not enforced by CI and rests entirely on the author
+  following the rule below.
+- **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
+  translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
+  by the `(concepts)`, `(configure)`, `(get-started)`, `(guides)` route groups, each with a
+  `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are hand-translated;
+  verbatra's `next-intl-json` adapter only covers `messages/*.json`, not MDX.
 
-- Fumadocs (Next.js App Router). Content is MDX under `content/docs`, configured by
-  `source.config.ts` via `fumadocs-mdx` (`defineDocs({ dir: "content/docs" })`).
-- `postinstall` runs `fumadocs-mdx`, which generates the `.source/` directory. That
-  directory and `verbatra.lock.json` are generated output: never hand-edit them.
-- Navigation and ordering come from Fumadocs `meta.json` files in `content/docs`, not
-  from manual link lists.
+## Source of truth: what's actually shipped
 
-## Commands
+Never write an enumerated feature list into a docs rules file or a docs page from memory. Three
+files define what verbatra actually ships, and they cannot go stale the way prose can, because
+they are the code:
 
-Run inside `apps/docs` (or with a turbo filter from the root):
+- `packages/cli/src/run.ts` - every `.command(...)` registration is a real CLI command. Grep
+  `\.command\(` there for the current list rather than trusting a remembered one.
+- `packages/format-adapters/src/default-registry.ts` - `createDefaultRegistry`'s
+  `.register(...)` chain is the closed set of supported formats.
+- `packages/sdk/src/config/provider-config.ts` - the `providerFactories` table (and the
+  `providerConfigSchema` discriminated union above it) is the closed set of supported providers.
 
-- `pnpm dev` (next dev), `pnpm build` (next build), `pnpm start` (next start).
-- `pnpm typecheck` (tsc --noEmit). Run it after edits to `app`, `lib`, `components`,
-  or config.
-- `pnpm test` (vitest run). This app has its own test suite; run it after changing
-  anything under `lib` or `components`.
-- `pnpm i18n` runs `verbatra translate` to regenerate translated content (see below).
-- From the root, filter with `pnpm turbo run build --filter=@verbatra/docs`.
+When documenting a command, format, or provider, check the matching file first. When a change adds
+or removes a command/format/provider, the docs update belongs in the same change as the code
+change (see `CONTRIBUTING.md` "Adding a provider or a format adapter" for the exact docs files each
+extension touches: `providers.mdx`, `config-file.mdx`, `formats.mdx`, plus
+`apps/docs/lib/structured-data.ts`'s `FORMAT_LABELS` for a new format).
 
-## Internationalization (the docs site dogfoods verbatra)
+## Every user-facing change updates all four locale files
 
-- Locales: `en` is the source of truth; `de`, `es`, and `fr` must be kept in step with
-  it. The docs MUST stay current in every available language.
-- UI strings live in `messages/<locale>.json` with `en.json` as the source. Which
-  repair is correct depends on which side is wrong, because `verbatra.lock.json`
-  records only a hash of the English entry: a key is classified stale purely by
-  comparing that hash, and only missing and stale keys are ever sent to the provider.
-- The English source changed, or the key is new: edit `messages/en.json`, then run
-  `pnpm i18n` (verbatra translate) to regenerate the locale files.
-- The English source is already right and only a translation is wrong: `pnpm i18n`
-  regenerates nothing, because the key still hashes to its recorded baseline and
-  counts as up to date. Fix it with a Studio edit (`pnpm studio`; local editing needs
-  no provider and no `--allow-spend`) or with a workbook round trip
-  (`verbatra export --include-unchanged`, correct the row, then `verbatra import`;
-  the flag is required because an up-to-date key is not exported by default). Both
-  routes write the corrected value, hold it to the placeholder and ICU integrity gate,
-  advance the lock entry, and record the text in the translation memory. The same
-  mechanism explains why pinning a glossary term on its own retranslates nothing: the
-  glossary is not part of the content hash.
-- Do not hand-edit the generated `messages/<locale>.json`. With the source unchanged
-  it leaves the same lock state behind, so it looks equivalent, but it skips the
-  integrity gate and leaves the translation memory holding the superseded text.
-- Doc pages use locale-suffixed MDX: `page.mdx` is the English source and
-  `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` are its translations. `pnpm i18n` does
-  NOT translate these (verbatra translates JSON, XLIFF, YAML, ARB, and properties, not
-  Markdown),
-  so the docs team maintains them by hand: whenever you change or add an English
-  `.mdx`, update or create its translation for every locale in the same change.
-- When translating a page, translate the prose and the frontmatter `title` and
-  `description` values only; keep code blocks, inline code, CLI flags, file paths,
-  URLs, JSON keys and values, MDX component names, and frontmatter keys verbatim; keep
-  the glossary terms from `apps/docs/verbatra.config.ts` untranslated; never use the em
-  dash.
-- Register: the audience is developers and users, so write a direct, technical, concise
-  tone with informal personal address in every language: German `du` (never `Sie` or
-  `Ihr` forms), Spanish `tú` (never `usted`), French `tu` (never `vous`). Prefer active
-  voice and imperatives over impersonal or passive phrasing.
+A change to `messages/en.json` or to an English `page.mdx` is not complete until the corresponding
+`de`, `es`, and `fr` files are updated in the *same* change, whether by hand (MDX content) or by
+re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
+leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
+`messages/*.json` half of this (see above); a stale or missing `.de.mdx`/`.es.mdx`/`.fr.mdx` is
+not caught by CI, so treat this as an authoring discipline, not a check you can rely on to fail.
 
-## Authoring rules
+## The `<AvailableFrom />` callout
 
-- English source content only, and apply the root language and style rules: no emojis,
-  no decorative formatting, and never the em dash (U+2014). Use a spaced hyphen, a
-  colon, or parentheses.
-- Only document features that exist, and read the shipped surface from the code rather
-  than from any list in a guidance file, this one included. The CLI commands are the
-  `.command(...)` registrations in `packages/cli/src/run.ts`, the formats are the
-  adapters `createDefaultRegistry` registers in `@verbatra/format-adapters`, and the
-  providers are the factory table in `packages/sdk/src/config/provider-config.ts`. An
-  enumeration written into guidance goes stale the day a command ships; those three
-  files cannot. This rule replaced such an enumeration twice, in the same place.
-- When a command is added, sweep the periphery too (the get-started walkthrough, the
-  FAQ, the troubleshooting entries, the landing FAQ in `messages/*.json`, and the SDK
-  page's entry-point list), not just its own `cli/` page.
-- Keep docs accurate to the current SDK and CLI surface. When a user-facing change
-  lands (a CLI flag, a config key, an SDK export, provider or adapter behavior),
-  update the matching page here.
+Component: `apps/docs/components/available-from.tsx`. Renders a Fumadocs `Callout` sourced from
+the `docs.availableFrom` translation namespace (`messages/*.json`), so its copy is translated like
+any other UI string, not hand-duplicated per locale MDX file.
 
-### The "available from" callout
+- Usage: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
+  `<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` when the feature belongs to a
+  specific package (see the real usage in
+  `apps/docs/content/docs/(guides)/agent-tools-in-studio.mdx`).
+- Use it on any documented feature that shipped after the package's initial release, so a reader on
+  an older version knows to upgrade instead of filing a "this doesn't work" report.
+- To get the correct version, do not guess or copy the current `package.json` version by hand:
+  run `pnpm changeset status` (or check the changeset that introduces the feature) to see what
+  version the pending or landed change actually bumps to. `@verbatra/cli` and `@verbatra/sdk` are
+  version-locked (`fixed` in `.changeset/config.json`), so a CLI/SDK feature uses their shared
+  version; `@verbatra/studio` versions independently and needs its own number, which is why
+  `pkg="@verbatra/studio"` exists.
+- It never needs removing later. Once a version ships, the callout is historically accurate
+  forever; do not go back and strip it once the "from" version is old.
 
-Docs deploy on every merge, while npm publishes only at release time. Between the two
-a page can describe behavior that is on `main` but that no reader can install yet.
-Mark those pages so the gap is visible instead of silent.
+## Register and tone
 
-- Use `<AvailableFrom version="0.9.0" />` on its own line, with a blank line either
-  side. It renders a Fumadocs `Callout` and is registered in
-  `apps/docs/components/mdx.tsx`, so no import is needed.
-- Place it directly after the frontmatter when the whole page is new, and directly
-  above the heading or paragraph that introduces the behavior when only part of a page
-  is version-gated. Mark the section that introduces the behavior, not every sentence
-  that mentions it.
-- The `version` is the version of the package that ships the behavior. The default copy
-  names verbatra, so a bare `version` means the CLI and SDK. For anything that ships in
-  a different package, pass `pkg` as well:
-  `<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />`. That switches the callout
-  to the package-qualified wording; without it the callout would tell a reader to check
-  `verbatra --version`, which answers for the wrong package.
-- Use it when a page (or a section you are adding to one) documents behavior that has
-  merged but is not yet published, and for behavior that is published but needs a
-  minimum version. The two cases share one wording, so no distinction is needed at the
-  call site.
-- The `version` is the release the behavior ships in. Get it from
-  `pnpm changeset status`, which reports the bump the pending changesets produce; do
-  not work it out by hand.
-- The copy lives in `apps/docs/messages/en.json` under `docs.availableFrom` and is
-  translated by `pnpm i18n` like every other UI string, so the same MDX line goes into
-  the `.de.mdx`, `.es.mdx`, and `.fr.mdx` siblings unchanged.
-- The wording stays true after the release ships, so nothing has to be removed on
-  release day. Dropping the callout once the version is a few releases old is
-  housekeeping, not a required step.
-- When you need Fumadocs framework guidance (frontmatter, MDX components, `meta.json`,
-  i18n config), use the `read-fumadocs` skill to read the official Fumadocs docs
-  rather than guessing.
+Informal address throughout: German `du` (not `Sie`), Spanish `tú` (not `usted`), French `tu` (not
+`vous`). This is the same tone the automated translation already applies
+(`apps/docs/verbatra.config.ts`: `tone: "informal"`), so hand-translated MDX content should match
+it for consistency between machine- and hand-translated pages.
 
-## Scope
-
-This is the docs-writer surface. Documentation changes belong here; do not push
-product logic into the docs app, and do not change the SDK or CLI from this package.
+Never use the em dash (U+2014) in any locale, including hand-written German, Spanish, or French
+content. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
+requires for English.
