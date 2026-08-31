@@ -113,6 +113,20 @@ describe("readWorkbook: structural rejection", () => {
     await expectWorkbookInvalid(() => readWorkbook(new Uint8Array(buffer as ArrayBuffer)));
   });
 
+  it("rejects a data sheet whose middle columns are reordered even though Key and Source hash are correct", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("de");
+    ["Key", "Status", "Current translation", "Source", "Translation", "Source hash"].forEach(
+      (label, index) => {
+        sheet.getRow(1).getCell(index + 1).value = label;
+      },
+    );
+    sheet.getRow(2).getCell(1).value = "k1";
+    sheet.getRow(2).getCell(2).value = "new";
+    const buffer = await workbook.xlsx.writeBuffer();
+    await expectWorkbookInvalid(() => readWorkbook(new Uint8Array(buffer as ArrayBuffer)));
+  });
+
   it("coerces non-string cell values (numbers) to strings on read", async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("de");

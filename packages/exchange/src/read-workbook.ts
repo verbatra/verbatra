@@ -30,15 +30,18 @@ function cellString(cell: ExcelJS.Cell): string {
   return typeof cell.text === "string" ? cell.text : "";
 }
 
+const LEGACY_HEADER_COLUMN_COUNT = COLUMN.sourceHash;
+
 function assertHeader(sheet: ExcelJS.Worksheet): void {
   const header = sheet.getRow(HEADER_ROW);
-  const key = cellString(header.getCell(COLUMN.key));
-  const sourceHash = cellString(header.getCell(COLUMN.sourceHash));
-  if (key !== HEADERS[COLUMN.key - 1] || sourceHash !== HEADERS[COLUMN.sourceHash - 1]) {
-    throw new ExchangeError(
-      "WORKBOOK_INVALID",
-      `The sheet "${sheet.name}" is missing the expected Key and Source hash columns.`,
-    );
+  for (let column = 1; column <= LEGACY_HEADER_COLUMN_COUNT; column += 1) {
+    const label = cellString(header.getCell(column));
+    if (label !== HEADERS[column - 1]) {
+      throw new ExchangeError(
+        "WORKBOOK_INVALID",
+        `The sheet "${sheet.name}" has an unexpected header label in column ${column} (expected "${HEADERS[column - 1]}").`,
+      );
+    }
   }
 }
 
