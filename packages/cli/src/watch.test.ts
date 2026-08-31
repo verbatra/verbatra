@@ -14,7 +14,7 @@ import {
   parseEnvelope,
   recordingDeps,
 } from "./test-support.js";
-import type { WatchSession } from "./types.js";
+import type { Session } from "./types.js";
 
 function watchHarness() {
   let onRun: ((result: WatchRunResult) => void) | undefined;
@@ -45,8 +45,8 @@ async function startWatch(
   argv: readonly string[],
   deps: Parameters<typeof run>[1],
   streams: Parameters<typeof run>[2],
-): Promise<{ done: Promise<number>; session: WatchSession }> {
-  let session: WatchSession | undefined;
+): Promise<{ done: Promise<number>; session: Session }> {
+  let session: Session | undefined;
   const done = run(argv, deps, streams, {
     onWatchSession: (s) => {
       session = s;
@@ -176,7 +176,7 @@ describe("run watch: wiring and rendering", () => {
 });
 
 describe("run watch: --debounce validation", () => {
-  it.each(["abc", "0", "-5", "250ms", "3.5"])(
+  it.each(["abc", "0", "-5", "250ms", "3.5", "60001"])(
     "rejects an invalid --debounce %s as a usage error: exit 2, structured stderr, no SDK call",
     async (value) => {
       const { deps, calls } = recordingDeps();
@@ -193,6 +193,19 @@ describe("run watch: --debounce validation", () => {
       expect(calls.watch).toHaveLength(0);
     },
   );
+
+  it("accepts a --debounce exactly at the maximum", async () => {
+    const h = watchHarness();
+    const { deps, calls } = recordingDeps({ watch: h.watch });
+    const cap = captureStreams();
+    const { done, session } = await startWatch(["watch", "--debounce", "60000"], deps, cap.streams);
+
+    expect(calls.watch[0]?.debounceMs).toBe(60_000);
+
+    session.requestStop();
+    h.finishStop();
+    await done;
+  });
 });
 
 describe("run watch: --concurrency", () => {
@@ -222,7 +235,7 @@ describe("run watch: --concurrency", () => {
     await done;
   });
 
-  it.each(["abc", "0", "-5", "2.5", "3ms"])(
+  it.each(["abc", "0", "-5", "2.5", "3ms", "101"])(
     "rejects an invalid --concurrency %s as a usage error: exit 2, structured stderr, no SDK call",
     async (value) => {
       const { deps, calls } = recordingDeps();
@@ -239,6 +252,23 @@ describe("run watch: --concurrency", () => {
       expect(calls.watch).toHaveLength(0);
     },
   );
+
+  it("accepts a --concurrency exactly at the maximum", async () => {
+    const h = watchHarness();
+    const { deps, calls } = recordingDeps({ watch: h.watch });
+    const cap = captureStreams();
+    const { done, session } = await startWatch(
+      ["watch", "--concurrency", "100"],
+      deps,
+      cap.streams,
+    );
+
+    expect(calls.watch[0]?.concurrency).toBe(100);
+
+    session.requestStop();
+    h.finishStop();
+    await done;
+  });
 });
 
 describe("run watch: shutdown and exit codes", () => {
@@ -307,7 +337,7 @@ describe("run watch: shutdown and exit codes", () => {
         }),
     });
     const cap = captureStreams();
-    let session: WatchSession | undefined;
+    let session: Session | undefined;
     const done = run(["watch"], deps, cap.streams, {
       onWatchSession: (s) => {
         session = s;

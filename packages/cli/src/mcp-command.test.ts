@@ -2,7 +2,7 @@ import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import { captureStreams, flush, makeMcpModule, recordingDeps } from "./test-support.js";
-import type { McpSession, RunHooks } from "./types.js";
+import type { RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
   return Object.assign(
@@ -11,8 +11,8 @@ function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Err
   );
 }
 
-function captureMcpSession(): { hooks: RunHooks; session: () => McpSession | undefined } {
-  let session: McpSession | undefined;
+function captureMcpSession(): { hooks: RunHooks; session: () => Session | undefined } {
+  let session: Session | undefined;
   return {
     hooks: {
       onMcpSession: (s) => {

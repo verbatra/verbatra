@@ -8,7 +8,7 @@ import {
   makeStudioModule,
   recordingDeps,
 } from "./test-support.js";
-import type { RunHooks, StudioSession } from "./types.js";
+import type { RunHooks, Session } from "./types.js";
 
 const TOKEN_SHAPE = /[0-9a-f]{64}/;
 
@@ -21,8 +21,8 @@ function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Err
   );
 }
 
-function captureStudioSession(): { hooks: RunHooks; session: () => StudioSession | undefined } {
-  let session: StudioSession | undefined;
+function captureStudioSession(): { hooks: RunHooks; session: () => Session | undefined } {
+  let session: Session | undefined;
   return {
     hooks: {
       onStudioSession: (s) => {

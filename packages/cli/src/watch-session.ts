@@ -8,7 +8,7 @@ import {
   toRenderableError,
 } from "./render.js";
 import { stoppableSession } from "./stoppable-session.js";
-import type { CliDeps, Streams, WatchSession } from "./types.js";
+import type { CliDeps, Session, Streams } from "./types.js";
 
 export interface WatchOptions {
   readonly config: VerbatraConfig;
@@ -21,7 +21,7 @@ export interface WatchOptions {
   readonly json: boolean;
 }
 
-export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams): WatchSession {
+export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams): Session {
   const onRun = (result: WatchRunResult): void => {
     streams.out(
       options.json ? `${renderRunResultEnvelope(result)}\n` : `${renderRunResultHuman(result)}\n`,

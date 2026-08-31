@@ -213,11 +213,14 @@ async function withWholeRunErrors(
   }
 }
 
+const MAX_DEBOUNCE_MS = 60_000;
+
 function parseDebounce(value: string | undefined): number | undefined {
   return parsePositiveIntegerOption(value, {
     code: "INVALID_DEBOUNCE",
-    describe: "--debounce option must be a positive whole number of milliseconds",
+    describe: `--debounce option must be a positive whole number of milliseconds no greater than ${MAX_DEBOUNCE_MS}`,
     min: 1,
+    max: MAX_DEBOUNCE_MS,
   });
 }
 
@@ -239,20 +242,26 @@ function parseExchangeFormat(value: string | undefined): ExchangeFormat | undefi
   return format;
 }
 
+const MAX_LOCK_TIMEOUT_SECONDS = 3600;
+
 function parseLockTimeout(value: string | undefined): number | undefined {
   const seconds = parsePositiveIntegerOption(value, {
     code: "INVALID_LOCK_TIMEOUT",
-    describe: "--lock-timeout option must be a positive whole number of seconds",
+    describe: `--lock-timeout option must be a positive whole number of seconds no greater than ${MAX_LOCK_TIMEOUT_SECONDS}`,
     min: 1,
+    max: MAX_LOCK_TIMEOUT_SECONDS,
   });
   return seconds === undefined ? undefined : seconds * 1000;
 }
 
+const MAX_CONCURRENCY = 100;
+
 function parseConcurrency(value: string | undefined): number | undefined {
   return parsePositiveIntegerOption(value, {
     code: "INVALID_CONCURRENCY",
-    describe: "--concurrency option must be a positive whole number",
+    describe: `--concurrency option must be a positive whole number no greater than ${MAX_CONCURRENCY}`,
     min: 1,
+    max: MAX_CONCURRENCY,
   });
 }
 

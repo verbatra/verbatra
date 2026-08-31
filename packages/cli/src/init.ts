@@ -70,8 +70,14 @@ function detectFormat(cwd: string): { format: string; detected: boolean } {
   return { format: DEFAULT_FORMAT, detected: false };
 }
 
+type ModelProviderId = keyof typeof scaffoldingMetadata.scaffoldModels;
+
+function isModelProvider(id: ScaffoldableProviderId): id is ModelProviderId {
+  return Object.hasOwn(scaffoldingMetadata.scaffoldModels, id);
+}
+
 function buildProviderOptions(id: ScaffoldableProviderId): Record<string, unknown> {
-  if (id === "deepl" || id === "google-translate") {
+  if (!isModelProvider(id)) {
     return {};
   }
   return {
@@ -92,14 +98,15 @@ function renderProviderOptions(options: Record<string, unknown>): string[] {
   });
 }
 
+const NO_MODEL_NOTES: Readonly<Partial<Record<ScaffoldableProviderId, string>>> = {
+  deepl: "    // DeepL needs no model; add an optional glossaryId here if you have one.",
+  "google-translate": "    // Google Cloud Translation needs no model.",
+};
+
 function renderProviderBlock(id: ScaffoldableProviderId, options: Record<string, unknown>): string {
   const optionLines = renderProviderOptions(options);
-  const note =
-    id === "deepl"
-      ? ["    // DeepL needs no model; add an optional glossaryId here if you have one."]
-      : id === "google-translate"
-        ? ["    // Google Cloud Translation needs no model."]
-        : [];
+  const noteText = NO_MODEL_NOTES[id];
+  const note = noteText === undefined ? [] : [noteText];
   const body =
     optionLines.length === 0 ? ["    options: {},"] : ["    options: {", ...optionLines, "    },"];
   return ["  provider: {", `    id: ${JSON.stringify(id)},`, ...note, ...body, "  },"].join("\n");
