@@ -1,6 +1,6 @@
 {
   "name": "@verbatra/cli",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "type": "module",
   "description": "Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, or an openai-compatible local or self-hosted model.",
   "keywords": [

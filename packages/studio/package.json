@@ -1,6 +1,6 @@
 {
   "name": "@verbatra/studio",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "type": "module",
   "description": "Local Verbatra Studio dashboard: a live web view over a verbatra project with built-in local editing, served from a prebuilt single-page app.",
   "keywords": [

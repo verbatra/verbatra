@@ -1,5 +1,104 @@
 # @verbatra/sdk
 
+## 0.10.0
+
+### Minor Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `android-xml`, a new supported format, for Android's `res/values/strings.xml`
+  and `res/values-<qualifier>/strings.xml` resource files. Plurals are read and
+  written as separate entries per quantity (`zero`, `one`, `two`, `few`, `many`,
+  `other`), and printf-style placeholders (`%s`, `%1$s`) are guarded across
+  translation. Entries marked `translatable="false"`, `<string-array>` elements, and
+  strings containing inline markup are left untouched. Writes preserve existing file
+  structure and create missing destination directories.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `apple-strings`, a new supported format, for Apple's `.strings` localization
+  files (flat `"key" = "value";` pairs) and their sibling `.stringsdict` plural
+  files, both addressed through the same format id. Printf-style placeholders
+  (`%@`, `%d`, `%1$@`) are guarded across translation, and CLDR plural categories
+  round-trip as separate entries with no fabricated or dropped categories. A
+  UTF-16 `.strings` file is rejected with a clear error instead of being parsed
+  into corrupt data. Writes preserve existing key order, comments, and
+  non-translatable `.stringsdict` structure, creating missing `.lproj` directories
+  as needed.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `apple-xcstrings`, a new supported format, for Apple's Xcode String Catalog
+  (`.xcstrings`) files, which hold every locale in one JSON document rather than
+  one file per locale. Plural categories and printf placeholders are handled the
+  same way as the `apple-strings` format. Because all locales share one physical
+  file, writes to an `apple-xcstrings` catalogue are serialized, so concurrency
+  above 1 no longer parallelizes operations for this format specifically. Writes
+  patch only the touched localizations, leaving everything else in the document
+  untouched.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `gettext-po`, a new supported format, for GNU gettext `.po` and `.pot`
+  catalogs. `msgid`/`msgstr` pairs become entries, `msgctxt` disambiguates entries
+  sharing a `msgid`, and plural forms round-trip as separate entries keyed by
+  their `msgstr[n]` index. Comments, references, flags, and the header block are
+  preserved on write. Printf-style (`%s`, `%d`, `%1$s`) and Python-style
+  (`%(name)s`) placeholders are guarded across translation. Known limitation: a
+  plural form present only in a target locale cannot always be distinguished from
+  a removed key, which only matters when `--prune` is enabled.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `google-translate`, a new translation provider, for Google Cloud Translation
+  Basic (v2). Like DeepL, it is a machine-translation API rather than a language
+  model, with no tone control and no glossary support in v1; it reads
+  `GOOGLE_TRANSLATE_API_KEY` from the environment. Entries containing
+  placeholders or ICU syntax are withheld and reported rather than sent to the
+  API. Registered end to end: the provider factory table, config schema,
+  `verbatra init` scaffolding, and the CLI `--provider` option.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `@verbatra/mcp`, a new stdio MCP server exposing verbatra's translation
+  status, glossary, and editing capabilities as tools for MCP clients such as
+  Claude Desktop, Claude Code, and Cursor. Ships 13 tools covering status checks,
+  glossary editing, key integrity, and translation editing; the two tools that
+  call a provider and spend API usage are only advertised when the server is
+  started with spending allowed. Ships both a library export (`startMcpServer`)
+  and a `verbatra-mcp` binary, versioned and published independently of
+  `@verbatra/sdk`/`@verbatra/cli`. `@verbatra/cli` gains a new `mcp` command that
+  loads it via dynamic import, so a missing `@verbatra/mcp` install never breaks
+  the rest of the CLI. `@verbatra/sdk` also gains a shared `redact` utility, used
+  to strip provider API key values out of tool output before it reaches a caller.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - `@verbatra/sdk` adds `localeValues`, a bulk read returning every key's current
+  source and target text across requested locales in one pass, without needing
+  to fetch each key individually through `keyValue`. It backs client-side content
+  search over translation values, not just key names. Read-only: it writes
+  nothing and calls no provider.
+
+### Patch Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Bump bundled runtime dependencies (`@anthropic-ai/sdk`, `@google/genai`, `openai`, `@formatjs/icu-messageformat-parser`, `@xmldom/xmldom`, `zod`) to their latest releases; no behavior change observed.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix config validation to reject a target locale that case-insensitively matches the source locale (for example `sourceLocale: "de"` with `targetLocales: ["DE"]`), preventing the source locale file from being silently overwritten on case-insensitive file systems.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix a polynomial-time regular expression denial-of-service in the printf-style and gettext placeholder extraction used by the Android `strings.xml`, Apple `.strings`/`.stringsdict`, and gettext `.po`/`.pot` adapters. The flags and field-width parts of the specifier pattern both matched a leading `0`, so a translatable string starting with `%` followed by many `0` characters made the regex engine try every possible split between the two before failing, taking quadratic time. The field-width alternative now requires a leading nonzero digit, which any legitimate width already has once the flag characters (including `0` padding) are accounted for, so previously matched placeholders are extracted identically while the ambiguous split is eliminated.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Remove the unused `PlaceholderFinding` type from `@verbatra/core`, which had no
+  internal consumers and was never present in the published sdk type declarations.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix workbook import silently accepting a sheet whose middle header columns
+  (Source, Current translation, Status, Translation) were reordered or
+  relabeled, since only Key and Source hash were validated while data was mapped
+  by column index. The header check now validates all six columns, rejecting a
+  mismatched header with a structural error.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix `importWorkbook` reporting a spurious missing-sheet failure for target
+  locales not covered by a single-file delimited import; it now only checks the
+  one locale that file targets. Fix `exportWorkbook` failing to create a
+  not-yet-existing nested output directory for an `.xlsx` handoff, matching the
+  delimited export branch's existing behavior.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix the XLIFF adapter's destination-read error message incorrectly claiming a
+  file does not exist for non-ENOENT failures (permission denied, a directory in
+  place of a file); both cases still raise the same structured error. Also
+  deduplicates line-terminator detection helpers shared across the properties,
+  Apple `.strings`, and gettext adapters, with no behavior change.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Bound the recursion depth when serializing translated XLIFF inline markup (`<g>`, `<x>`, and similar elements), matching the depth limit already enforced for JSON and YAML trees. Adversarially deep nested elements in translated content now raise a structured `AdapterError` instead of silently degrading to escaped plain text after an internal, previously-swallowed stack overflow.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Extend the existing CSV/TSV formula-injection guard to the xlsx export path. Source, current-translation, translation, and context values that begin with a formula-triggering character are now apostrophe-escaped before being written to the workbook, and unescaped again on import, so a translatable string can no longer become a live formula when a reviewer opens the exported spreadsheet.
+
 ## 0.9.3
 
 ### Patch Changes
