@@ -186,7 +186,9 @@
       },
       "legalLine": "Open source sous la licence MIT · © 2026 Mario Kreitz",
       "githubAria": "verbatra sur GitHub",
-      "npmAria": "verbatra sur npm"
+      "npmAria": "verbatra sur npm",
+      "contributorsTitle": "Contributeurs",
+      "contributorAria": "{name} sur GitHub"
     },
     "brand": {
       "vmarkAlt": "verbatra"

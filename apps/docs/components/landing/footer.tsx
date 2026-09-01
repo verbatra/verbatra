@@ -2,6 +2,7 @@ import { SiNpm } from "@icons-pack/react-simple-icons";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
+import { fetchContributors, type GithubContributor } from "@/lib/contributors";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
@@ -131,8 +132,57 @@ function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): R
   );
 }
 
+function ContributorsRow({
+  contributors,
+  title,
+  ariaFor,
+}: {
+  contributors: ReadonlyArray<GithubContributor>;
+  title: string;
+  ariaFor: (login: string) => string;
+}): ReactNode {
+  if (contributors.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <p className="mb-4 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)]">
+        {title}
+      </p>
+      <ul className="flex flex-wrap items-center gap-3">
+        {contributors.map((contributor) => (
+          <li key={contributor.login}>
+            <a
+              href={contributor.profileUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={ariaFor(contributor.login)}
+              className="block rounded-full transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+              data-umami-event="outbound-link"
+              data-umami-event-target="contributor"
+            >
+              {/* biome-ignore lint/performance/noImgElement: contributor avatar URLs come from the GitHub API at build/ISR time and are not known to next/image's static remotePatterns allowlist. */}
+              <img
+                src={contributor.avatarUrl}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export async function FullFooter(): Promise<ReactNode> {
-  const t = await getTranslations("landing.footer");
+  const [t, contributors] = await Promise.all([
+    getTranslations("landing.footer"),
+    fetchContributors(),
+  ]);
   return (
     <footer
       className="relative overflow-hidden"
@@ -244,6 +294,11 @@ export async function FullFooter(): Promise<ReactNode> {
             );
           })}
         </div>
+        <ContributorsRow
+          contributors={contributors}
+          title={t("contributorsTitle")}
+          ariaFor={(login) => t("contributorAria", { name: login })}
+        />
         <div
           className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
           style={{

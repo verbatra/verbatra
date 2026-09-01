@@ -186,7 +186,9 @@
       },
       "legalLine": "Quelloffen unter der MIT-Lizenz · © 2026 Mario Kreitz",
       "githubAria": "verbatra auf GitHub",
-      "npmAria": "verbatra auf npm"
+      "npmAria": "verbatra auf npm",
+      "contributorsTitle": "Mitwirkende",
+      "contributorAria": "{name} auf GitHub"
     },
     "brand": {
       "vmarkAlt": "verbatra"
