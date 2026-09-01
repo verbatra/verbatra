@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { ExchangeError } from "./errors.js";
+import { unescapeFormulaLead } from "./formula-guard.js";
 import { COLUMN, HEADER_ROW, HEADERS, INSTRUCTIONS_SHEET_NAME } from "./layout.js";
 import { DEFAULT_WORKBOOK_LIMITS, type WorkbookLimits } from "./limits.js";
 import { judgeRow, type RowAccumulator } from "./row-shape.js";
@@ -30,6 +31,13 @@ function cellString(cell: ExcelJS.Cell): string {
   return typeof cell.text === "string" ? cell.text : "";
 }
 
+const FORMULA_GUARDED_COLUMNS: ReadonlySet<number> = new Set([
+  COLUMN.source,
+  COLUMN.current,
+  COLUMN.translation,
+  COLUMN.context,
+]);
+
 const LEGACY_HEADER_COLUMN_COUNT = COLUMN.sourceHash;
 
 function assertHeader(sheet: ExcelJS.Worksheet): void {
@@ -46,7 +54,11 @@ function assertHeader(sheet: ExcelJS.Worksheet): void {
 }
 
 function sheetRowCells(row: ExcelJS.Row): readonly string[] {
-  return HEADERS.map((_, index) => cellString(row.getCell(index + 1)));
+  return HEADERS.map((_, index) => {
+    const column = index + 1;
+    const value = cellString(row.getCell(column));
+    return FORMULA_GUARDED_COLUMNS.has(column) ? unescapeFormulaLead(value) : value;
+  });
 }
 
 interface DataSheetRead {

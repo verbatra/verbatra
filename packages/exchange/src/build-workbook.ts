@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { ExchangeError } from "./errors.js";
+import { escapeFormulaLead } from "./formula-guard.js";
 import { INSTRUCTIONS_LINES } from "./instructions.js";
 import { COLUMN, HEADER_ROW, HEADERS, INSTRUCTIONS_SHEET_NAME } from "./layout.js";
 import type { WorkbookModel, WorkbookSheet } from "./types.js";
@@ -53,14 +54,15 @@ function applyColumnGeometry(sheet: ExcelJS.Worksheet): void {
 function writeRow(sheet: ExcelJS.Worksheet, sheetRow: WorkbookSheet["rows"][number]): void {
   const row = sheet.addRow([]);
   row.getCell(COLUMN.key).value = sheetRow.key;
-  row.getCell(COLUMN.source).value = sheetRow.source;
-  row.getCell(COLUMN.current).value = sheetRow.currentTarget;
+  row.getCell(COLUMN.source).value = escapeFormulaLead(sheetRow.source);
+  row.getCell(COLUMN.current).value = escapeFormulaLead(sheetRow.currentTarget);
   row.getCell(COLUMN.status).value = sheetRow.status;
   const translationCell = row.getCell(COLUMN.translation);
   translationCell.numFmt = TEXT_NUMBER_FORMAT;
-  translationCell.value = sheetRow.translation === "" ? null : sheetRow.translation;
+  const translation = escapeFormulaLead(sheetRow.translation);
+  translationCell.value = translation === "" ? null : translation;
   row.getCell(COLUMN.sourceHash).value = sheetRow.sourceHash;
-  row.getCell(COLUMN.context).value = sheetRow.context;
+  row.getCell(COLUMN.context).value = escapeFormulaLead(sheetRow.context);
   row.getCell(COLUMN.reviewStatus).value = sheetRow.reviewStatus;
   row.getCell(COLUMN.reviewReasons).value = sheetRow.reviewReasons;
 
