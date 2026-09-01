@@ -5,8 +5,6 @@
     "ci-and-exit-codes",
     "github-action",
     "manual-translation",
-    "review-in-studio",
-    "agent-recipes",
-    "agent-tools-in-studio"
+    "review-in-studio"
   ]
 }
