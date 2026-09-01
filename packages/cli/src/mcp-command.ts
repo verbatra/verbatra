@@ -44,7 +44,12 @@ export async function runMcp(rawOpts: unknown, deps: CliDeps, streams: Streams):
   }
 
   const cwd = opts.cwd ?? process.cwd();
-  loadEnvFiles(cwd);
+  try {
+    loadEnvFiles(cwd);
+  } catch (error) {
+    streams.err(`${renderError(toRenderableError(error))}\n`);
+    return failedSession(2);
+  }
   const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
 
   const mcpModule = await step(

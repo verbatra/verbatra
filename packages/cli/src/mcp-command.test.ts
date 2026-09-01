@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "./run.js";
@@ -22,6 +25,31 @@ function captureMcpSession(): { hooks: RunHooks; session: () => Session | undefi
     session: () => session,
   };
 }
+
+describe("run mcp: .env read failure", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "verbatra-mcp-env-"));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
+    mkdirSync(join(dir, ".env"));
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--cwd", dir], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.out()).toBe("");
+    expect(cap.err()).not.toBe("");
+    expect(calls.importMcp).toHaveLength(0);
+  });
+});
 
 describe("run mcp: option passthrough", () => {
   it("passes --cwd and --config through as cwd and configPath, with allowSpend false by default", async () => {

@@ -57,7 +57,12 @@ export async function runStudio(
   }
 
   const cwd = opts.cwd ?? process.cwd();
-  loadEnvFiles(cwd);
+  try {
+    loadEnvFiles(cwd);
+  } catch (error) {
+    streams.err(`${renderError(toRenderableError(error))}\n`);
+    return failedSession(2);
+  }
   const spend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
   const exposeAgentTools = resolveBooleanFlag(opts.exposeAgentTools, AGENT_TOOLS_ENV_VAR);
 

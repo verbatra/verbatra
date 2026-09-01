@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "./run.js";
@@ -32,6 +35,31 @@ function captureStudioSession(): { hooks: RunHooks; session: () => Session | und
     session: () => session,
   };
 }
+
+describe("run studio: .env read failure", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "verbatra-studio-env-"));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
+    mkdirSync(join(dir, ".env"));
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["studio", "--cwd", dir], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.out()).toBe("");
+    expect(cap.err()).not.toBe("");
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
+  });
+});
 
 describe("run studio: ordering", () => {
   it("a config load failure exits 2, renders the error, and never imports @verbatra/studio", async () => {
