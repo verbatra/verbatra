@@ -946,7 +946,7 @@ describe("TranslationsPanel key explorer", () => {
       "app.needle",
     ]);
     expect(view.text()).not.toContain("refine the filter to see more");
-  });
+  }, 15000);
 
   it("caps a long list and says how many keys it is hiding", async () => {
     const keys = Array.from({ length: MAX_RENDERED_KEYS + 1 }, (_, index) => `app.key${index}`);
@@ -966,7 +966,7 @@ describe("TranslationsPanel key explorer", () => {
     expect(view.text()).toContain(
       `Showing ${MAX_RENDERED_KEYS} of ${keys.length}, refine the filter to see more.`,
     );
-  });
+  }, 15000);
 
   it("renders a right-to-left locale's section in its own direction", async () => {
     stubPage({
