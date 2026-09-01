@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "26.2.0",
+    "@types/node": "26.4.0",
     "exceljs": "4.4.0",
     "execa": "10.0.1",
     "typescript": "6.0.3",
