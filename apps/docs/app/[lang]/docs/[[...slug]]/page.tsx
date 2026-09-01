@@ -6,7 +6,7 @@ import {
   DocsPage,
   DocsTitle,
   EditOnGitHub,
-} from "fumadocs-ui/layouts/docs/page";
+} from "fumadocs-ui/layouts/notebook/page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";

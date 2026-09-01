@@ -1,4 +1,4 @@
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import type { ReactNode } from "react";
 import { withLlmsLinks } from "@/lib/docs-page-tree";
 import { toLocale } from "@/lib/i18n";
@@ -15,8 +15,9 @@ export default async function Layout({
   const { lang } = await params;
   const locale = toLocale(lang);
   const tree = await withLlmsLinks(source.getPageTree(locale), locale);
+  const { nav, ...base } = await baseOptions(locale);
   return (
-    <DocsLayout {...(await baseOptions(locale))} tree={tree}>
+    <DocsLayout {...base} nav={{ ...nav, mode: "top" }} tree={tree}>
       {children}
     </DocsLayout>
   );
