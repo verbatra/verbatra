@@ -253,6 +253,8 @@ API keys are read only from environment variables, never from the config file. T
 
 The hosted documentation site at [verbatra.kreitz-webdev.de](https://verbatra.kreitz-webdev.de) is the canonical reference, including the full [CLI command reference](https://verbatra.kreitz-webdev.de/docs/cli). The [`@verbatra/sdk` README](./packages/sdk/README.md) documents the programmatic API. At the terminal, `verbatra <command> --help` prints the same command reference.
 
+![verbatra documentation site preview](./apps/docs/public/screenshots/docs-preview.webp)
+
 ## Contributing
 
 Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./CODE_OF_CONDUCT.md) first.
