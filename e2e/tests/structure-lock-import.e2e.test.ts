@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
-  makeConsumer,
   readJsonIn,
+  readSharedConsumer,
   runVerbatra,
   writeJsonIn,
 } from "../src/harness.js";
@@ -20,7 +20,7 @@ const config = {
 };
 
 beforeAll(async () => {
-  consumer = await makeConsumer();
+  consumer = await readSharedConsumer();
 }, 180_000);
 
 describe("import a structure-locked export directly (no exceljs re-save)", () => {

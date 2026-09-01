@@ -14,13 +14,29 @@ export interface Tarballs {
   studio: string;
 }
 
+interface Manifest extends Tarballs {
+  sharedConsumerDir: string;
+}
+
+async function readManifest(): Promise<Manifest> {
+  return JSON.parse(await readFile(manifestPath, "utf8")) as Manifest;
+}
+
 export async function readTarballs(): Promise<Tarballs> {
-  return JSON.parse(await readFile(manifestPath, "utf8")) as Tarballs;
+  return readManifest();
 }
 
 export interface Consumer {
   dir: string;
   bin: string;
+}
+
+export async function readSharedConsumer(): Promise<Consumer> {
+  const { sharedConsumerDir } = await readManifest();
+  return {
+    dir: sharedConsumerDir,
+    bin: join(sharedConsumerDir, "node_modules", ".bin", "verbatra"),
+  };
 }
 
 export async function makeConsumer(options: { withStudio?: boolean } = {}): Promise<Consumer> {

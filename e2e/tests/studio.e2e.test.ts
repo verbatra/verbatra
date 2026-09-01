@@ -5,6 +5,7 @@ import {
   type Consumer,
   makeConsumer,
   pollUntil,
+  readSharedConsumer,
   runVerbatra,
   type Subprocess,
   spawnVerbatra,
@@ -93,7 +94,7 @@ describe("studio (no key, @verbatra/studio not installed)", () => {
   let consumer: Consumer;
 
   beforeAll(async () => {
-    consumer = await makeConsumer();
+    consumer = await readSharedConsumer();
   }, 180_000);
 
   it("prints the install hint and exits 2 instead of failing to resolve the import", async () => {

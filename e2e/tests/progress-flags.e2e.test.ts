@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
-  makeConsumer,
   readJsonIn,
+  readSharedConsumer,
   runVerbatra,
   writeJsonIn,
 } from "../src/harness.js";
@@ -30,7 +30,7 @@ async function seedMultiLocale(name: string, extra: Record<string, unknown> = {}
 }
 
 beforeAll(async () => {
-  consumer = await makeConsumer();
+  consumer = await readSharedConsumer();
 }, 180_000);
 
 describe("translate --dry-run --concurrency 2 (no provider)", () => {

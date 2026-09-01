@@ -4,12 +4,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   type EnvelopeStream,
-  makeConsumer,
   parseNdjsonEnvelopes,
   providerConfigBlock,
   providerFromEnv,
   readEnvelopeStream,
   readJsonIn,
+  readSharedConsumer,
   type Subprocess,
   spawnVerbatra,
   writeFileIn,
@@ -69,7 +69,7 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
   let consumer: Consumer;
 
   beforeAll(async () => {
-    consumer = await makeConsumer();
+    consumer = await readSharedConsumer();
   }, 180_000);
 
   it("translates on startup and again when the source changes, then stops on interrupt", async (ctx) => {

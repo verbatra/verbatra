@@ -5,8 +5,8 @@ import {
   type Consumer,
   type EnvelopeStream,
   type JsonEnvelope,
-  makeConsumer,
   readEnvelopeStream,
+  readSharedConsumer,
   type Subprocess,
   spawnVerbatra,
   writeFileIn,
@@ -43,7 +43,7 @@ describe("watch lifecycle (no provider key, no network)", () => {
   let consumer: Consumer;
 
   beforeAll(async () => {
-    consumer = await makeConsumer();
+    consumer = await readSharedConsumer();
   }, 180_000);
 
   it("runs successfully on startup, runs again when the source changes, and exits 0 on interrupt", async () => {
