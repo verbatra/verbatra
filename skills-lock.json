@@ -13,6 +13,12 @@
       "skillPath": "plugins/plugin-dev/skills/skill-development/SKILL.md",
       "computedHash": "8d262f08f33825947ea20204ebf5101e36056c98090251bd973a552ec8ef0c0c"
     },
+    "arcjet": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "arcjet/SKILL.md",
+      "computedHash": "e297c2ced9dc0641b80eddef0f3618c9772c76209d12884099c799c82fcb0cc9"
+    },
     "autofix": {
       "source": "coderabbitai/skills",
       "sourceType": "github",
