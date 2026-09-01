@@ -222,7 +222,7 @@
       "disclaimer": "Esta es una traducción por comodidad. En caso de cualquier discrepancia, prevalece la versión en inglés.",
       "s1": {
         "heading": "1. Responsable del tratamiento",
-        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Alemania. Puedes contactarnos por correo electrónico en <email>mario.kreitz@web.de</email>."
+        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Alemania. Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Resumen",
@@ -254,7 +254,7 @@
       },
       "s9": {
         "heading": "9. Contacto",
-        "body": "Para cualquier pregunta o solicitud relacionada con la privacidad, escribe a <email>mario.kreitz@web.de</email>."
+        "body": "Para cualquier pregunta o solicitud relacionada con la privacidad, escribe a <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Cambios en esta política",
@@ -262,7 +262,7 @@
       },
       "s11": {
         "heading": "11. Formulario de contacto",
-        "body": "Cuando usas el <contact>formulario de contacto</contact>, procesamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. Dos procesadores de terceros están involucrados bajo el Art. 28 del RGPD: Resend, que entrega el correo electrónico de notificación a <email>mario.kreitz@web.de</email> y procesa datos en Estados Unidos, con Cláusulas Contractuales Estándar que rigen la transferencia, y Arcjet, que procesa la dirección IP y los encabezados de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario contra bots y abusos; estos datos se retienen por un período establecido por nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base legal es el Art. 6(1)(f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo electrónico de notificación resultante se retienen solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún lugar más allá de la bandeja de entrada del operador; los propios registros de entrega de Resend siguen la retención estándar de Resend."
+        "body": "Cuando usas el <contact>formulario de contacto</contact>, procesamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo electrónico de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; no interviene ningún proveedor de correo externo en su entrega, y esta no implica ninguna transferencia de datos fuera de la UE. El único procesador externo involucrado bajo el Art. 28 del RGPD es Arcjet, que procesa la dirección IP y los encabezados de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario contra bots y abusos; estos datos se retienen por un período establecido por nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base legal es el Art. 6(1)(f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo electrónico de notificación resultante se retienen solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún lugar más allá de la bandeja de entrada del operador."
       }
     },
     "imprint": {

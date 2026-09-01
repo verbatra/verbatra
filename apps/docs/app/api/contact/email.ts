@@ -1,11 +1,10 @@
-import { Resend } from "resend";
+import { createTransport, type Transporter } from "nodemailer";
 import type { ContactPayload } from "./schema";
 
-const CONTACT_RECIPIENT = "mario.kreitz@web.de";
-const CONTACT_FROM = "verbatra docs contact form <contact@kreitz-webdev.de>";
+const CONTACT_RECIPIENT = "info@kreitz-webdev.de";
 
 export type EmailClient = {
-  emails: Pick<Resend["emails"], "send">;
+  sendMail: Transporter["sendMail"];
 };
 
 export type SendContactEmailDeps = {
@@ -30,9 +29,34 @@ function buildNotificationEmail(payload: ContactPayload): { subject: string; tex
 
 export function resolveClient(deps: SendContactEmailDeps): EmailClient | undefined {
   if (deps.client) return deps.client;
-  const apiKey = process.env.CONTACT_RESEND_API_KEY;
-  if (apiKey === undefined || apiKey.length === 0) return undefined;
-  return new Resend(apiKey);
+
+  const host = process.env.CONTACT_SMTP_HOST;
+  const port = process.env.CONTACT_SMTP_PORT;
+  const user = process.env.CONTACT_SMTP_USER;
+  const password = process.env.CONTACT_SMTP_PASSWORD;
+  const from = process.env.CONTACT_SMTP_FROM;
+
+  if (
+    host === undefined ||
+    host.length === 0 ||
+    port === undefined ||
+    port.length === 0 ||
+    user === undefined ||
+    user.length === 0 ||
+    password === undefined ||
+    password.length === 0 ||
+    from === undefined ||
+    from.length === 0
+  ) {
+    return undefined;
+  }
+
+  return createTransport({
+    host,
+    port: Number(port),
+    secure: Number(port) === 465,
+    auth: { user, pass: password },
+  });
 }
 
 export async function sendContactEmail(
@@ -42,17 +66,21 @@ export async function sendContactEmail(
   const client = resolveClient(deps);
   if (!client) return { ok: false };
 
+  const fromAddress = process.env.CONTACT_SMTP_FROM;
+  if (fromAddress === undefined || fromAddress.length === 0) return { ok: false };
+  const from = `verbatra docs contact form <${fromAddress}>`;
+
   const { subject, text } = buildNotificationEmail(payload);
 
   try {
-    const { error } = await client.emails.send({
-      from: CONTACT_FROM,
+    await client.sendMail({
+      from,
       to: [CONTACT_RECIPIENT],
       subject,
       text,
       replyTo: payload.email,
     });
-    return error ? { ok: false } : { ok: true };
+    return { ok: true };
   } catch {
     return { ok: false };
   }

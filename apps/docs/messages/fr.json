@@ -222,7 +222,7 @@
       "disclaimer": "Ceci est une traduction fournie par commodité. En cas de divergence, la version anglaise prévaut.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous joindre par e-mail à <email>mario.kreitz@web.de</email>."
+        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous joindre par e-mail à <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Aperçu",
@@ -254,7 +254,7 @@
       },
       "s9": {
         "heading": "9. Contact",
-        "body": "Pour toute question ou demande relative à la confidentialité, écris à <email>mario.kreitz@web.de</email>."
+        "body": "Pour toute question ou demande relative à la confidentialité, écris à <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Modifications de cette politique",
@@ -262,7 +262,7 @@
       },
       "s11": {
         "heading": "11. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. Deux sous-traitants tiers sont impliqués en vertu de l'Art. 28 du RGPD : Resend, qui livre l'e-mail de notification à <email>mario.kreitz@web.de</email> et traite les données aux États-Unis, les Clauses Contractuelles Types régissant le transfert, et Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les bots et les abus ; ces données sont conservées pendant une période définie par notre plan Arcjet, actuellement jusqu'à une heure sur le niveau gratuit. La base juridique est l'Art. 6(1)(f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification résultant ne sont conservés que le temps nécessaire pour traiter la demande et ne sont stockés nulle part ailleurs que dans la boîte de réception de l'opérateur ; les propres journaux de livraison de Resend suivent la conservation standard de Resend."
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur de messagerie tiers n'intervient dans son envoi, et celui-ci n'implique aucun transfert de données hors de l'UE. Le seul sous-traitant tiers impliqué en vertu de l'Art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les bots et les abus ; ces données sont conservées pendant une période définie par notre plan Arcjet, actuellement jusqu'à une heure sur le niveau gratuit. La base juridique est l'Art. 6(1)(f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification résultant ne sont conservés que le temps nécessaire pour traiter la demande et ne sont stockés nulle part ailleurs que dans la boîte de réception de l'opérateur."
       }
     },
     "imprint": {

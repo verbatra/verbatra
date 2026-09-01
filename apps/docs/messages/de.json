@@ -222,7 +222,7 @@
       "disclaimer": "Dies ist eine Übersetzung zur besseren Verständlichkeit. Bei etwaigen Abweichungen ist die englische Fassung maßgeblich.",
       "s1": {
         "heading": "1. Verantwortliche Stelle",
-        "body": "Die für die Datenverarbeitung auf dieser Seite verantwortliche Stelle ist Mario Kreitz, Deutschland. Du erreichst uns per E-Mail unter <email>mario.kreitz@web.de</email>."
+        "body": "Die für die Datenverarbeitung auf dieser Seite verantwortliche Stelle ist Mario Kreitz, Deutschland. Du erreichst uns per E-Mail unter <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Überblick",
@@ -254,7 +254,7 @@
       },
       "s9": {
         "heading": "9. Kontakt",
-        "body": "Bei Fragen oder Anliegen zum Datenschutz schreibe eine E-Mail an <email>mario.kreitz@web.de</email>."
+        "body": "Bei Fragen oder Anliegen zum Datenschutz schreibe eine E-Mail an <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Änderungen dieser Erklärung",
@@ -262,7 +262,7 @@
       },
       "s11": {
         "heading": "11. Kontaktformular",
-        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Es sind zwei Drittverarbeiter gemäß Art. 28 DSGVO involviert: Resend, das die Benachrichtigungs-E-Mail an <email>mario.kreitz@web.de</email> zustellt und Daten in den Vereinigten Staaten verarbeitet, wobei Standardvertragsklauseln die Übermittlung regeln, und Arcjet, das die IP-Adresse und Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für eine Dauer aufbewahrt, die durch unseren Arcjet-Plan festgelegt ist, derzeit bis zu einer Stunde im kostenlosen Tarif. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse, das Formular sicher zu betreiben und auf Anfragen zu antworten). Deine Einsendung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange aufbewahrt, wie es zur Bearbeitung der Anfrage erforderlich ist, und werden nirgendwo außerhalb des Posteingangs des Betreibers gespeichert; die eigenen Zustellprotokolle von Resend folgen den Standardaufbewahrungsfristen von Resend."
+        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; dabei ist kein externer E-Mail-Anbieter beteiligt, und der Versand ist mit keiner Datenübermittlung außerhalb der EU verbunden. Der einzige Drittverarbeiter gemäß Art. 28 DSGVO ist Arcjet, das die IP-Adresse und Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für eine Dauer aufbewahrt, die durch unseren Arcjet-Plan festgelegt ist, derzeit bis zu einer Stunde im kostenlosen Tarif. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse, das Formular sicher zu betreiben und auf Anfragen zu antworten). Deine Einsendung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange aufbewahrt, wie es zur Bearbeitung der Anfrage erforderlich ist, und werden nirgendwo außerhalb des Posteingangs des Betreibers gespeichert."
       }
     },
     "imprint": {

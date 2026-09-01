@@ -250,7 +250,7 @@
       "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>mario.kreitz@web.de</email>."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Overview",
@@ -282,7 +282,7 @@
       },
       "s9": {
         "heading": "9. Contact",
-        "body": "For any privacy-related questions or requests, email <email>mario.kreitz@web.de</email>."
+        "body": "For any privacy-related questions or requests, email <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Changes to this policy",
@@ -290,7 +290,7 @@
       },
       "s11": {
         "heading": "11. Contact form",
-        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. Two third-party processors are involved under Art. 28 GDPR: Resend, which delivers the notification email to <email>mario.kreitz@web.de</email> and processes data in the United States, with Standard Contractual Clauses governing the transfer, and Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox; Resend's own delivery logs follow Resend's standard retention."
+        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
       }
     },
     "imprint": {
