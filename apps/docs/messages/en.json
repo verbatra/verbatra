@@ -263,7 +263,7 @@
       },
       "s3": {
         "heading": "3. Server logs and hosting",
-        "body": "The site is self-hosted on a virtual server (managed with Dokploy). When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
+        "body": "The site is self-hosted on a virtual server at <contabo>Contabo</contabo>, managed with Plesk. When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
       },
       "s4": {
         "heading": "4. Analytics",
@@ -278,8 +278,8 @@
         "body": "Fonts are self-hosted: they are bundled at build time, so no requests are made to Google Fonts or any other third party when you load a page. The one exception is status badges: the home page and the testing page embed live badge images from GitHub, Codecov, and shields.io that show the current build, coverage, version, and license. Loading these images transmits your IP address to those providers, which act as independent controllers under their own privacy policies. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in showing accurate project status). Apart from these badges and the self-hosted Umami script described above, no third-party scripts or embeds load at runtime."
       },
       "s7": {
-        "heading": "7. GitHub",
-        "body": "The project's source code, issues, and discussions are hosted on <repo>GitHub</repo>. If you choose to interact there (for example, by opening an issue or joining a discussion), GitHub processes your data as an independent controller and its <ghprivacy>privacy statement</ghprivacy> applies."
+        "heading": "7. GitHub and npm",
+        "body": "The project's source code, issues, and discussions are hosted on <repo>GitHub</repo>, and its published packages are hosted on <npm>npm</npm>. If you choose to interact on either site (for example, by opening an issue, joining a discussion, or viewing a package), that provider processes your data as an independent controller: <ghprivacy>GitHub's privacy statement</ghprivacy> or <npmprivacy>npm's privacy policy</npmprivacy> applies."
       },
       "s8": {
         "heading": "8. Your rights",
@@ -296,6 +296,10 @@
       "s11": {
         "heading": "11. Contact form",
         "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
+      },
+      "s12": {
+        "heading": "12. AI-assisted translation",
+        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself: the interface text is translated into German, Spanish, and French with the help of AI language models. The longer documentation pages are AI-translated too, in a separate step outside that automated pipeline. Translated content is reviewed before publication. We note this here voluntarily, for transparency, not because a specific legal disclosure requirement applies to it."
       }
     },
     "imprint": {

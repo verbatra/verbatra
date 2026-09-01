@@ -235,7 +235,7 @@
       },
       "s3": {
         "heading": "3. Server-Logs und Hosting",
-        "body": "Die Seite wird auf einem virtuellen Server selbst gehostet (verwaltet mit Dokploy). Wenn du sie besuchst, verarbeitet der Server standardmäßige Zugriffs-Logs, die deine IP-Adresse, Datum und Uhrzeit der Anfrage, die angeforderte URL, die verweisende Seite und die User-Agent-Zeichenkette deines Browsers enthalten können. Diese Daten werden verwendet, um die Seite zu betreiben und abzusichern, zum Beispiel um Seiten auszuliefern, Fehler zu diagnostizieren und Missbrauch abzuwehren. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an einem sicheren, funktionierenden Dienst). Diese Logs werden nur für einen kurzen Zeitraum aufbewahrt."
+        "body": "Die Seite wird selbst auf einem virtuellen Server bei <contabo>Contabo</contabo> gehostet und mit Plesk verwaltet. Wenn du sie besuchst, verarbeitet der Server standardmäßige Zugriffs-Logs, die deine IP-Adresse, Datum und Uhrzeit der Anfrage, die angeforderte URL, die verweisende Seite und die User-Agent-Zeichenkette deines Browsers enthalten können. Diese Daten werden verwendet, um die Seite zu betreiben und abzusichern, zum Beispiel um Seiten auszuliefern, Fehler zu diagnostizieren und Missbrauch abzuwehren. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an einem sicheren, funktionierenden Dienst). Diese Logs werden nur für einen kurzen Zeitraum aufbewahrt."
       },
       "s4": {
         "heading": "4. Analyse",
@@ -250,8 +250,8 @@
         "body": "Schriftarten werden selbst gehostet: Sie werden zur Build-Zeit gebündelt, sodass beim Laden einer Seite keine Anfragen an Google Fonts oder andere Drittanbieter gestellt werden. Die einzige Ausnahme sind Status-Badges: Die Startseite und die Testseite betten Live-Badge-Bilder von GitHub, Codecov und shields.io ein, die den aktuellen Build, die Abdeckung, die Version und die Lizenz anzeigen. Das Laden dieser Bilder übermittelt deine IP-Adresse an diese Anbieter, die als unabhängige Verantwortliche gemäß ihren eigenen Datenschutzrichtlinien handeln. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an der Anzeige eines genauen Projektstatus). Abgesehen von diesen Badges und dem oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte oder -Einbettungen geladen."
       },
       "s7": {
-        "heading": "7. GitHub",
-        "body": "Der Quellcode, die Issues und die Diskussionen des Projekts werden auf <repo>GitHub</repo> gehostet. Wenn du dich dort beteiligst (zum Beispiel, indem du ein Issue eröffnest oder an einer Diskussion teilnimmst), verarbeitet GitHub deine Daten als eigenständiger Verantwortlicher, und seine <ghprivacy>Datenschutzerklärung</ghprivacy> gilt."
+        "heading": "7. GitHub und npm",
+        "body": "Der Quellcode, die Issues und die Diskussionen des Projekts werden auf <repo>GitHub</repo> gehostet, die veröffentlichten Pakete auf <npm>npm</npm>. Wenn du dich auf einer der beiden Seiten beteiligst (zum Beispiel, indem du ein Issue eröffnest, an einer Diskussion teilnimmst oder ein Paket ansiehst), verarbeitet der jeweilige Anbieter deine Daten als eigenständiger Verantwortlicher: Es gilt die <ghprivacy>Datenschutzerklärung</ghprivacy> von GitHub oder die <npmprivacy>Datenschutzerklärung</npmprivacy> von npm."
       },
       "s8": {
         "heading": "8. Deine Rechte",
@@ -268,6 +268,10 @@
       "s11": {
         "heading": "11. Kontaktformular",
         "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver, der in Deutschland gehostet wird, versendet; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübertragung außerhalb der EU. Der einzige beteiligte Drittverarbeiter gemäß Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, der durch unseren Arcjet-Plan festgelegt ist, derzeit bis zu einer Stunde im kostenlosen Tarif. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange gespeichert, wie es zur Bearbeitung der Anfrage erforderlich ist, und werden nicht außerhalb des Posteingangs des Betreibers gespeichert."
+      },
+      "s12": {
+        "heading": "12. KI-gestützte Übersetzung",
+        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein: Die Oberfläche wird mithilfe von KI-Sprachmodellen ins Deutsche, Spanische und Französische übersetzt. Auch die längeren Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Übersetzte Inhalte werden vor der Veröffentlichung geprüft. Wir weisen hier freiwillig aus Transparenzgründen darauf hin, nicht weil dafür eine bestimmte gesetzliche Offenlegungspflicht gilt."
       }
     },
     "imprint": {

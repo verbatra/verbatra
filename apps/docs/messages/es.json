@@ -235,7 +235,7 @@
       },
       "s3": {
         "heading": "3. Registros del servidor y alojamiento",
-        "body": "El sitio se aloja de forma autogestionada en un servidor virtual (gestionado con Dokploy). Cuando lo visitas, el servidor procesa registros de acceso estándar que pueden incluir tu dirección IP, la fecha y hora de la solicitud, la URL solicitada, la página de referencia y la cadena de user-agent de tu navegador. Estos datos se usan para operar y proteger el sitio, por ejemplo para entregar páginas, diagnosticar errores y defenderse frente a abusos. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en un servicio seguro y funcional). Estos registros se conservan solo durante un periodo breve."
+        "body": "El sitio se aloja de forma autogestionada en un servidor virtual en <contabo>Contabo</contabo>, gestionado con Plesk. Cuando lo visitas, el servidor procesa registros de acceso estándar que pueden incluir tu dirección IP, la fecha y hora de la solicitud, la URL solicitada, la página de referencia y la cadena de user-agent de tu navegador. Estos datos se usan para operar y proteger el sitio, por ejemplo para entregar páginas, diagnosticar errores y defenderse frente a abusos. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en un servicio seguro y funcional). Estos registros se conservan solo durante un periodo breve."
       },
       "s4": {
         "heading": "4. Analítica",
@@ -250,8 +250,8 @@
         "body": "Las fuentes están autoalojadas: se empaquetan en el momento de la compilación, por lo que no se realizan solicitudes a Google Fonts ni a ningún otro tercero cuando cargas una página. La única excepción son las insignias de estado: la página de inicio y la página de pruebas incrustan imágenes de insignias en vivo de GitHub, Codecov y shields.io que muestran la compilación actual, la cobertura, la versión y la licencia. La carga de estas imágenes transmite tu dirección IP a esos proveedores, que actúan como responsables del tratamiento independientes bajo sus propias políticas de privacidad. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en mostrar un estado preciso del proyecto). Aparte de estas insignias y el script autoalojado de Umami descrito anteriormente, no se cargan scripts o incrustaciones de terceros en tiempo de ejecución."
       },
       "s7": {
-        "heading": "7. GitHub",
-        "body": "El código fuente, las incidencias y los debates del proyecto se alojan en <repo>GitHub</repo>. Si eliges interactuar allí (por ejemplo, abriendo una incidencia o uniéndote a un debate), GitHub trata tus datos como responsable independiente y se aplica su <ghprivacy>declaración de privacidad</ghprivacy>."
+        "heading": "7. GitHub y npm",
+        "body": "El código fuente, las incidencias y los debates del proyecto se alojan en <repo>GitHub</repo>, y sus paquetes publicados se alojan en <npm>npm</npm>. Si eliges interactuar en cualquiera de los dos sitios (por ejemplo, abriendo una incidencia, uniéndote a un debate o consultando un paquete), ese proveedor trata tus datos como responsable independiente: se aplica la <ghprivacy>declaración de privacidad</ghprivacy> de GitHub o la <npmprivacy>política de privacidad</npmprivacy> de npm."
       },
       "s8": {
         "heading": "8. Tus derechos",
@@ -268,6 +268,10 @@
       "s11": {
         "heading": "11. Formulario de contacto",
         "body": "Cuando usas el <contact>formulario de contacto</contact>, procesamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo electrónico de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo electrónico de terceros participa en su entrega, y su entrega no implica ninguna transferencia de datos fuera de la UE. El único procesador externo involucrado bajo el Art. 28 GDPR es Arcjet, que procesa la dirección IP y los encabezados de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario contra bots y abusos; estos datos se retienen durante un período establecido por nuestro plan Arcjet, actualmente hasta una hora en la capa gratuita. La base legal es el Art. 6(1)(f) GDPR (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo electrónico de notificación resultante se retienen solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún lugar más allá de la bandeja de entrada del operador."
+      },
+      "s12": {
+        "heading": "12. Traducción asistida por IA",
+        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo: la interfaz se traduce al alemán, español y francés con la ayuda de modelos de lenguaje de IA. Las páginas de documentación más extensas también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. El contenido traducido se revisa antes de publicarse. Lo indicamos aquí de forma voluntaria, por transparencia, no porque se aplique una obligación legal de divulgación específica."
       }
     },
     "imprint": {
