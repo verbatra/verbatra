@@ -1,6 +1,5 @@
 {
   "title": "CLI reference",
-  "defaultOpen": true,
   "pages": [
     "index",
     "init",

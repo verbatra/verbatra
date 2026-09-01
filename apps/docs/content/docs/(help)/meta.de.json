@@ -1,5 +1,4 @@
 {
   "title": "Hilfe",
-  "defaultOpen": true,
   "pages": ["faq", "troubleshooting", "recovery-and-rollback"]
 }
