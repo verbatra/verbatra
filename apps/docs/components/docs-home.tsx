@@ -212,23 +212,42 @@ export function DocsHomePaths({
   );
 }
 
+type Feature = { title: string; body: string; href?: string };
+
 export function DocsHomeFeatures({
   features,
+  locale,
 }: {
-  features: ReadonlyArray<{ title: string; body: string }>;
+  features: ReadonlyArray<Feature>;
+  locale?: Locale;
 }): ReactNode {
   return (
     <div className="not-prose my-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {features.map((feature) => (
-        <div
-          key={feature.title}
-          className="rounded-xl border border-fd-border bg-fd-card p-4"
-          style={{ borderInlineStart: "2px solid var(--v-glow)" }}
-        >
-          <div className="font-medium text-fd-foreground">{feature.title}</div>
-          <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">{feature.body}</p>
-        </div>
-      ))}
+      {features.map((feature) => {
+        const content = (
+          <>
+            <div className="font-medium text-fd-foreground">{feature.title}</div>
+            <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">{feature.body}</p>
+          </>
+        );
+        const className =
+          "block rounded-xl border border-fd-border bg-fd-card p-4 transition-colors";
+        const style = { borderInlineStart: "2px solid var(--v-glow)" };
+        return feature.href && locale ? (
+          <Link
+            key={feature.title}
+            href={localizedPath(locale, feature.href)}
+            className={`${className} hover:bg-fd-accent`}
+            style={style}
+          >
+            {content}
+          </Link>
+        ) : (
+          <div key={feature.title} className={className} style={style}>
+            {content}
+          </div>
+        );
+      })}
     </div>
   );
 }

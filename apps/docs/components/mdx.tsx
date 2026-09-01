@@ -41,7 +41,9 @@ export function getMDXComponents(locale: Locale, components?: MDXComponents): MD
     DocsHomePaths: (props: Omit<ComponentProps<typeof DocsHomePaths>, "locale">) => (
       <DocsHomePaths {...props} locale={locale} />
     ),
-    DocsHomeFeatures,
+    DocsHomeFeatures: (props: Omit<ComponentProps<typeof DocsHomeFeatures>, "locale">) => (
+      <DocsHomeFeatures {...props} locale={locale} />
+    ),
     ...components,
   };
 }

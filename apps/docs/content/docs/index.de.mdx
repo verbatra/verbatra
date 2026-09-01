@@ -13,27 +13,6 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK und Stu
 
 <DocsHomeBody>
 
-## Das Problem
-
-Du pflegst eine Quell-Locale von Hand. Jede andere Locale-Datei driftet ab, während diese Quelle sich weiterentwickelt: Neue Keys fehlen in den Zielen, bearbeitete Quellstrings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. Von Hand aufzuholen skaliert nicht, und bei jeder Änderung alles neu zu übersetzen ist langsam, kostet Provider-Tokens für Strings, die schon in Ordnung waren, und wirbelt Texte durcheinander, die dein Team bereits geprüft hat.
-
-## Wie verbatra es löst
-
-Eine committete Lock-Datei, `verbatra.lock.json`, hält für jeden übersetzten Key den Hash des Quellstrings fest, aus dem seine Übersetzung entstanden ist. Jeder Lauf liest die Quell-Locale, vergleicht jedes Ziel mit ihr und mit dieser Baseline und sendet nur die fehlenden und geänderten Keys an den Provider. Keys, die noch aktuell sind, bleiben unangetastet: Führe `translate` zweimal hintereinander aus, und der zweite Lauf macht überhaupt keinen Provider-Aufruf.
-
-Jeder String, den der Provider zurückgibt, wird vor dem Schreiben geprüft: Eine Übersetzung, die eine der Prüfungen des Integritäts-Gates nicht besteht, wird zurückgehalten statt ausgeliefert und beim nächsten Lauf erneut versucht. Die schreibgeschützten Befehle `check` und `diff` melden Drift, ohne etwas zu schreiben, sodass deine CI anhand ihrer Exit-Codes ein Gate setzen kann.
-
-verbatra liest und schreibt zwölf Formate (i18next-, vue-i18n-, next-intl- und ngx-translate-JSON, XLIFF, YAML, Flutter ARB, Java/Spring-Properties, Apple-`.strings`, Xcode String Catalogs, Android-`strings.xml` und gettext-`.po`/`.pot`) und übersetzt über sechs Provider (Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation und jeden OpenAI-kompatiblen Server, auch lokale) hinter einer einzigen Schnittstelle. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
-
-## Die Pakete
-
-verbatra erscheint als vier npm-Pakete:
-
-- **@verbatra/cli** liefert das `verbatra`-Binary mit zehn Befehlen: `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import`, `studio` und `mcp`. Es ist ein dünner Wrapper über dem SDK, alles, was es tut, ist also auch programmatisch verfügbar. Starte hier.
-- **@verbatra/sdk** ist der Motor darunter: einmaliges `translate()`, langlaufendes `watch()`, schreibgeschützte `check()`, `diff()` und `doctor()`, der Excel-Arbeitsmappen-Roundtrip für menschliche Übersetzerinnen und das Laden der Konfiguration. Nutze es direkt aus Skripten, Build-Tools oder CI. Siehe [das SDK](/docs/sdk).
-- **@verbatra/studio** ist Verbatra Studio, ein lokales Dashboard über deinem Projekt mit eingebautem Bearbeiten und einer Review-Warteschlange. Die CLI startet es mit `verbatra studio`; kostenpflichtige Provider-Aufrufe aus Studio bleiben aus, solange du nicht `--allow-spend` übergibst. Siehe [Review in Studio](/docs/review-in-studio).
-- **@verbatra/mcp** ist ein stdio-MCP-Server, der den Übersetzungsstatus, das Glossar und Bearbeitungs-Tools von verbatra für einen MCP-Client bereitstellt. Die CLI startet ihn mit `verbatra mcp`. Siehe [den MCP-Server](/docs/cli/mcp).
-
 ## Wohin als Nächstes
 
 <DocsHomePaths
@@ -62,6 +41,39 @@ verbatra erscheint als vier npm-Pakete:
       label: "Mit KI einrichten",
       body: "Gib Claude Code, Cursor oder einem beliebigen Coding-Agenten einen Prompt zum Kopieren und Einfügen.",
       href: "/docs/start-with-ai",
+    },
+  ]}
+/>
+
+## Was verbatra macht
+
+Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf ohne etwas Neues macht überhaupt keinen Provider-Aufruf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
+
+verbatra liest und schreibt zwölf Formate und übersetzt über sechs Provider hinter einer einzigen Schnittstelle. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
+
+## Die Pakete
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      body: "Das verbatra-Binary: zehn Befehle, ein dünner Wrapper über dem SDK. Starte hier.",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      body: "Der Motor darunter: translate, watch, check, diff, doctor, dazu der Excel-Roundtrip.",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      body: "Ein lokales Dashboard mit eingebautem Bearbeiten und Review-Warteschlange. Provider-Ausgaben bleiben aus, bis du zustimmst.",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      body: "Ein stdio-MCP-Server, der Übersetzungsstatus, Glossar und Bearbeitungs-Tools für einen MCP-Client bereitstellt.",
+      href: "/docs/cli/mcp",
     },
   ]}
 />

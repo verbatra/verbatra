@@ -13,27 +13,6 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, and 
 
 <DocsHomeBody>
 
-## The problem
-
-You hand-maintain one source locale. Every other locale file drifts as that source evolves: new keys are missing from the targets, edited source strings leave stale translations behind, and deleted keys linger as orphans. Catching up by hand does not scale, and retranslating everything on every change is slow, costs provider tokens for strings that were already fine, and churns text your team has reviewed.
-
-## How verbatra solves it
-
-A committed lock file, `verbatra.lock.json`, records for every translated key the hash of the source string its translation came from. Each run reads the source locale, diffs every target against it and against that baseline, and sends only the missing and changed keys to the provider. Keys that are still current are left alone: run `translate` twice in a row and the second run makes no provider call at all.
-
-Every string the provider returns is checked before it is written: a translation that fails any of the integrity gate's checks is withheld instead of shipped, then retried on the next run. The read-only `check` and `diff` commands report drift without writing anything, so CI can gate on their exit codes.
-
-verbatra reads and writes twelve formats (i18next, vue-i18n, next-intl, and ngx-translate JSON, XLIFF, YAML, Flutter ARB, Java/Spring properties, Apple `.strings`, Xcode String Catalogs, Android `strings.xml`, and gettext `.po`/`.pot`) and translates through six providers (Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, and any OpenAI-compatible server, including local ones) behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
-
-## The packages
-
-verbatra ships as four npm packages:
-
-- **@verbatra/cli** provides the `verbatra` binary with ten commands: `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import`, `studio`, and `mcp`. It is a thin wrapper over the SDK, so everything it does is available programmatically too. Start here.
-- **@verbatra/sdk** is the engine underneath: one-shot `translate()`, long-running `watch()`, read-only `check()`, `diff()`, and `doctor()`, the Excel workbook round-trip for human translators, and config loading. Use it directly from scripts, build tools, or CI. See [the SDK](/docs/sdk).
-- **@verbatra/studio** is Verbatra Studio, a local dashboard over your project with built-in editing and a review queue. The CLI starts it with `verbatra studio`; provider spend from Studio stays off unless you pass `--allow-spend`. See [Review in Studio](/docs/review-in-studio).
-- **@verbatra/mcp** is a stdio MCP server exposing verbatra's translation status, glossary, and editing tools to an MCP client. The CLI starts it with `verbatra mcp`. See [the MCP server](/docs/cli/mcp).
-
 ## Where to go next
 
 <DocsHomePaths
@@ -62,6 +41,39 @@ verbatra ships as four npm packages:
       label: "Set up with AI",
       body: "Point Claude Code, Cursor, or any coding agent at a copy-pasteable prompt.",
       href: "/docs/start-with-ai",
+    },
+  ]}
+/>
+
+## What verbatra does
+
+Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
+
+verbatra reads and writes twelve formats and translates through six providers behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
+
+## The packages
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      body: "The verbatra binary: ten commands, a thin wrapper over the SDK. Start here.",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      body: "The engine underneath: translate, watch, check, diff, doctor, plus the Excel workbook round-trip.",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      body: "A local dashboard with built-in editing and a review queue. Provider spend stays off unless you opt in.",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      body: "A stdio MCP server exposing translation status, glossary, and editing tools to an MCP client.",
+      href: "/docs/cli/mcp",
     },
   ]}
 />

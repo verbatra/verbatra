@@ -13,27 +13,6 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 
 <DocsHomeBody>
 
-## El problema
-
-Mantienes a mano un locale de origen. Todos los demás archivos de locale se desfasan a medida que ese origen evoluciona: las claves nuevas faltan en los destinos, las cadenas de origen editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. Ponerse al día a mano no escala, y retraducirlo todo en cada cambio es lento, cuesta tokens del proveedor por cadenas que ya estaban bien y revuelve texto que tu equipo ya revisó.
-
-## Cómo lo resuelve verbatra
-
-Un archivo de bloqueo confirmado, `verbatra.lock.json`, registra para cada clave traducida el hash de la cadena de origen de la que salió su traducción. Cada ejecución lee el locale de origen, hace diff de cada destino contra él y contra esa línea base, y envía al proveedor solo las claves faltantes y modificadas. Las claves que siguen vigentes se dejan en paz: ejecuta `translate` dos veces seguidas y la segunda ejecución no hace ni una llamada al proveedor.
-
-Cada cadena que devuelve el proveedor se comprueba antes de escribirse: una traducción que falla cualquiera de las comprobaciones de la puerta de integridad se retiene en lugar de publicarse, y se reintenta en la siguiente ejecución. Los comandos de solo lectura `check` y `diff` informan del desfase sin escribir nada, así que CI puede condicionar sobre sus códigos de salida.
-
-verbatra lee y escribe doce formatos (JSON de i18next, vue-i18n, next-intl y ngx-translate, XLIFF, YAML, ARB de Flutter, properties de Java/Spring, `.strings` de Apple, Xcode String Catalogs, `strings.xml` de Android y `.po`/`.pot` de gettext) y traduce a través de seis proveedores (Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation y cualquier servidor compatible con OpenAI, incluidos los locales) detrás de una sola interfaz. Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
-
-## Los paquetes
-
-verbatra se distribuye como cuatro paquetes de npm:
-
-- **@verbatra/cli** proporciona el binario `verbatra` con diez comandos: `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import`, `studio` y `mcp`. Es una capa fina sobre el SDK, así que todo lo que hace también está disponible de forma programática. Empieza por aquí.
-- **@verbatra/sdk** es el motor que hay debajo: `translate()` de una sola pasada, `watch()` de larga duración, `check()`, `diff()` y `doctor()` de solo lectura, el viaje de ida y vuelta del libro de Excel para traductores humanos, y la carga de la configuración. Úsalo directamente desde scripts, herramientas de build o CI. Consulta [el SDK](/docs/sdk).
-- **@verbatra/studio** es Verbatra Studio, un panel local sobre tu proyecto con edición integrada y una cola de revisión. La CLI lo arranca con `verbatra studio`; el gasto de proveedor desde Studio permanece desactivado a menos que pases `--allow-spend`. Consulta [Revisión en Studio](/docs/review-in-studio).
-- **@verbatra/mcp** es un servidor MCP por stdio que expone el estado de traducción, el glosario y las herramientas de edición de verbatra a un cliente MCP. La CLI lo arranca con `verbatra mcp`. Consulta [el servidor MCP](/docs/cli/mcp).
-
 ## A dónde ir ahora
 
 <DocsHomePaths
@@ -62,6 +41,39 @@ verbatra se distribuye como cuatro paquetes de npm:
       label: "Configura con IA",
       body: "Dale a Claude Code, Cursor o cualquier agente de código un prompt listo para copiar y pegar.",
       href: "/docs/start-with-ai",
+    },
+  ]}
+/>
+
+## Qué hace verbatra
+
+Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un marcador de posición roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
+
+verbatra lee y escribe doce formatos y traduce a través de seis proveedores detrás de una sola interfaz. Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+
+## Los paquetes
+
+<DocsHomeFeatures
+  features={[
+    {
+      title: "@verbatra/cli",
+      body: "El binario verbatra: diez comandos, una capa fina sobre el SDK. Empieza por aquí.",
+      href: "/docs/cli",
+    },
+    {
+      title: "@verbatra/sdk",
+      body: "El motor que hay debajo: translate, watch, check, diff, doctor, y el viaje de ida y vuelta con Excel.",
+      href: "/docs/sdk",
+    },
+    {
+      title: "@verbatra/studio",
+      body: "Un panel local con edición integrada y una cola de revisión. El gasto de proveedor permanece desactivado hasta que lo actives.",
+      href: "/docs/review-in-studio",
+    },
+    {
+      title: "@verbatra/mcp",
+      body: "Un servidor MCP por stdio que expone el estado de traducción, el glosario y las herramientas de edición a un cliente MCP.",
+      href: "/docs/cli/mcp",
     },
   ]}
 />
