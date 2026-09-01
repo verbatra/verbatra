@@ -8,6 +8,7 @@ import {
   CODE_OF_CONDUCT_URL,
   GITHUB_URL,
   NPM_CLI,
+  NPM_MCP,
   NPM_SDK,
   NPM_STUDIO,
   RELEASES_URL,
@@ -32,6 +33,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.product.cliReference", href: "/docs/cli" },
       { labelKey: "cols.product.sdk", href: "/docs/sdk" },
       { labelKey: "cols.product.studio", href: "/docs/cli/studio" },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp" },
       { labelKey: "cols.product.githubAction", href: "/docs/github-action" },
     ],
   },
@@ -84,6 +86,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         external: true,
         trackingTarget: "npm-studio",
       },
+      { literal: "@verbatra/mcp", href: NPM_MCP, external: true, trackingTarget: "npm-mcp" },
     ],
   },
   {

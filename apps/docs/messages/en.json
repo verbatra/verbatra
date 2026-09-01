@@ -189,6 +189,7 @@
           "cliReference": "CLI reference",
           "sdk": "SDK",
           "studio": "Studio",
+          "mcpServer": "MCP server",
           "githubAction": "GitHub Action"
         },
         "agents": {

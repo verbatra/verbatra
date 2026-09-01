@@ -154,6 +154,7 @@
           "cliReference": "Référence du CLI",
           "sdk": "SDK",
           "studio": "Studio",
+          "mcpServer": "Serveur MCP",
           "githubAction": "GitHub Action"
         },
         "learn": {
