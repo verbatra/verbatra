@@ -14,7 +14,7 @@ import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
 import { getMDXComponents } from "@/components/mdx";
 import { extractFaqItems } from "@/lib/extract-faq";
-import { i18n, type Locale, toLocale } from "@/lib/i18n";
+import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { ogAlternateLocales, ogLocale } from "@/lib/site";
 import { source } from "@/lib/source";
 import {
@@ -155,6 +155,12 @@ export async function generateMetadata(props: {
   }
   languages["x-default"] = languages[i18n.defaultLanguage] ?? page.url;
 
+  const ogImageSegments = params.slug ?? [];
+  const ogImagePath = localizedPath(
+    lang,
+    `/docs-og${ogImageSegments.length ? `/${ogImageSegments.join("/")}` : ""}`,
+  );
+
   return {
     title: page.data.title,
     description: page.data.description,
@@ -167,13 +173,13 @@ export async function generateMetadata(props: {
       title: page.data.title,
       description: page.data.description,
       url: page.url,
-      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: page.data.title }],
+      images: [{ url: ogImagePath, width: 1200, height: 630, alt: page.data.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: page.data.title,
       description: page.data.description,
-      images: ["/og-image.png"],
+      images: [ogImagePath],
     },
   };
 }
