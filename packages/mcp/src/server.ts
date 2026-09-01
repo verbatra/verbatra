@@ -9,10 +9,29 @@ import {
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { redact } from "@verbatra/sdk";
+import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import type { McpToolOutcome } from "./tools/define-tool.js";
+import { editEntryTool } from "./tools/edit-entry.js";
+import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
 import { buildToolRegistry } from "./tools/registry.js";
+import { retranslateEntryTool } from "./tools/retranslate-entry.js";
 import type { McpServerOptions, McpToolContext } from "./types.js";
+
+const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
+  retranslateEntryTool.name,
+  editEntryTool.name,
+]);
+
+const ALREADY_IN_PROGRESS_MESSAGE =
+  "A matching call is already in progress; wait for it to finish.";
+
+const entryDedupeParamsSchema = z.object({ locale: z.string(), key: z.string() });
+
+function entryDedupeKey(params: unknown): string | undefined {
+  const parsed = entryDedupeParamsSchema.safeParse(params);
+  return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
+}
 
 function buildContext(options: McpServerOptions): McpToolContext {
   return {
@@ -42,6 +61,7 @@ export function createMcpServer(options: McpServerOptions): Server {
   const context = buildContext(options);
   const tools = buildToolRegistry(options.allowSpend ?? false);
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool] as const));
+  const inFlightGuard = createMcpInFlightGuard(GUARDED_TOOL_NAMES);
 
   const server = new Server(
     { name: manifest.name, version: manifest.version },
@@ -68,12 +88,21 @@ export function createMcpServer(options: McpServerOptions): Server {
       options.onLog?.(redact(`Unknown tool requested: ${request.params.name}`));
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
     }
-    const outcome = await tool.execute(request.params.arguments ?? {}, context);
-    if (outcome.kind === "ok") {
-      return toOkResult(outcome);
+    const dedupeKey = entryDedupeKey(request.params.arguments);
+    if (inFlightGuard.tryEnter(tool.name, dedupeKey) === false) {
+      options.onLog?.(redact(`Tool "${tool.name}" rejected: ${ALREADY_IN_PROGRESS_MESSAGE}`));
+      return toFailureResult(ALREADY_IN_PROGRESS_MESSAGE);
     }
-    options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${outcome.message}`));
-    return toFailureResult(outcome.message);
+    try {
+      const outcome = await tool.execute(request.params.arguments ?? {}, context);
+      if (outcome.kind === "ok") {
+        return toOkResult(outcome);
+      }
+      options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${outcome.message}`));
+      return toFailureResult(outcome.message);
+    } finally {
+      inFlightGuard.leave(tool.name, dedupeKey);
+    }
   });
 
   return server;
