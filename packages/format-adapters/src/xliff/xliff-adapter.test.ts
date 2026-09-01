@@ -293,6 +293,38 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect((error as AdapterError).code).toBe("INVALID_XML");
   });
 
+  it("rejects a translated value nesting inline elements past the depth limit as MAX_DEPTH_EXCEEDED", async () => {
+    const path = await tempFile("m.xliff", XLIFF_20);
+    const { resource } = await adapter.read(path, "fr");
+    const entries = new Map(resource.entries);
+    const u1 = entries.get("u1");
+    if (u1) {
+      const depth = 5000;
+      const value = `${'<g id="1">'.repeat(depth)}text${"</g>".repeat(depth)}`;
+      entries.set("u1", { ...u1, value });
+    }
+    const error = await readError(adapter.write({ ...resource, entries }, path));
+    expect((error as AdapterError).code).toBe("MAX_DEPTH_EXCEEDED");
+  });
+
+  it("keeps a realistically shallow chain of nested inline elements live", async () => {
+    const path = await tempFile("m.xliff", XLIFF_20);
+    const { resource } = await adapter.read(path, "fr");
+    const entries = new Map(resource.entries);
+    const u1 = entries.get("u1");
+    if (u1) {
+      entries.set("u1", {
+        ...u1,
+        value: 'Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g>',
+      });
+    }
+    await adapter.write({ ...resource, entries }, path);
+    const written = await readFile(path, "utf8");
+    expect(written).toContain(
+      '<target>Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g></target>',
+    );
+  });
+
   it("degrades a translated value with a non-allow-listed element to a plain text node", async () => {
     const path = await tempFile("m.xliff", XLIFF_20);
     const { resource } = await adapter.read(path, "fr");

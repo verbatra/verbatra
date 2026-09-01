@@ -3,6 +3,7 @@ import { DOMParser, type Document, type Element, type Node, XMLSerializer } from
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
+import { MAX_DEPTH } from "../json/limits.js";
 import { isEnoent } from "../shell.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
@@ -220,8 +221,25 @@ function isAllowedFragmentNode(node: Node): boolean {
 }
 
 function allDescendantNodes(node: Node): Node[] {
-  const children = Array.from(node.childNodes);
-  return children.flatMap((child) => [child, ...allDescendantNodes(child)]);
+  const result: Node[] = [];
+  const stack: Array<{ node: Node; depth: number }> = [{ node, depth: 1 }];
+  while (stack.length > 0) {
+    const top = stack.pop();
+    if (top === undefined) {
+      break;
+    }
+    if (top.depth > MAX_DEPTH) {
+      throw new AdapterError(
+        "MAX_DEPTH_EXCEEDED",
+        "The translated value nests inline elements too deeply.",
+      );
+    }
+    for (const child of Array.from(top.node.childNodes)) {
+      result.push(child);
+      stack.push({ node: child, depth: top.depth + 1 });
+    }
+  }
+  return result;
 }
 
 function hasDisallowedNode(root: Element): boolean {
@@ -259,7 +277,10 @@ function fragmentNodes(parser: DOMParser, value: string): Node[] | null {
     }
     sanitizeInlineAttributes(root);
     return Array.from(root.childNodes);
-  } catch {
+  } catch (error) {
+    if (error instanceof AdapterError) {
+      throw error;
+    }
     return null;
   }
 }
