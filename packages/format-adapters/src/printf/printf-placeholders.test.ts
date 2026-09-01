@@ -57,4 +57,14 @@ describe("extractPrintfPlaceholders", () => {
   it("returns an empty list for a lone percent sign at the end of a value", () => {
     expect(extract("100%")).toEqual([]);
   });
+
+  it("extracts a large adversarial run of zeros without catastrophic backtracking", () => {
+    const adversarial = `%${"0".repeat(200_000)}`;
+    expect(extract(adversarial)).toEqual([]);
+  }, 2000);
+
+  it("still extracts correctly when a large flag/width run resolves to a valid conversion", () => {
+    const adversarial = `%${"0".repeat(200_000)}d`;
+    expect(extractPrintfPlaceholders(adversarial, { conversions: new Set(["d"]) })).toEqual(["%d"]);
+  }, 2000);
 });

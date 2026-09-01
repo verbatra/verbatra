@@ -1,4 +1,5 @@
-const PRINTF_TOKEN = /%(?:(\d+)\$)?[-+0#]*\d*(?:\.\d+)?(?:hh|h|ll|l|q|z|j|t|L)?([A-Za-z@])|%%/g;
+const PRINTF_TOKEN =
+  /%(?:(\d+)\$)?[-+0#]*(?:[1-9]\d*)?(?:\.\d+)?(?:hh|h|ll|l|q|z|j|t|L)?([A-Za-z@])|%%/g;
 
 export interface PrintfPlaceholderOptions {
   readonly conversions: ReadonlySet<string>;

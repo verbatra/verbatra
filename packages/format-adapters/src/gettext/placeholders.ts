@@ -1,5 +1,5 @@
 const GETTEXT_PLACEHOLDER =
-  /%(?:\((\w+)\))?(?:(\d+)\$)?[-+0 #]*\d*(?:\.\d+)?([disuoxXfFeEgGc])|%%/g;
+  /%(?:\((\w+)\))?(?:(\d+)\$)?[-+0 #]*(?:[1-9]\d*)?(?:\.\d+)?([disuoxXfFeEgGc])|%%/g;
 
 export function extractGettextPlaceholders(value: string): readonly string[] {
   const out: string[] = [];

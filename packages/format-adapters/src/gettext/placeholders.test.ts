@@ -46,4 +46,14 @@ describe("extractGettextPlaceholders", () => {
     expect(result.matches).toBe(true);
     expect(result.reordered).toBe(true);
   });
+
+  it("extracts a large adversarial run of zeros without catastrophic backtracking", () => {
+    const adversarial = `%${"0".repeat(200_000)}`;
+    expect(extractGettextPlaceholders(adversarial)).toEqual([]);
+  }, 2000);
+
+  it("still extracts correctly when a large flag/width run resolves to a valid conversion", () => {
+    const adversarial = `%${"0".repeat(200_000)}d`;
+    expect(extractGettextPlaceholders(adversarial)).toEqual(["%d"]);
+  }, 2000);
 });
