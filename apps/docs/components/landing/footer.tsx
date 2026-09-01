@@ -2,6 +2,7 @@ import { SiNpm } from "@icons-pack/react-simple-icons";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
+import { NewBadge } from "@/components/new-badge";
 import { fetchContributors, type GithubContributor } from "@/lib/contributors";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
@@ -22,6 +23,7 @@ type FooterLink = {
   href: string;
   external?: boolean;
   trackingTarget?: string;
+  isNew?: boolean;
 };
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
@@ -34,7 +36,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.product.cliReference", href: "/docs/cli" },
       { labelKey: "cols.product.sdk", href: "/docs/sdk" },
       { labelKey: "cols.product.studio", href: "/docs/cli/studio" },
-      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp" },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true },
       { labelKey: "cols.product.githubAction", href: "/docs/github-action" },
     ],
   },
@@ -87,7 +89,13 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         external: true,
         trackingTarget: "npm-studio",
       },
-      { literal: "@verbatra/mcp", href: NPM_MCP, external: true, trackingTarget: "npm-mcp" },
+      {
+        literal: "@verbatra/mcp",
+        href: NPM_MCP,
+        external: true,
+        trackingTarget: "npm-mcp",
+        isNew: true,
+      },
     ],
   },
   {
@@ -122,12 +130,14 @@ function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): R
         data-umami-event-target={link.trackingTarget}
       >
         {label}
+        {link.isNew ? <NewBadge>new</NewBadge> : null}
       </a>
     );
   }
   return (
     <a href={link.href} className={LINK_CLASS}>
       {label}
+      {link.isNew ? <NewBadge>new</NewBadge> : null}
     </a>
   );
 }
