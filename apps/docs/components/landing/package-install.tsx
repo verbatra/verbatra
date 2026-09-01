@@ -7,6 +7,7 @@ import { HighlightedCommand } from "@/components/ui/command-line";
 import { TabList } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { trackUmamiEvent } from "@/lib/umami";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { NPM_CLI } from "./links";
@@ -174,7 +175,14 @@ export function PackageInstall(): ReactNode {
             </code>
             <button
               type="button"
-              onClick={() => copy(commandText)}
+              onClick={() => {
+                copy(commandText);
+                if (isAiTab) {
+                  trackUmamiEvent("copy-ai-prompt");
+                } else {
+                  trackUmamiEvent("copy-install-command", { manager: active });
+                }
+              }}
               aria-label={isAiTab ? t("copyPromptAria") : t("copyAria")}
               className="ms-auto rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
             >

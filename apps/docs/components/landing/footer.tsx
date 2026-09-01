@@ -14,7 +14,13 @@ import {
   SECURITY_URL,
 } from "./links";
 
-type FooterLink = { labelKey?: string; literal?: string; href: string; external?: boolean };
+type FooterLink = {
+  labelKey?: string;
+  literal?: string;
+  href: string;
+  external?: boolean;
+  trackingTarget?: string;
+};
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
 const FOOTER_COLS: ReadonlyArray<FooterCol> = [
@@ -53,18 +59,43 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "community",
     titleKey: "cols.community.title",
     links: [
-      { labelKey: "cols.community.codeOfConduct", href: CODE_OF_CONDUCT_URL, external: true },
-      { labelKey: "cols.community.security", href: SECURITY_URL, external: true },
-      { labelKey: "cols.community.releases", href: RELEASES_URL, external: true },
-      { literal: "@verbatra/sdk", href: NPM_SDK, external: true },
-      { literal: "@verbatra/studio", href: NPM_STUDIO, external: true },
+      {
+        labelKey: "cols.community.codeOfConduct",
+        href: CODE_OF_CONDUCT_URL,
+        external: true,
+        trackingTarget: "code-of-conduct",
+      },
+      {
+        labelKey: "cols.community.security",
+        href: SECURITY_URL,
+        external: true,
+        trackingTarget: "security",
+      },
+      {
+        labelKey: "cols.community.releases",
+        href: RELEASES_URL,
+        external: true,
+        trackingTarget: "releases",
+      },
+      { literal: "@verbatra/sdk", href: NPM_SDK, external: true, trackingTarget: "npm-sdk" },
+      {
+        literal: "@verbatra/studio",
+        href: NPM_STUDIO,
+        external: true,
+        trackingTarget: "npm-studio",
+      },
     ],
   },
   {
     col: "legal",
     titleKey: "cols.legal.title",
     links: [
-      { literal: "MIT License", href: `${GITHUB_URL}/blob/main/LICENSE`, external: true },
+      {
+        literal: "MIT License",
+        href: `${GITHUB_URL}/blob/main/LICENSE`,
+        external: true,
+        trackingTarget: "license",
+      },
       { labelKey: "cols.legal.privacy", href: "/privacy" },
       { labelKey: "cols.legal.imprint", href: "/imprint" },
       { labelKey: "cols.legal.contact", href: "/contact" },
@@ -78,7 +109,14 @@ const LINK_CLASS =
 function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): ReactNode {
   if (link.external) {
     return (
-      <a href={link.href} className={LINK_CLASS} target="_blank" rel="noreferrer noopener">
+      <a
+        href={link.href}
+        className={LINK_CLASS}
+        target="_blank"
+        rel="noreferrer noopener"
+        data-umami-event="outbound-link"
+        data-umami-event-target={link.trackingTarget}
+      >
         {label}
       </a>
     );
@@ -165,6 +203,8 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
                 className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                data-umami-event="outbound-link"
+                data-umami-event-target="github"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -175,6 +215,8 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
                 className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                data-umami-event="outbound-link"
+                data-umami-event-target="npm"
               >
                 <SiNpm size={16} color="currentColor" aria-hidden="true" className="shrink-0" />
                 <span>npm</span>

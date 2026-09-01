@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 import { i18n, isLocale } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 function SparkleIcon({ className }: { className?: string }): ReactNode {
@@ -90,7 +91,10 @@ export function LocaleAwareLanguageSelect({
                   ? "bg-fd-primary/10 text-fd-primary"
                   : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
               )}
-              onClick={() => context.onChange?.(item.locale)}
+              onClick={() => {
+                trackUmamiEvent("locale-switch", { to: item.locale, from: currentLocale });
+                context.onChange?.(item.locale);
+              }}
             >
               <LocaleOptionLabel isMachineTranslated={isMachineTranslated} name={item.name} />
             </button>
