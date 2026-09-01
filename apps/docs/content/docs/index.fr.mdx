@@ -27,11 +27,12 @@ verbatra lit et écrit douze formats (JSON i18next, vue-i18n, next-intl et ngx-t
 
 ## Les paquets
 
-verbatra est livré en trois paquets npm :
+verbatra est livré en quatre paquets npm :
 
-- **@verbatra/cli** fournit le binaire `verbatra` avec neuf commandes : `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import` et `studio`. C'est une fine couche au-dessus du SDK, donc tout ce qu'elle fait est aussi disponible programmatiquement. Commence ici.
+- **@verbatra/cli** fournit le binaire `verbatra` avec dix commandes : `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import`, `studio` et `mcp`. C'est une fine couche au-dessus du SDK, donc tout ce qu'elle fait est aussi disponible programmatiquement. Commence ici.
 - **@verbatra/sdk** est le moteur en dessous : `translate()` en un coup, `watch()` de longue durée, `check()`, `diff()` et `doctor()` en lecture seule, l'aller-retour de classeur Excel pour les traducteurs humains, et le chargement de la configuration. Utilise-le directement depuis des scripts, des outils de build ou la CI. Voir [le SDK](/docs/sdk).
 - **@verbatra/studio** est Verbatra Studio, un tableau de bord local sur ton projet avec édition intégrée et une file de révision. La CLI le démarre avec `verbatra studio` ; la dépense fournisseur depuis Studio reste désactivée sauf si tu passes `--allow-spend`. Voir [Réviser les traductions dans Studio](/docs/review-in-studio).
+- **@verbatra/mcp** est un serveur MCP en stdio qui expose le statut de traduction, le glossaire et les outils d'édition de verbatra à un client MCP. La CLI le démarre avec `verbatra mcp`. Voir [le serveur MCP](/docs/cli/mcp).
 
 ## Où aller ensuite
 

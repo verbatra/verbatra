@@ -47,7 +47,7 @@
       "lead": "verbatra is more than AI translation. It covers machine translation you control, a clean Excel handoff for human translators, and the automation to keep every locale in sync.",
       "ai": {
         "title": "AI translation",
-        "body": "Translate only what changed through your choice of provider: Anthropic, OpenAI, Gemini, DeepL, or any OpenAI-compatible server you run yourself. A committed lock file keeps every run incremental, and placeholder and ICU integrity is checked before anything is written."
+        "body": "Translate only what changed through your choice of provider: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you run yourself. A committed lock file keeps every run incremental, and placeholder and ICU integrity is checked before anything is written."
       },
       "excel": {
         "title": "Excel handoff",
@@ -81,12 +81,12 @@
     },
     "compat": {
       "heading": "One tool, every framework.",
-      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, and Java/Spring .properties files. It fills them through the provider you choose, no new format to adopt.",
+      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. It fills them through the provider you choose, no new format to adopt.",
       "labelFrameworks": "Frameworks and formats"
     },
     "providers": {
       "heading": "Translate through the model you trust.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, or any OpenAI-compatible server you host yourself. Pick one in a single line of config and switch providers without touching your locale files.",
+      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you host yourself. Pick one in a single line of config and switch providers without touching your locale files.",
       "marqueeLabel": "Translation providers"
     },
     "how": {
@@ -128,7 +128,7 @@
         },
         "provider": {
           "title": "Your choice of provider",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, or a local OpenAI-compatible model, chosen in one line of config. Switch providers without touching your locale files."
+          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or a local OpenAI-compatible model, chosen in one line of config. Switch providers without touching your locale files."
         },
         "safety": {
           "title": "Safe by construction",
@@ -156,7 +156,7 @@
       "items": {
         "formats": {
           "question": "Which formats and frameworks does verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, and Java/Spring .properties files. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, and Flutter. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
+          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
         },
         "incremental": {
           "question": "How does verbatra avoid re-translating everything on every run?",
@@ -164,7 +164,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Five, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
+          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
         },
         "safety": {
           "question": "What stops a bad translation from breaking my app?",

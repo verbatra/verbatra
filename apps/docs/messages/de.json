@@ -19,7 +19,7 @@
       "lead": "verbatra ist mehr als KI-Übersetzung. Es deckt maschinelle Übersetzung ab, die du steuerst, eine saubere Excel-Übergabe für menschliche Übersetzerinnen und die Automatisierung, um jede Locale synchron zu halten.",
       "ai": {
         "title": "KI-Übersetzung",
-        "body": "Übersetze nur das, was sich geändert hat, über den Anbieter deiner Wahl: Anthropic, OpenAI, Gemini, DeepL oder jeden OpenAI-kompatiblen Server, den du selbst betreibst. Eine festgeschriebene Lock-Datei hält jeden Lauf inkrementell, und die Integrität von Platzhaltern und ICU wird überprüft, bevor etwas geschrieben wird."
+        "body": "Übersetze nur das, was sich geändert hat, über den Anbieter deiner Wahl: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder jeden OpenAI-kompatiblen Server, den du selbst betreibst. Eine festgeschriebene Lock-Datei hält jeden Lauf inkrementell, und die Integrität von Platzhaltern und ICU wird überprüft, bevor etwas geschrieben wird."
       },
       "excel": {
         "title": "Excel-Übergabe",
@@ -53,12 +53,12 @@
     },
     "compat": {
       "heading": "Ein Werkzeug, jedes Framework.",
-      "body": "verbatra liest die Locale-Dateien, die dein Stack bereits verwendet: JSON für i18next, vue-i18n, next-intl und ngx-translate, sowie XLIFF, YAML, Flutter ARB und Java/Spring .properties-Dateien. Es füllt sie über den von dir gewählten Anbieter, ohne dass du ein neues Format übernehmen musst.",
+      "body": "verbatra liest die Locale-Dateien, die dein Stack bereits verwendet: JSON für i18next, vue-i18n, next-intl und ngx-translate, sowie XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml und gettext .po/.pot-Dateien. Es füllt sie über den von dir gewählten Anbieter, ohne dass du ein neues Format übernehmen musst.",
       "labelFrameworks": "Frameworks und Formate"
     },
     "providers": {
       "heading": "Übersetze über das Modell, dem du vertraust.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL oder jeder OpenAI-kompatible Server, den du selbst hostest. Wähle einen in einer einzigen Konfigurationszeile aus und wechsle den Anbieter, ohne deine Locale-Dateien zu berühren.",
+      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder jeder OpenAI-kompatible Server, den du selbst hostest. Wähle einen in einer einzigen Konfigurationszeile aus und wechsle den Anbieter, ohne deine Locale-Dateien zu berühren.",
       "marqueeLabel": "Übersetzungsanbieter"
     },
     "how": {
@@ -93,7 +93,7 @@
         },
         "provider": {
           "title": "Der Anbieter deiner Wahl",
-          "body": "Anthropic, OpenAI, Gemini, DeepL oder ein lokales OpenAI-kompatibles Modell, ausgewählt in einer Zeile der Konfiguration. Wechsle den Anbieter, ohne deine Locale-Dateien zu berühren."
+          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder ein lokales OpenAI-kompatibles Modell, ausgewählt in einer Zeile der Konfiguration. Wechsle den Anbieter, ohne deine Locale-Dateien zu berühren."
         },
         "safety": {
           "title": "Sicher durch Konstruktion",
@@ -125,11 +125,11 @@
         },
         "providers": {
           "question": "Welche Übersetzungsanbieter kann ich verwenden?",
-          "answer": "Fünf, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL (maschinelle Übersetzung) und openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM verweist. Du wählst einen über seine ID in deiner Konfiguration aus und kannst später wechseln, indem du diese eine Zeile bearbeitest. Gemini hat einen echten kostenlosen Tarif, und ein lokales Modell kostet pro Aufruf nichts."
+          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) und openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM verweist. Du wählst einen über seine ID in deiner Konfiguration aus und kannst später wechseln, indem du diese eine Zeile bearbeitest. Gemini hat einen echten kostenlosen Tarif, und ein lokales Modell kostet pro Aufruf nichts."
         },
         "formats": {
           "question": "Welche Formate und Frameworks unterstützt verbatra?",
-          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, sowie XLIFF, YAML, Flutter ARB und Java/Spring .properties-Dateien. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring und Flutter ab. verbatra liest die Dateien, die du bereits hast; es gibt kein verbatra-spezifisches Format, zu dem du migrieren musst."
+          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, sowie XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml und gettext .po/.pot-Dateien. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android und jeden gettext-basierten Stack ab. verbatra liest die Dateien, die du bereits hast; es gibt kein verbatra-spezifisches Format, zu dem du migrieren musst."
         },
         "safety": {
           "question": "Was verhindert, dass eine schlechte Übersetzung meine App kaputtmacht?",

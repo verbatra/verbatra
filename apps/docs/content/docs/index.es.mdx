@@ -27,11 +27,12 @@ verbatra lee y escribe doce formatos (JSON de i18next, vue-i18n, next-intl y ngx
 
 ## Los paquetes
 
-verbatra se distribuye como tres paquetes de npm:
+verbatra se distribuye como cuatro paquetes de npm:
 
-- **@verbatra/cli** proporciona el binario `verbatra` con nueve comandos: `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import` y `studio`. Es una capa fina sobre el SDK, así que todo lo que hace también está disponible de forma programática. Empieza por aquí.
+- **@verbatra/cli** proporciona el binario `verbatra` con diez comandos: `init`, `translate`, `watch`, `check`, `diff`, `doctor`, `export`, `import`, `studio` y `mcp`. Es una capa fina sobre el SDK, así que todo lo que hace también está disponible de forma programática. Empieza por aquí.
 - **@verbatra/sdk** es el motor que hay debajo: `translate()` de una sola pasada, `watch()` de larga duración, `check()`, `diff()` y `doctor()` de solo lectura, el viaje de ida y vuelta del libro de Excel para traductores humanos, y la carga de la configuración. Úsalo directamente desde scripts, herramientas de build o CI. Consulta [el SDK](/docs/sdk).
 - **@verbatra/studio** es Verbatra Studio, un panel local sobre tu proyecto con edición integrada y una cola de revisión. La CLI lo arranca con `verbatra studio`; el gasto de proveedor desde Studio permanece desactivado a menos que pases `--allow-spend`. Consulta [Revisión en Studio](/docs/review-in-studio).
+- **@verbatra/mcp** es un servidor MCP por stdio que expone el estado de traducción, el glosario y las herramientas de edición de verbatra a un cliente MCP. La CLI lo arranca con `verbatra mcp`. Consulta [el servidor MCP](/docs/cli/mcp).
 
 ## A dónde ir ahora
 
