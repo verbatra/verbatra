@@ -204,7 +204,8 @@
         "triggerAriaSuffix": "elegir idioma",
         "machineTranslatedLabel": "Traducción automática",
         "machineTranslatedDescription": "La interfaz y las páginas de documentación para este idioma están traducidas con IA."
-      }
+      },
+      "contact": "Contacto"
     },
     "studio": {
       "heading": "Observa todo el estado de la traducción, en local.",

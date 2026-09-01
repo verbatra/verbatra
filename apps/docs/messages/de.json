@@ -204,7 +204,8 @@
         "triggerAriaSuffix": "Sprache wechseln",
         "machineTranslatedLabel": "Maschinell übersetzt",
         "machineTranslatedDescription": "Die Oberfläche und die Dokumentationsseiten für diese Sprache werden mit KI übersetzt."
-      }
+      },
+      "contact": "Kontakt"
     },
     "studio": {
       "heading": "Behalte den gesamten Übersetzungsstand im Blick, lokal.",

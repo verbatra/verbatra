@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { VMark } from "@/components/landing";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { CONTRIBUTING_URL } from "@/components/landing/links";
+import { MailIcon } from "@/components/landing/mail-icon";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
@@ -48,6 +49,13 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         icon: <GithubIcon />,
         url: "https://github.com/verbatra/verbatra",
         external: true,
+      },
+      {
+        type: "icon",
+        label: t("contact"),
+        text: t("contact"),
+        icon: <MailIcon />,
+        url: localizedPath(locale, "/contact"),
       },
     ],
     themeSwitch: { enabled: false },
