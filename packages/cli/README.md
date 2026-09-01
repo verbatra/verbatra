@@ -59,7 +59,7 @@ Plural-category generation is opt-in too, but config/SDK only: set `generatePlur
 
 ## Commands
 
-verbatra ships nine commands: `init` (scaffold a config), `translate` (translate every target locale once), `watch` (re-translate on every source change), `check` (report per-locale missing, stale, and up-to-date counts without writing), `diff` (list the keys that would be added, re-translated, or are orphaned per locale, without writing), `doctor` (validate the project setup and report every problem at once), `export` (write untranslated strings to a translator handoff), `import` (read the filled handoff back, with the same safety checks as `translate`), and `studio` (start the local Verbatra Studio dashboard). `check`, `diff`, and `doctor` are read-only: they call no provider and write no file, so they suit CI gates. `export` and `import` are the manual-translation workflow, for the strings you want a human to translate. Both take `--format`, which picks the handoff shape: `xlsx` (the default) writes one styled Excel workbook with a sheet per locale, while `csv` and `tsv` write one plain `<locale>.csv` or `<locale>.tsv` per locale into a directory, which is easier to diff and review. The full reference - every flag, examples, and the exit-code contract - lives on the documentation site:
+verbatra ships ten commands: `init` (scaffold a config), `translate` (translate every target locale once), `watch` (re-translate on every source change), `check` (report per-locale missing, stale, and up-to-date counts without writing), `diff` (list the keys that would be added, re-translated, or are orphaned per locale, without writing), `doctor` (validate the project setup and report every problem at once), `export` (write untranslated strings to a translator handoff), `import` (read the filled handoff back, with the same safety checks as `translate`), `studio` (start the local Verbatra Studio dashboard), and `mcp` (start a stdio MCP server exposing verbatra's tools to an MCP client). `check`, `diff`, and `doctor` are read-only: they call no provider and write no file, so they suit CI gates. `export` and `import` are the manual-translation workflow, for the strings you want a human to translate. Both take `--format`, which picks the handoff shape: `xlsx` (the default) writes one styled Excel workbook with a sheet per locale, while `csv` and `tsv` write one plain `<locale>.csv` or `<locale>.tsv` per locale into a directory, which is easier to diff and review. The full reference - every flag, examples, and the exit-code contract - lives on the documentation site:
 
 - [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli)
 - [`verbatra init`](https://verbatra.kreitz-webdev.de/docs/cli/init)
@@ -71,6 +71,7 @@ verbatra ships nine commands: `init` (scaffold a config), `translate` (translate
 - [`verbatra export`](https://verbatra.kreitz-webdev.de/docs/cli/export)
 - [`verbatra import`](https://verbatra.kreitz-webdev.de/docs/cli/import)
 - [`verbatra studio`](https://verbatra.kreitz-webdev.de/docs/cli/studio)
+- [`verbatra mcp`](https://verbatra.kreitz-webdev.de/docs/cli/mcp)
 - [Manual translation workflow](https://verbatra.kreitz-webdev.de/docs/manual-translation)
 
 Run `verbatra <command> --help` for the same reference at the terminal.

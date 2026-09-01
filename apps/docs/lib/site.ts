@@ -7,6 +7,8 @@ export const PACKAGE_VERSION = versionData.version;
 
 export const STUDIO_VERSION = versionData.studioVersion;
 
+export const MCP_VERSION = versionData.mcpVersion;
+
 export const LEGAL_LAST_UPDATED = "2026-08-20";
 
 export function localeAlternates(locale: Locale, path: string) {

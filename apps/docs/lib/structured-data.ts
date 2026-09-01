@@ -7,9 +7,17 @@ const GITHUB_ORG_URL = "https://github.com/verbatra";
 const NPM_CLI_URL = "https://www.npmjs.com/package/@verbatra/cli";
 const NPM_SDK_URL = "https://www.npmjs.com/package/@verbatra/sdk";
 const NPM_STUDIO_URL = "https://www.npmjs.com/package/@verbatra/studio";
+const NPM_MCP_URL = "https://www.npmjs.com/package/@verbatra/mcp";
 
 const SUPPORTED_FRAMEWORKS = ["React", "Vue", "Angular", "Node.js", "Flutter"];
-const SUPPORTED_PROVIDERS = ["Anthropic", "OpenAI", "Gemini", "DeepL", "openai-compatible"];
+const SUPPORTED_PROVIDERS = [
+  "Anthropic",
+  "OpenAI",
+  "Gemini",
+  "DeepL",
+  "Google Cloud Translation",
+  "openai-compatible",
+];
 const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   "i18next-json": "i18next",
   "vue-i18n-json": "vue-i18n",
@@ -62,6 +70,7 @@ export function softwareApplicationLd(args: {
   lang: string;
   version: string;
   studioVersion: string;
+  mcpVersion: string;
 }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -89,20 +98,35 @@ export function softwareApplicationLd(args: {
       "Placeholder and ICU integrity checked after every translation",
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
-    sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL],
-    hasPart: {
-      "@type": "SoftwareApplication",
-      name: "verbatra Studio",
-      softwareVersion: args.studioVersion,
-      applicationCategory: "DeveloperApplication",
-      operatingSystem: "Node.js >= 22.14.0",
-      url: NPM_STUDIO_URL,
-      downloadUrl: NPM_STUDIO_URL,
-      license: "https://opensource.org/licenses/MIT",
-      isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      author: AUTHOR,
-    },
+    sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],
+    hasPart: [
+      {
+        "@type": "SoftwareApplication",
+        name: "verbatra Studio",
+        softwareVersion: args.studioVersion,
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Node.js >= 22.14.0",
+        url: NPM_STUDIO_URL,
+        downloadUrl: NPM_STUDIO_URL,
+        license: "https://opensource.org/licenses/MIT",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        author: AUTHOR,
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "verbatra MCP",
+        softwareVersion: args.mcpVersion,
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Node.js >= 22.14.0",
+        url: NPM_MCP_URL,
+        downloadUrl: NPM_MCP_URL,
+        license: "https://opensource.org/licenses/MIT",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        author: AUTHOR,
+      },
+    ],
   };
 }
 

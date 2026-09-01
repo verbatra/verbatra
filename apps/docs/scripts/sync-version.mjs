@@ -17,6 +17,7 @@ function readVersion(packageDir) {
 const versions = {
   version: readVersion("cli"),
   studioVersion: readVersion("studio"),
+  mcpVersion: readVersion("mcp"),
 };
 
 writeFileSync(outputPath, `${JSON.stringify(versions, null, 2)}\n`);

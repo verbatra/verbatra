@@ -1,14 +1,24 @@
 import type { MetadataRoute } from "next";
-import { i18n, type Locale } from "@/lib/i18n";
+import { i18n, type Locale, localizedPath } from "@/lib/i18n";
 import { homePath, SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
 const HOME_PRIORITY: Readonly<Record<Locale, number>> = { en: 1, de: 0.9, es: 0.9, fr: 0.9 };
 
+const LEGAL_PATHS = ["/contact", "/imprint", "/privacy"] as const;
+
 function homeLanguageAlternates(): Record<string, string> {
   const languages: Record<string, string> = {};
   for (const lang of i18n.languages) {
     languages[lang] = new URL(homePath(lang), SITE_URL).href;
+  }
+  return languages;
+}
+
+function legalLanguageAlternates(path: string): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const lang of i18n.languages) {
+    languages[lang] = new URL(localizedPath(lang, path), SITE_URL).href;
   }
   return languages;
 }
@@ -38,5 +48,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }),
   );
 
-  return [...home, ...docs];
+  const legal: MetadataRoute.Sitemap = i18n.languages.flatMap((locale) =>
+    LEGAL_PATHS.map((path) => ({
+      url: new URL(localizedPath(locale, path), SITE_URL).href,
+      changeFrequency: "monthly",
+      priority: 0.3,
+      alternates: { languages: legalLanguageAlternates(path) },
+    })),
+  );
+
+  return [...home, ...docs, ...legal];
 }

@@ -39,7 +39,7 @@ export GEMINI_API_KEY=your-key-here
 npx verbatra translate
 ```
 
-Gemini is the cheapest way to try verbatra: its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) without setting up billing. Pass `anthropic`, `openai`, or `deepl` to `--provider` instead if you prefer one of those; switching later means editing one `id` in your config.
+Gemini is the cheapest way to try verbatra: its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) without setting up billing. Pass `anthropic`, `openai`, `deepl`, or `google-translate` to `--provider` instead if you prefer one of those; switching later means editing one `id` in your config.
 
 `npx` runs the locally installed binary whichever package manager put it there, so `yarn add -D @verbatra/cli` covers step 1 just as well, and yarn users can also run `yarn verbatra ...`.
 
@@ -59,11 +59,11 @@ verbatra does not need those scripts; this repository declines both. See [Troubl
 
 verbatra translates your application's locale files for you. You maintain the source locale by hand, and as strings are added or change, verbatra fills in every target locale through the AI or machine-translation provider you choose. It records what it has already translated, so each run touches only what actually changed.
 
-It ships in three packages. `@verbatra/cli` gives you a `verbatra` command for the terminal and CI, `@verbatra/sdk` is the same engine as a programmatic API, and `@verbatra/studio` is a local web dashboard served through the `verbatra studio` command. verbatra is built SDK-first: the CLI is a thin wrapper over the SDK, so anything the command line does, you can also do in code.
+It ships in four packages. `@verbatra/cli` gives you a `verbatra` command for the terminal and CI, `@verbatra/sdk` is the same engine as a programmatic API, `@verbatra/studio` is a local web dashboard served through the `verbatra studio` command, and `@verbatra/mcp` is a stdio MCP server exposing translation status, glossary, and editing tools to MCP clients such as Claude Desktop, Claude Code, or Cursor, served through the `verbatra mcp` command. verbatra is built SDK-first: the CLI is a thin wrapper over the SDK, so anything the command line does, you can also do in code.
 
 ## Features
 
-- **Many locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, ARB, and Java/Spring properties ([Formats](https://verbatra.kreitz-webdev.de/docs/formats)).
+- **Many locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring properties, Apple `.strings`/`.stringsdict`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, and gettext `.po`/`.pot` ([Formats](https://verbatra.kreitz-webdev.de/docs/formats)).
 - **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted server such as LM Studio, Ollama, or vLLM) as LLMs, plus DeepL and Google Cloud Translation (machine translation) ([Providers](https://verbatra.kreitz-webdev.de/docs/providers)).
 - **Incremental by default.** A lock file records what has been translated, so each run sends only new or changed strings to the provider.
 - **Project scaffolding.** `verbatra init` writes a config and a `.env.example` for your project, and gitignores the local files it must not commit.
@@ -102,7 +102,7 @@ export default defineConfig({
 });
 ```
 
-`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list the same locale twice (compared case-insensitively). The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, and `properties`. The optional `glossary` (a term map, given inline or as a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output.
+`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list the same locale twice (compared case-insensitively). The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, and `gettext-po`. The optional `glossary` (a term map, given inline or as a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output.
 
 The `provider` block is selected by `id`. The LLM providers take a `model` and a token limit; DeepL and Google Cloud Translation need no model:
 
@@ -147,6 +147,7 @@ A `verbatra.config.ts` is typed by `defineConfig`, and a JSON or YAML config get
 | `verbatra export` | Export untranslated strings into a translator handoff: a styled Excel workbook, or one CSV or TSV file per locale | `--out`, `--locales`, `--include-unchanged`, `--format <xlsx\|csv\|tsv>`, `--cwd`, `--config`, `--json` |
 | `verbatra import <workbook>` | Import a filled handoff back into the locale files, with the same safety checks (the argument is a workbook file, one CSV or TSV file, or the directory holding them) | `--dry-run`, `--format <xlsx\|csv\|tsv>`, `--cwd`, `--config`, `--json` |
 | `verbatra studio` | Start Verbatra Studio, a local web dashboard over the project | `--port`, `--allow-spend`, `--expose-agent-tools`, `--cwd`, `--config` |
+| `verbatra mcp` | Start a stdio MCP server exposing verbatra's tools to an MCP client | `--allow-spend`, `--cwd`, `--config` |
 
 Run `verbatra <command> --help` for the full option list. The complete command reference - every flag and examples - lives on the [documentation site](https://verbatra.kreitz-webdev.de/docs/cli).
 
@@ -240,6 +241,7 @@ See the [`@verbatra/sdk` README](./packages/sdk/README.md) for the full API.
 | [`@verbatra/cli`](./packages/cli/README.md) | The `verbatra` command-line tool. |
 | [`@verbatra/sdk`](./packages/sdk/README.md) | The programmatic API. |
 | [`@verbatra/studio`](./packages/studio/README.md) | The local Verbatra Studio dashboard, served through `verbatra studio`. |
+| [`@verbatra/mcp`](./packages/mcp/README.md) | The stdio MCP server, served through `verbatra mcp`. |
 
 The [GitHub Action](#github-action) is not in this table because it is not an npm package: it lives in its own repository and is consumed with `uses:`.
 
