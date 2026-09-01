@@ -61,10 +61,18 @@ jobs:
 
       - name: Deploy on VPS
         uses: ./.github/actions/ssh-connect
+        env:
+          ARCJET_KEY: ${{ secrets.ARCJET_KEY }}
+          CONTACT_SMTP_HOST: ${{ secrets.CONTACT_SMTP_HOST }}
+          CONTACT_SMTP_PORT: ${{ secrets.CONTACT_SMTP_PORT }}
+          CONTACT_SMTP_USER: ${{ secrets.CONTACT_SMTP_USER }}
+          CONTACT_SMTP_PASSWORD: ${{ secrets.CONTACT_SMTP_PASSWORD }}
+          CONTACT_SMTP_FROM: ${{ secrets.CONTACT_SMTP_FROM }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: ARCJET_KEY,CONTACT_SMTP_HOST,CONTACT_SMTP_PORT,CONTACT_SMTP_USER,CONTACT_SMTP_PASSWORD,CONTACT_SMTP_FROM
           script: |
             set -e
             cd ${{ env.PROJECT_DIR }}

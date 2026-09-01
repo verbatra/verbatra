@@ -18,6 +18,10 @@ inputs:
   script:
     description: Shell script to execute on the remote host.
     required: true
+  envs:
+    description: Comma-separated names of job env vars to export into the remote SSH session.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -30,3 +34,4 @@ runs:
         key: ${{ inputs.private-key }}
         port: ${{ inputs.port }}
         script: ${{ inputs.script }}
+        envs: ${{ inputs.envs }}
