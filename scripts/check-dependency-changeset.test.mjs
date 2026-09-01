@@ -136,6 +136,35 @@ describe("parseWorkspaceCatalogs", () => {
     expect(parseWorkspaceCatalogs(WORKSPACE_YAML).bundled).not.toHaveProperty("postcss@<8.5.18");
   });
 
+  it("resolves a quoted catalog version the same as an unquoted one", () => {
+    const quoted = WORKSPACE_YAML.replace("zod: 4.4.3", 'zod: "4.4.3"');
+
+    expect(parseWorkspaceCatalogs(quoted).default?.zod).toBe("4.4.3");
+  });
+
+  it("treats an empty catalog block as an empty catalog, not absent", () => {
+    const withEmptyCatalog = `catalog:
+
+catalogs:
+  bundled:
+    openai: 7.3.0
+`;
+
+    expect(parseWorkspaceCatalogs(withEmptyCatalog).default).toEqual({});
+  });
+
+  it("has no default catalog when the workspace file omits the catalog block entirely", () => {
+    const withoutCatalog = `catalogs:
+  bundled:
+    openai: 7.3.0
+`;
+
+    const catalogs = parseWorkspaceCatalogs(withoutCatalog);
+
+    expect(catalogs.default).toBeUndefined();
+    expect(catalogs.bundled).toEqual({ openai: "7.3.0" });
+  });
+
   it("parses the repository's real pnpm-workspace.yaml", () => {
     const real = readFileSync(resolve(REPO_ROOT, "pnpm-workspace.yaml"), "utf8");
 
