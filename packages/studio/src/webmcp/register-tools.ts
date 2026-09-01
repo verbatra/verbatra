@@ -9,6 +9,7 @@ import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossa
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
+import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
@@ -169,10 +170,21 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
     description:
       "Reads the current source value and, when it exists, the current target value for exactly one key in exactly one target locale. " +
       "Use it to see the text before changing it, and to confirm afterwards what was written. " +
-      "Do not use it for bulk reads: it answers for a single pair per call, and no bulk content tool exists on this surface. " +
+      "Do not use it for bulk reads: it answers for a single pair per call, and verbatra_locale_values is the bulk equivalent. " +
       "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source, and an unknown locale or key is answered as an error rather than an empty result. " +
       "An absent target value means the key does not exist in that locale yet, while an empty string is a real stored value. " +
       "Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
+    readOnlyHint: true,
+    untrustedContentHint: true,
+    spendGated: false,
+  },
+  [LOCALE_VALUES_METHOD]: {
+    description:
+      "Reads the current source value and, when it exists, the current target value for every key, across every configured target locale, in one call. " +
+      "Use it when you need translation content in bulk, for instance to search or scan values rather than key names, since verbatra_key_value only answers for one key at a time. " +
+      "Do not use it to change anything: it is read-only and its result can be large on a project with many keys and locales. " +
+      "An absent target value means the key has not been translated in that locale yet; an absent source value means the key is orphaned, present in the target locale but no longer in the source. " +
+      "Takes no parameters. Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
     spendGated: false,

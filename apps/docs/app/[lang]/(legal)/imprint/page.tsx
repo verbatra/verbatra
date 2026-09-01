@@ -48,7 +48,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         <br />
         Deutschland
         <br />
-        E-Mail: <a href="mailto:mario.kreitz@web.de">mario.kreitz@web.de</a>
+        E-Mail: <a href="mailto:info@kreitz-webdev.de">info@kreitz-webdev.de</a>
       </p>
       <p>{t.rich("contactLinkNote", linkTags)}</p>
 

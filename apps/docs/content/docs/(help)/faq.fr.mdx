@@ -45,16 +45,16 @@ exécutions sont incrémentales, donc au quotidien tu paies pour la poignée de 
 modifiées, pas pour tout le fichier. DeepL n'entre pas du tout dans cette formule, puisqu'il
 facture des caractères source plutôt que des tokens.
 
-Voir [Estimer le coût](/docs/estimating-cost) pour la méthode, le cas DeepL et la façon de
+Voir [Estimer le coût](/docs/estimating-cost) pour la méthode, le cas de la traduction automatique et la façon de
 calibrer sur une exécution réelle mesurée.
 
 ## Avec quel fournisseur commencer ?
 
 Gemini : il a une offre d'API gratuite, donc tu peux traduire un projet entier sans frais, et
 changer plus tard revient à modifier un seul `id` dans la configuration. Anthropic et OpenAI sont
-les choix qualité en LLM payant, DeepL est l'option de traduction automatique dédiée, et
-`openai-compatible` garde tout sur ton propre matériel. Voir [Fournisseurs](/docs/providers) pour
-la comparaison complète.
+les choix qualité en LLM payant, DeepL et Google Cloud Translation sont les options de traduction
+automatique dédiées, et `openai-compatible` garde tout sur ton propre matériel. Voir
+[Fournisseurs](/docs/providers) pour la comparaison complète.
 
 ## Je peux faire tourner un modèle local ?
 
@@ -120,8 +120,9 @@ dynamiquement par la commande `studio`.
 ## Où vivent les clés d'API ?
 
 Uniquement dans des variables d'environnement : `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-`GEMINI_API_KEY` ou `DEEPL_API_KEY`, plus la variable que tu nommes pour `openai-compatible`.
-`translate`, `watch`, `doctor` et `studio` chargent `.env` et `.env.local` depuis le répertoire de
+`GEMINI_API_KEY`, `DEEPL_API_KEY` ou `GOOGLE_TRANSLATE_API_KEY`, plus la variable que tu nommes
+pour `openai-compatible`. `translate`, `watch`, `doctor` et `studio` chargent `.env` et
+`.env.local` depuis le répertoire de
 travail (les vraies variables d'environnement gagnent). Le schéma de configuration rejette les clés
 inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les
 messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs](/docs/providers).
@@ -131,13 +132,19 @@ messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs
 <AvailableFrom version="0.9.0" />
 
 Cinq choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
-clé d'API : la configuration se charge et passe la validation, le `format` configuré se résout en
-un adaptateur de fichier, le `provider.id` configuré se résout en une factory de fournisseur, la
-variable d'environnement dont ce fournisseur lit sa clé est définie (vérifiée seulement par son
-nom, jamais par sa valeur), et le fichier de la locale source existe, est un fichier normal et se
-parse sous ce format. Chaque vérification s'exécute même si une précédente a échoué, une exécution
-rapporte donc tous les problèmes indépendants à la fois ; l'exception est la configuration
-elle-même : si elle échoue au chargement, les quatre vérifications qui en ont besoin sont sautées.
+clé d'API :
+
+- Configuration : la configuration se charge et passe la validation.
+- Format adapter : le `format` configuré se résout en un adaptateur de fichier.
+- Provider : le `provider.id` configuré se résout en une factory de fournisseur.
+- API key environment variable : la variable d'environnement dont ce fournisseur lit sa clé est
+  définie (vérifiée seulement par son nom, jamais par sa valeur).
+- Source locale file : le fichier de la locale source existe, est un fichier normal et se parse
+  sous le format configuré.
+
+Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
+les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
+au chargement, les quatre vérifications qui en ont besoin sont sautées.
 
 ```bash
 verbatra doctor
@@ -150,7 +157,7 @@ sortie.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
-Trois surfaces différentes pour trois tâches différentes. [Configure verbatra avec un agent
+Quatre surfaces différentes pour quatre tâches différentes. [Configure verbatra avec un agent
 IA](/docs/start-with-ai) est un prompt prêt à copier-coller pour Claude Code, Cursor ou tout agent
 de code capable de lire ton projet et d'exécuter des commandes shell : il inspecte une
 configuration i18n existante, installe la CLI, génère une configuration adaptée, exécute
@@ -162,10 +169,13 @@ Studio avec un agent de navigateur](/docs/agent-tools-in-studio) est encore une 
 flag optionnel `--expose-agent-tools` sur `verbatra studio` qui enregistre des outils WebMCP pour
 qu'un agent IA dans le navigateur puisse piloter un projet déjà configuré depuis un onglet ouvert
 et authentifié du tableau de bord ; ce n'est explicitement pas pour la configuration initiale.
+[`verbatra mcp`](/docs/cli/mcp) est la quatrième : un serveur MCP en stdio pour un client MCP
+hébergé dans un terminal ou headless (Claude Desktop, Claude Code, Cursor) qui veut les mêmes
+outils de statut, de glossaire et d'édition sans aucun navigateur.
 
-Aucune des trois ne donne à un agent le moyen de dépenser sans un humain dans la boucle.
+Aucune des quatre ne donne à un agent le moyen de dépenser sans un humain dans la boucle.
 `translate` lui-même n'a aucune barrière de dépense propre, donc chaque surface orientée agent
-place une étape de confirmation, ou le flag `--allow-spend`, entre l'agent et un véritable appel
+place une étape de confirmation, ou un flag `--allow-spend`, entre l'agent et un véritable appel
 au fournisseur.
 
 ## Ce site publie-t-il quelque chose pour les agents IA et les robots d'indexation ?

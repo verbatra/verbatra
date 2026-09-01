@@ -1,8 +1,8 @@
 ---
 title: Übersicht
-description: "Der Befehl verbatra: seine neun Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
+description: "Der Befehl verbatra: seine zehn Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
 ---
-`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Neun Befehle erledigen die Arbeit:
+`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Zehn Befehle erledigen die Arbeit:
 
 | Befehl | Was er tut |
 | --- | --- |
@@ -15,6 +15,7 @@ description: "Der Befehl verbatra: seine neun Unterbefehle, die gemeinsamen Flag
 | [`export`](/docs/cli/export) | unübersetzte Strings für eine menschliche Übersetzerin exportieren, als Excel-Arbeitsmappe oder als je eine CSV- oder TSV-Datei pro Locale |
 | [`import`](/docs/cli/import) | eine ausgefüllte Arbeitsmappe oder Trennzeichen-Datei zurück in die Locale-Dateien importieren |
 | [`studio`](/docs/cli/studio) | Verbatra Studio starten, das lokale Übersetzungs-Dashboard |
+| [`mcp`](/docs/cli/mcp) | einen stdio-MCP-Server starten, der die Tools von verbatra für einen MCP-Client bereitstellt |
 
 ## Installieren und aufrufen
 
@@ -35,12 +36,15 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 
 - `--cwd <path>` löst die Konfiguration und die Locale-Dateien von diesem Verzeichnis statt vom aktuellen aus auf. Jeder Befehl nimmt es.
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` nimmt es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
-- `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten. Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr. `translate`, `watch`, `check`, `diff`, `doctor`, `export` und `import` unterstützen es; `init` und `studio` nicht.
+- `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
+  - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht.
+  - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben aus und enden mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`.
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor` und `studio` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`) und die Übergabe-Befehle (`export`, `import`) rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`) und die Übergabe-Befehle (`export`, `import`) rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Exit-Codes
 
@@ -51,6 +55,6 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | `0` | Erfolg (auch `--help` und `--version`) |
 | `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben `partial`, `check` fand ein Locale nicht synchron, `diff` fand ausstehende Änderungen, oder `doctor` fand ein Einrichtungsproblem |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
-| `130` | `watch` oder `studio` wurde durch einen zweiten Interrupt zwangsbeendet |
+| `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 
 Jede Befehlsseite erklärt, wie diese Codes für sie gelten. Wie du sie in eine Pipeline einbaust, steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).

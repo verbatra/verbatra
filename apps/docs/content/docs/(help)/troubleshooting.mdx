@@ -70,7 +70,7 @@ full schema. If the message is `No verbatra configuration found...` (`CONFIG_NOT
 
 **Symptom**: `No adapter is registered for format "..."` followed by the supported list.
 
-**Cause**: the config's `format` is not one of the eight registered format ids. This is checked
+**Cause**: the config's `format` is not one of the twelve registered format ids. This is checked
 before any file is read.
 
 **Fix**: use one of the ids from [Formats](/docs/formats), for example `i18next-json` or `xliff`.
@@ -248,6 +248,32 @@ methods are not registered at all; local file editing is always on and needs no 
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (also `true`, `yes`, or `on`). Rapid repeated actions can also hit
 Studio's own throttle, `METHOD_RATE_LIMITED: Too many calls to this method; wait before
 retrying.`; that clears on its own. See [Review in Studio](/docs/review-in-studio).
+
+## MCP: @verbatra/mcp is not installed
+
+**Symptom**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
+@verbatra/mcp`
+
+**Cause**: `@verbatra/mcp` is a separate package the `mcp` command loads dynamically, so the rest of
+the CLI works without it.
+
+**Fix**: install it as the hint says, then re-run `verbatra mcp`, or run the `verbatra-mcp` binary
+`@verbatra/mcp` ships directly. If you install with pnpm, see
+[pnpm blocks a dependency's install scripts](#pnpm-blocks-a-dependencys-install-scripts-err_pnpm_ignored_builds)
+first.
+
+## MCP: an agent's tools/list never shows retranslateEntry or translatePending
+
+**Symptom**: `key.value`, `translation.editEntry`, and the other local tools work, but
+`translation.retranslateEntry` and `translation.translatePending` are absent from the tool list, and
+calling either by name fails as an unknown tool.
+
+**Cause**: provider spend is a capability you grant at startup, and the MCP server's advertised tool
+set must not vary per connection, so the two spend-gated tools are left out of the list entirely.
+They are never advertised and then refused: if spending isn't allowed, they simply don't appear.
+
+**Fix**: restart the server with `verbatra mcp --allow-spend` (or `verbatra-mcp --allow-spend`), or
+set `VERBATRA_MCP_ALLOW_SPEND=1` (also `true`, `yes`, or `on`). See [`verbatra mcp`](/docs/cli/mcp).
 
 ## Undoing a run (no error code)
 

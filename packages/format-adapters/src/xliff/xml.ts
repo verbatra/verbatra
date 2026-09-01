@@ -3,6 +3,8 @@ import { DOMParser, type Document, type Element, type Node, XMLSerializer } from
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
+import { MAX_DEPTH } from "../json/limits.js";
+import { isEnoent } from "../shell.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
 const ELEMENT_NODE = 1;
@@ -170,12 +172,20 @@ export function parseXliffEntries(
   return out;
 }
 
+function destinationReadErrorMessage(error: unknown): string {
+  if (isEnoent(error)) {
+    return "The destination XLIFF file does not exist.";
+  }
+  const reason = error instanceof Error ? error.message : String(error);
+  return `The destination XLIFF file could not be read: ${reason}`;
+}
+
 async function readDestination(filePath: string, fs: AdapterFs): Promise<string> {
   let outcome: BoundedReadOutcome;
   try {
     outcome = await readBoundedFile(fs, filePath);
-  } catch {
-    throw new AdapterError("INVALID_STRUCTURE", "The destination XLIFF file does not exist.");
+  } catch (error) {
+    throw new AdapterError("INVALID_STRUCTURE", destinationReadErrorMessage(error));
   }
   return outcomeToContent(outcome, "The destination path is not a regular file.");
 }
@@ -211,8 +221,25 @@ function isAllowedFragmentNode(node: Node): boolean {
 }
 
 function allDescendantNodes(node: Node): Node[] {
-  const children = Array.from(node.childNodes);
-  return children.flatMap((child) => [child, ...allDescendantNodes(child)]);
+  const result: Node[] = [];
+  const stack: Array<{ node: Node; depth: number }> = [{ node, depth: 1 }];
+  while (stack.length > 0) {
+    const top = stack.pop();
+    if (top === undefined) {
+      break;
+    }
+    if (top.depth > MAX_DEPTH) {
+      throw new AdapterError(
+        "MAX_DEPTH_EXCEEDED",
+        "The translated value nests inline elements too deeply.",
+      );
+    }
+    for (const child of Array.from(top.node.childNodes)) {
+      result.push(child);
+      stack.push({ node: child, depth: top.depth + 1 });
+    }
+  }
+  return result;
 }
 
 function hasDisallowedNode(root: Element): boolean {
@@ -250,7 +277,10 @@ function fragmentNodes(parser: DOMParser, value: string): Node[] | null {
     }
     sanitizeInlineAttributes(root);
     return Array.from(root.childNodes);
-  } catch {
+  } catch (error) {
+    if (error instanceof AdapterError) {
+      throw error;
+    }
     return null;
   }
 }

@@ -1,8 +1,8 @@
 ---
 title: Provider
-description: Die fünf Übersetzungs-Provider, ihre Optionen und API-Schlüssel und das Verhalten, das sie alle teilen.
+description: Die sechs Übersetzungs-Provider, ihre Optionen und API-Schlüssel und das Verhalten, das sie alle teilen.
 ---
-verbatra liefert fünf Provider hinter einer Schnittstelle: Anthropic, OpenAI, Gemini und openai-compatible (ein lokaler oder selbst gehosteter OpenAI-kompatibler Server) sind Large Language Models, und DeepL ist ein Maschinenübersetzungsdienst. Du wählst einen im `provider`-Block deiner [Konfiguration](/docs/config-file), über die `id`. Jede Modell-Id auf dieser Seite ist ein Beispiel, keine Empfehlung: Modellkataloge ändern sich, prüfe also die aktuelle Liste deines Providers.
+verbatra liefert sechs Provider hinter einer Schnittstelle: Anthropic, OpenAI, Gemini und openai-compatible (ein lokaler oder selbst gehosteter OpenAI-kompatibler Server) sind Large Language Models, und DeepL und Google Cloud Translation sind Maschinenübersetzungsdienste. Du wählst einen im `provider`-Block deiner [Konfiguration](/docs/config-file), über die `id`. Jede Modell-Id auf dieser Seite ist ein Beispiel, keine Empfehlung: Modellkataloge ändern sich, prüfe also die aktuelle Liste deines Providers.
 
 ## Welchen soll ich nehmen?
 
@@ -11,6 +11,7 @@ Jeder Provider funktioniert mit jedem Format und jedem Befehl; bei der Wahl geht
 - **Kleines oder Nebenprojekt, und es soll kostenlos sein?** Nimm **Gemini**. Es hat ein echtes kostenloses API-Kontingent, du kannst also eine ganze App zum Nulltarif übersetzen. Hol dir einen Schlüssel im [Google AI Studio](https://aistudio.google.com/apikey) und setze `GEMINI_API_KEY`. Das kostenlose Kontingent ist ratenbegrenzt (siehe den Hinweis unten), was nur bei einem großen ersten Lauf ins Gewicht fällt.
 - **Beste Übersetzungsqualität für eine Produktions-App?** Nimm **Anthropic** oder **OpenAI**. Beide sind bezahlte LLMs und lesen `ANTHROPIC_API_KEY` oder `OPENAI_API_KEY`.
 - **Hohes Volumen, glossargetrieben oder kein LLM im Spiel?** Nimm **DeepL**. Es ist eine dedizierte Maschinenübersetzungs-API mit einem kostenlosen und einem bezahlten Kontingent und unterstützt ein natives Glossar per Id. Strings mit Platzhaltern übersetzt es nicht (siehe den Hinweis unten); nimm dafür einen LLM-Provider.
+- **Schon auf Google Cloud, oder willst du die breiteste Sprachabdeckung mit einem einfachen API-Schlüssel?** Nimm **Google Cloud Translation**. Es ist Googles dedizierte Maschinenübersetzungs-API (die Basic-Stufe, v2), abgerechnet über dein Google-Cloud-Projekt. Wie DeepL übersetzt es keine Strings mit Platzhaltern.
 - **Offline, kostenfrei, oder deine Strings dürfen dein Netzwerk nie verlassen?** Nimm **openai-compatible**. Es richtet verbatra auf einen lokalen oder selbst gehosteten Inferenzserver (LM Studio, Ollama, vLLM) statt auf eine gehostete API. Kein Konto, kein API-Schlüssel und kein Netzwerkverkehr über deine eigene Maschine oder dein LAN hinaus.
 
 Unsicher? Starte mit Geminis kostenlosem Kontingent und wechsle den Provider später, indem du eine `id` in deiner Konfiguration änderst. Sonst ändert sich nichts.
@@ -25,6 +26,7 @@ verbatra liest nie einen API-Schlüssel aus der Konfiguration. Jeder gehostete P
 | `openai` | `OPENAI_API_KEY` |
 | `gemini` | `GEMINI_API_KEY` |
 | `deepl` | `DEEPL_API_KEY` |
+| `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
 Setze die Variable in `.env` (das `verbatra init` in `.gitignore` einträgt) oder exportiere sie in deiner Shell oder deinem CI-Secret-Store. Ist die Variable ungesetzt oder leer, schlägt der Provider mit einem strukturierten `MISSING_API_KEY`-Fehler fehl, dessen Meldung die Variable nennt, aber nie einen Schlüsselwert enthält. Committe nie einen echten Schlüssel.
 
@@ -105,6 +107,34 @@ DeepL stuft kontrolliert herab, statt fehlzuschlagen, wenn es eine Einstellung n
 DeepL kann Platzhalter oder ICU-Tokens nicht erhalten, deshalb sendet es Strings, die welche enthalten, gar nicht erst: Diese Einträge werden zurückgehalten (unübersetzt gelassen) und mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis gemeldet. Platzhalterfreie Strings werden normal übersetzt. Um Strings mit Platzhaltern zu übersetzen, nimm einen LLM-Provider (Anthropic, OpenAI, Gemini oder openai-compatible).
 </Callout>
 
+## Google Cloud Translation
+
+<AvailableFrom version="0.10.0" />
+
+```ts
+provider: {
+  id: "google-translate",
+  options: {},
+}
+```
+
+Liest `GOOGLE_TRANSLATE_API_KEY`. Wie DeepL ist Google Cloud Translation eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld, kein Ausgabe-Token-Limit und in v1 keine Glossar-Option. Es nimmt eine optionale Option, `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)).
+
+Dieser Provider zielt auf die Basic-Stufe (v2) von Cloud Translation, authentifiziert mit einem einfachen API-Schlüssel aus einem Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Er nutzt nicht die Advanced-Stufe (v3), die sich mit einem Service-Account oder Application Default Credentials authentifiziert statt mit einer einzelnen Umgebungsvariable, und deshalb nicht zu verbatras Regel "Schlüssel nur aus der Umgebungsvariable" passt.
+
+Cloud Translation hat auf der Basic-Stufe keine Formalitätseinstellung und kein generisches Glossar, ein konfigurierter `tone` oder `glossary` wird also nie angewendet. Beides wird als Hinweis gemeldet statt still verworfen:
+
+- `tone` meldet immer `FORMALITY_DOWNGRADED`, wenn er auf `formal` oder `informal` gesetzt ist; `neutral` oder ein fehlender Ton wird weggelassen.
+- Ein mitgegebenes `glossary`-Begriffsverzeichnis meldet immer `GLOSSARY_IGNORED`.
+
+<Callout title="Google Cloud Translation und Platzhalter">
+Wie DeepL kann Google Cloud Translation Platzhalter oder ICU-Tokens nicht erhalten, deshalb sendet es Strings, die welche enthalten, gar nicht erst: Diese Einträge werden zurückgehalten (unübersetzt gelassen) und mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis gemeldet. Platzhalterfreie Strings werden normal übersetzt. Um Strings mit Platzhaltern zu übersetzen, nimm einen LLM-Provider (Anthropic, OpenAI, Gemini oder openai-compatible).
+</Callout>
+
+<Callout title="Google Cloud Translation und Locale-Codes">
+Locale-Codes werden vor jedem Netzwerkaufruf als wohlgeformtes BCP-47 validiert (zum Beispiel `en` oder `pt-BR`); ein fehlerhafter Code wie `en_US` schlägt mit `INVALID_REQUEST` fehl und nennt den betroffenen Code. Anders als DeepL erlaubt Cloud Translation regionale Zielcodes frei, diese Prüfung betrifft also nur die Syntax, keine feste Positivliste. Ein Zielort oder Sprachpaar, das Googles API selbst nicht unterstützt, schlägt weiterhin als strukturiertes `INVALID_REQUEST` fehl, sobald die Anfrage Google erreicht.
+</Callout>
+
 ## openai-compatible
 
 Richtet verbatra auf einen Server, der die OpenAI-Chat-Completions-API spricht: LM Studio, Ollama, vLLM und ähnliche funktionieren alle. Die Id benennt das Protokoll auf der Leitung, nicht den Ort des Servers, eine gehostete API, die dasselbe Protokoll spricht, passt hier also auch.
@@ -178,22 +208,22 @@ Ein schlechtes lokales Modell schlägt laut fehl, nicht still: verbatra validier
 
 Die optionalen Konfigurationsfelder `tone` und `glossary` (siehe [Konfigurationsdatei](/docs/config-file)) werden pro Provider angewendet:
 
-- **Ton.** Die LLM-Provider (Anthropic, OpenAI, Gemini und openai-compatible) erhalten den Ton mit der Anfrage und werden angewiesen, ihn einzuhalten. DeepL bildet ihn auf Formalität ab, mit der oben beschriebenen Herabstufung im kostenlosen Kontingent.
-- **Glossar.** Die LLM-Provider erhalten die Begriffszuordnung und werden angewiesen, ihre Begriffe als bindend zu behandeln. DeepL ignoriert eine Begriffszuordnung (mit einem `GLOSSARY_IGNORED`-Hinweis) und wendet nur seine native `glossaryId` an.
+- **Ton.** Die LLM-Provider (Anthropic, OpenAI, Gemini und openai-compatible) erhalten den Ton mit der Anfrage und werden angewiesen, ihn einzuhalten. DeepL bildet ihn auf Formalität ab, mit der oben beschriebenen Herabstufung im kostenlosen Kontingent. Google Cloud Translation hat gar keine Formalitätskontrolle, ein nicht-neutraler Ton meldet also immer `FORMALITY_DOWNGRADED`.
+- **Glossar.** Die LLM-Provider erhalten die Begriffszuordnung und werden angewiesen, ihre Begriffe als bindend zu behandeln. DeepL ignoriert eine Begriffszuordnung (mit einem `GLOSSARY_IGNORED`-Hinweis) und wendet nur seine native `glossaryId` an. Google Cloud Translation hat in v1 gar kein Glossar, eine mitgegebene Begriffszuordnung meldet also immer `GLOSSARY_IGNORED`.
 
 ## Verhalten, das jeder Provider teilt
 
 ### Batching
 
-Die Arbeit einer Locale wird in sequenzielle Sub-Batches von höchstens `maxBatchSize` Einträgen aufgeteilt (Default 50; siehe [Konfigurationsdatei](/docs/config-file)), damit eine überdimensionierte Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf automatisch erneut versucht, während die anderen Sub-Batches weiter Fortschritt machen. DeepL teilt einen Sub-Batch zusätzlich transparent auf so viele Anfragen auf, wie seine eigenen Grenzen pro Anfrage verlangen.
+Die Arbeit einer Locale wird in sequenzielle Sub-Batches von höchstens `maxBatchSize` Einträgen aufgeteilt (Default 50; siehe [Konfigurationsdatei](/docs/config-file)), damit eine überdimensionierte Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf automatisch erneut versucht, während die anderen Sub-Batches weiter Fortschritt machen. DeepL und Google Cloud Translation teilen einen Sub-Batch zusätzlich transparent auf so viele Anfragen auf, wie ihre eigenen Grenzen pro Anfrage verlangen.
 
 ### Wiederholungen
 
-Vorübergehende Fehlschläge (eine Rate-Limit-Antwort oder ein Serverfehler) werden automatisch mit kurzem Backoff wiederholt: Die SDK-Clients von OpenAI, Anthropic und DeepL wiederholen standardmäßig, und verbatra ergänzt eine gleichwertige eigene Wiederholung für Gemini, dessen SDK das nicht tut. Wiederholungen glätten momentane Aussetzer; ein anhaltender Fehlschlag taucht weiterhin als strukturierter Fehler auf.
+Vorübergehende Fehlschläge (eine Rate-Limit-Antwort oder ein Serverfehler) werden automatisch mit kurzem Backoff wiederholt: Die SDK-Clients von OpenAI, Anthropic und DeepL wiederholen standardmäßig, und verbatra ergänzt eine gleichwertige eigene Wiederholung für Gemini, dessen SDK das nicht tut. Wiederholungen glätten momentane Aussetzer; ein anhaltender Fehlschlag taucht weiterhin als strukturierter Fehler auf. Google Cloud Translation hat heute auf keiner Ebene eine Wiederholung: Eine ratenbegrenzte oder Serverfehler-Antwort taucht sofort als `RATE_LIMITED` oder `PROVIDER_UNAVAILABLE` auf, und das übliche Wiederaufgreifen eines zurückgehaltenen Sub-Batches beim nächsten Lauf gilt weiterhin.
 
 ### Anfrage-Timeout
 
-Jeder Provider begrenzt jede ausgehende Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre eines Locales offen halten kann. Diese Grenze ist `requestTimeoutMs`, eine optionale positive Ganzzahl in Millisekunden, die in den `options` aller fünf Provider akzeptiert wird (`anthropic`, `openai`, `gemini`, `deepl` und `openai-compatible`):
+Jeder Provider begrenzt jede ausgehende Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre eines Locales offen halten kann. Diese Grenze ist `requestTimeoutMs`, eine optionale positive Ganzzahl in Millisekunden, die in den `options` aller sechs Provider akzeptiert wird (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate` und `openai-compatible`):
 
 ```ts
 provider: {
@@ -209,7 +239,7 @@ provider: {
 
 Lässt du sie weg, wendet verbatra seinen eigenen Standard von `120000` ms (zwei Minuten) an: lang genug, dass ein berechtigt langsamer großer Batch nicht abgeschnitten wird, kurz genug, dass ein hängender, aber erreichbarer Server ein Locale nicht unbegrenzt blockiert. Erhöhe sie, wenn ein langsames lokales Modell oder eine große `maxBatchSize` mehr Zeit braucht; senke sie, um schneller zu scheitern. Läuft die Grenze ab, scheitert diese Anfrage mit dem wiederholbaren Code `TIMEOUT`, und nur ihr eigener Sub-Batch ist betroffen, sodass die Keys im nächsten Lauf wiederkommen.
 
-DeepL ist die eine Ausnahme beim Abbrechen: Sein Client kann eine bereits laufende Anfrage nicht abbrechen, also hört verbatra beim Timeout auf zu warten und macht weiter, aber die abgeschickte Anfrage läuft bei DeepL zu Ende.
+DeepL ist die eine Ausnahme beim Abbrechen: Sein Client kann eine bereits laufende Anfrage nicht abbrechen, also hört verbatra beim Timeout auf zu warten und macht weiter, aber die abgeschickte Anfrage läuft bei DeepL zu Ende. Google Cloud Translation nutzt unter der Haube eine einfache HTTP-Anfrage und bricht beim Timeout sofort ab, wie jeder andere Provider außer DeepL.
 
 ### Strukturierte Fehler
 
@@ -218,10 +248,10 @@ Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header o
 | Code | Bedeutung |
 | --- | --- |
 | `MISSING_API_KEY` | Die erforderliche Umgebungsvariable ist ungesetzt oder leer. Die Meldung nennt die Variable, nie einen Wert. |
-| `INVALID_REQUEST` | Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld oder ein Locale-Code, den DeepL nicht akzeptiert (ein regionaler Quell-Code oder ein bloßes `en` oder `pt` als Ziel). Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht. |
-| `RATE_LIMITED` | HTTP 429 oder ein SDK-Rate-Limit-Fehler. Warte und versuche es später erneut. |
+| `INVALID_REQUEST` | Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Locale-Code, den DeepL nicht akzeptiert (ein regionaler Quell-Code oder ein bloßes `en` oder `pt` als Ziel), oder ein Locale-Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht. |
+| `RATE_LIMITED` | HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit), da Googles API 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler nutzt. Warte und versuche es später erneut, oder erhöhe das Cloud-Translation-Kontingent deines Projekts. |
 | `TIMEOUT` | Ein Netzwerk- oder Anfrage-Timeout; keine Antwort kam rechtzeitig an. Wiederholen kann helfen, und [`requestTimeoutMs`](#anfrage-timeout) hebt die Grenze an. |
-| `AUTH_FAILED` | HTTP 401 oder 403: Der Schlüssel ist ungültig, widerrufen oder ohne Berechtigung. Wiederholen hilft nicht. |
+| `AUTH_FAILED` | HTTP 401 oder 403: Der Schlüssel ist ungültig, widerrufen oder ohne Berechtigung. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Schlüssel für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht. |
 | `PROVIDER_UNAVAILABLE` | HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die darunterliegenden Wiederholungen fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung. Warte und versuche es später erneut. |
 | `OUTPUT_TRUNCATED` | Das Modell hat sein Ausgabe-Token-Limit erreicht; siehe unten. |
 | `INVALID_RESPONSE` | Die Ausgabe war fehlerhaft, unvollständig oder scheiterte am Abgleich mit der Anfrage. |
@@ -231,7 +261,7 @@ Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header o
 
 Ein Fehlschlag betrifft nur seinen eigenen Sub-Batch: Die fehlgeschlagenen Keys werden zurückgehalten und beim nächsten Lauf wieder aufgegriffen.
 
-Bei `openai-compatible` nennt ein `PROVIDER_ERROR` zusätzlich Host und Port der konfigurierten `baseUrl`, denn ein Endpunkt, den du selbst betreibst, ist der, der tatsächlich unerreichbar wird: `The translation provider request to localhost:11434 failed: the connection was refused. Check that the endpoint is running and that the configured host and port are right, then run again.` Verwendet wird ausschließlich die Host-Komponente der URL; ein Pfad, ein Query-String oder Benutzerangaben in `baseUrl` erreichen also nie eine Meldung.
+Bei `openai-compatible` nennt ein `PROVIDER_ERROR` zusätzlich Host und Port der konfigurierten `baseUrl`, denn ein Endpunkt, den du selbst betreibst, ist der, der tatsächlich unerreichbar wird: `The translation provider request to localhost:11434 failed: the connection was refused. Check that the endpoint is running and that the configured host and port are right, then run again.` Verwendet wird ausschließlich die Host-Komponente der URL; ein Pfad, ein Query-String oder Benutzerangaben in `baseUrl` erreichen also nie eine Meldung. Google Cloud Translation meldet ebenso gegen seinen festen Host, `translation.googleapis.com`; der Query-String mit dem API-Schlüssel erreicht so oder so nie eine Meldung.
 
 ### Ausgabe-Token-Limits
 
@@ -239,7 +269,7 @@ Die vier LLM-Provider begrenzen, wie viele Tokens eine einzelne Antwort erzeugen
 
 > The provider stopped because the output-token limit was reached. Reduce the batch size or raise the configured max output tokens.
 
-Beide Hebel lösen das Problem: Senke `maxBatchSize` in deiner Konfiguration, damit jede Anfrage eine kleinere Antwort erzeugt, oder erhöhe die Grenze pro Antwort am Provider (`maxTokens` für Anthropic, `maxOutputTokens` für OpenAI, Gemini und openai-compatible). DeepL ist nicht betroffen: Es hat keinen Abschneidefall bei Ausgabe-Tokens. verbatra erholt sich außerdem von selbst: Wird ein Sub-Batch abgeschnitten, teilt verbatra ihn in Hälften und versucht es erneut, bis hinunter zu einem einzelnen Eintrag, sodass die Schlüssel, die in eine kleinere Anfrage passen, trotzdem übersetzt werden und nur ein einzelner Eintrag, der weiterhin überläuft, für den nächsten Lauf zurückgehalten wird.
+Beide Hebel lösen das Problem: Senke `maxBatchSize` in deiner Konfiguration, damit jede Anfrage eine kleinere Antwort erzeugt, oder erhöhe die Grenze pro Antwort am Provider (`maxTokens` für Anthropic, `maxOutputTokens` für OpenAI, Gemini und openai-compatible). DeepL und Google Cloud Translation sind nicht betroffen: Keines der beiden hat einen Abschneidefall bei Ausgabe-Tokens. verbatra erholt sich außerdem von selbst: Wird ein Sub-Batch abgeschnitten, teilt verbatra ihn in Hälften und versucht es erneut, bis hinunter zu einem einzelnen Eintrag, sodass die Schlüssel, die in eine kleinere Anfrage passen, trotzdem übersetzt werden und nur ein einzelner Eintrag, der weiterhin überläuft, für den nächsten Lauf zurückgehalten wird.
 
 <Callout title="Reasoning-Modelle verbrauchen dasselbe Budget">
 Ein Reasoning-Modell (Thinking-Modell) verbraucht seine verborgenen Reasoning-Tokens aus demselben Ausgabe-Token-Budget, aus dem es die JSON-Übersetzungen ausgibt. Es kann dieses Budget allein durch das Nachdenken erschöpfen und stoppen, bevor es überhaupt Ausgabe schreibt, was sich als `OUTPUT_TRUNCATED` zeigt. Wenn du ein Reasoning-Modell nutzt, gib ihm reichlich Spielraum: Bevorzuge ein höheres `maxOutputTokens` (`maxTokens` für Anthropic) oder ein kleineres `maxBatchSize`, damit jede Anfrage Platz für das Nachdenken und die Antwort hat.

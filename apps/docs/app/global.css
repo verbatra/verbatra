@@ -65,10 +65,6 @@ h6 {
 }
 
 :root {
-  --fd-layout-width: 100%;
-}
-
-:root {
   --text-hero: 3.75rem;
   --text-h1: 2.5rem;
   --text-h2: 1.75rem;

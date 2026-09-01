@@ -47,7 +47,7 @@
       "lead": "verbatra is more than AI translation. It covers machine translation you control, a clean Excel handoff for human translators, and the automation to keep every locale in sync.",
       "ai": {
         "title": "AI translation",
-        "body": "Translate only what changed through your choice of provider: Anthropic, OpenAI, Gemini, DeepL, or any OpenAI-compatible server you run yourself. A committed lock file keeps every run incremental, and placeholder and ICU integrity is checked before anything is written."
+        "body": "Translate only what changed through your choice of provider: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you run yourself. A committed lock file keeps every run incremental, and placeholder and ICU integrity is checked before anything is written."
       },
       "excel": {
         "title": "Excel handoff",
@@ -81,12 +81,12 @@
     },
     "compat": {
       "heading": "One tool, every framework.",
-      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, and Java/Spring .properties files. It fills them through the provider you choose, no new format to adopt.",
+      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. It fills them through the provider you choose, no new format to adopt.",
       "labelFrameworks": "Frameworks and formats"
     },
     "providers": {
       "heading": "Translate through the model you trust.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, or any OpenAI-compatible server you host yourself. Pick one in a single line of config and switch providers without touching your locale files.",
+      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you host yourself. Pick one in a single line of config and switch providers without touching your locale files.",
       "marqueeLabel": "Translation providers"
     },
     "how": {
@@ -128,7 +128,7 @@
         },
         "provider": {
           "title": "Your choice of provider",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, or a local OpenAI-compatible model, chosen in one line of config. Switch providers without touching your locale files."
+          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or a local OpenAI-compatible model, chosen in one line of config. Switch providers without touching your locale files."
         },
         "safety": {
           "title": "Safe by construction",
@@ -156,7 +156,7 @@
       "items": {
         "formats": {
           "question": "Which formats and frameworks does verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, and Java/Spring .properties files. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, and Flutter. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
+          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
         },
         "incremental": {
           "question": "How does verbatra avoid re-translating everything on every run?",
@@ -164,7 +164,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Five, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
+          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
         },
         "safety": {
           "question": "What stops a bad translation from breaking my app?",
@@ -189,6 +189,7 @@
           "cliReference": "CLI reference",
           "sdk": "SDK",
           "studio": "Studio",
+          "mcpServer": "MCP server",
           "githubAction": "GitHub Action"
         },
         "agents": {
@@ -220,7 +221,9 @@
       },
       "legalLine": "Open-source under the MIT License · © 2026 Mario Kreitz",
       "githubAria": "verbatra on GitHub",
-      "npmAria": "verbatra on npm"
+      "npmAria": "verbatra on npm",
+      "contributorsTitle": "Contributors",
+      "contributorAria": "{name} on GitHub"
     },
     "brand": {
       "vmarkAlt": "verbatra"
@@ -231,6 +234,8 @@
       "formats": "Formats",
       "contributing": "Contributing",
       "startWithAi": "Start with AI",
+      "contact": "Contact",
+      "npm": "verbatra on npm",
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",
@@ -250,7 +255,7 @@
       "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>mario.kreitz@web.de</email>."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Overview",
@@ -258,7 +263,7 @@
       },
       "s3": {
         "heading": "3. Server logs and hosting",
-        "body": "The site is self-hosted on a virtual server (managed with Dokploy). When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
+        "body": "The site is self-hosted on a virtual server at <contabo>Contabo</contabo>, managed with Plesk. When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
       },
       "s4": {
         "heading": "4. Analytics",
@@ -273,8 +278,8 @@
         "body": "Fonts are self-hosted: they are bundled at build time, so no requests are made to Google Fonts or any other third party when you load a page. The one exception is status badges: the home page and the testing page embed live badge images from GitHub, Codecov, and shields.io that show the current build, coverage, version, and license. Loading these images transmits your IP address to those providers, which act as independent controllers under their own privacy policies. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in showing accurate project status). Apart from these badges and the self-hosted Umami script described above, no third-party scripts or embeds load at runtime."
       },
       "s7": {
-        "heading": "7. GitHub",
-        "body": "The project's source code, issues, and discussions are hosted on <repo>GitHub</repo>. If you choose to interact there (for example, by opening an issue or joining a discussion), GitHub processes your data as an independent controller and its <ghprivacy>privacy statement</ghprivacy> applies."
+        "heading": "7. GitHub and npm",
+        "body": "The project's source code, issues, and discussions are hosted on <repo>GitHub</repo>, and its published packages are hosted on <npm>npm</npm>. If you choose to interact on either site (for example, by opening an issue, joining a discussion, or viewing a package), that provider processes your data as an independent controller: <ghprivacy>GitHub's privacy statement</ghprivacy> or <npmprivacy>npm's privacy policy</npmprivacy> applies."
       },
       "s8": {
         "heading": "8. Your rights",
@@ -282,7 +287,7 @@
       },
       "s9": {
         "heading": "9. Contact",
-        "body": "For any privacy-related questions or requests, email <email>mario.kreitz@web.de</email>."
+        "body": "For any privacy-related questions or requests, email <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Changes to this policy",
@@ -290,7 +295,11 @@
       },
       "s11": {
         "heading": "11. Contact form",
-        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. Two third-party processors are involved under Art. 28 GDPR: Resend, which delivers the notification email to <email>mario.kreitz@web.de</email> and processes data in the United States, with Standard Contractual Clauses governing the transfer, and Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox; Resend's own delivery logs follow Resend's standard retention."
+        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
+      },
+      "s12": {
+        "heading": "12. AI-assisted translation",
+        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself: the interface text is translated into German, Spanish, and French with the help of AI language models. The longer documentation pages are AI-translated too, in a separate step outside that automated pipeline. Translated content is reviewed before publication. We note this here voluntarily, for transparency, not because a specific legal disclosure requirement applies to it."
       }
     },
     "imprint": {

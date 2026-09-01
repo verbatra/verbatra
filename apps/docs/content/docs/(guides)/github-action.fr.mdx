@@ -51,7 +51,7 @@ L'action récupère et lance `@verbatra/cli` exactement à la version que tu ép
 
 ### Câblage des secrets
 
-L'action lance la CLI, et la CLI lit la clé d'API du fournisseur uniquement depuis l'environnement. Cela s'applique à la commande par défaut `translate` : passe la clé depuis les secrets de ton dépôt sous la variable que ton fournisseur attend (voir [Fournisseurs](/docs/providers)) : `ANTHROPIC_API_KEY` ci-dessus, `OPENAI_API_KEY`, `GEMINI_API_KEY` ou `DEEPL_API_KEY`. Les commandes en lecture seule `check` et `diff` n'appellent aucun fournisseur, elles n'ont donc besoin d'aucune clé, ce qui est justement ce qui leur permet de fonctionner comme contrôle sur une pull request venant d'un fork, où les secrets ne sont pas disponibles. Il n'y a pas d'entrée de clé ; une clé ne voyage jamais comme entrée d'action ni comme argument CLI.
+L'action lance la CLI, et la CLI lit la clé d'API du fournisseur uniquement depuis l'environnement. Cela s'applique à la commande par défaut `translate` : passe la clé depuis les secrets de ton dépôt sous la variable que ton fournisseur attend (voir [Fournisseurs](/docs/providers)) : `ANTHROPIC_API_KEY` ci-dessus, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY` ou `GOOGLE_TRANSLATE_API_KEY`. Les commandes en lecture seule `check` et `diff` n'appellent aucun fournisseur, elles n'ont donc besoin d'aucune clé, ce qui est justement ce qui leur permet de fonctionner comme contrôle sur une pull request venant d'un fork, où les secrets ne sont pas disponibles. Il n'y a pas d'entrée de clé ; une clé ne voyage jamais comme entrée d'action ni comme argument CLI.
 
 ## Entrées
 

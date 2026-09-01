@@ -1,8 +1,8 @@
 ---
 title: Overview
-description: "The verbatra command: its nine subcommands, the shared flags, how it reads your environment, and the exit-code contract."
+description: "The verbatra command: its ten subcommands, the shared flags, how it reads your environment, and the exit-code contract."
 ---
-`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). Nine commands do the work:
+`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). Ten commands do the work:
 
 | Command | What it does |
 | --- | --- |
@@ -15,6 +15,7 @@ description: "The verbatra command: its nine subcommands, the shared flags, how 
 | [`export`](/docs/cli/export) | export untranslated strings for a human translator, as an Excel workbook or one CSV or TSV file per locale |
 | [`import`](/docs/cli/import) | import a filled workbook or delimited file back into the locale files |
 | [`studio`](/docs/cli/studio) | start Verbatra Studio, the local translation dashboard |
+| [`mcp`](/docs/cli/mcp) | start a stdio MCP server exposing verbatra's tools to an MCP client |
 
 ## Install and invoke
 
@@ -35,12 +36,15 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 
 - `--cwd <path>` resolves the config and locale files from that directory instead of the current one. Every command takes it.
 - `--config <path>` loads that config file instead of searching for one. Every command except `init` takes it; the search order is described in [The config file](/docs/config-file).
-- `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping. Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way. `translate`, `watch`, `check`, `diff`, `doctor`, `export`, and `import` support it; `init` and `studio` do not.
+- `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping.
+  - Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export`, and `import` support it; `init`, `studio`, and `mcp` do not.
+  - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
 - `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, and `studio` load `.env.local` and then `.env` from the working directory before they run. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`) and the handoff commands (`export`, `import`) never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`) and the handoff commands (`export`, `import`) never call a provider and load no `.env` files.
 
 ## Exit codes
 
@@ -51,6 +55,6 @@ The exit code is the contract a CI step or script branches on:
 | `0` | success (also `--help` and `--version`) |
 | `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes, or `doctor` found a setup problem |
 | `2` | could not run: a whole-run error (config, source, provider, lock), or a usage error |
-| `130` | `watch` or `studio` was force-stopped by a second interrupt |
+| `130` | `watch`, `studio`, or `mcp` was force-stopped by a second interrupt |
 
 Each command page spells out how these codes apply to it. See [CI and exit codes](/docs/ci-and-exit-codes) for wiring them into a pipeline.

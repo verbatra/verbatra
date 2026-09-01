@@ -1,5 +1,4 @@
 {
   "title": "Conceptos",
-  "defaultOpen": true,
   "pages": ["how-it-works", "the-lock-file", "the-cache", "translation-safety"]
 }

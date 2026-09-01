@@ -183,3 +183,53 @@ describe("buildWorkbook + readWorkbook round trip: coercion-prone translations",
     expect(data.sheets[0]?.rows[0]?.translation).toBe(translation);
   });
 });
+
+describe("buildWorkbook + readWorkbook round trip: formula-lead values survive intact", () => {
+  it.each(["=", "+", "-", "@"])(
+    "round-trips a source value starting with %j exactly, not as the escaped apostrophe form",
+    async (lead) => {
+      const model = singleLocaleModel([row({ source: `${lead}cmd(1)`, sourceHash: "abc123" })]);
+      const data = await readWorkbook(await buildWorkbook(model));
+      expect(data.sheets[0]?.rows[0]?.source).toBe(`${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "round-trips a current-translation value starting with %j exactly",
+    async (lead) => {
+      const model = singleLocaleModel([
+        row({ currentTarget: `${lead}cmd(1)`, sourceHash: "abc123" }),
+      ]);
+      const data = await readWorkbook(await buildWorkbook(model));
+      expect(data.sheets[0]?.rows[0]?.currentTarget).toBe(`${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "round-trips a translation value starting with %j exactly",
+    async (lead) => {
+      const model = singleLocaleModel([
+        row({ translation: `${lead}cmd(1)`, sourceHash: "abc123" }),
+      ]);
+      const data = await readWorkbook(await buildWorkbook(model));
+      expect(data.sheets[0]?.rows[0]?.translation).toBe(`${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "round-trips a context value starting with %j exactly",
+    async (lead) => {
+      const model = singleLocaleModel([row({ context: `${lead}cmd(1)`, sourceHash: "abc123" })]);
+      const data = await readWorkbook(await buildWorkbook(model));
+      expect(data.sheets[0]?.rows[0]?.context).toBe(`${lead}cmd(1)`);
+    },
+  );
+});
+
+describe("buildWorkbook + readWorkbook round trip: the Key column is not formula-guarded", () => {
+  it("round-trips a key shaped like a formula lead unchanged, since Key is never escaped on write", async () => {
+    const model = singleLocaleModel([row({ key: "=weird.key", sourceHash: "abc123" })]);
+    const data = await readWorkbook(await buildWorkbook(model));
+    expect(data.sheets[0]?.rows[0]?.key).toBe("=weird.key");
+  });
+});

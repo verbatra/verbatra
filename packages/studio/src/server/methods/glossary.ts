@@ -1,7 +1,6 @@
-import { type GlossaryFileDeps, readGlossaryFile, updateGlossaryTerm } from "@verbatra/sdk";
+import { type GlossaryFileDeps, readGlossaryFile, redact, updateGlossaryTerm } from "@verbatra/sdk";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import { projectGlossaryIndicator } from "../projection.js";
-import { redact } from "../redaction.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
 
 function fsDeps(deps: RpcHandlerDeps): GlossaryFileDeps {

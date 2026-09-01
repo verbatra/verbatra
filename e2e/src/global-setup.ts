@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execa } from "execa";
+import { makeConsumer } from "./harness.js";
 
 const e2eDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(e2eDir, "..");
@@ -65,4 +66,10 @@ async function packTarballs(): Promise<{ sdk: string; cli: string; studio: strin
 export async function setup(): Promise<void> {
   const tarballs = await packTarballs();
   await writeFile(manifestPath, JSON.stringify(tarballs, null, 2));
+
+  const sharedConsumer = await makeConsumer();
+  await writeFile(
+    manifestPath,
+    JSON.stringify({ ...tarballs, sharedConsumerDir: sharedConsumer.dir }, null, 2),
+  );
 }

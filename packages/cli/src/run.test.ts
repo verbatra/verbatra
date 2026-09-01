@@ -20,7 +20,7 @@ import {
   parseEnvelope,
   recordingDeps,
 } from "./test-support.js";
-import type { CliDeps, WatchSession } from "./types.js";
+import type { CliDeps, Session } from "./types.js";
 
 describe("run translate: SDK delegation and rendering", () => {
   it("calls the SDK translate() with the resolved config and renders the summary human-readably", async () => {
@@ -235,6 +235,17 @@ describe("run translate: lock-wait progress and --lock-timeout", () => {
     expect(code).toBe(2);
     expect(cap.err()).toContain("INVALID_LOCK_TIMEOUT");
   });
+
+  it("a --lock-timeout above the maximum is a usage error (exit 2), no SDK call", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["translate", "--lock-timeout", "3601"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("INVALID_LOCK_TIMEOUT");
+    expect(calls.translate).toHaveLength(0);
+  });
 });
 
 describe("run translate: --concurrency", () => {
@@ -255,7 +266,7 @@ describe("run translate: --concurrency", () => {
     expect(calls.translate[0]).not.toHaveProperty("concurrency");
   });
 
-  it.each(["abc", "0", "-2", "2.5", "3ms"])(
+  it.each(["abc", "0", "-2", "2.5", "3ms", "101"])(
     "rejects an invalid --concurrency %s as a usage error: exit 2, structured stderr, no SDK call",
     async (value) => {
       const { deps, calls } = recordingDeps();
@@ -317,7 +328,7 @@ describe("run translate/watch: --no-cache", () => {
         } satisfies WatchController),
     });
 
-    let session: WatchSession | undefined;
+    let session: Session | undefined;
     const done = run(["watch", "--no-cache"], deps, captureStreams().streams, {
       onWatchSession: (s) => {
         session = s;
@@ -819,7 +830,7 @@ describe("run: .env loading is wired before the SDK flow", () => {
       },
     });
 
-    let session: WatchSession | undefined;
+    let session: Session | undefined;
     const done = run(["watch", "--cwd", dir], deps, captureStreams().streams, {
       onWatchSession: (s) => {
         session = s;

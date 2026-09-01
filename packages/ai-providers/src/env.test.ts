@@ -4,6 +4,7 @@ import {
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
   PROVIDER_ENV,
   requireAnthropicKey,
+  requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
@@ -15,11 +16,57 @@ describe("PROVIDER_ENV", () => {
       openai: "OPENAI_API_KEY",
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
+      "google-translate": "GOOGLE_TRANSLATE_API_KEY",
     });
   });
 
-  it("covers exactly the four v1 providers", () => {
-    expect(Object.keys(PROVIDER_ENV).sort()).toEqual(["anthropic", "deepl", "gemini", "openai"]);
+  it("covers exactly the five v1 providers", () => {
+    expect(Object.keys(PROVIDER_ENV).sort()).toEqual([
+      "anthropic",
+      "deepl",
+      "gemini",
+      "google-translate",
+      "openai",
+    ]);
+  });
+});
+
+describe("requireGoogleTranslateKey", () => {
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env.GOOGLE_TRANSLATE_API_KEY;
+  });
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env.GOOGLE_TRANSLATE_API_KEY;
+    } else {
+      process.env.GOOGLE_TRANSLATE_API_KEY = saved;
+    }
+  });
+
+  it("returns the key when the environment variable is set", () => {
+    process.env.GOOGLE_TRANSLATE_API_KEY = `AIza${"a".repeat(35)}`;
+    expect(requireGoogleTranslateKey()).toBe(`AIza${"a".repeat(35)}`);
+  });
+
+  it("throws a structured, key-free error when the variable is missing", () => {
+    delete process.env.GOOGLE_TRANSLATE_API_KEY;
+    try {
+      requireGoogleTranslateKey();
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      expect((error as ProviderError).code).toBe("MISSING_API_KEY");
+      expect((error as ProviderError).message).toContain("GOOGLE_TRANSLATE_API_KEY");
+      expect((error as ProviderError).message).not.toContain("AIza");
+    }
+  });
+
+  it("treats an empty key as missing", () => {
+    process.env.GOOGLE_TRANSLATE_API_KEY = "";
+    expect(() => requireGoogleTranslateKey()).toThrow(ProviderError);
   });
 });
 

@@ -1,6 +1,5 @@
 {
   "title": "CLI reference",
-  "defaultOpen": true,
   "pages": [
     "index",
     "init",
@@ -11,6 +10,7 @@
     "doctor",
     "export",
     "import",
-    "studio"
+    "studio",
+    "mcp"
   ]
 }

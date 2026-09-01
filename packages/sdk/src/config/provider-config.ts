@@ -3,10 +3,12 @@ import {
   createAnthropicProvider,
   createDeepLProvider,
   createGeminiProvider,
+  createGoogleTranslateProvider,
   createOpenAiCompatibleProvider,
   createOpenAiProvider,
   deepLConfigSchema,
   geminiConfigSchema,
+  googleTranslateConfigSchema,
   openAiCompatibleConfigSchema,
   openAiConfigSchema,
   type TranslationProvider,
@@ -25,6 +27,10 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
   z.object({ id: z.literal("gemini"), options: geminiConfigSchema.strict() }),
   z.object({ id: z.literal("deepl"), options: deepLConfigSchema.strict() }),
   z.object({
+    id: z.literal("google-translate"),
+    options: googleTranslateConfigSchema.strict(),
+  }),
+  z.object({
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),
@@ -35,16 +41,17 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * carries exactly the options it supports and nothing else.
  *
  * No variant has a field for an API key. Keys are read from the environment by the provider itself
- * (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`), which is what keeps
- * them out of config files and out of version control. The `openai-compatible` variant may name a
- * different environment variable through `apiKeyEnvVar`, but still never holds the key itself.
+ * (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or
+ * `GOOGLE_TRANSLATE_API_KEY`), which is what keeps them out of config files and out of version
+ * control. The `openai-compatible` variant may name a different environment variable through
+ * `apiKeyEnvVar`, but still never holds the key itself.
  */
 export type ProviderConfig = z.infer<typeof providerConfigSchema>;
 
 /**
- * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`, or
- * `openai-compatible`. The last one targets a local or self-hosted server that speaks the OpenAI
- * chat-completions API.
+ * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`,
+ * `google-translate`, or `openai-compatible`. The last one targets a local or self-hosted server
+ * that speaks the OpenAI chat-completions API.
  */
 export type ProviderId = ProviderConfig["id"];
 
@@ -59,6 +66,7 @@ const providerFactories: ProviderFactories = {
   openai: (options) => createOpenAiProvider(options),
   gemini: (options) => createGeminiProvider(options),
   deepl: (options) => createDeepLProvider(options),
+  "google-translate": (options) => createGoogleTranslateProvider(options),
   "openai-compatible": (options) => createOpenAiCompatibleProvider(options),
 };
 

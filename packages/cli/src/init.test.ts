@@ -53,6 +53,23 @@ describe("runInit", () => {
     expect(gitignore).toContain("verbatra.cache.json");
   });
 
+  it("scaffolds a google-translate config, env example, and gitignore non-interactively", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "google-translate" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(0);
+    const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
+    expect(config).toContain('id: "google-translate"');
+    expect(config).toContain("options: {}");
+    expect(readFileSync(join(dir, ".env.example"), "utf8").split("\n")).toContain(
+      "GOOGLE_TRANSLATE_API_KEY=",
+    );
+  });
+
   it("scaffolds an LLM provider with a default model and token limit", async () => {
     const cap = captureStreams();
     const code = await runInit(
@@ -332,6 +349,7 @@ describe("init metadata derivation", () => {
       openai: "OPENAI_API_KEY",
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
+      "google-translate": "GOOGLE_TRANSLATE_API_KEY",
     });
   });
 

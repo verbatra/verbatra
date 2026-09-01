@@ -17,6 +17,11 @@ import {
   keyIntegrityParamsSchema,
 } from "./key-integrity.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
+import {
+  LOCALE_VALUES_METHOD,
+  type LocaleValuesResult,
+  localeValuesParamsSchema,
+} from "./locale-values.js";
 import { LOCK_STATE_METHOD, type LockStateResult, lockStateParamsSchema } from "./lock.js";
 import {
   RETRANSLATE_ENTRY_METHOD,
@@ -57,6 +62,7 @@ export const rpcParamsSchemas = {
   [REVIEW_QUEUE_METHOD]: reviewQueueParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
+  [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
 } as const;
@@ -78,6 +84,7 @@ export interface RpcResultMap {
   readonly [REVIEW_QUEUE_METHOD]: ReviewQueueResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
+  readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
 }

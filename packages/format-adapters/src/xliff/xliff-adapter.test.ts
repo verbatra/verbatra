@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
+import type { AdapterFs } from "../fs-port.js";
 import { createXliffAdapter } from "./xliff-adapter.js";
 
 const adapter = createXliffAdapter();
@@ -191,6 +192,21 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const missing = join(await mkdtemp(join(tmpdir(), "verbatra-xliff-")), "absent.xlf");
     const error = await readError(adapter.write(resource, missing));
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toMatch(/does not exist/);
+  });
+
+  it("raises INVALID_STRUCTURE with a non-misleading message when the destination cannot be read for a reason other than not existing", async () => {
+    const path = await tempFile("m.xlf", XLIFF_12);
+    const { resource } = await adapter.read(path, "de");
+    const eacces = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const brokenFs: AdapterFs = {
+      readBounded: () => Promise.reject(eacces),
+      writeFileAtomic: () => Promise.reject(new Error("not used")),
+    };
+    const brokenAdapter = createXliffAdapter(brokenFs);
+    const error = await readError(brokenAdapter.write(resource, path));
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).not.toMatch(/does not exist/);
   });
 
   it("falls back to the source value when the target is empty", async () => {
@@ -275,6 +291,38 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     }
     const error = await readError(adapter.write({ ...resource, entries }, path));
     expect((error as AdapterError).code).toBe("INVALID_XML");
+  });
+
+  it("rejects a translated value nesting inline elements past the depth limit as MAX_DEPTH_EXCEEDED", async () => {
+    const path = await tempFile("m.xliff", XLIFF_20);
+    const { resource } = await adapter.read(path, "fr");
+    const entries = new Map(resource.entries);
+    const u1 = entries.get("u1");
+    if (u1) {
+      const depth = 5000;
+      const value = `${'<g id="1">'.repeat(depth)}text${"</g>".repeat(depth)}`;
+      entries.set("u1", { ...u1, value });
+    }
+    const error = await readError(adapter.write({ ...resource, entries }, path));
+    expect((error as AdapterError).code).toBe("MAX_DEPTH_EXCEEDED");
+  });
+
+  it("keeps a realistically shallow chain of nested inline elements live", async () => {
+    const path = await tempFile("m.xliff", XLIFF_20);
+    const { resource } = await adapter.read(path, "fr");
+    const entries = new Map(resource.entries);
+    const u1 = entries.get("u1");
+    if (u1) {
+      entries.set("u1", {
+        ...u1,
+        value: 'Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g>',
+      });
+    }
+    await adapter.write({ ...resource, entries }, path);
+    const written = await readFile(path, "utf8");
+    expect(written).toContain(
+      '<target>Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g></target>',
+    );
   });
 
   it("degrades a translated value with a non-allow-listed element to a plain text node", async () => {

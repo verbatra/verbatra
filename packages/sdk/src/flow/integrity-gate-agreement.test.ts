@@ -134,6 +134,7 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       resolver: createLocalePathResolver(dir, {
         sourceLocale: "en",
         targetLocales: ["de"],
+        format: testCase.format,
         files: { pattern: "locales/{locale}.json" },
       }),
       sourceLocale: "en",

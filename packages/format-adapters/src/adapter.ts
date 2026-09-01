@@ -13,10 +13,13 @@ export interface ReadResult {
    */
   readonly invalidIcuKeys: readonly string[];
   /**
-   * Dotted paths of leaves that were present in the source but excluded because they are not
-   * strings (a stray number, boolean, or null). These are never translated, hashed, diffed, or
-   * checked for placeholder or ICU integrity, and are not written back if the file is later
-   * rewritten. Empty for a file with no such leaves.
+   * Keys or dotted paths that were present in the source but excluded from translation: a stray
+   * non-string leaf (a number, boolean, or null) for a tree-based format, or a key the format's own
+   * metadata marks as not translatable. These are never translated, hashed, diffed, or checked for
+   * placeholder or ICU integrity. Whether one survives a later rewrite of the same file depends on
+   * the adapter: an adapter that reconstructs the whole file from `resource.entries` alone drops it,
+   * while an adapter that patches only the entries it touches into the existing document (for
+   * example `apple-xcstrings`) preserves it verbatim. Empty for a file with no such leaves.
    */
   readonly excludedLeafPaths: readonly string[];
 }

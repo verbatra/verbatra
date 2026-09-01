@@ -73,7 +73,7 @@ que un secreto no pueda esconderse en un archivo confirmado.
 
 **Síntoma**: `No adapter is registered for format "..."` seguido de la lista soportada.
 
-**Causa**: el `format` de la configuración no es uno de los ocho ids de formato registrados. Esto
+**Causa**: el `format` de la configuración no es uno de los doce ids de formato registrados. Esto
 se comprueba antes de leer ningún archivo.
 
 **Solución**: usa uno de los ids de [Formatos](/docs/formats), por ejemplo `i18next-json` o
@@ -262,6 +262,33 @@ necesita opción alguna.
 también pueden toparse con el propio limitador de Studio, `METHOD_RATE_LIMITED: Too many calls to
 this method; wait before retrying.`; eso se despeja solo. Consulta
 [Revisión en Studio](/docs/review-in-studio).
+
+## MCP: @verbatra/mcp no está instalado
+
+**Síntoma**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
+@verbatra/mcp`
+
+**Causa**: `@verbatra/mcp` es un paquete aparte que el comando `mcp` carga dinámicamente, así que el
+resto de la CLI funciona sin él.
+
+**Solución**: instálalo como dice la pista y vuelve a ejecutar `verbatra mcp`, o ejecuta el binario
+`verbatra-mcp` que incluye `@verbatra/mcp` directamente. Si instalas con pnpm, consulta primero
+[pnpm bloquea los scripts de instalación de una dependencia](#pnpm-bloquea-los-scripts-de-instalación-de-una-dependencia-err_pnpm_ignored_builds).
+
+## MCP: el tools/list de un agente nunca muestra retranslateEntry ni translatePending
+
+**Síntoma**: `key.value`, `translation.editEntry` y las demás herramientas locales funcionan, pero
+`translation.retranslateEntry` y `translation.translatePending` faltan en la lista de
+herramientas, y llamarlas por nombre falla como herramienta desconocida.
+
+**Causa**: el gasto de proveedor es una capacidad que concedes al arrancar, y el conjunto de
+herramientas que expone el servidor MCP no puede variar por conexión, así que las dos herramientas
+con puerta de gasto quedan fuera de la lista por completo. Nunca se anuncian para luego
+rechazarse: si el gasto no está permitido, simplemente no aparecen.
+
+**Solución**: reinicia el servidor con `verbatra mcp --allow-spend` (o `verbatra-mcp
+--allow-spend`), o define `VERBATRA_MCP_ALLOW_SPEND=1` (también `true`, `yes` u `on`). Consulta
+[`verbatra mcp`](/docs/cli/mcp).
 
 ## Deshacer una ejecución (sin código de error)
 

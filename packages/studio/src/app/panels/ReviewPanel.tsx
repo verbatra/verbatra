@@ -1,6 +1,7 @@
 import type { ReviewReasonCode } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { filterReviewRows, uniqueReviewLocales } from "../../client/review-filter.js";
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import { visibleReviewQueueRows } from "../../client/review-queue-data.js";
@@ -29,6 +30,7 @@ import {
 import { FilterBar } from "../Toolbar.js";
 import { EmptyState } from "../ui.js";
 import { useCapabilities } from "../use-capabilities.js";
+import { useLocaleValues } from "../use-locale-values.js";
 import { useReviewOverlaySignal } from "../use-review-overlay-signal.js";
 import { useReviewQueue } from "../use-review-queue.js";
 
@@ -143,8 +145,8 @@ function ReviewFilterBar({
         ))}
       </Select>
       <SearchInput
-        aria-label="Filter by key"
-        placeholder="Filter by key…"
+        aria-label="Filter by key or translation text"
+        placeholder="Filter by key or text…"
         value={query}
         onChange={onQueryChange}
       />
@@ -177,6 +179,8 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [editing, setEditing] = useState<EditingTarget | null>(null);
   const [locale, setLocale] = useState("");
   const [query, setQuery] = useState("");
+  const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken));
+  const values = useMemo(() => valuesIndex(localeValues), [localeValues]);
 
   if (view.kind === "loading") {
     return (
@@ -200,7 +204,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   }
 
   const rows = visibleReviewQueueRows(data, reviewOverlayStore);
-  const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query });
+  const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query }, values);
 
   return (
     <div>

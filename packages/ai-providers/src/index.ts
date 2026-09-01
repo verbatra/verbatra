@@ -28,6 +28,15 @@ export {
 } from "./gemini/gemini-provider.js";
 export type { GeminiModel } from "./gemini/models.js";
 export {
+  type GoogleTranslateConfig,
+  googleTranslateConfigSchema,
+} from "./google-translate/config.js";
+export {
+  createGoogleTranslateProvider,
+  type GoogleTranslateDeps,
+} from "./google-translate/google-translate-provider.js";
+export type { GoogleTranslateResult } from "./google-translate/types.js";
+export {
   type OpenAiConfig,
   openAiConfigSchema,
 } from "./openai/config.js";

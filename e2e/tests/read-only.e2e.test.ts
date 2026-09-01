@@ -8,10 +8,10 @@ import {
   type ErrorEnvelope,
   JSON_ENVELOPE_VERSION,
   type JsonEnvelope,
-  makeConsumer,
   parseEnvelope,
   readEnvelopeStream,
   readJsonIn,
+  readSharedConsumer,
   runVerbatra,
   type Subprocess,
   spawnVerbatra,
@@ -79,7 +79,7 @@ async function seedProject(
 }
 
 beforeAll(async () => {
-  consumer = await makeConsumer();
+  consumer = await readSharedConsumer();
 }, 180_000);
 
 describe("packaging", () => {

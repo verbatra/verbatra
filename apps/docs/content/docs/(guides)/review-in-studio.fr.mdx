@@ -30,7 +30,7 @@ La barre latérale a quatre pages : **Traductions**, **Révision**, **Activité*
 Traductions est la vue de travail : tout ce qui est en attente sur tes locales cibles, et l'avancement de chaque locale.
 
 - **Le bandeau de statistiques** répond d'un coup d'œil à la première question : combien de clés demandent de l'attention, la couverture moyenne, combien de locales sont synchronisées et la consommation de tokens de la dernière exécution. Quand rien n'est en attente, une bannière tout-au-vert remplace l'explorateur de clés.
-- **L'explorateur de clés** liste chaque clé manquante, modifiée et orpheline, sous forme de grille clé par locale ou de listes par locale avec un filtre de clés.
+- **L'explorateur de clés** liste chaque clé manquante, modifiée et orpheline, sous forme de grille clé par locale ou de listes par locale avec un filtre qui correspond au nom d'une clé ou à son texte de traduction.
 - **Le tableau des locales** montre la couverture par locale (manquant, obsolète, à jour) fusionnée avec l'état du [fichier de verrouillage](/docs/the-lock-file), pour voir si l'entrée de verrou de chaque locale concorde avec ses fichiers.
 
 Clique sur n'importe quelle clé pour ouvrir sa vue détaillée : les valeurs par locale, le statut de synchronisation de chaque locale et un indicateur d'intégrité par traduction (placeholders concordants, discordance de placeholders avec les jetons manquants et en trop nommés, ou syntaxe de message invalide). De là, **Edit** ouvre l'éditeur pour la valeur d'une locale.
@@ -51,7 +51,9 @@ La page Révision liste chaque entrée que les heuristiques de révision ont sig
   caption="La file de révision après une exécution. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
-Filtre par locale ou par sous-chaîne de clé, puis traite les lignes :
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+Filtre par locale, ou par sous-chaîne de la clé, du texte source ou du texte cible d'une ligne, puis traite les lignes :
 
 - **Edit** ouvre le même éditeur à contrôle d'intégrité que la page Traductions. Une modification acceptée retire la ligne de la file.
 - **Approve** écarte la ligne comme "vue, très bien telle quelle".

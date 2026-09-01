@@ -1,34 +1,5 @@
 name: Release
 
-# Release fires via workflow_run after CI completes (never directly on push) so it only runs against a
-# commit CI validated, and splits work into a write-free build pre-flight and a least-privilege publish.
-#
-# What "CI validated" covers, since it is the whole release gate: the CI workflow's conclusion is
-# success only when every one of its jobs succeeded, and those include the `e2e` job, which installs
-# the packed tarballs and drives the real binary. So a broken CLI cannot publish. That tier is
-# deliberately the deterministic, keyless one; the live-provider tier in e2e-live.yml is advisory and
-# is deliberately NOT wired in here, because a publish must not be blocked by a third party's rate
-# limiter. See .verbatra/adr for the argument.
-#
-# Trust boundary for the head_sha checkouts below. Every job checks out
-# github.event.workflow_run.head_sha, which for a workflow_run triggered by a fork pull request would
-# be attacker-controlled code. What keeps that unreachable is the four-part gate restated on each job,
-# and specifically the event and head_repository clauses:
-#   - event == 'push': CI also runs on pull_request, and a fork PR produces a workflow_run whose event
-#     is 'pull_request'. Only someone with push access to this repository can produce a 'push' run, and
-#     main is protected, so head_sha is always a commit that landed through a reviewed merge.
-#   - head_repository.full_name == github.repository: the run must belong to this repository, not a
-#     fork. Redundant while the event clause holds, kept so the trust boundary survives any future
-#     relaxation of it.
-# The branches: [main] filter below is deliberately NOT part of that argument: it matches the head
-# branch name, so a fork branch literally named "main" satisfies it.
-#
-# OpenSSF Scorecard's dangerous-workflow check flags each head_sha checkout regardless. That is a known
-# limitation of the check, which reads workflow text and does not evaluate the gating conditions (its
-# own docs note it "does not detect whether untrusted code checkouts are used safely"). Do not silence
-# it by dropping `ref:`. For a workflow_run event the default checkout is the moving tip of the default
-# branch, so removing the pin would build and publish a commit CI never validated.
-
 on:
   workflow_run:
     workflows: ["CI"]
@@ -39,7 +10,6 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
-# Default to read-only so no step inherits a write scope.
 permissions:
   contents: read
 
@@ -50,55 +20,31 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    # Proceed only when the triggering CI run succeeded for a push to main in this repository (see the
-    # trust boundary note above); publish needs: build, so a skip here skips publish too.
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Pin the exact commit CI validated, not the moving tip of main.
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
 
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Compute pnpm store path
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # Scoped to every currently publishable package plus their internal deps (turbo pulls in
-      # ^build automatically) so this pre-flight never builds apps/docs. Each publishable package
-      # is named explicitly rather than relying on a transitive devDependency edge to pull it in.
       - name: Build
-        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio
+        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio --filter=@verbatra/mcp
 
   publish:
     name: Version or publish
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Write scopes live only on this job: contents and pull-requests for the Version Packages PR, id-token for npm OIDC.
     permissions:
       contents: write
       pull-requests: write
       id-token: write
-    # Restate the CI gate here so it survives any refactor of the needs edge.
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
     outputs:
       published: ${{ steps.changesets.outputs.published }}
@@ -107,60 +53,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Pin the exact commit CI validated, not the moving tip of main.
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Compute pnpm store path
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # Rebuild here rather than transfer an artifact, so published bytes come from the checkout that publishes them.
-      # Scoped to every currently publishable package plus their internal deps: this job holds
-      # id-token: write for npm OIDC, so it must never build apps/docs (Next.js, fetches Google
-      # Fonts over the network). Each publishable package is named explicitly rather than relying
-      # on a transitive devDependency edge to pull it in.
       - name: Build
-        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio
+        run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio --filter=@verbatra/mcp
 
-      # Standing hazard when entering pre mode, recorded here because it is not obvious and a
-      # wrapper script cannot fix it. `changeset publish` resolves a dist-tag per package: a
-      # package whose registry versions are ALL prereleases is classified "only-pre" and is then
-      # published to `latest` rather than the pre tag, deliberately, "because there has not been a
-      # regular release of it yet". That is how @verbatra/studio's prereleases walked onto latest.
-      # Passing `--tag` is NOT a way around it: changesets rejects a custom tag outright while pre
-      # mode is active. The only prevention is to give a new package its first STABLE release
-      # before entering pre mode. Detection is the verify-publish job below, which fails the
-      # workflow if a prerelease published in this run holds the latest tag.
       - name: Create Version Packages PR or publish
         id: changesets
-        uses: changesets/action@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
           version-script: pnpm changeset version
           publish-script: pnpm exec changeset publish
           create-github-releases: true
-          # v2 reads the token from this input only: the GITHUB_TOKEN env var and the credentials
-          # actions/checkout would persist are no longer substitutes, and this job checks out with
-          # persist-credentials: false. Left at the default push mode, so the release commit and tags
-          # go through the GitHub API rather than the Git CLI, which needs no local git credentials.
           github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
           NPM_TOKEN: ""
@@ -171,8 +82,6 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Read-only job: this only runs unauthenticated `npm view` lookups against the public
-    # registry, so it gets none of the publish job's write or OIDC scopes.
     permissions:
       contents: read
     if: ${{ needs.publish.outputs.published == 'true' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
@@ -180,7 +89,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Pin the exact commit CI validated, not the moving tip of main.
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
@@ -189,8 +97,6 @@ jobs:
         with:
           node-version: "22.14.0"
 
-      # The script only imports Node built-ins, so run it directly: no pnpm/corepack, no
-      # install, keeping this read-only job as small as the permissions it holds.
       - name: Verify published packages reached npm
         run: node scripts/verify-npm-publish.mjs
         env:

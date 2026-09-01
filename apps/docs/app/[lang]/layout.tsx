@@ -115,7 +115,7 @@ export default async function Layout({
         <Script
           defer
           src="https://umami.kreitz-webdev.de/script.js"
-          data-website-id="2ade0fc1-62ec-4f3c-a3cd-2ce7fcb14d86"
+          data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"
           strategy="afterInteractive"
         />
       </body>

@@ -3,14 +3,13 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
-  delay,
   type EnvelopeStream,
-  makeConsumer,
   parseNdjsonEnvelopes,
   providerConfigBlock,
   providerFromEnv,
   readEnvelopeStream,
   readJsonIn,
+  readSharedConsumer,
   type Subprocess,
   spawnVerbatra,
   writeFileIn,
@@ -28,10 +27,6 @@ const provider = providerFromEnv();
 const SOURCE_FILE = "locales/en.json";
 
 const RUN_RECORD_TIMEOUT_MS = 60_000;
-
-const DELIVERY_ATTEMPTS = 3;
-
-const THROTTLE_BACKOFF_MS = 20_000;
 
 async function awaitRunOutcome(
   stream: EnvelopeStream<RunSummary>,
@@ -55,38 +50,26 @@ async function awaitRunOutcome(
 interface DeliveryRequest {
   readonly stream: EnvelopeStream<RunSummary>;
   readonly target: RunTarget;
-  readonly dir: string;
-  readonly source: Record<string, string>;
   readonly note: (message: string) => Promise<unknown>;
 }
 
 async function awaitDelivery(request: DeliveryRequest): Promise<string | undefined> {
-  let lastThrottle = "the provider rate-limited every attempt";
-  for (let attempt = 1; attempt <= DELIVERY_ATTEMPTS; attempt += 1) {
-    if (attempt > 1) {
-      await delay(THROTTLE_BACKOFF_MS);
-      await writeJsonIn(request.dir, SOURCE_FILE, request.source);
-    }
-    const outcome = await awaitRunOutcome(request.stream, request.target);
-    if (outcome.kind === "delivered") {
-      return undefined;
-    }
-    if (outcome.kind === "failed") {
-      throw new Error(`watch run failed on "${request.target.key}": ${outcome.detail}`);
-    }
-    lastThrottle = outcome.detail;
-    await request.note(
-      `Attempt ${attempt} of ${DELIVERY_ATTEMPTS} for "${request.target.key}" was throttled: ${outcome.detail}`,
-    );
+  const outcome = await awaitRunOutcome(request.stream, request.target);
+  if (outcome.kind === "delivered") {
+    return undefined;
   }
-  return lastThrottle;
+  if (outcome.kind === "failed") {
+    throw new Error(`watch run failed on "${request.target.key}": ${outcome.detail}`);
+  }
+  await request.note(`"${request.target.key}" was throttled: ${outcome.detail}`);
+  return outcome.detail;
 }
 
 describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`, () => {
   let consumer: Consumer;
 
   beforeAll(async () => {
-    consumer = await makeConsumer();
+    consumer = await readSharedConsumer();
   }, 180_000);
 
   it("translates on startup and again when the source changes, then stops on interrupt", async (ctx) => {
@@ -116,8 +99,6 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
       throttled = await awaitDelivery({
         stream,
         target: { locale: "de", key: "farewell" },
-        dir,
-        source: initialSource,
         note,
       });
 
@@ -127,8 +108,6 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
         throttled = await awaitDelivery({
           stream,
           target: { locale: "de", key: "welcome" },
-          dir,
-          source: changedSource,
           note,
         });
       }
@@ -148,7 +127,7 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
 
     if (throttled !== undefined) {
       ctx.skip(
-        `The provider throttled every one of ${DELIVERY_ATTEMPTS} attempts, so the translation half of this test could not run: ${throttled}`,
+        `The provider rate-limited the watch run, so the translation half of this test could not run: ${throttled}`,
       );
     }
 

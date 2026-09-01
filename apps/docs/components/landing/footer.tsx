@@ -2,19 +2,29 @@ import { SiNpm } from "@icons-pack/react-simple-icons";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
+import { NewBadge } from "@/components/new-badge";
+import { fetchContributors, type GithubContributor } from "@/lib/contributors";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
   GITHUB_URL,
   NPM_CLI,
+  NPM_MCP,
   NPM_SDK,
   NPM_STUDIO,
   RELEASES_URL,
   SECURITY_URL,
 } from "./links";
 
-type FooterLink = { labelKey?: string; literal?: string; href: string; external?: boolean };
+type FooterLink = {
+  labelKey?: string;
+  literal?: string;
+  href: string;
+  external?: boolean;
+  trackingTarget?: string;
+  isNew?: boolean;
+};
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
 const FOOTER_COLS: ReadonlyArray<FooterCol> = [
@@ -26,6 +36,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.product.cliReference", href: "/docs/cli" },
       { labelKey: "cols.product.sdk", href: "/docs/sdk" },
       { labelKey: "cols.product.studio", href: "/docs/cli/studio" },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true },
       { labelKey: "cols.product.githubAction", href: "/docs/github-action" },
     ],
   },
@@ -53,18 +64,50 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "community",
     titleKey: "cols.community.title",
     links: [
-      { labelKey: "cols.community.codeOfConduct", href: CODE_OF_CONDUCT_URL, external: true },
-      { labelKey: "cols.community.security", href: SECURITY_URL, external: true },
-      { labelKey: "cols.community.releases", href: RELEASES_URL, external: true },
-      { literal: "@verbatra/sdk", href: NPM_SDK, external: true },
-      { literal: "@verbatra/studio", href: NPM_STUDIO, external: true },
+      {
+        labelKey: "cols.community.codeOfConduct",
+        href: CODE_OF_CONDUCT_URL,
+        external: true,
+        trackingTarget: "code-of-conduct",
+      },
+      {
+        labelKey: "cols.community.security",
+        href: SECURITY_URL,
+        external: true,
+        trackingTarget: "security",
+      },
+      {
+        labelKey: "cols.community.releases",
+        href: RELEASES_URL,
+        external: true,
+        trackingTarget: "releases",
+      },
+      { literal: "@verbatra/sdk", href: NPM_SDK, external: true, trackingTarget: "npm-sdk" },
+      {
+        literal: "@verbatra/studio",
+        href: NPM_STUDIO,
+        external: true,
+        trackingTarget: "npm-studio",
+      },
+      {
+        literal: "@verbatra/mcp",
+        href: NPM_MCP,
+        external: true,
+        trackingTarget: "npm-mcp",
+        isNew: true,
+      },
     ],
   },
   {
     col: "legal",
     titleKey: "cols.legal.title",
     links: [
-      { literal: "MIT License", href: `${GITHUB_URL}/blob/main/LICENSE`, external: true },
+      {
+        literal: "MIT License",
+        href: `${GITHUB_URL}/blob/main/LICENSE`,
+        external: true,
+        trackingTarget: "license",
+      },
       { labelKey: "cols.legal.privacy", href: "/privacy" },
       { labelKey: "cols.legal.imprint", href: "/imprint" },
       { labelKey: "cols.legal.contact", href: "/contact" },
@@ -78,20 +121,78 @@ const LINK_CLASS =
 function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): ReactNode {
   if (link.external) {
     return (
-      <a href={link.href} className={LINK_CLASS} target="_blank" rel="noreferrer noopener">
+      <a
+        href={link.href}
+        className={LINK_CLASS}
+        target="_blank"
+        rel="noreferrer noopener"
+        data-umami-event="outbound-link"
+        data-umami-event-target={link.trackingTarget}
+      >
         {label}
+        {link.isNew ? <NewBadge>new</NewBadge> : null}
       </a>
     );
   }
   return (
     <a href={link.href} className={LINK_CLASS}>
       {label}
+      {link.isNew ? <NewBadge>new</NewBadge> : null}
     </a>
   );
 }
 
+function ContributorsRow({
+  contributors,
+  title,
+  ariaFor,
+}: {
+  contributors: ReadonlyArray<GithubContributor>;
+  title: string;
+  ariaFor: (login: string) => string;
+}): ReactNode {
+  if (contributors.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <p className="mb-4 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)]">
+        {title}
+      </p>
+      <ul className="flex flex-wrap items-center gap-3">
+        {contributors.map((contributor) => (
+          <li key={contributor.login}>
+            <a
+              href={contributor.profileUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={ariaFor(contributor.login)}
+              className="block rounded-full transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+              data-umami-event="outbound-link"
+              data-umami-event-target="contributor"
+            >
+              {/* biome-ignore lint/performance/noImgElement: contributor avatar URLs come from the GitHub API at build/ISR time and are not known to next/image's static remotePatterns allowlist. */}
+              <img
+                src={contributor.avatarUrl}
+                alt=""
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export async function FullFooter(): Promise<ReactNode> {
-  const t = await getTranslations("landing.footer");
+  const [t, contributors] = await Promise.all([
+    getTranslations("landing.footer"),
+    fetchContributors(),
+  ]);
   return (
     <footer
       className="relative overflow-hidden"
@@ -165,6 +266,8 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
                 className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                data-umami-event="outbound-link"
+                data-umami-event-target="github"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -175,6 +278,8 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
                 className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                data-umami-event="outbound-link"
+                data-umami-event-target="npm"
               >
                 <SiNpm size={16} color="currentColor" aria-hidden="true" className="shrink-0" />
                 <span>npm</span>
@@ -199,6 +304,11 @@ export async function FullFooter(): Promise<ReactNode> {
             );
           })}
         </div>
+        <ContributorsRow
+          contributors={contributors}
+          title={t("contributorsTitle")}
+          ariaFor={(login) => t("contributorAria", { name: login })}
+        />
         <div
           className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
           style={{

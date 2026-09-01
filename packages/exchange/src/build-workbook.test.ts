@@ -243,6 +243,64 @@ describe("buildWorkbook: translation column text format", () => {
   });
 });
 
+describe("buildWorkbook formula neutralization", () => {
+  it.each(["=", "+", "-", "@"])(
+    "prefixes an apostrophe to a source value starting with %j so a spreadsheet cannot execute it",
+    async (lead) => {
+      const workbook = await loadBuilt(singleLocaleModel([row({ source: `${lead}cmd(1)` })]));
+      const sheet = workbook.getWorksheet("de");
+      const dataRow = sheet?.getRow(HEADER_ROW + 1);
+      expect(dataRow?.getCell(COLUMN.source).value).toBe(`'${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "prefixes an apostrophe to a current-translation value starting with %j",
+    async (lead) => {
+      const workbook = await loadBuilt(
+        singleLocaleModel([row({ currentTarget: `${lead}cmd(1)` })]),
+      );
+      const sheet = workbook.getWorksheet("de");
+      const dataRow = sheet?.getRow(HEADER_ROW + 1);
+      expect(dataRow?.getCell(COLUMN.current).value).toBe(`'${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "prefixes an apostrophe to a translation value starting with %j",
+    async (lead) => {
+      const workbook = await loadBuilt(singleLocaleModel([row({ translation: `${lead}cmd(1)` })]));
+      const sheet = workbook.getWorksheet("de");
+      const dataRow = sheet?.getRow(HEADER_ROW + 1);
+      expect(dataRow?.getCell(COLUMN.translation).value).toBe(`'${lead}cmd(1)`);
+    },
+  );
+
+  it.each(["=", "+", "-", "@"])(
+    "prefixes an apostrophe to a context value starting with %j",
+    async (lead) => {
+      const workbook = await loadBuilt(singleLocaleModel([row({ context: `${lead}cmd(1)` })]));
+      const sheet = workbook.getWorksheet("de");
+      const dataRow = sheet?.getRow(HEADER_ROW + 1);
+      expect(dataRow?.getCell(COLUMN.context).value).toBe(`'${lead}cmd(1)`);
+    },
+  );
+
+  it("prefixes an apostrophe to a value that already starts with one before a formula lead", async () => {
+    const workbook = await loadBuilt(singleLocaleModel([row({ context: "'=already quoted" })]));
+    const sheet = workbook.getWorksheet("de");
+    const dataRow = sheet?.getRow(HEADER_ROW + 1);
+    expect(dataRow?.getCell(COLUMN.context).value).toBe("''=already quoted");
+  });
+
+  it("leaves an apostrophe that does not lead a formula alone", async () => {
+    const workbook = await loadBuilt(singleLocaleModel([row({ context: "'tis fine" })]));
+    const sheet = workbook.getWorksheet("de");
+    const dataRow = sheet?.getRow(HEADER_ROW + 1);
+    expect(dataRow?.getCell(COLUMN.context).value).toBe("'tis fine");
+  });
+});
+
 describe("buildWorkbook: worksheet-name coupling guard", () => {
   it("rejects a locale longer than 31 characters", async () => {
     const bad: WorkbookModel = { sheets: [{ locale: "a".repeat(32), rows: [] }] };

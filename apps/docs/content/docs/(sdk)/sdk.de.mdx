@@ -228,6 +228,24 @@ Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewR
 bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`.
 
+## Massenhafte Inhalts-Reads
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Liest den aktuellen Quell- und Zielwert jedes Keys, über jedes angefragte Ziel-Locale hinweg, in
+einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien. Es ist das
+massenhafte Gegenstück zu `keyValue`: nutze es, wenn du Übersetzungsinhalte in großer Menge
+brauchst, etwa um Werte statt nur Key-Namen zu durchsuchen oder zu scannen, denn `keyValue`
+beantwortet immer nur einen Key auf einmal. Schreibgeschützt.
+
+Eingabe: `{ config, cwd?, locales? }`; ein weggelassenes `locales` deckt jedes konfigurierte
+Ziel-Locale ab. Gibt ein Array von `{ locale, values }` zurück, ein Eintrag pro Locale, wobei
+`values` jeden Key auf `{ source?, target? }` abbildet. Ein fehlendes `target` bedeutet, dass der
+Key in diesem Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
+verwaist ist, also im Ziel-Locale vorhanden, aber nicht mehr in der Quelle.
+
 ## Locale-Datei-Schnappschüsse
 
 Die Bausteine eines Live-Refresh-Watchers wie dem von Studio: den Zustand einer Locale-Datei
@@ -379,6 +397,20 @@ Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt)
 Eintrag, weil es kein Token-Limit entgegennimmt. Der Typ `ScaffoldableProviderId` deckt die vier gehosteten
 Provider ab; `openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende
 Umgebungsvariable hat.
+
+## Secret-Redaktion
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Entfernt Provider-API-Key-Formen und den exakten aktuellen Wert jeder konfigurierten
+Provider-Umgebungsvariable aus einem String und ersetzt jeden Treffer durch `[REDACTED]`.
+`@verbatra/studio` und `@verbatra/mcp` wenden es beide auf jeden Wert an, den sie an einen
+Aufrufer zurückgeben, den sie nicht selbst erzeugt haben, etwa einen Glossar-Begriff, einen
+Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereits in deiner Umgebung
+vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
+oder eine Log-Zeile erreichen kann.
 
 ## Der Abhängigkeits-Seam
 

@@ -1,3 +1,4 @@
+import type { McpServerHandle, StartMcpServerOptions } from "@verbatra/mcp";
 import type {
   CheckInput,
   CheckSummary,
@@ -17,6 +18,7 @@ import type {
   WatchInput,
 } from "@verbatra/sdk";
 import type { StudioServer, StudioServerOptions } from "@verbatra/studio";
+import type { StoppableSession } from "./stoppable-session.js";
 
 export interface Streams {
   out(text: string): void;
@@ -34,25 +36,23 @@ export interface CliDeps {
   doctor(input: DoctorInput): Promise<DoctorResult>;
   loadConfigWithMeta(options: LoadConfigOptions): Promise<LoadedConfig>;
   importStudio(): Promise<StudioModule>;
+  importMcp(): Promise<McpModule>;
 }
 
 export interface StudioModule {
   startStudioServer(options: StudioServerOptions): Promise<StudioServer>;
 }
 
-export interface WatchSession {
-  readonly done: Promise<number>;
-  requestStop(): void;
+export interface McpModule {
+  startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
 }
 
-export interface StudioSession {
-  readonly done: Promise<number>;
-  requestStop(): void;
-}
+export type Session = StoppableSession;
 
 export interface RunHooks {
-  onWatchSession?(session: WatchSession): void;
-  onStudioSession?(session: StudioSession): void;
+  onWatchSession?(session: Session): void;
+  onStudioSession?(session: Session): void;
+  onMcpSession?(session: Session): void;
 }
 
 export interface InitOpts {

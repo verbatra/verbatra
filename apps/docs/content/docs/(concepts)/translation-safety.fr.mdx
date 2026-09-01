@@ -10,7 +10,8 @@ modèle.
 
 ## Chaînes non fiables et frontière contre l'injection de prompt
 
-Une chaîne traduisible peut contenir du texte qui ressemble à une instruction (une chaîne d'UI qui
+verbatra ne laisse jamais une chaîne traduisible agir comme une instruction adressée à l'IA. Une
+chaîne traduisible peut contenir du texte qui ressemble à une instruction (une chaîne d'UI qui
 dit littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une
 entrée non fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
 compilation. Toute entrée variable, les entrées à traduire avec ton glossaire et le ton configuré, voyage
@@ -38,7 +39,8 @@ pour cela que la barrière est rejouée par clé.
   comparés comme un multiensemble (les quantités comptent, l'ordre non). Perds-en un, ajoutes-en un
   ou altères-en un et la candidate est rejetée. Ce qui compte comme placeholder est défini par
   format ; voir [Formats](/docs/formats).
-- Intégrité ICU : pour les formats ICU (next-intl et ARB), la valeur traduite doit toujours
+- Intégrité ICU : pour les formats ICU (next-intl et ARB, qui utilisent la syntaxe ICU
+  MessageFormat pour les pluriels et les instructions select), la valeur traduite doit toujours
   s'analyser comme un message valide. Une candidate qui garde chaque placeholder mais casse la
   structure plural ou select est rejetée aussi. Pour ces formats, la comparaison des placeholders
   tient aussi compte des branches : un placeholder fabriqué dans une branche plurielle est attrapé

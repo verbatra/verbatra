@@ -63,9 +63,19 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
 - **`sourceLocale`** muss ein nicht-leerer String sein.
 - **`targetLocales`** muss mindestens eine Locale enthalten, darf `sourceLocale` nicht einschließen, und keine zwei Einträge dürfen case-insensitiv gleich sein (zum Beispiel wird `["de", "DE"]` abgelehnt), da jede Locale beim Export der Name ihres eigenen Excel-Arbeitsblatts wird.
-- **`format`** ist eines von `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb` oder `properties`. Siehe [Formate](/docs/formats).
-- **`files.pattern`** muss das `{locale}`-Token enthalten, das verbatra durch jede Locale ersetzt: `locales/{locale}.json` wird zu `locales/de.json`. Pfade werden gegen das Arbeitsverzeichnis aufgelöst. Das Muster ist ein wörtlicher Pfad, kein Glob, und `{locale}` ist das einzige Token, das es versteht; eine Konfiguration adressiert also genau eine Datei pro Locale. Wenn dein Projekt seine Strings über mehrere Namespace-Dateien pro Locale verteilt, siehe [Namespace-Layouts](/docs/formats#namespace-layouts).
-- **`files.localeStyle`** entscheidet, wozu das Token expandiert. `literal` ist der Standard und verwendet den konfigurierten Tag genau so, wie er geschrieben ist; das brauchen die JSON-, YAML-, XLIFF-, ARB-, Properties- und Apple-`.lproj`-Layouts. `posix` ersetzt `-` durch `_`, für gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) und das Java-Layout `messages_{locale}.properties`. `android` expandiert das Token zu einem kompletten Android-Ressourcenverzeichnis, geschrieben als `res/{locale}/strings.xml`: `values` für die Quell-Locale, dann `values-de`, `values-pt-rBR` und `values-b+zh+Hans`. Ein Style lehnt eine Locale ab, für die er keine korrekte Schreibweise hat, statt ein Verzeichnis zu schreiben, das die Plattform stillschweigend ignorieren würde.
+- **`format`** ist eines von `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml` oder `gettext-po`. Siehe [Formate](/docs/formats).
+- **`files.pattern`** muss das `{locale}`-Token enthalten, das verbatra durch jede Locale ersetzt: `locales/{locale}.json` wird zu `locales/de.json`. Pfade werden gegen das Arbeitsverzeichnis aufgelöst. Das Muster ist ein wörtlicher Pfad, kein Glob, und `{locale}` ist das einzige Token, das es versteht; eine Konfiguration adressiert also genau eine Datei pro Locale. Wenn dein Projekt seine Strings über mehrere Namespace-Dateien pro Locale verteilt, siehe [Namespace-Layouts](/docs/formats#namespace-layouts). Die eine Ausnahme ist `apple-xcstrings`, wo sich alle Locales eine Katalogdatei teilen: Das Token bleibt im Muster erforderlich, löst sich aber unabhängig von der Locale zum selben Pfad auf. Siehe [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
+- **`files.localeStyle`** entscheidet, wozu das Token expandiert:
+  - `literal`, der Standard, verwendet den konfigurierten Tag genau so, wie er geschrieben ist;
+    das brauchen die JSON-, YAML-, XLIFF-, ARB-, Properties- und Apple-`.lproj`-Layouts.
+  - `posix` ersetzt `-` durch `_`, für gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) und das
+    Java-Layout `messages_{locale}.properties`.
+  - `android` expandiert das Token zu einem kompletten Android-Ressourcenverzeichnis, geschrieben
+    als `res/{locale}/strings.xml`: `values` für die Quell-Locale, dann `values-de`,
+    `values-pt-rBR` und `values-b+zh+Hans`.
+
+  Ein Style lehnt eine Locale ab, die er für diesen Style nicht korrekt schreiben kann, statt ein
+  Verzeichnis zu schreiben, das die Plattform stillschweigend ignorieren würde.
 
 ### provider
 
@@ -118,7 +128,7 @@ Default `50`. Die fehlenden plus geänderten Einträge einer Locale werden in se
 - `"warn"` (der Default) vermerkt die Überschreitung und lässt den Lauf genau so weiterlaufen, als wäre kein Budget konfiguriert.
 - `"stop"` hält jeden noch nicht versuchten Key für den Rest des Laufs zurück: die verbleibenden Kandidaten der aktuellen Locale und die Kandidaten jeder späteren Ziel-Locale komplett (deren Vergleich und Verwaisten-Meldung laufen trotzdem; nur der Provider-Aufruf wird übersprungen). Zurückgehaltene Keys behalten ihren vorherigen Lock-Hash und werden beim nächsten Lauf automatisch erneut versucht, genauso wie ein fehlgeschlagener Provider-Aufruf schon heute.
 
-`maxTokens` zu setzen schränkt außerdem ein, wie ein Lauf parallelisiert werden darf: ein echter Lauf, der es mit `--concurrency` über `1` kombiniert, wird vor jedem Provider-Aufruf mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt, denn parallele Locales können ein Token-Limit nicht deterministisch einhalten. Ein Dry Run ist ausgenommen. Lass das Budget weg oder belasse die Nebenläufigkeit bei `1`.
+`maxTokens` zu setzen schränkt außerdem ein, wie ein Lauf parallelisiert werden darf: ein echter Lauf, der es mit `--concurrency` über `1` kombiniert, wird vor jedem Provider-Aufruf mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt. Der Grund: gleichzeitig übersetzende Locales können sich kein Token-Budget zuverlässig teilen, deshalb lehnt verbatra ab, statt eine ungenaue Obergrenze zu riskieren. Ein Dry Run ist ausgenommen. Lass das Budget weg oder belasse die Nebenläufigkeit bei `1`.
 
 Unter `"warn"` ändert ein ausgelöstes Budget nie den Exit-Code des Befehls. Unter `"stop"` kann es das: ein Locale, dessen Keys zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys dennoch ankamen, und als `failed`, wenn keiner ankam, und beide enden mit `1`. `budgetBehavior` ohne `maxTokens` wird akzeptiert und hat keine Wirkung. Gegen einen Provider ohne Token-Zahlen (DeepL, das keinen Verbrauch meldet) meldet sich der Schutzmechanismus als wirkungslos (`supported: false` im `budget` der Lauf-Zusammenfassung), statt eine falsche Auslösung zu produzieren.
 

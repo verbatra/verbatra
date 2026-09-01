@@ -1,0 +1,74 @@
+{
+  "name": "@verbatra/mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Stdio MCP server exposing verbatra's translation status, glossary, and editing capabilities as tools for any MCP client, without a browser.",
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "localization",
+    "l10n",
+    "translation",
+    "locale",
+    "mcp",
+    "model-context-protocol",
+    "agent",
+    "agent-tools",
+    "stdio",
+    "verbatra"
+  ],
+  "license": "MIT",
+  "author": "Mario Kreitz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/verbatra/verbatra.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://verbatra.kreitz-webdev.de/docs/cli/mcp",
+  "bugs": {
+    "url": "https://github.com/verbatra/verbatra/issues"
+  },
+  "sideEffects": false,
+  "bin": {
+    "verbatra-mcp": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "biome check .",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@verbatra/sdk": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@verbatra/ai-providers": "workspace:*",
+    "@verbatra/config": "workspace:*",
+    "@verbatra/core": "workspace:*",
+    "@verbatra/format-adapters": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

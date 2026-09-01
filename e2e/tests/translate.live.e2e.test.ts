@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
-  makeConsumer,
   providerConfigBlock,
   providerFromEnv,
   readJsonIn,
+  readSharedConsumer,
   runVerbatra,
   writeFileIn,
   writeJsonIn,
@@ -21,7 +21,7 @@ describe.skipIf(provider === null)(`translate (live: ${provider?.id ?? "skipped"
   let consumer: Consumer;
 
   beforeAll(async () => {
-    consumer = await makeConsumer();
+    consumer = await readSharedConsumer();
   }, 180_000);
 
   it("translates the missing key and leaves the project in sync", async (ctx) => {

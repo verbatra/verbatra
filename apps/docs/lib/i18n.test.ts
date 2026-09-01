@@ -23,7 +23,7 @@ describe("localizeHref", () => {
 
   it("passes a non-internal href through unchanged", () => {
     expect(localizeHref("de", "https://example.com/docs")).toBe("https://example.com/docs");
-    expect(localizeHref("de", "mailto:mario.kreitz@web.de")).toBe("mailto:mario.kreitz@web.de");
+    expect(localizeHref("de", "mailto:info@kreitz-webdev.de")).toBe("mailto:info@kreitz-webdev.de");
     expect(localizeHref("de", "#section")).toBe("#section");
   });
 

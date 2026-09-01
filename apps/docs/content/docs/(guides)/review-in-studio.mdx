@@ -30,7 +30,7 @@ The sidebar has four pages: **Translations**, **Review**, **Activity**, and **Se
 Translations is the working view: everything pending across your target locales, and how far along each locale is.
 
 - **The stat strip** answers the first question at a glance: how many keys need attention, average coverage, how many locales are in sync, and the last run's token usage. When nothing is pending, an all-clear banner replaces the key explorer.
-- **The key explorer** lists every missing, changed, and orphaned key, as a key-by-locale grid or as per-locale lists with a key filter.
+- **The key explorer** lists every missing, changed, and orphaned key, as a key-by-locale grid or as per-locale lists with a filter that matches a key's name or its translation text.
 - **The locales table** shows per-locale coverage (missing, stale, up to date) merged with [the lock file](/docs/the-lock-file)'s state, so you can see whether each locale's lock entry agrees with its files.
 
 Click any key to open its detail view: the per-locale values, each locale's sync status, and an integrity indicator per translation (placeholders match, placeholder mismatch with the missing and extra tokens named, or invalid message syntax). From there, **Edit** opens the editor for one locale's value.
@@ -51,7 +51,9 @@ The Review page lists every entry the review heuristics flagged in the most rece
   caption="The Review queue after a run. Studio ships in light and dark; switch the screenshot to compare."
 />
 
-Filter by locale or key substring, then work the rows:
+<AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
+
+Filter by locale, or by a substring of a row's key, source text, or target text, then work the rows:
 
 - **Edit** opens the same integrity-gated editor as the Translations page. An accepted edit clears the row from the queue.
 - **Approve** dismisses the row as "looked at, fine as is".

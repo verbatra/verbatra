@@ -19,7 +19,7 @@ import type {
   WatchInput,
 } from "@verbatra/sdk";
 import { DEFAULT_STUDIO_PORT } from "@verbatra/studio";
-import type { CliDeps, Streams, StudioModule } from "./types.js";
+import type { CliDeps, McpModule, Streams, StudioModule } from "./types.js";
 
 export function makeConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
   return {
@@ -108,6 +108,13 @@ export function makeStudioModule(overrides: Partial<StudioModule> = {}): StudioM
   };
 }
 
+export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
+  return {
+    startMcpServer: async () => ({ close: async () => {} }),
+    ...overrides,
+  };
+}
+
 export function captureStreams(): { streams: Streams; out: () => string; err: () => string } {
   let outBuf = "";
   let errBuf = "";
@@ -149,6 +156,7 @@ export interface DepCalls {
   doctor: DoctorInput[];
   loadConfigWithMeta: LoadConfigOptions[];
   importStudio: undefined[];
+  importMcp: undefined[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -163,6 +171,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     doctor: [],
     loadConfigWithMeta: [],
     importStudio: [],
+    importMcp: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -204,6 +213,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importStudio: async () => {
       calls.importStudio.push(undefined);
       return impl.importStudio ? impl.importStudio() : makeStudioModule();
+    },
+    importMcp: async () => {
+      calls.importMcp.push(undefined);
+      return impl.importMcp ? impl.importMcp() : makeMcpModule();
     },
   };
   return { deps, calls };

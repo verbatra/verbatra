@@ -14,13 +14,29 @@ export interface Tarballs {
   studio: string;
 }
 
+interface Manifest extends Tarballs {
+  sharedConsumerDir: string;
+}
+
+async function readManifest(): Promise<Manifest> {
+  return JSON.parse(await readFile(manifestPath, "utf8")) as Manifest;
+}
+
 export async function readTarballs(): Promise<Tarballs> {
-  return JSON.parse(await readFile(manifestPath, "utf8")) as Tarballs;
+  return readManifest();
 }
 
 export interface Consumer {
   dir: string;
   bin: string;
+}
+
+export async function readSharedConsumer(): Promise<Consumer> {
+  const { sharedConsumerDir } = await readManifest();
+  return {
+    dir: sharedConsumerDir,
+    bin: join(sharedConsumerDir, "node_modules", ".bin", "verbatra"),
+  };
 }
 
 export async function makeConsumer(options: { withStudio?: boolean } = {}): Promise<Consumer> {
@@ -235,7 +251,7 @@ export async function readJsonIn<T = unknown>(dir: string, relativePath: string)
 }
 
 export interface ProviderEnv {
-  id: "anthropic" | "openai" | "gemini" | "deepl";
+  id: "anthropic" | "openai" | "gemini" | "deepl" | "google-translate";
   envVar: string;
   key: string;
   model?: string;
@@ -246,6 +262,7 @@ export const PROVIDER_ENV_VARS: Record<ProviderEnv["id"], string> = {
   openai: "OPENAI_API_KEY",
   gemini: "GEMINI_API_KEY",
   deepl: "DEEPL_API_KEY",
+  "google-translate": "GOOGLE_TRANSLATE_API_KEY",
 };
 
 const SCAFFOLD_MODELS: Partial<Record<ProviderEnv["id"], string>> = {
@@ -278,5 +295,7 @@ export function providerConfigBlock(provider: { id: ProviderEnv["id"]; model?: s
       return `{ id: "gemini", options: { model: ${JSON.stringify(provider.model ?? "gemini-2.5-flash")}, maxOutputTokens: 4096 } }`;
     case "deepl":
       return `{ id: "deepl", options: {} }`;
+    case "google-translate":
+      return `{ id: "google-translate", options: {} }`;
   }
 }

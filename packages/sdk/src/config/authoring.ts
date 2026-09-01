@@ -25,9 +25,9 @@ type AuthoringVariant<Id extends ProviderId, M extends string> =
 
 /**
  * Maps each provider ID to its authoring-time config variant. The three language-model providers
- * get narrowed model unions; DeepL has no model to narrow, and `openai-compatible` deliberately
- * keeps a free-form model string because the endpoint is a local or self-hosted server whose model
- * list the SDK cannot know ahead of time.
+ * get narrowed model unions; DeepL and Google Cloud Translation have no model to narrow, and
+ * `openai-compatible` deliberately keeps a free-form model string because the endpoint is a local
+ * or self-hosted server whose model list the SDK cannot know ahead of time.
  */
 type AuthoringProviderVariant = {
   /** Anthropic, with `model` narrowed to the Claude model IDs. */
@@ -38,6 +38,11 @@ type AuthoringProviderVariant = {
   gemini: AuthoringVariant<"gemini", GeminiModel>;
   /** DeepL, which takes no model because it is a machine-translation API rather than a language model. */
   deepl: Extract<ProviderConfig, { id: "deepl" }>;
+  /**
+   * Google Cloud Translation (Basic, v2), which takes no model for the same reason as DeepL: it is
+   * a machine-translation API rather than a language model.
+   */
+  "google-translate": Extract<ProviderConfig, { id: "google-translate" }>;
   /** A local or self-hosted OpenAI-compatible endpoint, whose model stays a free-form string. */
   "openai-compatible": Extract<ProviderConfig, { id: "openai-compatible" }>;
 };

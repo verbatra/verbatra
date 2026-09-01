@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import type { KeyValueResult } from "../../shared/rpc/key-value.js";
+import type { LocaleValuesResult } from "../../shared/rpc/locale-values.js";
 import type { ReviewQueueResult } from "../../shared/rpc/review-queue.js";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
@@ -57,6 +58,22 @@ const SNAPSHOT: ProjectSnapshotResult = {
 
 const KEY_VALUE: KeyValueResult = { source: "Checkout", target: "Kasse" };
 
+const LOCALE_VALUES: LocaleValuesResult = [
+  {
+    locale: "de",
+    values: {
+      "checkout.title": { source: "Checkout", target: "Kasse" },
+      "checkout.subtitle": { source: "Review your order", target: "Bestellung prüfen" },
+    },
+  },
+  {
+    locale: "fr",
+    values: {
+      "cart.badge": { source: "Cart", target: "Panier" },
+    },
+  },
+];
+
 function queueAnswer(result: ReviewQueueResult): {
   readonly ok: true;
   readonly result: ReviewQueueResult;
@@ -88,7 +105,7 @@ function localeFilter(view: RenderResult): HTMLSelectElement {
 }
 
 function keyFilter(view: RenderResult): HTMLInputElement {
-  const element = view.get('input[aria-label="Filter by key"]');
+  const element = view.get('input[aria-label="Filter by key or translation text"]');
   if (!(element instanceof HTMLInputElement)) {
     throw new Error("the key filter is not an input element");
   }
@@ -135,7 +152,7 @@ describe("ReviewPanel", () => {
     expect(view.query("table")).toBeNull();
   });
 
-  it("reads the queue and the capabilities once each, with no parameters", async () => {
+  it("reads the queue, the capabilities, and locale values once each, with no parameters", async () => {
     stubReview();
 
     await renderAsync(<ReviewPanel refreshToken={0} />);
@@ -143,10 +160,11 @@ describe("ReviewPanel", () => {
     expect(rpcCalls).toEqual([
       { method: "review.queue", params: {} },
       { method: "project.snapshot", params: {} },
+      { method: "locale.values", params: {} },
     ]);
   });
 
-  it("re-reads only the queue when the refresh token changes", async () => {
+  it("re-reads the queue and locale values, but not the capabilities, when the refresh token changes", async () => {
     stubReview();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
@@ -156,7 +174,9 @@ describe("ReviewPanel", () => {
     expect(rpcCalls).toEqual([
       { method: "review.queue", params: {} },
       { method: "project.snapshot", params: {} },
+      { method: "locale.values", params: {} },
       { method: "review.queue", params: {} },
+      { method: "locale.values", params: {} },
     ]);
   });
 
@@ -302,6 +322,62 @@ describe("ReviewPanel", () => {
 
     expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle"]);
     expect(view.text()).toContain("2 entries");
+  });
+
+  it("matches a query found only in a row's target value, not its key", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: LOCALE_VALUES },
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "prüfen");
+
+    expect(rowKeys(view)).toEqual(["checkout.subtitle"]);
+  });
+
+  it("matches a query found only in a row's source value, not its key", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: LOCALE_VALUES },
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "your order");
+
+    expect(rowKeys(view)).toEqual(["checkout.subtitle"]);
+  });
+
+  it("does not match a row whose locale carries no value entry for that key (no false positive)", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: LOCALE_VALUES },
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "panier");
+
+    expect(rowKeys(view)).toEqual(["cart.badge"]);
+    typeInto(keyFilter(view), "kasse");
+    expect(rowKeys(view)).toEqual(["checkout.title"]);
+    typeInto(keyFilter(view), "no such text anywhere");
+    expect(rowKeys(view)).toEqual([]);
+  });
+
+  it("still matches on the key when locale values have not loaded yet", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": () => new Promise(() => {}),
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "cart.badge");
+
+    expect(rowKeys(view)).toEqual(["cart.badge"]);
   });
 
   it("explains an over-narrow filter and clears both fields on request", async () => {

@@ -7,6 +7,7 @@ import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossa
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
+import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
@@ -20,6 +21,7 @@ import { glossaryGetHandler, glossaryWriteHandler } from "./methods/glossary.js"
 import { historyListHandler } from "./methods/history.js";
 import { keyIntegrityHandler } from "./methods/key-integrity.js";
 import { keyValueHandler } from "./methods/key-value.js";
+import { localeValuesHandler } from "./methods/locale-values.js";
 import { lockStateHandler } from "./methods/lock.js";
 import { retranslateEntryHandler } from "./methods/retranslate-entry.js";
 import { reviewQueueHandler } from "./methods/review-queue.js";
@@ -51,6 +53,7 @@ const readOnlyHandlers: HandlersRegistry = {
   [LOCK_STATE_METHOD]: lockStateHandler,
   [HISTORY_LIST_METHOD]: historyListHandler,
   [KEY_INTEGRITY_METHOD]: keyIntegrityHandler,
+  [LOCALE_VALUES_METHOD]: localeValuesHandler,
   [REVIEW_QUEUE_METHOD]: reviewQueueHandler,
   [USAGE_SUMMARY_METHOD]: usageSummaryHandler,
 };

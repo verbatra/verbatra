@@ -34,8 +34,23 @@ const HOME_LANGUAGES = {
   fr: `${ORIGIN}/fr`,
 };
 
+const LEGAL_URLS = [
+  `${ORIGIN}/contact`,
+  `${ORIGIN}/imprint`,
+  `${ORIGIN}/privacy`,
+  `${ORIGIN}/de/contact`,
+  `${ORIGIN}/de/imprint`,
+  `${ORIGIN}/de/privacy`,
+  `${ORIGIN}/es/contact`,
+  `${ORIGIN}/es/imprint`,
+  `${ORIGIN}/es/privacy`,
+  `${ORIGIN}/fr/contact`,
+  `${ORIGIN}/fr/imprint`,
+  `${ORIGIN}/fr/privacy`,
+];
+
 describe("sitemap", () => {
-  it("emits the locale roots first, in the configured locale order, then the docs pages", () => {
+  it("emits the locale roots first, then the docs pages, then the legal pages", () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       `${ORIGIN}/`,
       `${ORIGIN}/de`,
@@ -46,17 +61,53 @@ describe("sitemap", () => {
       `${ORIGIN}/de/docs/intro`,
       `${ORIGIN}/es/docs/intro`,
       `${ORIGIN}/fr/docs/intro`,
+      ...LEGAL_URLS,
     ]);
   });
 
-  it("ranks the English root above the other roots and both above every docs page", () => {
+  it("ranks the English root above the other roots, both above every docs page, and the legal pages lowest", () => {
     expect(sitemap().map((entry) => entry.priority)).toEqual([
-      1, 0.9, 0.9, 0.9, 0.8, 0.8, 0.8, 0.8, 0.8,
+      1,
+      0.9,
+      0.9,
+      0.9,
+      0.8,
+      0.8,
+      0.8,
+      0.8,
+      0.8,
+      ...LEGAL_URLS.map(() => 0.3),
     ]);
   });
 
-  it("marks every entry as changing weekly", () => {
-    expect(sitemap().every((entry) => entry.changeFrequency === "weekly")).toBe(true);
+  it("stamps every entry with the same build-time lastModified value", () => {
+    const entries = sitemap();
+    const first = entries[0]?.lastModified;
+    expect(first).toBeInstanceOf(Date);
+    for (const entry of entries) {
+      expect(entry.lastModified).toBe(first);
+    }
+  });
+
+  it("marks the home and docs pages as changing weekly, and the legal pages monthly", () => {
+    const entries = sitemap();
+    const legal = entries.filter((entry) => LEGAL_URLS.includes(entry.url ?? ""));
+    const rest = entries.filter((entry) => !LEGAL_URLS.includes(entry.url ?? ""));
+    expect(rest.every((entry) => entry.changeFrequency === "weekly")).toBe(true);
+    expect(legal.every((entry) => entry.changeFrequency === "monthly")).toBe(true);
+  });
+
+  it("cross-links each legal page to its locale variants, with no x-default", () => {
+    const contact = sitemap().find((entry) => entry.url === `${ORIGIN}/contact`);
+    expect(contact?.alternates).toEqual({
+      languages: {
+        en: `${ORIGIN}/contact`,
+        de: `${ORIGIN}/de/contact`,
+        es: `${ORIGIN}/es/contact`,
+        fr: `${ORIGIN}/fr/contact`,
+      },
+    });
+    expect(contact?.alternates?.languages).not.toHaveProperty("x-default");
   });
 
   it("gives every locale root the same hreflang set, with no x-default", () => {

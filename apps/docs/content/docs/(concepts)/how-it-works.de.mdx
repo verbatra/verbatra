@@ -56,13 +56,17 @@ Provider die Eingaben anwendet.
 ## Die Antwort validieren
 
 verbatra behandelt die Antwort des Providers nie als vertrauenswürdigen Freitext. Bei den LLM-Providern (Anthropic, OpenAI,
-Gemini und openai-compatible) ist die Antwort schemagebundene Daten, validiert, bevor irgendetwas
-anderes passiert: Eine Antwort, die fehlerhaft ist oder einen Key enthält, der nie angefragt
-wurde, lässt den Sub-Batch fehlschlagen, und ein angefragter Key, der fehlend oder doppelt
-zurückkommt, wird einmal erneut angefragt; ist er danach immer noch ungeklärt, gilt der Key in
-diesem Lauf als nicht übersetzt und wird beim nächsten erneut versucht. DeepL ist eine
-Maschinenübersetzungs-API ohne diese Antwortschicht, aber seine Ergebnisse durchlaufen dieselben
-Integritätsprüfungen unten.
+Gemini und openai-compatible) muss die Antwort einem festen Schema entsprechen, geprüft, bevor
+irgendetwas anderes passiert:
+
+- Eine Antwort, die fehlerhaft ist oder einen Key enthält, der nie angefragt wurde, lässt den
+  ganzen Sub-Batch fehlschlagen.
+- Ein angefragter Key, der fehlend oder doppelt zurückkommt, wird einmal erneut angefragt.
+- Ist er danach immer noch ungeklärt, gilt der Key in diesem Lauf als nicht übersetzt und wird
+  beim nächsten Lauf erneut versucht.
+
+DeepL ist eine Maschinenübersetzungs-API ohne diese Antwortschicht, aber seine Ergebnisse
+durchlaufen dieselben Integritätsprüfungen unten.
 
 ## Das Integritäts-Gate ausführen
 

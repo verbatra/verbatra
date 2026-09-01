@@ -1,0 +1,113 @@
+name: Bug report
+description: Report something that is not working as expected in verbatra.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Fill in what you can; these fields are what we need to triage and reproduce it.
+
+  - type: input
+    id: version
+    attributes:
+      label: verbatra version
+      description: The `@verbatra/sdk` / `@verbatra/cli` version (and `@verbatra/studio` version if relevant). Run `verbatra --version`.
+      placeholder: "@verbatra/cli 2.4.1"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      description: Output of `node --version`.
+      placeholder: v22.14.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: format
+    attributes:
+      label: Format adapter (if relevant)
+      description: Which source format is involved, if any.
+      options:
+        - Not applicable
+        - i18next-json
+        - vue-i18n-json
+        - next-intl-json
+        - ngx-translate-json
+        - xliff
+        - yaml
+        - arb
+        - properties
+    validations:
+      required: false
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Translation provider (if relevant)
+      description: Which provider is involved, if any.
+      options:
+        - Not applicable
+        - anthropic
+        - openai
+        - gemini
+        - deepl
+        - openai-compatible
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A minimal config snippet, command, or source-file excerpt that reproduces the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Paste any relevant CLI output. Redact API keys and other secrets before posting.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I removed API keys and other secrets from any logs or config pasted above.
+          required: true

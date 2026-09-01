@@ -1,8 +1,8 @@
 ---
 title: Aperçu
-description: "La commande verbatra : ses neuf sous-commandes, les options partagées, la lecture de l'environnement et le contrat des codes de sortie."
+description: "La commande verbatra : ses dix sous-commandes, les options partagées, la lecture de l'environnement et le contrat des codes de sortie."
 ---
-`@verbatra/cli` fournit le binaire `verbatra`, une surcouche légère de [`@verbatra/sdk`](/docs/sdk). Neuf commandes font le travail :
+`@verbatra/cli` fournit le binaire `verbatra`, une surcouche légère de [`@verbatra/sdk`](/docs/sdk). Dix commandes font le travail :
 
 | Commande | Rôle |
 | --- | --- |
@@ -15,6 +15,7 @@ description: "La commande verbatra : ses neuf sous-commandes, les options partag
 | [`export`](/docs/cli/export) | exporte les chaînes non traduites pour un traducteur humain, en classeur Excel ou en un fichier CSV ou TSV par locale |
 | [`import`](/docs/cli/import) | réimporte un classeur rempli ou un fichier délimité dans les fichiers de locale |
 | [`studio`](/docs/cli/studio) | démarre Verbatra Studio, le tableau de bord local de traduction |
+| [`mcp`](/docs/cli/mcp) | démarre un serveur MCP en stdio qui expose les outils de verbatra à un client MCP |
 
 ## Installation et invocation
 
@@ -35,12 +36,15 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
 
 - `--cwd <path>` résout la config et les fichiers de locale depuis ce répertoire au lieu du répertoire courant. Toutes les commandes l'acceptent.
 - `--config <path>` charge ce fichier de config au lieu d'en chercher un. Toutes les commandes sauf `init` l'acceptent ; l'ordre de recherche est décrit dans [Le fichier de configuration](/docs/config-file).
-- `--json` affiche une [enveloppe](/docs/ci-and-exit-codes#sortie-json) lisible par machine sur stdout, une ligne par enregistrement, et garde stdout propre pour le piping. Branche-toi sur son champ `ok` : un succès porte les données de la commande sous `result`, et une exécution échouée porte le même code d'erreur stable que nomme la ligne stderr. La ligne d'erreur lisible par un humain va sur stderr dans les deux cas. `translate`, `watch`, `check`, `diff`, `doctor`, `export` et `import` le prennent en charge ; `init` et `studio` non.
+- `--json` affiche une [enveloppe](/docs/ci-and-exit-codes#sortie-json) lisible par machine sur stdout, une ligne par enregistrement, et garde stdout propre pour le piping.
+  - Branche-toi sur son champ `ok` : un succès porte les données de la commande sous `result`, et une exécution échouée porte le même code d'erreur stable que nomme la ligne stderr. La ligne d'erreur lisible par un humain va sur stderr dans les deux cas.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export` et `import` le prennent en charge ; `init`, `studio` et `mcp` non.
+  - `mcp` n'écrit jamais rien sur stdout, puisque stdout est le canal du protocole MCP ; voir [`verbatra mcp`](/docs/cli/mcp).
 - `--help` et `--version` affichent leur sortie et terminent avec `0`. Une commande ou une option inconnue termine avec `2`.
 
 ## Fichiers d'environnement
 
-`translate`, `watch`, `doctor` et `studio` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`) et les commandes de passation (`export`, `import`) n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
+`translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`) et les commandes de passation (`export`, `import`) n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
 
 ## Codes de sortie
 
@@ -51,6 +55,6 @@ Le code de sortie est le contrat sur lequel une étape CI ou un script se branch
 | `0` | succès (aussi `--help` et `--version`) |
 | `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente, ou `doctor` a trouvé un problème de configuration |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, fournisseur, verrou) ou une erreur d'utilisation |
-| `130` | `watch` ou `studio` a été arrêté de force par une seconde interruption |
+| `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
 
 Chaque page de commande détaille comment ces codes s'y appliquent. Voir [CI et codes de sortie](/docs/ci-and-exit-codes) pour les brancher dans un pipeline.

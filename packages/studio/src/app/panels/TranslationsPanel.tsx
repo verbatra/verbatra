@@ -1,5 +1,5 @@
 import type { ChangeEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   averageCoverage,
   outOfSyncCount,
@@ -8,8 +8,10 @@ import {
 } from "../../client/coverage.js";
 import type { DiffLocale } from "../../client/diff-view.js";
 import { driftKeys, isFullyInSync } from "../../client/diff-view.js";
-import { filterAndCapKeys, MAX_RENDERED_KEYS } from "../../client/filter.js";
+import { filterAndCapKeys, type KeyValuePair, MAX_RENDERED_KEYS } from "../../client/filter.js";
 import { isRtlLocale } from "../../client/locale-direction.js";
+import type { LocaleValuesData } from "../../client/locale-values.js";
+import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
@@ -45,6 +47,7 @@ import {
 import { Tabs } from "../Tabs.js";
 import { Toolbar } from "../Toolbar.js";
 import { PageSection } from "../ui.js";
+import { useLocaleValues } from "../use-locale-values.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
@@ -274,14 +277,16 @@ function KeyList({
   tone,
   keys,
   query,
+  values,
   onSelectKey,
 }: {
   readonly tone: DiffTone;
   readonly keys: readonly string[];
   readonly query: string;
+  readonly values: ReadonlyMap<string, KeyValuePair>;
   readonly onSelectKey: (key: string) => void;
 }): ReactNode {
-  const capped = filterAndCapKeys(keys, query);
+  const capped = filterAndCapKeys(keys, query, values);
   return (
     <div className="mb-4 last:mb-0">
       <h4 className="mb-2 flex items-center gap-2">
@@ -325,12 +330,18 @@ function LocaleSectionCounts({ locale }: { readonly locale: DiffLocale }): React
 function LocaleSection({
   locale,
   query,
+  localeValues,
   onSelectKey,
 }: {
   readonly locale: DiffLocale;
   readonly query: string;
+  readonly localeValues: LocaleValuesData;
   readonly onSelectKey: (key: string) => void;
 }): ReactNode {
+  const values = useMemo(
+    () => valuesForLocale(localeValues, locale.locale),
+    [localeValues, locale.locale],
+  );
   return (
     <AccordionItem
       defaultOpen={locale.hasPendingChanges}
@@ -347,9 +358,27 @@ function LocaleSection({
         </span>
       }
     >
-      <KeyList tone="missing" keys={locale.missing} query={query} onSelectKey={onSelectKey} />
-      <KeyList tone="changed" keys={locale.changed} query={query} onSelectKey={onSelectKey} />
-      <KeyList tone="orphaned" keys={locale.orphaned} query={query} onSelectKey={onSelectKey} />
+      <KeyList
+        tone="missing"
+        keys={locale.missing}
+        query={query}
+        values={values}
+        onSelectKey={onSelectKey}
+      />
+      <KeyList
+        tone="changed"
+        keys={locale.changed}
+        query={query}
+        values={values}
+        onSelectKey={onSelectKey}
+      />
+      <KeyList
+        tone="orphaned"
+        keys={locale.orphaned}
+        query={query}
+        values={values}
+        onSelectKey={onSelectKey}
+      />
     </AccordionItem>
   );
 }
@@ -367,6 +396,7 @@ function KeysSection({
   onViewModeChange,
   onSelectKey,
   refreshToken,
+  localeValues,
 }: {
   readonly locales: readonly DiffLocale[];
   readonly query: string;
@@ -375,6 +405,7 @@ function KeysSection({
   readonly onViewModeChange: (mode: DiffViewMode) => void;
   readonly onSelectKey: (key: string) => void;
   readonly refreshToken: number;
+  readonly localeValues: LocaleValuesData;
 }): ReactNode {
   return (
     <PageSection title="Keys">
@@ -387,8 +418,8 @@ function KeysSection({
         />
         {viewMode === "flat" ? (
           <SearchInput
-            aria-label="Filter keys"
-            placeholder="Filter keys…"
+            aria-label="Filter by key or translation text"
+            placeholder="Filter by key or text…"
             value={query}
             onChange={onQueryChange}
           />
@@ -403,6 +434,7 @@ function KeysSection({
               key={locale.locale}
               locale={locale}
               query={query}
+              localeValues={localeValues}
               onSelectKey={onSelectKey}
             />
           ))}
@@ -561,6 +593,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   const [viewMode, setViewMode] = useState<DiffViewMode>("grid");
   const status = useStatusData(refreshToken);
   const lock = useLockState(refreshToken);
+  const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken));
 
   useEffect(() => {
     let cancelled = false;
@@ -612,6 +645,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           onViewModeChange={setViewMode}
           onSelectKey={setSelectedKey}
           refreshToken={refreshToken}
+          localeValues={localeValues}
         />
       ) : null}
       <LocalesSection status={status} lock={lock} />

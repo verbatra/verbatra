@@ -58,7 +58,9 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
 }
 
 function buildInFlightGuard(): RpcInFlightGuard {
-  return createRpcInFlightGuard(new Set([TRANSLATE_PENDING_METHOD]));
+  return createRpcInFlightGuard(
+    new Set([TRANSLATE_PENDING_METHOD, RETRANSLATE_ENTRY_METHOD, EDIT_ENTRY_METHOD]),
+  );
 }
 
 const RAW_FORBIDDEN_RESPONSE = [

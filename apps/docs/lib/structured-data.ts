@@ -7,9 +7,17 @@ const GITHUB_ORG_URL = "https://github.com/verbatra";
 const NPM_CLI_URL = "https://www.npmjs.com/package/@verbatra/cli";
 const NPM_SDK_URL = "https://www.npmjs.com/package/@verbatra/sdk";
 const NPM_STUDIO_URL = "https://www.npmjs.com/package/@verbatra/studio";
+const NPM_MCP_URL = "https://www.npmjs.com/package/@verbatra/mcp";
 
 const SUPPORTED_FRAMEWORKS = ["React", "Vue", "Angular", "Node.js", "Flutter"];
-const SUPPORTED_PROVIDERS = ["Anthropic", "OpenAI", "Gemini", "DeepL", "openai-compatible"];
+const SUPPORTED_PROVIDERS = [
+  "Anthropic",
+  "OpenAI",
+  "Gemini",
+  "DeepL",
+  "Google Cloud Translation",
+  "openai-compatible",
+];
 const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   "i18next-json": "i18next",
   "vue-i18n-json": "vue-i18n",
@@ -19,17 +27,26 @@ const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   yaml: "YAML",
   xliff: "XLIFF",
   properties: "Java/Spring properties",
+  "apple-strings": "Apple .strings",
+  "apple-xcstrings": "Xcode String Catalog",
+  "android-xml": "Android strings.xml",
+  "gettext-po": "gettext .po/.pot",
 };
 
 const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);
 
 export const AUTHOR_NAME = "Mario Kreitz";
 
+const AUTHOR_ID = `${SITE_URL}/#author`;
+
 const AUTHOR = {
   "@type": "Person",
+  "@id": AUTHOR_ID,
   name: AUTHOR_NAME,
   url: "https://github.com/mariokreitz",
 } as const;
+
+const AUTHOR_REF = { "@id": AUTHOR_ID } as const;
 
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 
@@ -41,6 +58,10 @@ const ORGANIZATION = {
 } as const;
 
 const ORGANIZATION_REF = { "@id": ORGANIZATION_ID } as const;
+
+const WEBSITE_ID = `${SITE_URL}/#website`;
+
+const WEBSITE_REF = { "@id": WEBSITE_ID } as const;
 
 export const SEO_KEYWORDS = [
   "i18n",
@@ -58,6 +79,7 @@ export function softwareApplicationLd(args: {
   lang: string;
   version: string;
   studioVersion: string;
+  mcpVersion: string;
 }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -75,7 +97,7 @@ export function softwareApplicationLd(args: {
     downloadUrl: NPM_CLI_URL,
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-    author: AUTHOR,
+    author: AUTHOR_REF,
     keywords: [...SEO_KEYWORDS],
     featureList: [
       "Incremental translation - only new or changed keys are sent to the provider",
@@ -85,20 +107,35 @@ export function softwareApplicationLd(args: {
       "Placeholder and ICU integrity checked after every translation",
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
-    sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL],
-    hasPart: {
-      "@type": "SoftwareApplication",
-      name: "verbatra Studio",
-      softwareVersion: args.studioVersion,
-      applicationCategory: "DeveloperApplication",
-      operatingSystem: "Node.js >= 22.14.0",
-      url: NPM_STUDIO_URL,
-      downloadUrl: NPM_STUDIO_URL,
-      license: "https://opensource.org/licenses/MIT",
-      isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      author: AUTHOR,
-    },
+    sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],
+    hasPart: [
+      {
+        "@type": "SoftwareApplication",
+        name: "verbatra Studio",
+        softwareVersion: args.studioVersion,
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Node.js >= 22.14.0",
+        url: NPM_STUDIO_URL,
+        downloadUrl: NPM_STUDIO_URL,
+        license: "https://opensource.org/licenses/MIT",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        author: AUTHOR_REF,
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "verbatra MCP",
+        softwareVersion: args.mcpVersion,
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Node.js >= 22.14.0",
+        url: NPM_MCP_URL,
+        downloadUrl: NPM_MCP_URL,
+        license: "https://opensource.org/licenses/MIT",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        author: AUTHOR_REF,
+      },
+    ],
   };
 }
 
@@ -106,6 +143,7 @@ export function websiteLd(args: { lang: string }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": WEBSITE_ID,
     name: "verbatra",
     url: SITE_URL,
     inLanguage: args.lang,
@@ -191,8 +229,8 @@ export function techArticleLd(args: {
     ...(args.description ? { description: args.description } : {}),
     url: new URL(args.path, SITE_URL).href,
     inLanguage: args.lang,
-    author: AUTHOR,
+    author: AUTHOR_REF,
     publisher: ORGANIZATION_REF,
-    isPartOf: { "@type": "WebSite", name: "verbatra documentation", url: `${SITE_URL}/docs` },
+    isPartOf: WEBSITE_REF,
   };
 }

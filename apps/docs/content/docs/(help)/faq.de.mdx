@@ -44,16 +44,16 @@ proportional mehr. Und dieser Wert sind nur die Kosten des ersten Laufs: Läufe 
 im Alltag zahlst du also für die Handvoll geänderter Strings, nicht für die ganze Datei. DeepL
 passt gar nicht in diese Formel, weil es Quellzeichen statt Tokens abrechnet.
 
-Siehe [Kosten abschätzen](/docs/estimating-cost) für die Methode, den DeepL-Fall und das
+Siehe [Kosten abschätzen](/docs/estimating-cost) für die Methode, den Fall der maschinellen Übersetzung und das
 Kalibrieren an einem echten gemessenen Lauf.
 
 ## Mit welchem Provider soll ich anfangen?
 
 Gemini: Es hat ein kostenloses API-Kontingent, du kannst also ein ganzes Projekt kostenlos
 übersetzen, und ein späterer Wechsel heißt, eine `id` in der Konfiguration zu ändern. Anthropic
-und OpenAI sind die Qualitätswahl unter den bezahlten LLMs, DeepL ist die dedizierte
-Maschinenübersetzungsoption, und `openai-compatible` behält alles auf deiner eigenen Hardware.
-Siehe [Provider](/docs/providers) für den vollständigen Vergleich.
+und OpenAI sind die Qualitätswahl unter den bezahlten LLMs, DeepL und Google Cloud Translation
+sind die dedizierten Maschinenübersetzungsoptionen, und `openai-compatible` behält alles auf
+deiner eigenen Hardware. Siehe [Provider](/docs/providers) für den vollständigen Vergleich.
 
 ## Kann ich ein lokales Modell verwenden?
 
@@ -115,8 +115,9 @@ separate, optionale Installation, dynamisch geladen vom `studio`-Befehl.
 
 ## Wo leben API-Schlüssel?
 
-Nur in Umgebungsvariablen: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` oder
-`DEEPL_API_KEY`, plus die Variable, die du für `openai-compatible` benennst. `translate`, `watch`,
+Nur in Umgebungsvariablen: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
+`DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY`, plus die Variable, die du für
+`openai-compatible` benennst. `translate`, `watch`,
 `doctor` und `studio` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (echte
 Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys genau deshalb ab, damit ein Geheimnis
 nicht in einer committeten Datei landen kann, und Fehlermeldungen nennen die Variable, aber nie
@@ -127,14 +128,19 @@ einen Wert. Siehe [Provider](/docs/providers).
 <AvailableFrom version="0.9.0" />
 
 Fünf Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
-lesen: Die Konfiguration lädt und besteht die Validierung, das konfigurierte `format` löst sich zu
-einem Datei-Adapter auf, die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf,
-die Umgebungsvariable, aus der dieser Provider seinen Schlüssel liest, ist gesetzt (nur dem Namen
-nach geprüft, nie am Wert), und die Quell-Locale-Datei existiert, ist eine reguläre Datei und
-lässt sich unter diesem Format parsen. Jeder Check läuft auch dann, wenn ein früherer
-fehlgeschlagen ist, ein Lauf meldet also jedes unabhängige Problem auf einmal; die Ausnahme ist
-die Konfiguration selbst: Schlägt sie beim Laden fehl, werden die vier Checks übersprungen, die
-sie brauchen.
+lesen:
+
+- Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
+- Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
+- Provider: Die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf.
+- API key environment variable: Die Variable, aus der dieser Provider seinen Schlüssel liest, ist
+  gesetzt (nur dem Namen nach geprüft, nie am Wert).
+- Source locale file: Die Quell-Locale-Datei existiert unter ihrem aufgelösten Pfad, ist eine
+  reguläre Datei und lässt sich im konfigurierten Format parsen.
+
+Jeder Check läuft auch dann, wenn ein früherer fehlgeschlagen ist, ein Lauf meldet also jedes
+unabhängige Problem auf einmal; die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
+fehl, werden die vier Checks übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor
@@ -146,7 +152,7 @@ Siehe [`verbatra doctor`](/docs/cli/doctor) für die vollständige Check-Tabelle
 
 ## Kann ein KI-Agent verbatra für mich einrichten oder bedienen?
 
-Drei verschiedene Oberflächen für drei verschiedene Aufgaben. [verbatra mit einem KI-Agenten
+Vier verschiedene Oberflächen für vier verschiedene Aufgaben. [verbatra mit einem KI-Agenten
 einrichten](/docs/start-with-ai) ist ein copy-pasteable Prompt für Claude Code, Cursor oder jeden
 Coding-Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann: Er inspiziert ein
 bestehendes i18n-Setup, installiert die CLI, erstellt eine passende Konfiguration, führt `doctor`,
@@ -158,11 +164,13 @@ mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) ist noch mal ei
 Oberfläche: ein Opt-in-Flag `--expose-agent-tools` auf `verbatra studio`, das WebMCP-Tools
 registriert, damit ein KI-Agent im Browser ein bereits eingerichtetes Projekt von einem offenen,
 authentifizierten Dashboard-Tab aus bedienen kann; es ist ausdrücklich nicht für die
-Ersteinrichtung gedacht.
+Ersteinrichtung gedacht. [`verbatra mcp`](/docs/cli/mcp) ist die vierte: ein stdio-MCP-Server für
+einen terminal-basierten oder headless MCP-Client (Claude Desktop, Claude Code, Cursor), der
+dieselben Status-, Glossar- und Bearbeitungs-Tools ganz ohne Browser haben will.
 
-Keine der drei gibt einem Agenten die Möglichkeit, ohne einen Menschen im Loop Geld auszugeben.
+Keine der vier gibt einem Agenten die Möglichkeit, ohne einen Menschen im Loop Geld auszugeben.
 `translate` selbst hat kein eigenes Ausgaben-Gate, jede agentenfähige Oberfläche legt also einen
-Bestätigungsschritt oder das `--allow-spend`-Flag zwischen den Agenten und einen echten
+Bestätigungsschritt oder ein `--allow-spend`-Flag zwischen den Agenten und einen echten
 Provider-Aufruf.
 
 ## Veröffentlicht diese Seite etwas für KI-Agenten und Crawler?

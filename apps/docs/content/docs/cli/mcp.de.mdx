@@ -1,0 +1,131 @@
+---
+title: verbatra mcp
+description: Starte den stdio-MCP-Server, der die Tools von verbatra für jeden MCP-Client bereitstellt.
+status: new
+---
+Starte einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio: den Standard-Transport für lokale Prozesse, mit dem MCP-Clients (Claude Desktop, Claude Code, Cursor und andere) einen Tool-Server starten und mit ihm sprechen. Er gibt einem terminal-basierten oder headless Agenten dieselben Übersetzungsstatus-, Glossar- und Bearbeitungs-Fähigkeiten, die Studios Browser-Agent-Tools bereitstellen, ganz ohne Browser, Port oder ausgelieferte Single-Page-App.
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## Kurzform
+
+```bash
+verbatra mcp [flags]
+```
+
+`@verbatra/mcp` liefert außerdem sein eigenes Binary, sodass ein MCP-Client es direkt starten kann, ganz ohne die `verbatra`-CLI:
+
+```bash
+verbatra-mcp [flags]
+```
+
+Beide Formen akzeptieren dieselben Flags und starten denselben Server.
+
+## Flags
+
+| Flag | Argument | Standard | Effekt |
+| --- | --- | --- | --- |
+| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien aus diesem Verzeichnis auflösen |
+| `--config` | `<path>` | eine suchen | diese Konfigurationsdatei laden, statt eine zu suchen |
+| `--allow-spend` | keins | aus | die beiden Tools bereitstellen, die einen Übersetzungs-Provider aufrufen |
+
+Fehlt `--allow-spend`, liest der Server stattdessen die Umgebungsvariable `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß-/Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer gegenüber der Umgebungsvariable. Ohne beides werden `translation.retranslateEntry` und `translation.translatePending` überhaupt nicht bereitgestellt: Ein MCP-Client, der die Tools auflistet, sieht sie nie, und ein Aufruf beider Namen schlägt als unbekanntes Tool fehl. Das ist eine Garantie pro Prozess, keine Prüfung pro Aufruf, sodass ein spend-gesperrtes Tool strukturell nicht aufrufbar ist statt nur zur Laufzeit abgelehnt zu werden.
+
+## Einen MCP-Client konfigurieren
+
+Zeige deinen MCP-Client auf das `verbatra-mcp`-Binary. Für Claude Desktop fügst du das zu deiner `claude_desktop_config.json` hinzu:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
+      "env": {
+        "ANTHROPIC_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+Lass den `env`-Block und sein `--allow-spend` ganz weg für einen Server, der nur schreibgeschützt und lokal bearbeitbar ist: `project.snapshot`, die Status- und Glossar-Tools sowie `translation.editEntry` rufen nie einen Provider auf und brauchen keinen Key. Füge `--allow-spend` zum `args`-Array hinzu, sobald du auch `translation.retranslateEntry` und `translation.translatePending` verfügbar haben willst, und setze die Umgebungsvariable für den API-Key, die dein konfigurierter Provider liest (siehe [Provider](/docs/providers)).
+
+Rufst du bereits alles über die `verbatra`-CLI auf, starte es stattdessen als Unterbefehl:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/cli", "mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+## Tools
+
+| Tool | Was es tut | Schreibgeschützt | Ruft einen Provider auf |
+| --- | --- | --- | --- |
+| `project.snapshot` | aufgelöste Konfiguration: Quell-Locale, Ziel-Locales, Format, Provider-ID, Konfigurationsquelle, Glossar-Indikator | ja | nein |
+| `status.check` | Anzahl fehlender, veralteter und aktueller Keys pro Locale | ja | nein |
+| `status.diff` | Liste der Keys pro Locale, die hinzugefügt, neu übersetzt oder verwaist würden | ja | nein |
+| `glossary.get` | jeder Glossar-Begriff und seine Übersetzung, secret-redigiert | ja | nein |
+| `glossary.write` | einen Glossar-Begriff hinzufügen, ersetzen oder entfernen | nein | nein |
+| `lock.state` | Version der Lock-Datei und Baseline-Größe pro Locale | ja | nein |
+| `key.integrity` | Placeholder- und ICU-Drift eines Keys gegenüber der Lock-Baseline, pro Locale (prüft nur Keys, deren Quelltext sich seit der Baseline geändert hat; ein leeres `entries`-Array bedeutet: geprüft und unverändert) | ja | nein |
+| `key.value` | aktueller Quell- und Zieltext eines Keys | ja | nein |
+| `translation.editEntry` | eine manuelle Übersetzung für einen Key in einem Locale schreiben, geprüft durch das Placeholder- und ICU-Integritätsgate | nein | nein |
+| `translation.retranslateEntry` | den konfigurierten Provider bitten, einen Key in einem Locale neu zu übersetzen | nein | ja |
+| `translation.translatePending` | jeden fehlenden oder veralteten Key über alle Ziel-Locales übersetzen | nein | ja |
+| `review.queue` | Keys, die der letzte Lauf zur menschlichen Prüfung markiert hat, und warum | ja | nein |
+| `usage.summary` | Token-Verbrauch und Budgetstatus des letzten Laufs | ja | nein |
+
+`translation.retranslateEntry` und `translation.translatePending` werden nur bereitgestellt, wenn der Server mit `--allow-spend` gestartet wurde. Der Input jedes Tools, und der Output jedes Tools, dessen Ergebnisform klein und geschlossen ist, ist ein JSON-Schema, abgeleitet aus demselben zod-Schema, gegen das der Server den Aufruf validiert. Der Aufruf eines unbekannten Tool-Namens ist ein Fehler auf Protokollebene; der Aufruf eines bekannten Tools mit Input, der die Validierung nicht besteht, liefert ein Ergebnis, das das betroffene Feld nennt, sodass ein Agent den Fehler lesen und selbst korrigieren kann.
+
+## Secret-Redaktion
+
+Jedes Tool-Ergebnis und jede Log-Zeile durchläuft dieselbe Secret-Redaktion, die auch Studio verwendet: Ein Wert, der wie ein Provider-API-Key aussieht, oder der exakte aktuelle Wert einer konfigurierten Provider-Umgebungsvariable, wird durch `[REDACTED]` ersetzt, bevor er den Client oder stderr überhaupt erreicht. `glossary.get` und `glossary.write` melden zudem, welche Begriffe redigiert wurden, sodass du einen geschwärzten Platzhalter vom echten Text unterscheiden und ihn nie zurückschreiben kannst.
+
+## stdout ist der Protokollkanal
+
+Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachrichten. `verbatra mcp` und `verbatra-mcp` geben niemals ein Banner, eine Log-Zeile oder irgendetwas anderes auf stdout aus; jedes Log und jede Diagnose geht stattdessen auf stderr. Es wird überhaupt nichts ausgegeben, bis ein MCP-Client die erste Nachricht sendet.
+
+## Installation
+
+`@verbatra/mcp` ist ein eigenständiges Paket, das über einen dynamischen Import geladen wird, sodass der Rest der CLI auch ohne es funktioniert. Ist es nicht installiert, beendet sich `verbatra mcp` mit `2` und:
+
+```
+Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+```
+
+`verbatra-mcp` direkt aufzurufen braucht überhaupt keine CLI: Installiere `@verbatra/mcp` allein, oder lass `npx` es wie oben gezeigt bei Bedarf holen.
+
+## Beispiele
+
+```bash
+# den MCP-Server nur mit lokalen, nicht spend-fähigen Tools starten
+verbatra mcp
+
+# zusätzlich die Provider-aufrufenden Tools bereitstellen
+verbatra mcp --allow-spend
+
+# ein Projekt außerhalb des aktuellen Verzeichnisses auflösen
+verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+```
+
+## Exit-Codes
+
+| Code | Bedeutung |
+| --- | --- |
+| `0` | sauber beendet durch einen einzelnen Interrupt (Strg-C oder SIGTERM) |
+| `1` | Beenden fehlgeschlagen: Schließen des Servers warf beim Herunterfahren einen Fehler |
+| `2` | konnte nicht starten: ein Konfigurationsfehler, `@verbatra/mcp` nicht installiert, oder ein Verwendungsfehler |
+| `130` | durch einen zweiten Interrupt zwangsbeendet, während das Herunterfahren lief |
+
+## Siehe auch
+
+- [`verbatra studio`](/docs/cli/studio) und [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) behandeln die Browser-basierte Agent-Oberfläche, die dieser Server ergänzt.
+- [Provider](/docs/providers) dokumentiert, aus welcher Umgebungsvariable jeder Provider seinen API-Key liest.
+- [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind dieselben Berechnungen, die `status.check` und `status.diff` bereitstellen.

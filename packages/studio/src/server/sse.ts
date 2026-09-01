@@ -1,6 +1,6 @@
+import { redact } from "@verbatra/sdk";
 import type { RefreshEvent, ShutdownEvent } from "../shared/sse-events.js";
 import { SSE_EVENT_REFRESH, SSE_EVENT_SHUTDOWN } from "../shared/sse-events.js";
-import { redact } from "./redaction.js";
 
 const DEFAULT_HEARTBEAT_MS = 15_000;
 

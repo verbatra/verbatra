@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { computeReviewFlags, type ReviewFlag } from "@verbatra/ai-providers";
 import { checkPlaceholders, contentHash, diffResources, type LocaleResource } from "@verbatra/core";
 import {
@@ -223,9 +223,10 @@ async function writeDelimitedFiles(
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws The underlying file-system error, unwrapped, when the handoff could not be written: `out`
- * names a directory that does not exist or is not writable, or the device is full. Branch on the
- * Node `code`, such as `ENOENT`, rather than on the message, which can name the internal temporary
- * file the atomic write uses.
+ * resolves to a location the process lacks permission to write, or the device is full. A missing
+ * output directory is created automatically and is not a cause. Branch on the Node `code`, such as
+ * `EACCES` or `ENOSPC`, rather than on the message, which can name the internal temporary file the
+ * atomic write uses.
  */
 export async function exportWorkbook(
   input: ExportWorkbookInput,
@@ -271,6 +272,7 @@ export async function exportWorkbook(
     await writeDelimitedFiles(fs, path, format, sheets);
   } else {
     const model: WorkbookModel = { sheets };
+    await fs.mkdir?.(dirname(path));
     await fs.writeBytes(path, await buildWorkbook(model));
   }
 

@@ -173,20 +173,41 @@ describe("exportWorkbook", () => {
     expect(row?.currentTarget).toBe("Aa");
   });
 
-  it("lets the file-system error through unwrapped when the handoff itself cannot be written", async () => {
+  it("creates the output directory, including a missing parent, before writing the workbook", async () => {
     const dir = await project({ a: "A" }, { de: { a: "Aa" } });
-    const rejection = await exportWorkbook({
+    const result = await exportWorkbook({
       config: cfg({ targetLocales: ["de"] }),
       cwd: dir,
-      out: join("no", "such", "dir", "out.xlsx"),
-    }).then(
+      out: join("nested", "missing", "out.xlsx"),
+    });
+
+    expect(result.path).toBe(join(dir, "nested", "missing", "out.xlsx"));
+    const data = await readWorkbook(new Uint8Array(await readFile(result.path)));
+    expect(data.sheets.map((s) => s.locale)).toEqual(["de"]);
+  });
+
+  it("lets the file-system error through unwrapped when the handoff itself cannot be written", async () => {
+    const dir = await project({ a: "A" }, { de: { a: "Aa" } });
+    const fakeFs = makeFakeFs({
+      fileExists: defaultFs.fileExists,
+      readFileBounded: defaultFs.readFileBounded,
+      readBytesBounded: defaultFs.readBytesBounded,
+      writeBytes: async (): Promise<void> => {
+        throw Object.assign(new Error("disk full"), { code: "ENOSPC" });
+      },
+    });
+
+    const rejection = await exportWorkbook(
+      { config: cfg({ targetLocales: ["de"] }), cwd: dir },
+      { fs: fakeFs },
+    ).then(
       () => undefined,
       (error: unknown) => error,
     );
 
     expect(rejection).toBeInstanceOf(Error);
     expect(rejection).not.toBeInstanceOf(SdkError);
-    expect(rejection).toMatchObject({ code: "ENOENT" });
+    expect(rejection).toMatchObject({ code: "ENOSPC" });
   });
 
   it("rejects an unknown requested locale with UNKNOWN_LOCALE instead of silently dropping it", async () => {

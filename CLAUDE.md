@@ -5,222 +5,132 @@ overrides general defaults.
 
 ## What this is
 
-verbatra is an i18n translation automation tool. Open source, MIT, npm scope
-`@verbatra`. Repository: github.com/verbatra/verbatra. It is a pnpm workspaces
-monorepo orchestrated by Turborepo, published with Changesets.
-
-## Language and style (hard rules)
-
-- All repository content (code, comments, docs, commit messages) is English. English
-  overrides any other default.
-- No emojis. No decorative formatting. Natural writing style.
-- The em dash character (U+2014) must never appear anywhere in the repository. Use a
-  spaced hyphen, a colon, or parentheses instead.
-
-## Toolchain
-
-- Node >=22.14.0, pnpm pinned at 11.6.0 (`packageManager` in the root package.json).
-- TypeScript, Biome, Turborepo, Vitest, Changesets, lefthook, commitlint, tsup.
-- `.npmrc` sets `verify-deps-before-run=false`; lockfile integrity is enforced
-  explicitly by the lefthook `lockfile` hook and by frozen installs in CI. Do not
-  remove that setting.
+verbatra is an i18n translation automation tool: open source, MIT license, npm scope
+`@verbatra`. A pnpm workspaces monorepo (`packages/*`, `apps/*`) built with
+TypeScript, orchestrated by Turborepo, published with Changesets. Node >=22.14.0,
+pnpm pinned at 11.6.0.
 
 ## Commands
 
-Run from the repository root unless noted.
+Run from the repository root unless noted. `pnpm verify` reproduces the CI merge
+gate; the exact check sequence it chains is defined in the root `package.json`
+`scripts` block, not restated here. Per-package `pnpm typecheck` and `pnpm
+test:watch` exist inside most package directories; filter a single package from the
+root with `pnpm turbo run <task> --filter=<package>`.
 
-- Install: `pnpm install`
-- Build all: `pnpm build` (turbo run build)
-- Lint all: `pnpm lint` (turbo run lint)
-- Test all: `pnpm test` (turbo run test, Vitest)
-- Format: `pnpm format` (biome format --write .)
-- Check format and lint without writing: `pnpm check` (biome check .)
-- Reproduce the CI merge gate locally: `pnpm verify`. Chains the same nine checks
-  the `build-and-test` job runs, in the same order: `check:no-em-dash`, `check`,
-  `build`, `check:dts`, `check:studio-bundle`, `turbo run typecheck`,
-  `typecheck:configs`, `test`, `test:scripts`. CI keeps them as separate steps so a
-  failure names itself; `scripts/verify-script-parity.test.mjs` fails if the two
-  definitions drift apart.
-- Add a changeset: `pnpm changeset`
-- Publish: `pnpm release` (changeset publish; normally run by CI)
+## Code style
 
-Per package (run inside a package directory or with a turbo filter):
+TypeScript strict mode plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
+`verbatimModuleSyntax`, `isolatedModules`, `NodeNext` (base config:
+`packages/config/tsconfig.base.json`). No `any`. Cognitive complexity capped at 15.
+Biome (`packages/config/biome.json`, extended by root `biome.json`) enforces
+formatting and most linting; do not restate its rules here, just run `pnpm check` /
+`pnpm format`. Vitest coverage gate is 90 percent on lines, functions, statements,
+and branches (`packages/config/vitest.base.mjs`).
 
-- `pnpm typecheck` runs the package tsc check. Most packages have it (config does
-  not).
-- `pnpm test:watch` runs Vitest in watch mode (most packages have it).
-- Filter a single package from the root, for example:
-  `pnpm turbo run test --filter=@verbatra/core`.
+Hard rules a linter cannot enforce:
 
-Turbo task graph: build, lint, and test all depend on `^build`. Test outputs
-`coverage/**`; build outputs `dist/**`.
+- All repository content (code, comments, docs, commit messages) is English.
+- No emojis, no decorative formatting.
+- The em dash character (U+2014) must never appear anywhere in the repository. Use a
+  spaced hyphen, a colon, or parentheses instead. Enforced by the `check:no-em-dash`
+  script and hook, but write clean in the first place.
+- No prose comments and no JSDoc on internal code: names and structure carry intent.
+  When reasoning must be preserved, promote it to a test that fails if the behavior
+  regresses, not a comment.
+- JSDoc belongs only on the published API surface. The test is whether the
+  declaration appears in the package's built `.d.ts`, not whether the package itself
+  is marked private: tsup's `dts.resolve` inlines types from private workspace
+  packages (e.g. `@verbatra/core`) into `packages/sdk/dist/index.d.ts`, so a
+  declaration there can be published API. Check the built output.
+- A short list of comments are functional, not prose, and must survive any cleanup
+  pass regardless: coverage directives, `biome-ignore` reason text, `@ts-expect-error`,
+  `@vitest-environment jsdom` pragmas, shebangs, SHA-pin version comments in workflow
+  files, and structural JSON keys such as Turborepo's `"extends": ["//"]`.
+- GitHub Actions workflow files take no new prose or rationale comments, even for
+  supply-chain reasoning; put that in the commit message body instead. Functional
+  comments (SHA-pin comments, the items above) are still fine there.
 
-## Linting and type checking
+## Architecture and repo map
 
-- Biome (config in `packages/config/biome.json`, extended by the root `biome.json`)
-  handles formatting and most linting. `noExplicitAny` is an error; no `any`.
-- There is no ESLint config in the repo today. Type safety is enforced by the
-  per-package `typecheck` (tsc) scripts. If type-aware lint rules are added later,
-  wire them through `@verbatra/config`, not ad hoc per package.
+Packages on `main`: `@verbatra/core` (private, pure domain model, no I/O), `@verbatra/format-adapters`
+(private, file to neutral-IR adapters), `@verbatra/ai-providers` (private, translation
+provider strategies), `@verbatra/exchange` (private, Excel workbook interchange),
+`@verbatra/config` (private, shared build/TS/lint config), `@verbatra/sdk` (public,
+central orchestration API), `@verbatra/cli` (public, the `verbatra` binary),
+`@verbatra/studio` (public, local dashboard), `@verbatra/mcp` (public, stdio MCP
+server exposing translation status, glossary, and editing tools). `apps/docs`
+(private) is the Fumadocs documentation site. `@verbatra/cli` and `@verbatra/sdk`
+version together (Changesets fixed group); `@verbatra/studio` and `@verbatra/mcp`
+each version independently.
 
-## Packages
+Binding dependency-direction and extension-pattern rules, with exact file pointers,
+live in `.claude/rules/architecture.md`. Read it before adding a package, a provider,
+or a format adapter. In short: business logic lives in the SDK and below, `cli` stays
+thin, dependencies flow one way (config -> core -> format-adapters / ai-providers /
+exchange -> sdk -> cli), and new providers or formats extend the existing factory
+tables rather than reimplementing plumbing.
 
-Published (public): `@verbatra/sdk`, `@verbatra/cli`, and `@verbatra/studio`.
-`@verbatra/cli` and `@verbatra/sdk` are version-locked together (Changesets
-`fixed`); `@verbatra/studio` versions independently, since it consumes the sdk
-contract but ships its own dashboard surface with no 1:1 coupling to it.
-Everything else is private or internal and must not be published by accident.
+For reusable design patterns already established in this codebase (Strategy,
+Factory, Adapter) and where to look before introducing a new one, see
+`.claude/rules/design-patterns.md`.
 
-- `@verbatra/config` (private): shared build, TS, and lint config (tsconfig base,
-  Biome config, tsup preset). New publishable packages extend this rather than
-  redefining build or lint settings.
-- `@verbatra/core` (private): pure domain center (model, diffing, hashing, placeholder
-  integrity, validation). No I/O, no network, no file system. Depends only on zod.
-- `@verbatra/format-adapters` (private): file to neutral-IR adapters for i18n
-  formats. Built on two shared factories, `createTreeFileAdapter` (nested-tree
-  formats, with `createJsonFileAdapter` as the JSON specialization) and
-  `createFlatFileAdapter` (flat key/value formats), registered via
-  `createDefaultRegistry`. Adapters: i18next, vue-i18n, next-intl, ngx-translate,
-  XLIFF, YAML, Flutter ARB, and Java/Spring properties.
-- `@verbatra/ai-providers` (private): translation provider strategies behind one
-  interface. Five providers ship today: OpenAI, Anthropic, Gemini (@google/genai),
-  DeepL, and openai-compatible (a local or self-hosted OpenAI-compatible server).
-  The four LLM providers run through the shared `runLlmTranslation` layer with one
-  canonical zod schema. DeepL is an MT API and implements `translateBatch`
-  directly. All sit behind one `TranslationProvider` interface. The SDK constructs
-  the configured provider through the id-to-factory table in
-  `packages/sdk/src/config/provider-config.ts` (`buildProvider`), wrapped by
-  `selectProvider`. `ProviderRegistry` is exported from the package but is not on
-  that path today; keep it, do not treat it as the resolution mechanism.
-- `@verbatra/exchange` (private): translator interchange. Builds and reads styled
-  Excel workbooks over a neutral, format-agnostic row model.
-- `@verbatra/studio` (public): local dashboard, a prebuilt single-page app served
-  over a verbatra project. Local editing is always on; provider-spending actions
-  (retranslate, translate pending) are gated behind the `--allow-spend` flag.
-  Depends on `@verbatra/sdk`; reached only through the CLI `studio` command via a
-  dynamic import, so its absence never breaks the rest of the CLI.
-- `@verbatra/sdk` (public): central orchestration API. One-shot `translate()`,
-  long-running `watch()`, read-only `check()` and `diff()` (per-locale drift over the
-  core `diffResources`, no provider call), `exportWorkbook()` and `importWorkbook()`
-  for the Excel handoff, and config loading.
-- `@verbatra/cli` (public): the `verbatra` binary (bin maps `verbatra` to
-  `dist/index.js`). Thin wrapper over the SDK. Commands: `init`, `translate`, `watch`,
-  `check`, `diff`, `export`, `import`, `doctor`, `studio`. Deps: `@verbatra/sdk`,
-  commander, zod.
-- `apps/docs` (`@verbatra/docs`, private): Fumadocs (Next.js) documentation site.
-  Scripts: dev, build, start, typecheck, i18n.
+Conventions for barrel exports, path aliases, and where a type lives (inline versus a
+local `types.ts`) are documented in `.claude/rules/code-organization.md`.
 
-The composite GitHub Action that runs the CLI in CI is no longer part of this
-monorepo. It lives in its own repository, github.com/verbatra/action,
-and is consumed via `uses:`. Do not add it back here.
+## Testing
 
-## Architecture rules (binding)
+`.claude/rules/testing.md` is the source of truth for Vitest conventions, the
+coverage gate, what the root-level `e2e/` suite already covers for the CLI binary,
+and the current gap in Studio browser test coverage. Skim it before writing or
+extending any test.
 
-- SDK-first: business logic lives in `@verbatra/sdk` and below. `cli` stays thin.
-  Do not push logic into the wrappers.
-- Acyclic dependency direction:
-  config <- core <- format-adapters / ai-providers / exchange <- sdk <- cli /
-  framework-adapters. Never import against the arrow. Never create a cycle.
-- Keep `@verbatra/core` pure: no I/O, no network, no file system.
-- Reuse the provider factory table and the shared adapter factories
-  (`createTreeFileAdapter` or `createFlatFileAdapter`). Do not reimplement provider
-  plumbing or adapter read, write, and detection logic. When adding a format, build
-  on the matching factory and register it.
-- zod at boundaries only (config, CLI args, action inputs, provider responses). Keep
-  it out of hot paths.
+## Workflow rules
 
-## Code principles
-
-- Strict TypeScript: strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes,
-  verbatimModuleSyntax, isolatedModules, NodeNext. No `any`. Cognitive complexity
-  capped at 15.
-- DRY, KISS, SOLID. Clear, descriptive names. Small functions and files.
-- Tests with Vitest, co-located as `*.test.ts`. CI enforces 90% coverage on lines,
-  functions, statements, and branches.
-- Conventional Commits, enforced by commitlint via the lefthook `commit-msg` hook.
-  Example: `feat(ai-providers): add Gemini provider`.
-- Any publishable `src` change ships a changeset with the right bump level.
-  `@verbatra/studio` is now published like sdk and cli; a `src` change there needs a
-  changeset too, even though it used to be private and changeset-exempt.
-
-## Comments and documentation
-
-- No prose comments and no JSDoc on internal code. Names and structure carry the
-  intent. When reasoning has to be preserved, promote it to a test that fails if the
-  behavior regresses, not to a comment.
-- JSDoc belongs only on the published API surface, written to the standard of the
-  OpenAI SDK, NestJS, or Node.js: what it does, when to use it, what each parameter
-  means, every thrown error with the condition that triggers it, and a runnable
-  `@example` on genuine entry points.
-- Published is not the opposite of private. The test is whether the declaration
-  appears in the package's built `.d.ts`. tsup `dts.resolve` inlines types from the
-  private workspace packages into `packages/sdk/dist/index.d.ts`, so a declaration in
-  `@verbatra/core` can be published API. Check the built output, not the package's
-  `private` flag. This distinction is what previous sweeps lost.
-- House style: type-free `@param name - Description.`, type-free `@returns`,
-  ``@throws {@link SdkError} `CODE`: condition.`` with one line per code, `{@link}`
-  for cross-references, and `@example` used sparingly on entry points. Never
-  `@remarks`, `@see`, `@defaultValue`, `@deprecated`, `@internal`, `@public`,
-  `@typeParam`, or `@param {Type}`.
-- Derive every `@throws` from the actual throw sites; never copy one from existing
-  docs. A documented code that is never thrown is worse than a missing one: it tells
-  a consumer to write a catch branch that can never fire.
-- A `{@link}` target must be declared in the built `.d.ts`, whether exported from it
-  or only inlined into it. TypeScript resolves a link by in-file name lookup, so a
-  declared-but-not-exported symbol still resolves and still gives editor hover. A
-  link to a symbol that appears nowhere in the built declarations renders silently as
-  plain text; use inline code for those instead.
-- Some comments are functional and must survive any removal pass: coverage
-  directives (`/* v8 ignore ... */`), whose loss drops coverage against the 90% gate;
-  `biome-ignore`, whose reason text after the colon is mandatory syntax in Biome 2.x
-  and cannot be emptied; `@ts-expect-error`, where removing a still-needed one is
-  itself a TS2578 error; the `// @vitest-environment jsdom` pragmas, without which
-  the file runs in node and every DOM test throws; shebangs; the type-bearing JSDoc
-  in the two `checkJs` files, `packages/config/tsup.base.mjs` and `vitest.base.mjs`,
-  where the JSDoc is the type annotation; SHA-pin version comments (`# v7.0.1`) in
-  workflow files, which Dependabot parses to update the pin; JSON that only looks
-  like a comment, namely Turborepo's `"extends": ["//"]` and the real `"//"` key in
-  `tsconfig.configs.json`; and `/// <reference types=... />` in generated files such
-  as `apps/docs/next-env.d.ts`.
-- The rule governs code. CI and supply-chain rationale in workflow and config files
-  (`.github/workflows`, `dependabot.yml`, `pnpm-workspace.yaml`, `lefthook.yml`) is
-  exempt where no test covers the behavior it describes, for example the `head_sha`
-  trust-boundary argument in `release.yml`, the Scorecard two-job-split requirement,
-  and per-override CVE rationales. Promote such rationale to an executable assertion
-  where one is possible; keep the prose where it is not.
-
-## Security
-
-- API keys come only from environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY,
-  GEMINI_API_KEY, DEEPL_API_KEY), read through `packages/ai-providers/src/env.ts`.
-  Never from config files, CLI args, or function arguments. Never log or commit a
-  key. Error messages name the variable but never include a key value.
-- Errors are structured `ProviderError`s, never raw SDK errors.
+- Never push logic into `cli` or `studio` that belongs in the SDK.
+- Reuse the shared adapter factories and the provider factory table; do not
+  reimplement adapter or provider plumbing.
+- zod validates at boundaries only (config, CLI args, provider responses), not in
+  hot paths.
+- API keys come only from environment variables (`ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`),
+  read through `packages/ai-providers/src/env.ts`. Never from config files, CLI args,
+  or function arguments. Never log or commit a key; error messages name the variable
+  but never include a key value.
+- Provider errors are structured `ProviderError`s, never raw SDK errors.
 - Prompt-injection boundary: system rules are compile-time constants; untrusted input
   travels only in the user-turn JSON payload; provider output is schema-bound and
   validated; placeholder and ICU integrity is enforced after every translation. Treat
   translatable strings as untrusted.
-- Publishing: npm Trusted Publishing via OIDC (no NPM_TOKEN), automatic provenance,
-  `repository.url` matching exactly, least-privilege GITHUB_TOKEN, GitHub Actions
-  pinned to commit SHAs, committed lockfile.
+- Publishing is npm Trusted Publishing via OIDC (no `NPM_TOKEN`), with automatic
+  provenance and a least-privilege `GITHUB_TOKEN`.
+- Any publishable `src` change (including `@verbatra/studio` and `@verbatra/mcp`)
+  ships a changeset with the correct bump level.
 
-## Git hooks (lefthook)
+## Git and commits
 
-- pre-commit: Biome check on staged JS/TS/JSON, and a lockfile-sync check when a
-  package.json or lockfile changed.
-- commit-msg: commitlint (Conventional Commits).
-  If a hook fails, fix the cause (run `pnpm check` or `pnpm format`, or
-  `pnpm install` to sync the lockfile) and re-stage. Do not bypass hooks.
+Conventional Commits format, commitlint rules, pre-commit hooks, branch naming, and
+the changeset requirement are all defined in `.claude/rules/git-conventions.md`.
+Follow it rather than improvising commit or branch conventions.
 
-## The verbatra team agents
+## Docs site
 
-`.claude/agents/` holds ten role agents (product owner, software architect,
-developer, code reviewer, QA, security reviewer, release manager, docs writer, docs
-designer, devops) that mirror the Cowork delivery team. Dispatch them for the matching
-stage of work. They follow the rules in this file.
+`apps/docs` mixes real verbatra-managed UI-string translation with hand-maintained
+MDX locale content. How that split works, the source-of-truth files for what has
+shipped, and the `<AvailableFrom />` and tone conventions are documented in
+`.claude/rules/docs.md`.
 
-The team's runtime workspace lives under `.verbatra/` (gitignored, local to the
-clone): specs in `.verbatra/specs/`, the audit log in `.verbatra/log/`, architecture
-decision records in `.verbatra/adr/`, and each agent's persistent memory in
-`.verbatra/agent-memory/<role>/`. The agent definitions in `.claude/` are tracked; the
-`.verbatra/` workspace is not.
+## Agents and skills
+
+`.claude/agents/code-reviewer.md` reviews a diff or branch for correctness,
+readability, this repo's strictness and lint rules, and pattern reuse; it does not
+edit code. Dispatch it after implementation work, before merge.
+
+`.claude/agents/test-runner.md` validates test coverage and suite health across
+unit, integration, and CLI e2e; it is also the agent to dispatch for building out
+Studio's still-missing Playwright e2e suite.
+
+Skills are installed via the `skills.sh` mechanism (`npx skills@latest add <owner/repo>
+--skill <name> -a claude-code -y`, tracked in `skills-lock.json`). See
+`.claude/skills/` for the current list rather than assuming one here; it grows over
+time.

@@ -5,6 +5,7 @@ export const PROVIDER_ENV = {
   openai: "OPENAI_API_KEY",
   gemini: "GEMINI_API_KEY",
   deepl: "DEEPL_API_KEY",
+  "google-translate": "GOOGLE_TRANSLATE_API_KEY",
 } as const;
 
 function readRequiredEnv(name: string): string {
@@ -29,6 +30,10 @@ export function requireGeminiKey(): string {
 
 export function requireDeepLKey(): string {
   return readRequiredEnv(PROVIDER_ENV.deepl);
+}
+
+export function requireGoogleTranslateKey(): string {
+  return readRequiredEnv(PROVIDER_ENV["google-translate"]);
 }
 
 export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";

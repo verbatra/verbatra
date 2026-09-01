@@ -76,6 +76,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@verbatra/config": "workspace:*",
+    "@verbatra/mcp": "workspace:*",
     "@verbatra/studio": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "tsup": "catalog:",

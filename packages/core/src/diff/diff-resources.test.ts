@@ -42,6 +42,17 @@ describe("diffResources", () => {
     expect(result.unchanged).toEqual([]);
   });
 
+  it("reports a placeholder-only change as stale even when value is unchanged", () => {
+    const original = entry({ key: "a", value: "v1", placeholders: ["{x}"] });
+    const changed = entry({ key: "a", value: "v1", placeholders: ["{y}"] });
+    const source = resource("en", [changed]);
+    const target = resource("de", [entry({ key: "a" })]);
+    const baseline = new Map([["a", contentHash(original)]]);
+    const result = diffResources(source, target, { baseline });
+    expect(result.changed).toEqual(["a"]);
+    expect(result.unchanged).toEqual([]);
+  });
+
   it("treats a baseline-matching key as unchanged", () => {
     const e = entry({ key: "a", value: "v1" });
     const source = resource("en", [e]);

@@ -1,5 +1,4 @@
 {
   "title": "SDK",
-  "defaultOpen": true,
   "pages": ["sdk", "programmatic-api"]
 }

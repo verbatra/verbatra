@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
+import type { SupportedFormat } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import { expandPattern, LOCALE_TOKEN, tokenOccupiesWholeSegments } from "./pattern.js";
+import { isSharedCatalogueFormat } from "./shared-catalogue-format.js";
 import { isSafeSpelling, isSegmentStyle, type LocaleStyle, spellLocale } from "./style.js";
 
 const DEFAULT_LOCALE_STYLE: LocaleStyle = "literal";
@@ -14,6 +16,12 @@ export interface LocalePathResolverConfig {
   readonly sourceLocale: string;
   /** Every target locale. All of them are mapped up front so collisions are caught immediately. */
   readonly targetLocales: readonly string[];
+  /**
+   * The configured format. Every format maps each locale to a distinct path except a
+   * shared-catalogue format (one holding every locale in a single file, such as `apple-xcstrings`),
+   * which maps every locale to the same path.
+   */
+  readonly format: SupportedFormat;
   /** The file layout. */
   readonly files: {
     /** The path pattern, which must contain the `{locale}` token. */
@@ -34,6 +42,9 @@ export interface LocalePathResolver {
    * The configured locale owning an absolute path, or `undefined` when the path belongs to no
    * configured locale. The path is normalized before lookup, so a relative or non-canonical path
    * still resolves.
+   *
+   * Always `undefined` for a shared-catalogue format: every configured locale resolves to the same
+   * path there, so no single locale owns it.
    */
   localeFor(absolutePath: string): string | undefined;
 }
@@ -89,6 +100,11 @@ function buildForwardMap(
   return forward;
 }
 
+function sharedCataloguePathFor(cwd: string, pattern: string): (locale: string) => string {
+  const path = resolve(cwd, expandPattern(pattern, ""));
+  return () => path;
+}
+
 /**
  * Builds the project's locale-to-path mapping from the configured pattern, locales, and
  * {@link LocaleStyle}, in both directions.
@@ -101,15 +117,21 @@ function buildForwardMap(
  * path collision is reported here, before any file is read and before any provider is called,
  * rather than partway through a run.
  *
+ * For a shared-catalogue format (such as `apple-xcstrings`), `pathFor` resolves every locale to the
+ * same path (the `{locale}` token is still required in the pattern but substitutes to the empty
+ * string), no locale style is applied, and `localeFor` always returns `undefined` rather than
+ * reporting a collision: every configured locale sharing one path is the expected shape for these
+ * formats, not a configuration mistake.
+ *
  * @param cwd - Directory the pattern is resolved against.
- * @param config - The source locale, target locales, and file layout.
+ * @param config - The source locale, target locales, format, and file layout.
  * @returns A resolver mapping locales to paths and paths back to locales.
  *
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the pattern lacks the `{locale}` token, a
  * segment style's token does not stand alone between separators, or a configured locale has no
  * valid single-segment spelling under the declared style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same
- * absolute path.
+ * absolute path, for a format that is not a shared-catalogue format.
  */
 export function createLocalePathResolver(
   cwd: string,
@@ -118,6 +140,10 @@ export function createLocalePathResolver(
   const style = config.files.localeStyle ?? DEFAULT_LOCALE_STYLE;
   const pattern = config.files.pattern;
   validatePattern(pattern, style);
+
+  if (isSharedCatalogueFormat(config.format)) {
+    return { pathFor: sharedCataloguePathFor(cwd, pattern), localeFor: () => undefined };
+  }
 
   const pathFor = (locale: string): string =>
     resolve(cwd, expandPattern(pattern, safeSpelling(locale, style, config.sourceLocale)));

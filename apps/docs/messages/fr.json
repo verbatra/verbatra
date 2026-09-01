@@ -19,7 +19,7 @@
       "lead": "verbatra est plus que de la traduction par IA. Il couvre la traduction automatique que tu contrôles, un transfert Excel propre pour les traducteurs humains, et l'automatisation pour garder chaque locale synchronisée.",
       "ai": {
         "title": "Traduction par IA",
-        "body": "Traduis seulement ce qui a changé via le fournisseur de ton choix : Anthropic, OpenAI, Gemini, DeepL, ou tout serveur compatible OpenAI que tu gères toi-même. Un fichier de verrouillage validé maintient chaque exécution incrémentielle, et l'intégrité des placeholders et de l'ICU est vérifiée avant toute écriture."
+        "body": "Traduis uniquement ce qui a changé via le fournisseur de ton choix : Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou tout serveur compatible OpenAI que tu gères toi-même. Un fichier de verrouillage validé maintient chaque exécution incrémentielle, et l'intégrité des placeholders et de l'ICU est vérifiée avant toute écriture."
       },
       "excel": {
         "title": "Transfert Excel",
@@ -53,12 +53,12 @@
     },
     "compat": {
       "heading": "Un seul outil, tous les frameworks.",
-      "body": "verbatra lit les fichiers de locale que ta pile utilise déjà : JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB et Java/Spring .properties. Il les remplit via le fournisseur que tu choisis, aucun nouveau format à adopter.",
+      "body": "verbatra lit les fichiers de locale que ta pile utilise déjà : JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les catalogues de chaînes Xcode, Android strings.xml et gettext .po/.pot. Il les remplit via le fournisseur que tu choisis, sans nouveau format à adopter.",
       "labelFrameworks": "Frameworks et formats"
     },
     "providers": {
       "heading": "Traduis via le modèle en qui tu as confiance.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, ou tout serveur compatible OpenAI que tu héberges toi-même. Choisis-en un dans une seule ligne de config et change de fournisseur sans toucher à tes fichiers de locale.",
+      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou tout serveur compatible OpenAI que tu héberges toi-même. Choisis-en un en une seule ligne de configuration et change de fournisseur sans toucher à tes fichiers de locale.",
       "marqueeLabel": "Fournisseurs de traduction"
     },
     "how": {
@@ -93,7 +93,7 @@
         },
         "provider": {
           "title": "Le fournisseur de ton choix",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, ou un modèle local compatible OpenAI, choisi en une seule ligne de config. Change de fournisseur sans toucher à tes fichiers de locale."
+          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou un modèle local compatible OpenAI, choisi en une seule ligne de configuration. Change de fournisseur sans toucher à tes fichiers de locale."
         },
         "safety": {
           "title": "Sûr par conception",
@@ -125,11 +125,11 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Cinq, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL (traduction automatique) et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son id dans ta config et tu peux changer plus tard en modifiant cette seule ligne. Gemini a un vrai niveau gratuit, et un modèle local ne coûte rien par appel."
+          "answer": "Six, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son identifiant dans ta configuration et tu peux changer plus tard en modifiant cette seule ligne. Gemini a un vrai niveau gratuit, et un modèle local ne coûte rien par appel."
         },
         "formats": {
           "question": "Quels formats et frameworks verbatra prend-il en charge ?",
-          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB et Java/Spring .properties. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring et Flutter. verbatra lit les fichiers que tu as déjà ; il n'y a pas de format spécifique à verbatra vers lequel migrer."
+          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les catalogues de chaînes Xcode, Android strings.xml et gettext .po/.pot. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, et toute pile basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n'y a pas de format spécifique à verbatra vers lequel migrer."
         },
         "safety": {
           "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
@@ -154,6 +154,7 @@
           "cliReference": "Référence du CLI",
           "sdk": "SDK",
           "studio": "Studio",
+          "mcpServer": "Serveur MCP",
           "githubAction": "GitHub Action"
         },
         "learn": {
@@ -185,7 +186,9 @@
       },
       "legalLine": "Open source sous la licence MIT · © 2026 Mario Kreitz",
       "githubAria": "verbatra sur GitHub",
-      "npmAria": "verbatra sur npm"
+      "npmAria": "verbatra sur npm",
+      "contributorsTitle": "Contributeurs",
+      "contributorAria": "{name} sur GitHub"
     },
     "brand": {
       "vmarkAlt": "verbatra"
@@ -201,7 +204,9 @@
         "triggerAriaSuffix": "choisir la langue",
         "machineTranslatedLabel": "Traduction automatique",
         "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
-      }
+      },
+      "contact": "Contact",
+      "npm": "verbatra sur npm"
     },
     "studio": {
       "heading": "Garde tout l'état de la traduction sous les yeux, en local.",
@@ -222,7 +227,7 @@
       "disclaimer": "Ceci est une traduction fournie par commodité. En cas de divergence, la version anglaise prévaut.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous joindre par e-mail à <email>mario.kreitz@web.de</email>."
+        "body": "La partie responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous contacter par email à <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Aperçu",
@@ -230,7 +235,7 @@
       },
       "s3": {
         "heading": "3. Journaux serveur et hébergement",
-        "body": "Le site est auto-hébergé sur un serveur virtuel (géré avec Dokploy). Lors de ta visite, le serveur traite des journaux d'accès standard qui peuvent inclure ton adresse IP, la date et l'heure de la requête, l'URL demandée, la page référente et la chaîne user-agent de ton navigateur. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à disposer d'un service sûr et fonctionnel). Ces journaux ne sont conservés que pour une courte période."
+        "body": "Le site est auto-hébergé sur un serveur virtuel chez <contabo>Contabo</contabo>, géré avec Plesk. Lors de ta visite, le serveur traite des journaux d'accès standard qui peuvent inclure ton adresse IP, la date et l'heure de la requête, l'URL demandée, la page référente et la chaîne user-agent de ton navigateur. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à disposer d'un service sûr et fonctionnel). Ces journaux ne sont conservés que pour une courte période."
       },
       "s4": {
         "heading": "4. Statistiques",
@@ -245,8 +250,8 @@
         "body": "Les polices sont auto-hébergées : elles sont intégrées au moment de la compilation, donc aucune requête n'est faite à Google Fonts ou à toute autre tierce partie lorsque tu charges une page. La seule exception concerne les badges de statut : la page d'accueil et la page de test intègrent des images de badges en direct de GitHub, Codecov et shields.io qui affichent la compilation actuelle, la couverture, la version et la licence. Le chargement de ces images transmet ton adresse IP à ces fournisseurs, qui agissent en tant que responsables du traitement indépendants selon leurs propres politiques de confidentialité. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à afficher un statut de projet précis). En dehors de ces badges et du script Umami auto-hébergé décrit ci-dessus, aucun script ou élément intégré de tiers ne se charge à l'exécution."
       },
       "s7": {
-        "heading": "7. GitHub",
-        "body": "Le code source, les issues et les discussions du projet sont hébergés sur <repo>GitHub</repo>. Si tu choisis d'y interagir (par exemple en ouvrant une issue ou en participant à une discussion), GitHub traite tes données en tant que responsable indépendant et sa <ghprivacy>déclaration de confidentialité</ghprivacy> s'applique."
+        "heading": "7. GitHub et npm",
+        "body": "Le code source, les issues et les discussions du projet sont hébergés sur <repo>GitHub</repo>, et ses paquets publiés sont hébergés sur <npm>npm</npm>. Si tu choisis d'interagir sur l'un ou l'autre site (par exemple en ouvrant une issue, en participant à une discussion ou en consultant un paquet), ce fournisseur traite tes données en tant que responsable indépendant : la <ghprivacy>déclaration de confidentialité</ghprivacy> de GitHub ou la <npmprivacy>politique de confidentialité</npmprivacy> de npm s'applique."
       },
       "s8": {
         "heading": "8. Tes droits",
@@ -254,7 +259,7 @@
       },
       "s9": {
         "heading": "9. Contact",
-        "body": "Pour toute question ou demande relative à la confidentialité, écris à <email>mario.kreitz@web.de</email>."
+        "body": "Pour toute question ou demande relative à la confidentialité, envoie un email à <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Modifications de cette politique",
@@ -262,7 +267,11 @@
       },
       "s11": {
         "heading": "11. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. Deux sous-traitants tiers sont impliqués en vertu de l'Art. 28 du RGPD : Resend, qui livre l'e-mail de notification à <email>mario.kreitz@web.de</email> et traite les données aux États-Unis, les Clauses Contractuelles Types régissant le transfert, et Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les bots et les abus ; ces données sont conservées pendant une période définie par notre plan Arcjet, actuellement jusqu'à une heure sur le niveau gratuit. La base juridique est l'Art. 6(1)(f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification résultant ne sont conservés que le temps nécessaire pour traiter la demande et ne sont stockés nulle part ailleurs que dans la boîte de réception de l'opérateur ; les propres journaux de livraison de Resend suivent la conservation standard de Resend."
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse email et le message que tu soumets afin de répondre à ta demande. L'email de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'email tiers n'est impliqué dans sa livraison, et sa livraison n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers impliqué en vertu de l'Art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une période définie par notre plan Arcjet, actuellement jusqu'à une heure sur le niveau gratuit. La base légale est l'Art. 6(1)(f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'email de notification qui en résulte ne sont conservés que le temps nécessaire pour traiter la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
+      },
+      "s12": {
+        "heading": "12. Traduction assistée par IA",
+        "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l'utilise aussi sur lui-même : l'interface est traduite en allemand, en espagnol et en français à l'aide de modèles de langage IA. Les pages de documentation plus longues sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Le contenu traduit est relu avant sa publication. Nous le mentionnons ici volontairement, par souci de transparence, et non parce qu'une obligation légale de divulgation spécifique s'appliquerait."
       }
     },
     "imprint": {

@@ -63,9 +63,19 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
 
 - **`sourceLocale`** doit être une chaîne non vide.
 - **`targetLocales`** doit contenir au moins une locale, ne doit pas inclure `sourceLocale`, et deux entrées ne peuvent pas être égales sans tenir compte de la casse (par exemple `["de", "DE"]` est rejeté), puisque chaque locale devient le nom de sa propre feuille Excel à l'export.
-- **`format`** est l'un de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb` ou `properties`. Voir [Formats](/docs/formats).
-- **`files.pattern`** doit contenir le jeton `{locale}`, que verbatra remplace par chaque locale : `locales/{locale}.json` se résout en `locales/de.json`. Les chemins se résolvent contre le répertoire de travail. Le motif est un chemin littéral, pas un glob, et `{locale}` est le seul jeton qu'il comprend, donc une configuration adresse exactement un fichier par locale. Si ton projet répartit ses chaînes sur plusieurs fichiers d'espace de noms par locale, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms).
-- **`files.localeStyle`** décide en quoi le jeton se développe. `literal`, la valeur par défaut, utilise la balise configurée telle quelle, ce dont ont besoin les dispositions JSON, YAML, XLIFF, ARB, properties et `.lproj` d'Apple. `posix` remplace `-` par `_`, pour gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) et la disposition Java `messages_{locale}.properties`. `android` développe le jeton en un répertoire de ressources Android complet, écrit `res/{locale}/strings.xml` : `values` pour la locale source, puis `values-de`, `values-pt-rBR` et `values-b+zh+Hans`. Un style refuse une locale pour laquelle il n'a pas d'écriture correcte, plutôt que d'écrire un répertoire que la plateforme ignorerait en silence.
+- **`format`** est l'un de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml` ou `gettext-po`. Voir [Formats](/docs/formats).
+- **`files.pattern`** doit contenir le jeton `{locale}`, que verbatra remplace par chaque locale : `locales/{locale}.json` se résout en `locales/de.json`. Les chemins se résolvent contre le répertoire de travail. Le motif est un chemin littéral, pas un glob, et `{locale}` est le seul jeton qu'il comprend, donc une configuration adresse exactement un fichier par locale. Si ton projet répartit ses chaînes sur plusieurs fichiers d'espace de noms par locale, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms). La seule exception est `apple-xcstrings`, où toutes les locales partagent un seul fichier de catalogue : le jeton reste obligatoire dans le motif, mais il se résout vers le même chemin quelle que soit la locale. Voir [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
+- **`files.localeStyle`** décide en quoi le jeton se développe :
+  - `literal`, la valeur par défaut, utilise la balise configurée telle quelle, ce dont ont besoin
+    les dispositions JSON, YAML, XLIFF, ARB, properties et `.lproj` d'Apple.
+  - `posix` remplace `-` par `_`, pour gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) et la
+    disposition Java `messages_{locale}.properties`.
+  - `android` développe le jeton en un répertoire de ressources Android complet, écrit
+    `res/{locale}/strings.xml` : `values` pour la locale source, puis `values-de`,
+    `values-pt-rBR` et `values-b+zh+Hans`.
+
+  Un style refuse une locale qu'il ne peut pas écrire correctement pour ce style, plutôt que
+  d'écrire un répertoire que la plateforme ignorerait en silence.
 
 ### provider
 
@@ -118,7 +128,7 @@ Défaut `50`. Les entrées manquantes plus modifiées d'une locale sont découp�
 - `"warn"` (le défaut) signale le dépassement et laisse l'exécution continuer exactement comme si aucun budget n'était configuré.
 - `"stop"` retient chaque clé pas encore tentée pour le reste de l'exécution : les candidates restantes de la locale en cours, et entièrement les candidates de chaque locale cible suivante (leur comparaison et leur rapport d'orphelines tournent quand même ; seul l'appel fournisseur est sauté). Les clés retenues gardent leur hash de verrouillage précédent et sont retentées automatiquement à l'exécution suivante, comme un appel fournisseur échoué l'est déjà.
 
-Définir `maxTokens` contraint aussi la parallélisation d'une exécution : une exécution réelle qui le combine avec `--concurrency` supérieur à `1` est refusée avec le code de sortie `2` (`CONCURRENCY_BUDGET_CONFLICT`) avant tout appel fournisseur, car des locales concurrentes ne peuvent pas respecter un plafond de tokens de façon déterministe. Un dry run est exempté. Retire le budget ou laisse la concurrence à `1`.
+Définir `maxTokens` contraint aussi la parallélisation d'une exécution : une exécution réelle qui le combine avec `--concurrency` supérieur à `1` est refusée avec le code de sortie `2` (`CONCURRENCY_BUDGET_CONFLICT`) avant tout appel fournisseur. La raison : des locales traduites en même temps ne peuvent pas partager un même budget de tokens de façon fiable, donc verbatra refuse plutôt que de risquer un plafond inexact. Un dry run est exempté. Retire le budget ou laisse la concurrence à `1`.
 
 Sous `"warn"`, un déclenchement du budget ne change jamais le code de sortie de la commande. Sous `"stop"`, il peut le faire : une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont bien arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. `budgetBehavior` sans `maxTokens` est accepté et n'a aucun effet. Face à un fournisseur sans tokens (DeepL, qui ne rapporte aucun usage à mesurer), le garde-fou se déclare inerte (`supported: false` sur le `budget` du résumé d'exécution) plutôt que de produire un faux déclenchement.
 

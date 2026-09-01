@@ -92,7 +92,8 @@ VERBATRA_CLI_TARBALL=$(ls /tmp/packs/verbatra-cli-*.tgz) \
 
 ## Choosing the live provider
 
-`E2E_PROVIDER` is one of `gemini`, `anthropic`, `openai`, `deepl`. Gemini is the default
-because it has a free API tier, which keeps the nightly smoke translation at no cost. The
-matching key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPL_API_KEY`)
-must be in the environment, otherwise the live tier skips.
+`E2E_PROVIDER` is one of `gemini`, `anthropic`, `openai`, `deepl`, `google-translate`.
+Gemini is the default because it has a free API tier, which keeps the nightly smoke
+translation at no cost. The matching key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`,
+`OPENAI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`) must be in the
+environment, otherwise the live tier skips.

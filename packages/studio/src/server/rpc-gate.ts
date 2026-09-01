@@ -1,8 +1,8 @@
-import type { z } from "zod";
+import { redact } from "@verbatra/sdk";
+import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import type { RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
-import { redact } from "./redaction.js";
 import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
 
 export interface RpcResult {
@@ -30,6 +30,13 @@ interface RawRequestShape {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const entryDedupeParamsSchema = z.object({ locale: z.string(), key: z.string() });
+
+function entryDedupeKey(params: unknown): string | undefined {
+  const parsed = entryDedupeParamsSchema.safeParse(params);
+  return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
 }
 
 function parseRequestShape(body: Buffer): RawRequestShape | undefined {
@@ -125,7 +132,8 @@ async function invokeHandler(
   if (rateLimiter?.tryAcquire(method) === false) {
     return errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
   }
-  if (inFlightGuard?.tryEnter(method) === false) {
+  const dedupeKey = entryDedupeKey(parsedParams.data);
+  if (inFlightGuard?.tryEnter(method, dedupeKey) === false) {
     return errorEnvelope(409, "ALREADY_IN_PROGRESS", ALREADY_IN_PROGRESS_MESSAGE);
   }
   try {
@@ -134,7 +142,7 @@ async function invokeHandler(
   } catch (error) {
     return mapHandlerError(error);
   } finally {
-    inFlightGuard?.leave(method);
+    inFlightGuard?.leave(method, dedupeKey);
   }
 }
 

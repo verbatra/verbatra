@@ -17,7 +17,12 @@ export interface FlatFileAdapterOptions {
   readonly format: SupportedFormat;
   readonly extensions: readonly string[];
   readonly sniff?: Sniff;
-  readonly parseEntries: (content: string, namespace: string) => Map<string, TranslationEntry>;
+  readonly parseEntries: (
+    content: string,
+    namespace: string,
+    filePath: string,
+    fs: AdapterFs,
+  ) => Map<string, TranslationEntry> | Promise<Map<string, TranslationEntry>>;
   readonly serializeEntries: (
     entries: ReadonlyMap<string, TranslationEntry>,
     filePath: string,
@@ -29,13 +34,15 @@ export interface FlatFileAdapterOptions {
   readonly fs?: AdapterFs;
 }
 
-function toEntries(
+async function toEntries(
   content: string,
   namespace: string,
-  parseEntries: (content: string, namespace: string) => Map<string, TranslationEntry>,
-): Map<string, TranslationEntry> {
+  filePath: string,
+  fs: AdapterFs,
+  parseEntries: FlatFileAdapterOptions["parseEntries"],
+): Promise<Map<string, TranslationEntry>> {
   try {
-    return parseEntries(content, namespace);
+    return await parseEntries(content, namespace, filePath, fs);
   } catch (error) {
     rethrowStructured(error, "The file could not be parsed.");
   }
@@ -61,7 +68,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     async read(filePath, locale): Promise<ReadResult> {
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);
-      const entries = toEntries(content, namespace, parseEntries);
+      const entries = await toEntries(content, namespace, filePath, fs, parseEntries);
       const resource: LocaleResource = { locale, namespace, format, entries };
       const invalidIcuKeys = computeIcu(entries, computeInvalidIcuKeys);
       return { resource, invalidIcuKeys, excludedLeafPaths: [] };

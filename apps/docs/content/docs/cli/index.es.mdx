@@ -1,8 +1,8 @@
 ---
 title: Vista general
-description: "El comando verbatra: sus nueve subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
+description: "El comando verbatra: sus diez subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
 ---
-`@verbatra/cli` incluye el binario `verbatra`, una envoltura fina sobre [`@verbatra/sdk`](/docs/sdk). Nueve comandos hacen el trabajo:
+`@verbatra/cli` incluye el binario `verbatra`, una envoltura fina sobre [`@verbatra/sdk`](/docs/sdk). Diez comandos hacen el trabajo:
 
 | Comando | Qué hace |
 | --- | --- |
@@ -15,6 +15,7 @@ description: "El comando verbatra: sus nueve subcomandos, los flags compartidos,
 | [`export`](/docs/cli/export) | exporta las cadenas sin traducir para un traductor humano, como libro de Excel o como un archivo CSV o TSV por locale |
 | [`import`](/docs/cli/import) | importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale |
 | [`studio`](/docs/cli/studio) | arranca Verbatra Studio, el panel local de traducción |
+| [`mcp`](/docs/cli/mcp) | arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP |
 
 ## Instala e invoca
 
@@ -35,12 +36,15 @@ Necesitas Node.js `>=22.14.0`.
 
 - `--cwd <path>` resuelve la configuración y los archivos de locale desde ese directorio en lugar del actual. Todos los comandos lo aceptan.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
-- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar. Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos. Lo admiten `translate`, `watch`, `check`, `diff`, `doctor`, `export` e `import`; `init` y `studio` no.
+- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar.
+  - Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
+  - Lo admiten `translate`, `watch`, `check`, `diff`, `doctor`, `export` e `import`; `init`, `studio` y `mcp` no.
+  - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor` y `studio` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`) y los comandos de entrega (`export`, `import`) nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`) y los comandos de entrega (`export`, `import`) nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Códigos de salida
 
@@ -51,6 +55,6 @@ El código de salida es el contrato sobre el que ramifica un paso de CI o un scr
 | `0` | éxito (también `--help` y `--version`) |
 | `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes, o `doctor` encontró un problema de configuración |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, proveedor, bloqueo) o un error de uso |
-| `130` | `watch` o `studio` fue detenido a la fuerza por una segunda interrupción |
+| `130` | `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
 
 La página de cada comando detalla cómo se le aplican estos códigos. Consulta [CI y códigos de salida](/docs/ci-and-exit-codes) para conectarlos a una canalización.

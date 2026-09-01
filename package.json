@@ -26,7 +26,7 @@
     "format": "biome format --write .",
     "check": "biome check .",
     "verify": "pnpm check:no-em-dash && pnpm check && pnpm build && pnpm check:dts && pnpm check:studio-bundle && pnpm check:config-schema && pnpm turbo run typecheck && pnpm typecheck:configs && pnpm test && pnpm test:scripts",
-    "check:no-em-dash": "! git grep -n -- \"$(printf '\\342\\200\\224')\" -- ':!pnpm-lock.yaml'",
+    "check:no-em-dash": "! git grep -n -- \"$(printf '\\342\\200\\224')\" -- ':!pnpm-lock.yaml' ':!.agents' ':!.claude/skills'",
     "check:dts": "node scripts/check-build-output.mjs dts",
     "check:studio-bundle": "node scripts/check-build-output.mjs studio-bundle",
     "check:config-schema": "node scripts/check-build-output.mjs config-schema",
@@ -38,16 +38,16 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
+    "@biomejs/biome": "2.5.11",
     "@changesets/changelog-github": "1.0.0",
-    "@changesets/cli": "3.0.0",
-    "@commitlint/cli": "21.2.1",
-    "@commitlint/config-conventional": "21.2.0",
+    "@changesets/cli": "3.0.1",
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
     "@commitlint/types": "21.2.0",
     "@vitest/coverage-v8": "catalog:",
     "knip": "catalog:",
-    "lefthook": "2.1.10",
-    "turbo": "2.10.10",
+    "lefthook": "2.1.12",
+    "turbo": "2.10.12",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

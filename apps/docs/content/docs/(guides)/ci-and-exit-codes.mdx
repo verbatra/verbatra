@@ -197,7 +197,7 @@ If you would rather not write these jobs yourself, the [GitHub Action](/docs/git
 ## Frozen installs and keys
 
 - **Install from the lockfile.** `pnpm install --frozen-lockfile` (or `npm ci`) pins the exact `@verbatra/cli` release your lockfile records, so a CI run is reproducible and cannot silently pull a newer release. The CLI requires Node `>=22.14.0`.
-- **Keys are environment variables, never flags.** The CLI takes no key argument and reads no key from config; providers read only their environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`). Store the key in your CI secret store and map it into `env`. Error messages name the variable but never contain a key value.
+- **Keys are environment variables, never flags.** The CLI takes no key argument and reads no key from config; providers read only their environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Store the key in your CI secret store and map it into `env`. Error messages name the variable but never contain a key value.
 - **Read-only gates need no key.** `check`, `diff`, and `export` never call a provider, so keep secrets out of those jobs entirely. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass.
 
 `translate`, `watch`, `studio`, and `doctor` also load `.env.local` and then `.env` from the working directory before they run, with real environment variables always winning; `check`, `diff`, `export`, and `import` load no `.env` files, so in CI you will normally rely on `env:` alone.

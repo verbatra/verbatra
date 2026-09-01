@@ -8,15 +8,34 @@ const UMAMI_DOCS = "https://umami.is/docs/";
 const GITHUB_REPO = "https://github.com/verbatra/verbatra";
 const GITHUB_PRIVACY =
   "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement";
-const CONTACT_MAILTO = "mailto:mario.kreitz@web.de";
+const NPM_SCOPE = "https://www.npmjs.com/search?q=%40verbatra";
+const NPM_PRIVACY = "https://docs.npmjs.com/policies/privacy";
+const CONTABO_URL = "https://contabo.com/de/";
+const CONTACT_MAILTO = "mailto:info@kreitz-webdev.de";
 
-const SECTION_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11"] as const;
+const SECTION_KEYS = [
+  "s1",
+  "s2",
+  "s3",
+  "s4",
+  "s5",
+  "s6",
+  "s7",
+  "s8",
+  "s9",
+  "s10",
+  "s11",
+  "s12",
+] as const;
 
 const linkTags = {
   email: (chunks: ReactNode) => <a href={CONTACT_MAILTO}>{chunks}</a>,
   umami: (chunks: ReactNode) => <a href={UMAMI_DOCS}>{chunks}</a>,
   repo: (chunks: ReactNode) => <a href={GITHUB_REPO}>{chunks}</a>,
   ghprivacy: (chunks: ReactNode) => <a href={GITHUB_PRIVACY}>{chunks}</a>,
+  npm: (chunks: ReactNode) => <a href={NPM_SCOPE}>{chunks}</a>,
+  npmprivacy: (chunks: ReactNode) => <a href={NPM_PRIVACY}>{chunks}</a>,
+  contabo: (chunks: ReactNode) => <a href={CONTABO_URL}>{chunks}</a>,
   contact: (chunks: ReactNode) => <a href="/contact">{chunks}</a>,
   strong: (chunks: ReactNode) => <strong>{chunks}</strong>,
 };

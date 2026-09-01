@@ -8,6 +8,10 @@ import type {
 } from "./deepl/types.js";
 import type { GeminiRequest } from "./gemini/request.js";
 import type { GeminiClient, GeminiResponse } from "./gemini/types.js";
+import type {
+  GoogleTranslateClient,
+  GoogleTranslateHttpResponse,
+} from "./google-translate/types.js";
 import type { OpenAiRequest } from "./openai/request.js";
 import type { OpenAiClient, OpenAiCompletion, OpenAiMessage } from "./openai/types.js";
 import type { PlaceholderExtractor } from "./provider.js";
@@ -152,6 +156,45 @@ export function deeplStubClient(results: readonly DeepLTextResult[]): {
     translateText: async (texts, sourceLang, targetLang, options) => {
       calls.push({ texts, sourceLang, targetLang, options });
       return [...results];
+    },
+  };
+  return { client, calls };
+}
+
+export interface GoogleTranslateCall {
+  readonly texts: readonly string[];
+  readonly sourceLang: string;
+  readonly targetLang: string;
+}
+
+export function googleTranslateSuccess(
+  translatedTexts: readonly string[],
+): GoogleTranslateHttpResponse {
+  return {
+    status: 200,
+    body: { data: { translations: translatedTexts.map((translatedText) => ({ translatedText })) } },
+  };
+}
+
+export function googleTranslateError(
+  status: number,
+  reasons: readonly string[] = [],
+): GoogleTranslateHttpResponse {
+  return {
+    status,
+    body: { error: { errors: reasons.map((reason) => ({ reason })) } },
+  };
+}
+
+export function googleTranslateStubClient(response: GoogleTranslateHttpResponse): {
+  client: GoogleTranslateClient;
+  calls: GoogleTranslateCall[];
+} {
+  const calls: GoogleTranslateCall[] = [];
+  const client: GoogleTranslateClient = {
+    translate: async (texts, sourceLang, targetLang) => {
+      calls.push({ texts, sourceLang, targetLang });
+      return response;
     },
   };
   return { client, calls };

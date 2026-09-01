@@ -9,14 +9,14 @@ page covers each layer of that model.
 
 ## Untrusted strings and the prompt-injection boundary
 
-A translatable string can contain text that looks like an instruction (a UI string that literally
-reads "ignore your instructions"), so verbatra treats every one as untrusted input. The system
-rules sent to an LLM provider are compile-time constants. All variable input, the entries to
-translate along with your glossary and tone, travels only in the user-turn JSON data payload,
-never spliced into the instruction channel. Provider output is constrained to a schema and
-validated as data: a malformed response fails, and a response containing a key that was never
-requested fails the whole sub-batch, because there is no safe partial accept around invented
-content.
+verbatra never lets a translatable string act like an instruction to the AI. A translatable string
+can contain text that looks like an instruction (a UI string that literally reads "ignore your
+instructions"), so verbatra treats every one as untrusted input. The system rules sent to an LLM
+provider are compile-time constants. All variable input, the entries to translate along with your
+glossary and tone, travels only in the user-turn JSON data payload, never spliced into the
+instruction channel. Provider output is constrained to a schema and validated as data: a malformed
+response fails, and a response containing a key that was never requested fails the whole
+sub-batch, because there is no safe partial accept around invented content.
 
 ## The integrity gate
 
@@ -33,11 +33,11 @@ keys can match without being byte-identical. That is exactly why the gate is re-
 - Placeholder integrity: the translated value must carry the same placeholders as its source,
   compared as a multiset (counts matter, order does not). Drop, add, or alter one and the candidate
   is rejected. What counts as a placeholder is defined per format; see [Formats](/docs/formats).
-- ICU integrity: for the ICU formats (next-intl and ARB), the translated value must still parse as
-  a valid message. A candidate that keeps every placeholder but breaks the plural or select
-  structure is rejected too. For these formats the placeholder comparison is also branch-aware: a
-  placeholder fabricated inside one plural branch is caught even if it legitimately exists in
-  another.
+- ICU integrity: for the ICU formats (next-intl and ARB, which use ICU MessageFormat syntax for
+  plurals and select statements), the translated value must still parse as a valid message. A
+  candidate that keeps every placeholder but breaks the plural or select structure is rejected
+  too. For these formats the placeholder comparison is also branch-aware: a placeholder fabricated
+  inside one plural branch is caught even if it legitimately exists in another.
 - Fabricated single-brace tokens: for the double-brace formats (i18next, ngx-translate, and YAML), a
   `{name}`-shaped token is ordinary literal text rather than interpolation, so it is not extracted as
   a placeholder and is not required to survive a translation. Inventing one is still rejected: a

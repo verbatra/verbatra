@@ -92,7 +92,13 @@ describe("openAiCompatibleConfigSchema: apiKeyEnvVar", () => {
     expect(openAiCompatibleConfigSchema.parse(config).apiKeyEnvVar).toBe("LM_STUDIO_KEY");
   });
 
-  it.each(["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "DEEPL_API_KEY"])(
+  it.each([
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPL_API_KEY",
+    "GOOGLE_TRANSLATE_API_KEY",
+  ])(
     "rejects %s: a config author cannot point openai-compatible at a hosted provider's key by name",
     (hostedVar) => {
       const result = openAiCompatibleConfigSchema.safeParse({
@@ -109,6 +115,7 @@ describe("openAiCompatibleConfigSchema: apiKeyEnvVar", () => {
     "anthropic_api_key",
     "gemini_api_key",
     "deepl_api_key",
+    "google_translate_api_key",
   ])(
     "rejects %s: process.env lookups are case-insensitive on Windows, so a lowercase or mixed-case alias must be rejected too",
     (mixedCaseHostedVar) => {

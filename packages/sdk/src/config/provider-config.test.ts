@@ -38,16 +38,19 @@ describe("providerConfigSchema: openai-compatible", () => {
     expect(result.error?.constructor.name).toBe("ZodError");
   });
 
-  it.each(["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "DEEPL_API_KEY"])(
-    "rejects apiKeyEnvVar naming the hosted %s variable",
-    (hostedVar) => {
-      const result = providerConfigSchema.safeParse({
-        ...validOpenAiCompatible,
-        options: { ...validOpenAiCompatible.options, apiKeyEnvVar: hostedVar },
-      });
-      expect(result.success).toBe(false);
-    },
-  );
+  it.each([
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPL_API_KEY",
+    "GOOGLE_TRANSLATE_API_KEY",
+  ])("rejects apiKeyEnvVar naming the hosted %s variable", (hostedVar) => {
+    const result = providerConfigSchema.safeParse({
+      ...validOpenAiCompatible,
+      options: { ...validOpenAiCompatible.options, apiKeyEnvVar: hostedVar },
+    });
+    expect(result.success).toBe(false);
+  });
 
   it("rejects an unknown extra option (strict schema)", () => {
     const result = providerConfigSchema.safeParse({
@@ -63,6 +66,47 @@ describe("buildProvider: openai-compatible", () => {
     const provider = buildProvider(validOpenAiCompatible);
     expect(provider.id).toBe("openai-compatible");
     expect(provider.kind).toBe("llm");
+  });
+});
+
+describe("providerConfigSchema: google-translate", () => {
+  it("accepts an empty options object", () => {
+    const result = providerConfigSchema.safeParse({ id: "google-translate", options: {} });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an optional requestTimeoutMs", () => {
+    const result = providerConfigSchema.safeParse({
+      id: "google-translate",
+      options: { requestTimeoutMs: 5000 },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unknown extra option (strict schema, no model or glossaryId)", () => {
+    const result = providerConfigSchema.safeParse({
+      id: "google-translate",
+      options: { model: "gemini-2.5-flash" },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("buildProvider: google-translate", () => {
+  it("constructs a machine-translation provider from config", () => {
+    const saved = process.env.GOOGLE_TRANSLATE_API_KEY;
+    process.env.GOOGLE_TRANSLATE_API_KEY = `AIza${"a".repeat(35)}`;
+    try {
+      const provider = buildProvider({ id: "google-translate", options: {} });
+      expect(provider.id).toBe("google-translate");
+      expect(provider.kind).toBe("machine-translation");
+    } finally {
+      if (saved === undefined) {
+        delete process.env.GOOGLE_TRANSLATE_API_KEY;
+      } else {
+        process.env.GOOGLE_TRANSLATE_API_KEY = saved;
+      }
+    }
   });
 });
 

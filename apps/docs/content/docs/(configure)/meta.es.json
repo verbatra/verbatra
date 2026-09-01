@@ -1,5 +1,4 @@
 {
   "title": "Configuraci\u00f3n",
-  "defaultOpen": true,
   "pages": ["config-file", "providers", "formats"]
 }

@@ -12,13 +12,14 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-and-test:
     name: Build and test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -29,26 +30,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ matrix.node }}
-
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Compute pnpm store path
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Guard against em dash (U+2014)
         run: pnpm check:no-em-dash
@@ -80,12 +65,52 @@ jobs:
       - name: Test root scripts
         run: pnpm test:scripts
 
-      - name: Upload coverage to Codecov
+      - name: Upload coverage artifact
         if: ${{ matrix.node == '22.14.0' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-reports
+          path: packages/*/coverage/lcov.info
+          retention-days: 5
+
+  codecov-upload:
+    name: Upload coverage to Codecov
+    needs: build-and-test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: coverage-reports
+          path: coverage-artifacts
+
+      - name: Guard against a silently empty coverage upload
+        run: |
+          shopt -s nullglob
+          files=(coverage-artifacts/*/coverage/lcov.info)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No lcov.info files found under coverage-artifacts/*/coverage/. Codecov would upload nothing." >&2
+            find coverage-artifacts -type f >&2
+            exit 1
+          fi
+          echo "Found ${#files[@]} lcov.info file(s):"
+          printf '%s\n' "${files[@]}"
+
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           use_oidc: true
-          files: ./packages/*/coverage/lcov.info
+          files: ./coverage-artifacts/*/coverage/lcov.info
 
   dependency-disclosure:
     name: Dependency disclosure
@@ -113,16 +138,6 @@ jobs:
         run: node scripts/check-dependency-changeset.mjs
 
   e2e:
-    # No-key tier only. It never receives a provider secret, so it is safe to run on
-    # pull requests, including from forks. Live provider coverage lives in e2e-live.yml.
-    #
-    # This is the tier that gates a release. It installs the packed tarballs and drives every
-    # command surface, including a full watch lifecycle (successful startup run, a second run
-    # triggered by a source change, clean exit 0 on SIGINT) with no provider key and no network
-    # call, so it is deterministic: a failure here is always the product, never a third-party
-    # quota. e2e-live.yml covers the same commands against a real provider but stays advisory
-    # precisely because it is not deterministic; gating a publish on somebody else's rate limiter
-    # would make every release hostage to it. See .verbatra/adr for the full argument.
     name: Install tarballs and drive the CLI
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -134,16 +149,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
-
-      - name: Enable corepack and activate pnpm
-        run: corepack enable && corepack prepare pnpm@11.6.0 --activate
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
@@ -171,31 +180,25 @@ jobs:
         run: npm run test:nokey
 
   gate:
-    # Stable required status check. Aggregates the build-and-test matrix and the e2e
-    # job so the branch-protection context stays "Build and test gate" regardless of
-    # which Node versions the matrix runs, and release can trust a single CI result.
-    #
-    # This is also the release gate for end-to-end coverage, and it is a hard one: release.yml
-    # fires on workflow_run for THIS workflow and publishes only when its conclusion is success,
-    # so a failed e2e job fails this job, fails the workflow, and no publish happens.
     name: Build and test gate
-    needs: [build-and-test, e2e, dependency-disclosure]
+    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: always()
     steps:
-      # One step over all three rather than one step each, so a run that fails more than one job
-      # reports every failure instead of only the first. Results arrive through env rather than
-      # direct interpolation, keeping the expressions out of the shell.
       - name: Verify every required job succeeded
         env:
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
           E2E: ${{ needs.e2e.result }}
           DEPENDENCY_DISCLOSURE: ${{ needs.dependency-disclosure.result }}
+          CODECOV_UPLOAD: ${{ needs.codecov-upload.result }}
         run: |
           failed=0
           for entry in "build-and-test:$BUILD_AND_TEST" \
                        "e2e:$E2E" \
-                       "dependency-disclosure:$DEPENDENCY_DISCLOSURE"; do
+                       "dependency-disclosure:$DEPENDENCY_DISCLOSURE" \
+                       "codecov-upload:$CODECOV_UPLOAD"; do
             job="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != "success" ]; then

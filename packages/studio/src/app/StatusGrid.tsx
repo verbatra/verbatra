@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import type { StatusData } from "../client/coverage.js";
 import type { DiffLocale, KeyLocaleStatus } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus, driftKeys } from "../client/diff-view.js";
+import { filterAndCapKeys, MAX_RENDERED_KEYS } from "../client/filter.js";
 import { isRtlLocale } from "../client/locale-direction.js";
 import type { GridArrowKey, GridPosition } from "../client/roving-tabindex.js";
 import { clampGridPosition, moveGridFocus } from "../client/roving-tabindex.js";
@@ -181,7 +182,8 @@ function GridBodyRow({
 }
 
 export function StatusGrid({ locales, refreshToken, onSelectKey }: StatusGridProps): ReactNode {
-  const keys = useMemo(() => driftKeys(locales), [locales]);
+  const capped = useMemo(() => filterAndCapKeys(driftKeys(locales), ""), [locales]);
+  const keys = capped.items;
   const status = useStatusData(refreshToken);
   const [position, setPosition] = useState<GridPosition>({ row: 0, col: 0 });
   const safePosition = clampGridPosition(position, {
@@ -267,6 +269,12 @@ export function StatusGrid({ locales, refreshToken, onSelectKey }: StatusGridPro
           </tbody>
         </table>
       </TableCard>
+      {capped.truncated ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Showing the first {MAX_RENDERED_KEYS} of {capped.totalMatches} keys. Switch to the List
+          view to filter.
+        </p>
+      ) : null}
     </>
   );
 }

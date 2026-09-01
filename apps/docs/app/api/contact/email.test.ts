@@ -12,78 +12,107 @@ function payload(): ContactPayload {
   };
 }
 
-function stubClient(sendResult: {
-  data: { id: string } | null;
-  error: { message: string } | null;
-}) {
-  const send = vi.fn().mockResolvedValue(sendResult);
-  const client: EmailClient = { emails: { send } };
-  return { client, send };
+function stubClient(sendMail: EmailClient["sendMail"]) {
+  const client: EmailClient = { sendMail };
+  return client;
 }
 
-const originalKey = process.env.CONTACT_RESEND_API_KEY;
+const SMTP_ENV_VARS = [
+  "CONTACT_SMTP_HOST",
+  "CONTACT_SMTP_PORT",
+  "CONTACT_SMTP_USER",
+  "CONTACT_SMTP_PASSWORD",
+  "CONTACT_SMTP_FROM",
+] as const;
+
+const originalEnv = Object.fromEntries(SMTP_ENV_VARS.map((name) => [name, process.env[name]]));
+
+function setSmtpEnv() {
+  process.env.CONTACT_SMTP_HOST = "smtp.kreitz-webdev.de";
+  process.env.CONTACT_SMTP_PORT = "587";
+  process.env.CONTACT_SMTP_USER = "contact@kreitz-webdev.de";
+  process.env.CONTACT_SMTP_PASSWORD = "test-password";
+  process.env.CONTACT_SMTP_FROM = "contact@kreitz-webdev.de";
+}
 
 afterEach(() => {
-  if (originalKey === undefined) {
-    delete process.env.CONTACT_RESEND_API_KEY;
-  } else {
-    process.env.CONTACT_RESEND_API_KEY = originalKey;
+  for (const name of SMTP_ENV_VARS) {
+    const original = originalEnv[name];
+    if (original === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = original;
+    }
   }
 });
 
 describe("sendContactEmail", () => {
   it("sends exactly one email with the expected to, from, and content", async () => {
-    const { client, send } = stubClient({ data: { id: "email_1" }, error: null });
+    setSmtpEnv();
+    const sendMail = vi.fn().mockResolvedValue({ messageId: "message_1" });
+    const client = stubClient(sendMail);
     const result = await sendContactEmail(payload(), { client });
 
     expect(result).toEqual({ ok: true });
-    expect(send).toHaveBeenCalledTimes(1);
-    const call = send.mock.calls[0]?.[0] as {
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const call = sendMail.mock.calls[0]?.[0] as {
       from: string;
       to: string[];
       subject: string;
       text: string;
       replyTo: string;
     };
-    expect(call.to).toEqual(["mario.kreitz@web.de"]);
+    expect(call.to).toEqual(["info@kreitz-webdev.de"]);
     expect(call.from).toBe("verbatra docs contact form <contact@kreitz-webdev.de>");
     expect(call.replyTo).toBe("ada@example.com");
     expect(call.text).toContain("Ada Lovelace");
     expect(call.text).toContain("Hello, I would like to know more about verbatra.");
   });
 
-  it("returns ok: false and does not throw when Resend reports an error", async () => {
-    const { client } = stubClient({ data: null, error: { message: "invalid request" } });
+  it("returns ok: false and does not throw when the SMTP server rejects the message", async () => {
+    setSmtpEnv();
+    const client = stubClient(vi.fn().mockRejectedValue(new Error("mailbox unavailable")));
     const result = await sendContactEmail(payload(), { client });
     expect(result).toEqual({ ok: false });
   });
 
   it("returns ok: false when the client throws", async () => {
+    setSmtpEnv();
     const client: EmailClient = {
-      emails: { send: vi.fn().mockRejectedValue(new Error("network down")) },
+      sendMail: vi.fn().mockRejectedValue(new Error("network down")),
     };
     const result = await sendContactEmail(payload(), { client });
     expect(result).toEqual({ ok: false });
   });
 
-  it("fails closed with ok: false when CONTACT_RESEND_API_KEY is unset and no client is injected", async () => {
-    delete process.env.CONTACT_RESEND_API_KEY;
+  it("fails closed with ok: false when SMTP env vars are unset and no client is injected", async () => {
+    for (const name of SMTP_ENV_VARS) {
+      delete process.env[name];
+    }
     const result = await sendContactEmail(payload());
     expect(result).toEqual({ ok: false });
   });
 });
 
 describe("resolveClient", () => {
-  it("builds a real Resend client when CONTACT_RESEND_API_KEY is set and no client is injected", () => {
-    process.env.CONTACT_RESEND_API_KEY = "test-key";
+  it("builds a real SMTP transport when every CONTACT_SMTP_* var is set and no client is injected", () => {
+    setSmtpEnv();
     const client = resolveClient({});
     expect(client).toBeDefined();
-    expect(typeof client?.emails.send).toBe("function");
+    expect(typeof client?.sendMail).toBe("function");
   });
 
-  it("returns the injected client without touching CONTACT_RESEND_API_KEY", () => {
-    delete process.env.CONTACT_RESEND_API_KEY;
-    const client: EmailClient = { emails: { send: vi.fn() } };
+  it.each(SMTP_ENV_VARS)("returns undefined when %s is missing", (missing) => {
+    setSmtpEnv();
+    delete process.env[missing];
+    expect(resolveClient({})).toBeUndefined();
+  });
+
+  it("returns the injected client without touching CONTACT_SMTP_* vars", () => {
+    for (const name of SMTP_ENV_VARS) {
+      delete process.env[name];
+    }
+    const client: EmailClient = { sendMail: vi.fn() };
     expect(resolveClient({ client })).toBe(client);
   });
 });

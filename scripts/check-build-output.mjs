@@ -3,7 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -11,9 +11,15 @@ const PUBLISHED_PACKAGES = new Set(["@verbatra/sdk", "@verbatra/studio"]);
 
 const DECLARATION_SPECIFIER = /(?:from|import)\s*\(?\s*['"](@verbatra\/[a-z-]+)['"]/g;
 
-const STUDIO_DYNAMIC_IMPORT = /import\(\s*['"]@verbatra\/studio['"]\s*\)/;
+const DYNAMIC_IMPORT_ONLY_PACKAGES = ["@verbatra/studio", "@verbatra/mcp"];
 
-const STUDIO_STATIC_IMPORT = /(?:^|\s)(?:import|export)[^\n]*?from\s*['"]@verbatra\/studio['"]/m;
+function dynamicImportPattern(packageName) {
+  return new RegExp(`import\\(\\s*['"]${packageName}['"]\\s*\\)`);
+}
+
+function staticImportPattern(packageName) {
+  return new RegExp(`(?:^|\\s)(?:import|export)[^\\n]*?from\\s*['"]${packageName}['"]`, "m");
+}
 
 function readBuildOutput(relativePath) {
   const absolutePath = resolve(REPO_ROOT, relativePath);
@@ -23,18 +29,26 @@ function readBuildOutput(relativePath) {
   return readFileSync(absolutePath, "utf8");
 }
 
-function findForbiddenSpecifiers(relativePath) {
-  const lines = readBuildOutput(relativePath).split("\n");
+function findForbiddenSpecifiersInText(text, relativePath, allowedPackages) {
+  const lines = text.split("\n");
   const hits = [];
   for (let index = 0; index < lines.length; index += 1) {
     for (const match of (lines[index] ?? "").matchAll(DECLARATION_SPECIFIER)) {
       const specifier = match[1] ?? "";
-      if (!PUBLISHED_PACKAGES.has(specifier)) {
+      if (!allowedPackages.has(specifier)) {
         hits.push(`${relativePath}:${index + 1}: ${specifier}`);
       }
     }
   }
   return hits;
+}
+
+function findForbiddenSpecifiers(relativePath) {
+  return findForbiddenSpecifiersInText(
+    readBuildOutput(relativePath),
+    relativePath,
+    PUBLISHED_PACKAGES,
+  );
 }
 
 function checkDts() {
@@ -68,18 +82,24 @@ function checkDts() {
 function checkStudioBundle() {
   const entry = "packages/cli/dist/index.js";
   const contents = readBuildOutput(entry);
-  if (!STUDIO_DYNAMIC_IMPORT.test(contents)) {
-    throw new Error(
-      `${entry} has no dynamic import("@verbatra/studio"); check external in packages/cli/tsup.config.ts.`,
-    );
+  for (const packageName of DYNAMIC_IMPORT_ONLY_PACKAGES) {
+    if (!dynamicImportPattern(packageName).test(contents)) {
+      throw new Error(
+        `${entry} has no dynamic import("${packageName}"); check external in packages/cli/tsup.config.ts.`,
+      );
+    }
+    if (staticImportPattern(packageName).test(contents)) {
+      throw new Error(
+        `${entry} statically imports ${packageName}, which would bundle it; keep it a runtime ` +
+          "dynamic import and check external in packages/cli/tsup.config.ts.",
+      );
+    }
   }
-  if (STUDIO_STATIC_IMPORT.test(contents)) {
-    throw new Error(
-      `${entry} statically imports @verbatra/studio, which would bundle it; keep it a runtime ` +
-        "dynamic import and check external in packages/cli/tsup.config.ts.",
-    );
-  }
-  return "the studio command survives bundling as a runtime dynamic import.";
+  return "the studio and mcp commands survive bundling as runtime dynamic imports.";
+}
+
+function getConfigSchemaFilesPattern(document) {
+  return document.properties?.files?.properties?.pattern?.pattern;
 }
 
 function checkConfigSchema() {
@@ -91,7 +111,7 @@ function checkConfigSchema() {
         "packages/sdk/scripts/emit-config-schema.mjs.",
     );
   }
-  const pattern = document.properties?.files?.properties?.pattern?.pattern;
+  const pattern = getConfigSchemaFilesPattern(document);
   if (typeof pattern !== "string") {
     throw new Error(
       `${relativePath} carries no files.pattern regex, so the {locale} token rule did not survive ` +
@@ -121,10 +141,20 @@ function main() {
   }
 }
 
-try {
-  main();
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`check-build-output: ${message}`);
-  process.exit(1);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`check-build-output: ${message}`);
+    process.exit(1);
+  }
 }
+
+export {
+  DECLARATION_SPECIFIER,
+  dynamicImportPattern,
+  findForbiddenSpecifiersInText,
+  getConfigSchemaFilesPattern,
+  staticImportPattern,
+};
