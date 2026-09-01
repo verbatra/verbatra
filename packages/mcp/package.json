@@ -1,6 +1,6 @@
 {
   "name": "@verbatra/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Stdio MCP server exposing verbatra's translation status, glossary, and editing capabilities as tools for any MCP client, without a browser.",
   "keywords": [

@@ -1,5 +1,30 @@
 # @verbatra/studio
 
+## 0.5.0
+
+### Minor Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Studio's Translations and Review search boxes now also match translation
+  content, not just key names, case-insensitively against the current source and
+  target text. Both inputs now read "Filter by key or translation text" to
+  reflect the wider behavior. The existing 500-key render cap and ordering are
+  unchanged.
+
+### Patch Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix the Translations panel's status grid rendering every drift key uncapped,
+  unlike the list view. The grid now caps at 500 keys, matching the list view, and
+  shows a truncation notice when there are more.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Internal refactor: Studio's secret-redaction pass now imports `redact` from
+  `@verbatra/sdk` instead of maintaining its own copy, so the guarantee that a
+  provider API key value never reaches a browser tab is enforced by one shared
+  implementation. Behavior is unchanged.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Guard `translation.retranslateEntry` and `translation.editEntry` against an accidental concurrent duplicate call for the same locale and key, extending the existing in-flight guard (previously only wired to `translation.translatePending`) with per-`(locale, key)` granularity. A second overlapping call for the same key is rejected with `ALREADY_IN_PROGRESS` before it reaches the provider, so a UI double-click or a scripted retry can no longer bill the configured provider twice for one logical request. A concurrent call for a different key is unaffected.
+- Updated dependencies [[`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8)]:
+  - @verbatra/sdk@0.10.0
+
 ## 0.4.3
 
 ### Patch Changes

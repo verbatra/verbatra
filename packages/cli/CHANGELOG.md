@@ -1,5 +1,85 @@
 # @verbatra/cli
 
+## 0.10.0
+
+### Minor Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `android-xml`, a new supported format, for Android's `res/values/strings.xml`
+  and `res/values-<qualifier>/strings.xml` resource files. Plurals are read and
+  written as separate entries per quantity (`zero`, `one`, `two`, `few`, `many`,
+  `other`), and printf-style placeholders (`%s`, `%1$s`) are guarded across
+  translation. Entries marked `translatable="false"`, `<string-array>` elements, and
+  strings containing inline markup are left untouched. Writes preserve existing file
+  structure and create missing destination directories.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `apple-strings`, a new supported format, for Apple's `.strings` localization
+  files (flat `"key" = "value";` pairs) and their sibling `.stringsdict` plural
+  files, both addressed through the same format id. Printf-style placeholders
+  (`%@`, `%d`, `%1$@`) are guarded across translation, and CLDR plural categories
+  round-trip as separate entries with no fabricated or dropped categories. A
+  UTF-16 `.strings` file is rejected with a clear error instead of being parsed
+  into corrupt data. Writes preserve existing key order, comments, and
+  non-translatable `.stringsdict` structure, creating missing `.lproj` directories
+  as needed.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `apple-xcstrings`, a new supported format, for Apple's Xcode String Catalog
+  (`.xcstrings`) files, which hold every locale in one JSON document rather than
+  one file per locale. Plural categories and printf placeholders are handled the
+  same way as the `apple-strings` format. Because all locales share one physical
+  file, writes to an `apple-xcstrings` catalogue are serialized, so concurrency
+  above 1 no longer parallelizes operations for this format specifically. Writes
+  patch only the touched localizations, leaving everything else in the document
+  untouched.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `gettext-po`, a new supported format, for GNU gettext `.po` and `.pot`
+  catalogs. `msgid`/`msgstr` pairs become entries, `msgctxt` disambiguates entries
+  sharing a `msgid`, and plural forms round-trip as separate entries keyed by
+  their `msgstr[n]` index. Comments, references, flags, and the header block are
+  preserved on write. Printf-style (`%s`, `%d`, `%1$s`) and Python-style
+  (`%(name)s`) placeholders are guarded across translation. Known limitation: a
+  plural form present only in a target locale cannot always be distinguished from
+  a removed key, which only matters when `--prune` is enabled.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `google-translate`, a new translation provider, for Google Cloud Translation
+  Basic (v2). Like DeepL, it is a machine-translation API rather than a language
+  model, with no tone control and no glossary support in v1; it reads
+  `GOOGLE_TRANSLATE_API_KEY` from the environment. Entries containing
+  placeholders or ICU syntax are withheld and reported rather than sent to the
+  API. Registered end to end: the provider factory table, config schema,
+  `verbatra init` scaffolding, and the CLI `--provider` option.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `@verbatra/mcp`, a new stdio MCP server exposing verbatra's translation
+  status, glossary, and editing capabilities as tools for MCP clients such as
+  Claude Desktop, Claude Code, and Cursor. Ships 13 tools covering status checks,
+  glossary editing, key integrity, and translation editing; the two tools that
+  call a provider and spend API usage are only advertised when the server is
+  started with spending allowed. Ships both a library export (`startMcpServer`)
+  and a `verbatra-mcp` binary, versioned and published independently of
+  `@verbatra/sdk`/`@verbatra/cli`. `@verbatra/cli` gains a new `mcp` command that
+  loads it via dynamic import, so a missing `@verbatra/mcp` install never breaks
+  the rest of the CLI. `@verbatra/sdk` also gains a shared `redact` utility, used
+  to strip provider API key values out of tool output before it reaches a caller.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - `@verbatra/sdk` adds `localeValues`, a bulk read returning every key's current
+  source and target text across requested locales in one pass, without needing
+  to fetch each key individually through `keyValue`. It backs client-side content
+  search over translation values, not just key names. Read-only: it writes
+  nothing and calls no provider.
+
+### Patch Changes
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Deduplicate shared session/spend/missing-package helper logic between the `mcp`
+  and `studio` CLI commands, and fix the CLI's local copy of MCP server types
+  drifting out of sync with `@verbatra/mcp`. `verbatra init` now derives which
+  providers take a model and token limit from the sdk's own metadata instead of a
+  hardcoded list, so it will not go stale when a new provider is added.
+  `--concurrency`, `--lock-timeout`, and `--debounce` now reject values above a
+  sane upper bound instead of accepting an unbounded number.
+
+- [#206](https://github.com/verbatra/verbatra/pull/206) [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Fix the `studio` and `mcp` commands to catch a `.env`/`.env.local` read failure (for example, a directory in place of the file) and exit 2 with a structured error, instead of crashing with an unhandled raw error, matching the existing behavior of `translate` and `watch`.
+- Updated dependencies [[`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8), [`e96100e`](https://github.com/verbatra/verbatra/commit/e96100eadbea0b1865a88be96bc29b3479b133d8)]:
+  - @verbatra/sdk@0.10.0
+
 ## 0.9.3
 
 ### Patch Changes
