@@ -412,4 +412,115 @@ describe("dispatchRpc envelope", () => {
     expect(enterCalls).toEqual(["translation.translatePending", "translation.translatePending"]);
     expect(leaveCalls).toEqual(["translation.translatePending", "translation.translatePending"]);
   });
+
+  it("passes a locale/key dedupe key to the guard for translation.retranslateEntry, so two different keys never collide on the same lock", async () => {
+    const enterKeys: (string | undefined)[] = [];
+    const guard = {
+      tryEnter: (_method: string, key?: string): boolean => {
+        enterKeys.push(key);
+        return true;
+      },
+      leave: (): void => {},
+    };
+
+    await dispatchRpc(
+      body({ method: "translation.retranslateEntry", params: { locale: "de", key: "greeting" } }),
+      deps(),
+      {
+        "translation.retranslateEntry": async () => ({
+          accepted: true,
+          value: "Hallo",
+          reviewReasons: [],
+        }),
+      },
+      undefined,
+      guard,
+    );
+    await dispatchRpc(
+      body({ method: "translation.retranslateEntry", params: { locale: "de", key: "farewell" } }),
+      deps(),
+      {
+        "translation.retranslateEntry": async () => ({
+          accepted: true,
+          value: "Tschuess",
+          reviewReasons: [],
+        }),
+      },
+      undefined,
+      guard,
+    );
+
+    expect(enterKeys).toHaveLength(2);
+    expect(enterKeys[0]).toBeDefined();
+    expect(enterKeys[0]).not.toBe(enterKeys[1]);
+  });
+
+  it("passes a locale/key dedupe key to the guard for translation.editEntry, so two different keys never collide on the same lock", async () => {
+    const enterKeys: (string | undefined)[] = [];
+    const guard = {
+      tryEnter: (_method: string, key?: string): boolean => {
+        enterKeys.push(key);
+        return true;
+      },
+      leave: (): void => {},
+    };
+
+    await dispatchRpc(
+      body({
+        method: "translation.editEntry",
+        params: { locale: "de", key: "greeting", value: "Hallo" },
+      }),
+      deps(),
+      {
+        "translation.editEntry": async () => ({ accepted: true, value: "Hallo" }),
+      },
+      undefined,
+      guard,
+    );
+    await dispatchRpc(
+      body({
+        method: "translation.editEntry",
+        params: { locale: "de", key: "farewell", value: "Tschuess" },
+      }),
+      deps(),
+      {
+        "translation.editEntry": async () => ({ accepted: true, value: "Tschuess" }),
+      },
+      undefined,
+      guard,
+    );
+
+    expect(enterKeys).toHaveLength(2);
+    expect(enterKeys[0]).toBeDefined();
+    expect(enterKeys[0]).not.toBe(enterKeys[1]);
+  });
+
+  it("passes no dedupe key for translation.translatePending, whose params carry no locale or key", async () => {
+    const enterKeys: (string | undefined)[] = [];
+    const guard = {
+      tryEnter: (_method: string, key?: string): boolean => {
+        enterKeys.push(key);
+        return true;
+      },
+      leave: (): void => {},
+    };
+
+    await dispatchRpc(
+      body({ method: "translation.translatePending", params: {} }),
+      deps(),
+      {
+        "translation.translatePending": async () => ({
+          dryRun: false,
+          locales: [],
+          succeeded: [],
+          partial: [],
+          failed: [],
+        }),
+      },
+      undefined,
+      guard,
+    );
+
+    expect(enterKeys).toEqual([undefined]);
+  });
 });

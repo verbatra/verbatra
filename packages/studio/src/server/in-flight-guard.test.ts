@@ -49,4 +49,30 @@ describe("createRpcInFlightGuard", () => {
     expect(first.tryEnter(METHOD)).toBe(true);
     expect(second.tryEnter(METHOD)).toBe(true);
   });
+
+  it("with a key, blocks a second call for the same method and key but not a different key", () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.retranslateEntry"]));
+
+    expect(guard.tryEnter("translation.retranslateEntry", "de:greeting")).toBe(true);
+    expect(guard.tryEnter("translation.retranslateEntry", "de:greeting")).toBe(false);
+    expect(guard.tryEnter("translation.retranslateEntry", "de:farewell")).toBe(true);
+  });
+
+  it("leave with a key only frees that key, leaving other in-flight keys blocked", () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.retranslateEntry"]));
+
+    guard.tryEnter("translation.retranslateEntry", "de:greeting");
+    guard.tryEnter("translation.retranslateEntry", "de:farewell");
+    guard.leave("translation.retranslateEntry", "de:greeting");
+
+    expect(guard.tryEnter("translation.retranslateEntry", "de:greeting")).toBe(true);
+    expect(guard.tryEnter("translation.retranslateEntry", "de:farewell")).toBe(false);
+  });
+
+  it("treats a keyed call and a keyless call for the same method as independent locks", () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.retranslateEntry"]));
+
+    expect(guard.tryEnter("translation.retranslateEntry")).toBe(true);
+    expect(guard.tryEnter("translation.retranslateEntry", "de:greeting")).toBe(true);
+  });
 });

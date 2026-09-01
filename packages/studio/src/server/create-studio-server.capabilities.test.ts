@@ -1,3 +1,6 @@
+import { access, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import type { SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   authenticatedCookie,
@@ -451,6 +454,215 @@ describe("translation.translatePending's process-wide in-flight guard, wired end
               };
             },
           }),
+        },
+      );
+    } finally {
+      await project.cleanup();
+    }
+  });
+});
+
+describe("translation.retranslateEntry's per-(locale,key) in-flight guard, wired end to end", () => {
+  it("rejects a second overlapping call for the SAME locale and key with ALREADY_IN_PROGRESS, calling the provider only once, while a concurrent call for a DIFFERENT key proceeds unaffected", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      {
+        greeting: "hello",
+        farewell: "bye",
+      },
+    );
+    try {
+      const gate = deferred<void>();
+      let providerCalls = 0;
+
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+
+          const firstCall = postRpc(server.url, cookie, "translation.retranslateEntry", {
+            locale: "de",
+            key: "greeting",
+          });
+
+          await waitUntil(() => providerCalls > 0);
+
+          const sameKeyCall = await postRpc(server.url, cookie, "translation.retranslateEntry", {
+            locale: "de",
+            key: "greeting",
+          });
+          expect(sameKeyCall.status).toBe(409);
+          expect(sameKeyCall.body).toMatchObject({
+            ok: false,
+            error: { code: "ALREADY_IN_PROGRESS" },
+          });
+          expect(providerCalls).toBe(1);
+
+          const differentKeyCall = postRpc(server.url, cookie, "translation.retranslateEntry", {
+            locale: "de",
+            key: "farewell",
+          });
+
+          gate.resolve();
+          const first = await firstCall;
+          expect(first.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+          const different = await differentKeyCall;
+          expect(different.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+          expect(providerCalls).toBe(2);
+
+          const later = await postRpc(server.url, cookie, "translation.retranslateEntry", {
+            locale: "de",
+            key: "greeting",
+          });
+          expect(later.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+        },
+        {
+          token: TOKEN,
+          loader: fixtureLoader(project),
+          cwd: project.root,
+          spend: true,
+          createProvider: () => ({
+            id: "stub",
+            kind: "llm",
+            supportsGlossary: true,
+            translateBatch: async (request) => {
+              providerCalls += 1;
+              await gate.promise;
+              return {
+                values: new Map(request.entries.map((entry) => [entry.key, "Hallo"])),
+                integrity: new Map(),
+              };
+            },
+          }),
+        },
+      );
+    } finally {
+      await project.cleanup();
+    }
+  });
+});
+
+const realFs: SdkFs = {
+  fileExists: async (path) => {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  readFileBounded: async (path) => {
+    try {
+      return { kind: "ok", content: await readFile(path, "utf8") };
+    } catch {
+      return { kind: "missing" };
+    }
+  },
+  readBytesBounded: async () => ({ kind: "missing" }),
+  writeFile: async (path, data) => {
+    await writeFile(path, data, "utf8");
+  },
+  writeBytes: async () => {},
+  createExclusive: async (path, data) => {
+    await mkdir(dirname(path), { recursive: true });
+    try {
+      const handle = await open(path, "wx");
+      try {
+        await handle.writeFile(data, "utf8");
+      } finally {
+        await handle.close();
+      }
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        return false;
+      }
+      throw error;
+    }
+  },
+  deleteFile: async (path) => {
+    await rm(path, { force: true });
+  },
+};
+
+function delayedWriteFs(targetPath: string, gate: Promise<void>, onWrite: () => void): SdkFs {
+  return {
+    ...realFs,
+    writeFile: async (path, data) => {
+      if (path === targetPath) {
+        onWrite();
+        await gate;
+      }
+      await realFs.writeFile(path, data);
+    },
+  };
+}
+
+describe("translation.editEntry's per-(locale,key) in-flight guard, wired end to end", () => {
+  it("rejects a second overlapping call for the SAME locale and key with ALREADY_IN_PROGRESS, writing to disk only once, while a concurrent call for a DIFFERENT key proceeds unaffected", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      {
+        greeting: "hello",
+        farewell: "bye",
+      },
+    );
+    try {
+      const gate = deferred<void>();
+      let writeCalls = 0;
+      const targetPath = join(project.root, "locales", "de.json");
+      const fs = delayedWriteFs(targetPath, gate.promise, () => {
+        writeCalls += 1;
+      });
+
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+
+          const firstCall = postRpc(server.url, cookie, "translation.editEntry", {
+            locale: "de",
+            key: "greeting",
+            value: "Hallo",
+          });
+
+          await waitUntil(() => writeCalls > 0);
+
+          const sameKeyCall = await postRpc(server.url, cookie, "translation.editEntry", {
+            locale: "de",
+            key: "greeting",
+            value: "Hallo again",
+          });
+          expect(sameKeyCall.status).toBe(409);
+          expect(sameKeyCall.body).toMatchObject({
+            ok: false,
+            error: { code: "ALREADY_IN_PROGRESS" },
+          });
+          expect(writeCalls).toBe(1);
+
+          const differentKeyCall = postRpc(server.url, cookie, "translation.editEntry", {
+            locale: "de",
+            key: "farewell",
+            value: "Tschuess",
+          });
+
+          gate.resolve();
+          const first = await firstCall;
+          expect(first.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+          const different = await differentKeyCall;
+          expect(different.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+          expect(writeCalls).toBe(2);
+
+          const later = await postRpc(server.url, cookie, "translation.editEntry", {
+            locale: "de",
+            key: "greeting",
+            value: "Hallo once more",
+          });
+          expect(later.body.error?.code).not.toBe("ALREADY_IN_PROGRESS");
+        },
+        {
+          token: TOKEN,
+          loader: fixtureLoader(project),
+          cwd: project.root,
+          fs,
         },
       );
     } finally {
