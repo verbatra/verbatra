@@ -75,6 +75,9 @@ For reusable design patterns already established in this codebase (Strategy,
 Factory, Adapter) and where to look before introducing a new one, see
 `.claude/rules/design-patterns.md`.
 
+Conventions for barrel exports, path aliases, and where a type lives (inline versus a
+local `types.ts`) are documented in `.claude/rules/code-organization.md`.
+
 ## Testing
 
 `.claude/rules/testing.md` is the source of truth for Vitest conventions, the
