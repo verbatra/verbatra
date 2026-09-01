@@ -36,7 +36,10 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 
 - `--cwd <path>` löst die Konfiguration und die Locale-Dateien von diesem Verzeichnis statt vom aktuellen aus auf. Jeder Befehl nimmt es.
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` nimmt es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
-- `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten. Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr. `translate`, `watch`, `check`, `diff`, `doctor`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht. `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
+- `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
+  - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht.
+  - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben aus und enden mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`.
 
 ## Umgebungsdateien

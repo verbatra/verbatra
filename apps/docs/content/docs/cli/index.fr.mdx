@@ -36,7 +36,10 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
 
 - `--cwd <path>` résout la config et les fichiers de locale depuis ce répertoire au lieu du répertoire courant. Toutes les commandes l'acceptent.
 - `--config <path>` charge ce fichier de config au lieu d'en chercher un. Toutes les commandes sauf `init` l'acceptent ; l'ordre de recherche est décrit dans [Le fichier de configuration](/docs/config-file).
-- `--json` affiche une [enveloppe](/docs/ci-and-exit-codes#sortie-json) lisible par machine sur stdout, une ligne par enregistrement, et garde stdout propre pour le piping. Branche-toi sur son champ `ok` : un succès porte les données de la commande sous `result`, et une exécution échouée porte le même code d'erreur stable que nomme la ligne stderr. La ligne d'erreur lisible par un humain va sur stderr dans les deux cas. `translate`, `watch`, `check`, `diff`, `doctor`, `export` et `import` le prennent en charge ; `init`, `studio` et `mcp` non. `mcp` n'écrit jamais rien sur stdout, puisque stdout est le canal du protocole MCP ; voir [`verbatra mcp`](/docs/cli/mcp).
+- `--json` affiche une [enveloppe](/docs/ci-and-exit-codes#sortie-json) lisible par machine sur stdout, une ligne par enregistrement, et garde stdout propre pour le piping.
+  - Branche-toi sur son champ `ok` : un succès porte les données de la commande sous `result`, et une exécution échouée porte le même code d'erreur stable que nomme la ligne stderr. La ligne d'erreur lisible par un humain va sur stderr dans les deux cas.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export` et `import` le prennent en charge ; `init`, `studio` et `mcp` non.
+  - `mcp` n'écrit jamais rien sur stdout, puisque stdout est le canal du protocole MCP ; voir [`verbatra mcp`](/docs/cli/mcp).
 - `--help` et `--version` affichent leur sortie et terminent avec `0`. Une commande ou une option inconnue termine avec `2`.
 
 ## Fichiers d'environnement

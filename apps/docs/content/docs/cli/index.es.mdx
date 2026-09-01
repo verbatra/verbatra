@@ -36,7 +36,10 @@ Necesitas Node.js `>=22.14.0`.
 
 - `--cwd <path>` resuelve la configuración y los archivos de locale desde ese directorio en lugar del actual. Todos los comandos lo aceptan.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
-- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar. Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos. Lo admiten `translate`, `watch`, `check`, `diff`, `doctor`, `export` e `import`; `init`, `studio` y `mcp` no. `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
+- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar.
+  - Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
+  - Lo admiten `translate`, `watch`, `check`, `diff`, `doctor`, `export` e `import`; `init`, `studio` y `mcp` no.
+  - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
 ## Archivos de entorno

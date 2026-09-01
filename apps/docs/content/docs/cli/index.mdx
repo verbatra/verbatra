@@ -36,7 +36,10 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 
 - `--cwd <path>` resolves the config and locale files from that directory instead of the current one. Every command takes it.
 - `--config <path>` loads that config file instead of searching for one. Every command except `init` takes it; the search order is described in [The config file](/docs/config-file).
-- `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping. Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way. `translate`, `watch`, `check`, `diff`, `doctor`, `export`, and `import` support it; `init`, `studio`, and `mcp` do not. `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
+- `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping.
+  - Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `export`, and `import` support it; `init`, `studio`, and `mcp` do not.
+  - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
 - `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
 
 ## Environment files
