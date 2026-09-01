@@ -286,8 +286,8 @@ outils, et les appeler par leur nom échoue comme un outil inconnu.
 
 **Cause** : la dépense fournisseur est une capacité que tu accordes au démarrage, et l'ensemble
 d'outils exposé par le serveur MCP ne doit pas varier selon la connexion, donc les deux outils
-conditionnés à la dépense sont omis entièrement plutôt qu'exposés puis refusés quand la dépense
-n'est pas autorisée.
+conditionnés à la dépense sont absents de la liste entièrement. Ils ne sont jamais annoncés puis
+refusés : si la dépense n'est pas autorisée, ils n'apparaissent tout simplement pas.
 
 **Solution** : redémarre le serveur avec `verbatra mcp --allow-spend` (ou `verbatra-mcp
 --allow-spend`), ou définis `VERBATRA_MCP_ALLOW_SPEND=1` (aussi `true`, `yes` ou `on`). Voir

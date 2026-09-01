@@ -124,13 +124,19 @@ file, and error messages name the variable but never a value. See [Providers](/d
 
 <AvailableFrom version="0.9.0" />
 
-Five things, all without a provider call, a network request, or reading an API key value: the
-config loads and passes validation, the configured `format` resolves to a file adapter, the
-configured `provider.id` resolves to a provider factory, the API key environment variable that
-provider reads is set (checked by name only, never by value), and the source locale file exists,
-is a regular file, and parses under that format. Every check runs even after an earlier one fails,
-so one run reports every independent problem at once; the exception is the config itself, where a
-failure to load skips the four checks that need it.
+Five things, all without a provider call, a network request, or reading an API key value:
+
+- Configuration: a config file was found and passes validation.
+- Format adapter: the configured `format` resolves to a file adapter.
+- Provider: the configured `provider.id` resolves to a provider factory.
+- API key environment variable: the variable that provider reads its key from is set (checked by
+  name only, never by value).
+- Source locale file: the source locale file exists at its resolved path, is a regular file, and
+  parses under the configured format.
+
+Every check runs even after an earlier one fails, so one run reports every independent problem at
+once; the exception is the config itself, where a failure to load skips the four checks that need
+it.
 
 ```bash
 verbatra doctor

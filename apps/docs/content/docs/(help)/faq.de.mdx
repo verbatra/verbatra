@@ -128,14 +128,19 @@ einen Wert. Siehe [Provider](/docs/providers).
 <AvailableFrom version="0.9.0" />
 
 Fünf Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
-lesen: Die Konfiguration lädt und besteht die Validierung, das konfigurierte `format` löst sich zu
-einem Datei-Adapter auf, die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf,
-die Umgebungsvariable, aus der dieser Provider seinen Schlüssel liest, ist gesetzt (nur dem Namen
-nach geprüft, nie am Wert), und die Quell-Locale-Datei existiert, ist eine reguläre Datei und
-lässt sich unter diesem Format parsen. Jeder Check läuft auch dann, wenn ein früherer
-fehlgeschlagen ist, ein Lauf meldet also jedes unabhängige Problem auf einmal; die Ausnahme ist
-die Konfiguration selbst: Schlägt sie beim Laden fehl, werden die vier Checks übersprungen, die
-sie brauchen.
+lesen:
+
+- Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
+- Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
+- Provider: Die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf.
+- API key environment variable: Die Variable, aus der dieser Provider seinen Schlüssel liest, ist
+  gesetzt (nur dem Namen nach geprüft, nie am Wert).
+- Source locale file: Die Quell-Locale-Datei existiert unter ihrem aufgelösten Pfad, ist eine
+  reguläre Datei und lässt sich im konfigurierten Format parsen.
+
+Jeder Check läuft auch dann, wenn ein früherer fehlgeschlagen ist, ein Lauf meldet also jedes
+unabhängige Problem auf einmal; die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
+fehl, werden die vier Checks übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor

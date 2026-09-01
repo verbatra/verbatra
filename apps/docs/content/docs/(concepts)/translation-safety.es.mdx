@@ -9,7 +9,8 @@ ruta de error. Esta página cubre cada capa de ese modelo.
 
 ## Cadenas no de fiar y la frontera contra la inyección de prompts
 
-Una cadena traducible puede contener texto que parece una instrucción (una cadena de UI que dice
+verbatra nunca deja que una cadena traducible actúe como una instrucción para la IA. Una cadena
+traducible puede contener texto que parece una instrucción (una cadena de UI que dice
 literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no de fiar.
 Las reglas de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la
 entrada variable, las entradas a traducir junto con tu glosario y tono, viaja solo en la carga JSON
@@ -37,8 +38,9 @@ nuevo por clave.
   posición que su origen, comparados como multiconjunto (las cantidades importan, el orden no).
   Elimina, añade o altera uno y la candidata se rechaza. Qué cuenta como marcador de posición se
   define por formato; consulta [Formatos](/docs/formats).
-- Integridad ICU: para los formatos ICU (next-intl y ARB), el valor traducido debe seguir
-  parseándose como un mensaje válido. Una candidata que conserva todos los marcadores de posición
+- Integridad ICU: para los formatos ICU (next-intl y ARB, que usan la sintaxis ICU MessageFormat
+  para plurales y sentencias select), el valor traducido debe seguir parseándose como un mensaje
+  válido. Una candidata que conserva todos los marcadores de posición
   pero rompe la estructura de plural o de select también se rechaza. Para estos formatos la
   comparación de marcadores de posición además distingue ramas: un marcador de posición fabricado
   dentro de una rama de plural se detecta aunque exista legítimamente en otra.

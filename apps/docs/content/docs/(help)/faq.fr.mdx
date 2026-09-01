@@ -132,13 +132,19 @@ messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs
 <AvailableFrom version="0.9.0" />
 
 Cinq choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
-clé d'API : la configuration se charge et passe la validation, le `format` configuré se résout en
-un adaptateur de fichier, le `provider.id` configuré se résout en une factory de fournisseur, la
-variable d'environnement dont ce fournisseur lit sa clé est définie (vérifiée seulement par son
-nom, jamais par sa valeur), et le fichier de la locale source existe, est un fichier normal et se
-parse sous ce format. Chaque vérification s'exécute même si une précédente a échoué, une exécution
-rapporte donc tous les problèmes indépendants à la fois ; l'exception est la configuration
-elle-même : si elle échoue au chargement, les quatre vérifications qui en ont besoin sont sautées.
+clé d'API :
+
+- Configuration : la configuration se charge et passe la validation.
+- Format adapter : le `format` configuré se résout en un adaptateur de fichier.
+- Provider : le `provider.id` configuré se résout en une factory de fournisseur.
+- API key environment variable : la variable d'environnement dont ce fournisseur lit sa clé est
+  définie (vérifiée seulement par son nom, jamais par sa valeur).
+- Source locale file : le fichier de la locale source existe, est un fichier normal et se parse
+  sous le format configuré.
+
+Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
+les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
+au chargement, les quatre vérifications qui en ont besoin sont sautées.
 
 ```bash
 verbatra doctor

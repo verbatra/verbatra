@@ -56,12 +56,16 @@ reprises à la suivante, pendant que les autres sous-lots continuent d'avancer. 
 ## Valider la réponse
 
 La sortie du fournisseur n'est jamais traitée comme du texte libre. Pour les fournisseurs LLM
-(Anthropic, OpenAI, Gemini et openai-compatible), la réponse est une donnée liée à un schéma,
-validée avant toute autre chose : une réponse malformée, ou qui contient une clé jamais demandée,
-fait échouer le sous-lot, et une clé demandée qui revient manquante ou dupliquée est redemandée une
-fois ; si elle reste non résolue après ça, la clé est traitée comme non traduite pour cette
-exécution et retentée à la suivante. DeepL est une API de traduction automatique sans cette couche
-de réponse, mais ses résultats passent par les mêmes contrôles d'intégrité ci-dessous.
+(Anthropic, OpenAI, Gemini et openai-compatible), la réponse doit respecter un schéma fixe,
+vérifié avant toute autre chose :
+
+- Une réponse malformée, ou qui contient une clé jamais demandée, fait échouer le sous-lot entier.
+- Une clé demandée qui revient manquante ou dupliquée est redemandée une fois.
+- Si elle reste non résolue après ça, la clé compte comme non traduite pour cette exécution et est
+  retentée à la suivante.
+
+DeepL est une API de traduction automatique sans cette couche de réponse, mais ses résultats
+passent par les mêmes contrôles d'intégrité ci-dessous.
 
 ## Exécuter la barrière d'intégrité
 

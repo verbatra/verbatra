@@ -52,12 +52,17 @@ how each provider applies the inputs.
 ## Validate the response
 
 Provider output is never trusted as free text. For the LLM providers (Anthropic, OpenAI, Gemini,
-and openai-compatible), the response is schema-bound data, validated before anything else happens:
-a response that is malformed, or that contains a key that was never requested, fails the
-sub-batch, and a requested key that comes back missing or duplicated is re-requested once; if it
-is still unresolved after that, the key is treated as not translated this run and retried on the
-next one. DeepL is a machine-translation API without this response layer, but its results go
-through the same integrity checks below.
+and openai-compatible), the response must match a fixed schema, checked before anything else
+happens:
+
+- A malformed response, or one containing a key that was never requested, fails the whole
+  sub-batch.
+- A requested key that comes back missing or duplicated is re-requested once.
+- If it is still unresolved after that, the key counts as not translated this run and is retried
+  next run.
+
+DeepL is a machine-translation API without this response layer, but its results go through the
+same integrity checks below.
 
 ## Run the integrity gate
 

@@ -293,9 +293,9 @@ lies zuerst
 Aufruf beider Namen schlägt als unbekanntes Tool fehl.
 
 **Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst, und
-das bereitgestellte Tool-Set des MCP-Servers darf sich nicht pro Verbindung ändern, also werden die
-beiden kostenpflichtigen Tools ganz weggelassen, statt bereitgestellt und dann abgelehnt zu werden,
-wenn Ausgaben nicht erlaubt sind.
+das bereitgestellte Tool-Set des MCP-Servers darf sich nicht pro Verbindung ändern, also fehlen die
+beiden kostenpflichtigen Tools in der Liste ganz. Sie werden nie erst angeboten und dann
+abgelehnt: Wenn Ausgaben nicht erlaubt sind, tauchen sie einfach gar nicht auf.
 
 **Lösung**: Starte den Server neu mit `verbatra mcp --allow-spend` (oder `verbatra-mcp
 --allow-spend`), oder setze `VERBATRA_MCP_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Siehe

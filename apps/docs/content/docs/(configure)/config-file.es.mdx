@@ -65,7 +65,17 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
 - **`targetLocales`** debe contener al menos un locale, no debe incluir `sourceLocale`, y dos entradas no pueden ser iguales sin distinguir mayúsculas de minúsculas (por ejemplo `["de", "DE"]` se rechaza), porque cada locale se convierte en el nombre de su propia hoja de Excel al exportar.
 - **`format`** es uno de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml` o `gettext-po`. Consulta [Formatos](/docs/formats).
 - **`files.pattern`** debe contener el token `{locale}`, que verbatra reemplaza con cada locale: `locales/{locale}.json` se resuelve a `locales/de.json`. Las rutas se resuelven contra el directorio de trabajo. El patrón es una ruta literal, no un glob, y `{locale}` es el único token que entiende, así que una configuración direcciona exactamente un archivo por locale. Si tu proyecto reparte sus cadenas entre varios archivos de namespace por locale, mira [Diseños con namespaces](/docs/formats#diseños-con-namespaces). La única excepción es `apple-xcstrings`, donde todos los locales comparten un único archivo de catálogo: el token sigue siendo obligatorio en el patrón, pero se resuelve a la misma ruta sin importar el locale. Consulta [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
-- **`files.localeStyle`** decide en qué se expande el token. `literal`, el valor por defecto, usa la etiqueta configurada tal cual, que es lo que necesitan los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple. `posix` reemplaza `-` por `_`, para gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) y el diseño Java `messages_{locale}.properties`. `android` expande el token a un directorio de recursos completo de Android, escrito como `res/{locale}/strings.xml`: `values` para el locale de origen, y luego `values-de`, `values-pt-rBR` y `values-b+zh+Hans`. Un estilo rechaza un locale para el que no tiene una escritura correcta, en lugar de escribir un directorio que la plataforma ignoraría en silencio.
+- **`files.localeStyle`** decide en qué se expande el token:
+  - `literal`, el valor por defecto, usa la etiqueta configurada tal cual, que es lo que necesitan
+    los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
+  - `posix` reemplaza `-` por `_`, para gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) y el
+    diseño Java `messages_{locale}.properties`.
+  - `android` expande el token a un directorio de recursos completo de Android, escrito como
+    `res/{locale}/strings.xml`: `values` para el locale de origen, y luego `values-de`,
+    `values-pt-rBR` y `values-b+zh+Hans`.
+
+  Un estilo rechaza un locale que no puede escribir correctamente para ese estilo, en lugar de
+  escribir un directorio que la plataforma ignoraría en silencio.
 
 ### provider
 
@@ -118,7 +128,7 @@ Por defecto `50`. Las entradas faltantes más las modificadas de un locale se di
 - `"warn"` (el valor por defecto) señala el exceso y deja que la ejecución continúe exactamente como si no hubiera presupuesto configurado.
 - `"stop"` retiene cada clave aún no intentada durante el resto de la ejecución: las candidatas restantes del locale actual, y las candidatas de cada locale de destino posterior por completo (su diff y su informe de huérfanas siguen corriendo; solo se salta la llamada al proveedor). Las claves retenidas conservan su hash anterior en el bloqueo y se reintentan automáticamente en la siguiente ejecución, igual que ya lo hace una llamada al proveedor fallida.
 
-Definir `maxTokens` también limita cómo se puede paralelizar una ejecución: una ejecución real que lo combine con `--concurrency` por encima de `1` se rechaza con código de salida `2` (`CONCURRENCY_BUDGET_CONFLICT`) antes de cualquier llamada al proveedor, porque locales concurrentes no pueden respetar un tope de tokens de forma determinista. Una ejecución en seco queda exenta. Quita el presupuesto o deja la concurrencia en `1`.
+Definir `maxTokens` también limita cómo se puede paralelizar una ejecución: una ejecución real que lo combine con `--concurrency` por encima de `1` se rechaza con código de salida `2` (`CONCURRENCY_BUDGET_CONFLICT`) antes de cualquier llamada al proveedor. La razón: locales que se traducen a la vez no pueden compartir un mismo presupuesto de tokens de forma fiable, así que verbatra rechaza en lugar de arriesgarse a un tope inexacto. Una ejecución en seco queda exenta. Quita el presupuesto o deja la concurrencia en `1`.
 
 Con `"warn"`, que el presupuesto salte nunca cambia el código de salida del comando. Con `"stop"` sí puede: un locale cuyas claves se retuvieron se informa como `partial` cuando algunas claves sí llegaron y como `failed` cuando no llegó ninguna, y ambos salen con `1`. `budgetBehavior` sin `maxTokens` se acepta y no tiene efecto. Contra un proveedor sin tokens (DeepL, que no informa de uso que medir) la salvaguarda se declara inerte (`supported: false` en el `budget` del resumen de la ejecución) en lugar de producir un salto falso.
 

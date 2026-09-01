@@ -130,13 +130,19 @@ nunca un valor. Consulta [Proveedores](/docs/providers).
 <AvailableFrom version="0.9.0" />
 
 Cinco cosas, todas sin llamar al proveedor, sin petición de red y sin leer el valor de una clave
-de API: la configuración carga y pasa la validación, el `format` configurado se resuelve a un
-adaptador de archivo, el `provider.id` configurado se resuelve a una factory de proveedor, la
-variable de entorno de la que ese proveedor lee su clave está definida (comprobada solo por
-nombre, nunca por valor), y el archivo de la locale de origen existe, es un archivo regular y se
-parsea bajo ese formato. Cada comprobación se ejecuta incluso si una anterior falló, así que una
-sola ejecución informa de todos los problemas independientes a la vez; la excepción es la propia
-configuración: si falla al cargar, se omiten las cuatro comprobaciones que la necesitan.
+de API:
+
+- Configuration: la configuración carga y pasa la validación.
+- Format adapter: el `format` configurado se resuelve a un adaptador de archivo.
+- Provider: el `provider.id` configurado se resuelve a una factory de proveedor.
+- API key environment variable: la variable de entorno de la que ese proveedor lee su clave está
+  definida (comprobada solo por nombre, nunca por valor).
+- Source locale file: el archivo de la locale de origen existe en su ruta resuelta, es un archivo
+  regular y se parsea bajo el formato configurado.
+
+Cada comprobación se ejecuta incluso si una anterior falló, así que una sola ejecución informa de
+todos los problemas independientes a la vez; la excepción es la propia configuración: si falla al
+cargar, se omiten las cuatro comprobaciones que la necesitan.
 
 ```bash
 verbatra doctor

@@ -283,8 +283,8 @@ herramientas, y llamarlas por nombre falla como herramienta desconocida.
 
 **Causa**: el gasto de proveedor es una capacidad que concedes al arrancar, y el conjunto de
 herramientas que expone el servidor MCP no puede variar por conexión, así que las dos herramientas
-con puerta de gasto se omiten por completo en vez de exponerse y luego rechazarse cuando el gasto
-no está permitido.
+con puerta de gasto quedan fuera de la lista por completo. Nunca se anuncian para luego
+rechazarse: si el gasto no está permitido, simplemente no aparecen.
 
 **Solución**: reinicia el servidor con `verbatra mcp --allow-spend` (o `verbatra-mcp
 --allow-spend`), o define `VERBATRA_MCP_ALLOW_SPEND=1` (también `true`, `yes` u `on`). Consulta

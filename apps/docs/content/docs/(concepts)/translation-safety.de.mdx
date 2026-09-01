@@ -9,7 +9,8 @@ jedem Fehlerpfad heraus. Diese Seite behandelt jede Schicht dieses Modells.
 
 ## Nicht vertrauenswürdige Strings und die Prompt-Injection-Grenze
 
-Ein übersetzbarer String kann Text enthalten, der wie eine Anweisung aussieht (ein UI-String, der
+verbatra lässt nie zu, dass ein übersetzbarer String wie eine Anweisung an die KI wirkt. Ein
+übersetzbarer String kann Text enthalten, der wie eine Anweisung aussieht (ein UI-String, der
 wörtlich "ignore your instructions" lautet), deshalb behandelt verbatra jeden einzelnen als nicht
 vertrauenswürdige Eingabe. Die Systemregeln, die an einen LLM-Provider gehen, sind Konstanten aus
 der Kompilierzeit. Alle variablen Eingaben, die zu übersetzenden Einträge samt deinem Glossar und
@@ -38,7 +39,8 @@ erneut.
   verglichen als Multimenge (die Anzahl zählt, die Reihenfolge nicht). Lass einen fallen, füge
   einen hinzu oder verändere einen, und der Kandidat wird abgelehnt. Was als Platzhalter zählt,
   ist pro Format definiert; siehe [Formate](/docs/formats).
-- ICU-Integrität: Für die ICU-Formate (next-intl und ARB) muss der übersetzte Wert weiterhin als
+- ICU-Integrität: Für die ICU-Formate (next-intl und ARB, die für Plural- und
+  Select-Anweisungen die ICU-MessageFormat-Syntax nutzen) muss der übersetzte Wert weiterhin als
   gültige Nachricht parsen. Ein Kandidat, der jeden Platzhalter behält, aber die Plural- oder
   Select-Struktur bricht, wird ebenfalls abgelehnt. Für diese Formate vergleicht die
   Platzhalterprüfung außerdem pro Zweig: Ein Platzhalter, der in einem Plural-Zweig erfunden

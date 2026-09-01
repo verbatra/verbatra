@@ -56,12 +56,17 @@ aplica cada proveedor estas entradas.
 ## Valida la respuesta
 
 La salida del proveedor nunca se trata como texto libre de confianza. Para los proveedores LLM
-(Anthropic, OpenAI, Gemini y openai-compatible), la respuesta son datos ligados a un esquema,
-validados antes de cualquier otra cosa: una respuesta malformada, o que contiene una clave que nunca
-se pidió, hace fallar el sublote, y una clave solicitada que vuelve ausente o duplicada se vuelve a
-pedir una vez; si tras eso sigue sin resolverse, la clave se trata como no traducida en esta
-ejecución y se reintenta en la siguiente. DeepL es una API de traducción automática sin esta capa de
-respuesta, pero sus resultados pasan por las mismas comprobaciones de integridad de abajo.
+(Anthropic, OpenAI, Gemini y openai-compatible), la respuesta debe ajustarse a un esquema fijo,
+comprobado antes de cualquier otra cosa:
+
+- Una respuesta malformada, o que contiene una clave que nunca se pidió, hace fallar el sublote
+  entero.
+- Una clave solicitada que vuelve ausente o duplicada se vuelve a pedir una vez.
+- Si tras eso sigue sin resolverse, la clave cuenta como no traducida en esta ejecución y se
+  reintenta en la siguiente.
+
+DeepL es una API de traducción automática sin esta capa de respuesta, pero sus resultados pasan
+por las mismas comprobaciones de integridad de abajo.
 
 ## Ejecuta la puerta de integridad
 

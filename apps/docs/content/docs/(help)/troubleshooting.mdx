@@ -269,8 +269,8 @@ first.
 calling either by name fails as an unknown tool.
 
 **Cause**: provider spend is a capability you grant at startup, and the MCP server's advertised tool
-set must not vary per connection, so the two spend-gated tools are omitted entirely rather than
-advertised-and-refused when spending is not allowed.
+set must not vary per connection, so the two spend-gated tools are left out of the list entirely.
+They are never advertised and then refused: if spending isn't allowed, they simply don't appear.
 
 **Fix**: restart the server with `verbatra mcp --allow-spend` (or `verbatra-mcp --allow-spend`), or
 set `VERBATRA_MCP_ALLOW_SPEND=1` (also `true`, `yes`, or `on`). See [`verbatra mcp`](/docs/cli/mcp).
