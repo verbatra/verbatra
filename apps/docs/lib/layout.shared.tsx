@@ -1,10 +1,11 @@
+import { SiNpm } from "@icons-pack/react-simple-icons";
 import { i18nProvider, uiTranslations } from "fumadocs-ui/i18n";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import { LanguageSelectText } from "fumadocs-ui/layouts/shared/slots/language-select";
 import { getTranslations } from "next-intl/server";
 import { VMark } from "@/components/landing";
 import { GithubIcon } from "@/components/landing/github-icon";
-import { CONTRIBUTING_URL } from "@/components/landing/links";
+import { CONTRIBUTING_URL, NPM_CLI } from "@/components/landing/links";
 import { MailIcon } from "@/components/landing/mail-icon";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
@@ -48,6 +49,14 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         text: "GitHub",
         icon: <GithubIcon />,
         url: "https://github.com/verbatra/verbatra",
+        external: true,
+      },
+      {
+        type: "icon",
+        label: t("npm"),
+        text: t("npm"),
+        icon: <SiNpm size={18} aria-hidden="true" className="shrink-0" />,
+        url: NPM_CLI,
         external: true,
       },
       {

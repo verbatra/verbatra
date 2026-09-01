@@ -205,7 +205,8 @@
         "machineTranslatedLabel": "Traduction automatique",
         "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
       },
-      "contact": "Contact"
+      "contact": "Contact",
+      "npm": "verbatra sur npm"
     },
     "studio": {
       "heading": "Garde tout l'état de la traduction sous les yeux, en local.",
