@@ -58,10 +58,16 @@ export const verbatraConfigSchema = z
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
   })
-  .refine((config) => !config.targetLocales.includes(config.sourceLocale), {
-    message: "targetLocales must not include the source locale",
-    path: ["targetLocales"],
-  })
+  .refine(
+    (config) => {
+      const sourceKey = config.sourceLocale.toLowerCase();
+      return !config.targetLocales.some((locale) => locale.toLowerCase() === sourceKey);
+    },
+    {
+      message: "targetLocales must not include the source locale",
+      path: ["targetLocales"],
+    },
+  )
   .refine((config) => findCaseInsensitiveDuplicate(config.targetLocales) === undefined, {
     error: (issue) => {
       const duplicate = findCaseInsensitiveDuplicate(

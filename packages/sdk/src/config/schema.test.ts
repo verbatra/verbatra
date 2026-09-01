@@ -42,6 +42,30 @@ describe("verbatraConfigSchema: targetLocales case-insensitive duplicates", () =
   });
 });
 
+describe("verbatraConfigSchema: targetLocales vs sourceLocale", () => {
+  it("rejects a target locale that exactly matches the source locale", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ sourceLocale: "en", targetLocales: ["en"] }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.join(".") === "targetLocales");
+      expect(issue?.message).toBe("targetLocales must not include the source locale");
+    }
+  });
+
+  it("rejects a target locale that case-insensitively matches the source locale", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ sourceLocale: "de", targetLocales: ["DE"] }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.join(".") === "targetLocales");
+      expect(issue?.message).toBe("targetLocales must not include the source locale");
+    }
+  });
+});
+
 describe("verbatraConfigSchema: the {locale} token rule", () => {
   it("reports the same message at the same path as the whole-config rule it replaced", () => {
     const result = verbatraConfigSchema.safeParse(
