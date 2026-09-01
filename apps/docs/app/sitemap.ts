@@ -24,9 +24,11 @@ function legalLanguageAlternates(path: string): Record<string, string> {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const buildTime = new Date();
   const homeAlternates = { languages: homeLanguageAlternates() };
   const home: MetadataRoute.Sitemap = i18n.languages.map((locale) => ({
     url: new URL(homePath(locale), SITE_URL).href,
+    lastModified: buildTime,
     changeFrequency: "weekly",
     priority: HOME_PRIORITY[locale],
     alternates: homeAlternates,
@@ -41,6 +43,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       }
       return {
         url: new URL(page.url, SITE_URL).href,
+        lastModified: buildTime,
         changeFrequency: "weekly",
         priority: 0.8,
         alternates: { languages },
@@ -51,6 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const legal: MetadataRoute.Sitemap = i18n.languages.flatMap((locale) =>
     LEGAL_PATHS.map((path) => ({
       url: new URL(localizedPath(locale, path), SITE_URL).href,
+      lastModified: buildTime,
       changeFrequency: "monthly",
       priority: 0.3,
       alternates: { languages: legalLanguageAlternates(path) },

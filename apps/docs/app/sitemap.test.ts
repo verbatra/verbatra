@@ -80,6 +80,15 @@ describe("sitemap", () => {
     ]);
   });
 
+  it("stamps every entry with the same build-time lastModified value", () => {
+    const entries = sitemap();
+    const first = entries[0]?.lastModified;
+    expect(first).toBeInstanceOf(Date);
+    for (const entry of entries) {
+      expect(entry.lastModified).toBe(first);
+    }
+  });
+
   it("marks the home and docs pages as changing weekly, and the legal pages monthly", () => {
     const entries = sitemap();
     const legal = entries.filter((entry) => LEGAL_URLS.includes(entry.url ?? ""));
