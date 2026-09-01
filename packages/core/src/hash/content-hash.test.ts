@@ -22,6 +22,24 @@ describe("contentHash", () => {
     expect(contentHash(a)).toBe(contentHash(b));
   });
 
+  it("differs when placeholder content differs (same length and order pattern)", () => {
+    const a = entry({ key: "a", placeholders: ["{x}"] });
+    const b = entry({ key: "a", placeholders: ["{y}"] });
+    expect(contentHash(a)).not.toBe(contentHash(b));
+  });
+
+  it("differs when the meaning differs", () => {
+    const a = entry({ key: "a", value: "same", meaning: "button label" });
+    const b = entry({ key: "a", value: "same", meaning: "menu item" });
+    expect(contentHash(a)).not.toBe(contentHash(b));
+  });
+
+  it("differs when isPlural differs", () => {
+    const a = entry({ key: "a", value: "same", isPlural: false });
+    const b = entry({ key: "a", value: "same", isPlural: true });
+    expect(contentHash(a)).not.toBe(contentHash(b));
+  });
+
   it("ignores identity (key and namespace)", () => {
     const a = entry({ key: "a", namespace: "one", value: "same" });
     const b = entry({ key: "b", namespace: "two", value: "same" });
