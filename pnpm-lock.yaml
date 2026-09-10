@@ -165,8 +165,8 @@ importers:
         specifier: 4.14.1
         version: 4.14.1(@swc/helpers@0.5.23)(next@16.3.3(@types/node@26.4.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       nodemailer:
-        specifier: 9.0.6
-        version: 9.0.6
+        specifier: 9.1.1
+        version: 9.1.1
       react:
         specifier: 'catalog:'
         version: 19.2.8
@@ -4736,8 +4736,8 @@ packages:
     resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  nodemailer@9.0.6:
-    resolution: {integrity: sha512-IQUGFdhdGwI9+AWX+FpUt4DLmvFaOjTMEoneTIWX/RXxuy1TdenPwWrvFMSfLkPKl+HQEXWuSAxEMMbPYXtBmg==}
+  nodemailer@9.1.1:
+    resolution: {integrity: sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==}
     engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
@@ -9687,7 +9687,7 @@ snapshots:
       fetch-blob: 3.2.0
       formdata-polyfill: 4.0.10
 
-  nodemailer@9.0.6: {}
+  nodemailer@9.1.1: {}
 
   normalize-path@3.0.0: {}
 
