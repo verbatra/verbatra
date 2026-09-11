@@ -92,6 +92,14 @@ describe("sendContactEmail", () => {
     const result = await sendContactEmail(payload());
     expect(result).toEqual({ ok: false });
   });
+
+  it("returns ok: false when CONTACT_SMTP_FROM is unset even with an injected client", async () => {
+    setSmtpEnv();
+    delete process.env.CONTACT_SMTP_FROM;
+    const client = stubClient(vi.fn().mockResolvedValue({ messageId: "message_1" }));
+    const result = await sendContactEmail(payload(), { client });
+    expect(result).toEqual({ ok: false });
+  });
 });
 
 describe("resolveClient", () => {

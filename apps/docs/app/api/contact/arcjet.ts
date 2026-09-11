@@ -38,7 +38,10 @@ export function resolveClient(deps: CheckArcjetDeps): ArcjetProtectClient | unde
 }
 
 function responseForDecision(decision: ArcjetDecision): Response | undefined {
-  if (decision.isErrored()) return serverErrorResponse();
+  if (decision.isErrored()) {
+    console.error("checkArcjet: Arcjet returned an errored decision.");
+    return serverErrorResponse();
+  }
   if (decision.isDenied()) {
     return decision.reason.isRateLimit() ? rateLimitedResponse() : forbiddenResponse();
   }
@@ -50,12 +53,16 @@ export async function checkArcjet(
   deps: CheckArcjetDeps = {},
 ): Promise<Response | undefined> {
   const client = resolveClient(deps);
-  if (!client) return serverErrorResponse();
+  if (!client) {
+    console.error("checkArcjet: the ARCJET_KEY environment variable is not set.");
+    return serverErrorResponse();
+  }
 
   try {
     const decision = await client.protect(request);
     return responseForDecision(decision);
-  } catch {
+  } catch (error) {
+    console.error("checkArcjet: protect() threw.", error);
     return serverErrorResponse();
   }
 }

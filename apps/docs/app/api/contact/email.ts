@@ -48,6 +48,14 @@ export function resolveClient(deps: SendContactEmailDeps): EmailClient | undefin
     from === undefined ||
     from.length === 0
   ) {
+    const missing = [
+      host ? null : "CONTACT_SMTP_HOST",
+      port ? null : "CONTACT_SMTP_PORT",
+      user ? null : "CONTACT_SMTP_USER",
+      password ? null : "CONTACT_SMTP_PASSWORD",
+      from ? null : "CONTACT_SMTP_FROM",
+    ].filter((name): name is string => name !== null);
+    console.error(`sendContactEmail: missing environment variables: ${missing.join(", ")}`);
     return undefined;
   }
 
@@ -67,7 +75,10 @@ export async function sendContactEmail(
   if (!client) return { ok: false };
 
   const fromAddress = process.env.CONTACT_SMTP_FROM;
-  if (fromAddress === undefined || fromAddress.length === 0) return { ok: false };
+  if (fromAddress === undefined || fromAddress.length === 0) {
+    console.error("sendContactEmail: the CONTACT_SMTP_FROM environment variable is not set.");
+    return { ok: false };
+  }
   const from = `verbatra docs contact form <${fromAddress}>`;
 
   const { subject, text } = buildNotificationEmail(payload);
@@ -81,7 +92,8 @@ export async function sendContactEmail(
       replyTo: payload.email,
     });
     return { ok: true };
-  } catch {
+  } catch (error) {
+    console.error("sendContactEmail: sendMail failed.", error);
     return { ok: false };
   }
 }
