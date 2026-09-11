@@ -71,9 +71,12 @@ overrides:
   # GHSA-g7r4-m6w7-qqqr: esbuild dev-server arbitrary file read on Windows (dev-only, via vitest and tsup).
   # Vulnerable >=0.27.3 <0.28.1; lifts the 0.27.7 copy.
   esbuild@<0.28.1: ">=0.28.1"
-  # GHSA-xcpc-8h2w-3j85 (CVE-2026-39244): a crafted ZIP uncompressed-size header forces a ~4GB allocation.
-  # Vulnerable <0.6.0; lifts the 0.5.17 copy adm-zip is pulled through (deepl-node) to the patched line.
-  adm-zip@<0.6.0: ">=0.6.0"
+  # GHSA-xcpc-8h2w-3j85 (CVE-2026-39244, a crafted ZIP uncompressed-size header forces a ~4GB
+  # allocation) plus GHSA-vwc7-r8mq-g2x9 (extraction follows destination symlinks, allowing
+  # arbitrary file overwrite), which extends the vulnerable range through 0.6.0 and so makes the
+  # 0.6.0 this override used to pin vulnerable in its own right. Lifts the 0.5.17 copy adm-zip is
+  # pulled through (deepl-node) to the patched line.
+  adm-zip@<0.6.1: ">=0.6.1"
   # GHSA-gcfj-64vw-6mp9 (high, Node adapter reuses an inherited proxy across cloned configs) plus the
   # axios moderate cluster (GHSA-mwf2-3pr3-8698, GHSA-f4gw-2p7v-4548, GHSA-hcpx-6fm6-wx23,
   # GHSA-xj6q-8x83-jv6g and the rest of the 1.15.2-1.17.x line). All patched in 1.18.0; lifts the
@@ -88,10 +91,12 @@ overrides:
   # GHSA-52cp-r559-cp3m (high): quadratic-complexity DoS in js-yaml merge-key handling on the v4 line,
   # vulnerable >=4.0.0 <4.3.0. GHSA-5p4m-2wfm-xmqj / CVE-2026-59870 (high): quadratic CPU consumption
   # in !!omap resolution, which extends the vulnerable range to >=4.0.0 <4.3.1 and so makes the 4.3.0
-  # this override used to pin vulnerable in its own right. Lifts the copy on the published sdk path
-  # (via cosmiconfig config loading), and in @commitlint/cli (dev) and fumadocs-mdx (docs). The <5
-  # ceiling keeps it on the v4 API those consumers expect.
-  "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <5"
+  # this override used to pin vulnerable in its own right. GHSA-2883-xcg3-v3hh (high): maxTotalMergeKeys
+  # does not limit CPU use for empty merge sources, which extends the vulnerable range to >=4.0.0
+  # <4.3.2 and so makes the 4.3.1 this override used to pin vulnerable in its own right. Lifts the
+  # copy on the published sdk path (via cosmiconfig config loading), and in @commitlint/cli (dev)
+  # and fumadocs-mdx (docs). The <5 ceiling keeps it on the v4 API those consumers expect.
+  "js-yaml@>=4.0.0 <4.3.2": ">=4.3.2 <5"
   # GHSA-724g-mxrg-4qvm (quadratic-complexity DoS via a crafted !!omap, <=5.2.0) and
   # GHSA-pm4m-ph32-ghv5 (exponential parsing time in flow collections, <=5.2.1) on the v5 line.
   # Lifts the copy fumadocs-core pulls (apps/docs, private) to the patched release.
@@ -136,3 +141,6 @@ allowBuilds:
   playwright: false
   protobufjs: false
   sharp: true
+
+minimumReleaseAgeExclude:
+  - adm-zip@0.6.1
