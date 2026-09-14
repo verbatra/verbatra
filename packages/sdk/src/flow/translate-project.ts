@@ -79,12 +79,13 @@ export interface TranslateInput {
    * `dryRun`: an estimate constructs no provider, reads no API key, makes no network call, and
    * writes no file, so it is safe to run anywhere. Defaults to false.
    *
-   * The figure is an upper bound on the work it plans rather than a quotation: every provider call
-   * a live run schedules is counted, plural generation included, and the prompt is measured from
-   * the request payload that would be sent. Only the bounded retry an incomplete response triggers
-   * can push a live run above it. It carries a currency amount only when the config supplies a
-   * `rates` block covering the configured provider and model; otherwise it reports the quantity and
-   * says why the money is missing. See {@link RunEstimate}.
+   * The figure bounds the plan rather than the invoice: every provider call a live run schedules is
+   * counted, plural generation included, and the prompt is measured from the request payload that
+   * would be sent. Provider-side retries, a repair round, and a language that expands past the
+   * allowance can each push a live run above it; {@link EstimateCaveatCode} names them all. It
+   * carries a currency amount only when the config supplies a `rates` block covering the configured
+   * provider and model; otherwise it reports the quantity and says why the money is missing. See
+   * {@link RunEstimate}.
    */
   readonly estimate?: boolean;
   /**

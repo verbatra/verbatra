@@ -249,6 +249,41 @@ describe("estimateRun: what cannot be priced", () => {
   });
 });
 
+describe("estimateRun: the exact excludes list", () => {
+  function caveatsOf(provider: ProviderConfig): readonly string[] {
+    return estimateRun({
+      provider,
+      sourceLocale: "en",
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
+    }).caveats;
+  }
+
+  it("names six things on a token-billed provider, in a fixed order", () => {
+    expect(caveatsOf(ANTHROPIC)).toEqual([
+      "CACHE_NOT_CONSULTED",
+      "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+      "TRANSPORT_RETRIES_NOT_COUNTED",
+      "TRANSLATION_LENGTH_IS_ESTIMATED",
+      "TOKEN_COUNT_IS_HEURISTIC",
+      "REPAIR_REQUESTS_NOT_COUNTED",
+    ]);
+  });
+
+  it("names three on a character-billed provider, which has no tokens and no repair round", () => {
+    expect(caveatsOf(DEEPL)).toEqual([
+      "CACHE_NOT_CONSULTED",
+      "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+      "TRANSPORT_RETRIES_NOT_COUNTED",
+    ]);
+  });
+
+  it("names the retry the provider SDKs perform underneath every planned request", () => {
+    expect(caveatsOf(ANTHROPIC)).toContain("TRANSPORT_RETRIES_NOT_COUNTED");
+    expect(caveatsOf(DEEPL)).toContain("TRANSPORT_RETRIES_NOT_COUNTED");
+  });
+});
+
 describe("estimateRun: honesty about what the figure leaves out", () => {
   it("always records that the cache was not consulted and duplicates were not collapsed", () => {
     const estimate = estimateRun({

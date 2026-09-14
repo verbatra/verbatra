@@ -1,4 +1,5 @@
 import type {
+  EstimateCaveatCode,
   LockWaitEvent,
   PricedRunEstimate,
   ProgressEvent,
@@ -693,12 +694,33 @@ describe("renderHuman: pre-run estimate", () => {
     }
   });
 
-  it("spells out every caveat code it is handed, so none renders as a blank", () => {
+  it("spells out every caveat code in the union, so a new one cannot render as a blank", () => {
+    const everyCaveat: Record<EstimateCaveatCode, true> = {
+      CACHE_NOT_CONSULTED: true,
+      SOURCE_DUPLICATES_NOT_DEDUPLICATED: true,
+      TRANSPORT_RETRIES_NOT_COUNTED: true,
+      TRANSLATION_LENGTH_IS_ESTIMATED: true,
+      TOKEN_COUNT_IS_HEURISTIC: true,
+      REPAIR_REQUESTS_NOT_COUNTED: true,
+    };
+    const codes = Object.keys(everyCaveat) as readonly EstimateCaveatCode[];
+
+    for (const code of codes) {
+      const line = render({ ...tokenEstimate, caveats: [code] });
+      const phrase = line.split("estimate excludes: ")[1]?.split("\n")[0] ?? "";
+
+      expect(phrase, code).not.toBe("");
+      expect(phrase, code).not.toContain("undefined");
+    }
+  });
+
+  it("joins the whole token-billed list into one readable line", () => {
     const line = render({
       ...tokenEstimate,
       caveats: [
         "CACHE_NOT_CONSULTED",
         "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+        "TRANSPORT_RETRIES_NOT_COUNTED",
         "TRANSLATION_LENGTH_IS_ESTIMATED",
         "TOKEN_COUNT_IS_HEURISTIC",
         "REPAIR_REQUESTS_NOT_COUNTED",
@@ -706,8 +728,8 @@ describe("renderHuman: pre-run estimate", () => {
     });
 
     expect(line).toContain(
-      "estimate excludes: cache hits, duplicate source strings, translation length, " +
-        "tokenizer differences, repair requests",
+      "estimate excludes: cache hits, duplicate source strings, provider-side retries, " +
+        "translation length, tokenizer differences, repair requests",
     );
   });
 });

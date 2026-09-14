@@ -80,18 +80,24 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
  *   would serve from cache are still counted.
  * - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
  *   string; the estimate counts every key.
+ * - `TRANSPORT_RETRIES_NOT_COUNTED`: the estimate counts one billable call per planned request. The
+ *   provider SDKs retry a failed call underneath that, so one planned request can become several
+ *   attempts on the wire, and a retried attempt that reached the model is still billed.
  * - `TRANSLATION_LENGTH_IS_ESTIMATED`: the translation does not exist yet, so the response is sized
  *   from the source value plus a fixed expansion allowance. A target language that runs longer than
  *   the allowance reports more completion tokens than this figure predicts.
  * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
  *   own tokenizer.
  * - `REPAIR_REQUESTS_NOT_COUNTED`: the extra requests an incomplete response can trigger are not
- *   counted: one bounded repair request when keys came back missing, and a retry in halves when
- *   the output was cut off.
+ *   counted: one bounded repair round when keys came back missing, and a retry in halves, which
+ *   recurses, when the output was cut off. A repair round re-sends the system rules, the glossary
+ *   and the tone in full, so repairing one key in a large-glossary batch costs close to a whole
+ *   extra request.
  */
 export type EstimateCaveatCode =
   | "CACHE_NOT_CONSULTED"
   | "SOURCE_DUPLICATES_NOT_DEDUPLICATED"
+  | "TRANSPORT_RETRIES_NOT_COUNTED"
   | "TRANSLATION_LENGTH_IS_ESTIMATED"
   | "TOKEN_COUNT_IS_HEURISTIC"
   | "REPAIR_REQUESTS_NOT_COUNTED";
@@ -211,13 +217,21 @@ export interface UnpricedRunEstimate extends RunEstimateQuantity {
  * supplied. It is computed without constructing a provider, reading an API key, or making a network
  * call.
  *
- * It is an upper bound on the work it plans: every provider call a live run schedules is counted,
- * including the plural-generation batches, and the prompt is measured from the request payload that
- * would actually be sent rather than modelled. The live run can only send less than this plan,
- * because it consults the translation memory and collapses identical source strings, neither of
- * which the estimate does. The one way it can send more is the bounded retry an incomplete response
- * triggers. {@link EstimateCaveatCode} names each of those, and names the token count as a
- * heuristic derived from characters rather than from the provider's own tokenizer.
+ * It bounds the plan, not the invoice. Every provider call a live run schedules is counted,
+ * including the plural-generation batches; the prompt is measured from the request payload that
+ * would actually be sent rather than modelled; and the response is sized from the source value plus
+ * an expansion allowance. Against that plan a live run usually spends less, because it consults the
+ * translation memory and collapses identical source strings.
+ *
+ * It can also spend more, and {@link EstimateCaveatCode} names every way: the provider SDKs retry a
+ * failed call underneath each planned request, an incomplete response triggers a repair round or a
+ * recursive split, a target language can expand past the allowance, and the token figure is a
+ * character heuristic rather than the provider's own tokenizer. Treat it as a planning figure, not
+ * as a ceiling that cannot be crossed.
+ *
+ * It covers {@link translate} and nothing else. `retranslateEntry` constructs a provider and calls
+ * it on its own path, reached from the Studio dashboard and the agent tools, and no estimate here
+ * sees that spend.
  *
  * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
  * an {@link UnpricedRunEstimate} carries none of them and says why.

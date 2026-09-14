@@ -156,6 +156,7 @@ function caveatsFor(unit: BillingUnit): readonly EstimateCaveatCode[] {
   const shared: readonly EstimateCaveatCode[] = [
     "CACHE_NOT_CONSULTED",
     "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+    "TRANSPORT_RETRIES_NOT_COUNTED",
   ];
   return unit === "tokens"
     ? [
