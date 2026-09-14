@@ -416,7 +416,29 @@ export function resolveRunConcurrency(
   return concurrency;
 }
 
-function resolveDryRun(input: TranslateInput): boolean {
+/**
+ * Whether a set of run options resolves to a dry run. `estimate` implies `dryRun`, and this is the
+ * one place that implication is decided: {@link translate} calls it, and so should any caller that
+ * has to know before the run starts whether anything will be written or spent, rather than
+ * re-deriving the rule and drifting from it.
+ *
+ * @param input - The `dryRun` and `estimate` options as the caller received them.
+ * @returns True when the run will construct no provider, write no file, and spend nothing.
+ *
+ * @example
+ * ```ts
+ * import { resolveDryRun, translate } from "@verbatra/sdk";
+ *
+ * if (!resolveDryRun(options)) {
+ *   await prepareWorkspaceForWrites();
+ * }
+ * const summary = await translate({ config, ...options });
+ * ```
+ */
+export function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean {
   return input.dryRun === true || input.estimate === true;
 }
 

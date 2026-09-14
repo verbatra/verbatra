@@ -294,11 +294,21 @@ describe("translate: the estimate path is proven keyless, not merely key-free", 
 
   it("overrides an explicit dryRun:false, so an estimate can never be asked to run live", async () => {
     const dir = await project({ greeting: "Hello world" });
+    let providerConstructions = 0;
 
     const summary = await withoutProviderKeys(() =>
-      translate({ config: anthropicConfig(), cwd: dir, dryRun: false, estimate: true }),
+      translate(
+        { config: anthropicConfig(), cwd: dir, dryRun: false, estimate: true },
+        {
+          createProvider: () => {
+            providerConstructions += 1;
+            throw new Error("dryRun:false beside estimate:true must still construct no provider");
+          },
+        },
+      ),
     );
 
+    expect(providerConstructions).toBe(0);
     expect(summary.dryRun).toBe(true);
     expect(summary.estimate).toBeDefined();
   });

@@ -4,6 +4,7 @@ import {
   type ExchangeFormat,
   type LockWaitEvent,
   type ProgressEvent,
+  resolveDryRun,
   type TranslateInput,
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
@@ -329,7 +330,7 @@ export async function runTranslate(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd, opts.dryRun === true || opts.estimate === true);
+      appendMissingGitignoreEntries(cwd, resolveDryRun(opts));
       return withWholeRunErrors(
         deps,
         context,

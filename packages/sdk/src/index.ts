@@ -133,6 +133,7 @@ export type {
   UsageSummary,
 } from "./flow/summary.js";
 export {
+  resolveDryRun,
   type TranslateDeps,
   type TranslateInput,
   translate,

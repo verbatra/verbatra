@@ -749,6 +749,16 @@ describe("run: .env loading is wired before the SDK flow", () => {
     expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe(before);
   });
 
+  it("translate --estimate leaves an existing .gitignore untouched", async () => {
+    const before = ".env\n";
+    writeFileSync(join(dir, ".gitignore"), before);
+    const { deps } = recordingDeps();
+
+    await run(["translate", "--estimate", "--cwd", dir], deps, captureStreams().streams);
+
+    expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe(before);
+  });
+
   it("import --dry-run leaves an existing .gitignore untouched", async () => {
     const before = ".env\n";
     writeFileSync(join(dir, ".gitignore"), before);
