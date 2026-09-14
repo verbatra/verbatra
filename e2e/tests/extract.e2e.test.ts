@@ -30,7 +30,7 @@ const extractConfig = {
   targetLocales: ["de"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
   extract: { framework: "i18next", roots: ["src"] },
 };
 
@@ -100,10 +100,11 @@ describe("extract (no provider, no API key)", () => {
       "src/nav.ts": 't("nav.home", "Home");\n',
     });
 
-    await runVerbatra(consumer, ["extract", "--cwd", dir]);
-    const result = await runVerbatra(consumer, ["check", "--json", "--cwd", dir]);
+    const result = await runVerbatra(consumer, ["extract", "--cwd", dir]);
 
-    expect(result.exitCode).toBe(1);
+    expect(result.exitCode).toBe(0);
+    expect(await readJsonIn(dir, "locales/en.json")).toEqual({ nav: { home: "Home" } });
+    await expect(readJsonIn(dir, "locales/de.json")).rejects.toThrow();
   });
 
   it("keeps an existing value and adds only the new key", async () => {
@@ -165,6 +166,27 @@ describe("extract (no provider, no API key)", () => {
     expect(payload.dynamic).toEqual([{ file: "src/a.ts", line: 2 }]);
     expect(payload.conflicts.map((entry) => entry.key)).toEqual(["nav.home"]);
     expect(payload.added).toEqual([]);
+  });
+
+  it("writes no catalog at all for a key or a default it cannot resolve whole", async () => {
+    const dir = await seedProject("extract-partial-literals", {
+      "src/nav.ts": 't("common:nav.home", "Home");\nt("user." + id);\n',
+      "src/panel.ts": 't("panel.title", { defaultValue: "Panel" + suffix });\n',
+    });
+
+    const result = await runVerbatra(consumer, ["extract", "--json", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(0);
+    const payload = expectExtractPayload(result.stdout);
+    expect(payload.added).toEqual([
+      { key: "panel.title", value: "", file: "src/panel.ts", line: 1 },
+    ]);
+    expect(payload.withoutDefault).toEqual(["panel.title"]);
+    expect(payload.dynamic).toEqual([
+      { file: "src/nav.ts", line: 1 },
+      { file: "src/nav.ts", line: 2 },
+    ]);
+    expect(await readJsonIn(dir, "locales/en.json")).toEqual({ panel: { title: "" } });
   });
 
   it("exits 2 with a structured envelope when no extract block is configured", async () => {
