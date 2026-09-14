@@ -139,6 +139,7 @@ A `verbatra.config.ts` is typed by `defineConfig`, and a JSON or YAML config get
 | Command | What it does | Common flags |
 | --- | --- | --- |
 | `verbatra init` | Create a verbatra config and .env example for this project | `--provider <id>`, `--source`, `--targets`, `--path`, `--cwd`, `--yes`, `--force` |
+| `verbatra extract` | Scan the application source for translation call sites and add the new keys to the source locale file, without calling a provider | `--cwd`, `--config`, `--dry-run`, `--json` |
 | `verbatra translate` | Translate every target locale once, then exit | `--cwd`, `--config`, `--locales`, `--dry-run`, `--prune`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
 | `verbatra watch` | Re-translate on every source change until interrupted | `--cwd`, `--config`, `--locales`, `--debounce <ms>`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
 | `verbatra check` | Report per-locale missing, stale, and up-to-date counts without writing (read-only) | `--cwd`, `--config`, `--locales`, `--json` |

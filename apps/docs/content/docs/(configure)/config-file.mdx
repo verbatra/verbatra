@@ -53,6 +53,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
+| `extract` | object | none | Source-scanning settings for [`verbatra extract`](/docs/cli/extract): the framework and the source roots. |
 | `$schema` | string | none | A pointer to the JSON Schema document, for editors only. Ignored at runtime. |
 
 Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
@@ -135,6 +136,28 @@ Under `"warn"` a budget trip never changes the command's exit code. Under `"stop
 <Callout title="Two different maxTokens">
 The top-level `maxTokens` is the whole-run budget described here. The Anthropic provider also has its own `options.maxTokens`, which caps a single response. They are unrelated; see [Providers](/docs/providers).
 </Callout>
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Optional, and used only by [`verbatra extract`](/docs/cli/extract). Every other command ignores it.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` names the translation framework whose call sites the scan looks for. The set is closed, and `i18next` is the one member today, covering the `t(...)`, `$t(...)`, and `<object>.t(...)` shapes. A framework with no extractor is rejected rather than accepted and silently ignored.
+
+`roots` lists the directories to walk, resolved against the working directory. At least one is required, and nothing outside them is ever read.
+
+`exclude` adds directory names to the always-skipped set, which already covers `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build`, and `coverage`. Names, not paths: an entry matches a directory of that name anywhere under a root.
+
+Unknown keys inside the block are rejected, exactly as they are at the top level.
 
 ## Discovery order
 

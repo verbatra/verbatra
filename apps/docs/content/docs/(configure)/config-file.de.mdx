@@ -53,6 +53,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
+| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract): das Framework und die Quellverzeichnisse. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
 Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
@@ -135,6 +136,28 @@ Unter `"warn"` ändert ein ausgelöstes Budget nie den Exit-Code des Befehls. Un
 <Callout title="Zwei verschiedene maxTokens">
 Das Top-Level-`maxTokens` ist das hier beschriebene Budget für den ganzen Lauf. Der Anthropic-Provider hat zusätzlich sein eigenes `options.maxTokens`, das eine einzelne Antwort begrenzt. Die beiden haben nichts miteinander zu tun; siehe [Provider](/docs/providers).
 </Callout>
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Optional und nur von [`verbatra extract`](/docs/cli/extract) genutzt. Jeder andere Befehl ignoriert es.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` benennt das Übersetzungs-Framework, nach dessen Aufrufstellen der Scan sucht. Die Menge ist geschlossen, und `i18next` ist heute das einzige Mitglied; es deckt die Formen `t(...)`, `$t(...)` und `<object>.t(...)` ab. Ein Framework ohne Extractor wird abgelehnt, statt akzeptiert und stillschweigend ignoriert zu werden.
+
+`roots` listet die Verzeichnisse auf, die durchlaufen werden, aufgelöst gegen das Arbeitsverzeichnis. Mindestens eines ist erforderlich, und nichts außerhalb davon wird je gelesen.
+
+`exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
+
+Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 
 ## Suchreihenfolge
 

@@ -162,6 +162,18 @@ for (const entry of report.checks) {
 process.exitCode = report.ok ? 0 : 1;
 ```
 
+### `extract(input, deps?): Promise<ExtractResult>`
+
+Scans the application source for translation call sites and merges what it finds into the source locale catalog, which is what makes verbatra usable on a project that has no catalog yet. `input` is `{ config, cwd?, dryRun? }`, and `config.extract` must name the framework (`"i18next"` today) and at least one source root; a config without that block throws `EXTRACT_NOT_CONFIGURED`. It spends nothing: no provider is constructed, no API key environment variable is read, and no network request is made. Only the source locale file is written, and only genuinely new keys are added, so a value already in the catalog is never overwritten and a catalog key no call site mentions is left alone; a run that adds nothing writes nothing at all. Everything the scan cannot resolve comes back as data: a non-static key argument in `dynamic`, a key found with two different defaults in `conflicts` (neither value is written), a key added with no source text in `withoutDefault`, and an unreadable file or directory in `diagnostics`. The result carries keys, values, and file and line locations only, never a source file's contents. Source discovery goes through the optional `readDirectory` member of `SdkFs`; a `deps.fs` that does not implement it throws `EXTRACT_FS_UNSUPPORTED`.
+
+```ts
+import { extract, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const result = await extract({ config, dryRun: true });
+console.log(`${result.added.length} new keys, ${result.dynamic.length} dynamic call sites`);
+```
+
 ### `exportWorkbook(input): Promise<ExportWorkbookResult>`
 
 Exports the strings that need translating into a handoff for a human translator. `input` is `{ config, cwd?, out?, locales?, includeUnchanged?, format? }`. By default it writes the missing and changed strings for every target locale; `locales` narrows which target locales are exported, and `includeUnchanged: true` also exports already up-to-date strings. No provider is called and no lock file is written.

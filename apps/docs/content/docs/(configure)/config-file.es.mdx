@@ -53,6 +53,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `maxBatchSize` | entero positivo | `50` | El máximo de entradas enviadas en una sola solicitud al proveedor. |
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
 | `budgetBehavior` | `"warn"` o `"stop"` | `"warn"` | Qué pasa una vez alcanzado `maxTokens`. |
+| `extract` | objeto | ninguno | Ajustes del análisis de código para [`verbatra extract`](/docs/cli/extract): el framework y las raíces de código. |
 | `$schema` | string | ninguno | Un puntero al documento JSON Schema, solo para editores. Se ignora en tiempo de ejecución. |
 
 Las claves de nivel superior desconocidas se rechazan, con `$schema` como única excepción. Por eso mismo una clave de API no puede vivir en la configuración: las claves vienen del entorno, no del archivo.
@@ -135,6 +136,28 @@ Con `"warn"`, que el presupuesto salte nunca cambia el código de salida del com
 <Callout title="Dos maxTokens distintos">
 El `maxTokens` de nivel superior es el presupuesto de toda la ejecución descrito aquí. El proveedor Anthropic también tiene su propio `options.maxTokens`, que limita una sola respuesta. No tienen relación; consulta [Proveedores](/docs/providers).
 </Callout>
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Opcional, y solo lo usa [`verbatra extract`](/docs/cli/extract). Todos los demás comandos lo ignoran.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` nombra el framework de traducción cuyas llamadas busca el análisis. El conjunto es cerrado y hoy `i18next` es su único miembro, y cubre las formas `t(...)`, `$t(...)` y `<object>.t(...)`. Un framework sin extractor se rechaza en lugar de aceptarse e ignorarse en silencio.
+
+`roots` lista los directorios que se recorren, resueltos respecto al directorio de trabajo. Hace falta al menos uno, y nunca se lee nada fuera de ellos.
+
+`exclude` añade nombres de directorio al conjunto que siempre se omite, que ya cubre `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` y `coverage`. Nombres, no rutas: una entrada coincide con un directorio con ese nombre en cualquier punto bajo una raíz.
+
+Las claves desconocidas dentro del bloque se rechazan, igual que en el nivel superior.
 
 ## Orden de descubrimiento
 
