@@ -2,9 +2,7 @@ import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
-import { detectLineTerminator } from "../shell.js";
 import {
-  applyLineTerminator,
   elementChildren,
   readXmlDestination,
   setSingleTextValue,
@@ -113,6 +111,14 @@ function appendData(doc: Document, root: Element, name: string, value: string): 
   root.insertBefore(element, anchor);
 }
 
+function isWritable(element: Element, name: string): boolean {
+  if (!isTranslatableData(element, name)) {
+    return false;
+  }
+  const value = valueElement(element);
+  return value === undefined || singleTextValue(value) !== undefined;
+}
+
 function patchData(
   doc: Document,
   element: Element,
@@ -121,11 +127,13 @@ function patchData(
 ): void {
   const name = dataName(element);
   claimed.add(name);
-  if (!isTranslatableData(element, name)) {
-    return;
-  }
-  const value = valueElement(element);
-  if (value !== undefined && singleTextValue(value) === undefined) {
+  if (!isWritable(element, name)) {
+    if (entries.has(name)) {
+      throw new AdapterError(
+        "INVALID_STRUCTURE",
+        `The destination already holds "${name}" as a resource that cannot carry a translated string.`,
+      );
+    }
     return;
   }
   const entry = entries.get(name);
@@ -133,7 +141,7 @@ function patchData(
     writeValue(doc, element, entry.value);
     return;
   }
-  if (value !== undefined) {
+  if (valueElement(element) !== undefined) {
     element.parentNode?.removeChild(element);
   }
 }

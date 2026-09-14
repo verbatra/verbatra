@@ -186,14 +186,15 @@ describe("createResxAdapter write", () => {
     expect(written).toContain('name="&gt;&gt;$this.Type"');
   });
 
-  it("never overwrites a typed data element even when an entry shares its name", async () => {
+  it("never overwrites a typed data element, and never silently discards the entry either", async () => {
     const { adapter, fs } = setup({ "Resources.resx": FIXTURE });
     const { resource: read } = await adapter.read("Resources.resx", "en");
     const updated = new Map(read.entries);
     updated.set("Logo", entry("Logo", "translated!"));
-    await adapter.write({ ...read, entries: updated }, "Resources.resx");
+    const error = await readError(adapter.write({ ...read, entries: updated }, "Resources.resx"));
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
     const written = fs.files.get("Resources.resx") ?? "";
-    expect(written).toContain("<value>iVBORw0KGgo=</value>");
+    expect(written).toBe(FIXTURE);
     expect(written).not.toContain("translated!");
   });
 
@@ -234,10 +235,40 @@ describe("createResxAdapter write", () => {
     );
   });
 
-  it("leaves a data element whose value holds markup untouched and adds no duplicate for it", async () => {
+  it("refuses to drop a translated value when the destination entry is a typed resource", async () => {
+    const source = '<root><data name="Count" type="System.Int32"><value>5</value></data></root>';
+    const { adapter, fs } = setup({ "Resources.resx": source });
+    const error = await readError(
+      adapter.write(resource([entry("Count", "Fuenf")]), "Resources.resx"),
+    );
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toContain("Count");
+    expect(fs.files.get("Resources.resx")).toBe(source);
+  });
+
+  it("refuses to drop a translated value when the destination entry is designer metadata", async () => {
+    const { adapter } = setup({
+      "Resources.resx": '<root><data name="$this.Text"><value>Caption</value></data></root>',
+    });
+    const error = await readError(
+      adapter.write(resource([entry("$this.Text", "Beschriftung")]), "Resources.resx"),
+    );
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+  });
+
+  it("refuses to drop a translated value when the destination value holds markup", async () => {
+    const { adapter } = setup({
+      "Resources.resx": '<root><data name="A"><value>a<b/>c</value></data></root>',
+    });
+    const error = await readError(adapter.write(resource([entry("A", "x")]), "Resources.resx"));
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+  });
+
+  it("leaves a data element whose value holds markup untouched when no entry competes for it", async () => {
     const source = '<root><data name="A" xml:space="preserve"><value>a<b/>c</value></data></root>';
     const { adapter, fs } = setup({ "Resources.resx": source });
-    await adapter.write(resource([entry("A", "translated")]), "Resources.resx");
+    await adapter.write(resource([]), "Resources.resx");
     expect(fs.files.get("Resources.resx")).toBe(source);
   });
 

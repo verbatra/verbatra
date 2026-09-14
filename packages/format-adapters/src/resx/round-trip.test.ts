@@ -1,5 +1,6 @@
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
+import { AdapterError } from "../errors.js";
 import { createMemoryAdapterFs, type MemoryAdapterFs } from "../test-support.js";
 import { createResxAdapter } from "./resx-adapter.js";
 
@@ -182,14 +183,22 @@ describe("createResxAdapter preserves content it does not own", () => {
     );
   });
 
-  it("never translates or removes a designer name, even when a resource carries that exact name", async () => {
+  it("never translates or removes a designer name when no resource carries that name", async () => {
     const source =
       '<root>\n  <data name="&gt;&gt;A.Name" xml:space="preserve"><value>designerA</value></data>\n  <data name="$B.Text" xml:space="preserve"><value>designerB</value></data>\n</root>\n';
     const { adapter, fs } = setup({ "Resources.resx": source });
-    await adapter.write(
-      resource([entry(">>A.Name", "translated"), entry("$B.Text", "translated")]),
-      "Resources.resx",
-    );
+    await adapter.write(resource([]), "Resources.resx");
+    expect(fs.files.get("Resources.resx")).toBe(source);
+  });
+
+  it("refuses the write when a resource carries a designer name, rather than dropping its value", async () => {
+    const source =
+      '<root>\n  <data name="&gt;&gt;A.Name" xml:space="preserve"><value>designerA</value></data>\n</root>\n';
+    const { adapter, fs } = setup({ "Resources.resx": source });
+    const error = await adapter
+      .write(resource([entry(">>A.Name", "translated")]), "Resources.resx")
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AdapterError);
     expect(fs.files.get("Resources.resx")).toBe(source);
   });
 });
