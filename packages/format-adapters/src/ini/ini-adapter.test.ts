@@ -307,3 +307,65 @@ describe("createIniAdapter write", () => {
     expect(fs.files.get("en.ini")).toBe("a = two\n");
   });
 });
+
+describe("createIniAdapter section headers with trailing comments", () => {
+  const variants: readonly (readonly [string, string])[] = [
+    ["no space before a semicolon comment", "[home];hidden"],
+    ["a tab before a hash comment", "[home]\t# hidden"],
+    ["several spaces before a semicolon comment", "[home]   ;   hidden"],
+    ["a comment that itself contains a bracket", "[home] ; see [about]"],
+  ];
+
+  for (const [label, header] of variants) {
+    it(`round-trips a header with ${label} byte-identically`, async () => {
+      const source = `${header}\ntitle = Welcome\n`;
+      const { adapter, fs } = setup({ "en.ini": source });
+      const { resource: read } = await adapter.read("en.ini", "en");
+      expect([...read.entries.keys()]).toEqual(["home.title"]);
+      await adapter.write(read, "en.ini");
+      expect(fs.files.get("en.ini")).toBe(source);
+    });
+  }
+
+  it("keeps the trailing comment on the header when the value below it is rewritten", async () => {
+    const { adapter, fs } = setup({ "en.ini": "[home] ; hidden\ntitle = Welcome\n" });
+    await adapter.write(resource([entry("home.title", "Willkommen")]), "en.ini");
+    expect(fs.files.get("en.ini")).toBe("[home] ; hidden\ntitle = Willkommen\n");
+  });
+
+  it("still rejects a second closing bracket after the header", async () => {
+    const { adapter } = setup({ "en.ini": "[home]]\ntitle = Welcome\n" });
+    const error = await readError(adapter.read("en.ini", "en"));
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+  });
+
+  it("still rejects a bare word between the header and its comment", async () => {
+    const { adapter } = setup({ "en.ini": "[home] oops ; hidden\ntitle = Welcome\n" });
+    expect(((await readError(adapter.read("en.ini", "en"))) as AdapterError).code).toBe(
+      "INVALID_STRUCTURE",
+    );
+  });
+
+  it("rejects header garbage reached through the write path, not only the read path", async () => {
+    const { adapter, fs } = setup({ "en.ini": "[home] oops\ntitle = Welcome\n" });
+    const error = await readError(adapter.write(resource([entry("home.title", "x")]), "en.ini"));
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect(fs.files.get("en.ini")).toBe("[home] oops\ntitle = Welcome\n");
+  });
+});
+
+describe("createIniAdapter quoted escape decoding", () => {
+  it("decodes a carriage return escape inside a quoted value", async () => {
+    const { adapter } = setup({ "en.ini": 'a = "one\\rtwo"\n' });
+    const { resource: read } = await adapter.read("en.ini", "en");
+    expect(read.entries.get("a")?.value).toBe("one\rtwo");
+  });
+
+  it("re-encodes a carriage return in a value back into an escape rather than a raw byte", async () => {
+    const { adapter, fs } = setup({ "en.ini": "a = plain\n" });
+    await adapter.write(resource([entry("a", "one\rtwo")]), "en.ini");
+    expect(fs.files.get("en.ini")).toBe('a = "one\\rtwo"\n');
+  });
+});

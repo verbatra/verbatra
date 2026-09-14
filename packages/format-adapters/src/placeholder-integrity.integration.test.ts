@@ -5,8 +5,10 @@ import { createArbAdapter } from "./arb/arb-adapter.js";
 import { createGettextAdapter } from "./gettext/gettext-adapter.js";
 import { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 import { analyzeIcuValue } from "./icu/analyze.js";
+import { createIniAdapter } from "./ini/ini-adapter.js";
 import { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
 import { createPropertiesAdapter } from "./properties/properties-adapter.js";
+import { createResxAdapter } from "./resx/resx-adapter.js";
 import { createVueI18nJsonAdapter } from "./vue-i18n/vue-i18n-adapter.js";
 import { createXliffAdapter } from "./xliff/xliff-adapter.js";
 import { createYamlAdapter } from "./yaml/yaml-adapter.js";
@@ -192,5 +194,66 @@ describe("placeholder integrity is multiset-aware end to end", () => {
     const result = checkPlaceholders(source, translated);
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["{name}"]);
+  });
+});
+
+describe("placeholder integrity covers the resx and ini adapters too", () => {
+  it("resx: dropping a repeated composite format item is a mismatch", () => {
+    const adapter = createResxAdapter();
+    const source = adapter.extractPlaceholders("{0} of {0}");
+    const translated = adapter.extractPlaceholders("{0} insgesamt");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{0}"]);
+  });
+
+  it("resx: unescaping a doubled brace into a single one is a mismatch", () => {
+    const adapter = createResxAdapter();
+    const result = checkPlaceholders(
+      adapter.extractPlaceholders("Use {{ and }} around {0}"),
+      adapter.extractPlaceholders("Nutze { und } um {0}"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{{", "}}"]);
+  });
+
+  it("resx: a faithful translation that reorders the items matches", () => {
+    const adapter = createResxAdapter();
+    expect(
+      checkPlaceholders(
+        adapter.extractPlaceholders("{0} owes {1:C}"),
+        adapter.extractPlaceholders("{1:C} schuldet {0}"),
+      ).matches,
+    ).toBe(true);
+  });
+
+  it("ini: dropping a repeated single-brace token is a mismatch", () => {
+    const adapter = createIniAdapter();
+    const source = adapter.extractPlaceholders("{name} and {name}");
+    const translated = adapter.extractPlaceholders("{name}");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{name}"]);
+  });
+
+  it("ini: renaming a token is both a missing and an extra", () => {
+    const adapter = createIniAdapter();
+    const result = checkPlaceholders(
+      adapter.extractPlaceholders("Hello {name}"),
+      adapter.extractPlaceholders("Hallo {nom}"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{name}"]);
+    expect(result.extra).toEqual(["{nom}"]);
+  });
+
+  it("ini: a faithful translation that reorders the tokens matches", () => {
+    const adapter = createIniAdapter();
+    expect(
+      checkPlaceholders(
+        adapter.extractPlaceholders("{count} of {total}"),
+        adapter.extractPlaceholders("{total} davon {count}"),
+      ).matches,
+    ).toBe(true);
   });
 });

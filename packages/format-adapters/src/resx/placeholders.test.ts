@@ -1,6 +1,8 @@
 import { checkPlaceholders } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
+import { createMemoryAdapterFs } from "../test-support.js";
 import { extractResxPlaceholders } from "./placeholders.js";
+import { createResxAdapter } from "./resx-adapter.js";
 
 describe("extractResxPlaceholders", () => {
   it("extracts a bare index item", () => {
@@ -51,9 +53,24 @@ describe("extractResxPlaceholders under the integrity check", () => {
     expect(gate("Hi {0}", "Hi {0}}")).toBe(false);
   });
 
-  it("rejects a dropped alignment or format specifier", () => {
-    expect(gate("{0,-10}", "{0}")).toBe(false);
-    expect(gate("{0:C}", "{0}")).toBe(false);
+  it("rejects a dropped alignment, naming the token that went missing", () => {
+    const result = checkPlaceholders(
+      extractResxPlaceholders("{0,-10} items"),
+      extractResxPlaceholders("{0} Artikel"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{0,-10}"]);
+    expect(result.extra).toEqual(["{0}"]);
+  });
+
+  it("rejects a dropped format specifier, naming the token that went missing", () => {
+    const result = checkPlaceholders(
+      extractResxPlaceholders("{0:C} due"),
+      extractResxPlaceholders("{0} faellig"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{0:C}"]);
+    expect(result.extra).toEqual(["{0}"]);
   });
 
   it("accepts a translation that only reorders the items or respaces them", () => {
@@ -63,5 +80,27 @@ describe("extractResxPlaceholders under the integrity check", () => {
 
   it("accepts a faithful translation that keeps every literal brace", () => {
     expect(gate("Use {{ and }} around {0}", "Nutze {{ und }} um {0}")).toBe(true);
+  });
+});
+
+describe("the resx adapter wires extractResxPlaceholders into its own surface", () => {
+  function gateThroughAdapter(source: string, target: string): boolean {
+    const adapter = createResxAdapter(createMemoryAdapterFs());
+    return checkPlaceholders(
+      adapter.extractPlaceholders(source),
+      adapter.extractPlaceholders(target),
+    ).matches;
+  }
+
+  it("catches a doubled brace unescaped to a single one through the adapter, not just the bare function", () => {
+    expect(gateThroughAdapter("Use {{ around {0}", "Nutze { um {0}")).toBe(false);
+  });
+
+  it("catches an introduced lone closing brace through the adapter", () => {
+    expect(gateThroughAdapter("Hi {0}", "Hallo {0}}")).toBe(false);
+  });
+
+  it("accepts a faithful reorder through the adapter", () => {
+    expect(gateThroughAdapter("{0} then {1}", "{1} dann {0}")).toBe(true);
   });
 });
