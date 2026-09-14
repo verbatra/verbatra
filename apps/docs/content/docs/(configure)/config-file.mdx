@@ -53,6 +53,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
+| `rates` | object | none | Dated provider rates, so `translate --estimate` can report a currency figure. |
 | `$schema` | string | none | A pointer to the JSON Schema document, for editors only. Ignored at runtime. |
 
 Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
@@ -135,6 +136,27 @@ Under `"warn"` a budget trip never changes the command's exit code. Under `"stop
 <Callout title="Two different maxTokens">
 The top-level `maxTokens` is the whole-run budget described here. The Anthropic provider also has its own `options.maxTokens`, which caps a single response. They are unrelated; see [Providers](/docs/providers).
 </Callout>
+
+### rates
+
+<AvailableFrom version="0.11.0" />
+
+Optional, and read by nothing but [`verbatra translate --estimate`](/docs/cli/translate). verbatra ships no prices of its own: they belong to a third party and change without notice, so a number baked into a release would go stale quietly. You supply them, and you record the date you read them.
+
+```ts
+rates: {
+  asOf: "2026-01-15",
+  currency: "USD",
+  table: {
+    "anthropic/claude-sonnet-4-5": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+    deepl: { perMillionCharacters: 25 },
+  },
+}
+```
+
+`asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the card, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
+
+The block changes nothing about a live run: not what is sent, not what is billed, not what is written. A rate key with no entry is reported as an explicit absence rather than a cost of zero, and an entry in the wrong unit for its provider is refused rather than applied. See [Estimating cost](/docs/estimating-cost) for how the figure is computed and what it deliberately leaves out.
 
 ## Discovery order
 

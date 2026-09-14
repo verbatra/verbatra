@@ -26,7 +26,7 @@ En una ejecución en seco, el recuento de `translated` es el número de claves q
 
 Trátalo como un **límite superior**, por dos razones. Una ejecución en seco nunca lee [la caché](/docs/the-cache), así que las claves que una ejecución real serviría desde la memoria de traducción se siguen contando aquí. Y una ejecución en seco no deduplica: en una ejecución real, las claves cuyo texto de origen es idéntico se agrupan y solo se envía un representante, de modo que un archivo con cadenas repetidas factura menos claves de las que muestra la ejecución en seco.
 
-Una ejecución en seco informa de recuentos, no de tokens ni de dinero. Convertir el recuento en una cifra es el resto de esta página. Consulta [`verbatra translate`](/docs/cli/translate) para la lista completa de opciones.
+Una ejecución en seco por sí sola informa de recuentos, no de tokens ni de dinero. `--estimate` hace esa conversión por ti, y el paso 5 de más abajo lo muestra. Los pasos intermedios son exactamente la aritmética que realiza, y siguen siendo el método al que recurrir cuando un modelo no tiene tarifa registrada. Consulta [`verbatra translate`](/docs/cli/translate) para la lista completa de opciones.
 
 ## Paso 2: cuenta las peticiones
 
@@ -58,7 +58,7 @@ Para contar, la regla habitual es **~4 caracteres por token** en prosa inglesa. 
 
 ## Paso 4: ponle precio con las tarifas de tu proveedor
 
-verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu modelo en la página del propio proveedor, que es la única autoridad:
+verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu modelo en la página del propio proveedor, que es la única autoridad. Cuando la tengas, puedes dársela a verbatra en lugar de guardarla en tu cabeza: mira el paso 5.
 
 | Proveedor | Se factura por | Precios |
 | --- | --- | --- |
@@ -68,6 +68,53 @@ verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu
 | DeepL | **caracteres** de origen, no tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | **caracteres** de origen, no tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nada: tu propio hardware | sin coste de API |
+
+## Paso 5: deja que verbatra haga la aritmética
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` ejecuta por ti todos los pasos anteriores y termina sin llamar a ningún proveedor:
+
+```bash
+verbatra translate --estimate
+```
+
+```
+verbatra translate (dry run)
+  de: 400 translated, 0 unchanged
+  es: 400 translated, 0 unchanged
+  fr: 400 translated, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~32400 input + ~22800 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+Implica `--dry-run`: no se construye ningún proveedor, no se lee ninguna clave de API, no se hace ninguna llamada de red y no se escribe nada. Un proveedor de traducción automática se cuenta en caracteres de origen en vez de en tokens, y un endpoint `openai-compatible` autoalojado se informa como si no tuviera coste de API en absoluto.
+
+El recuento sale gratis. El dinero no: verbatra sigue sin publicar precios, así que una cifra en moneda solo aparece cuando pones en tu configuración las tarifas que buscaste en el paso 4, bajo un bloque `rates` que registra la fecha en que las leíste:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      deepl: { perMillionCharacters: 25 },
+    },
+  },
+});
+```
+
+La clave es `provider/model` para un proveedor con modelo configurado, y el identificador de proveedor a secas para uno sin él (`deepl`, `google-translate`). Un modelo facturado por tokens toma `inputPerMillionTokens` y `outputPerMillionTokens`; uno facturado por caracteres toma `perMillionCharacters`. Toda cifra impresa lleva la fecha `asOf`, así que una tabla de tarifas que tocaste por última vez hace un año lo dice en cada ejecución. Consulta [la referencia de configuración](/docs/config-file).
+
+Tres cosas que nunca hará: inventarse una tarifa que no tiene, aplicar una tarifa escrita en la unidad equivocada, o imprimir `0.00` para un modelo que no sabe tarifar. Cada uno de esos casos se informa como una línea explícita, y la ejecución sigue terminando con `0`.
+
+`--json` lleva las mismas cifras como campos estructurados bajo `result.estimate`, por idioma y en total, de modo que un script puede condicionar sobre ellas en lugar de analizar una línea de texto.
+
+La cifra es un límite superior por las mismas dos razones que el recuento de la ejecución en seco, y por una tercera: los tokens se derivan de recuentos de caracteres, no del tokenizador del proveedor. La línea `estimate excludes` nombra las tres en cada ejecución.
 
 ## Un ejemplo resuelto
 

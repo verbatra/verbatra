@@ -26,7 +26,7 @@ Bei einem Dry Run ist die Zahl hinter `translated` die Anzahl der Keys, die an d
 
 Behandle sie als **Obergrenze**, aus zwei Gründen. Ein Dry Run liest [den Cache](/docs/the-cache) nie, Keys, die ein echter Lauf aus dem Translation Memory bedienen würde, werden hier also mitgezählt. Und ein Dry Run dedupliziert nicht: bei einem echten Lauf werden Keys mit identischem Quelltext gruppiert, und nur ein Repräsentant wird gesendet. Eine Datei mit wiederholten Strings kostet also weniger Keys, als der Dry Run zeigt.
 
-Ein Dry Run meldet Zahlen, keine Tokens und kein Geld. Aus der Zahl einen Betrag zu machen ist der Rest dieser Seite. Die vollständige Flag-Liste steht unter [`verbatra translate`](/docs/cli/translate).
+Ein Dry Run allein meldet Zahlen, keine Tokens und kein Geld. `--estimate` nimmt dir diese Umrechnung ab, Schritt 5 weiter unten zeigt es. Die Schritte dazwischen sind genau die Rechnung, die dabei ausgeführt wird, und sie bleiben die Methode, auf die du zurückgreifst, wenn für ein Modell keine Rate hinterlegt ist. Die vollständige Flag-Liste steht unter [`verbatra translate`](/docs/cli/translate).
 
 ## Schritt 2: die Requests zählen
 
@@ -58,7 +58,7 @@ Zum Zählen gilt als Faustregel **~4 Zeichen pro Token** für englische Prosa. N
 
 ## Schritt 4: mit den Raten deines Providers bepreisen
 
-verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für dein Modell auf der Seite des Providers nach, die die einzige Autorität ist:
+verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für dein Modell auf der Seite des Providers nach, die die einzige Autorität ist. Wenn du sie hast, kannst du sie verbatra übergeben, statt sie im Kopf zu behalten: siehe Schritt 5.
 
 | Provider | Abgerechnet nach | Preise |
 | --- | --- | --- |
@@ -68,6 +68,53 @@ verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für de
 | DeepL | Quell**zeichen**, nicht Tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | Quell**zeichen**, nicht Tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nichts: deine eigene Hardware | keine API-Kosten |
+
+## Schritt 5: verbatra die Rechnung machen lassen
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` führt jeden Schritt von oben für dich aus und beendet sich, ohne einen Provider aufzurufen:
+
+```bash
+verbatra translate --estimate
+```
+
+```
+verbatra translate (dry run)
+  de: 400 translated, 0 unchanged
+  es: 400 translated, 0 unchanged
+  fr: 400 translated, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~32400 input + ~22800 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+Es impliziert `--dry-run`: es wird kein Provider konstruiert, kein API-Key gelesen, kein Netzwerkaufruf gemacht und nichts geschrieben. Ein Machine-Translation-Provider wird in Quellzeichen statt in Tokens gezählt, und ein selbst gehosteter `openai-compatible`-Endpunkt wird als gänzlich ohne API-Kosten ausgewiesen.
+
+Die Menge bekommst du geschenkt. Das Geld nicht: verbatra veröffentlicht weiterhin keine Preise, ein Geldbetrag erscheint also erst, wenn du die in Schritt 4 nachgeschlagenen Raten in deine Config einträgst, unter einem `rates`-Block, der festhält, wann du sie gelesen hast:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      deepl: { perMillionCharacters: 25 },
+    },
+  },
+});
+```
+
+Der Key ist `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechnetes Modell nimmt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasiertes `perMillionCharacters`. Jede ausgegebene Zahl trägt das `asOf`-Datum, eine Ratentabelle, die du zuletzt vor einem Jahr angefasst hast, sagt das also bei jedem Lauf. Siehe [die Konfigurationsreferenz](/docs/config-file).
+
+Drei Dinge wird es nie tun: eine Rate erfinden, die es nicht hat, eine in der falschen Einheit geschriebene Rate anwenden, oder `0.00` für ein Modell ausgeben, das es nicht bepreisen kann. Jeder dieser Fälle wird stattdessen als ausdrückliche Zeile gemeldet, und der Lauf endet trotzdem mit `0`.
+
+`--json` liefert dieselben Zahlen als strukturierte Felder unter `result.estimate`, pro Locale und als Summe, ein Skript kann also darauf prüfen, statt eine Zeile zu parsen.
+
+Die Zahl ist aus denselben zwei Gründen eine Obergrenze wie die Dry-Run-Zahl, und aus einem dritten: Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem Tokenizer des Providers. Die Zeile `estimate excludes` benennt bei jedem Lauf alle drei.
 
 ## Ein durchgerechnetes Beispiel
 

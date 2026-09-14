@@ -26,7 +26,7 @@ Lors d'un dry run, le compte `translated` est le nombre de clés qui **seraient*
 
 Traite-le comme une **borne supérieure**, pour deux raisons. Un dry run ne lit jamais [le cache](/docs/the-cache) : les clés qu'une exécution réelle servirait depuis la mémoire de traduction sont donc comptées ici. Et un dry run ne déduplique pas : lors d'une exécution réelle, les clés dont le texte source est identique sont regroupées et un seul représentant est envoyé, si bien qu'un fichier avec des chaînes répétées facture moins de clés que ce que montre le dry run.
 
-Un dry run rapporte des comptes, pas des tokens ni de l'argent. Transformer le compte en montant, c'est tout le reste de cette page. Voir [`verbatra translate`](/docs/cli/translate) pour la liste complète des options.
+Un dry run seul rapporte des comptes, pas des tokens ni de l'argent. `--estimate` fait cette conversion pour toi, et l'étape 5 ci-dessous le montre. Les étapes intermédiaires sont exactement le calcul qu'il effectue, et elles restent la méthode de repli dès qu'un modèle n'a aucun tarif enregistré. Voir [`verbatra translate`](/docs/cli/translate) pour la liste complète des options.
 
 ## Étape 2 : compter les requêtes
 
@@ -58,7 +58,7 @@ Pour compter, la règle habituelle est de **~4 caractères par token** pour de l
 
 ## Étape 4 : chiffrer avec les tarifs de ton fournisseur
 
-verbatra ne publie délibérément aucun prix. Consulte le tarif courant de ton modèle sur la page du fournisseur lui-même, qui est la seule autorité :
+verbatra ne publie délibérément aucun prix. Consulte le tarif courant de ton modèle sur la page du fournisseur lui-même, qui est la seule autorité. Une fois que tu l'as, tu peux le confier à verbatra plutôt que de le garder en tête : voir l'étape 5.
 
 | Fournisseur | Facturé selon | Tarifs |
 | --- | --- | --- |
@@ -68,6 +68,53 @@ verbatra ne publie délibérément aucun prix. Consulte le tarif courant de ton 
 | DeepL | **caractères** source, pas tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | **caractères** source, pas tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | rien : ton propre matériel | aucun coût d'API |
+
+## Étape 5 : laisser verbatra faire le calcul
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` effectue pour toi chacune des étapes ci-dessus, puis se termine sans appeler de fournisseur :
+
+```bash
+verbatra translate --estimate
+```
+
+```
+verbatra translate (dry run)
+  de: 400 translated, 0 unchanged
+  es: 400 translated, 0 unchanged
+  fr: 400 translated, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~32400 input + ~22800 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+Il implique `--dry-run` : aucun fournisseur n'est construit, aucune clé d'API n'est lue, aucun appel réseau n'est fait et rien n'est écrit. Un fournisseur de traduction automatique est compté en caractères source plutôt qu'en tokens, et un endpoint `openai-compatible` auto-hébergé est rapporté comme n'ayant aucun coût d'API.
+
+La quantité est gratuite. L'argent ne l'est pas : verbatra ne publie toujours aucun prix, une somme n'apparaît donc qu'une fois que tu as mis dans ta configuration les tarifs relevés à l'étape 4, sous un bloc `rates` qui enregistre la date à laquelle tu les as lus :
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      deepl: { perMillionCharacters: 25 },
+    },
+  },
+});
+```
+
+La clé est `provider/model` pour un fournisseur configuré avec un modèle, et l'identifiant de fournisseur seul pour un fournisseur qui n'en prend pas (`deepl`, `google-translate`). Un modèle facturé aux tokens prend `inputPerMillionTokens` et `outputPerMillionTokens` ; un modèle facturé aux caractères prend `perMillionCharacters`. Chaque chiffre affiché porte la date `asOf` : une table de tarifs que tu n'as plus touchée depuis un an le dit à chaque exécution. Voir [la référence de configuration](/docs/config-file).
+
+Trois choses qu'il ne fera jamais : inventer un tarif qu'il n'a pas, appliquer un tarif écrit dans la mauvaise unité, ou afficher `0.00` pour un modèle qu'il ne sait pas chiffrer. Chacun de ces cas est rapporté comme une ligne explicite, et l'exécution se termine tout de même avec `0`.
+
+`--json` transporte les mêmes chiffres sous forme de champs structurés dans `result.estimate`, par locale et au total : un script peut donc s'y appuyer au lieu d'analyser une ligne de texte.
+
+Le chiffre est une borne supérieure pour les deux mêmes raisons que le compte du dry run, et pour une troisième : les tokens sont dérivés de comptes de caractères, pas du tokenizer du fournisseur. La ligne `estimate excludes` nomme les trois à chaque exécution.
 
 ## Un exemple chiffré
 
