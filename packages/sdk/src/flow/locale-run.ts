@@ -7,10 +7,10 @@ import {
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import {
-  checkPlaceholders,
   contentHash,
   diffResources,
   type LocaleResource,
+  type PlaceholderIntegrityResult,
   type SupportedFormat,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -92,10 +92,8 @@ function reviewCachedValue(
   params: LocaleRunParams,
   source: TranslationEntry,
   cached: string,
+  integrity: PlaceholderIntegrityResult,
 ): ReviewFlag | undefined {
-  const integrity =
-    params.adapter.comparePlaceholders?.(source.value, cached) ??
-    checkPlaceholders(source.placeholders, params.adapter.extractPlaceholders(cached));
   return computeReviewFlags({
     sourceValue: source.value,
     translatedValue: cached,
@@ -129,14 +127,16 @@ function partitionCacheHits(
       params.targetLocale,
       contentHash(source),
     );
-    if (cached !== undefined && gateCandidateValue(source, cached, params.adapter).accepted) {
-      hits.set(key, { value: cached, source });
-      const flag = reviewCachedValue(params, source, cached);
-      if (flag !== undefined) {
-        reviewFlags.set(key, flag);
-      }
-    } else {
+    const gate =
+      cached === undefined ? undefined : gateCandidateValue(source, cached, params.adapter);
+    if (cached === undefined || gate?.accepted !== true) {
       misses.push(key);
+      continue;
+    }
+    hits.set(key, { value: cached, source });
+    const flag = reviewCachedValue(params, source, cached, gate.integrity);
+    if (flag !== undefined) {
+      reviewFlags.set(key, flag);
     }
   }
   return { hits, misses, reviewFlags };

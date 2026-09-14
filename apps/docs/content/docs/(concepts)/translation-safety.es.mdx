@@ -83,10 +83,15 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 - `EQUALS_SOURCE`: la traducción es idéntica al origen en un locale de destino distinto, y el
   origen sí tenía texto traducible.
 - `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término
-  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas y
-  exige palabra completa en ambos lados, así que el término `AI` no cuenta como presente dentro de
-  `Airport`. Las escrituras sin separadores de palabra (han, kana, tailandés y similares) no
-  ofrecen ningún límite, así que un término cuyo borde caiga en una de ellas se busca como simple
+  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y
+  cada lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa,
+  así que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una
+  expectativa que nadie dio. El lado de destino solo exige que el término aparezca en algún punto
+  de la traducción, porque un término traducido se funde con su entorno con toda legitimidad:
+  compuestos alemanes (`Benutzerkonto`), partículas coreanas (`계정을`), préstamos japoneses. Exigir
+  un límite ahí marcaría traducciones correctas en la mayoría de los idiomas para los que
+  mantendrías un glosario. Un término de origen escrito sin separadores de palabra (han, kana,
+  tailandés y similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de
   subcadena.
 - `INTEGRITY_REORDERED`: el conjunto de marcadores de posición coincidió exactamente pero quedó en
   un orden distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.

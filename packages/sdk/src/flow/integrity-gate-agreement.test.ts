@@ -19,10 +19,14 @@ import {
 } from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
 import { editEntry } from "./edit-entry.js";
-import { gateCandidateValue } from "./integrity-gate.js";
+import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
 import { runLocale } from "./locale-run.js";
 import { retranslateEntry } from "./retranslate-entry.js";
 import { importLocale } from "./workbook/import-locale.js";
+
+type GateDecision =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly reason: IntegrityGateReason };
 
 interface Case {
   readonly name: string;
@@ -30,7 +34,7 @@ interface Case {
   readonly format: VerbatraConfig["format"];
   readonly sourceValue: string;
   readonly candidateValue: string;
-  readonly expected: ReturnType<typeof gateCandidateValue>;
+  readonly expected: GateDecision;
 }
 
 function i18nextAdapter(): FormatAdapter {
@@ -111,9 +115,9 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       placeholders: testCase.adapter.extractPlaceholders(testCase.sourceValue),
       isPlural: false,
     };
-    expect(gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter)).toEqual(
-      testCase.expected,
-    );
+    expect(
+      gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter),
+    ).toMatchObject(testCase.expected);
   });
 
   it("runLocale (the provider-translation path) agrees", async () => {

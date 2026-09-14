@@ -72,10 +72,15 @@ carries one or more reason codes:
 - `EQUALS_SOURCE`: the translation equals the source verbatim in a different target locale, and
   the source actually had translatable text.
 - `GLOSSARY_TERM_MISSED`: a configured glossary term occurs in the source but its mapped target
-  term is absent from the translation. Matching is case-insensitive and whole-word on both sides,
-  so the term `AI` is not counted as present inside `Airport`. Scripts written without word
-  separators (Han, kana, Thai and similar) have no boundary to anchor to, so a term whose edge
-  falls in one of those is matched by plain containment instead.
+  term is absent from the translation. Matching is case-insensitive, and the two sides are held to
+  different standards on purpose. The source side requires a whole word, so the term `AI` is not
+  counted as present inside `Airport` and cannot raise an expectation nobody was given. The target
+  side only requires the term to appear somewhere in the translation, because a translated term
+  legitimately fuses with the text around it: German compounds (`Benutzerkonto`), Korean particles
+  (`계정을`), Japanese loanwords. Demanding a boundary there would flag correct translations in most
+  of the languages you would keep a glossary for. A source term written in a script without word
+  separators (Han, kana, Thai and similar) has no boundary to anchor to either, so it falls back to
+  the same containment rule.
 - `INTEGRITY_REORDERED`: the placeholder set matched exactly but landed in a different order than
   the source. Only ever fires on a translation the gate already accepted.
 - `PROVIDER_DEGRADED`: the batch this key came from was gracefully degraded by the provider (a

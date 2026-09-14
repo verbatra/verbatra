@@ -241,6 +241,47 @@ describe("runLocale: review flags on cache hits", () => {
       "Sichere deine Kontoeinstellungen",
     );
   });
+
+  it("flags a cached value whose placeholders match but landed in a different order", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {{first}} {{last}}" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(sourceResource, "greeting", "Hallo {{last}} {{first}}"),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["greeting"]);
+    expect(result.summary.integrityMismatches).toEqual([]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["INTEGRITY_REORDERED"] },
+    ]);
+  });
+
+  it("flags a cached value whose length is far outside the expected ratio", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings now" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(sourceResource, "intro", "Ok"),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["intro"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "intro", reasons: ["LENGTH_RATIO_OUTLIER"] },
+    ]);
+  });
 });
 
 describe("runLocale: review flags fanned out to content duplicates", () => {

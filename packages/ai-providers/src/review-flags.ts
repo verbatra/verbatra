@@ -8,10 +8,11 @@ const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
 const UNICODE_LETTER = /\p{L}/u;
 
 const SCRIPTS_WITHOUT_WORD_SEPARATORS =
-  "\\p{sc=Han}\\p{sc=Hiragana}\\p{sc=Katakana}\\p{sc=Thai}\\p{sc=Lao}\\p{sc=Khmer}\\p{sc=Myanmar}\\p{sc=Tibetan}";
+  "\\p{scx=Han}\\p{scx=Hiragana}\\p{scx=Katakana}\\p{scx=Thai}\\p{scx=Lao}\\p{scx=Khmer}\\p{scx=Myanmar}\\p{scx=Tibetan}";
 const WORD_JOINING = `[[\\p{L}\\p{M}\\p{N}_]--[${SCRIPTS_WITHOUT_WORD_SEPARATORS}]]`;
 const WORD_JOINING_AT_START = new RegExp(`^${WORD_JOINING}`, "v");
 const WORD_JOINING_AT_END = new RegExp(`${WORD_JOINING}$`, "v");
+const MAX_CODE_UNITS_PER_CODE_POINT = 2;
 
 const DEGRADATION_NOTICE_CODES: ReadonlySet<ProviderNotice["code"]> = new Set([
   "FORMALITY_DOWNGRADED",
@@ -47,11 +48,12 @@ function isEqualsSource(input: ReviewFlagInput): boolean {
 }
 
 function isPrecededByWordCharacter(text: string, index: number): boolean {
-  return WORD_JOINING_AT_END.test(text.slice(Math.max(0, index - 2), index));
+  const start = Math.max(0, index - MAX_CODE_UNITS_PER_CODE_POINT);
+  return WORD_JOINING_AT_END.test(text.slice(start, index));
 }
 
 function isFollowedByWordCharacter(text: string, index: number): boolean {
-  return WORD_JOINING_AT_START.test(text.slice(index, index + 2));
+  return WORD_JOINING_AT_START.test(text.slice(index, index + MAX_CODE_UNITS_PER_CODE_POINT));
 }
 
 function occursAsWholeTerm(text: string, term: string): boolean {
@@ -82,7 +84,7 @@ function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
       continue;
     }
     const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
-    const targetHit = occursAsWholeTerm(translatedLower, targetTerm.toLowerCase());
+    const targetHit = translatedLower.includes(targetTerm.toLowerCase());
     if (sourceHit && !targetHit) {
       return true;
     }

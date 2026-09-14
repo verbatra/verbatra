@@ -1,4 +1,9 @@
-import { assessValueDegeneracy, checkPlaceholders, type TranslationEntry } from "@verbatra/core";
+import {
+  assessValueDegeneracy,
+  checkPlaceholders,
+  type PlaceholderIntegrityResult,
+  type TranslationEntry,
+} from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 
 /**
@@ -24,7 +29,7 @@ import type { FormatAdapter } from "@verbatra/format-adapters";
 export type IntegrityGateReason = "placeholder" | "icu" | "degenerate" | "empty";
 
 export type IntegrityGateResult =
-  | { readonly accepted: true }
+  | { readonly accepted: true; readonly integrity: PlaceholderIntegrityResult }
   | { readonly accepted: false; readonly reason: IntegrityGateReason };
 
 export function gateCandidateValue(
@@ -47,5 +52,5 @@ export function gateCandidateValue(
   if (sourceEntry.value.trim() !== "" && candidateValue.trim() === "") {
     return { accepted: false, reason: "empty" };
   }
-  return { accepted: true };
+  return { accepted: true, integrity: placeholderResult };
 }

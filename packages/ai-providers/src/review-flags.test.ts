@@ -190,7 +190,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
     expect(flag).toBeUndefined();
   });
 
-  it("does not treat a target term buried inside a longer word as present", () => {
+  it("accepts a target term that only occurs inside a longer word", () => {
     const flag = computeReviewFlags(
       input({
         sourceValue: "AI summary",
@@ -198,7 +198,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         glossary: { AI: "KI" },
       }),
     );
-    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+    expect(flag).toBeUndefined();
   });
 
   it("does not treat a source term followed by a digit as present", () => {
@@ -245,16 +245,29 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
     expect(flag).toBeUndefined();
   });
 
-  it("falls back to substring matching for a target term in a script without word separators", () => {
+  it("falls back to containment for a source term in a script without word separators", () => {
     const flag = computeReviewFlags(
       input({
-        targetLocale: "ja",
-        sourceValue: "Delete your account",
-        translatedValue: "アカウントを削除します",
-        glossary: { account: "アカウント" },
+        sourceLocale: "ja",
+        sourceValue: "アカウントを削除します",
+        translatedValue: "Delete your account",
+        glossary: { アカウント: "account" },
       }),
     );
     expect(flag).toBeUndefined();
+  });
+
+  it("finds a source term whose trailing prolonged sound mark precedes a digit", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceLocale: "ja",
+        targetLocale: "en",
+        sourceValue: "サーバー1台を追加します",
+        translatedValue: "Add one machine",
+        glossary: { サーバー: "server" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
   });
 
   it("flags a missing target term in a script without word separators", () => {
@@ -269,16 +282,16 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
   });
 
-  it("treats a latin target term as present when a script without word separators follows it", () => {
+  it("finds a latin source term when a script without word separators follows it", () => {
     const flag = computeReviewFlags(
       input({
-        targetLocale: "ja",
-        sourceValue: "AI search",
-        translatedValue: "AI検索",
-        glossary: { AI: "AI" },
+        sourceLocale: "ja",
+        sourceValue: "AI検索を実行します",
+        translatedValue: "Führe die Suche aus",
+        glossary: { AI: "KI" },
       }),
     );
-    expect(flag).toBeUndefined();
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
   });
 
   it("does not treat a source term followed by a combining mark as present", () => {
@@ -292,7 +305,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
     expect(flag).toBeUndefined();
   });
 
-  it("flags a target term that only survives as part of a compound, which authoring must resolve", () => {
+  it("accepts a target term carried by a compound that appends to it", () => {
     const flag = computeReviewFlags(
       input({
         sourceValue: "Open your account",
@@ -300,7 +313,42 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         glossary: { account: "Konto" },
       }),
     );
-    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+    expect(flag).toBeUndefined();
+  });
+
+  it("accepts a target term carried by a compound that prepends to it", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Open your account settings",
+        translatedValue: "Öffne deine Kontoeinstellungen",
+        glossary: { account: "Konto" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("accepts a target term followed by an agglutinated particle", () => {
+    const flag = computeReviewFlags(
+      input({
+        targetLocale: "ko",
+        sourceValue: "Delete your account",
+        translatedValue: "계정을 삭제합니다",
+        glossary: { account: "계정" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("accepts a target term that ends in a prolonged sound mark", () => {
+    const flag = computeReviewFlags(
+      input({
+        targetLocale: "ja",
+        sourceValue: "Add one server",
+        translatedValue: "サーバー1台を追加",
+        glossary: { server: "サーバー" },
+      }),
+    );
+    expect(flag).toBeUndefined();
   });
 
   it("skips a glossary pair whose source or target term is empty", () => {
@@ -312,6 +360,17 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       }),
     );
     expect(flag).toBeUndefined();
+  });
+
+  it("keeps scanning the source past a buried occurrence and accepts a later standalone one", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "xAI and AI both ship models",
+        translatedValue: "xAI und AI liefern beide Modelle",
+        glossary: { AI: "KI" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
   });
 });
 

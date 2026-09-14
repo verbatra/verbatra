@@ -120,11 +120,15 @@ export interface ProviderNotice {
  *   the locales differ and that the value contains at least one letter (so a bare symbol or number
  *   is not flagged).
  * - `GLOSSARY_TERM_MISSED`: a configured glossary source term appeared in the source but its target
- *   term did not appear in the translation. Matching is case-insensitive and whole-word on both
- *   sides: a term counts as present only when neither neighbouring character extends it into a
- *   longer word, so the term "AI" is not found inside "Airport". Scripts written without word
- *   separators (Han, kana, Thai and similar) have no such boundary, so a term whose edge falls in
- *   one of them is matched by plain containment instead.
+ *   term did not appear in the translation. Matching is case-insensitive, and the two sides are
+ *   held to deliberately different standards. The source side requires a whole-word occurrence, so
+ *   the term "AI" is not found inside "Airport" and cannot raise an expectation the translator was
+ *   never given; a source term whose edge character belongs to a script written without word
+ *   separators (Han, kana, Thai and similar) has no boundary to anchor to and falls back to
+ *   containment. The target side requires containment only, because a translated term legitimately
+ *   fuses with the text around it: German compounds ("Benutzerkonto"), Korean particles ("계정을")
+ *   and Japanese loanwords all carry the term with no boundary around it, and demanding one there
+ *   would flag correct translations in most languages a glossary is used for.
  * - `INTEGRITY_REORDERED`: the placeholder set matched but landed in a different order.
  * - `PROVIDER_DEGRADED`: the batch this key came from carried a `FORMALITY_DOWNGRADED` or
  *   `GLOSSARY_IGNORED` notice, either of which can silently change wording. A

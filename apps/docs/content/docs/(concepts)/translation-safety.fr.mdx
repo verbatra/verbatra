@@ -83,10 +83,15 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source dans une locale cible
   différente, et la source avait réellement du texte traduisible.
 - `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme
-  cible associé est absent de la traduction. La correspondance ignore la casse et exige un mot
-  entier des deux côtés, donc le terme `AI` ne compte pas comme présent à l'intérieur de `Airport`.
-  Les écritures sans séparateur de mots (han, kana, thaï et similaires) n'offrent aucune frontière,
-  donc un terme dont le bord tombe dans l'une d'elles est cherché comme simple sous-chaîne.
+  cible associé est absent de la traduction. La correspondance ignore la casse, et les deux côtés
+  sont tenus à des exigences différentes, volontairement. Le côté source exige un mot entier, donc
+  le terme `AI` ne compte pas comme présent à l'intérieur de `Airport` et ne peut pas créer une
+  attente que personne n'a formulée. Le côté cible demande seulement que le terme apparaisse quelque
+  part dans la traduction, car un terme traduit se fond légitimement dans ce qui l'entoure : mots
+  composés allemands (`Benutzerkonto`), particules coréennes (`계정을`), emprunts japonais. Exiger
+  une frontière à cet endroit signalerait des traductions correctes dans la plupart des langues pour
+  lesquelles tu tiens un glossaire. Un terme source écrit sans séparateur de mots (han, kana, thaï
+  et similaires) n'a pas non plus de frontière, il retombe donc sur la même règle de sous-chaîne.
 - `INTEGRITY_REORDERED` : l'ensemble des placeholders correspondait exactement mais est arrivé dans
   un ordre différent de la source. Ne se déclenche que sur une traduction que la barrière a déjà
   acceptée.
