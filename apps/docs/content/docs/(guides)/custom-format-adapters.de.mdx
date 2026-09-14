@@ -29,7 +29,7 @@ Kein eingebauter Formatname enthält einen Doppelpunkt, ein `custom:`-Bezeichner
 }
 ```
 
-Eine Konfiguration, die ein Format nennt, das weder ein eingebauter Name noch ein wohlgeformter `custom:`-Bezeichner ist, wird beim Laden weiterhin abgelehnt. Was sich ändert, ist der Zeitpunkt, zu dem der Adapter selbst geprüft wird: Ein eingebauter Name wird zur Übersetzungszeit geprüft, ein `custom:`-Bezeichner nur auf seine Form, weil der Adapter dahinter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit einem strukturierten `UNKNOWN_FORMAT`, das das Format nennt, statt einfach nichts zu tun.
+Eine Konfiguration, die ein Format nennt, das weder ein eingebauter Name noch ein wohlgeformter `custom:`-Bezeichner ist, wird beim Laden weiterhin abgelehnt. Was sich ändert, ist der Zeitpunkt, zu dem der Adapter selbst geprüft wird: Ein eingebauter Name wird zur Kompilierzeit geprüft, ein `custom:`-Bezeichner nur auf seine Form, weil der Adapter dahinter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit einem strukturierten `UNKNOWN_FORMAT`, das das Format nennt, statt einfach nichts zu tun.
 
 ## Den Adapter bauen
 
@@ -80,7 +80,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Ein Adapter mit einem `custom:`-Bezeichner wird beim Registrieren umhüllt. Ein unerwarteter Fehler aus `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` oder `comparePlaceholders` erscheint als `AdapterError` mit dem Code `ADAPTER_FAILED`, dessen Meldung dein Format nennt, ein Defekt in deinem Adapter wird also nie als Defekt von verbatra gemeldet.
 
-Zwei Arten von Fehlern reisen unverändert weiter, weil sie schon etwas Genaues bedeuten. Ein `AdapterError`, den du selbst wirfst, behält seinen eigenen Code, wirf also einen (`INVALID_STRUCTURE` passt in den meisten Fällen) für Inhalte, die dein Format nicht darstellen kann. Ein Dateisystemfehler behält seinen Code ebenfalls, eine fehlende Datei bleibt also eine fehlende Datei.
+Zwei Arten von Fehlern reisen unverändert weiter, weil sie schon etwas Genaues bedeuten. Ein `AdapterError`, den du selbst wirfst, behält seinen eigenen Code, wirf also einen (`INVALID_STRUCTURE` passt in den meisten Fällen) für Inhalte, die dein Format nicht darstellen kann. Ein Fehler mit einem errno-Code behält ihn ebenfalls, eine fehlende Datei bleibt also eine fehlende Datei. Alles andere wird deinem Adapter zugeschrieben, auch ein Node-Fehler wie `ERR_INVALID_ARG_TYPE`, den ein fehlerhafter Adapter am ehesten wirft und der nicht mit einem Dateisystemfehler verwechselt werden darf.
 
 ## Worauf du dich einlässt
 

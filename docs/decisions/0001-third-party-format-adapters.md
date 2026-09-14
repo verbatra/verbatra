@@ -144,9 +144,13 @@ What verbatra does provide, and what it does not:
   importing it and handing verbatra a registry, through the `adapterRegistry` dependency the
   SDK flows already accept.
 - **Failures are contained and attributed.** An adapter with a `custom:` identifier is wrapped
-  so that a throw from `read`, `write`, `extractPlaceholders`, `validateMessage` or
-  `canHandle` surfaces as a structured `AdapterError` naming the offending format, not as an
-  unhandled rejection and not as a raw stack trace that reads as a verbatra defect. This is
+  so that a throw from `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` or
+  `comparePlaceholders` surfaces as a structured `AdapterError` naming the offending format, not as
+  an unhandled rejection and not as a raw stack trace that reads as a verbatra defect. Only two
+  kinds of throw travel unchanged, because they already carry a precise meaning: an `AdapterError`
+  the adapter raised itself, and an error carrying an errno code. A Node misuse error
+  (`ERR_INVALID_ARG_TYPE` and its siblings) is attributed like any other defect, since it is the
+  most likely thing a buggy adapter throws and it must not be mistaken for a filesystem failure. This is
   attribution, not containment of capability: it tells the user which plugin failed. It does
   not stop a plugin from doing anything.
 - **Verbatra does not gain a new trust class from this.** `verbatra.config.ts` is already
@@ -191,6 +195,10 @@ outside package build a working adapter and have verbatra use it, and defers the
 Promised now, and semver-stable from the version that ships it:
 
 - `FormatId`, `CustomFormatId`, `isCustomFormatId`
+- `LocaleResource`, `TranslationEntry`, `PlaceholderIntegrityResult`, core's neutral
+  representation, which an adapter's own signatures are written against. These were already
+  structurally reachable through the published declarations; they are now name-importable, which is
+  a promise the structural reachability was not.
 - `FormatAdapter`, `ReadResult` (already published API through `TranslateDeps`)
 - `AdapterRegistry`, `AdapterResolution`, `ResolveOptions` (already published API, likewise)
 - `AdapterError`, `AdapterErrorCode`

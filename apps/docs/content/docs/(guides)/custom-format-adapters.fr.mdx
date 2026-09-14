@@ -80,7 +80,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Un adaptateur portant un identifiant `custom:` est enveloppé à l'enregistrement. Une erreur inattendue venue de `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` ou `comparePlaceholders` apparaît comme une `AdapterError` avec le code `ADAPTER_FAILED`, dont le message nomme ton format, si bien qu'un défaut de ton adaptateur n'est jamais rapporté comme un défaut de verbatra.
 
-Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lèves-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur du système de fichiers garde également son code, donc un fichier manquant reste un fichier manquant.
+Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lèves-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno garde également le sien, donc un fichier manquant reste un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers.
 
 ## Ce à quoi tu accordes ta confiance
 

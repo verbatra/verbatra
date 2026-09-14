@@ -80,7 +80,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 An adapter with a `custom:` identifier is wrapped when it is registered. An unexpected throw from `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` or `comparePlaceholders` surfaces as an `AdapterError` with code `ADAPTER_FAILED`, whose message names your format, so a defect in your adapter is never reported as a verbatra defect.
 
-Two kinds of error travel unchanged, because they already mean something precise. An `AdapterError` you raise yourself keeps its own code, so raise one (`INVALID_STRUCTURE` fits most cases) for content your format cannot represent. A filesystem error keeps its own code too, so a missing file is still a missing file.
+Two kinds of error travel unchanged, because they already mean something precise. An `AdapterError` you raise yourself keeps its own code, so raise one (`INVALID_STRUCTURE` fits most cases) for content your format cannot represent. An error carrying an errno code keeps it too, so a missing file is still a missing file. Everything else is attributed to your adapter, including a Node misuse error such as `ERR_INVALID_ARG_TYPE`, which is the likeliest thing a buggy adapter throws and must not be mistaken for a filesystem failure.
 
 ## What you are trusting
 

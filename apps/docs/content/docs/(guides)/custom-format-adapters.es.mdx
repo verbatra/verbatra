@@ -80,7 +80,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Un adaptador con identificador `custom:` se envuelve al registrarlo. Un fallo inesperado en `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` o `comparePlaceholders` aparece como un `AdapterError` con código `ADAPTER_FAILED`, cuyo mensaje nombra tu formato, así que un defecto de tu adaptador nunca se informa como un defecto de verbatra.
 
-Dos tipos de error viajan intactos, porque ya significan algo preciso. Un `AdapterError` que lances tú conserva su propio código, así que lanza uno (`INVALID_STRUCTURE` encaja en la mayoría de los casos) para contenido que tu formato no puede representar. Un error del sistema de archivos también conserva su código, así que un archivo ausente sigue siendo un archivo ausente.
+Dos tipos de error viajan intactos, porque ya significan algo preciso. Un `AdapterError` que lances tú conserva su propio código, así que lanza uno (`INVALID_STRUCTURE` encaja en la mayoría de los casos) para contenido que tu formato no puede representar. Un error que lleva un código errno también lo conserva, así que un archivo ausente sigue siendo un archivo ausente. Todo lo demás se atribuye a tu adaptador, incluido un error de Node como `ERR_INVALID_ARG_TYPE`, que es lo más probable que lance un adaptador con errores y que no debe confundirse con un fallo del sistema de archivos.
 
 ## En qué confías
 
