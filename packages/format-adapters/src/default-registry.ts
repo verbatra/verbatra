@@ -9,6 +9,7 @@ import { createNextIntlJsonAdapter } from "./next-intl/next-intl-adapter.js";
 import { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
 import { createPropertiesAdapter } from "./properties/properties-adapter.js";
 import { AdapterRegistry } from "./registry.js";
+import { createResxAdapter } from "./resx/resx-adapter.js";
 import { createVueI18nJsonAdapter } from "./vue-i18n/vue-i18n-adapter.js";
 import { createAppleXcstringsAdapter } from "./xcstrings/xcstrings-adapter.js";
 import { createXliffAdapter } from "./xliff/xliff-adapter.js";
@@ -28,5 +29,6 @@ export function createDefaultRegistry(fs: AdapterFs = nodeAdapterFs): AdapterReg
     .register(createAppleXcstringsAdapter(fs))
     .register(createAndroidXmlAdapter(fs))
     .register(createGettextAdapter(fs))
-    .register(createIniAdapter(fs));
+    .register(createIniAdapter(fs))
+    .register(createResxAdapter(fs));
 }

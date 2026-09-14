@@ -32,6 +32,7 @@ const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   "android-xml": "Android strings.xml",
   "gettext-po": "gettext .po/.pot",
   ini: "INI",
+  resx: ".NET .resx",
 };
 
 const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);

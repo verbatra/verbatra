@@ -17,6 +17,7 @@ describe("SupportedFormat", () => {
       "android-xml",
       "gettext-po",
       "ini",
+      "resx",
     ]);
   });
 
@@ -34,6 +35,7 @@ describe("SupportedFormat", () => {
     expect(supportedFormatSchema.parse("android-xml")).toBe("android-xml");
     expect(supportedFormatSchema.parse("gettext-po")).toBe("gettext-po");
     expect(supportedFormatSchema.parse("ini")).toBe("ini");
+    expect(supportedFormatSchema.parse("resx")).toBe("resx");
   });
 
   it("rejects an unknown format", () => {

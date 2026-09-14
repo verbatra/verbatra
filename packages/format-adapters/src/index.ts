@@ -31,6 +31,7 @@ export {
 } from "./printf/printf-placeholders.js";
 export { createPropertiesAdapter } from "./properties/properties-adapter.js";
 export { AdapterRegistry, type AdapterResolution, type ResolveOptions } from "./registry.js";
+export { createResxAdapter } from "./resx/resx-adapter.js";
 export { createVueI18nJsonAdapter } from "./vue-i18n/vue-i18n-adapter.js";
 export { createAppleXcstringsAdapter } from "./xcstrings/xcstrings-adapter.js";
 export { createXliffAdapter } from "./xliff/xliff-adapter.js";
