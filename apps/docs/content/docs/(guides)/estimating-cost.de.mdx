@@ -38,7 +38,7 @@ Requests pro Locale = ceil(zu übersetzende Keys / maxBatchSize)
 
 Für den festen Overhead zählt die Batch-Größe mehr als die Key-Anzahl, weil ein Teil jedes Requests konstant ist (siehe nächster Schritt). Zwei Korrekturen:
 
-- Eine unvollständige Antwort, egal ob Keys fehlen oder die Ausgabe abgeschnitten wurde, löst **höchstens einen** begrenzten zusätzlichen Request für den nicht angekommenen Teil aus. Im Normalbetrieb sind das null zusätzliche Requests.
+- Eine unvollständige Antwort löst begrenzte zusätzliche Requests aus: **höchstens einen** Reparatur-Request, wenn Keys fehlen, und einen Wiederholungsversuch in Hälften, wenn die Ausgabe abgeschnitten wurde. Im Normalbetrieb sind das null zusätzliche Requests.
 - `generatePlurals` fügt eigene gebatchte Requests für die Pluralformen hinzu, die es ergänzt, gezählt nach derselben Regel. Sie sind von den Übersetzungs-Batches getrennt, ein Projekt, dessen Keys alle synchron sind, dessen Pluralsatz aber nicht, stellt also trotzdem Requests.
 
 ## Schritt 3: die Tokens in einem Request zählen
@@ -116,7 +116,7 @@ Drei Dinge wird es nie tun: eine Rate erfinden, die es nicht hat, eine in der fa
 
 `--json` liefert dieselben Zahlen als strukturierte Felder unter `result.estimate`, pro Locale und als Summe, ein Skript kann also darauf prüfen, statt eine Zeile zu parsen.
 
-Die Zahl ist eine Obergrenze für die Arbeit. Jeder Request, den ein echter Lauf machen würde, wird gezählt, auch die Batches der Pluralgenerierung, und der Prompt wird gemessen, indem die tatsächlich zu sendende Payload serialisiert wird, statt ihre Form in einer Formel nachzubauen. Ein Glossar oder ein Tone kann also nicht ungezählt bleiben. Ein echter Lauf kann nur weniger senden, aus denselben zwei Gründen, aus denen die Dry-Run-Zahl eine Obergrenze ist: er liest den Cache, und er fasst identische Quell-Strings zusammen.
+Die Zahl ist eine Obergrenze für die Arbeit. Jeder Request, den ein echter Lauf machen würde, wird gezählt, auch die Batches der Pluralgenerierung, und der Prompt wird gemessen, indem die tatsächlich zu sendende Payload serialisiert wird, statt ihre Form in einer Formel nachzubauen. Ein Glossar oder ein Tone kann also nicht ungezählt bleiben. Ein echter Lauf kann nur weniger senden als dieser Plan, aus denselben zwei Gründen, aus denen die Dry-Run-Zahl eine Obergrenze ist: er liest den Cache, und er fasst identische Quell-Strings zusammen. Mehr senden kann er nur durch den begrenzten Wiederholungsversuch von oben, und genau deshalb steht `repair requests` auf der Auslassungszeile.
 
 Die Zeile `estimate excludes` benennt genau das, was bei diesem Lauf ausgelassen wurde, und das ist nicht jedes Mal dieselbe Liste. Ein tokenbasiert abgerechneter Provider bekommt vier Einträge: Cache-Treffer, doppelte Quell-Strings, Tokenizer-Unterschiede (Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem Tokenizer des Providers) und Reparatur-Requests. Ein zeichenbasiert abgerechneter bekommt nur die ersten beiden, weil es dort keine Tokens zu nähern und keine Reparaturrunde gibt.
 

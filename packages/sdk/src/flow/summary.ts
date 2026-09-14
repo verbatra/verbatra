@@ -82,8 +82,9 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
  *   string; the estimate counts every key.
  * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
  *   own tokenizer.
- * - `REPAIR_REQUESTS_NOT_COUNTED`: the one bounded extra request an incomplete response can
- *   trigger, whether keys were missing or the output was truncated, is not counted.
+ * - `REPAIR_REQUESTS_NOT_COUNTED`: the extra requests an incomplete response can trigger are not
+ *   counted: one bounded repair request when keys came back missing, and a retry in halves when
+ *   the output was cut off.
  */
 export type EstimateCaveatCode =
   | "CACHE_NOT_CONSULTED"
@@ -206,12 +207,13 @@ export interface UnpricedRunEstimate extends RunEstimateQuantity {
  * supplied. It is computed without constructing a provider, reading an API key, or making a network
  * call.
  *
- * It is an upper bound on the work: every provider call a live run would make is counted, including
- * the plural-generation batches, and the prompt is measured from the request payload that would
- * actually be sent rather than modelled. The live run can only send less, because it consults the
- * translation memory and collapses identical source strings, neither of which the estimate does.
- * {@link EstimateCaveatCode} names each of those, and names the token count as a heuristic derived
- * from characters rather than from the provider's own tokenizer.
+ * It is an upper bound on the work it plans: every provider call a live run schedules is counted,
+ * including the plural-generation batches, and the prompt is measured from the request payload that
+ * would actually be sent rather than modelled. The live run can only send less than this plan,
+ * because it consults the translation memory and collapses identical source strings, neither of
+ * which the estimate does. The one way it can send more is the bounded retry an incomplete response
+ * triggers. {@link EstimateCaveatCode} names each of those, and names the token count as a
+ * heuristic derived from characters rather than from the provider's own tokenizer.
  *
  * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
  * an {@link UnpricedRunEstimate} carries none of them and says why.

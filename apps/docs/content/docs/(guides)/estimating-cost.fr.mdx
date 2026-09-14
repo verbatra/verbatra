@@ -38,7 +38,7 @@ requêtes par langue = ceil(clés à traduire / maxBatchSize)
 
 Pour la surcharge fixe, la taille du lot compte davantage que le nombre de clés, car une partie de chaque requête est constante (voir l'étape suivante). Deux ajustements :
 
-- Une réponse incomplète, que des clés manquent ou que la sortie ait été tronquée, déclenche **au plus une** requête supplémentaire bornée pour la partie qui n'est pas arrivée. En fonctionnement normal, cela fait zéro requête supplémentaire.
+- Une réponse incomplète déclenche des requêtes supplémentaires bornées : **au plus une** requête de réparation quand des clés manquent, et une reprise par moitiés quand la sortie a été tronquée. En fonctionnement normal, cela fait zéro requête supplémentaire.
 - `generatePlurals` ajoute ses propres requêtes par lots pour les formes plurielles qu'il complète, comptées de la même façon. Elles sont distinctes des lots de traduction : un projet dont toutes les clés sont à jour mais dont le jeu de pluriels ne l'est pas fait donc encore des requêtes.
 
 ## Étape 3 : compter les tokens d'une requête
@@ -116,7 +116,7 @@ Trois choses qu'il ne fera jamais : inventer un tarif qu'il n'a pas, appliquer u
 
 `--json` transporte les mêmes chiffres sous forme de champs structurés dans `result.estimate`, par locale et au total : un script peut donc s'y appuyer au lieu d'analyser une ligne de texte.
 
-Le chiffre est une borne supérieure du travail. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels, et le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule : un glossaire ou un ton ne peut donc pas rester non compté. Une exécution réelle ne peut qu'envoyer moins, pour les deux mêmes raisons qui font du compte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques.
+Le chiffre est une borne supérieure du travail. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels, et le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule : un glossaire ou un ton ne peut donc pas rester non compté. Une exécution réelle ne peut qu'envoyer moins que ce plan, pour les deux mêmes raisons qui font du compte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques. La seule chose qui puisse lui faire envoyer plus est la reprise bornée ci-dessus, et c'est pour cela que `repair requests` figure sur la ligne des exclusions.
 
 La ligne `estimate excludes` nomme exactement ce qui a été laissé de côté sur cette exécution, et ce n'est pas la même liste à chaque fois. Un fournisseur facturé aux tokens reçoit quatre éléments : succès de cache, chaînes source dupliquées, différences de tokenizer (les tokens sont dérivés de comptes de caractères, pas du tokenizer du fournisseur) et requêtes de réparation. Un fournisseur facturé aux caractères ne reçoit que les deux premiers, car il n'a ni tokens à approximer ni tour de réparation à faire.
 

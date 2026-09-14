@@ -38,7 +38,7 @@ requests per locale = ceil(keys to translate / maxBatchSize)
 
 Batch size matters more than key count for the fixed overhead, because part of every request is constant (see the next step). Two adjustments:
 
-- A response that comes back incomplete, whether keys are missing or the output was cut off, triggers **at most one** bounded extra request for the part that did not arrive. In normal operation this is zero extra requests.
+- An incomplete response triggers bounded extra requests: **at most one** repair request when keys came back missing, and a retry in halves when the output was cut off. In normal operation this is zero extra requests.
 - `generatePlurals` adds its own batched requests for the plural forms it fills in, counted the same way. They are separate from the translation batches, so a project whose keys are all in sync but whose plural set is not still makes requests.
 
 ## Step 3: count the tokens in a request
@@ -116,7 +116,7 @@ Three things it will never do: invent a rate it does not have, apply a rate writ
 
 `--json` carries the same numbers as structured fields under `result.estimate`, per locale and in total, so a script can gate on them rather than parse a line.
 
-The figure is an upper bound on the work. Every request a real run would make is counted, the plural-generation batches included, and the prompt is measured by serializing the payload that would actually be sent rather than by reproducing its shape in a formula, so a glossary or a tone cannot go uncounted. A real run can only send less than this, for the same two reasons the dry-run count is an upper bound: it consults the cache, and it collapses identical source strings.
+The figure is an upper bound on the work. Every request a real run would make is counted, the plural-generation batches included, and the prompt is measured by serializing the payload that would actually be sent rather than by reproducing its shape in a formula, so a glossary or a tone cannot go uncounted. A real run can only send less than this plan, for the same two reasons the dry-run count is an upper bound: it consults the cache, and it collapses identical source strings. The one way it can send more is the bounded retry above, which is why `repair requests` is on the excludes line.
 
 The `estimate excludes` line names exactly what was left out of that run, which is not the same list every time. A token-billed provider gets four items: cache hits, duplicate source strings, tokenizer differences (tokens are derived from character counts, not from the provider's own tokenizer), and repair requests. A character-billed provider gets the first two only, because it has no tokens to approximate and no repair round to run.
 
