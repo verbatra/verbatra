@@ -1,6 +1,11 @@
 import type { TranslationEntry } from "@verbatra/core";
-import { type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
-import { elementChildren, setSingleTextValue, singleTextValue } from "../android-xml/xml.js";
+import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
+import {
+  elementChildren,
+  setSingleTextValue,
+  singleTextValue,
+  TEXT_NODE,
+} from "../android-xml/xml.js";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
@@ -89,13 +94,22 @@ function writeValue(doc: Document, element: Element, value: string): void {
   element.appendChild(created);
 }
 
+function closingIndent(root: Element): Node | null {
+  const last = root.lastChild;
+  if (last === null || last.nodeType !== TEXT_NODE) {
+    return null;
+  }
+  return (last.nodeValue ?? "").trim() === "" ? last : null;
+}
+
 function appendData(doc: Document, root: Element, name: string, value: string): void {
   const element = doc.createElement("data");
   element.setAttribute("name", name);
   element.setAttribute("xml:space", "preserve");
   writeValue(doc, element, value);
-  root.appendChild(doc.createTextNode("\n  "));
-  root.appendChild(element);
+  const anchor = closingIndent(root);
+  root.insertBefore(doc.createTextNode("\n  "), anchor);
+  root.insertBefore(element, anchor);
 }
 
 function patchData(

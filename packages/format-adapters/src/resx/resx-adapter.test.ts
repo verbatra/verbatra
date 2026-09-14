@@ -169,8 +169,8 @@ describe("createResxAdapter write", () => {
     const updated = new Map(read.entries);
     updated.set("Added", entry("Added", "  spaced  "));
     await adapter.write({ ...read, entries: updated }, "Resources.resx");
-    expect(fs.files.get("Resources.resx")).toContain(
-      '<data name="Added" xml:space="preserve"><value>  spaced  </value></data>',
+    expect(fs.files.get("Resources.resx")).toMatch(
+      / {2}<\/data>\n {2}<data name="Added" xml:space="preserve"><value> {2}spaced {2}<\/value><\/data>\n<\/root>\n$/,
     );
   });
 
