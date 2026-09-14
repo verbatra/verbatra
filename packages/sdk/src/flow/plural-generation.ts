@@ -9,6 +9,7 @@ import {
   type CldrPluralCategory,
   type PluralGenerationItem,
   planPluralGeneration,
+  syntheticEntry,
 } from "./plural-categories.js";
 import type { LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
@@ -69,15 +70,6 @@ function generatedLockHash(
   });
 }
 
-function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
-  return {
-    ...item.sourceEntry,
-    key: item.targetKey,
-    isPlural: true,
-    meaning: `CLDR plural category "${item.category}"`,
-  };
-}
-
 function isAdopted(
   item: PluralGenerationItem,
   targetKeys: ReadonlySet<string>,
@@ -96,14 +88,26 @@ function staleItems(
   });
 }
 
+export interface PendingPluralInput {
+  readonly source: LocaleResource;
+  readonly targetLocale: string;
+  readonly format: string;
+  readonly baseline: ReadonlyMap<string, string>;
+  readonly targetKeys: ReadonlySet<string>;
+}
+
+export function pendingPluralForms(input: PendingPluralInput): readonly PluralGenerationItem[] {
+  const plan = planPluralGeneration(input.source, input.targetLocale, input.format);
+  const candidates = plan.items.filter(
+    (item) => !isAdopted(item, input.targetKeys, input.baseline),
+  );
+  return staleItems(candidates, input.baseline);
+}
+
 export async function generatePluralForms(
   context: PluralGenerationContext,
 ): Promise<PluralGenerationResult> {
-  const plan = planPluralGeneration(context.source, context.targetLocale, context.format);
-  const candidates = plan.items.filter(
-    (item) => !isAdopted(item, context.targetKeys, context.baseline),
-  );
-  const stale = staleItems(candidates, context.baseline);
+  const stale = pendingPluralForms(context);
   if (stale.length === 0) {
     return EMPTY_RESULT;
   }

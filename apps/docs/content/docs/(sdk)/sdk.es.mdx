@@ -49,12 +49,16 @@ bloqueo, enviar al proveedor las claves faltantes y modificadas, ejecutar las co
 integridad, escribir los archivos de locale y actualizar el bloqueo.
 Úsalo para scripts, pasos de build y jobs de CI.
 
-Entrada: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restringe la ejecución a un subconjunto de los locales de destino configurados, igual
   que en `check` y `diff`. Un locale no configurado lanza `UNKNOWN_LOCALE` antes de leer o gastar
   nada. Omítelo para cubrir todos los locales de destino.
 - `dryRun` lee, compara e informa sin construir ni llamar al proveedor y sin escribir nada.
+- `estimate` añade en `RunSummary.estimate` una estimación de coste previa a la ejecución e implica
+  `dryRun`: no construye ningún proveedor, no lee ninguna clave API y no escribe nada. El recuento
+  se informa siempre; una cifra en moneda necesita un bloque `rates` en la configuración que nombre
+  el proveedor y el modelo configurados.
 - `prune` elimina del archivo escrito y del bloqueo las claves huérfanas (claves de destino ausentes
   del origen). `generatePlurals` sintetiza las formas de plural CLDR que faltan (solo i18next-JSON con
   un proveedor LLM). Ambos están desactivados por defecto; cuando se definen, cada uno anula la opción
@@ -79,6 +83,25 @@ Entrada: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurren
 Devuelve un `RunSummary` (consulta [su anatomía más abajo](#la-anatomía-de-runsummary)). Los problemas
 de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y queda como
 `status: "failed"` en la entrada de ese locale mientras la ejecución continúa.
+
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Responde si un conjunto de opciones de ejecución se resuelve como una ejecución en seco. Toma el
+`dryRun` y el `estimate` que estás a punto de pasar a `translate` y devuelve si esa ejecución
+construirá un proveedor, escribirá un archivo o gastará algo. Es el único sitio donde se decide
+que `estimate` implica `dryRun`, así que úsala siempre que algo alrededor de una ejecución tenga
+que saberlo de antemano, en lugar de repetir la implicación y acabar desviándote de ella.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
 
 ### watch
 
@@ -441,6 +464,7 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
 }
 
 interface LocaleSummary {

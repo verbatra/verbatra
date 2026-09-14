@@ -300,7 +300,11 @@ describe("translate: plural generation fallbacks (never a hard failure)", () => 
     const dir = await project(PLURAL_SOURCE, { pl: {} });
 
     const summary = await translate(
-      { config: cfg(), cwd: dir, generatePlurals: true },
+      {
+        config: cfg({ provider: { id: "deepl", options: {} } }),
+        cwd: dir,
+        generatePlurals: true,
+      },
       {
         createProvider: () =>
           makeStubProvider({ id: "deepl", kind: "machine-translation" }).provider,

@@ -1,6 +1,7 @@
 import {
   computeReviewFlags,
   ProviderError,
+  type ProviderKind,
   type ReviewFlag,
   type Tone,
   type TranslateResult,
@@ -42,6 +43,7 @@ import {
   type GeneratedForm,
   generatePluralForms,
   type PluralGenerationResult,
+  pendingPluralForms,
 } from "./plural-generation.js";
 import { readTargetResource } from "./read-target.js";
 import type { LocaleNotice, LocaleSummary, NeedsReviewEntry, UsageSummary } from "./summary.js";
@@ -55,6 +57,7 @@ export interface LocaleRunParams {
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
+  readonly providerKind: ProviderKind;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
@@ -294,6 +297,10 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
 
   const provider = params.provider;
   if (provider === undefined) {
+    const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
+    const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
+      (key) => !pruned.includes(key),
+    );
     return {
       summary: baseSummary({
         locale: params.targetLocale,
@@ -302,12 +309,12 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         invalidIcuSource,
         translated: toTranslate,
         cacheHits: [],
-        generated: [],
+        generated: planned,
         integrityMismatches: [],
         providerFailures: [],
         budgetWithheld: [],
         pruned,
-        notices: sdkNotices,
+        notices: generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices,
       }),
       lockEntries: {},
       cacheAdditions: [],
@@ -381,7 +388,9 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     );
   }
 
-  const pluralNotices = params.generatePlurals ? pluralNoticeFor(params, merged) : sdkNotices;
+  const pluralNotices = params.generatePlurals
+    ? pluralNoticeFor(params, merged.keys())
+    : sdkNotices;
   const notices: readonly LocaleNotice[] = [
     ...pluralNotices,
     ...translation.notices,
@@ -430,12 +439,34 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
   tripped: false,
 };
 
+function generationEnabled(params: LocaleRunParams): boolean {
+  return params.generatePlurals && params.providerKind === "llm";
+}
+
+function plannedGenerationKeys(
+  params: LocaleRunParams,
+  targetKeys: ReadonlySet<string>,
+): readonly string[] {
+  if (!generationEnabled(params)) {
+    return [];
+  }
+  return pendingPluralForms({
+    source: params.source,
+    targetLocale: params.targetLocale,
+    format: params.format,
+    baseline: params.baseline,
+    targetKeys,
+  })
+    .map((item) => item.targetKey)
+    .sort();
+}
+
 async function runGeneration(
   params: LocaleRunParams,
   provider: TranslationProvider,
   targetKeys: ReadonlySet<string>,
 ): Promise<PluralGenerationResult> {
-  if (!params.generatePlurals || provider.kind !== "llm") {
+  if (!generationEnabled(params)) {
     return NO_GENERATION_RESULT;
   }
   return generatePluralForms({
@@ -463,14 +494,11 @@ function budgetLocaleNotices(
   return startedStopped || mainTripped || generationTripped ? [budgetExceededNotice(budget)] : [];
 }
 
-function pluralNoticeFor(
-  params: LocaleRunParams,
-  merged: ReadonlyMap<string, TranslationEntry>,
-): readonly LocaleNotice[] {
+function pluralNoticeFor(params: LocaleRunParams, keys: Iterable<string>): readonly LocaleNotice[] {
   if (params.format !== "i18next-json") {
     return [];
   }
-  if (!targetPluralSetIncomplete(merged.keys(), params.targetLocale)) {
+  if (!targetPluralSetIncomplete(keys, params.targetLocale)) {
     return [];
   }
   return [pluralIncompleteNotice(params.targetLocale)];

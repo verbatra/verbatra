@@ -149,3 +149,33 @@ describe("verbatraConfigSchema: files.localeStyle", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("verbatraConfigSchema: rates", () => {
+  const rates = {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+    },
+  };
+
+  it("is optional, so a project that never estimates in currency needs no rates block", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("accepts a dated rate card", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ rates }));
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an undated rate card, because an undated price cannot be judged stale", () => {
+    const { asOf: _asOf, ...undated } = rates;
+    const config: unknown = { ...baseConfig({}), rates: undated };
+    expect(verbatraConfigSchema.safeParse(config).success).toBe(false);
+  });
+
+  it("rejects an unknown key inside the rates block", () => {
+    const config: unknown = { ...baseConfig({}), rates: { ...rates, source: "vendor page" } };
+    expect(verbatraConfigSchema.safeParse(config).success).toBe(false);
+  });
+});

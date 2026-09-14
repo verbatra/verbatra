@@ -1,4 +1,4 @@
-import type { TranslationProvider } from "@verbatra/ai-providers";
+import type { ProviderKind, TranslationProvider } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import {
@@ -10,6 +10,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { TranslationMemory } from "../cache/types.js";
+import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
   DEFAULT_MAX_BATCH_SIZE,
@@ -41,11 +42,12 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, toBudgetSummary } from "./budget.js";
+import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { failureSummary, partition } from "./locale-failure.js";
 import { type LocaleRunParams, runLocale } from "./locale-run.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
-import type { LocaleSummary, RunSummary, SdkNotice } from "./summary.js";
+import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
 import { combineUsage } from "./usage.js";
 
 /** Input for {@link translate}. Only `config` is required; every other field has a default. */
@@ -72,6 +74,19 @@ export interface TranslateInput {
    * preview work without spending anything. Defaults to false.
    */
   readonly dryRun?: boolean;
+  /**
+   * Compute a pre-run cost estimate and return it on {@link RunSummary.estimate}. Implies
+   * `dryRun`: an estimate constructs no provider, reads no API key, makes no network call, and
+   * writes no file, so it is safe to run anywhere. Defaults to false.
+   *
+   * The figure is an upper bound on the work it plans rather than a quotation: every provider call
+   * a live run schedules is counted, plural generation included, and the prompt is measured from
+   * the request payload that would be sent. Only the bounded retry an incomplete response triggers
+   * can push a live run above it. It carries a currency amount only when the config supplies a
+   * `rates` block covering the configured provider and model; otherwise it reports the quantity and
+   * says why the money is missing. See {@link RunEstimate}.
+   */
+  readonly estimate?: boolean;
   /**
    * Remove keys that no longer exist in the source. Defaults to the config's `prune`, then to
    * false, so orphaned keys are reported but kept unless removal is asked for explicitly.
@@ -184,6 +199,7 @@ interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
+  readonly providerKind: ProviderKind;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -209,6 +225,7 @@ function buildLocaleRunParams(
     baseline,
     adapter: context.adapter,
     provider: context.provider,
+    providerKind: context.providerKind,
     cwd: context.cwd,
     resolver: context.resolver,
     sourceLocale: context.config.sourceLocale,
@@ -403,6 +420,39 @@ export function resolveRunConcurrency(
 }
 
 /**
+ * Whether a set of run options resolves to a dry run. `estimate` implies `dryRun`, and this is the
+ * one place that implication is decided: {@link translate} calls it, and so should any caller that
+ * has to know before the run starts whether anything will be written or spent, rather than
+ * re-deriving the rule and drifting from it.
+ *
+ * @param input - The `dryRun` and `estimate` options as the caller received them.
+ * @returns True when the run will construct no provider, write no file, and spend nothing.
+ *
+ * @example
+ * ```ts
+ * import { resolveDryRun, translate } from "@verbatra/sdk";
+ *
+ * if (!resolveDryRun(options)) {
+ *   await prepareWorkspaceForWrites();
+ * }
+ * const summary = await translate({ config, ...options });
+ * ```
+ */
+export function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean {
+  return input.dryRun === true || input.estimate === true;
+}
+
+function estimateFields(
+  requested: boolean,
+  params: EstimateForRunInput,
+): { estimate?: RunEstimate } {
+  return requested ? { estimate: estimateForRun(params) } : {};
+}
+
+/**
  * Runs the one-shot translation flow over every configured target locale, or over the subset named
  * by `locales`: read the source, diff
  * each locale against the lock-file baseline, translate what is missing or stale, verify placeholder
@@ -480,7 +530,8 @@ export async function translate(
 ): Promise<RunSummary> {
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
-  const dryRun = input.dryRun ?? false;
+  const estimateRequested = input.estimate ?? false;
+  const dryRun = resolveDryRun(input);
   const targetLocales = selectLocales(config, input.locales);
   const concurrency = resolveRunConcurrency(input.concurrency, dryRun, config);
   const prune = input.prune ?? config.prune ?? false;
@@ -502,6 +553,7 @@ export async function translate(
     source,
     adapter,
     provider,
+    providerKind: kindOf(config.provider.id),
     cwd,
     config,
     resolver,
@@ -538,6 +590,12 @@ export async function translate(
     failed,
     ...(usage !== undefined ? { usage } : {}),
     ...(budgetSummary !== undefined ? { budget: budgetSummary } : {}),
+    ...estimateFields(estimateRequested, {
+      summaries: locales,
+      source: source.resource,
+      config,
+      maxBatchSize,
+    }),
   };
 
   await recordCacheAdditions(cwd, cache, fs);

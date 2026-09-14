@@ -201,7 +201,16 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    registered, and is never reached. `providerFactories` is the table that
    matters.
 
-8. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
+8. **`packages/sdk/src/config/provider-billing.ts`** - add the entry to
+   `PROVIDER_BILLING`: whether the provider bills by `tokens` or by `characters`,
+   and whether a hosted API bills for it at all. The table is a mapped type over
+   `ProviderId`, so a missing entry is a compile error, and
+   `provider-billing.test.ts` fails it a second time by iterating `PROVIDER_IDS`.
+   If the provider takes a model, add its case to `modelOf` in the same file so a
+   rate can be filed under `provider/model`; the switch is exhaustive and will not
+   compile without it. This is what `translate --estimate` reads.
+
+9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` (around `:12`) requires an env entry for every
    provider except `openai-compatible`, and
@@ -209,13 +218,13 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    key for every one of those except DeepL. Both are unused declarations that
    exist only to fail the build.
 
-9. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
-   missing-key error, and upstream failures mapped to `ProviderError` codes.
+10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
+    missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-10. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
+11. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
     published and version-locked together, so a change here ships in a release.
 
-11. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
+12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
     `.fr.mdx` sibling of each in the same change.
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
 import { providerConfigSchema } from "./provider-config.js";
+import { rateCardSchema } from "./rate-card.js";
 
 export const DEFAULT_MAX_BATCH_SIZE = 50;
 
@@ -57,6 +58,7 @@ export const verbatraConfigSchema = z
     maxBatchSize: z.number().int().positive().optional(),
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
+    rates: rateCardSchema.optional(),
   })
   .refine(
     (config) => {

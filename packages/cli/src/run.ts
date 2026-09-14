@@ -4,6 +4,7 @@ import {
   type ExchangeFormat,
   type LockWaitEvent,
   type ProgressEvent,
+  resolveDryRun,
   type TranslateInput,
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
@@ -63,6 +64,7 @@ const translateOptsSchema = sharedCommandOptsSchema.extend({
   lockTimeout: z.string().optional(),
   concurrency: z.string().optional(),
   cache: z.boolean().optional(),
+  estimate: z.boolean().optional(),
 });
 
 const watchOptsSchema = sharedCommandOptsSchema.extend({
@@ -313,6 +315,7 @@ function buildTranslateInput(
       : {}),
     ...(opts.concurrencyValue !== undefined ? { concurrency: opts.concurrencyValue } : {}),
     ...(opts.cache === false ? { cache: false } : {}),
+    ...(opts.estimate === true ? { estimate: true } : {}),
   };
 }
 
@@ -327,7 +330,7 @@ export async function runTranslate(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      appendMissingGitignoreEntries(cwd, resolveDryRun(opts));
       return withWholeRunErrors(
         deps,
         context,
@@ -615,6 +618,10 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "bypass the local translation-memory cache (verbatra.cache.json) for this run",
     )
     .option("--json", "print the run summary as JSON")
+    .option(
+      "--estimate",
+      "estimate what the run would send and cost, then exit without calling a provider (implies --dry-run)",
+    )
     .action(async (opts: unknown) => {
       ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams));
     })
@@ -629,6 +636,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra translate --prune         also remove orphaned keys from target files",
         "  $ verbatra translate --prune --dry-run  preview the keys that would be pruned",
         "  $ verbatra translate --json          machine-readable summary on stdout",
+        "  $ verbatra translate --estimate      size and price the run without spending anything",
       ].join("\n"),
     );
 }

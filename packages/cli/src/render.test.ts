@@ -1,4 +1,11 @@
-import type { LockWaitEvent, ProgressEvent, WatchRunResult } from "@verbatra/sdk";
+import type {
+  LockWaitEvent,
+  PricedRunEstimate,
+  ProgressEvent,
+  RunEstimate,
+  UnpricedRunEstimate,
+  WatchRunResult,
+} from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   renderCheckHuman,
@@ -553,5 +560,113 @@ describe("render: watch run result", () => {
     };
     expect(renderRunResultHuman(ok)).toContain("1 succeeded");
     expect(renderRunResultHuman(bad)).toBe("verbatra: error [SOURCE_INVALID] x");
+  });
+});
+
+describe("renderHuman: pre-run estimate", () => {
+  const tokenEstimate: PricedRunEstimate = {
+    provider: "anthropic",
+    model: "sonnet-test",
+    rateKey: "anthropic/sonnet-test",
+    unit: "tokens",
+    pricing: "priced",
+    currency: "USD",
+    asOf: "2026-01-15",
+    locales: [
+      {
+        locale: "de",
+        keys: 400,
+        requests: 8,
+        inputTokens: 10800,
+        outputTokens: 7600,
+        cost: 0.1464,
+      },
+    ],
+    keys: 400,
+    requests: 8,
+    inputTokens: 10800,
+    outputTokens: 7600,
+    cost: 0.1464,
+    caveats: ["CACHE_NOT_CONSULTED", "SOURCE_DUPLICATES_NOT_DEDUPLICATED"],
+  };
+
+  function render(estimate: RunEstimate): string {
+    return renderHuman(makeSummary({ dryRun: true, estimate }));
+  }
+
+  function unpriced(pricing: UnpricedRunEstimate["pricing"]): UnpricedRunEstimate {
+    const { currency: _currency, asOf: _asOf, cost: _cost, locales, ...rest } = tokenEstimate;
+    return {
+      ...rest,
+      pricing,
+      locales: locales.map(({ cost: _localeCost, ...locale }) => locale),
+    };
+  }
+
+  it("reports keys, requests, and the token split for a token-billed provider", () => {
+    expect(render(tokenEstimate)).toContain(
+      "estimate: 400 keys in 8 requests, ~10800 input + ~7600 output tokens",
+    );
+  });
+
+  it("prints the currency code and the date the rates were read beside every figure", () => {
+    const line = render(tokenEstimate);
+    expect(line).toContain("0.1464 USD");
+    expect(line).toContain("rates as of 2026-01-15");
+  });
+
+  it("calls the figure an estimate rather than a price", () => {
+    expect(render(tokenEstimate)).toContain("estimate");
+    expect(render(tokenEstimate)).not.toContain("total cost:");
+  });
+
+  it("names what the figure leaves out, so it is not read as a bill", () => {
+    const line = render(tokenEstimate);
+    expect(line).toContain("cache hits");
+    expect(line).toContain("duplicate source strings");
+  });
+
+  it("reports source characters and no token figure for a character-billed provider", () => {
+    const { inputTokens: _in, outputTokens: _out, ...rest } = tokenEstimate;
+    const line = render({
+      ...rest,
+      provider: "deepl",
+      rateKey: "deepl",
+      unit: "characters",
+      sourceCharacters: 16000,
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000, cost: 0.1464 }],
+    });
+
+    expect(line).toContain("~16000 source characters");
+    expect(line).not.toContain("tokens");
+  });
+
+  it("says which rate is missing and where to add it, rather than showing zero", () => {
+    const line = render(unpriced("no-rate-on-file"));
+
+    expect(line).toContain("no rate on file for anthropic/sonnet-test");
+    expect(line).toContain('rates.table["anthropic/sonnet-test"]');
+    expect(line).not.toContain("0.00");
+  });
+
+  it("refuses a rate written in the wrong unit rather than applying it", () => {
+    const line = render(unpriced("rate-unit-mismatch"));
+
+    expect(line).toContain("is not priced in tokens");
+  });
+
+  it("reports a self-hosted endpoint as carrying no API cost", () => {
+    const line = render({
+      ...unpriced("not-billed"),
+      provider: "openai-compatible",
+      rateKey: "openai-compatible/llama-3",
+    });
+
+    expect(line).toContain("no API cost");
+    expect(line).toContain("self-hosted");
+  });
+
+  it("leaves the estimate lines out of a run that did not ask for one", () => {
+    expect(renderHuman(makeSummary({ dryRun: true }))).not.toContain("estimate:");
   });
 });

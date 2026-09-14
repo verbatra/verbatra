@@ -26,7 +26,7 @@ En una ejecución en seco, el recuento de `translated` es el número de claves q
 
 Trátalo como un **límite superior**, por dos razones. Una ejecución en seco nunca lee [la caché](/docs/the-cache), así que las claves que una ejecución real serviría desde la memoria de traducción se siguen contando aquí. Y una ejecución en seco no deduplica: en una ejecución real, las claves cuyo texto de origen es idéntico se agrupan y solo se envía un representante, de modo que un archivo con cadenas repetidas factura menos claves de las que muestra la ejecución en seco.
 
-Una ejecución en seco informa de recuentos, no de tokens ni de dinero. Convertir el recuento en una cifra es el resto de esta página. Consulta [`verbatra translate`](/docs/cli/translate) para la lista completa de opciones.
+Una ejecución en seco por sí sola informa de recuentos, no de tokens ni de dinero. `--estimate` hace esa conversión por ti, y el paso 5 de más abajo lo muestra. Los pasos intermedios son exactamente la aritmética que realiza, y siguen siendo el método al que recurrir cuando un modelo no tiene tarifa registrada. Consulta [`verbatra translate`](/docs/cli/translate) para la lista completa de opciones.
 
 ## Paso 2: cuenta las peticiones
 
@@ -38,27 +38,29 @@ peticiones por idioma = ceil(claves a traducir / maxBatchSize)
 
 Para la sobrecarga fija, el tamaño del lote importa más que el número de claves, porque parte de cada petición es constante (ver el paso siguiente). Dos ajustes:
 
-- Una respuesta que vuelve con claves faltantes provoca **como máximo una** petición de reparación acotada para el subconjunto que sigue faltando. En funcionamiento normal esto son cero peticiones adicionales.
-- `generatePlurals` añade sus propias peticiones por lotes para las formas plurales que rellena, contadas de la misma manera.
+- Una respuesta incompleta provoca peticiones adicionales acotadas: **como máximo una** petición de reparación cuando faltan claves, y un reintento por mitades cuando la salida se cortó. En funcionamiento normal esto son cero peticiones adicionales.
+- `generatePlurals` añade sus propias peticiones por lotes para las formas plurales que rellena, contadas de la misma manera. Van aparte de los lotes de traducción, así que un proyecto con todas sus claves sincronizadas pero con el juego de plurales incompleto sigue haciendo peticiones.
 
 ## Paso 3: cuenta los tokens de una petición
 
-Una petición a un LLM lleva cuatro cosas. Solo una de ellas escala con tu número de claves:
+Una petición a un LLM lleva cuatro cosas. Una escala con tu número de claves, y otra lleva tu glosario entero:
 
 | Parte | Escala con | Tamaño aproximado |
 | --- | --- | --- |
 | Reglas del sistema | nada: constante por petición | ~250 tokens |
 | Esquema de salida | nada: constante por petición | ~100 tokens |
-| Carga de items | claves del sublote | clave + valor + puntuación JSON, por item |
-| Respuesta | claves del sublote | clave + valor traducido, por item |
+| Carga de items | claves del sublote, más el glosario y el tono | clave + valor + ~21 caracteres de JSON, por item |
+| Respuesta | claves del sublote | clave + valor traducido + ~21 caracteres de JSON, por item |
 
 Las reglas del sistema son una constante de tiempo de compilación, idéntica en cada petición, y por eso la sobrecarga por petición se conoce en lugar de estimarse. La carga de items es un objeto JSON con el idioma de origen y de destino, un tono y un glosario opcionales, y un item por clave con su `key`, su `value` y, opcionalmente, `description` y `meaning`. La respuesta repite cada clave junto a su traducción, así que el tamaño de salida sigue de cerca al de entrada.
+
+El glosario es la parte que se suele pasar por alto. Se serializa entero en **cada** petición, no una vez por ejecución, así que un glosario de 200 términos y unos 6.000 caracteres añade en torno a 1.500 tokens a cada una. En sublotes pequeños puede pesar más que las propias claves, y es otra razón por la que importa el tamaño del lote.
 
 Para contar, la regla habitual es **~4 caracteres por token** en prosa inglesa. Los alfabetos no latinos y las cadenas con mucha puntuación son más densos, así que trátalo como un orden de magnitud, no como una medición.
 
 ## Paso 4: ponle precio con las tarifas de tu proveedor
 
-verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu modelo en la página del propio proveedor, que es la única autoridad:
+verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu modelo en la página del propio proveedor, que es la única autoridad. Cuando la tengas, puedes dársela a verbatra en lugar de guardarla en tu cabeza: mira el paso 5.
 
 | Proveedor | Se factura por | Precios |
 | --- | --- | --- |
@@ -68,6 +70,55 @@ verbatra no publica precios de forma deliberada. Consulta la tarifa actual de tu
 | DeepL | **caracteres** de origen, no tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | **caracteres** de origen, no tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nada: tu propio hardware | sin coste de API |
+
+## Paso 5: deja que verbatra haga la aritmética
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` ejecuta por ti todos los pasos anteriores y termina sin llamar a ningún proveedor:
+
+```bash
+verbatra translate --estimate
+```
+
+```
+verbatra translate (dry run)
+  de: 400 translated, 0 unchanged
+  es: 400 translated, 0 unchanged
+  fr: 400 translated, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~33312 input + ~24720 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+Implica `--dry-run`: no se construye ningún proveedor, no se lee ninguna clave de API, no se hace ninguna llamada de red y no se escribe nada. Un proveedor de traducción automática se cuenta en caracteres de origen en vez de en tokens, y un endpoint `openai-compatible` autoalojado se informa como si no tuviera coste de API en absoluto.
+
+El recuento sale gratis. El dinero no: verbatra sigue sin publicar precios, así que una cifra en moneda solo aparece cuando pones en tu configuración las tarifas que buscaste en el paso 4, bajo un bloque `rates` que registra la fecha en que las leíste:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      deepl: { perMillionCharacters: 25 },
+    },
+  },
+});
+```
+
+La clave es `provider/model` para un proveedor con modelo configurado, y el identificador de proveedor a secas para uno sin él (`deepl`, `google-translate`). Un modelo facturado por tokens toma `inputPerMillionTokens` y `outputPerMillionTokens`; uno facturado por caracteres toma `perMillionCharacters`. Toda cifra impresa lleva la fecha `asOf`, así que una tabla de tarifas que tocaste por última vez hace un año lo dice en cada ejecución. Consulta [la referencia de configuración](/docs/config-file).
+
+Tres cosas que nunca hará: inventarse una tarifa que no tiene, aplicar una tarifa escrita en la unidad equivocada, o imprimir `0.00` para un modelo que no sabe tarifar. Cada uno de esos casos se informa como una línea explícita, y la ejecución sigue terminando con `0`.
+
+`--json` lleva las mismas cifras como campos estructurados bajo `result.estimate`, por idioma y en total, de modo que un script puede condicionar sobre ellas en lugar de analizar una línea de texto.
+
+La cifra es un límite superior del trabajo. Se cuenta cada petición que haría una ejecución real, incluidos los lotes de generación de plurales, y el prompt se mide serializando la carga que se enviaría de verdad en lugar de reproducir su forma en una fórmula, así que ni un glosario ni un tono pueden quedar sin contar. Una ejecución real solo puede enviar menos que este plan, por las mismas dos razones por las que el recuento en seco es un límite superior: consulta la caché y agrupa las cadenas de origen idénticas. Lo único que puede hacerla enviar más es el reintento acotado de arriba, y por eso `repair requests` está en la línea de exclusiones.
+
+La línea `estimate excludes` nombra exactamente lo que se dejó fuera de esa ejecución, y no es siempre la misma lista. Un proveedor facturado por tokens recibe cuatro elementos: aciertos de caché, cadenas de origen duplicadas, diferencias de tokenizador (los tokens se derivan de recuentos de caracteres, no del tokenizador del proveedor) y peticiones de reparación. Uno facturado por caracteres recibe solo los dos primeros, porque no tiene tokens que aproximar ni ronda de reparación que ejecutar.
 
 ## Un ejemplo resuelto
 
@@ -94,20 +145,20 @@ Sustituye cada suposición de este bloque por tus propios números.
 | --- | --- |
 | Reglas del sistema | 250 |
 | Esquema de salida | 100 |
-| 50 items x (20 + 40 + ~20 de puntuación) caracteres / 4 | 1.000 |
-| **Total** | **~1.350** |
+| (50 items x (20 + 40 + ~21 de JSON) caracteres + ~50 de envoltura) / 4 | 1.038 |
+| **Total** | **~1.388** |
 
 **Tokens de salida por petición**
 
-50 items x (20 caracteres de clave + 40 de valor + ~15 de puntuación) / 4 = **~950**.
+(50 items x (20 caracteres de clave + 40 de valor + ~21 de JSON) + ~20 de envoltura) / 4 = **~1.030**.
 
 **Totales para 3 idiomas**
 
-- Entrada: 24 x 1.350 = **~32.400 tokens**
-- Salida: 24 x 950 = **~22.800 tokens**
-- Coste: (32.400 / 1.000.000 x $0.10) + (22.800 / 1.000.000 x $0.40) = $0.0032 + $0.0091 = **unos 1,2 céntimos**
+- Entrada: 24 x 1.388 = **~33.312 tokens**
+- Salida: 24 x 1.030 = **~24.720 tokens**
+- Coste: (33.312 / 1.000.000 x $0.10) + (24.720 / 1.000.000 x $0.40) = $0.0033 + $0.0099 = **unos 1,3 céntimos**
 
-Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 350 = 8.400 de los 32.400 tokens de entrada, alrededor de una cuarta parte. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
+Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 350 = 8.400 de los 33.312 tokens de entrada, alrededor de una cuarta parte. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
 
 ## El método exacto: calibra con un idioma
 

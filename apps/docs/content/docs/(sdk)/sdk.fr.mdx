@@ -30,10 +30,11 @@ Chaque point d'entrée prend un objet d'entrée dont le premier champ est la `co
 
 Le flux en une passe : lire la source, comparer chaque locale cible à la ligne de base du verrou, envoyer les clés manquantes et modifiées au fournisseur, exécuter les vérifications d'intégrité, écrire les fichiers de locale et mettre à jour le verrou. Utilise-le pour les scripts, les étapes de build et les jobs CI.
 
-Entrée : `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restreint l'exécution à un sous-ensemble des locales cibles configurées, exactement comme sur `check` et `diff`. Une locale non configurée lève `UNKNOWN_LOCALE` avant toute lecture et toute dépense. Omets-le pour couvrir toutes les locales cibles.
 - `dryRun` lit, compare et rapporte sans construire ni appeler le fournisseur et sans rien écrire.
+- `estimate` ajoute sur `RunSummary.estimate` une estimation de coût avant exécution et implique `dryRun` : il ne construit aucun fournisseur, ne lit aucune clé d'API et n'écrit rien. La quantité est toujours rapportée ; une somme exige un bloc `rates` dans la config nommant le fournisseur et le modèle configurés.
 - `prune` supprime les clés orphelines (clés cibles absentes de la source) du fichier écrit et du verrou. `generatePlurals` synthétise les formes plurielles CLDR manquantes (i18next-JSON avec un fournisseur LLM uniquement). Les deux sont désactivés par défaut ; quand ils sont définis, chacun remplace l'option de config correspondante pour cette exécution.
 - `concurrency` traduit jusqu'à ce nombre de locales cibles à la fois (par défaut 1, strictement en série). Une valeur inférieure à 1 lève `CONCURRENCY_INVALID` ; sur une exécution réelle, une valeur supérieure à 1 avec `maxTokens` configuré lève `CONCURRENCY_BUDGET_CONFLICT` (un dry-run est exempté). Une erreur globale levée alors que des locales tournent déjà empêche toute autre locale d'être démarrée, et les locales en cours terminent et libèrent leurs verrous d'écriture avant que `translate` ne rejette, donc le rejet arrive après la plus lente plutôt qu'instantanément.
 - `cache` est activé par défaut et réutilise le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`, exporté aussi comme `CACHE_FILE_NAME`) ; mets-le à false pour contourner le cache le temps de l'exécution (le `--no-cache` de la CLI).
@@ -41,6 +42,25 @@ Entrée : `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurre
 - `maxBatchSize`, `maxTokens` et `budgetBehavior` sont réservés à la config ; il n'y a pas de surcharge par exécution.
 
 Renvoie un `RunSummary` (voir [son anatomie plus bas](#anatomie-du-runsummary)). Les problèmes globaux lèvent une `SdkError` ; une locale seule qui échoue ne lève jamais et atterrit comme `status: "failed"` sur l'entrée de cette locale pendant que l'exécution continue.
+
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Répond si un ensemble d'options d'exécution se résout en dry run. La fonction prend le `dryRun` et
+l'`estimate` que tu t'apprêtes à passer à `translate` et renvoie si cette exécution construira un
+fournisseur, écrira un fichier ou dépensera quoi que ce soit. C'est le seul endroit où la règle
+voulant qu'`estimate` implique `dryRun` est décidée : utilise-la dès que quelque chose autour d'une
+exécution doit le savoir à l'avance, plutôt que de redire l'implication et de t'en écarter.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
 
 ### watch
 
@@ -260,6 +280,7 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
 }
 
 interface LocaleSummary {

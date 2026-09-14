@@ -131,6 +131,7 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
     const { summary, lockEntries } = await runLocale({
       source: sourceResource,
       sourceInvalidIcuKeys: [],
+      providerKind: "llm",
       baseline: new Map(),
       adapter: testCase.adapter,
       provider,

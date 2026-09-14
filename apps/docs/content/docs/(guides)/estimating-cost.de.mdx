@@ -26,7 +26,7 @@ Bei einem Dry Run ist die Zahl hinter `translated` die Anzahl der Keys, die an d
 
 Behandle sie als **Obergrenze**, aus zwei Gründen. Ein Dry Run liest [den Cache](/docs/the-cache) nie, Keys, die ein echter Lauf aus dem Translation Memory bedienen würde, werden hier also mitgezählt. Und ein Dry Run dedupliziert nicht: bei einem echten Lauf werden Keys mit identischem Quelltext gruppiert, und nur ein Repräsentant wird gesendet. Eine Datei mit wiederholten Strings kostet also weniger Keys, als der Dry Run zeigt.
 
-Ein Dry Run meldet Zahlen, keine Tokens und kein Geld. Aus der Zahl einen Betrag zu machen ist der Rest dieser Seite. Die vollständige Flag-Liste steht unter [`verbatra translate`](/docs/cli/translate).
+Ein Dry Run allein meldet Zahlen, keine Tokens und kein Geld. `--estimate` nimmt dir diese Umrechnung ab, Schritt 5 weiter unten zeigt es. Die Schritte dazwischen sind genau die Rechnung, die dabei ausgeführt wird, und sie bleiben die Methode, auf die du zurückgreifst, wenn für ein Modell keine Rate hinterlegt ist. Die vollständige Flag-Liste steht unter [`verbatra translate`](/docs/cli/translate).
 
 ## Schritt 2: die Requests zählen
 
@@ -38,27 +38,29 @@ Requests pro Locale = ceil(zu übersetzende Keys / maxBatchSize)
 
 Für den festen Overhead zählt die Batch-Größe mehr als die Key-Anzahl, weil ein Teil jedes Requests konstant ist (siehe nächster Schritt). Zwei Korrekturen:
 
-- Eine Antwort, die mit fehlenden Keys zurückkommt, löst **höchstens einen** begrenzten Reparatur-Request für die noch fehlende Teilmenge aus. Im Normalbetrieb sind das null zusätzliche Requests.
-- `generatePlurals` fügt eigene gebatchte Requests für die Pluralformen hinzu, die es ergänzt, gezählt nach derselben Regel.
+- Eine unvollständige Antwort löst begrenzte zusätzliche Requests aus: **höchstens einen** Reparatur-Request, wenn Keys fehlen, und einen Wiederholungsversuch in Hälften, wenn die Ausgabe abgeschnitten wurde. Im Normalbetrieb sind das null zusätzliche Requests.
+- `generatePlurals` fügt eigene gebatchte Requests für die Pluralformen hinzu, die es ergänzt, gezählt nach derselben Regel. Sie sind von den Übersetzungs-Batches getrennt, ein Projekt, dessen Keys alle synchron sind, dessen Pluralsatz aber nicht, stellt also trotzdem Requests.
 
 ## Schritt 3: die Tokens in einem Request zählen
 
-Ein LLM-Request trägt vier Dinge. Nur eines davon skaliert mit deiner Key-Anzahl:
+Ein LLM-Request trägt vier Dinge. Eines skaliert mit deiner Key-Anzahl, und eines trägt dein Glossar vollständig mit:
 
 | Teil | Skaliert mit | Ungefähre Größe |
 | --- | --- | --- |
 | Systemregeln | nichts: konstant pro Request | ~250 Tokens |
 | Ausgabeschema | nichts: konstant pro Request | ~100 Tokens |
-| Items-Payload | Keys im Sub-Batch | Key + Wert + JSON-Interpunktion, pro Item |
-| Antwort | Keys im Sub-Batch | Key + übersetzter Wert, pro Item |
+| Items-Payload | Keys im Sub-Batch, dazu Glossar und Tone | Key + Wert + ~21 Zeichen JSON, pro Item |
+| Antwort | Keys im Sub-Batch | Key + übersetzter Wert + ~21 Zeichen JSON, pro Item |
 
 Die Systemregeln sind eine Compile-Zeit-Konstante, auf jedem Request identisch. Deshalb ist der Overhead pro Request bekannt und keine Schätzung. Die Items-Payload ist ein JSON-Objekt mit Quell- und Ziel-Locale, einem optionalen Tone und Glossar sowie einem Item pro Key mit `key`, `value` und optional `description` und `meaning`. Die Antwort wiederholt jeden Key neben seiner Übersetzung, die Ausgabegröße folgt der Eingabegröße also eng.
+
+Das Glossar wird dabei gern übersehen. Es wird vollständig in **jeden** Request serialisiert, nicht einmal pro Lauf. Ein Glossar mit 200 Begriffen und rund 6.000 Zeichen legt also auf jeden einzelnen Request etwa 1.500 Tokens drauf. Bei kleinen Sub-Batches kann das schwerer wiegen als die Keys selbst, ein weiterer Grund, warum die Batch-Größe zählt.
 
 Zum Zählen gilt als Faustregel **~4 Zeichen pro Token** für englische Prosa. Nicht-lateinische Schriften und stark interpunktierte Strings sind dichter, behandle das also als Größenordnung, nicht als Messung.
 
 ## Schritt 4: mit den Raten deines Providers bepreisen
 
-verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für dein Modell auf der Seite des Providers nach, die die einzige Autorität ist:
+verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für dein Modell auf der Seite des Providers nach, die die einzige Autorität ist. Wenn du sie hast, kannst du sie verbatra übergeben, statt sie im Kopf zu behalten: siehe Schritt 5.
 
 | Provider | Abgerechnet nach | Preise |
 | --- | --- | --- |
@@ -68,6 +70,55 @@ verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für de
 | DeepL | Quell**zeichen**, nicht Tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | Quell**zeichen**, nicht Tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nichts: deine eigene Hardware | keine API-Kosten |
+
+## Schritt 5: verbatra die Rechnung machen lassen
+
+<AvailableFrom version="0.11.0" />
+
+`--estimate` führt jeden Schritt von oben für dich aus und beendet sich, ohne einen Provider aufzurufen:
+
+```bash
+verbatra translate --estimate
+```
+
+```
+verbatra translate (dry run)
+  de: 400 translated, 0 unchanged
+  es: 400 translated, 0 unchanged
+  fr: 400 translated, 0 unchanged
+  estimate: 1200 keys in 24 requests, ~33312 input + ~24720 output tokens
+  estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
+  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+3 succeeded, 0 partial, 0 failed (dry run: nothing written)
+```
+
+Es impliziert `--dry-run`: es wird kein Provider konstruiert, kein API-Key gelesen, kein Netzwerkaufruf gemacht und nichts geschrieben. Ein Machine-Translation-Provider wird in Quellzeichen statt in Tokens gezählt, und ein selbst gehosteter `openai-compatible`-Endpunkt wird als gänzlich ohne API-Kosten ausgewiesen.
+
+Die Menge bekommst du geschenkt. Das Geld nicht: verbatra veröffentlicht weiterhin keine Preise, ein Geldbetrag erscheint also erst, wenn du die in Schritt 4 nachgeschlagenen Raten in deine Config einträgst, unter einem `rates`-Block, der festhält, wann du sie gelesen hast:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  rates: {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      deepl: { perMillionCharacters: 25 },
+    },
+  },
+});
+```
+
+Der Key ist `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechnetes Modell nimmt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasiertes `perMillionCharacters`. Jede ausgegebene Zahl trägt das `asOf`-Datum, eine Ratentabelle, die du zuletzt vor einem Jahr angefasst hast, sagt das also bei jedem Lauf. Siehe [die Konfigurationsreferenz](/docs/config-file).
+
+Drei Dinge wird es nie tun: eine Rate erfinden, die es nicht hat, eine in der falschen Einheit geschriebene Rate anwenden, oder `0.00` für ein Modell ausgeben, das es nicht bepreisen kann. Jeder dieser Fälle wird stattdessen als ausdrückliche Zeile gemeldet, und der Lauf endet trotzdem mit `0`.
+
+`--json` liefert dieselben Zahlen als strukturierte Felder unter `result.estimate`, pro Locale und als Summe, ein Skript kann also darauf prüfen, statt eine Zeile zu parsen.
+
+Die Zahl ist eine Obergrenze für die Arbeit. Jeder Request, den ein echter Lauf machen würde, wird gezählt, auch die Batches der Pluralgenerierung, und der Prompt wird gemessen, indem die tatsächlich zu sendende Payload serialisiert wird, statt ihre Form in einer Formel nachzubauen. Ein Glossar oder ein Tone kann also nicht ungezählt bleiben. Ein echter Lauf kann nur weniger senden als dieser Plan, aus denselben zwei Gründen, aus denen die Dry-Run-Zahl eine Obergrenze ist: er liest den Cache, und er fasst identische Quell-Strings zusammen. Mehr senden kann er nur durch den begrenzten Wiederholungsversuch von oben, und genau deshalb steht `repair requests` auf der Auslassungszeile.
+
+Die Zeile `estimate excludes` benennt genau das, was bei diesem Lauf ausgelassen wurde, und das ist nicht jedes Mal dieselbe Liste. Ein tokenbasiert abgerechneter Provider bekommt vier Einträge: Cache-Treffer, doppelte Quell-Strings, Tokenizer-Unterschiede (Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem Tokenizer des Providers) und Reparatur-Requests. Ein zeichenbasiert abgerechneter bekommt nur die ersten beiden, weil es dort keine Tokens zu nähern und keine Reparaturrunde gibt.
 
 ## Ein durchgerechnetes Beispiel
 
@@ -94,20 +145,20 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 | --- | --- |
 | Systemregeln | 250 |
 | Ausgabeschema | 100 |
-| 50 Items x (20 + 40 + ~20 Interpunktion) Zeichen / 4 | 1.000 |
-| **Summe** | **~1.350** |
+| (50 Items x (20 + 40 + ~21 JSON) Zeichen + ~50 Hülle) / 4 | 1.038 |
+| **Summe** | **~1.388** |
 
 **Ausgabe-Tokens pro Request**
 
-50 Items x (20 Zeichen Key + 40 Zeichen Wert + ~15 Interpunktion) / 4 = **~950**.
+(50 Items x (20 Zeichen Key + 40 Zeichen Wert + ~21 JSON) + ~20 Hülle) / 4 = **~1.030**.
 
 **Summen über 3 Locales**
 
-- Eingabe: 24 x 1.350 = **~32.400 Tokens**
-- Ausgabe: 24 x 950 = **~22.800 Tokens**
-- Kosten: (32.400 / 1.000.000 x $0.10) + (22.800 / 1.000.000 x $0.40) = $0.0032 + $0.0091 = **etwa 1,2 Cent**
+- Eingabe: 24 x 1.388 = **~33.312 Tokens**
+- Ausgabe: 24 x 1.030 = **~24.720 Tokens**
+- Kosten: (33.312 / 1.000.000 x $0.10) + (24.720 / 1.000.000 x $0.40) = $0.0033 + $0.0099 = **etwa 1,3 Cent**
 
-Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 350 = 8.400 der 32.400 Eingabe-Tokens aus, etwa ein Viertel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
+Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 350 = 8.400 der 33.312 Eingabe-Tokens aus, etwa ein Viertel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
 
 ## Die genaue Methode: an einem Locale kalibrieren
 

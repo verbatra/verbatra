@@ -53,6 +53,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
+| `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
 Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
@@ -135,6 +136,27 @@ Unter `"warn"` ändert ein ausgelöstes Budget nie den Exit-Code des Befehls. Un
 <Callout title="Zwei verschiedene maxTokens">
 Das Top-Level-`maxTokens` ist das hier beschriebene Budget für den ganzen Lauf. Der Anthropic-Provider hat zusätzlich sein eigenes `options.maxTokens`, das eine einzelne Antwort begrenzt. Die beiden haben nichts miteinander zu tun; siehe [Provider](/docs/providers).
 </Callout>
+
+### rates
+
+<AvailableFrom version="0.11.0" />
+
+Optional und von nichts anderem gelesen als [`verbatra translate --estimate`](/docs/cli/translate). verbatra liefert keine eigenen Preise mit: sie gehören einem Dritten und ändern sich ohne Ankündigung, eine fest eingebaute Zahl würde also still veralten. Du lieferst sie, und du hältst fest, wann du sie gelesen hast.
+
+```ts
+rates: {
+  asOf: "2026-01-15",
+  currency: "USD",
+  table: {
+    "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+    deepl: { perMillionCharacters: 25 },
+  },
+}
+```
+
+`asOf` ist ein Kalenderdatum in der Form `YYYY-MM-DD`, `currency` ein dreistelliger Großbuchstaben-Code. Beide sind Pflicht, und beide werden neben jeder aus der Tabelle abgeleiteten Zahl ausgegeben, eine veraltete Zahl ist also sichtbar veraltet. `table` ist nach Raten-Key aufgeschlüsselt: `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechneter Eintrag trägt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasierter `perMillionCharacters`. Beide Formen in einem Eintrag zu mischen wird abgelehnt, ebenso eine negative Rate.
+
+Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, was abgerechnet wird, nicht, was geschrieben wird. Ein Raten-Key ohne Eintrag wird als ausdrückliches Fehlen gemeldet statt als Kosten von null, und ein Eintrag in der für seinen Provider falschen Einheit wird abgelehnt statt angewendet. Siehe [Kosten abschätzen](/docs/estimating-cost) dafür, wie die Zahl berechnet wird und was sie bewusst auslässt.
 
 ## Suchreihenfolge
 
