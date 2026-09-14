@@ -1,4 +1,4 @@
-import type { LocaleResource, SupportedFormat, TranslationEntry } from "@verbatra/core";
+import type { FormatId, LocaleResource, TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter, ReadResult } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import {
@@ -28,7 +28,7 @@ type BuildWriteTree = (
 type DeriveDescriptions = (content: string) => ReadonlyMap<string, string>;
 
 export interface TreeFileAdapterOptions {
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly extensions: readonly string[];
   readonly sniff?: Sniff;
   readonly parse: (content: string) => JsonRecord;

@@ -1,4 +1,4 @@
-import type { LocaleResource, SupportedFormat, TranslationEntry } from "@verbatra/core";
+import type { FormatId, LocaleResource, TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter, ReadResult } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { readFileContent } from "../json/bounded-read.js";
@@ -14,7 +14,7 @@ import {
 } from "../shell.js";
 
 export interface FlatFileAdapterOptions {
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly extensions: readonly string[];
   readonly sniff?: Sniff;
   readonly parseEntries: (

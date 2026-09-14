@@ -1,4 +1,4 @@
-import type { LocaleResource, PlaceholderIntegrityResult, SupportedFormat } from "@verbatra/core";
+import type { FormatId, LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
 
 /**
  * The result of reading a file into core's intermediate representation. The two diagnostic lists are
@@ -31,12 +31,18 @@ export interface ReadResult {
  * Implement it through one of `@verbatra/format-adapters`' shared factories rather than from
  * scratch: `createTreeFileAdapter` for a nested-tree format (with `createJsonFileAdapter` as its
  * JSON specialization) and `createFlatFileAdapter` for a flat key/value format. A format that fits
- * neither shape implements this interface directly, and either way it first needs its member added
- * to core's {@link SupportedFormat}.
+ * neither shape implements this interface directly.
+ *
+ * An adapter shipped outside verbatra names itself with a `custom:` identifier and is attached by
+ * registering it in a registry the caller hands to the SDK. It is ordinary trusted code: verbatra
+ * does not sandbox it.
  */
 export interface FormatAdapter {
-  /** The single format this adapter handles (a {@link SupportedFormat} from core). */
-  readonly format: SupportedFormat;
+  /**
+   * The single format this adapter handles: one of core's built-in `SupportedFormat` members, or a
+   * third-party `custom:` identifier for an adapter that ships outside verbatra.
+   */
+  readonly format: FormatId;
 
   /**
    * Detect whether this adapter can handle a file, by path extension and an optional content sample.
