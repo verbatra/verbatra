@@ -46,13 +46,16 @@ The one-shot flow: read the source, diff each target locale against the lock bas
 missing and changed keys to the provider, run the integrity checks, write the
 locale files, and update the lock. Use it for scripts, build steps, and CI jobs.
 
-Input: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restricts the run to a subset of the configured target locales, exactly as on `check`
   and `diff`. A locale that is not configured throws `UNKNOWN_LOCALE` before anything is read or
   spent. Omit it to cover every target locale.
 - `dryRun` reads, diffs, and reports without constructing or calling the provider and without
   writing anything.
+- `estimate` adds a pre-run cost estimate on `RunSummary.estimate` and implies `dryRun`, so it
+  constructs no provider, reads no API key, and writes nothing. The quantity is always reported; a
+  currency figure needs a `rates` block in the config naming the configured provider and model.
 - `prune` removes orphaned keys (target keys absent from source) from the written file and the
   lock. `generatePlurals` synthesizes missing CLDR plural forms (i18next-JSON with an LLM provider
   only). Both default to off; when set, each overrides the matching config option for that run.
@@ -419,6 +422,7 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
 }
 
 interface LocaleSummary {

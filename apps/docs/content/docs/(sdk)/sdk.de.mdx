@@ -49,13 +49,17 @@ fehlenden und geänderten Keys an den Provider schicken, die Integritätsprüfun
 ausführen, die Locale-Dateien schreiben und das Lock aktualisieren. Nutze
 es für Skripte, Build-Schritte und CI-Jobs.
 
-Eingabe: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` schränkt den Lauf auf eine Teilmenge der konfigurierten Ziel-Locales ein, genau wie bei
   `check` und `diff`. Ein nicht konfiguriertes Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas
   gelesen oder ausgegeben wird. Lass es weg, um alle Ziel-Locales abzudecken.
 - `dryRun` liest, vergleicht und meldet, ohne den Provider zu konstruieren oder aufzurufen und
   ohne irgendetwas zu schreiben.
+- `estimate` ergänzt unter `RunSummary.estimate` eine Kostenschätzung vor dem Lauf und impliziert
+  `dryRun`: es konstruiert keinen Provider, liest keinen API-Key und schreibt nichts. Die Menge
+  wird immer gemeldet; ein Geldbetrag braucht einen `rates`-Block in der Konfiguration, der den
+  konfigurierten Provider und das Modell benennt.
 - `prune` entfernt verwaiste Keys (Ziel-Keys ohne Gegenstück in der Quelle) aus der geschriebenen
   Datei und dem Lock. `generatePlurals` synthetisiert fehlende CLDR-Pluralformen (nur i18next-JSON
   mit einem LLM-Provider). Beide sind standardmäßig aus; wenn gesetzt, übersteuert jedes die
@@ -455,6 +459,7 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
 }
 
 interface LocaleSummary {
