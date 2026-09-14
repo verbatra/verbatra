@@ -1,8 +1,10 @@
+import { dataPayloadCharacters, resultPayloadCharacters, type Tone } from "@verbatra/ai-providers";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/provider-billing.js";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { chunk } from "./batching.js";
 import type {
   EstimateCaveatCode,
   EstimatePricing,
@@ -15,8 +17,6 @@ export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
 export const ESTIMATED_SYSTEM_RULES_TOKENS = 250;
 export const ESTIMATED_RESPONSE_SCHEMA_TOKENS = 100;
 
-const PROMPT_ITEM_PUNCTUATION_CHARACTERS = 20;
-const RESPONSE_ITEM_PUNCTUATION_CHARACTERS = 15;
 const PER_MILLION = 1_000_000;
 
 export interface LocaleEstimateInput {
@@ -26,12 +26,15 @@ export interface LocaleEstimateInput {
 
 export interface EstimateRunInput {
   readonly provider: ProviderConfig;
+  readonly sourceLocale: string;
   readonly maxBatchSize: number;
   readonly locales: readonly LocaleEstimateInput[];
+  readonly glossary?: Readonly<Record<string, string>>;
+  readonly tone?: Tone;
   readonly rates?: RateCard;
 }
 
-interface Quantity {
+export interface EstimatedQuantity {
   readonly keys: number;
   readonly requests: number;
   readonly inputTokens: number;
@@ -39,48 +42,19 @@ interface Quantity {
   readonly sourceCharacters: number;
 }
 
+const EMPTY: EstimatedQuantity = {
+  keys: 0,
+  requests: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  sourceCharacters: 0,
+};
+
 function toTokens(characters: number): number {
   return Math.ceil(characters / ESTIMATED_CHARACTERS_PER_TOKEN);
 }
 
-function promptCharacters(entry: TranslationEntry): number {
-  return (
-    entry.key.length +
-    entry.value.length +
-    (entry.description?.length ?? 0) +
-    (entry.meaning?.length ?? 0) +
-    PROMPT_ITEM_PUNCTUATION_CHARACTERS
-  );
-}
-
-function responseCharacters(entry: TranslationEntry): number {
-  return entry.key.length + entry.value.length + RESPONSE_ITEM_PUNCTUATION_CHARACTERS;
-}
-
-export function quantifyLocale(
-  entries: readonly TranslationEntry[],
-  maxBatchSize: number,
-): Quantity {
-  const requests = Math.ceil(entries.length / maxBatchSize);
-  let prompt = 0;
-  let response = 0;
-  let sourceCharacters = 0;
-  for (const entry of entries) {
-    prompt += promptCharacters(entry);
-    response += responseCharacters(entry);
-    sourceCharacters += entry.value.length;
-  }
-  const overhead = requests * (ESTIMATED_SYSTEM_RULES_TOKENS + ESTIMATED_RESPONSE_SCHEMA_TOKENS);
-  return {
-    keys: entries.length,
-    requests,
-    inputTokens: overhead + toTokens(prompt),
-    outputTokens: toTokens(response),
-    sourceCharacters,
-  };
-}
-
-function addQuantities(total: Quantity, next: Quantity): Quantity {
+function addQuantities(total: EstimatedQuantity, next: EstimatedQuantity): EstimatedQuantity {
   return {
     keys: total.keys + next.keys,
     requests: total.requests + next.requests,
@@ -90,13 +64,45 @@ function addQuantities(total: Quantity, next: Quantity): Quantity {
   };
 }
 
-const EMPTY: Quantity = {
-  keys: 0,
-  requests: 0,
-  inputTokens: 0,
-  outputTokens: 0,
-  sourceCharacters: 0,
-};
+export interface PayloadContext {
+  readonly sourceLocale: string;
+  readonly targetLocale: string;
+  readonly glossary?: Readonly<Record<string, string>>;
+  readonly tone?: Tone;
+}
+
+function quantifyBatch(
+  batch: readonly TranslationEntry[],
+  context: PayloadContext,
+): EstimatedQuantity {
+  const prompt = dataPayloadCharacters({ ...context, entries: batch });
+  const response = resultPayloadCharacters(
+    batch.map((entry) => ({ key: entry.key, value: entry.value })),
+  );
+  let sourceCharacters = 0;
+  for (const entry of batch) {
+    sourceCharacters += entry.value.length;
+  }
+  return {
+    keys: batch.length,
+    requests: 1,
+    inputTokens:
+      ESTIMATED_SYSTEM_RULES_TOKENS + ESTIMATED_RESPONSE_SCHEMA_TOKENS + toTokens(prompt),
+    outputTokens: toTokens(response),
+    sourceCharacters,
+  };
+}
+
+export function quantifyLocale(
+  entries: readonly TranslationEntry[],
+  context: PayloadContext,
+  maxBatchSize: number,
+): EstimatedQuantity {
+  return chunk(entries, maxBatchSize).reduce(
+    (total, batch) => addQuantities(total, quantifyBatch(batch, context)),
+    EMPTY,
+  );
+}
 
 interface Pricing {
   readonly status: EstimatePricing;
@@ -120,7 +126,7 @@ function resolvePricing(input: EstimateRunInput, unit: BillingUnit): Pricing {
   return { status: "priced", rate, currency: card.currency, asOf: card.asOf };
 }
 
-function costOf(quantity: Quantity, rate: ModelRate): number {
+function costOf(quantity: EstimatedQuantity, rate: ModelRate): number {
   if (isTokenRate(rate)) {
     return (
       (quantity.inputTokens * rate.inputPerMillionTokens) / PER_MILLION +
@@ -141,7 +147,7 @@ function caveatsFor(unit: BillingUnit): readonly EstimateCaveatCode[] {
 }
 
 function quantityFields(
-  quantity: Quantity,
+  quantity: EstimatedQuantity,
   unit: BillingUnit,
 ): Pick<LocaleEstimate, "inputTokens" | "outputTokens" | "sourceCharacters"> {
   return unit === "tokens"
@@ -149,7 +155,7 @@ function quantityFields(
     : { sourceCharacters: quantity.sourceCharacters };
 }
 
-function costFields(quantity: Quantity, pricing: Pricing): { cost?: number } {
+function costFields(quantity: EstimatedQuantity, pricing: Pricing): { cost?: number } {
   return pricing.rate === undefined ? {} : { cost: costOf(quantity, pricing.rate) };
 }
 
@@ -160,13 +166,13 @@ function datedFields(pricing: Pricing): { currency?: string; asOf?: string } {
 }
 
 function localeEstimateOf(
-  locale: LocaleEstimateInput,
-  quantity: Quantity,
+  locale: string,
+  quantity: EstimatedQuantity,
   unit: BillingUnit,
   pricing: Pricing,
 ): LocaleEstimate {
   return {
-    locale: locale.locale,
+    locale,
     keys: quantity.keys,
     requests: quantity.requests,
     ...quantityFields(quantity, unit),
@@ -174,12 +180,21 @@ function localeEstimateOf(
   };
 }
 
+function contextFor(input: EstimateRunInput, targetLocale: string): PayloadContext {
+  return {
+    sourceLocale: input.sourceLocale,
+    targetLocale,
+    ...(input.glossary !== undefined ? { glossary: input.glossary } : {}),
+    ...(input.tone !== undefined ? { tone: input.tone } : {}),
+  };
+}
+
 export function estimateRun(input: EstimateRunInput): RunEstimate {
   const { unit } = billingFor(input.provider.id);
   const pricing = resolvePricing(input, unit);
   const measured = input.locales.map((locale) => ({
-    locale,
-    quantity: quantifyLocale(locale.entries, input.maxBatchSize),
+    locale: locale.locale,
+    quantity: quantifyLocale(locale.entries, contextFor(input, locale.locale), input.maxBatchSize),
   }));
   const total = measured.reduce((sum, item) => addQuantities(sum, item.quantity), EMPTY);
   const model = modelOf(input.provider);
@@ -207,17 +222,31 @@ export interface EstimateForRunInput {
   readonly maxBatchSize: number;
 }
 
+function entriesFor(source: LocaleResource, keys: readonly string[]): readonly TranslationEntry[] {
+  const entries: TranslationEntry[] = [];
+  for (const key of keys) {
+    const entry = source.entries.get(key);
+    /* v8 ignore next 3 -- a summary's translated keys come from the source-driven diff, so every one of them resolves to a source entry; this guard is purely defensive. */
+    if (entry === undefined) {
+      continue;
+    }
+    entries.push(entry);
+  }
+  return entries;
+}
+
 export function estimateForRun(input: EstimateForRunInput): RunEstimate {
+  const config = input.config;
   return estimateRun({
-    provider: input.config.provider,
+    provider: config.provider,
+    sourceLocale: config.sourceLocale,
     maxBatchSize: input.maxBatchSize,
-    ...(input.config.rates !== undefined ? { rates: input.config.rates } : {}),
+    ...(config.glossary !== undefined ? { glossary: config.glossary } : {}),
+    ...(config.tone !== undefined ? { tone: config.tone } : {}),
+    ...(config.rates !== undefined ? { rates: config.rates } : {}),
     locales: input.summaries.map((summary) => ({
       locale: summary.locale,
-      entries: summary.translated.flatMap((key) => {
-        const entry = input.source.entries.get(key);
-        return entry === undefined ? [] : [entry];
-      }),
+      entries: entriesFor(input.source, summary.translated),
     })),
   });
 }

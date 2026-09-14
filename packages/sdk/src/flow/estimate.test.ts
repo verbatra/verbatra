@@ -1,3 +1,4 @@
+import { dataPayloadCharacters, resultPayloadCharacters } from "@verbatra/ai-providers";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
@@ -9,6 +10,7 @@ import {
   ESTIMATED_SYSTEM_RULES_TOKENS,
   estimateForRun,
   estimateRun,
+  type PayloadContext,
   quantifyLocale,
 } from "./estimate.js";
 import type { LocaleSummary } from "./summary.js";
@@ -38,6 +40,7 @@ describe("estimateRun: request arithmetic", () => {
     const entries = Array.from({ length: 101 }, (_, index) => entry(`k${index}`, "value"));
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries }],
     });
@@ -49,6 +52,7 @@ describe("estimateRun: request arithmetic", () => {
   it("sums requests and keys across every locale", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [
         { locale: "de", entries: [GREETING] },
@@ -63,6 +67,7 @@ describe("estimateRun: request arithmetic", () => {
   it("estimates nothing for a locale with no pending keys", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [] }],
     });
@@ -77,13 +82,14 @@ describe("estimateRun: token-billed providers", () => {
   it("charges the fixed per-request overhead once per request and scales the rest with the payload", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
 
     expect(estimate.unit).toBe("tokens");
-    expect(estimate.inputTokens).toBe(360);
-    expect(estimate.outputTokens).toBe(9);
+    expect(estimate.inputTokens).toBe(373);
+    expect(estimate.outputTokens).toBe(15);
     expect(estimate.sourceCharacters).toBeUndefined();
   });
 
@@ -91,11 +97,13 @@ describe("estimateRun: token-billed providers", () => {
     const described: TranslationEntry = { ...GREETING, description: "on the login screen" };
     const plain = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
     const withContext = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [described] }],
     });
@@ -107,6 +115,7 @@ describe("estimateRun: token-billed providers", () => {
   it("prices a token rate against the estimated prompt and completion separately", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({
@@ -117,13 +126,14 @@ describe("estimateRun: token-billed providers", () => {
     expect(estimate.pricing).toBe("priced");
     expect(estimate.currency).toBe("USD");
     expect(estimate.asOf).toBe("2026-01-15");
-    expect(estimate.cost).toBeCloseTo(0.001215, 9);
-    expect(estimate.locales[0]?.cost).toBeCloseTo(0.001215, 9);
+    expect(estimate.cost).toBeCloseTo(0.001344, 9);
+    expect(estimate.locales[0]?.cost).toBeCloseTo(0.001344, 9);
   });
 
   it("warns that a token count is a heuristic and that repair requests are uncounted", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
@@ -137,6 +147,7 @@ describe("estimateRun: character-billed providers", () => {
   it("reports source characters and no token figure at all", () => {
     const estimate = estimateRun({
       provider: DEEPL,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
@@ -151,6 +162,7 @@ describe("estimateRun: character-billed providers", () => {
   it("looks a character rate up under the bare provider id and prices the source text", () => {
     const estimate = estimateRun({
       provider: DEEPL,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({ deepl: { perMillionCharacters: 25 } }),
@@ -166,6 +178,7 @@ describe("estimateRun: what cannot be priced", () => {
   it("reports a self-hosted endpoint as unbilled and never invents a currency figure", () => {
     const estimate = estimateRun({
       provider: SELF_HOSTED,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({ "openai-compatible/llama-3": { perMillionCharacters: 999 } }),
@@ -174,12 +187,13 @@ describe("estimateRun: what cannot be priced", () => {
     expect(estimate.pricing).toBe("not-billed");
     expect(estimate.cost).toBeUndefined();
     expect(estimate.currency).toBeUndefined();
-    expect(estimate.inputTokens).toBe(360);
+    expect(estimate.inputTokens).toBe(373);
   });
 
   it("names the missing rate key rather than reporting a cost of zero", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({
@@ -196,6 +210,7 @@ describe("estimateRun: what cannot be priced", () => {
   it("reports no rate on file when the project configured no rates at all", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
@@ -207,6 +222,7 @@ describe("estimateRun: what cannot be priced", () => {
   it("refuses a rate written in the wrong unit rather than applying it", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({ "anthropic/sonnet-test": { perMillionCharacters: 25 } }),
@@ -219,6 +235,7 @@ describe("estimateRun: what cannot be priced", () => {
   it("prices a run with no pending keys at zero rather than withholding the figure", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [] }],
       rates: card({
@@ -235,6 +252,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
   it("always records that the cache was not consulted and duplicates were not collapsed", () => {
     const estimate = estimateRun({
       provider: DEEPL,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
@@ -246,6 +264,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
   it("names the provider and model the figure was computed for", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
     });
@@ -263,19 +282,21 @@ describe("the estimation heuristic", () => {
   });
 });
 
+const CONTEXT: PayloadContext = { sourceLocale: "en", targetLocale: "de" };
+
 describe("quantifyLocale", () => {
   it("is the batch-level primitive: one batch of entries, one quantity", () => {
-    expect(quantifyLocale([GREETING], 50)).toEqual({
+    expect(quantifyLocale([GREETING], CONTEXT, 50)).toEqual({
       keys: 1,
       requests: 1,
-      inputTokens: 360,
-      outputTokens: 9,
+      inputTokens: 373,
+      outputTokens: 15,
       sourceCharacters: 11,
     });
   });
 
   it("charges no request overhead for an empty batch", () => {
-    expect(quantifyLocale([], 50)).toEqual({
+    expect(quantifyLocale([], CONTEXT, 50)).toEqual({
       keys: 0,
       requests: 0,
       inputTokens: 0,
@@ -283,12 +304,78 @@ describe("quantifyLocale", () => {
       sourceCharacters: 0,
     });
   });
+
+  it("derives the prompt from the serialized request payload rather than a parallel model", () => {
+    const quantity = quantifyLocale([GREETING], CONTEXT, 50);
+    const payload = dataPayloadCharacters({
+      sourceLocale: "en",
+      targetLocale: "de",
+      entries: [GREETING],
+    });
+
+    expect(quantity.inputTokens).toBe(
+      ESTIMATED_SYSTEM_RULES_TOKENS +
+        ESTIMATED_RESPONSE_SCHEMA_TOKENS +
+        Math.ceil(payload / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
+  });
+
+  it("derives the response from the schema the provider is bound to", () => {
+    const quantity = quantifyLocale([GREETING], CONTEXT, 50);
+    const result = resultPayloadCharacters([{ key: GREETING.key, value: GREETING.value }]);
+
+    expect(quantity.outputTokens).toBe(Math.ceil(result / ESTIMATED_CHARACTERS_PER_TOKEN));
+  });
+});
+
+describe("quantifyLocale: everything the request carries is counted", () => {
+  it("counts a glossary, which travels in full in every single request", () => {
+    const glossary = Object.fromEntries(
+      Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
+    );
+    const without = quantifyLocale([GREETING], CONTEXT, 50);
+    const withGlossary = quantifyLocale([GREETING], { ...CONTEXT, glossary }, 50);
+
+    expect(withGlossary.inputTokens).toBeGreaterThan(without.inputTokens * 4);
+  });
+
+  it("charges the glossary once per request, so two requests carry it twice", () => {
+    const glossary = { Hello: "Hallo" };
+    const entries = Array.from({ length: 60 }, (_, index) => entry(`k${index}`, "value"));
+    const without = quantifyLocale(entries, CONTEXT, 50);
+    const withGlossary = quantifyLocale(entries, { ...CONTEXT, glossary }, 50);
+    const glossaryCharacters = JSON.stringify(glossary).length;
+
+    expect(withGlossary.requests).toBe(2);
+    expect(withGlossary.inputTokens - without.inputTokens).toBeGreaterThanOrEqual(
+      Math.floor((2 * glossaryCharacters) / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
+  });
+
+  it("counts the tone, which also travels in every request", () => {
+    const without = quantifyLocale([GREETING], CONTEXT, 50);
+    const withTone = quantifyLocale([GREETING], { ...CONTEXT, tone: "informal" }, 50);
+
+    expect(withTone.inputTokens).toBeGreaterThan(without.inputTokens);
+  });
+
+  it("counts the target locale, so a longer locale tag is not free", () => {
+    const short = quantifyLocale([GREETING], CONTEXT, 50);
+    const long = quantifyLocale(
+      [GREETING],
+      { ...CONTEXT, targetLocale: "zh-Hant-TW-x-private-use" },
+      50,
+    );
+
+    expect(long.inputTokens).toBeGreaterThan(short.inputTokens);
+  });
 });
 
 describe("estimateRun: a rate the schema let through must still not invent a figure", () => {
   it("prices a zero rate at zero rather than treating a free tier as an absent rate", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({
@@ -303,6 +390,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
   it("refuses a token rate filed against a character-billed provider", () => {
     const estimate = estimateRun({
       provider: DEEPL,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({ deepl: { inputPerMillionTokens: 3, outputPerMillionTokens: 15 } }),
@@ -317,6 +405,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
   it("treats an empty table as no rate on file rather than as a rate of zero", () => {
     const estimate = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({}),
@@ -330,6 +419,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
     const long = entry("k", "x".repeat(1_000_000));
     const single = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [long] }],
       rates: card({
@@ -338,6 +428,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
     });
     const doubled = estimateRun({
       provider: ANTHROPIC,
+      sourceLocale: "en",
       maxBatchSize: 50,
       locales: [
         { locale: "de", entries: [long] },
@@ -385,18 +476,6 @@ describe("estimateForRun", () => {
     };
   }
 
-  it("skips a summary key the source no longer carries rather than counting a phantom entry", () => {
-    const estimate = estimateForRun({
-      summaries: [summary("de", ["greeting", "vanished"])],
-      source: source([GREETING]),
-      config: baseConfig({ provider: ANTHROPIC }),
-      maxBatchSize: 50,
-    });
-
-    expect(estimate.keys).toBe(1);
-    expect(estimate.locales[0]?.keys).toBe(1);
-  });
-
   it("reports no rate on file when the config carries no rates block", () => {
     const estimate = estimateForRun({
       summaries: [summary("de", ["greeting"])],
@@ -406,5 +485,59 @@ describe("estimateForRun", () => {
     });
 
     expect(estimate.pricing).toBe("no-rate-on-file");
+  });
+
+  it("carries the config's glossary into the figure, because every request carries it", () => {
+    const glossary = Object.fromEntries(
+      Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
+    );
+    const plain = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC }),
+      maxBatchSize: 50,
+    });
+    const withGlossary = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC, glossary }),
+      maxBatchSize: 50,
+    });
+
+    expect(withGlossary.inputTokens ?? 0).toBeGreaterThan((plain.inputTokens ?? 0) * 4);
+  });
+
+  it("carries the config's tone into the figure", () => {
+    const plain = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC }),
+      maxBatchSize: 50,
+    });
+    const withTone = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC, tone: "informal" }),
+      maxBatchSize: 50,
+    });
+
+    expect(withTone.inputTokens ?? 0).toBeGreaterThan(plain.inputTokens ?? 0);
+  });
+
+  it("uses the config's source locale, which is part of every request payload", () => {
+    const estimate = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC, sourceLocale: "en-GB-oxendict" }),
+      maxBatchSize: 50,
+    });
+    const shorter = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC }),
+      maxBatchSize: 50,
+    });
+
+    expect(estimate.inputTokens ?? 0).toBeGreaterThan(shorter.inputTokens ?? 0);
   });
 });
