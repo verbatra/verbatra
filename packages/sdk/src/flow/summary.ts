@@ -1,5 +1,4 @@
 import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
-import type { BillingUnit } from "../config/provider-billing.js";
 import type { ProviderId } from "../config/provider-config.js";
 
 /**
@@ -80,15 +79,25 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
  *   would serve from cache are still counted.
  * - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
  *   string; the estimate counts every key.
+ * - `TRANSPORT_RETRIES_NOT_COUNTED`: the estimate counts one billable call per planned request. The
+ *   provider SDKs retry a failed call underneath that, so one planned request can become several
+ *   attempts on the wire, and a retried attempt that reached the model is still billed.
+ * - `TRANSLATION_LENGTH_IS_ESTIMATED`: the translation does not exist yet, so the response is sized
+ *   from the source value plus a fixed expansion allowance. A target language that runs longer than
+ *   the allowance reports more completion tokens than this figure predicts.
  * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
  *   own tokenizer.
  * - `REPAIR_REQUESTS_NOT_COUNTED`: the extra requests an incomplete response can trigger are not
- *   counted: one bounded repair request when keys came back missing, and a retry in halves when
- *   the output was cut off.
+ *   counted: one bounded repair round when keys came back missing, and a retry in halves, which
+ *   recurses, when the output was cut off. A repair round re-sends the system rules, the glossary
+ *   and the tone in full, so repairing one key in a large-glossary batch costs close to a whole
+ *   extra request.
  */
 export type EstimateCaveatCode =
   | "CACHE_NOT_CONSULTED"
   | "SOURCE_DUPLICATES_NOT_DEDUPLICATED"
+  | "TRANSPORT_RETRIES_NOT_COUNTED"
+  | "TRANSLATION_LENGTH_IS_ESTIMATED"
   | "TOKEN_COUNT_IS_HEURISTIC"
   | "REPAIR_REQUESTS_NOT_COUNTED";
 
@@ -135,7 +144,7 @@ export type LocaleEstimate = PricedLocaleEstimate | UnpricedLocaleEstimate;
  * Everything a {@link RunEstimate} reports regardless of whether it could be priced: which provider
  * the figure was computed for, how much would be sent, and what the figure leaves out.
  */
-export interface RunEstimateQuantity {
+export interface EstimateIdentity {
   /** The provider the estimate was computed for. */
   readonly provider: ProviderId;
   /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
@@ -145,8 +154,6 @@ export interface RunEstimateQuantity {
    * configured with a model, and the bare provider id otherwise.
    */
   readonly rateKey: string;
-  /** Whether this provider charges by tokens or by source characters. */
-  readonly unit: BillingUnit;
   /**
    * Keys that would be sent across every locale, counting both the keys that would be translated
    * and the plural forms that would be generated.
@@ -154,21 +161,41 @@ export interface RunEstimateQuantity {
   readonly keys: number;
   /** Provider requests across every locale, generation batches included. */
   readonly requests: number;
-  /** Estimated prompt tokens across every locale. Present only for a token-billed provider. */
-  readonly inputTokens?: number;
-  /** Estimated completion tokens across every locale. Present only for a token-billed provider. */
-  readonly outputTokens?: number;
-  /** Estimated source characters across every locale. Present only for a character-billed provider. */
-  readonly sourceCharacters?: number;
   /** What this figure leaves out. Always present, never empty. See {@link EstimateCaveatCode}. */
   readonly caveats: readonly EstimateCaveatCode[];
 }
 
+/** The quantity a token-billed provider charges for: the prompt and the completion, separately. */
+export interface TokenRunQuantity extends EstimateIdentity {
+  /** Always `tokens` for a prompt-driven LLM. */
+  readonly unit: "tokens";
+  /** Estimated prompt tokens across every locale. */
+  readonly inputTokens: number;
+  /** Estimated completion tokens across every locale. */
+  readonly outputTokens: number;
+  /** Never present: a token-billed provider does not bill source characters. */
+  readonly sourceCharacters?: undefined;
+}
+
+/** The quantity a character-billed provider charges for: the source text handed to it. */
+export interface CharacterRunQuantity extends EstimateIdentity {
+  /** Always `characters` for a machine-translation API. */
+  readonly unit: "characters";
+  /** Estimated source characters across every locale. */
+  readonly sourceCharacters: number;
+  /** Never present: a machine-translation API reports no token usage at all. */
+  readonly inputTokens?: undefined;
+  /** Never present: a machine-translation API reports no token usage at all. */
+  readonly outputTokens?: undefined;
+}
+
 /**
- * An estimate a rate could be applied to: the config supplied a rate for {@link rateKey} in the
- * right unit, so the run carries a currency figure and the date that rate was read.
+ * What a run would send, discriminated on {@link unit} so the billed dimension is always present
+ * and the other one is never readable as a zero.
  */
-export interface PricedRunEstimate extends RunEstimateQuantity {
+export type RunEstimateQuantity = TokenRunQuantity | CharacterRunQuantity;
+
+interface PricedEstimateMoney {
   /** Always `priced`: a rate was found and applied. */
   readonly pricing: "priced";
   /** The rate card's currency code. */
@@ -184,12 +211,7 @@ export interface PricedRunEstimate extends RunEstimateQuantity {
   readonly cost: number;
 }
 
-/**
- * An estimate carrying quantity and no money, with {@link pricing} saying why. verbatra ships no
- * prices of its own and will not guess one, so the absence is reported rather than rendered as a
- * cost of zero.
- */
-export interface UnpricedRunEstimate extends RunEstimateQuantity {
+interface UnpricedEstimateMoney {
   /** Why no currency figure is present. See {@link EstimatePricing}. */
   readonly pricing: Exclude<EstimatePricing, "priced">;
   /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
@@ -202,18 +224,44 @@ export interface UnpricedRunEstimate extends RunEstimateQuantity {
   readonly cost?: undefined;
 }
 
+interface TokenPricedRunEstimate extends TokenRunQuantity, PricedEstimateMoney {}
+interface CharacterPricedRunEstimate extends CharacterRunQuantity, PricedEstimateMoney {}
+interface TokenUnpricedRunEstimate extends TokenRunQuantity, UnpricedEstimateMoney {}
+interface CharacterUnpricedRunEstimate extends CharacterRunQuantity, UnpricedEstimateMoney {}
+
+/**
+ * An estimate a rate could be applied to: the config supplied a rate for `rateKey` in the right
+ * unit, so the run carries a currency figure and the date that rate was read.
+ */
+export type PricedRunEstimate = TokenPricedRunEstimate | CharacterPricedRunEstimate;
+
+/**
+ * An estimate carrying quantity and no money, with `pricing` saying why. verbatra ships no prices
+ * of its own and will not guess one, so the absence is reported rather than rendered as a cost of
+ * zero.
+ */
+export type UnpricedRunEstimate = TokenUnpricedRunEstimate | CharacterUnpricedRunEstimate;
+
 /**
  * A pre-run estimate: what a run would send, and what that would cost at the rates the project
  * supplied. It is computed without constructing a provider, reading an API key, or making a network
  * call.
  *
- * It is an upper bound on the work it plans: every provider call a live run schedules is counted,
- * including the plural-generation batches, and the prompt is measured from the request payload that
- * would actually be sent rather than modelled. The live run can only send less than this plan,
- * because it consults the translation memory and collapses identical source strings, neither of
- * which the estimate does. The one way it can send more is the bounded retry an incomplete response
- * triggers. {@link EstimateCaveatCode} names each of those, and names the token count as a
- * heuristic derived from characters rather than from the provider's own tokenizer.
+ * It bounds the plan, not the invoice. Every provider call a live run schedules is counted,
+ * including the plural-generation batches; the prompt is measured from the request payload that
+ * would actually be sent rather than modelled; and the response is sized from the source value plus
+ * an expansion allowance. Against that plan a live run usually spends less, because it consults the
+ * translation memory and collapses identical source strings.
+ *
+ * It can also spend more, and {@link EstimateCaveatCode} names every way: the provider SDKs retry a
+ * failed call underneath each planned request, an incomplete response triggers a repair round or a
+ * recursive split, a target language can expand past the allowance, and the token figure is a
+ * character heuristic rather than the provider's own tokenizer. Treat it as a planning figure, not
+ * as a ceiling that cannot be crossed.
+ *
+ * It covers {@link translate} and nothing else. `retranslateEntry` constructs a provider and calls
+ * it on its own path, reached from the Studio dashboard and the agent tools, and no estimate here
+ * sees that spend.
  *
  * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
  * an {@link UnpricedRunEstimate} carries none of them and says why.

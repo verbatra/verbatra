@@ -590,6 +590,51 @@ describe("runLocale: pruning and orphans", () => {
 });
 
 describe("runLocale: plural generation", () => {
+  it("decides generation from the configured provider kind, not from the injected provider object", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    const stub = makeStubProvider({ kind: "machine-translation" });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: stub.provider,
+        providerKind: "llm",
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
+    );
+
+    const { summary } = await runLocale(params);
+
+    expect(summary.generated).toEqual(["items_few", "items_many"]);
+  });
+
+  it("skips generation when the configured provider kind cannot generate, whatever the object reports", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    const stub = makeStubProvider({ kind: "llm" });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: stub.provider,
+        providerKind: "machine-translation",
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
+    );
+
+    const { summary } = await runLocale(params);
+
+    expect(summary.generated).toEqual([]);
+    const sentKeys = stub.calls.flatMap(({ request }) => request.entries.map((entry) => entry.key));
+    expect(sentKeys).not.toContain("items_few");
+    expect(sentKeys).not.toContain("items_many");
+  });
+
   it("synthesizes the missing CLDR plural forms a richer target needs and locks them", async () => {
     const { dir, sourceResource } = await setup({
       items_one: "{{count}} item",

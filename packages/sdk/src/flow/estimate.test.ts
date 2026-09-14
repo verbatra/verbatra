@@ -8,6 +8,7 @@ import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
   ESTIMATED_RESPONSE_SCHEMA_TOKENS,
   ESTIMATED_SYSTEM_RULES_TOKENS,
+  ESTIMATED_TRANSLATION_EXPANSION,
   estimateForRun,
   estimateRun,
   type PayloadContext,
@@ -89,7 +90,7 @@ describe("estimateRun: token-billed providers", () => {
 
     expect(estimate.unit).toBe("tokens");
     expect(estimate.inputTokens).toBe(373);
-    expect(estimate.outputTokens).toBe(15);
+    expect(estimate.outputTokens).toBe(17);
     expect(estimate.sourceCharacters).toBeUndefined();
   });
 
@@ -126,8 +127,8 @@ describe("estimateRun: token-billed providers", () => {
     expect(estimate.pricing).toBe("priced");
     expect(estimate.currency).toBe("USD");
     expect(estimate.asOf).toBe("2026-01-15");
-    expect(estimate.cost).toBeCloseTo(0.001344, 9);
-    expect(estimate.locales[0]?.cost).toBeCloseTo(0.001344, 9);
+    expect(estimate.cost).toBeCloseTo(0.001374, 9);
+    expect(estimate.locales[0]?.cost).toBeCloseTo(0.001374, 9);
   });
 
   it("warns that a token count is a heuristic and that repair requests are uncounted", () => {
@@ -248,6 +249,41 @@ describe("estimateRun: what cannot be priced", () => {
   });
 });
 
+describe("estimateRun: the exact excludes list", () => {
+  function caveatsOf(provider: ProviderConfig): readonly string[] {
+    return estimateRun({
+      provider,
+      sourceLocale: "en",
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
+    }).caveats;
+  }
+
+  it("names six things on a token-billed provider, in a fixed order", () => {
+    expect(caveatsOf(ANTHROPIC)).toEqual([
+      "CACHE_NOT_CONSULTED",
+      "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+      "TRANSPORT_RETRIES_NOT_COUNTED",
+      "TRANSLATION_LENGTH_IS_ESTIMATED",
+      "TOKEN_COUNT_IS_HEURISTIC",
+      "REPAIR_REQUESTS_NOT_COUNTED",
+    ]);
+  });
+
+  it("names three on a character-billed provider, which has no tokens and no repair round", () => {
+    expect(caveatsOf(DEEPL)).toEqual([
+      "CACHE_NOT_CONSULTED",
+      "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+      "TRANSPORT_RETRIES_NOT_COUNTED",
+    ]);
+  });
+
+  it("names the retry the provider SDKs perform underneath every planned request", () => {
+    expect(caveatsOf(ANTHROPIC)).toContain("TRANSPORT_RETRIES_NOT_COUNTED");
+    expect(caveatsOf(DEEPL)).toContain("TRANSPORT_RETRIES_NOT_COUNTED");
+  });
+});
+
 describe("estimateRun: honesty about what the figure leaves out", () => {
   it("always records that the cache was not consulted and duplicates were not collapsed", () => {
     const estimate = estimateRun({
@@ -279,6 +315,7 @@ describe("the estimation heuristic", () => {
     expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(250);
     expect(ESTIMATED_RESPONSE_SCHEMA_TOKENS).toBe(100);
     expect(ESTIMATED_CHARACTERS_PER_TOKEN).toBe(4);
+    expect(ESTIMATED_TRANSLATION_EXPANSION).toBe(1.5);
   });
 });
 
@@ -290,7 +327,7 @@ describe("quantifyLocale", () => {
       keys: 1,
       requests: 1,
       inputTokens: 373,
-      outputTokens: 15,
+      outputTokens: 17,
       sourceCharacters: 11,
     });
   });
@@ -320,11 +357,46 @@ describe("quantifyLocale", () => {
     );
   });
 
-  it("derives the response from the schema the provider is bound to", () => {
+  it("derives the response from the schema the provider is bound to, plus the expansion allowance", () => {
     const quantity = quantifyLocale([GREETING], CONTEXT, 50);
-    const result = resultPayloadCharacters([{ key: GREETING.key, value: GREETING.value }]);
+    const envelope = resultPayloadCharacters([{ key: GREETING.key, value: GREETING.value }]);
+    const allowance = Math.ceil(GREETING.value.length * (ESTIMATED_TRANSLATION_EXPANSION - 1));
 
-    expect(quantity.outputTokens).toBe(Math.ceil(result / ESTIMATED_CHARACTERS_PER_TOKEN));
+    expect(quantity.outputTokens).toBe(
+      Math.ceil((envelope + allowance) / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
+  });
+
+  it("sizes the response for a translation that expands, not for the source it came from", () => {
+    const long = entry("k", "x".repeat(400));
+    const quantity = quantifyLocale([long], CONTEXT, 50);
+    const sourceSized = resultPayloadCharacters([{ key: long.key, value: long.value }]);
+
+    expect(quantity.outputTokens).toBeGreaterThanOrEqual(
+      Math.ceil(
+        (sourceSized + 400 * (ESTIMATED_TRANSLATION_EXPANSION - 1)) /
+          ESTIMATED_CHARACTERS_PER_TOKEN,
+      ),
+    );
+    expect(quantity.outputTokens).toBeGreaterThan(
+      Math.ceil(sourceSized / ESTIMATED_CHARACTERS_PER_TOKEN),
+    );
+  });
+
+  it("leaves the prompt untouched by the expansion allowance, which only sizes the response", () => {
+    const short = entry("k", "x");
+    const long = entry("k", "x".repeat(400));
+
+    expect(quantifyLocale([long], CONTEXT, 50).inputTokens).toBe(
+      ESTIMATED_SYSTEM_RULES_TOKENS +
+        ESTIMATED_RESPONSE_SCHEMA_TOKENS +
+        Math.ceil(
+          dataPayloadCharacters({ ...CONTEXT, entries: [long] }) / ESTIMATED_CHARACTERS_PER_TOKEN,
+        ),
+    );
+    expect(quantifyLocale([short], CONTEXT, 50).inputTokens).toBeLessThan(
+      quantifyLocale([long], CONTEXT, 50).inputTokens,
+    );
   });
 });
 

@@ -194,3 +194,79 @@ describe("rateCardSchema: a rate of absurd magnitude is refused at the boundary"
     expect(lookupRate(parsed, "deepl")).toEqual({ perMillionCharacters: 1_000_000_000 });
   });
 });
+
+describe("rateCardSchema: the exact edge of the plausible range", () => {
+  it("accepts the cap itself", () => {
+    const parsed = rateCardSchema.parse({
+      ...validCard,
+      table: { deepl: { perMillionCharacters: 1_000_000_000 } },
+    });
+
+    expect(lookupRate(parsed, "deepl")).toEqual({ perMillionCharacters: 1_000_000_000 });
+  });
+
+  it("rejects the first value above the cap, not merely an absurd one", () => {
+    expect(() =>
+      rateCardSchema.parse({
+        ...validCard,
+        table: { deepl: { perMillionCharacters: 1_000_000_001 } },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a token rate one above the cap in either direction", () => {
+    expect(() =>
+      rateCardSchema.parse({
+        ...validCard,
+        table: {
+          "anthropic/sonnet-test": {
+            inputPerMillionTokens: 1_000_000_001,
+            outputPerMillionTokens: 15,
+          },
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      rateCardSchema.parse({
+        ...validCard,
+        table: {
+          "anthropic/sonnet-test": {
+            inputPerMillionTokens: 3,
+            outputPerMillionTokens: 1_000_000_001,
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("lets a negative zero through but never lets it print as a negative figure", () => {
+    const parsed = rateCardSchema.parse({
+      ...validCard,
+      table: { deepl: JSON.parse('{"perMillionCharacters":-0}') as unknown },
+    });
+    const rate = lookupRate(parsed, "deepl") as { readonly perMillionCharacters: number };
+    const cost = (1_000_000 * rate.perMillionCharacters) / 1_000_000;
+
+    expect(Object.is(cost, -0)).toBe(true);
+    expect(cost.toFixed(4)).toBe("0.0000");
+    expect(JSON.stringify({ cost })).toBe('{"cost":0}');
+  });
+});
+
+describe("rateCardSchema: the currency label a figure is printed under", () => {
+  it("rejects a lowercase code, so a figure is never labelled in a shape no ledger uses", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, currency: "usd" })).toThrow();
+  });
+
+  it("rejects a four-letter code", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, currency: "USDX" })).toThrow();
+  });
+
+  it("rejects an empty currency", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, currency: "" })).toThrow();
+  });
+
+  it("checks the shape of a currency code and not its existence, so a well-formed unreal code passes", () => {
+    expect(rateCardSchema.parse({ ...validCard, currency: "ZZZ" }).currency).toBe("ZZZ");
+  });
+});

@@ -132,8 +132,10 @@ export {
 } from "./flow/run-status.js";
 export type {
   BudgetBehavior,
+  CharacterRunQuantity,
   DuplicateKeyReport,
   EstimateCaveatCode,
+  EstimateIdentity,
   EstimatePricing,
   LocaleEstimate,
   LocaleEstimateQuantity,
@@ -149,6 +151,7 @@ export type {
   RunSummary,
   SdkNotice,
   SdkNoticeCode,
+  TokenRunQuantity,
   UnpricedLocaleEstimate,
   UnpricedRunEstimate,
   UsageSummary,

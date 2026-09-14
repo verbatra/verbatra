@@ -1,4 +1,5 @@
 import type {
+  EstimateCaveatCode,
   LockWaitEvent,
   PricedRunEstimate,
   ProgressEvent,
@@ -666,7 +667,97 @@ describe("renderHuman: pre-run estimate", () => {
     expect(line).toContain("self-hosted");
   });
 
+  it("never rounds a real cost down to a printed zero", () => {
+    const line = render({ ...tokenEstimate, cost: 0.000022 });
+
+    expect(line).toContain("less than 0.0001 USD");
+    expect(line).not.toContain("0.0000 USD");
+  });
+
+  it("prints a genuinely costless run as zero, because that figure is accurate", () => {
+    const line = render({
+      ...tokenEstimate,
+      keys: 0,
+      requests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      locales: [],
+    });
+
+    expect(line).toContain("0.0000 USD");
+    expect(line).not.toContain("less than");
+  });
+
+  it("prints the exact figure once it is large enough to survive four decimals", () => {
+    expect(render({ ...tokenEstimate, cost: 0.00005 })).toContain("0.0001 USD");
+    expect(render({ ...tokenEstimate, cost: 0.0000499 })).toContain("less than 0.0001 USD");
+  });
+
   it("leaves the estimate lines out of a run that did not ask for one", () => {
     expect(renderHuman(makeSummary({ dryRun: true }))).not.toContain("estimate:");
+  });
+
+  it("never leaks an undefined or a NaN into any branch of the estimate block", () => {
+    const { inputTokens: _in, outputTokens: _out, ...unpricedIdentity } = unpriced("not-billed");
+    const characterUnit: UnpricedRunEstimate = {
+      ...unpricedIdentity,
+      unit: "characters",
+      sourceCharacters: 16000,
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000 }],
+    };
+    const branches: readonly RunEstimate[] = [
+      tokenEstimate,
+      unpriced("no-rate-on-file"),
+      unpriced("rate-unit-mismatch"),
+      unpriced("not-billed"),
+      characterUnit,
+    ];
+
+    for (const branch of branches) {
+      const line = render(branch);
+      expect(line).not.toContain("undefined");
+      expect(line).not.toContain("NaN");
+      expect(line).not.toContain("null");
+    }
+  });
+
+  it("spells out every caveat code in the union, so a new one cannot render as a blank", () => {
+    const everyCaveat: Record<EstimateCaveatCode, true> = {
+      CACHE_NOT_CONSULTED: true,
+      SOURCE_DUPLICATES_NOT_DEDUPLICATED: true,
+      TRANSPORT_RETRIES_NOT_COUNTED: true,
+      TRANSLATION_LENGTH_IS_ESTIMATED: true,
+      TOKEN_COUNT_IS_HEURISTIC: true,
+      REPAIR_REQUESTS_NOT_COUNTED: true,
+    };
+    const codes = Object.keys(everyCaveat) as readonly EstimateCaveatCode[];
+
+    for (const code of codes) {
+      const line = render({ ...tokenEstimate, caveats: [code] });
+      const phrase = line.split("estimate excludes: ")[1]?.split("\n")[0] ?? "";
+
+      expect(phrase, code).not.toBe("");
+      expect(phrase, code).not.toContain("undefined");
+    }
+  });
+
+  it("joins the whole token-billed list into one readable line", () => {
+    const line = render({
+      ...tokenEstimate,
+      caveats: [
+        "CACHE_NOT_CONSULTED",
+        "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+        "TRANSPORT_RETRIES_NOT_COUNTED",
+        "TRANSLATION_LENGTH_IS_ESTIMATED",
+        "TOKEN_COUNT_IS_HEURISTIC",
+        "REPAIR_REQUESTS_NOT_COUNTED",
+      ],
+    });
+
+    expect(line).toContain(
+      "estimate excludes: cache hits, duplicate source strings, provider-side retries, " +
+        "translation length, tokenizer differences, repair requests",
+    );
   });
 });

@@ -38,7 +38,8 @@ requêtes par langue = ceil(clés à traduire / maxBatchSize)
 
 Pour la surcharge fixe, la taille du lot compte davantage que le nombre de clés, car une partie de chaque requête est constante (voir l'étape suivante). Deux ajustements :
 
-- Une réponse incomplète déclenche des requêtes supplémentaires bornées : **au plus une** requête de réparation quand des clés manquent, et une reprise par moitiés quand la sortie a été tronquée. En fonctionnement normal, cela fait zéro requête supplémentaire.
+- Une réponse incomplète déclenche des requêtes supplémentaires bornées : **au plus un** tour de réparation quand des clés manquent, et une reprise par moitiés quand la sortie a été tronquée. En fonctionnement normal, cela fait zéro requête supplémentaire.
+- Chacune de ces requêtes peut représenter plus d'une tentative HTTP. Aucun des clients de fournisseur de verbatra ne fixe d'option de reprise : c'est donc la valeur par défaut de chaque SDK qui s'applique, deux tentatives supplémentaires pour Anthropic, OpenAI et `openai-compatible`, deux pour la boucle propre de Gemini sur `429` et `5xx`, et cinq pour DeepL. Une tentative qui a atteint le modèle est facturée même si sa réponse n'est jamais arrivée.
 - `generatePlurals` ajoute ses propres requêtes par lots pour les formes plurielles qu'il complète, comptées de la même façon. Elles sont distinctes des lots de traduction : un projet dont toutes les clés sont à jour mais dont le jeu de pluriels ne l'est pas fait donc encore des requêtes.
 
 ## Étape 3 : compter les tokens d'une requête
@@ -55,6 +56,8 @@ Une requête LLM transporte quatre choses. Une évolue avec ton nombre de clés,
 Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la langue source et la langue cible, un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
 
 Le glossaire est la partie qu'on oublie. Il est sérialisé en entier dans **chaque** requête, pas une fois par exécution : un glossaire de 200 termes et d'environ 6 000 caractères ajoute donc à peu près 1 500 tokens à chacune d'elles. Sur de petits sous-lots, cela peut peser plus lourd que les clés elles-mêmes, une raison de plus pour laquelle la taille du lot compte.
+
+La réponse est la partie qu'on ne peut pas mesurer, puisque la traduction n'existe pas encore. verbatra la dimensionne à partir de la valeur source plus une **marge d'expansion de 50 %** : l'allemand, le français et le russe font couramment un tiers à une moitié de plus que l'anglais, et les tokens de sortie sont la moitié chère de toute grille tarifaire de LLM. Une langue qui dépasse la marge renverra plus que ce que l'estimation a prévu.
 
 Pour compter, la règle habituelle est de **~4 caractères par token** pour de la prose anglaise. Les écritures non latines et les chaînes très ponctuées sont plus denses : traite cela comme un ordre de grandeur, pas comme une mesure.
 
@@ -86,9 +89,9 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~33312 input + ~24720 output tokens
+  estimate: 1200 keys in 24 requests, ~33312 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
-  estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
+  estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
@@ -116,9 +119,13 @@ Trois choses qu'il ne fera jamais : inventer un tarif qu'il n'a pas, appliquer u
 
 `--json` transporte les mêmes chiffres sous forme de champs structurés dans `result.estimate`, par locale et au total : un script peut donc s'y appuyer au lieu d'analyser une ligne de texte.
 
-Le chiffre est une borne supérieure du travail. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels, et le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule : un glossaire ou un ton ne peut donc pas rester non compté. Une exécution réelle ne peut qu'envoyer moins que ce plan, pour les deux mêmes raisons qui font du compte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques. La seule chose qui puisse lui faire envoyer plus est la reprise bornée ci-dessus, et c'est pour cela que `repair requests` figure sur la ligne des exclusions.
+Le chiffre borne le plan, pas la facture. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels ; le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule, un glossaire ou un ton ne peut donc pas rester non compté ; et la réponse est dimensionnée avec la marge de l'étape 3. Face à ce plan, une exécution réelle dépense le plus souvent moins, pour les deux mêmes raisons qui font du compte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques.
 
-La ligne `estimate excludes` nomme exactement ce qui a été laissé de côté sur cette exécution, et ce n'est pas la même liste à chaque fois. Un fournisseur facturé aux tokens reçoit quatre éléments : succès de cache, chaînes source dupliquées, différences de tokenizer (les tokens sont dérivés de comptes de caractères, pas du tokenizer du fournisseur) et requêtes de réparation. Un fournisseur facturé aux caractères ne reçoit que les deux premiers, car il n'a ni tokens à approximer ni tour de réparation à faire.
+Elle peut aussi dépenser plus, et la ligne `estimate excludes` nomme toutes les façons dont cela arrive. Un fournisseur facturé aux tokens reçoit six éléments : succès de cache, chaînes source dupliquées, reprises côté fournisseur, longueur de la traduction, différences de tokenizer et requêtes de réparation. Un fournisseur facturé aux caractères reçoit les trois premiers, car il n'a ni tokens à approximer ni tour de réparation à faire, et il facture la source plutôt que la traduction.
+
+Deux d'entre eux décident si tu peux traiter ce chiffre comme un plafond. Les reprises de SDK de l'étape 2 peuvent transformer une requête comptée en trois tentatives HTTP, ou six sur DeepL. Et un tour de réparation renvoie en entier les règles système, le glossaire et le ton : réparer une seule clé manquante dans un lot à gros glossaire coûte donc presque une requête entière de plus. Planifie avec ce chiffre, mais ne promets pas à une équipe finance qu'il ne peut pas être dépassé.
+
+L'estimation couvre `translate`. Retraduire une entrée isolée depuis [Studio](/docs/review-in-studio) ou depuis un outil d'agent appelle le fournisseur par son propre chemin, et aucune estimation d'ici ne voit cette dépense.
 
 ## Un exemple chiffré
 
@@ -132,7 +139,7 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 - `maxBatchSize` à sa valeur par défaut de `50`
 - fournisseur `gemini`, modèle `gemini-2.5-flash`
 - 4 caractères par token
-- valeurs traduites à peu près de la même longueur que la source
+- valeurs traduites jusqu'à 50 % plus longues que la source, la marge que verbatra applique
 - tarif **illustratif** de `$0.10` par million de tokens d'entrée et `$0.40` par million de tokens de sortie : c'est un espace réservé pour rendre le calcul concret, pas un prix cité. Consulte le vrai.
 
 **Requêtes**
@@ -150,13 +157,13 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 **Tokens de sortie par requête**
 
-(50 items x (20 caractères de clé + 40 de valeur + ~21 de JSON) + ~20 d'enveloppe) / 4 = **~1 030**.
+(50 items x (20 caractères de clé + 40 de valeur + ~21 de JSON) + ~20 d'enveloppe + 50 x 20 de marge) / 4 = **~1 280**.
 
 **Totaux sur 3 langues**
 
 - Entrée : 24 x 1 388 = **~33 312 tokens**
-- Sortie : 24 x 1 030 = **~24 720 tokens**
-- Coût : (33 312 / 1 000 000 x $0.10) + (24 720 / 1 000 000 x $0.40) = $0.0033 + $0.0099 = **environ 1,3 centime**
+- Sortie : 24 x 1 280 = **~30 720 tokens**
+- Coût : (33 312 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0033 + $0.0123 = **environ 1,6 centime**
 
 Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 350 = 8 400 des 33 312 tokens d'entrée, soit environ un quart. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; la baisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
 

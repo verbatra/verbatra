@@ -61,19 +61,35 @@ function renderBudgetLine(budget: RunBudget): string {
 }
 
 const COST_DECIMALS = 4;
+const SMALLEST_PRINTABLE_COST = 0.00005;
+const SMALLEST_PRINTED_COST = "0.0001";
+
+function renderCostFigure(cost: number, currency: string): string {
+  return cost > 0 && cost < SMALLEST_PRINTABLE_COST
+    ? `less than ${SMALLEST_PRINTED_COST} ${currency}`
+    : `${cost.toFixed(COST_DECIMALS)} ${currency}`;
+}
 
 const CAVEAT_PHRASES: Record<EstimateCaveatCode, string> = {
   CACHE_NOT_CONSULTED: "cache hits",
   SOURCE_DUPLICATES_NOT_DEDUPLICATED: "duplicate source strings",
+  TRANSPORT_RETRIES_NOT_COUNTED: "provider-side retries",
+  TRANSLATION_LENGTH_IS_ESTIMATED: "translation length",
   TOKEN_COUNT_IS_HEURISTIC: "tokenizer differences",
   REPAIR_REQUESTS_NOT_COUNTED: "repair requests",
 };
 
+function renderEstimateScale(estimate: RunEstimate): string {
+  switch (estimate.unit) {
+    case "tokens":
+      return `~${estimate.inputTokens} input + ~${estimate.outputTokens} output tokens`;
+    case "characters":
+      return `~${estimate.sourceCharacters} source characters`;
+  }
+}
+
 function renderEstimateQuantity(estimate: RunEstimate): string {
-  const scale =
-    estimate.unit === "tokens"
-      ? `~${estimate.inputTokens ?? 0} input + ~${estimate.outputTokens ?? 0} output tokens`
-      : `~${estimate.sourceCharacters ?? 0} source characters`;
+  const scale = renderEstimateScale(estimate);
   return `  estimate: ${estimate.keys} keys in ${estimate.requests} requests, ${scale}`;
 }
 
@@ -81,8 +97,8 @@ function renderEstimateCost(estimate: RunEstimate): string {
   switch (estimate.pricing) {
     case "priced":
       return (
-        `  estimated spend: ${estimate.cost.toFixed(COST_DECIMALS)} ${estimate.currency} ` +
-        `at rates as of ${estimate.asOf} (an upper-bound estimate, not a quotation)`
+        `  estimated spend: ${renderCostFigure(estimate.cost, estimate.currency)} ` +
+        `at rates as of ${estimate.asOf} (a planning estimate, not a quotation)`
       );
     case "no-rate-on-file":
       return (
