@@ -91,6 +91,12 @@ export {
   lockState,
 } from "./flow/lock-state.js";
 export {
+  type PseudolocalizeDeps,
+  type PseudolocalizeInput,
+  type PseudolocalizeResult,
+  pseudolocalize,
+} from "./flow/pseudo.js";
+export {
   type RetranslateEntryDeps,
   type RetranslateEntryInput,
   type RetranslateEntryResult,
