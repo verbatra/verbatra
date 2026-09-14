@@ -669,4 +669,45 @@ describe("renderHuman: pre-run estimate", () => {
   it("leaves the estimate lines out of a run that did not ask for one", () => {
     expect(renderHuman(makeSummary({ dryRun: true }))).not.toContain("estimate:");
   });
+
+  it("never leaks an undefined or a NaN into any branch of the estimate block", () => {
+    const characterUnit: UnpricedRunEstimate = {
+      ...unpriced("not-billed"),
+      unit: "characters",
+      sourceCharacters: 16000,
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000 }],
+    };
+    const branches: readonly RunEstimate[] = [
+      tokenEstimate,
+      unpriced("no-rate-on-file"),
+      unpriced("rate-unit-mismatch"),
+      unpriced("not-billed"),
+      characterUnit,
+    ];
+
+    for (const branch of branches) {
+      const line = render(branch);
+      expect(line).not.toContain("undefined");
+      expect(line).not.toContain("NaN");
+      expect(line).not.toContain("null");
+    }
+  });
+
+  it("spells out every caveat code it is handed, so none renders as a blank", () => {
+    const line = render({
+      ...tokenEstimate,
+      caveats: [
+        "CACHE_NOT_CONSULTED",
+        "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+        "TRANSLATION_LENGTH_IS_ESTIMATED",
+        "TOKEN_COUNT_IS_HEURISTIC",
+        "REPAIR_REQUESTS_NOT_COUNTED",
+      ],
+    });
+
+    expect(line).toContain(
+      "estimate excludes: cache hits, duplicate source strings, translation length, " +
+        "tokenizer differences, repair requests",
+    );
+  });
 });

@@ -63,6 +63,7 @@ const COST_DECIMALS = 4;
 const CAVEAT_PHRASES: Record<EstimateCaveatCode, string> = {
   CACHE_NOT_CONSULTED: "cache hits",
   SOURCE_DUPLICATES_NOT_DEDUPLICATED: "duplicate source strings",
+  TRANSLATION_LENGTH_IS_ESTIMATED: "translation length",
   TOKEN_COUNT_IS_HEURISTIC: "tokenizer differences",
   REPAIR_REQUESTS_NOT_COUNTED: "repair requests",
 };

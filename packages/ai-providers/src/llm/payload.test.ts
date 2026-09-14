@@ -74,6 +74,27 @@ describe("dataPayloadCharacters", () => {
     expect(dataPayloadCharacters(input)).toBe(JSON.stringify(buildDataPayload(input)).length);
   });
 
+  it("counts the exact bytes of the wire payload, written out independently", () => {
+    expect(dataPayloadCharacters(data())).toBe(
+      '{"sourceLocale":"en","targetLocale":"de","items":[{"key":"greeting","value":"Hello"}]}'
+        .length,
+    );
+  });
+
+  it("counts an escaped character as the bytes it is serialized to, not as one character", () => {
+    const quoted = dataPayloadCharacters(data({ entries: [entry("greeting", 'He said "hi"')] }));
+    const plain = dataPayloadCharacters(data({ entries: [entry("greeting", "He said  hi ")] }));
+
+    expect(quoted).toBe(plain + 2);
+  });
+
+  it("counts a non-ASCII character as the bytes JSON writes for it", () => {
+    const emoji = dataPayloadCharacters(data({ entries: [entry("greeting", "Hello \u{1f600}")] }));
+    const ascii = dataPayloadCharacters(data({ entries: [entry("greeting", "Hello ab")] }));
+
+    expect(emoji).toBe(ascii);
+  });
+
   it("grows with a glossary, which is serialized in full into every request", () => {
     const glossary = Object.fromEntries(
       Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
@@ -105,6 +126,12 @@ describe("resultPayloadCharacters", () => {
   it("measures the result envelope the response schema binds the provider to", () => {
     expect(resultPayloadCharacters([{ key: "greeting", value: "Hallo" }])).toBe(
       JSON.stringify({ translations: [{ key: "greeting", value: "Hallo" }] }).length,
+    );
+  });
+
+  it("counts the exact bytes of the result envelope, written out independently", () => {
+    expect(resultPayloadCharacters([{ key: "greeting", value: "Hallo" }])).toBe(
+      '{"translations":[{"key":"greeting","value":"Hallo"}]}'.length,
     );
   });
 

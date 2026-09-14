@@ -80,6 +80,9 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
  *   would serve from cache are still counted.
  * - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
  *   string; the estimate counts every key.
+ * - `TRANSLATION_LENGTH_IS_ESTIMATED`: the translation does not exist yet, so the response is sized
+ *   from the source value plus a fixed expansion allowance. A target language that runs longer than
+ *   the allowance reports more completion tokens than this figure predicts.
  * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
  *   own tokenizer.
  * - `REPAIR_REQUESTS_NOT_COUNTED`: the extra requests an incomplete response can trigger are not
@@ -89,6 +92,7 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
 export type EstimateCaveatCode =
   | "CACHE_NOT_CONSULTED"
   | "SOURCE_DUPLICATES_NOT_DEDUPLICATED"
+  | "TRANSLATION_LENGTH_IS_ESTIMATED"
   | "TOKEN_COUNT_IS_HEURISTIC"
   | "REPAIR_REQUESTS_NOT_COUNTED";
 

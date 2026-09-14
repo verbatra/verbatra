@@ -20,6 +20,7 @@ import type {
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
 export const ESTIMATED_SYSTEM_RULES_TOKENS = 250;
 export const ESTIMATED_RESPONSE_SCHEMA_TOKENS = 100;
+export const ESTIMATED_TRANSLATION_EXPANSION = 1.5;
 
 const PER_MILLION = 1_000_000;
 
@@ -76,14 +77,22 @@ export interface PayloadContext {
   readonly tone?: Tone;
 }
 
+function expansionAllowance(batch: readonly TranslationEntry[]): number {
+  let allowance = 0;
+  for (const entry of batch) {
+    allowance += Math.ceil(entry.value.length * (ESTIMATED_TRANSLATION_EXPANSION - 1));
+  }
+  return allowance;
+}
+
 function quantifyBatch(
   batch: readonly TranslationEntry[],
   context: PayloadContext,
 ): EstimatedQuantity {
   const prompt = dataPayloadCharacters({ ...context, entries: batch });
-  const response = resultPayloadCharacters(
-    batch.map((entry) => ({ key: entry.key, value: entry.value })),
-  );
+  const response =
+    resultPayloadCharacters(batch.map((entry) => ({ key: entry.key, value: entry.value }))) +
+    expansionAllowance(batch);
   let sourceCharacters = 0;
   for (const entry of batch) {
     sourceCharacters += entry.value.length;
@@ -149,7 +158,12 @@ function caveatsFor(unit: BillingUnit): readonly EstimateCaveatCode[] {
     "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
   ];
   return unit === "tokens"
-    ? [...shared, "TOKEN_COUNT_IS_HEURISTIC", "REPAIR_REQUESTS_NOT_COUNTED"]
+    ? [
+        ...shared,
+        "TRANSLATION_LENGTH_IS_ESTIMATED",
+        "TOKEN_COUNT_IS_HEURISTIC",
+        "REPAIR_REQUESTS_NOT_COUNTED",
+      ]
     : shared;
 }
 
