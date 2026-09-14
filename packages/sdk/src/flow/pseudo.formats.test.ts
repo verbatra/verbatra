@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { SUPPORTED_FORMATS, type SupportedFormat } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
@@ -171,6 +171,25 @@ describe("pseudolocalize writes a readable pseudolocale for every supported form
   it("covers every supported format, so the table cannot silently fall behind", () => {
     expect(Object.keys(FIXTURES).sort()).toEqual([...SUPPORTED_FORMATS].sort());
   });
+
+  it.each(Object.keys(FIXTURES) as SupportedFormat[])(
+    "%s: a second run over unchanged source rewrites nothing",
+    async (format) => {
+      const fixture = FIXTURES[format];
+      const config = configFor(fixture, format);
+      const dir = await seedSource(fixture, config);
+
+      const first = await pseudolocalize({ config, cwd: dir });
+      const afterFirst = await readFile(first.path, "utf8");
+      const second = await pseudolocalize({ config, cwd: dir });
+      const third = await pseudolocalize({ config, cwd: dir });
+
+      expect(first.written).toBe(true);
+      expect(second.written).toBe(false);
+      expect(third.written).toBe(false);
+      expect(await readFile(second.path, "utf8")).toBe(afterFirst);
+    },
+  );
 
   it("puts every output under the ignored local directory", async () => {
     const fixture = FIXTURES["i18next-json"];

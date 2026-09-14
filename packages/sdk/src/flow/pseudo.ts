@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
   type LocaleResource,
   pseudolocalizeValue,
@@ -34,6 +34,10 @@ const XLIFF_TARGET_LANGUAGE = /\b(target-language|trgLang)\s*=\s*(["'])[^"']*\2/
 
 const SEGMENT_PADDING = /^(\s*)([\s\S]*?)(\s*)$/;
 
+const GROUP_OPEN = new Set(["{", "("]);
+
+const GROUP_CLOSE = new Set(["}", ")"]);
+
 /** Input for {@link pseudolocalize}. */
 export interface PseudolocalizeInput {
   /** The resolved project config, normally from {@link loadConfig}. */
@@ -50,8 +54,10 @@ export interface PseudolocalizeInput {
    * `.verbatra-local/pseudo`, which `verbatra init` already adds to `.gitignore`. The configured
    * `files.pattern` is expanded inside it, so the file keeps the layout the application expects.
    *
-   * It must stay inside `cwd`: an absolute path, or one that climbs out with `..`, is refused, so a
-   * generated pseudolocale can never land outside the project it was generated from.
+   * It must name a directory inside `cwd`: an absolute path, one that climbs out with `..`, and
+   * `cwd` itself are all refused, as is any directory that already holds a configured locale file,
+   * so a generated pseudolocale never lands outside the project or beside the real translations
+   * where nothing ignores it.
    */
   readonly out?: string;
 }
@@ -84,14 +90,17 @@ export interface PseudolocalizeResult {
   readonly written: boolean;
 }
 
+function escapesWorkingDirectory(inside: string): boolean {
+  return inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
+}
+
 function resolveOutputRoot(cwd: string, out: string | undefined): string {
   const requested = out ?? DEFAULT_PSEUDO_DIRECTORY;
   const root = isAbsolute(requested) ? requested : resolve(cwd, requested);
-  const inside = relative(cwd, root);
-  if (isAbsolute(requested) || inside.startsWith("..") || isAbsolute(inside)) {
+  if (isAbsolute(requested) || escapesWorkingDirectory(relative(cwd, root))) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
-      `The output directory "${requested}" must be a relative path inside the working directory, so a pseudolocale can never be written outside the project it was generated from.`,
+      `The output directory "${requested}" must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.`,
     );
   }
   return root;
@@ -111,16 +120,17 @@ function assertPseudoLocaleIsNotConfigured(config: VerbatraConfig, locale: strin
   }
 }
 
-function assertOutputIsNotALocaleFile(
+function assertOutputIsAwayFromTheLocaleFiles(
   config: VerbatraConfig,
   resolver: LocalePathResolver,
   outputPath: string,
 ): void {
+  const outputDirectory = dirname(outputPath);
   for (const locale of configuredLocales(config)) {
-    if (resolver.pathFor(locale) === outputPath) {
+    if (dirname(resolver.pathFor(locale)) === outputDirectory) {
       throw new SdkError(
         "PSEUDO_OUTPUT_CONFLICT",
-        `The pseudolocale would be written to ${outputPath}, which is the locale file for "${locale}". Choose a different output directory.`,
+        `The pseudolocale would be written to ${outputPath}, beside the locale file for "${locale}", where it is not covered by the scaffolded ignore list. Choose an output directory that holds no real locale file.`,
       );
     }
   }
@@ -129,6 +139,25 @@ function assertOutputIsNotALocaleFile(
 interface PseudoEntries {
   readonly entries: Map<string, TranslationEntry>;
   readonly copied: readonly string[];
+}
+
+function splitPluralForms(value: string): readonly string[] {
+  const forms: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value.charAt(i);
+    if (GROUP_OPEN.has(char)) {
+      depth += 1;
+    } else if (GROUP_CLOSE.has(char)) {
+      depth = Math.max(0, depth - 1);
+    } else if (char === "|" && depth === 0) {
+      forms.push(value.slice(start, i));
+      start = i + 1;
+    }
+  }
+  forms.push(value.slice(start));
+  return forms;
 }
 
 function pseudolocalizeSegment(segment: string): string {
@@ -140,7 +169,7 @@ function pseudolocalizeEntryValue(entry: TranslationEntry, format: SupportedForm
   if (!entry.isPlural || !PIPE_SEGMENTED_FORMATS.has(format)) {
     return pseudolocalizeValue(entry.value);
   }
-  return entry.value.split("|").map(pseudolocalizeSegment).join("|");
+  return splitPluralForms(entry.value).map(pseudolocalizeSegment).join("|");
 }
 
 function pseudolocalizeEntries(
@@ -250,8 +279,9 @@ function sameValues(
  *
  * The output is deliberately kept out of the project's real locale files: it is written under
  * `.verbatra-local/pseudo` by default, which `verbatra init` already adds to `.gitignore`, and the
- * pseudolocale is refused when it names a configured locale, resolves onto a configured locale
- * file, or is directed outside the working directory. Because it lives outside `files.pattern`, {@link translate} never spends on it and
+ * pseudolocale is refused when it names a configured locale, when the output directory already
+ * holds a configured locale file, and when it is directed at the project root or outside the
+ * working directory. Because it lives outside `files.pattern`, {@link translate} never spends on it and
  * {@link check} and {@link diff} never report it as drifted.
  *
  * The transform is deterministic, so a second run over unchanged source rewrites nothing and
@@ -272,8 +302,8 @@ function sameValues(
  * ```
  *
  * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, the
- * output directory would place it on top of a configured locale file, or the output directory is
- * not a relative path inside `cwd`.
+ * output directory already holds a configured locale file, or it is not a relative path naming a
+ * directory inside `cwd`.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.
@@ -300,7 +330,7 @@ export async function pseudolocalize(
     ...config,
     targetLocales: [locale],
   }).pathFor(locale);
-  assertOutputIsNotALocaleFile(config, resolver, outputPath);
+  assertOutputIsAwayFromTheLocaleFiles(config, resolver, outputPath);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const { entries, copied } = pseudolocalizeEntries(

@@ -55,11 +55,16 @@ function sourceEntry(value: string, adapter: FormatAdapter): TranslationEntry {
   };
 }
 
-function problemsFor(format: SupportedFormat): readonly string[] {
+type Transform = (value: string) => string;
+
+function problemsFor(
+  format: SupportedFormat,
+  transform: Transform = pseudolocalizeValue,
+): readonly string[] {
   const adapter = adapterFor(format);
   const problems: string[] = [];
   for (const value of valuesFor(format)) {
-    const candidate = pseudolocalizeValue(value);
+    const candidate = transform(value);
     if (!gateCandidateValue(sourceEntry(value, adapter), candidate, adapter).accepted) {
       problems.push(`gate refused: ${value}`);
     }
@@ -80,11 +85,44 @@ describe("a pseudolocalized value clears the integrity gate for every registered
     expect(problemsFor(format)).toEqual([]);
   });
 
-  it("would notice a transform that protected everything and changed nothing", () => {
-    expect(problemsFor("i18next-json").length).toBe(0);
-    const unchanged = `${TEXT[0]} {{name}}`;
+  const markersOnly: Transform = (value) => `[${value}]`;
 
-    expect(unchanged.includes(TEXT[0])).toBe(true);
+  const identity: Transform = (value) => value;
+
+  it.each(Object.keys(TOKENS) as SupportedFormat[])(
+    "%s: a mask that protected everything would be caught as surviving source text",
+    (format) => {
+      const problems = problemsFor(format, markersOnly);
+
+      expect(problems.length).toBeGreaterThan(0);
+      expect(problems.some((problem) => problem.startsWith("text survived untransformed:"))).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each(Object.keys(TOKENS) as SupportedFormat[])(
+    "%s: a transform that returned its input would be caught as unchanged",
+    (format) => {
+      const problems = problemsFor(format, identity);
+
+      expect(problems.some((problem) => problem.startsWith("left unchanged:"))).toBe(true);
+    },
+  );
+
+  it("separates the two probes: markers alone change the value but not the text", () => {
+    const problems = problemsFor("i18next-json", markersOnly);
+
+    expect(problems.some((problem) => problem.startsWith("left unchanged:"))).toBe(false);
+    expect(problems.some((problem) => problem.startsWith("text survived untransformed:"))).toBe(
+      true,
+    );
+  });
+
+  it("the real transform clears every probe the degenerate ones trip", () => {
+    for (const format of Object.keys(TOKENS) as SupportedFormat[]) {
+      expect(problemsFor(format)).toEqual([]);
+    }
   });
 
   it("covers every supported format, so the table cannot silently fall behind", () => {
