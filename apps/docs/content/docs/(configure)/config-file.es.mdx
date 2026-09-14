@@ -51,6 +51,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `prune` | boolean | `false` | Elimina las claves huérfanas de los archivos de destino y del bloqueo. |
 | `generatePlurals` | boolean | `false` | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
 | `maxBatchSize` | entero positivo | `50` | El máximo de entradas enviadas en una sola solicitud al proveedor. |
+| `maxLength` | objeto | ninguno | Longitudes máximas por clave para los valores traducidos, contadas en clústeres de grafemas. |
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
 | `budgetBehavior` | `"warn"` o `"stop"` | `"warn"` | Qué pasa una vez alcanzado `maxTokens`. |
 | `rates` | objeto | ninguno | Tarifas de proveedor fechadas, para que `translate --estimate` pueda dar una cifra en moneda. |
@@ -120,6 +121,25 @@ Desactivado por defecto. Cuando es true, verbatra sintetiza las formas plurales 
 ### maxBatchSize
 
 Por defecto `50`. Las entradas faltantes más las modificadas de un locale se dividen en sublotes secuenciales que no superan este tamaño, así que una solicitud sobredimensionada al proveedor no puede hacer fallar el locale entero. Un sublote fallido se retiene y se reintenta en la siguiente ejecución mientras los demás siguen avanzando. Debe ser un entero positivo; los valores cero, negativos o fraccionarios se rechazan. Solo por configuración: no hay opción de CLI ni override por ejecución.
+
+### maxLength
+
+<AvailableFrom version="0.11.0" />
+
+Opcional. Un mapa de clave de traducción al valor traducido más largo que esa clave puede contener, para que una cadena con una restricción de maquetación (una etiqueta de navegación, un botón, un encabezado de tabla) se mida contra él en cada ejecución.
+
+```ts
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+Este mapa es el único sitio del que se lee un presupuesto. verbatra nunca lo deduce de la descripción de una entrada ni de los metadatos de longitud de un formato, así que un presupuesto está exactamente donde tú lo escribiste y nada lo sobrescribe en silencio. Las claves se comparan literalmente, no como globs ni prefijos, y una clave ausente del mapa no tiene presupuesto y nunca se mide.
+
+La longitud se cuenta en clústeres de grafemas: los caracteres que percibe quien lee, no unidades de código UTF-16 ni puntos de código Unicode. Un emoji compuesto por varios puntos de código cuenta como uno, y una letra seguida de un acento combinante también. Un carácter CJK también cuenta como uno, aunque la mayoría de las fuentes lo dibujan cerca del doble de ancho que una letra latina, así que fija los presupuestos de esas locales teniéndolo en cuenta. El valor se mide tal cual está escrito, incluidos los espacios iniciales y finales, y la comparación es inclusiva: un valor de exactamente el presupuesto pasa, un grafema más no.
+
+Un presupuesto debe ser un entero positivo. Superarlo es informativo, nunca bloqueante: la traducción se sigue escribiendo en el archivo de locale y se sigue registrando en el archivo de bloqueo, y la clave se informa como `MAX_LENGTH_EXCEEDED` en la lista `needsReview` del resumen de la ejecución, en la cola de Revisión de Studio y en las columnas de revisión del libro. Consulta [Seguridad de la traducción](/docs/translation-safety).
 
 ### maxTokens y budgetBehavior
 

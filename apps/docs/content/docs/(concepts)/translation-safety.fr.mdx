@@ -80,6 +80,13 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `LENGTH_RATIO_OUTLIER` : la traduction est bien plus courte ou plus longue que sa source (en
   dessous de 0.35x ou au-dessus de 3.0x en longueur après retrait des espaces ; les sources très courtes sont
   ignorées). Une invitation à regarder, pas un verdict.
+- `MAX_LENGTH_EXCEEDED` : la traduction est plus longue que le budget absolu configuré pour sa clé
+  sous [`maxLength`](/docs/config-file). Comptée en groupes de graphèmes, sur la valeur telle
+  qu'elle est écrite, et la limite est inclusive : une valeur égale au budget n'est pas signalée.
+  Une clé sans budget configuré n'est jamais mesurée. Comme chaque raison de cette liste, elle
+  signale au lieu de bloquer : une traduction au-dessus du budget est tout de même écrite et tout
+  de même verrouillée, car une traduction correcte qui dépasse un budget de mise en page vaut mieux
+  que pas de traduction du tout.
 - `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source dans une locale cible
   différente, et la source avait réellement du texte traduisible.
 - `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme

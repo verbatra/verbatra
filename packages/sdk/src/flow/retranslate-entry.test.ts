@@ -147,6 +147,46 @@ describe("retranslateEntry: acceptance", () => {
     expect(result).toMatchObject({ accepted: true, reviewReasons: ["EQUALS_SOURCE"] });
   });
 
+  it("passes the key's configured length budget to the provider", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const provider = makeStubProvider().provider;
+    let seen: ReadonlyMap<string, number> | undefined;
+    const capturingProvider = {
+      ...provider,
+      translateBatch: async (request: Parameters<typeof provider.translateBatch>[0]) => {
+        seen = request.maxLength;
+        return provider.translateBatch(request);
+      },
+    };
+
+    await retranslateEntry(
+      { config: cfg({ maxLength: { greeting: 4 } }), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => capturingProvider },
+    );
+
+    expect(seen?.get("greeting")).toBe(4);
+  });
+
+  it("sends no length budget when the config configures none", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const provider = makeStubProvider().provider;
+    let seen: ReadonlyMap<string, number> | undefined = new Map();
+    const capturingProvider = {
+      ...provider,
+      translateBatch: async (request: Parameters<typeof provider.translateBatch>[0]) => {
+        seen = request.maxLength;
+        return provider.translateBatch(request);
+      },
+    };
+
+    await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => capturingProvider },
+    );
+
+    expect(seen).toBeUndefined();
+  });
+
   it("creates the target file when it does not yet exist", async () => {
     const dir = await project({ greeting: "Hello" });
     const stub = makeStubProvider();

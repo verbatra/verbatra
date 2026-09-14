@@ -75,7 +75,7 @@ compare proprement avec sa version précédente. Voir [Formats](/docs/formats).
 
 Les traductions acceptées passent par des heuristiques de révision qui signalent les résultats
 suspects sans les retenir : une longueur très disproportionnée par rapport à la source
-(`LENGTH_RATIO_OUTLIER`), une traduction identique à la source (`EQUALS_SOURCE`), un terme de
+(`LENGTH_RATIO_OUTLIER`), une valeur plus longue que le budget configuré pour sa clé (`MAX_LENGTH_EXCEEDED`), une traduction identique à la source (`EQUALS_SOURCE`), un terme de
 glossaire manqué (`GLOSSARY_TERM_MISSED`), des placeholders réordonnés (`INTEGRITY_REORDERED`),
 ou un chemin fournisseur dégradé (`PROVIDER_DEGRADED`). Les signalements atterrissent sur la liste
 `needsReview` du résumé d'exécution et dans la file de révision de Studio. Voir

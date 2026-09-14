@@ -9,6 +9,7 @@ export interface ReviewReasonLabelView {
 
 const REVIEW_REASON_LABELS: Readonly<Record<ReviewReasonCode, ReviewReasonLabelView>> = {
   LENGTH_RATIO_OUTLIER: { label: "Unusual length", tone: "warning" },
+  MAX_LENGTH_EXCEEDED: { label: "Over length budget", tone: "warning" },
   EQUALS_SOURCE: { label: "Matches source text", tone: "warning" },
   GLOSSARY_TERM_MISSED: { label: "Glossary term missed", tone: "warning" },
   INTEGRITY_REORDERED: { label: "Placeholders reordered", tone: "warning" },

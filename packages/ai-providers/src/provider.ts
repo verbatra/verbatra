@@ -53,6 +53,13 @@ export interface TranslateRequest {
   readonly glossary?: Readonly<Record<string, string>>;
   /** Optional target {@link Tone}; machine-translation providers map it to formality. */
   readonly tone?: Tone;
+  /**
+   * Optional per-key maximum length budget, measured in grapheme clusters. A key present in the map
+   * whose translation comes back longer than its budget is flagged `MAX_LENGTH_EXCEEDED`; a key
+   * absent from the map is never flagged. Advisory only: it never changes what is sent to the
+   * provider and never withholds a value.
+   */
+  readonly maxLength?: ReadonlyMap<string, number>;
   /** Mandatory placeholder extractor; the output integrity check runs against it. */
   readonly extractPlaceholders: PlaceholderExtractor;
   /**
@@ -110,11 +117,18 @@ export interface ProviderNotice {
 
 /**
  * Stable codes for a derived, per-key "needs review" signal. This is verbatra's own computed
- * assessment, never a raw model self-score: four are recomputable from plain source and translated
+ * assessment, never a raw model self-score: five are recomputable from plain source and translated
  * values, and `PROVIDER_DEGRADED` is layered on afterwards from the batch's notices.
  *
  * - `LENGTH_RATIO_OUTLIER`: the translated value's length is far shorter or longer than the source's.
- *   Only considered once the trimmed source is long enough for the ratio to mean anything.
+ *   Only considered once the trimmed source is long enough for the ratio to mean anything. Relative
+ *   to the source, and measured in UTF-16 code units; contrast `MAX_LENGTH_EXCEEDED`.
+ * - `MAX_LENGTH_EXCEEDED`: the translated value is longer than the absolute budget configured for
+ *   its key. Measured in grapheme clusters (user-perceived characters), on the value exactly as
+ *   written with no trimming, and the comparison is inclusive, so a value of exactly the budget is
+ *   not flagged. A key with no configured budget is never flagged. Advisory only: an over-budget
+ *   value is still written to the locale file and still recorded in the lock file, because a
+ *   correct translation that overruns a layout budget is more useful than no translation at all.
  * - `EQUALS_SOURCE`: the translated value equals the source value once both are trimmed, so a
  *   difference in leading or trailing whitespace alone still counts as equal. Also requires that
  *   the locales differ and that the value contains at least one letter (so a bare symbol or number
@@ -137,6 +151,7 @@ export interface ProviderNotice {
  */
 export type ReviewReasonCode =
   | "LENGTH_RATIO_OUTLIER"
+  | "MAX_LENGTH_EXCEEDED"
   | "EQUALS_SOURCE"
   | "GLOSSARY_TERM_MISSED"
   | "INTEGRITY_REORDERED"
@@ -217,6 +232,7 @@ const requestDataSchema = z.object({
   entries: z.array(translationEntrySchema).min(1),
   glossary: z.record(z.string(), z.string()).optional(),
   tone: z.enum(["formal", "informal", "neutral"]).optional(),
+  maxLength: z.map(z.string().min(1), z.number().int().nonnegative()).optional(),
 });
 
 export type ValidatedRequestData = z.infer<typeof requestDataSchema>;

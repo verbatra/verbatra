@@ -80,6 +80,13 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 - `LENGTH_RATIO_OUTLIER`: la traducción es mucho más corta o larga que su origen (por debajo de
   0.35x o por encima de 3.0x de longitud recortada; los orígenes muy cortos se omiten). Un aviso
   para mirar, no un veredicto.
+- `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para
+  su clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor
+  tal cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se
+  marca. Una clave sin presupuesto configurado nunca se mide. Como cada motivo de esta lista,
+  marca en vez de bloquear: una traducción por encima del presupuesto se sigue escribiendo y se
+  sigue bloqueando, porque una traducción correcta que se pasa de un presupuesto de maquetación
+  vale más que ninguna traducción.
 - `EQUALS_SOURCE`: la traducción es idéntica al origen en un locale de destino distinto, y el
   origen sí tenía texto traducible.
 - `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término

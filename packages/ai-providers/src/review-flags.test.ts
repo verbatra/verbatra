@@ -467,6 +467,7 @@ describe("buildEntryReviewFlags", () => {
       "en",
       "de",
       undefined,
+      undefined,
     );
     expect(result.size).toBe(0);
   });
@@ -478,6 +479,7 @@ describe("buildEntryReviewFlags", () => {
       new Map(),
       "en",
       "de",
+      undefined,
       undefined,
     );
     expect(result.size).toBe(0);
@@ -491,6 +493,7 @@ describe("buildEntryReviewFlags", () => {
       "en",
       "de",
       undefined,
+      undefined,
     );
     expect(result.get("greeting")?.reasons).toEqual(["EQUALS_SOURCE"]);
   });
@@ -503,6 +506,7 @@ describe("buildEntryReviewFlags", () => {
       "en",
       "de",
       { Save: "Speichern" },
+      undefined,
     );
     expect(result.get("cta")?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
   });
@@ -521,6 +525,7 @@ describe("buildEntryReviewFlags", () => {
       "en",
       "de",
       undefined,
+      undefined,
     );
     expect([...result.keys()]).toEqual(["a"]);
   });
@@ -533,7 +538,173 @@ describe("buildEntryReviewFlags", () => {
       "en",
       "de",
       undefined,
+      undefined,
     );
+    expect(result.size).toBe(0);
+  });
+});
+
+describe("computeReviewFlags: MAX_LENGTH_EXCEEDED", () => {
+  it("does not flag a value under its budget", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "Hallo", maxLength: 10 }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("does not flag a value exactly at its budget, so the boundary is inclusive", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "Hallo", maxLength: 5 }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("flags a value one unit over its budget", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "Hallo", maxLength: 4 }),
+    );
+    expect(flag?.reasons).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("does not flag a value of any length when no budget is configured", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "Hallo dort, Freund" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("flags any non-empty value against a budget of zero", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "a", maxLength: 0 }),
+    );
+    expect(flag?.reasons).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("does not flag an empty value against a budget of zero", () => {
+    const flag = computeReviewFlags(input({ sourceValue: "", translatedValue: "", maxLength: 0 }));
+    expect(flag).toBeUndefined();
+  });
+
+  it("counts a multi-code-point emoji sequence as one grapheme cluster", () => {
+    const family = "\u{1F468}‍\u{1F469}‍\u{1F467}";
+    expect(family.length).toBe(8);
+    expect([...family].length).toBe(5);
+
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: family, maxLength: 1 })),
+    ).toBeUndefined();
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: family, maxLength: 0 }))
+        ?.reasons,
+    ).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("counts a base letter and its combining mark as one grapheme cluster", () => {
+    const decomposed = "café";
+    expect(decomposed.length).toBe(5);
+    expect([...decomposed].length).toBe(5);
+
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: decomposed, maxLength: 4 })),
+    ).toBeUndefined();
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: decomposed, maxLength: 3 }))
+        ?.reasons,
+    ).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("counts an astral character outside the emoji range as one grapheme cluster", () => {
+    const script = "\u{1D49C}\u{1D4B7}\u{1D4B8}";
+    expect(script.length).toBe(6);
+
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: script, maxLength: 3 })),
+    ).toBeUndefined();
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: script, maxLength: 2 }))
+        ?.reasons,
+    ).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("counts each CJK character as one grapheme cluster, not as its rendered width", () => {
+    const japanese = "日本語テキスト";
+    expect([...japanese].length).toBe(7);
+
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: japanese, maxLength: 7 })),
+    ).toBeUndefined();
+    expect(
+      computeReviewFlags(input({ sourceValue: "Hi", translatedValue: japanese, maxLength: 6 }))
+        ?.reasons,
+    ).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("measures the value as written, counting leading and trailing whitespace", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "Hi", translatedValue: "  Hallo  ", maxLength: 5 }),
+    );
+    expect(flag?.reasons).toEqual(["MAX_LENGTH_EXCEEDED"]);
+  });
+
+  it("leaves the input untouched, so the check never rewrites or truncates a value", () => {
+    const original = input({
+      sourceValue: "Hi",
+      translatedValue: "Hallo dort, Freund",
+      maxLength: 3,
+    });
+    const snapshot = { ...original };
+
+    computeReviewFlags(original);
+
+    expect(original).toEqual(snapshot);
+    expect(original.translatedValue).toBe("Hallo dort, Freund");
+  });
+
+  it("reports the budget overrun alongside every other reason that applies", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Hello there, friend",
+        translatedValue: "Hello there, friend",
+        maxLength: 4,
+      }),
+    );
+    expect(flag?.reasons).toEqual(["MAX_LENGTH_EXCEEDED", "EQUALS_SOURCE"]);
+  });
+});
+
+describe("buildEntryReviewFlags: per-key budgets", () => {
+  it("applies a budget only to the key it is configured for", () => {
+    const result = buildEntryReviewFlags(
+      [entry("short", "Hello there, friend"), entry("long", "Hello there, friend")],
+      new Map([
+        ["short", "Hallo dort, Freund"],
+        ["long", "Hallo dort, Freund"],
+      ]),
+      new Map([
+        ["short", CLEAN_INTEGRITY],
+        ["long", CLEAN_INTEGRITY],
+      ]),
+      "en",
+      "de",
+      undefined,
+      new Map([["short", 5]]),
+    );
+
+    expect(result.get("short")?.reasons).toEqual(["MAX_LENGTH_EXCEEDED"]);
+    expect(result.has("long")).toBe(false);
+  });
+
+  it("flags nothing when no budget map is supplied", () => {
+    const result = buildEntryReviewFlags(
+      [entry("short", "Hello there, friend")],
+      new Map([["short", "Hallo dort, Freund"]]),
+      new Map([["short", CLEAN_INTEGRITY]]),
+      "en",
+      "de",
+      undefined,
+      undefined,
+    );
+
     expect(result.size).toBe(0);
   });
 });

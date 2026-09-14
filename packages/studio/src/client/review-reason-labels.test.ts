@@ -4,6 +4,7 @@ import { reviewReasonLabel } from "./review-reason-labels.js";
 
 const ALL_CODES: readonly ReviewReasonCode[] = [
   "LENGTH_RATIO_OUTLIER",
+  "MAX_LENGTH_EXCEEDED",
   "EQUALS_SOURCE",
   "GLOSSARY_TERM_MISSED",
   "INTEGRITY_REORDERED",
@@ -11,7 +12,7 @@ const ALL_CODES: readonly ReviewReasonCode[] = [
 ];
 
 describe("reviewReasonLabel", () => {
-  it("renders all five ReviewReasonCode values with a distinct, non-empty label", () => {
+  it("renders all six ReviewReasonCode values with a distinct, non-empty label", () => {
     const labels = ALL_CODES.map((code) => reviewReasonLabel(code).label);
     expect(new Set(labels).size).toBe(ALL_CODES.length);
     for (const label of labels) {
@@ -32,7 +33,7 @@ describe("reviewReasonLabel", () => {
     }
   });
 
-  it("gives PROVIDER_DEGRADED a distinct tone from the four content-derived reasons", () => {
+  it("gives PROVIDER_DEGRADED a distinct tone from the five content-derived reasons", () => {
     expect(reviewReasonLabel("PROVIDER_DEGRADED").tone).toBe("neutral");
     for (const code of ALL_CODES.filter((c) => c !== "PROVIDER_DEGRADED")) {
       expect(reviewReasonLabel(code).tone).toBe("warning");

@@ -69,6 +69,12 @@ carries one or more reason codes:
 
 - `LENGTH_RATIO_OUTLIER`: the translation is far shorter or longer than its source (below 0.35x or
   above 3.0x trimmed length; very short sources are skipped). A nudge to look, not a verdict.
+- `MAX_LENGTH_EXCEEDED`: the translation is longer than the absolute budget configured for its key
+  under [`maxLength`](/docs/config-file). Counted in grapheme clusters, on the value exactly as
+  written, and the boundary is inclusive, so a value of exactly the budget is not flagged. A key
+  with no configured budget is never measured. Like every reason here it flags rather than blocks:
+  an over-budget translation is still written and still locked, because a correct translation that
+  overruns a layout budget beats no translation at all.
 - `EQUALS_SOURCE`: the translation equals the source verbatim in a different target locale, and
   the source actually had translatable text.
 - `GLOSSARY_TERM_MISSED`: a configured glossary term occurs in the source but its mapped target

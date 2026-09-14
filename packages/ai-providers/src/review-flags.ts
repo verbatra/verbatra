@@ -14,6 +14,8 @@ const WORD_JOINING_AT_START = new RegExp(`^${WORD_JOINING}`, "v");
 const WORD_JOINING_AT_END = new RegExp(`${WORD_JOINING}$`, "v");
 const MAX_CODE_UNITS_PER_CODE_POINT = 2;
 
+const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
 const DEGRADATION_NOTICE_CODES: ReadonlySet<ProviderNotice["code"]> = new Set([
   "FORMALITY_DOWNGRADED",
   "GLOSSARY_IGNORED",
@@ -26,6 +28,19 @@ export interface ReviewFlagInput {
   readonly targetLocale: string;
   readonly integrity: PlaceholderIntegrityResult;
   readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly maxLength?: number | undefined;
+}
+
+function graphemeLength(value: string): number {
+  let count = 0;
+  for (const _segment of GRAPHEME_SEGMENTER.segment(value)) {
+    count += 1;
+  }
+  return count;
+}
+
+export function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
+  return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
 function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
@@ -101,6 +116,9 @@ export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefin
   if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
     reasons.push("LENGTH_RATIO_OUTLIER");
   }
+  if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
+    reasons.push("MAX_LENGTH_EXCEEDED");
+  }
   if (isEqualsSource(input)) {
     reasons.push("EQUALS_SOURCE");
   }
@@ -120,6 +138,7 @@ export function buildEntryReviewFlags(
   sourceLocale: string,
   targetLocale: string,
   glossary: Readonly<Record<string, string>> | undefined,
+  maxLength: ReadonlyMap<string, number> | undefined,
 ): Map<string, ReviewFlag> {
   const reviewFlags = new Map<string, ReviewFlag>();
   for (const entry of entries) {
@@ -135,6 +154,7 @@ export function buildEntryReviewFlags(
       targetLocale,
       integrity: entryIntegrity,
       glossary,
+      maxLength: maxLength?.get(entry.key),
     });
     if (flag !== undefined) {
       reviewFlags.set(entry.key, flag);

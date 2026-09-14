@@ -7,6 +7,7 @@ export interface TranslateRequestContext {
   readonly targetLocale: string;
   readonly adapter: FormatAdapter;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
 }
 
@@ -20,6 +21,7 @@ export function buildTranslateRequest(
     entries,
     extractPlaceholders: context.adapter.extractPlaceholders,
     ...(context.glossary !== undefined ? { glossary: context.glossary } : {}),
+    ...(context.maxLength !== undefined ? { maxLength: context.maxLength } : {}),
     ...(context.tone !== undefined ? { tone: context.tone } : {}),
     ...(context.adapter.comparePlaceholders !== undefined
       ? { comparePlaceholders: context.adapter.comparePlaceholders }

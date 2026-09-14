@@ -1,8 +1,10 @@
 import {
   computeReviewFlags,
+  exceedsMaxLength,
   ProviderError,
   type ProviderKind,
   type ReviewFlag,
+  type ReviewReasonCode,
   type Tone,
   type TranslateResult,
   type TranslationProvider,
@@ -64,6 +66,7 @@ export interface LocaleRunParams {
   readonly targetLocale: string;
   readonly format: SupportedFormat;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly prune: boolean;
   readonly generatePlurals: boolean;
@@ -94,16 +97,17 @@ interface CachePartition {
 function reviewCachedValue(
   params: LocaleRunParams,
   source: TranslationEntry,
-  cached: string,
+  candidate: string,
   integrity: PlaceholderIntegrityResult,
 ): ReviewFlag | undefined {
   return computeReviewFlags({
     sourceValue: source.value,
-    translatedValue: cached,
+    translatedValue: candidate,
     sourceLocale: params.sourceLocale,
     targetLocale: params.targetLocale,
     integrity,
     glossary: params.glossary,
+    maxLength: params.maxLength?.get(source.key),
   });
 }
 
@@ -221,13 +225,38 @@ function applyGroupOutcome(
   withheldBucketFor(group.representative, outcome).push(...group.duplicates);
 }
 
+function rebudgetedReasons(
+  representativeReasons: readonly ReviewReasonCode[],
+  exceeded: boolean,
+): readonly ReviewReasonCode[] {
+  const kept = representativeReasons.filter((reason) => reason !== "MAX_LENGTH_EXCEEDED");
+  if (!exceeded) {
+    return kept;
+  }
+  const index = kept[0] === "LENGTH_RATIO_OUTLIER" ? 1 : 0;
+  return [...kept.slice(0, index), "MAX_LENGTH_EXCEEDED", ...kept.slice(index)];
+}
+
+function duplicateReviewFlag(
+  params: LocaleRunParams,
+  representativeFlag: ReviewFlag | undefined,
+  key: string,
+  value: string,
+): ReviewFlag | undefined {
+  const reasons = rebudgetedReasons(
+    representativeFlag?.reasons ?? [],
+    exceedsMaxLength(value, params.maxLength?.get(key)),
+  );
+  return reasons.length > 0 ? { status: "review", reasons } : undefined;
+}
+
 function fanOutAccepted(
   params: LocaleRunParams,
   group: MissGroup,
   acceptedRepresentative: Accepted,
   outcome: TranslationOutcome,
 ): void {
-  const flag = outcome.reviewFlags.get(group.representative);
+  const representativeFlag = outcome.reviewFlags.get(group.representative);
   for (const key of group.duplicates) {
     const source = params.source.entries.get(key);
     /* v8 ignore next 3 -- duplicates come from the same source-driven diff as their representative. */
@@ -239,6 +268,7 @@ function fanOutAccepted(
       continue;
     }
     outcome.accepted.set(key, { value: acceptedRepresentative.value, source });
+    const flag = duplicateReviewFlag(params, representativeFlag, key, acceptedRepresentative.value);
     if (flag !== undefined) {
       outcome.reviewFlags.set(key, flag);
     }
@@ -477,6 +507,7 @@ async function runGeneration(
     adapter: params.adapter,
     provider,
     glossary: params.glossary,
+    maxLength: params.maxLength,
     tone: params.tone,
     baseline: params.baseline,
     targetKeys,

@@ -43,7 +43,7 @@ Editar no necesita ningún flag. Toca solo tus archivos locales y nunca llama a 
 
 ## Trabaja la cola de Revisión
 
-La página Revisión lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, idéntica al origen, un término del glosario omitido, marcadores de posición reordenados o un lote degradado del proveedor). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para poblarla.
+La página Revisión lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, marcadores de posición reordenados o un lote degradado del proveedor). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para poblarla.
 
 <StudioScreenshot
   shot="review"

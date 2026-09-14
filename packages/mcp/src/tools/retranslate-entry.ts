@@ -12,6 +12,7 @@ const integrityGateReasonSchema = z.enum(["placeholder", "icu", "degenerate", "e
 
 const reviewReasonCodeSchema = z.enum([
   "LENGTH_RATIO_OUTLIER",
+  "MAX_LENGTH_EXCEEDED",
   "EQUALS_SOURCE",
   "GLOSSARY_TERM_MISSED",
   "INTEGRITY_REORDERED",

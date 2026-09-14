@@ -98,6 +98,7 @@ function makeParams(
     adapter,
     provider: makeStubProvider().provider,
     providerKind: "llm",
+    maxLength: undefined,
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",

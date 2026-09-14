@@ -561,8 +561,8 @@ interface LocaleSummary {
 Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
-  haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`,
-  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Ein Review-Flag ist nur
+  haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`,
+  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Ein Review-Flag ist nur
   ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in `needsReview` und
   `integrityMismatches` zugleich. Was jeder Code bedeutet, steht in
   [Übersetzungssicherheit](/docs/translation-safety), das Abarbeiten der Warteschlange in

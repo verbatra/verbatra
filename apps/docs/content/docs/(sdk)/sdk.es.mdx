@@ -546,8 +546,8 @@ interface LocaleSummary {
 Las partes que conviene conocer:
 
 - **needsReview** lista claves aceptadas y escritas que las heurísticas de revisión marcaron, cada una
-  con sus códigos de motivo: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`,
-  `INTEGRITY_REORDERED` y `PROVIDER_DEGRADED`. Una señal de revisión es consultiva y nunca retiene una
+  con sus códigos de motivo: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`,
+  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` y `PROVIDER_DEGRADED`. Una señal de revisión es consultiva y nunca retiene una
   clave, así que una clave nunca aparece a la vez en `needsReview` y en `integrityMismatches`. Consulta
   [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada código y
   [Revisión en Studio](/docs/review-in-studio) para trabajar la cola.

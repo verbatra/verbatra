@@ -51,6 +51,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `prune` | Boolean | `false` | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei. |
 | `generatePlurals` | Boolean | `false` | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
+| `maxLength` | Objekt | keiner | Maximale Längen pro Schlüssel für übersetzte Werte, gezählt in Graphemclustern. |
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
 | `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
@@ -120,6 +121,25 @@ Standardmäßig aus. Wenn true, synthetisiert verbatra die CLDR-Pluralformen, di
 ### maxBatchSize
 
 Default `50`. Die fehlenden plus geänderten Einträge einer Locale werden in sequenzielle Sub-Batches höchstens dieser Größe aufgeteilt, damit eine überdimensionierte Provider-Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf erneut versucht, während die anderen weiter Fortschritt machen. Muss eine positive Ganzzahl sein; null, negative oder gebrochene Werte werden abgelehnt. Nur Konfiguration: Es gibt kein CLI-Flag und keinen Override pro Lauf.
+
+### maxLength
+
+<AvailableFrom version="0.11.0" />
+
+Optional. Eine Zuordnung von Übersetzungsschlüssel zum längsten Wert, den dieser Schlüssel enthalten darf, damit ein String mit einer Layout-Vorgabe (ein Navigationslabel, ein Button, eine Tabellenüberschrift) bei jedem Lauf dagegen gemessen wird.
+
+```ts
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+Diese Zuordnung ist die einzige Stelle, aus der ein Budget gelesen wird. verbatra leitet nie eines aus der Beschreibung eines Eintrags oder aus den Längenangaben eines Formats ab, also steht ein Budget genau dort, wo du es geschrieben hast, und nichts überschreibt es still. Schlüssel werden wörtlich verglichen, nicht als Globs oder Präfixe, und ein Schlüssel, der nicht in der Zuordnung steht, hat kein Budget und wird nie gemessen.
+
+Die Länge wird in Graphemclustern gezählt: den Zeichen, die eine Leserin wahrnimmt, nicht in UTF-16-Codeeinheiten und nicht in Unicode-Codepunkten. Ein Emoji, das aus mehreren Codepunkten zusammengesetzt ist, zählt als eines, und ein Buchstabe mit folgendem kombinierendem Akzent ebenso. Ein CJK-Zeichen zählt ebenfalls als eines, obwohl die meisten Schriftarten es etwa doppelt so breit wie einen lateinischen Buchstaben darstellen; setze Budgets für diese Locales also mit diesem Wissen. Der Wert wird genau so gemessen, wie er geschrieben ist, inklusive führender und nachgestellter Leerzeichen, und der Vergleich ist einschließend: ein Wert von genau dem Budget besteht, ein Graphem mehr nicht.
+
+Ein Budget muss eine positive Ganzzahl sein. Eine Überschreitung ist beratend, nie blockierend: die Übersetzung wird weiterhin in die Locale-Datei geschrieben und weiterhin in der Lock-Datei erfasst, und der Schlüssel wird als `MAX_LENGTH_EXCEEDED` in der `needsReview`-Liste der Laufzusammenfassung, in der Review-Queue von Studio und in den Review-Spalten der Arbeitsmappe gemeldet. Siehe [Übersetzungssicherheit](/docs/translation-safety).
 
 ### maxTokens und budgetBehavior
 

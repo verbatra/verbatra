@@ -43,7 +43,7 @@ Editing needs no flag. It touches only your local files and never calls a provid
 
 ## Work the Review queue
 
-The Review page lists every entry the review heuristics flagged in the most recent `translate` or `watch` run: one row per locale and key, with an indicator per reason (translation far shorter or longer than the source, identical to the source, a missed glossary term, reordered placeholders, or a degraded provider batch). Until a run has been recorded, the page says so and stays empty; run `verbatra translate` or `verbatra watch` to populate it.
+The Review page lists every entry the review heuristics flagged in the most recent `translate` or `watch` run: one row per locale and key, with an indicator per reason (translation far shorter or longer than the source, longer than the key's configured length budget, identical to the source, a missed glossary term, reordered placeholders, or a degraded provider batch). Until a run has been recorded, the page says so and stays empty; run `verbatra translate` or `verbatra watch` to populate it.
 
 <StudioScreenshot
   shot="review"

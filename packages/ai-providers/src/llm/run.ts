@@ -65,6 +65,7 @@ export async function runLlmTranslation(
       data.sourceLocale,
       data.targetLocale,
       data.glossary,
+      data.maxLength,
     ),
     notices,
     [...values.keys()],

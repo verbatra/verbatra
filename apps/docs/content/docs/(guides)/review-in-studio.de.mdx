@@ -43,7 +43,7 @@ Bearbeiten braucht kein Flag. Es berührt nur deine lokalen Dateien und ruft nie
 
 ## Arbeite die Review-Warteschlange ab
 
-Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `translate`- oder `watch`-Lauf markiert haben: eine Zeile pro Locale und Key, mit einem Hinweis pro Grund (Übersetzung deutlich kürzer oder länger als die Quelle, identisch mit der Quelle, ein verpasster Glossarbegriff, umgeordnete Platzhalter oder ein degradierter Provider-Batch). Solange kein Lauf aufgezeichnet wurde, sagt die Seite das und bleibt leer; führe `verbatra translate` oder `verbatra watch` aus, um sie zu füllen.
+Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `translate`- oder `watch`-Lauf markiert haben: eine Zeile pro Locale und Key, mit einem Hinweis pro Grund (Übersetzung deutlich kürzer oder länger als die Quelle, länger als das für den Key konfigurierte Längenbudget, identisch mit der Quelle, ein verpasster Glossarbegriff, umgeordnete Platzhalter oder ein degradierter Provider-Batch). Solange kein Lauf aufgezeichnet wurde, sagt die Seite das und bleibt leer; führe `verbatra translate` oder `verbatra watch` aus, um sie zu füllen.
 
 <StudioScreenshot
   shot="review"
