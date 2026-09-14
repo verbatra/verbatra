@@ -3,12 +3,14 @@ import type {
   DiffSummary,
   DoctorCheckStatus,
   DoctorResult,
+  EstimateCaveatCode,
   ExportWorkbookResult,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
   ProgressEvent,
   RunBudget,
+  RunEstimate,
   RunSummary,
   UsageSummary,
   WatchRunResult,
@@ -35,7 +37,10 @@ export function renderHuman(summary: RunSummary, command = "translate"): string 
   }`;
   const usageLine = summary.usage !== undefined ? [`  total: ${renderTokens(summary.usage)}`] : [];
   const budgetLine = summary.budget !== undefined ? [renderBudgetLine(summary.budget)] : [];
-  return [header, ...localeLines, ...usageLine, ...budgetLine, aggregate].join("\n");
+  const estimateLines = summary.estimate !== undefined ? renderEstimateLines(summary.estimate) : [];
+  return [header, ...localeLines, ...usageLine, ...budgetLine, ...estimateLines, aggregate].join(
+    "\n",
+  );
 }
 
 function renderTokens(usage: UsageSummary): string {
@@ -51,6 +56,58 @@ function renderBudgetLine(budget: RunBudget): string {
   }
   const status = budget.exceeded ? "exceeded" : "within budget";
   return `  budget: ${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior}), ${status}`;
+}
+
+const COST_DECIMALS = 4;
+
+const CAVEAT_PHRASES: Record<EstimateCaveatCode, string> = {
+  CACHE_NOT_CONSULTED: "cache hits",
+  SOURCE_DUPLICATES_NOT_DEDUPLICATED: "duplicate source strings",
+  TOKEN_COUNT_IS_HEURISTIC: "tokenizer differences",
+  REPAIR_REQUESTS_NOT_COUNTED: "repair requests",
+};
+
+function renderEstimateQuantity(estimate: RunEstimate): string {
+  const scale =
+    estimate.unit === "tokens"
+      ? `~${estimate.inputTokens ?? 0} input + ~${estimate.outputTokens ?? 0} output tokens`
+      : `~${estimate.sourceCharacters ?? 0} source characters`;
+  return `  estimate: ${estimate.keys} keys in ${estimate.requests} requests, ${scale}`;
+}
+
+function renderEstimateCost(estimate: RunEstimate): string {
+  switch (estimate.pricing) {
+    case "priced":
+      return (
+        `  estimated spend: ${(estimate.cost ?? 0).toFixed(COST_DECIMALS)} ${estimate.currency} ` +
+        `at rates as of ${estimate.asOf} (an upper-bound estimate, not a quotation)`
+      );
+    case "no-rate-on-file":
+      return (
+        `  estimated spend: no rate on file for ${estimate.rateKey}; ` +
+        `add rates.table["${estimate.rateKey}"] to your config to see a currency figure`
+      );
+    case "rate-unit-mismatch":
+      return (
+        `  estimated spend: the rate on file for ${estimate.rateKey} is not priced in ` +
+        `${estimate.unit}; correct rates.table["${estimate.rateKey}"] in your config`
+      );
+    case "not-billed":
+      return `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
+  }
+}
+
+function renderEstimateCaveats(estimate: RunEstimate): string {
+  const phrases = estimate.caveats.map((code) => CAVEAT_PHRASES[code]);
+  return `  estimate excludes: ${phrases.join(", ")}`;
+}
+
+export function renderEstimateLines(estimate: RunEstimate): readonly string[] {
+  return [
+    renderEstimateQuantity(estimate),
+    renderEstimateCost(estimate),
+    renderEstimateCaveats(estimate),
+  ];
 }
 
 const DETAIL_GROUP_WIDTH = 17;

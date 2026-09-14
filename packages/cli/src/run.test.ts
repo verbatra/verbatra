@@ -971,3 +971,96 @@ describe("run: the --json error envelope for a commander usage error", () => {
     expect(cap.out()).not.toContain('"ok":false');
   });
 });
+
+describe("run: translate --estimate", () => {
+  it("passes estimate:true through to the SDK", async () => {
+    const { deps, calls } = recordingDeps();
+
+    const code = await run(["translate", "--estimate"], deps, captureStreams().streams);
+
+    expect(calls.translate).toHaveLength(1);
+    expect(calls.translate[0]?.estimate).toBe(true);
+    expect(code).toBe(0);
+  });
+
+  it("leaves estimate unset when the flag is absent", async () => {
+    const { deps, calls } = recordingDeps();
+
+    await run(["translate"], deps, captureStreams().streams);
+
+    expect(calls.translate[0]).not.toHaveProperty("estimate");
+  });
+
+  it("leaves an existing .gitignore untouched, because an estimate writes nothing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "verbatra-cli-estimate-"));
+    const before = ".env\n";
+    writeFileSync(join(dir, ".gitignore"), before);
+    const { deps } = recordingDeps();
+
+    await run(["translate", "--estimate", "--cwd", dir], deps, captureStreams().streams);
+
+    expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe(before);
+  });
+
+  it("renders the estimate lines a dry run produced", async () => {
+    const { deps } = recordingDeps({
+      translate: async () =>
+        makeSummary({
+          dryRun: true,
+          estimate: {
+            provider: "deepl",
+            rateKey: "deepl",
+            unit: "characters",
+            pricing: "no-rate-on-file",
+            locales: [{ locale: "de", keys: 4, requests: 1, sourceCharacters: 40 }],
+            keys: 4,
+            requests: 1,
+            sourceCharacters: 40,
+            caveats: ["CACHE_NOT_CONSULTED", "SOURCE_DUPLICATES_NOT_DEDUPLICATED"],
+          },
+        }),
+    });
+    const cap = captureStreams();
+
+    await run(["translate", "--estimate"], deps, cap.streams);
+
+    expect(cap.out()).toContain("estimate: 4 keys in 1 requests, ~40 source characters");
+    expect(cap.out()).toContain("no rate on file for deepl");
+  });
+
+  it("carries the estimate as structured JSON fields rather than only as a rendered line", async () => {
+    const { deps } = recordingDeps({
+      translate: async () =>
+        makeSummary({
+          dryRun: true,
+          estimate: {
+            provider: "anthropic",
+            model: "claude-sonnet-4-5",
+            rateKey: "anthropic/claude-sonnet-4-5",
+            unit: "tokens",
+            pricing: "priced",
+            currency: "USD",
+            asOf: "2026-01-15",
+            locales: [{ locale: "de", keys: 4, requests: 1, inputTokens: 380, outputTokens: 20 }],
+            keys: 4,
+            requests: 1,
+            inputTokens: 380,
+            outputTokens: 20,
+            cost: 0.00144,
+            caveats: ["CACHE_NOT_CONSULTED"],
+          },
+        }),
+    });
+    const cap = captureStreams();
+
+    await run(["translate", "--estimate", "--json"], deps, cap.streams);
+
+    const envelope = JSON.parse(cap.out()) as {
+      result: { estimate: { cost: number; currency: string; asOf: string; locales: unknown[] } };
+    };
+    expect(envelope.result.estimate.cost).toBe(0.00144);
+    expect(envelope.result.estimate.currency).toBe("USD");
+    expect(envelope.result.estimate.asOf).toBe("2026-01-15");
+    expect(envelope.result.estimate.locales).toHaveLength(1);
+  });
+});
