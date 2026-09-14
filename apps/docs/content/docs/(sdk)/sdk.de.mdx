@@ -106,6 +106,39 @@ existiert, sodass `watch` selbst fehlschlägt, statt einen Controller zurückzug
 immer), und eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`. Jeder Fehlschlag nach dem Start
 kommt über `onRun` an, und das Beobachten geht weiter.
 
+## Pseudolokalisierung
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+Baut allein aus den Quellstrings eine künstliche Locale, sodass abgeschnittene Layouts und Strings,
+die nie für die Übersetzung extrahiert wurden, auffallen, bevor überhaupt ein API-Key existiert.
+Jeder Wert wird akzentuiert, um etwa ein Drittel seiner übersetzbaren Länge verlängert und in die
+Begrenzungszeichen `[` und `]` gefasst, während Platzhalter in jeder Syntax unangetastet bleiben,
+die die Adapter kennen, einschließlich ICU-Plural- und -select-Zweigen, Markup-Tags und
+Escape-Sequenzen. Es konstruiert keinen Provider, liest keinen API-Key und stellt keine
+Netzwerkanfrage.
+
+Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie eine Provider-Übersetzung. Ein
+Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in `copied`
+genannt, statt kaputt geschrieben zu werden; der Eintrag ist also weiterhin vorhanden und wird
+weiterhin gerendert.
+
+Eingabe: `{ config, cwd?, locale?, out? }`. `locale` ist standardmäßig `en-XA` und `out`
+`.verbatra-local/pseudo`, was `verbatra init` bereits in `.gitignore` einträgt; das konfigurierte
+`files.pattern` wird darin expandiert, die Datei behält also das Layout, das die Anwendung
+erwartet. Eine Pseudo-Locale, die eine konfigurierte Locale benennt oder auf einer konfigurierten
+Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas
+gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
+eine einstehen. Weil die Datei außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für
+sie aus, und `check` und `diff` melden sie nie als abgedriftet.
+
+Gibt ein `PseudolocalizeResult` zurück: die `locale`, den absoluten `path`, wie viele `entries`
+verarbeitet wurden, wie viele `transformed` wurden, die `copied` Keys und ob überhaupt etwas
+`written` wurde. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quellen
+schreibt also nichts neu und meldet `written` als false.
+
 ## Zustand inspizieren, ohne zu schreiben
 
 Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verändert das Lock.
