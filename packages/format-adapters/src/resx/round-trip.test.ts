@@ -144,12 +144,23 @@ describe("createResxAdapter preserves content it does not own", () => {
     );
   });
 
-  it("rewrites a CRLF document's body with LF while restoring only the file's final CRLF", async () => {
+  it("keeps a CRLF document on CRLF throughout, not just at the final newline", async () => {
     const source =
       '<?xml version="1.0" encoding="utf-8"?>\r\n<root>\r\n  <data name="A" xml:space="preserve">\r\n    <value>x</value>\r\n  </data>\r\n</root>\r\n';
-    expect(await readModifyWrite(source)).toBe(
-      '<?xml version="1.0" encoding="utf-8"?>\n<root>\n  <data name="A" xml:space="preserve">\n    <value>x</value>\n  </data>\n</root>\r\n',
-    );
+    expect(await readModifyWrite(source)).toBe(source);
+  });
+
+  it("keeps a CRLF document on CRLF when a value is rewritten and a key is added", async () => {
+    const source =
+      '<?xml version="1.0" encoding="utf-8"?>\r\n<root>\r\n  <data name="A" xml:space="preserve">\r\n    <value>x</value>\r\n  </data>\r\n</root>\r\n';
+    const written = await readModifyWrite(source, (entries) => {
+      entries.set("A", entry("A", "y"));
+      entries.set("B", entry("B", "z"));
+    });
+    expect(written.includes("\n")).toBe(true);
+    expect(written.replaceAll("\r\n", "")).not.toContain("\n");
+    expect(written).toContain("<value>y</value>");
+    expect(written).toContain('<data name="B" xml:space="preserve"><value>z</value></data>');
   });
 
   it("drops a leading byte order mark rather than writing it back", async () => {
