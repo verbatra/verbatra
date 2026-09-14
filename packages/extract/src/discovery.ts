@@ -1,0 +1,82 @@
+import { join } from "node:path";
+import type { DirectoryEntry, SourceFs } from "./source-fs-port.js";
+
+export const SOURCE_EXTENSIONS = [
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".mts",
+  ".cts",
+] as const;
+
+export const DEFAULT_EXCLUDED_DIRECTORIES = [
+  "node_modules",
+  ".git",
+  ".next",
+  ".turbo",
+  ".verbatra",
+  "dist",
+  "build",
+  "coverage",
+] as const;
+
+export interface SourceDiscoveryInput {
+  readonly roots: readonly string[];
+  readonly extensions?: readonly string[];
+  readonly exclude?: readonly string[];
+  readonly onUnreadableDirectory?: (path: string) => void;
+}
+
+function isSourceFile(name: string, extensions: readonly string[]): boolean {
+  return extensions.some((extension) => name.endsWith(extension));
+}
+
+function excludedNames(input: SourceDiscoveryInput): ReadonlySet<string> {
+  return new Set([...DEFAULT_EXCLUDED_DIRECTORIES, ...(input.exclude ?? [])]);
+}
+
+async function readDirectory(
+  path: string,
+  fs: SourceFs,
+  input: SourceDiscoveryInput,
+): Promise<readonly DirectoryEntry[]> {
+  try {
+    return await fs.listDirectory(path);
+  } catch {
+    input.onUnreadableDirectory?.(path);
+    return [];
+  }
+}
+
+async function walk(
+  path: string,
+  fs: SourceFs,
+  input: SourceDiscoveryInput,
+  excluded: ReadonlySet<string>,
+  found: Set<string>,
+): Promise<void> {
+  for (const entry of await readDirectory(path, fs, input)) {
+    const child = join(path, entry.name);
+    if (entry.kind === "file" && isSourceFile(entry.name, input.extensions ?? SOURCE_EXTENSIONS)) {
+      found.add(child);
+    }
+    if (entry.kind === "directory" && !excluded.has(entry.name)) {
+      await walk(child, fs, input, excluded, found);
+    }
+  }
+}
+
+export async function discoverSourceFiles(
+  input: SourceDiscoveryInput,
+  fs: SourceFs,
+): Promise<readonly string[]> {
+  const excluded = excludedNames(input);
+  const found = new Set<string>();
+  for (const root of new Set(input.roots)) {
+    await walk(root, fs, input, excluded, found);
+  }
+  return [...found].sort();
+}
