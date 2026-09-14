@@ -5,6 +5,7 @@ import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { chunk } from "./batching.js";
+import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
   EstimateCaveatCode,
   EstimatePricing,
@@ -22,6 +23,7 @@ const PER_MILLION = 1_000_000;
 export interface LocaleEstimateInput {
   readonly locale: string;
   readonly entries: readonly TranslationEntry[];
+  readonly generatedEntries: readonly TranslationEntry[];
 }
 
 export interface EstimateRunInput {
@@ -180,6 +182,17 @@ function localeEstimateOf(
   };
 }
 
+function quantifyEverySend(
+  locale: LocaleEstimateInput,
+  context: PayloadContext,
+  maxBatchSize: number,
+): EstimatedQuantity {
+  return addQuantities(
+    quantifyLocale(locale.entries, context, maxBatchSize),
+    quantifyLocale(locale.generatedEntries, context, maxBatchSize),
+  );
+}
+
 function contextFor(input: EstimateRunInput, targetLocale: string): PayloadContext {
   return {
     sourceLocale: input.sourceLocale,
@@ -194,7 +207,7 @@ export function estimateRun(input: EstimateRunInput): RunEstimate {
   const pricing = resolvePricing(input, unit);
   const measured = input.locales.map((locale) => ({
     locale: locale.locale,
-    quantity: quantifyLocale(locale.entries, contextFor(input, locale.locale), input.maxBatchSize),
+    quantity: quantifyEverySend(locale, contextFor(input, locale.locale), input.maxBatchSize),
   }));
   const total = measured.reduce((sum, item) => addQuantities(sum, item.quantity), EMPTY);
   const model = modelOf(input.provider);
@@ -235,6 +248,31 @@ function entriesFor(source: LocaleResource, keys: readonly string[]): readonly T
   return entries;
 }
 
+function generatedEntriesFor(
+  input: EstimateForRunInput,
+  summary: LocaleSummary,
+): readonly TranslationEntry[] {
+  if (summary.generated.length === 0) {
+    return [];
+  }
+  const planned = new Map(
+    planPluralGeneration(input.source, summary.locale, input.config.format).items.map((item) => [
+      item.targetKey,
+      item,
+    ]),
+  );
+  const entries: TranslationEntry[] = [];
+  for (const key of summary.generated) {
+    const item = planned.get(key);
+    /* v8 ignore next 3 -- a summary's generated keys come from the same plan this rebuilds from the same source, so every one of them resolves; this guard is purely defensive. */
+    if (item === undefined) {
+      continue;
+    }
+    entries.push(syntheticEntry(item));
+  }
+  return entries;
+}
+
 export function estimateForRun(input: EstimateForRunInput): RunEstimate {
   const config = input.config;
   return estimateRun({
@@ -247,6 +285,7 @@ export function estimateForRun(input: EstimateForRunInput): RunEstimate {
     locales: input.summaries.map((summary) => ({
       locale: summary.locale,
       entries: entriesFor(input.source, summary.translated),
+      generatedEntries: generatedEntriesFor(input, summary),
     })),
   });
 }

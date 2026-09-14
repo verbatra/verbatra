@@ -1,4 +1,4 @@
-import type { TranslationProvider } from "@verbatra/ai-providers";
+import type { ProviderKind, TranslationProvider } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import {
@@ -10,6 +10,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { TranslationMemory } from "../cache/types.js";
+import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
   DEFAULT_MAX_BATCH_SIZE,
@@ -195,6 +196,7 @@ interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
+  readonly providerKind: ProviderKind;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -220,6 +222,7 @@ function buildLocaleRunParams(
     baseline,
     adapter: context.adapter,
     provider: context.provider,
+    providerKind: context.providerKind,
     cwd: context.cwd,
     resolver: context.resolver,
     sourceLocale: context.config.sourceLocale,
@@ -525,6 +528,7 @@ export async function translate(
     source,
     adapter,
     provider,
+    providerKind: kindOf(config.provider.id),
     cwd,
     config,
     resolver,

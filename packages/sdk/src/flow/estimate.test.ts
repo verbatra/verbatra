@@ -42,7 +42,7 @@ describe("estimateRun: request arithmetic", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries }],
+      locales: [{ locale: "de", entries, generatedEntries: [] }],
     });
 
     expect(estimate.locales[0]?.requests).toBe(3);
@@ -55,8 +55,8 @@ describe("estimateRun: request arithmetic", () => {
       sourceLocale: "en",
       maxBatchSize: 50,
       locales: [
-        { locale: "de", entries: [GREETING] },
-        { locale: "fr", entries: [GREETING] },
+        { locale: "de", entries: [GREETING], generatedEntries: [] },
+        { locale: "fr", entries: [GREETING], generatedEntries: [] },
       ],
     });
 
@@ -69,7 +69,7 @@ describe("estimateRun: request arithmetic", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [] }],
+      locales: [{ locale: "de", entries: [], generatedEntries: [] }],
     });
 
     expect(estimate.locales[0]).toMatchObject({ locale: "de", keys: 0, requests: 0 });
@@ -84,7 +84,7 @@ describe("estimateRun: token-billed providers", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.unit).toBe("tokens");
@@ -99,13 +99,13 @@ describe("estimateRun: token-billed providers", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
     const withContext = estimateRun({
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [described] }],
+      locales: [{ locale: "de", entries: [described], generatedEntries: [] }],
     });
 
     expect(withContext.inputTokens).toBeGreaterThan(plain.inputTokens ?? 0);
@@ -117,7 +117,7 @@ describe("estimateRun: token-billed providers", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({
         "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
       }),
@@ -135,7 +135,7 @@ describe("estimateRun: token-billed providers", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.caveats).toContain("TOKEN_COUNT_IS_HEURISTIC");
@@ -149,7 +149,7 @@ describe("estimateRun: character-billed providers", () => {
       provider: DEEPL,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.unit).toBe("characters");
@@ -164,7 +164,7 @@ describe("estimateRun: character-billed providers", () => {
       provider: DEEPL,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({ deepl: { perMillionCharacters: 25 } }),
     });
 
@@ -180,7 +180,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: SELF_HOSTED,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({ "openai-compatible/llama-3": { perMillionCharacters: 999 } }),
     });
 
@@ -195,7 +195,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({
         "openai/gpt-4.1-mini": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
       }),
@@ -212,7 +212,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.pricing).toBe("no-rate-on-file");
@@ -224,7 +224,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({ "anthropic/sonnet-test": { perMillionCharacters: 25 } }),
     });
 
@@ -237,7 +237,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [] }],
+      locales: [{ locale: "de", entries: [], generatedEntries: [] }],
       rates: card({
         "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
       }),
@@ -254,7 +254,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
       provider: DEEPL,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.caveats).toContain("CACHE_NOT_CONSULTED");
@@ -266,7 +266,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
     });
 
     expect(estimate.provider).toBe("anthropic");
@@ -377,7 +377,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({
         "anthropic/sonnet-test": { inputPerMillionTokens: 0, outputPerMillionTokens: 0 },
       }),
@@ -392,7 +392,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
       provider: DEEPL,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({ deepl: { inputPerMillionTokens: 3, outputPerMillionTokens: 15 } }),
     });
 
@@ -407,7 +407,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [GREETING] }],
+      locales: [{ locale: "de", entries: [GREETING], generatedEntries: [] }],
       rates: card({}),
     });
 
@@ -421,7 +421,7 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
       provider: ANTHROPIC,
       sourceLocale: "en",
       maxBatchSize: 50,
-      locales: [{ locale: "de", entries: [long] }],
+      locales: [{ locale: "de", entries: [long], generatedEntries: [] }],
       rates: card({
         "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
       }),
@@ -431,8 +431,8 @@ describe("estimateRun: a rate the schema let through must still not invent a fig
       sourceLocale: "en",
       maxBatchSize: 50,
       locales: [
-        { locale: "de", entries: [long] },
-        { locale: "fr", entries: [long] },
+        { locale: "de", entries: [long], generatedEntries: [] },
+        { locale: "fr", entries: [long], generatedEntries: [] },
       ],
       rates: card({
         "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },

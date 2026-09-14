@@ -153,6 +153,15 @@ function representativeEntry(
   return group.get("other") ?? group.get("one") ?? [...group.values()][0];
 }
 
+export function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
+  return {
+    ...item.sourceEntry,
+    key: item.targetKey,
+    isPlural: true,
+    meaning: `CLDR plural category "${item.category}"`,
+  };
+}
+
 export function planPluralGeneration(
   source: LocaleResource,
   targetLocale: string,

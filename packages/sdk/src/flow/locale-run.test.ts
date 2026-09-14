@@ -97,6 +97,7 @@ function makeParams(
     baseline: new Map(),
     adapter,
     provider: makeStubProvider().provider,
+    providerKind: "llm",
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -134,6 +135,93 @@ describe("runLocale: dry-run", () => {
     expect(lockEntries).toEqual({});
     const de = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
     expect(de).toEqual({ a: "da" });
+  });
+
+  it("reports the plural forms generation would send, which are provider calls of their own", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    await writeJsonFile(targetPath(dir, "pl"), {
+      items_one: "[pl] item",
+      items_other: "[pl] items",
+    });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: undefined, targetLocale: "pl", generatePlurals: true },
+    );
+
+    const { summary } = await runLocale(params);
+
+    expect(summary.translated).toEqual([]);
+    expect(summary.generated).toEqual(["items_few", "items_many"]);
+  });
+
+  it("reports no generation for a machine-translation provider, which never generates", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: undefined,
+        providerKind: "machine-translation",
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
+    );
+
+    const { summary } = await runLocale(params);
+
+    expect(summary.generated).toEqual([]);
+  });
+
+  it("reports no generation for a form the target already carries at the current hash", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    await writeJsonFile(targetPath(dir, "pl"), {
+      items_one: "[pl] item",
+      items_other: "[pl] items",
+    });
+    const live = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: makeStubProvider().provider, targetLocale: "pl", generatePlurals: true },
+    );
+    const { lockEntries } = await runLocale(live);
+
+    const dry = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: undefined,
+        targetLocale: "pl",
+        generatePlurals: true,
+        baseline: new Map(Object.entries(lockEntries)),
+      },
+    );
+
+    expect((await runLocale(dry)).summary.generated).toEqual([]);
+  });
+
+  it("drops the source-side plural warning once it reports the forms it would generate", async () => {
+    const { dir, sourceResource } = await setup({
+      items_one: "{{count}} item",
+      items_other: "{{count}} items",
+    });
+    await writeJsonFile(targetPath(dir, "pl"), {
+      items_one: "[pl] item",
+      items_other: "[pl] items",
+    });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: undefined, targetLocale: "pl", generatePlurals: true },
+    );
+
+    const { summary } = await runLocale(params);
+
+    expect(summary.notices).toEqual([]);
   });
 });
 

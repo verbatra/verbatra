@@ -191,6 +191,87 @@ describe("translate: what the estimate covers", () => {
   });
 });
 
+describe("translate: plural generation is a provider call and is counted as one", () => {
+  const PLURAL_RATES = {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+    },
+  } as const;
+
+  async function russianProject(): Promise<string> {
+    const dir = await project({ item_one: "one item", item_other: "{{count}} items" });
+    await writeJsonFile(join(dir, "locales", "ru.json"), {
+      item_one: "odin predmet",
+      item_other: "{{count}} predmetov",
+    });
+    return dir;
+  }
+
+  function russianConfig(): VerbatraConfig {
+    return anthropicConfig({
+      targetLocales: ["ru"],
+      generatePlurals: true,
+      rates: PLURAL_RATES,
+    });
+  }
+
+  it("counts the forms it would generate even when no key needs translating at all", async () => {
+    const dir = await russianProject();
+
+    const summary = await withoutProviderKeys(() =>
+      translate({ config: russianConfig(), cwd: dir, estimate: true }),
+    );
+
+    expect(summary.locales[0]?.translated).toEqual([]);
+    expect(summary.estimate?.keys).toBe(2);
+    expect(summary.estimate?.requests).toBe(1);
+    expect(summary.estimate?.cost ?? 0).toBeGreaterThan(0);
+  });
+
+  it("never reports a priced run of zero while it would still call the provider", async () => {
+    const dir = await russianProject();
+
+    const summary = await withoutProviderKeys(() =>
+      translate({ config: russianConfig(), cwd: dir, estimate: true }),
+    );
+
+    expect(summary.estimate?.pricing).toBe("priced");
+    expect(summary.estimate?.requests).toBeGreaterThan(0);
+    expect(summary.estimate?.cost).not.toBe(0);
+  });
+
+  it("adds the generation batch on top of the translation batch, never folding them together", async () => {
+    const dir = await project({ item_one: "one item", item_other: "{{count}} items" });
+
+    const summary = await withoutProviderKeys(() =>
+      translate({ config: russianConfig(), cwd: dir, estimate: true }),
+    );
+
+    expect(summary.locales[0]?.translated).toEqual(["item_one", "item_other"]);
+    expect(summary.locales[0]?.generated).toEqual(["item_few", "item_many"]);
+    expect(summary.estimate?.keys).toBe(4);
+    expect(summary.estimate?.requests).toBe(2);
+  });
+
+  it("counts nothing extra when generation is switched off", async () => {
+    const dir = await russianProject();
+
+    const summary = await withoutProviderKeys(() =>
+      translate({
+        config: anthropicConfig({ targetLocales: ["ru"], rates: PLURAL_RATES }),
+        cwd: dir,
+        estimate: true,
+      }),
+    );
+
+    expect(summary.estimate?.keys).toBe(0);
+    expect(summary.estimate?.requests).toBe(0);
+    expect(summary.estimate?.cost).toBe(0);
+  });
+});
+
 describe("translate: the estimate path is proven keyless, not merely key-free", () => {
   it("fails a live run without a key, which is what makes the estimate's success meaningful", async () => {
     const dir = await project({ greeting: "Hello world" });
