@@ -21,7 +21,7 @@ verbatra pseudo [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien aus diesem Verzeichnis auflösen |
 | `--config` | `<path>` | eine suchen | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--locale` | `<code>` | `en-XA` | die zu erzeugende Pseudo-Locale |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, in das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, in das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb davon |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis unter `result` trägt |
 
 ## Was die Transformation tut
@@ -36,6 +36,8 @@ Aus `Hello {{name}}, you have {{count}} unread messages` wird
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
 
 Alles, was kein übersetzbarer Text ist, bleibt unangetastet. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen: Tokens mit doppelten geschweiften Klammern, i18next-Verschachtelungsreferenzen, einfache geschweifte Klammern und ICU-Argumente, printf-Konvertierungen und Apple-Pluralvariablen, Markup-Tags, XML-Entities, verlinkte vue-i18n-Nachrichten und Escape-Sequenzen. Innerhalb einer ICU-Nachricht bleiben die Argumentnamen, die Schlüsselwörter `plural` und `select` und jeder Zweig-Selektor genau so stehen, wie sie geschrieben sind, und nur der Text innerhalb eines Zweigs wird akzentuiert.
+
+vue-i18n packt Pluralformen in einen einzigen, durch Pipe getrennten Wert, deshalb wird jede Form für sich akzentuiert, verlängert und markiert: Aus `car | cars` wird `[ćáŕ··] | [ćáŕś··]` statt eines einzigen geklammerten Laufs, und genau bei Pluralen ist das Layout am schwersten richtig hinzubekommen.
 
 Die Transformation ist deterministisch: Dieselbe Quelle erzeugt immer dieselbe Pseudo-Locale, und die Datei lässt sich sauber diffen.
 
@@ -53,8 +55,13 @@ Zwei Regeln verhindern, dass sie je für eine echte Übersetzung einsteht:
 
 - Eine Pseudo-Locale, die deine Quell-Locale oder eine deiner Ziel-Locales benennt, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird.
 - Ein `--out`, das die Datei auf eine konfigurierte Locale-Datei legen würde, wird genauso zurückgewiesen.
+- Ein `--out`, das absolut ist oder mit `..` aus dem Arbeitsverzeichnis herausklettert, wird ebenfalls zurückgewiesen, damit eine erzeugte Pseudo-Locale nie außerhalb des Projekts landet, aus dem sie stammt.
 
 Weil die Datei außerhalb von `files.pattern` liegt, sieht [`verbatra translate`](/docs/cli/translate) sie nie und gibt nie Geld für sie aus, und [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) melden sie nie als fehlend oder veraltet. Es gibt nichts zu `targetLocales` hinzuzufügen und nichts aus der CI auszuschließen.
+
+### Formate, die durch Patchen einer vorhandenen Datei geschrieben werden
+
+`xliff` und `apple-xcstrings` werden nicht von Grund auf neu geschrieben: Ihre Writer patchen Einheiten, die bereits im Zieldokument stehen. Die Pseudo-Locale-Datei wird deshalb bei jedem Schreibvorgang neu aus deiner Quelldatei kopiert, damit ein Key, den du nach dem ersten Lauf zur Quelle hinzufügst, weiterhin in der Pseudo-Locale ankommt, statt still zu fehlen. Bei einer kopierten XLIFF-Datei wird außerdem das Attribut `target-language` auf die Pseudo-Locale umgeschrieben, damit die Datei nie behauptet, eine Sprache zu enthalten, die sie nicht enthält.
 
 ## Beispiele
 

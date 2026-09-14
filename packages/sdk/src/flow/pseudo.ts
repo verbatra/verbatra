@@ -1,4 +1,4 @@
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type LocaleResource,
   pseudolocalizeValue,
@@ -13,7 +13,7 @@ import { createLocalePathResolver, type LocalePathResolver } from "../locale-pat
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { readSourceResource } from "./source.js";
-import { writeTargetResource } from "./write-target.js";
+import { targetUnwritableMessage, writeTargetResource } from "./write-target.js";
 
 const DEFAULT_PSEUDO_LOCALE = "en-XA";
 
@@ -25,6 +25,14 @@ const SEEDED_FROM_SOURCE: ReadonlySet<SupportedFormat> = new Set<SupportedFormat
   "apple-xcstrings",
   "xliff",
 ]);
+
+const PIPE_SEGMENTED_FORMATS: ReadonlySet<SupportedFormat> = new Set<SupportedFormat>([
+  "vue-i18n-json",
+]);
+
+const XLIFF_TARGET_LANGUAGE = /\b(target-language|trgLang)\s*=\s*(["'])[^"']*\2/g;
+
+const SEGMENT_PADDING = /^(\s*)([\s\S]*?)(\s*)$/;
 
 /** Input for {@link pseudolocalize}. */
 export interface PseudolocalizeInput {
@@ -41,6 +49,9 @@ export interface PseudolocalizeInput {
    * Directory the pseudolocale file is written under, relative to `cwd`. Defaults to
    * `.verbatra-local/pseudo`, which `verbatra init` already adds to `.gitignore`. The configured
    * `files.pattern` is expanded inside it, so the file keeps the layout the application expects.
+   *
+   * It must stay inside `cwd`: an absolute path, or one that climbs out with `..`, is refused, so a
+   * generated pseudolocale can never land outside the project it was generated from.
    */
   readonly out?: string;
 }
@@ -71,6 +82,19 @@ export interface PseudolocalizeResult {
   readonly copied: readonly string[];
   /** False when the file on disk already matched, so nothing was rewritten. */
   readonly written: boolean;
+}
+
+function resolveOutputRoot(cwd: string, out: string | undefined): string {
+  const requested = out ?? DEFAULT_PSEUDO_DIRECTORY;
+  const root = isAbsolute(requested) ? requested : resolve(cwd, requested);
+  const inside = relative(cwd, root);
+  if (isAbsolute(requested) || inside.startsWith("..") || isAbsolute(inside)) {
+    throw new SdkError(
+      "PSEUDO_OUTPUT_CONFLICT",
+      `The output directory "${requested}" must be a relative path inside the working directory, so a pseudolocale can never be written outside the project it was generated from.`,
+    );
+  }
+  return root;
 }
 
 function configuredLocales(config: VerbatraConfig): readonly string[] {
@@ -107,14 +131,27 @@ interface PseudoEntries {
   readonly copied: readonly string[];
 }
 
+function pseudolocalizeSegment(segment: string): string {
+  const [, lead = "", body = "", trail = ""] = SEGMENT_PADDING.exec(segment) ?? [];
+  return body === "" ? segment : `${lead}${pseudolocalizeValue(body)}${trail}`;
+}
+
+function pseudolocalizeEntryValue(entry: TranslationEntry, format: SupportedFormat): string {
+  if (!entry.isPlural || !PIPE_SEGMENTED_FORMATS.has(format)) {
+    return pseudolocalizeValue(entry.value);
+  }
+  return entry.value.split("|").map(pseudolocalizeSegment).join("|");
+}
+
 function pseudolocalizeEntries(
   source: ReadonlyMap<string, TranslationEntry>,
   adapter: FormatAdapter,
+  format: SupportedFormat,
 ): PseudoEntries {
   const entries = new Map<string, TranslationEntry>();
   const copied: string[] = [];
   for (const [key, entry] of source) {
-    const candidate = pseudolocalizeValue(entry.value);
+    const candidate = pseudolocalizeEntryValue(entry, format);
     const accepted = gateCandidateValue(entry, candidate, adapter).accepted;
     if (!accepted) {
       copied.push(key);
@@ -124,24 +161,46 @@ function pseudolocalizeEntries(
   return { entries, copied };
 }
 
-async function seedFromSource(
-  config: VerbatraConfig,
-  sourcePath: string,
-  outputPath: string,
-  fs: SdkFs,
-): Promise<void> {
-  if (!SEEDED_FROM_SOURCE.has(config.format) || (await fs.fileExists(outputPath))) {
+function retargetSeed(content: string, format: SupportedFormat, locale: string): string {
+  if (format !== "xliff") {
+    return content;
+  }
+  return content.replaceAll(
+    XLIFF_TARGET_LANGUAGE,
+    (_match, attribute: string, quote: string) => `${attribute}=${quote}${locale}${quote}`,
+  );
+}
+
+interface SeedRequest {
+  readonly config: VerbatraConfig;
+  readonly locale: string;
+  readonly sourcePath: string;
+  readonly outputPath: string;
+  readonly cwd: string;
+  readonly fs: SdkFs;
+}
+
+async function seedFromSource(request: SeedRequest): Promise<void> {
+  if (!SEEDED_FROM_SOURCE.has(request.config.format)) {
     return;
   }
-  const read = await fs.readFileBounded(sourcePath, MAX_SEED_BYTES);
+  const read = await request.fs.readFileBounded(request.sourcePath, MAX_SEED_BYTES);
   if (read.kind !== "ok") {
     throw new SdkError(
       "SOURCE_INVALID",
-      `The file at ${sourcePath} could not be copied to ${outputPath} to seed the pseudolocale.`,
+      `The file at ${request.sourcePath} could not be copied to ${request.outputPath} to seed the pseudolocale.`,
     );
   }
-  await fs.mkdir?.(dirname(outputPath));
-  await fs.writeFile(outputPath, read.content);
+  const seeded = retargetSeed(read.content, request.config.format, request.locale);
+  try {
+    await request.fs.mkdir?.(dirname(request.outputPath));
+    await request.fs.writeFile(request.outputPath, seeded);
+  } catch (error) {
+    throw new SdkError(
+      "TARGET_UNWRITABLE",
+      targetUnwritableMessage(request.outputPath, request.cwd, error),
+    );
+  }
 }
 
 async function readWrittenValues(
@@ -191,12 +250,16 @@ function sameValues(
  *
  * The output is deliberately kept out of the project's real locale files: it is written under
  * `.verbatra-local/pseudo` by default, which `verbatra init` already adds to `.gitignore`, and the
- * pseudolocale is refused when it names a configured locale or resolves onto a configured locale
- * file. Because it lives outside `files.pattern`, {@link translate} never spends on it and
+ * pseudolocale is refused when it names a configured locale, resolves onto a configured locale
+ * file, or is directed outside the working directory. Because it lives outside `files.pattern`, {@link translate} never spends on it and
  * {@link check} and {@link diff} never report it as drifted.
  *
  * The transform is deterministic, so a second run over unchanged source rewrites nothing and
- * reports {@link PseudolocalizeResult.written} as false.
+ * reports {@link PseudolocalizeResult.written} as false. For `xliff` and `apple-xcstrings`, whose
+ * writers only patch units already present in the destination, the output is re-copied from the
+ * source on every write, so a key added to the source after the first run still reaches the
+ * pseudolocale; a copied XLIFF has its target-language attribute rewritten to the pseudolocale, so
+ * the file never misdescribes what it holds.
  *
  * @param input - The config, the pseudolocale code, and the output directory.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -208,8 +271,9 @@ function sameValues(
  * console.log(`${result.transformed} of ${result.entries} entries in ${result.path}`);
  * ```
  *
- * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, or
- * the output directory would place it on top of a configured locale file.
+ * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, the
+ * output directory would place it on top of a configured locale file, or the output directory is
+ * not a relative path inside `cwd`.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.
@@ -232,16 +296,18 @@ export async function pseudolocalize(
 
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputRoot = resolve(cwd, input.out ?? DEFAULT_PSEUDO_DIRECTORY);
-  const outputPath = createLocalePathResolver(outputRoot, {
+  const outputPath = createLocalePathResolver(resolveOutputRoot(cwd, input.out), {
     ...config,
     targetLocales: [locale],
   }).pathFor(locale);
   assertOutputIsNotALocaleFile(config, resolver, outputPath);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  await seedFromSource(config, resolver.pathFor(config.sourceLocale), outputPath, fs);
-  const { entries, copied } = pseudolocalizeEntries(source.resource.entries, adapter);
+  const { entries, copied } = pseudolocalizeEntries(
+    source.resource.entries,
+    adapter,
+    config.format,
+  );
   const summary = {
     locale,
     path: outputPath,
@@ -253,6 +319,14 @@ export async function pseudolocalize(
   if (sameValues(entries, await readWrittenValues(adapter, outputPath, locale, fs))) {
     return { ...summary, written: false };
   }
+  await seedFromSource({
+    config,
+    locale,
+    sourcePath: resolver.pathFor(config.sourceLocale),
+    outputPath,
+    cwd,
+    fs,
+  });
   const resource: LocaleResource = {
     locale,
     namespace: source.resource.namespace,

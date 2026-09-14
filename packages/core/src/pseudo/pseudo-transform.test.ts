@@ -164,6 +164,28 @@ describe("pseudolocalizeValue: the result stays inside the project's degeneracy 
   });
 });
 
+describe("pseudolocalizeValue: expansion is measured per character, not per code unit", () => {
+  it("counts an astral character once rather than twice", () => {
+    expect(pseudolocalizeValue("ok \u{1f600}")).toBe("[óǩ \u{1f600}\u00b7\u00b7]");
+  });
+
+  it("does not pad for a combining mark stacked on a letter", () => {
+    expect(pseudolocalizeValue("e\u0301e\u0301e\u0301")).toBe(
+      "[é\u0301é\u0301é\u0301\u00b7\u00b7]",
+    );
+  });
+});
+
+describe("pseudolocalizeValue: ICU quoting", () => {
+  it("leaves an apostrophe-quoted brace and the text it quotes untouched", () => {
+    expect(pseudolocalizeValue("Use '{name}' verbatim")).toContain("'{name}'");
+  });
+
+  it("still accents the text outside the quoted run", () => {
+    expect(pseudolocalizeValue("Use '{name}' verbatim")).toContain("ṽéŕḃáṫíṁ");
+  });
+});
+
 describe("pseudolocalizeValue: brace shapes that are not ICU arguments", () => {
   it("leaves an unmatched opening brace where it is", () => {
     expect(pseudolocalizeValue("Save {draft")).toContain("Śáṽé {ḋŕáƒṫ");

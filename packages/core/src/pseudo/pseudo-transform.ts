@@ -90,10 +90,20 @@ interface Scan {
   readonly mask: Uint8Array;
 }
 
-interface IcuArgument {
-  readonly type: string | null;
+interface IcuSubmessage {
   readonly styleStart: number;
 }
+
+interface IcuArgument {
+  readonly type: string | null;
+  readonly styleStart: number | null;
+}
+
+const COMBINING_MARK = /\p{M}/u;
+
+const TRAILING_SURROGATE_FIRST = 0xdc00;
+
+const TRAILING_SURROGATE_LAST = 0xdfff;
 
 function matchingBraces(value: string): Int32Array {
   const close = new Int32Array(value.length).fill(-1);
@@ -112,8 +122,8 @@ function matchingBraces(value: string): Int32Array {
   return close;
 }
 
-function findNameEnd(value: string, from: number, limit: number): number | null {
-  for (let i = from; i < limit; i += 1) {
+function argumentNameEnd(value: string, open: number, close: number): number | null {
+  for (let i = open + 1; i < close; i += 1) {
     const char = value.charAt(i);
     if (char === ",") {
       return i;
@@ -122,26 +132,26 @@ function findNameEnd(value: string, from: number, limit: number): number | null 
       return null;
     }
   }
-  return -1;
+  return close;
 }
 
 function parseIcuArgument(value: string, open: number, close: number): IcuArgument | null {
-  const comma = findNameEnd(value, open + 1, close);
-  if (comma === null) {
+  const nameEnd = argumentNameEnd(value, open, close);
+  if (nameEnd === null) {
     return null;
   }
-  const name = value.slice(open + 1, comma === -1 ? close : comma).trim();
+  const name = value.slice(open + 1, nameEnd).trim();
   if (!ARGUMENT_NAME.test(name)) {
     return null;
   }
-  if (comma === -1) {
-    return { type: null, styleStart: -1 };
+  if (nameEnd === close) {
+    return { type: null, styleStart: null };
   }
-  const secondComma = value.indexOf(",", comma + 1);
-  if (secondComma === -1 || secondComma >= close) {
-    return { type: value.slice(comma + 1, close).trim(), styleStart: -1 };
+  const styleComma = value.indexOf(",", nameEnd + 1);
+  if (styleComma === -1 || styleComma >= close) {
+    return { type: value.slice(nameEnd + 1, close).trim(), styleStart: null };
   }
-  return { type: value.slice(comma + 1, secondComma).trim(), styleStart: secondComma + 1 };
+  return { type: value.slice(nameEnd + 1, styleComma).trim(), styleStart: styleComma + 1 };
 }
 
 function closingBrace(scan: Scan, index: number): number {
@@ -159,11 +169,12 @@ function matchToken(value: string, index: number, end: number): number {
   return tokenEnd <= end ? tokenEnd : index;
 }
 
-function isSubmessage(argument: IcuArgument | null): boolean {
-  if (argument === null || argument.type === null || argument.styleStart === -1) {
-    return false;
+function submessageAt(value: string, open: number, close: number): IcuSubmessage | null {
+  const argument = parseIcuArgument(value, open, close);
+  if (argument === null || argument.type === null || argument.styleStart === null) {
+    return null;
   }
-  return SUBMESSAGE_TYPES.has(argument.type);
+  return SUBMESSAGE_TYPES.has(argument.type) ? { styleStart: argument.styleStart } : null;
 }
 
 function markArms(scan: Scan, start: number, end: number): void {
@@ -187,13 +198,13 @@ function markBrace(scan: Scan, open: number): number {
     scan.mask[open] = 1;
     return open + 1;
   }
-  const argument = parseIcuArgument(scan.value, open, closeIndex);
-  if (!isSubmessage(argument) || argument === null) {
+  const submessage = submessageAt(scan.value, open, closeIndex);
+  if (submessage === null) {
     scan.mask.fill(1, open, closeIndex + 1);
     return closeIndex + 1;
   }
-  scan.mask.fill(1, open, argument.styleStart);
-  markArms(scan, argument.styleStart, closeIndex);
+  scan.mask.fill(1, open, submessage.styleStart);
+  markArms(scan, submessage.styleStart, closeIndex);
   scan.mask[closeIndex] = 1;
   return closeIndex + 1;
 }
@@ -209,6 +220,13 @@ function markRange(scan: Scan, start: number, end: number): void {
     }
     i = scan.value.charAt(i) === "{" ? markBrace(scan, i) : i + 1;
   }
+}
+
+function countsTowardExpansion(char: string, code: number): boolean {
+  if (code >= TRAILING_SURROGATE_FIRST && code <= TRAILING_SURROGATE_LAST) {
+    return false;
+  }
+  return !COMBINING_MARK.test(char);
 }
 
 export function pseudolocalizeValue(value: string): string {
@@ -229,7 +247,9 @@ export function pseudolocalizeValue(value: string): string {
       body += char;
       continue;
     }
-    translatable += 1;
+    if (countsTowardExpansion(char, value.charCodeAt(i))) {
+      translatable += 1;
+    }
     body += ACCENTS[char] ?? char;
   }
   const padding = FILLER.repeat(Math.ceil(translatable * EXPANSION_RATIO));

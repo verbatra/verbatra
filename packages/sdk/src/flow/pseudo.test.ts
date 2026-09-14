@@ -262,3 +262,164 @@ describe("pseudolocalize: shared-catalogue formats", () => {
     expect(written.strings.greeting?.localizations["en-XA"]?.stringUnit.value).toBe("[Ĥéĺĺó··]");
   });
 });
+
+const xliffDocument = (targetLanguage: string, units: string): string =>
+  `<?xml version="1.0" encoding="utf-8"?>\n<xliff version="1.2"><file source-language="en" target-language="${targetLanguage}" datatype="plaintext" original="app"><body>${units}</body></file></xliff>\n`;
+
+const xliffUnit = (id: string, text: string): string =>
+  `<trans-unit id="${id}"><source>${text}</source><target>${text}</target></trans-unit>`;
+
+const xliffConfig = (): VerbatraConfig =>
+  cfg({ format: "xliff", files: { pattern: "locales/{locale}.xlf" } });
+
+async function xliffProject(units: string, targetLanguage = "de"): Promise<string> {
+  const dir = await makeTempDir();
+  await mkdir(join(dir, "locales"));
+  await writeFile(join(dir, "locales", "en.xlf"), xliffDocument(targetLanguage, units), "utf8");
+  return dir;
+}
+
+describe("pseudolocalize: a format whose writer only patches an existing document", () => {
+  it("carries a key added to the source after the first run into the pseudolocale", async () => {
+    const dir = await xliffProject(xliffUnit("a", "Alpha one"));
+    await pseudolocalize({ config: xliffConfig(), cwd: dir });
+    await writeFile(
+      join(dir, "locales", "en.xlf"),
+      xliffDocument("de", xliffUnit("a", "Alpha one") + xliffUnit("b", "Beta two")),
+      "utf8",
+    );
+
+    const second = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+    const written = await readFile(second.path, "utf8");
+
+    expect(second.entries).toBe(2);
+    expect(written).toContain('id="b"');
+    expect(written).toContain("Ḃéṫá ṫẃó");
+  });
+
+  it("converges: the run after a changed source rewrites nothing", async () => {
+    const dir = await xliffProject(xliffUnit("a", "Alpha one"));
+    await pseudolocalize({ config: xliffConfig(), cwd: dir });
+    await writeFile(
+      join(dir, "locales", "en.xlf"),
+      xliffDocument("de", xliffUnit("a", "Alpha one") + xliffUnit("b", "Beta two")),
+      "utf8",
+    );
+    const second = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+    const afterSecond = await readFile(second.path, "utf8");
+
+    const third = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+
+    expect(second.written).toBe(true);
+    expect(third.written).toBe(false);
+    expect(await readFile(third.path, "utf8")).toBe(afterSecond);
+  });
+
+  it("rewrites the seeded XLIFF target-language so the file describes what it holds", async () => {
+    const dir = await xliffProject(xliffUnit("a", "Alpha one"), "de");
+
+    const result = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+    const written = await readFile(result.path, "utf8");
+
+    expect(written).toContain('target-language="en-XA"');
+    expect(written).not.toContain('target-language="de"');
+    expect(written).toContain('source-language="en"');
+  });
+
+  it("rewrites the 2.0 trgLang attribute as well", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeFile(
+      join(dir, "locales", "en.xlf"),
+      `<?xml version="1.0" encoding="UTF-8"?>\n<xliff version="2.0" srcLang="en" trgLang="fr"><file id="f1"><unit id="a"><segment><source>Alpha one</source><target>Alpha one</target></segment></unit></file></xliff>\n`,
+      "utf8",
+    );
+
+    const result = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+
+    expect(await readFile(result.path, "utf8")).toContain('trgLang="en-XA"');
+  });
+
+  it("carries a key added to a shared catalogue after the first run", async () => {
+    const dir = await makeTempDir();
+    const catalogue = (keys: readonly string[]): string =>
+      `${JSON.stringify(
+        {
+          sourceLanguage: "en",
+          version: "1.0",
+          strings: Object.fromEntries(
+            keys.map((key) => [
+              key,
+              {
+                localizations: {
+                  en: { stringUnit: { state: "translated", value: `Value for ${key}` } },
+                },
+              },
+            ]),
+          ),
+        },
+        null,
+        2,
+      )}\n`;
+    const config = cfg({
+      format: "apple-xcstrings",
+      files: { pattern: "Localizable{locale}.xcstrings" },
+    });
+    await writeFile(join(dir, "Localizable.xcstrings"), catalogue(["a"]), "utf8");
+    await pseudolocalize({ config, cwd: dir });
+    await writeFile(join(dir, "Localizable.xcstrings"), catalogue(["a", "b"]), "utf8");
+
+    const second = await pseudolocalize({ config, cwd: dir });
+    const written = (await readJsonFile(second.path)) as {
+      strings: Record<string, { localizations: Record<string, unknown> }>;
+    };
+    const third = await pseudolocalize({ config, cwd: dir });
+
+    expect(written.strings.b?.localizations["en-XA"]).toBeDefined();
+    expect(third.written).toBe(false);
+  });
+});
+
+describe("pseudolocalize: the output directory stays inside the project", () => {
+  it("refuses an absolute output directory", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    await expect(
+      pseudolocalize({ config: cfg(), cwd: dir, out: join(dir, "elsewhere") }),
+    ).rejects.toMatchObject({ code: "PSEUDO_OUTPUT_CONFLICT" });
+  });
+
+  it("refuses an output directory that climbs out of the working directory", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    await expect(
+      pseudolocalize({ config: cfg(), cwd: dir, out: "../escaped" }),
+    ).rejects.toMatchObject({ code: "PSEUDO_OUTPUT_CONFLICT" });
+  });
+});
+
+describe("pseudolocalize: vue-i18n packs plural forms into one value", () => {
+  it("marks and expands each pipe-separated form on its own", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { car: "car | cars" });
+    const config = cfg({ format: "vue-i18n-json" });
+
+    const result = await pseudolocalize({ config, cwd: dir });
+    const written = (await readJsonFile(result.path)) as Record<string, string>;
+
+    expect(written.car).toBe("[ćáŕ··] | [ćáŕś··]");
+  });
+
+  it("leaves a value with no plural forms as one marked run", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello {name}" });
+    const config = cfg({ format: "vue-i18n-json" });
+
+    const result = await pseudolocalize({ config, cwd: dir });
+    const written = (await readJsonFile(result.path)) as Record<string, string>;
+
+    expect(written.greeting).toBe("[Ĥéĺĺó {name}···]");
+  });
+});

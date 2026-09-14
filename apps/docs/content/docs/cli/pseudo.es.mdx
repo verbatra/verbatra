@@ -21,7 +21,7 @@ verbatra pseudo [flags]
 | `--cwd` | `<path>` | directorio actual | resolver la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | buscar una | cargar este archivo de configuración en lugar de buscar uno |
 | `--locale` | `<code>` | `en-XA` | la pseudolocale que se genera |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | directorio donde se escribe la pseudolocale, relativo al directorio de trabajo |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | directorio donde se escribe la pseudolocale, relativo al directorio de trabajo y dentro de él |
 | `--json` | ninguno | desactivado | imprimir un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout con el resultado bajo `result` |
 
 ## Qué hace la transformación
@@ -36,6 +36,8 @@ verbatra pseudo [flags]
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
 
 Nada que no sea texto traducible se toca. Los marcadores de posición sobreviven en todas las sintaxis que reconocen los [adaptadores de formato](/docs/formats): tokens de llave doble, referencias anidadas de i18next, argumentos de llave simple e ICU, conversiones printf y variables de plural de Apple, etiquetas de marcado, entidades XML, mensajes enlazados de vue-i18n y secuencias de escape. Dentro de un mensaje ICU, los nombres de argumento, las palabras clave `plural` y `select` y cada selector de rama quedan exactamente como están escritos, y solo se acentúa el texto dentro de una rama.
+
+vue-i18n empaqueta las formas de plural en un único valor separado por barras verticales, así que cada forma se acentúa, se expande y se marca por su cuenta: `car | cars` sale como `[ćáŕ··] | [ćáŕś··]` en lugar de como un solo bloque entre corchetes, que es justo donde el diseño de los plurales cuesta más.
 
 La transformación es determinista: la misma fuente produce siempre la misma pseudolocale y el archivo se diferencia limpiamente.
 
@@ -53,8 +55,13 @@ Dos reglas impiden que llegue a hacerse pasar por una traducción real:
 
 - Una pseudolocale que nombre tu locale de origen o una de tus locales de destino se rechaza con `PSEUDO_OUTPUT_CONFLICT`, antes de leer o escribir nada.
 - Un `--out` que colocaría el archivo encima de un archivo de locale configurado se rechaza igual.
+- Un `--out` absoluto, o que se salga del directorio de trabajo con `..`, también se rechaza, para que una pseudolocale generada nunca aterrice fuera del proyecto del que salió.
 
 Como el archivo vive fuera de `files.pattern`, [`verbatra translate`](/docs/cli/translate) nunca lo ve ni gasta en él, y [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) nunca lo reportan como ausente ni obsoleto. No hay nada que añadir a `targetLocales` ni nada que excluir de la CI.
+
+### Formatos que se escriben parcheando un archivo existente
+
+`xliff` y `apple-xcstrings` no se reescriben desde cero: sus escritores parchean unidades que ya están en el documento de destino. Por eso el archivo de la pseudolocale se vuelve a copiar desde tu archivo de origen en cada escritura, así que una clave que añadas al origen después de la primera ejecución sigue llegando a la pseudolocale en lugar de desaparecer en silencio. Un XLIFF copiado también recibe su atributo `target-language` reescrito a la pseudolocale, así que el archivo nunca afirma contener un idioma que no contiene.
 
 ## Ejemplos
 

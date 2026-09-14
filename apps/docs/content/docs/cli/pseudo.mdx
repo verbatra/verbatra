@@ -21,7 +21,7 @@ verbatra pseudo [flags]
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--locale` | `<code>` | `en-XA` | the pseudolocale to generate |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | directory to write the pseudolocale under, relative to the working directory |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | directory to write the pseudolocale under, relative to the working directory and inside it |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the result under `result` |
 
 ## What the transform does
@@ -36,6 +36,8 @@ verbatra pseudo [flags]
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
 
 Nothing that is not translatable text is touched. Placeholders survive in every syntax the [format adapters](/docs/formats) recognise: double-brace tokens, i18next nesting references, single-brace and ICU arguments, printf conversions and Apple plural variables, markup tags, XML entities, vue-i18n linked messages, and escape sequences. Inside an ICU message the argument names, the `plural` and `select` keywords, and every branch selector stay exactly as written, and only the text inside a branch is accented.
+
+vue-i18n packs plural forms into a single pipe-separated value, so each form is accented, expanded and marked on its own: `car | cars` comes out as `[ćáŕ··] | [ćáŕś··]` rather than as one bracketed run, which is where plural layout is hardest to get right.
 
 The transform is deterministic, so the same source always produces the same pseudolocale and the file diffs cleanly.
 
@@ -53,8 +55,13 @@ Two rules keep it from ever standing in for a real translation:
 
 - A pseudolocale that names your source locale or one of your target locales is refused with `PSEUDO_OUTPUT_CONFLICT`, before anything is read or written.
 - An `--out` that would place the file on top of a configured locale file is refused the same way.
+- An `--out` that is absolute, or that climbs out of the working directory with `..`, is refused as well, so a generated pseudolocale never lands outside the project it came from.
 
 Because the file lives outside `files.pattern`, [`verbatra translate`](/docs/cli/translate) never sees it and never spends on it, and [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) never report it as missing or stale. There is nothing to add to `targetLocales` and nothing to exclude from CI.
+
+### Formats written by patching an existing file
+
+`xliff` and `apple-xcstrings` are not rewritten from scratch: their writers patch units that are already in the destination document. The pseudolocale file is therefore re-copied from your source file on every write, so a key you add to the source after the first run still reaches the pseudolocale instead of going silently missing. A copied XLIFF also has its `target-language` attribute rewritten to the pseudolocale, so the file never claims to hold a language it does not.
 
 ## Examples
 

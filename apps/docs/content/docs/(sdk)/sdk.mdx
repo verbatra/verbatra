@@ -119,13 +119,17 @@ Input: `{ config, cwd?, locale?, out? }`. `locale` defaults to `en-XA` and `out`
 `files.pattern` is expanded inside it, so the file keeps the layout the application expects. A
 pseudolocale that names a configured locale, or that would land on a configured locale file, is
 refused with `PSEUDO_OUTPUT_CONFLICT` before anything is read or written, so it can neither
-overwrite a real translation nor stand in for one. Because the file lives outside `files.pattern`,
+overwrite a real translation nor stand in for one; so is an `out` that is absolute or climbs out
+of `cwd`. Because the file lives outside `files.pattern`,
 `translate` never spends on it and `check` and `diff` never report it as drifted.
 
 Returns a `PseudolocalizeResult`: the `locale`, the absolute `path`, how many `entries` were
 processed, how many were `transformed`, the keys that were `copied`, and whether anything was
 `written`. The transform is deterministic, so a second run over unchanged source rewrites nothing
-and reports `written` as false.
+and reports `written` as false. For `xliff` and `apple-xcstrings`, whose writers only patch a
+document that already exists, the output is re-copied from the source on every write, so a key
+added to the source after the first run still reaches the pseudolocale, and a copied XLIFF has its
+`target-language` rewritten to the pseudolocale.
 
 ## Inspect state without writing
 

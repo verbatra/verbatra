@@ -131,13 +131,17 @@ Eingabe: `{ config, cwd?, locale?, out? }`. `locale` ist standardmäßig `en-XA`
 erwartet. Eine Pseudo-Locale, die eine konfigurierte Locale benennt oder auf einer konfigurierten
 Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas
 gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
-eine einstehen. Weil die Datei außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für
+eine einstehen. Ebenso ein `out`, das absolut ist oder aus `cwd` herausklettert. Weil die Datei außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für
 sie aus, und `check` und `diff` melden sie nie als abgedriftet.
 
 Gibt ein `PseudolocalizeResult` zurück: die `locale`, den absoluten `path`, wie viele `entries`
 verarbeitet wurden, wie viele `transformed` wurden, die `copied` Keys und ob überhaupt etwas
 `written` wurde. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quellen
-schreibt also nichts neu und meldet `written` als false.
+schreibt also nichts neu und meldet `written` als false. Bei `xliff` und `apple-xcstrings`, deren
+Writer nur ein bereits vorhandenes Dokument patchen, wird die Ausgabe bei jedem Schreibvorgang neu
+aus der Quelle kopiert, damit ein nach dem ersten Lauf hinzugefügter Key weiterhin in der
+Pseudo-Locale ankommt; bei einer kopierten XLIFF-Datei wird `target-language` auf die Pseudo-Locale
+umgeschrieben.
 
 ## Zustand inspizieren, ohne zu schreiben
 

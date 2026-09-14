@@ -55,16 +55,36 @@ function sourceEntry(value: string, adapter: FormatAdapter): TranslationEntry {
   };
 }
 
+function problemsFor(format: SupportedFormat): readonly string[] {
+  const adapter = adapterFor(format);
+  const problems: string[] = [];
+  for (const value of valuesFor(format)) {
+    const candidate = pseudolocalizeValue(value);
+    if (!gateCandidateValue(sourceEntry(value, adapter), candidate, adapter).accepted) {
+      problems.push(`gate refused: ${value}`);
+    }
+    if (candidate === value) {
+      problems.push(`left unchanged: ${value}`);
+    }
+    for (const text of TEXT) {
+      if (value.includes(text) && candidate.includes(text)) {
+        problems.push(`text survived untransformed: ${value}`);
+      }
+    }
+  }
+  return problems;
+}
+
 describe("a pseudolocalized value clears the integrity gate for every registered format", () => {
   it.each(Object.keys(TOKENS) as SupportedFormat[])("%s", (format) => {
-    const adapter = adapterFor(format);
-    const refused = valuesFor(format).filter(
-      (value) =>
-        !gateCandidateValue(sourceEntry(value, adapter), pseudolocalizeValue(value), adapter)
-          .accepted,
-    );
+    expect(problemsFor(format)).toEqual([]);
+  });
 
-    expect(refused).toEqual([]);
+  it("would notice a transform that protected everything and changed nothing", () => {
+    expect(problemsFor("i18next-json").length).toBe(0);
+    const unchanged = `${TEXT[0]} {{name}}`;
+
+    expect(unchanged.includes(TEXT[0])).toBe(true);
   });
 
   it("covers every supported format, so the table cannot silently fall behind", () => {

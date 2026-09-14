@@ -97,8 +97,15 @@ const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
 });
 
+const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+
 const pseudoOptsSchema = sharedCommandOptsSchema.extend({
-  locale: z.string().min(1).optional(),
+  locale: z
+    .string()
+    .regex(PSEUDO_LOCALE_TAG, {
+      message: "--locale must be a language tag such as en-XA, made of letters, digits and hyphens",
+    })
+    .optional(),
   out: z.string().min(1).optional(),
 });
 
@@ -818,7 +825,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     .option("--locale <code>", "pseudolocale code to generate (default en-XA)")
     .option(
       "--out <path>",
-      "directory to write the pseudolocale under, relative to the working directory (default .verbatra-local/pseudo)",
+      "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
     )
     .option("--json", "print the pseudolocale result as JSON")
     .action(async (opts: unknown) => {

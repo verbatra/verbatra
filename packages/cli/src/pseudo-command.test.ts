@@ -112,6 +112,19 @@ describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
     expect(cap.err()).toContain("[PSEUDO_OUTPUT_CONFLICT]");
   });
 
+  it.each(["", "en XA", "en/../XA", 'en"XA'])(
+    "rejects the malformed locale %o as a usage error",
+    async (locale) => {
+      const { deps, calls } = recordingDeps();
+      const cap = captureStreams();
+
+      const code = await run(["pseudo", "--locale", locale], deps, cap.streams);
+
+      expect(code).toBe(2);
+      expect(calls.pseudolocalize).toHaveLength(0);
+    },
+  );
+
   it("rejects an empty --locale as a usage error", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();

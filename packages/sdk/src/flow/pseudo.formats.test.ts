@@ -14,6 +14,7 @@ interface FormatFixture {
   readonly content: string;
   readonly key: string;
   readonly token: string;
+  readonly pluralKey?: string;
 }
 
 const XLIFF = `<?xml version="1.0" encoding="utf-8"?>
@@ -56,6 +57,7 @@ const FIXTURES: Readonly<Record<SupportedFormat, FormatFixture>> = {
     content: `${JSON.stringify({ greeting: "Hello {name} and welcome", car: "car | cars" }, null, 2)}\n`,
     key: "greeting",
     token: "{name}",
+    pluralKey: "car",
   },
   "next-intl-json": {
     pattern: "locales/{locale}.json",
@@ -156,6 +158,14 @@ describe("pseudolocalize writes a readable pseudolocale for every supported form
     expect(result.written).toBe(true);
     expect(value).toContain(fixture.token);
     expect(value).toContain("ẃéĺćóṁé");
+    if (fixture.pluralKey !== undefined) {
+      const forms = (written.resource.entries.get(fixture.pluralKey)?.value ?? "").split("|");
+      expect(forms).toHaveLength(2);
+      for (const form of forms) {
+        expect(form.trim().startsWith("[")).toBe(true);
+        expect(form.trim().endsWith("]")).toBe(true);
+      }
+    }
   });
 
   it("covers every supported format, so the table cannot silently fall behind", () => {
