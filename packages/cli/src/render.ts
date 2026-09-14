@@ -271,6 +271,7 @@ export function renderExtractHuman(result: ExtractResult): string {
       "new keys",
       result.added.map((entry) => `${entry.key}  ${entry.file}:${entry.line}`),
     ),
+    ...renderExtractList("written with an empty value", result.withoutDefault),
     ...renderExtractList(
       "dynamic keys",
       result.dynamic.map((site) => `${site.file}:${site.line}`),

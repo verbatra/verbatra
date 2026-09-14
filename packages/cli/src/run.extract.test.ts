@@ -79,6 +79,26 @@ describe("run extract", () => {
     expect(out()).toContain("dry run, nothing written");
   });
 
+  it("names the added keys that landed with no default of their own", async () => {
+    const { deps } = recordingDeps({
+      extract: async () =>
+        makeExtractResult({
+          added: [
+            { key: "nav.home", value: "Home", file: "src/nav.ts", line: 1 },
+            { key: "nav.away", value: "", file: "src/nav.ts", line: 2 },
+          ],
+          withoutDefault: ["nav.away"],
+          written: true,
+        }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["extract"], deps, streams);
+
+    expect(out()).toContain("written with an empty value (1):");
+    expect(out()).toContain("nav.away");
+  });
+
   it("lists dynamic call sites and conflicts rather than hiding them", async () => {
     const { deps } = recordingDeps({
       extract: async () =>
