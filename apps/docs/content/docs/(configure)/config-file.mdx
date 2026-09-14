@@ -54,6 +54,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
 | `rates` | object | none | Dated provider rates, so `translate --estimate` can report a currency figure. |
+| `extract` | object | none | Source-scanning settings for [`verbatra extract`](/docs/cli/extract): the framework and the source roots. |
 | `$schema` | string | none | A pointer to the JSON Schema document, for editors only. Ignored at runtime. |
 
 Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
@@ -157,6 +158,28 @@ rates: {
 `asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the card, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
 
 The block changes nothing about a live run: not what is sent, not what is billed, not what is written. A rate key with no entry is reported as an explicit absence rather than a cost of zero, and an entry in the wrong unit for its provider is refused rather than applied. See [Estimating cost](/docs/estimating-cost) for how the figure is computed and what it deliberately leaves out.
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Optional, and used only by [`verbatra extract`](/docs/cli/extract). Every other command ignores it.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` names the translation framework whose call sites the scan looks for. The set is closed, and `i18next` is the one member today, covering the `t(...)`, `$t(...)`, and `<object>.t(...)` shapes. A framework with no extractor is rejected rather than accepted and silently ignored.
+
+`roots` lists the directories to walk, resolved against the working directory. At least one is required, and nothing outside them is ever read.
+
+`exclude` adds directory names to the always-skipped set, which already covers `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build`, and `coverage`. Names, not paths: an entry matches a directory of that name anywhere under a root.
+
+Unknown keys inside the block are rejected, exactly as they are at the top level.
 
 ## Discovery order
 

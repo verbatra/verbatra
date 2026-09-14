@@ -39,6 +39,20 @@ const XCSTRINGS = `${JSON.stringify(
   2,
 )}\n`;
 
+const RESX = `<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <data name="greeting" xml:space="preserve">
+    <value>Hello {0} and welcome</value>
+  </data>
+</root>
+`;
+
 const FIXTURES: Readonly<Record<SupportedFormat, FormatFixture>> = {
   "i18next-json": {
     pattern: "locales/{locale}.json",
@@ -122,6 +136,18 @@ const FIXTURES: Readonly<Record<SupportedFormat, FormatFixture>> = {
       'msgid ""\nmsgstr "Content-Type: text/plain; charset=UTF-8\\n"\n\nmsgid "greeting"\nmsgstr "Hello %s and welcome"\n',
     key: "greeting",
     token: "%s",
+  },
+  ini: {
+    pattern: "locales/{locale}.ini",
+    content: "greeting = Hello {name} and welcome\n",
+    key: "greeting",
+    token: "{name}",
+  },
+  resx: {
+    pattern: "locales/{locale}.resx",
+    content: RESX,
+    key: "greeting",
+    token: "{0}",
   },
 };
 

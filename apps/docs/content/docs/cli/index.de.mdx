@@ -1,12 +1,13 @@
 ---
 title: Übersicht
-description: "Der Befehl verbatra: seine elf Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
+description: "Der Befehl verbatra: seine zwölf Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
 ---
-`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Elf Befehle erledigen die Arbeit:
+`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Zwölf Befehle erledigen die Arbeit:
 
 | Befehl | Was er tut |
 | --- | --- |
 | [`init`](/docs/cli/init) | eine verbatra-Konfiguration und `.env.example` für dieses Projekt anlegen |
+| [`extract`](/docs/cli/extract) | deinen Anwendungscode nach Übersetzungsaufrufen durchsuchen und die neuen Keys in der Quell-Locale-Datei ergänzen |
 | [`translate`](/docs/cli/translate) | jedes Ziel-Locale einmal übersetzen, dann beenden |
 | [`watch`](/docs/cli/watch) | bei jeder Quelländerung neu übersetzen, bis unterbrochen wird |
 | [`check`](/docs/cli/check) | melden, welche Keys pro Locale fehlen oder veraltet sind, schreibgeschützt |
@@ -39,13 +40,13 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` nimmt es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
 - `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
   - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
-  - `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht.
+  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht.
   - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben aus und enden mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`.
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`) und `pseudo` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract` und `pseudo` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Exit-Codes
 

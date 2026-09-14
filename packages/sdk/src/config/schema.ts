@@ -2,6 +2,7 @@ import { supportedFormatSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
+import { extractionConfigSchema } from "./extraction-config.js";
 import { providerConfigSchema } from "./provider-config.js";
 import { rateCardSchema } from "./rate-card.js";
 
@@ -59,6 +60,7 @@ export const verbatraConfigSchema = z
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
     rates: rateCardSchema.optional(),
+    extract: extractionConfigSchema.optional(),
   })
   .refine(
     (config) => {

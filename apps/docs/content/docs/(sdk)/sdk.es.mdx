@@ -185,6 +185,16 @@ así que un proyecto sin config alguna sigue obteniendo un informe en lugar de u
 Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comprobación falló. Lanza
 `CONFIG_NOT_FOUND` solo para un `configPath` explícito que no existe.
 
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Analiza el código de tu aplicación en busca de llamadas de traducción y fusiona lo que encuentra en el catálogo de la locale de origen. Es el único punto de entrada que lee código de aplicación en lugar de un archivo de locale, y eso es lo que hace que verbatra sirva en un proyecto que todavía no tiene catálogo. No gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una API key y no hace ninguna petición de red.
+
+Solo se escribe el archivo de la locale de origen, y solo se añaden claves realmente nuevas: una clave que ya está en el catálogo conserva su valor tal cual, y una clave del catálogo que ninguna llamada menciona se deja intacta. Una ejecución que no encuentra nada nuevo no escribe nada en absoluto. Todo lo que el análisis no puede resolver vuelve como datos en lugar de lanzarse: un argumento de clave no estático en `dynamic`, una clave encontrada con dos valores por defecto distintos en `conflicts` (no se escribe ninguno) y un archivo ilegible en `diagnostics`. El resultado lleva únicamente claves, valores y ubicaciones de archivo y línea, nunca el contenido de un archivo de código.
+
+Entrada: `{ config, cwd?, dryRun? }`, donde `config.extract` nombra el framework y las raíces de código. Devuelve un `ExtractResult`. El descubrimiento pasa por el miembro opcional `readDirectory` de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
+
 ### check
 
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
@@ -483,6 +493,13 @@ mitad de escritura nunca deje un archivo a medio escribir, y `createExclusive` d
 frente a otros procesos porque es la primitiva detrás del bloqueo de escritura por locale. Crear
 directorios es tarea de quien llama.
 
+`readDirectory` es opcional, para que una implementación escrita antes de que existiera la
+extracción desde código siga compilando. [`extract`](#extract) es el único punto de entrada que lo
+necesita, e informa de su ausencia como `EXTRACT_FS_UNSUPPORTED`. Lista las entradas inmediatas de
+un directorio como `{ name, kind }`, donde `kind` es `"file"`, `"directory"` u `"other"`. Un enlace
+simbólico pertenece a `"other"`: el análisis nunca lo sigue, y eso es lo que lo mantiene dentro de
+las raíces que recibió.
+
 Lo único que `deps.fs` no alcanza es un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
 cableado en ellos. Suministrar ambos significa que quien llama es dueño de ese cableado.
@@ -580,6 +597,9 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que corra ningún locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 con `maxTokens` configurado; se lanza antes de cualquier llamada al proveedor (un dry-run queda exento) |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
+| `SOURCE_UNWRITABLE` | el archivo de la locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
+| `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
+| `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`

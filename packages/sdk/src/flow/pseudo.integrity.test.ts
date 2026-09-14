@@ -21,6 +21,8 @@ const TOKENS: Readonly<Record<SupportedFormat, readonly string[]>> = {
   "apple-xcstrings": ["%@", "%1$d"],
   "android-xml": ["%1$s", "%2$d", "%%"],
   "gettext-po": ["%s", "%(name)s", "%%"],
+  ini: ["{name}", "{count}"],
+  resx: ["{0}", "{1,-10}", "{2:N0}"],
 };
 
 const TEXT = ["Save changes now", "Delete the selected item"] as const;

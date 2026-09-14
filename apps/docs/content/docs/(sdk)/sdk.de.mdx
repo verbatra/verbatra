@@ -190,6 +190,16 @@ Gibt ein `DoctorResult` zurück, dessen `ok` genau dann true ist, wenn keine Pr�
 ist. Es wirft `CONFIG_NOT_FOUND` nur für einen explizit angegebenen `configPath`, der nicht
 existiert.
 
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den Quell-Locale-Katalog zusammen. Es ist der eine Einstiegspunkt, der Anwendungscode statt einer Locale-Datei liest, und genau das macht verbatra in einem Projekt nutzbar, das noch keinen Katalog hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable gelesen und keine Netzwerkanfrage gestellt.
+
+Geschrieben wird ausschließlich die Quell-Locale-Datei, und nur wirklich neue Keys werden ergänzt: Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert, und ein Key im Katalog, den keine Aufrufstelle nennt, bleibt unangetastet. Ein Lauf, der nichts Neues findet, schreibt gar nichts. Alles, was der Scan nicht auflösen kann, kommt als Daten zurück statt geworfen zu werden: ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen Standardwerten in `conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
+
+Eingabe: `{ config, cwd?, dryRun? }`, wobei `config.extract` das Framework und die Quellverzeichnisse benennt. Gibt ein `ExtractResult` zurück. Die Dateisuche läuft über das optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als `EXTRACT_FS_UNSUPPORTED` gemeldet.
+
 ### check
 
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
@@ -498,6 +508,13 @@ mitten im Schreiben nie eine halb geschriebene Datei hinterlässt, und `createEx
 gegenüber anderen Prozessen sein, weil es das Primitiv hinter der Schreibsperre pro Locale ist. Das
 Anlegen von Verzeichnissen ist Sache des Aufrufers.
 
+`readDirectory` ist optional, damit eine Implementierung, die vor der Quellcode-Extraktion
+geschrieben wurde, weiterhin kompiliert. [`extract`](#extract) ist der einzige Einstiegspunkt, der
+es braucht, und meldet sein Fehlen als `EXTRACT_FS_UNSUPPORTED`. Es listet die direkten Einträge
+eines Verzeichnisses als `{ name, kind }` auf, wobei `kind` `"file"`, `"directory"` oder `"other"`
+ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und genau das hält ihn
+innerhalb der übergebenen Roots.
+
 Das Einzige, was `deps.fs` nicht erreicht, ist eine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
@@ -600,6 +617,9 @@ geworfen.
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor ein Locale läuft |
 | `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während `maxTokens` konfiguriert ist; wird vor jedem Provider-Aufruf geworfen (ein Dry-Run ist ausgenommen) |
 | `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
+| `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
+| `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
+| `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` eines fehlgeschlagenen Locales |
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen

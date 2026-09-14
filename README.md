@@ -140,6 +140,7 @@ A `verbatra.config.ts` is typed by `defineConfig`, and a JSON or YAML config get
 | Command | What it does | Common flags |
 | --- | --- | --- |
 | `verbatra init` | Create a verbatra config and .env example for this project | `--provider <id>`, `--source`, `--targets`, `--path`, `--cwd`, `--yes`, `--force` |
+| `verbatra extract` | Scan the application source for translation call sites and add the new keys to the source locale file, without calling a provider | `--cwd`, `--config`, `--dry-run`, `--json` |
 | `verbatra translate` | Translate every target locale once, then exit | `--cwd`, `--config`, `--locales`, `--dry-run`, `--prune`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
 | `verbatra watch` | Re-translate on every source change until interrupted | `--cwd`, `--config`, `--locales`, `--debounce <ms>`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
 | `verbatra check` | Report per-locale missing, stale, and up-to-date counts without writing (read-only) | `--cwd`, `--config`, `--locales`, `--json` |
@@ -159,7 +160,7 @@ Every command follows the same contract, so a CI step can branch on the code alo
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `pseudo` generated its locale, `export` wrote its handoff, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
+| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `pseudo` generated its locale, `export` wrote its handoff, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
 | `1` | It ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale (a partial locale is one whose file was written with some keys still missing), `check` found drift, `diff` found a missing or changed key (orphaned keys alone never produce `1`), `doctor` found at least one failed check, or `studio` failed while shutting its server down |
 | `2` | Could not run: a whole-run error, a usage error, `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, or `studio` given a bad `--port` or unable to load the config, import `@verbatra/studio`, or start its server |
 | `130` | `watch` or `studio` was force-stopped by a second interrupt |

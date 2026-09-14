@@ -8,6 +8,8 @@ import type {
   DoctorResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -40,6 +42,7 @@ export interface CliDeps {
   pseudolocalize(input: PseudolocalizeInput): Promise<PseudolocalizeResult>;
   importStudio(): Promise<StudioModule>;
   importMcp(): Promise<McpModule>;
+  extract(input: ExtractInput): Promise<ExtractResult>;
 }
 
 export interface StudioModule {

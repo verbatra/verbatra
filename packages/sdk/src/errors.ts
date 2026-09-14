@@ -78,6 +78,16 @@
  *   names a configured locale, or to write one onto a configured locale file. Refused before
  *   anything is read or written, so a generated pseudolocale can never overwrite a real
  *   translation or stand in for one.
+ * - `SOURCE_UNWRITABLE`: the source locale file could not be written. Thrown by {@link extract}
+ *   alone, since it is the only entry point that writes the source locale. The `xliff` and
+ *   `apple-xcstrings` formats reach it when no catalog exists yet, because neither is created from
+ *   nothing.
+ * - `EXTRACT_NOT_CONFIGURED`: {@link extract} was called with a config that carries no `extract`
+ *   block, so there is no framework to look for and no source root to walk.
+ * - `EXTRACT_FS_UNSUPPORTED`: {@link extract} was given a `deps.fs` that implements no
+ *   `readDirectory`, so no source file can be discovered. The member is optional on {@link SdkFs}
+ *   precisely so an implementation written before extraction existed keeps compiling; this is the
+ *   error it gets if it is then handed to {@link extract}.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -100,6 +110,9 @@ export type SdkErrorCode =
   | "CONCURRENCY_BUDGET_CONFLICT"
   | "TARGET_UNWRITABLE"
   | "PSEUDO_OUTPUT_CONFLICT"
+  | "SOURCE_UNWRITABLE"
+  | "EXTRACT_NOT_CONFIGURED"
+  | "EXTRACT_FS_UNSUPPORTED"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

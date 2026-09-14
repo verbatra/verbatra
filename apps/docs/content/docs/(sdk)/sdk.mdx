@@ -175,6 +175,27 @@ with no config at all still gets a report rather than a thrown error. Returns a 
 whose `ok` is true exactly when no check failed. It throws `CONFIG_NOT_FOUND` only for an explicit
 `configPath` that does not exist.
 
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Scans your application source for translation call sites and merges what it finds into the source
+locale catalog. It is the one entry point that reads application code rather than a locale file,
+which is what makes verbatra usable on a project that has no catalog yet. It spends nothing: no
+provider is constructed, no API key environment variable is read, and no network request is made.
+
+Only the source locale file is ever written, and only genuinely new keys are added: a key already
+in the catalog keeps its value exactly as it stands, and a key in the catalog that no call site
+mentions is left alone. A run that finds nothing new writes nothing at all. Everything the scan
+cannot resolve comes back as data rather than thrown: a non-static key argument in `dynamic`, a key
+found with two different defaults in `conflicts` (neither value is written), and an unreadable file
+in `diagnostics`. The result carries keys, values, and file and line locations only, never a source
+file's contents.
+
+Input: `{ config, cwd?, dryRun? }`, where `config.extract` names the framework and the source roots.
+Returns an `ExtractResult`. Discovery goes through the optional `readDirectory` member of `SdkFs`;
+a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
+
 ### check
 
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
@@ -458,6 +479,12 @@ expected to be atomic, so a crash mid-write never leaves a half-written file beh
 `createExclusive` must be atomic against other processes because it is the primitive behind the
 per-locale write lock. Directory creation is the caller's job.
 
+`readDirectory` is optional, so an implementation written before source extraction existed keeps
+compiling. [`extract`](#extract) is the only entry point that needs it, and reports its absence as
+`EXTRACT_FS_UNSUPPORTED`. It lists one directory's immediate entries as `{ name, kind }`, where
+`kind` is `"file"`, `"directory"`, or `"other"`. A symbolic link belongs in `"other"`: the scan
+never follows one, which is what keeps it inside the roots it was given.
+
 The one thing `deps.fs` cannot reach is a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
 Supplying both means the caller owns that wiring.
@@ -555,6 +582,9 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `CONCURRENCY_INVALID` | `concurrency` was set but is not an integer of at least 1; raised before any locale runs |
 | `CONCURRENCY_BUDGET_CONFLICT` | a live run set `concurrency` above 1 while `maxTokens` is configured; raised before any provider call (a dry run is exempt) |
 | `TARGET_UNWRITABLE` | a target locale file could not be written (its directory is not writable, does not exist, is read-only, or is out of space); the message names the target file and the file-system code, never the internal temporary file the atomic write uses |
+| `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |
+| `EXTRACT_NOT_CONFIGURED` | `extract` was called with a config that carries no `extract` block |
+| `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own

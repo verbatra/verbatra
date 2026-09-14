@@ -82,6 +82,7 @@ function makeParams(
     baseline: new Map(),
     adapter,
     provider: stubProvider([]),
+    providerKind: "llm",
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",

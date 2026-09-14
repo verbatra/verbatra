@@ -23,6 +23,7 @@ import {
   renderDoctorHuman,
   renderError,
   renderExportHuman,
+  renderExtractHuman,
   renderHuman,
   renderLockWait,
   renderProgress,
@@ -979,6 +980,64 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+const extractOptsSchema = sharedCommandOptsSchema.extend({
+  dryRun: z.boolean().optional(),
+});
+
+async function runExtract(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("extract", rawOpts, streams);
+  return withParsedOpts(
+    () => extractOptsSchema.parse(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.extract({
+            config,
+            cwd,
+            ...(opts.dryRun === true ? { dryRun: true } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("extract", result)}\n`
+              : `${renderExtractHuman(result)}\n`,
+          );
+          return 0;
+        },
+      );
+    },
+  );
+}
+
+function registerExtractCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("extract")
+    .description(
+      "Scan your source for translation call sites and add new keys to the source locale",
+    )
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--dry-run", "report what would be added without writing the source locale file")
+    .option("--json", "print the extraction result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runExtract(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra extract            add every new key found in your source to the source locale",
+        "  $ verbatra extract --dry-run  preview the keys that would be added, write nothing",
+        "  $ verbatra extract --json     machine-readable result on stdout for CI",
+      ].join("\n"),
+    );
+}
+
 function buildProgram(
   deps: CliDeps,
   streams: Streams,
@@ -1007,6 +1066,7 @@ function buildProgram(
   registerStudioCommand(program, ctx);
   registerMcpCommand(program, ctx);
   registerInitCommand(program, ctx);
+  registerExtractCommand(program, ctx);
 
   return program;
 }

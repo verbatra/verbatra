@@ -54,6 +54,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
 | `budgetBehavior` | `"warn"` o `"stop"` | `"warn"` | Qué pasa una vez alcanzado `maxTokens`. |
 | `rates` | objeto | ninguno | Tarifas de proveedor fechadas, para que `translate --estimate` pueda dar una cifra en moneda. |
+| `extract` | objeto | ninguno | Ajustes del análisis de código para [`verbatra extract`](/docs/cli/extract): el framework y las raíces de código. |
 | `$schema` | string | ninguno | Un puntero al documento JSON Schema, solo para editores. Se ignora en tiempo de ejecución. |
 
 Las claves de nivel superior desconocidas se rechazan, con `$schema` como única excepción. Por eso mismo una clave de API no puede vivir en la configuración: las claves vienen del entorno, no del archivo.
@@ -157,6 +158,28 @@ rates: {
 `asOf` es una fecha de calendario escrita `YYYY-MM-DD`, y `currency` un código de tres letras en mayúsculas. Ambos son obligatorios, y ambos se imprimen junto a toda cifra derivada de la tabla, así que un número obsoleto se ve obsoleto. `table` se indexa por clave de tarifa: `provider/model` para un proveedor con modelo configurado, y el identificador de proveedor a secas para uno sin él (`deepl`, `google-translate`). Una entrada facturada por tokens lleva `inputPerMillionTokens` y `outputPerMillionTokens`; una facturada por caracteres lleva `perMillionCharacters`. Mezclar las dos formas en una sola entrada se rechaza, igual que una tarifa negativa.
 
 El bloque no cambia nada de una ejecución real: ni lo que se envía, ni lo que se factura, ni lo que se escribe. Una clave de tarifa sin entrada se informa como una ausencia explícita en lugar de un coste de cero, y una entrada en la unidad equivocada para su proveedor se rechaza en lugar de aplicarse. Consulta [Estimar el coste](/docs/estimating-cost) para ver cómo se calcula la cifra y qué deja fuera a propósito.
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Opcional, y solo lo usa [`verbatra extract`](/docs/cli/extract). Todos los demás comandos lo ignoran.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` nombra el framework de traducción cuyas llamadas busca el análisis. El conjunto es cerrado y hoy `i18next` es su único miembro, y cubre las formas `t(...)`, `$t(...)` y `<object>.t(...)`. Un framework sin extractor se rechaza en lugar de aceptarse e ignorarse en silencio.
+
+`roots` lista los directorios que se recorren, resueltos respecto al directorio de trabajo. Hace falta al menos uno, y nunca se lee nada fuera de ellos.
+
+`exclude` añade nombres de directorio al conjunto que siempre se omite, que ya cubre `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` y `coverage`. Nombres, no rutas: una entrada coincide con un directorio con ese nombre en cualquier punto bajo una raíz.
+
+Las claves desconocidas dentro del bloque se rechazan, igual que en el nivel superior.
 
 ## Orden de descubrimiento
 

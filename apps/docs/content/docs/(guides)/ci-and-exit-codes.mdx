@@ -16,7 +16,7 @@ The exit code is the contract your CI step branches on:
 
 | Code | Meaning |
 | --- | --- |
-| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `export` wrote its workbook, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
+| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `export` wrote its workbook, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
 | `1` | it ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale, `check` found a locale out of sync, `diff` found a missing or changed key, `doctor` found at least one failed check, or `studio` failed while shutting its server down |
 | `2` | could not run: a whole-run error (bad config, unreadable source, corrupt lock file), a usage error (an empty or unknown `--locales` value, an invalid `--debounce` or `--port`), `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, or `studio` unable to load the config, import `@verbatra/studio`, or start its server |
 | `130` | `watch` or `studio` was force-stopped by a second interrupt |
@@ -51,7 +51,7 @@ Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid 
 
 ## JSON output
 
-Eight commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor`, and `pseudo`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
+Nine commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor`, `pseudo`, and `extract`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
 
 ```ts
 type Envelope<TResult> =

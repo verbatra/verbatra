@@ -16,7 +16,7 @@ El código de salida es el contrato sobre el que ramifica tu paso de CI:
 
 | Código | Significado |
 | --- | --- |
-| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `export` escribió su libro, `init` preparó el proyecto, `watch` o `studio` se detuvo limpiamente, o se imprimió `--help` o `--version` |
+| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `export` escribió su libro, `init` preparó el proyecto, `watch` o `studio` se detuvo limpiamente, o se imprimió `--help` o `--version` |
 | `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado, `diff` encontró una clave ausente o cambiada, `doctor` encontró al menos una comprobación fallida, o `studio` falló al apagar su servidor |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración mala, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` sin un proveedor que pueda resolver o incapaz de componer una configuración válida, un arranque o una parada fallidos de `watch`, o `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor |
 | `130` | `watch` o `studio` fue detenido a la fuerza por una segunda interrupción |
@@ -51,7 +51,7 @@ Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` 
 
 ## Salida JSON
 
-Ocho comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor` y `pseudo`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que ramificas sobre un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
+Nueve comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor`, `pseudo` y `extract`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que ramificas sobre un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
 
 ```ts
 type Envelope<TResult> =

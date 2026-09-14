@@ -139,7 +139,7 @@ describe("pseudolocalize: every written value clears the project's integrity gat
     for (const [key, entry] of source.resource.entries) {
       const candidate = written.resource.entries.get(key);
       expect(candidate).toBeDefined();
-      expect(gateCandidateValue(entry, candidate?.value ?? "", adapter.adapter)).toEqual({
+      expect(gateCandidateValue(entry, candidate?.value ?? "", adapter.adapter)).toMatchObject({
         accepted: true,
       });
     }

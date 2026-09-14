@@ -119,6 +119,16 @@ Valide la configuration du projet et ne dépense rien : il ne construit aucun fo
 
 Entrée : `{ cwd?, configPath? }`. Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
 
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Analyse le code de ton application à la recherche des appels de traduction et fusionne ce qu'il trouve dans le catalogue de la locale source. C'est le seul point d'entrée qui lit du code applicatif plutôt qu'un fichier de locale, et c'est ce qui rend verbatra utilisable sur un projet qui n'a pas encore de catalogue. Il ne dépense rien : aucun fournisseur n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête réseau n'est faite.
+
+Seul le fichier de la locale source est écrit, et seules les clés réellement nouvelles sont ajoutées : une clé déjà présente dans le catalogue conserve sa valeur telle quelle, et une clé du catalogue qu'aucun appel ne mentionne reste intacte. Une exécution qui ne trouve rien de nouveau n'écrit rien du tout. Tout ce que l'analyse ne peut pas résoudre revient sous forme de données plutôt que d'être levé : un argument de clé non statique dans `dynamic`, une clé trouvée avec deux valeurs par défaut différentes dans `conflicts` (aucune n'est écrite) et un fichier illisible dans `diagnostics`. Le résultat ne porte que des clés, des valeurs et des emplacements fichier et ligne, jamais le contenu d'un fichier source.
+
+Entrée : `{ config, cwd?, dryRun? }`, où `config.extract` nomme le framework et les racines de code. Renvoie un `ExtractResult`. La découverte passe par le membre optionnel `readDirectory` de `SdkFs` ; un `deps.fs` qui ne l'implémente pas est signalé comme `EXTRACT_FS_UNSUPPORTED`.
+
 ### check
 
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme contrôle CI.
@@ -302,6 +312,8 @@ const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
 
 Une implémentation doit respecter deux points du contrat. Les lectures sont bornées en taille : `readFileBounded` et `readBytesBounded` prennent une limite d'octets et rapportent `missing` ou `too-large` comme un état plutôt que de lever, ce qui empêche un fichier hostile ou accidentellement énorme d'épuiser la mémoire. Les écritures doivent être atomiques, pour qu'un crash en cours d'écriture ne laisse jamais un fichier à moitié écrit, et `createExclusive` doit être atomique face aux autres processus, car c'est la primitive derrière le verrou d'écriture par locale. La création de répertoires revient à l'appelant.
 
+`readDirectory` est optionnel, pour qu'une implémentation écrite avant l'extraction depuis le code continue de compiler. [`extract`](#extract) est le seul point d'entrée qui en a besoin, et signale son absence par `EXTRACT_FS_UNSUPPORTED`. Il liste les entrées immédiates d'un répertoire sous la forme `{ name, kind }`, où `kind` vaut `"file"`, `"directory"` ou `"other"`. Un lien symbolique relève de `"other"` : l'analyse ne le suit jamais, et c'est ce qui la maintient à l'intérieur des racines qu'on lui a données.
+
 La seule chose que `deps.fs` n'atteint pas est un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 
 ## Anatomie du RunSummary
@@ -375,6 +387,9 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `CONCURRENCY_INVALID` | `concurrency` a été défini mais n'est pas un entier d'au moins 1 ; levé avant l'exécution de toute locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | une exécution réelle a défini `concurrency` au-dessus de 1 alors que `maxTokens` est configuré ; levé avant tout appel au fournisseur (un dry-run est exempté) |
 | `TARGET_UNWRITABLE` | un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique |
+| `SOURCE_UNWRITABLE` | le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; `xliff` et `apple-xcstrings` l'atteignent quand aucun catalogue n'existe encore, car ni l'un ni l'autre n'est créé à partir de rien |
+| `EXTRACT_NOT_CONFIGURED` | `extract` a été appelé avec une config qui ne porte aucun bloc `extract` |
+| `EXTRACT_FS_UNSUPPORTED` | `extract` a reçu un `deps.fs` qui n'implémente pas `readDirectory` : aucun fichier source ne peut donc être découvert |
 | `LOCALE_FAILED` | jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée |
 
 Deux exceptions à la règle de la classe d'erreur unique : `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue, et `runStatus` ne lève jamais. Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [CI et codes de sortie](/docs/ci-and-exit-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).

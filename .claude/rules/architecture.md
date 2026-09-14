@@ -9,7 +9,7 @@ Acyclic, one-way, confirmed against every `packages/*/package.json` `dependencie
 `devDependencies` block:
 
 ```
-config <- core <- format-adapters / ai-providers <- sdk (+ exchange) <- cli / studio
+config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <- cli / studio
 ```
 
 - `@verbatra/core` (`packages/core/package.json`) depends only on `zod`. Nothing below it.
@@ -20,9 +20,16 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange) <- cli / st
   `@verbatra/config` as a `devDependency`, for shared build/lint/test config only. It does not
   depend on `core`, so it does not sit on the `core <- format-adapters / ai-providers` line; it
   feeds into the sdk independently, parallel to that line.
+- `@verbatra/extract` (`packages/extract/package.json`) takes the same position as `exchange`: its
+  `dependencies` list only `zod`, its one workspace dependency is `@verbatra/config` as a
+  `devDependency`, and it joins the graph at the sdk. It is a distinct capability class from
+  `format-adapters` (code to IR rather than file to IR) with its own Strategy family
+  (`SourceExtractor`) and its own file-system port (`packages/extract/src/source-fs-port.ts`,
+  enforced by `source-fs-port.no-direct-node-fs.test.ts`). The decision record is
+  `packages/extract/docs/adr/0001-source-string-extraction.md`.
 - `@verbatra/sdk` depends on `@verbatra/core`, `@verbatra/ai-providers`, `@verbatra/exchange`,
-  `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles them into
-  `dist/index.js`; see `packages/sdk/package.json`).
+  `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles
+  them into `dist/index.js`; see `packages/sdk/package.json`).
 - `@verbatra/cli` depends on `@verbatra/sdk` only, plus `commander` and `zod`
   (`packages/cli/package.json`). It carries `@verbatra/studio` as a `devDependency` only, reached
   through a dynamic import at runtime (`packages/cli/src/studio-command.ts`), never a static

@@ -54,6 +54,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
 | `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
+| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract): das Framework und die Quellverzeichnisse. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
 Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
@@ -157,6 +158,28 @@ rates: {
 `asOf` ist ein Kalenderdatum in der Form `YYYY-MM-DD`, `currency` ein dreistelliger Großbuchstaben-Code. Beide sind Pflicht, und beide werden neben jeder aus der Tabelle abgeleiteten Zahl ausgegeben, eine veraltete Zahl ist also sichtbar veraltet. `table` ist nach Raten-Key aufgeschlüsselt: `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechneter Eintrag trägt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasierter `perMillionCharacters`. Beide Formen in einem Eintrag zu mischen wird abgelehnt, ebenso eine negative Rate.
 
 Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, was abgerechnet wird, nicht, was geschrieben wird. Ein Raten-Key ohne Eintrag wird als ausdrückliches Fehlen gemeldet statt als Kosten von null, und ein Eintrag in der für seinen Provider falschen Einheit wird abgelehnt statt angewendet. Siehe [Kosten abschätzen](/docs/estimating-cost) dafür, wie die Zahl berechnet wird und was sie bewusst auslässt.
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Optional und nur von [`verbatra extract`](/docs/cli/extract) genutzt. Jeder andere Befehl ignoriert es.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+}
+```
+
+`framework` benennt das Übersetzungs-Framework, nach dessen Aufrufstellen der Scan sucht. Die Menge ist geschlossen, und `i18next` ist heute das einzige Mitglied; es deckt die Formen `t(...)`, `$t(...)` und `<object>.t(...)` ab. Ein Framework ohne Extractor wird abgelehnt, statt akzeptiert und stillschweigend ignoriert zu werden.
+
+`roots` listet die Verzeichnisse auf, die durchlaufen werden, aufgelöst gegen das Arbeitsverzeichnis. Mindestens eines ist erforderlich, und nichts außerhalb davon wird je gelesen.
+
+`exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
+
+Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 
 ## Suchreihenfolge
 

@@ -8,6 +8,8 @@ import type {
   DoctorResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -104,6 +106,22 @@ export function makePseudoResult(
   };
 }
 
+export function makeExtractResult(overrides: Partial<ExtractResult> = {}): ExtractResult {
+  return {
+    sourcePath: "locales/en.json",
+    scannedFiles: 0,
+    added: [],
+    existingKeys: 0,
+    withoutDefault: [],
+    dynamic: [],
+    conflicts: [],
+    diagnostics: [],
+    written: false,
+    dryRun: false,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -174,6 +192,7 @@ export interface DepCalls {
   pseudolocalize: PseudolocalizeInput[];
   importStudio: undefined[];
   importMcp: undefined[];
+  extract: ExtractInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -190,6 +209,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     pseudolocalize: [],
     importStudio: [],
     importMcp: [],
+    extract: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -239,6 +259,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importMcp: async () => {
       calls.importMcp.push(undefined);
       return impl.importMcp ? impl.importMcp() : makeMcpModule();
+    },
+    extract: async (input) => {
+      calls.extract.push(input);
+      return impl.extract ? impl.extract(input) : makeExtractResult();
     },
   };
   return { deps, calls };

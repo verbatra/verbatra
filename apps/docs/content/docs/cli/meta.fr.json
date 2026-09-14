@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "init",
+    "extract",
     "translate",
     "watch",
     "check",

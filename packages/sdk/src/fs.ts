@@ -1,5 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { access, type FileHandle, mkdir, open, rename, rm, writeFile } from "node:fs/promises";
+import type { Dirent } from "node:fs";
+import {
+  access,
+  type FileHandle,
+  mkdir,
+  open,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 /**
@@ -44,6 +54,18 @@ export type BoundedBytesRead =
     };
 
 /**
+ * What one entry in a directory listing is: a regular file, a directory, or anything else. A
+ * symbolic link is reported as `other`, never followed, which is what keeps a source scan inside
+ * the roots it was given.
+ */
+export interface DirectoryEntry {
+  /** The entry's own name, with no directory part. */
+  readonly name: string;
+  /** What the entry is. Anything that is not a regular file or a directory is `other`. */
+  readonly kind: "file" | "directory" | "other";
+}
+
+/**
  * The file-system port the SDK's own I/O goes through. Supplying your own implementation as a
  * `deps.fs` option redirects that I/O, which is how the SDK's tests avoid touching disk and how an
  * embedding application can back part of a project with something other than a local disk.
@@ -80,6 +102,23 @@ export interface SdkFs {
   deleteFile(path: string): Promise<void>;
   /** Creates a directory and any missing parents. Optional; omit it if the backing store has no directories. */
   mkdir?(path: string): Promise<void>;
+  /**
+   * Lists one directory's immediate entries, without recursing and without following symbolic
+   * links. Optional, so an implementation written before source extraction existed keeps working;
+   * {@link extract} is the only entry point that needs it and reports its absence as
+   * `EXTRACT_FS_UNSUPPORTED`.
+   *
+   * @param path - The directory to list.
+   * @returns Every immediate entry with its kind. Rejects when the path is not a readable directory.
+   */
+  readDirectory?(path: string): Promise<readonly DirectoryEntry[]>;
+}
+
+function entryKind(entry: Dirent): DirectoryEntry["kind"] {
+  if (entry.isFile()) {
+    return "file";
+  }
+  return entry.isDirectory() ? "directory" : "other";
 }
 
 async function readBoundedUtf8(handle: FileHandle, size: number): Promise<string> {
@@ -205,5 +244,9 @@ export const defaultFs: SdkFs = {
   },
   mkdir: async (path: string): Promise<void> => {
     await mkdir(path, { recursive: true });
+  },
+  readDirectory: async (path: string): Promise<readonly DirectoryEntry[]> => {
+    const entries = await readdir(path, { withFileTypes: true });
+    return entries.map((entry) => ({ name: entry.name, kind: entryKind(entry) }));
   },
 };

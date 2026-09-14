@@ -4,6 +4,7 @@ import {
   diff,
   doctor,
   exportWorkbook,
+  extract,
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
@@ -28,6 +29,7 @@ const code = await run(
     pseudolocalize,
     importStudio: () => import("@verbatra/studio"),
     importMcp: () => import("@verbatra/mcp"),
+    extract,
   },
   {
     out: (text) => {
