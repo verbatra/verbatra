@@ -90,6 +90,14 @@ Un dry run ne construit aucun fournisseur, il ne demande donc aucune clé d'API 
 
 [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) se passent aussi du fournisseur : `check` signale les compteurs par locale, `diff` liste les clés exactes. Contrairement à `doctor`, tous les trois lisent le fichier source : il doit donc être en place d'abord.
 
+Une dernière chose marche avant que tu aies une clé, et elle te donne quelque chose à regarder plutôt qu'à lire :
+
+```bash
+npx verbatra pseudo
+```
+
+[`verbatra pseudo`](/docs/cli/pseudo) construit une locale factice à partir de tes chaînes source, accentuée, allongée et entourée de `[` et `]`, et l'écrit dans `.verbatra-local/pseudo`. Pointe ton serveur de développement vers ce répertoire et lance l'application dedans : un bouton tronqué, une phrase recollée à partir de deux fragments et un libellé que personne n'a jamais extrait pour la traduction sautent aux yeux immédiatement. Tes vrais fichiers de locale ne sont jamais touchés, et le fichier généré est déjà couvert par les entrées `.gitignore` qu'`init` a écrites.
+
 ## 4. Définis ta clé d'API
 
 Les clés viennent de l'environnement, jamais du fichier de configuration. Chaque fournisseur hébergé lit exactement une variable ; pour Gemini c'est `GEMINI_API_KEY`. Copie l'exemple généré et renseigne ta clé :
