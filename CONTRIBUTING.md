@@ -290,7 +290,7 @@ proposed again. `apple-xcstrings` remains the only adapter that implements
 | Format | Factory fit | Verdict | Reason |
 | --- | --- | --- | --- |
 | .NET `.resx` | `createFlatFileAdapter` | shipped | Flat `<data name>`/`<value>` elements under one root, the same shape XLIFF and Android `strings.xml` already ride on. |
-| INI | `createFlatFileAdapter` | shipped | One section level, one line per key, every value a string. `properties` is the direct template. |
+| INI | `createFlatFileAdapter` | shipped | One section level, one line per key, every value a string. `properties` is the template for the file shape, `vue-i18n` for the placeholder syntax. |
 | TOML | `createTreeFileAdapter` | deferred | Needs a third-party parser as a new runtime dependency, and an order-preserving one; neither was settled here. |
 | Fluent `.ftl` | neither | deferred | Not key/value. Needs a syntax tree and a unit-of-translation decision first. |
 
@@ -313,8 +313,10 @@ scalars and no nesting beyond the section. Sections collapse into dotted keys on
 read through the same segment encoding `flattenTree` uses, and are rebuilt on
 write. It has no plural construct and no canonical placeholder syntax at all, so
 the adapter guards single-brace tokens (`{name}`, `{0}`), the most common
-convention in the files that do interpolate. One file per locale. No new
-dependency: the parser is a few dozen lines, like `properties`.
+convention in the files that do interpolate; that is `vue-i18n`'s extractor, not
+`properties`' MessageFormat one, so `properties` is the template for the file
+shape only. One file per locale. No new dependency: the parser is a few dozen
+lines, like `properties`.
 
 **TOML** would ride `createTreeFileAdapter`, not `createFlatFileAdapter`: it has
 nested tables, arrays of tables and typed scalars (integers, floats, booleans,

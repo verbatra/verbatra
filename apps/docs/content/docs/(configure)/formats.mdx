@@ -166,7 +166,7 @@ The `ini` format covers classic INI configuration files, detected by the `.ini` 
 - **Values are plain text, optionally quoted.** A value wrapped in double quotes is unquoted on read, with `\\`, `\"`, `\n`, `\r`, and `\t` decoded. A value that would otherwise lose leading or trailing space, or that carries a line break, is written back quoted. An inline `;` is part of the value, not a comment.
 - **Placeholders are single-brace tokens.** INI has no placeholder convention of its own, so verbatra guards `{name}` and `{0}`, the syntax INI-based setups converge on. Anything else in the value is ordinary text.
 - **No plurals.** The format has no plural construct, so every entry is a single string.
-- **Malformed input is structured.** An unterminated or empty `[section]` header raises a structured `AdapterError` rather than a raw parse failure. A line with no `=` is kept verbatim and never becomes an entry.
+- **Malformed input is structured.** A section header may carry a trailing `;` or `#` comment. An unterminated or empty `[section]` header, or anything after the closing bracket that is not a comment, raises a structured `AdapterError` rather than a raw parse failure. A line with no `=` is kept verbatim and never becomes an entry.
 - **Missing destination.** A target `.ini` that does not exist yet is created from the entries rather than failing the write.
 
 ## .NET .resx
@@ -175,13 +175,14 @@ The `ini` format covers classic INI configuration files, detected by the `.ini` 
 
 The `resx` format covers .NET XML resource files, detected by the `.resx` extension: a flat list of `<data name="Key"><value>text</value></data>` elements under a `<root>`, never split into a tree. It claims `.resx` only, so an Android `strings.xml` still resolves to `android-xml` with no ambiguity.
 
-- **The schema preamble and the headers are never touched.** A write re-reads the destination document and patches only the `<value>` of the entries it has, so the inline XSD schema block, every `<resheader>`, and the document's own formatting come back byte-identical.
+- **The schema preamble and the headers are never touched.** A write re-reads the destination document and patches only the `<value>` of the entries it has, so the inline XSD schema block, every `<resheader>`, every `<metadata>` and `<assembly>` element, and every entry it has no translation for come back unchanged, on the file's own line terminator. The one thing a write does not restore is a leading byte order mark, which is dropped when the file is read.
 - **Non-string and designer entries are preserved, not translated.** A `<data>` element carrying a `type` or `mimetype` attribute holds a serialized object (an image, an icon, a byte array) and is read through untouched. So is any entry whose name starts with `>>` or `$`, which is Visual Studio designer metadata rather than user-facing text. None of these become translatable entries, and none of them are rewritten.
 - **A `<comment>` becomes the entry description.** It reaches the provider as disambiguation context and appears in the [`Context` column](/docs/manual-translation) of an exported workbook. It is never written back.
-- **Placeholders are .NET composite format items.** `{0}`, `{1,-10}`, and `{2:C}` are extracted whole, alignment and format specifier included, so a translation that drops `{0:C}` or flattens it to `{0}` fails the integrity check. The doubled `{{` and `}}` that stand for a literal brace are read as literals, not as placeholders.
+- **Placeholders are .NET composite format items.** `{0}`, `{1,-10}`, and `{2:C}` are extracted whole, alignment and format specifier included, so a translation that drops `{0:C}` or flattens it to `{0}` fails the integrity check. Because placeholder integrity is the only guard here, braces are guarded too: a doubled `{{` or `}}`, and a brace belonging to no format item, are tokens of their own, so unescaping `{{` into `{` or inventing a stray brace is caught rather than reaching a `FormatException` in your app.
 - **No ICU validation, by choice.** Composite formatting is not ICU, and verbatra's message-validity channel reports ICU specifically, so `.resx` values are guarded entirely through placeholder integrity rather than through a message-syntax check that would mislabel the failure.
 - **No plurals.** `.resx` has no plural construct, so every entry is a single string.
 - **Missing destination.** A target `.resx` that does not exist yet is synthesized with the standard `resmimetype`, `version`, `reader`, and `writer` headers, so the result loads under `ResXResourceReader` as it stands.
+- **A name the destination cannot carry is refused, never silently skipped.** If the target file already holds a key as a typed resource, as designer metadata, or with markup inside its `<value>`, the translated value cannot go there. The write fails with a structured `AdapterError` naming the key, rather than reporting success and dropping the value.
 - **Malformed input is structured.** A document that is not valid XML, whose root element is not `<root>`, or that declares a DTD or an entity, raises a structured `AdapterError`.
 
 ## Document key order
