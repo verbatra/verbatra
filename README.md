@@ -203,6 +203,22 @@ The action fetches and runs `@verbatra/cli` at exactly the version you pin, so t
 
 See the [GitHub Action page](https://verbatra.kreitz-webdev.de/docs/github-action) for the full input list, the annotation and job-summary format, and the security notes.
 
+## Agent skills
+
+Three skill documents in [`skills/`](./skills) teach a coding agent when to reach for verbatra and which of its surfaces to use. Install one into your own project with the [skills.sh](https://www.skills.sh/docs) CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Use it when |
+| --- | --- |
+| `verbatra-cli` | The agent drives the `verbatra` binary from a shell or CI. |
+| `verbatra-mcp-tools` | An MCP client is connected to `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | A browser agent is driving an open Verbatra Studio tab. |
+
+Each document stands on its own, so install only the surface you use: swap the name after `--skill`, or repeat the flag to install more than one. Add `-a <agent>` to target a specific agent directory. The install is recorded in your own `skills-lock.json`, and a root-level parity test in this repository fails if a documented command, format, provider, or tool name ever drifts from the code.
+
 ## Programmatic use
 
 Everything the CLI does is available from `@verbatra/sdk`:

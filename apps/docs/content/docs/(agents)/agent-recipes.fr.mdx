@@ -273,6 +273,22 @@ La première sort avec `0`, la deuxième avec `1` (le point de terminaison du fo
 
 La clé de fournisseur de l'étape 4 vient de l'environnement, comme toujours. Range-la dans le coffre à secrets de ta CI ou dans l'environnement de ton shell et laisse le processus en hériter ; la CLI ne prend aucune clé en argument et n'en lit aucune depuis le fichier de config. Quelle variable lit ton fournisseur est indiqué dans [Fournisseurs](/docs/providers).
 
+## Le pack de skills
+
+Les recettes de cette page sont la référence. Si tu préfères donner d'emblée à un agent le savoir opérationnel, le dépôt verbatra fournit trois documents de skill qui font exactement cela, installables avec la CLI [skills.sh](https://www.skills.sh/docs) :
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | À utiliser quand |
+| --- | --- |
+| `verbatra-cli` | l'agent pilote le binaire `verbatra` depuis un shell ou depuis la CI. |
+| `verbatra-mcp-tools` | un client MCP est connecté à `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | un agent de navigateur pilote un onglet Studio ouvert. |
+
+Ils couvrent ce qu'un agent rate quand personne ne le lui dit : quelles commandes dépensent et lesquelles sont gratuites, qu'une exécution à blanc ne construit aucun fournisseur, ce que le fichier de verrou rend visible, et pourquoi un outil qui dépense peut manquer d'une liste à dessein. N'installe que la surface que tu utilises ; chaque document se suffit à lui-même. Change le nom après `--skill`, ou répète l'option pour en installer plusieurs.
+
 ## Ensuite
 
 - [CI et codes de sortie](/docs/ci-and-exit-codes) : l'enveloppe, le tableau des codes de sortie et chaque forme de `result` en entier.

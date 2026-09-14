@@ -273,6 +273,22 @@ The first exits `0`, the second exits `1` (the provider endpoint was unreachable
 
 The provider key for step 4 comes from the environment, the way it always does. Put it in your CI secret store or your shell environment and let the process inherit it; the CLI takes no key argument and reads none from the config file. See [Providers](/docs/providers) for which variable your provider reads.
 
+## The skills pack
+
+The recipes on this page are the reference. If you would rather hand an agent the operating knowledge up front, the verbatra repository ships three skill documents that do exactly that, installable with the [skills.sh](https://www.skills.sh/docs) CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Use it when |
+| --- | --- |
+| `verbatra-cli` | The agent drives the `verbatra` binary from a shell or CI. |
+| `verbatra-mcp-tools` | An MCP client is connected to `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | A browser agent is driving an open Studio tab. |
+
+They cover what an agent gets wrong without being told: which commands spend and which are free, that a dry run constructs no provider at all, what the lock file makes visible, and why a provider-spending tool can be missing from a tool list on purpose. Install only the surface you use; each document stands on its own. Swap the name after `--skill`, or repeat the flag to install more than one.
+
 ## Next
 
 - [CI and exit codes](/docs/ci-and-exit-codes): the envelope, the exit-code table, and every `result` shape in full.

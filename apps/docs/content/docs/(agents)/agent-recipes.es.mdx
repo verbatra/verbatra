@@ -273,6 +273,22 @@ El primero sale con `0`, el segundo con `1` (el endpoint del proveedor no era al
 
 La clave del proveedor para el paso 4 viene del entorno, como siempre. Guárdala en el almacén de secretos de tu CI o en el entorno de tu shell y deja que el proceso la herede; la CLI no acepta ninguna clave como argumento y no lee ninguna del archivo de configuración. Qué variable lee tu proveedor está en [Proveedores](/docs/providers).
 
+## El paquete de skills
+
+Las recetas de esta página son la referencia. Si prefieres darle a un agente el conocimiento operativo por adelantado, el repositorio de verbatra incluye tres documentos de skill que hacen justo eso, instalables con la CLI de [skills.sh](https://www.skills.sh/docs):
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Úsala cuando |
+| --- | --- |
+| `verbatra-cli` | el agente maneja el binario `verbatra` desde una shell o desde CI. |
+| `verbatra-mcp-tools` | un cliente MCP está conectado a `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | un agente de navegador maneja una pestaña de Studio abierta. |
+
+Cubren lo que un agente hace mal si nadie se lo dice: qué comandos gastan y cuáles son gratis, que una ejecución en seco no construye ningún proveedor, qué hace visible el archivo de bloqueo y por qué una herramienta que gasta puede faltar de una lista a propósito. Instala solo la superficie que uses; cada documento se basta a sí mismo. Cambia el nombre que va detrás de `--skill`, o repite la opción para instalar más de una.
+
 ## Siguiente
 
 - [CI y códigos de salida](/docs/ci-and-exit-codes): el envoltorio, la tabla de códigos de salida y cada forma de `result` al completo.

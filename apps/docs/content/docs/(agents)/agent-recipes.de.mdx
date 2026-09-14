@@ -273,6 +273,22 @@ Der erste endet mit `0`, der zweite mit `1` (der Provider-Endpunkt war nicht err
 
 Der Provider-Key für Schritt 4 kommt aus der Umgebung, wie immer. Lege ihn in deinem CI-Secret-Store oder deiner Shell-Umgebung ab und lass ihn den Prozess erben; die CLI nimmt kein Key-Argument entgegen und liest keinen aus der Konfigurationsdatei. Welche Variable dein Provider liest, steht unter [Provider](/docs/providers).
 
+## Das Skills-Paket
+
+Die Rezepte auf dieser Seite sind die Referenz. Wenn du einem Agenten das Betriebswissen lieber vorab in die Hand gibst: das verbatra-Repository liefert drei Skill-Dokumente, die genau das tun, installierbar mit der [skills.sh](https://www.skills.sh/docs)-CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Nimm es, wenn |
+| --- | --- |
+| `verbatra-cli` | der Agent die `verbatra`-Binary aus einer Shell oder aus CI steuert. |
+| `verbatra-mcp-tools` | ein MCP-Client mit `verbatra mcp` verbunden ist. |
+| `verbatra-studio-agent-tools` | ein Browser-Agent einen offenen Studio-Tab steuert. |
+
+Sie decken ab, was ein Agent ohne Ansage falsch macht: welche Befehle Geld kosten und welche gratis sind, dass ein Dry Run überhaupt keinen Provider erzeugt, was die Lock-Datei sichtbar macht und warum ein Tool, das Provider-Budget ausgibt, absichtlich in einer Tool-Liste fehlen kann. Installiere nur die Oberfläche, die du nutzt; jedes Dokument steht für sich. Tausche den Namen hinter `--skill` aus oder wiederhole den Schalter, um mehrere zu installieren.
+
 ## Als Nächstes
 
 - [CI und Exit-Codes](/docs/ci-and-exit-codes): der Envelope, die Exit-Code-Tabelle und jede `result`-Form vollständig.
