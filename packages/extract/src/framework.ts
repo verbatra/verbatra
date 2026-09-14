@@ -7,12 +7,13 @@ export const SOURCE_FRAMEWORKS = ["i18next"] as const;
  * framework is only nameable here once an extractor ships for it, so a configured value that
  * resolves to nothing cannot exist.
  *
- * `i18next` covers the `t(...)`, `$t(...)`, and `<object>.t(...)` shapes, with the key as the first
- * argument and an optional default as either the second argument or a `defaultValue` field on the
- * options object.
+ * `i18next` covers the `t(...)`, `$t(...)`, and `<object>.t(...)` shapes, each also through an
+ * optional call (`t?.(...)`) and an explicit type-argument list (`t<string>(...)`), with the key as
+ * the first argument and an optional default as either the second argument or a `defaultValue`
+ * field on the options object. A namespace-qualified key such as `t("common:nav.home")` is
+ * reported as a dynamic call site rather than extracted, because one configuration addresses one
+ * catalog file.
  */
-
 export type SourceFramework = (typeof SOURCE_FRAMEWORKS)[number];
 
-/** Zod schema accepting exactly one {@link SourceFramework}. Embedded in the config schema. */
 export const sourceFrameworkSchema = z.enum(SOURCE_FRAMEWORKS);

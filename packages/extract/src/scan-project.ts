@@ -13,13 +13,9 @@ export interface SourceLocation {
   readonly line: number;
 }
 
-/** One key the scan resolved to a single value, and the first call site it was found at. */
 export interface ExtractedKey extends SourceLocation {
-  /** The key exactly as the call site spelled it. */
   readonly key: string;
-  /** The default value every call site agreed on, or the empty string when none supplied one. */
   readonly value: string;
-  /** Whether any call site supplied a default at all. */
   readonly hasDefault: boolean;
 }
 
@@ -51,31 +47,19 @@ export interface ScanDiagnostic {
   readonly reason: ScanDiagnosticReason;
 }
 
-/** Everything one source scan found across a project. */
 export interface ProjectScan {
-  /** How many files were read and scanned. */
   readonly scannedFiles: number;
-  /** Keys that resolved to exactly one value. A conflicted key is reported below instead. */
   readonly keys: readonly ExtractedKey[];
-  /** Call sites whose key argument was not a static string. */
   readonly dynamic: readonly SourceLocation[];
-  /** Keys whose call sites disagreed on a default value. */
   readonly conflicts: readonly KeyConflict[];
-  /** Files and directories that could not be read. */
   readonly diagnostics: readonly ScanDiagnostic[];
 }
 
-/** Input for {@link scanProject}. */
 export interface ScanProjectInput {
-  /** Directory that every reported path is made relative to. */
   readonly cwd: string;
-  /** Absolute directories to walk. Nothing outside them is ever read. */
   readonly roots: readonly string[];
-  /** The framework extractor to run over each file. */
   readonly extractor: SourceExtractor;
-  /** Extra directory names to skip, on top of the always-skipped set. */
   readonly exclude?: readonly string[];
-  /** Byte ceiling per file. A larger file is skipped with a `too-large` diagnostic. */
   readonly maxFileBytes?: number;
 }
 
