@@ -89,6 +89,14 @@ describe("translate: an estimate spends nothing", () => {
               written.push(path);
               return defaultFs.createExclusive(path, contents);
             },
+            deleteFile: async (path: string) => {
+              written.push(path);
+              await defaultFs.deleteFile(path);
+            },
+            mkdir: async (path: string) => {
+              written.push(path);
+              await defaultFs.mkdir?.(path);
+            },
           },
         },
       ),
@@ -180,5 +188,52 @@ describe("translate: what the estimate covers", () => {
 
     expect(summary.locales[0]?.invalidIcuSource).toEqual(["broken"]);
     expect(summary.estimate?.keys).toBe(1);
+  });
+});
+
+describe("translate: the estimate path is proven keyless, not merely key-free", () => {
+  it("fails a live run without a key, which is what makes the estimate's success meaningful", async () => {
+    const dir = await project({ greeting: "Hello world" });
+
+    await expect(
+      withoutProviderKeys(() => translate({ config: anthropicConfig(), cwd: dir })),
+    ).rejects.toMatchObject({ code: "PROVIDER_CONSTRUCTION_FAILED" });
+  });
+
+  it("completes an estimate through the real provider factory with every key removed", async () => {
+    const dir = await project({ greeting: "Hello world" });
+
+    const summary = await withoutProviderKeys(() =>
+      translate({ config: anthropicConfig(), cwd: dir, estimate: true }),
+    );
+
+    expect(summary.estimate?.provider).toBe("anthropic");
+    expect(summary.dryRun).toBe(true);
+  });
+
+  it("overrides an explicit dryRun:false, so an estimate can never be asked to run live", async () => {
+    const dir = await project({ greeting: "Hello world" });
+
+    const summary = await withoutProviderKeys(() =>
+      translate({ config: anthropicConfig(), cwd: dir, dryRun: false, estimate: true }),
+    );
+
+    expect(summary.dryRun).toBe(true);
+    expect(summary.estimate).toBeDefined();
+  });
+
+  it("accepts concurrency above one beside a token budget, because an estimate spends no budget", async () => {
+    const dir = await project({ greeting: "Hello world" });
+
+    const summary = await withoutProviderKeys(() =>
+      translate({
+        config: anthropicConfig({ maxTokens: 1000 }),
+        cwd: dir,
+        estimate: true,
+        concurrency: 4,
+      }),
+    );
+
+    expect(summary.estimate).toBeDefined();
   });
 });

@@ -66,3 +66,71 @@ describe("lookupRate", () => {
     expect(lookupRate(undefined, "deepl")).toBeUndefined();
   });
 });
+
+describe("rateCardSchema: a malformed rate must never become a plausible number", () => {
+  function tokenTable(rate: unknown): unknown {
+    return { ...validCard, table: { "anthropic/sonnet-test": rate } };
+  }
+
+  it("rejects an infinite token rate, which would otherwise render as an Infinity figure", () => {
+    expect(() =>
+      rateCardSchema.parse(
+        tokenTable({ inputPerMillionTokens: Number.POSITIVE_INFINITY, outputPerMillionTokens: 15 }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a negative-infinity rate", () => {
+    expect(() =>
+      rateCardSchema.parse(
+        tokenTable({ inputPerMillionTokens: 3, outputPerMillionTokens: Number.NEGATIVE_INFINITY }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a NaN rate, which would otherwise render as a NaN figure", () => {
+    expect(() =>
+      rateCardSchema.parse(
+        tokenTable({ inputPerMillionTokens: Number.NaN, outputPerMillionTokens: 15 }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a rate written as a numeric string", () => {
+    expect(() =>
+      rateCardSchema.parse(tokenTable({ inputPerMillionTokens: "3", outputPerMillionTokens: 15 })),
+    ).toThrow();
+  });
+
+  it("accepts a zero rate, because a free tier is a real price and not a missing one", () => {
+    const parsed = rateCardSchema.parse(
+      tokenTable({ inputPerMillionTokens: 0, outputPerMillionTokens: 0 }),
+    );
+
+    expect(parsed.table["anthropic/sonnet-test"]).toEqual({
+      inputPerMillionTokens: 0,
+      outputPerMillionTokens: 0,
+    });
+  });
+
+  it("accepts an empty table, which is a card that prices nothing rather than an invalid card", () => {
+    const parsed = rateCardSchema.parse({ ...validCard, table: {} });
+
+    expect(lookupRate(parsed, "deepl")).toBeUndefined();
+  });
+
+  it("rejects an empty rate key, so no rate can be filed under a key nothing resolves to", () => {
+    expect(() =>
+      rateCardSchema.parse({ ...validCard, table: { "": { perMillionCharacters: 25 } } }),
+    ).toThrow();
+  });
+});
+
+describe("lookupRate: inherited properties are not rates", () => {
+  it("reports no rate for an Object.prototype member name", () => {
+    const card = rateCardSchema.parse({ ...validCard, table: {} });
+
+    expect(lookupRate(card, "constructor")).toBeUndefined();
+    expect(lookupRate(card, "toString")).toBeUndefined();
+  });
+});

@@ -1,14 +1,17 @@
-import type { TranslationEntry } from "@verbatra/core";
+import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
+import { baseConfig } from "../test-support.js";
 import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
   ESTIMATED_RESPONSE_SCHEMA_TOKENS,
   ESTIMATED_SYSTEM_RULES_TOKENS,
+  estimateForRun,
   estimateRun,
   quantifyLocale,
 } from "./estimate.js";
+import type { LocaleSummary } from "./summary.js";
 
 function entry(key: string, value: string): TranslationEntry {
   return { key, namespace: "", value, placeholders: [], isPlural: false };
@@ -279,5 +282,129 @@ describe("quantifyLocale", () => {
       outputTokens: 0,
       sourceCharacters: 0,
     });
+  });
+});
+
+describe("estimateRun: a rate the schema let through must still not invent a figure", () => {
+  it("prices a zero rate at zero rather than treating a free tier as an absent rate", () => {
+    const estimate = estimateRun({
+      provider: ANTHROPIC,
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [GREETING] }],
+      rates: card({
+        "anthropic/sonnet-test": { inputPerMillionTokens: 0, outputPerMillionTokens: 0 },
+      }),
+    });
+
+    expect(estimate.pricing).toBe("priced");
+    expect(estimate.cost).toBe(0);
+  });
+
+  it("refuses a token rate filed against a character-billed provider", () => {
+    const estimate = estimateRun({
+      provider: DEEPL,
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [GREETING] }],
+      rates: card({ deepl: { inputPerMillionTokens: 3, outputPerMillionTokens: 15 } }),
+    });
+
+    expect(estimate.pricing).toBe("rate-unit-mismatch");
+    expect(estimate.cost).toBeUndefined();
+    expect(estimate.locales[0]?.cost).toBeUndefined();
+    expect(estimate.sourceCharacters).toBe(11);
+  });
+
+  it("treats an empty table as no rate on file rather than as a rate of zero", () => {
+    const estimate = estimateRun({
+      provider: ANTHROPIC,
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [GREETING] }],
+      rates: card({}),
+    });
+
+    expect(estimate.pricing).toBe("no-rate-on-file");
+    expect(estimate.cost).toBeUndefined();
+  });
+
+  it("stays finite and scales linearly on a run far larger than any real project", () => {
+    const long = entry("k", "x".repeat(1_000_000));
+    const single = estimateRun({
+      provider: ANTHROPIC,
+      maxBatchSize: 50,
+      locales: [{ locale: "de", entries: [long] }],
+      rates: card({
+        "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+      }),
+    });
+    const doubled = estimateRun({
+      provider: ANTHROPIC,
+      maxBatchSize: 50,
+      locales: [
+        { locale: "de", entries: [long] },
+        { locale: "fr", entries: [long] },
+      ],
+      rates: card({
+        "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+      }),
+    });
+
+    expect(Number.isFinite(single.cost ?? Number.NaN)).toBe(true);
+    expect(doubled.cost).toBeCloseTo((single.cost ?? 0) * 2, 6);
+  });
+});
+
+describe("estimateForRun", () => {
+  function summary(locale: string, translated: readonly string[]): LocaleSummary {
+    return {
+      locale,
+      status: "succeeded",
+      translated: [...translated],
+      unchanged: [],
+      orphaned: [],
+      pruned: [],
+      invalidIcuSource: [],
+      cacheHits: [],
+      integrityMismatches: [],
+      providerFailures: [],
+      generated: [],
+      budgetWithheld: [],
+      notices: [],
+      needsReview: [],
+      unfilled: [],
+      malformedRows: [],
+      duplicateKeys: [],
+    };
+  }
+
+  function source(entries: readonly TranslationEntry[]): LocaleResource {
+    return {
+      locale: "en",
+      namespace: "",
+      format: "i18next-json",
+      entries: new Map(entries.map((item) => [item.key, item])),
+    };
+  }
+
+  it("skips a summary key the source no longer carries rather than counting a phantom entry", () => {
+    const estimate = estimateForRun({
+      summaries: [summary("de", ["greeting", "vanished"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC }),
+      maxBatchSize: 50,
+    });
+
+    expect(estimate.keys).toBe(1);
+    expect(estimate.locales[0]?.keys).toBe(1);
+  });
+
+  it("reports no rate on file when the config carries no rates block", () => {
+    const estimate = estimateForRun({
+      summaries: [summary("de", ["greeting"])],
+      source: source([GREETING]),
+      config: baseConfig({ provider: ANTHROPIC }),
+      maxBatchSize: 50,
+    });
+
+    expect(estimate.pricing).toBe("no-rate-on-file");
   });
 });

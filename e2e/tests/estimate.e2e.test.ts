@@ -1,4 +1,4 @@
-import { access, mkdir } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -44,6 +44,19 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+async function tree(dir: string): Promise<Record<string, string>> {
+  const names = await readdir(dir, { recursive: true, withFileTypes: true });
+  const files: Record<string, string> = {};
+  for (const item of names) {
+    if (!item.isFile()) {
+      continue;
+    }
+    const path = join(item.parentPath, item.name);
+    files[path.slice(dir.length + 1)] = await readFile(path, "utf8");
+  }
+  return files;
+}
+
 beforeAll(async () => {
   consumer = await readSharedConsumer();
 }, 180_000);
@@ -71,6 +84,19 @@ describe("translate --estimate (no provider, no key)", () => {
     expect(await exists(join(dir, "locales", "fr.json"))).toBe(false);
     expect(await exists(join(dir, "verbatra.lock.json"))).toBe(false);
     expect(await exists(join(dir, "verbatra.cache.json"))).toBe(false);
+  });
+
+  it("leaves the project tree byte-identical, including .gitignore", async () => {
+    const dir = await seed("estimate-tree-unchanged");
+    await writeFile(join(dir, ".gitignore"), ".env\n");
+    const before = await tree(dir);
+
+    const result = await runVerbatra(consumer, ["translate", "--estimate", "--cwd", dir], {
+      env: NO_KEYS,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(await tree(dir)).toEqual(before);
   });
 
   it("prints a currency figure with its date once the config supplies rates", async () => {
