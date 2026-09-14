@@ -1,4 +1,6 @@
 import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
+import type { BillingUnit } from "../config/provider-billing.js";
+import type { ProviderId } from "../config/provider-config.js";
 
 /**
  * Conditions the SDK itself reports on a locale, as opposed to the {@link ProviderNotice} codes a
@@ -55,6 +57,112 @@ export interface RunBudget {
   readonly tokensUsed: number;
   /** True once `tokensUsed` passed `maxTokens`. */
   readonly exceeded: boolean;
+}
+
+/**
+ * Why a {@link RunEstimate} does or does not carry a currency figure.
+ *
+ * - `priced`: a rate for this provider and model was found on the configured rate card and applied.
+ * - `no-rate-on-file`: no rate was configured for {@link RunEstimate.rateKey}. The quantity is still
+ *   reported; the money is not, because verbatra ships no prices of its own and will not guess one.
+ * - `rate-unit-mismatch`: a rate exists but is written in the wrong unit for this provider, for
+ *   instance a per-character price against a token-billed model. It is refused rather than applied.
+ * - `not-billed`: the provider is a self-hosted endpoint, so no API bills for the run at all.
+ */
+export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch" | "not-billed";
+
+/**
+ * What a pre-run estimate deliberately leaves out. Each code marks a reason the real run can cost
+ * less than the figure, or a reason the figure is approximate, so an estimate is never mistaken for
+ * an invoice.
+ *
+ * - `CACHE_NOT_CONSULTED`: the estimate does not read the translation memory, so keys a live run
+ *   would serve from cache are still counted.
+ * - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
+ *   string; the estimate counts every key.
+ * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
+ *   own tokenizer.
+ * - `REPAIR_REQUESTS_NOT_COUNTED`: the one bounded repair request an incomplete response can
+ *   trigger is not counted.
+ */
+export type EstimateCaveatCode =
+  | "CACHE_NOT_CONSULTED"
+  | "SOURCE_DUPLICATES_NOT_DEDUPLICATED"
+  | "TOKEN_COUNT_IS_HEURISTIC"
+  | "REPAIR_REQUESTS_NOT_COUNTED";
+
+/**
+ * The estimated billing quantity for one target locale. `inputTokens` and `outputTokens` are present
+ * only for a token-billed provider, and `sourceCharacters` only for a character-billed one, so a
+ * machine-translation API is never handed a token figure it does not bill by.
+ */
+export interface LocaleEstimate {
+  /** The target locale this estimate covers. */
+  readonly locale: string;
+  /** How many keys would be sent for this locale. */
+  readonly keys: number;
+  /** How many provider requests those keys would be split into. */
+  readonly requests: number;
+  /** Estimated prompt tokens. Present only when the provider bills by tokens. */
+  readonly inputTokens?: number;
+  /** Estimated completion tokens. Present only when the provider bills by tokens. */
+  readonly outputTokens?: number;
+  /** Estimated source characters. Present only when the provider bills by characters. */
+  readonly sourceCharacters?: number;
+  /**
+   * The estimated cost for this locale, in {@link RunEstimate.currency}. Present only when
+   * {@link RunEstimate.pricing} is `priced`.
+   */
+  readonly cost?: number;
+}
+
+/**
+ * A pre-run estimate: what a run would send, and what that would cost at the rates the project
+ * supplied. It is an upper bound computed without constructing a provider, reading an API key, or
+ * making a network call, and it is arithmetic on assumptions rather than a quotation. See
+ * {@link EstimateCaveatCode} for exactly what it leaves out.
+ *
+ * verbatra publishes no prices. `cost` exists only when the config carries a `rates` block naming
+ * {@link rateKey}; otherwise `pricing` says why the money is absent and the quantity stands on its
+ * own.
+ */
+export interface RunEstimate {
+  /** The provider the estimate was computed for. */
+  readonly provider: ProviderId;
+  /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
+  readonly model?: string;
+  /**
+   * The key a rate is filed under in the config's `rates.table`: `provider/model` for a provider
+   * configured with a model, and the bare provider id otherwise.
+   */
+  readonly rateKey: string;
+  /** Whether this provider charges by tokens or by source characters. */
+  readonly unit: BillingUnit;
+  /** Why a currency figure is or is not present. See {@link EstimatePricing}. */
+  readonly pricing: EstimatePricing;
+  /** The rate card's currency code. Present only when `pricing` is `priced`. */
+  readonly currency?: string;
+  /**
+   * The date the rates were read, as the config declared it. Present only when `pricing` is
+   * `priced`. Print it beside any figure: a rate card is exactly as current as this date.
+   */
+  readonly asOf?: string;
+  /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
+  readonly locales: readonly LocaleEstimate[];
+  /** Keys that would be sent across every locale. */
+  readonly keys: number;
+  /** Provider requests across every locale. */
+  readonly requests: number;
+  /** Estimated prompt tokens across every locale. Present only for a token-billed provider. */
+  readonly inputTokens?: number;
+  /** Estimated completion tokens across every locale. Present only for a token-billed provider. */
+  readonly outputTokens?: number;
+  /** Estimated source characters across every locale. Present only for a character-billed provider. */
+  readonly sourceCharacters?: number;
+  /** The estimated total, in {@link currency}. Present only when `pricing` is `priced`. */
+  readonly cost?: number;
+  /** What this figure leaves out. Always present, never empty. */
+  readonly caveats: readonly EstimateCaveatCode[];
 }
 
 /** A condition the SDK reported on a locale. See {@link SdkNoticeCode}. */
@@ -212,4 +320,9 @@ export interface RunSummary {
   readonly usage?: UsageSummary;
   /** The token budget in force, present only when the config set one. */
   readonly budget?: RunBudget;
+  /**
+   * What the run would have cost, present only when it was asked for a pre-run estimate. Always a
+   * dry run: an estimate constructs no provider and spends nothing.
+   */
+  readonly estimate?: RunEstimate;
 }

@@ -41,11 +41,12 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, toBudgetSummary } from "./budget.js";
+import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { failureSummary, partition } from "./locale-failure.js";
 import { type LocaleRunParams, runLocale } from "./locale-run.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
-import type { LocaleSummary, RunSummary, SdkNotice } from "./summary.js";
+import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
 import { combineUsage } from "./usage.js";
 
 /** Input for {@link translate}. Only `config` is required; every other field has a default. */
@@ -72,6 +73,16 @@ export interface TranslateInput {
    * preview work without spending anything. Defaults to false.
    */
   readonly dryRun?: boolean;
+  /**
+   * Compute a pre-run cost estimate and return it on {@link RunSummary.estimate}. Implies
+   * `dryRun`: an estimate constructs no provider, reads no API key, makes no network call, and
+   * writes no file, so it is safe to run anywhere. Defaults to false.
+   *
+   * The figure is an upper bound derived from character counts, not a quotation. It carries a
+   * currency amount only when the config supplies a `rates` block covering the configured provider
+   * and model; otherwise it reports the quantity and says why the money is missing.
+   */
+  readonly estimate?: boolean;
   /**
    * Remove keys that no longer exist in the source. Defaults to the config's `prune`, then to
    * false, so orphaned keys are reported but kept unless removal is asked for explicitly.
@@ -402,6 +413,20 @@ export function resolveRunConcurrency(
   return concurrency;
 }
 
+function resolveDryRun(input: TranslateInput): boolean {
+  if (input.dryRun === true || input.estimate === true) {
+    return true;
+  }
+  return false;
+}
+
+function estimateFields(
+  requested: boolean,
+  params: EstimateForRunInput,
+): { estimate?: RunEstimate } {
+  return requested ? { estimate: estimateForRun(params) } : {};
+}
+
 /**
  * Runs the one-shot translation flow over every configured target locale, or over the subset named
  * by `locales`: read the source, diff
@@ -480,7 +505,8 @@ export async function translate(
 ): Promise<RunSummary> {
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
-  const dryRun = input.dryRun ?? false;
+  const estimateRequested = input.estimate ?? false;
+  const dryRun = resolveDryRun(input);
   const targetLocales = selectLocales(config, input.locales);
   const concurrency = resolveRunConcurrency(input.concurrency, dryRun, config);
   const prune = input.prune ?? config.prune ?? false;
@@ -538,6 +564,12 @@ export async function translate(
     failed,
     ...(usage !== undefined ? { usage } : {}),
     ...(budgetSummary !== undefined ? { budget: budgetSummary } : {}),
+    ...estimateFields(estimateRequested, {
+      summaries: locales,
+      source: source.resource,
+      config,
+      maxBatchSize,
+    }),
   };
 
   await recordCacheAdditions(cwd, cache, fs);

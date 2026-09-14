@@ -17,7 +17,14 @@ export {
   loadConfig,
   loadConfigWithMeta,
 } from "./config/load-config.js";
+export type { BillingUnit, ProviderBilling } from "./config/provider-billing.js";
 export type { ProviderConfig, ProviderId } from "./config/provider-config.js";
+export type {
+  CharacterRate,
+  ModelRate,
+  RateCard,
+  TokenRate,
+} from "./config/rate-card.js";
 export type { GlossaryProvenance } from "./config/resolve-glossary.js";
 export {
   type VerbatraConfig,
@@ -105,11 +112,15 @@ export {
 export type {
   BudgetBehavior,
   DuplicateKeyReport,
+  EstimateCaveatCode,
+  EstimatePricing,
+  LocaleEstimate,
   LocaleNotice,
   LocaleSummary,
   MalformedRowReport,
   NeedsReviewEntry,
   RunBudget,
+  RunEstimate,
   RunSummary,
   SdkNotice,
   SdkNoticeCode,
