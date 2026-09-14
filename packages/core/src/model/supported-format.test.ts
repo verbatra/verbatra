@@ -16,6 +16,7 @@ describe("SupportedFormat", () => {
       "apple-xcstrings",
       "android-xml",
       "gettext-po",
+      "ini",
     ]);
   });
 
@@ -32,6 +33,7 @@ describe("SupportedFormat", () => {
     expect(supportedFormatSchema.parse("apple-xcstrings")).toBe("apple-xcstrings");
     expect(supportedFormatSchema.parse("android-xml")).toBe("android-xml");
     expect(supportedFormatSchema.parse("gettext-po")).toBe("gettext-po");
+    expect(supportedFormatSchema.parse("ini")).toBe("ini");
   });
 
   it("rejects an unknown format", () => {

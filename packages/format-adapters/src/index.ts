@@ -18,6 +18,7 @@ export {
   pluralBaseKey,
   pluralCategoryOf,
 } from "./i18next/plural.js";
+export { createIniAdapter } from "./ini/ini-adapter.js";
 export {
   createTreeFileAdapter,
   type TreeFileAdapterOptions,

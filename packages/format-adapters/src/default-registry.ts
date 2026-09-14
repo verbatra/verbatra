@@ -4,6 +4,7 @@ import { createArbAdapter } from "./arb/arb-adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "./fs-port.js";
 import { createGettextAdapter } from "./gettext/gettext-adapter.js";
 import { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
+import { createIniAdapter } from "./ini/ini-adapter.js";
 import { createNextIntlJsonAdapter } from "./next-intl/next-intl-adapter.js";
 import { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
 import { createPropertiesAdapter } from "./properties/properties-adapter.js";
@@ -26,5 +27,6 @@ export function createDefaultRegistry(fs: AdapterFs = nodeAdapterFs): AdapterReg
     .register(createAppleStringsAdapter(fs))
     .register(createAppleXcstringsAdapter(fs))
     .register(createAndroidXmlAdapter(fs))
-    .register(createGettextAdapter(fs));
+    .register(createGettextAdapter(fs))
+    .register(createIniAdapter(fs));
 }
