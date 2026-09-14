@@ -163,6 +163,21 @@ describe("createResxAdapter preserves content it does not own", () => {
     expect(written).toContain('<data name="B" xml:space="preserve"><value>z</value></data>');
   });
 
+  it("settles a carriage return in a value at write time on a line-feed document", async () => {
+    const source =
+      '<root>\n  <data name="A" xml:space="preserve"><value>a&#13;b</value></data>\n</root>\n';
+    const { adapter, fs } = setup({ "Resources.resx": source });
+    const { resource: read } = await adapter.read("Resources.resx", "en");
+    expect(read.entries.get("A")?.value).toBe("a\rb");
+    await adapter.write(read, "Resources.resx");
+    const written = fs.files.get("Resources.resx") ?? "";
+    expect(written).not.toContain("\r");
+    const { resource: reread } = await adapter.read("Resources.resx", "en");
+    expect(reread.entries.get("A")?.value).toBe("a\nb");
+    await adapter.write(reread, "Resources.resx");
+    expect(fs.files.get("Resources.resx")).toBe(written);
+  });
+
   it("never doubles a carriage return when a translated value already carries CRLF", async () => {
     const source =
       '<?xml version="1.0" encoding="utf-8"?>\r\n<root>\r\n  <data name="A" xml:space="preserve">\r\n    <value>x</value>\r\n  </data>\r\n</root>\r\n';
