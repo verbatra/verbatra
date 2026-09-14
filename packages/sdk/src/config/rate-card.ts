@@ -1,22 +1,32 @@
 import { z } from "zod";
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CURRENCY_CODE = /^[A-Z]{3}$/;
 
+const MAX_RATE = 1_000_000_000;
+
+const rateAmountSchema = z
+  .number()
+  .nonnegative()
+  .max(MAX_RATE, {
+    message:
+      `a rate must be at most ${MAX_RATE} currency units per million, which is already far beyond ` +
+      "any real price; a larger one is a typo or a unit mistake, not a rate",
+  });
+
 export const tokenRateSchema = z.strictObject({
-  inputPerMillionTokens: z.number().nonnegative(),
-  outputPerMillionTokens: z.number().nonnegative(),
+  inputPerMillionTokens: rateAmountSchema,
+  outputPerMillionTokens: rateAmountSchema,
 });
 
 export const characterRateSchema = z.strictObject({
-  perMillionCharacters: z.number().nonnegative(),
+  perMillionCharacters: rateAmountSchema,
 });
 
 export const modelRateSchema = z.union([tokenRateSchema, characterRateSchema]);
 
 export const rateCardSchema = z.strictObject({
-  asOf: z.string().regex(ISO_DATE, {
-    message: "rates.asOf must be a calendar date written as YYYY-MM-DD",
+  asOf: z.iso.date({
+    error: "rates.asOf must be a date that exists on the calendar, written as YYYY-MM-DD",
   }),
   currency: z.string().regex(CURRENCY_CODE, {
     message: "rates.currency must be a three-letter uppercase code such as USD or EUR",

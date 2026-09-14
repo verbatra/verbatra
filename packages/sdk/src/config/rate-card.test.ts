@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { lookupRate, rateCardSchema } from "./rate-card.js";
 
 const validCard = {
@@ -132,5 +133,64 @@ describe("lookupRate: inherited properties are not rates", () => {
 
     expect(lookupRate(card, "constructor")).toBeUndefined();
     expect(lookupRate(card, "toString")).toBeUndefined();
+  });
+});
+
+describe("rateCardSchema: asOf must be a date that exists", () => {
+  it("is expressed in the shipped JSON Schema, so an editor can flag it too", () => {
+    const document: unknown = z.toJSONSchema(rateCardSchema);
+    const { properties } = document as { properties: Record<string, { format?: string }> };
+
+    expect(properties.asOf?.format).toBe("date");
+  });
+
+  it("rejects a YYYY-MM-DD shaped string that is not a calendar date", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, asOf: "2026-99-99" })).toThrow();
+  });
+
+  it("rejects a day past the end of its month rather than rolling it into the next one", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, asOf: "2026-02-30" })).toThrow();
+  });
+
+  it("accepts a leap day in a leap year", () => {
+    expect(rateCardSchema.parse({ ...validCard, asOf: "2024-02-29" }).asOf).toBe("2024-02-29");
+  });
+
+  it("rejects a leap day in a year that has none", () => {
+    expect(() => rateCardSchema.parse({ ...validCard, asOf: "2026-02-29" })).toThrow();
+  });
+});
+
+describe("rateCardSchema: a rate of absurd magnitude is refused at the boundary", () => {
+  it("rejects a token rate large enough to overflow a figure to Infinity", () => {
+    expect(() =>
+      rateCardSchema.parse({
+        ...validCard,
+        table: {
+          "anthropic/sonnet-test": {
+            inputPerMillionTokens: Number.MAX_VALUE,
+            outputPerMillionTokens: 15,
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a character rate of absurd magnitude", () => {
+    expect(() =>
+      rateCardSchema.parse({
+        ...validCard,
+        table: { deepl: { perMillionCharacters: 1e300 } },
+      }),
+    ).toThrow();
+  });
+
+  it("still accepts a rate at the top of the plausible range", () => {
+    const parsed = rateCardSchema.parse({
+      ...validCard,
+      table: { deepl: { perMillionCharacters: 1_000_000_000 } },
+    });
+
+    expect(lookupRate(parsed, "deepl")).toEqual({ perMillionCharacters: 1_000_000_000 });
   });
 });
