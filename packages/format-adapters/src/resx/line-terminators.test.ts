@@ -86,13 +86,14 @@ describe("createResxAdapter keeps a document on its own line terminator", () => 
     expect(seen[0]).not.toContain("\n");
   });
 
-  it("settles a mixed-terminator document onto CRLF in the body while keeping the original trailing newline", async () => {
+  it("settles a mixed-terminator document onto CRLF throughout, the trailing newline included", async () => {
     const source = document("\r\n", "\n").replace("  </data>\r\n</root>", "  </data>\n</root>");
     const seen = await cycles(source, 4);
     expectStable(seen);
     expect(seen[0]).not.toBe(source);
     expect(seen[0]).toContain("  </data>\r\n</root>");
-    expect(seen[0]?.endsWith("</root>\n")).toBe(true);
+    expect(seen[0]?.endsWith("</root>\r\n")).toBe(true);
+    expect((seen[0] ?? "").replaceAll("\r\n", "")).not.toContain("\n");
     expect(seen[0]).not.toContain("\r\r");
   });
 });

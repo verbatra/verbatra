@@ -2,7 +2,7 @@ import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
-import { detectLineTerminator } from "../shell.js";
+import { detectLineTerminator, type LineTerminator } from "../shell.js";
 import {
   applyLineTerminator,
   elementChildren,
@@ -190,15 +190,19 @@ function appendUnmatched(
   }
 }
 
-function withTrailingNewlines(original: string, output: string): string {
+function withTrailingNewlines(
+  original: string,
+  output: string,
+  terminator: LineTerminator,
+): string {
   const match = TRAILING_NEWLINES.exec(original);
-  return match === null ? output : `${output}${match[0]}`;
+  return match === null ? output : `${output}${applyLineTerminator(match[0], terminator)}`;
 }
 
 function serializeInto(original: string, doc: Document): string {
   const terminator = detectLineTerminator(original);
   const body = applyLineTerminator(new XMLSerializer().serializeToString(doc), terminator);
-  return withTrailingNewlines(original, body);
+  return withTrailingNewlines(original, body, terminator);
 }
 
 function synthesize(entries: ReadonlyMap<string, TranslationEntry>): string {
