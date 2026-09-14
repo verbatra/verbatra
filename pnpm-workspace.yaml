@@ -26,31 +26,31 @@ packages:
 # pull request that moves any of them without one. Dependabot no longer proposes majors for these
 # entries either; taking one is a deliberate act that verifies the affected seam first.
 catalog:
-  "@types/node": 26.4.0
-  "@types/react": 19.2.18
-  "@types/react-dom": 19.2.5
+  "@types/node": 26.5.1
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
   "@vitest/coverage-v8": 4.1.11
   chokidar: 5.0.0
-  knip: 6.33.0
-  playwright: 1.62.1
-  react: 19.2.8
-  react-dom: 19.2.8
+  knip: 6.35.1
+  playwright: 1.63.0
+  react: 19.3.0
+  react-dom: 19.3.0
   tsup: 8.5.1
   typescript: 6.0.3
   vitest: 4.1.11
-  zod: 4.5.1
+  zod: 4.6.2
 
 catalogs:
   bundled:
-    "@anthropic-ai/sdk": 0.122.0
+    "@anthropic-ai/sdk": 0.125.0
     "@formatjs/icu-messageformat-parser": 3.5.17
-    "@google/genai": 2.19.0
+    "@google/genai": 2.22.0
     "@xmldom/xmldom": 0.9.12
     deepl-node: 1.28.0
     exceljs: 4.4.0
-    jszip: 3.10.1
+    jszip: 3.10.2
     loglevel: 1.9.2
-    openai: 7.8.0
+    openai: 7.15.0
     yaml: 2.9.0
 
 overrides:
