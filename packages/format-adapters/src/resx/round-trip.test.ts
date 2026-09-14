@@ -163,6 +163,20 @@ describe("createResxAdapter preserves content it does not own", () => {
     expect(written).toContain('<data name="B" xml:space="preserve"><value>z</value></data>');
   });
 
+  it("never doubles a carriage return when a translated value already carries CRLF", async () => {
+    const source =
+      '<?xml version="1.0" encoding="utf-8"?>\r\n<root>\r\n  <data name="A" xml:space="preserve">\r\n    <value>x</value>\r\n  </data>\r\n</root>\r\n';
+    const written = await readModifyWrite(source, (entries) => {
+      entries.set("A", entry("A", "line1\r\nline2"));
+    });
+    expect(written).not.toContain("\r\r");
+    const { adapter, fs } = setup({ "Resources.resx": written });
+    const { resource: read } = await adapter.read("Resources.resx", "en");
+    expect(read.entries.get("A")?.value).toBe("line1\nline2");
+    await adapter.write(read, "Resources.resx");
+    expect(fs.files.get("Resources.resx")).toBe(written);
+  });
+
   it("drops a leading byte order mark rather than writing it back", async () => {
     const source =
       '﻿<?xml version="1.0" encoding="utf-8"?>\n<root>\n  <data name="A"><value>x</value></data>\n</root>\n';

@@ -110,6 +110,9 @@ export async function readXmlDestination(
   }
 }
 
+const ANY_LINE_TERMINATOR = /\r\n?/g;
+
 export function applyLineTerminator(output: string, terminator: LineTerminator): string {
-  return terminator === "\n" ? output : output.replaceAll("\n", terminator);
+  const normalized = output.replace(ANY_LINE_TERMINATOR, "\n");
+  return terminator === "\n" ? normalized : normalized.replaceAll("\n", terminator);
 }
