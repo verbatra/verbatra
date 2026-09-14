@@ -2,8 +2,15 @@ import type { LocaleResource } from "@verbatra/core";
 import type { FormatAdapter } from "./adapter.js";
 import { AdapterError } from "./errors.js";
 
-function carriesOwnCode(error: unknown): boolean {
-  return error instanceof Error && "code" in error && typeof error.code === "string";
+const ERRNO_CODE = /^E[A-Z0-9]+$/;
+
+function carriesErrnoCode(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    ERRNO_CODE.test(error.code)
+  );
 }
 
 function detailOf(error: unknown): string {
@@ -14,7 +21,7 @@ function detailOf(error: unknown): string {
 }
 
 function attribute(format: string, method: string, error: unknown): never {
-  if (error instanceof AdapterError || carriesOwnCode(error)) {
+  if (error instanceof AdapterError || carriesErrnoCode(error)) {
     throw error;
   }
   throw new AdapterError(

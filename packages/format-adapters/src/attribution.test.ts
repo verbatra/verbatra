@@ -170,6 +170,39 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
   });
 });
 
+describe("attributeAdapterFailures does not mistake a plugin bug for a filesystem failure", () => {
+  const nodeMisuse: ReadonlyArray<readonly [string, Error]> = [
+    [
+      "ERR_INVALID_ARG_TYPE",
+      Object.assign(new TypeError("boom"), { code: "ERR_INVALID_ARG_TYPE" }),
+    ],
+    ["ERR_OUT_OF_RANGE", Object.assign(new RangeError("boom"), { code: "ERR_OUT_OF_RANGE" })],
+  ];
+
+  it.each(nodeMisuse)("attributes a %s thrown from read", async (_code, thrown) => {
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ read: () => Promise.reject(thrown) }),
+    );
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure.code).toBe("ADAPTER_FAILED");
+    expect(failure.message).toContain("custom:toml");
+  });
+
+  it("attributes a Node misuse error thrown from write, so no write remedy is invented", async () => {
+    const thrown = Object.assign(new TypeError("boom"), { code: "ERR_INVALID_ARG_TYPE" });
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ write: () => Promise.reject(thrown) }),
+    );
+
+    const failure = (await failureFrom(() => adapter.write(RESOURCE, "a.toml"))) as AdapterError;
+
+    expect(failure.code).toBe("ADAPTER_FAILED");
+    expect(failure.message).toContain("custom:toml");
+  });
+});
+
 describe("attributeAdapterFailures leaves errors that already carry meaning alone", () => {
   it("rethrows an AdapterError unchanged, so its own code survives", async () => {
     const original = new AdapterError("INVALID_STRUCTURE", "not a table");
@@ -188,6 +221,18 @@ describe("attributeAdapterFailures leaves errors that already carry meaning alon
 
     await expect(adapter.read("a.toml", "de")).rejects.toBe(original);
   });
+
+  it.each(["ENOENT", "EACCES", "EPERM", "EROFS", "ENOSPC", "EISDIR"])(
+    "rethrows a %s write error unchanged, so its remedy still resolves",
+    async (code) => {
+      const original = errno(code);
+      const adapter = attributeAdapterFailures(
+        throwingAdapter({ write: () => Promise.reject(original) }),
+      );
+
+      await expect(adapter.write(RESOURCE, "a.toml")).rejects.toBe(original);
+    },
+  );
 
   it("rethrows a filesystem write error unchanged, so its remedy still resolves", async () => {
     const original = errno("EACCES");
