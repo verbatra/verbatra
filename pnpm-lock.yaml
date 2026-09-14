@@ -536,6 +536,9 @@ importers:
       '@verbatra/exchange':
         specifier: workspace:*
         version: link:../exchange
+      '@verbatra/extract':
+        specifier: workspace:*
+        version: link:../extract
       '@verbatra/format-adapters':
         specifier: workspace:*
         version: link:../format-adapters

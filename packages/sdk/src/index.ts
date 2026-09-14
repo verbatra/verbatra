@@ -1,8 +1,16 @@
 export type { ReviewReasonCode } from "@verbatra/ai-providers";
 export type { SupportedFormat } from "@verbatra/core";
+export type {
+  KeyConflict,
+  ScanDiagnostic,
+  ScanDiagnosticReason,
+  SourceFramework,
+  SourceLocation,
+} from "@verbatra/extract";
 export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";
 export { defineConfig } from "./config/define-config.js";
+export type { ExtractionConfig } from "./config/extraction-config.js";
 export {
   type GlossaryFileDeps,
   type GlossaryFileInput,
@@ -54,6 +62,13 @@ export {
   type EditEntryResult,
   editEntry,
 } from "./flow/edit-entry.js";
+export {
+  type AddedKey,
+  type ExtractDeps,
+  type ExtractInput,
+  type ExtractResult,
+  extract,
+} from "./flow/extract.js";
 export type { IntegrityGateReason } from "./flow/integrity-gate.js";
 export {
   type KeyIntegrityDeps,
@@ -138,7 +153,7 @@ export {
   type ImportWorkbookInput,
   importWorkbook,
 } from "./flow/workbook/import-workbook.js";
-export type { SdkFs } from "./fs.js";
+export type { DirectoryEntry, SdkFs } from "./fs.js";
 export {
   createLocalePathResolver,
   type LocalePathResolver,

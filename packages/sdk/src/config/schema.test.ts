@@ -149,3 +149,27 @@ describe("verbatraConfigSchema: files.localeStyle", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("the optional extract block", () => {
+  it("is accepted with a framework and roots", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ extract: { framework: "i18next", roots: ["src"] } }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("stays optional, so a config without it is still valid", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("rejects an unrecognized field inside it", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({
+        extract: { framework: "i18next", roots: ["src"], glob: "**/*" } as unknown as never,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+});

@@ -2,6 +2,7 @@ import { supportedFormatSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
+import { extractionConfigSchema } from "./extraction-config.js";
 import { providerConfigSchema } from "./provider-config.js";
 
 export const DEFAULT_MAX_BATCH_SIZE = 50;
@@ -57,6 +58,7 @@ export const verbatraConfigSchema = z
     maxBatchSize: z.number().int().positive().optional(),
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
+    extract: extractionConfigSchema.optional(),
   })
   .refine(
     (config) => {

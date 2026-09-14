@@ -74,6 +74,12 @@
  *   atomic write uses. Thrown by {@link editEntry} and {@link retranslateEntry}, which act on one
  *   locale. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
+ * - `EXTRACT_NOT_CONFIGURED`: {@link extract} was called with a config that carries no `extract`
+ *   block, so there is no framework to look for and no source root to walk.
+ * - `EXTRACT_FS_UNSUPPORTED`: {@link extract} was given a `deps.fs` that implements no
+ *   `readDirectory`, so no source file can be discovered. The member is optional on {@link SdkFs}
+ *   precisely so an implementation written before extraction existed keeps compiling; this is the
+ *   error it gets if it is then handed to {@link extract}.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -95,6 +101,8 @@ export type SdkErrorCode =
   | "CONCURRENCY_INVALID"
   | "CONCURRENCY_BUDGET_CONFLICT"
   | "TARGET_UNWRITABLE"
+  | "EXTRACT_NOT_CONFIGURED"
+  | "EXTRACT_FS_UNSUPPORTED"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {
