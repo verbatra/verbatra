@@ -26,7 +26,7 @@ export default defineConfig({
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6" } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
   extract: {
     framework: "i18next",
     roots: ["src"],
@@ -45,15 +45,25 @@ export default defineConfig({
 
 ## What it finds
 
-The `i18next` framework reads the `t(...)`, `$t(...)`, and `<object>.t(...)` call shapes across `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, and `.cts` files. The key is the first argument. A default value is either the second argument or a `defaultValue` field on the options object:
+The `i18next` framework reads the `t(...)`, `$t(...)`, and `<object>.t(...)` call shapes across `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, and `.cts` files, each also through an optional call and an explicit type-argument list. The key is the first argument. A default value is either the second argument or a `defaultValue` field on the options object:
 
 ```ts
 t("nav.home");                              // key only, written with an empty value
 t("nav.away", "Away");                      // positional default
 t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
 ```
 
 Comments, strings, and regular expressions are understood, so a call site written inside a comment is not picked up and a quoted `t(` inside a string does not become a key.
+
+A key and a default both have to be a complete literal. `t("user." + id)` is reported as dynamic rather than written as the key `user.`, and `t("nav.home", { defaultValue: "Home" + suffix })` adds the key with no default rather than with a truncated one.
+
+### Namespaces are not resolved yet
+
+A namespace-qualified key, the `t("common:nav.home")` form, is reported as dynamic and never written. One verbatra config addresses one catalog file, so there is nowhere for `common:nav.home` to go that means what your i18next setup means by it.
+
+Know what that costs before you run it: if your project names a namespace at every call site, every call site is dynamic and the run adds nothing. That is deliberate for this first version. `extract` is useful today on a project that keeps one namespace and writes its keys without the prefix; lifting the limit is the first thing planned after the second framework.
 
 ## What it writes
 
@@ -72,7 +82,7 @@ Everything the scan cannot resolve comes back as data, so one awkward file never
 
 | Reported as | When |
 | --- | --- |
-| `dynamic` | the key argument is not a static string: a variable, a member expression, or a template literal carrying an expression. It is never written with a guessed key. |
+| `dynamic` | the key argument is not one complete static string: a variable, a member expression, a template literal carrying an expression, a concatenation, or a namespace-qualified key. It is never written with a guessed or truncated key. |
 | `conflicts` | one key is found at two call sites that disagree on its default value. Neither value is written, because picking one would make your catalog depend on directory traversal order. |
 | `withoutDefault` | a key was added with an empty value, because its call site supplied no default. Fill it in, then translate. |
 | `diagnostics` | a file or directory could not be read: it vanished, it is above the size limit, or the scan threw on it. |

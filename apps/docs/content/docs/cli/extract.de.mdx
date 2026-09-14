@@ -26,7 +26,7 @@ export default defineConfig({
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6" } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
   extract: {
     framework: "i18next",
     roots: ["src"],
@@ -45,15 +45,25 @@ export default defineConfig({
 
 ## Was er findet
 
-Das Framework `i18next` liest die Aufrufformen `t(...)`, `$t(...)` und `<object>.t(...)` in Dateien mit `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` und `.cts`. Der Key ist das erste Argument. Ein Standardwert ist entweder das zweite Argument oder ein `defaultValue`-Feld am Options-Objekt:
+Das Framework `i18next` liest die Aufrufformen `t(...)`, `$t(...)` und `<object>.t(...)` in Dateien mit `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` und `.cts`, jede davon auch als optionaler Aufruf und mit expliziter Typargumentliste. Der Key ist das erste Argument. Ein Standardwert ist entweder das zweite Argument oder ein `defaultValue`-Feld am Options-Objekt:
 
 ```ts
 t("nav.home");                              // nur Key, wird mit leerem Wert geschrieben
 t("nav.away", "Away");                      // Standardwert als Argument
 t("nav.help", { defaultValue: "Help" });    // Standardwert am Options-Objekt
+t?.("nav.back");                            // optionaler Aufruf
+t<string>("nav.next");                      // explizites Typargument
 ```
 
 Kommentare, Strings und reguläre Ausdrücke werden verstanden: Ein Aufruf in einem Kommentar wird nicht aufgenommen, und ein `t(` innerhalb eines Strings wird kein Key.
+
+Key und Standardwert müssen beide ein vollständiges Literal sein. `t("user." + id)` wird als dynamisch gemeldet statt als Key `user.` geschrieben, und `t("nav.home", { defaultValue: "Home" + suffix })` fügt den Key ohne Standardwert hinzu statt mit einem abgeschnittenen.
+
+### Namespaces werden noch nicht aufgelöst
+
+Ein Key mit Namespace, also die Form `t("common:nav.home")`, wird als dynamisch gemeldet und nie geschrieben. Eine verbatra-Konfiguration adressiert genau eine Katalogdatei, also gibt es keinen Ort für `common:nav.home`, der das bedeutet, was dein i18next-Setup damit meint.
+
+Du solltest wissen, was das kostet, bevor du den Befehl ausführst: Wenn dein Projekt an jeder Aufrufstelle einen Namespace nennt, ist jede Aufrufstelle dynamisch und der Lauf fügt nichts hinzu. Das ist für diese erste Version Absicht. `extract` ist heute in einem Projekt nützlich, das bei einem Namespace bleibt und seine Keys ohne Präfix schreibt; die Einschränkung aufzuheben ist das Nächste nach dem zweiten Framework.
 
 ## Was er schreibt
 
@@ -72,7 +82,7 @@ Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, damit eine ei
 
 | Gemeldet als | Wann |
 | --- | --- |
-| `dynamic` | das Key-Argument ist kein statischer String: eine Variable, ein Member-Ausdruck oder ein Template-Literal mit einem Ausdruck darin. Es wird nie mit einem geratenen Key geschrieben. |
+| `dynamic` | das Key-Argument ist kein einzelner vollständiger statischer String: eine Variable, ein Member-Ausdruck, ein Template-Literal mit einem Ausdruck darin, eine Verkettung oder ein Key mit Namespace. Es wird nie mit einem geratenen oder abgeschnittenen Key geschrieben. |
 | `conflicts` | ein Key wird an zwei Aufrufstellen gefunden, die sich über seinen Standardwert uneinig sind. Kein Wert wird geschrieben, denn eine Auswahl würde deinen Katalog von der Reihenfolge des Verzeichnisdurchlaufs abhängig machen. |
 | `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil seine Aufrufstelle keinen Standardwert liefert. Fülle ihn, dann übersetze. |
 | `diagnostics` | eine Datei oder ein Verzeichnis war nicht lesbar: verschwunden, über der Größengrenze, oder der Scan ist daran gescheitert. |

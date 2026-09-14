@@ -63,21 +63,30 @@ this decision is protecting, and it is why the seam is specified before any brea
 
 Known limits, accepted deliberately and reported as data rather than papered over:
 
-- A key argument that is not a static string literal (an identifier, a member expression, or a
-  template literal carrying an expression) is reported as a dynamic call site. It is never guessed
-  at and never silently dropped.
+- A key argument that is not a complete static string literal (an identifier, a member expression,
+  a template literal carrying an expression, or a concatenation such as `"user." + id`) is reported
+  as a dynamic call site. It is never guessed at, never truncated to the fragment the tokenizer
+  could read, and never silently dropped. The same completeness rule applies to a default value: a
+  concatenated default yields no default rather than its first fragment.
+- A namespace-qualified key, the `t("common:nav.home")` form, is reported as a dynamic call site
+  and never written. See decision 8 for why, and for what that costs.
 - JSX translation components are not read in this increment.
 - A call site written inside a template literal expression is read, because the tokenizer descends
-  into `${ }`, but a call assembled by string concatenation is not.
+  into `${ }`.
 - Regex literals are disambiguated from division by the preceding significant token, the standard
   heuristic. A pathological case resolves to a diagnostic on that file, not a wrong key.
+- A method signature named `t` is distinguished from a call by what follows its parameter list, so
+  an object-literal member, a class member, and a type or interface member are not read as call
+  sites. A `t` compared with `<` to a call, the one shape that resembles a type-argument list, is
+  not read either.
 
 ### 2. i18next is the only framework in the first increment
 
 `SourceFramework` is a closed union whose sole member is `"i18next"`. It covers the `t(...)`,
 `$t(...)`, and `<object>.t(...)` call shapes across `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
 `.mts`, and `.cts`, including the `t("key", "Default")` and `t("key", { defaultValue: "Default" })`
-argument forms.
+argument forms, and including the optional-call (`t?.("key")`) and explicit type-argument
+(`t<string>("key")`) spellings of each.
 
 i18next is chosen over the alternatives because it is the most widely deployed of the ecosystems
 verbatra already adapts and because its call shape is the one the other JavaScript frameworks
@@ -163,6 +172,25 @@ published bytes either way. What the split buys is a boundary: a Strategy family
 interface, its own file-system port, and its own coverage gate, which cannot reach into the
 adapter or provider plumbing and which the two planned follow-ups can depend on without depending
 on the sdk.
+
+### 8. A namespace-qualified key is dynamic, not extracted
+
+i18next lets a call site name a namespace in the key itself, as `t("common:nav.home")`. Such a key
+is reported as a dynamic call site and never written to the catalog.
+
+The reason is that one verbatra config addresses one catalog file. `files.pattern` resolves a
+single path per locale, and `LocaleResource` carries a single `namespace`, so there is no second
+file for `common:` to land in. Writing the key verbatim would be worse than not writing it: the
+adapter splits a key on `.`, so `common:nav.home` becomes a top-level `common:nav` object that the
+running application never looks in, and that nobody notices until a translated string fails to
+appear.
+
+The cost is worth stating plainly, because it decides who can use this increment. A project that
+spells a namespace at every call site gets a run in which every call site is dynamic and nothing is
+added. `extract` is useful today on a project that keeps one namespace and writes its keys without
+the prefix; a project organized around several namespaces has to wait. Lifting this is the first
+thing to do after the second framework, and it is a config-surface question (one catalog file per
+namespace) rather than a parser question, so the tokenizer choice in decision 1 does not block it.
 
 ## Consequences
 

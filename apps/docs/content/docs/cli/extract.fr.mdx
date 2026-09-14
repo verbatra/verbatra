@@ -26,7 +26,7 @@ export default defineConfig({
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6" } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
   extract: {
     framework: "i18next",
     roots: ["src"],
@@ -45,15 +45,25 @@ export default defineConfig({
 
 ## Ce qu'elle trouve
 
-Le framework `i18next` lit les formes d'appel `t(...)`, `$t(...)` et `<object>.t(...)` dans les fichiers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` et `.cts`. La clé est le premier argument. Une valeur par défaut est soit le deuxième argument, soit un champ `defaultValue` sur l'objet d'options :
+Le framework `i18next` lit les formes d'appel `t(...)`, `$t(...)` et `<object>.t(...)` dans les fichiers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` et `.cts`, chacune aussi en appel optionnel et avec une liste explicite d'arguments de type. La clé est le premier argument. Une valeur par défaut est soit le deuxième argument, soit un champ `defaultValue` sur l'objet d'options :
 
 ```ts
 t("nav.home");                              // clé seule, écrite avec une valeur vide
 t("nav.away", "Away");                      // valeur par défaut positionnelle
 t("nav.help", { defaultValue: "Help" });    // valeur par défaut sur l'objet d'options
+t?.("nav.back");                            // appel optionnel
+t<string>("nav.next");                      // argument de type explicite
 ```
 
 Les commentaires, les chaînes et les expressions régulières sont compris : un appel écrit dans un commentaire n'est pas repris, et un `t(` entre guillemets dans une chaîne ne devient pas une clé.
+
+La clé et la valeur par défaut doivent toutes deux être un littéral complet. `t("user." + id)` est signalé comme dynamique plutôt qu'écrit sous la clé `user.`, et `t("nav.home", { defaultValue: "Home" + suffix })` ajoute la clé sans valeur par défaut plutôt qu'avec une valeur tronquée.
+
+### Les espaces de noms ne sont pas encore résolus
+
+Une clé qualifiée par un espace de noms, la forme `t("common:nav.home")`, est signalée comme dynamique et n'est jamais écrite. Une configuration verbatra s'adresse à un seul fichier de catalogue : il n'y a donc nulle part où mettre `common:nav.home` qui veuille dire ce que ta configuration i18next entend par là.
+
+Sache ce que cela coûte avant de lancer la commande : si ton projet nomme un espace de noms à chaque appel, chaque appel est dynamique et l'exécution n'ajoute rien. C'est volontaire pour cette première version. `extract` est utile aujourd'hui sur un projet qui s'en tient à un seul espace de noms et écrit ses clés sans le préfixe ; lever la limite est la prochaine étape après le deuxième framework.
 
 ## Ce qu'elle écrit
 
@@ -72,7 +82,7 @@ Tout ce que l'analyse ne peut pas résoudre revient sous forme de données, pour
 
 | Signalé comme | Quand |
 | --- | --- |
-| `dynamic` | l'argument de la clé n'est pas une chaîne statique : une variable, un accès de propriété ou un littéral de gabarit contenant une expression. Elle n'est jamais écrite avec une clé devinée. |
+| `dynamic` | l'argument de la clé n'est pas une seule chaîne statique complète : une variable, un accès de propriété, un littéral de gabarit contenant une expression, une concaténation ou une clé qualifiée par un espace de noms. Elle n'est jamais écrite avec une clé devinée ou tronquée. |
 | `conflicts` | une clé est trouvée sur deux appels qui ne s'accordent pas sur sa valeur par défaut. Aucune des deux n'est écrite, car en choisir une ferait dépendre ton catalogue de l'ordre de parcours des répertoires. |
 | `withoutDefault` | une clé a été ajoutée avec une valeur vide, parce que son appel ne fournissait aucune valeur par défaut. Remplis-la, puis traduis. |
 | `diagnostics` | un fichier ou un répertoire n'a pas pu être lu : il a disparu, il dépasse la limite de taille, ou l'analyse a échoué dessus. |

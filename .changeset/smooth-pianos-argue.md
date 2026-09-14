@@ -1,5 +1,6 @@
 ---
 "@verbatra/sdk": minor
+"@verbatra/cli": minor
 ---
 
 Add source string extraction: a new `extract` entry point and `verbatra extract` command that scan
@@ -15,6 +16,11 @@ Configure it with a new optional `extract` block naming the framework and the so
 site whose key is not a static string, a key found with two conflicting defaults, and a file that
 could not be read are all reported in the result rather than guessed at or thrown. `--dry-run`
 previews the additions and `--json` prints the usual envelope.
+
+A namespace-qualified key such as `t("common:nav.home")` is reported as dynamic and never written:
+one config addresses one catalog file, so a project that spells a namespace at every call site gets
+a run that adds nothing. That limit is the first thing to lift once multi-namespace projects are
+supported.
 
 `SdkFs` gains an optional `readDirectory` member, which is what the scan discovers source files
 through. It is optional, so an existing `deps.fs` implementation keeps working; `extract` reports a

@@ -26,7 +26,7 @@ export default defineConfig({
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6" } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
   extract: {
     framework: "i18next",
     roots: ["src"],
@@ -45,15 +45,25 @@ export default defineConfig({
 
 ## Qué encuentra
 
-El framework `i18next` lee las formas de llamada `t(...)`, `$t(...)` y `<object>.t(...)` en archivos `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` y `.cts`. La clave es el primer argumento. El valor por defecto es el segundo argumento o un campo `defaultValue` en el objeto de opciones:
+El framework `i18next` lee las formas de llamada `t(...)`, `$t(...)` y `<object>.t(...)` en archivos `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` y `.cts`, cada una también como llamada opcional y con lista explícita de argumentos de tipo. La clave es el primer argumento. El valor por defecto es el segundo argumento o un campo `defaultValue` en el objeto de opciones:
 
 ```ts
 t("nav.home");                              // solo clave, se escribe con valor vacío
 t("nav.away", "Away");                      // valor por defecto posicional
 t("nav.help", { defaultValue: "Help" });    // valor por defecto en el objeto de opciones
+t?.("nav.back");                            // llamada opcional
+t<string>("nav.next");                      // argumento de tipo explícito
 ```
 
 Los comentarios, las cadenas y las expresiones regulares se entienden, así que una llamada escrita dentro de un comentario no se recoge y un `t(` entrecomillado dentro de una cadena no se convierte en clave.
+
+La clave y el valor por defecto tienen que ser un literal completo. `t("user." + id)` se reporta como dinámico en lugar de escribirse como la clave `user.`, y `t("nav.home", { defaultValue: "Home" + suffix })` añade la clave sin valor por defecto en lugar de con uno truncado.
+
+### Los espacios de nombres todavía no se resuelven
+
+Una clave con espacio de nombres, la forma `t("common:nav.home")`, se reporta como dinámica y nunca se escribe. Una configuración de verbatra se dirige a un único archivo de catálogo, así que no hay ningún sitio para `common:nav.home` que signifique lo que tu configuración de i18next entiende por ello.
+
+Conviene que sepas lo que cuesta antes de ejecutarlo: si tu proyecto nombra un espacio de nombres en cada llamada, cada llamada es dinámica y la ejecución no añade nada. Es deliberado en esta primera versión. `extract` hoy sirve en un proyecto que se queda con un solo espacio de nombres y escribe sus claves sin el prefijo; levantar el límite es lo siguiente tras el segundo framework.
 
 ## Qué escribe
 
@@ -72,7 +82,7 @@ Todo lo que el análisis no puede resolver vuelve como datos, de modo que un arc
 
 | Se informa como | Cuándo |
 | --- | --- |
-| `dynamic` | el argumento de la clave no es una cadena estática: una variable, un acceso a propiedad o una plantilla con una expresión dentro. Nunca se escribe con una clave adivinada. |
+| `dynamic` | el argumento de la clave no es una única cadena estática completa: una variable, un acceso a propiedad, una plantilla con una expresión dentro, una concatenación o una clave con espacio de nombres. Nunca se escribe con una clave adivinada ni truncada. |
 | `conflicts` | una clave aparece en dos llamadas que no coinciden en su valor por defecto. No se escribe ninguno de los dos, porque elegir uno haría que tu catálogo dependiera del orden de recorrido de directorios. |
 | `withoutDefault` | una clave se añadió con valor vacío porque su llamada no aportaba ningún valor por defecto. Rellénalo y luego traduce. |
 | `diagnostics` | un archivo o directorio no se pudo leer: desapareció, supera el límite de tamaño o el análisis falló con él. |
