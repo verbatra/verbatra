@@ -126,6 +126,10 @@ describe("createI18nextExtractor on malformed option objects", () => {
   it("ignores a second argument that is neither a string nor an object", () => {
     expect(calls('t("nav.home", fallback)')).toEqual([{ key: "nav.home", line: 1 }]);
   });
+
+  it("reads an unclosed argument list as a call rather than a declaration", () => {
+    expect(dynamic("const api = { t(key")).toEqual([{ line: 1 }]);
+  });
 });
 
 describe("createI18nextExtractor on a key argument that is not a complete literal", () => {
@@ -136,6 +140,18 @@ describe("createI18nextExtractor on a key argument that is not a complete litera
 
   it("reports a concatenated positional default as no default rather than its first fragment", () => {
     expect(calls('t("nav.home", "Default" + suffix)')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("reports a concatenated options default as no default rather than its first fragment", () => {
+    expect(calls('t("nav.home", { defaultValue: "Home" + suffix })')).toEqual([
+      { key: "nav.home", line: 1 },
+    ]);
+  });
+
+  it("reads no default from an options default that is a template carrying an expression", () => {
+    expect(calls('t("nav.home", { defaultValue: `Hi ${name}` })')).toEqual([
+      { key: "nav.home", line: 1 },
+    ]);
   });
 
   it("reports an i18next namespace-qualified key as dynamic, since one config addresses one file", () => {
@@ -168,6 +184,26 @@ describe("createI18nextExtractor on optional-call syntax", () => {
     expect(calls('t?.("nav.home", "Home")')).toEqual([
       { key: "nav.home", defaultValue: "Home", line: 1 },
     ]);
+  });
+});
+
+describe("createI18nextExtractor on explicit type arguments", () => {
+  it("reads a key through a type-argument list", () => {
+    expect(calls('t<string>("nav.home", "Home")')).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+    ]);
+  });
+
+  it("reads a key through a type-argument list on an optional call", () => {
+    expect(calls('t?.<string>("nav.home")')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("reads a key through a nested type-argument list", () => {
+    expect(calls('t<Record<string, string>>("nav.home")')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("does not read a comparison against a call as a key", () => {
+    expect(calls('t < limit("nav.home")')).toEqual([]);
   });
 });
 

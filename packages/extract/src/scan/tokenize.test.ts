@@ -78,8 +78,12 @@ describe("tokenizeSource", () => {
     ]);
   });
 
-  it("reports an unterminated string as dynamic rather than throwing", () => {
-    expect(kinds('t("unterminated')).toEqual(["ident", "punct", "dynamic"]);
+  it("does not let an unterminated quote swallow the rest of the line", () => {
+    expect(kinds('t("unterminated')).toEqual(["ident", "punct", "punct", "ident"]);
+  });
+
+  it("keeps a call that follows an apostrophe in prose on the same line", () => {
+    expect(strings('<p>We\'re glad {t("kept")}</p>')).toEqual(["kept"]);
   });
 
   it("ignores an unterminated block comment to the end of the file", () => {
@@ -147,7 +151,7 @@ describe("tokenizeSource on awkward slashes and escapes", () => {
   });
 
   it("stops scanning a raw string at a newline inside an expression", () => {
-    expect(kinds('`${ "a\n }`')).toEqual(["dynamic", "dynamic"]);
+    expect(kinds('`${ "a\n }`')).toEqual(["dynamic", "punct", "ident"]);
   });
 
   it("skips an escaped backtick inside a nested raw template", () => {

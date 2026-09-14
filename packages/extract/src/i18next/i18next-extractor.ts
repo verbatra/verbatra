@@ -6,6 +6,7 @@ const I18NEXT_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts"
 const I18NEXT_RULES: CallSiteRules = {
   calleeNames: new Set(["t", "$t"]),
   defaultValueKeys: new Set(["defaultValue"]),
+  namespaceSeparator: ":",
 };
 
 export function createI18nextExtractor(): SourceExtractor {

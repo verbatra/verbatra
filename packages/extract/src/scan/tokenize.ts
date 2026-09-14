@@ -152,6 +152,7 @@ function readEscape(cursor: Cursor): string {
 
 function readStringToken(cursor: Cursor, quote: string): SourceToken {
   const line = cursor.line;
+  const start = cursor.index;
   cursor.index += 1;
   let value = "";
   while (!atEnd(cursor)) {
@@ -167,7 +168,9 @@ function readStringToken(cursor: Cursor, quote: string): SourceToken {
       value += advance(cursor);
     }
   }
-  return { kind: "dynamic", line };
+  cursor.index = start + 1;
+  cursor.line = line;
+  return { kind: "punct", value: quote, line };
 }
 
 function skipStringRaw(cursor: Cursor, quote: string): void {
