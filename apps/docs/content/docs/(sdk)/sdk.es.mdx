@@ -84,6 +84,25 @@ Devuelve un `RunSummary` (consulta [su anatomía más abajo](#la-anatomía-de-ru
 de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y queda como
 `status: "failed"` en la entrada de ese locale mientras la ejecución continúa.
 
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Responde si un conjunto de opciones de ejecución se resuelve como una ejecución en seco. Toma el
+`dryRun` y el `estimate` que estás a punto de pasar a `translate` y devuelve si esa ejecución
+construirá un proveedor, escribirá un archivo o gastará algo. Es el único sitio donde se decide
+que `estimate` implica `dryRun`, así que úsala siempre que algo alrededor de una ejecución tenga
+que saberlo de antemano, en lugar de repetir la implicación y acabar desviándote de ella.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
 ### watch
 
 Vigila el archivo del locale de origen y vuelve a ejecutar `translate` en cada cambio asentado por el

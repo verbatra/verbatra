@@ -82,8 +82,8 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
  *   string; the estimate counts every key.
  * - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not from the provider's
  *   own tokenizer.
- * - `REPAIR_REQUESTS_NOT_COUNTED`: the one bounded repair request an incomplete response can
- *   trigger is not counted.
+ * - `REPAIR_REQUESTS_NOT_COUNTED`: the one bounded extra request an incomplete response can
+ *   trigger, whether keys were missing or the output was truncated, is not counted.
  */
 export type EstimateCaveatCode =
   | "CACHE_NOT_CONSULTED"
@@ -307,7 +307,11 @@ export interface LocaleSummary {
   readonly integrityMismatches: readonly string[];
   /** Keys the provider failed to translate, for instance because their sub-batch errored. */
   readonly providerFailures: readonly string[];
-  /** Keys whose plural categories were generated for the target language rather than translated one by one. */
+  /**
+   * Keys whose plural categories were generated for the target language rather than translated one
+   * by one. On a dry run, the forms a live run would generate: generation is a provider call of
+   * its own, so a dry run reports it rather than reporting nothing.
+   */
   readonly generated: readonly string[];
   /** Keys not translated because the token budget was exhausted under `stop` behavior. */
   readonly budgetWithheld: readonly string[];

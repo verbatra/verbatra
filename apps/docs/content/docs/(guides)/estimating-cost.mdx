@@ -38,21 +38,23 @@ requests per locale = ceil(keys to translate / maxBatchSize)
 
 Batch size matters more than key count for the fixed overhead, because part of every request is constant (see the next step). Two adjustments:
 
-- A response that comes back missing keys triggers **at most one** bounded repair request for the still-missing subset. In normal operation this is zero extra requests.
-- `generatePlurals` adds its own batched requests for the plural forms it fills in, counted the same way.
+- A response that comes back incomplete, whether keys are missing or the output was cut off, triggers **at most one** bounded extra request for the part that did not arrive. In normal operation this is zero extra requests.
+- `generatePlurals` adds its own batched requests for the plural forms it fills in, counted the same way. They are separate from the translation batches, so a project whose keys are all in sync but whose plural set is not still makes requests.
 
 ## Step 3: count the tokens in a request
 
-An LLM request carries four things. Only one of them scales with your key count:
+An LLM request carries four things. One scales with your key count, and one carries your glossary in full:
 
 | Part | Scales with | Approximate size |
 | --- | --- | --- |
 | System rules | nothing: constant per request | ~250 tokens |
 | Output schema | nothing: constant per request | ~100 tokens |
-| Items payload | keys in the sub-batch | key + value + JSON punctuation, per item |
-| Response | keys in the sub-batch | key + translated value, per item |
+| Items payload | keys in the sub-batch, plus the glossary and tone | key + value + ~21 characters of JSON, per item |
+| Response | keys in the sub-batch | key + translated value + ~21 characters of JSON, per item |
 
 The system rules are a compile-time constant, identical on every request, which is why the per-request overhead is knowable rather than a guess. The items payload is a JSON object holding the source and target locale, an optional tone and glossary, and one item per key with its `key`, `value`, and optional `description` and `meaning`. The response repeats each key alongside its translation, so output size tracks input size closely.
+
+The glossary is the part people miss. It is serialized in full into **every** request, not once per run, so a 200-term glossary of around 6,000 characters adds roughly 1,500 tokens to each one. On small sub-batches that can outweigh the keys themselves, and it is another reason batch size matters.
 
 For counting, the usual rule of thumb is **~4 characters per token** for English prose. Non-Latin scripts and heavily punctuated strings run denser, so treat this as an order of magnitude, not a measurement.
 
@@ -84,7 +86,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~32400 input + ~22500 output tokens
+  estimate: 1200 keys in 24 requests, ~33312 input + ~24720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -114,7 +116,9 @@ Three things it will never do: invent a rate it does not have, apply a rate writ
 
 `--json` carries the same numbers as structured fields under `result.estimate`, per locale and in total, so a script can gate on them rather than parse a line.
 
-The figure is an upper bound for the same two reasons the dry-run count is, and for a third: tokens are derived from character counts, not from the provider's own tokenizer. The `estimate excludes` line names all three on every run.
+The figure is an upper bound on the work. Every request a real run would make is counted, the plural-generation batches included, and the prompt is measured by serializing the payload that would actually be sent rather than by reproducing its shape in a formula, so a glossary or a tone cannot go uncounted. A real run can only send less than this, for the same two reasons the dry-run count is an upper bound: it consults the cache, and it collapses identical source strings.
+
+The `estimate excludes` line names exactly what was left out of that run, which is not the same list every time. A token-billed provider gets four items: cache hits, duplicate source strings, tokenizer differences (tokens are derived from character counts, not from the provider's own tokenizer), and repair requests. A character-billed provider gets the first two only, because it has no tokens to approximate and no repair round to run.
 
 ## A worked example
 
@@ -141,20 +145,20 @@ Substitute your own numbers for every assumption in this block.
 | --- | --- |
 | System rules | 250 |
 | Output schema | 100 |
-| 50 items x (20 + 40 + ~20 punctuation) chars / 4 | 1,000 |
-| **Total** | **~1,350** |
+| (50 items x (20 + 40 + ~21 JSON) chars + ~50 envelope) / 4 | 1,038 |
+| **Total** | **~1,388** |
 
 **Output tokens per request**
 
-50 items x (20 char key + 40 char value + ~15 punctuation) / 4 = **~950**.
+(50 items x (20 char key + 40 char value + ~21 JSON) + ~20 envelope) / 4 = **~1,030**.
 
 **Totals across 3 locales**
 
-- Input: 24 x 1,350 = **~32,400 tokens**
-- Output: 24 x 950 = **~22,800 tokens**
-- Cost: (32,400 / 1,000,000 x $0.10) + (22,800 / 1,000,000 x $0.40) = $0.0032 + $0.0091 = **about 1.2 cents**
+- Input: 24 x 1,388 = **~33,312 tokens**
+- Output: 24 x 1,030 = **~24,720 tokens**
+- Cost: (33,312 / 1,000,000 x $0.10) + (24,720 / 1,000,000 x $0.40) = $0.0033 + $0.0099 = **about 1.3 cents**
 
-Note where the fixed overhead lands: the system rules and schema account for 24 x 350 = 8,400 of the 32,400 input tokens, about a quarter. Raising `maxBatchSize` spreads that constant over more keys; lowering it (to stay under a rate limit, say) costs proportionally more.
+Note where the fixed overhead lands: the system rules and schema account for 24 x 350 = 8,400 of the 33,312 input tokens, about a quarter. Raising `maxBatchSize` spreads that constant over more keys; lowering it (to stay under a rate limit, say) costs proportionally more.
 
 ## The accurate method: calibrate on one locale
 

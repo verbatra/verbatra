@@ -1,5 +1,6 @@
 ---
 "@verbatra/sdk": minor
+"@verbatra/cli": minor
 ---
 
 Add a keyless pre-run cost estimate: `verbatra translate --estimate`.
@@ -16,9 +17,17 @@ of rates keyed by `provider/model`. Every figure is printed beside that date, so
 visibly stale. A provider or model with no rate on file is reported as such, with the exact config
 key to add, rather than as a cost of zero; a rate written in the wrong unit is refused rather than
 applied; and a self-hosted `openai-compatible` endpoint is reported as carrying no API cost at
-all.
+all. `RunEstimate` is a union discriminated on `pricing`, so a priced estimate always carries its
+figure, its currency and its date, and an unpriced one carries none of them.
 
-The figure is an upper bound and says so: it does not consult the translation memory and does not
-collapse identical source strings, both of which a live run does. `RunSummary.estimate` carries
-the whole breakdown as structured fields, per locale and in total, so `--json` consumers get the
-numbers rather than a rendered string.
+The figure is an upper bound on the work. Every provider call a live run would make is counted,
+including the plural-generation batches, which are a separate call path from the translation
+batches, and the prompt is measured by serializing the payload that would be sent rather than by
+modelling its shape, so a configured glossary and tone are counted in every request they travel
+in. A live run can only send less, because it consults the translation memory and collapses
+identical source strings; both are named on the `estimate excludes` line alongside the token
+heuristic and the bounded repair request. A dry run now also reports the plural forms it would
+generate, whether or not an estimate was asked for.
+
+`RunSummary.estimate` carries the whole breakdown as structured fields, per locale and in total,
+so `--json` consumers get the numbers rather than a rendered string.

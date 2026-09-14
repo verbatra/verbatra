@@ -43,6 +43,25 @@ Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals
 
 Renvoie un `RunSummary` (voir [son anatomie plus bas](#anatomie-du-runsummary)). Les problèmes globaux lèvent une `SdkError` ; une locale seule qui échoue ne lève jamais et atterrit comme `status: "failed"` sur l'entrée de cette locale pendant que l'exécution continue.
 
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Répond si un ensemble d'options d'exécution se résout en dry run. La fonction prend le `dryRun` et
+l'`estimate` que tu t'apprêtes à passer à `translate` et renvoie si cette exécution construira un
+fournisseur, écrira un fichier ou dépensera quoi que ce soit. C'est le seul endroit où la règle
+voulant qu'`estimate` implique `dryRun` est décidée : utilise-la dès que quelque chose autour d'une
+exécution doit le savoir à l'avance, plutôt que de redire l'implication et de t'en écarter.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
 ### watch
 
 Surveille le fichier de la locale source et relance `translate` à chaque changement temporisé. Il déclenche une exécution initiale immédiatement au démarrage, puis une exécution par changement stabilisé. Les exécutions sont sérialisées : les changements survenus pendant une exécution se regroupent en une seule exécution de suivi.

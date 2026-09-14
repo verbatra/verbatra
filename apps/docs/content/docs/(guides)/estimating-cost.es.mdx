@@ -38,21 +38,23 @@ peticiones por idioma = ceil(claves a traducir / maxBatchSize)
 
 Para la sobrecarga fija, el tamaño del lote importa más que el número de claves, porque parte de cada petición es constante (ver el paso siguiente). Dos ajustes:
 
-- Una respuesta que vuelve con claves faltantes provoca **como máximo una** petición de reparación acotada para el subconjunto que sigue faltando. En funcionamiento normal esto son cero peticiones adicionales.
-- `generatePlurals` añade sus propias peticiones por lotes para las formas plurales que rellena, contadas de la misma manera.
+- Una respuesta incompleta, ya sea porque faltan claves o porque la salida se cortó, provoca **como máximo una** petición adicional acotada para la parte que no llegó. En funcionamiento normal esto son cero peticiones adicionales.
+- `generatePlurals` añade sus propias peticiones por lotes para las formas plurales que rellena, contadas de la misma manera. Van aparte de los lotes de traducción, así que un proyecto con todas sus claves sincronizadas pero con el juego de plurales incompleto sigue haciendo peticiones.
 
 ## Paso 3: cuenta los tokens de una petición
 
-Una petición a un LLM lleva cuatro cosas. Solo una de ellas escala con tu número de claves:
+Una petición a un LLM lleva cuatro cosas. Una escala con tu número de claves, y otra lleva tu glosario entero:
 
 | Parte | Escala con | Tamaño aproximado |
 | --- | --- | --- |
 | Reglas del sistema | nada: constante por petición | ~250 tokens |
 | Esquema de salida | nada: constante por petición | ~100 tokens |
-| Carga de items | claves del sublote | clave + valor + puntuación JSON, por item |
-| Respuesta | claves del sublote | clave + valor traducido, por item |
+| Carga de items | claves del sublote, más el glosario y el tono | clave + valor + ~21 caracteres de JSON, por item |
+| Respuesta | claves del sublote | clave + valor traducido + ~21 caracteres de JSON, por item |
 
 Las reglas del sistema son una constante de tiempo de compilación, idéntica en cada petición, y por eso la sobrecarga por petición se conoce en lugar de estimarse. La carga de items es un objeto JSON con el idioma de origen y de destino, un tono y un glosario opcionales, y un item por clave con su `key`, su `value` y, opcionalmente, `description` y `meaning`. La respuesta repite cada clave junto a su traducción, así que el tamaño de salida sigue de cerca al de entrada.
+
+El glosario es la parte que se suele pasar por alto. Se serializa entero en **cada** petición, no una vez por ejecución, así que un glosario de 200 términos y unos 6.000 caracteres añade en torno a 1.500 tokens a cada una. En sublotes pequeños puede pesar más que las propias claves, y es otra razón por la que importa el tamaño del lote.
 
 Para contar, la regla habitual es **~4 caracteres por token** en prosa inglesa. Los alfabetos no latinos y las cadenas con mucha puntuación son más densos, así que trátalo como un orden de magnitud, no como una medición.
 
@@ -84,7 +86,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~32400 input + ~22500 output tokens
+  estimate: 1200 keys in 24 requests, ~33312 input + ~24720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -114,7 +116,9 @@ Tres cosas que nunca hará: inventarse una tarifa que no tiene, aplicar una tari
 
 `--json` lleva las mismas cifras como campos estructurados bajo `result.estimate`, por idioma y en total, de modo que un script puede condicionar sobre ellas en lugar de analizar una línea de texto.
 
-La cifra es un límite superior por las mismas dos razones que el recuento de la ejecución en seco, y por una tercera: los tokens se derivan de recuentos de caracteres, no del tokenizador del proveedor. La línea `estimate excludes` nombra las tres en cada ejecución.
+La cifra es un límite superior del trabajo. Se cuenta cada petición que haría una ejecución real, incluidos los lotes de generación de plurales, y el prompt se mide serializando la carga que se enviaría de verdad en lugar de reproducir su forma en una fórmula, así que ni un glosario ni un tono pueden quedar sin contar. Una ejecución real solo puede enviar menos, por las mismas dos razones por las que el recuento en seco es un límite superior: consulta la caché y agrupa las cadenas de origen idénticas.
+
+La línea `estimate excludes` nombra exactamente lo que se dejó fuera de esa ejecución, y no es siempre la misma lista. Un proveedor facturado por tokens recibe cuatro elementos: aciertos de caché, cadenas de origen duplicadas, diferencias de tokenizador (los tokens se derivan de recuentos de caracteres, no del tokenizador del proveedor) y peticiones de reparación. Uno facturado por caracteres recibe solo los dos primeros, porque no tiene tokens que aproximar ni ronda de reparación que ejecutar.
 
 ## Un ejemplo resuelto
 
@@ -141,20 +145,20 @@ Sustituye cada suposición de este bloque por tus propios números.
 | --- | --- |
 | Reglas del sistema | 250 |
 | Esquema de salida | 100 |
-| 50 items x (20 + 40 + ~20 de puntuación) caracteres / 4 | 1.000 |
-| **Total** | **~1.350** |
+| (50 items x (20 + 40 + ~21 de JSON) caracteres + ~50 de envoltura) / 4 | 1.038 |
+| **Total** | **~1.388** |
 
 **Tokens de salida por petición**
 
-50 items x (20 caracteres de clave + 40 de valor + ~15 de puntuación) / 4 = **~950**.
+(50 items x (20 caracteres de clave + 40 de valor + ~21 de JSON) + ~20 de envoltura) / 4 = **~1.030**.
 
 **Totales para 3 idiomas**
 
-- Entrada: 24 x 1.350 = **~32.400 tokens**
-- Salida: 24 x 950 = **~22.800 tokens**
-- Coste: (32.400 / 1.000.000 x $0.10) + (22.800 / 1.000.000 x $0.40) = $0.0032 + $0.0091 = **unos 1,2 céntimos**
+- Entrada: 24 x 1.388 = **~33.312 tokens**
+- Salida: 24 x 1.030 = **~24.720 tokens**
+- Coste: (33.312 / 1.000.000 x $0.10) + (24.720 / 1.000.000 x $0.40) = $0.0033 + $0.0099 = **unos 1,3 céntimos**
 
-Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 350 = 8.400 de los 32.400 tokens de entrada, alrededor de una cuarta parte. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
+Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 350 = 8.400 de los 33.312 tokens de entrada, alrededor de una cuarta parte. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
 
 ## El método exacto: calibra con un idioma
 

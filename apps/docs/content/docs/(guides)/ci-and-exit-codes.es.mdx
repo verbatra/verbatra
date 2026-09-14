@@ -84,8 +84,11 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
+  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
 }
 ```
+
+El objeto `estimate` lleva `keys`, `requests`, la cantidad facturable que cobra el proveedor y un código `pricing` que dice si se pudo derivar una cifra en moneda. Solo está presente en una ejecución con `--estimate`, que siempre es una ejecución en seco; consulta [Estimar el coste](/docs/estimating-cost) para saber qué significa cada campo.
 
 Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para revisión y más); consulta [la referencia del SDK](/docs/sdk) para la anatomía completa.
 

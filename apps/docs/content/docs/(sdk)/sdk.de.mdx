@@ -87,6 +87,25 @@ Probleme des gesamten Laufs werfen einen `SdkError`; ein einzelnes fehlschlagend
 nie, sondern landet als `status: "failed"` auf dem Eintrag dieses Locales, während der Lauf
 weitergeht.
 
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Beantwortet, ob eine Menge von Lauf-Optionen zu einem Dry Run führt. Sie nimmt `dryRun` und
+`estimate`, die du gleich an `translate` übergibst, und liefert zurück, ob dieser Lauf einen
+Provider konstruiert, eine Datei schreibt oder irgendetwas ausgibt. Hier wird als einziger Stelle
+entschieden, dass `estimate` ein `dryRun` impliziert. Greif also darauf zurück, wenn etwas rund um
+einen Lauf das vorab wissen muss, statt die Implikation zu wiederholen und davon abzudriften.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
 ### watch
 
 Beobachtet die Quell-Locale-Datei und führt `translate` bei jeder entprellten Änderung neu aus. Es
