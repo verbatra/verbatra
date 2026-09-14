@@ -20,15 +20,25 @@ applied; and a self-hosted `openai-compatible` endpoint is reported as carrying 
 all. `RunEstimate` is a union discriminated on `pricing`, so a priced estimate always carries its
 figure, its currency and its date, and an unpriced one carries none of them.
 
-The figure is an upper bound on the work it plans. Every provider call a live run schedules is
-counted, including the plural-generation batches, which are a separate call path from the
-translation batches, and the prompt is measured by serializing the payload that would be sent
-rather than by modelling its shape, so a configured glossary and tone are counted in every request
-they travel in. A live run can only send less than that plan, because it consults the translation
-memory and collapses identical source strings; the one thing that can push it above the plan is
-the bounded retry an incomplete response triggers. All three are named on the `estimate excludes`
-line, alongside the token heuristic. A dry run now also reports the plural forms it would generate,
-whether or not an estimate was asked for.
+The figure bounds the plan, not the invoice. Every provider call a live run schedules is counted,
+including the plural-generation batches, which are a separate call path from the translation
+batches; the prompt is measured by serializing the payload that would be sent rather than by
+modelling its shape, so a configured glossary and tone are counted in every request they travel in;
+and the response is sized from the source value plus a 50 percent expansion allowance, because the
+translation does not exist yet and completion tokens are the expensive half of every rate card.
+Against that plan a live run usually spends less, because it consults the translation memory and
+collapses identical source strings.
+
+It can also spend more, and `estimate excludes` names every way: the provider SDKs retry a failed
+call underneath each counted request (two extra attempts on Anthropic, OpenAI and
+openai-compatible, two on Gemini's own loop, five on DeepL), an incomplete response triggers a
+repair round that re-sends the system rules, glossary and tone in full, a target language can
+expand past the allowance, and the token figure is a character heuristic rather than the provider's
+own tokenizer. The estimate covers `translate`; `retranslateEntry` calls a provider on its own path
+and is not counted here.
+
+A dry run now also reports the plural forms it would generate, whether or not an estimate was asked
+for.
 
 `RunSummary.estimate` carries the whole breakdown as structured fields, per locale and in total,
 so `--json` consumers get the numbers rather than a rendered string.
