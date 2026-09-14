@@ -414,10 +414,7 @@ export function resolveRunConcurrency(
 }
 
 function resolveDryRun(input: TranslateInput): boolean {
-  if (input.dryRun === true || input.estimate === true) {
-    return true;
-  }
-  return false;
+  return input.dryRun === true || input.estimate === true;
 }
 
 function estimateFields(

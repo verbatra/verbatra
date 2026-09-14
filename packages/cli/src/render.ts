@@ -102,7 +102,7 @@ function renderEstimateCaveats(estimate: RunEstimate): string {
   return `  estimate excludes: ${phrases.join(", ")}`;
 }
 
-export function renderEstimateLines(estimate: RunEstimate): readonly string[] {
+function renderEstimateLines(estimate: RunEstimate): readonly string[] {
   return [
     renderEstimateQuantity(estimate),
     renderEstimateCost(estimate),

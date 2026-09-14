@@ -2,7 +2,13 @@ import type { TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
-import { estimateRun } from "./estimate.js";
+import {
+  ESTIMATED_CHARACTERS_PER_TOKEN,
+  ESTIMATED_RESPONSE_SCHEMA_TOKENS,
+  ESTIMATED_SYSTEM_RULES_TOKENS,
+  estimateRun,
+  quantifyLocale,
+} from "./estimate.js";
 
 function entry(key: string, value: string): TranslationEntry {
   return { key, namespace: "", value, placeholders: [], isPlural: false };
@@ -243,5 +249,35 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
 
     expect(estimate.provider).toBe("anthropic");
     expect(estimate.model).toBe("sonnet-test");
+  });
+});
+
+describe("the estimation heuristic", () => {
+  it("holds the per-request overhead and character density the cost guide publishes", () => {
+    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(250);
+    expect(ESTIMATED_RESPONSE_SCHEMA_TOKENS).toBe(100);
+    expect(ESTIMATED_CHARACTERS_PER_TOKEN).toBe(4);
+  });
+});
+
+describe("quantifyLocale", () => {
+  it("is the batch-level primitive: one batch of entries, one quantity", () => {
+    expect(quantifyLocale([GREETING], 50)).toEqual({
+      keys: 1,
+      requests: 1,
+      inputTokens: 360,
+      outputTokens: 9,
+      sourceCharacters: 11,
+    });
+  });
+
+  it("charges no request overhead for an empty batch", () => {
+    expect(quantifyLocale([], 50)).toEqual({
+      keys: 0,
+      requests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      sourceCharacters: 0,
+    });
   });
 });
