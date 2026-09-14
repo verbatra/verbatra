@@ -1,6 +1,6 @@
-import { relative } from "node:path";
 import { discoverSourceFiles } from "./discovery.js";
 import type { SourceExtractor } from "./extractor.js";
+import { toReportedPath } from "./reported-path.js";
 import { nodeSourceFs, type SourceFs } from "./source-fs-port.js";
 
 export const DEFAULT_MAX_SOURCE_FILE_BYTES = 2_000_000;
@@ -68,10 +68,6 @@ interface KeyRecord {
   readonly defaults: Map<string, SourceLocation>;
 }
 
-function toPosix(path: string): string {
-  return path.split("\\").join("/");
-}
-
 interface ScanState {
   readonly keys: Map<string, KeyRecord>;
   readonly dynamic: SourceLocation[];
@@ -127,7 +123,7 @@ async function scanFile(
   fs: SourceFs,
   state: ScanState,
 ): Promise<void> {
-  const file = toPosix(relative(input.cwd, path));
+  const file = toReportedPath(input.cwd, path);
   const read = await fs.readTextBounded(path, input.maxFileBytes ?? DEFAULT_MAX_SOURCE_FILE_BYTES);
   if (read.kind !== "ok") {
     state.diagnostics.push({ file, reason: read.kind === "missing" ? "unreadable" : "too-large" });
@@ -161,7 +157,7 @@ export async function scanProject(
       ...(input.exclude !== undefined ? { exclude: input.exclude } : {}),
       onUnreadableDirectory: (path) =>
         state.diagnostics.push({
-          file: toPosix(relative(input.cwd, path)),
+          file: toReportedPath(input.cwd, path),
           reason: "unreadable-directory",
         }),
     },

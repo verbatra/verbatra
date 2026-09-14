@@ -1,17 +1,6 @@
 import { join } from "node:path";
 import type { DirectoryEntry, SourceFs } from "./source-fs-port.js";
 
-export const SOURCE_EXTENSIONS = [
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".cjs",
-  ".mts",
-  ".cts",
-] as const;
-
 export const DEFAULT_EXCLUDED_DIRECTORIES = [
   "node_modules",
   ".git",
@@ -25,7 +14,7 @@ export const DEFAULT_EXCLUDED_DIRECTORIES = [
 
 export interface SourceDiscoveryInput {
   readonly roots: readonly string[];
-  readonly extensions?: readonly string[];
+  readonly extensions: readonly string[];
   readonly exclude?: readonly string[];
   readonly onUnreadableDirectory?: (path: string) => void;
 }
@@ -60,7 +49,7 @@ async function walk(
 ): Promise<void> {
   for (const entry of await readDirectory(path, fs, input)) {
     const child = join(path, entry.name);
-    if (entry.kind === "file" && isSourceFile(entry.name, input.extensions ?? SOURCE_EXTENSIONS)) {
+    if (entry.kind === "file" && isSourceFile(entry.name, input.extensions)) {
       found.add(child);
     }
     if (entry.kind === "directory" && !excluded.has(entry.name)) {

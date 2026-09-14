@@ -1,4 +1,4 @@
-import { relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import {
   type ExtractedKey,
@@ -10,6 +10,7 @@ import {
   type SourceFs,
   type SourceLocation,
   scanProject,
+  toReportedPath,
 } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { buildExtractor, type ExtractionConfig } from "../config/extraction-config.js";
@@ -251,7 +252,7 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
     await writeResource(mergedResource(resource, added, adapter), sourcePath, adapter);
   }
   return {
-    sourcePath: relative(cwd, sourcePath).split("\\").join("/"),
+    sourcePath: toReportedPath(cwd, sourcePath),
     scannedFiles: scan.scannedFiles,
     added: added.map(toAddedKey),
     existingKeys: scan.keys.length - added.length,

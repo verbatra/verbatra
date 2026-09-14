@@ -7,6 +7,7 @@ export type {
 } from "./extractor.js";
 export { SOURCE_FRAMEWORKS, type SourceFramework, sourceFrameworkSchema } from "./framework.js";
 export { createI18nextExtractor } from "./i18next/i18next-extractor.js";
+export { toReportedPath } from "./reported-path.js";
 export {
   type ExtractedKey,
   type KeyConflict,
