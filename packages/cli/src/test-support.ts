@@ -12,6 +12,8 @@ import type {
   LoadConfigOptions,
   LoadedConfig,
   LocaleSummary,
+  PseudolocalizeInput,
+  PseudolocalizeResult,
   RunSummary,
   TranslateInput,
   VerbatraConfig,
@@ -88,6 +90,20 @@ export function makeDoctorResult(overrides: Partial<DoctorResult> = {}): DoctorR
   };
 }
 
+export function makePseudoResult(
+  overrides: Partial<PseudolocalizeResult> = {},
+): PseudolocalizeResult {
+  return {
+    locale: "en-XA",
+    path: "/proj/.verbatra-local/pseudo/locales/en-XA.json",
+    entries: 1,
+    transformed: 1,
+    copied: [],
+    written: true,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -155,6 +171,7 @@ export interface DepCalls {
   diff: DiffInput[];
   doctor: DoctorInput[];
   loadConfigWithMeta: LoadConfigOptions[];
+  pseudolocalize: PseudolocalizeInput[];
   importStudio: undefined[];
   importMcp: undefined[];
 }
@@ -170,6 +187,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     diff: [],
     doctor: [],
     loadConfigWithMeta: [],
+    pseudolocalize: [],
     importStudio: [],
     importMcp: [],
   };
@@ -209,6 +227,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     loadConfigWithMeta: async (options) => {
       calls.loadConfigWithMeta.push(options);
       return impl.loadConfigWithMeta ? impl.loadConfigWithMeta(options) : makeLoadedConfig();
+    },
+    pseudolocalize: async (input) => {
+      calls.pseudolocalize.push(input);
+      return impl.pseudolocalize ? impl.pseudolocalize(input) : makePseudoResult();
     },
     importStudio: async () => {
       calls.importStudio.push(undefined);

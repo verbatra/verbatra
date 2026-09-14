@@ -8,6 +8,7 @@
     "check",
     "diff",
     "doctor",
+    "pseudo",
     "export",
     "import",
     "studio",

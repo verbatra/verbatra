@@ -26,6 +26,7 @@ import {
   renderHuman,
   renderLockWait,
   renderProgress,
+  renderPseudoHuman,
   toRenderableError,
 } from "./render.js";
 import { runStudio } from "./studio-command.js";
@@ -97,6 +98,30 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
 const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
 });
+
+const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+
+const pseudoOptsSchema = sharedCommandOptsSchema.extend({
+  locale: z.string().optional(),
+  out: z.string().optional(),
+});
+
+function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSchema> {
+  const opts = pseudoOptsSchema.parse(rawOpts);
+  if (opts.locale !== undefined && !PSEUDO_LOCALE_TAG.test(opts.locale)) {
+    throw new CliUsageError(
+      "INVALID_LOCALE",
+      `The --locale option must be a language tag such as en-XA, made of letters, digits, and hyphens, got "${opts.locale}".`,
+    );
+  }
+  if (opts.out !== undefined && opts.out.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OUT",
+      "The --out option was provided but names no directory. Pass a path relative to the working directory, or omit it to use .verbatra-local/pseudo.",
+    );
+  }
+  return opts;
+}
 
 function runExitCode(summary: {
   readonly partial: readonly string[];
@@ -560,6 +585,37 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
   });
 }
 
+async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("pseudo", rawOpts, streams);
+  return withParsedOpts(
+    () => parsePseudoCommandOpts(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      appendMissingGitignoreEntries(cwd);
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.pseudolocalize({
+            config,
+            cwd,
+            ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
+            ...(opts.out !== undefined ? { out: opts.out } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("pseudo", result)}\n`
+              : `${renderPseudoHuman(result)}\n`,
+          );
+          return 0;
+        },
+      );
+    },
+  );
+}
+
 async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("doctor", rawOpts, streams);
   return withParsedOpts(
@@ -780,6 +836,37 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("pseudo")
+    .description("Generate a pseudolocale from the source strings without calling a provider")
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--locale <code>", "pseudolocale code to generate (default en-XA)")
+    .option(
+      "--out <path>",
+      "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
+    )
+    .option("--json", "print the pseudolocale result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runPseudo(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra pseudo                     generate en-XA under .verbatra-local/pseudo",
+        "  $ verbatra pseudo --locale en-XB      generate a second pseudolocale instead",
+        "  $ verbatra pseudo --out build/pseudo  write it somewhere your dev server serves",
+        "  $ verbatra pseudo --json              machine-readable result on stdout",
+        "",
+        "It constructs no provider, reads no API key and makes no network request, so it runs " +
+          "before any key exists.",
+      ].join("\n"),
+    );
+}
+
 function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("doctor")
@@ -915,6 +1002,7 @@ function buildProgram(
   registerImportCommand(program, ctx);
   registerCheckCommand(program, ctx);
   registerDiffCommand(program, ctx);
+  registerPseudoCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   registerStudioCommand(program, ctx);
   registerMcpCommand(program, ctx);

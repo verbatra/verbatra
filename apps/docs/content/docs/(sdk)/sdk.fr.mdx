@@ -70,6 +70,43 @@ Entrée : `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, o
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Trois problèmes sont refusés au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur : un `concurrency` qui n'est pas un entier d'au moins 1 lève `CONCURRENCY_INVALID`, un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (il n'existe pas de watch en dry-run, donc le conflit de budget s'applique toujours), et un fichier source manquant lève `SOURCE_UNREADABLE`. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
+## Pseudo-localisation
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+Construit une locale factice à partir des seules chaînes source, si bien que les troncatures de
+mise en page et les chaînes qui n'ont jamais été extraites pour la traduction apparaissent avant
+même qu'une clé d'API existe. Chaque valeur est accentuée, allongée d'environ un tiers de sa
+longueur traduisible et entourée des marqueurs `[` et `]`, tandis que les marqueurs de substitution
+restent intacts dans toutes les syntaxes que reconnaissent les adaptateurs, y compris les branches
+`plural` et `select` d'ICU, les balises de balisage et les séquences d'échappement. Elle ne
+construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau.
+
+Chaque valeur générée passe le même contrôle d'intégrité que la traduction d'un fournisseur. Une
+valeur qui ne le passerait pas est copiée telle quelle depuis la source et nommée dans `copied`
+plutôt qu'écrite cassée, l'entrée reste donc présente et continue de s'afficher.
+
+Entrée : `{ config, cwd?, locale?, out? }`. `locale` vaut `en-XA` par défaut et `out`
+`.verbatra-local/pseudo`, que `verbatra init` ajoute déjà à `.gitignore` ; le `files.pattern`
+configuré y est développé, le fichier garde donc la disposition qu'attend l'application. Une
+pseudo-locale qui nomme une locale configurée, ou qui se poserait sur un fichier de locale
+configuré, est refusée avec `PSEUDO_OUTPUT_CONFLICT` avant que quoi que ce soit ne soit lu ou
+écrit, elle ne peut donc ni écraser une vraie traduction ni en tenir lieu ; il en va de même d'un
+`out` absolu ou qui sort de `cwd`. Comme le fichier vit en
+dehors de `files.pattern`, `translate` ne dépense jamais pour lui et `check` et `diff` ne le
+signalent jamais comme désynchronisé.
+
+Renvoie un `PseudolocalizeResult` : la `locale`, le `path` absolu, combien d'`entries` ont été
+traitées, combien ont été `transformed`, les clés qui ont été `copied`, et si quelque chose a été
+`written`. La transformation est déterministe, une seconde exécution sur une source inchangée ne
+réécrit donc rien et signale `written` à false. Pour `xliff` et `apple-xcstrings`, dont les
+écrivains ne corrigent qu'un document déjà existant, la sortie est recopiée depuis la source à
+chaque écriture, si bien qu'une clé ajoutée à la source après la première exécution parvient quand
+même à la pseudo-locale, et un XLIFF copié voit son `target-language` réécrit vers la
+pseudo-locale.
+
 ## Inspecter l'état sans écrire
 
 Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modifie le verrou.

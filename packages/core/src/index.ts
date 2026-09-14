@@ -12,6 +12,7 @@ export { type TranslationEntry, translationEntrySchema } from "./model/translati
 
 export { checkPlaceholders } from "./placeholder/integrity.js";
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";
+export { pseudolocalizeValue } from "./pseudo/pseudo-transform.js";
 export {
   assessValueDegeneracy,
   type ValueDegeneracyAssessment,

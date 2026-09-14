@@ -126,6 +126,42 @@ rechaza en lugar de devolver un controlador: un `concurrency` que no es un enter
 aplica), y un archivo de origen ausente lanza `SOURCE_UNREADABLE`. Todo fallo posterior al arranque se
 comunica a través de `onRun` y la vigilancia continúa.
 
+## Pseudolocalización
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+Construye una locale falsa solo con las cadenas de origen, de modo que los recortes de diseño y las
+cadenas que nunca se extrajeron para traducir aparezcan antes de que exista clave de API alguna.
+Cada valor se acentúa, se expande alrededor de un tercio de su longitud traducible y se envuelve en
+los marcadores de límite `[` y `]`, mientras que los marcadores de posición quedan intactos en
+todas las sintaxis que reconocen los adaptadores, incluidas las ramas `plural` y `select` de ICU,
+las etiquetas de marcado y las secuencias de escape. No construye ningún proveedor, no lee ninguna
+clave de API y no hace ninguna petición de red.
+
+Cada valor generado pasa por la misma verificación de integridad que debe superar la traducción de
+un proveedor. Uno que no la superaría se copia literalmente de la fuente y se nombra en `copied` en
+lugar de escribirse roto, así que la entrada sigue presente y sigue renderizándose.
+
+Entrada: `{ config, cwd?, locale?, out? }`. `locale` es `en-XA` por defecto y `out` es
+`.verbatra-local/pseudo`, que `verbatra init` ya añade a `.gitignore`; el `files.pattern`
+configurado se expande dentro, así que el archivo conserva la disposición que espera la aplicación.
+Una pseudolocale que nombre una locale configurada, o que aterrizaría sobre un archivo de locale
+configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
+puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
+absoluto o que se salga de `cwd`. Como el archivo vive fuera de
+`files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca lo reportan como
+desincronizado.
+
+Devuelve un `PseudolocalizeResult`: la `locale`, el `path` absoluto, cuántas `entries` se
+procesaron, cuántas se `transformed`, las claves que se `copied` y si se escribió algo (`written`).
+La transformación es determinista, así que una segunda ejecución sobre una fuente sin cambios no
+reescribe nada y reporta `written` como false. Para `xliff` y `apple-xcstrings`, cuyos escritores
+solo parchean un documento que ya existe, la salida se vuelve a copiar desde el origen en cada
+escritura, así que una clave añadida al origen después de la primera ejecución sigue llegando a la
+pseudolocale, y un XLIFF copiado recibe su `target-language` reescrito a la pseudolocale.
+
 ## Inspecciona el estado sin escribir
 
 Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.

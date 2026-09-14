@@ -90,6 +90,14 @@ Ein Dry-Run baut überhaupt keinen Provider auf, braucht also keinen API-Schlüs
 
 [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) kommen genauso ohne Provider aus: `check` meldet Zählwerte pro Locale, `diff` listet die genauen Keys. Anders als `doctor` lesen alle drei die Quelldatei, brauchen sie also zuerst.
 
+Noch etwas funktioniert, bevor du einen Schlüssel hast, und es gibt dir etwas zum Anschauen statt zum Lesen:
+
+```bash
+npx verbatra pseudo
+```
+
+[`verbatra pseudo`](/docs/cli/pseudo) baut aus deinen Quellstrings eine künstliche Locale, akzentuiert, verlängert und in `[` und `]` gefasst, und schreibt sie nach `.verbatra-local/pseudo`. Richte deinen Dev-Server auf dieses Verzeichnis und starte die App darin: Ein abgeschnittener Button, ein aus zwei Fragmenten zusammengeklebter Satz und ein Label, das nie für die Übersetzung extrahiert wurde, fallen sofort auf. Deine echten Locale-Dateien bleiben unangetastet, und die erzeugte Datei ist von den `.gitignore`-Einträgen, die `init` geschrieben hat, bereits abgedeckt.
+
 ## 4. Setze deinen API-Schlüssel
 
 Schlüssel kommen aus der Umgebung, nie aus der Konfigurationsdatei. Jeder gehostete Provider liest genau eine Variable; für Gemini ist das `GEMINI_API_KEY`. Kopiere das erzeugte Beispiel und trage deinen Schlüssel ein:

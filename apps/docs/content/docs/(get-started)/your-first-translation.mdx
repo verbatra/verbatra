@@ -90,6 +90,14 @@ A dry run constructs no provider at all, so it needs no API key and cannot spend
 
 [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) are provider-free in the same way: `check` reports per-locale counts, `diff` lists the exact keys. Unlike `doctor`, all three read the source file, so they need it in place first.
 
+One more thing works before you have a key, and it gives you something to look at rather than read:
+
+```bash
+npx verbatra pseudo
+```
+
+[`verbatra pseudo`](/docs/cli/pseudo) builds a fake locale out of your source strings, accented, expanded and wrapped in `[` and `]`, and writes it to `.verbatra-local/pseudo`. Point your dev server at that directory and run the app in it: a clipped button, a sentence glued together from two fragments, and a label nobody ever extracted for translation all stand out immediately. Your real locale files are never touched, and the generated one is already covered by the `.gitignore` entries `init` wrote.
+
 ## 4. Set your API key
 
 Keys come from the environment, never from the config file. Each hosted provider reads exactly one variable; for Gemini that is `GEMINI_API_KEY`. Copy the scaffolded example and fill in your key:

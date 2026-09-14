@@ -7,6 +7,7 @@ import {
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
+  pseudolocalize,
   translate,
   watch,
 } from "@verbatra/sdk";
@@ -24,6 +25,7 @@ const code = await run(
     diff,
     doctor,
     loadConfigWithMeta,
+    pseudolocalize,
     importStudio: () => import("@verbatra/studio"),
     importMcp: () => import("@verbatra/mcp"),
   },

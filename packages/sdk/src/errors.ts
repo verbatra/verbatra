@@ -74,6 +74,10 @@
  *   atomic write uses. Thrown by {@link editEntry} and {@link retranslateEntry}, which act on one
  *   locale. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
+ * - `PSEUDO_OUTPUT_CONFLICT`: {@link pseudolocalize} was asked to generate a pseudolocale that
+ *   names a configured locale, or to write one onto a configured locale file. Refused before
+ *   anything is read or written, so a generated pseudolocale can never overwrite a real
+ *   translation or stand in for one.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -95,6 +99,7 @@ export type SdkErrorCode =
   | "CONCURRENCY_INVALID"
   | "CONCURRENCY_BUDGET_CONFLICT"
   | "TARGET_UNWRITABLE"
+  | "PSEUDO_OUTPUT_CONFLICT"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

@@ -1,8 +1,8 @@
 ---
 title: Overview
-description: "The verbatra command: its ten subcommands, the shared flags, how it reads your environment, and the exit-code contract."
+description: "The verbatra command: its eleven subcommands, the shared flags, how it reads your environment, and the exit-code contract."
 ---
-`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). Ten commands do the work:
+`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). Eleven commands do the work:
 
 | Command | What it does |
 | --- | --- |
@@ -12,6 +12,7 @@ description: "The verbatra command: its ten subcommands, the shared flags, how i
 | [`check`](/docs/cli/check) | report which keys are missing or stale per locale, read-only |
 | [`diff`](/docs/cli/diff) | list the exact keys that would be added, re-translated, or are orphaned per locale, read-only |
 | [`doctor`](/docs/cli/doctor) | validate the project setup and report every problem at once, without calling a provider |
+| [`pseudo`](/docs/cli/pseudo) | generate a pseudolocale from the source strings, without calling a provider |
 | [`export`](/docs/cli/export) | export untranslated strings for a human translator, as an Excel workbook or one CSV or TSV file per locale |
 | [`import`](/docs/cli/import) | import a filled workbook or delimited file back into the locale files |
 | [`studio`](/docs/cli/studio) | start Verbatra Studio, the local translation dashboard |
@@ -38,13 +39,13 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 - `--config <path>` loads that config file instead of searching for one. Every command except `init` takes it; the search order is described in [The config file](/docs/config-file).
 - `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping.
   - Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way.
-  - `translate`, `watch`, `check`, `diff`, `doctor`, `export`, and `import` support it; `init`, `studio`, and `mcp` do not.
+  - `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `export`, and `import` support it; `init`, `studio`, and `mcp` do not.
   - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
 - `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`) and the handoff commands (`export`, `import`) never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`), the handoff commands (`export`, `import`), and `pseudo` never call a provider and load no `.env` files.
 
 ## Exit codes
 

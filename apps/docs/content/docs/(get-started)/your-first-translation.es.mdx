@@ -90,6 +90,14 @@ Una ejecución en seco no construye ningún proveedor, así que no necesita clav
 
 [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) también prescinden del proveedor: `check` informa de los recuentos por locale, `diff` lista las claves exactas. A diferencia de `doctor`, los tres leen el archivo de origen, así que lo necesitan en su sitio primero.
 
+Una cosa más funciona antes de que tengas una clave, y te da algo que mirar en lugar de leer:
+
+```bash
+npx verbatra pseudo
+```
+
+[`verbatra pseudo`](/docs/cli/pseudo) construye una locale falsa con tus cadenas de origen, acentuada, expandida y envuelta en `[` y `]`, y la escribe en `.verbatra-local/pseudo`. Apunta tu servidor de desarrollo a ese directorio y ejecuta la aplicación ahí: un botón recortado, una frase pegada a partir de dos fragmentos y una etiqueta que nadie extrajo nunca para traducir saltan a la vista de inmediato. Tus archivos de locale reales no se tocan nunca, y el archivo generado ya está cubierto por las entradas de `.gitignore` que escribió `init`.
+
 ## 4. Define tu clave de API
 
 Las claves vienen del entorno, nunca del archivo de configuración. Cada proveedor alojado lee exactamente una variable; para Gemini es `GEMINI_API_KEY`. Copia el ejemplo generado y rellena tu clave:
