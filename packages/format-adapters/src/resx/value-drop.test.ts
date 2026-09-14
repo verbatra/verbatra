@@ -139,30 +139,49 @@ describe("createResxAdapter preserves an untranslatable destination entry with n
   });
 });
 
-describe("createResxAdapter append path has no name guard (known gap)", () => {
-  it("writes a designer-shaped name it can never read back, then refuses every later write that still carries it", async () => {
-    const { adapter, fs } = setup("<root></root>");
-    await adapter.write(resource([entry("$this.Text", "neu"), entry("Ok", "OK")]), PATH);
-    const written = fs.files.get(PATH) ?? "";
-    expect(written).toContain('name="$this.Text"');
-    expect(written).toContain("neu");
-
-    const { resource: back } = await adapter.read(PATH, "de");
-    expect([...back.entries.keys()]).toEqual(["Ok"]);
-
-    const error = await caught(
-      adapter.write(resource([entry("$this.Text", "neuer"), entry("Ok", "OK")]), PATH),
-    );
-    expect(error).toBeInstanceOf(AdapterError);
-    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
-    expect(fs.files.get(PATH)).toBe(written);
+describe("createResxAdapter refuses an append it could never read back", () => {
+  it("refuses a designer-shaped name instead of writing a value the reader then drops", async () => {
+    const document = "<root></root>";
+    const { error, after } = await refusedWrite(document, [
+      entry("$this.Text", "neu"),
+      entry("Ok", "OK"),
+    ]);
+    expect(error.code).toBe("INVALID_STRUCTURE");
+    expect(error.message).toContain("$this.Text");
+    expect(after).toBe(document);
+    expect(after).not.toContain("neu");
+    expect(after).not.toContain("OK");
   });
 
-  it("escapes an angle-bracket designer prefix into the name attribute rather than rejecting it", async () => {
+  it("refuses an angle-bracket designer prefix rather than escaping it into the name attribute", async () => {
+    const document = "<root></root>";
+    const { error, after } = await refusedWrite(document, [entry(">>x.Name", "neu")]);
+    expect(error.code).toBe("INVALID_STRUCTURE");
+    expect(error.message).toContain(">>x.Name");
+    expect(after).toBe(document);
+  });
+
+  it("refuses an empty name, which the reader would skip along with its value", async () => {
+    const document = "<root></root>";
+    const { error, after } = await refusedWrite(document, [entry("", "neu")]);
+    expect(error.code).toBe("INVALID_STRUCTURE");
+    expect(after).toBe(document);
+  });
+
+  it("never synthesizes a destination file around a name it cannot represent", async () => {
+    const fs = createMemoryAdapterFs();
+    const adapter = createResxAdapter(fs);
+    const error = await caught(adapter.write(resource([entry("$this.Text", "neu")]), PATH));
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect(fs.files.has(PATH)).toBe(false);
+  });
+
+  it("appends a name the reader accepts and reads it back", async () => {
     const { adapter, fs } = setup("<root></root>");
-    await adapter.write(resource([entry(">>x.Name", "neu")]), PATH);
-    expect(fs.files.get(PATH)).toContain('name="&gt;&gt;x.Name"');
+    await adapter.write(resource([entry("Ok", "OK")]), PATH);
     const { resource: back } = await adapter.read(PATH, "de");
-    expect([...back.entries.keys()]).toEqual([]);
+    expect([...back.entries.keys()]).toEqual(["Ok"]);
+    expect(fs.files.get(PATH) ?? "").toContain("OK");
   });
 });

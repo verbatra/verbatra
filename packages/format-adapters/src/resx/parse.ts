@@ -19,12 +19,13 @@ const TRAILING_NEWLINES = /(?:\r\n|\r|\n)+$/;
 const DESIGNER_NAME = /^(?:>>|\$)/;
 const SURROUNDING_WHITESPACE = /^\s|\s$/;
 
+function isRepresentableName(name: string): boolean {
+  return name !== "" && !DESIGNER_NAME.test(name);
+}
+
 function isTranslatableData(element: Element, name: string): boolean {
   return (
-    name !== "" &&
-    !DESIGNER_NAME.test(name) &&
-    !element.hasAttribute("type") &&
-    !element.hasAttribute("mimetype")
+    isRepresentableName(name) && !element.hasAttribute("type") && !element.hasAttribute("mimetype")
   );
 }
 
@@ -104,7 +105,17 @@ function closingIndent(root: Element): Node | null {
   return (last.nodeValue ?? "").trim() === "" ? last : null;
 }
 
+function assertRepresentable(name: string): void {
+  if (!isRepresentableName(name)) {
+    throw new AdapterError(
+      "INVALID_STRUCTURE",
+      `The key "${name}" cannot be written as a resource name that reads back as a translatable entry.`,
+    );
+  }
+}
+
 function appendData(doc: Document, root: Element, name: string, value: string): void {
+  assertRepresentable(name);
   const element = doc.createElement("data");
   element.setAttribute("name", name);
   element.setAttribute("xml:space", "preserve");
