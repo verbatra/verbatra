@@ -923,6 +923,28 @@ describe("generatePluralForms: comparePlaceholders wiring (the second buildReque
     expect(requests).toHaveLength(1);
     expect(requests[0]).not.toHaveProperty("comparePlaceholders");
   });
+
+  it("passes the configured length budgets through to the generation request", async () => {
+    const { provider, requests } = capturingProvider();
+    const budgets = new Map([["items_other", 12]]);
+
+    await generatePluralForms({
+      ...context(fakeAdapter(undefined), provider),
+      maxLength: budgets,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.maxLength?.get("items_other")).toBe(12);
+  });
+
+  it("omits the length budgets from the generation request when none are configured", async () => {
+    const { provider, requests } = capturingProvider();
+
+    await generatePluralForms(context(fakeAdapter(undefined), provider));
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).not.toHaveProperty("maxLength");
+  });
 });
 
 describe("generatePluralForms: accept/withhold is recomputed via gateCandidateValue, not the provider's self-report", () => {

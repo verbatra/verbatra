@@ -1,10 +1,8 @@
 import {
   computeReviewFlags,
-  exceedsMaxLength,
   ProviderError,
   type ProviderKind,
   type ReviewFlag,
-  type ReviewReasonCode,
   type Tone,
   type TranslateResult,
   type TranslationProvider,
@@ -94,7 +92,7 @@ interface CachePartition {
   readonly reviewFlags: ReadonlyMap<string, ReviewFlag>;
 }
 
-function reviewCachedValue(
+function reviewCandidateValue(
   params: LocaleRunParams,
   source: TranslationEntry,
   candidate: string,
@@ -141,7 +139,7 @@ function partitionCacheHits(
       continue;
     }
     hits.set(key, { value: cached, source });
-    const flag = reviewCachedValue(params, source, cached, gate.integrity);
+    const flag = reviewCandidateValue(params, source, cached, gate.integrity);
     if (flag !== undefined) {
       reviewFlags.set(key, flag);
     }
@@ -192,6 +190,8 @@ function groupMissesByContent(
   return [...byHash.values()];
 }
 
+const BATCH_LEVEL_REASON = "PROVIDER_DEGRADED" as const;
+
 interface TranslationOutcome {
   readonly accepted: Map<string, Accepted>;
   readonly integrityMismatches: string[];
@@ -225,29 +225,21 @@ function applyGroupOutcome(
   withheldBucketFor(group.representative, outcome).push(...group.duplicates);
 }
 
-function rebudgetedReasons(
-  representativeReasons: readonly ReviewReasonCode[],
-  exceeded: boolean,
-): readonly ReviewReasonCode[] {
-  const kept = representativeReasons.filter((reason) => reason !== "MAX_LENGTH_EXCEEDED");
-  if (!exceeded) {
-    return kept;
-  }
-  const index = kept[0] === "LENGTH_RATIO_OUTLIER" ? 1 : 0;
-  return [...kept.slice(0, index), "MAX_LENGTH_EXCEEDED", ...kept.slice(index)];
-}
-
 function duplicateReviewFlag(
   params: LocaleRunParams,
   representativeFlag: ReviewFlag | undefined,
-  key: string,
+  source: TranslationEntry,
   value: string,
+  integrity: PlaceholderIntegrityResult,
 ): ReviewFlag | undefined {
-  const reasons = rebudgetedReasons(
-    representativeFlag?.reasons ?? [],
-    exceedsMaxLength(value, params.maxLength?.get(key)),
-  );
-  return reasons.length > 0 ? { status: "review", reasons } : undefined;
+  const recomputed = reviewCandidateValue(params, source, value, integrity);
+  if (representativeFlag?.reasons.includes(BATCH_LEVEL_REASON) !== true) {
+    return recomputed;
+  }
+  return {
+    status: "review",
+    reasons: [...(recomputed?.reasons ?? []), BATCH_LEVEL_REASON],
+  };
 }
 
 function fanOutAccepted(
@@ -263,12 +255,19 @@ function fanOutAccepted(
     if (source === undefined) {
       continue;
     }
-    if (!gateCandidateValue(source, acceptedRepresentative.value, params.adapter).accepted) {
+    const gate = gateCandidateValue(source, acceptedRepresentative.value, params.adapter);
+    if (!gate.accepted) {
       outcome.integrityMismatches.push(key);
       continue;
     }
     outcome.accepted.set(key, { value: acceptedRepresentative.value, source });
-    const flag = duplicateReviewFlag(params, representativeFlag, key, acceptedRepresentative.value);
+    const flag = duplicateReviewFlag(
+      params,
+      representativeFlag,
+      source,
+      acceptedRepresentative.value,
+      gate.integrity,
+    );
     if (flag !== undefined) {
       outcome.reviewFlags.set(key, flag);
     }

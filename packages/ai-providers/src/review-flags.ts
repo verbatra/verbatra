@@ -39,7 +39,7 @@ function graphemeLength(value: string): number {
   return count;
 }
 
-export function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
+function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
   return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 

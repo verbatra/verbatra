@@ -112,10 +112,28 @@ function reviewFlaggingProvider(flaggedKey: string): TranslationProvider {
     translateBatch: async (request: TranslateRequest): Promise<TranslateResult> => {
       const values = new Map<string, string>();
       for (const entry of request.entries) {
-        values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+        values.set(entry.key, entry.value);
       }
       const reviewFlags = new Map<string, ReviewFlag>([
         [flaggedKey, { status: "review", reasons: ["EQUALS_SOURCE"] }],
+      ]);
+      return { values, integrity: new Map(), reviewFlags };
+    },
+  };
+}
+
+function degradingProvider(flaggedKey: string): TranslationProvider {
+  return {
+    id: "stub",
+    kind: "llm",
+    supportsGlossary: true,
+    translateBatch: async (request: TranslateRequest): Promise<TranslateResult> => {
+      const values = new Map<string, string>();
+      for (const entry of request.entries) {
+        values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+      }
+      const reviewFlags = new Map<string, ReviewFlag>([
+        [flaggedKey, { status: "review", reasons: ["PROVIDER_DEGRADED"] }],
       ]);
       return { values, integrity: new Map(), reviewFlags };
     },
@@ -199,6 +217,19 @@ describe("translation-memory cache: cross-key reuse", () => {
     expect((summary.locales[0]?.needsReview ?? []).map((flag) => flag.key).sort()).toEqual([
       "a",
       "b",
+    ]);
+  });
+
+  it("carries a batch-level provider degradation to every key sharing the content", async () => {
+    const dir = await project({ a: "Hello", b: "Hello" }, { de: {} });
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => degradingProvider("a") },
+    );
+
+    expect(summary.locales[0]?.needsReview).toEqual([
+      { key: "a", reasons: ["PROVIDER_DEGRADED"] },
+      { key: "b", reasons: ["PROVIDER_DEGRADED"] },
     ]);
   });
 
