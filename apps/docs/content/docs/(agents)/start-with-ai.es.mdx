@@ -26,7 +26,7 @@ Before touching anything, find out what is already here:
   `public/locales/`, `i18n/`, or similar) and determine:
   - The file format: nested JSON, flat JSON, `.yml`/`.yaml`, `.xlf`/`.xliff`, `.arb`,
     `.properties`, `.strings`, `.xcstrings`, Android's `res/values[-qualifier]/strings.xml`,
-    or gettext's `.po`/`.pot`.
+    gettext's `.po`/`.pot`, `.ini`, or .NET's `.resx`.
   - The source locale: the language the strings are actually written in.
   - Every target locale already present.
   - The exact path pattern, written with a `{locale}` token, for example
@@ -43,7 +43,8 @@ Before touching anything, find out what is already here:
   ngx-translate -> `ngx-translate-json`, `.yml`/`.yaml` -> `yaml`,
   `.xlf`/`.xliff` -> `xliff`, `.arb` -> `arb`, `.properties` -> `properties`,
   `.strings` -> `apple-strings`, `.xcstrings` -> `apple-xcstrings`,
-  Android `strings.xml` -> `android-xml`, gettext `.po`/`.pot` -> `gettext-po`. Plain
+  Android `strings.xml` -> `android-xml`, gettext `.po`/`.pot` -> `gettext-po`,
+  `.ini` -> `ini`, .NET `.resx` -> `resx`. Plain
   JSON with no matching library: pick by placeholder syntax, `{{name}}` means
   `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
 - If the format is `xliff`: verbatra only updates `<target>` elements in a file that
@@ -62,13 +63,20 @@ Before touching anything, find out what is already here:
   its own entry; a `#, fuzzy` entry's existing `msgstr` is treated as an existing
   translation, not as missing, and the `fuzzy` flag is never added or cleared by
   verbatra; a `.pot` template reads its empty `msgstr` values without error.
+- If the format is `resx`: a `<data>` element carrying a `type` or `mimetype`
+  attribute, and any entry whose name starts with `>>` or `$`, hold designer or
+  binary resources and are left untouched; everything else is translated
+  normally, and a target `.resx` that does not exist yet is created.
+- If the format is `ini`: a key inside a `[section]` is addressed as `section.key`,
+  comments and blank lines survive a write, and a new key is inserted at the end of
+  its own section rather than at the end of the file.
 
 Do not trust `verbatra init`'s own format auto-detection: it only inspects
 `package.json` for exactly one of `i18next`/`vue-i18n`/`next-intl`/
 `@ngx-translate/core` and never reads the locale directory itself, so it cannot see
 YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalogs, Android
-`strings.xml`, gettext `.po`/`.pot`, or a project with more than one of those
-dependencies.
+`strings.xml`, gettext `.po`/`.pot`, INI, .NET `.resx`, or a project with more than
+one of those dependencies.
 Use what you found above instead of trusting its guess.
 
 ## 2. Install the CLI
@@ -100,7 +108,7 @@ either shape the same way.
 and set `format` to the id you determined in step 1 - the scaffold's own guess is
 unreliable for anything beyond the four JSON dependencies, and is wrong outright for
 YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog, Android
-`strings.xml`, and gettext `.po`/`.pot` projects.
+`strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx` projects.
 
 If the project splits strings across several namespace files per locale (for
 example `common.json` and `auth.json` side by side), verbatra addresses exactly one

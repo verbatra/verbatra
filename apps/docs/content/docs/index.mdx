@@ -49,7 +49,7 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, and 
 
 Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
 
-verbatra reads and writes twelve formats and translates through six providers behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
+verbatra reads and writes fourteen formats and translates through six providers behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
 
 ## The packages
 

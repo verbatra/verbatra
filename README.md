@@ -63,7 +63,7 @@ It ships in four packages. `@verbatra/cli` gives you a `verbatra` command for th
 
 ## Features
 
-- **Many locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring properties, Apple `.strings`/`.stringsdict`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, and gettext `.po`/`.pot` ([Formats](https://verbatra.kreitz-webdev.de/docs/formats)).
+- **Many locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring properties, Apple `.strings`/`.stringsdict`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx` ([Formats](https://verbatra.kreitz-webdev.de/docs/formats)).
 - **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted server such as LM Studio, Ollama, or vLLM) as LLMs, plus DeepL and Google Cloud Translation (machine translation) ([Providers](https://verbatra.kreitz-webdev.de/docs/providers)).
 - **Incremental by default.** A lock file records what has been translated, so each run sends only new or changed strings to the provider.
 - **Project scaffolding.** `verbatra init` writes a config and a `.env.example` for your project, and gitignores the local files it must not commit.

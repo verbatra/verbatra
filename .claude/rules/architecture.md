@@ -70,9 +70,9 @@ implementing the `FormatAdapter` interface (`packages/format-adapters/src/adapte
   key/value formats: takes `parseEntries`, `serializeEntries`, `extractPlaceholders`. Java/Spring
   `.properties` is the shipped example (`packages/format-adapters/src/properties/properties-adapter.ts`).
 
-All twelve shipped adapters (i18next, vue-i18n, next-intl, ngx-translate, XLIFF, YAML, Flutter
+All fourteen shipped adapters (i18next, vue-i18n, next-intl, ngx-translate, XLIFF, YAML, Flutter
 ARB, Java/Spring properties, Apple `.strings`/`.stringsdict`, Apple `.xcstrings`, Android
-`strings.xml`, gettext `.po`/`.pot`) are registered in `createDefaultRegistry`
+`strings.xml`, gettext `.po`/`.pot`, INI, .NET `.resx`) are registered in `createDefaultRegistry`
 (`packages/format-adapters/src/default-registry.ts`). Adding a format means: add the member to
 `SupportedFormat` in `packages/core/src/model/supported-format.ts`, build the adapter on the
 matching factory, register it in `default-registry.ts`, export it from
