@@ -50,8 +50,17 @@ export interface ResolveOptions {
 
 /**
  * Holds the registered adapters and resolves one for a file. Open for extension: adapters attach
- * through {@link AdapterRegistry.register} without changing resolution logic, and resolution never
- * throws.
+ * through {@link AdapterRegistry.register} without changing resolution logic, and an unresolvable
+ * file is a structured status rather than an exception.
+ *
+ * @example
+ * ```ts
+ * const registry = createDefaultRegistry().register(createTomlAdapter());
+ * const resolution = registry.resolve("locales/de.toml");
+ * if (resolution.status === "resolved") {
+ *   const { resource } = await resolution.adapter.read("locales/de.toml", "de");
+ * }
+ * ```
  */
 export class AdapterRegistry {
   private readonly adapters: FormatAdapter[] = [];

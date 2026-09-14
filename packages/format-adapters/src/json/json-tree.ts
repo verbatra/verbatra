@@ -7,10 +7,13 @@ import {
   serializeOrderedJson,
 } from "./ordered-json.js";
 
+/** A terminal value in a parsed locale tree: everything that is not a nested object. */
 export type JsonLeaf = string | number | boolean | null;
 
+/** Any node in a parsed locale tree: a leaf, or a nested record of further nodes. */
 export type JsonTree = JsonLeaf | JsonRecord;
 
+/** A parsed locale tree node, keyed in the order the source document defined its keys. */
 export type JsonRecord = ReadonlyMap<string, JsonTree>;
 
 const INVALID_STRUCTURE_MESSAGE =

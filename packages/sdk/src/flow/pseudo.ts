@@ -1,8 +1,8 @@
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
+  type FormatId,
   type LocaleResource,
   pseudolocalizeValue,
-  type SupportedFormat,
   type TranslationEntry,
 } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
@@ -21,14 +21,9 @@ const DEFAULT_PSEUDO_DIRECTORY = ".verbatra-local/pseudo";
 
 const MAX_SEED_BYTES = 16 * 1024 * 1024;
 
-const SEEDED_FROM_SOURCE: ReadonlySet<SupportedFormat> = new Set<SupportedFormat>([
-  "apple-xcstrings",
-  "xliff",
-]);
+const SEEDED_FROM_SOURCE: ReadonlySet<FormatId> = new Set<FormatId>(["apple-xcstrings", "xliff"]);
 
-const PIPE_SEGMENTED_FORMATS: ReadonlySet<SupportedFormat> = new Set<SupportedFormat>([
-  "vue-i18n-json",
-]);
+const PIPE_SEGMENTED_FORMATS: ReadonlySet<FormatId> = new Set<FormatId>(["vue-i18n-json"]);
 
 const XLIFF_TARGET_LANGUAGE = /\b(target-language|trgLang)\s*=\s*(["'])[^"']*\2/g;
 
@@ -165,7 +160,7 @@ function pseudolocalizeSegment(segment: string): string {
   return body === "" ? segment : `${lead}${pseudolocalizeValue(body)}${trail}`;
 }
 
-function pseudolocalizeEntryValue(entry: TranslationEntry, format: SupportedFormat): string {
+function pseudolocalizeEntryValue(entry: TranslationEntry, format: FormatId): string {
   if (!entry.isPlural || !PIPE_SEGMENTED_FORMATS.has(format)) {
     return pseudolocalizeValue(entry.value);
   }
@@ -175,7 +170,7 @@ function pseudolocalizeEntryValue(entry: TranslationEntry, format: SupportedForm
 function pseudolocalizeEntries(
   source: ReadonlyMap<string, TranslationEntry>,
   adapter: FormatAdapter,
-  format: SupportedFormat,
+  format: FormatId,
 ): PseudoEntries {
   const entries = new Map<string, TranslationEntry>();
   const copied: string[] = [];
@@ -190,7 +185,7 @@ function pseudolocalizeEntries(
   return { entries, copied };
 }
 
-function retargetSeed(content: string, format: SupportedFormat, locale: string): string {
+function retargetSeed(content: string, format: FormatId, locale: string): string {
   if (format !== "xliff") {
     return content;
   }

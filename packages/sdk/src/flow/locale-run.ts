@@ -10,9 +10,9 @@ import {
 import {
   contentHash,
   diffResources,
+  type FormatId,
   type LocaleResource,
   type PlaceholderIntegrityResult,
-  type SupportedFormat,
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
@@ -62,7 +62,7 @@ export interface LocaleRunParams {
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
   readonly targetLocale: string;
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly glossary: Readonly<Record<string, string>> | undefined;
   readonly tone: Tone | undefined;
   readonly prune: boolean;

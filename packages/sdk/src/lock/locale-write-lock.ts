@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { SupportedFormat } from "@verbatra/core";
+import type { FormatId } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
@@ -65,7 +65,7 @@ export function localeLockPath(cwd: string, locale: string): string {
   return lockPath(cwd, locale);
 }
 
-export function writeLockKeyFor(format: SupportedFormat, locale: string): string {
+export function writeLockKeyFor(format: FormatId, locale: string): string {
   return isSharedCatalogueFormat(format) ? SHARED_CATALOGUE_STEM : locale;
 }
 

@@ -1,10 +1,21 @@
-import { AdapterRegistry } from "@verbatra/format-adapters";
+import { AdapterRegistry, type FormatAdapter } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildProvider } from "../config/provider-config.js";
 import { SdkError } from "../errors.js";
 import { makeStubProvider } from "../test-support.js";
 import { selectAdapter } from "./select-adapter.js";
 import { selectProvider } from "./select-provider.js";
+
+function tomlAdapter(): FormatAdapter {
+  return {
+    format: "custom:toml",
+    canHandle: (filePath) => filePath.endsWith(".toml"),
+    extractPlaceholders: () => [],
+    validateMessage: () => true,
+    read: () => Promise.reject(new Error("not used")),
+    write: () => Promise.resolve(),
+  };
+}
 
 describe("selectAdapter", () => {
   it("selects the adapter for the configured format", () => {
@@ -115,5 +126,55 @@ describe("buildProvider (factory table, offline construction)", () => {
     const deepl = buildProvider({ id: "deepl", options: {} });
     expect(deepl.id).toBe("deepl");
     expect(deepl.kind).toBe("machine-translation");
+  });
+});
+
+describe("selectAdapter and third-party formats", () => {
+  it("selects a registered third-party adapter", () => {
+    const registry = new AdapterRegistry().register(tomlAdapter());
+
+    expect(selectAdapter("custom:toml", registry).format).toBe("custom:toml");
+  });
+
+  it("throws UNKNOWN_FORMAT when nothing supplies the third-party adapter", () => {
+    const error = (() => {
+      try {
+        selectAdapter("custom:toml", new AdapterRegistry());
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+
+    expect((error as SdkError).code).toBe("UNKNOWN_FORMAT");
+  });
+
+  it("tells the caller to supply a registry rather than listing the built-in formats", () => {
+    const error = (() => {
+      try {
+        selectAdapter("custom:toml", new AdapterRegistry());
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    const message = (error as SdkError).message;
+
+    expect(message).toContain("custom:toml");
+    expect(message).toContain("adapterRegistry");
+    expect(message).not.toContain("i18next-json");
+  });
+
+  it("still lists the built-in formats for an unregistered built-in format", () => {
+    const error = (() => {
+      try {
+        selectAdapter("yaml", new AdapterRegistry());
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+
+    expect((error as SdkError).message).toContain("i18next-json");
   });
 });

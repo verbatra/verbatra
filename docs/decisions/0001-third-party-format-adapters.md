@@ -190,7 +190,7 @@ outside package build a working adapter and have verbatra use it, and defers the
 
 Promised now, and semver-stable from the version that ships it:
 
-- `FormatId`, `CustomFormatId`, `isCustomFormatId`, `customFormatIdSchema`, `formatIdSchema`
+- `FormatId`, `CustomFormatId`, `isCustomFormatId`
 - `FormatAdapter`, `ReadResult` (already published API through `TranslateDeps`)
 - `AdapterRegistry`, `AdapterResolution`, `ResolveOptions` (already published API, likewise)
 - `AdapterError`, `AdapterErrorCode`
