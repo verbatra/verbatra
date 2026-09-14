@@ -586,7 +586,7 @@ describe("computeReviewFlags: MAX_LENGTH_EXCEEDED", () => {
   });
 
   it("counts a multi-code-point emoji sequence as one grapheme cluster", () => {
-    const family = "\u{1F468}‍\u{1F469}‍\u{1F467}";
+    const family = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467);
     expect(family.length).toBe(8);
     expect([...family].length).toBe(5);
 
@@ -600,7 +600,7 @@ describe("computeReviewFlags: MAX_LENGTH_EXCEEDED", () => {
   });
 
   it("counts a base letter and its combining mark as one grapheme cluster", () => {
-    const decomposed = "café";
+    const decomposed = `cafe${String.fromCodePoint(0x301)}`;
     expect(decomposed.length).toBe(5);
     expect([...decomposed].length).toBe(5);
 
@@ -614,7 +614,7 @@ describe("computeReviewFlags: MAX_LENGTH_EXCEEDED", () => {
   });
 
   it("counts an astral character outside the emoji range as one grapheme cluster", () => {
-    const script = "\u{1D49C}\u{1D4B7}\u{1D4B8}";
+    const script = String.fromCodePoint(0x1d49c, 0x1d4b7, 0x1d4b8);
     expect(script.length).toBe(6);
 
     expect(
