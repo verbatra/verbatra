@@ -141,9 +141,10 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
 const FUZZY_SOURCE_PREVIEW = 40;
 
 function previewSource(source: string): string {
-  return source.length <= FUZZY_SOURCE_PREVIEW
-    ? source
-    : `${source.slice(0, FUZZY_SOURCE_PREVIEW)}...`;
+  const characters = Array.from(source.replace(/[\p{Cc}\p{Cf}]/gu, " "));
+  return characters.length <= FUZZY_SOURCE_PREVIEW
+    ? characters.join("")
+    : `${characters.slice(0, FUZZY_SOURCE_PREVIEW).join("")}...`;
 }
 
 function renderFuzzyHit(hit: FuzzyCacheHit): string {

@@ -252,6 +252,33 @@ describe("render: human run summary", () => {
     expect(text).toContain("...");
   });
 
+  it("neutralizes control characters in the source it echoes back", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [{ key: "a", previousSource: "\u001b[31mred\nline\ttab", similarity: 0.95 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('a (95% like " [31mred line tab")');
+    expect(text).not.toContain("\u001b[31m");
+  });
+
+  it("counts a surrogate pair as one character rather than splitting it", () => {
+    const flags = "\u{1f1e9}\u{1f1ea}".repeat(30);
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ fuzzyHits: [{ key: "a", previousSource: flags, similarity: 1 }] })],
+      }),
+    );
+
+    expect(text).not.toContain("\ufffd");
+    expect(text).toContain("...");
+  });
+
   it("omits the fuzzy-reused count when nothing was reused", () => {
     const text = renderHuman(makeSummary({ locales: [makeLocale({ translated: ["a"] })] }));
 

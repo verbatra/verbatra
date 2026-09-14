@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { TranslateRequest, TranslationProvider } from "@verbatra/ai-providers";
-import { contentHash, type LocaleResource } from "@verbatra/core";
+import { contentHash, type LocaleResource, similarityRatio } from "@verbatra/core";
 import { createDefaultRegistry, type FormatAdapter } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import type { TranslationMemory } from "../cache/types.js";
@@ -244,7 +244,7 @@ describe("runLocale: fuzzy cache reuse", () => {
     const previous = "Hi {{name}}, your invoice is ready to download";
     const edited = "Hi {{names}}, your invoice is ready to download";
 
-    expect(previous).toHaveLength(edited.length - 1);
+    expect(similarityRatio(previous, edited)).toBeGreaterThanOrEqual(0.9);
     expect(adapter.extractPlaceholders(previous)).not.toEqual(adapter.extractPlaceholders(edited));
   });
 
