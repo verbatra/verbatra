@@ -122,17 +122,33 @@ describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
 
       expect(code).toBe(2);
       expect(calls.pseudolocalize).toHaveLength(0);
+      expect(cap.err()).toContain("[INVALID_LOCALE]");
     },
   );
 
-  it("rejects an empty --locale as a usage error", async () => {
+  it("names the offending locale in the structured error rather than dumping a schema report", async () => {
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["pseudo", "--locale", "en XA", "--json"], deps, cap.streams);
+
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "pseudo",
+      code: "INVALID_LOCALE",
+    });
+    expect(cap.out()).not.toContain("invalid_format");
+  });
+
+  it("rejects a blank --out as a usage error", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();
 
-    const code = await run(["pseudo", "--locale", ""], deps, cap.streams);
+    const code = await run(["pseudo", "--out", "  "], deps, cap.streams);
 
     expect(code).toBe(2);
     expect(calls.pseudolocalize).toHaveLength(0);
+    expect(cap.err()).toContain("[INVALID_OUT]");
   });
 });
 

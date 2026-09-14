@@ -100,14 +100,26 @@ const diffOptsSchema = sharedCommandOptsSchema.extend({
 const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 
 const pseudoOptsSchema = sharedCommandOptsSchema.extend({
-  locale: z
-    .string()
-    .regex(PSEUDO_LOCALE_TAG, {
-      message: "--locale must be a language tag such as en-XA, made of letters, digits and hyphens",
-    })
-    .optional(),
-  out: z.string().min(1).optional(),
+  locale: z.string().optional(),
+  out: z.string().optional(),
 });
+
+function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSchema> {
+  const opts = pseudoOptsSchema.parse(rawOpts);
+  if (opts.locale !== undefined && !PSEUDO_LOCALE_TAG.test(opts.locale)) {
+    throw new CliUsageError(
+      "INVALID_LOCALE",
+      `The --locale option must be a language tag such as en-XA, made of letters, digits, and hyphens, got "${opts.locale}".`,
+    );
+  }
+  if (opts.out !== undefined && opts.out.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OUT",
+      "The --out option was provided but names no directory. Pass a path relative to the working directory, or omit it to use .verbatra-local/pseudo.",
+    );
+  }
+  return opts;
+}
 
 function runExitCode(summary: {
   readonly partial: readonly string[];
@@ -573,7 +585,7 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
 async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("pseudo", rawOpts, streams);
   return withParsedOpts(
-    () => pseudoOptsSchema.parse(rawOpts),
+    () => parsePseudoCommandOpts(rawOpts),
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();

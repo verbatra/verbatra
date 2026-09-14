@@ -122,6 +122,32 @@ describe("pseudo (no provider, no key)", () => {
     expect(successResult(second.stdout).written).toBe(false);
   });
 
+  it("refuses an output directory outside the project", async () => {
+    const dir = await seedProject("pseudo-refuses-out");
+
+    const result = await runVerbatra(
+      consumer,
+      ["pseudo", "--json", "--out", "../elsewhere", "--cwd", dir],
+      { env: NO_PROVIDER_KEYS },
+    );
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("PSEUDO_OUTPUT_CONFLICT");
+  });
+
+  it("refuses a malformed pseudolocale tag as a usage error", async () => {
+    const dir = await seedProject("pseudo-refuses-locale");
+
+    const result = await runVerbatra(
+      consumer,
+      ["pseudo", "--json", "--locale", "en XA", "--cwd", dir],
+      { env: NO_PROVIDER_KEYS },
+    );
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("INVALID_LOCALE");
+  });
+
   it("refuses to write a pseudolocale over a configured locale file", async () => {
     const dir = await seedProject("pseudo-refuses");
 
