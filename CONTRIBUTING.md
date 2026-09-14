@@ -147,8 +147,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
      no prompt. Set `kind: "machine-translation"` and implement `translateBatch`
-     directly. DeepL is the only such provider today; see
-     `deepl/deepl-provider.ts`.
+     directly. DeepL and Google Cloud Translation are the two such providers
+     today; see `deepl/deepl-provider.ts` and
+     `google-translate/google-translate-provider.ts`.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.
@@ -158,7 +159,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 3. **`packages/ai-providers/src/env.ts`** - key handling. Add the entry to
    `PROVIDER_ENV` (around `:3`) and a `require<Name>Key()` helper next to the
-   existing four (around `:18-32`), both delegating to `readRequiredEnv`.
+   existing five (around `:19-37`), both delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
@@ -215,8 +216,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    `_envCoversAllProviders` (around `:12`) requires an env entry for every
    provider except `openai-compatible`, and
    `_tokenLimitKeysCoverAllModelProviders` (around `:17`) requires a token-limit
-   key for every one of those except DeepL. Both are unused declarations that
-   exist only to fail the build.
+   key for every one of those except `deepl` and `google-translate`, the two that
+   take no model. Both are unused declarations that exist only to fail the
+   build.
 
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
@@ -226,7 +228,18 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
-    `.fr.mdx` sibling of each in the same change.
+    `.fr.mdx` sibling of each in the same change. If `verbatra init` offers the
+    provider, add it to the `--provider` list in `apps/docs/lib/ai-setup-prompt.ts`
+    too; `ai-setup-prompt.test.ts` only checks that constant against the fenced
+    block in the four `start-with-ai` pages, so it catches a stale page but never
+    a provider you forgot to add to both.
+
+13. **`skills/verbatra-cli/SKILL.md`** - add the row to the Providers table,
+    naming the environment variable from step 3.
+    `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+    `providerFactories` and `PROVIDER_ENV`, so a missing row fails
+    `pnpm test:scripts` rather than shipping a skill that tells an agent the
+    provider does not exist.
 
 ### Adding a format adapter
 
@@ -287,6 +300,18 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    a total `Record<SupportedFormat, string>` and will not compile until the new
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
+
+   `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
+   detection list, the mapping from file shape to format id, the two warnings
+   about what `verbatra init` cannot auto-detect, and a caveat paragraph where the
+   format needs one. Nothing compares that constant to `SUPPORTED_FORMATS`, so
+   nothing fails if you skip it. Do it here, and grep the file for a neighbouring
+   format id rather than trusting one edit to have covered every mention.
+
+8. **`skills/verbatra-cli/SKILL.md`** - add the row to the Formats table.
+   `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+   `SUPPORTED_FORMATS`, so a missing row fails `pnpm test:scripts` rather than
+   shipping a skill that tells an agent the format is unsupported.
 
 ### Formats assessed against the factories
 
