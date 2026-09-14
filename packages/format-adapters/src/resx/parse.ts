@@ -17,6 +17,7 @@ import { createResxDocument, parseResxXml } from "./xml.js";
 
 const TRAILING_NEWLINES = /(?:\r\n|\r|\n)+$/;
 const DESIGNER_NAME = /^(?:>>|\$)/;
+const SURROUNDING_WHITESPACE = /^\s|\s$/;
 
 function isTranslatableData(element: Element, name: string): boolean {
   return (
@@ -113,6 +114,20 @@ function appendData(doc: Document, root: Element, name: string, value: string): 
   root.insertBefore(element, anchor);
 }
 
+function removeWithIndent(element: Element): void {
+  const parent = element.parentNode;
+  if (parent === null) {
+    return;
+  }
+  const previous = element.previousSibling;
+  if (previous !== null && previous.nodeType === TEXT_NODE) {
+    if ((previous.nodeValue ?? "").trim() === "") {
+      parent.removeChild(previous);
+    }
+  }
+  parent.removeChild(element);
+}
+
 function isWritable(element: Element, name: string): boolean {
   if (!isTranslatableData(element, name)) {
     return false;
@@ -140,11 +155,14 @@ function patchData(
   }
   const entry = entries.get(name);
   if (entry !== undefined) {
+    if (SURROUNDING_WHITESPACE.test(entry.value) && !element.hasAttribute("xml:space")) {
+      element.setAttribute("xml:space", "preserve");
+    }
     writeValue(doc, element, entry.value);
     return;
   }
   if (valueElement(element) !== undefined) {
-    element.parentNode?.removeChild(element);
+    removeWithIndent(element);
   }
 }
 

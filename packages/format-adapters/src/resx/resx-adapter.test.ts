@@ -198,6 +198,37 @@ describe("createResxAdapter write", () => {
     expect(written).not.toContain("translated!");
   });
 
+  it("leaves no blank line behind when it removes a stale entry", async () => {
+    const { adapter, fs } = setup({ "Resources.resx": FIXTURE });
+    const { resource: read } = await adapter.read("Resources.resx", "en");
+    const updated = new Map(read.entries);
+    updated.delete("Farewell");
+    await adapter.write({ ...read, entries: updated }, "Resources.resx");
+    const written = fs.files.get("Resources.resx") ?? "";
+    expect(written).not.toMatch(/\n[ \t]+\n/);
+    expect(written).toContain('</data>\n  <data name="Logo"');
+  });
+
+  it("adds the space-preserving attribute when a rewritten value needs it", async () => {
+    const { adapter, fs } = setup({
+      "Resources.resx": '<root><data name="A"><value>x</value></data></root>',
+    });
+    await adapter.write(resource([entry("A", " padded ")]), "Resources.resx");
+    expect(fs.files.get("Resources.resx")).toBe(
+      '<root><data name="A" xml:space="preserve"><value> padded </value></data></root>',
+    );
+  });
+
+  it("leaves an element without the space-preserving attribute alone when the value does not need it", async () => {
+    const { adapter, fs } = setup({
+      "Resources.resx": '<root><data name="A"><value>x</value></data></root>',
+    });
+    await adapter.write(resource([entry("A", "y")]), "Resources.resx");
+    expect(fs.files.get("Resources.resx")).toBe(
+      '<root><data name="A"><value>y</value></data></root>',
+    );
+  });
+
   it("synthesizes a valid document when the target locale file does not exist yet", async () => {
     const { adapter, fs } = setup();
     await adapter.write(resource([entry("Greeting", "Hallo {0}")]), "Resources.de.resx");
