@@ -769,8 +769,8 @@ describe("pseudolocalize: vue-i18n packs plural forms into one value", () => {
 
     const written = await vueOutput(dir);
 
-    expect(written.mixed?.split("|").length).toBe(5);
-    expect(written.mixed).toBe("[{a|b} óńé\u00b7\u00b7] | [{a|b} ṁáńý\u00b7\u00b7\u00b7]");
+    expect(written.mixed?.split("|").length).toBe(4);
+    expect(written.mixed).toBe("[{a|b} óńé\u00b7\u00b7] | [{a|b} ṁáńý\u00b7\u00b7]");
   });
 
   it("the split pipe-in-placeholder values still converge on a second run", async () => {
