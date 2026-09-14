@@ -315,6 +315,16 @@ describe("pseudolocalize: a format whose writer only patches an existing documen
     expect(await readFile(third.path, "utf8")).toBe(afterSecond);
   });
 
+  it("reports a first run as written even when every value was copied verbatim", async () => {
+    const dir = await xliffProject(xliffUnit("runaway", "a".repeat(40)));
+
+    const result = await pseudolocalize({ config: xliffConfig(), cwd: dir });
+
+    expect(result.copied).toEqual(["runaway"]);
+    expect(result.written).toBe(true);
+    expect(await readFile(result.path, "utf8")).toContain("a".repeat(40));
+  });
+
   it("rewrites the seeded XLIFF target-language so the file describes what it holds", async () => {
     const dir = await xliffProject(xliffUnit("a", "Alpha one"), "de");
 
