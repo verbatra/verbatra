@@ -1,0 +1,93 @@
+---
+title: Custom format adapters
+description: "Ship a format verbatra does not: name it with a custom: identifier, build it on one of the two adapter factories, and hand verbatra the registry. Includes what you are trusting when you install one."
+---
+<AvailableFrom version="0.11.0" />
+
+verbatra reads and writes fourteen formats out of the box. If yours is not one of them, you do not have to wait for it to be added: build an adapter in your own package, name the format with a `custom:` identifier, and hand verbatra a registry that holds it. Nothing is published to verbatra, nothing is reviewed by us, and no release is involved.
+
+This is a programmatic API. The `verbatra` command line loads no plugin of its own, by design (see [What you are trusting](#what-you-are-trusting)), so a project using a custom format drives verbatra through `@verbatra/sdk`.
+
+## Name the format
+
+A format supplied from outside verbatra is named `custom:` followed by a lowercase, hyphen-separated name:
+
+```
+custom:toml
+custom:my-format
+```
+
+No built-in format name contains a colon, so a `custom:` identifier can never shadow one, and a registry refuses a second adapter for an identifier it already holds. Put it in your config exactly like a built-in name:
+
+```json
+{
+  "sourceLocale": "en",
+  "targetLocales": ["de"],
+  "format": "custom:toml",
+  "files": { "pattern": "locales/{locale}.toml" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash" } }
+}
+```
+
+A config naming a format that is neither a built-in name nor a well-formed `custom:` identifier is still rejected when it loads. What changes is when the adapter itself is checked: a built-in name is checked at compile time, while a `custom:` identifier is only checked for shape, because the adapter behind it lives in your package. If nothing supplies an adapter for it, the run fails with a structured `UNKNOWN_FORMAT` naming the format rather than doing nothing.
+
+## Build the adapter
+
+Do not implement the adapter contract by hand. Two factories do the bounded read, the atomic write, extension detection and the structured error handling for you, and leave you only your format's own parsing.
+
+Use `createFlatFileAdapter` when every entry is addressed by one key with no nesting:
+
+```ts
+import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
+
+const TOKEN = /\{[a-z]+\}/g;
+
+const tokensIn = (value: string): readonly string[] =>
+  [...value.matchAll(TOKEN)].map((match) => match[0]);
+
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace) => parseToml(content, namespace),
+  serializeEntries: (entries) => serializeToml(entries),
+  extractPlaceholders: tokensIn,
+});
+```
+
+Use `createTreeFileAdapter` when entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form.
+
+Both factories accept an optional `sniff`, a check on a leading content sample. Give it one whenever your extension is a generic one: without it, your adapter claims every file with that extension, and detection reports an ambiguity instead of choosing.
+
+Both also accept an `fs` port, typed `AdapterFs`, defaulting to `nodeAdapterFs`. Read and write through it rather than reaching for `node:fs` yourself: it is the supported path, it gives you the size-bounded read and the atomic write for free, and it is what lets your adapter be tested without touching a disk.
+
+## Register it and run
+
+Start from the built-in registry so your format joins the fourteen rather than replacing them, then pass it as the `adapterRegistry` dependency any flow accepts:
+
+```ts
+import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
+import { tomlAdapter } from "./toml-adapter.js";
+
+const config = await loadConfig({ cwd: process.cwd() });
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+`register` returns the registry, so registrations chain. It raises an `AdapterError` with code `DUPLICATE_FORMAT` if the registry already holds that format, so two plugins that picked the same name fail loudly at startup instead of one silently winning.
+
+## How your failures are reported
+
+An adapter with a `custom:` identifier is wrapped when it is registered. An unexpected throw from `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` or `comparePlaceholders` surfaces as an `AdapterError` with code `ADAPTER_FAILED`, whose message names your format, so a defect in your adapter is never reported as a verbatra defect.
+
+Two kinds of error travel unchanged, because they already mean something precise. An `AdapterError` you raise yourself keeps its own code, so raise one (`INVALID_STRUCTURE` fits most cases) for content your format cannot represent. A filesystem error keeps its own code too, so a missing file is still a missing file.
+
+## What you are trusting
+
+**A format adapter is fully trusted code, at exactly the trust level of any other package you install. verbatra does not sandbox it.**
+
+An adapter you install and register can do everything any dependency can do: read `process.env`, which is where every provider API key lives; read and write any file the process can, not only the ones your config points at; and open a network connection. The `AdapterFs` port is the supported path and the one verbatra hands your adapter, but it is a convention, not a boundary: nothing stops third-party code from reaching the file system another way.
+
+One consequence is specific to adapters and worth stating on its own. The adapter is what decides what counts as a placeholder. An adapter that reports no placeholders makes the [placeholder integrity check](/docs/translation-safety) pass vacuously for its format, so a translation that dropped or mangled an interpolation ships silently. A buggy adapter does this as readily as a hostile one.
+
+There is no honest mitigation to offer here, so we do not pretend to one. What verbatra does guarantee is that loading is never implicit: it discovers no plugin on its own, scans no directory, installs nothing, and follows no naming convention. An adapter runs only because your own code imported it and handed verbatra the registry. Treat installing one the way you would treat any dependency that reads your secrets and writes your files: read it, pin it, and review what changes when it updates.

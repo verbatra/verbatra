@@ -205,9 +205,17 @@ The one case that fails by design is a genuine collision, where one file express
 
 ## How files are read and written
 
-verbatra caps input size and nesting depth on read, and resists a file changing underneath it. It writes atomically: it writes to a temporary file, then renames it into place, so an interrupted write never leaves a half-finished locale file. When verbatra cannot handle a file, it raises a structured, secret-free error with a stable code rather than a raw one: `INVALID_JSON`, `INVALID_YAML`, or `INVALID_XML` for malformed syntax, `INVALID_STRUCTURE` for a parseable file of the wrong shape, `MAX_DEPTH_EXCEEDED` and `INPUT_TOO_LARGE` for the caps, and `MIXED_STRUCTURE` for ngx-translate's mixed-style case.
+verbatra caps input size and nesting depth on read, and resists a file changing underneath it. It writes atomically: it writes to a temporary file, then renames it into place, so an interrupted write never leaves a half-finished locale file. When verbatra cannot handle a file, it raises a structured, secret-free error with a stable code rather than a raw one: `INVALID_JSON`, `INVALID_YAML`, or `INVALID_XML` for malformed syntax, `INVALID_STRUCTURE` for a parseable file of the wrong shape, `MAX_DEPTH_EXCEEDED` and `INPUT_TOO_LARGE` for the caps, and `MIXED_STRUCTURE` for ngx-translate's mixed-style case. Two further codes describe an adapter rather than a file: `ADAPTER_FAILED` attributes an unexpected throw to the third-party adapter it came from, and `DUPLICATE_FORMAT` rejects registering a second adapter for a format identifier that is already taken.
 
 A tree-based locale file (the JSON family, YAML, and ARB) can carry a leaf that is not a string, for example a `count: 5` or `enabled: true` value sitting next to the translatable keys. verbatra accepts these: a leaf can be a string, a number, a boolean, or null, and only a leaf of another type, such as an array, fails with `INVALID_STRUCTURE`. A non-string leaf is excluded from the translatable set: it is never translated, hashed, diffed, or checked for placeholders or ICU. Exclusion is not preservation: if verbatra later writes that same locale file, the write is rebuilt from the strings it manages, so a non-string leaf present at read time is not carried into the output. If such a value needs to survive a rewrite, keep it out of the files verbatra writes to. XLIFF trans-unit values and `.properties` values are always strings, so this does not apply there.
+
+## Formats from outside verbatra
+
+<AvailableFrom version="0.11.0" />
+
+The fourteen formats above are the ones verbatra ships. A format it does not ship can be supplied by an adapter in your own package, named with a `custom:` identifier such as `custom:toml` and handed to verbatra as part of a registry. The built-in set stays closed, and no built-in name contains a colon, so a third-party identifier can never shadow one.
+
+This is a programmatic path through `@verbatra/sdk`, not a command-line one: the `verbatra` binary loads no plugin of its own. An adapter you install is fully trusted code, at the trust level of any other dependency, and verbatra does not sandbox it. See [Custom format adapters](/docs/custom-format-adapters) for how to build one and for what you are trusting when you install one.
 
 ## Why the format matters
 

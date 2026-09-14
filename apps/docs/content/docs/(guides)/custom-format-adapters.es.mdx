@@ -1,0 +1,93 @@
+---
+title: Adaptadores de formato propios
+description: "Aporta un formato que verbatra no trae: nómbralo con un identificador custom:, constrúyelo sobre una de las dos factorías de adaptadores y entrégale la registry a verbatra. Incluye en qué confías al instalar uno."
+---
+<AvailableFrom version="0.11.0" />
+
+verbatra lee y escribe catorce formatos de serie. Si el tuyo no está entre ellos, no tienes que esperar a que se añada: construye un adaptador en tu propio paquete, nombra el formato con un identificador `custom:` y entrégale a verbatra una registry que lo contenga. No se publica nada en verbatra, nosotros no revisamos nada y no hay ninguna release de por medio.
+
+Es una API programática. La línea de comandos `verbatra` no carga ningún plugin por su cuenta, a propósito (ver la sección "En qué confías" más abajo), así que un proyecto con un formato propio conduce verbatra a través de `@verbatra/sdk`.
+
+## Nombrar el formato
+
+Un formato externo a verbatra se llama `custom:` seguido de un nombre en minúsculas separado por guiones:
+
+```
+custom:toml
+custom:my-format
+```
+
+Ningún nombre de formato integrado contiene dos puntos, así que un identificador `custom:` nunca puede tapar uno, y una registry rechaza un segundo adaptador para un identificador que ya tiene. Ponlo en tu configuración igual que un nombre integrado:
+
+```json
+{
+  "sourceLocale": "en",
+  "targetLocales": ["de"],
+  "format": "custom:toml",
+  "files": { "pattern": "locales/{locale}.toml" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash" } }
+}
+```
+
+Una configuración que nombre un formato que no es ni un nombre integrado ni un identificador `custom:` bien formado se sigue rechazando al cargar. Lo que cambia es cuándo se comprueba el adaptador en sí: un nombre integrado se comprueba en tiempo de compilación, mientras que de un identificador `custom:` solo se comprueba la forma, porque el adaptador que hay detrás vive en tu paquete. Si nadie aporta un adaptador para él, la ejecución falla con un `UNKNOWN_FORMAT` estructurado que nombra el formato, en lugar de no hacer nada.
+
+## Construir el adaptador
+
+No implementes el contrato del adaptador a mano. Dos factorías hacen por ti la lectura acotada, la escritura atómica, la detección por extensión y el manejo estructurado de errores, y te dejan solo el parseo propio de tu formato.
+
+Usa `createFlatFileAdapter` cuando cada entrada se direcciona con una sola clave sin anidamiento:
+
+```ts
+import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
+
+const TOKEN = /\{[a-z]+\}/g;
+
+const tokensIn = (value: string): readonly string[] =>
+  [...value.matchAll(TOKEN)].map((match) => match[0]);
+
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace) => parseToml(content, namespace),
+  serializeEntries: (entries) => serializeToml(entries),
+  extractPlaceholders: tokensIn,
+});
+```
+
+Usa `createTreeFileAdapter` cuando las entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los marcadores de cada hoja y de si es una forma plural.
+
+Ambas factorías aceptan un `sniff` opcional, una comprobación sobre una muestra inicial del contenido. Dáselo siempre que tu extensión sea genérica: sin él, tu adaptador reclama todos los archivos con esa extensión y la detección informa de una ambigüedad en lugar de elegir.
+
+Ambas aceptan también un puerto `fs`, de tipo `AdapterFs`, con `nodeAdapterFs` por defecto. Lee y escribe a través de él en lugar de recurrir a `node:fs` por tu cuenta: es la vía admitida, te regala la lectura acotada por tamaño y la escritura atómica, y es lo que permite probar tu adaptador sin tocar disco.
+
+## Registrarlo y ejecutar
+
+Parte de la registry integrada para que tu formato se sume a los catorce en vez de reemplazarlos, y pásala como la dependencia `adapterRegistry` que acepta cualquier flujo:
+
+```ts
+import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
+import { tomlAdapter } from "./toml-adapter.js";
+
+const config = await loadConfig({ cwd: process.cwd() });
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+`register` devuelve la registry, así que los registros se encadenan. Lanza un `AdapterError` con código `DUPLICATE_FORMAT` si la registry ya tiene ese formato, de modo que dos plugins que eligieron el mismo nombre fallan de forma ruidosa al arrancar en lugar de que uno gane en silencio.
+
+## Cómo se informan tus fallos
+
+Un adaptador con identificador `custom:` se envuelve al registrarlo. Un fallo inesperado en `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` o `comparePlaceholders` aparece como un `AdapterError` con código `ADAPTER_FAILED`, cuyo mensaje nombra tu formato, así que un defecto de tu adaptador nunca se informa como un defecto de verbatra.
+
+Dos tipos de error viajan intactos, porque ya significan algo preciso. Un `AdapterError` que lances tú conserva su propio código, así que lanza uno (`INVALID_STRUCTURE` encaja en la mayoría de los casos) para contenido que tu formato no puede representar. Un error del sistema de archivos también conserva su código, así que un archivo ausente sigue siendo un archivo ausente.
+
+## En qué confías
+
+**Un adaptador de formato es código de plena confianza, exactamente al nivel de confianza de cualquier otro paquete que instales. verbatra no lo aísla.**
+
+Un adaptador que instales y registres puede hacer todo lo que puede cualquier dependencia: leer `process.env`, donde vive cada clave de API de proveedor; leer y escribir cualquier archivo que pueda el proceso, no solo los que apunta tu configuración; y abrir una conexión de red. El puerto `AdapterFs` es la vía admitida y la que verbatra le entrega a tu adaptador, pero es una convención, no una frontera: nada impide que código de terceros llegue al sistema de archivos por otro camino.
+
+Una consecuencia es específica de los adaptadores y merece decirse aparte. El adaptador es quien decide qué cuenta como marcador. Un adaptador que no informa de ningún marcador hace que la [comprobación de integridad de marcadores](/docs/translation-safety) pase en vacío para su formato, de modo que una traducción que perdió o estropeó una interpolación se publica en silencio. Un adaptador con errores hace esto con la misma facilidad que uno malicioso.
+
+Aquí no hay ninguna mitigación honesta que ofrecer, así que no fingimos tenerla. Lo que verbatra sí garantiza es que la carga nunca es implícita: no descubre ningún plugin por su cuenta, no escanea directorios, no instala nada y no sigue ninguna convención de nombres. Un adaptador se ejecuta solo porque tu propio código lo importó y le entregó la registry a verbatra. Trata instalarlo como tratarías cualquier dependencia que lee tus secretos y escribe tus archivos: léela, fíjala a una versión y revisa qué cambia cuando se actualiza.

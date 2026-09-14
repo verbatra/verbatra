@@ -468,6 +468,39 @@ Eintrag, weil es kein Token-Limit entgegennimmt. Der Typ `ScaffoldableProviderId
 Provider ab; `openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende
 Umgebungsvariable hat.
 
+## Formatadapter
+
+<AvailableFrom version="0.11.0" />
+
+Alles, was du brauchst, um einen Formatadapter für ein Format zu bauen, das verbatra nicht mitbringt, und ihn neben den eingebauten zu registrieren. Ein Format von außerhalb verbatra wird mit einem `custom:`-Bezeichner wie `custom:toml` benannt, den die Konfiguration genau wie einen eingebauten Namen akzeptiert. Die vollständige Anleitung steht unter [Eigene Formatadapter](/docs/custom-format-adapters), samt dem, worauf du dich beim Installieren eines Drittanbieter-Adapters einlässt: Er ist voll vertrauenswürdiger Code, und verbatra kapselt ihn nicht ab.
+
+### createDefaultRegistry
+
+Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. `register` gibt die Registry zurück, Registrierungen lassen sich also verketten, und wirft einen `AdapterError` mit dem Code `DUPLICATE_FORMAT`, wenn das Format schon vergeben ist.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
+
+### createTreeFileAdapter
+
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Es nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter und die Pluralform meldet, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Es trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` und `keyMode`.
+
+### nodeAdapterFs
+
+Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
+
+### isCustomFormatId
+
+Grenzt einen Format-Bezeichner auf einen von außen ein: true für einen wohlgeformten `custom:`-Bezeichner, false für jeden eingebauten Formatnamen. Nützlich, wenn dein eigenes Werkzeug die beiden auseinanderhalten muss, etwa um zu entscheiden, ob vor einem Lauf erst eine Registry geliefert werden muss.
+
 ## Secret-Redaktion
 
 <AvailableFrom version="0.10.0" />

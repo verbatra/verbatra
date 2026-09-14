@@ -205,9 +205,17 @@ Der eine Fall, der bewusst fehlschlägt, ist eine echte Kollision, bei der eine 
 
 ## Wie Dateien gelesen und geschrieben werden
 
-verbatra begrenzt beim Lesen Eingabegröße und Verschachtelungstiefe und widersteht einer Datei, die sich unter ihm ändert. Es schreibt atomar: erst in eine temporäre Datei, dann per Umbenennen an den Zielort, ein unterbrochener Schreibvorgang hinterlässt also nie eine halbfertige Locale-Datei. Wenn verbatra eine Datei nicht verarbeiten kann, erzeugt es einen strukturierten, geheimnisfreien Fehler mit stabilem Code statt eines rohen: `INVALID_JSON`, `INVALID_YAML` oder `INVALID_XML` für fehlerhafte Syntax, `INVALID_STRUCTURE` für eine parsebare Datei der falschen Form, `MAX_DEPTH_EXCEEDED` und `INPUT_TOO_LARGE` für die Obergrenzen und `MIXED_STRUCTURE` für ngx-translates Mischfall.
+verbatra begrenzt beim Lesen Eingabegröße und Verschachtelungstiefe und widersteht einer Datei, die sich unter ihm ändert. Es schreibt atomar: erst in eine temporäre Datei, dann per Umbenennen an den Zielort, ein unterbrochener Schreibvorgang hinterlässt also nie eine halbfertige Locale-Datei. Wenn verbatra eine Datei nicht verarbeiten kann, erzeugt es einen strukturierten, geheimnisfreien Fehler mit stabilem Code statt eines rohen: `INVALID_JSON`, `INVALID_YAML` oder `INVALID_XML` für fehlerhafte Syntax, `INVALID_STRUCTURE` für eine parsebare Datei der falschen Form, `MAX_DEPTH_EXCEEDED` und `INPUT_TOO_LARGE` für die Obergrenzen und `MIXED_STRUCTURE` für ngx-translates Mischfall. Zwei weitere Codes beschreiben einen Adapter statt einer Datei: `ADAPTER_FAILED` schreibt einen unerwarteten Fehler dem Drittanbieter-Adapter zu, aus dem er kam, und `DUPLICATE_FORMAT` weist es zurück, einen zweiten Adapter für einen bereits vergebenen Format-Bezeichner zu registrieren.
 
 Eine baumbasierte Locale-Datei (die JSON-Familie, YAML und ARB) kann ein Blatt tragen, das kein String ist, zum Beispiel ein `count: 5` oder `enabled: true` neben den übersetzbaren Keys. verbatra akzeptiert das: Ein Blatt darf String, Zahl, Boolean oder null sein, und nur ein Blatt eines anderen Typs, etwa ein Array, schlägt mit `INVALID_STRUCTURE` fehl. Ein Nicht-String-Blatt ist vom übersetzbaren Bestand ausgeschlossen: Es wird nie übersetzt, gehasht, verglichen oder auf Platzhalter oder ICU geprüft. Ausschluss ist keine Erhaltung: Schreibt verbatra später dieselbe Locale-Datei, wird der Schreibvorgang aus den Strings aufgebaut, die es verwaltet, ein beim Lesen vorhandenes Nicht-String-Blatt wird also nicht in die Ausgabe übernommen. Muss so ein Wert einen Neuschrieb überleben, halte ihn aus den Dateien heraus, in die verbatra schreibt. XLIFF-Trans-Unit-Werte und `.properties`-Werte sind immer Strings, dort gilt das also nicht.
+
+## Formate von außerhalb verbatra
+
+<AvailableFrom version="0.11.0" />
+
+Die vierzehn Formate oben sind die, die verbatra mitbringt. Ein Format, das es nicht mitbringt, kannst du über einen Adapter in deinem eigenen Paket liefern: Du benennst es mit einem `custom:`-Bezeichner wie `custom:toml` und übergibst es verbatra als Teil einer Registry. Die eingebaute Menge bleibt geschlossen, und kein eingebauter Name enthält einen Doppelpunkt, ein Bezeichner von aussen kann also nie einen eingebauten überdecken.
+
+Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Eigene Formatadapter](/docs/custom-format-adapters).
 
 ## Warum das Format wichtig ist
 
