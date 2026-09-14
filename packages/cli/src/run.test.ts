@@ -1035,8 +1035,8 @@ describe("run: translate --estimate", () => {
           dryRun: true,
           estimate: {
             provider: "anthropic",
-            model: "claude-sonnet-4-5",
-            rateKey: "anthropic/claude-sonnet-4-5",
+            model: "sonnet-test",
+            rateKey: "anthropic/sonnet-test",
             unit: "tokens",
             pricing: "priced",
             currency: "USD",

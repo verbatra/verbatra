@@ -12,7 +12,7 @@ const GREETING = entry("greeting", "Hello world");
 
 const ANTHROPIC: ProviderConfig = {
   id: "anthropic",
-  options: { model: "claude-sonnet-4-5", maxTokens: 4096 },
+  options: { model: "sonnet-test", maxTokens: 4096 },
 };
 const DEEPL: ProviderConfig = { id: "deepl", options: {} };
 const SELF_HOSTED: ProviderConfig = {
@@ -101,7 +101,7 @@ describe("estimateRun: token-billed providers", () => {
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
       rates: card({
-        "anthropic/claude-sonnet-4-5": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+        "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
       }),
     });
 
@@ -179,7 +179,7 @@ describe("estimateRun: what cannot be priced", () => {
     });
 
     expect(estimate.pricing).toBe("no-rate-on-file");
-    expect(estimate.rateKey).toBe("anthropic/claude-sonnet-4-5");
+    expect(estimate.rateKey).toBe("anthropic/sonnet-test");
     expect(estimate.cost).toBeUndefined();
     expect(estimate.locales[0]?.cost).toBeUndefined();
   });
@@ -200,7 +200,7 @@ describe("estimateRun: what cannot be priced", () => {
       provider: ANTHROPIC,
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [GREETING] }],
-      rates: card({ "anthropic/claude-sonnet-4-5": { perMillionCharacters: 25 } }),
+      rates: card({ "anthropic/sonnet-test": { perMillionCharacters: 25 } }),
     });
 
     expect(estimate.pricing).toBe("rate-unit-mismatch");
@@ -213,7 +213,7 @@ describe("estimateRun: what cannot be priced", () => {
       maxBatchSize: 50,
       locales: [{ locale: "de", entries: [] }],
       rates: card({
-        "anthropic/claude-sonnet-4-5": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+        "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
       }),
     });
 
@@ -242,6 +242,6 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
     });
 
     expect(estimate.provider).toBe("anthropic");
-    expect(estimate.model).toBe("claude-sonnet-4-5");
+    expect(estimate.model).toBe("sonnet-test");
   });
 });

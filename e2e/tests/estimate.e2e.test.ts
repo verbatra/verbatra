@@ -24,7 +24,7 @@ const baseConfig = {
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },
+  provider: { id: "anthropic", options: { model: "sonnet-test", maxTokens: 4096 } },
 };
 
 async function seed(name: string, extra: Record<string, unknown> = {}): Promise<string> {
@@ -59,7 +59,7 @@ describe("translate --estimate (no provider, no key)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("(dry run: nothing written)");
     expect(result.stdout).toMatch(/estimate: 4 keys in 2 requests/);
-    expect(result.stdout).toContain("no rate on file for anthropic/claude-sonnet-4-6");
+    expect(result.stdout).toContain("no rate on file for anthropic/sonnet-test");
   });
 
   it("writes no locale file, no lock file, and no cache file", async () => {
@@ -79,7 +79,7 @@ describe("translate --estimate (no provider, no key)", () => {
         asOf: "2026-01-15",
         currency: "USD",
         table: {
-          "anthropic/claude-sonnet-4-6": {
+          "anthropic/sonnet-test": {
             inputPerMillionTokens: 3,
             outputPerMillionTokens: 15,
           },

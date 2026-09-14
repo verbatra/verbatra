@@ -24,7 +24,7 @@ async function project(source: Record<string, unknown>): Promise<string> {
 function anthropicConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
   return baseConfig({
     targetLocales: ["de", "fr"],
-    provider: { id: "anthropic", options: { model: "claude-sonnet-4-5", maxTokens: 4096 } },
+    provider: { id: "anthropic", options: { model: "sonnet-test", maxTokens: 4096 } },
     ...overrides,
   });
 }
@@ -149,7 +149,7 @@ describe("translate: what the estimate covers", () => {
             asOf: "2026-01-15",
             currency: "USD",
             table: {
-              "anthropic/claude-sonnet-4-5": {
+              "anthropic/sonnet-test": {
                 inputPerMillionTokens: 3,
                 outputPerMillionTokens: 15,
               },

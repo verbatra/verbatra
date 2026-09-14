@@ -559,8 +559,8 @@ describe("render: watch run result", () => {
 describe("renderHuman: pre-run estimate", () => {
   const tokenEstimate: RunEstimate = {
     provider: "anthropic",
-    model: "claude-sonnet-4-5",
-    rateKey: "anthropic/claude-sonnet-4-5",
+    model: "sonnet-test",
+    rateKey: "anthropic/sonnet-test",
     unit: "tokens",
     pricing: "priced",
     currency: "USD",
@@ -624,8 +624,8 @@ describe("renderHuman: pre-run estimate", () => {
   it("says which rate is missing and where to add it, rather than showing zero", () => {
     const line = render(unpriced({ pricing: "no-rate-on-file" }));
 
-    expect(line).toContain("no rate on file for anthropic/claude-sonnet-4-5");
-    expect(line).toContain('rates.table["anthropic/claude-sonnet-4-5"]');
+    expect(line).toContain("no rate on file for anthropic/sonnet-test");
+    expect(line).toContain('rates.table["anthropic/sonnet-test"]');
     expect(line).not.toContain("0.00");
   });
 

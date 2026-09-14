@@ -5,7 +5,7 @@ const validCard = {
   asOf: "2026-01-15",
   currency: "USD",
   table: {
-    "anthropic/claude-sonnet-4-5": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
+    "anthropic/sonnet-test": { inputPerMillionTokens: 3, outputPerMillionTokens: 15 },
     deepl: { perMillionCharacters: 25 },
   },
 };

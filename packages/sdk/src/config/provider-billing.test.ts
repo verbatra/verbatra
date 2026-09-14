@@ -25,9 +25,9 @@ describe("PROVIDER_BILLING", () => {
 
 describe("modelOf", () => {
   it("reads the model a token-billed provider was configured with", () => {
-    expect(
-      modelOf({ id: "anthropic", options: { model: "claude-sonnet-4-5", maxTokens: 4096 } }),
-    ).toBe("claude-sonnet-4-5");
+    expect(modelOf({ id: "anthropic", options: { model: "sonnet-test", maxTokens: 4096 } })).toBe(
+      "sonnet-test",
+    );
   });
 
   it("reports no model for a provider whose config has no model field", () => {

@@ -43,7 +43,7 @@ export type ModelRate = z.infer<typeof modelRateSchema>;
  * so any figure derived from it is visibly as old as `asOf` says it is.
  *
  * `table` is keyed by rate key: `provider/model` for a provider configured with a model (for
- * example `anthropic/claude-sonnet-4-5`), and the bare provider id for one without (`deepl`,
+ * example `gemini/gemini-2.5-flash`), and the bare provider id for one without (`deepl`,
  * `google-translate`).
  */
 export type RateCard = z.infer<typeof rateCardSchema>;
