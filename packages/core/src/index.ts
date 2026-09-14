@@ -2,6 +2,14 @@ export { diffResources } from "./diff/diff-resources.js";
 export type { DiffOptions, DiffResult } from "./diff/types.js";
 export { contentHash } from "./hash/content-hash.js";
 export { stableStringHash } from "./hash/string-hash.js";
+export {
+  CUSTOM_FORMAT_PREFIX,
+  type CustomFormatId,
+  customFormatIdSchema,
+  type FormatId,
+  formatIdSchema,
+  isCustomFormatId,
+} from "./model/format-id.js";
 export type { LocaleResource } from "./model/locale-resource.js";
 export {
   SUPPORTED_FORMATS,

@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { type SupportedFormat, supportedFormatSchema } from "./supported-format.js";
+import { type FormatId, formatIdSchema } from "./format-id.js";
 import { type TranslationEntry, translationEntrySchema } from "./translation-entry.js";
 
 export const localeResourceSchema = z.object({
   locale: z.string().min(1),
   namespace: z.string(),
-  format: supportedFormatSchema,
+  format: formatIdSchema,
   entries: z.map(z.string(), translationEntrySchema),
 });
 
@@ -20,7 +20,7 @@ export interface LocaleResource {
   /** The namespace these entries belong to; empty when the format has no namespacing. */
   readonly namespace: string;
   /** The source format the resource came from, retained for round-trip fidelity on write. */
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   /** Entries addressable by key, in the order the source file defined them. */
   readonly entries: ReadonlyMap<string, TranslationEntry>;
 }
