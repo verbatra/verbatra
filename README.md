@@ -102,7 +102,7 @@ export default defineConfig({
 });
 ```
 
-`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list the same locale twice (compared case-insensitively). The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, and `gettext-po`. The optional `glossary` (a term map, given inline or as a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output.
+`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list the same locale twice (compared case-insensitively). The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini`, and `resx`. The optional `glossary` (a term map, given inline or as a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output.
 
 The `provider` block is selected by `id`. The LLM providers take a `model` and a token limit; DeepL and Google Cloud Translation need no model:
 
