@@ -83,13 +83,20 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source dans une locale cible
   différente, et la source avait réellement du texte traduisible.
 - `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme
-  cible associé est absent de la traduction.
+  cible associé est absent de la traduction. La correspondance ignore la casse et exige un mot
+  entier des deux côtés, donc le terme `AI` ne compte pas comme présent à l'intérieur de `Airport`.
+  Les écritures sans séparateur de mots (han, kana, thaï et similaires) n'offrent aucune frontière,
+  donc un terme dont le bord tombe dans l'une d'elles est cherché comme simple sous-chaîne.
 - `INTEGRITY_REORDERED` : l'ensemble des placeholders correspondait exactement mais est arrivé dans
   un ordre différent de la source. Ne se déclenche que sur une traduction que la barrière a déjà
   acceptée.
 - `PROVIDER_DEGRADED` : le lot dont cette clé provient a été dégradé en douceur par le fournisseur
   (un abaissement de formalité ou un glossaire ignoré ; dans l'ensemble actuel de fournisseurs,
   DeepL uniquement).
+
+Une valeur réutilisée depuis [le cache](/docs/the-cache), et une valeur propagée vers une clé qui
+partage son texte source, passent par les mêmes heuristiques de révision qu'une valeur fraîchement
+traduite.
 
 Les clés signalées apparaissent par locale comme `needsReview` sur le résumé d'exécution, et elles
 alimentent la file de révision : la CLI affiche le compte, le classeur Excel porte le même signal

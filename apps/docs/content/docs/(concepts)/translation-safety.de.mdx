@@ -84,13 +84,21 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
 - `EQUALS_SOURCE`: Die Übersetzung entspricht der Quelle wortwörtlich in einer anderen
   Ziel-Locale, und die Quelle hatte tatsächlich übersetzbaren Text.
 - `GLOSSARY_TERM_MISSED`: Ein konfigurierter Glossarbegriff kommt in der Quelle vor, aber sein
-  zugeordneter Zielbegriff fehlt in der Übersetzung.
+  zugeordneter Zielbegriff fehlt in der Übersetzung. Der Abgleich ignoriert Groß- und
+  Kleinschreibung und gilt auf beiden Seiten als ganzes Wort, deshalb zählt der Begriff `AI`
+  innerhalb von `Airport` nicht als vorhanden. Schriften ohne Worttrenner (Han, Kana, Thai und
+  ähnliche) bieten keine Wortgrenze, deshalb wird ein Begriff, dessen Rand in eine davon fällt,
+  schlicht als Teilzeichenkette gesucht.
 - `INTEGRITY_REORDERED`: Die Platzhaltermenge stimmte exakt überein, landete aber in einer anderen
   Reihenfolge als in der Quelle. Feuert nur auf einer Übersetzung, die das Gate bereits akzeptiert
   hat.
 - `PROVIDER_DEGRADED`: Der Batch, aus dem dieser Key stammt, wurde vom Provider kontrolliert
   herabgestuft (eine Formalitäts-Herabstufung oder ein ignoriertes Glossar; im aktuellen
   Provider-Satz nur DeepL).
+
+Ein aus [dem Cache](/docs/the-cache) wiederverwendeter Wert und ein Wert, der an einen Key mit
+gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristiken wie eine frisch
+übersetzte Zeichenkette.
 
 Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung und speisen die
 Review-Warteschlange: Die CLI gibt die Anzahl aus, die Excel-Arbeitsmappe trägt dasselbe Signal in

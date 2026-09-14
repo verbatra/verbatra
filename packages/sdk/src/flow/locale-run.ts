@@ -1,4 +1,5 @@
 import {
+  computeReviewFlags,
   ProviderError,
   type ReviewFlag,
   type Tone,
@@ -6,6 +7,7 @@ import {
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import {
+  checkPlaceholders,
   contentHash,
   diffResources,
   type LocaleResource,
@@ -83,6 +85,25 @@ interface Accepted {
 interface CachePartition {
   readonly hits: ReadonlyMap<string, Accepted>;
   readonly misses: readonly string[];
+  readonly reviewFlags: ReadonlyMap<string, ReviewFlag>;
+}
+
+function reviewCachedValue(
+  params: LocaleRunParams,
+  source: TranslationEntry,
+  cached: string,
+): ReviewFlag | undefined {
+  const integrity =
+    params.adapter.comparePlaceholders?.(source.value, cached) ??
+    checkPlaceholders(source.placeholders, params.adapter.extractPlaceholders(cached));
+  return computeReviewFlags({
+    sourceValue: source.value,
+    translatedValue: cached,
+    sourceLocale: params.sourceLocale,
+    targetLocale: params.targetLocale,
+    integrity,
+    glossary: params.glossary,
+  });
 }
 
 function partitionCacheHits(
@@ -91,8 +112,9 @@ function partitionCacheHits(
 ): CachePartition {
   const cache = params.cache;
   const hits = new Map<string, Accepted>();
+  const reviewFlags = new Map<string, ReviewFlag>();
   if (cache === undefined) {
-    return { hits, misses: toTranslate };
+    return { hits, misses: toTranslate, reviewFlags };
   }
   const misses: string[] = [];
   for (const key of toTranslate) {
@@ -109,11 +131,15 @@ function partitionCacheHits(
     );
     if (cached !== undefined && gateCandidateValue(source, cached, params.adapter).accepted) {
       hits.set(key, { value: cached, source });
+      const flag = reviewCachedValue(params, source, cached);
+      if (flag !== undefined) {
+        reviewFlags.set(key, flag);
+      }
     } else {
       misses.push(key);
     }
   }
-  return { hits, misses };
+  return { hits, misses, reviewFlags };
 }
 
 function collectCacheAdditions(
@@ -300,7 +326,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const integrityMismatches: string[] = [];
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
-  const reviewFlags = new Map<string, ReviewFlag>();
+  const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
   const translation = await translateAndCheck(
     provider,
     params,

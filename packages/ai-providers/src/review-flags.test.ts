@@ -178,6 +178,141 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
     );
     expect(flag).toBeUndefined();
   });
+
+  it("does not treat a source term buried inside a longer word as present", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Airport transfers are included",
+        translatedValue: "Flughafentransfers sind inklusive",
+        glossary: { AI: "KI" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("does not treat a target term buried inside a longer word as present", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "AI summary",
+        translatedValue: "Kindliche Zusammenfassung",
+        glossary: { AI: "KI" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+  });
+
+  it("does not treat a source term followed by a digit as present", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "AI2 is the model name",
+        translatedValue: "AI2 ist der Modellname",
+        glossary: { AI: "KI" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("does not treat a source term preceded by a letter as present", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "xAI builds models",
+        translatedValue: "xAI baut Modelle",
+        glossary: { AI: "KI" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("matches a term whose characters are regex metacharacters", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Learn C++ today",
+        translatedValue: "Lerne heute",
+        glossary: { "C++": "C++" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+  });
+
+  it("does not flag a metacharacter term that is present on both sides", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Learn .NET today",
+        translatedValue: "Lerne heute .NET",
+        glossary: { ".NET": ".NET" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("falls back to substring matching for a target term in a script without word separators", () => {
+    const flag = computeReviewFlags(
+      input({
+        targetLocale: "ja",
+        sourceValue: "Delete your account",
+        translatedValue: "アカウントを削除します",
+        glossary: { account: "アカウント" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("flags a missing target term in a script without word separators", () => {
+    const flag = computeReviewFlags(
+      input({
+        targetLocale: "ja",
+        sourceValue: "Delete your account",
+        translatedValue: "これを削除してください",
+        glossary: { account: "アカウント" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+  });
+
+  it("treats a latin target term as present when a script without word separators follows it", () => {
+    const flag = computeReviewFlags(
+      input({
+        targetLocale: "ja",
+        sourceValue: "AI search",
+        translatedValue: "AI検索",
+        glossary: { AI: "AI" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("does not treat a source term followed by a combining mark as present", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Order at the cafe\u0301",
+        translatedValue: "Bestellen Sie dort",
+        glossary: { cafe: "Kaffee" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("flags a target term that only survives as part of a compound, which authoring must resolve", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Open your account",
+        translatedValue: "Öffne dein Benutzerkonto",
+        glossary: { account: "Konto" },
+      }),
+    );
+    expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
+  });
+
+  it("skips a glossary pair whose source or target term is empty", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Click Save to continue",
+        translatedValue: "Klicken Sie zum Fortfahren",
+        glossary: { Save: "", "": "Speichern" },
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
 });
 
 describe("computeReviewFlags: INTEGRITY_REORDERED", () => {

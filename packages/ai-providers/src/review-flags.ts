@@ -7,6 +7,12 @@ const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
 
 const UNICODE_LETTER = /\p{L}/u;
 
+const SCRIPTS_WITHOUT_WORD_SEPARATORS =
+  "\\p{sc=Han}\\p{sc=Hiragana}\\p{sc=Katakana}\\p{sc=Thai}\\p{sc=Lao}\\p{sc=Khmer}\\p{sc=Myanmar}\\p{sc=Tibetan}";
+const WORD_JOINING = `[[\\p{L}\\p{M}\\p{N}_]--[${SCRIPTS_WITHOUT_WORD_SEPARATORS}]]`;
+const WORD_JOINING_AT_START = new RegExp(`^${WORD_JOINING}`, "v");
+const WORD_JOINING_AT_END = new RegExp(`${WORD_JOINING}$`, "v");
+
 const DEGRADATION_NOTICE_CODES: ReadonlySet<ProviderNotice["code"]> = new Set([
   "FORMALITY_DOWNGRADED",
   "GLOSSARY_IGNORED",
@@ -40,6 +46,30 @@ function isEqualsSource(input: ReviewFlagInput): boolean {
   );
 }
 
+function isPrecededByWordCharacter(text: string, index: number): boolean {
+  return WORD_JOINING_AT_END.test(text.slice(Math.max(0, index - 2), index));
+}
+
+function isFollowedByWordCharacter(text: string, index: number): boolean {
+  return WORD_JOINING_AT_START.test(text.slice(index, index + 2));
+}
+
+function occursAsWholeTerm(text: string, term: string): boolean {
+  if (term === "") {
+    return false;
+  }
+  const guardStart = WORD_JOINING_AT_START.test(term);
+  const guardEnd = WORD_JOINING_AT_END.test(term);
+  for (let index = text.indexOf(term); index !== -1; index = text.indexOf(term, index + 1)) {
+    const blockedStart = guardStart && isPrecededByWordCharacter(text, index);
+    const blockedEnd = guardEnd && isFollowedByWordCharacter(text, index + term.length);
+    if (!blockedStart && !blockedEnd) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   const glossary = input.glossary;
   if (glossary === undefined || Object.keys(glossary).length === 0) {
@@ -48,8 +78,11 @@ function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   const sourceLower = input.sourceValue.toLowerCase();
   const translatedLower = input.translatedValue.toLowerCase();
   for (const [sourceTerm, targetTerm] of Object.entries(glossary)) {
-    const sourceHit = sourceLower.includes(sourceTerm.toLowerCase());
-    const targetHit = translatedLower.includes(targetTerm.toLowerCase());
+    if (targetTerm === "") {
+      continue;
+    }
+    const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
+    const targetHit = occursAsWholeTerm(translatedLower, targetTerm.toLowerCase());
     if (sourceHit && !targetHit) {
       return true;
     }
