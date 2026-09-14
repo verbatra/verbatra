@@ -195,6 +195,28 @@ describe("createIniAdapter write", () => {
     expect(fs.files.get("en.ini")).toBe("product=verbatra\n[home]\ntitle = Welcome\n");
   });
 
+  it("round-trips a section that holds only comments, adding no entry for it", async () => {
+    const source = "[home]\n; nothing here yet\n\n[about]\ntitle = About\n";
+    const { adapter, fs } = setup({ "en.ini": source });
+    const { resource: read } = await adapter.read("en.ini", "en");
+    expect([...read.entries.keys()]).toEqual(["about.title"]);
+    await adapter.write(read, "en.ini");
+    expect(fs.files.get("en.ini")).toBe(source);
+  });
+
+  it("inserts a new key into a section that holds only comments", async () => {
+    const { adapter, fs } = setup({
+      "en.ini": "[home]\n; nothing here yet\n\n[about]\ntitle = About\n",
+    });
+    const { resource: read } = await adapter.read("en.ini", "en");
+    const updated = new Map(read.entries);
+    updated.set("home.title", entry("home.title", "Welcome"));
+    await adapter.write({ ...read, entries: updated }, "en.ini");
+    expect(fs.files.get("en.ini")).toBe(
+      "[home]\n; nothing here yet\ntitle=Welcome\n\n[about]\ntitle = About\n",
+    );
+  });
+
   it("drops an entry the resource no longer carries", async () => {
     const { adapter, fs } = setup({ "en.ini": "[home]\na = A\nb = B\n" });
     const { resource: read } = await adapter.read("en.ini", "en");
