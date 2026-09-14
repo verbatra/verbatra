@@ -8,6 +8,8 @@ import type {
   DoctorResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -88,6 +90,22 @@ export function makeDoctorResult(overrides: Partial<DoctorResult> = {}): DoctorR
   };
 }
 
+export function makeExtractResult(overrides: Partial<ExtractResult> = {}): ExtractResult {
+  return {
+    sourcePath: "locales/en.json",
+    scannedFiles: 0,
+    added: [],
+    existingKeys: 0,
+    withoutDefault: [],
+    dynamic: [],
+    conflicts: [],
+    diagnostics: [],
+    written: false,
+    dryRun: false,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -154,6 +172,7 @@ export interface DepCalls {
   check: CheckInput[];
   diff: DiffInput[];
   doctor: DoctorInput[];
+  extract: ExtractInput[];
   loadConfigWithMeta: LoadConfigOptions[];
   importStudio: undefined[];
   importMcp: undefined[];
@@ -169,6 +188,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     check: [],
     diff: [],
     doctor: [],
+    extract: [],
     loadConfigWithMeta: [],
     importStudio: [],
     importMcp: [],
@@ -205,6 +225,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     doctor: async (input) => {
       calls.doctor.push(input);
       return impl.doctor ? impl.doctor(input) : makeDoctorResult();
+    },
+    extract: async (input) => {
+      calls.extract.push(input);
+      return impl.extract ? impl.extract(input) : makeExtractResult();
     },
     loadConfigWithMeta: async (options) => {
       calls.loadConfigWithMeta.push(options);

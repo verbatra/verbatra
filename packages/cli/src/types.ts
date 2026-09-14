@@ -8,6 +8,8 @@ import type {
   DoctorResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -34,6 +36,7 @@ export interface CliDeps {
   check(input: CheckInput): Promise<CheckSummary>;
   diff(input: DiffInput): Promise<DiffSummary>;
   doctor(input: DoctorInput): Promise<DoctorResult>;
+  extract(input: ExtractInput): Promise<ExtractResult>;
   loadConfigWithMeta(options: LoadConfigOptions): Promise<LoadedConfig>;
   importStudio(): Promise<StudioModule>;
   importMcp(): Promise<McpModule>;

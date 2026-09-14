@@ -4,6 +4,7 @@ import type {
   DoctorCheckStatus,
   DoctorResult,
   ExportWorkbookResult,
+  ExtractResult,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -239,4 +240,53 @@ export function renderProgress(event: ProgressEvent, json: boolean): string {
 
 export function renderError(error: RenderableError): string {
   return `verbatra: error [${error.code}] ${error.message}`;
+}
+
+const EXTRACT_LIST_LIMIT = 10;
+
+function renderExtractList(label: string, lines: readonly string[]): readonly string[] {
+  if (lines.length === 0) {
+    return [];
+  }
+  const shown = lines.slice(0, EXTRACT_LIST_LIMIT);
+  const rest = lines.length - shown.length;
+  const trailer = rest > 0 ? [`    and ${rest} more`] : [];
+  return [`  ${label} (${lines.length}):`, ...shown.map((line) => `    ${line}`), ...trailer];
+}
+
+function renderExtractOutcome(result: ExtractResult): string {
+  if (result.added.length === 0) {
+    return `  no new keys found in ${result.sourcePath}`;
+  }
+  const verb = result.dryRun ? "would add" : "added";
+  return `  ${verb} ${result.added.length} ${result.added.length === 1 ? "key" : "keys"} to ${result.sourcePath}`;
+}
+
+export function renderExtractHuman(result: ExtractResult): string {
+  const header = `  ${result.scannedFiles} files scanned, ${result.existingKeys} keys already present`;
+  const lines = [
+    header,
+    renderExtractOutcome(result),
+    ...renderExtractList(
+      "new keys",
+      result.added.map((entry) => `${entry.key}  ${entry.file}:${entry.line}`),
+    ),
+    ...renderExtractList(
+      "dynamic keys",
+      result.dynamic.map((site) => `${site.file}:${site.line}`),
+    ),
+    ...renderExtractList(
+      "conflicting defaults",
+      result.conflicts.map(
+        (conflict) =>
+          `${conflict.key}  ${conflict.locations.map((site) => `${site.file}:${site.line}`).join(", ")}`,
+      ),
+    ),
+    ...renderExtractList(
+      "skipped",
+      result.diagnostics.map((entry) => `${entry.file}  ${entry.reason}`),
+    ),
+  ];
+  const trailer = result.dryRun ? "dry run, nothing written" : undefined;
+  return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
 }
