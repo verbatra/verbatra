@@ -279,6 +279,66 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
 
+### Formats assessed against the factories
+
+A format that looks close to one already shipped does not always fit a shared
+factory. The record below is what assessing four candidates against the current
+code concluded, so the same ground is not re-walked every time one of them is
+proposed again. `apple-xcstrings` remains the only adapter that implements
+`FormatAdapter` by hand, and it stays an exception rather than a pattern.
+
+| Format | Factory fit | Verdict | Reason |
+| --- | --- | --- | --- |
+| .NET `.resx` | `createFlatFileAdapter` | shipped | Flat `<data name>`/`<value>` elements under one root, the same shape XLIFF and Android `strings.xml` already ride on. |
+| INI | `createFlatFileAdapter` | shipped | One section level, one line per key, every value a string. `properties` is the direct template. |
+| TOML | `createTreeFileAdapter` | deferred | Needs a third-party parser as a new runtime dependency, and an order-preserving one; neither was settled here. |
+| Fluent `.ftl` | neither | deferred | Not key/value. Needs a syntax tree and a unit-of-translation decision first. |
+
+**`.resx`** is flat XML: `<data name="Key"><value>text</value></data>` under a
+`<root>` that also carries an XSD schema preamble and several `<resheader>`
+elements. None of that is an obstacle, because `serializeEntries` receives
+`(entries, filePath, fs)` and can re-read the destination document and patch
+only the values it has entries for, leaving every other byte alone. That is the
+same write path `serializeXliffEntries` uses. It claims `.resx` only, never
+`.xml`, so the Android adapter's claim on `.xml` stays unambiguous. Placeholders
+are .NET composite formatting (`{0}`, `{0,-10}`, `{1:C}`, with `{{` and `}}` as
+literals), which needs its own extractor: neither the single-brace extractor nor
+the MessageFormat one recognizes an alignment or format specifier as part of the
+token. The format has no plural construct, so no plural path is involved. One
+file per locale (`Resources.resx`, `Resources.de.resx`), which is what both
+factories assume. No new dependency: `@xmldom/xmldom` is already here.
+
+**INI** is one section level, one line per key, every value a string, no typed
+scalars and no nesting beyond the section. Sections collapse into dotted keys on
+read through the same segment encoding `flattenTree` uses, and are rebuilt on
+write. It has no plural construct and no canonical placeholder syntax at all, so
+the adapter guards single-brace tokens (`{name}`, `{0}`), the most common
+convention in the files that do interpolate. One file per locale. No new
+dependency: the parser is a few dozen lines, like `properties`.
+
+**TOML** would ride `createTreeFileAdapter`, not `createFlatFileAdapter`: it has
+nested tables, arrays of tables and typed scalars (integers, floats, booleans,
+offset date-times), none of which the flat factory models. `yaml-adapter.ts` is
+the shape it would take. Two things block it rather than the factory choice.
+First, it needs a third-party TOML parser and serializer as a runtime dependency
+of a package tsup inlines straight into the published SDK, which is a
+supply-chain decision worth taking on its own. Second, the tree factory needs a
+parser that preserves declaration order for quoted integer-like keys, so that
+`"10"` before `"2"` survives a round trip; YAML gets that from the `yaml`
+package's `mapAsMap` option, and a parser that returns plain objects cannot
+provide it. Neither question was answered here, so TOML is not shipped.
+
+**Fluent** (`.ftl`) fits neither factory, and not because of file layout. It is
+not key/value: one message can carry both a value and named attributes
+(`login.title = X` with an indented `.placeholder = Y`), terms (`-brand-name`)
+are a separate namespace that is referenced but never translated as a standalone
+unit, and select expressions with variants are plural and gender branching
+inline in a single message body. Placeables (`{ $var }`, `{ -term }`,
+`{ NUMBER($n) }`) are not flat tokens a regex can lift out the way every shipped
+`extractPlaceholders` does. Round-tripping it needs a real syntax tree and, more
+importantly, a decision about what one `TranslationEntry` corresponds to before
+any code is written. Per the rule above, raise that first.
+
 ### The guards are the guide
 
 Every step above that can be enforced at compile time already is, which is why
