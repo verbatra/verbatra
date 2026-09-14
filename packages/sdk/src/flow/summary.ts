@@ -71,9 +71,8 @@ export interface RunBudget {
 export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch" | "not-billed";
 
 /**
- * What a pre-run estimate deliberately leaves out. Each code marks a reason the real run can cost
- * less than the figure, or a reason the figure is approximate, so an estimate is never mistaken for
- * an invoice.
+ * What a pre-run estimate deliberately leaves out. Each code names a way the real run can land
+ * below the figure, above it, or away from it, so an estimate is never mistaken for an invoice.
  *
  * - `CACHE_NOT_CONSULTED`: the estimate does not read the translation memory, so keys a live run
  *   would serve from cache are still counted.
