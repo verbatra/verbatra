@@ -59,6 +59,8 @@ Los comentarios, las cadenas y las expresiones regulares se entienden, así que 
 
 La clave y el valor por defecto tienen que ser un literal completo. `t("user." + id)` se reporta como dinámico en lugar de escribirse como la clave `user.`, y `t("nav.home", { defaultValue: "Home" + suffix })` añade la clave sin valor por defecto en lugar de con uno truncado.
 
+La clave también tiene que nombrar una ruta direccionable. `t("user.")`, `t(".lead")` y `t("a..b")` son literales completos, pero cada uno lleva un segmento vacío, y los formatos de árbol parten la clave por el `.`, así que la clave acabaría bajo un hijo sin nombre que tu aplicación nunca lee. Esas también se reportan como dinámicas.
+
 ### Los espacios de nombres todavía no se resuelven
 
 Una clave con espacio de nombres, la forma `t("common:nav.home")`, se reporta como dinámica y nunca se escribe. Una configuración de verbatra se dirige a un único archivo de catálogo, así que no hay ningún sitio para `common:nav.home` que signifique lo que tu configuración de i18next entiende por ello.
@@ -82,10 +84,10 @@ Todo lo que el análisis no puede resolver vuelve como datos, de modo que un arc
 
 | Se informa como | Cuándo |
 | --- | --- |
-| `dynamic` | el argumento de la clave no es una única cadena estática completa: una variable, un acceso a propiedad, una plantilla con una expresión dentro, una concatenación o una clave con espacio de nombres. Nunca se escribe con una clave adivinada ni truncada. |
+| `dynamic` | el argumento de la clave no es una única cadena estática completa, o nombra una ruta que verbatra no puede direccionar: una variable, un acceso a propiedad, una plantilla con una expresión dentro, una concatenación, una clave con espacio de nombres o una clave con un segmento de ruta vacío. Nunca se escribe con una clave adivinada, truncada ni indireccionable. |
 | `conflicts` | una clave aparece en dos llamadas que no coinciden en su valor por defecto. No se escribe ninguno de los dos, porque elegir uno haría que tu catálogo dependiera del orden de recorrido de directorios. |
 | `withoutDefault` | una clave se añadió con valor vacío porque su llamada no aportaba ningún valor por defecto. Rellénalo y luego traduce. |
-| `diagnostics` | un archivo o directorio no se pudo leer: desapareció, supera el límite de tamaño o el análisis falló con él. |
+| `diagnostics` | un archivo o directorio no se pudo leer entero: desapareció, supera el límite de tamaño, el análisis falló con él, o un comentario de bloque o una plantilla sin cerrar abandonó el resto. Lo leído antes de ese punto se sigue reportando. |
 
 Nada de esto cambia el código de salida. Son hallazgos, no fallos.
 

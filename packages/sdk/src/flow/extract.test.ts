@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SUPPORTED_FORMATS } from "@verbatra/core";
@@ -365,5 +366,138 @@ describe("extract on a conflicted key", () => {
     expect(result.added.map((entry) => entry.key)).toEqual(["nav.away"]);
     expect(await readJsonFile(join(cwd, "locales/en.json"))).toEqual({ nav: { away: "Away" } });
     expect(result.conflicts.map((entry) => entry.key)).toEqual(["nav.home"]);
+  });
+});
+
+describe("extract on a file of call shapes it cannot resolve whole", () => {
+  const UNRESOLVABLE = [
+    't("nav.home", "Home");',
+    't("user." + id);',
+    "t(`nav.${section}`);",
+    't(open ? "a.one" : "a.two");',
+    't(prefixed("b.one"));',
+    't(("c.one"));',
+    't("common:d.one", "D");',
+    "t(sectionKey);",
+    't("e.one',
+    't("");',
+    "t(`nav.tpl`);",
+    't("nav.trail",);',
+    't("nav.away", "Away");',
+  ].join("\n");
+
+  it("writes exactly the keys it resolved whole and nothing else", async () => {
+    const cwd = await project({ "src/nav.ts": `${UNRESOLVABLE}\n` });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([
+      { key: "nav.home", value: "Home", file: "src/nav.ts", line: 1 },
+      { key: "nav.tpl", value: "", file: "src/nav.ts", line: 11 },
+      { key: "nav.trail", value: "", file: "src/nav.ts", line: 12 },
+      { key: "nav.away", value: "Away", file: "src/nav.ts", line: 13 },
+    ]);
+    expect(await readTextFile(join(cwd, "locales/en.json"))).toBe(
+      '{\n  "nav": {\n    "home": "Home",\n    "tpl": "",\n    "trail": "",\n    "away": "Away"\n  }\n}\n',
+    );
+  });
+
+  it("drops an empty key without adding it and without reporting it as dynamic", async () => {
+    const cwd = await project({ "src/nav.ts": `${UNRESOLVABLE}\n` });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added.map((entry) => entry.key)).not.toContain("");
+    expect(result.withoutDefault).toEqual(["nav.tpl", "nav.trail"]);
+    expect(result.dynamic).not.toContainEqual({ file: "src/nav.ts", line: 10 });
+  });
+
+  it("reports every shape it could not resolve as a dynamic call site", async () => {
+    const cwd = await project({ "src/nav.ts": `${UNRESOLVABLE}\n` });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.dynamic).toEqual([
+      { file: "src/nav.ts", line: 2 },
+      { file: "src/nav.ts", line: 3 },
+      { file: "src/nav.ts", line: 4 },
+      { file: "src/nav.ts", line: 5 },
+      { file: "src/nav.ts", line: 6 },
+      { file: "src/nav.ts", line: 7 },
+      { file: "src/nav.ts", line: 8 },
+      { file: "src/nav.ts", line: 9 },
+    ]);
+    expect(result.conflicts).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("writes no catalog at all when every call site is unresolvable", async () => {
+    const cwd = await project({
+      "src/nav.ts": 't("user." + id);\nt(`nav.${section}`);\nt("common:a.one");\n',
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([]);
+    expect(result.written).toBe(false);
+    expect(await defaultFs.fileExists(join(cwd, "locales/en.json"))).toBe(false);
+  });
+
+  it("records no default for a concatenated default and still writes the key", async () => {
+    const cwd = await project({
+      "src/nav.ts":
+        't("nav.home", "Home" + suffix);\nt("nav.away", { defaultValue: "Away" + suffix });\n',
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.withoutDefault).toEqual(["nav.home", "nav.away"]);
+    expect(await readTextFile(join(cwd, "locales/en.json"))).toBe(
+      '{\n  "nav": {\n    "home": "",\n    "away": ""\n  }\n}\n',
+    );
+  });
+});
+
+describe("extract on a whole key that carries an empty dot segment", () => {
+  it("reports it as dynamic and writes no catalog at all", async () => {
+    const cwd = await project({ "src/nav.ts": 't("user.");\nt(".lead");\nt("a..b");' });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([]);
+    expect(result.written).toBe(false);
+    expect(result.dynamic).toEqual([
+      { file: "src/nav.ts", line: 1 },
+      { file: "src/nav.ts", line: 2 },
+      { file: "src/nav.ts", line: 3 },
+    ]);
+    await expect(readJsonFile(join(cwd, "locales/en.json"))).rejects.toThrow();
+  });
+
+  it("leaves a key already in the catalog under an empty segment untouched", async () => {
+    const cwd = await project({ "src/nav.ts": 't("user.");\nt("nav.home", "Home");' });
+    await mkdir(join(cwd, "locales"), { recursive: true });
+    await writeJsonFile(join(cwd, "locales/en.json"), { user: { "": "hand written" } });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["nav.home"]);
+    expect(await readJsonFile(join(cwd, "locales/en.json"))).toEqual({
+      user: { "": "hand written" },
+      nav: { home: "Home" },
+    });
+  });
+});
+
+describe("extract on a source file it cannot read to the end", () => {
+  it("reports it as an unparseable diagnostic and still adds what it read", async () => {
+    const cwd = await project({
+      "src/nav.ts": 't("nav.home", "Home");\n/* never closed\nt("nav.lost");',
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.diagnostics).toEqual([{ file: "src/nav.ts", reason: "unparseable" }]);
+    expect(result.added.map((entry) => entry.key)).toEqual(["nav.home"]);
   });
 });

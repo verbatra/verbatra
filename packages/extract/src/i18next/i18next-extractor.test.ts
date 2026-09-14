@@ -167,6 +167,171 @@ describe("createI18nextExtractor on a key argument that is not a complete litera
   });
 });
 
+describe("createI18nextExtractor on shapes that could defeat the completeness check", () => {
+  it("reads a key that a block comment separates from its comma", () => {
+    expect(calls('t("nav.home" /* the key */, "Home")')).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+    ]);
+  });
+
+  it("reports a key that a block comment separates from a concatenation as dynamic", () => {
+    expect(calls('t("user." /* joined below */ + id)')).toEqual([]);
+    expect(dynamic('t("user." /* joined below */ + id)')).toEqual([{ line: 1 }]);
+  });
+
+  it("reads a key whose comma sits on the next line", () => {
+    expect(calls('t("nav.home"\n  , "Home")')).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+    ]);
+  });
+
+  it("reads a key whose comma sits after a carriage return", () => {
+    expect(calls('t("nav.home"\r\n  , "Home")')).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+    ]);
+  });
+
+  it("reads a key followed by a trailing comma and records no default", () => {
+    expect(calls('t("nav.home",)')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("reports a ternary key as dynamic rather than taking either branch", () => {
+    expect(calls('t(open ? "nav.home" : "nav.away")')).toEqual([]);
+    expect(dynamic('t(open ? "nav.home" : "nav.away")')).toEqual([{ line: 1 }]);
+  });
+
+  it("reports a key produced by a nested call as dynamic rather than its inner literal", () => {
+    expect(calls('t(prefixed("nav.home"))')).toEqual([]);
+    expect(dynamic('t(prefixed("nav.home"))')).toEqual([{ line: 1 }]);
+  });
+
+  it("reports a parenthesised key as dynamic rather than unwrapping it", () => {
+    expect(calls('t(("nav.home"))')).toEqual([]);
+    expect(dynamic('t(("nav.home"))')).toEqual([{ line: 1 }]);
+  });
+
+  it("reports a key narrowed by a type assertion as dynamic", () => {
+    expect(calls('t("nav.home" as const)')).toEqual([]);
+    expect(dynamic('t("nav.home" as const)')).toEqual([{ line: 1 }]);
+  });
+
+  it("reports a concatenation whose literal comes second as dynamic", () => {
+    expect(calls('t(prefix + "nav.home")')).toEqual([]);
+    expect(dynamic('t(prefix + "nav.home")')).toEqual([{ line: 1 }]);
+  });
+
+  it("reports a key whose string literal is never terminated as dynamic", () => {
+    expect(calls('t("nav.home')).toEqual([]);
+    expect(dynamic('t("nav.home')).toEqual([{ line: 1 }]);
+  });
+
+  it("accepts a whole key that the end of the token stream terminates", () => {
+    expect(calls('t("nav.home"')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("reports a key carrying the namespace separator twice as dynamic", () => {
+    expect(calls('t("common:nav:home")')).toEqual([]);
+    expect(dynamic('t("common:nav:home")')).toEqual([{ line: 1 }]);
+  });
+
+  it("resolves a unicode escape inside a key before recording it", () => {
+    expect(calls('t("nav.\\u0068ome")')).toEqual([{ key: "nav.home", line: 1 }]);
+    expect(calls('t("nav.\\u{1F600}")')).toEqual([{ key: "nav.\u{1F600}", line: 1 }]);
+  });
+
+  it("records neither the key nor a dynamic site for an empty key", () => {
+    expect(calls('t("")')).toEqual([]);
+    expect(dynamic('t("")')).toEqual([]);
+  });
+
+  it("reads no default from a positional template default carrying an expression", () => {
+    expect(calls('t("nav.home", `Hi ${name}`)')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("reads a positional template default that carries no expression", () => {
+    expect(calls('t("nav.home", `Home`)')).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+    ]);
+  });
+
+  it("reads no default from an options default that is an arrow function", () => {
+    expect(calls('t("nav.home", () => "Home")')).toEqual([{ key: "nav.home", line: 1 }]);
+  });
+
+  it("keeps reading the file after a call site it could not resolve whole", () => {
+    const content = 't("nav.home", "Home");\nt("user." + id);\nt("nav.away", "Away");';
+
+    expect(calls(content)).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+      { key: "nav.away", defaultValue: "Away", line: 3 },
+    ]);
+    expect(dynamic(content)).toEqual([{ line: 2 }]);
+  });
+
+  it.each([
+    ['const url = "http://example.com";', 2],
+    ["const pattern = /[/]/;", 2],
+    ["const ratio = a / b;", 2],
+    ["// an apostrophe isn't a quote", 2],
+    ['const brace = { "}": 1 };', 2],
+  ])("still reports a concatenated key as dynamic after %s", (preamble, line) => {
+    const content = `${preamble}\nt("user." + id);`;
+
+    expect(calls(content)).toEqual([]);
+    expect(dynamic(content)).toEqual([{ line }]);
+  });
+});
+
+describe("createI18nextExtractor on a whole key with no usable structure", () => {
+  it.each(["user.", ".lead", "a..b", ".", "..."])(
+    "reports %s as dynamic rather than writing an empty path segment",
+    (key) => {
+      const content = `t(${JSON.stringify(key)})`;
+
+      expect(calls(content)).toEqual([]);
+      expect(dynamic(content)).toEqual([{ line: 1 }]);
+    },
+  );
+
+  it("still reads a key whose segments are all non-empty", () => {
+    expect(calls('t("a.b.c")')).toEqual([{ key: "a.b.c", line: 1 }]);
+  });
+
+  it("reports an empty segment before reading the default, so nothing is half-written", () => {
+    expect(calls('t("user.", "User")')).toEqual([]);
+    expect(dynamic('t("user.", "User")')).toEqual([{ line: 1 }]);
+  });
+
+  it("reads a default value that carries a dot at either end", () => {
+    expect(calls('t("nav.home", "Home.")')).toEqual([
+      { key: "nav.home", defaultValue: "Home.", line: 1 },
+    ]);
+  });
+});
+
+describe("createI18nextExtractor on a file it cannot read to the end", () => {
+  it("marks an unterminated block comment as truncated and keeps what it read", () => {
+    const content = 't("nav.home", "Home");\nt("nav.away"); /* never closed\nt("nav.lost");';
+    const extraction = extractor.extract({ path: "app.ts", content });
+
+    expect(extraction.truncated).toBe(true);
+    expect(extraction.calls).toEqual([
+      { key: "nav.home", defaultValue: "Home", line: 1 },
+      { key: "nav.away", line: 2 },
+    ]);
+  });
+
+  it("marks an unterminated template literal as truncated", () => {
+    expect(extractor.extract({ path: "app.ts", content: "const a = `open;" }).truncated).toBe(true);
+  });
+
+  it("leaves truncated unset for a file it read whole", () => {
+    expect(
+      extractor.extract({ path: "app.ts", content: 't("nav.home")' }).truncated,
+    ).toBeUndefined();
+  });
+});
+
 describe("createI18nextExtractor on declarations rather than calls", () => {
   it.each([
     "const api = { t(key) { return key; } };",
@@ -174,6 +339,13 @@ describe("createI18nextExtractor on declarations rather than calls", () => {
     "type F = { t(key: string): string };",
     "interface I { t(k: string): string }",
   ])("ignores %s", (content) => {
+    expect(dynamic(content)).toEqual([]);
+    expect(calls(content)).toEqual([]);
+  });
+
+  it("ignores a member signature whose parameter list carries nested parentheses", () => {
+    const content = "const api = { t(key, map(key)) { return key; } };";
+
     expect(dynamic(content)).toEqual([]);
     expect(calls(content)).toEqual([]);
   });

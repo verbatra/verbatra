@@ -59,6 +59,8 @@ Kommentare, Strings und reguläre Ausdrücke werden verstanden: Ein Aufruf in ei
 
 Key und Standardwert müssen beide ein vollständiges Literal sein. `t("user." + id)` wird als dynamisch gemeldet statt als Key `user.` geschrieben, und `t("nav.home", { defaultValue: "Home" + suffix })` fügt den Key ohne Standardwert hinzu statt mit einem abgeschnittenen.
 
+Ein Key muss außerdem einen adressierbaren Pfad benennen. `t("user.")`, `t(".lead")` und `t("a..b")` sind vollständige Literale, tragen aber je ein leeres Segment, und die Baumformate teilen einen Key am `.`: Der Key landete also unter einem namenlosen Kind, das deine Anwendung nie liest. Auch diese werden als dynamisch gemeldet.
+
 ### Namespaces werden noch nicht aufgelöst
 
 Ein Key mit Namespace, also die Form `t("common:nav.home")`, wird als dynamisch gemeldet und nie geschrieben. Eine verbatra-Konfiguration adressiert genau eine Katalogdatei, also gibt es keinen Ort für `common:nav.home`, der das bedeutet, was dein i18next-Setup damit meint.
@@ -82,10 +84,10 @@ Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, damit eine ei
 
 | Gemeldet als | Wann |
 | --- | --- |
-| `dynamic` | das Key-Argument ist kein einzelner vollständiger statischer String: eine Variable, ein Member-Ausdruck, ein Template-Literal mit einem Ausdruck darin, eine Verkettung oder ein Key mit Namespace. Es wird nie mit einem geratenen oder abgeschnittenen Key geschrieben. |
+| `dynamic` | das Key-Argument ist kein einzelner vollständiger statischer String oder benennt einen Pfad, den verbatra nicht adressieren kann: eine Variable, ein Member-Ausdruck, ein Template-Literal mit einem Ausdruck darin, eine Verkettung, ein Key mit Namespace oder ein Key mit leerem Pfadsegment. Es wird nie mit einem geratenen, abgeschnittenen oder nicht adressierbaren Key geschrieben. |
 | `conflicts` | ein Key wird an zwei Aufrufstellen gefunden, die sich über seinen Standardwert uneinig sind. Kein Wert wird geschrieben, denn eine Auswahl würde deinen Katalog von der Reihenfolge des Verzeichnisdurchlaufs abhängig machen. |
 | `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil seine Aufrufstelle keinen Standardwert liefert. Fülle ihn, dann übersetze. |
-| `diagnostics` | eine Datei oder ein Verzeichnis war nicht lesbar: verschwunden, über der Größengrenze, oder der Scan ist daran gescheitert. |
+| `diagnostics` | eine Datei oder ein Verzeichnis war nicht vollständig lesbar: verschwunden, über der Größengrenze, der Scan ist daran gescheitert, oder ein nicht geschlossener Blockkommentar beziehungsweise ein nicht geschlossenes Template-Literal hat den Rest abgeschnitten. Was davor gelesen wurde, wird trotzdem gemeldet. |
 
 Nichts davon ändert den Exit-Code. Das sind Befunde, keine Fehler.
 

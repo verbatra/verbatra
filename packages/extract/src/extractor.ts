@@ -34,6 +34,13 @@ export interface FileExtraction {
   readonly calls: readonly ExtractedCallSite[];
   /** Call sites whose key could not be resolved statically. */
   readonly dynamic: readonly DynamicCallSite[];
+  /**
+   * Whether the file could not be read to its end, so everything above it is partial. An
+   * unterminated block comment or template literal abandons the rest of the file. The scan records
+   * it as an `unparseable` diagnostic and carries on, rather than reporting a short result as if
+   * it were the whole file.
+   */
+  readonly truncated?: boolean;
 }
 
 /**

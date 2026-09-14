@@ -70,6 +70,17 @@ Known limits, accepted deliberately and reported as data rather than papered ove
   concatenated default yields no default rather than its first fragment.
 - A namespace-qualified key, the `t("common:nav.home")` form, is reported as a dynamic call site
   and never written. See decision 8 for why, and for what that costs.
+- A key with an empty path segment, `t("user.")`, `t(".lead")`, `t("a..b")`, is reported as a
+  dynamic call site. The literal is whole, so the completeness rule above passes it, but the key it
+  spells is not addressable: the tree formats split a key on `.`, so it would land under an
+  unnamed child that no running application looks in, which is the same nonsense the truncated-key
+  defect used to write. Reporting it puts the call site in front of the author instead.
+- An unterminated block comment or template literal abandons the rest of the file. What was read
+  before that point is still reported, and the file is recorded as an `unparseable` diagnostic, so
+  a partial scan is never presented as a whole one. End of stream still terminates a literal: a
+  complete literal with nothing after it has nothing to be concatenated with, and the bounded
+  reader refuses an oversized file rather than handing back a cut-off buffer, so the only way to
+  reach that state is source that does not parse, which the diagnostic now names.
 - JSX translation components are not read in this increment.
 - A call site written inside a template literal expression is read, because the tokenizer descends
   into `${ }`.

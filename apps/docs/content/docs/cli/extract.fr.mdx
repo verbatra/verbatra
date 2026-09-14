@@ -59,6 +59,8 @@ Les commentaires, les chaînes et les expressions régulières sont compris : un
 
 La clé et la valeur par défaut doivent toutes deux être un littéral complet. `t("user." + id)` est signalé comme dynamique plutôt qu'écrit sous la clé `user.`, et `t("nav.home", { defaultValue: "Home" + suffix })` ajoute la clé sans valeur par défaut plutôt qu'avec une valeur tronquée.
 
+La clé doit aussi nommer un chemin adressable. `t("user.")`, `t(".lead")` et `t("a..b")` sont des littéraux complets, mais chacun porte un segment vide, et les formats en arbre découpent une clé sur le `.` : la clé atterrirait donc sous un enfant sans nom que ton application ne lit jamais. Celles-là sont signalées comme dynamiques elles aussi.
+
 ### Les espaces de noms ne sont pas encore résolus
 
 Une clé qualifiée par un espace de noms, la forme `t("common:nav.home")`, est signalée comme dynamique et n'est jamais écrite. Une configuration verbatra s'adresse à un seul fichier de catalogue : il n'y a donc nulle part où mettre `common:nav.home` qui veuille dire ce que ta configuration i18next entend par là.
@@ -82,10 +84,10 @@ Tout ce que l'analyse ne peut pas résoudre revient sous forme de données, pour
 
 | Signalé comme | Quand |
 | --- | --- |
-| `dynamic` | l'argument de la clé n'est pas une seule chaîne statique complète : une variable, un accès de propriété, un littéral de gabarit contenant une expression, une concaténation ou une clé qualifiée par un espace de noms. Elle n'est jamais écrite avec une clé devinée ou tronquée. |
+| `dynamic` | l'argument de la clé n'est pas une seule chaîne statique complète, ou il nomme un chemin que verbatra ne peut pas adresser : une variable, un accès de propriété, un littéral de gabarit contenant une expression, une concaténation, une clé qualifiée par un espace de noms ou une clé avec un segment de chemin vide. Elle n'est jamais écrite avec une clé devinée, tronquée ou non adressable. |
 | `conflicts` | une clé est trouvée sur deux appels qui ne s'accordent pas sur sa valeur par défaut. Aucune des deux n'est écrite, car en choisir une ferait dépendre ton catalogue de l'ordre de parcours des répertoires. |
 | `withoutDefault` | une clé a été ajoutée avec une valeur vide, parce que son appel ne fournissait aucune valeur par défaut. Remplis-la, puis traduis. |
-| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu : il a disparu, il dépasse la limite de taille, ou l'analyse a échoué dessus. |
+| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu jusqu'au bout : il a disparu, il dépasse la limite de taille, l'analyse a échoué dessus, ou un commentaire de bloc ou un gabarit non fermé a abandonné le reste. Ce qui a été lu avant ce point est tout de même signalé. |
 
 Rien de tout cela ne change le code de sortie. Ce sont des constats, pas des échecs.
 

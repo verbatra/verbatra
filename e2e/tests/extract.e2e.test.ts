@@ -170,7 +170,7 @@ describe("extract (no provider, no API key)", () => {
 
   it("writes no catalog at all for a key or a default it cannot resolve whole", async () => {
     const dir = await seedProject("extract-partial-literals", {
-      "src/nav.ts": 't("common:nav.home", "Home");\nt("user." + id);\n',
+      "src/nav.ts": 't("common:nav.home", "Home");\nt("user." + id);\nt("user.");\n',
       "src/panel.ts": 't("panel.title", { defaultValue: "Panel" + suffix });\n',
     });
 
@@ -185,8 +185,22 @@ describe("extract (no provider, no API key)", () => {
     expect(payload.dynamic).toEqual([
       { file: "src/nav.ts", line: 1 },
       { file: "src/nav.ts", line: 2 },
+      { file: "src/nav.ts", line: 3 },
     ]);
     expect(await readJsonIn(dir, "locales/en.json")).toEqual({ panel: { title: "" } });
+  });
+
+  it("reports a file it could not read to the end rather than dropping it in silence", async () => {
+    const dir = await seedProject("extract-truncated-source", {
+      "src/nav.ts": 't("nav.home", "Home");\n/* never closed\nt("nav.lost");\n',
+    });
+
+    const result = await runVerbatra(consumer, ["extract", "--json", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(0);
+    const payload = expectExtractPayload(result.stdout);
+    expect(payload.diagnostics).toEqual([{ file: "src/nav.ts", reason: "unparseable" }]);
+    expect(payload.added.map((entry) => entry.key)).toEqual(["nav.home"]);
   });
 
   it("exits 2 with a structured envelope when no extract block is configured", async () => {

@@ -3,23 +3,30 @@ import { describe, expect, it } from "vitest";
 import { tokenizeSource } from "./tokenize.js";
 
 function kinds(text: string): readonly string[] {
-  return tokenizeSource(text).map((token) => token.kind);
+  return tokenizeSource(text).tokens.map((token) => token.kind);
 }
 
 function strings(text: string): readonly string[] {
   return tokenizeSource(text)
-    .filter((token) => token.kind === "string")
+    .tokens.filter((token) => token.kind === "string")
     .map((token) => token.value);
+}
+
+function truncated(text: string): boolean {
+  return tokenizeSource(text).truncated;
 }
 
 describe("tokenizeSource", () => {
   it("splits identifiers, punctuation, and a double-quoted string", () => {
-    expect(tokenizeSource('t("greeting")')).toEqual([
-      { kind: "ident", value: "t", line: 1 },
-      { kind: "punct", value: "(", line: 1 },
-      { kind: "string", value: "greeting", line: 1 },
-      { kind: "punct", value: ")", line: 1 },
-    ]);
+    expect(tokenizeSource('t("greeting")')).toEqual({
+      tokens: [
+        { kind: "ident", value: "t", line: 1 },
+        { kind: "punct", value: "(", line: 1 },
+        { kind: "string", value: "greeting", line: 1 },
+        { kind: "punct", value: ")", line: 1 },
+      ],
+      truncated: false,
+    });
   });
 
   it("reads a single-quoted string", () => {
@@ -42,7 +49,7 @@ describe("tokenizeSource", () => {
   });
 
   it("drops a block comment spanning lines and keeps the line count", () => {
-    const tokens = tokenizeSource('/* t("ignored")\n   still ignored */\nt("kept")');
+    const { tokens } = tokenizeSource('/* t("ignored")\n   still ignored */\nt("kept")');
 
     expect(tokens.map((token) => token.line)).toEqual([3, 3, 3, 3]);
     expect(strings('/* t("ignored")\n   still ignored */\nt("kept")')).toEqual(["kept"]);
@@ -69,7 +76,7 @@ describe("tokenizeSource", () => {
   });
 
   it("counts lines across string and template newlines", () => {
-    const tokens = tokenizeSource("a\n`x\ny`\nb");
+    const { tokens } = tokenizeSource("a\n`x\ny`\nb");
 
     expect(tokens.map((token) => ({ kind: token.kind, line: token.line }))).toEqual([
       { kind: "ident", line: 1 },
@@ -170,5 +177,61 @@ describe("tokenizeSource on malformed unicode escapes", () => {
 
   it("does not throw on a code point above the unicode range", () => {
     expect(() => tokenizeSource('"\\u{FFFFFFF}"')).not.toThrow();
+  });
+});
+
+describe("tokenizeSource on escapes and regexes the scan has not met yet", () => {
+  it("drops a four-digit unicode escape whose digits are not hexadecimal", () => {
+    expect(strings('"a\\uzzzzb"')).toEqual(["azzzzb"]);
+  });
+
+  it("drops a two-digit hex escape whose digits are not hexadecimal", () => {
+    expect(strings('"a\\xzzb"')).toEqual(["azzb"]);
+  });
+
+  it("drops a braced code point above the unicode range rather than throwing", () => {
+    expect(strings('"a\\u{110000}b"')).toEqual(["ab"]);
+  });
+
+  it("keeps the highest valid code point", () => {
+    expect(strings('"\\u{10FFFF}"')).toEqual(["\u{10FFFF}"]);
+  });
+
+  it("does not end a template expression on a brace that opens inside it", () => {
+    expect(strings('`${ { a: 1 }.a + t("kept") }`')).toEqual(["kept"]);
+  });
+
+  it("reads a regex that opens the file", () => {
+    expect(strings('/"x"/.test(s);\nt("kept")')).toEqual(["kept"]);
+  });
+
+  it("reads an escaped slash inside a regex without closing it early", () => {
+    expect(strings('const r = /a\\/"b"/;\nt("kept")')).toEqual(["kept"]);
+  });
+
+  it("reads a slash that is the last character in the file", () => {
+    expect(kinds("a /")).toEqual(["ident", "punct"]);
+  });
+});
+
+describe("tokenizeSource on a file it cannot read to the end", () => {
+  it("reports an unterminated block comment as truncated", () => {
+    expect(truncated('a /* t("x")')).toBe(true);
+  });
+
+  it("reports an unterminated template literal as truncated", () => {
+    expect(truncated("`unterminated")).toBe(true);
+  });
+
+  it("reports an unterminated block comment inside a template expression as truncated", () => {
+    expect(truncated('`${ /* t("x") }`')).toBe(true);
+  });
+
+  it("reports a file it read to the end as whole", () => {
+    expect(truncated('/* fine */ t("kept");\n`a${b}c`')).toBe(false);
+  });
+
+  it("reports an unterminated string as whole, since the line is recovered", () => {
+    expect(truncated('t("unterminated\nt("kept")')).toBe(false);
   });
 });

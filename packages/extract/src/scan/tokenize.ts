@@ -8,6 +8,12 @@ interface Cursor {
   readonly text: string;
   index: number;
   line: number;
+  truncated: boolean;
+}
+
+export interface SourceScan {
+  readonly tokens: readonly SourceToken[];
+  readonly truncated: boolean;
 }
 
 const SIMPLE_ESCAPES: Readonly<Record<string, string>> = {
@@ -79,6 +85,7 @@ function skipBlockComment(cursor: Cursor): void {
     }
     advance(cursor);
   }
+  cursor.truncated = true;
 }
 
 function skipTrivia(cursor: Cursor): void {
@@ -266,6 +273,7 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
       staticValue += advance(cursor);
     }
   }
+  cursor.truncated = true;
   return { line, staticValue, expressions, dynamic: true };
 }
 
@@ -273,14 +281,23 @@ function shiftLine(token: SourceToken, offset: number): SourceToken {
   return { ...token, line: token.line + offset };
 }
 
+function readExpressionTokens(
+  cursor: Cursor,
+  expression: { readonly text: string; readonly line: number },
+): readonly SourceToken[] {
+  const scan = tokenizeSource(expression.text);
+  if (scan.truncated) {
+    cursor.truncated = true;
+  }
+  return scan.tokens.map((token) => shiftLine(token, expression.line - 1));
+}
+
 function readTemplateTokens(cursor: Cursor): readonly SourceToken[] {
   const parts = readTemplateParts(cursor);
   if (!parts.dynamic) {
     return [{ kind: "string", value: parts.staticValue, line: parts.line }];
   }
-  const inner = parts.expressions.flatMap((expression) =>
-    tokenizeSource(expression.text).map((token) => shiftLine(token, expression.line - 1)),
-  );
+  const inner = parts.expressions.flatMap((expression) => readExpressionTokens(cursor, expression));
   return [{ kind: "dynamic", line: parts.line }, ...inner];
 }
 
@@ -348,13 +365,13 @@ function nextTokens(cursor: Cursor, previous: SourceToken | undefined): readonly
   return [{ kind: "punct", value: char, line }];
 }
 
-export function tokenizeSource(text: string): readonly SourceToken[] {
-  const cursor: Cursor = { text, index: 0, line: 1 };
+export function tokenizeSource(text: string): SourceScan {
+  const cursor: Cursor = { text, index: 0, line: 1, truncated: false };
   const tokens: SourceToken[] = [];
   while (true) {
     skipTrivia(cursor);
     if (atEnd(cursor)) {
-      return tokens;
+      return { tokens, truncated: cursor.truncated };
     }
     const produced = nextTokens(cursor, tokens[tokens.length - 1]);
     tokens.push(...produced);

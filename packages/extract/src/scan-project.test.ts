@@ -198,3 +198,22 @@ describe("scanProject honours the exclude list", () => {
     expect(result.keys).toEqual([]);
   });
 });
+
+describe("scanProject on a file it cannot read to the end", () => {
+  it("reports the file as unparseable and keeps the keys it did read", async () => {
+    const result = await scan({
+      [join(root, "nav.ts")]: 't("nav.home", "Home");\n/* never closed\nt("nav.lost");',
+    });
+
+    expect(result.diagnostics).toEqual([{ file: "src/nav.ts", reason: "unparseable" }]);
+    expect(result.keys).toEqual([
+      { key: "nav.home", value: "Home", hasDefault: true, file: "src/nav.ts", line: 1 },
+    ]);
+  });
+
+  it("reports nothing for a file it read whole", async () => {
+    const result = await scan({ [join(root, "nav.ts")]: 't("nav.home");' });
+
+    expect(result.diagnostics).toEqual([]);
+  });
+});

@@ -7,6 +7,7 @@ const I18NEXT_RULES: CallSiteRules = {
   calleeNames: new Set(["t", "$t"]),
   defaultValueKeys: new Set(["defaultValue"]),
   namespaceSeparator: ":",
+  keySeparator: ".",
 };
 
 export function createI18nextExtractor(): SourceExtractor {

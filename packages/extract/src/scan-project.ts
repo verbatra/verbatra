@@ -137,6 +137,9 @@ async function scanFile(
     return;
   }
   state.scannedFiles += 1;
+  if (extraction.truncated === true) {
+    state.diagnostics.push({ file, reason: "unparseable" });
+  }
   for (const call of extraction.calls) {
     recordCall(state, call.key, call.defaultValue, { file, line: call.line });
   }

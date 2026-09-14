@@ -5,6 +5,7 @@ export interface CallSiteRules {
   readonly calleeNames: ReadonlySet<string>;
   readonly defaultValueKeys: ReadonlySet<string>;
   readonly namespaceSeparator?: string;
+  readonly keySeparator?: string;
 }
 
 const ARGUMENT_TERMINATORS = new Set([",", ")"]);
@@ -157,6 +158,14 @@ function isNamespaced(key: string, rules: CallSiteRules): boolean {
   return rules.namespaceSeparator !== undefined && key.includes(rules.namespaceSeparator);
 }
 
+function hasEmptySegment(key: string, rules: CallSiteRules): boolean {
+  return rules.keySeparator !== undefined && key.split(rules.keySeparator).includes("");
+}
+
+function isUnresolvableKey(key: string, rules: CallSiteRules): boolean {
+  return isNamespaced(key, rules) || hasEmptySegment(key, rules);
+}
+
 function callSiteAt(
   tokens: readonly SourceToken[],
   index: number,
@@ -177,7 +186,7 @@ function callSiteAt(
   if (argument.value === "") {
     return undefined;
   }
-  if (isNamespaced(argument.value, rules)) {
+  if (isUnresolvableKey(argument.value, rules)) {
     return { line: argument.line };
   }
   const defaultValue = readDefaultValue(tokens, keyIndex, rules);
@@ -189,7 +198,7 @@ function callSiteAt(
 }
 
 export function findCallSites(content: string, rules: CallSiteRules): FileExtraction {
-  const tokens = tokenizeSource(content);
+  const { tokens, truncated } = tokenizeSource(content);
   const calls: ExtractedCallSite[] = [];
   const dynamic: DynamicCallSite[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
@@ -206,5 +215,5 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
       dynamic.push(site);
     }
   }
-  return { calls, dynamic };
+  return { calls, dynamic, ...(truncated ? { truncated } : {}) };
 }
