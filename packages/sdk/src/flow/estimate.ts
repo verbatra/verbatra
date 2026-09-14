@@ -9,9 +9,12 @@ import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
   EstimateCaveatCode,
   EstimatePricing,
-  LocaleEstimate,
+  LocaleEstimateQuantity,
   LocaleSummary,
+  PricedLocaleEstimate,
   RunEstimate,
+  RunEstimateQuantity,
+  UnpricedLocaleEstimate,
 } from "./summary.js";
 
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
@@ -106,12 +109,14 @@ export function quantifyLocale(
   );
 }
 
-interface Pricing {
-  readonly status: EstimatePricing;
-  readonly rate?: ModelRate;
-  readonly currency?: string;
-  readonly asOf?: string;
-}
+type Pricing =
+  | {
+      readonly status: "priced";
+      readonly rate: ModelRate;
+      readonly currency: string;
+      readonly asOf: string;
+    }
+  | { readonly status: Exclude<EstimatePricing, "priced"> };
 
 function resolvePricing(input: EstimateRunInput, unit: BillingUnit): Pricing {
   if (!billingFor(input.provider.id).billedByApi) {
@@ -151,34 +156,22 @@ function caveatsFor(unit: BillingUnit): readonly EstimateCaveatCode[] {
 function quantityFields(
   quantity: EstimatedQuantity,
   unit: BillingUnit,
-): Pick<LocaleEstimate, "inputTokens" | "outputTokens" | "sourceCharacters"> {
+): Pick<LocaleEstimateQuantity, "inputTokens" | "outputTokens" | "sourceCharacters"> {
   return unit === "tokens"
     ? { inputTokens: quantity.inputTokens, outputTokens: quantity.outputTokens }
     : { sourceCharacters: quantity.sourceCharacters };
 }
 
-function costFields(quantity: EstimatedQuantity, pricing: Pricing): { cost?: number } {
-  return pricing.rate === undefined ? {} : { cost: costOf(quantity, pricing.rate) };
-}
-
-function datedFields(pricing: Pricing): { currency?: string; asOf?: string } {
-  return pricing.currency === undefined || pricing.asOf === undefined
-    ? {}
-    : { currency: pricing.currency, asOf: pricing.asOf };
-}
-
-function localeEstimateOf(
+function localeQuantityOf(
   locale: string,
   quantity: EstimatedQuantity,
   unit: BillingUnit,
-  pricing: Pricing,
-): LocaleEstimate {
+): LocaleEstimateQuantity {
   return {
     locale,
     keys: quantity.keys,
     requests: quantity.requests,
     ...quantityFields(quantity, unit),
-    ...costFields(quantity, pricing),
   };
 }
 
@@ -202,29 +195,56 @@ function contextFor(input: EstimateRunInput, targetLocale: string): PayloadConte
   };
 }
 
+interface MeasuredLocale {
+  readonly quantity: EstimatedQuantity;
+  readonly estimate: LocaleEstimateQuantity;
+}
+
+function measureLocales(input: EstimateRunInput, unit: BillingUnit): readonly MeasuredLocale[] {
+  return input.locales.map((locale) => {
+    const quantity = quantifyEverySend(
+      locale,
+      contextFor(input, locale.locale),
+      input.maxBatchSize,
+    );
+    return { quantity, estimate: localeQuantityOf(locale.locale, quantity, unit) };
+  });
+}
+
 export function estimateRun(input: EstimateRunInput): RunEstimate {
   const { unit } = billingFor(input.provider.id);
   const pricing = resolvePricing(input, unit);
-  const measured = input.locales.map((locale) => ({
-    locale: locale.locale,
-    quantity: quantifyEverySend(locale, contextFor(input, locale.locale), input.maxBatchSize),
-  }));
+  const measured = measureLocales(input, unit);
   const total = measured.reduce((sum, item) => addQuantities(sum, item.quantity), EMPTY);
   const model = modelOf(input.provider);
-
-  return {
+  const shared: RunEstimateQuantity = {
     provider: input.provider.id,
     ...(model !== undefined ? { model } : {}),
     rateKey: rateKeyFor(input.provider),
     unit,
-    pricing: pricing.status,
-    ...datedFields(pricing),
-    locales: measured.map((item) => localeEstimateOf(item.locale, item.quantity, unit, pricing)),
     keys: total.keys,
     requests: total.requests,
     ...quantityFields(total, unit),
-    ...costFields(total, pricing),
     caveats: caveatsFor(unit),
+  };
+
+  if (pricing.status !== "priced") {
+    return {
+      ...shared,
+      pricing: pricing.status,
+      locales: measured.map((item): UnpricedLocaleEstimate => item.estimate),
+    };
+  }
+  const rate = pricing.rate;
+  return {
+    ...shared,
+    pricing: "priced",
+    currency: pricing.currency,
+    asOf: pricing.asOf,
+    locales: measured.map(
+      (item): PricedLocaleEstimate => ({ ...item.estimate, cost: costOf(item.quantity, rate) }),
+    ),
+    cost: costOf(total, rate),
   };
 }
 

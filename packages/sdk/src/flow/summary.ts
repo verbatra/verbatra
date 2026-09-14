@@ -92,14 +92,15 @@ export type EstimateCaveatCode =
   | "REPAIR_REQUESTS_NOT_COUNTED";
 
 /**
- * The estimated billing quantity for one target locale. `inputTokens` and `outputTokens` are present
- * only for a token-billed provider, and `sourceCharacters` only for a character-billed one, so a
- * machine-translation API is never handed a token figure it does not bill by.
+ * The estimated billing quantity for one target locale, without the money. `inputTokens` and
+ * `outputTokens` are present only for a token-billed provider, and `sourceCharacters` only for a
+ * character-billed one, so a machine-translation API is never handed a token figure it does not
+ * bill by.
  */
-export interface LocaleEstimate {
+export interface LocaleEstimateQuantity {
   /** The target locale this estimate covers. */
   readonly locale: string;
-  /** How many keys would be sent for this locale. */
+  /** How many keys would be sent for this locale, translation and plural generation together. */
   readonly keys: number;
   /** How many provider requests those keys would be split into. */
   readonly requests: number;
@@ -109,24 +110,31 @@ export interface LocaleEstimate {
   readonly outputTokens?: number;
   /** Estimated source characters. Present only when the provider bills by characters. */
   readonly sourceCharacters?: number;
-  /**
-   * The estimated cost for this locale, in {@link RunEstimate.currency}. Present only when
-   * {@link RunEstimate.pricing} is `priced`.
-   */
-  readonly cost?: number;
+}
+
+/** One locale of a {@link PricedRunEstimate}: the quantity plus the money it comes to. */
+export interface PricedLocaleEstimate extends LocaleEstimateQuantity {
+  /** The estimated cost for this locale, in {@link PricedRunEstimate.currency}. */
+  readonly cost: number;
+}
+
+/** One locale of an {@link UnpricedRunEstimate}: the quantity, and deliberately no money. */
+export interface UnpricedLocaleEstimate extends LocaleEstimateQuantity {
+  /** Never present: the run carries no rate, so no locale of it carries a figure. */
+  readonly cost?: undefined;
 }
 
 /**
- * A pre-run estimate: what a run would send, and what that would cost at the rates the project
- * supplied. It is an upper bound computed without constructing a provider, reading an API key, or
- * making a network call, and it is arithmetic on assumptions rather than a quotation. See
- * {@link EstimateCaveatCode} for exactly what it leaves out.
- *
- * verbatra publishes no prices. `cost` exists only when the config carries a `rates` block naming
- * {@link rateKey}; otherwise `pricing` says why the money is absent and the quantity stands on its
- * own.
+ * One target locale of a {@link RunEstimate}. It carries a `cost` exactly when the run it belongs
+ * to was priced, so there is no such thing as a priced estimate with a costless locale.
  */
-export interface RunEstimate {
+export type LocaleEstimate = PricedLocaleEstimate | UnpricedLocaleEstimate;
+
+/**
+ * Everything a {@link RunEstimate} reports regardless of whether it could be priced: which provider
+ * the figure was computed for, how much would be sent, and what the figure leaves out.
+ */
+export interface RunEstimateQuantity {
   /** The provider the estimate was computed for. */
   readonly provider: ProviderId;
   /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
@@ -138,20 +146,12 @@ export interface RunEstimate {
   readonly rateKey: string;
   /** Whether this provider charges by tokens or by source characters. */
   readonly unit: BillingUnit;
-  /** Why a currency figure is or is not present. See {@link EstimatePricing}. */
-  readonly pricing: EstimatePricing;
-  /** The rate card's currency code. Present only when `pricing` is `priced`. */
-  readonly currency?: string;
   /**
-   * The date the rates were read, as the config declared it. Present only when `pricing` is
-   * `priced`. Print it beside any figure: a rate card is exactly as current as this date.
+   * Keys that would be sent across every locale, counting both the keys that would be translated
+   * and the plural forms that would be generated.
    */
-  readonly asOf?: string;
-  /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
-  readonly locales: readonly LocaleEstimate[];
-  /** Keys that would be sent across every locale. */
   readonly keys: number;
-  /** Provider requests across every locale. */
+  /** Provider requests across every locale, generation batches included. */
   readonly requests: number;
   /** Estimated prompt tokens across every locale. Present only for a token-billed provider. */
   readonly inputTokens?: number;
@@ -159,11 +159,64 @@ export interface RunEstimate {
   readonly outputTokens?: number;
   /** Estimated source characters across every locale. Present only for a character-billed provider. */
   readonly sourceCharacters?: number;
-  /** The estimated total, in {@link currency}. Present only when `pricing` is `priced`. */
-  readonly cost?: number;
-  /** What this figure leaves out. Always present, never empty. */
+  /** What this figure leaves out. Always present, never empty. See {@link EstimateCaveatCode}. */
   readonly caveats: readonly EstimateCaveatCode[];
 }
+
+/**
+ * An estimate a rate could be applied to: the config supplied a rate for {@link rateKey} in the
+ * right unit, so the run carries a currency figure and the date that rate was read.
+ */
+export interface PricedRunEstimate extends RunEstimateQuantity {
+  /** Always `priced`: a rate was found and applied. */
+  readonly pricing: "priced";
+  /** The rate card's currency code. */
+  readonly currency: string;
+  /**
+   * The date the rates were read, as the config declared it. Print it beside any figure: a rate
+   * card is exactly as current as this date.
+   */
+  readonly asOf: string;
+  /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
+  readonly locales: readonly PricedLocaleEstimate[];
+  /** The estimated total, in {@link currency}. */
+  readonly cost: number;
+}
+
+/**
+ * An estimate carrying quantity and no money, with {@link pricing} saying why. verbatra ships no
+ * prices of its own and will not guess one, so the absence is reported rather than rendered as a
+ * cost of zero.
+ */
+export interface UnpricedRunEstimate extends RunEstimateQuantity {
+  /** Why no currency figure is present. See {@link EstimatePricing}. */
+  readonly pricing: Exclude<EstimatePricing, "priced">;
+  /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
+  readonly locales: readonly UnpricedLocaleEstimate[];
+  /** Never present: there is no rate to express a figure in. */
+  readonly currency?: undefined;
+  /** Never present: there is no rate, so there is no date it was read on. */
+  readonly asOf?: undefined;
+  /** Never present: an absent rate is reported as absent, never as a cost of zero. */
+  readonly cost?: undefined;
+}
+
+/**
+ * A pre-run estimate: what a run would send, and what that would cost at the rates the project
+ * supplied. It is computed without constructing a provider, reading an API key, or making a network
+ * call.
+ *
+ * It is an upper bound on the work: every provider call a live run would make is counted, including
+ * the plural-generation batches, and the prompt is measured from the request payload that would
+ * actually be sent rather than modelled. The live run can only send less, because it consults the
+ * translation memory and collapses identical source strings, neither of which the estimate does.
+ * {@link EstimateCaveatCode} names each of those, and names the token count as a heuristic derived
+ * from characters rather than from the provider's own tokenizer.
+ *
+ * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
+ * an {@link UnpricedRunEstimate} carries none of them and says why.
+ */
+export type RunEstimate = PricedRunEstimate | UnpricedRunEstimate;
 
 /** A condition the SDK reported on a locale. See {@link SdkNoticeCode}. */
 export interface SdkNotice {

@@ -1,4 +1,11 @@
-import type { LockWaitEvent, ProgressEvent, RunEstimate, WatchRunResult } from "@verbatra/sdk";
+import type {
+  LockWaitEvent,
+  PricedRunEstimate,
+  ProgressEvent,
+  RunEstimate,
+  UnpricedRunEstimate,
+  WatchRunResult,
+} from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   renderCheckHuman,
@@ -557,7 +564,7 @@ describe("render: watch run result", () => {
 });
 
 describe("renderHuman: pre-run estimate", () => {
-  const tokenEstimate: RunEstimate = {
+  const tokenEstimate: PricedRunEstimate = {
     provider: "anthropic",
     model: "sonnet-test",
     rateKey: "anthropic/sonnet-test",
@@ -565,7 +572,16 @@ describe("renderHuman: pre-run estimate", () => {
     pricing: "priced",
     currency: "USD",
     asOf: "2026-01-15",
-    locales: [{ locale: "de", keys: 400, requests: 8, inputTokens: 10800, outputTokens: 7600 }],
+    locales: [
+      {
+        locale: "de",
+        keys: 400,
+        requests: 8,
+        inputTokens: 10800,
+        outputTokens: 7600,
+        cost: 0.1464,
+      },
+    ],
     keys: 400,
     requests: 8,
     inputTokens: 10800,
@@ -578,9 +594,13 @@ describe("renderHuman: pre-run estimate", () => {
     return renderHuman(makeSummary({ dryRun: true, estimate }));
   }
 
-  function unpriced(overrides: Partial<RunEstimate>): RunEstimate {
-    const { currency: _currency, asOf: _asOf, cost: _cost, ...rest } = tokenEstimate;
-    return { ...rest, ...overrides };
+  function unpriced(pricing: UnpricedRunEstimate["pricing"]): UnpricedRunEstimate {
+    const { currency: _currency, asOf: _asOf, cost: _cost, locales, ...rest } = tokenEstimate;
+    return {
+      ...rest,
+      pricing,
+      locales: locales.map(({ cost: _localeCost, ...locale }) => locale),
+    };
   }
 
   it("reports keys, requests, and the token split for a token-billed provider", () => {
@@ -614,7 +634,7 @@ describe("renderHuman: pre-run estimate", () => {
       rateKey: "deepl",
       unit: "characters",
       sourceCharacters: 16000,
-      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000 }],
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000, cost: 0.1464 }],
     });
 
     expect(line).toContain("~16000 source characters");
@@ -622,7 +642,7 @@ describe("renderHuman: pre-run estimate", () => {
   });
 
   it("says which rate is missing and where to add it, rather than showing zero", () => {
-    const line = render(unpriced({ pricing: "no-rate-on-file" }));
+    const line = render(unpriced("no-rate-on-file"));
 
     expect(line).toContain("no rate on file for anthropic/sonnet-test");
     expect(line).toContain('rates.table["anthropic/sonnet-test"]');
@@ -630,19 +650,17 @@ describe("renderHuman: pre-run estimate", () => {
   });
 
   it("refuses a rate written in the wrong unit rather than applying it", () => {
-    const line = render(unpriced({ pricing: "rate-unit-mismatch" }));
+    const line = render(unpriced("rate-unit-mismatch"));
 
     expect(line).toContain("is not priced in tokens");
   });
 
   it("reports a self-hosted endpoint as carrying no API cost", () => {
-    const line = render(
-      unpriced({
-        provider: "openai-compatible",
-        rateKey: "openai-compatible/llama-3",
-        pricing: "not-billed",
-      }),
-    );
+    const line = render({
+      ...unpriced("not-billed"),
+      provider: "openai-compatible",
+      rateKey: "openai-compatible/llama-3",
+    });
 
     expect(line).toContain("no API cost");
     expect(line).toContain("self-hosted");

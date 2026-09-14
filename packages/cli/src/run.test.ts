@@ -1041,7 +1041,16 @@ describe("run: translate --estimate", () => {
             pricing: "priced",
             currency: "USD",
             asOf: "2026-01-15",
-            locales: [{ locale: "de", keys: 4, requests: 1, inputTokens: 380, outputTokens: 20 }],
+            locales: [
+              {
+                locale: "de",
+                keys: 4,
+                requests: 1,
+                inputTokens: 380,
+                outputTokens: 20,
+                cost: 0.00144,
+              },
+            ],
             keys: 4,
             requests: 1,
             inputTokens: 380,

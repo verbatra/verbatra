@@ -79,7 +79,7 @@ function renderEstimateCost(estimate: RunEstimate): string {
   switch (estimate.pricing) {
     case "priced":
       return (
-        `  estimated spend: ${(estimate.cost ?? 0).toFixed(COST_DECIMALS)} ${estimate.currency} ` +
+        `  estimated spend: ${estimate.cost.toFixed(COST_DECIMALS)} ${estimate.currency} ` +
         `at rates as of ${estimate.asOf} (an upper-bound estimate, not a quotation)`
       );
     case "no-rate-on-file":
