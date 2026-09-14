@@ -1,5 +1,6 @@
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import { defaultFs } from "../fs.js";
@@ -332,13 +333,40 @@ describe("run-status persisted shape: no translation content", () => {
     expect(Object.keys(entry as object).sort()).toEqual(["key", "reasons"]);
     expect(["succeeded", "failed"]).toContain(locale?.status);
     for (const reason of entry?.reasons ?? []) {
-      expect([
-        "LENGTH_RATIO_OUTLIER",
-        "EQUALS_SOURCE",
-        "GLOSSARY_TERM_MISSED",
-        "INTEGRITY_REORDERED",
-        "PROVIDER_DEGRADED",
-      ]).toContain(reason);
+      expect(REVIEW_REASON_CODES).toContain(reason);
     }
+  });
+});
+
+describe("readRunStatusFile: every review reason code survives a round trip", () => {
+  it("enumerates a non-trivial code list, so the per-code check cannot pass vacuously", () => {
+    expect(REVIEW_REASON_CODES.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it.each(REVIEW_REASON_CODES)("reads back a file whose only reason is %s", async (reason) => {
+    const dir = await makeTempDir();
+    const path = runStatusFilePath(dir);
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(
+      path,
+      JSON.stringify({
+        version: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        usage: { inputTokens: 120, outputTokens: 80 },
+        locales: [
+          {
+            locale: "de",
+            status: "succeeded",
+            needsReview: [{ key: "greeting", reasons: [reason] }],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const file = await readRunStatusFile(path, defaultFs);
+
+    expect(file?.usage).toEqual({ inputTokens: 120, outputTokens: 80 });
+    expect(file?.locales[0]?.needsReview).toEqual([{ key: "greeting", reasons: [reason] }]);
   });
 });

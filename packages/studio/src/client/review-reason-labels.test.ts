@@ -1,18 +1,11 @@
-import type { ReviewReasonCode } from "@verbatra/sdk";
+import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { reviewReasonLabel } from "./review-reason-labels.js";
 
-const ALL_CODES: readonly ReviewReasonCode[] = [
-  "LENGTH_RATIO_OUTLIER",
-  "MAX_LENGTH_EXCEEDED",
-  "EQUALS_SOURCE",
-  "GLOSSARY_TERM_MISSED",
-  "INTEGRITY_REORDERED",
-  "PROVIDER_DEGRADED",
-];
+const ALL_CODES: readonly ReviewReasonCode[] = REVIEW_REASON_CODES;
 
 describe("reviewReasonLabel", () => {
-  it("renders all six ReviewReasonCode values with a distinct, non-empty label", () => {
+  it("renders every ReviewReasonCode value with a distinct, non-empty label", () => {
     const labels = ALL_CODES.map((code) => reviewReasonLabel(code).label);
     expect(new Set(labels).size).toBe(ALL_CODES.length);
     for (const label of labels) {

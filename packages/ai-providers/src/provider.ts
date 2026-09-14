@@ -148,14 +148,34 @@ export interface ProviderNotice {
  *   `GLOSSARY_IGNORED` notice, either of which can silently change wording. A
  *   `PLACEHOLDER_UNSUPPORTED` notice does not raise it, since the affected entries are withheld
  *   rather than degraded.
+ *
+ * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
+ * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
+ * members; a hand-copied list silently falls behind the next addition.
+ *
+ * @example
+ * ```ts
+ * import { REVIEW_REASON_CODES } from "@verbatra/sdk";
+ * import { z } from "zod";
+ *
+ * const reasonSchema = z.enum(REVIEW_REASON_CODES);
+ * ```
  */
-export type ReviewReasonCode =
-  | "LENGTH_RATIO_OUTLIER"
-  | "MAX_LENGTH_EXCEEDED"
-  | "EQUALS_SOURCE"
-  | "GLOSSARY_TERM_MISSED"
-  | "INTEGRITY_REORDERED"
-  | "PROVIDER_DEGRADED";
+export const REVIEW_REASON_CODES = [
+  "LENGTH_RATIO_OUTLIER",
+  "MAX_LENGTH_EXCEEDED",
+  "EQUALS_SOURCE",
+  "GLOSSARY_TERM_MISSED",
+  "INTEGRITY_REORDERED",
+  "PROVIDER_DEGRADED",
+] as const;
+
+/**
+ * One of {@link REVIEW_REASON_CODES}. The union is derived from that tuple rather than written out
+ * again, so a code can only be added in one place and every consumer that builds a runtime schema
+ * or an exhaustive map from the tuple stays in step automatically.
+ */
+export type ReviewReasonCode = (typeof REVIEW_REASON_CODES)[number];
 
 /** A key flagged for human review, carrying every reason code that applies. */
 export interface ReviewFlag {
