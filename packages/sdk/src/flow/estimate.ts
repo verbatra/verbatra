@@ -7,13 +7,16 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { chunk } from "./batching.js";
 import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import type {
+  CharacterRunQuantity,
   EstimateCaveatCode,
+  EstimateIdentity,
   EstimatePricing,
   LocaleEstimateQuantity,
   LocaleSummary,
   PricedLocaleEstimate,
   RunEstimate,
   RunEstimateQuantity,
+  TokenRunQuantity,
   UnpricedLocaleEstimate,
 } from "./summary.js";
 
@@ -168,13 +171,23 @@ function caveatsFor(unit: BillingUnit): readonly EstimateCaveatCode[] {
     : shared;
 }
 
-function quantityFields(
+function localeQuantityFields(
   quantity: EstimatedQuantity,
   unit: BillingUnit,
 ): Pick<LocaleEstimateQuantity, "inputTokens" | "outputTokens" | "sourceCharacters"> {
   return unit === "tokens"
     ? { inputTokens: quantity.inputTokens, outputTokens: quantity.outputTokens }
     : { sourceCharacters: quantity.sourceCharacters };
+}
+
+type RunQuantityFields =
+  | Pick<TokenRunQuantity, "unit" | "inputTokens" | "outputTokens">
+  | Pick<CharacterRunQuantity, "unit" | "sourceCharacters">;
+
+function runQuantityFields(quantity: EstimatedQuantity, unit: BillingUnit): RunQuantityFields {
+  return unit === "tokens"
+    ? { unit, inputTokens: quantity.inputTokens, outputTokens: quantity.outputTokens }
+    : { unit: "characters", sourceCharacters: quantity.sourceCharacters };
 }
 
 function localeQuantityOf(
@@ -186,7 +199,7 @@ function localeQuantityOf(
     locale,
     keys: quantity.keys,
     requests: quantity.requests,
-    ...quantityFields(quantity, unit),
+    ...localeQuantityFields(quantity, unit),
   };
 }
 
@@ -232,16 +245,15 @@ export function estimateRun(input: EstimateRunInput): RunEstimate {
   const measured = measureLocales(input, unit);
   const total = measured.reduce((sum, item) => addQuantities(sum, item.quantity), EMPTY);
   const model = modelOf(input.provider);
-  const shared: RunEstimateQuantity = {
+  const identity: EstimateIdentity = {
     provider: input.provider.id,
     ...(model !== undefined ? { model } : {}),
     rateKey: rateKeyFor(input.provider),
-    unit,
     keys: total.keys,
     requests: total.requests,
-    ...quantityFields(total, unit),
     caveats: caveatsFor(unit),
   };
+  const shared: RunEstimateQuantity = { ...identity, ...runQuantityFields(total, unit) };
 
   if (pricing.status !== "priced") {
     return {

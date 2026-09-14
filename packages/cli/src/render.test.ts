@@ -667,13 +667,41 @@ describe("renderHuman: pre-run estimate", () => {
     expect(line).toContain("self-hosted");
   });
 
+  it("never rounds a real cost down to a printed zero", () => {
+    const line = render({ ...tokenEstimate, cost: 0.000022 });
+
+    expect(line).toContain("less than 0.0001 USD");
+    expect(line).not.toContain("0.0000 USD");
+  });
+
+  it("prints a genuinely costless run as zero, because that figure is accurate", () => {
+    const line = render({
+      ...tokenEstimate,
+      keys: 0,
+      requests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      locales: [],
+    });
+
+    expect(line).toContain("0.0000 USD");
+    expect(line).not.toContain("less than");
+  });
+
+  it("prints the exact figure once it is large enough to survive four decimals", () => {
+    expect(render({ ...tokenEstimate, cost: 0.00005 })).toContain("0.0001 USD");
+    expect(render({ ...tokenEstimate, cost: 0.0000499 })).toContain("less than 0.0001 USD");
+  });
+
   it("leaves the estimate lines out of a run that did not ask for one", () => {
     expect(renderHuman(makeSummary({ dryRun: true }))).not.toContain("estimate:");
   });
 
   it("never leaks an undefined or a NaN into any branch of the estimate block", () => {
+    const { inputTokens: _in, outputTokens: _out, ...unpricedIdentity } = unpriced("not-billed");
     const characterUnit: UnpricedRunEstimate = {
-      ...unpriced("not-billed"),
+      ...unpricedIdentity,
       unit: "characters",
       sourceCharacters: 16000,
       locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000 }],

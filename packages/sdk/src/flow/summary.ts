@@ -1,5 +1,4 @@
 import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
-import type { BillingUnit } from "../config/provider-billing.js";
 import type { ProviderId } from "../config/provider-config.js";
 
 /**
@@ -145,7 +144,7 @@ export type LocaleEstimate = PricedLocaleEstimate | UnpricedLocaleEstimate;
  * Everything a {@link RunEstimate} reports regardless of whether it could be priced: which provider
  * the figure was computed for, how much would be sent, and what the figure leaves out.
  */
-export interface RunEstimateQuantity {
+export interface EstimateIdentity {
   /** The provider the estimate was computed for. */
   readonly provider: ProviderId;
   /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
@@ -155,8 +154,6 @@ export interface RunEstimateQuantity {
    * configured with a model, and the bare provider id otherwise.
    */
   readonly rateKey: string;
-  /** Whether this provider charges by tokens or by source characters. */
-  readonly unit: BillingUnit;
   /**
    * Keys that would be sent across every locale, counting both the keys that would be translated
    * and the plural forms that would be generated.
@@ -164,21 +161,41 @@ export interface RunEstimateQuantity {
   readonly keys: number;
   /** Provider requests across every locale, generation batches included. */
   readonly requests: number;
-  /** Estimated prompt tokens across every locale. Present only for a token-billed provider. */
-  readonly inputTokens?: number;
-  /** Estimated completion tokens across every locale. Present only for a token-billed provider. */
-  readonly outputTokens?: number;
-  /** Estimated source characters across every locale. Present only for a character-billed provider. */
-  readonly sourceCharacters?: number;
   /** What this figure leaves out. Always present, never empty. See {@link EstimateCaveatCode}. */
   readonly caveats: readonly EstimateCaveatCode[];
 }
 
+/** The quantity a token-billed provider charges for: the prompt and the completion, separately. */
+export interface TokenRunQuantity extends EstimateIdentity {
+  /** Always `tokens` for a prompt-driven LLM. */
+  readonly unit: "tokens";
+  /** Estimated prompt tokens across every locale. */
+  readonly inputTokens: number;
+  /** Estimated completion tokens across every locale. */
+  readonly outputTokens: number;
+  /** Never present: a token-billed provider does not bill source characters. */
+  readonly sourceCharacters?: undefined;
+}
+
+/** The quantity a character-billed provider charges for: the source text handed to it. */
+export interface CharacterRunQuantity extends EstimateIdentity {
+  /** Always `characters` for a machine-translation API. */
+  readonly unit: "characters";
+  /** Estimated source characters across every locale. */
+  readonly sourceCharacters: number;
+  /** Never present: a machine-translation API reports no token usage at all. */
+  readonly inputTokens?: undefined;
+  /** Never present: a machine-translation API reports no token usage at all. */
+  readonly outputTokens?: undefined;
+}
+
 /**
- * An estimate a rate could be applied to: the config supplied a rate for {@link rateKey} in the
- * right unit, so the run carries a currency figure and the date that rate was read.
+ * What a run would send, discriminated on {@link unit} so the billed dimension is always present
+ * and the other one is never readable as a zero.
  */
-export interface PricedRunEstimate extends RunEstimateQuantity {
+export type RunEstimateQuantity = TokenRunQuantity | CharacterRunQuantity;
+
+interface PricedEstimateMoney {
   /** Always `priced`: a rate was found and applied. */
   readonly pricing: "priced";
   /** The rate card's currency code. */
@@ -194,12 +211,7 @@ export interface PricedRunEstimate extends RunEstimateQuantity {
   readonly cost: number;
 }
 
-/**
- * An estimate carrying quantity and no money, with {@link pricing} saying why. verbatra ships no
- * prices of its own and will not guess one, so the absence is reported rather than rendered as a
- * cost of zero.
- */
-export interface UnpricedRunEstimate extends RunEstimateQuantity {
+interface UnpricedEstimateMoney {
   /** Why no currency figure is present. See {@link EstimatePricing}. */
   readonly pricing: Exclude<EstimatePricing, "priced">;
   /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
@@ -211,6 +223,24 @@ export interface UnpricedRunEstimate extends RunEstimateQuantity {
   /** Never present: an absent rate is reported as absent, never as a cost of zero. */
   readonly cost?: undefined;
 }
+
+interface TokenPricedRunEstimate extends TokenRunQuantity, PricedEstimateMoney {}
+interface CharacterPricedRunEstimate extends CharacterRunQuantity, PricedEstimateMoney {}
+interface TokenUnpricedRunEstimate extends TokenRunQuantity, UnpricedEstimateMoney {}
+interface CharacterUnpricedRunEstimate extends CharacterRunQuantity, UnpricedEstimateMoney {}
+
+/**
+ * An estimate a rate could be applied to: the config supplied a rate for `rateKey` in the right
+ * unit, so the run carries a currency figure and the date that rate was read.
+ */
+export type PricedRunEstimate = TokenPricedRunEstimate | CharacterPricedRunEstimate;
+
+/**
+ * An estimate carrying quantity and no money, with `pricing` saying why. verbatra ships no prices
+ * of its own and will not guess one, so the absence is reported rather than rendered as a cost of
+ * zero.
+ */
+export type UnpricedRunEstimate = TokenUnpricedRunEstimate | CharacterUnpricedRunEstimate;
 
 /**
  * A pre-run estimate: what a run would send, and what that would cost at the rates the project
