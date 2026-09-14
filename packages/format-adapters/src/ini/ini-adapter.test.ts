@@ -116,6 +116,22 @@ describe("createIniAdapter read", () => {
     expect(fs.files.get("en.ini")).toBe("= orphan\na = A\n");
   });
 
+  it("accepts a section header that carries a trailing comment", async () => {
+    const source = "[home] ; the home block\ntitle = Welcome\n[about]\t# about us\ntitle = About\n";
+    const { adapter, fs } = setup({ "en.ini": source });
+    const { resource: read } = await adapter.read("en.ini", "en");
+    expect([...read.entries.keys()]).toEqual(["home.title", "about.title"]);
+    await adapter.write(read, "en.ini");
+    expect(fs.files.get("en.ini")).toBe(source);
+  });
+
+  it("rejects text after the closing bracket that is not a comment", async () => {
+    const { adapter } = setup({ "en.ini": "[home] oops\ntitle = Welcome\n" });
+    const error = await readError(adapter.read("en.ini", "en"));
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+  });
+
   it("rejects an unterminated section header as a structured AdapterError", async () => {
     const { adapter } = setup({ "en.ini": "[home\ntitle = Welcome\n" });
     const error = await readError(adapter.read("en.ini", "en"));
@@ -254,6 +270,19 @@ describe("createIniAdapter write", () => {
     const { adapter } = setup({ "en.ini": "a = A\n" });
     const error = await readError(adapter.write(resource([entry("a]b.k", "x")]), "en.ini"));
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+  });
+
+  it("lets a structured error from the destination read through with its own code", async () => {
+    const fs: AdapterFs = {
+      async readBounded(): Promise<BoundedReadOutcome> {
+        throw new AdapterError("INPUT_TOO_LARGE", "too large");
+      },
+      async writeFileAtomic(): Promise<void> {},
+    };
+    const error = await readError(
+      createIniAdapter(fs).write(resource([entry("a", "A")]), "en.ini"),
+    );
+    expect((error as AdapterError).code).toBe("INPUT_TOO_LARGE");
   });
 
   it("reports an unreadable destination as a structured AdapterError", async () => {

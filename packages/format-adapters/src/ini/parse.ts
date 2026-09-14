@@ -46,10 +46,18 @@ function isComment(line: string): boolean {
 
 function sectionNameOf(line: string): string {
   const trimmed = line.trim();
-  if (!trimmed.endsWith("]")) {
+  const close = trimmed.indexOf("]");
+  if (close === -1) {
     throw new AdapterError("INVALID_STRUCTURE", "A section header is not closed with a bracket.");
   }
-  const name = trimmed.slice(1, -1).trim();
+  const trailing = trimmed.slice(close + 1).trim();
+  if (trailing !== "" && !COMMENT_START.test(trailing)) {
+    throw new AdapterError(
+      "INVALID_STRUCTURE",
+      "A section header is followed by text that is not a comment.",
+    );
+  }
+  const name = trimmed.slice(1, close).trim();
   if (name === "") {
     throw new AdapterError("INVALID_STRUCTURE", "A section header has an empty name.");
   }
@@ -273,6 +281,9 @@ async function readStructure(filePath: string, fs: AdapterFs): Promise<Destinati
   } catch (error) {
     if (isEnoent(error)) {
       return { items: [], terminator: "\n" };
+    }
+    if (error instanceof AdapterError) {
+      throw error;
     }
     throw new AdapterError("INVALID_STRUCTURE", "The destination file could not be read.");
   }
