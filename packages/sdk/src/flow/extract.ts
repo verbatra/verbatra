@@ -155,6 +155,21 @@ function mergedResource(
   return { ...resource, entries };
 }
 
+async function writeResource(
+  resource: LocaleResource,
+  sourcePath: string,
+  adapter: FormatAdapter,
+): Promise<void> {
+  try {
+    await adapter.write(resource, sourcePath);
+  } catch (error) {
+    throw new SdkError(
+      "SOURCE_UNWRITABLE",
+      `The source locale file at ${sourcePath} could not be written: ${errorMessage(error)}`,
+    );
+  }
+}
+
 function toAddedKey(key: ExtractedKey): AddedKey {
   return { key: key.key, value: key.value, file: key.file, line: key.line };
 }
@@ -207,6 +222,9 @@ async function runScan(
  * `readDirectory`, so no source file can be discovered.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `SOURCE_INVALID`: a source catalog exists but could not be parsed.
+ * @throws {@link SdkError} `SOURCE_UNWRITABLE`: the source catalog could not be written. The
+ * `xliff` and `apple-xcstrings` formats reach this when no catalog exists yet: neither is created
+ * from nothing, here or anywhere else in verbatra.
  *
  * @example
  * ```ts
@@ -230,7 +248,7 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const dryRun = input.dryRun === true;
   const written = added.length > 0 && !dryRun;
   if (written) {
-    await adapter.write(mergedResource(resource, added, adapter), sourcePath);
+    await writeResource(mergedResource(resource, added, adapter), sourcePath, adapter);
   }
   return {
     sourcePath: relative(cwd, sourcePath).split("\\").join("/"),

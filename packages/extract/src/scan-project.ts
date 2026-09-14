@@ -1,24 +1,39 @@
 import { relative } from "node:path";
 import { discoverSourceFiles } from "./discovery.js";
 import type { SourceExtractor } from "./extractor.js";
-import type { SourceFs } from "./source-fs-port.js";
+import { nodeSourceFs, type SourceFs } from "./source-fs-port.js";
 
 export const DEFAULT_MAX_SOURCE_FILE_BYTES = 2_000_000;
 
+/** Where something was found: a source file and a line inside it. Never a file's contents. */
 export interface SourceLocation {
+  /** The source file, relative to the run's working directory, with forward slashes. */
   readonly file: string;
+  /** The one-based line number. */
   readonly line: number;
 }
 
+/** One key the scan resolved to a single value, and the first call site it was found at. */
 export interface ExtractedKey extends SourceLocation {
+  /** The key exactly as the call site spelled it. */
   readonly key: string;
+  /** The default value every call site agreed on, or the empty string when none supplied one. */
   readonly value: string;
+  /** Whether any call site supplied a default at all. */
   readonly hasDefault: boolean;
 }
 
+/**
+ * One key found at two or more call sites that disagree on its default value. Neither value is
+ * written: resolving it last-write-wins would make the catalog depend on directory traversal order,
+ * so the disagreement is reported for a person to settle at the call sites.
+ */
 export interface KeyConflict {
+  /** The key the call sites disagree about. */
   readonly key: string;
+  /** Every distinct default value found, in the order the scan met them. */
   readonly values: readonly string[];
+  /** Where each of those values was found, index-aligned with `values`. */
   readonly locations: readonly SourceLocation[];
 }
 
@@ -28,24 +43,39 @@ export type ScanDiagnosticReason =
   | "unparseable"
   | "unreadable-directory";
 
+/** One file or directory the scan could not read, reported as data so one bad file never aborts a run. */
 export interface ScanDiagnostic {
+  /** The file or directory, relative to the run's working directory, with forward slashes. */
   readonly file: string;
+  /** Why it was skipped. */
   readonly reason: ScanDiagnosticReason;
 }
 
+/** Everything one source scan found across a project. */
 export interface ProjectScan {
+  /** How many files were read and scanned. */
   readonly scannedFiles: number;
+  /** Keys that resolved to exactly one value. A conflicted key is reported below instead. */
   readonly keys: readonly ExtractedKey[];
+  /** Call sites whose key argument was not a static string. */
   readonly dynamic: readonly SourceLocation[];
+  /** Keys whose call sites disagreed on a default value. */
   readonly conflicts: readonly KeyConflict[];
+  /** Files and directories that could not be read. */
   readonly diagnostics: readonly ScanDiagnostic[];
 }
 
+/** Input for {@link scanProject}. */
 export interface ScanProjectInput {
+  /** Directory that every reported path is made relative to. */
   readonly cwd: string;
+  /** Absolute directories to walk. Nothing outside them is ever read. */
   readonly roots: readonly string[];
+  /** The framework extractor to run over each file. */
   readonly extractor: SourceExtractor;
+  /** Extra directory names to skip, on top of the always-skipped set. */
   readonly exclude?: readonly string[];
+  /** Byte ceiling per file. A larger file is skipped with a `too-large` diagnostic. */
   readonly maxFileBytes?: number;
 }
 
@@ -82,7 +112,10 @@ function recordCall(
   state.keys.set(key, existing);
 }
 
-function toExtractedKey(key: string, record: KeyRecord): ExtractedKey {
+function toExtractedKey(key: string, record: KeyRecord): ExtractedKey | undefined {
+  if (record.defaults.size > 1) {
+    return undefined;
+  }
   const first = [...record.defaults.keys()][0];
   return {
     key,
@@ -132,7 +165,10 @@ async function scanFile(
   }
 }
 
-export async function scanProject(input: ScanProjectInput, fs: SourceFs): Promise<ProjectScan> {
+export async function scanProject(
+  input: ScanProjectInput,
+  fs: SourceFs = nodeSourceFs,
+): Promise<ProjectScan> {
   const state = createScanState();
   const files = await discoverSourceFiles(
     {
@@ -153,7 +189,9 @@ export async function scanProject(input: ScanProjectInput, fs: SourceFs): Promis
   const entries = [...state.keys.entries()];
   return {
     scannedFiles: state.scannedFiles,
-    keys: entries.map(([key, record]) => toExtractedKey(key, record)),
+    keys: entries
+      .map(([key, record]) => toExtractedKey(key, record))
+      .filter((entry): entry is ExtractedKey => entry !== undefined),
     dynamic: state.dynamic,
     conflicts: entries
       .map(([key, record]) => toConflict(key, record))

@@ -74,6 +74,10 @@
  *   atomic write uses. Thrown by {@link editEntry} and {@link retranslateEntry}, which act on one
  *   locale. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
+ * - `SOURCE_UNWRITABLE`: the source locale file could not be written. Thrown by {@link extract}
+ *   alone, since it is the only entry point that writes the source locale. The `xliff` and
+ *   `apple-xcstrings` formats reach it when no catalog exists yet, because neither is created from
+ *   nothing.
  * - `EXTRACT_NOT_CONFIGURED`: {@link extract} was called with a config that carries no `extract`
  *   block, so there is no framework to look for and no source root to walk.
  * - `EXTRACT_FS_UNSUPPORTED`: {@link extract} was given a `deps.fs` that implements no
@@ -101,6 +105,7 @@ export type SdkErrorCode =
   | "CONCURRENCY_INVALID"
   | "CONCURRENCY_BUDGET_CONFLICT"
   | "TARGET_UNWRITABLE"
+  | "SOURCE_UNWRITABLE"
   | "EXTRACT_NOT_CONFIGURED"
   | "EXTRACT_FS_UNSUPPORTED"
   | "LOCALE_FAILED";

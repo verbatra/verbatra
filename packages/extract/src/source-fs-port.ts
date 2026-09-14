@@ -3,18 +3,34 @@ import { type FileHandle, open, readdir } from "node:fs/promises";
 
 export type DirectoryEntryKind = "file" | "directory" | "other";
 
+/**
+ * One entry in a directory listing. A symbolic link is reported as `other` and never followed,
+ * which is what keeps a scan inside the roots it was given.
+ */
 export interface DirectoryEntry {
+  /** The entry's own name, with no directory part. */
   readonly name: string;
+  /** What the entry is. Anything that is not a regular file or a directory is `other`. */
   readonly kind: DirectoryEntryKind;
 }
 
+/**
+ * The outcome of a size-bounded source-file read. An absent or oversized file is a state rather
+ * than a thrown error, so one unreadable file never aborts a scan.
+ */
 export type BoundedSourceRead =
   | { readonly kind: "ok"; readonly content: string }
   | { readonly kind: "missing" }
   | { readonly kind: "too-large" };
 
+/**
+ * The file-system port a source scan goes through. Nothing in this package imports `node:fs`
+ * directly, so supplying your own implementation redirects every read the scan performs.
+ */
 export interface SourceFs {
+  /** Lists one directory's immediate entries, without recursing and without following symlinks. */
   listDirectory(path: string): Promise<readonly DirectoryEntry[]>;
+  /** Reads a file as UTF-8 text, refusing to read more than `maxBytes`. */
   readTextBounded(path: string, maxBytes: number): Promise<BoundedSourceRead>;
 }
 

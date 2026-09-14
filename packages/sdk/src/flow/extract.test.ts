@@ -327,3 +327,31 @@ describe("extract across every supported format", () => {
     );
   });
 });
+
+describe("extract on a format that cannot create its catalog", () => {
+  it("reports an unwritable source catalog as a structured error", async () => {
+    const cwd = await project({ "src/nav.ts": 't("navHome", "Home");' });
+
+    await expect(
+      extract({
+        config: config({ format: "xliff", files: { pattern: "locales/{locale}.xlf" } }),
+        cwd,
+      }),
+    ).rejects.toMatchObject({ code: "SOURCE_UNWRITABLE" });
+  });
+});
+
+describe("extract on a conflicted key", () => {
+  it("writes neither value and leaves the key out of the additions", async () => {
+    const cwd = await project({
+      "src/a.ts": 't("nav.home", "Home");',
+      "src/b.ts": 't("nav.home", "Start");\nt("nav.away", "Away");',
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["nav.away"]);
+    expect(await readJsonFile(join(cwd, "locales/en.json"))).toEqual({ nav: { away: "Away" } });
+    expect(result.conflicts.map((entry) => entry.key)).toEqual(["nav.home"]);
+  });
+});

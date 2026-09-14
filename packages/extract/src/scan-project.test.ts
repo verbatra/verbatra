@@ -78,6 +78,15 @@ describe("scanProject", () => {
     ]);
   });
 
+  it("keeps a conflicted key out of the key list, so neither value can be written", async () => {
+    const result = await scan({
+      [join(root, "a.ts")]: 't("nav.home", "Home")',
+      [join(root, "b.ts")]: 't("nav.home", "Start")\nt("nav.away", "Away")',
+    });
+
+    expect(result.keys.map((entry) => entry.key)).toEqual(["nav.away"]);
+  });
+
   it("lets a defined default fill in for a call site that carries none", async () => {
     const result = await scan({
       [join(root, "a.ts")]: 't("nav.home")',
