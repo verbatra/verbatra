@@ -1,19 +1,20 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
+import { AdapterError } from "../errors.js";
+import type { AdapterFs } from "../fs-port.js";
+import { detectLineTerminator } from "../shell.js";
 import {
+  applyLineTerminator,
   elementChildren,
+  readXmlDestination,
   setSingleTextValue,
   singleTextValue,
   TEXT_NODE,
-} from "../android-xml/xml.js";
-import { AdapterError } from "../errors.js";
-import type { AdapterFs } from "../fs-port.js";
-import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { isEnoent } from "../shell.js";
+  XML_PROLOG,
+} from "../xml/document.js";
 import { extractResxPlaceholders } from "./placeholders.js";
 import { createResxDocument, parseResxXml } from "./xml.js";
 
-const XML_PROLOG = '<?xml version="1.0" encoding="utf-8"?>\n';
 const TRAILING_NEWLINES = /(?:\r\n|\r|\n)+$/;
 const DESIGNER_NAME = /^(?:>>|\$)/;
 
@@ -150,21 +151,6 @@ function appendUnmatched(
   }
 }
 
-async function readDestination(filePath: string, fs: AdapterFs): Promise<string | undefined> {
-  try {
-    const outcome = await readBoundedFile(fs, filePath);
-    return outcomeToContent(outcome, "The destination path is not a regular file.");
-  } catch (error) {
-    if (isEnoent(error)) {
-      return undefined;
-    }
-    if (error instanceof AdapterError) {
-      throw error;
-    }
-    throw new AdapterError("INVALID_STRUCTURE", "The destination file could not be read.");
-  }
-}
-
 function withTrailingNewlines(original: string, output: string): string {
   const match = TRAILING_NEWLINES.exec(original);
   return match === null ? output : `${output}${match[0]}`;
@@ -182,7 +168,7 @@ export async function serializeResxEntries(
   filePath: string,
   fs: AdapterFs,
 ): Promise<string> {
-  const existing = await readDestination(filePath, fs);
+  const existing = await readXmlDestination(filePath, fs);
   if (existing === undefined) {
     return synthesize(entries);
   }

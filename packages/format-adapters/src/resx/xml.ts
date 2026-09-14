@@ -1,5 +1,5 @@
-import { DOMImplementation, DOMParser, type Document, type Element } from "@xmldom/xmldom";
-import { AdapterError } from "../errors.js";
+import type { Document, Element } from "@xmldom/xmldom";
+import { createXmlDocument, parseXmlDocument } from "../xml/document.js";
 
 const ROOT_TAG = "root";
 
@@ -16,37 +16,12 @@ const RESHEADERS: readonly (readonly [string, string])[] = [
   ],
 ];
 
-function onFatal(level: "warning" | "error" | "fatalError", message: string): void {
-  if (level === "fatalError") {
-    throw new Error(message);
-  }
-}
-
-function assertNoDoctype(content: string): void {
-  if (/<!DOCTYPE/i.test(content) || /<!ENTITY/i.test(content)) {
-    throw new AdapterError(
-      "INVALID_XML",
-      "A resource file with a DTD or entity declaration is rejected.",
-    );
-  }
-}
-
 export function parseResxXml(content: string): { doc: Document; root: Element } {
-  assertNoDoctype(content);
-  let doc: Document;
-  try {
-    doc = new DOMParser({ onError: onFatal }).parseFromString(content, "text/xml");
-  } catch {
-    throw new AdapterError("INVALID_XML", "The file is not valid XML.");
-  }
-  const root = doc.documentElement;
-  if (root === null || root.localName !== ROOT_TAG) {
-    throw new AdapterError(
-      "INVALID_STRUCTURE",
-      `The file is not a .NET resource file: the root element must be <${ROOT_TAG}>.`,
-    );
-  }
-  return { doc, root };
+  return parseXmlDocument(content, ROOT_TAG, {
+    doctype: "A resource file with a DTD or entity declaration is rejected.",
+    notXml: "The file is not valid XML",
+    notRoot: `The file is not a .NET resource file: the root element must be <${ROOT_TAG}>.`,
+  });
 }
 
 function appendResheader(doc: Document, root: Element, name: string, text: string): void {
@@ -60,11 +35,10 @@ function appendResheader(doc: Document, root: Element, name: string, text: strin
 }
 
 export function createResxDocument(): { doc: Document; root: Element } {
-  const doc = new DOMImplementation().createDocument(null, ROOT_TAG, null);
-  const root = doc.documentElement;
-  if (root === null) {
-    throw new AdapterError("INVALID_STRUCTURE", "Could not synthesize a new resource document.");
-  }
+  const { doc, root } = createXmlDocument(
+    ROOT_TAG,
+    "Could not synthesize a new resource document.",
+  );
   for (const [name, text] of RESHEADERS) {
     appendResheader(doc, root, name, text);
   }
