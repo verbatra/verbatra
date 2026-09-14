@@ -8,6 +8,7 @@ import type {
   LocaleSummary,
   LockWaitEvent,
   ProgressEvent,
+  PseudolocalizeResult,
   RunBudget,
   RunSummary,
   UsageSummary,
@@ -239,4 +240,16 @@ export function renderProgress(event: ProgressEvent, json: boolean): string {
 
 export function renderError(error: RenderableError): string {
   return `verbatra: error [${error.code}] ${error.message}`;
+}
+
+export function renderPseudoHuman(result: PseudolocalizeResult): string {
+  const lines = [
+    "verbatra pseudo",
+    `  ${result.locale}: ${result.transformed} of ${result.entries} entries pseudolocalized`,
+  ];
+  if (result.copied.length > 0) {
+    lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
+  }
+  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${result.path}`);
+  return lines.join("\n");
 }
