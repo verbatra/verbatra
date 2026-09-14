@@ -21,14 +21,17 @@ The recipes below use `jq` to read stdout, because that is the smallest thing th
 | [`doctor`](/docs/cli/doctor) | yes | one `DoctorResult` |
 | [`export`](/docs/cli/export) | yes | the written path and the per-locale row counts |
 | [`import`](/docs/cli/import) | yes | one `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | yes | the generated pseudolocale, its path, and the entry counts |
+| [`extract`](/docs/cli/extract) | yes | the keys added to the source locale, plus what the scan could not resolve |
 | [`init`](/docs/cli/init) | no | |
 | [`studio`](/docs/cli/studio) | no | |
+| [`mcp`](/docs/cli/mcp) | no | |
 
-`init` is an interactive scaffolder and `studio` is a long-running server, so neither has a machine-readable mode. Everything else an agent needs from a project is reachable from the other seven.
+`init` is an interactive scaffolder, and `studio` and `mcp` are long-running servers, so none of the three has a machine-readable mode. Everything else an agent needs from a project is reachable from the other nine.
 
-`doctor` is the most recent addition to that list.
+`doctor` joined that list in 0.9.0. `pseudo` and `extract` are the most recent additions.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## stdout carries envelopes and nothing else
 
@@ -185,7 +188,7 @@ Do not run this under `set -e`: a non-zero exit is the signal you came for, not 
 
 ## `watch` is a stream, not a payload
 
-`watch --json` is different in kind from the other six. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
+`watch --json` is different in kind from the other eight. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
 
 Raw, two runs of one session (the second after the source file was saved with a syntax error):
 

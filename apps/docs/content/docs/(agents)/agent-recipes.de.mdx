@@ -21,14 +21,17 @@ Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JS
 | [`doctor`](/docs/cli/doctor) | ja | ein `DoctorResult` |
 | [`export`](/docs/cli/export) | ja | den geschriebenen Pfad und die Zeilenzahl pro Locale |
 | [`import`](/docs/cli/import) | ja | ein `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
+| [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
 | [`init`](/docs/cli/init) | nein | |
 | [`studio`](/docs/cli/studio) | nein | |
+| [`mcp`](/docs/cli/mcp) | nein | |
 
-`init` legt interaktiv ein Projekt an und `studio` ist ein langlaufender Server, deshalb hat keiner von beiden einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen sieben erreichbar.
+`init` legt interaktiv ein Projekt an, und `studio` und `mcp` sind langlaufende Server, deshalb hat keiner der drei einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen neun erreichbar.
 
-`doctor` ist der jüngste Zugang zu dieser Liste.
+`doctor` kam in 0.9.0 dazu. `pseudo` und `extract` sind die jüngsten Zugänge zu dieser Liste.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## Auf stdout stehen Envelopes und sonst nichts
 
@@ -185,7 +188,7 @@ Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das S
 
 ## `watch` ist ein Strom, keine einzelne Ausgabe
 
-`watch --json` ist von anderer Art als die übrigen sechs. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
+`watch --json` ist von anderer Art als die übrigen acht. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
 
 Roh, zwei Läufe einer Sitzung (der zweite, nachdem die Quelldatei mit einem Syntaxfehler gespeichert wurde):
 

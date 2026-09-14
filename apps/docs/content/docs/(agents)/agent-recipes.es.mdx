@@ -21,14 +21,17 @@ Las recetas de abajo leen stdout con `jq`, porque es lo más pequeño que lee un
 | [`doctor`](/docs/cli/doctor) | sí | un `DoctorResult` |
 | [`export`](/docs/cli/export) | sí | la ruta escrita y el número de filas por locale |
 | [`import`](/docs/cli/import) | sí | un `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | sí | la pseudolocale generada, su ruta y los recuentos de entradas |
+| [`extract`](/docs/cli/extract) | sí | las claves añadidas a la locale de origen y lo que el escaneo no pudo resolver |
 | [`init`](/docs/cli/init) | no | |
 | [`studio`](/docs/cli/studio) | no | |
+| [`mcp`](/docs/cli/mcp) | no | |
 
-`init` es un andamiaje interactivo y `studio` es un servidor de larga duración, así que ninguno de los dos tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros siete.
+`init` es un andamiaje interactivo, y `studio` y `mcp` son servidores de larga duración, así que ninguno de los tres tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros nueve.
 
-`doctor` es la incorporación más reciente a esa lista.
+`doctor` se incorporó en 0.9.0. `pseudo` y `extract` son las incorporaciones más recientes a esa lista.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## En stdout solo hay envoltorios
 
@@ -185,7 +188,7 @@ No lo ejecutes con `set -e`: una salida distinta de cero es la señal que venía
 
 ## `watch` es un flujo, no una única salida
 
-`watch --json` es distinto en naturaleza a los otros seis. Imprime un envoltorio por ejecución durante toda la vida del proceso, como NDJSON: un objeto JSON por línea, sin array que lo envuelva y sin terminador. Un consumidor lo lee línea a línea y sigue leyendo.
+`watch --json` es distinto en naturaleza a los otros ocho. Imprime un envoltorio por ejecución durante toda la vida del proceso, como NDJSON: un objeto JSON por línea, sin array que lo envuelva y sin terminador. Un consumidor lo lee línea a línea y sigue leyendo.
 
 En crudo, dos ejecuciones de una sesión (la segunda después de guardar el archivo de origen con un error de sintaxis):
 

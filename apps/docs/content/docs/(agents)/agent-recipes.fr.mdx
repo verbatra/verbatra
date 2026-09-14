@@ -21,14 +21,17 @@ Les recettes ci-dessous lisent stdout avec `jq`, parce que c'est la plus petite 
 | [`doctor`](/docs/cli/doctor) | oui | un `DoctorResult` |
 | [`export`](/docs/cli/export) | oui | le chemin écrit et le nombre de lignes par locale |
 | [`import`](/docs/cli/import) | oui | un `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | oui | la pseudolocale générée, son chemin et le nombre d'entrées |
+| [`extract`](/docs/cli/extract) | oui | les clés ajoutées à la locale source, et ce que le scan n'a pas pu résoudre |
 | [`init`](/docs/cli/init) | non | |
 | [`studio`](/docs/cli/studio) | non | |
+| [`mcp`](/docs/cli/mcp) | non | |
 
-`init` est un générateur interactif et `studio` est un serveur de longue durée : ni l'un ni l'autre n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les sept autres.
+`init` est un générateur interactif, et `studio` et `mcp` sont des serveurs de longue durée : aucun des trois n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les neuf autres.
 
-`doctor` est la dernière arrivée dans cette liste.
+`doctor` est arrivée en 0.9.0. `pseudo` et `extract` sont les dernières arrivées dans cette liste.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## stdout ne porte que des enveloppes
 
@@ -185,7 +188,7 @@ Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal qu
 
 ## `watch` est un flux, pas une sortie unique
 
-`watch --json` est différent par nature des six autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
+`watch --json` est différent par nature des huit autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
 
 Brut, deux exécutions d'une session (la seconde après que le fichier source a été enregistré avec une erreur de syntaxe) :
 
