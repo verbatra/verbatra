@@ -184,7 +184,7 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-No lo ejecutes con `set -e`: una salida distinta de cero es la señal que venías a buscar, no un fallo. El código `130` no aparece nunca aquí, porque solo `watch` y `studio` pueden pararse a la fuerza con una segunda interrupción. La tabla completa está en [CI y códigos de salida](/docs/ci-and-exit-codes).
+No lo ejecutes con `set -e`: una salida distinta de cero es la señal que venías a buscar, no un fallo. El código `130` no aparece nunca aquí, porque solo los tres comandos de larga duración (`watch`, `studio` y `mcp`) pueden pararse a la fuerza con una segunda interrupción. La tabla completa está en [CI y códigos de salida](/docs/ci-and-exit-codes).
 
 ## `watch` es un flujo, no una única salida
 

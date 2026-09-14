@@ -184,7 +184,7 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal que tu es venu chercher, pas un plantage. Le code `130` n'apparaît jamais ici, puisque seuls `watch` et `studio` peuvent être arrêtés de force par une seconde interruption. Le tableau complet est dans [CI et codes de sortie](/docs/ci-and-exit-codes).
+Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal que tu es venu chercher, pas un plantage. Le code `130` n'apparaît jamais ici, puisque seules les trois commandes de longue durée (`watch`, `studio` et `mcp`) peuvent être arrêtées de force par une seconde interruption. Le tableau complet est dans [CI et codes de sortie](/docs/ci-and-exit-codes).
 
 ## `watch` est un flux, pas une sortie unique
 

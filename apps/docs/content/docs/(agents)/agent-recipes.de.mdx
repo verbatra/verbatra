@@ -184,7 +184,7 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur `watch` und `studio` lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur die drei langlaufenden Befehle (`watch`, `studio` und `mcp`) lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
 ## `watch` ist ein Strom, keine einzelne Ausgabe
 
