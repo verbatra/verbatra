@@ -31,9 +31,9 @@ export const SUPPORTED_FORMATS = [
  * `gettext-po` (GNU gettext's `.po` and `.pot` catalogs, including `msgctxt` disambiguation and
  * `msgid_plural`/`msgstr[n]` plural forms keyed by the file's own `Plural-Forms` index count),
  * `ini` (classic INI configuration files, one level of `[section]` headers over `key=value` lines,
- * whose entries are addressed as `section.key`), and `resx` (.NET's XML resource format, whose
- * `<data>` elements carrying a `type` or `mimetype` attribute, and whose designer metadata names,
- * are preserved untouched rather than translated).
+ * whose entries are addressed as `section.key`), and `resx` (.NET's XML resource format; its `<data>`
+ * elements carrying a `type` or `mimetype` attribute, and its designer metadata names, are preserved
+ * untouched rather than translated).
  *
  * The set is closed: a format outside it cannot be represented, so adding one means adding a member
  * here and an adapter that claims it.
