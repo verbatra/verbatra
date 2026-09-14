@@ -375,6 +375,48 @@ inline in a single message body. Placeables (`{ $var }`, `{ -term }`,
 importantly, a decision about what one `TranslationEntry` corresponds to before
 any code is written. Per the rule above, raise that first.
 
+### Adding an agent tool or a Studio RPC method
+
+The two agent surfaces are enumerated in the skills pack the same way commands,
+formats and providers are, and `scripts/verify-skills-tool-parity.test.mjs`
+asserts both tables just as strictly. A new tool with no matching row turns
+`pnpm test:scripts` red.
+
+1. **`skills/verbatra-mcp-tools/SKILL.md`** - for a new stdio tool, add the row to
+   the Tools table. The Availability cell is `always`, or `spend gated` when the
+   tool is in `SPEND_TOOL_NAMES` (`packages/mcp/src/tools/registry.ts`). The
+   surrounding prose names the registered and default-advertised counts, and the
+   test asserts those against the registry too, so both move together.
+
+2. **`skills/verbatra-studio-agent-tools/SKILL.md`** - for a new RPC method, add
+   the row to the Tools table. The first cell is the tool name exactly as
+   `toToolName` derives it (`verbatra_` plus the method with dots replaced by
+   underscores), the second is the method, and the third is `spend gated` when the
+   descriptor in `packages/studio/src/webmcp/register-tools.ts` sets
+   `spendGated: true`. The prose counts for both surfaces are asserted here as
+   well.
+
+To try an edited skill before it is merged, point the installer at your checkout
+rather than at the repository. This is the form to use locally, since the
+published `verbatra/verbatra` source only ever serves the default branch:
+
+```bash
+npx skills@latest add /path/to/your/verbatra --skill verbatra-mcp-tools -y
+```
+
+`--skill` matches the directory name under `skills/`. Repeat the flag for more
+than one; a comma-separated list is not accepted, and `--skill '*'` would also
+pull in the repository's own internal skills under `.claude/skills/`.
+
+A method that exists on one surface and not the other is normal: the test also
+asserts which methods are Studio-only, so adding one to both without meaning to
+fails just as loudly as adding it to neither.
+
+The one thing neither the test nor the type system can catch: a tool that calls a
+provider but was never added to `SPEND_TOOL_NAMES` or given `spendGated: true`.
+Source and skill would agree, and both would be wrong. Decide that flag when you
+write the tool, not when you document it.
+
 ### The guards are the guide
 
 Every step above that can be enforced at compile time already is, which is why
@@ -389,8 +431,11 @@ this list can be trusted even after the line numbers drift:
   expressible,
 - `FORMAT_LABELS` is a total record over `SupportedFormat`, so a new format
   cannot ship without a label,
-- and `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
-  anywhere in the adapter package.
+- `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
+  anywhere in the adapter package,
+- and `verify-skills-tool-parity.test.mjs` fails when the skills pack's command,
+  format, provider, tool or method tables, or the counts in its prose, drift from
+  the sources above.
 
 If you find yourself wanting a new lint rule or checklist item, check first
 whether one of these already covers it.
