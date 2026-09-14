@@ -162,6 +162,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     status: deriveLocaleStatus({
       translated,
       cacheHits: [],
+      fuzzyHits: [],
       generated: [],
       integrityMismatches,
       providerFailures: [],
@@ -173,6 +174,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     pruned: [],
     invalidIcuSource,
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches,
     providerFailures: [],
     budgetWithheld: [],

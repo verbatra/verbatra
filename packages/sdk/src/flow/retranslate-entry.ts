@@ -193,7 +193,18 @@ export async function retranslateEntry(
       cwd,
       fs,
       computeFingerprint(config),
-      new Map([[locale, { [contentHash(sourceEntry)]: value }]]),
+      new Map([
+        [
+          locale,
+          {
+            [contentHash(sourceEntry)]: {
+              contentHash: contentHash(sourceEntry),
+              value,
+              source: sourceEntry.value,
+            },
+          },
+        ],
+      ]),
     );
 
     const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];

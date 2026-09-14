@@ -50,6 +50,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `tone` | `"formal"`, `"informal"`, or `"neutral"` | none | The register translations should use. |
 | `prune` | boolean | `false` | Remove orphaned keys from target files and the lock. |
 | `generatePlurals` | boolean | `false` | Synthesize the CLDR plural forms a target language needs. |
+| `fuzzyCache` | object | off | Reuse a translation for a source string that changed only slightly. |
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
@@ -116,6 +117,12 @@ Off by default. When true, keys present in a target file but absent from the sou
 ### generatePlurals
 
 Off by default. When true, verbatra synthesizes the CLDR plural forms a target language requires but the source does not supply (for example Polish few and many). Supported only for i18next-JSON projects translated by an LLM provider; DeepL, non-i18next formats, and unknown target languages fall back to the per-locale plural warning. There is no CLI flag, so set this in the config; the SDK `translate()` input accepts a per-run `generatePlurals` override that takes precedence.
+
+### fuzzyCache
+
+<AvailableFrom version="0.11.0" />
+
+Off unless you set it. `fuzzyCache: { enabled: true }` lets a key whose source text changed reuse the translation of its earlier form instead of going to the provider, as long as the two are at least `threshold` alike. `threshold` is a similarity ratio from `0.5` to `1` and defaults to `0.9`. A reuse is reported separately from an exact cache hit, passes the same integrity checks as any other candidate value, and is never written back into the cache; see [the cache](/docs/the-cache) for the whole picture. Config-only: there is no CLI flag, though `--no-cache` bypasses it along with the rest of the cache.
 
 ### maxBatchSize
 

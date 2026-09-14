@@ -9,10 +9,11 @@ import {
   readTranslationMemory,
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
-import type { TranslationMemory } from "../cache/types.js";
+import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
+  DEFAULT_FUZZY_THRESHOLD,
   DEFAULT_MAX_BATCH_SIZE,
   type VerbatraConfig,
 } from "../config/schema.js";
@@ -147,7 +148,8 @@ async function recordRunStatus(
 interface RunCacheState {
   readonly memory: TranslationMemory;
   readonly fingerprint: string;
-  readonly additions: Map<string, Record<string, string>>;
+  readonly fuzzy?: { readonly threshold: number };
+  readonly additions: Map<string, Record<string, CacheAddition>>;
   readonly writable: boolean;
 }
 
@@ -162,7 +164,15 @@ async function createRunCacheState(
     return undefined;
   }
   const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
-  return { memory, writable, fingerprint: computeFingerprint(config), additions: new Map() };
+  return {
+    memory,
+    writable,
+    fingerprint: computeFingerprint(config),
+    additions: new Map(),
+    ...(config.fuzzyCache?.enabled === true
+      ? { fuzzy: { threshold: config.fuzzyCache.threshold ?? DEFAULT_FUZZY_THRESHOLD } }
+      : {}),
+  };
 }
 
 function withCacheNotices(
@@ -240,7 +250,13 @@ function buildLocaleRunParams(
     fs: context.fs,
     budget: context.budget,
     ...(context.cache !== undefined
-      ? { cache: { snapshot: context.cache.memory, fingerprint: context.cache.fingerprint } }
+      ? {
+          cache: {
+            snapshot: context.cache.memory,
+            fingerprint: context.cache.fingerprint,
+            ...(context.cache.fuzzy !== undefined ? { fuzzy: context.cache.fuzzy } : {}),
+          },
+        }
       : {}),
     ...(context.onProgress !== undefined ? { onProgress: context.onProgress } : {}),
   };

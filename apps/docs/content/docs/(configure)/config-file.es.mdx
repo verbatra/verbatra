@@ -50,6 +50,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `tone` | `"formal"`, `"informal"` o `"neutral"` | ninguno | El registro que deben usar las traducciones. |
 | `prune` | boolean | `false` | Elimina las claves huérfanas de los archivos de destino y del bloqueo. |
 | `generatePlurals` | boolean | `false` | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
+| `fuzzyCache` | objeto | desactivado | Reutiliza una traducción para una cadena de origen que cambió solo un poco. |
 | `maxBatchSize` | entero positivo | `50` | El máximo de entradas enviadas en una sola solicitud al proveedor. |
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
 | `budgetBehavior` | `"warn"` o `"stop"` | `"warn"` | Qué pasa una vez alcanzado `maxTokens`. |
@@ -116,6 +117,12 @@ Desactivado por defecto. Cuando es true, las claves presentes en un archivo de d
 ### generatePlurals
 
 Desactivado por defecto. Cuando es true, verbatra sintetiza las formas plurales CLDR que un idioma de destino requiere pero el origen no aporta (por ejemplo few y many en polaco). Soportado solo para proyectos i18next-JSON traducidos por un proveedor LLM; DeepL, los formatos que no son i18next y los idiomas de destino desconocidos recurren al aviso de plurales por locale. No hay opción de CLI, así que defínelo en la configuración; la entrada de `translate()` del SDK acepta un override de `generatePlurals` por ejecución que tiene prioridad.
+
+### fuzzyCache
+
+<AvailableFrom version="0.11.0" />
+
+Desactivado salvo que lo pongas. `fuzzyCache: { enabled: true }` permite que una clave cuyo texto de origen cambió reutilice la traducción de su forma anterior en lugar de ir al proveedor, siempre que ambas se parezcan al menos `threshold`. `threshold` es una razón de similitud de `0.5` a `1` y por omisión vale `0.9`. Una reutilización se informa aparte de un acierto exacto de caché, pasa los mismos controles de integridad que cualquier otro valor candidato y nunca se vuelve a escribir en la caché; el cuadro completo está en [la caché](/docs/the-cache). Solo configuración: no hay flag de CLI, aunque `--no-cache` lo omite junto con el resto de la caché.
 
 ### maxBatchSize
 

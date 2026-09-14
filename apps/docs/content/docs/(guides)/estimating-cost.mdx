@@ -209,6 +209,6 @@ Google Cloud Translation is also a machine-translation API, billed like DeepL ab
 
 The single biggest factor in what verbatra costs over time is that runs are incremental. Only keys that are missing or whose source text changed since [the lock file](/docs/the-lock-file) baseline are sent. Re-running an unchanged project sends nothing and costs nothing.
 
-So the worked example above is the **first-run** cost, the one-time bill for translating a project from scratch. Day to day you are paying for the handful of strings you edited since the last run, which is why the ongoing cost of keeping a project translated is far below the initial number. [The cache](/docs/the-cache) removes repeat cost further, by reusing an identical earlier translation instead of paying for it twice.
+So the worked example above is the **first-run** cost, the one-time bill for translating a project from scratch. Day to day you are paying for the handful of strings you edited since the last run, which is why the ongoing cost of keeping a project translated is far below the initial number. [The cache](/docs/the-cache) removes repeat cost further, by reusing an identical earlier translation instead of paying for it twice. With `fuzzyCache` enabled it goes one step further and reuses the translation of a source string that changed only slightly, which is the common case once a project is live.
 
 To rehearse the whole thing at zero cost first, use Gemini's free tier or point the `openai-compatible` provider at a local model. See [Providers](/docs/providers).

@@ -16,7 +16,8 @@ import {
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { lookupMemory } from "../cache/translation-memory.js";
+import { type FuzzyCacheMatch, findFuzzyMatch } from "../cache/fuzzy-lookup.js";
+import { lookupMemory, lookupSource } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
@@ -46,7 +47,13 @@ import {
   pendingPluralForms,
 } from "./plural-generation.js";
 import { readTargetResource } from "./read-target.js";
-import type { LocaleNotice, LocaleSummary, NeedsReviewEntry, UsageSummary } from "./summary.js";
+import type {
+  FuzzyCacheHit,
+  LocaleNotice,
+  LocaleSummary,
+  NeedsReviewEntry,
+  UsageSummary,
+} from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
 import { combineUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
@@ -69,7 +76,11 @@ export interface LocaleRunParams {
   readonly generatePlurals: boolean;
   readonly maxBatchSize: number;
   readonly fs: SdkFs;
-  readonly cache?: { readonly snapshot: TranslationMemory; readonly fingerprint: string };
+  readonly cache?: {
+    readonly snapshot: TranslationMemory;
+    readonly fingerprint: string;
+    readonly fuzzy?: { readonly threshold: number };
+  };
   readonly budget: BudgetTracker;
   readonly onProgress?: ProgressListener;
 }
@@ -87,8 +98,17 @@ interface Accepted {
 
 interface CachePartition {
   readonly hits: ReadonlyMap<string, Accepted>;
+  readonly fuzzy: ReadonlyMap<string, FuzzyCacheHit>;
   readonly misses: readonly string[];
   readonly reviewFlags: ReadonlyMap<string, ReviewFlag>;
+}
+
+type RunCache = NonNullable<LocaleRunParams["cache"]>;
+
+interface CacheHit {
+  readonly value: string;
+  readonly integrity: PlaceholderIntegrityResult;
+  readonly match?: FuzzyCacheMatch;
 }
 
 function reviewCachedValue(
@@ -107,15 +127,57 @@ function reviewCachedValue(
   });
 }
 
+function acceptFuzzyFromCache(
+  params: LocaleRunParams,
+  cache: RunCache,
+  source: TranslationEntry,
+): CacheHit | undefined {
+  const fuzzy = cache.fuzzy;
+  if (fuzzy === undefined) {
+    return undefined;
+  }
+  const match = findFuzzyMatch(
+    cache.snapshot,
+    cache.fingerprint,
+    params.targetLocale,
+    source.value,
+    { threshold: fuzzy.threshold },
+  );
+  if (match === undefined) {
+    return undefined;
+  }
+  const gate = gateCandidateValue(source, match.value, params.adapter);
+  return gate.accepted ? { value: match.value, integrity: gate.integrity, match } : undefined;
+}
+
+function acceptFromCache(
+  params: LocaleRunParams,
+  cache: RunCache,
+  source: TranslationEntry,
+): CacheHit | undefined {
+  const cached = lookupMemory(
+    cache.snapshot,
+    cache.fingerprint,
+    params.targetLocale,
+    contentHash(source),
+  );
+  if (cached === undefined) {
+    return acceptFuzzyFromCache(params, cache, source);
+  }
+  const gate = gateCandidateValue(source, cached, params.adapter);
+  return gate.accepted ? { value: cached, integrity: gate.integrity } : undefined;
+}
+
 function partitionCacheHits(
   params: LocaleRunParams,
   toTranslate: readonly string[],
 ): CachePartition {
   const cache = params.cache;
   const hits = new Map<string, Accepted>();
+  const fuzzy = new Map<string, FuzzyCacheHit>();
   const reviewFlags = new Map<string, ReviewFlag>();
   if (cache === undefined) {
-    return { hits, misses: toTranslate, reviewFlags };
+    return { hits, fuzzy, misses: toTranslate, reviewFlags };
   }
   const misses: string[] = [];
   for (const key of toTranslate) {
@@ -124,39 +186,46 @@ function partitionCacheHits(
     if (source === undefined) {
       continue;
     }
-    const cached = lookupMemory(
-      cache.snapshot,
-      cache.fingerprint,
-      params.targetLocale,
-      contentHash(source),
-    );
-    const gate =
-      cached === undefined ? undefined : gateCandidateValue(source, cached, params.adapter);
-    if (cached === undefined || gate?.accepted !== true) {
+    const hit = acceptFromCache(params, cache, source);
+    if (hit === undefined) {
       misses.push(key);
       continue;
     }
-    hits.set(key, { value: cached, source });
-    const flag = reviewCachedValue(params, source, cached, gate.integrity);
+    hits.set(key, { value: hit.value, source });
+    if (hit.match !== undefined) {
+      fuzzy.set(key, {
+        key,
+        previousSource: hit.match.previousSource,
+        similarity: hit.match.similarity,
+      });
+    }
+    const flag = reviewCachedValue(params, source, hit.value, hit.integrity);
     if (flag !== undefined) {
       reviewFlags.set(key, flag);
     }
   }
-  return { hits, misses, reviewFlags };
+  return { hits, fuzzy, misses, reviewFlags };
 }
 
 function collectCacheAdditions(
   params: LocaleRunParams,
   accepted: ReadonlyMap<string, Accepted>,
   cacheHitKeys: ReadonlySet<string>,
+  fuzzyKeys: ReadonlySet<string>,
 ): CacheAddition[] {
-  if (params.cache === undefined) {
+  const cache = params.cache;
+  if (cache === undefined) {
     return [];
   }
   const additions: CacheAddition[] = [];
   for (const [key, entry] of accepted) {
-    if (!cacheHitKeys.has(key)) {
-      additions.push({ contentHash: contentHash(entry.source), value: entry.value });
+    if (fuzzyKeys.has(key)) {
+      continue;
+    }
+    const hash = contentHash(entry.source);
+    const known = cacheHitKeys.has(key) && lookupSource(cache.snapshot, hash) !== undefined;
+    if (!known) {
+      additions.push({ contentHash: hash, value: entry.value, source: entry.source.value });
     }
   }
   return additions;
@@ -309,6 +378,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         invalidIcuSource,
         translated: toTranslate,
         cacheHits: [],
+        fuzzyHits: [],
         generated: planned,
         integrityMismatches: [],
         providerFailures: [],
@@ -323,6 +393,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
 
   const partition = partitionCacheHits(params, toTranslate);
   const cacheHitKeys = new Set(partition.hits.keys());
+  const fuzzyKeys = new Set(partition.fuzzy.keys());
   const missGroups = groupMissesByContent(params, partition.misses);
   const entries = missGroups
     .map((group) => params.source.entries.get(group.representative))
@@ -414,7 +485,10 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       orphaned,
       invalidIcuSource,
       translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
-      cacheHits: [...cacheHitKeys].sort(),
+      cacheHits: [...cacheHitKeys].filter((key) => !fuzzyKeys.has(key)).sort(),
+      fuzzyHits: [...partition.fuzzy.values()].sort((left, right) =>
+        left.key.localeCompare(right.key),
+      ),
       generated: generation.accepted.map((form) => form.targetKey).sort(),
       integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
       providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
@@ -425,7 +499,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
     lockEntries: computeLockEntries(params, merged, withheld, generation.accepted),
-    cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys),
+    cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys),
   };
 }
 
@@ -511,6 +585,7 @@ interface SummaryParts {
   readonly invalidIcuSource: readonly string[];
   readonly translated: readonly string[];
   readonly cacheHits: readonly string[];
+  readonly fuzzyHits: readonly FuzzyCacheHit[];
   readonly generated: readonly string[];
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
@@ -531,6 +606,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     pruned: parts.pruned,
     invalidIcuSource: parts.invalidIcuSource,
     cacheHits: parts.cacheHits,
+    fuzzyHits: parts.fuzzyHits,
     integrityMismatches: parts.integrityMismatches,
     providerFailures: parts.providerFailures,
     budgetWithheld: parts.budgetWithheld,

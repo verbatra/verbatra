@@ -527,6 +527,7 @@ describe("estimateForRun", () => {
       pruned: [],
       invalidIcuSource: [],
       cacheHits: [],
+      fuzzyHits: [],
       integrityMismatches: [],
       providerFailures: [],
       generated: [],

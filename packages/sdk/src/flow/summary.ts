@@ -292,6 +292,27 @@ export interface NeedsReviewEntry {
   readonly reasons: readonly ReviewReasonCode[];
 }
 
+/**
+ * A key whose translation was reused from the translation memory even though its source string had
+ * changed, because the earlier source it was translated from is close enough to the current one.
+ *
+ * It is reported apart from {@link LocaleSummary.cacheHits} on purpose: an exact cache hit is the
+ * same string it always was, while this is a translation of text that is no longer the source text.
+ * {@link similarity} and {@link previousSource} are the evidence for the reuse, so a reader can
+ * judge it rather than take it on trust.
+ */
+export interface FuzzyCacheHit {
+  /** The key whose translation was reused. */
+  readonly key: string;
+  /** The key's source text at the time this translation was produced. */
+  readonly previousSource: string;
+  /**
+   * How alike {@link previousSource} and the current source are, from `0` to `1`, as measured by
+   * the configured `fuzzyCache.threshold`. Always at or above that threshold.
+   */
+  readonly similarity: number;
+}
+
 /** A row of an imported handoff that could not be read. Reported rather than aborting the import. */
 export interface MalformedRowReport {
   /** The row's 1-based index within its sheet or file. */
@@ -347,8 +368,17 @@ export interface LocaleSummary {
    * because a broken source message cannot yield a sound translation.
    */
   readonly invalidIcuSource: readonly string[];
-  /** Keys served from the translation memory instead of the provider, and so not paid for. */
+  /**
+   * Keys served from the translation memory instead of the provider, and so not paid for. Only
+   * exact matches: a reuse for a source string that has since changed is reported in
+   * {@link fuzzyHits} instead, never here.
+   */
   readonly cacheHits: readonly string[];
+  /**
+   * Keys whose translation was reused for a source string that had changed, with the score and the
+   * earlier source behind each reuse. Always empty unless `fuzzyCache.enabled` was set.
+   */
+  readonly fuzzyHits: readonly FuzzyCacheHit[];
   /**
    * Keys whose translation was refused by the integrity gate, for instance because it dropped a
    * placeholder. The previous translation, if any, is left untouched.

@@ -50,6 +50,7 @@ Quand tu écris la configuration en TypeScript, ton éditeur propose pour `optio
 | `tone` | `"formal"`, `"informal"` ou `"neutral"` | aucun | Le registre que les traductions doivent employer. |
 | `prune` | booléen | `false` | Supprime les clés orphelines des fichiers cibles et du fichier de verrouillage. |
 | `generatePlurals` | booléen | `false` | Synthétise les formes plurielles CLDR dont une langue cible a besoin. |
+| `fuzzyCache` | objet | désactivé | Réutilise une traduction pour une chaîne source qui n'a que peu changé. |
 | `maxBatchSize` | entier positif | `50` | Le maximum d'entrées envoyées dans une seule requête fournisseur. |
 | `maxTokens` | entier positif | aucun | Un budget de tokens pour toute l'exécution, sur chaque appel fournisseur. |
 | `budgetBehavior` | `"warn"` ou `"stop"` | `"warn"` | Ce qui se passe quand `maxTokens` est atteint. |
@@ -116,6 +117,12 @@ Désactivé par défaut. Quand il vaut true, les clés présentes dans un fichie
 ### generatePlurals
 
 Désactivé par défaut. Quand il vaut true, verbatra synthétise les formes plurielles CLDR qu'une langue cible exige mais que la source ne fournit pas (par exemple few et many pour le polonais). Pris en charge uniquement pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL, les formats non i18next et les langues cibles inconnues retombent sur l'avertissement de pluriel par locale. Il n'y a pas d'option CLI, donc règle ça dans la configuration ; l'entrée de `translate()` dans le SDK accepte une surcharge `generatePlurals` par exécution, qui prime.
+
+### fuzzyCache
+
+<AvailableFrom version="0.11.0" />
+
+Désactivé tant que tu ne le mets pas. `fuzzyCache: { enabled: true }` laisse une clé dont le texte source a changé réutiliser la traduction de sa forme antérieure au lieu d'aller au fournisseur, du moment que les deux se ressemblent au moins à hauteur de `threshold`. `threshold` est un rapport de similarité de `0.5` à `1` et vaut `0.9` par défaut. Une réutilisation est rapportée à part d'un succès de cache exact, passe les mêmes contrôles d'intégrité que n'importe quelle autre valeur candidate, et n'est jamais réécrite dans le cache ; le tableau complet est dans [le cache](/docs/the-cache). Configuration seulement : il n'y a pas de flag CLI, mais `--no-cache` le contourne avec le reste du cache.
 
 ### maxBatchSize
 

@@ -13,6 +13,7 @@ import {
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import { feedTranslationMemory } from "../../cache/translation-memory.js";
+import type { CacheAddition } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { errorMessage, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -213,20 +214,26 @@ function mergeAccepted(
   return merged;
 }
 
-function sheetCacheAdditions(accepted: ImportLocaleResult["accepted"]): Record<string, string> {
-  const record: Record<string, string> = {};
+function sheetCacheAdditions(
+  accepted: ImportLocaleResult["accepted"],
+): Record<string, CacheAddition> {
+  const record: Record<string, CacheAddition> = {};
   for (const [, { value, source, cleared }] of accepted) {
     if (!cleared) {
-      record[contentHash(source)] = value;
+      record[contentHash(source)] = {
+        contentHash: contentHash(source),
+        value,
+        source: source.value,
+      };
     }
   }
   return record;
 }
 
 function collectSheetAdditions(
-  byLocale: Map<string, Record<string, string>>,
+  byLocale: Map<string, Record<string, CacheAddition>>,
   locale: string,
-  additions: Record<string, string>,
+  additions: Record<string, CacheAddition>,
 ): void {
   if (Object.keys(additions).length === 0) {
     return;
@@ -330,7 +337,7 @@ async function runSheet(
 ): Promise<{
   summary: LocaleSummary;
   lockEntries: Record<string, string>;
-  cacheAdditions: Record<string, string>;
+  cacheAdditions: Record<string, CacheAddition>;
 }> {
   if (!ctx.config.targetLocales.includes(sheet.locale)) {
     throw new SdkError(
@@ -466,7 +473,7 @@ export async function importWorkbook(
   };
 
   const summaries: LocaleSummary[] = [];
-  const cacheAdditions = new Map<string, Record<string, string>>();
+  const cacheAdditions = new Map<string, Record<string, CacheAddition>>();
   for (const sheet of data.sheets) {
     try {
       let summary: LocaleSummary;

@@ -6,6 +6,7 @@ import type {
   EstimateCaveatCode,
   ExportWorkbookResult,
   ExtractResult,
+  FuzzyCacheHit,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -137,12 +138,26 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
   return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH)}${values.join(", ")}`;
 }
 
+const FUZZY_SOURCE_PREVIEW = 40;
+
+function previewSource(source: string): string {
+  return source.length <= FUZZY_SOURCE_PREVIEW
+    ? source
+    : `${source.slice(0, FUZZY_SOURCE_PREVIEW)}...`;
+}
+
+function renderFuzzyHit(hit: FuzzyCacheHit): string {
+  const percent = Math.round(hit.similarity * 100);
+  return `${hit.key} (${percent}% like "${previewSource(hit.previousSource)}")`;
+}
+
 function renderPosition(at: { readonly row: number; readonly line?: number }): string {
   return at.line === undefined ? `row ${at.row}` : `row ${at.row}, line ${at.line}`;
 }
 
 function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
   return [
+    renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
     renderDetailGroup(
       "notices",
@@ -168,6 +183,7 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
   const counts: ReadonlyArray<readonly [number, string, boolean]> = [
     [locale.translated.length, "translated", true],
     [locale.cacheHits.length, "from cache", false],
+    [locale.fuzzyHits.length, "fuzzy-reused", false],
     [locale.unchanged.length, "unchanged", true],
     [locale.generated.length, "generated", false],
     [locale.orphaned.length, "orphaned", false],

@@ -10,7 +10,11 @@ import type {
 import { buildWorkbook, readWorkbook } from "@verbatra/exchange";
 import { describe, expect, it } from "vitest";
 import { computeFingerprint } from "../cache/fingerprint.js";
-import { cacheFilePath, readTranslationMemory } from "../cache/translation-memory.js";
+import {
+  CURRENT_CACHE_VERSION,
+  cacheFilePath,
+  readTranslationMemory,
+} from "../cache/translation-memory.js";
 import type { TranslationMemory } from "../cache/types.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs } from "../fs.js";
@@ -712,7 +716,7 @@ describe("translation-memory cache: an unrecognized version is preserved, not do
 
     const raw = await rawCacheFile(dir);
     expect(raw).not.toBe(contents);
-    expect(JSON.parse(raw)).toMatchObject({ version: 1 });
+    expect(JSON.parse(raw)).toMatchObject({ version: CURRENT_CACHE_VERSION });
   });
 
   it("still overwrites an oversized cache file rather than wedging it", async () => {
@@ -730,6 +734,120 @@ describe("translation-memory cache: an unrecognized version is preserved, not do
 
     const raw = await rawCacheFile(dir);
     expect(raw.length).toBeLessThan(padded.length);
-    expect(JSON.parse(raw)).toMatchObject({ version: 1 });
+    expect(JSON.parse(raw)).toMatchObject({ version: CURRENT_CACHE_VERSION });
+  });
+});
+
+const LONG_SOURCE = "Your subscription renews automatically at the end of each billing period.";
+const LONG_EDITED = LONG_SOURCE.replace("period.", "period!");
+
+async function seedThenEdit(): Promise<string> {
+  const dir = await project({ a: LONG_SOURCE }, { de: {} });
+  await translate(
+    { config: cfg(), cwd: dir },
+    { createProvider: () => makeStubProvider().provider },
+  );
+  await setSource(dir, { a: LONG_EDITED });
+  return dir;
+}
+
+describe("fuzzy reuse of the translation memory", () => {
+  it("is off unless the config asks for it", async () => {
+    const dir = await seedThenEdit();
+    const stub = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(1);
+    expect(summary.locales[0]?.fuzzyHits).toEqual([]);
+  });
+
+  it("serves the edited string from the cache once it is enabled", async () => {
+    const dir = await seedThenEdit();
+    const stub = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg({ fuzzyCache: { enabled: true } }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(0);
+    expect(summary.locales[0]?.fuzzyHits.map((hit) => hit.key)).toEqual(["a"]);
+    expect(summary.locales[0]?.cacheHits).toEqual([]);
+    expect((await readTarget(dir, "de")).a).toBe(`[de] ${LONG_SOURCE}`);
+  });
+
+  it("falls back to the provider when the configured threshold is out of reach", async () => {
+    const dir = await seedThenEdit();
+    const stub = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg({ fuzzyCache: { enabled: true, threshold: 1 } }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(1);
+    expect(summary.locales[0]?.fuzzyHits).toEqual([]);
+  });
+
+  it("is bypassed with the rest of the cache when the run asks for no cache", async () => {
+    const dir = await seedThenEdit();
+    const stub = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg({ fuzzyCache: { enabled: true } }), cwd: dir, cache: false },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(1);
+    expect(summary.locales[0]?.fuzzyHits).toEqual([]);
+  });
+
+  it("does not file the reused value under the edited string's own hash", async () => {
+    const dir = await seedThenEdit();
+
+    await translate(
+      { config: cfg({ fuzzyCache: { enabled: true } }), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    const fingerprint = computeFingerprint(cfg());
+    expect(localeCacheKeys(await loadCache(dir), fingerprint, "de")).toHaveLength(1);
+  });
+
+  it("leaves the cache fingerprint alone, so turning it on does not cool the cache", () => {
+    expect(computeFingerprint(cfg({ fuzzyCache: { enabled: true, threshold: 0.8 } }))).toBe(
+      computeFingerprint(cfg()),
+    );
+  });
+
+  it("carries a version 1 cache forward and refills its source text", async () => {
+    const dir = await project({ a: "Hello" }, { de: {} });
+    await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+    const fingerprint = computeFingerprint(cfg());
+    const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "de");
+    await writeFile(
+      cacheFilePath(dir),
+      `${JSON.stringify({
+        version: 1,
+        entries: { [fingerprint]: { de: { [hash as string]: "Hallo" } } },
+      })}\n`,
+    );
+    await writeJsonFile(targetPath(dir, "de"), {});
+
+    const summary = await translate(
+      { config: cfg({ fuzzyCache: { enabled: true } }), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect(summary.locales[0]?.notices).toEqual([]);
+    expect(summary.locales[0]?.cacheHits).toEqual(["a"]);
+    expect((await loadCache(dir)).sources).toEqual({ [hash as string]: "Hello" });
   });
 });

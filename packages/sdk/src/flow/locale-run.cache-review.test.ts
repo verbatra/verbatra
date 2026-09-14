@@ -69,7 +69,11 @@ function seededMemory(
   if (entry === undefined) {
     throw new Error(`source entry ${key} is missing`);
   }
-  return { version: 1, entries: { [FINGERPRINT]: { de: { [contentHash(entry)]: value } } } };
+  return {
+    version: 2,
+    entries: { [FINGERPRINT]: { de: { [contentHash(entry)]: value } } },
+    sources: { [contentHash(entry)]: entry.value },
+  };
 }
 
 function makeParams(

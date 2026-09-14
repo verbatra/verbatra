@@ -13,6 +13,29 @@ Bei einem Lauf schlägt verbatra einen Key im Cache nach, bevor er zum Provider 
 
 Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft weiterhin dieselben [Integritätsprüfungen](/docs/translation-safety) gegen den aktuellen Quelltext, bevor er geschrieben wird, ein gecachter Wert, der nicht mehr zu seinem Key passt, wird also verworfen und der Key frisch übersetzt. Cache-Treffer werden pro Locale in der Laufzusammenfassung ausgewiesen, getrennt von den in diesem Lauf übersetzten Keys.
 
+## Unscharfe Wiederverwendung
+
+<AvailableFrom version="0.11.0" />
+
+Alles bisher Beschriebene ist ein exakter Treffer: Der Quelltext hasht auf denselben Wert wie zuvor. Änderst du ein einziges Zeichen, ändert sich dieser Hash, der String ist also ein Fehltreffer und geht zurück an den Provider. Die unscharfe Wiederverwendung ist ein optionaler Rückfall genau für diesen Fall, und sie ist aus, solange du sie nicht anforderst:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  fuzzyCache: { enabled: true, threshold: 0.9 },
+});
+```
+
+Geht ein Key daneben, vergleicht verbatra seinen aktuellen Quelltext mit dem Quelltext jedes Eintrags in derselben Locale unter demselben Fingerprint und bewertet jeden von `0` bis `1` als Zeichen-Editierdistanz geteilt durch die Länge des längeren der beiden Strings. Der nächstliegende Eintrag ab `threshold` wird wiederverwendet; alles darunter geht als gewöhnlicher Fehltreffer an den Provider. `threshold` läuft von `0.5` bis `1` und steht standardmäßig auf `0.9`, also bewusst streng: Bei einem Satz mit 70 Zeichen toleriert er eine Handvoll geänderter Zeichen, bei einer Button-Beschriftung mit fünf Zeichen gar keines. Senke ihn erst, wenn du dir angesehen hast, was er dann durchlässt.
+
+Eine unscharfe Wiederverwendung ist eine Übersetzung von Text, der nicht mehr der Quelltext ist, sie wird also nie als exakter Treffer ausgegeben:
+
+- Sie durchläuft dieselben [Integritätsprüfungen](/docs/translation-safety) wie jeder andere Kandidatenwert. Ein naher Treffer, dessen Platzhalter nicht mehr zum geänderten Quelltext passen, wird rundweg abgelehnt statt zurechtgebogen, und der Key geht an den Provider.
+- Sie wird getrennt von exakten Treffern gezählt und ausgegeben, als `fuzzy-reused`, mit Key, Score und dem früheren Quelltext hinter jedem einzelnen. `LocaleSummary.fuzzyHits` trägt dieselben drei Angaben für SDK- und `--json`-Aufrufer.
+- Sie wird nie in den Cache zurückgeschrieben. Der wiederverwendete Wert bleibt unter der Quelle abgelegt, für die er tatsächlich erzeugt wurde, ein späterer Lauf kann ihn also nicht für einen exakten Treffer halten.
+
+Die Bewertung bleibt innerhalb eines Fingerprint-Bereichs, ein anderer Provider, ein anderes Modell, ein anderer Ton oder ein anderes Glossar fangen also nicht durch die Hintertür wieder an zu passen. Sie ist außerdem begrenzt: Einträge, bei denen schon die Länge den Schwellwert unerreichbar macht, werden ohne Bewertung verworfen, von den übrigen werden pro Key höchstens 256 bewertet, und Quelltext über 2000 Zeichen wird ganz übersprungen.
+
 ## Der Fingerprint
 
 Jeder gecachte Wert ist auf den Übersetzungskontext eingegrenzt, in dem er entstanden ist: ein kurzer Fingerprint über Provider, Modell, Ton und Glossar. Ändere eines davon, und frühere Einträge passen nicht mehr, ein neuer Ton oder ein bearbeitetes Glossar übersetzt also neu, statt ein veraltetes Ergebnis zu liefern. Das Format ist bewusst nicht Teil des Fingerprints; eine Formatänderung fängt stattdessen die Integritätsprüfung bei jedem Treffer ab.
@@ -21,9 +44,11 @@ Jeder gecachte Wert ist auf den Übersetzungskontext eingegrenzt, in dem er ents
 
 `verbatra.cache.json` ist eine lokale, regenerierbare Begleitdatei neben deiner Lock-Datei. `verbatra init` trägt sie in `.gitignore` ein, und `translate`, `watch` und `import` ergänzen einen vorhandenen `.gitignore`, dem der Eintrag fehlt, sodass ein mit einer älteren Version angelegtes Projekt ihn beim nächsten Lauf erhält. Halte sie aus der Versionskontrolle heraus: Anders als die Lock-Datei ist sie eine Kostenoptimierung, keine geteilte Grundlinie. Sie lässt nie einen Lauf scheitern. Eine fehlende, beschädigte oder zu große Datei degradiert zu einem leeren Cache und wird beim nächsten Lauf einfach neu aufgebaut. Eine Datei mit einer Version, die dieser Build nicht kennt, stammt von einer neueren verbatra: sie degradiert für den Lauf ebenfalls zu einem leeren Cache, bleibt aber unangetastet auf der Festplatte, statt neu aufgebaut zu werden, sodass ein Upgrade nichts zerstört. Der Lauf meldet einen Hinweis und läuft ansonsten normal weiter. Um sie von Grund auf neu aufzubauen, lösche die Datei.
 
+Die unscharfe Wiederverwendung braucht den Quelltext selbst, weil sich ein Hash nicht auf Ähnlichkeit messen lässt, die Datei zeichnet also jeden Quellstring neben seinen Übersetzungen auf. Dafür ist Schemaversion 2 da, und sie macht die Datei ungefähr so groß wie deine Quellstrings statt so groß wie eine Liste von Hashes. Eine von einer älteren verbatra geschriebene Datei der Version 1 wird weitergeführt statt abgelehnt: Ihre Übersetzungen funktionieren sofort weiter als exakte Treffer, und ihr Quelltext füllt sich nach, sobald spätere Läufe sie anfassen.
+
 ## Umgehen
 
-Übergib `--no-cache` an [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch), um den Cache für einen Lauf zu überspringen: verbatra macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde, und lässt eine bestehende Cache-Datei unangetastet. Aus dem SDK setzt du `cache: false` auf der `translate`- oder `watch`-Eingabe. Ein Dry-Run liest oder schreibt den Cache ohnehin nie.
+Übergib `--no-cache` an [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch), um den Cache für einen Lauf zu überspringen: verbatra macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde, und lässt eine bestehende Cache-Datei unangetastet. Aus dem SDK setzt du `cache: false` auf der `translate`- oder `watch`-Eingabe. Ein Dry-Run liest oder schreibt den Cache ohnehin nie. `--no-cache` deckt auch die unscharfe Wiederverwendung ab. Willst du die exakte Wiederverwendung behalten und nur den unscharfen Rückfall abschalten, lass `fuzzyCache` aus der Konfiguration weg oder setze `enabled: false`.
 
 ## Einschränkung
 

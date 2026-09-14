@@ -12,6 +12,7 @@ function locale(overrides: Partial<LocaleSummary> & { readonly locale: string })
     pruned: [],
     invalidIcuSource: [],
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],

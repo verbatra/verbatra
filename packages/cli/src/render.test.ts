@@ -207,6 +207,57 @@ describe("render: human run summary", () => {
     expect(text).not.toContain("from cache");
   });
 
+  it("counts a fuzzy reuse apart from an exact cache hit", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            cacheHits: ["b"],
+            fuzzyHits: [{ key: "a", previousSource: "Save it", similarity: 0.93 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain("1 from cache");
+    expect(text).toContain("1 fuzzy-reused");
+  });
+
+  it("names the key, the score and the source each fuzzy reuse came from", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [
+              { key: "cart.empty", previousSource: "Your cart is empty", similarity: 0.94 },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('cart.empty (94% like "Your cart is empty")');
+  });
+
+  it("shortens a long previous source rather than printing the whole string", () => {
+    const long = "Your subscription renews automatically at the end of each billing period.";
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ fuzzyHits: [{ key: "a", previousSource: long, similarity: 1 }] })],
+      }),
+    );
+
+    expect(text).not.toContain(long);
+    expect(text).toContain("Your subscription renews");
+    expect(text).toContain("...");
+  });
+
+  it("omits the fuzzy-reused count when nothing was reused", () => {
+    const text = renderHuman(makeSummary({ locales: [makeLocale({ translated: ["a"] })] }));
+
+    expect(text).not.toContain("fuzzy-reused");
+  });
+
   it("shows the generated count when plural forms were synthesized", () => {
     const text = renderHuman(
       makeSummary({

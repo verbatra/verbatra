@@ -1,23 +1,37 @@
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { BoundedFileRead } from "../fs.js";
 import { makeFakeFs, makeTempDir, readTextFile } from "../test-support.js";
 import {
   additionsToRecord,
   applyAdditions,
   CACHE_FILE_NAME,
+  CURRENT_CACHE_VERSION,
   cacheFilePath,
   feedTranslationMemory,
   lookupMemory,
+  lookupSource,
   readTranslationMemory,
   writeTranslationMemory,
 } from "./translation-memory.js";
-import type { TranslationMemory } from "./types.js";
+import type { CacheAddition, TranslationMemory } from "./types.js";
+
+function added(
+  contentHash: string,
+  value: string,
+  source: string,
+): Readonly<Record<string, CacheAddition>> {
+  return { [contentHash]: { contentHash, value, source } };
+}
 
 const okRead = (content: string): BoundedFileRead => ({ kind: "ok", content });
 
-function memory(entries: TranslationMemory["entries"]): TranslationMemory {
-  return { version: 1, entries };
+function memory(
+  entries: TranslationMemory["entries"],
+  sources: TranslationMemory["sources"] = {},
+): TranslationMemory {
+  return { version: CURRENT_CACHE_VERSION, entries, sources };
 }
 
 const SAMPLE = memory({ fp1: { de: { h1: "Hallo", h2: "Tschuss" } } });
@@ -29,7 +43,7 @@ describe("cacheFilePath", () => {
   });
 });
 
-const EMPTY = { version: 1, entries: {} };
+const EMPTY = { version: CURRENT_CACHE_VERSION, entries: {}, sources: {} };
 
 describe("readTranslationMemory: degrade-to-empty", () => {
   it("returns an empty memory for a missing file", async () => {
@@ -70,8 +84,9 @@ describe("readTranslationMemory: degrade-to-empty", () => {
 });
 
 describe("readTranslationMemory: writability", () => {
-  it("marks a valid file with an unrecognized version non-writable", async () => {
-    const fs = makeFakeFs({ readFileBounded: async () => okRead('{"version":2,"entries":{}}') });
+  it("marks a file from a future version non-writable", async () => {
+    const future = JSON.stringify({ version: CURRENT_CACHE_VERSION + 1, entries: {} });
+    const fs = makeFakeFs({ readFileBounded: async () => okRead(future) });
     expect(await readTranslationMemory("/x", fs)).toEqual({ memory: EMPTY, writable: false });
   });
 
@@ -82,6 +97,65 @@ describe("readTranslationMemory: writability", () => {
   ])("treats a %s version as corrupt, so the file stays writable", async (_label, content) => {
     const fs = makeFakeFs({ readFileBounded: async () => okRead(content) });
     expect(await readTranslationMemory("/x", fs)).toEqual({ memory: EMPTY, writable: true });
+  });
+});
+
+const V1_SCHEMA = z.object({
+  version: z.number().int().positive(),
+  entries: z.record(z.string(), z.record(z.string(), z.record(z.string(), z.string()))),
+});
+
+describe("a cache this build writes stays legible to the build that shipped version 1", () => {
+  it("is the version bump, not a parse failure, that an older build sees", async () => {
+    const dir = await makeTempDir();
+    const path = cacheFilePath(dir);
+    const current = memory({ fp1: { de: { h1: "Hallo" } } }, { h1: "Hello" });
+
+    await writeTranslationMemory(path, current, makeFakeFsWriting(dir));
+    const onDisk: unknown = JSON.parse(await readTextFile(path));
+    const asV1 = V1_SCHEMA.safeParse(onDisk);
+
+    expect(asV1.success).toBe(true);
+    expect(asV1.success && asV1.data.version).not.toBe(1);
+    expect(asV1.success && asV1.data.entries).toEqual({ fp1: { de: { h1: "Hallo" } } });
+  });
+
+  it("would have the older build overwrite the file if the entry shape had changed", () => {
+    const reshaped = {
+      version: CURRENT_CACHE_VERSION,
+      entries: { fp1: { de: { h1: { value: "Hallo", source: "Hello" } } } },
+    };
+
+    expect(V1_SCHEMA.safeParse(reshaped).success).toBe(false);
+  });
+});
+
+describe("readTranslationMemory: version 1 files", () => {
+  it("carries a version 1 file forward with no source text rather than rejecting it", async () => {
+    const legacy = JSON.stringify({ version: 1, entries: { fp1: { de: { h1: "Hallo" } } } });
+    const fs = makeFakeFs({ readFileBounded: async () => okRead(legacy) });
+
+    expect(await readTranslationMemory("/x", fs)).toEqual({
+      memory: memory({ fp1: { de: { h1: "Hallo" } } }),
+      writable: true,
+    });
+  });
+
+  it("rejects a sources block that is not a string map", async () => {
+    const broken = JSON.stringify({ version: CURRENT_CACHE_VERSION, entries: {}, sources: [] });
+    const fs = makeFakeFs({ readFileBounded: async () => okRead(broken) });
+
+    expect(await readTranslationMemory("/x", fs)).toEqual({ memory: EMPTY, writable: true });
+  });
+});
+
+describe("lookupSource", () => {
+  it("returns the source text filed under a content hash", () => {
+    expect(lookupSource(memory({}, { h1: "Hello" }), "h1")).toBe("Hello");
+  });
+
+  it("returns undefined for a hash with no source text on file", () => {
+    expect(lookupSource(memory({}, { h1: "Hello" }), "h2")).toBeUndefined();
   });
 });
 
@@ -103,32 +177,64 @@ describe("applyAdditions", () => {
   });
 
   it("adds a new locale and preserves existing locales under the same fingerprint", () => {
-    const merged = applyAdditions(SAMPLE, "fp1", new Map([["fr", { h9: "Bonjour" }]]));
+    const merged = applyAdditions(SAMPLE, "fp1", new Map([["fr", added("h9", "Bonjour", "Hi")]]));
     expect(merged.entries.fp1?.de).toEqual({ h1: "Hallo", h2: "Tschuss" });
     expect(merged.entries.fp1?.fr).toEqual({ h9: "Bonjour" });
   });
 
   it("merges into an existing locale and overwrites a repeated hash", () => {
-    const merged = applyAdditions(SAMPLE, "fp1", new Map([["de", { h1: "Hi", h3: "Neu" }]]));
+    const merged = applyAdditions(
+      SAMPLE,
+      "fp1",
+      new Map([["de", { ...added("h1", "Hi", "Hello"), ...added("h3", "Neu", "New") }]]),
+    );
     expect(merged.entries.fp1?.de).toEqual({ h1: "Hi", h2: "Tschuss", h3: "Neu" });
   });
 
   it("preserves other fingerprints untouched", () => {
     const base = memory({ fp1: { de: { h1: "A" } }, fp2: { de: { h1: "B" } } });
-    const merged = applyAdditions(base, "fp1", new Map([["de", { h1: "C" }]]));
+    const merged = applyAdditions(base, "fp1", new Map([["de", added("h1", "C", "See")]]));
     expect(merged.entries.fp2?.de).toEqual({ h1: "B" });
     expect(merged.entries.fp1?.de).toEqual({ h1: "C" });
+  });
+
+  it("files the source text of every addition under its content hash", () => {
+    const merged = applyAdditions(
+      SAMPLE,
+      "fp1",
+      new Map([
+        ["fr", added("h9", "Bonjour", "Hello there")],
+        ["es", added("h9", "Hola", "Hello there")],
+      ]),
+    );
+    expect(merged.sources).toEqual({ h9: "Hello there" });
+  });
+
+  it("keeps source text already on file for hashes this run did not touch", () => {
+    const base = memory({ fp1: { de: { h1: "Hallo" } } }, { h1: "Hello" });
+    const merged = applyAdditions(base, "fp1", new Map([["de", added("h2", "Neu", "New")]]));
+    expect(merged.sources).toEqual({ h1: "Hello", h2: "New" });
+  });
+
+  it("backfills source text for a hash whose translation is already on file", () => {
+    const base = memory({ fp1: { de: { h1: "Hallo" } } });
+    const merged = applyAdditions(base, "fp1", new Map([["de", added("h1", "Hallo", "Hello")]]));
+    expect(merged.sources).toEqual({ h1: "Hello" });
+    expect(merged.entries.fp1?.de).toEqual({ h1: "Hallo" });
   });
 });
 
 describe("additionsToRecord", () => {
-  it("keys each value by its content hash", () => {
+  it("keys each addition by its content hash", () => {
     expect(
       additionsToRecord([
-        { contentHash: "h1", value: "one" },
-        { contentHash: "h2", value: "two" },
+        { contentHash: "h1", value: "one", source: "eins" },
+        { contentHash: "h2", value: "two", source: "zwei" },
       ]),
-    ).toEqual({ h1: "one", h2: "two" });
+    ).toEqual({
+      h1: { contentHash: "h1", value: "one", source: "eins" },
+      h2: { contentHash: "h2", value: "two", source: "zwei" },
+    });
   });
 });
 
@@ -150,6 +256,22 @@ describe("writeTranslationMemory", () => {
     ]);
     expect(written.endsWith("\n")).toBe(true);
   });
+
+  it("sorts the source-text block and stamps the current version", async () => {
+    const dir = await makeTempDir();
+    const path = cacheFilePath(dir);
+    const unsorted: TranslationMemory = {
+      version: 1,
+      entries: { fpA: { de: { m: "3" } } },
+      sources: { z: "last", a: "first" },
+    };
+
+    await writeTranslationMemory(path, unsorted, makeFakeFsWriting(dir));
+    const parsed = JSON.parse(await readTextFile(path)) as TranslationMemory;
+
+    expect(Object.keys(parsed.sources)).toEqual(["a", "z"]);
+    expect(parsed.version).toBe(CURRENT_CACHE_VERSION);
+  });
 });
 
 describe("feedTranslationMemory", () => {
@@ -167,9 +289,10 @@ describe("feedTranslationMemory", () => {
         stored = data;
       },
     });
-    await feedTranslationMemory("/x", fs, "fp1", new Map([["de", { h3: "Neu" }]]));
+    await feedTranslationMemory("/x", fs, "fp1", new Map([["de", added("h3", "Neu", "New")]]));
     const parsed = JSON.parse(stored) as TranslationMemory;
     expect(parsed.entries.fp1?.de).toEqual({ h1: "Hallo", h2: "Tschuss", h3: "Neu" });
+    expect(parsed.sources).toEqual({ h3: "New" });
   });
 
   it("swallows a write failure so a cache problem never propagates", async () => {
@@ -179,7 +302,7 @@ describe("feedTranslationMemory", () => {
       },
     });
     await expect(
-      feedTranslationMemory("/x", fs, "fp1", new Map([["de", { h3: "Neu" }]])),
+      feedTranslationMemory("/x", fs, "fp1", new Map([["de", added("h3", "Neu", "New")]])),
     ).resolves.toBeUndefined();
   });
 });

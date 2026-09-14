@@ -50,6 +50,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `tone` | `"formal"`, `"informal"` oder `"neutral"` | keiner | Das Register, das Übersetzungen verwenden sollen. |
 | `prune` | Boolean | `false` | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei. |
 | `generatePlurals` | Boolean | `false` | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
+| `fuzzyCache` | Objekt | aus | Verwendet eine Übersetzung für einen nur leicht geänderten Quellstring wieder. |
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
@@ -116,6 +117,12 @@ Standardmäßig aus. Wenn true, werden Keys, die in einer Zieldatei stehen, aber
 ### generatePlurals
 
 Standardmäßig aus. Wenn true, synthetisiert verbatra die CLDR-Pluralformen, die eine Zielsprache verlangt, die Quelle aber nicht liefert (zum Beispiel few und many im Polnischen). Nur für i18next-JSON-Projekte unterstützt, die ein LLM-Provider übersetzt; DeepL, Nicht-i18next-Formate und unbekannte Zielsprachen fallen auf die Plural-Warnung pro Locale zurück. Es gibt kein CLI-Flag, setze das also in der Konfiguration; die `translate()`-Eingabe des SDK akzeptiert einen `generatePlurals`-Override pro Lauf, der Vorrang hat.
+
+### fuzzyCache
+
+<AvailableFrom version="0.11.0" />
+
+Aus, solange du es nicht setzt. `fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelltext sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, statt zum Provider zu gehen, sofern beide mindestens `threshold` ähnlich sind. `threshold` ist ein Ähnlichkeitsverhältnis von `0.5` bis `1` und steht standardmäßig auf `0.9`. Eine Wiederverwendung wird getrennt von einem exakten Cache-Treffer ausgewiesen, durchläuft dieselben Integritätsprüfungen wie jeder andere Kandidatenwert und wird nie in den Cache zurückgeschrieben; das ganze Bild steht unter [Der Cache](/docs/the-cache). Nur Konfiguration: Es gibt kein CLI-Flag, `--no-cache` umgeht es aber zusammen mit dem restlichen Cache.
 
 ### maxBatchSize
 

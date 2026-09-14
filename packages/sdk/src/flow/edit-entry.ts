@@ -157,7 +157,18 @@ export async function editEntry(
       cwd,
       fs,
       computeFingerprint(config),
-      new Map([[locale, { [contentHash(sourceEntry)]: input.value }]]),
+      new Map([
+        [
+          locale,
+          {
+            [contentHash(sourceEntry)]: {
+              contentHash: contentHash(sourceEntry),
+              value: input.value,
+              source: sourceEntry.value,
+            },
+          },
+        ],
+      ]),
     );
 
     return { accepted: true, value: input.value };

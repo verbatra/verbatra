@@ -137,6 +137,7 @@ export type {
   EstimateCaveatCode,
   EstimateIdentity,
   EstimatePricing,
+  FuzzyCacheHit,
   LocaleEstimate,
   LocaleEstimateQuantity,
   LocaleNotice,

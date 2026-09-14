@@ -21,6 +21,7 @@ function succeededLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummary 
     pruned: [],
     invalidIcuSource: [],
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     generated: [],

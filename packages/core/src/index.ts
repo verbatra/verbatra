@@ -1,4 +1,5 @@
 export { diffResources } from "./diff/diff-resources.js";
+export { similarityRatio } from "./diff/similarity.js";
 export type { DiffOptions, DiffResult } from "./diff/types.js";
 export { contentHash } from "./hash/content-hash.js";
 export { stableStringHash } from "./hash/string-hash.js";
