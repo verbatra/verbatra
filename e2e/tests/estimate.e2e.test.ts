@@ -152,3 +152,70 @@ describe("translate --estimate (no provider, no key)", () => {
     expect(envelope.result.estimate.locales.map((entry) => entry.locale)).toEqual(["de", "fr"]);
   });
 });
+
+describe("translate --estimate: what the packaged build actually counts", () => {
+  async function inputTokensOf(name: string, extra: Record<string, unknown>): Promise<number> {
+    const dir = await seed(name, extra);
+    const result = await runVerbatra(
+      consumer,
+      ["translate", "--estimate", "--json", "--cwd", dir],
+      { env: NO_KEYS },
+    );
+
+    expect(result.exitCode).toBe(0);
+    const envelope = parseEnvelope<{ estimate: { inputTokens: number } }>(result.stdout.trim());
+    expect(envelope.ok).toBe(true);
+    if (!envelope.ok) {
+      throw new Error("the estimate envelope was not ok");
+    }
+    return envelope.result.estimate.inputTokens;
+  }
+
+  it("counts a configured glossary, which the bundled payload builder puts in every request", async () => {
+    const glossary = Object.fromEntries(
+      Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
+    );
+
+    const plain = await inputTokensOf("estimate-no-glossary", {});
+    const withGlossary = await inputTokensOf("estimate-glossary", { glossary });
+
+    expect(withGlossary).toBeGreaterThan(plain * 3);
+  });
+
+  it("counts the plural forms generation would send on a project whose keys are in sync", async () => {
+    const dir = join(consumer.dir, "estimate-plurals");
+    await mkdir(join(dir, "locales"), { recursive: true });
+    await writeJsonIn(dir, ".verbatrarc.json", {
+      ...baseConfig,
+      targetLocales: ["ru"],
+      generatePlurals: true,
+    });
+    await writeJsonIn(dir, "locales/en.json", {
+      item_one: "one item",
+      item_other: "{{count}} items",
+    });
+    await writeJsonIn(dir, "locales/ru.json", {
+      item_one: "odin predmet",
+      item_other: "{{count}} predmetov",
+    });
+
+    const result = await runVerbatra(
+      consumer,
+      ["translate", "--estimate", "--json", "--cwd", dir],
+      { env: NO_KEYS },
+    );
+
+    expect(result.exitCode).toBe(0);
+    const envelope = parseEnvelope<{
+      locales: readonly { translated: readonly string[] }[];
+      estimate: { keys: number; requests: number };
+    }>(result.stdout.trim());
+    expect(envelope.ok).toBe(true);
+    if (!envelope.ok) {
+      return;
+    }
+    expect(envelope.result.locales[0]?.translated).toEqual([]);
+    expect(envelope.result.estimate.keys).toBe(2);
+    expect(envelope.result.estimate.requests).toBe(1);
+  });
+});
