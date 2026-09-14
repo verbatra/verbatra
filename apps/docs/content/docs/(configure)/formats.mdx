@@ -1,8 +1,8 @@
 ---
 title: Formats
-description: The twelve supported formats, how each one reads and writes its files, and the document key order guarantee.
+description: The fourteen supported formats, how each one reads and writes its files, and the document key order guarantee.
 ---
-verbatra works on your locale files through a format adapter. Each adapter reads a file into one format-neutral shape that the diff, hashing, and integrity checks run on, then writes it back in the file's original shape. You pick the format with the `format` field in your [config](/docs/config-file). Twelve are supported: four JSON flavors, plus XLIFF, YAML, ARB, Java/Spring properties, Apple `.strings`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, and gettext `.po`/`.pot`.
+verbatra works on your locale files through a format adapter. Each adapter reads a file into one format-neutral shape that the diff, hashing, and integrity checks run on, then writes it back in the file's original shape. You pick the format with the `format` field in your [config](/docs/config-file). Fourteen are supported: four JSON flavors, plus XLIFF, YAML, ARB, Java/Spring properties, Apple `.strings`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx`.
 
 ## The four JSON formats
 
@@ -155,6 +155,36 @@ The `gettext-po` format covers GNU gettext's `.po` and `.pot` catalogs, detected
 - **Malformed input is specific.** A structured `AdapterError` names the offending `msgid` and the physical line, for example an unterminated quoted string, an unknown escape sequence, a non-contiguous `msgstr[n]` index, or a plural entry with no `Plural-Forms` header, rather than a generic parse failure.
 - **Limitation: `--prune` has no plural-index awareness.** verbatra's orphan and `--prune` detection compares keys against the source's own key set, with no special case for `key[n]` groups. A target locale needing more plural forms than the source declares (for example a language with more grammatical number distinctions) has target-only indices that a `--prune` run cannot distinguish from a genuinely removed key, and can delete them. Off by default; an ordinary `verbatra translate` run without `--prune` is unaffected.
 
+## INI
+
+<AvailableFrom version="0.11.0" />
+
+The `ini` format covers classic INI configuration files, detected by the `.ini` extension: one level of `[section]` headers over `key=value` lines, never split into a deeper tree.
+
+- **A section becomes the first key segment.** A key inside `[home]` is addressed as `home.title`; a key above the first section header keeps its bare name. A literal dot in a section or key name is escaped inside the composed key, so a top-level `a.b` and a `b` inside `[a]` stay two distinct entries.
+- **Comments, blank lines, and spacing survive a write.** A write re-reads the destination and rewrites only the value of each line it has an entry for, leaving the key spelling, the whitespace around `=`, the `;` and `#` comments, and the blank lines exactly as they were. A key the file does not have yet is inserted at the end of its own section block rather than at the end of the file, and a section the file does not have yet is created at the end.
+- **Values are plain text, optionally quoted.** A value wrapped in double quotes is unquoted on read, with `\\`, `\"`, `\n`, `\r`, and `\t` decoded. A value that would otherwise lose leading or trailing space, or that carries a line break, is written back quoted. An inline `;` is part of the value, not a comment.
+- **Placeholders are single-brace tokens.** INI has no placeholder convention of its own, so verbatra guards `{name}` and `{0}`, the syntax INI-based setups converge on. Anything else in the value is ordinary text.
+- **No plurals.** The format has no plural construct, so every entry is a single string.
+- **Malformed input is structured.** A section header may carry a trailing `;` or `#` comment. An unterminated or empty `[section]` header, or anything after the closing bracket that is not a comment, raises a structured `AdapterError` rather than a raw parse failure. A line with no `=` is kept verbatim and never becomes an entry.
+- **Missing destination.** A target `.ini` that does not exist yet is created from the entries rather than failing the write.
+
+## .NET .resx
+
+<AvailableFrom version="0.11.0" />
+
+The `resx` format covers .NET XML resource files, detected by the `.resx` extension: a flat list of `<data name="Key"><value>text</value></data>` elements under a `<root>`, never split into a tree. It claims `.resx` only, so an Android `strings.xml` still resolves to `android-xml` with no ambiguity.
+
+- **The schema preamble and the headers are never touched.** A write re-reads the destination document and patches only the `<value>` of the entries it has, so the inline XSD schema block, every `<resheader>`, every `<metadata>` and `<assembly>` element, and every entry it has no translation for come back unchanged, on the file's own line terminator. The one thing a write does not restore is a leading byte order mark, which is dropped when the file is read.
+- **Non-string and designer entries are preserved, not translated.** A `<data>` element carrying a `type` or `mimetype` attribute holds a serialized object (an image, an icon, a byte array) and is read through untouched. So is any entry whose name starts with `>>` or `$`, which is Visual Studio designer metadata rather than user-facing text. None of these become translatable entries, and none of them are rewritten.
+- **A `<comment>` becomes the entry description.** It reaches the provider as disambiguation context and appears in the [`Context` column](/docs/manual-translation) of an exported workbook. It is never written back.
+- **Placeholders are .NET composite format items.** `{0}`, `{1,-10}`, and `{2:C}` are extracted whole, alignment and format specifier included, so a translation that drops `{0:C}` or flattens it to `{0}` fails the integrity check. Because placeholder integrity is the only guard here, braces are guarded too: a doubled `{{` or `}}`, and a brace belonging to no format item, are tokens of their own, so unescaping `{{` into `{` or inventing a stray brace is caught rather than reaching a `FormatException` in your app.
+- **No ICU validation, by choice.** Composite formatting is not ICU, and verbatra's message-validity channel reports ICU specifically, so `.resx` values are guarded entirely through placeholder integrity rather than through a message-syntax check that would mislabel the failure.
+- **No plurals.** `.resx` has no plural construct, so every entry is a single string.
+- **Missing destination.** A target `.resx` that does not exist yet is synthesized with the standard `resmimetype`, `version`, `reader`, and `writer` headers, so the result loads under `ResXResourceReader` as it stands.
+- **A name the destination cannot carry is refused, never silently skipped.** If the target file already holds a key as a typed resource, as designer metadata, or with markup inside its `<value>`, the translated value cannot go there. The write fails with a structured `AdapterError` naming the key, rather than reporting success and dropping the value. A key that could never be read back is refused the same way, even when the target holds nothing under that name: an empty key, or one starting with `>>` or `$`, would come back as designer metadata rather than as text on the next read.
+- **Malformed input is structured.** A document that is not valid XML, whose root element is not `<root>`, or that declares a DTD or an entity, raises a structured `AdapterError`.
+
 ## Document key order
 
 Writes preserve your document's key order. The JSON family, YAML, and ARB round-trip keys exactly in document order:
@@ -181,4 +211,4 @@ A tree-based locale file (the JSON family, YAML, and ARB) can carry a leaf that 
 
 ## Why the format matters
 
-The format tells verbatra two things it needs for a safe run. First, the placeholder syntax, so the [placeholder integrity check](/docs/translation-safety) knows what to compare before and after translation. Second, for the ICU formats, which values to validate, so an invalid ICU source key is skipped rather than sent in a broken state. The wrong format compares the wrong tokens, so match it to your i18n library: `i18next-json` for i18next, `vue-i18n-json` for vue-i18n, `next-intl-json` for next-intl, `ngx-translate-json` for ngx-translate, `xliff` for XLIFF files, `yaml` for YAML-based i18n, `arb` for Flutter, `properties` for Java or Spring `.properties` files, `apple-strings` for Apple `.strings` files, `apple-xcstrings` for Xcode String Catalog `.xcstrings` files, `android-xml` for Android `strings.xml`, and `gettext-po` for gettext `.po`/`.pot` catalogs.
+The format tells verbatra two things it needs for a safe run. First, the placeholder syntax, so the [placeholder integrity check](/docs/translation-safety) knows what to compare before and after translation. Second, for the ICU formats, which values to validate, so an invalid ICU source key is skipped rather than sent in a broken state. The wrong format compares the wrong tokens, so match it to your i18n library: `i18next-json` for i18next, `vue-i18n-json` for vue-i18n, `next-intl-json` for next-intl, `ngx-translate-json` for ngx-translate, `xliff` for XLIFF files, `yaml` for YAML-based i18n, `arb` for Flutter, `properties` for Java or Spring `.properties` files, `apple-strings` for Apple `.strings` files, `apple-xcstrings` for Xcode String Catalog `.xcstrings` files, `android-xml` for Android `strings.xml`, `gettext-po` for gettext `.po`/`.pot` catalogs, `ini` for INI configuration files, and `resx` for .NET resource files.

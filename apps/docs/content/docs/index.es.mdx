@@ -49,7 +49,7 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 
 Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un marcador de posición roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
 
-verbatra lee y escribe doce formatos y traduce a través de seis proveedores detrás de una sola interfaz. Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+verbatra lee y escribe catorce formatos y traduce a través de seis proveedores detrás de una sola interfaz. Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
 
 ## Los paquetes
 

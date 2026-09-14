@@ -31,6 +31,8 @@ const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   "apple-xcstrings": "Xcode String Catalog",
   "android-xml": "Android strings.xml",
   "gettext-po": "gettext .po/.pot",
+  ini: "INI",
+  resx: ".NET .resx",
 };
 
 const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);
