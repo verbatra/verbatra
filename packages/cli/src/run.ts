@@ -97,10 +97,6 @@ const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
 });
 
-const extractOptsSchema = sharedCommandOptsSchema.extend({
-  dryRun: z.boolean().optional(),
-});
-
 function runExitCode(summary: {
   readonly partial: readonly string[];
   readonly failed: readonly string[];
@@ -588,35 +584,6 @@ async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
   );
 }
 
-async function runExtract(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("extract", rawOpts, streams);
-  return withParsedOpts(
-    () => extractOptsSchema.parse(rawOpts),
-    context,
-    async (opts) => {
-      const cwd = opts.cwd ?? process.cwd();
-      return withWholeRunErrors(
-        deps,
-        context,
-        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
-          const result = await deps.extract({
-            config,
-            cwd,
-            ...(opts.dryRun === true ? { dryRun: true } : {}),
-          });
-          streams.out(
-            context.json
-              ? `${renderSuccessEnvelope("extract", result)}\n`
-              : `${renderExtractHuman(result)}\n`,
-          );
-          return 0;
-        },
-      );
-    },
-  );
-}
-
 interface ProgramContext {
   readonly deps: CliDeps;
   readonly streams: Streams;
@@ -916,6 +883,39 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider google-translate --yes  non-interactive, accept all defaults",
       ].join("\n"),
     );
+}
+
+const extractOptsSchema = sharedCommandOptsSchema.extend({
+  dryRun: z.boolean().optional(),
+});
+
+async function runExtract(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("extract", rawOpts, streams);
+  return withParsedOpts(
+    () => extractOptsSchema.parse(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.extract({
+            config,
+            cwd,
+            ...(opts.dryRun === true ? { dryRun: true } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("extract", result)}\n`
+              : `${renderExtractHuman(result)}\n`,
+          );
+          return 0;
+        },
+      );
+    },
+  );
 }
 
 function registerExtractCommand(program: Command, ctx: ProgramContext): void {

@@ -154,3 +154,17 @@ describe("tokenizeSource on awkward slashes and escapes", () => {
     expect(strings('`${ `a\\`b` + t("kept") }`')).toEqual(["a`b", "kept"]);
   });
 });
+
+describe("tokenizeSource on malformed unicode escapes", () => {
+  it("does not swallow the rest of the file looking for a closing brace", () => {
+    expect(strings('"a\\u{41" + t("kept");')).toEqual(["a{41", "kept"]);
+  });
+
+  it("does not throw on a code point that is not hexadecimal", () => {
+    expect(strings('"a\\u{zz}b"')).toEqual(["a{zz}b"]);
+  });
+
+  it("does not throw on a code point above the unicode range", () => {
+    expect(() => tokenizeSource('"\\u{FFFFFFF}"')).not.toThrow();
+  });
+});

@@ -101,6 +101,18 @@ describe("extract on a project that already has a source catalog", () => {
     expect(writes).toEqual([]);
   });
 
+  it("routes the write through the same fs member when a run does add a key", async () => {
+    const cwd = await project({ "src/nav.ts": 't("nav.home", "Home");' });
+    await mkdir(join(cwd, "locales"), { recursive: true });
+    await writeJsonFile(join(cwd, "locales/en.json"), {});
+    const writes: string[] = [];
+    const fs: SdkFs = { ...defaultFs, writeFile: async (path) => void writes.push(path) };
+
+    await extract({ config: config(), cwd }, { fs });
+
+    expect(writes).toEqual([join(cwd, "locales/en.json")]);
+  });
+
   it("leaves a catalog key that no call site mentions untouched", async () => {
     const cwd = await project({ "src/nav.ts": 't("nav.home", "Home");' });
     await mkdir(join(cwd, "locales"), { recursive: true });

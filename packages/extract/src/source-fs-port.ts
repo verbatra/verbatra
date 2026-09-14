@@ -51,7 +51,7 @@ async function readUtf8(handle: FileHandle, size: number): Promise<string> {
   let offset = 0;
   while (offset < size) {
     const { bytesRead } = await handle.read(buffer, offset, size - offset, offset);
-    /* v8 ignore next 3 -- a short read on a regular file needs a truncation race to reproduce */
+    /* v8 ignore next 3 */
     if (bytesRead === 0) {
       break;
     }

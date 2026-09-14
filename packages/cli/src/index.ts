@@ -24,10 +24,10 @@ const code = await run(
     check,
     diff,
     doctor,
-    extract,
     loadConfigWithMeta,
     importStudio: () => import("@verbatra/studio"),
     importMcp: () => import("@verbatra/mcp"),
+    extract,
   },
   {
     out: (text) => {

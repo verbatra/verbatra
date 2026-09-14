@@ -172,10 +172,10 @@ export interface DepCalls {
   check: CheckInput[];
   diff: DiffInput[];
   doctor: DoctorInput[];
-  extract: ExtractInput[];
   loadConfigWithMeta: LoadConfigOptions[];
   importStudio: undefined[];
   importMcp: undefined[];
+  extract: ExtractInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -188,10 +188,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     check: [],
     diff: [],
     doctor: [],
-    extract: [],
     loadConfigWithMeta: [],
     importStudio: [],
     importMcp: [],
+    extract: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -226,10 +226,6 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
       calls.doctor.push(input);
       return impl.doctor ? impl.doctor(input) : makeDoctorResult();
     },
-    extract: async (input) => {
-      calls.extract.push(input);
-      return impl.extract ? impl.extract(input) : makeExtractResult();
-    },
     loadConfigWithMeta: async (options) => {
       calls.loadConfigWithMeta.push(options);
       return impl.loadConfigWithMeta ? impl.loadConfigWithMeta(options) : makeLoadedConfig();
@@ -241,6 +237,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importMcp: async () => {
       calls.importMcp.push(undefined);
       return impl.importMcp ? impl.importMcp() : makeMcpModule();
+    },
+    extract: async (input) => {
+      calls.extract.push(input);
+      return impl.extract ? impl.extract(input) : makeExtractResult();
     },
   };
   return { deps, calls };

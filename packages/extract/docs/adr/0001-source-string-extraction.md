@@ -175,6 +175,8 @@ on the sdk.
   else, and it flows into the shipped `packages/sdk/dist/config-schema.json`.
 - The block is optional. A project that does not configure it is unaffected, and no existing
   default changes.
-- Two new `SdkErrorCode` members are added, both specific to this command.
+- Three new `SdkErrorCode` members are added: `EXTRACT_NOT_CONFIGURED` and `EXTRACT_FS_UNSUPPORTED`
+  for the two ways the command cannot start, and `SOURCE_UNWRITABLE` because this is the only entry
+  point that writes the source locale, so the existing `TARGET_UNWRITABLE` does not cover it.
 - Adding the second framework is a new file plus a union member plus a table entry. If that turns
   out not to be true, this decision was wrong and the parser choice is the first thing to revisit.

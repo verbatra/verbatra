@@ -96,23 +96,41 @@ function skipTrivia(cursor: Cursor): void {
   }
 }
 
+const BRACED_CODE_POINT = /^\{([0-9A-Fa-f]{1,6})\}/;
+
+const FOUR_HEX_DIGITS = /^[0-9A-Fa-f]{4}$/;
+
+const MAX_CODE_POINT = 0x10_ff_ff;
+
+function readBracedCodePoint(cursor: Cursor): string {
+  const match = BRACED_CODE_POINT.exec(cursor.text.slice(cursor.index, cursor.index + 9));
+  if (match?.[1] === undefined) {
+    return "";
+  }
+  cursor.index += match[0].length;
+  const value = Number.parseInt(match[1], 16);
+  return value > MAX_CODE_POINT ? "" : String.fromCodePoint(value);
+}
+
 function readUnicodeEscape(cursor: Cursor): string {
   if (charAt(cursor, 0) === "{") {
-    const close = cursor.text.indexOf("}", cursor.index);
-    if (close === -1) {
-      return "";
-    }
-    const code = cursor.text.slice(cursor.index + 1, close);
-    cursor.index = close + 1;
-    return String.fromCodePoint(Number.parseInt(code, 16));
+    return readBracedCodePoint(cursor);
   }
   const code = cursor.text.slice(cursor.index, cursor.index + 4);
+  if (!FOUR_HEX_DIGITS.test(code)) {
+    return "";
+  }
   cursor.index += 4;
   return String.fromCharCode(Number.parseInt(code, 16));
 }
 
+const TWO_HEX_DIGITS = /^[0-9A-Fa-f]{2}$/;
+
 function readHexEscape(cursor: Cursor): string {
   const code = cursor.text.slice(cursor.index, cursor.index + 2);
+  if (!TWO_HEX_DIGITS.test(code)) {
+    return "";
+  }
   cursor.index += 2;
   return String.fromCharCode(Number.parseInt(code, 16));
 }

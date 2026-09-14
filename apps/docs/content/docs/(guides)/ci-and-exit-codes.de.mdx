@@ -16,7 +16,7 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `export` schrieb seine Arbeitsmappe, `init` legte das Projekt an, `watch` oder `studio` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
+| `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `export` schrieb seine Arbeitsmappe, `init` legte das Projekt an, `watch` oder `studio` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
 | `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder `partial` gebliebenen Locale, `check` fand ein Locale nicht synchron, `diff` fand einen fehlenden oder geänderten Key, `doctor` fand mindestens eine fehlgeschlagene Prüfung, oder `studio` scheiterte beim Herunterfahren seines Servers |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init` ohne auflösbaren Provider oder wenn es keine gültige Konfiguration anlegen kann, ein gescheiterter Start oder Stopp von `watch`, oder `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann |
 | `130` | `watch` oder `studio` wurde durch einen zweiten Interrupt zwangsbeendet |
@@ -51,7 +51,7 @@ Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` o
 
 ## JSON-Ausgabe
 
-Sieben Befehle akzeptieren `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `export`, `import` und `doctor`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
+Acht Befehle akzeptieren `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor` und `extract`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
 
 ```ts
 type Envelope<TResult> =
