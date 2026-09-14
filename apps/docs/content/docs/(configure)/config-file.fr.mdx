@@ -126,7 +126,7 @@ Défaut `50`. Les entrées manquantes plus modifiées d'une locale sont découp�
 
 <AvailableFrom version="0.11.0" />
 
-Facultatif. Une table associant une clé de traduction à la plus grande valeur traduite que cette clé peut contenir, pour qu'une chaîne soumise à une contrainte de mise en page (un libellé de navigation, un bouton, un en-tête de tableau) soit mesurée à chaque exécution.
+Facultatif. Une table associant une clé de traduction à la plus grande valeur traduite que cette clé peut contenir, pour une chaîne soumise à une contrainte de mise en page : un libellé de navigation, un bouton, un en-tête de tableau.
 
 ```ts
 maxLength: {
@@ -138,6 +138,8 @@ maxLength: {
 Cette table est le seul endroit d'où un budget est lu. verbatra n'en déduit jamais un depuis la description d'une entrée ni depuis les métadonnées de longueur d'un format : un budget se trouve exactement là où tu l'as écrit et rien ne le remplace en silence. Les clés sont comparées littéralement, pas comme des globs ni des préfixes, et une clé absente de la table n'a aucun budget et n'est jamais mesurée.
 
 La longueur se compte en groupes de graphèmes : les caractères que perçoit la personne qui lit, et non des unités de code UTF-16 ni des points de code Unicode. Un emoji composé de plusieurs points de code compte pour un, et une lettre suivie d'un accent combinant aussi. Un caractère CJK compte également pour un, alors que la plupart des polices le rendent environ deux fois plus large qu'une lettre latine : fixe les budgets de ces locales en conséquence. La valeur est mesurée telle qu'elle est écrite, espaces de début et de fin compris, et la comparaison est inclusive : une valeur égale au budget passe, un graphème de plus non.
+
+Un budget est vérifié chaque fois que `translate` produit une valeur pour cette clé : une traduction fraîche, une valeur réutilisée depuis le cache, et une valeur propagée à une clé qui partage son texte source. Ce n'est pas un balayage de tout le catalogue. Une clé déjà traduite et toujours en phase avec sa source n'est pas retraduite, donc pas mesurée non plus : ajouter des budgets à un projet terminé ne signale donc rien tant que le texte source de cette clé n'a pas changé. Pour mesurer tout de suite chaque traduction actuelle face à son budget, lance [`verbatra export --include-unchanged`](/docs/cli/export) : l'export recalcule les colonnes de révision de chaque ligne qu'il écrit, et c'est cette option qui met dans le fichier les clés déjà à jour. Un `export` sans elle n'écrit que les lignes manquantes ou périmées, et sauterait donc exactement les clés dont parle ce paragraphe.
 
 Un budget doit être un entier positif. Le dépasser est consultatif, jamais bloquant : la traduction est toujours écrite dans le fichier de locale et toujours enregistrée dans le fichier de verrouillage, et la clé est signalée comme `MAX_LENGTH_EXCEEDED` dans la liste `needsReview` du résumé d'exécution, dans la file de Révision de Studio et dans les colonnes de révision du classeur. Voir [Sûreté de la traduction](/docs/translation-safety).
 

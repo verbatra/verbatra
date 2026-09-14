@@ -126,7 +126,7 @@ Default `50`. Die fehlenden plus geänderten Einträge einer Locale werden in se
 
 <AvailableFrom version="0.11.0" />
 
-Optional. Eine Zuordnung von Übersetzungsschlüssel zum längsten Wert, den dieser Schlüssel enthalten darf, damit ein String mit einer Layout-Vorgabe (ein Navigationslabel, ein Button, eine Tabellenüberschrift) bei jedem Lauf dagegen gemessen wird.
+Optional. Eine Zuordnung von Übersetzungsschlüssel zum längsten Wert, den dieser Schlüssel enthalten darf, für einen String unter einer Layout-Vorgabe: ein Navigationslabel, ein Button, eine Tabellenüberschrift.
 
 ```ts
 maxLength: {
@@ -138,6 +138,8 @@ maxLength: {
 Diese Zuordnung ist die einzige Stelle, aus der ein Budget gelesen wird. verbatra leitet nie eines aus der Beschreibung eines Eintrags oder aus den Längenangaben eines Formats ab, also steht ein Budget genau dort, wo du es geschrieben hast, und nichts überschreibt es still. Schlüssel werden wörtlich verglichen, nicht als Globs oder Präfixe, und ein Schlüssel, der nicht in der Zuordnung steht, hat kein Budget und wird nie gemessen.
 
 Die Länge wird in Graphemclustern gezählt: den Zeichen, die eine Leserin wahrnimmt, nicht in UTF-16-Codeeinheiten und nicht in Unicode-Codepunkten. Ein Emoji, das aus mehreren Codepunkten zusammengesetzt ist, zählt als eines, und ein Buchstabe mit folgendem kombinierendem Akzent ebenso. Ein CJK-Zeichen zählt ebenfalls als eines, obwohl die meisten Schriftarten es etwa doppelt so breit wie einen lateinischen Buchstaben darstellen; setze Budgets für diese Locales also mit diesem Wissen. Der Wert wird genau so gemessen, wie er geschrieben ist, inklusive führender und nachgestellter Leerzeichen, und der Vergleich ist einschließend: ein Wert von genau dem Budget besteht, ein Graphem mehr nicht.
+
+Ein Budget wird geprüft, sobald `translate` einen Wert für diesen Schlüssel erzeugt: eine frische Übersetzung, ein aus dem Cache wiederverwendeter Wert und ein Wert, der an einen Schlüssel mit gleichem Quelltext weitergereicht wird. Es ist kein Durchlauf über den ganzen Katalog. Ein Schlüssel, der bereits übersetzt ist und noch zu seiner Quelle passt, wird nicht neu übersetzt und deshalb auch nicht gemessen; ein Budget, das du einem fertigen Projekt hinzufügst, markiert also nichts, bis sich der Quelltext dieses Schlüssels das nächste Mal ändert. Um jede aktuelle Übersetzung sofort gegen ihr Budget zu messen, führe [`verbatra export --include-unchanged`](/docs/cli/export) aus: der Export berechnet die Review-Spalten für jede geschriebene Zeile neu, und die Option ist das, was die bereits aktuellen Schlüssel überhaupt in die Datei bringt. Ein einfaches `export` schreibt nur die fehlenden und veralteten Zeilen und würde also genau die Schlüssel überspringen, um die es hier geht.
 
 Ein Budget muss eine positive Ganzzahl sein. Eine Überschreitung ist beratend, nie blockierend: die Übersetzung wird weiterhin in die Locale-Datei geschrieben und weiterhin in der Lock-Datei erfasst, und der Schlüssel wird als `MAX_LENGTH_EXCEEDED` in der `needsReview`-Liste der Laufzusammenfassung, in der Review-Queue von Studio und in den Review-Spalten der Arbeitsmappe gemeldet. Siehe [Übersetzungssicherheit](/docs/translation-safety).
 
