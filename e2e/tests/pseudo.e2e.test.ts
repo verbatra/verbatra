@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   JSON_ENVELOPE_VERSION,
+  PROVIDER_ENV_VARS,
   parseEnvelope,
   readJsonIn,
   readSharedConsumer,
@@ -20,20 +21,16 @@ interface PseudoResultJson {
   written: boolean;
 }
 
-const NO_PROVIDER_KEYS = {
-  ANTHROPIC_API_KEY: "",
-  OPENAI_API_KEY: "",
-  GEMINI_API_KEY: "",
-  DEEPL_API_KEY: "",
-  GOOGLE_TRANSLATE_API_KEY: "",
-};
+const NO_PROVIDER_KEYS: Record<string, string> = Object.fromEntries(
+  Object.values(PROVIDER_ENV_VARS).map((name) => [name, ""]),
+);
 
 const config = {
   sourceLocale: "en",
   targetLocales: ["de"],
   format: "i18next-json",
   files: { pattern: "locales/{locale}.json" },
-  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
 };
 
 let consumer: Consumer;
@@ -94,22 +91,24 @@ describe("pseudo (no provider, no key)", () => {
     expect(written.greeting).not.toBe("Hello {{name}}");
   });
 
-  it("leaves the real locale files alone and keeps check in sync", async () => {
+  it("leaves the real locale files alone and stays invisible to check", async () => {
     const dir = await seedProject("pseudo-nondestructive");
-    await runVerbatra(consumer, ["translate", "--dry-run", "--cwd", dir], {
-      env: NO_PROVIDER_KEYS,
-    });
     const sourceBefore = await readFile(join(dir, "locales", "en.json"), "utf8");
     const targetBefore = await readFile(join(dir, "locales", "de.json"), "utf8");
+    const checkBefore = await runVerbatra(consumer, ["check", "--json", "--cwd", dir], {
+      env: NO_PROVIDER_KEYS,
+    });
 
     await runVerbatra(consumer, ["pseudo", "--cwd", dir], { env: NO_PROVIDER_KEYS });
-    const check = await runVerbatra(consumer, ["check", "--json", "--cwd", dir], {
+    const checkAfter = await runVerbatra(consumer, ["check", "--json", "--cwd", dir], {
       env: NO_PROVIDER_KEYS,
     });
 
     expect(await readFile(join(dir, "locales", "en.json"), "utf8")).toBe(sourceBefore);
     expect(await readFile(join(dir, "locales", "de.json"), "utf8")).toBe(targetBefore);
-    expect(check.stdout).not.toContain("en-XA");
+    expect(checkAfter.exitCode).toBe(checkBefore.exitCode);
+    expect(checkAfter.stdout).toBe(checkBefore.stdout);
+    expect(checkAfter.stdout).not.toContain("en-XA");
   });
 
   it("reports the second run as unchanged", async () => {

@@ -3,13 +3,11 @@ import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run } from "./run.js";
 import { captureStreams, makePseudoResult, parseEnvelope, recordingDeps } from "./test-support.js";
 
-const PROVIDER_ENV_VARS = [
-  "ANTHROPIC_API_KEY",
-  "OPENAI_API_KEY",
-  "GEMINI_API_KEY",
-  "DEEPL_API_KEY",
-  "GOOGLE_TRANSLATE_API_KEY",
-] as const;
+const API_KEY_VARIABLE = /_API_KEY$/;
+
+function apiKeyVariables(): readonly string[] {
+  return Object.keys(process.env).filter((name) => API_KEY_VARIABLE.test(name));
+}
 
 describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
   it("delegates to pseudolocalize with the resolved cwd and exits 0", async () => {
@@ -126,7 +124,7 @@ describe("run pseudo: SDK delegation, rendering, and exit codes", () => {
 });
 
 describe("run pseudo: it spends nothing", () => {
-  const originalEnv = new Map(PROVIDER_ENV_VARS.map((name) => [name, process.env[name]]));
+  const originalEnv = new Map(apiKeyVariables().map((name) => [name, process.env[name]]));
 
   afterEach(() => {
     for (const [name, value] of originalEnv) {
@@ -138,8 +136,8 @@ describe("run pseudo: it spends nothing", () => {
     }
   });
 
-  it("runs with every provider API key variable unset", async () => {
-    for (const name of PROVIDER_ENV_VARS) {
+  it("runs with every API key variable removed from the environment", async () => {
+    for (const name of apiKeyVariables()) {
       delete process.env[name];
     }
     const { deps, calls } = recordingDeps();

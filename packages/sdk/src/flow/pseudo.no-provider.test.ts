@@ -2,22 +2,21 @@ import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { afterEach, describe, expect, it } from "vitest";
 import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
 import { pseudolocalize } from "./pseudo.js";
 
 const SOURCE_PATH = fileURLToPath(new URL("./pseudo.ts", import.meta.url));
 
-const PROVIDER_ENV_VARS = [
-  "ANTHROPIC_API_KEY",
-  "OPENAI_API_KEY",
-  "GEMINI_API_KEY",
-  "DEEPL_API_KEY",
-  "GOOGLE_TRANSLATE_API_KEY",
-] as const;
+const PROVIDER_ENV_VARS: readonly string[] = Object.values(PROVIDER_ENV);
 
 describe("static proof: pseudolocalize never reaches a provider or a key", () => {
   const content = readFileSync(SOURCE_PATH, "utf8");
+
+  it("names every provider key variable the provider package reads", () => {
+    expect(PROVIDER_ENV_VARS.length).toBeGreaterThanOrEqual(5);
+  });
 
   it("never imports the provider package", () => {
     expect(content).not.toContain("@verbatra/ai-providers");

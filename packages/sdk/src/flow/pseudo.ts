@@ -1,11 +1,15 @@
 import { dirname, resolve } from "node:path";
-import { type LocaleResource, pseudolocalizeValue, type TranslationEntry } from "@verbatra/core";
+import {
+  type LocaleResource,
+  pseudolocalizeValue,
+  type SupportedFormat,
+  type TranslationEntry,
+} from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
-import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { readSourceResource } from "./source.js";
@@ -15,7 +19,12 @@ const DEFAULT_PSEUDO_LOCALE = "en-XA";
 
 const DEFAULT_PSEUDO_DIRECTORY = ".verbatra-local/pseudo";
 
-const MAX_CATALOGUE_BYTES = 16 * 1024 * 1024;
+const MAX_SEED_BYTES = 16 * 1024 * 1024;
+
+const SEEDED_FROM_SOURCE: ReadonlySet<SupportedFormat> = new Set<SupportedFormat>([
+  "apple-xcstrings",
+  "xliff",
+]);
 
 /** Input for {@link pseudolocalize}. */
 export interface PseudolocalizeInput {
@@ -115,20 +124,20 @@ function pseudolocalizeEntries(
   return { entries, copied };
 }
 
-async function seedSharedCatalogue(
+async function seedFromSource(
   config: VerbatraConfig,
   sourcePath: string,
   outputPath: string,
   fs: SdkFs,
 ): Promise<void> {
-  if (!isSharedCatalogueFormat(config.format) || (await fs.fileExists(outputPath))) {
+  if (!SEEDED_FROM_SOURCE.has(config.format) || (await fs.fileExists(outputPath))) {
     return;
   }
-  const read = await fs.readFileBounded(sourcePath, MAX_CATALOGUE_BYTES);
+  const read = await fs.readFileBounded(sourcePath, MAX_SEED_BYTES);
   if (read.kind !== "ok") {
     throw new SdkError(
       "SOURCE_INVALID",
-      `The catalogue at ${sourcePath} could not be copied to ${outputPath} to seed the pseudolocale.`,
+      `The file at ${sourcePath} could not be copied to ${outputPath} to seed the pseudolocale.`,
     );
   }
   await fs.mkdir?.(dirname(outputPath));
@@ -206,8 +215,9 @@ function sameValues(
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
- * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed, or a
- * shared-catalogue source could not be copied to seed the output catalogue.
+ * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed, or, for a
+ * format whose writer only patches an existing document (`xliff` and `apple-xcstrings`), the
+ * source file could not be copied to seed the output.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the pseudolocale file could not be written.
  */
 export async function pseudolocalize(
@@ -230,7 +240,7 @@ export async function pseudolocalize(
   assertOutputIsNotALocaleFile(config, resolver, outputPath);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  await seedSharedCatalogue(config, resolver.pathFor(config.sourceLocale), outputPath, fs);
+  await seedFromSource(config, resolver.pathFor(config.sourceLocale), outputPath, fs);
   const { entries, copied } = pseudolocalizeEntries(source.resource.entries, adapter);
   const summary = {
     locale,
