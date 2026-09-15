@@ -1,0 +1,263 @@
+import { describe, expect, it } from "vitest";
+import { describeMessageArguments } from "./message-arguments.js";
+
+describe("describeMessageArguments: a message with nothing to interpolate", () => {
+  it("reports no arguments for an empty token list", () => {
+    expect(describeMessageArguments([])).toEqual({ style: "none" });
+  });
+
+  it("ignores an escaped percent literal", () => {
+    expect(describeMessageArguments(["%%"])).toEqual({ style: "none" });
+  });
+
+  it("ignores an inline markup tag", () => {
+    expect(describeMessageArguments(["<b>"])).toEqual({ style: "none" });
+  });
+
+  it("ignores an xliff placeholder element", () => {
+    expect(describeMessageArguments(['<x id="1"/>'])).toEqual({ style: "none" });
+  });
+
+  it("ignores an i18next nesting reference, which resolves another key rather than an argument", () => {
+    expect(describeMessageArguments(["$t(other.key)"])).toEqual({ style: "none" });
+  });
+
+  it("ignores a double-brace token with no name inside it", () => {
+    expect(describeMessageArguments(["{{}}"])).toEqual({ style: "none" });
+  });
+});
+
+describe("describeMessageArguments: named arguments", () => {
+  it("reads a double-brace name", () => {
+    expect(describeMessageArguments(["{{name}}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("reads a single-brace name", () => {
+    expect(describeMessageArguments(["{name}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("types a double-brace argument the format annotated as a number", () => {
+    expect(describeMessageArguments(["{{count, number}}"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "number" }],
+    });
+  });
+
+  it("types a MessageFormat number argument", () => {
+    expect(describeMessageArguments(["{count,number}"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "number" }],
+    });
+  });
+
+  it("types a MessageFormat number argument that also carries a style", () => {
+    expect(describeMessageArguments(["{count,number,#.##}"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "number" }],
+    });
+  });
+
+  it("types a MessageFormat plural argument as a number", () => {
+    expect(describeMessageArguments(["{n,plural}"])).toEqual({
+      style: "named",
+      named: [{ name: "n", type: "number" }],
+    });
+  });
+
+  it("leaves a MessageFormat date argument untyped rather than guessing a representation", () => {
+    expect(describeMessageArguments(["{when,date}"])).toEqual({
+      style: "named",
+      named: [{ name: "when", type: "unknown" }],
+    });
+  });
+
+  it("leaves a MessageFormat select argument untyped", () => {
+    expect(describeMessageArguments(["{gender,select}"])).toEqual({
+      style: "named",
+      named: [{ name: "gender", type: "unknown" }],
+    });
+  });
+
+  it("reads a gettext named conversion and its type", () => {
+    expect(describeMessageArguments(["%(count)d"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "number" }],
+    });
+  });
+
+  it("reads a gettext named string conversion", () => {
+    expect(describeMessageArguments(["%(who)s"])).toEqual({
+      style: "named",
+      named: [{ name: "who", type: "string" }],
+    });
+  });
+
+  it("keeps a name that is not a valid identifier rather than dropping the argument", () => {
+    expect(describeMessageArguments(["{some thing}"])).toEqual({
+      style: "named",
+      named: [{ name: "some thing", type: "unknown" }],
+    });
+  });
+
+  it("keeps document order across several names", () => {
+    expect(describeMessageArguments(["{{b}}", "{{a}}"])).toEqual({
+      style: "named",
+      named: [
+        { name: "b", type: "unknown" },
+        { name: "a", type: "unknown" },
+      ],
+    });
+  });
+
+  it("collapses a name that appears twice into one argument", () => {
+    expect(describeMessageArguments(["{{name}}", "{{name}}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("widens a name whose two occurrences disagree about its type", () => {
+    expect(describeMessageArguments(["{count,number}", "{count}"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "unknown" }],
+    });
+  });
+
+  it("widens the same disagreement when the typed occurrence comes second", () => {
+    expect(describeMessageArguments(["{count}", "{count,number}"])).toEqual({
+      style: "named",
+      named: [{ name: "count", type: "unknown" }],
+    });
+  });
+});
+
+describe("describeMessageArguments: positional arguments", () => {
+  it("reads a bare printf conversion as one anonymous argument", () => {
+    expect(describeMessageArguments(["%d"])).toEqual({
+      style: "positional",
+      positional: ["number"],
+    });
+  });
+
+  it("types a printf string conversion", () => {
+    expect(describeMessageArguments(["%s"])).toEqual({
+      style: "positional",
+      positional: ["string"],
+    });
+  });
+
+  it("leaves an Apple object conversion untyped", () => {
+    expect(describeMessageArguments(["%@"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it("keeps document order across several anonymous conversions", () => {
+    expect(describeMessageArguments(["%@", "%d"])).toEqual({
+      style: "positional",
+      positional: ["unknown", "number"],
+    });
+  });
+
+  it("places an explicitly numbered printf conversion at its own index", () => {
+    expect(describeMessageArguments(["%2$d", "%1$@"])).toEqual({
+      style: "positional",
+      positional: ["unknown", "number"],
+    });
+  });
+
+  it("reads a brace-numbered argument as positional", () => {
+    expect(describeMessageArguments(["{1}", "{0}"])).toEqual({
+      style: "positional",
+      positional: ["unknown", "unknown"],
+    });
+  });
+
+  it("fills a gap left by an index the message never uses", () => {
+    expect(describeMessageArguments(["{2}"])).toEqual({
+      style: "positional",
+      positional: ["unknown", "unknown", "unknown"],
+    });
+  });
+
+  it("types a brace-numbered MessageFormat number argument", () => {
+    expect(describeMessageArguments(["{0,number}"])).toEqual({
+      style: "positional",
+      positional: ["number"],
+    });
+  });
+
+  it("reads a .NET composite item with an alignment as positional and untyped", () => {
+    expect(describeMessageArguments(["{0,-5}"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it("reads a .NET composite item with a format string as positional and untyped", () => {
+    expect(describeMessageArguments(["{0:C}"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it("reads a .NET composite item carrying both an alignment and a format string", () => {
+    expect(describeMessageArguments(["{0,-5:C}"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+});
+
+describe("describeMessageArguments: a message verbatra will not guess at", () => {
+  it("refuses a message that mixes a name with an anonymous conversion", () => {
+    expect(describeMessageArguments(["{{name}}", "%d"])).toEqual({
+      style: "unresolved",
+      reason: "mixed-argument-styles",
+    });
+  });
+
+  it("refuses a message that mixes a name with a numbered argument", () => {
+    expect(describeMessageArguments(["{{name}}", "{0}"])).toEqual({
+      style: "unresolved",
+      reason: "mixed-argument-styles",
+    });
+  });
+
+  it("refuses a message that mixes a numbered conversion with an anonymous one", () => {
+    expect(describeMessageArguments(["%1$d", "%s"])).toEqual({
+      style: "unresolved",
+      reason: "mixed-argument-styles",
+    });
+  });
+});
+
+describe("describeMessageArguments: one position mentioned twice", () => {
+  it("keeps the type both mentions agree on", () => {
+    expect(describeMessageArguments(["{0,number}", "{0,number}"])).toEqual({
+      style: "positional",
+      positional: ["number"],
+    });
+  });
+
+  it("widens a position whose two mentions disagree", () => {
+    expect(describeMessageArguments(["{0,number}", "{0}"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it("widens the same disagreement when the typed mention comes second", () => {
+    expect(describeMessageArguments(["{0}", "{0,number}"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+});

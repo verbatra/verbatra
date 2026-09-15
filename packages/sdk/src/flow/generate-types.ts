@@ -1,0 +1,245 @@
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import type { TranslationEntry } from "@verbatra/core";
+import type { AdapterRegistry } from "@verbatra/format-adapters";
+import type { VerbatraConfig } from "../config/schema.js";
+import { errorMessage, SdkError } from "../errors.js";
+import { defaultFs, type SdkFs } from "../fs.js";
+import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
+import { selectAdapter } from "../selection/select-adapter.js";
+import { describeMessageArguments, type UnresolvedArgumentReason } from "./message-arguments.js";
+import { readSourceResource } from "./source.js";
+import { type DeclaredMessage, renderTypesDeclaration } from "./types-declaration.js";
+
+/**
+ * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
+ * the root of the working directory. The file is a checked-in artifact, not a local scratch file:
+ * it belongs in version control so a consumer type-checks against it without running verbatra
+ * first, and so `check` mode has a committed file to compare against.
+ */
+export const DEFAULT_TYPES_PATH = "verbatra-types.d.ts";
+
+const MAX_DECLARATION_BYTES = 8 * 1024 * 1024;
+
+/** One key whose arguments verbatra declined to describe, and why. */
+export interface UnresolvedMessage {
+  /** The key, which is still declared, with arguments nothing is claimed about. */
+  readonly key: string;
+  /** Why the arguments could not be determined. */
+  readonly reason: UnresolvedArgumentReason;
+}
+
+/** Input for {@link generateTypes}. */
+export interface GenerateTypesInput {
+  /** The resolved project config, normally from {@link loadConfig}. */
+  readonly config: VerbatraConfig;
+  /** Directory the `files.pattern` and the output path are resolved against. Defaults to the process working directory. */
+  readonly cwd?: string;
+  /**
+   * Where to write the declaration, relative to `cwd`. Defaults to {@link DEFAULT_TYPES_PATH}. It
+   * must name a file inside `cwd`: an absolute path, one that climbs out with `..`, and any
+   * configured locale file are all refused, so generation can never overwrite a catalog or land
+   * outside the project.
+   */
+  readonly out?: string;
+  /**
+   * Compare instead of writing. The run reports whether the file on disk matches what a fresh
+   * generation would produce and leaves every file untouched.
+   */
+  readonly check?: boolean;
+}
+
+/** Injectable dependencies for {@link generateTypes}. Every field has a working default. */
+export interface GenerateTypesDeps {
+  /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
+  readonly adapterRegistry?: AdapterRegistry;
+  /** File-system port. Defaults to the real file system. */
+  readonly fs?: SdkFs;
+}
+
+/** The result of {@link generateTypes}: what was declared, and whether the file on disk matched. */
+export interface GenerateTypesResult {
+  /** Absolute path of the declaration file. */
+  readonly path: string;
+  /** The source catalog the declaration was built from, relative to the working directory. */
+  readonly sourcePath: string;
+  /** How many keys the declaration carries. */
+  readonly keys: number;
+  /** How many of those keys take at least one argument. */
+  readonly withArguments: number;
+  /** Keys that are declared but whose arguments could not be determined, and why. */
+  readonly unresolved: readonly UnresolvedMessage[];
+  /** Keys the adapter reported as excluded from translation, which are never declared. */
+  readonly excluded: readonly string[];
+  /** Keys the adapter marked as carrying plural forms. Each sibling is declared on its own. */
+  readonly plural: readonly string[];
+  /** Whether the declaration file was written. Always false in `check` mode. */
+  readonly written: boolean;
+  /** Whether the file on disk differed from the freshly generated declaration when the run started. */
+  readonly stale: boolean;
+  /** Whether this was a `check` run. */
+  readonly check: boolean;
+}
+
+function escapesWorkingDirectory(inside: string): boolean {
+  return inside === "" || inside === ".." || inside.startsWith(`..${sep}`);
+}
+
+function refuseOutput(requested: string, why: string): never {
+  throw new SdkError(
+    "TYPES_OUTPUT_CONFLICT",
+    `The output path "${requested}" ${why} Pass a relative path naming a file inside the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`,
+  );
+}
+
+function resolveOutputPath(
+  cwd: string,
+  config: VerbatraConfig,
+  resolver: LocalePathResolver,
+  out: string | undefined,
+): string {
+  const requested = out ?? DEFAULT_TYPES_PATH;
+  if (requested.trim() === "") {
+    refuseOutput(requested, "names no file.");
+  }
+  if (isAbsolute(requested)) {
+    refuseOutput(requested, "is absolute.");
+  }
+  const outputPath = resolve(cwd, requested);
+  if (escapesWorkingDirectory(relative(cwd, outputPath))) {
+    refuseOutput(requested, "is not inside the working directory.");
+  }
+  for (const locale of [config.sourceLocale, ...config.targetLocales]) {
+    if (resolver.pathFor(locale) === outputPath) {
+      refuseOutput(requested, `is the locale file for "${locale}".`);
+    }
+  }
+  return outputPath;
+}
+
+function declareMessage(
+  key: string,
+  entry: TranslationEntry,
+  invalid: ReadonlySet<string>,
+): DeclaredMessage {
+  const argumentsTaken = invalid.has(key)
+    ? ({ style: "unresolved", reason: "invalid-message-syntax" } as const)
+    : describeMessageArguments(entry.placeholders);
+  return { key, arguments: argumentsTaken, isPlural: entry.isPlural };
+}
+
+function toPosix(path: string): string {
+  return path.split(sep).join("/");
+}
+
+async function readExistingDeclaration(fs: SdkFs, path: string): Promise<string | undefined> {
+  const read = await fs.readFileBounded(path, MAX_DECLARATION_BYTES);
+  return read.kind === "ok" ? read.content : undefined;
+}
+
+function unresolvedMessages(messages: readonly DeclaredMessage[]): readonly UnresolvedMessage[] {
+  const unresolved: UnresolvedMessage[] = [];
+  for (const message of messages) {
+    if (message.arguments.style === "unresolved") {
+      unresolved.push({ key: message.key, reason: message.arguments.reason });
+    }
+  }
+  return unresolved;
+}
+
+async function writeDeclaration(fs: SdkFs, path: string, declaration: string): Promise<void> {
+  try {
+    await fs.mkdir?.(dirname(path));
+    await fs.writeFile(path, declaration);
+  } catch (error) {
+    throw new SdkError(
+      "TYPES_UNWRITABLE",
+      `The declaration file at ${path} could not be written: ${errorMessage(error)}`,
+    );
+  }
+}
+
+/**
+ * Generates a TypeScript declaration for a project's source catalog: a union of every key it holds
+ * and, per key, the arguments its message interpolates. A consumer that types its translation
+ * function against it turns a misspelled key and a missing interpolation argument into compile
+ * errors instead of runtime lookup failures.
+ *
+ * It reads one file (the source locale catalog) and writes one file (the declaration). It
+ * constructs no provider, reads no API key and makes no network request, so it runs on a fresh
+ * checkout before any key exists.
+ *
+ * Nothing is re-parsed: the keys and the placeholder tokens are exactly what the format adapter
+ * already produced when reading the catalog, in document order, so two runs over an unchanged
+ * catalog write byte-identical bytes. Keys are emitted as quoted string literals, so a key
+ * carrying a dot, a reserved word, a leading digit, a quote, or nothing at all is declared
+ * verbatim rather than dropped or re-split.
+ *
+ * What it will not claim is as important as what it will. A message whose placeholders name their
+ * arguments gets an object shape; one whose placeholders are numbered or anonymous gets a readonly
+ * tuple; one that takes nothing gets a shape that makes passing an argument a type error. A
+ * message whose syntax the adapter reported as invalid, and one that appears to name and number
+ * its arguments at once, are declared with {@link GenerateTypesResult.unresolved} recording why,
+ * rather than being silently declared as taking nothing. Argument types come only from what the
+ * catalog actually records: `number` where the format annotated one, and a `string | number` alias
+ * everywhere else, never a permissive `any`.
+ *
+ * With `check` set, nothing is written: the run reports whether the committed file still matches
+ * what a fresh generation would produce, which is the shape a CI gate wants.
+ *
+ * @param input - The config, the output path, and whether to check rather than write.
+ * @param deps - Optional adapter registry and file-system overrides.
+ * @returns What was declared, and whether the file on disk matched.
+ *
+ * @example
+ * ```ts
+ * const result = await generateTypes({ config });
+ * console.log(`${result.keys} keys declared in ${result.path}`);
+ * ```
+ *
+ * @throws {@link SdkError} `TYPES_OUTPUT_CONFLICT`: the output path is absolute, climbs out of the
+ * working directory, names no file, or is a configured locale file.
+ * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written.
+ * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
+ * cannot be combined.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
+ * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
+ */
+export async function generateTypes(
+  input: GenerateTypesInput,
+  deps: GenerateTypesDeps = {},
+): Promise<GenerateTypesResult> {
+  const { config } = input;
+  const cwd = input.cwd ?? process.cwd();
+  const fs = deps.fs ?? defaultFs;
+  const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
+  const resolver = createLocalePathResolver(cwd, config);
+  const outputPath = resolveOutputPath(cwd, config, resolver, input.out);
+
+  const read = await readSourceResource(config, resolver, fs, adapter);
+  const invalid = new Set(read.invalidIcuKeys);
+  const messages = [...read.resource.entries].map(([key, entry]) =>
+    declareMessage(key, entry, invalid),
+  );
+  const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
+  const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });
+
+  const stale = (await readExistingDeclaration(fs, outputPath)) !== declaration;
+  const check = input.check === true;
+  if (stale && !check) {
+    await writeDeclaration(fs, outputPath, declaration);
+  }
+  return {
+    path: outputPath,
+    sourcePath,
+    keys: messages.length,
+    withArguments: messages.filter((message) => message.arguments.style !== "none").length,
+    unresolved: unresolvedMessages(messages),
+    excluded: read.excludedLeafPaths,
+    plural: messages.filter((message) => message.isPlural).map((message) => message.key),
+    written: stale && !check,
+    stale,
+    check,
+  };
+}

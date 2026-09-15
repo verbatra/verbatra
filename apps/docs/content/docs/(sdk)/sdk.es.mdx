@@ -162,6 +162,50 @@ solo parchean un documento que ya existe, la salida se vuelve a copiar desde el 
 escritura, así que una clave añadida al origen después de la primera ejecución sigue llegando a la
 pseudolocale, y un XLIFF copiado recibe su `target-language` reescrito a la pseudolocale.
 
+## Catálogos tipados
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+Declara el catálogo de origen de un proyecto como TypeScript: una unión de todas las claves que
+contiene y, por clave, los argumentos que interpola su mensaje. Tipa una función de traducción
+contra el resultado y una clave mal escrita o un argumento de interpolación que falta pasa a ser un
+error de compilación en lugar de un fallo de búsqueda en tiempo de ejecución. No gasta nada: no se
+construye ningún proveedor, no se lee ninguna variable de entorno con una clave de API y no se hace
+ninguna petición de red.
+
+Lee un archivo (el catálogo de la locale de origen) y escribe un archivo (la declaración); nunca
+toca un archivo de locale de destino. Tampoco vuelve a parsear nada: las claves y los tokens de
+marcadores de posición son exactamente lo que el adaptador de formato ya produjo, en orden del
+documento, así que dos ejecuciones sobre un catálogo sin cambios escriben bytes idénticos. Cada
+clave se emite como un literal de cadena entrecomillado, así que una con un punto, una palabra
+reservada, un dígito inicial, una comilla, o incluso la clave vacía, se declara tal cual en lugar de
+descartarse o volver a partirse, y una clave que el adaptador reportó en `excludedLeafPaths` no se
+declara en absoluto.
+
+Lo que se niega a afirmar importa tanto como lo que declara. Un mensaje sin marcadores recibe una
+forma que convierte en error de tipo pasar cualquier argumento; uno cuyos marcadores nombran sus
+argumentos recibe una forma de objeto; uno con marcadores numerados o anónimos recibe una tupla
+readonly. Los tipos de argumento vienen solo de lo que el catálogo registra: `number` donde el
+formato lo anotó y un alias de `string | number` en los demás casos, nunca un `any` permisivo. Un
+mensaje que el adaptador reportó como inválido, y uno que parece nombrar y numerar sus argumentos a
+la vez, se declaran con sus argumentos reportados en `unresolved` en lugar de declararse en silencio
+como si no tomaran ninguno. Los hermanos de plural nunca se agrupan: cada uno se declara por su
+cuenta, y los que el adaptador marcó como plurales se listan.
+
+Entrada: `{ config, cwd?, out?, check? }`. `out` toma por defecto `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`) y debe nombrar un archivo dentro de `cwd`: una ruta absoluta, una que se
+salga con `..`, y cualquier archivo de locale configurado se rechazan con `TYPES_OUTPUT_CONFLICT`
+antes de leer o escribir nada. Con `check` activado no se escribe nada en absoluto y la ejecución
+solo informa de si el archivo versionado sigue coincidiendo, que es justo lo que quiere un gate de
+CI.
+
+Devuelve un `GenerateTypesResult`: el `path` absoluto, el `sourcePath` del que se construyó, cuántas
+`keys` se declararon y cuántas de ellas toman argumentos (`withArguments`), las claves `unresolved`
+y las `excluded` y `plural`, si se escribió algo (`written`), si el archivo en disco estaba `stale`
+al arrancar la ejecución, y si esta fue una ejecución de `check`.
+
 ## Inspecciona el estado sin escribir
 
 Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.

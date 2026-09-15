@@ -118,6 +118,14 @@ export {
   type ExtractResult,
   extract,
 } from "./flow/extract.js";
+export {
+  DEFAULT_TYPES_PATH,
+  type GenerateTypesDeps,
+  type GenerateTypesInput,
+  type GenerateTypesResult,
+  generateTypes,
+  type UnresolvedMessage,
+} from "./flow/generate-types.js";
 export type { IntegrityGateReason } from "./flow/integrity-gate.js";
 export {
   type KeyIntegrityDeps,
@@ -154,6 +162,7 @@ export {
   type LockStateResult,
   lockState,
 } from "./flow/lock-state.js";
+export type { UnresolvedArgumentReason } from "./flow/message-arguments.js";
 export {
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
