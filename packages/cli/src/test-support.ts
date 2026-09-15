@@ -6,10 +6,14 @@ import type {
   DiffSummary,
   DoctorInput,
   DoctorResult,
+  ExportTmxInput,
+  ExportTmxResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
   ExtractInput,
   ExtractResult,
+  ImportTmxInput,
+  ImportTmxResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -123,6 +127,33 @@ export function makeExtractResult(overrides: Partial<ExtractResult> = {}): Extra
   };
 }
 
+export function makeImportTmxResult(overrides: Partial<ImportTmxResult> = {}): ImportTmxResult {
+  return {
+    dryRun: false,
+    file: "/proj/memory.tmx",
+    sourceLanguage: "en",
+    units: 0,
+    locales: [],
+    skippedUnits: 0,
+    unmatchedSourceUnits: 0,
+    markupStrippedUnits: 0,
+    unmatchedLanguages: [],
+    ambiguousLanguages: [],
+    memoryWritable: true,
+    ...overrides,
+  };
+}
+
+export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): ExportTmxResult {
+  return {
+    path: "/proj/verbatra-memory.tmx",
+    units: 0,
+    locales: [],
+    withoutSource: 0,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -194,6 +225,8 @@ export interface DepCalls {
   importStudio: undefined[];
   importMcp: undefined[];
   extract: ExtractInput[];
+  importTmx: ImportTmxInput[];
+  exportTmx: ExportTmxInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -211,6 +244,8 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importStudio: [],
     importMcp: [],
     extract: [],
+    importTmx: [],
+    exportTmx: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -264,6 +299,14 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     extract: async (input) => {
       calls.extract.push(input);
       return impl.extract ? impl.extract(input) : makeExtractResult();
+    },
+    importTmx: async (input) => {
+      calls.importTmx.push(input);
+      return impl.importTmx ? impl.importTmx(input) : makeImportTmxResult();
+    },
+    exportTmx: async (input) => {
+      calls.exportTmx.push(input);
+      return impl.exportTmx ? impl.exportTmx(input) : makeExportTmxResult();
     },
   };
   return { deps, calls };

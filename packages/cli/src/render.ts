@@ -4,9 +4,11 @@ import type {
   DoctorCheckStatus,
   DoctorResult,
   EstimateCaveatCode,
+  ExportTmxResult,
   ExportWorkbookResult,
   ExtractResult,
   FuzzyCacheHit,
+  ImportTmxResult,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -15,6 +17,8 @@ import type {
   RunBudget,
   RunEstimate,
   RunSummary,
+  TmxLanguageReport,
+  TmxRejectionReason,
   UsageSummary,
   WatchRunResult,
 } from "@verbatra/sdk";
@@ -140,11 +144,13 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
 
 const FUZZY_SOURCE_PREVIEW = 40;
 
+function preview(text: string, cap: number): string {
+  const characters = Array.from(text.replace(/[\p{Cc}\p{Cf}]/gu, " "));
+  return characters.length <= cap ? characters.join("") : `${characters.slice(0, cap).join("")}...`;
+}
+
 function previewSource(source: string): string {
-  const characters = Array.from(source.replace(/[\p{Cc}\p{Cf}]/gu, " "));
-  return characters.length <= FUZZY_SOURCE_PREVIEW
-    ? characters.join("")
-    : `${characters.slice(0, FUZZY_SOURCE_PREVIEW).join("")}...`;
+  return preview(source, FUZZY_SOURCE_PREVIEW);
 }
 
 function renderFuzzyHit(hit: FuzzyCacheHit): string {
@@ -393,4 +399,102 @@ export function renderExtractHuman(result: ExtractResult): string {
   ];
   const trailer = result.dryRun ? "dry run, nothing written" : undefined;
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
+}
+
+const LANGUAGE_TAG_PREVIEW = 20;
+
+const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
+  placeholder: "placeholders do not match the source",
+  icu: "not a valid ICU message",
+  degenerate: "runaway output rather than a translation",
+  empty: "blank translation of a source that has text",
+  sourceBlank: "blank source segment",
+};
+
+function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
+  return Object.entries(result.rejected)
+    .filter(([, count]) => count > 0)
+    .map(
+      ([reason, count]) => `      ${count} ${TMX_REJECTION_LABELS[reason as TmxRejectionReason]}`,
+    );
+}
+
+function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {
+  const counts = [
+    `${locale.added} added`,
+    `${locale.unchanged} unchanged`,
+    `${locale.kept} kept`,
+    `${locale.overwritten} overwritten`,
+    `${locale.duplicates} repeated in the file`,
+  ].join(", ");
+  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale)];
+}
+
+function renderTmxLanguages(
+  label: string,
+  reports: readonly TmxLanguageReport[],
+): readonly string[] {
+  if (reports.length === 0) {
+    return [];
+  }
+  const listed = reports
+    .map((report) => `${preview(report.language, LANGUAGE_TAG_PREVIEW)} (${report.units})`)
+    .join(", ");
+  return [`  ${label}: ${listed}`];
+}
+
+function renderTmxNotes(result: ImportTmxResult): readonly string[] {
+  const notes: string[] = [];
+  if (result.skippedUnits > 0) {
+    notes.push(`  ${result.skippedUnits} units could not be read and were skipped`);
+  }
+  if (result.unmatchedSourceUnits > 0) {
+    notes.push(`  ${result.unmatchedSourceUnits} units carried no segment in the source locale`);
+  }
+  if (result.markupStrippedUnits > 0) {
+    notes.push(`  ${result.markupStrippedUnits} units carried inline markup, which was dropped`);
+  }
+  notes.push(
+    ...renderTmxLanguages("languages matching no configured locale", result.unmatchedLanguages),
+  );
+  notes.push(
+    ...renderTmxLanguages(
+      "languages two configured locales could claim",
+      result.ambiguousLanguages,
+    ),
+  );
+  if (!result.memoryWritable) {
+    notes.push("  the translation memory was written by a newer verbatra and was left untouched");
+  }
+  if (result.dryRun) {
+    notes.push("  dry run: nothing written");
+  }
+  return notes;
+}
+
+export function renderTmxImportHuman(result: ImportTmxResult): string {
+  const language =
+    result.sourceLanguage === undefined
+      ? "no source language declared"
+      : `source language ${preview(result.sourceLanguage, LANGUAGE_TAG_PREVIEW)}`;
+  return [
+    `verbatra tmx import <- ${result.file}`,
+    `  ${result.units} units read (${language})`,
+    ...result.locales.flatMap(renderTmxLocale),
+    ...renderTmxNotes(result),
+  ].join("\n");
+}
+
+export function renderTmxExportHuman(result: ExportTmxResult): string {
+  const localeLines = result.locales.map((locale) => `  ${locale.locale}: ${locale.units} units`);
+  const withoutSource =
+    result.withoutSource > 0
+      ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
+      : [];
+  return [
+    `verbatra tmx export -> ${result.path}`,
+    ...localeLines,
+    `${result.units} units across ${result.locales.length} locales`,
+    ...withoutSource,
+  ].join("\n");
 }

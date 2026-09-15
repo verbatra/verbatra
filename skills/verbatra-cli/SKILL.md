@@ -1,6 +1,6 @@
 ---
 name: verbatra-cli
-description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key exists in the source locale but is missing in de/es/fr, a translation needs re-running after the source text changed, translation drift has to gate a pull request, strings have to be handed to a human translator and imported back, or a project needs verbatra set up. Also use when deciding whether a command costs money before running it, when branching on a verbatra exit code, or when reading verbatra.lock.json. Covers translate, watch, check, diff, doctor, export, import, extract, pseudo, init, and the JSON envelope.
+description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key exists in the source locale but is missing in de/es/fr, a translation needs re-running after the source text changed, translation drift has to gate a pull request, strings have to be handed to a human translator and imported back, or a project needs verbatra set up. Also use when deciding whether a command costs money before running it, when branching on a verbatra exit code, or when reading verbatra.lock.json. Covers translate, watch, check, diff, doctor, export, import, tmx, extract, pseudo, init, and the JSON envelope.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/verbatra'
@@ -77,6 +77,7 @@ Read this table before running anything unattended.
 | `watch` | yes, once per source change | yes | yes |
 | `export` | no | yes, the translator handoff workbook | no |
 | `import` | no | yes, target locales and the lock file | no |
+| `tmx` | no | yes on import, the translation memory; yes on export, the TMX file | no |
 | `check` | no | no | no |
 | `diff` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
@@ -89,6 +90,14 @@ Read this table before running anything unattended.
 `import` is worth calling out: it applies human translations from a workbook and
 holds them to the same integrity gate as provider output, at no provider cost.
 When a human has already done the work, `export` then `import` is the free path.
+
+`tmx` is the other free path. `verbatra tmx import <file>` lands a translation
+memory another tool produced into this project's memory, so a later run reuses
+it instead of paying for those strings again, and `verbatra tmx export` writes
+this project's memory out in the same standard format. Everything in an imported
+file faces the same integrity gate provider output does, and a translation the
+project already holds wins a disagreement unless `--overwrite` is passed. Neither
+direction calls a provider or reads a key.
 
 Never read a missing `--allow-spend` as proof that a session cannot spend. Both
 servers take the capability from an environment variable as readily as from the
