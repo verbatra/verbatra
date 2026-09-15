@@ -116,9 +116,11 @@ function integrityEntriesFor(
  * edit may have just invalidated. Only keys present in both the source and the target are judged,
  * since a missing translation has no placeholders to compare.
  *
- * This is the read-only counterpart to the gate that {@link editEntry} and
- * {@link retranslateEntry} enforce at write time, and the data behind a review dashboard's
- * per-key integrity indicator.
+ * This is the read-only counterpart to the placeholder and ICU checks the gate that
+ * {@link editEntry} and {@link retranslateEntry} enforce at write time, and the data behind a
+ * review dashboard's per-key integrity indicator. The gate's remaining reasons (inline markup,
+ * degeneracy, emptiness) judge a candidate value rather than a value already on disk, so they have
+ * no verdict to report here.
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending

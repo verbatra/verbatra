@@ -118,7 +118,10 @@ export {
   type ExtractResult,
   extract,
 } from "./flow/extract.js";
-export type { IntegrityGateReason } from "./flow/integrity-gate.js";
+export {
+  INTEGRITY_GATE_REASONS,
+  type IntegrityGateReason,
+} from "./flow/integrity-gate.js";
 export {
   type KeyIntegrityDeps,
   type KeyIntegrityEntry,

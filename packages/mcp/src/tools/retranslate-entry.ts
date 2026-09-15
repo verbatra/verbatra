@@ -1,4 +1,4 @@
-import { REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
+import { INTEGRITY_GATE_REASONS, REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   key: z.string().min(1),
 });
 
-const integrityGateReasonSchema = z.enum(["placeholder", "icu", "degenerate", "empty"]);
+const integrityGateReasonSchema = z.enum(INTEGRITY_GATE_REASONS);
 
 const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 

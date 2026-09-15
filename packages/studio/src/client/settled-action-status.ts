@@ -7,6 +7,7 @@ export type SettledActionOutcome =
 
 const REJECTION_LABEL: Readonly<Record<IntegrityGateReason, string>> = {
   placeholder: "Rejected: placeholder mismatch",
+  markup: "Rejected: inline markup mismatch",
   icu: "Rejected: invalid message syntax",
   degenerate: "Rejected: degenerate translation",
   empty: "Rejected: empty translation",
