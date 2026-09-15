@@ -19,7 +19,10 @@ export {
   supportedFormatSchema,
 } from "./model/supported-format.js";
 export { type TranslationEntry, translationEntrySchema } from "./model/translation-entry.js";
-
+export {
+  compareInlineMarkup,
+  type InlineMarkupComparison,
+} from "./placeholder/inline-markup.js";
 export { checkPlaceholders } from "./placeholder/integrity.js";
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";
 export { pseudolocalizeValue } from "./pseudo/pseudo-transform.js";
