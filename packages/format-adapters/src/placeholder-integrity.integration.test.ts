@@ -1,7 +1,8 @@
-import { checkPlaceholders } from "@verbatra/core";
+import { checkPlaceholders, SUPPORTED_FORMATS, type SupportedFormat } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 import { createArbAdapter } from "./arb/arb-adapter.js";
+import { createDefaultRegistry } from "./default-registry.js";
 import { createGettextAdapter } from "./gettext/gettext-adapter.js";
 import { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 import { analyzeIcuValue } from "./icu/analyze.js";
@@ -256,4 +257,64 @@ describe("placeholder integrity covers the resx and ini adapters too", () => {
       ).matches,
     ).toBe(true);
   });
+});
+
+describe("which adapters report an inline tag as a placeholder of their own", () => {
+  const MARKUP_VALUES: Readonly<Record<SupportedFormat, string>> = {
+    "i18next-json": "Read <b>the docs</b> for {{count}} tips",
+    "vue-i18n-json": "Read <b>the docs</b> for {count} tips",
+    "next-intl-json": "Read <b>the docs</b> for {count} tips",
+    "ngx-translate-json": "Read <b>the docs</b> for {{count}} tips",
+    xliff: 'Read <g id="1">the docs</g> and <b>this</b>',
+    yaml: "Read <b>the docs</b> for {{count}} tips",
+    arb: "Read <b>the docs</b> for {count} tips",
+    properties: "Read <b>the docs</b> for {0} tips",
+    "apple-strings": "Read <b>the docs</b> for %d tips",
+    "apple-xcstrings": "Read <b>the docs</b> for %d tips",
+    "android-xml": "Read <b>the docs</b> for %1$s tips",
+    "gettext-po": "Read <b>the docs</b> for %d tips",
+    ini: "Read <b>the docs</b> for {count} tips",
+    resx: "Read <b>the docs</b> for {0} tips",
+  };
+
+  const ADAPTERS_THAT_OWN_THEIR_MARKUP: readonly SupportedFormat[] = [
+    "xliff",
+    "next-intl-json",
+    "arb",
+  ];
+
+  function adapterFor(format: SupportedFormat) {
+    const resolution = createDefaultRegistry().resolve("", { format });
+    if (resolution.status !== "resolved") {
+      throw new Error(`no adapter resolved for ${format}`);
+    }
+    return resolution.adapter;
+  }
+
+  it("covers every supported format, so a new one cannot slip past this matrix", () => {
+    expect(Object.keys(MARKUP_VALUES).sort()).toEqual([...SUPPORTED_FORMATS].sort());
+  });
+
+  it.each(SUPPORTED_FORMATS)("%s", (format) => {
+    const tokens = adapterFor(format).extractPlaceholders(MARKUP_VALUES[format]);
+    expect(tokens.some((token) => token.startsWith("<"))).toBe(
+      ADAPTERS_THAT_OWN_THEIR_MARKUP.includes(format),
+    );
+  });
+
+  it.each(SUPPORTED_FORMATS)(
+    "%s leaves an attribute-bearing tag to the markup comparison, tokenising nothing itself",
+    (format) => {
+      const tokens = adapterFor(format).extractPlaceholders('Read <a href="/docs">the docs</a>');
+      expect(tokens.some((token) => token.startsWith("<"))).toBe(false);
+    },
+  );
+
+  it.each(SUPPORTED_FORMATS)(
+    "%s leaves a self-closing tag to the markup comparison, tokenising nothing itself",
+    (format) => {
+      const tokens = adapterFor(format).extractPlaceholders("One<br/>two");
+      expect(tokens.some((token) => token.startsWith("<"))).toBe(false);
+    },
+  );
 });
