@@ -454,6 +454,39 @@ opciones de cada proveedor, y DeepL no tiene entrada porque no recibe límite de
 tipo `ScaffoldableProviderId` cubre los cuatro proveedores alojados; `openai-compatible` queda excluido
 porque no tiene una única variable de entorno obligatoria.
 
+## Adaptadores de formato
+
+<AvailableFrom version="0.11.0" />
+
+Todo lo necesario para construir un adaptador de un formato que verbatra no trae y registrarlo junto a los integrados. Un formato externo a verbatra se nombra con un identificador `custom:`, como `custom:toml`, que la configuración acepta igual que un nombre integrado. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes el recorrido completo, incluido en qué confías al instalar un adaptador de terceros: es código de plena confianza, y verbatra no lo aísla.
+
+### createDefaultRegistry
+
+Construye una `AdapterRegistry` con todos los adaptadores que verbatra trae, en orden de detección. Empieza aquí en lugar de con una registry vacía, para que tu formato se sume a los integrados en vez de reemplazarlos, y pasa el resultado como `deps.adapterRegistry` a cualquier flujo. `register` devuelve la registry, así que los registros se encadenan, y lanza un `AdapterError` con código `DUPLICATE_FORMAT` si el formato ya está ocupado.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la factoría aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
+
+### createTreeFileAdapter
+
+Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los marcadores de cada hoja y de si es una forma plural, y se encarga por su cuenta de aplanar y volver a anidar. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` y `keyMode`.
+
+### nodeAdapterFs
+
+El puerto de sistema de archivos, de tipo `AdapterFs`, que usa cada factoría de adaptadores cuando no se le pasa ninguno: una lectura acotada por tamaño que informa de un archivo ausente o demasiado grande como estado en lugar de lanzar, y una escritura que pasa por un archivo temporal y un renombrado, de modo que una escritura interrumpida nunca deja un archivo de locale a medias. Lee y escribe a través de este puerto en un adaptador propio en lugar de recurrir a `node:fs`. Es una convención, no una frontera, y verbatra no puede imponerla en código que no le pertenece.
+
+### isCustomFormatId
+
+Acota un identificador de formato a uno externo: true para un identificador `custom:` bien formado, false para cualquier nombre de formato integrado. Útil cuando tu propio utillaje tiene que distinguirlos, por ejemplo para decidir si hace falta aportar una registry antes de poder ejecutar una configuración.
+
 ## Redacción de secretos
 
 <AvailableFrom version="0.10.0" />

@@ -442,6 +442,39 @@ because it takes no token limit. The `ScaffoldableProviderId` type
 covers the four hosted providers; `openai-compatible` is excluded because it has no single required
 environment variable.
 
+## Format adapters
+
+<AvailableFrom version="0.11.0" />
+
+Everything needed to build a format adapter for a format verbatra does not ship, and to register it alongside the built-in ones. A format from outside verbatra is named with a `custom:` identifier, such as `custom:toml`, which the config accepts exactly like a built-in name. See [Custom format adapters](/docs/custom-format-adapters) for the full walkthrough, including what you are trusting when you install a third-party adapter: it is fully trusted code, and verbatra does not sandbox it.
+
+### createDefaultRegistry
+
+Builds an `AdapterRegistry` holding every adapter verbatra ships, in detection order. Start here rather than from an empty registry, so your own format joins the built-in ones instead of replacing them, then pass the result as `deps.adapterRegistry` to any flow. `register` returns the registry so registrations chain, and raises an `AdapterError` with code `DUPLICATE_FORMAT` if the format is already taken.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Builds a `FormatAdapter` for a flat key/value format, one where every entry is addressed by a single key with no nesting. You supply the format's own `parseEntries`, `serializeEntries` and `extractPlaceholders`; the factory supplies the size-bounded read, the atomic write, extension detection and the structured error handling. Give it a `sniff` whenever your extension is a generic one, or your adapter claims every file that shares it and detection reports an ambiguity instead of choosing.
+
+### createTreeFileAdapter
+
+Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and handles flattening and unflattening itself. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` and `keyMode`.
+
+### nodeAdapterFs
+
+The file-system port, typed `AdapterFs`, that every adapter factory uses when none is supplied: a size-bounded read that reports a missing or oversized file as a state rather than throwing, and a write that goes through a temporary file and a rename so an interrupted write never leaves a half-finished locale file. Read and write through this port rather than reaching for `node:fs` in an adapter of your own. It is a convention rather than a boundary, and verbatra cannot enforce it on code it does not own.
+
+### isCustomFormatId
+
+Narrows a format identifier to a third-party one: true for a well-formed `custom:` identifier, false for every built-in format name. Useful when your own tooling has to tell the two apart, for example to decide whether a registry has to be supplied before a config can run.
+
 ## Secret redaction
 
 <AvailableFrom version="0.10.0" />

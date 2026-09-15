@@ -1,0 +1,95 @@
+---
+title: Eigene Formatadapter
+description: "Liefere ein Format, das verbatra nicht mitbringt: benenne es mit einem custom:-Bezeichner, bau es auf einer der beiden Adapter-Factories und übergib verbatra die Registry. Inklusive dem, worauf du dich beim Installieren einlässt."
+---
+<AvailableFrom version="0.11.0" />
+
+verbatra liest und schreibt vierzehn Formate von Haus aus. Wenn deines nicht dabei ist, musst du nicht warten, bis es aufgenommen wird: Bau einen Adapter in deinem eigenen Paket, benenne das Format mit einem `custom:`-Bezeichner und übergib verbatra eine Registry, die ihn enthält. Nichts wird bei verbatra veröffentlicht, nichts wird von uns geprüft, und kein Release ist beteiligt.
+
+Das ist eine programmatische API. Die Kommandozeile `verbatra` lädt von sich aus kein Plugin, und das mit Absicht (siehe den Abschnitt "Worauf du dich einlässt" unten), ein Projekt mit einem eigenen Format steuert verbatra also über `@verbatra/sdk`.
+
+## Das Format benennen
+
+Ein Format von außerhalb verbatra heißt `custom:` gefolgt von einem kleingeschriebenen, mit Bindestrichen getrennten Namen:
+
+```
+custom:toml
+custom:my-format
+```
+
+Kein eingebauter Formatname enthält einen Doppelpunkt, ein `custom:`-Bezeichner kann also nie einen überdecken, und eine Registry weist einen zweiten Adapter für einen bereits vergebenen Bezeichner zurück. Schreib ihn genau wie einen eingebauten Namen in deine Konfiguration:
+
+```json
+{
+  "sourceLocale": "en",
+  "targetLocales": ["de"],
+  "format": "custom:toml",
+  "files": { "pattern": "locales/{locale}.toml" },
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash" } }
+}
+```
+
+Eine Konfiguration, die ein Format nennt, das weder ein eingebauter Name noch ein wohlgeformter `custom:`-Bezeichner ist, wird beim Laden weiterhin abgelehnt. Was sich ändert, ist der Zeitpunkt, zu dem der Adapter selbst geprüft wird: Ein eingebauter Name wird zur Kompilierzeit geprüft, ein `custom:`-Bezeichner nur auf seine Form, weil der Adapter dahinter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit einem strukturierten `UNKNOWN_FORMAT`, das das Format nennt, statt einfach nichts zu tun.
+
+## Den Adapter bauen
+
+Implementiere den Adapter-Vertrag nicht von Hand. Zwei Factories erledigen das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung für dich und lassen dir nur das Parsen deines eigenen Formats.
+
+Nimm `createFlatFileAdapter`, wenn jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird:
+
+```ts
+import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
+
+const TOKEN = /\{[a-z]+\}/g;
+
+const tokensIn = (value: string): readonly string[] =>
+  [...value.matchAll(TOKEN)].map((match) => match[0]);
+
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace) => parseToml(content, namespace),
+  serializeEntries: (entries) => serializeToml(entries),
+  extractPlaceholders: tokensIn,
+});
+```
+
+Nimm `createTreeFileAdapter`, wenn Einträge auf Pfaden durch verschachtelte Objekte liegen. Es nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist.
+
+Beide Factories nehmen ein optionales `comparePlaceholders` für ein Format, dessen Struktur eine flache Token-Liste verlieren würde. Markiert dein Format Inhalte als nicht übersetzbar, melde sie, statt sie fallen zu lassen: Ein flaches `parseEntries` gibt `{ entries, excludedLeafPaths }` statt einer blanken Map zurück, und ein Baum-Adapter meldet seine Nicht-String-Blätter von selbst.
+
+Beide Factories akzeptieren ein optionales `sniff`, eine Prüfung auf einer führenden Inhaltsprobe. Gib ihr eine, wann immer deine Endung eine generische ist: Ohne sie beansprucht dein Adapter jede Datei mit dieser Endung, und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
+
+Beide akzeptieren außerdem einen `fs`-Port vom Typ `AdapterFs`, der auf `nodeAdapterFs` vorbelegt ist. Lies und schreib über ihn, statt selbst zu `node:fs` zu greifen: Er ist der unterstützte Weg, er schenkt dir das größenbegrenzte Lesen und das atomare Schreiben, und er ist es, der deinen Adapter ohne Festplatte testbar macht.
+
+## Registrieren und laufen lassen
+
+Fang bei der eingebauten Registry an, damit dein Format zu den vierzehn dazukommt statt sie zu ersetzen, und übergib sie als `adapterRegistry`-Abhängigkeit, die jeder Flow akzeptiert:
+
+```ts
+import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
+import { tomlAdapter } from "./toml-adapter.js";
+
+const config = await loadConfig({ cwd: process.cwd() });
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+`register` gibt die Registry zurück, Registrierungen lassen sich also verketten. Es wirft einen `AdapterError` mit dem Code `DUPLICATE_FORMAT`, wenn die Registry dieses Format bereits hält, zwei Plugins mit demselben Namen scheitern also laut beim Start, statt dass eines still gewinnt.
+
+## Wie deine Fehler gemeldet werden
+
+Ein Adapter mit einem `custom:`-Bezeichner wird beim Registrieren umhüllt. Ein unerwarteter Fehler aus `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` oder `comparePlaceholders` erscheint als `AdapterError` mit dem Code `ADAPTER_FAILED`, dessen Meldung dein Format nennt, ein Defekt in deinem Adapter wird also nie als Defekt von verbatra gemeldet.
+
+Zwei Arten von Fehlern reisen unverändert weiter, weil sie schon etwas Genaues bedeuten. Ein `AdapterError`, den du selbst wirfst, behält seinen eigenen Code, wirf also einen (`INVALID_STRUCTURE` passt in den meisten Fällen) für Inhalte, die dein Format nicht darstellen kann. Ein Fehler mit einem errno-Code (`ENOENT`, `EACCES`) behält ihn ebenfalls, eine fehlende Datei wird also weiterhin als fehlende Datei gemeldet. Alles andere wird deinem Adapter zugeschrieben, auch ein Node-Fehler wie `ERR_INVALID_ARG_TYPE`, den ein fehlerhafter Adapter am ehesten wirft und der nicht mit einem Dateisystemfehler verwechselt werden darf. Diese errno-Regel prüft die Form des Fehlers, nicht seine Herkunft: Wirft dein eigener Prüfcode einen Fehler mit `ENOENT`, wird er als Dateisystemzustand gemeldet, weil sich beides nicht unterscheiden lässt.
+
+## Worauf du dich einlässt
+
+**Ein Formatadapter ist voll vertrauenswürdiger Code, auf genau dem Vertrauensniveau jedes anderen Pakets, das du installierst. verbatra kapselt ihn nicht ab.**
+
+Ein Adapter, den du installierst und registrierst, kann alles, was jede Abhängigkeit kann: `process.env` lesen, wo jeder Provider-API-Key liegt; jede Datei lesen und schreiben, die der Prozess kann, nicht nur die, auf die deine Konfiguration zeigt; und eine Netzwerkverbindung öffnen. Der `AdapterFs`-Port ist der unterstützte Weg und der, den verbatra deinem Adapter übergibt, aber er ist eine Konvention und keine Grenze: Nichts hindert fremden Code daran, das Dateisystem anders zu erreichen.
+
+Eine Folge betrifft Adapter im Besonderen und gehört eigens gesagt. Der Adapter entscheidet, was als Platzhalter zählt. Ein Adapter, der keine Platzhalter meldet, lässt die [Platzhalter-Integritätsprüfung](/docs/translation-safety) für sein Format ins Leere laufen, eine Übersetzung, die eine Interpolation verloren oder verstümmelt hat, geht dann still durch. Ein fehlerhafter Adapter tut das genauso leicht wie ein bösartiger.
+
+Es gibt hier keine ehrliche Abmilderung anzubieten, also tun wir nicht so. Was verbatra garantiert: Laden geschieht nie implizit. Es entdeckt kein Plugin von sich aus, durchsucht kein Verzeichnis, installiert nichts und folgt keiner Namenskonvention. Ein Adapter läuft nur, weil dein eigener Code ihn importiert und verbatra die Registry übergeben hat. Behandle das Installieren so, wie du jede Abhängigkeit behandeln würdest, die deine Geheimnisse liest und deine Dateien schreibt: lies sie, pinne sie und prüfe, was sich beim Update ändert.

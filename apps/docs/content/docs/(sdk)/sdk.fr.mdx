@@ -284,6 +284,39 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` couvre les quatre fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
 
+## Adaptateurs de format
+
+<AvailableFrom version="0.11.0" />
+
+Tout ce qu'il faut pour construire un adaptateur de format que verbatra ne fournit pas et l'enregistrer à côté des adaptateurs intégrés. Un format venu d'ailleurs que verbatra se nomme avec un identifiant `custom:`, par exemple `custom:toml`, que la configuration accepte exactement comme un nom intégré. Voir [Adaptateurs de format personnalisés](/docs/custom-format-adapters) pour le parcours complet, y compris ce à quoi tu accordes ta confiance en installant un adaptateur tiers : c'est du code pleinement de confiance, et verbatra ne le met pas en bac à sable.
+
+### createDefaultRegistry
+
+Construit une `AdapterRegistry` contenant tous les adaptateurs fournis par verbatra, dans l'ordre de détection. Pars de là plutôt que d'une registry vide, pour que ton format rejoigne les adaptateurs intégrés au lieu de les remplacer, puis passe le résultat comme `deps.adapterRegistry` à n'importe quel flow. `register` renvoie la registry, les enregistrements s'enchaînent donc, et lève une `AdapterError` avec le code `DUPLICATE_FORMAT` si le format est déjà pris.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée est adressée par une seule clé sans imbrication. Tu fournis les `parseEntries`, `serializeEntries` et `extractPlaceholders` propres à ton format ; la fabrique fournit la lecture bornée en taille, l'écriture atomique, la détection par extension et la gestion structurée des erreurs. Donne-lui un `sniff` dès que ton extension est générique, sinon ton adaptateur revendique tous les fichiers qui la partagent et la détection signale une ambiguïté au lieu de choisir.
+
+### createTreeFileAdapter
+
+Construit un `FormatAdapter` pour un format arborescent, dont les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les marqueurs de chaque feuille et si elle est une forme plurielle, et gère lui-même l'aplatissement et la reconstruction. Il porte aussi les hooks optionnels dont un format structuré a besoin : `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` et `keyMode`.
+
+### nodeAdapterFs
+
+Le port système de fichiers, de type `AdapterFs`, que chaque fabrique d'adaptateur utilise quand aucun n'est fourni : une lecture bornée en taille qui signale un fichier absent ou trop grand comme un état plutôt qu'en levant, et une écriture qui passe par un fichier temporaire puis un renommage, de sorte qu'une écriture interrompue ne laisse jamais un fichier de locale à moitié fini. Dans un adaptateur à toi, lis et écris par ce port plutôt que d'aller chercher `node:fs`. C'est une convention, pas une frontière, et verbatra ne peut pas l'imposer à du code qui ne lui appartient pas.
+
+### isCustomFormatId
+
+Restreint un identifiant de format à un identifiant tiers : true pour un identifiant `custom:` bien formé, false pour tout nom de format intégré. Utile quand ton propre outillage doit distinguer les deux, par exemple pour décider s'il faut fournir une registry avant qu'une configuration puisse tourner.
+
 ## Expurgation des secrets
 
 <AvailableFrom version="0.10.0" />

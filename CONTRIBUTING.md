@@ -243,12 +243,21 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 ### Adding a format adapter
 
+This section is about adding a format *to this repository*, so that it ships
+with verbatra under its own built-in name. If you only need verbatra to handle a
+format in your own project, you do not need a pull request at all: build the
+adapter in your own package, name it with a `custom:` identifier, and hand
+verbatra a registry holding it. See `docs/decisions/0001-third-party-format-adapters.md`
+for why that path exists and what it deliberately does not promise, and
+`apps/docs/content/docs/(guides)/custom-format-adapters.mdx` for how to use it.
+
 Work outward from `packages/core`, then `packages/format-adapters`. Replace
 `<format>` with the format id and `<Format>` with its PascalCase name.
 
 1. **`packages/core/src/model/supported-format.ts`** - add the member to
-   `SUPPORTED_FORMATS` (around `:3`). The set is closed by design: a format
-   outside it cannot be represented at all. The doc comment on
+   `SUPPORTED_FORMATS` (around `:3`). The set of built-in formats is closed by
+   design; a format supplied from outside verbatra never joins it and is named
+   by a `custom:` identifier instead. The doc comment on
    `supportedFormatSchema` states the rule and lists what each member means, so
    extend that list too.
 

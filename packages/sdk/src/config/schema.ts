@@ -1,4 +1,4 @@
-import { supportedFormatSchema } from "@verbatra/core";
+import { formatIdSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
@@ -54,7 +54,7 @@ export const verbatraConfigSchema = z
     $schema: z.string().optional(),
     sourceLocale: z.string().min(1),
     targetLocales: z.array(z.string().min(1)).min(1),
-    format: supportedFormatSchema,
+    format: formatIdSchema,
     files: z.strictObject({
       pattern: z
         .string()

@@ -32,4 +32,14 @@ describe("localeResourceSchema", () => {
   it("rejects an unknown format", () => {
     expect(localeResourceSchema.safeParse({ ...valid, format: "toml" }).success).toBe(false);
   });
+
+  it("carries a third-party format identifier", () => {
+    const parsed = localeResourceSchema.parse({ ...valid, format: "custom:toml" });
+
+    expect(parsed.format).toBe("custom:toml");
+  });
+
+  it("rejects a malformed third-party format identifier", () => {
+    expect(localeResourceSchema.safeParse({ ...valid, format: "custom:TOML" }).success).toBe(false);
+  });
 });

@@ -109,3 +109,112 @@ describe("createFlatFileAdapter", () => {
     expect(makeAdapter({ validateMessage: (v) => v === "y" }).validateMessage("x")).toBe(false);
   });
 });
+
+describe("createFlatFileAdapter and a case-mismatched extension", () => {
+  it("claims a file whose extension differs only in case from the configured one", () => {
+    expect(makeAdapter({ extensions: [".FLAT"] }).canHandle("locales/de.flat")).toBe(true);
+  });
+
+  it("claims an uppercase path under a lowercase configured extension", () => {
+    expect(makeAdapter({ extensions: [".flat"] }).canHandle("locales/de.FLAT")).toBe(true);
+  });
+
+  it("still refuses an extension it does not claim", () => {
+    expect(makeAdapter({ extensions: [".FLAT"] }).canHandle("locales/de.json")).toBe(false);
+  });
+});
+
+describe("createFlatFileAdapter reports content it skipped", () => {
+  it("reports nothing when parseEntries returns a bare map", async () => {
+    const path = await tempFile("a.flat", "greeting=Hello\n");
+
+    const result = await makeAdapter().read(path, "de");
+
+    expect(result.excludedLeafPaths).toEqual([]);
+  });
+
+  it("carries the paths parseEntries reported as skipped", async () => {
+    const path = await tempFile("a.flat", "greeting=Hello\n");
+    const adapter = makeAdapter({
+      parseEntries: (_content, namespace) => ({
+        entries: new Map([["greeting", entry("greeting", "Hello")]]),
+        excludedLeafPaths: [`${namespace}.untranslatable`],
+      }),
+    });
+
+    const result = await adapter.read(path, "de");
+
+    expect(result.excludedLeafPaths).toEqual(["a.untranslatable"]);
+  });
+
+  it("still reads the entries alongside the skipped paths", async () => {
+    const path = await tempFile("a.flat", "greeting=Hello\n");
+    const adapter = makeAdapter({
+      parseEntries: () => ({
+        entries: new Map([["greeting", entry("greeting", "Hello")]]),
+        excludedLeafPaths: ["skipped"],
+      }),
+    });
+
+    const result = await adapter.read(path, "de");
+
+    expect(result.resource.entries.get("greeting")?.value).toBe("Hello");
+  });
+
+  it("treats an omitted excludedLeafPaths on a result object as nothing skipped", async () => {
+    const path = await tempFile("a.flat", "greeting=Hello\n");
+    const adapter = makeAdapter({
+      parseEntries: () => ({ entries: new Map([["greeting", entry("greeting", "Hello")]]) }),
+    });
+
+    const result = await adapter.read(path, "de");
+
+    expect(result.excludedLeafPaths).toEqual([]);
+  });
+
+  it("accepts a promised result object, so an async parse can report too", async () => {
+    const path = await tempFile("a.flat", "greeting=Hello\n");
+    const adapter = makeAdapter({
+      parseEntries: () =>
+        Promise.resolve({
+          entries: new Map([["greeting", entry("greeting", "Hello")]]),
+          excludedLeafPaths: ["skipped"],
+        }),
+    });
+
+    const result = await adapter.read(path, "de");
+
+    expect(result.excludedLeafPaths).toEqual(["skipped"]);
+  });
+});
+
+describe("createFlatFileAdapter and whole-value placeholder comparison", () => {
+  it("defines no comparePlaceholders when the format supplies none", () => {
+    expect(makeAdapter().comparePlaceholders).toBeUndefined();
+  });
+
+  it("omits the key entirely, so an optional-property check sees it absent", () => {
+    expect("comparePlaceholders" in makeAdapter()).toBe(false);
+  });
+
+  it("exposes the comparison the format supplied", () => {
+    const verdict = { matches: false, missing: ["{name}"], extra: [], reordered: false } as const;
+    const adapter = makeAdapter({ comparePlaceholders: () => verdict });
+
+    expect(adapter.comparePlaceholders?.("Hi {name}", "Hallo")).toEqual(verdict);
+  });
+
+  it("passes both values through in order", () => {
+    const seen: string[] = [];
+    const adapter = makeAdapter({
+      comparePlaceholders: (source, target) => {
+        seen.push(source, target);
+        return { matches: true, missing: [], extra: [], reordered: false };
+      },
+    });
+
+    adapter.comparePlaceholders?.("source", "target");
+
+    expect(seen).toEqual(["source", "target"]);
+  });
+});

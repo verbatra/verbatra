@@ -1,4 +1,4 @@
-import type { LocaleResource, PlaceholderIntegrityResult, SupportedFormat } from "@verbatra/core";
+import type { FormatId, LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
 
 /**
  * The result of reading a file into core's intermediate representation. The two diagnostic lists are
@@ -15,11 +15,18 @@ export interface ReadResult {
   /**
    * Keys or dotted paths that were present in the source but excluded from translation: a stray
    * non-string leaf (a number, boolean, or null) for a tree-based format, or a key the format's own
-   * metadata marks as not translatable. These are never translated, hashed, diffed, or checked for
-   * placeholder or ICU integrity. Whether one survives a later rewrite of the same file depends on
-   * the adapter: an adapter that reconstructs the whole file from `resource.entries` alone drops it,
-   * while an adapter that patches only the entries it touches into the existing document (for
-   * example `apple-xcstrings`) preserves it verbatim. Empty for a file with no such leaves.
+   * metadata marks as not translatable, such as an Android `translatable="false"` resource. These
+   * are never translated, hashed, diffed, or checked for placeholder or ICU integrity.
+   *
+   * Reporting them is the adapter's choice, so an empty list means this adapter reported none, not
+   * necessarily that the file carried none. A tree-based adapter reports its non-string leaves
+   * automatically; a flat adapter reports by returning `{ entries, excludedLeafPaths }` from
+   * `parseEntries` instead of a bare map.
+   *
+   * Whether one survives a later rewrite of the same file depends on the adapter: an adapter that
+   * reconstructs the whole file from `resource.entries` alone drops it, while an adapter that
+   * patches only the entries it touches into the existing document (for example `apple-xcstrings`)
+   * preserves it verbatim.
    */
   readonly excludedLeafPaths: readonly string[];
 }
@@ -28,15 +35,20 @@ export interface ReadResult {
  * The contract every format adapter implements. A new format attaches by implementing this interface
  * and registering it in an {@link AdapterRegistry}.
  *
- * Implement it through one of `@verbatra/format-adapters`' shared factories rather than from
- * scratch: `createTreeFileAdapter` for a nested-tree format (with `createJsonFileAdapter` as its
- * JSON specialization) and `createFlatFileAdapter` for a flat key/value format. A format that fits
- * neither shape implements this interface directly, and either way it first needs its member added
- * to core's {@link SupportedFormat}.
+ * Implement it through one of the two shared factories rather than from scratch:
+ * `createTreeFileAdapter` for a nested-tree format and `createFlatFileAdapter` for a flat
+ * key/value format. A format that fits neither shape implements this interface directly.
+ *
+ * An adapter shipped outside verbatra names itself with a `custom:` identifier and is attached by
+ * registering it in a registry the caller hands to the SDK. It is ordinary trusted code: verbatra
+ * does not sandbox it.
  */
 export interface FormatAdapter {
-  /** The single format this adapter handles (a {@link SupportedFormat} from core). */
-  readonly format: SupportedFormat;
+  /**
+   * The single format this adapter handles: one of core's built-in `SupportedFormat` members, or a
+   * third-party `custom:` identifier for an adapter that ships outside verbatra.
+   */
+  readonly format: FormatId;
 
   /**
    * Detect whether this adapter can handle a file, by path extension and an optional content sample.
@@ -92,8 +104,9 @@ export interface FormatAdapter {
 
   /**
    * Optional whole-value placeholder comparison, used by callers instead of independently extracting
-   * each side's placeholders with {@link extractPlaceholders} and diffing the flat lists. Two adapter
-   * families define one, for different reasons:
+   * each side's placeholders with {@link extractPlaceholders} and diffing the flat lists. Both
+   * adapter factories accept one, under the `comparePlaceholders` option. Among the shipped
+   * adapters two families define one, for different reasons:
    *
    * - The ICU formats (next-intl and ARB) compare branch by branch, because flattening a
    *   plural/select value loses which branch a placeholder came from.

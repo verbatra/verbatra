@@ -257,3 +257,35 @@ describe("the optional maxLength block", () => {
     expect(result.success).toBe(false);
   });
 });
+
+function withFormat(format: string): unknown {
+  return { ...baseConfig(), format };
+}
+
+describe("verbatraConfigSchema: format identity", () => {
+  it("accepts a built-in format", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({ format: "yaml" })).success).toBe(true);
+  });
+
+  it("accepts a third-party format identifier", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ format: "custom:toml" }));
+
+    expect(result.success).toBe(true);
+    expect(result.data?.format).toBe("custom:toml");
+  });
+
+  it("rejects an unknown bare format name", () => {
+    const result = verbatraConfigSchema.safeParse(withFormat("toml"));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((issue) => issue.path.join(".") === "format")).toBe(true);
+  });
+
+  it("rejects a malformed third-party format identifier", () => {
+    expect(verbatraConfigSchema.safeParse(withFormat("custom:TOML")).success).toBe(false);
+  });
+
+  it("rejects the bare third-party prefix", () => {
+    expect(verbatraConfigSchema.safeParse(withFormat("custom:")).success).toBe(false);
+  });
+});

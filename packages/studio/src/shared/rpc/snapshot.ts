@@ -1,4 +1,4 @@
-import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
+import type { FormatId, ProviderId } from "@verbatra/sdk";
 import { z } from "zod";
 import type { GlossaryIndicator } from "./glossary.js";
 
@@ -16,7 +16,7 @@ export interface StudioCapabilities {
 export interface ProjectSnapshotResult {
   readonly sourceLocale: string;
   readonly targetLocales: readonly string[];
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly files: { readonly pattern: string };
   readonly provider: { readonly id: ProviderId };
   readonly configSource: string;

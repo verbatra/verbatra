@@ -1,5 +1,13 @@
 export { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-providers";
-export type { SupportedFormat } from "@verbatra/core";
+export {
+  type CustomFormatId,
+  type FormatId,
+  isCustomFormatId,
+  type LocaleResource,
+  type PlaceholderIntegrityResult,
+  type SupportedFormat,
+  type TranslationEntry,
+} from "@verbatra/core";
 export type {
   KeyConflict,
   ScanDiagnostic,
@@ -7,6 +15,40 @@ export type {
   SourceFramework,
   SourceLocation,
 } from "@verbatra/extract";
+export {
+  AdapterError,
+  type AdapterErrorCode,
+  type AdapterFs,
+  AdapterRegistry,
+  type AdapterResolution,
+  type BoundedReadOutcome,
+  type BuildWriteTree,
+  type ComparePlaceholders,
+  type ComputeInvalidIcuKeys,
+  createDefaultRegistry,
+  createFlatFileAdapter,
+  createTreeFileAdapter,
+  type DeriveDescriptions,
+  type DeriveEntry,
+  type ExtractPlaceholders,
+  type FlatFileAdapterOptions,
+  type FlatParseOutcome,
+  type FlatParseResult,
+  type FormatAdapter,
+  type JsonLeaf,
+  type JsonRecord,
+  type JsonTree,
+  type KeyMode,
+  nodeAdapterFs,
+  type OrderedRecord,
+  type OrderedValue,
+  type ReadResult,
+  type ResolveOptions,
+  type Sniff,
+  type TreeFileAdapterOptions,
+  type ValidateMessage,
+  type ValidateTree,
+} from "@verbatra/format-adapters";
 export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";
 export { defineConfig } from "./config/define-config.js";

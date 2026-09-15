@@ -11,5 +11,5 @@
       "@verbatra/sdk": ["../../packages/sdk/dist/index.d.ts"]
     }
   },
-  "include": ["consumer.ts"]
+  "include": ["consumer.ts", "adapter-consumer.ts"]
 }

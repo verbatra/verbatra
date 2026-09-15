@@ -205,9 +205,17 @@ El único caso que falla por diseño es una colisión genuina, donde un archivo 
 
 ## Cómo se leen y escriben los archivos
 
-verbatra limita el tamaño de entrada y la profundidad de anidamiento al leer, y resiste que un archivo cambie por debajo. Escribe de forma atómica: escribe en un archivo temporal y luego lo renombra a su sitio, así que una escritura interrumpida nunca deja un archivo de locale a medias. Cuando verbatra no puede manejar un archivo, levanta un error estructurado y sin secretos con un código estable en lugar de uno crudo: `INVALID_JSON`, `INVALID_YAML` o `INVALID_XML` para sintaxis malformada, `INVALID_STRUCTURE` para un archivo parseable con la forma equivocada, `MAX_DEPTH_EXCEEDED` e `INPUT_TOO_LARGE` para los límites, y `MIXED_STRUCTURE` para el caso de estilos mezclados de ngx-translate.
+verbatra limita el tamaño de entrada y la profundidad de anidamiento al leer, y resiste que un archivo cambie por debajo. Escribe de forma atómica: escribe en un archivo temporal y luego lo renombra a su sitio, así que una escritura interrumpida nunca deja un archivo de locale a medias. Cuando verbatra no puede manejar un archivo, levanta un error estructurado y sin secretos con un código estable en lugar de uno crudo: `INVALID_JSON`, `INVALID_YAML` o `INVALID_XML` para sintaxis malformada, `INVALID_STRUCTURE` para un archivo parseable con la forma equivocada, `MAX_DEPTH_EXCEEDED` e `INPUT_TOO_LARGE` para los límites, y `MIXED_STRUCTURE` para el caso de estilos mezclados de ngx-translate. Otros dos códigos describen un adaptador en lugar de un archivo: `ADAPTER_FAILED` atribuye un fallo inesperado al adaptador externo del que vino, y `DUPLICATE_FORMAT` rechaza registrar un segundo adaptador para un identificador de formato ya ocupado.
 
 Un archivo de locale de árbol (la familia JSON, YAML y ARB) puede llevar una hoja que no es string, por ejemplo un valor `count: 5` o `enabled: true` junto a las claves traducibles. verbatra los acepta: una hoja puede ser string, número, booleano o null, y solo una hoja de otro tipo, como un array, falla con `INVALID_STRUCTURE`. Una hoja no string queda excluida del conjunto traducible: nunca se traduce, se hashea, se incluye en el diff ni se comprueba por marcadores de posición o ICU. Excluir no es preservar: si verbatra luego escribe ese mismo archivo de locale, la escritura se reconstruye a partir de las cadenas que gestiona, así que una hoja no string presente al leer no se traslada a la salida. Si un valor así necesita sobrevivir a una reescritura, mantenlo fuera de los archivos en los que verbatra escribe. Los valores de trans-unit de XLIFF y los valores de `.properties` son siempre strings, así que esto no aplica ahí.
+
+## Formatos externos a verbatra
+
+<AvailableFrom version="0.11.0" />
+
+Los catorce formatos de arriba son los que verbatra trae de serie. Un formato que no trae puedes aportarlo tú con un adaptador en tu propio paquete: lo nombras con un identificador `custom:` como `custom:toml` y se lo entregas a verbatra dentro de una registry. El conjunto integrado sigue cerrado, y ningún nombre integrado contiene dos puntos, así que un identificador externo nunca puede tapar uno integrado.
+
+Es una vía programática a través de `@verbatra/sdk`, no una vía de línea de comandos: el binario `verbatra` no carga ningún plugin por su cuenta. Un adaptador que instales es código de plena confianza, al nivel de confianza de cualquier otra dependencia, y verbatra no lo aísla. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes cómo construir uno y en qué confías al instalarlo.
 
 ## Por qué importa el formato
 

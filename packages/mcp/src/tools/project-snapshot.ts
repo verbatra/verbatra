@@ -1,9 +1,4 @@
-import {
-  type GlossaryProvenance,
-  type ProviderId,
-  redact,
-  type SupportedFormat,
-} from "@verbatra/sdk";
+import { type FormatId, type GlossaryProvenance, type ProviderId, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { resolveConfigSource, resolveGlossaryProvenance } from "./config-projection.js";
@@ -14,7 +9,7 @@ const paramsSchema = z.strictObject({});
 interface ProjectSnapshotResult {
   readonly sourceLocale: string;
   readonly targetLocales: readonly string[];
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly files: { readonly pattern: string };
   readonly provider: { readonly id: ProviderId };
   readonly configSource: string;

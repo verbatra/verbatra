@@ -1,6 +1,7 @@
 import { AdapterError } from "../errors.js";
 import { MAX_DEPTH } from "./limits.js";
 
+/** A value in a locale tree about to be serialized, with key order preserved at every level. */
 export type OrderedValue =
   | string
   | number
@@ -9,6 +10,7 @@ export type OrderedValue =
   | OrderedRecord
   | readonly OrderedValue[];
 
+/** A locale tree about to be serialized, keyed in the order it will be written out. */
 export type OrderedRecord = ReadonlyMap<string, OrderedValue>;
 
 const SENTINEL_ESCAPE = "\\u0001";
