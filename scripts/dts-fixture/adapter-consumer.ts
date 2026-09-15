@@ -4,28 +4,81 @@ import {
   type AdapterRegistry,
   type AdapterResolution,
   type BoundedReadOutcome,
+  type BuildWriteTree,
+  type ComparePlaceholders,
+  type ComputeInvalidIcuKeys,
   type CustomFormatId,
   createDefaultRegistry,
   createFlatFileAdapter,
   createTreeFileAdapter,
+  type DeriveDescriptions,
+  type DeriveEntry,
   defineConfig,
+  type ExtractPlaceholders,
   type FlatFileAdapterOptions,
+  type FlatParseResult,
   type FormatAdapter,
   type FormatId,
   isCustomFormatId,
+  type JsonLeaf,
+  type JsonRecord,
+  type JsonTree,
+  type KeyMode,
   type LocaleResource,
+  loadConfig,
   nodeAdapterFs,
+  type OrderedRecord,
+  type OrderedValue,
   type ReadResult,
   type ResolveOptions,
+  type RunSummary,
+  type Sniff,
   type TranslationEntry,
   type TreeFileAdapterOptions,
+  translate,
+  type ValidateMessage,
+  type ValidateTree,
 } from "@verbatra/sdk";
 
 const TOML_FORMAT: CustomFormatId = "custom:toml";
 
-function tokensIn(value: string): readonly string[] {
-  return [...value.matchAll(/\{[a-z]+\}/g)].map((match) => match[0]);
-}
+const tokensIn: ExtractPlaceholders = (value) =>
+  [...value.matchAll(/\{[a-z]+\}/g)].map((match) => match[0]);
+
+const looksLikeToml: Sniff = (sample) => !sample.startsWith("{");
+
+const alwaysValid: ValidateMessage = () => true;
+
+const noInvalidKeys: ComputeInvalidIcuKeys = () => [];
+
+const compareWholeValues: ComparePlaceholders = () => ({
+  matches: true,
+  missing: [],
+  extra: [],
+  reordered: false,
+});
+
+const deriveLeaf: DeriveEntry = (_key, value) => ({
+  placeholders: tokensIn(value),
+  isPlural: false,
+});
+
+const describeKeys: DeriveDescriptions = () => new Map<string, string>();
+
+const rejectNothing: ValidateTree = (tree: JsonRecord): void => {
+  const first: JsonTree | undefined = [...tree.values()][0];
+  const leaf: JsonLeaf = typeof first === "string" ? first : null;
+  if (leaf === "impossible") {
+    throw new AdapterError("INVALID_STRUCTURE", "unreachable");
+  }
+};
+
+const buildTree: BuildWriteTree = (): OrderedRecord => {
+  const value: OrderedValue = "x";
+  return new Map<string, OrderedValue>([["k", value]]);
+};
+
+const keyMode: KeyMode = "literal-leaf";
 
 function parseFlat(content: string, namespace: string): Map<string, TranslationEntry> {
   const entries = new Map<string, TranslationEntry>();
@@ -49,13 +102,17 @@ function parseFlat(content: string, namespace: string): Map<string, TranslationE
 const flatOptions: FlatFileAdapterOptions = {
   format: TOML_FORMAT,
   extensions: [".toml"],
-  sniff: (sample) => !sample.startsWith("{"),
-  parseEntries: (content, namespace) => parseFlat(content, namespace),
+  sniff: looksLikeToml,
+  parseEntries: (content, namespace): FlatParseResult => ({
+    entries: parseFlat(content, namespace),
+    excludedLeafPaths: [],
+  }),
   serializeEntries: (entries) =>
     [...entries].map(([key, entry]) => `${key}=${entry.value}`).join("\n"),
   extractPlaceholders: tokensIn,
-  validateMessage: () => true,
-  computeInvalidIcuKeys: () => [],
+  validateMessage: alwaysValid,
+  computeInvalidIcuKeys: noInvalidKeys,
+  comparePlaceholders: compareWholeValues,
   fs: nodeAdapterFs,
 };
 
@@ -64,10 +121,14 @@ export const flatAdapter: FormatAdapter = createFlatFileAdapter(flatOptions);
 const treeOptions: TreeFileAdapterOptions = {
   format: "custom:hocon",
   extensions: [".conf"],
-  parse: () => new Map(),
+  parse: (): JsonRecord => new Map(),
   serialize: () => "",
-  deriveEntry: (_key, value) => ({ placeholders: tokensIn(value), isPlural: false }),
+  deriveEntry: deriveLeaf,
   extractPlaceholders: tokensIn,
+  validateTree: rejectNothing,
+  buildWriteTree: buildTree,
+  deriveDescriptions: describeKeys,
+  keyMode,
 };
 
 export const treeAdapter: FormatAdapter = createTreeFileAdapter(treeOptions);
@@ -89,6 +150,12 @@ export async function writeWithAdapter(
   resource: LocaleResource,
 ): Promise<void> {
   await adapter.write(resource, "locales/de.toml");
+}
+
+export async function translateWithRegistry(): Promise<RunSummary> {
+  const config = await loadConfig({ cwd: "." });
+
+  return translate({ config }, { adapterRegistry: registry });
 }
 
 export function describeFailure(error: unknown): string {

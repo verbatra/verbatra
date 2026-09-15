@@ -27,7 +27,7 @@ import { createYamlAdapter } from "./yaml/yaml-adapter.js";
  * @example
  * ```ts
  * const registry = createDefaultRegistry().register(createTomlAdapter());
- * await translate({ config, deps: { adapterRegistry: registry } });
+ * await translate({ config }, { adapterRegistry: registry });
  * ```
  */
 export function createDefaultRegistry(fs: AdapterFs = nodeAdapterFs): AdapterRegistry {
