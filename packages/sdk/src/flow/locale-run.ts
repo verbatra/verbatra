@@ -114,17 +114,23 @@ interface CacheHit {
 function reviewCachedValue(
   params: LocaleRunParams,
   source: TranslationEntry,
-  cached: string,
-  integrity: PlaceholderIntegrityResult,
+  hit: CacheHit,
 ): ReviewFlag | undefined {
-  return computeReviewFlags({
+  const computed = computeReviewFlags({
     sourceValue: source.value,
-    translatedValue: cached,
+    translatedValue: hit.value,
     sourceLocale: params.sourceLocale,
     targetLocale: params.targetLocale,
-    integrity,
+    integrity: hit.integrity,
     glossary: params.glossary,
   });
+  if (hit.match === undefined) {
+    return computed;
+  }
+  return {
+    status: "review",
+    reasons: ["FUZZY_CACHE_REUSE", ...(computed?.reasons ?? [])],
+  };
 }
 
 function acceptFuzzyFromCache(
@@ -199,7 +205,7 @@ function partitionCacheHits(
         similarity: hit.match.similarity,
       });
     }
-    const flag = reviewCachedValue(params, source, hit.value, hit.integrity);
+    const flag = reviewCachedValue(params, source, hit);
     if (flag !== undefined) {
       reviewFlags.set(key, flag);
     }
@@ -476,6 +482,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...generation.withheld,
     ...generation.providerFailures,
     ...budgetWithheld,
+    ...fuzzyKeys,
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {

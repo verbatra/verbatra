@@ -85,6 +85,13 @@ carries one or more reason codes:
   the source. Only ever fires on a translation the gate already accepted.
 - `PROVIDER_DEGRADED`: the batch this key came from was gracefully degraded by the provider (a
   formality downgrade or an ignored glossary; in the current provider set, DeepL only).
+- `FUZZY_CACHE_REUSE`: the value was never translated for this source text. It came from
+  [the cache](/docs/the-cache) as a fuzzy reuse of an earlier, near-identical source that has since
+  been edited. Similarity is measured in characters, and meaning is not a function of character
+  distance: dropping a negation, inverting a modal or swapping a proper noun are all small edits
+  that reverse a sentence, and no threshold separates them from a typo fix. So every fuzzy reuse
+  carries this reason on every run, whatever it scored. Only ever fires when `fuzzyCache` is
+  enabled.
 
 A value reused from [the cache](/docs/the-cache), and a value fanned out to a key that shares its
 source text, run through the same review heuristics as a freshly translated one.

@@ -98,6 +98,13 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `PROVIDER_DEGRADED` : le lot dont cette clé provient a été dégradé en douceur par le fournisseur
   (un abaissement de formalité ou un glossaire ignoré ; dans l'ensemble actuel de fournisseurs,
   DeepL uniquement).
+- `FUZZY_CACHE_REUSE` : la valeur n'a jamais été traduite pour ce texte source. Elle vient
+  [du cache](/docs/the-cache), en réutilisation approximative d'une source antérieure quasi
+  identique qui a depuis été modifiée. La similarité se mesure en caractères, et le sens n'est pas
+  une fonction de la distance entre caractères : supprimer une négation, inverser un modal ou
+  changer un nom propre sont de petites modifications qui renversent une phrase, et aucun seuil ne
+  les sépare d'une correction de coquille. Chaque réutilisation approximative porte donc cette
+  raison à chaque exécution, quel que soit son score. N'apparaît que si `fuzzyCache` est activé.
 
 Une valeur réutilisée depuis [le cache](/docs/the-cache), et une valeur propagée vers une clé qui
 partage son texte source, passent par les mêmes heuristiques de révision qu'une valeur fraîchement

@@ -300,6 +300,11 @@ export interface NeedsReviewEntry {
  * same string it always was, while this is a translation of text that is no longer the source text.
  * {@link similarity} and {@link previousSource} are the evidence for the reuse, so a reader can
  * judge it rather than take it on trust.
+ *
+ * A reuse is written to the locale file but deliberately not locked: the key keeps the lock-file
+ * baseline it already had, so it stays changed, is offered and flagged again on every later run at
+ * no provider cost, and settles only once a real translation lands. Every key listed here also
+ * carries `FUZZY_CACHE_REUSE` in {@link LocaleSummary.needsReview}.
  */
 export interface FuzzyCacheHit {
   /** The key whose translation was reused. */
@@ -376,7 +381,9 @@ export interface LocaleSummary {
   readonly cacheHits: readonly string[];
   /**
    * Keys whose translation was reused for a source string that had changed, with the score and the
-   * earlier source behind each reuse. Always empty unless `fuzzyCache.enabled` was set.
+   * earlier source behind each reuse. Always empty unless `fuzzyCache.enabled` was set. These keys
+   * are written but not locked, so they reappear here on every run until they are really
+   * translated. See {@link FuzzyCacheHit}.
    */
   readonly fuzzyHits: readonly FuzzyCacheHit[];
   /**

@@ -851,3 +851,89 @@ describe("fuzzy reuse of the translation memory", () => {
     expect((await loadCache(dir)).sources).toEqual({ [hash as string]: "Hello" });
   });
 });
+
+describe("fuzzy reuse is re-offered until a real translation lands", () => {
+  const FUZZY = cfg({ fuzzyCache: { enabled: true } });
+
+  async function seededProject(): Promise<string> {
+    const dir = await project({ a: LONG_SOURCE }, { de: {} });
+    await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+    await setSource(dir, { a: LONG_EDITED });
+    return dir;
+  }
+
+  it("flags the reuse again on a second run rather than reporting the key as unchanged", async () => {
+    const dir = await seededProject();
+
+    const first = await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+    const second = await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    for (const summary of [first, second]) {
+      expect(summary.locales[0]?.fuzzyHits.map((hit) => hit.key)).toEqual(["a"]);
+      expect(summary.locales[0]?.needsReview).toEqual([
+        { key: "a", reasons: ["FUZZY_CACHE_REUSE"] },
+      ]);
+      expect(summary.locales[0]?.unchanged).toEqual([]);
+    }
+  });
+
+  it("spends nothing on either run, so the standing reminder is free", async () => {
+    const dir = await seededProject();
+    const first = makeStubProvider();
+    const second = makeStubProvider();
+
+    await translate({ config: FUZZY, cwd: dir }, { createProvider: () => first.provider });
+    await translate({ config: FUZZY, cwd: dir }, { createProvider: () => second.provider });
+
+    expect(first.calls).toHaveLength(0);
+    expect(second.calls).toHaveLength(0);
+  });
+
+  it("converges once a real translation lands, and stops flagging from then on", async () => {
+    const dir = await seededProject();
+    await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    const translating = makeStubProvider();
+    const resolved = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => translating.provider },
+    );
+    const after = await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect(translating.calls).toHaveLength(1);
+    expect(resolved.locales[0]?.translated).toEqual(["a"]);
+    expect(after.locales[0]?.unchanged).toEqual(["a"]);
+    expect(after.locales[0]?.fuzzyHits).toEqual([]);
+    expect(after.locales[0]?.needsReview).toEqual([]);
+  });
+
+  it("keeps the reused text on disk across both runs", async () => {
+    const dir = await seededProject();
+
+    await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+    await translate(
+      { config: FUZZY, cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect((await readTarget(dir, "de")).a).toBe(`[de] ${LONG_SOURCE}`);
+  });
+});

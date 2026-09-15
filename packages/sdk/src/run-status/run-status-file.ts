@@ -32,10 +32,17 @@ const runBudgetSchema = z.object({
   exceeded: z.boolean(),
 });
 
+const fuzzyCacheHitSchema = z.object({
+  key: z.string(),
+  previousSource: z.string(),
+  similarity: z.number().min(0).max(1),
+});
+
 const runStatusLocaleSchema = z.object({
   locale: z.string(),
   status: z.enum(["succeeded", "partial", "failed"]),
   needsReview: z.array(needsReviewEntrySchema),
+  fuzzyHits: z.array(fuzzyCacheHitSchema).optional(),
   usage: usageSummarySchema.optional(),
 });
 
@@ -56,6 +63,7 @@ function toRunStatusLocale(locale: LocaleSummary): RunStatusLocale {
     locale: locale.locale,
     status: locale.status,
     needsReview: locale.needsReview,
+    ...(locale.fuzzyHits.length > 0 ? { fuzzyHits: locale.fuzzyHits } : {}),
     ...(locale.usage !== undefined ? { usage: locale.usage } : {}),
   };
 }
@@ -83,6 +91,7 @@ function fromParsed(data: z.infer<typeof runStatusFileSchema>): RunStatusFile {
       locale: locale.locale,
       status: locale.status,
       needsReview: locale.needsReview,
+      ...(locale.fuzzyHits !== undefined ? { fuzzyHits: locale.fuzzyHits } : {}),
       ...(locale.usage !== undefined ? { usage: locale.usage } : {}),
     })),
   };

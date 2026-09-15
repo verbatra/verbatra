@@ -100,6 +100,14 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
 - `PROVIDER_DEGRADED`: Der Batch, aus dem dieser Key stammt, wurde vom Provider kontrolliert
   herabgestuft (eine Formalitäts-Herabstufung oder ein ignoriertes Glossar; im aktuellen
   Provider-Satz nur DeepL).
+- `FUZZY_CACHE_REUSE`: Der Wert wurde für diesen Quelltext nie übersetzt. Er kam aus
+  [dem Cache](/docs/the-cache) als unscharfe Wiederverwendung eines früheren, fast identischen
+  Quelltexts, der seither bearbeitet wurde. Ähnlichkeit wird in Zeichen gemessen, und Bedeutung ist
+  keine Funktion des Zeichenabstands: eine gestrichene Verneinung, ein umgedrehtes Modalverb oder
+  ein ausgetauschter Eigenname sind alles kleine Änderungen, die einen Satz umkehren, und kein
+  Schwellwert trennt sie von einer Tippfehlerkorrektur. Deshalb trägt jede unscharfe
+  Wiederverwendung diesen Grund bei jedem Lauf, ganz gleich wie sie bewertet wurde. Tritt nur auf,
+  wenn `fuzzyCache` aktiviert ist.
 
 Ein aus [dem Cache](/docs/the-cache) wiederverwendeter Wert und ein Wert, der an einen Key mit
 gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristiken wie eine frisch

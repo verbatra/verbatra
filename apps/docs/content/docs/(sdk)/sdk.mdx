@@ -533,7 +533,7 @@ The parts worth knowing:
 
 - **needsReview** lists accepted, written keys the review heuristics flagged, each with its reason
   codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`,
-  and `PROVIDER_DEGRADED`. The set ships as the `REVIEW_REASON_CODES` tuple,
+  `PROVIDER_DEGRADED`, and `FUZZY_CACHE_REUSE`. The set ships as the `REVIEW_REASON_CODES` tuple,
   so build any runtime schema or exhaustive lookup from that rather than retyping the members. A
   review flag is advisory and never withholds a key, so a key never
   appears in both `needsReview` and `integrityMismatches`. See

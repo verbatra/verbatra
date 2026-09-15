@@ -98,6 +98,13 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 - `PROVIDER_DEGRADED`: el lote del que salió esta clave fue degradado con elegancia por el
   proveedor (una rebaja de formalidad o un glosario ignorado; en el conjunto actual de proveedores,
   solo DeepL).
+- `FUZZY_CACHE_REUSE`: el valor nunca se tradujo para este texto de origen. Vino de
+  [la caché](/docs/the-cache) como reutilización difusa de un origen anterior casi idéntico que
+  desde entonces se ha editado. La similitud se mide en caracteres, y el significado no es función
+  de la distancia entre caracteres: quitar una negación, invertir un modal o cambiar un nombre
+  propio son ediciones pequeñas que invierten una frase, y ningún umbral las separa de una
+  corrección de errata. Por eso toda reutilización difusa lleva esta razón en cada ejecución, sea
+  cual sea su puntuación. Solo aparece cuando `fuzzyCache` está activado.
 
 Un valor reutilizado desde [la caché](/docs/the-cache), y un valor propagado a una clave que
 comparte su texto de origen, pasan por las mismas heurísticas de revisión que uno recién

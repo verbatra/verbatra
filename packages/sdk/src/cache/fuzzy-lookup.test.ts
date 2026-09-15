@@ -94,19 +94,13 @@ describe("findFuzzyMatch", () => {
     );
   });
 
-  it("treats two empty source strings as a full match rather than dividing by zero", () => {
-    const memory = memoryOf({ fp1: { de: { h1: "" } } }, { h1: "" });
-
-    expect(findFuzzyMatch(memory, "fp1", "de", "", { threshold: 1 })?.similarity).toBe(1);
-  });
-
   it("scores no more candidates than the cap, however large the bucket", () => {
     const entries: Record<string, string> = {};
     const sources: Record<string, string> = {};
     for (let index = 0; index < 5000; index += 1) {
       const hash = `h${String(index).padStart(5, "0")}`;
       entries[hash] = `Wert ${index}`;
-      sources[hash] = `Save changes ${String(index).padStart(5, "0")}`;
+      sources[hash] = `Save changes ${index.toString(26).padStart(5, "a")}`;
     }
     let scored = 0;
     const score = (left: string, right: string): number => {
@@ -118,7 +112,7 @@ describe("findFuzzyMatch", () => {
       memoryOf({ fp1: { de: entries } }, sources),
       "fp1",
       "de",
-      "Save changes 09999",
+      "Save changes zzzzz",
       { threshold: 0.9, score },
     );
 
@@ -163,5 +157,94 @@ describe("findFuzzyMatch", () => {
     );
 
     expect(scored).toBe(0);
+  });
+});
+
+describe("findFuzzyMatch: the numeral guard covers every property the docs claim", () => {
+  function reuse(previousSource: string, currentSource: string, threshold = 0.5): boolean {
+    const memory = memoryOf({ fp1: { de: { h1: "Alt" } } }, { h1: previousSource });
+    return findFuzzyMatch(memory, "fp1", "de", currentSource, { threshold }) !== undefined;
+  }
+
+  it("refuses a changed value", () => {
+    expect(reuse("You have 5 unread items", "You have 6 unread items")).toBe(false);
+  });
+
+  it("refuses a changed count, even when every numeral is still present", () => {
+    expect(reuse("Step 3 of the setup guide", "Step 3 of 3 the setup guide")).toBe(false);
+  });
+
+  it("refuses a changed order of the same numerals", () => {
+    expect(reuse("Showing 5 of 10 results", "Showing 10 of 5 results")).toBe(false);
+  });
+
+  it("refuses two adjacent numerals merging into one", () => {
+    expect(reuse("Rooms 1 2 are ready now", "Rooms 12 xx are ready now")).toBe(false);
+  });
+
+  it("refuses a changed non-ASCII decimal digit", () => {
+    expect(reuse("الغرفة ٥", "الغرفة ٦")).toBe(false);
+  });
+
+  it("refuses a changed superscript, so square metres cannot become cubic metres", () => {
+    expect(reuse("The floor area is 40 m² in total", "The floor area is 40 m³ in total")).toBe(
+      false,
+    );
+  });
+
+  it("refuses a changed vulgar fraction, so half a cup cannot become a quarter", () => {
+    expect(reuse("Add ½ cup of the sauce now", "Add ¼ cup of the sauce now")).toBe(false);
+  });
+
+  it("refuses a changed Roman numeral character", () => {
+    expect(reuse("Continue to chapter Ⅳ now", "Continue to chapter Ⅵ now")).toBe(false);
+  });
+
+  it("allows a source with no numerals on either side", () => {
+    expect(reuse("Save your changes now", "Save your changes soon")).toBe(true);
+  });
+
+  it("allows identical numerals when only the words around them changed", () => {
+    expect(reuse("Showing 5 of 10 results", "Showing 5 of 10 entries")).toBe(true);
+  });
+});
+
+describe("findFuzzyMatch: identical source text is not the fuzzy layer's business", () => {
+  it("refuses a candidate whose source text is identical, leaving the change to the provider", () => {
+    const memory = memoryOf({ fp1: { de: { other: "Alt" } } }, { other: "Save changes" });
+
+    expect(findFuzzyMatch(memory, "fp1", "de", "Save changes", { threshold: 0.9 })).toBeUndefined();
+  });
+
+  it("refuses a candidate that is identical only after normalization", () => {
+    const memory = memoryOf({ fp1: { de: { other: "Alt" } } }, { other: "one\r\ntwo" });
+
+    expect(findFuzzyMatch(memory, "fp1", "de", "one\ntwo", { threshold: 0.9 })).toBeUndefined();
+  });
+
+  it("refuses two empty sources, which are identical rather than a near match", () => {
+    const memory = memoryOf({ fp1: { de: { h1: "Alt" } } }, { h1: "" });
+
+    expect(findFuzzyMatch(memory, "fp1", "de", "", { threshold: 0.9 })).toBeUndefined();
+  });
+});
+
+describe("findFuzzyMatch: the length prefilter measures what the score measures", () => {
+  it("keeps a candidate whose raw length differs only by line endings", () => {
+    const previous = "alpha\r\nbeta\r\ngamma\r\ndelta\r\nepsilon\r\nzeta\r\neta\r\ntheta";
+    const current = previous.replace(/\r\n/g, "\n").replace("theta", "thetb");
+    const memory = memoryOf({ fp1: { de: { h1: "Alt" } } }, { h1: previous });
+
+    expect(previous.length / current.length).toBeGreaterThan(1.1);
+    expect(findFuzzyMatch(memory, "fp1", "de", current, { threshold: 0.9 })?.value).toBe("Alt");
+  });
+
+  it("keeps a candidate whose raw length differs only by composition", () => {
+    const previous = "éééé cafe menu";
+    const current = `${"é".repeat(4)} cafe menus`;
+    const memory = memoryOf({ fp1: { de: { h1: "Alt" } } }, { h1: previous });
+
+    expect(previous.length / current.length).toBeGreaterThan(1.1);
+    expect(findFuzzyMatch(memory, "fp1", "de", current, { threshold: 0.9 })?.value).toBe("Alt");
   });
 });

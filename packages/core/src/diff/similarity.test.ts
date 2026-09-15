@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { similarityRatio } from "./similarity.js";
+import { similarityAtLeast, similarityRatio } from "./similarity.js";
 
 describe("similarityRatio", () => {
   it("scores identical text at the maximum", () => {
@@ -67,5 +67,54 @@ describe("similarityRatio", () => {
 
   it("counts a pure insertion against the longer side", () => {
     expect(similarityRatio("abcd", "abcdefgh")).toBe(0.5);
+  });
+});
+
+describe("similarityAtLeast", () => {
+  it("returns the exact ratio when it clears the bar", () => {
+    expect(similarityAtLeast("abcdefghij", "abcdefghiX", 0.9)).toBe(0.9);
+  });
+
+  it("returns nothing when it does not", () => {
+    expect(similarityAtLeast("abcdefghij", "abcdefghXY", 0.9)).toBeUndefined();
+  });
+
+  it("agrees with the exact ratio on every pair that clears the bar", () => {
+    const pairs: ReadonlyArray<readonly [string, string]> = [
+      ["Save changes", "Save changes"],
+      ["Save changes", "Save change"],
+      ["Your cart is empty", "Your basket is empty"],
+      ["abcd", "abcdefgh"],
+      ["", ""],
+      ["Delete the selected file", "Delete the selected files"],
+    ];
+
+    for (const [left, right] of pairs) {
+      const exact = similarityRatio(left, right);
+      expect(similarityAtLeast(left, right, 0)).toBe(exact);
+      expect(similarityAtLeast(left, right, exact)).toBe(exact);
+    }
+  });
+
+  it("refuses a pair whose lengths alone put the bar out of reach", () => {
+    expect(similarityAtLeast("a", "a".repeat(100), 0.5)).toBeUndefined();
+  });
+
+  it("is never fooled by floating point at an exact boundary", () => {
+    for (let length = 2; length <= 200; length += 1) {
+      const left = "a".repeat(length);
+      const right = `${"a".repeat(length - 1)}b`;
+      const exact = similarityRatio(left, right);
+
+      expect(similarityAtLeast(left, right, exact)).toBe(exact);
+    }
+  });
+
+  it("abandons a long, wholly different pair far sooner than it scores it", () => {
+    const left = "a".repeat(2000);
+    const right = "b".repeat(2000);
+
+    expect(similarityAtLeast(left, right, 0.9)).toBeUndefined();
+    expect(similarityRatio(left, right)).toBe(0);
   });
 });

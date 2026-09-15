@@ -1,7 +1,8 @@
 export { diffResources } from "./diff/diff-resources.js";
-export { similarityRatio } from "./diff/similarity.js";
+export { similarityAtLeast, similarityRatio } from "./diff/similarity.js";
 export type { DiffOptions, DiffResult } from "./diff/types.js";
 export { contentHash } from "./hash/content-hash.js";
+export { normalizeText } from "./hash/normalize-text.js";
 export { stableStringHash } from "./hash/string-hash.js";
 export type { LocaleResource } from "./model/locale-resource.js";
 export {

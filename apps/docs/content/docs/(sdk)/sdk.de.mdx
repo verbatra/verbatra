@@ -563,7 +563,7 @@ Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
   haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`,
-  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Die
+  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und `FUZZY_CACHE_REUSE`. Die
   Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jede Laufzeit-Validierung und jedes
   vollständige Lookup daraus, statt die Mitglieder abzutippen. Ein Review-Flag ist nur
   ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in `needsReview` und

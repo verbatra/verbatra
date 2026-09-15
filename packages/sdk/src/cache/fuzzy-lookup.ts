@@ -1,4 +1,4 @@
-import { similarityRatio } from "@verbatra/core";
+import { normalizeText, similarityAtLeast } from "@verbatra/core";
 import type { TranslationMemory } from "./types.js";
 
 export const FUZZY_MAX_SOURCE_LENGTH = 2000;
@@ -14,14 +14,27 @@ export interface FuzzyCacheMatch {
 
 export interface FuzzyLookupOptions {
   readonly threshold: number;
-  readonly score?: (left: string, right: string) => number;
+  readonly score?: (left: string, right: string, threshold: number) => number | undefined;
 }
 
 interface Candidate {
   readonly contentHash: string;
   readonly value: string;
   readonly source: string;
+  readonly normalized: string;
   readonly ceiling: number;
+}
+
+const NUMERAL_RUN = /\p{N}+/gu;
+
+const RUN_SEPARATOR = ",";
+
+function numeralRuns(text: string): string {
+  return (text.match(NUMERAL_RUN) ?? []).join(RUN_SEPARATOR);
+}
+
+function numeralsDiffer(left: string, right: string): boolean {
+  return numeralRuns(left) !== numeralRuns(right);
 }
 
 function lengthCeiling(left: string, right: string): number {
@@ -33,37 +46,51 @@ function byPromiseThenHash(left: Candidate, right: Candidate): number {
   return right.ceiling - left.ceiling || left.contentHash.localeCompare(right.contentHash);
 }
 
+function usableCandidate(
+  memory: TranslationMemory,
+  contentHash: string,
+  value: string,
+  query: string,
+  threshold: number,
+): Candidate | undefined {
+  const source = memory.sources[contentHash];
+  if (source === undefined || source.length > FUZZY_MAX_SOURCE_LENGTH) {
+    return undefined;
+  }
+  const normalized = normalizeText(source);
+  if (normalized === query || numeralsDiffer(normalized, query)) {
+    return undefined;
+  }
+  const ceiling = lengthCeiling(normalized, query);
+  return ceiling < threshold ? undefined : { contentHash, value, source, normalized, ceiling };
+}
+
 function collectCandidates(
   memory: TranslationMemory,
   bucket: Readonly<Record<string, string>>,
-  sourceText: string,
+  query: string,
   threshold: number,
-): Candidate[] {
+): readonly Candidate[] {
   const candidates: Candidate[] = [];
   for (const [contentHash, value] of Object.entries(bucket)) {
-    const source = memory.sources[contentHash];
-    if (source === undefined || source.length > FUZZY_MAX_SOURCE_LENGTH) {
-      continue;
+    const candidate = usableCandidate(memory, contentHash, value, query, threshold);
+    if (candidate !== undefined) {
+      candidates.push(candidate);
     }
-    const ceiling = lengthCeiling(source, sourceText);
-    if (ceiling < threshold) {
-      continue;
-    }
-    candidates.push({ contentHash, value, source, ceiling });
   }
   return candidates.sort(byPromiseThenHash).slice(0, FUZZY_MAX_CANDIDATES_SCORED);
 }
 
 function bestOf(
   candidates: readonly Candidate[],
-  sourceText: string,
+  query: string,
   options: FuzzyLookupOptions,
 ): FuzzyCacheMatch | undefined {
-  const score = options.score ?? similarityRatio;
+  const score = options.score ?? similarityAtLeast;
   let best: FuzzyCacheMatch | undefined;
   for (const candidate of candidates) {
-    const similarity = score(candidate.source, sourceText);
-    if (similarity < options.threshold) {
+    const similarity = score(candidate.normalized, query, options.threshold);
+    if (similarity === undefined || similarity < options.threshold) {
       continue;
     }
     if (best === undefined || similarity > best.similarity) {
@@ -92,9 +119,6 @@ export function findFuzzyMatch(
   if (bucket === undefined) {
     return undefined;
   }
-  return bestOf(
-    collectCandidates(memory, bucket, sourceText, options.threshold),
-    sourceText,
-    options,
-  );
+  const query = normalizeText(sourceText);
+  return bestOf(collectCandidates(memory, bucket, query, options.threshold), query, options);
 }

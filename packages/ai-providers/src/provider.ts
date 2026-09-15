@@ -111,7 +111,8 @@ export interface ProviderNotice {
 /**
  * Stable codes for a derived, per-key "needs review" signal. This is verbatra's own computed
  * assessment, never a raw model self-score: four are recomputable from plain source and translated
- * values, and `PROVIDER_DEGRADED` is layered on afterwards from the batch's notices.
+ * values, and `FUZZY_CACHE_REUSE` and `PROVIDER_DEGRADED` are layered on afterwards, the first by
+ * the SDK from where the value came, the second from the batch's notices.
  *
  * - `LENGTH_RATIO_OUTLIER`: the translated value's length is far shorter or longer than the source's.
  *   Only considered once the trimmed source is long enough for the ratio to mean anything.
@@ -134,6 +135,13 @@ export interface ProviderNotice {
  *   `GLOSSARY_IGNORED` notice, either of which can silently change wording. A
  *   `PLACEHOLDER_UNSUPPORTED` notice does not raise it, since the affected entries are withheld
  *   rather than degraded.
+ * - `FUZZY_CACHE_REUSE`: the value was not translated for this source text at all. It was reused
+ *   from the translation memory for an earlier, near-identical source that has since been edited,
+ *   so it is a translation of text that is no longer the source text. Similarity is measured in
+ *   characters and meaning is not a function of character distance: a dropped negation, an
+ *   inverted modal or a swapped proper noun are all small edits with large consequences, and no
+ *   threshold separates them from a typo fix. Every such reuse therefore carries this reason, on
+ *   every run, regardless of score.
  *
  * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
@@ -153,6 +161,7 @@ export const REVIEW_REASON_CODES = [
   "GLOSSARY_TERM_MISSED",
   "INTEGRITY_REORDERED",
   "PROVIDER_DEGRADED",
+  "FUZZY_CACHE_REUSE",
 ] as const;
 
 /**

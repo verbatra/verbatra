@@ -28,13 +28,27 @@ export default defineConfig({
 
 When a key misses, verbatra compares its current source against the source text of every entry in the same locale under the same fingerprint, and scores each one from `0` to `1` as the character edit distance over the length of the longer of the two strings. The closest entry at or above `threshold` is reused; everything below it goes to the provider as an ordinary miss. `threshold` runs from `0.5` to `1` and defaults to `0.9`, which is deliberately strict: on a 70 character sentence it tolerates a handful of edited characters, and on a five character button label it tolerates none at all. Lower it only once you have looked at what it starts letting through.
 
+### The threshold is not a safety setting
+
+Be clear about what the score can and cannot tell you. It measures characters, and meaning is not a function of character distance. Dropping the "not" from a long sentence, turning "cannot" into "can", swapping Google for Apple, or making a noun plural are all small edits that score *above* `0.9` and reverse or redirect what the sentence says. Raising the threshold does not fix this: a single letter changed at the end of an eighty-character string scores `0.987`, past anything the schema will accept.
+
+So the threshold decides how much provider spend you avoid, not how safe the reuse is. Safety comes from three things that do not depend on the number:
+
+- **The feature is off unless you turn it on.**
+- **Every fuzzy reuse is flagged for review**, on every run, whatever it scored. The key carries the `FUZZY_CACHE_REUSE` reason on the run summary's `needsReview` list and in [Studio's Review queue](/docs/review-in-studio), labelled "Reused after source edit". If you are not going to work that queue, do not turn this on.
+- **A reuse whose numerals changed is refused outright.** If the numerals in the current source differ at all from those in the cached source, in count, value or order, the entry is not a candidate whatever it scores. This covers every Unicode numeric character, not just `0` to `9`: Arabic-Indic digits, superscripts (so `m²` cannot become `m³`), vulgar fractions (so `½` cannot become `¼`) and Roman numeral characters. A changed number is always a changed fact, and it is the one meaning-changing edit that can be recognized without knowing the language. It does not catch a number written as a word, so `four` becoming `six` is left to the review flag like any other wording change.
+- **A reuse does not settle the key.** The reused text is written to the locale file, but the lock file keeps the baseline the key already had, so the key stays *changed*. Every later run offers and flags it again, at no provider cost, until a real translation lands and locks normally. That also means [`check`](/docs/cli/check) keeps reporting the key as out of date, which is accurate: its translation was produced for text that is no longer the source. If a green `check` in CI matters more to you than the reminder, translate the key rather than leaving it on a fuzzy reuse.
+- **A source whose text did not change is never the fuzzy layer's business.** Editing only an entry's description, meaning or plural flag leaves the source text identical, so the key goes to the provider exactly as it would with `fuzzyCache` off, and the provider sees the new guidance.
+
+### What a fuzzy reuse still is not
+
 A fuzzy reuse is a translation of text that is no longer the source text, so it is never presented as an exact hit:
 
 - It passes the same [integrity checks](/docs/translation-safety) as any other candidate value. A near match whose placeholders no longer fit the edited source is refused outright rather than patched up, and the key goes to the provider.
-- It is counted and printed apart from exact hits, as `fuzzy-reused`, with the key, the score, and the earlier source text behind each one. `LocaleSummary.fuzzyHits` carries the same three things for SDK and `--json` callers.
+- It is counted and printed apart from exact hits, as `fuzzy-reused`, with the key, the score, and the earlier source text behind each one. `LocaleSummary.fuzzyHits` carries the same three things for SDK and `--json` callers, and `runStatus` persists them so a tool opened after the run can still show what was reused and what it was reused from.
 - It is never written back into the cache. The reused value stays filed under the source it was actually produced for, so a later run cannot mistake it for an exact hit.
 
-Scoring stays inside one fingerprint bucket, so a changed provider, model, tone or glossary does not start matching again through the back door. It is bounded too: entries whose length alone puts the threshold out of reach are discarded without being scored, no more than 256 of the entries that survive that are scored for any one key, and source text longer than 2000 characters is skipped entirely.
+Scoring stays inside one fingerprint bucket, so a changed provider, model, tone or glossary does not start matching again through the back door. It is bounded too: entries whose length alone puts the threshold out of reach are discarded without being scored, entries whose numerals differ are discarded without being scored, no more than 256 of the entries that survive that are scored for any one key, and source text longer than 2000 characters is skipped entirely. Scoring abandons a comparison as soon as it cannot reach the threshold, which keeps even the worst case at those caps (256 candidates of 2000 characters, all hovering at the threshold) to roughly 0.4 seconds of CPU for a single key on a current laptop, and to milliseconds when the candidates are merely similar in length.
 
 ## The fingerprint
 

@@ -40,13 +40,12 @@ describe("findFuzzyMatch: meaning-changing edits at the default threshold", () =
     expect(reuse(previous, current)).toBe("CACHED");
   });
 
-  it("reuses a translation after the quantity in the sentence changed", () => {
-    expect(
-      reuse(
-        "You have 5 items left in your shopping cart",
-        "You have 6 items left in your shopping cart",
-      ),
-    ).toBe("CACHED");
+  it("refuses a quantity change, which no threshold could have caught", () => {
+    const previous = "You have 5 items left in your shopping cart";
+    const current = "You have 6 items left in your shopping cart";
+
+    expect(similarityRatio(previous, current)).toBeGreaterThanOrEqual(DEFAULT_THRESHOLD);
+    expect(reuse(previous, current)).toBeUndefined();
   });
 
   it("reuses a translation after the unit changed from megabytes to gigabytes", () => {
@@ -96,14 +95,34 @@ describe("findFuzzyMatch: meaning-changing edits at the default threshold", () =
     expect(reuse("delete account", "DELETE ACCOUNT")).toBeUndefined();
   });
 
-  it("still reuses a single digit change at the highest threshold the config schema allows", () => {
+  it("refuses a single digit change that clears even a 0.98 threshold", () => {
     const previous = `Retry the upload after ${"a".repeat(56)} 5`;
     const current = previous.replace(/5$/, "6");
     const match = findFuzzyMatch(memoryOf(previous, "CACHED"), "fp1", "de", current, {
       threshold: 0.98,
     });
 
-    expect(match?.value).toBe("CACHED");
+    expect(similarityRatio(previous, current)).toBeGreaterThan(0.98);
+    expect(match).toBeUndefined();
+  });
+
+  it("refuses a reuse when a number appeared in a source that had none", () => {
+    const previous =
+      "Your upload limit is five MB per file attachment and cannot be raised on this plan";
+    const current =
+      "Your upload limit is 5 MB per file attachment and cannot be raised on this plan";
+
+    expect(similarityRatio(previous, current)).toBeGreaterThanOrEqual(DEFAULT_THRESHOLD);
+    expect(reuse(previous, current)).toBeUndefined();
+  });
+
+  it("reuses when the digits are untouched and only the wording around them moved", () => {
+    expect(
+      reuse(
+        "You have 5 items left in your shopping cart",
+        "You have 5 items left in your shopping carts",
+      ),
+    ).toBe("CACHED");
   });
 });
 
@@ -126,15 +145,17 @@ describe("findFuzzyMatch: boundaries", () => {
 
   it("accepts a cached source of exactly the comparison cap", () => {
     const capped = "a".repeat(FUZZY_MAX_SOURCE_LENGTH);
+    const edited = `${"a".repeat(FUZZY_MAX_SOURCE_LENGTH - 1)}b`;
 
     expect(capped).toHaveLength(FUZZY_MAX_SOURCE_LENGTH);
-    expect(reuse(capped, capped)).toBe("CACHED");
+    expect(reuse(capped, edited)).toBe("CACHED");
   });
 
   it("refuses a cached source one character over the comparison cap", () => {
     const over = "a".repeat(FUZZY_MAX_SOURCE_LENGTH + 1);
+    const edited = `${"a".repeat(FUZZY_MAX_SOURCE_LENGTH)}b`;
 
-    expect(reuse(over, over)).toBeUndefined();
+    expect(reuse(over, edited)).toBeUndefined();
   });
 
   it("accepts a current source of exactly the comparison cap", () => {
@@ -211,7 +232,7 @@ describe("findFuzzyMatch: ordering among equally good candidates", () => {
       sources: { aaa: "Save chang", zzz: "Save changes now" },
     };
 
-    const match = findFuzzyMatch(memory, "fp1", "de", "Save changes now", {
+    const match = findFuzzyMatch(memory, "fp1", "de", "Save changes soon", {
       threshold: 0.5,
       score: () => 0.95,
     });
@@ -219,22 +240,36 @@ describe("findFuzzyMatch: ordering among equally good candidates", () => {
     expect(match?.contentHash).toBe("zzz");
   });
 
-  it("drops a perfect match that sorts past the scoring cap and serves a worse one instead", () => {
-    const query = "Save changes in the editor pane right now 9999";
+  it("refuses a textually identical source wherever it sorts, leaving it to the provider", () => {
+    const query = "Save changes in the editor pane right now please";
     const entries: Record<string, string> = { zPerfect: "EXACT" };
     const sources: Record<string, string> = { zPerfect: query };
+    const memory: TranslationMemory = { version: 2, entries: { fp1: { de: entries } }, sources };
+
+    expect(similarityRatio(sources.zPerfect as string, query)).toBe(1);
+    expect(
+      findFuzzyMatch(memory, "fp1", "de", query, { threshold: DEFAULT_THRESHOLD }),
+    ).toBeUndefined();
+  });
+
+  it("still lets the scoring cap drop a merely better candidate, which stays a known bound", () => {
+    const query = `Save changes in the editor pane right now ${"b".repeat(8)}`;
+    const entries: Record<string, string> = { zNearest: "NEAREST" };
+    const sources: Record<string, string> = {
+      zNearest: `Save changes in the editor pane right now ${"b".repeat(7)}c`,
+    };
     for (let index = 0; index < FUZZY_MAX_CANDIDATES_SCORED + 10; index += 1) {
       const hash = `a${String(index).padStart(5, "0")}`;
       entries[hash] = `APPROX ${index}`;
-      sources[hash] = `Save changes in the editor pane right now ${String(index).padStart(4, "0")}`;
+      sources[hash] = `Save changes in the editor pane right now ${"d".repeat(8)}`;
     }
     const memory: TranslationMemory = { version: 2, entries: { fp1: { de: entries } }, sources };
 
     const match = findFuzzyMatch(memory, "fp1", "de", query, { threshold: DEFAULT_THRESHOLD });
 
-    expect(similarityRatio(sources.zPerfect as string, query)).toBe(1);
-    expect(match).toBeDefined();
-    expect(match?.contentHash).not.toBe("zPerfect");
-    expect(match?.similarity).toBeLessThan(1);
+    expect(similarityRatio(sources.zNearest as string, query)).toBeGreaterThan(
+      similarityRatio(sources.a00000 as string, query),
+    );
+    expect(match?.contentHash).not.toBe("zNearest");
   });
 });
