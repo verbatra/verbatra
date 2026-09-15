@@ -73,7 +73,8 @@ produce un diff limpio contra su versión anterior. Consulta [Formatos](/docs/fo
 ## ¿Por qué una traducción quedó marcada para revisión?
 
 Las traducciones aceptadas pasan por heurísticas de revisión que marcan resultados sospechosos sin
-retenerlos: una longitud muy desproporcionada respecto al origen (`LENGTH_RATIO_OUTLIER`), una
+retenerlos: una longitud muy desproporcionada respecto al origen (`LENGTH_RATIO_OUTLIER`), un valor
+más largo que el presupuesto configurado para su clave (`MAX_LENGTH_EXCEEDED`), una
 traducción idéntica al origen (`EQUALS_SOURCE`), un término del glosario que se perdió
 (`GLOSSARY_TERM_MISSED`), marcadores de posición reordenados (`INTEGRITY_REORDERED`), una ruta de
 proveedor degradada (`PROVIDER_DEGRADED`) o un valor reutilizado de la caché para una cadena de

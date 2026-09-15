@@ -104,6 +104,7 @@ function makeParams(
     maxBatchSize: 50,
     fs: defaultFs,
     budget: createBudgetTracker(undefined, "warn"),
+    maxLength: undefined,
     ...overrides,
   };
 }
@@ -315,5 +316,244 @@ describe("runLocale: review flags fanned out to content duplicates", () => {
       b: "Sichere deine Kontoeinstellungen",
     });
     expect(Object.keys(result.lockEntries).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("runLocale: per-key maximum length budgets", () => {
+  it("flags a translated value that overruns its key's budget", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["intro", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "intro", reasons: ["MAX_LENGTH_EXCEEDED"] },
+    ]);
+  });
+
+  it("still writes and locks an over-budget value, so the flag never withholds it", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["intro", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.integrityMismatches).toEqual([]);
+    expect(result.summary.translated).toEqual(["intro"]);
+    expect(result.lockEntries).toHaveProperty("intro");
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({
+      intro: "Sichere deine Kontoeinstellungen",
+    });
+  });
+
+  it("leaves a key with no configured budget unflagged, however long its value", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["other", 2]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([]);
+  });
+
+  it("flags a cached value that overruns its key's budget", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
+            fingerprint: FINGERPRINT,
+          },
+          maxLength: new Map([["intro", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["intro"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "intro", reasons: ["MAX_LENGTH_EXCEEDED"] },
+    ]);
+  });
+
+  it("holds each duplicate key to its own budget, not the representative's", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings",
+      b: "Save your account settings",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["b", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([{ key: "b", reasons: ["MAX_LENGTH_EXCEEDED"] }]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({
+      a: "Sichere deine Kontoeinstellungen",
+      b: "Sichere deine Kontoeinstellungen",
+    });
+  });
+
+  it("keeps a duplicate key unflagged when only the representative has a budget", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings",
+      b: "Save your account settings",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["a", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([{ key: "a", reasons: ["MAX_LENGTH_EXCEEDED"] }]);
+  });
+});
+
+describe("runLocale: budgets on fanned-out duplicates keep every other reason", () => {
+  it("keeps the representative's other reasons while swapping in the duplicate's own overrun", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings",
+      b: "Save your account settings",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          glossary: { Save: "Speichern" },
+          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([["b", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "a", reasons: ["GLOSSARY_TERM_MISSED"] },
+      { key: "b", reasons: ["MAX_LENGTH_EXCEEDED", "GLOSSARY_TERM_MISSED"] },
+    ]);
+  });
+
+  it("orders the overrun after the ratio outlier it accompanies", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings now",
+      b: "Save your account settings now",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "a", value: "Ok" }]),
+          maxLength: new Map([["b", 1]]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "a", reasons: ["LENGTH_RATIO_OUTLIER"] },
+      { key: "b", reasons: ["LENGTH_RATIO_OUTLIER", "MAX_LENGTH_EXCEEDED"] },
+    ]);
+  });
+});
+
+describe("runLocale: budgets across a wider duplicate group", () => {
+  it("still flags a duplicate whose budget is larger than the representative's but too small", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings",
+      b: "Save your account settings",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([
+            ["a", 5],
+            ["b", 20],
+          ]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "a", reasons: ["MAX_LENGTH_EXCEEDED"] },
+      { key: "b", reasons: ["MAX_LENGTH_EXCEEDED"] },
+    ]);
+  });
+
+  it("holds each of three keys sharing one source text to its own budget", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Save your account settings",
+      b: "Save your account settings",
+      c: "Save your account settings",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          maxLength: new Map([
+            ["a", 100],
+            ["b", 32],
+            ["c", 31],
+          ]),
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([{ key: "c", reasons: ["MAX_LENGTH_EXCEEDED"] }]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({
+      a: "Sichere deine Kontoeinstellungen",
+      b: "Sichere deine Kontoeinstellungen",
+      c: "Sichere deine Kontoeinstellungen",
+    });
+  });
+});
+
+describe("runLocale: which keys a budget actually reaches", () => {
+  it("does not measure a key that is already translated and still in step with its source", async () => {
+    const { dir, sourceResource } = await setup({ intro: "Save your account settings" });
+    await writeJsonFile(join(dir, "locales", "de.json"), {
+      intro: "Sichere deine Kontoeinstellungen",
+    });
+    const sourceEntry = sourceResource.entries.get("intro");
+    if (sourceEntry === undefined) {
+      throw new Error("source entry intro is missing");
+    }
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          baseline: new Map([["intro", contentHash(sourceEntry)]]),
+          maxLength: new Map([["intro", 10]]),
+        },
+      ),
+    );
+
+    expect(result.summary.unchanged).toEqual(["intro"]);
+    expect(result.summary.needsReview).toEqual([]);
   });
 });

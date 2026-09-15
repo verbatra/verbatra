@@ -52,6 +52,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `generatePlurals` | boolean | `false` | Synthesize the CLDR plural forms a target language needs. |
 | `fuzzyCache` | object | off | Reuse a translation for a source string that changed only slightly. |
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
+| `maxLength` | object | none | Per-key maximum lengths for translated values, counted in grapheme clusters. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
 | `rates` | object | none | Dated provider rates, so `translate --estimate` can report a currency figure. |
@@ -127,6 +128,27 @@ Off unless you set it. `fuzzyCache: { enabled: true }` lets a key whose source t
 ### maxBatchSize
 
 Default `50`. A locale's missing-plus-changed entries are split into sequential sub-batches no larger than this, so one oversized provider request cannot fail the whole locale. A failed sub-batch is withheld and retried next run while the others still make progress. Must be a positive integer; zero, negative, or fractional values are rejected. Config-only: there is no CLI flag and no per-run override.
+
+### maxLength
+
+<AvailableFrom version="0.11.0" />
+
+Optional. A map from translation key to the longest translated value that key may hold, for a string under a layout constraint: a nav label, a button, a table header.
+
+```ts
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+This map is the only place a budget is read from. verbatra never derives one from an entry's description or from a format's own length metadata, so a budget is exactly where you wrote it and nothing can quietly override it. Keys are matched literally, not as globs or prefixes, and a key absent from the map has no budget and is never measured.
+
+Length is counted in grapheme clusters: the characters a reader perceives, rather than UTF-16 code units or Unicode code points. An emoji assembled from several code points counts as one, and so does a letter followed by a combining accent. A CJK character also counts as one, even though most fonts render it about twice as wide as a Latin letter, so set budgets for those locales with that in mind. The value is measured exactly as written, leading and trailing whitespace included, and the comparison is inclusive: a value of exactly the budget passes, one grapheme more does not.
+
+A budget is checked whenever `translate` produces a value for that key: a fresh translation, a value reused from the cache, and a value fanned out to a key that shares its source text. It is not a sweep over the whole catalog. A key that is already translated and still in step with its source is not retranslated, so it is not measured either, and adding a budget to a finished project therefore flags nothing until that key's source text next changes. To measure every current translation against its budget right now, run [`verbatra export --include-unchanged`](/docs/cli/export): the export recomputes the review columns for every row it writes, and the flag is what puts the already up-to-date keys in the file. A plain `export` writes only the missing and stale rows, so it would skip exactly the keys this paragraph is about.
+
+A budget must be a positive integer. Exceeding it is advisory, never blocking: the translation is still written to the locale file and still recorded in the lock file, and the key is reported as `MAX_LENGTH_EXCEEDED` on the run summary's `needsReview` list, in Studio's Review queue, and in the workbook's review columns. See [Translation safety](/docs/translation-safety).
 
 ### maxTokens and budgetBehavior
 

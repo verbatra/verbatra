@@ -10,6 +10,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import { toMaxLengthMap } from "../config/max-length.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
@@ -243,6 +244,7 @@ function buildLocaleRunParams(
     targetLocale,
     format: context.config.format,
     glossary: context.config.glossary,
+    maxLength: toMaxLengthMap(context.config.maxLength),
     tone: context.config.tone,
     prune: context.prune,
     generatePlurals: context.generatePlurals,

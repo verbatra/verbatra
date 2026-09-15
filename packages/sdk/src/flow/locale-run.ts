@@ -71,6 +71,7 @@ export interface LocaleRunParams {
   readonly targetLocale: string;
   readonly format: SupportedFormat;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly prune: boolean;
   readonly generatePlurals: boolean;
@@ -111,19 +112,29 @@ interface CacheHit {
   readonly match?: FuzzyCacheMatch;
 }
 
+function reviewCandidateValue(
+  params: LocaleRunParams,
+  source: TranslationEntry,
+  candidate: string,
+  integrity: PlaceholderIntegrityResult,
+): ReviewFlag | undefined {
+  return computeReviewFlags({
+    sourceValue: source.value,
+    translatedValue: candidate,
+    sourceLocale: params.sourceLocale,
+    targetLocale: params.targetLocale,
+    integrity,
+    glossary: params.glossary,
+    maxLength: params.maxLength?.get(source.key),
+  });
+}
+
 function reviewCachedValue(
   params: LocaleRunParams,
   source: TranslationEntry,
   hit: CacheHit,
 ): ReviewFlag | undefined {
-  const computed = computeReviewFlags({
-    sourceValue: source.value,
-    translatedValue: hit.value,
-    sourceLocale: params.sourceLocale,
-    targetLocale: params.targetLocale,
-    integrity: hit.integrity,
-    glossary: params.glossary,
-  });
+  const computed = reviewCandidateValue(params, source, hit.value, hit.integrity);
   if (hit.match === undefined) {
     return computed;
   }
@@ -263,6 +274,8 @@ function groupMissesByContent(
   return [...byHash.values()];
 }
 
+const BATCH_LEVEL_REASON = "PROVIDER_DEGRADED" as const;
+
 interface TranslationOutcome {
   readonly accepted: Map<string, Accepted>;
   readonly integrityMismatches: string[];
@@ -296,24 +309,49 @@ function applyGroupOutcome(
   withheldBucketFor(group.representative, outcome).push(...group.duplicates);
 }
 
+function duplicateReviewFlag(
+  params: LocaleRunParams,
+  representativeFlag: ReviewFlag | undefined,
+  source: TranslationEntry,
+  value: string,
+  integrity: PlaceholderIntegrityResult,
+): ReviewFlag | undefined {
+  const recomputed = reviewCandidateValue(params, source, value, integrity);
+  if (representativeFlag?.reasons.includes(BATCH_LEVEL_REASON) !== true) {
+    return recomputed;
+  }
+  return {
+    status: "review",
+    reasons: [...(recomputed?.reasons ?? []), BATCH_LEVEL_REASON],
+  };
+}
+
 function fanOutAccepted(
   params: LocaleRunParams,
   group: MissGroup,
   acceptedRepresentative: Accepted,
   outcome: TranslationOutcome,
 ): void {
-  const flag = outcome.reviewFlags.get(group.representative);
+  const representativeFlag = outcome.reviewFlags.get(group.representative);
   for (const key of group.duplicates) {
     const source = params.source.entries.get(key);
     /* v8 ignore next 3 -- duplicates come from the same source-driven diff as their representative. */
     if (source === undefined) {
       continue;
     }
-    if (!gateCandidateValue(source, acceptedRepresentative.value, params.adapter).accepted) {
+    const gate = gateCandidateValue(source, acceptedRepresentative.value, params.adapter);
+    if (!gate.accepted) {
       outcome.integrityMismatches.push(key);
       continue;
     }
     outcome.accepted.set(key, { value: acceptedRepresentative.value, source });
+    const flag = duplicateReviewFlag(
+      params,
+      representativeFlag,
+      source,
+      acceptedRepresentative.value,
+      gate.integrity,
+    );
     if (flag !== undefined) {
       outcome.reviewFlags.set(key, flag);
     }
@@ -558,6 +596,7 @@ async function runGeneration(
     adapter: params.adapter,
     provider,
     glossary: params.glossary,
+    maxLength: params.maxLength,
     tone: params.tone,
     baseline: params.baseline,
     targetKeys,

@@ -43,7 +43,7 @@ Modifier n'exige aucune option. Ça ne touche que tes fichiers locaux et n'appel
 
 ## Traiter la file de révision
 
-La page Révision liste chaque entrée que les heuristiques de révision ont signalée lors de la dernière exécution `translate` ou `watch` : une ligne par locale et clé, avec un indicateur par raison (traduction bien plus courte ou plus longue que la source, identique à la source, terme de glossaire manqué, placeholders réordonnés, ou lot fournisseur dégradé). Tant qu'aucune exécution n'a été enregistrée, la page le dit et reste vide ; lance `verbatra translate` ou `verbatra watch` pour la remplir.
+La page Révision liste chaque entrée que les heuristiques de révision ont signalée lors de la dernière exécution `translate` ou `watch` : une ligne par locale et clé, avec un indicateur par raison (traduction bien plus courte ou plus longue que la source, plus longue que le budget de longueur configuré pour la clé, identique à la source, terme de glossaire manqué, placeholders réordonnés, lot fournisseur dégradé, ou valeur réutilisée depuis le cache dont la source a été modifiée depuis). Tant qu'aucune exécution n'a été enregistrée, la page le dit et reste vide ; lance `verbatra translate` ou `verbatra watch` pour la remplir.
 
 <StudioScreenshot
   shot="review"

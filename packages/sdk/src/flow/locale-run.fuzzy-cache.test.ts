@@ -93,6 +93,7 @@ function makeParams(
     targetLocale: "de",
     format: "i18next-json",
     glossary: undefined,
+    maxLength: undefined,
     tone: undefined,
     prune: false,
     generatePlurals: false,

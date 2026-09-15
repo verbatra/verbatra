@@ -3,6 +3,7 @@ import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -156,6 +157,7 @@ export async function retranslateEntry(
           targetLocale: locale,
           adapter,
           glossary: config.glossary,
+          maxLength: toMaxLengthMap(config.maxLength),
           tone: config.tone,
         },
         [sourceEntry],

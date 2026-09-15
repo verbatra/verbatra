@@ -119,11 +119,12 @@ Greif zu `--include-unchanged`, wenn eine Übersetzerin den vollen Kontext eines
 `Review status` und `Review reasons` sind eine nicht blockierende Schicht über den Prüfungen oben: die Heuristiken von verbatra, um eine Übersetzung zu erkennen, die strukturell in Ordnung ist, aber einen zweiten Blick verdient. Diese Spalten halten nie eine Zeile zurück, und Import liest sie nie; ein Flag verschwindet nur, indem du die Übersetzung reparierst. Beide Spalten werden beim Export frisch aus der Quelle und den aktuellen Zielwerten berechnet:
 
 - `length-ratio-outlier`: die Übersetzung ist deutlich kürzer oder länger als ihre Quelle.
+- `max-length-exceeded`: die Übersetzung ist länger als das für ihren Key konfigurierte Budget.
 - `equals-source`: die Übersetzung ist identisch mit der Quelle.
 - `glossary-term-missed`: ein konfigurierter Glossarbegriff hat es nicht in die Übersetzung geschafft.
 - `integrity-reordered`: die Platzhalter stimmen, landeten aber in anderer Reihenfolge als in der Quelle.
 
-Ein fünfter Grund, `provider-degraded`, existiert nur zur Übersetzungszeit (eine DeepL-Degradations-Notice auf dem Batch, aus dem ein Key kam); da Export nie einen Provider aufruft, erscheint er nie auf einer exportierten Zeile. Eine Zeile ohne bisherige Übersetzung exportiert immer `ok`; es gibt nichts zu reviewen. In [Übersetzungssicherheit](/docs/translation-safety) steht, wie diese Flags mit den harten Integritätsprüfungen zusammenhängen.
+Ein sechster Grund, `provider-degraded`, existiert nur zur Übersetzungszeit (eine DeepL-Degradations-Notice auf dem Batch, aus dem ein Key kam); da Export nie einen Provider aufruft, erscheint er nie auf einer exportierten Zeile. Eine Zeile ohne bisherige Übersetzung exportiert immer `ok`; es gibt nichts zu reviewen. In [Übersetzungssicherheit](/docs/translation-safety) steht, wie diese Flags mit den harten Integritätsprüfungen zusammenhängen.
 
 ## Aus dem SDK
 

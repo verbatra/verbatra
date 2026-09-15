@@ -23,6 +23,7 @@ export interface PluralGenerationContext {
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly baseline: ReadonlyMap<string, string>;
   readonly targetKeys: ReadonlySet<string>;

@@ -119,11 +119,12 @@ Reach for `--include-unchanged` when a translator wants the full context of a lo
 `Review status` and `Review reasons` are a non-gating layer on top of the checks above: verbatra's heuristics for spotting a translation that is structurally fine but worth a second look. They never withhold a row and import never reads them; the only way to clear a flag is to fix the translation. Both columns are computed fresh at export time from the source and current target values:
 
 - `length-ratio-outlier`: the translation is far shorter or longer than its source.
+- `max-length-exceeded`: the translation is longer than the budget configured for its key.
 - `equals-source`: the translation is identical to the source.
 - `glossary-term-missed`: a configured glossary term did not make it into the translation.
 - `integrity-reordered`: the placeholders match but landed in a different order than the source.
 
-A fifth reason, `provider-degraded`, exists only at translate time (a DeepL degradation notice on the batch a key came from); since export never calls a provider, it never appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
+A sixth reason, `provider-degraded`, exists only at translate time (a DeepL degradation notice on the batch a key came from); since export never calls a provider, it never appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
 
 ## From the SDK
 

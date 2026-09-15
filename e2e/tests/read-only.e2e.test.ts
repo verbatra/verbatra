@@ -492,6 +492,38 @@ describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("CONFIG_INVALID");
   });
+
+  it("accepts a per-key maxLength budget in a packaged config", async () => {
+    const dir = await seedProject(
+      "max-length-valid",
+      { ...i18nextConfig, maxLength: { greeting: 24 } },
+      {
+        "locales/en.json": { greeting: "Hello {{name}}" },
+        "locales/de.json": { greeting: "Hallo {{name}}" },
+      },
+    );
+
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("check exits 2 with a structured CONFIG_INVALID error for a zero maxLength budget", async () => {
+    const dir = await seedProject(
+      "max-length-invalid",
+      { ...i18nextConfig, maxLength: { greeting: 0 } },
+      {
+        "locales/en.json": { greeting: "Hello {{name}}" },
+        "locales/de.json": { greeting: "Hallo {{name}}" },
+      },
+    );
+
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("CONFIG_INVALID");
+  });
 });
 
 describe("watch SIGINT contract (no provider key needed)", () => {

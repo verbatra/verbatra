@@ -81,6 +81,13 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
 - `LENGTH_RATIO_OUTLIER`: Die Übersetzung ist deutlich kürzer oder länger als ihre Quelle (unter
   dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Länge; sehr kurze Quellen werden
   übersprungen). Ein Anstoß hinzusehen, kein Urteil.
+- `MAX_LENGTH_EXCEEDED`: Die Übersetzung ist länger als das absolute Budget, das für ihren Key
+  unter [`maxLength`](/docs/config-file) konfiguriert ist. Gezählt in Graphemclustern, am Wert
+  genau so, wie er geschrieben ist, und die Grenze ist einschließend: ein Wert von genau dem Budget
+  wird nicht markiert. Ein Key ohne konfiguriertes Budget wird nie gemessen. Wie jeder Grund hier
+  markiert er, statt zu blockieren: eine Übersetzung über Budget wird trotzdem geschrieben und
+  trotzdem gesperrt, denn eine korrekte Übersetzung, die ein Layout-Budget überschreitet, ist
+  besser als gar keine Übersetzung.
 - `EQUALS_SOURCE`: Die Übersetzung entspricht der Quelle wortwörtlich in einer anderen
   Ziel-Locale, und die Quelle hatte tatsächlich übersetzbaren Text.
 - `GLOSSARY_TERM_MISSED`: Ein konfigurierter Glossarbegriff kommt in der Quelle vor, aber sein

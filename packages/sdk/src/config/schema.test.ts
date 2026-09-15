@@ -203,3 +203,57 @@ describe("the optional extract block", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("the optional maxLength block", () => {
+  it("accepts a per-key budget map", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLength: { "nav.title": 24, "cta.submit": 12 } }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("stays optional, so a config without it is still valid", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("rejects a fractional budget", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": 24.5 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a negative budget", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": -1 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a budget of zero, which would flag every non-empty translation", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": 0 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a non-numeric budget", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLength: { "nav.title": "24" } as unknown as never }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty key, so a budget always names a translation key", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "": 24 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a misspelled top-level key rather than silently ignoring the budgets", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLengths: { "nav.title": 24 } } as unknown as never),
+    );
+
+    expect(result.success).toBe(false);
+  });
+});

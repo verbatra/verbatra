@@ -133,6 +133,7 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       sourceInvalidIcuKeys: [],
       providerKind: "llm",
       baseline: new Map(),
+      maxLength: undefined,
       adapter: testCase.adapter,
       provider,
       cwd: dir,

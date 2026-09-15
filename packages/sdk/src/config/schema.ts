@@ -69,6 +69,7 @@ export const verbatraConfigSchema = z
     generatePlurals: z.boolean().optional(),
     fuzzyCache: fuzzyCacheSchema.optional(),
     maxBatchSize: z.number().int().positive().optional(),
+    maxLength: z.record(z.string().min(1), z.number().int().positive()).optional(),
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
     rates: rateCardSchema.optional(),
