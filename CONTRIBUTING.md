@@ -406,7 +406,7 @@ npx skills@latest add /path/to/your/verbatra --skill verbatra-mcp-tools -y
 
 `--skill` matches the directory name under `skills/`. Repeat the flag for more
 than one; a comma-separated list is not accepted, and `--skill '*'` would also
-pull in the repository's own internal skills under `.claude/skills/`.
+pull in the third-party skills this repository installs for its own use.
 
 A method that exists on one surface and not the other is normal: the test also
 asserts which methods are Studio-only, so adding one to both without meaning to

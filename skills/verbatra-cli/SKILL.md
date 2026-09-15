@@ -100,8 +100,8 @@ command you can see.
 consent. A confirmation to translate once authorises one run; starting a watcher
 authorises an unbounded series of them, one per source-file save, for as long as
 the process lives, with no further prompt. Say that in those words before you
-start one, and prefer a single `translate` when the human only wanted the
-current backlog cleared.
+start one, and prefer a single `translate` when the human only wanted the keys
+that are pending right now translated.
 
 ## What the lock file means
 
