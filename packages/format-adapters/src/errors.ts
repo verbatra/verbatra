@@ -6,10 +6,12 @@
  * `MAX_DEPTH_EXCEEDED` and `INPUT_TOO_LARGE` for the read caps, and `MIXED_STRUCTURE` for a file
  * that mixes flat and nested keys where the format forbids it.
  *
- * The last two describe an adapter rather than a file. `ADAPTER_FAILED` attributes an unexpected
+ * The last three describe an adapter rather than a file. `ADAPTER_FAILED` attributes an unexpected
  * throw to the third-party adapter it came from, so a plugin defect never surfaces as an
  * unattributed verbatra stack trace. `DUPLICATE_FORMAT` rejects registering a second adapter for a
- * format identifier a registry already holds.
+ * format identifier a registry already holds. `INVALID_FORMAT_ID` rejects registering an adapter
+ * whose `custom:` identifier is malformed, which would otherwise be registered without the
+ * containment wrapper and silently lose its failure attribution.
  *
  * The set is closed. A third-party adapter raises `INVALID_STRUCTURE` (or another member that fits)
  * rather than minting its own code.
@@ -23,7 +25,8 @@ export type AdapterErrorCode =
   | "INPUT_TOO_LARGE"
   | "MIXED_STRUCTURE"
   | "ADAPTER_FAILED"
-  | "DUPLICATE_FORMAT";
+  | "DUPLICATE_FORMAT"
+  | "INVALID_FORMAT_ID";
 
 /**
  * A structured, secret-free failure raised by a format adapter or by the adapter registry. Catch it

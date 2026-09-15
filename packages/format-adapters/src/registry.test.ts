@@ -219,3 +219,57 @@ describe("AdapterRegistry attributes third-party failures", () => {
     expect(() => registry.resolve("de.toml")).toThrow(AdapterError);
   });
 });
+
+describe("AdapterRegistry rejects a malformed third-party identifier", () => {
+  const malformed = [
+    "custom:TOML",
+    "custom:",
+    "custom:-toml",
+    "custom:toml-",
+    "custom:to--ml",
+    "custom:a:b",
+    "custom:toml ",
+  ] as const;
+
+  it.each(malformed)("refuses to register %j", (format) => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(customAdapter(format, true))).toThrow(AdapterError);
+  });
+
+  it("names the code and the offending identifier", () => {
+    try {
+      new AdapterRegistry().register(customAdapter("custom:TOML", true));
+      expect.unreachable("the malformed identifier should have been refused");
+    } catch (error) {
+      expect((error as AdapterError).code).toBe("INVALID_FORMAT_ID");
+      expect((error as AdapterError).message).toContain("custom:TOML");
+    }
+  });
+
+  it("registers nothing, so the malformed adapter is not resolvable afterwards", () => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(customAdapter("custom:TOML", true))).toThrow(AdapterError);
+
+    expect(registry.resolve("x.toml", { format: "custom:TOML" }).status).toBe("no-match");
+  });
+
+  it("never leaves a prefixed adapter unwrapped, so attribution cannot be bypassed", () => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(raisingAdapter("custom:TOML"))).toThrow(AdapterError);
+  });
+
+  it("still accepts a well-formed identifier", () => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(customAdapter("custom:toml", true))).not.toThrow();
+  });
+
+  it("leaves a built-in format untouched by the identifier check", () => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(fakeAdapter("i18next-json", true))).not.toThrow();
+  });
+});

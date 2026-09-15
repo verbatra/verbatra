@@ -1,4 +1,4 @@
-import { type FormatId, isCustomFormatId } from "@verbatra/core";
+import { CUSTOM_FORMAT_PREFIX, type FormatId, isCustomFormatId } from "@verbatra/core";
 import type { FormatAdapter } from "./adapter.js";
 import { attributeAdapterFailures } from "./attribution.js";
 import { AdapterError } from "./errors.js";
@@ -78,25 +78,34 @@ export class AdapterRegistry {
    *
    * @param adapter - The adapter to add.
    * @returns This registry, for chaining.
+   * @throws `AdapterError` with code `INVALID_FORMAT_ID` when the format carries the `custom:`
+   *   prefix but is not a well-formed identifier. Such an adapter is refused rather than registered
+   *   without the containment wrapper, which would silently lose its failure attribution.
    * @throws `AdapterError` with code `DUPLICATE_FORMAT` when the registry already holds an adapter
    *   for this format.
    *
    * @example
    * ```ts
    * const registry = createDefaultRegistry().register(createTomlAdapter());
-   * await translate({ config, deps: { adapterRegistry: registry } });
+   * await translate({ config }, { adapterRegistry: registry });
    * ```
    */
   register(adapter: FormatAdapter): this {
+    const custom = isCustomFormatId(adapter.format);
+    if (!custom && adapter.format.startsWith(CUSTOM_FORMAT_PREFIX)) {
+      throw new AdapterError(
+        "INVALID_FORMAT_ID",
+        `The format "${adapter.format}" is not a well-formed third-party identifier: it must be ` +
+          `"${CUSTOM_FORMAT_PREFIX}" followed by a lowercase, hyphen-separated name.`,
+      );
+    }
     if (this.adapters.some((candidate) => candidate.format === adapter.format)) {
       throw new AdapterError(
         "DUPLICATE_FORMAT",
         `An adapter for the format "${adapter.format}" is already registered.`,
       );
     }
-    this.adapters.push(
-      isCustomFormatId(adapter.format) ? attributeAdapterFailures(adapter) : adapter,
-    );
+    this.adapters.push(custom ? attributeAdapterFailures(adapter) : adapter);
     return this;
   }
 

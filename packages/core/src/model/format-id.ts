@@ -4,9 +4,13 @@ import { type SupportedFormat, supportedFormatSchema } from "./supported-format.
 /** The reserved prefix every third-party format identifier carries. */
 export const CUSTOM_FORMAT_PREFIX = "custom:";
 
-const CUSTOM_FORMAT_NAME = /[a-z0-9]+(?:-[a-z0-9]+)*/;
+const CUSTOM_FORMAT_NAME_SOURCE = "[a-z0-9]+(?:-[a-z0-9]+)*";
 
-const CUSTOM_FORMAT_ID_PATTERN = /^custom:[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const customFormatNameFragment = (): RegExp => new RegExp(CUSTOM_FORMAT_NAME_SOURCE);
+
+const CUSTOM_FORMAT_ID_PATTERN = new RegExp(
+  `^${CUSTOM_FORMAT_PREFIX}${CUSTOM_FORMAT_NAME_SOURCE}$`,
+);
 
 /**
  * A format identifier claimed by an adapter that ships outside verbatra: the reserved
@@ -43,7 +47,7 @@ export function isCustomFormatId(format: string): format is CustomFormatId {
  * Schema document verbatra ships for editors instead of becoming an invisible custom check.
  */
 export const customFormatIdSchema = z.templateLiteral(
-  [CUSTOM_FORMAT_PREFIX, z.string().regex(CUSTOM_FORMAT_NAME)],
+  [CUSTOM_FORMAT_PREFIX, z.string().regex(customFormatNameFragment())],
   {
     error:
       'a format outside verbatra must be named "custom:" followed by a lowercase, hyphen-separated name',
