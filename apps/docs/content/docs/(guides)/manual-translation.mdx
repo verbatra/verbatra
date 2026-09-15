@@ -97,6 +97,12 @@ What differs from the workbook:
 - **A narrower re-export retires the locales it drops.** Every export records the locales it wrote in a hidden manifest in the output directory. Files from an earlier, wider selection stay on disk but are refused on import (`HANDOFF_FILE_STALE`) instead of being applied as if they were fresh. Nothing is ever deleted, so an unrelated file in that directory is safe.
 - **Everything else is identical.** The same diff picks the rows, and every returned row runs the same integrity gate, so a delimited handoff and a workbook produce the same result for the same values.
 
+## TMX is a different path
+
+<AvailableFrom version="0.11.0" />
+
+A handoff carries a per-locale slice of the pending delta to a human translator; [`verbatra tmx`](/docs/cli/tmx) carries the whole translation memory as one multilingual file, for moving it between tools rather than for getting strings translated. TMX is not a `--format` value: `xlsx`, `csv` and `tsv` are the handoff shapes, so reach for `verbatra tmx export` and `verbatra tmx import` rather than `verbatra export --format tmx`.
+
 ## Selecting what to export
 
 By default, export includes only the missing and changed strings, the work that actually needs doing:

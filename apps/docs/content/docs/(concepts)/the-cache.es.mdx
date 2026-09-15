@@ -60,6 +60,12 @@ Cada valor en caché queda acotado al contexto de traducción en el que se produ
 
 La reutilización difusa necesita el texto de origen en sí, porque un hash no se puede medir por similitud, así que el archivo registra cada cadena de origen junto a sus traducciones. Para eso está la versión 2 del esquema, y hace que el archivo ocupe más o menos lo que ocupan tus cadenas de origen en lugar de una lista de hashes. Un archivo de la versión 1 escrito por una verbatra más antigua se arrastra hacia adelante en lugar de rechazarse: sus traducciones siguen funcionando como aciertos exactos de inmediato, y su texto de origen se rellena a medida que ejecuciones posteriores lo tocan.
 
+## Mover una memoria entre herramientas
+
+<AvailableFrom version="0.11.0" />
+
+La caché no se llena solo con tus propias ejecuciones: [`verbatra tmx`](/docs/cli/tmx) lee dentro de ella un archivo TMX producido por otra herramienta de traducción, y la vuelve a escribir como un archivo TMX que esas herramientas saben leer. Las unidades importadas se guardan bajo la misma huella de configuración que escribe una ejecución real, así que cambiar de proveedor, de modelo, de tono o de glosario hace que dejen de coincidir igual que todo lo demás del archivo. Eso matiza lo de borrarla y dejar que se reconstruya: borrarla sigue siendo seguro para todo lo que el proyecto ya pagó y puede volver a pagar, pero una memoria importada solo es tan recuperable como el archivo TMX del que vino, así que guarda ese archivo.
+
 ## Cómo omitirla
 
 Pasa `--no-cache` a [`translate`](/docs/cli/translate) o [`watch`](/docs/cli/watch) para saltarte la caché en una ejecución: verbatra hace exactamente las llamadas al proveedor que haría sin caché presente, y deja intacto cualquier archivo de caché existente. Desde el SDK, pon `cache: false` en la entrada de `translate` o `watch`. Un dry-run nunca lee ni escribe la caché de todos modos. `--no-cache` cubre también la reutilización difusa. Para conservar la reutilización exacta y desactivar solo el recurso difuso, deja `fuzzyCache` fuera de la configuración o ponle `enabled: false`.

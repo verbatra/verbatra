@@ -385,8 +385,56 @@ dem Dateinamen. Gibt dieselbe `RunSummary`-Form zurück wie
 Locale, das kein konfiguriertes Ziel ist, lässt dieses Locale mit `CONFIG_INVALID` als Daten auf
 der Zusammenfassung fehlschlagen, kein Wurf.
 
-## Konfiguration
+## Das TMX-Paar
 
+`importTmx` und `exportTmx` bewegen den [Translation-Memory](/docs/the-cache) in TMX hinein und
+wieder heraus, also in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und
+lesen. Keine der beiden Funktionen baut einen Provider, liest einen API-Key oder stellt eine
+Netzwerkanfrage: jeder Wert kommt aus der Datei oder aus dem Memory, der ohnehin schon auf der Platte
+liegt. Das ist nicht das Arbeitsmappen-Paar in einem anderen Format. Das Arbeitsmappen-Paar übergibt
+einer Übersetzerin einen Ausschnitt des offenen Deltas pro Locale; dieses Paar bewegt den ganzen
+Memory als eine mehrsprachige Datei zwischen Werkzeugen.
+
+### importTmx
+
+Liest eine TMX-Datei in den Memory des Projekts. Eingabe:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung des
+Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
+oder eine fehlerhafte Datei mit einem strukturierten `SOURCE_INVALID`-Fehler abgelehnt statt geparst
+wird. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten Locale zugeordnet:
+exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu Bindestrichen, sonst die
+einzige konfigurierte Locale mit demselben primären Subtag, und ein Tag, das zwei Locales
+beanspruchen könnten, wird gemeldet statt geraten. Jede Übersetzung durchläuft dann dasselbe Gate für
+Platzhalter, ICU, Ausartung und Leere, dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile
+schon unterliegen, geprüft beim Eintritt in den Memory statt überlassen an den Lauf, der sie später
+liest.
+
+Widerspricht eine importierte Einheit einer Übersetzung, die der Memory schon hat, gewinnt der
+Memory, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem aktuellen
+Konfigurations-Fingerprint gespeichert, demselben Schlüssel, den ein echter Lauf schreibt, und hören
+deshalb auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar ändern. Dieselbe Datei ein
+zweites Mal zu importieren ändert nichts.
+
+Gibt bei beschädigten Daten einen Bericht zurück, statt zu werfen: wie viele Einheiten gelesen
+wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates` und
+`rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein Quellsegment hatten oder
+Inline-Markup verloren, sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
+`memoryWritable` ist `false`, wenn die Memory-Datei von einem neueren verbatra geschrieben wurde; sie
+bleibt dann unangetastet.
+
+### exportTmx
+
+Schreibt den Memory als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, locales?, toolVersion? }`,
+wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt, das als Konstante exportiert
+wird. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
+Menge, die ein Lauf wiederverwenden würde. Ein leerer Memory ergibt eine gültige, leere Datei statt
+eines Fehlers. Gibt `{ path, units, locales, withoutSource }` zurück; `withoutSource` zählt Einträge,
+die ausgelassen wurden, weil der Memory keinen Quelltext zu ihnen hat, was nur bei Einträgen aus
+einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde.
+
+## Konfiguration
 ### loadConfig
 
 Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.

@@ -60,6 +60,12 @@ Chaque valeur en cache est délimitée au contexte de traduction dans lequel ell
 
 La réutilisation approximative a besoin du texte source lui-même, parce qu'un hachage ne se mesure pas en similarité, le fichier enregistre donc chaque chaîne source à côté de ses traductions. C'est à cela que sert la version 2 du schéma, et elle rend le fichier à peu près aussi gros que tes chaînes sources plutôt qu'une liste de hachages. Un fichier en version 1 écrit par une verbatra plus ancienne est repris plutôt que rejeté : ses traductions continuent de fonctionner immédiatement comme des succès exacts, et leur texte source se remplit à mesure que des exécutions ultérieures y touchent.
 
+## Déplacer une mémoire entre outils
+
+<AvailableFrom version="0.11.0" />
+
+Le cache ne se remplit pas uniquement avec tes propres exécutions : [`verbatra tmx`](/docs/cli/tmx) y lit un fichier TMX produit par un autre outil de traduction, et le réécrit sous forme de fichier TMX que ces outils savent lire. Les unités importées sont stockées sous la même empreinte de configuration qu'écrit une vraie exécution, un fournisseur, un modèle, un ton ou un glossaire changé les empêche donc de correspondre, exactement comme tout le reste du fichier. Cela nuance le supprimer-et-le-laisser-se-reconstruire ci-dessus : supprimer reste sans risque pour tout ce que le projet a déjà payé et peut repayer, mais une mémoire importée n'est récupérable que dans la mesure où le fichier TMX dont elle provient l'est encore, garde donc ce fichier.
+
 ## Le contourner
 
 Passe `--no-cache` à [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) pour sauter le cache le temps d'une exécution : verbatra fait exactement les appels au fournisseur qu'il ferait sans cache présent, et laisse intact tout fichier de cache existant. Depuis le SDK, mets `cache: false` sur l'entrée de `translate` ou `watch`. Un dry-run ne lit ni n'écrit jamais le cache de toute façon. `--no-cache` couvre aussi la réutilisation approximative. Pour garder la réutilisation exacte et ne désactiver que le repli approximatif, laisse `fuzzyCache` hors de la configuration ou mets `enabled: false`.

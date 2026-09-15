@@ -1,0 +1,109 @@
+---
+title: verbatra tmx
+description: Importe une mémoire de traduction TMX venue d'un autre outil, ou exporte en TMX la mémoire de ce projet.
+---
+<AvailableFrom version="0.11.0" />
+
+TMX est le format d'échange que produisent et lisent les principales plateformes de traduction. `verbatra tmx import` fait entrer dans [la mémoire de traduction de ce projet](/docs/the-cache) une mémoire exportée par l'une d'elles, si bien qu'une exécution ultérieure réutilise ces chaînes au lieu de les repayer. `verbatra tmx export` réécrit la mémoire de ce projet dans ce même format, pour que le travail puisse repartir aussi facilement qu'il est arrivé.
+
+Aucune des deux directions n'appelle un fournisseur, ne lit une clé d'API ni ne fait de requête réseau. Chaque valeur vient du fichier ou de la mémoire déjà présente sur le disque.
+
+## Synopsis
+
+```bash
+verbatra tmx <direction> [file] [flags]
+```
+
+`<direction>` vaut `import` ou `export`. `[file]` est le fichier TMX à lire ou à écrire, et vaut par défaut `verbatra-memory.tmx` dans le répertoire de travail.
+
+## Options
+
+| Option | Argument | Défaut | Effet |
+| --- | --- | --- | --- |
+| `--cwd` | `<path>` | répertoire courant | résoudre la configuration et la mémoire depuis ce répertoire |
+| `--config` | `<path>` | recherche automatique | charger ce fichier de configuration au lieu d'en chercher un |
+| `--locales` | `<list>` | toutes celles configurées | sous-ensemble de locales cibles, séparées par des virgules |
+| `--dry-run` | aucun | désactivé | à l'import, valider et rendre compte sans toucher à la mémoire |
+| `--overwrite` | aucun | désactivé | à l'import, laisser une unité importée remplacer une traduction que la mémoire possède déjà |
+| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
+
+## Exemples
+
+```bash
+# land another tool's memory in this project
+verbatra tmx import legacy.tmx
+
+# report what would land, change nothing
+verbatra tmx import legacy.tmx --dry-run
+
+# let the file win where it disagrees with what the project already holds
+verbatra tmx import legacy.tmx --overwrite
+
+# write the memory to verbatra-memory.tmx
+verbatra tmx export
+
+# only German, to a chosen path
+verbatra tmx export out/memory.tmx --locales de
+```
+
+## Ce qu'une unité importée doit satisfaire
+
+Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui atteint la mémoire peut être réutilisée sans que personne ne soit consulté à nouveau. Rien n'est donc stocké avant de l'avoir mérité. Chaque traduction candidate passe par la même barrière d'intégrité que subissent déjà [la sortie du fournisseur et une remise remplie par une traductrice](/docs/translation-safety), vérifiée au moment où l'enregistrement entre dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard :
+
+- ses variables doivent correspondre à celles de son propre segment source,
+- elle doit être un message ICU valide selon l'adaptateur du format configuré,
+- elle ne doit pas avoir dégénéré en sortie incontrôlée plutôt qu'en traduction,
+- elle ne doit pas être vide là où la source a du texte.
+
+S'y ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que la vérification des variables rattrape si ce balisage portait quelque chose d'important.
+
+Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source et chaque unité dont le balisage a été aplati.
+
+## Faire correspondre les étiquettes de langue
+
+Un fichier TMX écrit ses langues comme l'outil de son autrice les a écrites, ce qui correspond rarement à l'écriture de ta configuration. La règle est explicite et ne devine jamais :
+
+1. Les deux côtés sont mis en minuscules et les tirets bas deviennent des traits d'union, si bien que `pt_BR`, `pt-br` et `pt-BR` sont une seule locale. Une correspondance exacte à ce stade l'emporte.
+2. Sinon, l'unité rejoint la seule locale configurée qui partage la sous-étiquette primaire. Un fichier écrit en `en-US` atterrit ainsi dans un projet configuré en `en`, et un fichier écrit en `pt` atterrit dans un projet configuré uniquement en `pt-BR`.
+3. Si deux locales configurées pouvaient revendiquer l'étiquette à égalité, aucune n'est choisie. `pt-PT` dans un projet avec `pt-BR` et `pt-AO` est signalé comme ambigu, et non attribué à celle qui venait en premier.
+
+Les étiquettes qui ne correspondent à rien de configuré sont comptées par étiquette et signalées : un fichier plein de langues que tu ne traduis pas te le dit, au lieu de ressembler à un import vide.
+
+## Quand le fichier et la mémoire se contredisent
+
+La mémoire propre au projet l'emporte. Si la mémoire contient déjà une autre traduction pour la même source et la même locale, l'importée est refusée et comptée comme conservée. Passe `--overwrite` pour inverser cela et laisser le fichier gagner.
+
+Au sein d'un même fichier, la première unité pour une source donnée l'emporte, et les répétitions suivantes sont comptées comme doublons.
+
+Importer deux fois le même fichier ne change donc rien la seconde fois, et n'écrit aucun fichier.
+
+## Les unités importées et ta configuration
+
+Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet, la même clé qu'écrit une exécution réelle. C'est délibéré : une mémoire importée est réutilisée exactement quand la configuration qui la consommerait correspond, et cesse de correspondre dès que le fournisseur, le modèle, le ton ou le glossaire changent, ce qui est précisément la protection pour laquelle la couche d'empreinte existe. Réimporte le fichier après un tel changement.
+
+Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier auquel la version plus récente devrait ensuite se méfier.
+
+## Ce qu'écrit l'export
+
+Un élément `tu` par chaîne source distincte, portant le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b nommant `srclang`, `creationtool`, `creationtoolversion`, `segtype` et `o-tmf`. Seules les entrées stockées sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait.
+
+Une mémoire vide produit un fichier TMX valide et vide, pas une erreur.
+
+Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, car TMX n'admet pas d'unité sans segment source. Cela n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source ; elles sont laissées de côté et comptées, et se remplissent à mesure que des exécutions ultérieures retouchent ces chaînes.
+
+## Codes de sortie
+
+| Code | Signification |
+| --- | --- |
+| `0` | le fichier a été lu ou écrit |
+| `2` | exécution impossible : une erreur de configuration, un fichier absent ou illisible, un fichier qui n'est pas du TMX valide, ou une erreur d'utilisation |
+
+Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé par une erreur structurée nommant ce qui a échoué. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et la simple ligne doctype externe qu'écrivent les outils réels est écartée plutôt que chargée.
+
+Les unités ignorées ou refusées ne font pas échouer l'exécution. Elles sont signalées, car une mémoire du monde réel en porte presque toujours un peu des deux.
+
+## Voir aussi
+
+- [Le cache](/docs/the-cache) explique ce qu'est la mémoire de traduction et sous quelle clé elle est indexée.
+- [Traduction manuelle](/docs/manual-translation) couvre la remise en xlsx, CSV et TSV, qui est autre chose : une tranche par locale du delta en attente pour une traductrice, pas la mémoire entière.
+- [Sécurité de la traduction](/docs/translation-safety) explique les vérifications qu'une unité importée doit passer.
