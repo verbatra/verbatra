@@ -21,14 +21,17 @@ Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JS
 | [`doctor`](/docs/cli/doctor) | ja | ein `DoctorResult` |
 | [`export`](/docs/cli/export) | ja | den geschriebenen Pfad und die Zeilenzahl pro Locale |
 | [`import`](/docs/cli/import) | ja | ein `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
+| [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
 | [`init`](/docs/cli/init) | nein | |
 | [`studio`](/docs/cli/studio) | nein | |
+| [`mcp`](/docs/cli/mcp) | nein | |
 
-`init` legt interaktiv ein Projekt an und `studio` ist ein langlaufender Server, deshalb hat keiner von beiden einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen sieben erreichbar.
+`init` legt interaktiv ein Projekt an, und `studio` und `mcp` sind langlaufende Server, deshalb hat keiner der drei einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen neun erreichbar.
 
-`doctor` ist der jüngste Zugang zu dieser Liste.
+`doctor` kam in 0.9.0 dazu. `pseudo` und `extract` sind die jüngsten Zugänge zu dieser Liste.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## Auf stdout stehen Envelopes und sonst nichts
 
@@ -182,11 +185,11 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur `watch` und `studio` lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur die drei langlaufenden Befehle (`watch`, `studio` und `mcp`) lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
 ## `watch` ist ein Strom, keine einzelne Ausgabe
 
-`watch --json` ist von anderer Art als die übrigen sechs. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
+`watch --json` ist von anderer Art als die übrigen acht. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
 
 Roh, zwei Läufe einer Sitzung (der zweite, nachdem die Quelldatei mit einem Syntaxfehler gespeichert wurde):
 
@@ -270,6 +273,22 @@ nothing pending
 Der erste endet mit `0`, der zweite mit `1` (der Provider-Endpunkt war nicht erreichbar), der dritte mit `0`, ohne etwas auszugeben. Schritt 1 nutzt bewusst `diff` statt `translate --dry-run`: Beide sind schreibgeschützt und brauchen keinen Key, aber `diff` ist die genau dafür gebaute Frage, und sein Exit-Code allein beantwortet schon, ob es Arbeit gibt.
 
 Der Provider-Key für Schritt 4 kommt aus der Umgebung, wie immer. Lege ihn in deinem CI-Secret-Store oder deiner Shell-Umgebung ab und lass ihn den Prozess erben; die CLI nimmt kein Key-Argument entgegen und liest keinen aus der Konfigurationsdatei. Welche Variable dein Provider liest, steht unter [Provider](/docs/providers).
+
+## Das Skills-Paket
+
+Die Rezepte auf dieser Seite sind die Referenz. Wenn du einem Agenten das Betriebswissen lieber vorab in die Hand gibst: das verbatra-Repository liefert drei Skill-Dokumente, die genau das tun, installierbar mit der [skills.sh](https://www.skills.sh/docs)-CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Nimm es, wenn |
+| --- | --- |
+| `verbatra-cli` | der Agent die `verbatra`-Binary aus einer Shell oder aus CI steuert. |
+| `verbatra-mcp-tools` | ein MCP-Client mit `verbatra mcp` verbunden ist. |
+| `verbatra-studio-agent-tools` | ein Browser-Agent einen offenen Studio-Tab steuert. |
+
+Sie decken ab, was ein Agent ohne Ansage falsch macht: welche Befehle Geld kosten und welche gratis sind, dass ein Dry Run überhaupt keinen Provider erzeugt, was die Lock-Datei sichtbar macht und warum ein Tool, das Provider-Budget ausgibt, absichtlich in einer Tool-Liste fehlen kann. Installiere nur die Oberfläche, die du nutzt; jedes Dokument steht für sich. Tausche den Namen hinter `--skill` aus oder wiederhole den Schalter, um mehrere zu installieren.
 
 ## Als Nächstes
 

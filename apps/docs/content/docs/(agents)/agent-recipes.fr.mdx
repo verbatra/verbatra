@@ -21,14 +21,17 @@ Les recettes ci-dessous lisent stdout avec `jq`, parce que c'est la plus petite 
 | [`doctor`](/docs/cli/doctor) | oui | un `DoctorResult` |
 | [`export`](/docs/cli/export) | oui | le chemin écrit et le nombre de lignes par locale |
 | [`import`](/docs/cli/import) | oui | un `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | oui | la pseudolocale générée, son chemin et le nombre d'entrées |
+| [`extract`](/docs/cli/extract) | oui | les clés ajoutées à la locale source, et ce que le scan n'a pas pu résoudre |
 | [`init`](/docs/cli/init) | non | |
 | [`studio`](/docs/cli/studio) | non | |
+| [`mcp`](/docs/cli/mcp) | non | |
 
-`init` est un générateur interactif et `studio` est un serveur de longue durée : ni l'un ni l'autre n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les sept autres.
+`init` est un générateur interactif, et `studio` et `mcp` sont des serveurs de longue durée : aucun des trois n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les neuf autres.
 
-`doctor` est la dernière arrivée dans cette liste.
+`doctor` est arrivée en 0.9.0. `pseudo` et `extract` sont les dernières arrivées dans cette liste.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## stdout ne porte que des enveloppes
 
@@ -182,11 +185,11 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal que tu es venu chercher, pas un plantage. Le code `130` n'apparaît jamais ici, puisque seuls `watch` et `studio` peuvent être arrêtés de force par une seconde interruption. Le tableau complet est dans [CI et codes de sortie](/docs/ci-and-exit-codes).
+Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal que tu es venu chercher, pas un plantage. Le code `130` n'apparaît jamais ici, puisque seules les trois commandes de longue durée (`watch`, `studio` et `mcp`) peuvent être arrêtées de force par une seconde interruption. Le tableau complet est dans [CI et codes de sortie](/docs/ci-and-exit-codes).
 
 ## `watch` est un flux, pas une sortie unique
 
-`watch --json` est différent par nature des six autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
+`watch --json` est différent par nature des huit autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
 
 Brut, deux exécutions d'une session (la seconde après que le fichier source a été enregistré avec une erreur de syntaxe) :
 
@@ -270,6 +273,22 @@ nothing pending
 La première sort avec `0`, la deuxième avec `1` (le point de terminaison du fournisseur était injoignable), la troisième avec `0` sans rien dépenser. L'étape 1 utilise volontairement `diff` plutôt que `translate --dry-run` : les deux sont en lecture seule et aucun n'a besoin de clé, mais `diff` est la question faite exactement pour ça, et son code de sortie seul répond déjà s'il y a du travail.
 
 La clé de fournisseur de l'étape 4 vient de l'environnement, comme toujours. Range-la dans le coffre à secrets de ta CI ou dans l'environnement de ton shell et laisse le processus en hériter ; la CLI ne prend aucune clé en argument et n'en lit aucune depuis le fichier de config. Quelle variable lit ton fournisseur est indiqué dans [Fournisseurs](/docs/providers).
+
+## Le pack de skills
+
+Les recettes de cette page sont la référence. Si tu préfères donner d'emblée à un agent le savoir opérationnel, le dépôt verbatra fournit trois documents de skill qui font exactement cela, installables avec la CLI [skills.sh](https://www.skills.sh/docs) :
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | À utiliser quand |
+| --- | --- |
+| `verbatra-cli` | l'agent pilote le binaire `verbatra` depuis un shell ou depuis la CI. |
+| `verbatra-mcp-tools` | un client MCP est connecté à `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | un agent de navigateur pilote un onglet Studio ouvert. |
+
+Ils couvrent ce qu'un agent rate quand personne ne le lui dit : quelles commandes dépensent et lesquelles sont gratuites, qu'une exécution à blanc ne construit aucun fournisseur, ce que le fichier de verrou rend visible, et pourquoi un outil qui dépense peut manquer d'une liste à dessein. N'installe que la surface que tu utilises ; chaque document se suffit à lui-même. Change le nom après `--skill`, ou répète l'option pour en installer plusieurs.
 
 ## Ensuite
 

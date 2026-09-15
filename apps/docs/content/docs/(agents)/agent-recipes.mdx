@@ -21,14 +21,17 @@ The recipes below use `jq` to read stdout, because that is the smallest thing th
 | [`doctor`](/docs/cli/doctor) | yes | one `DoctorResult` |
 | [`export`](/docs/cli/export) | yes | the written path and the per-locale row counts |
 | [`import`](/docs/cli/import) | yes | one `RunSummary` |
+| [`pseudo`](/docs/cli/pseudo) | yes | the generated pseudolocale, its path, and the entry counts |
+| [`extract`](/docs/cli/extract) | yes | the keys added to the source locale, plus what the scan could not resolve |
 | [`init`](/docs/cli/init) | no | |
 | [`studio`](/docs/cli/studio) | no | |
+| [`mcp`](/docs/cli/mcp) | no | |
 
-`init` is an interactive scaffolder and `studio` is a long-running server, so neither has a machine-readable mode. Everything else an agent needs from a project is reachable from the other seven.
+`init` is an interactive scaffolder, and `studio` and `mcp` are long-running servers, so none of the three has a machine-readable mode. Everything else an agent needs from a project is reachable from the other nine.
 
-`doctor` is the most recent addition to that list.
+`doctor` joined that list in 0.9.0. `pseudo` and `extract` are the most recent additions.
 
-<AvailableFrom version="0.9.0" />
+<AvailableFrom version="0.11.0" />
 
 ## stdout carries envelopes and nothing else
 
@@ -182,11 +185,11 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Do not run this under `set -e`: a non-zero exit is the signal you came for, not a crash. Code `130` never appears here, because only `watch` and `studio` can be force-stopped by a second interrupt. See [CI and exit codes](/docs/ci-and-exit-codes) for the full table.
+Do not run this under `set -e`: a non-zero exit is the signal you came for, not a crash. Code `130` never appears here, because only the three long-running commands (`watch`, `studio` and `mcp`) can be force-stopped by a second interrupt. See [CI and exit codes](/docs/ci-and-exit-codes) for the full table.
 
 ## `watch` is a stream, not a payload
 
-`watch --json` is different in kind from the other six. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
+`watch --json` is different in kind from the other eight. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
 
 Raw, two runs of one session (the second after the source file was saved with a syntax error):
 
@@ -270,6 +273,22 @@ nothing pending
 The first exits `0`, the second exits `1` (the provider endpoint was unreachable), the third exits `0` without spending anything. Step 1 is deliberately `diff` rather than `translate --dry-run`: both are read-only and neither needs a key, but `diff` is the question built for exactly this, and its exit code alone already answers whether there is work to do.
 
 The provider key for step 4 comes from the environment, the way it always does. Put it in your CI secret store or your shell environment and let the process inherit it; the CLI takes no key argument and reads none from the config file. See [Providers](/docs/providers) for which variable your provider reads.
+
+## The skills pack
+
+The recipes on this page are the reference. If you would rather hand an agent the operating knowledge up front, the verbatra repository ships three skill documents that do exactly that, installable with the [skills.sh](https://www.skills.sh/docs) CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Use it when |
+| --- | --- |
+| `verbatra-cli` | The agent drives the `verbatra` binary from a shell or CI. |
+| `verbatra-mcp-tools` | An MCP client is connected to `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | A browser agent is driving an open Studio tab. |
+
+They cover what an agent gets wrong without being told: which commands spend and which are free, that a dry run constructs no provider at all, what the lock file makes visible, and why a provider-spending tool can be missing from a tool list on purpose. Install only the surface you use; each document stands on its own. Swap the name after `--skill`, or repeat the flag to install more than one.
 
 ## Next
 

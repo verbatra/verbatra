@@ -147,8 +147,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
      no prompt. Set `kind: "machine-translation"` and implement `translateBatch`
-     directly. DeepL is the only such provider today; see
-     `deepl/deepl-provider.ts`.
+     directly. DeepL and Google Cloud Translation are the two such providers
+     today; see `deepl/deepl-provider.ts` and
+     `google-translate/google-translate-provider.ts`.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.
@@ -158,7 +159,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 3. **`packages/ai-providers/src/env.ts`** - key handling. Add the entry to
    `PROVIDER_ENV` (around `:3`) and a `require<Name>Key()` helper next to the
-   existing four (around `:18-32`), both delegating to `readRequiredEnv`.
+   existing five (around `:19-37`), both delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
@@ -215,8 +216,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    `_envCoversAllProviders` (around `:12`) requires an env entry for every
    provider except `openai-compatible`, and
    `_tokenLimitKeysCoverAllModelProviders` (around `:17`) requires a token-limit
-   key for every one of those except DeepL. Both are unused declarations that
-   exist only to fail the build.
+   key for every one of those except `deepl` and `google-translate`, the two that
+   take no model. Both are unused declarations that exist only to fail the
+   build.
 
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
@@ -226,7 +228,18 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
-    `.fr.mdx` sibling of each in the same change.
+    `.fr.mdx` sibling of each in the same change. If `verbatra init` offers the
+    provider, add it to the `--provider` list in `apps/docs/lib/ai-setup-prompt.ts`
+    too; `ai-setup-prompt.test.ts` only checks that constant against the fenced
+    block in the four `start-with-ai` pages, so it catches a stale page but never
+    a provider you forgot to add to both.
+
+13. **`skills/verbatra-cli/SKILL.md`** - add the row to the Providers table,
+    naming the environment variable from step 3.
+    `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+    `providerFactories` and `PROVIDER_ENV`, so a missing row fails
+    `pnpm test:scripts` rather than shipping a skill that tells an agent the
+    provider does not exist.
 
 ### Adding a format adapter
 
@@ -287,6 +300,18 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    a total `Record<SupportedFormat, string>` and will not compile until the new
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
+
+   `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
+   detection list, the mapping from file shape to format id, the two warnings
+   about what `verbatra init` cannot auto-detect, and a caveat paragraph where the
+   format needs one. Nothing compares that constant to `SUPPORTED_FORMATS`, so
+   nothing fails if you skip it. Do it here, and grep the file for a neighbouring
+   format id rather than trusting one edit to have covered every mention.
+
+8. **`skills/verbatra-cli/SKILL.md`** - add the row to the Formats table.
+   `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+   `SUPPORTED_FORMATS`, so a missing row fails `pnpm test:scripts` rather than
+   shipping a skill that tells an agent the format is unsupported.
 
 ### Formats assessed against the factories
 
@@ -350,6 +375,48 @@ inline in a single message body. Placeables (`{ $var }`, `{ -term }`,
 importantly, a decision about what one `TranslationEntry` corresponds to before
 any code is written. Per the rule above, raise that first.
 
+### Adding an agent tool or a Studio RPC method
+
+The two agent surfaces are enumerated in the skills pack the same way commands,
+formats and providers are, and `scripts/verify-skills-tool-parity.test.mjs`
+asserts both tables just as strictly. A new tool with no matching row turns
+`pnpm test:scripts` red.
+
+1. **`skills/verbatra-mcp-tools/SKILL.md`** - for a new stdio tool, add the row to
+   the Tools table. The Availability cell is `always`, or `spend gated` when the
+   tool is in `SPEND_TOOL_NAMES` (`packages/mcp/src/tools/registry.ts`). The
+   surrounding prose names the registered and default-advertised counts, and the
+   test asserts those against the registry too, so both move together.
+
+2. **`skills/verbatra-studio-agent-tools/SKILL.md`** - for a new RPC method, add
+   the row to the Tools table. The first cell is the tool name exactly as
+   `toToolName` derives it (`verbatra_` plus the method with dots replaced by
+   underscores), the second is the method, and the third is `spend gated` when the
+   descriptor in `packages/studio/src/webmcp/register-tools.ts` sets
+   `spendGated: true`. The prose counts for both surfaces are asserted here as
+   well.
+
+To try an edited skill before it is merged, point the installer at your checkout
+rather than at the repository. This is the form to use locally, since the
+published `verbatra/verbatra` source only ever serves the default branch:
+
+```bash
+npx skills@latest add /path/to/your/verbatra --skill verbatra-mcp-tools -y
+```
+
+`--skill` matches the directory name under `skills/`. Repeat the flag for more
+than one; a comma-separated list is not accepted, and `--skill '*'` would also
+pull in the third-party skills this repository installs for its own use.
+
+A method that exists on one surface and not the other is normal: the test also
+asserts which methods are Studio-only, so adding one to both without meaning to
+fails just as loudly as adding it to neither.
+
+The one thing neither the test nor the type system can catch: a tool that calls a
+provider but was never added to `SPEND_TOOL_NAMES` or given `spendGated: true`.
+Source and skill would agree, and both would be wrong. Decide that flag when you
+write the tool, not when you document it.
+
 ### The guards are the guide
 
 Every step above that can be enforced at compile time already is, which is why
@@ -364,8 +431,11 @@ this list can be trusted even after the line numbers drift:
   expressible,
 - `FORMAT_LABELS` is a total record over `SupportedFormat`, so a new format
   cannot ship without a label,
-- and `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
-  anywhere in the adapter package.
+- `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
+  anywhere in the adapter package,
+- and `verify-skills-tool-parity.test.mjs` fails when the skills pack's command,
+  format, provider, tool or method tables, or the counts in its prose, drift from
+  the sources above.
 
 If you find yourself wanting a new lint rule or checklist item, check first
 whether one of these already covers it.

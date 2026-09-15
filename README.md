@@ -160,12 +160,12 @@ Every command follows the same contract, so a CI step can branch on the code alo
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `pseudo` generated its locale, `export` wrote its handoff, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
-| `1` | It ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale (a partial locale is one whose file was written with some keys still missing), `check` found drift, `diff` found a missing or changed key (orphaned keys alone never produce `1`), `doctor` found at least one failed check, or `studio` failed while shutting its server down |
+| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `pseudo` generated its locale, `export` wrote its handoff, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
+| `1` | It ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale (a partial locale is one whose file was written with some keys still missing), `check` found drift, `diff` found a missing or changed key (orphaned keys alone never produce `1`), `doctor` found at least one failed check, or `studio` or `mcp` failed while shutting its server down |
 | `2` | Could not run: a whole-run error, a usage error, `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, or `studio` given a bad `--port` or unable to load the config, import `@verbatra/studio`, or start its server |
-| `130` | `watch` or `studio` was force-stopped by a second interrupt |
+| `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt |
 
-A single interrupt is a clean stop and exits `0` for both `watch` and `studio`, but the two part ways if that stop itself fails: `watch` exits `2`, `studio` exits `1`. `export` has no per-locale failure mode, so it never exits `1`. `doctor` reads a broken config the other way around: a config it cannot find by search, or one that fails validation, is a failed check and exit `1`, and it exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist. One case sits outside the contract: a parse failure that is not a usage error is re-thrown and the binary does not catch it, so Node's default handling of an unhandled rejection applies instead of any of these codes.
+A single interrupt is a clean stop and exits `0` for all three long-running commands (`watch`, `studio` and `mcp`), but they part ways if that stop itself fails: `watch` exits `2`, while `studio` and `mcp` exit `1`. `export` has no per-locale failure mode, so it never exits `1`. `doctor` reads a broken config the other way around: a config it cannot find by search, or one that fails validation, is a failed check and exit `1`, and it exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist. One case sits outside the contract: a parse failure that is not a usage error is re-thrown and the binary does not catch it, so Node's default handling of an unhandled rejection applies instead of any of these codes.
 
 ## Verbatra Studio
 
@@ -202,6 +202,22 @@ A composite GitHub Action runs `verbatra translate --json` in CI, turns each fai
 The action fetches and runs `@verbatra/cli` at exactly the version you pin, so the job needs no separate install step, and it rejects anything that is not an exact semver version so a run can never silently resolve `latest`. The API key comes from the environment as it does everywhere else in verbatra; there is no key input. Its `command` input selects `translate` (the default), `check`, or `diff`, so the read-only gate runs in the action too: `check` and `diff` call no provider and need no API key, which makes them safe on a fork pull request. Run the CLI directly when you want a flag the action does not expose, such as `--prune`.
 
 See the [GitHub Action page](https://verbatra.kreitz-webdev.de/docs/github-action) for the full input list, the annotation and job-summary format, and the security notes.
+
+## Agent skills
+
+Three skill documents in [`skills/`](./skills) teach a coding agent when to reach for verbatra and which of its surfaces to use. Install one into your own project with the [skills.sh](https://www.skills.sh/docs) CLI:
+
+```bash
+npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+```
+
+| Skill | Use it when |
+| --- | --- |
+| `verbatra-cli` | The agent drives the `verbatra` binary from a shell or CI. |
+| `verbatra-mcp-tools` | An MCP client is connected to `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | A browser agent is driving an open Verbatra Studio tab. |
+
+Each document stands on its own, so install only the surface you use: swap the name after `--skill`, or repeat the flag to install more than one. Add `-a <agent>` to target a specific agent directory. The install is recorded in your own `skills-lock.json`, and a root-level parity test in this repository fails if a documented command, format, provider, or tool name ever drifts from the code.
 
 ## Programmatic use
 
