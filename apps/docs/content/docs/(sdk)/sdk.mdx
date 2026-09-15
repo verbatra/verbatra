@@ -510,6 +510,7 @@ interface LocaleSummary {
   status: "succeeded" | "partial" | "failed";
   translated: string[];          // keys translated this run (in dry-run, keys that would be)
   cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
   unchanged: string[];           // keys already up to date
   orphaned: string[];            // target keys with no matching source key (always reported)
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
@@ -532,7 +533,9 @@ The parts worth knowing:
 
 - **needsReview** lists accepted, written keys the review heuristics flagged, each with its reason
   codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`,
-  and `PROVIDER_DEGRADED`. A review flag is advisory and never withholds a key, so a key never
+  and `PROVIDER_DEGRADED`. The set ships as the `REVIEW_REASON_CODES` tuple,
+  so build any runtime schema or exhaustive lookup from that rather than retyping the members. A
+  review flag is advisory and never withholds a key, so a key never
   appears in both `needsReview` and `integrityMismatches`. See
   [Translation safety](/docs/translation-safety) for what each code means and
   [Review in Studio](/docs/review-in-studio) for working the queue.
@@ -550,7 +553,9 @@ The parts worth knowing:
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
   with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
-  the provider. **unfilled**, **malformedRows**, and **duplicateKeys** are populated only by
+  the provider. **fuzzyHits** lists the keys that reused a translation for a source string
+  that had changed, each carrying `key`, `similarity`, and the `previousSource` it matched; it is
+  empty unless `fuzzyCache` is enabled, and those keys are never counted in **cacheHits**. **unfilled**, **malformedRows**, and **duplicateKeys** are populated only by
   `importWorkbook` (a `translate` run leaves them empty): a blank row whose key still needs a
   translation at import time (whether it was exported as `new` or as `changed`), a workbook row the
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on

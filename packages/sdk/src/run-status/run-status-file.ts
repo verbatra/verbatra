@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
 import { z } from "zod";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
@@ -11,13 +12,7 @@ const CURRENT_VERSION = 1;
 
 const MAX_RUN_STATUS_FILE_BYTES = 16 * 1024 * 1024;
 
-const reviewReasonCodeSchema = z.enum([
-  "LENGTH_RATIO_OUTLIER",
-  "EQUALS_SOURCE",
-  "GLOSSARY_TERM_MISSED",
-  "INTEGRITY_REORDERED",
-  "PROVIDER_DEGRADED",
-]);
+const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 
 const needsReviewEntrySchema = z.object({
   key: z.string(),

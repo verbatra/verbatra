@@ -525,6 +525,7 @@ interface LocaleSummary {
   status: "succeeded" | "partial" | "failed";
   translated: string[];          // keys translated this run (in dry-run, keys that would be)
   cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
   unchanged: string[];           // keys already up to date
   orphaned: string[];            // target keys with no matching source key (always reported)
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
@@ -547,7 +548,9 @@ Las partes que conviene conocer:
 
 - **needsReview** lista claves aceptadas y escritas que las heurísticas de revisión marcaron, cada una
   con sus códigos de motivo: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`,
-  `INTEGRITY_REORDERED` y `PROVIDER_DEGRADED`. Una señal de revisión es consultiva y nunca retiene una
+  `INTEGRITY_REORDERED` y `PROVIDER_DEGRADED`. El conjunto se publica como la
+  tupla `REVIEW_REASON_CODES`, así que construye a partir de ella cualquier esquema en tiempo de
+  ejecución o búsqueda exhaustiva, en lugar de reescribir los miembros. Una señal de revisión es consultiva y nunca retiene una
   clave, así que una clave nunca aparece a la vez en `needsReview` y en `integrityMismatches`. Consulta
   [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada código y
   [Revisión en Studio](/docs/review-in-studio) para trabajar la cola.
@@ -565,7 +568,10 @@ Las partes que conviene conocer:
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
   adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado.
 - **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)
-  en lugar del proveedor. **unfilled**, **malformedRows** y **duplicateKeys** solo los rellena
+  en lugar del proveedor. **fuzzyHits** lista las claves que reutilizaron una traducción para
+  una cadena de origen que había cambiado, cada una con `key`, `similarity` y el `previousSource` con
+  el que coincidió; está vacía salvo que `fuzzyCache` esté activado, y esas claves nunca se cuentan en
+  **cacheHits**. **unfilled**, **malformedRows** y **duplicateKeys** solo los rellena
   `importWorkbook` (una ejecución de `translate` los deja vacíos): una fila en blanco cuya clave
   todavía necesita traducción en el momento de la importación (tanto si se exportó como `new` como si
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada

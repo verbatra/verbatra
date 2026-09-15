@@ -540,6 +540,7 @@ interface LocaleSummary {
   status: "succeeded" | "partial" | "failed";
   translated: string[];          // keys translated this run (in dry-run, keys that would be)
   cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
   unchanged: string[];           // keys already up to date
   orphaned: string[];            // target keys with no matching source key (always reported)
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
@@ -562,7 +563,9 @@ Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
   haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`,
-  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Ein Review-Flag ist nur
+  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Die
+  Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jede Laufzeit-Validierung und jedes
+  vollständige Lookup daraus, statt die Mitglieder abzutippen. Ein Review-Flag ist nur
   ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in `needsReview` und
   `integrityMismatches` zugleich. Was jeder Code bedeutet, steht in
   [Übersetzungssicherheit](/docs/translation-safety), das Abarbeiten der Warteschlange in
@@ -583,7 +586,10 @@ Die Teile, die du kennen solltest:
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
   also nicht als geschlossene Menge.
 - **cacheHits** listet Keys, die aus dem [Translation-Memory-Cache](/docs/the-cache) statt vom
-  Provider bedient wurden. **unfilled**, **malformedRows** und **duplicateKeys** werden nur von
+  Provider bedient wurden. **fuzzyHits** listet die Keys, die eine Übersetzung für einen
+  geänderten Quellstring wiederverwendet haben, jeweils mit `key`, `similarity` und dem getroffenen
+  `previousSource`; sie ist leer, solange `fuzzyCache` nicht aktiviert ist, und diese Keys zählen nie
+  in **cacheHits** mit. **unfilled**, **malformedRows** und **duplicateKeys** werden nur von
   `importWorkbook` befüllt (ein `translate`-Lauf lässt sie leer): eine leere Zeile, deren Key zum
   Importzeitpunkt weiterhin eine Übersetzung braucht (egal ob sie als `new` oder als `changed`
   exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte, und ein

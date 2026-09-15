@@ -73,6 +73,7 @@ export type {
   TranslationProvider,
   Usage,
 } from "./provider.js";
+export { REVIEW_REASON_CODES } from "./provider.js";
 export { redact } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
 export { computeReviewFlags, type ReviewFlagInput } from "./review-flags.js";
