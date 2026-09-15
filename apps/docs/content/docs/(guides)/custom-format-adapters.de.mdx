@@ -56,6 +56,8 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 
 Nimm `createTreeFileAdapter`, wenn Einträge auf Pfaden durch verschachtelte Objekte liegen. Es nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist.
 
+Beide Factories nehmen ein optionales `comparePlaceholders` für ein Format, dessen Struktur eine flache Token-Liste verlieren würde. Markiert dein Format Inhalte als nicht übersetzbar, melde sie, statt sie fallen zu lassen: Ein flaches `parseEntries` gibt `{ entries, excludedLeafPaths }` statt einer blanken Map zurück, und ein Baum-Adapter meldet seine Nicht-String-Blätter von selbst.
+
 Beide Factories akzeptieren ein optionales `sniff`, eine Prüfung auf einer führenden Inhaltsprobe. Gib ihr eine, wann immer deine Endung eine generische ist: Ohne sie beansprucht dein Adapter jede Datei mit dieser Endung, und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
 
 Beide akzeptieren außerdem einen `fs`-Port vom Typ `AdapterFs`, der auf `nodeAdapterFs` vorbelegt ist. Lies und schreib über ihn, statt selbst zu `node:fs` zu greifen: Er ist der unterstützte Weg, er schenkt dir das größenbegrenzte Lesen und das atomare Schreiben, und er ist es, der deinen Adapter ohne Festplatte testbar macht.
@@ -80,7 +82,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Ein Adapter mit einem `custom:`-Bezeichner wird beim Registrieren umhüllt. Ein unerwarteter Fehler aus `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` oder `comparePlaceholders` erscheint als `AdapterError` mit dem Code `ADAPTER_FAILED`, dessen Meldung dein Format nennt, ein Defekt in deinem Adapter wird also nie als Defekt von verbatra gemeldet.
 
-Zwei Arten von Fehlern reisen unverändert weiter, weil sie schon etwas Genaues bedeuten. Ein `AdapterError`, den du selbst wirfst, behält seinen eigenen Code, wirf also einen (`INVALID_STRUCTURE` passt in den meisten Fällen) für Inhalte, die dein Format nicht darstellen kann. Ein Fehler mit einem errno-Code behält ihn ebenfalls, eine fehlende Datei bleibt also eine fehlende Datei. Alles andere wird deinem Adapter zugeschrieben, auch ein Node-Fehler wie `ERR_INVALID_ARG_TYPE`, den ein fehlerhafter Adapter am ehesten wirft und der nicht mit einem Dateisystemfehler verwechselt werden darf.
+Zwei Arten von Fehlern reisen unverändert weiter, weil sie schon etwas Genaues bedeuten. Ein `AdapterError`, den du selbst wirfst, behält seinen eigenen Code, wirf also einen (`INVALID_STRUCTURE` passt in den meisten Fällen) für Inhalte, die dein Format nicht darstellen kann. Ein Fehler mit einem errno-Code (`ENOENT`, `EACCES`) behält ihn ebenfalls, eine fehlende Datei wird also weiterhin als fehlende Datei gemeldet. Alles andere wird deinem Adapter zugeschrieben, auch ein Node-Fehler wie `ERR_INVALID_ARG_TYPE`, den ein fehlerhafter Adapter am ehesten wirft und der nicht mit einem Dateisystemfehler verwechselt werden darf. Diese errno-Regel prüft die Form des Fehlers, nicht seine Herkunft: Wirft dein eigener Prüfcode einen Fehler mit `ENOENT`, wird er als Dateisystemzustand gemeldet, weil sich beides nicht unterscheiden lässt.
 
 ## Worauf du dich einlässt
 

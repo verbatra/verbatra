@@ -56,6 +56,8 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 
 Utilise `createTreeFileAdapter` quand les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les marqueurs de chaque feuille et si elle est une forme plurielle.
 
+Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le laisser tomber : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
+
 Les deux fabriques acceptent un `sniff` optionnel, une vérification sur un échantillon de tête du contenu. Donne-lui-en un dès que ton extension est générique : sans lui, ton adaptateur revendique tous les fichiers portant cette extension, et la détection signale une ambiguïté au lieu de choisir.
 
 Les deux acceptent aussi un port `fs`, de type `AdapterFs`, dont la valeur par défaut est `nodeAdapterFs`. Lis et écris par lui plutôt que d'aller chercher `node:fs` toi-même : c'est la voie prise en charge, elle t'offre la lecture bornée en taille et l'écriture atomique, et c'est elle qui rend ton adaptateur testable sans toucher au disque.
@@ -80,7 +82,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Un adaptateur portant un identifiant `custom:` est enveloppé à l'enregistrement. Une erreur inattendue venue de `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` ou `comparePlaceholders` apparaît comme une `AdapterError` avec le code `ADAPTER_FAILED`, dont le message nomme ton format, si bien qu'un défaut de ton adaptateur n'est jamais rapporté comme un défaut de verbatra.
 
-Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lèves-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno garde également le sien, donc un fichier manquant reste un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers.
+Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lèves-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno (`ENOENT`, `EACCES`) garde également le sien, donc un fichier manquant reste rapporté comme un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers. Cette règle errno teste la forme de l'erreur, pas sa provenance : si ton propre code de validation lève une erreur portant `ENOENT`, elle est rapportée comme une condition du système de fichiers, car rien ne permet de les distinguer.
 
 ## Ce à quoi tu accordes ta confiance
 

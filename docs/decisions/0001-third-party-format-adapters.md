@@ -150,7 +150,15 @@ What verbatra does provide, and what it does not:
   kinds of throw travel unchanged, because they already carry a precise meaning: an `AdapterError`
   the adapter raised itself, and an error carrying an errno code. A Node misuse error
   (`ERR_INVALID_ARG_TYPE` and its siblings) is attributed like any other defect, since it is the
-  most likely thing a buggy adapter throws and it must not be mistaken for a filesystem failure. This is
+  most likely thing a buggy adapter throws and it must not be mistaken for a filesystem failure.
+
+  The errno rule is a shape test, not a provenance test, and it cannot be otherwise: an adapter can
+  construct an error carrying `ENOENT` in its own validation code and it is indistinguishable from
+  one the port raised. So an errno-coded error means the failure is *reported as* a filesystem
+  condition, not that verbatra observed one. The documentation says it that way rather than
+  promising a provenance the runtime cannot establish. Nothing downstream depends on the
+  distinction: an errno error from either source is surfaced to the user with the same remedy text,
+  and the remedy is accurate advice for the condition it names whoever named it. This is
   attribution, not containment of capability: it tells the user which plugin failed. It does
   not stop a plugin from doing anything.
 - **Verbatra does not gain a new trust class from this.** `verbatra.config.ts` is already
@@ -185,7 +193,38 @@ A subpath export (`@verbatra/sdk/adapters`) was considered and rejected for this
 needs a second tsup entry and a second declaration file for no benefit a consumer can observe,
 since the main entry is already what they import.
 
-## Decision 4: scope, and what is deliberately deferred
+## Decision 4: the file-system port is frozen at two methods
+
+`AdapterFs` is the one promised surface a consumer *implements* rather than merely calls. Every
+other promise here is accepting or returning: an options interface can grow an optional field
+without breaking anyone, and a factory can widen a parameter. A method added to `AdapterFs` breaks
+every custom implementation that already exists. It is therefore the surface where a plausible
+future need is a breaking change, and it is settled deliberately rather than by default.
+
+It publishes exactly two methods, both UTF-8 text: `readBounded(path, maxBytes)` and
+`writeFileAtomic(path, data)`. There is no byte-level read, no encoding parameter, no delete, and no
+directory listing. The consequences are real and are accepted:
+
+- A format whose files are not UTF-8 (a UTF-16 `.strings` export, for example) cannot decode through
+  the port. verbatra's own Apple adapter does not work around this; it detects the byte-order mark
+  and rejects the file with a structured error, which is the behaviour a third-party adapter should
+  copy.
+- A format that needs a sidecar file it must discover, or that writes more than one file per locale,
+  cannot express that through the port and would have to reach for `node:fs` directly, which is
+  exactly the convention the published documentation asks authors to keep. That tension is real. It
+  is bounded by the trust decision above: verbatra cannot prevent direct file-system access anyway,
+  so the port is a testability and honesty convention, not a containment boundary, and an adapter
+  that steps outside it is degraded rather than broken.
+
+**The port stays at two required methods. Any future member arrives optional**, following the
+precedent already set by `SdkFs.readDirectory` in this repository, which is declared optional
+precisely so an implementation written before it existed keeps compiling, and whose absence the one
+flow that needs it reports as a named error (`EXTRACT_FS_UNSUPPORTED`) rather than a crash. That
+pattern makes the port growable without a major bump, which is what makes freezing it at two safe
+rather than merely cheap. A required third method would need a major version and is not on the
+table.
+
+## Decision 5: scope, and what is deliberately deferred
 
 The full surface described by this problem is larger than one increment, and the expensive part
 is not lines of code but irreversibility: every type promised here is frozen under semver from
@@ -203,9 +242,16 @@ Promised now, and semver-stable from the version that ships it:
 - `AdapterRegistry`, `AdapterResolution`, `ResolveOptions` (already published API, likewise)
 - `AdapterError`, `AdapterErrorCode`
 - `createTreeFileAdapter`, `TreeFileAdapterOptions`
-- `createFlatFileAdapter`, `FlatFileAdapterOptions`
+- `createFlatFileAdapter`, `FlatFileAdapterOptions`, `FlatParseResult`, `FlatParseOutcome`
 - `createDefaultRegistry`
 - `AdapterFs`, `BoundedReadOutcome`, `nodeAdapterFs`
+- The callback types the two options interfaces are written in terms of: `ExtractPlaceholders`,
+  `ValidateMessage`, `ComparePlaceholders`, `ComputeInvalidIcuKeys`, `ValidateTree`, `Sniff`,
+  `DeriveEntry`, `KeyMode`, `BuildWriteTree`, `DeriveDescriptions`, and the tree shapes
+  `JsonLeaf`, `JsonTree`, `JsonRecord`, `OrderedValue`, `OrderedRecord`. An author cannot write a
+  type annotation for their own `parse` or `deriveEntry` without naming these, and the recursive
+  tree shapes cannot be spelled at all without redeclaring the recursion. The same criterion this
+  record applies to core's representation types applies to the factories' own.
 
 Deferred, with the reason:
 
@@ -213,10 +259,6 @@ Deferred, with the reason:
   user-named code, which is a different trust conversation from the one decided above and
   wants the allowlist question reopened. Programmatic registration through the SDK covers the
   capability today.
-- **`comparePlaceholders` and reportable exclusions on the flat-file factory.** A real gap
-  against the tree factory, but it changes the shape of a promised options type, which is
-  cheaper to do before that type is frozen than after. It is a minor addition either way and
-  is not needed to build a working adapter.
 - **A content check on the Android adapter's `.xml` claim.** Cheap, but it changes detection
   behavior for a built-in format, and detection is not on the path a registered third-party
   adapter takes: the SDK resolves by explicit format from the config. It belongs with work
@@ -224,8 +266,10 @@ Deferred, with the reason:
 - **Exporting the internal XML document helpers and the gettext key-encoding helpers.** These
   are implementation details of specific built-in formats, not part of the adapter contract.
   Promising them would freeze internals that currently change freely.
-- **Opening `AdapterErrorCode` to third-party codes.** One code, `ADAPTER_FAILED`, is added for
-  failure attribution. Letting a plugin mint arbitrary codes would turn every exhaustive
-  handler of that union into a partial one, which is the same mistake as opening
+- **Opening `AdapterErrorCode` to third-party codes.** Three codes are added, all describing an
+  adapter rather than a file: `ADAPTER_FAILED` for failure attribution, `DUPLICATE_FORMAT` for a
+  rejected duplicate registration, and `INVALID_FORMAT_ID` for a malformed `custom:` identifier.
+  The union stays closed beyond those. Letting a plugin mint arbitrary codes would turn every
+  exhaustive handler of that union into a partial one, which is the same mistake as opening
   `SupportedFormat`. If it is needed, it wants the same reserved-prefix treatment and its own
   decision.
