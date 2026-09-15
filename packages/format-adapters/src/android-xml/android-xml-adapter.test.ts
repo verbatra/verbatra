@@ -113,6 +113,38 @@ describe("createAndroidXmlAdapter read: translatable=false and read-through node
     expect(resource.entries.size).toBe(0);
   });
 
+  it('reports a translatable="false" string as skipped rather than dropping it silently', async () => {
+    const doc = `<resources><string name="app_id" translatable="false">com.example.app</string><string name="ok">OK</string></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["app_id"]);
+  });
+
+  it('reports a translatable="false" plurals block as skipped', async () => {
+    const doc = `<resources><plurals name="count" translatable="false"><item quantity="one">x</item><item quantity="other">y</item></plurals></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["count"]);
+  });
+
+  it("reports every skipped name in document order", async () => {
+    const doc = `<resources><string name="b_id" translatable="false">x</string><string name="ok">OK</string><plurals name="a_count" translatable="false"><item quantity="other">y</item></plurals></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["b_id", "a_count"]);
+  });
+
+  it("reports nothing skipped for a file where everything is translatable", async () => {
+    const doc = `<resources><string name="ok">OK</string></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual([]);
+  });
+
   it("excludes a string-array from entries entirely", async () => {
     const doc = `<resources><string-array name="planets"><item>Mercury</item><item>Venus</item></string-array><string name="ok">OK</string></resources>`;
     const { resource } = await adapter.read(await tempFile("a.xml", doc), "en");

@@ -4,6 +4,7 @@ import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { readFileContent } from "../json/bounded-read.js";
 import {
   buildCanHandle,
+  type ComparePlaceholders,
   type ComputeInvalidIcuKeys,
   computeIcu,
   type ExtractPlaceholders,
@@ -12,6 +13,23 @@ import {
   type Sniff,
   type ValidateMessage,
 } from "../shell.js";
+
+/**
+ * What a flat format's `parseEntries` returns when it has content to report as skipped. Returning a
+ * bare map instead is equivalent to returning one of these with no skipped paths.
+ */
+export interface FlatParseResult {
+  /** The entries read from the file, keyed by entry key, in document order. */
+  readonly entries: Map<string, TranslationEntry>;
+  /**
+   * Keys the file carried but that are excluded from translation, for example one the format's own
+   * metadata marks as not translatable. Omit it when the format has no such concept.
+   */
+  readonly excludedLeafPaths?: readonly string[];
+}
+
+/** What a flat format's `parseEntries` may return: the entries alone, or entries plus diagnostics. */
+export type FlatParseOutcome = Map<string, TranslationEntry> | FlatParseResult;
 
 /** Everything {@link createFlatFileAdapter} needs to turn a flat key/value format into an adapter. */
 export interface FlatFileAdapterOptions {
@@ -34,7 +52,7 @@ export interface FlatFileAdapterOptions {
     namespace: string,
     filePath: string,
     fs: AdapterFs,
-  ) => Map<string, TranslationEntry> | Promise<Map<string, TranslationEntry>>;
+  ) => FlatParseOutcome | Promise<FlatParseOutcome>;
   /**
    * Render entries back to the format's text, preserving key order. Receives the destination path
    * and the port, for a format that has to consult the existing file to write in place.
@@ -50,8 +68,20 @@ export interface FlatFileAdapterOptions {
   readonly validateMessage?: ValidateMessage;
   /** Optional per-file report of the keys whose values are invalid for this format's message syntax. */
   readonly computeInvalidIcuKeys?: ComputeInvalidIcuKeys;
+  /**
+   * Optional whole-value placeholder comparison, for a format whose structure a flat token list
+   * would lose. Omitted adapters are compared by `extractPlaceholders` plus a flat multiset check.
+   */
+  readonly comparePlaceholders?: ComparePlaceholders;
   /** The file-system port to read and write through. Defaults to `nodeAdapterFs`. */
   readonly fs?: AdapterFs;
+}
+
+function normalizeParseOutcome(outcome: FlatParseOutcome): Required<FlatParseResult> {
+  if (outcome instanceof Map) {
+    return { entries: outcome, excludedLeafPaths: [] };
+  }
+  return { entries: outcome.entries, excludedLeafPaths: outcome.excludedLeafPaths ?? [] };
 }
 
 async function toEntries(
@@ -60,9 +90,9 @@ async function toEntries(
   filePath: string,
   fs: AdapterFs,
   parseEntries: FlatFileAdapterOptions["parseEntries"],
-): Promise<Map<string, TranslationEntry>> {
+): Promise<Required<FlatParseResult>> {
   try {
-    return await parseEntries(content, namespace, filePath, fs);
+    return normalizeParseOutcome(await parseEntries(content, namespace, filePath, fs));
   } catch (error) {
     rethrowStructured(error, "The file could not be parsed.");
   }
@@ -100,6 +130,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     extractPlaceholders,
     validateMessage,
     computeInvalidIcuKeys,
+    comparePlaceholders,
     fs = nodeAdapterFs,
   } = options;
   return {
@@ -107,13 +138,20 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     canHandle: buildCanHandle(extensions, sniff),
     extractPlaceholders,
     validateMessage: validateMessage ?? ((): boolean => true),
+    ...(comparePlaceholders !== undefined ? { comparePlaceholders } : {}),
     async read(filePath, locale): Promise<ReadResult> {
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);
-      const entries = await toEntries(content, namespace, filePath, fs, parseEntries);
+      const { entries, excludedLeafPaths } = await toEntries(
+        content,
+        namespace,
+        filePath,
+        fs,
+        parseEntries,
+      );
       const resource: LocaleResource = { locale, namespace, format, entries };
       const invalidIcuKeys = computeIcu(entries, computeInvalidIcuKeys);
-      return { resource, invalidIcuKeys, excludedLeafPaths: [] };
+      return { resource, invalidIcuKeys, excludedLeafPaths };
     },
     async write(resource, filePath): Promise<void> {
       const data = await serializeEntries(resource.entries, filePath, fs);
