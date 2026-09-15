@@ -51,6 +51,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xmldom/xmldom": "catalog:bundled",
     "exceljs": "catalog:bundled",
     "jszip": "catalog:bundled",
     "zod": "catalog:"
