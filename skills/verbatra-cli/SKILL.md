@@ -201,7 +201,8 @@ Plain JSON with no matching library: pick by placeholder syntax. `{{name}}` mean
 
 Do not trust `verbatra init`'s own format guess. It only inspects `package.json`
 for one of four JSON libraries and never reads the locale directory, so it is
-wrong outright for the other ten formats. Set `format` by hand after `init`, then
+wrong outright for every other format in the table above. Set `format` by hand
+after `init`, then
 run `doctor`.
 
 ## Providers

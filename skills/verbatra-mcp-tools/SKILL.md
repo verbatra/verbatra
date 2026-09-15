@@ -47,13 +47,13 @@ from a shell instead, see `verbatra-cli`.
 
 ## The spend boundary
 
-The server registers thirteen tools but advertises only eleven by default. The two
-that call a translation provider, `translation.retranslateEntry` and
+The server registers thirteen tools but advertises only eleven by default. The
+tools that call a translation provider, `translation.retranslateEntry` and
 `translation.translatePending`, are filtered out of the tool list entirely unless
 the operator started the server with the spend capability granted
 (`verbatra mcp --allow-spend`, or `VERBATRA_MCP_ALLOW_SPEND` in its environment).
 
-So if you cannot see those two tools, nothing is broken. The operator decided this
+So if you cannot see those tools, nothing is broken. The operator decided this
 session does not spend money. You may say that re-launching with `--allow-spend`
 would expose them, but you must say in the same breath that those tools bill the
 configured provider per run. Never present it as a fix for a missing tool.

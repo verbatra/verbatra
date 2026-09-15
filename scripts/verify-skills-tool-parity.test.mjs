@@ -444,6 +444,34 @@ describe("prose counts are derived, not remembered", () => {
     expect(skill).toContain(`adds ${spelled(studio.length - stdio.length)} the stdio server`);
   });
 
+  it("names every spend-filtered stdio tool where it explains the boundary", () => {
+    const skill = readRepoFile(MCP_SKILL);
+    const boundary = sourceBlock(skill, "## The spend boundary", "\n## ", "spend boundary");
+    for (const name of mcpRegistry().spendGated) {
+      expect(boundary).toContain(`\`${name}\``);
+    }
+  });
+
+  it("names every spend-gated studio tool where it explains the second gate", () => {
+    const skill = readRepoFile(STUDIO_SKILL);
+    const gates = sourceBlock(skill, "## Two gates, not one", "\n## ", "two gates");
+    for (const method of studioSpendGatedMethods()) {
+      expect(gates).toContain(`\`${studioToolName(method)}\``);
+    }
+  });
+
+  it("names every studio-only tool where it claims the surfaces differ", () => {
+    const stdio = new Set(mcpRegistry().all);
+    const skill = readRepoFile(STUDIO_SKILL);
+    const claim = "are what this surface adds";
+    const end = skill.indexOf(claim);
+    expect(end).toBeGreaterThan(-1);
+    const sentence = skill.slice(skill.lastIndexOf("\n\n", end), end + claim.length);
+    for (const method of studioRpcMethods().filter((candidate) => !stdio.has(candidate))) {
+      expect(sentence).toContain(`\`${studioToolName(method)}\``);
+    }
+  });
+
   it("states how many studio tools survive a session without spend", () => {
     const studio = studioRpcMethods();
     const gated = studioSpendGatedMethods();

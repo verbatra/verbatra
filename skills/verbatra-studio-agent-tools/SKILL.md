@@ -60,7 +60,7 @@ Studio decides twice what an agent may do, and the two decisions are independent
    Studio with `--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS` in its
    environment). Without it the dashboard works normally and the page exposes no
    tools whatsoever. If you see no `verbatra_` tools, this is why.
-2. **Spend.** With agent tools on, the two tools that call a translation provider,
+2. **Spend.** With agent tools on, the tools that call a translation provider,
    `verbatra_translation_retranslateEntry` and
    `verbatra_translation_translatePending`, are still skipped during registration
    unless Studio was also started with `--allow-spend` (or
@@ -100,7 +100,7 @@ the glossary comes from, so read that before you try to write a term.
 | `verbatra_translation_retranslateEntry` | `translation.retranslateEntry` | spend gated | Ask the provider for a fresh translation of one key in one locale. |
 | `verbatra_translation_translatePending` | `translation.translatePending` | spend gated | Translate every missing or stale key across every locale in one run. |
 
-`verbatra_history_list` and `verbatra_locale_values` are the two this surface adds
+`verbatra_history_list` and `verbatra_locale_values` are what this surface adds
 over the stdio MCP server. Do not reference them when working against that server.
 
 ## How to work
