@@ -10,6 +10,7 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { makeTempDir, readJsonFile, writeJsonFile } from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
 import { type LocaleRunParams, runLocale } from "./locale-run.js";
+import type { LocaleSummary } from "./summary.js";
 
 const FINGERPRINT = "fp1";
 
@@ -359,5 +360,47 @@ describe("runLocale: fuzzy cache reuse", () => {
         source: EDITED_SENTENCE,
       },
     ]);
+  });
+});
+
+describe("runLocale: a fuzzy reuse that also overruns its key's length budget", () => {
+  async function runWithBudget(budget: number | undefined): Promise<LocaleSummary> {
+    const { dir, sourceResource } = await setup({ billing: EDITED_SENTENCE });
+
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          maxLength: budget === undefined ? undefined : new Map([["billing", budget]]),
+          cache: {
+            snapshot: memoryFor(OLD_SENTENCE, GERMAN),
+            fingerprint: FINGERPRINT,
+            fuzzy: { threshold: 0.9 },
+          },
+        },
+      ),
+    );
+
+    return result.summary;
+  }
+
+  it("carries both reasons, so neither feature's flag hides the other", async () => {
+    const summary = await runWithBudget(GERMAN.length - 1);
+
+    expect(summary.needsReview).toEqual([
+      { key: "billing", reasons: ["FUZZY_CACHE_REUSE", "MAX_LENGTH_EXCEEDED"] },
+    ]);
+  });
+
+  it("carries only the reuse reason when the same value fits its budget", async () => {
+    const summary = await runWithBudget(GERMAN.length);
+
+    expect(summary.needsReview).toEqual([{ key: "billing", reasons: ["FUZZY_CACHE_REUSE"] }]);
+  });
+
+  it("carries only the reuse reason when the key has no budget at all", async () => {
+    const summary = await runWithBudget(undefined);
+
+    expect(summary.needsReview).toEqual([{ key: "billing", reasons: ["FUZZY_CACHE_REUSE"] }]);
   });
 });
