@@ -1,0 +1,450 @@
+import { resolve } from "node:path";
+import { contentHash, type TranslationEntry } from "@verbatra/core";
+import { readTmx, type TmxUnit } from "@verbatra/exchange";
+import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { computeFingerprint } from "../../cache/fingerprint.js";
+import {
+  applyAdditions,
+  cacheFilePath,
+  readTranslationMemory,
+  writeTranslationMemory,
+} from "../../cache/translation-memory.js";
+import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
+import type { VerbatraConfig } from "../../config/schema.js";
+import { errorMessage, SdkError } from "../../errors.js";
+import { defaultFs, type SdkFs } from "../../fs.js";
+import { selectAdapter } from "../../selection/select-adapter.js";
+import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
+import { selectLocales } from "../select-locales.js";
+import { matchLanguageTag } from "./locale-match.js";
+
+const MAX_TMX_FILE_BYTES = 32 * 1024 * 1024;
+
+/**
+ * Why one translation unit in an imported TMX file was refused. The first four are the shared
+ * integrity gate's own reasons, so an imported unit is held to exactly the standard a provider's
+ * output and a filled translator handoff already face. `sourceBlank` is the one reason particular
+ * to interchange: a unit whose source segment is blank identifies no string, so it could never be
+ * matched and is never stored.
+ */
+export type TmxRejectionReason = IntegrityGateReason | "sourceBlank";
+
+/** How many units were refused, by reason. See {@link TmxRejectionReason}. */
+export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
+
+/** What an import did to the memory for one target locale. */
+export interface ImportTmxLocaleResult {
+  /** The configured target locale, spelled as the config spells it. */
+  readonly locale: string;
+  /** Units stored for the first time. */
+  readonly added: number;
+  /** Units the memory already held with the same translation, so nothing changed. */
+  readonly unchanged: number;
+  /** Units that replaced a different existing translation, which needs `overwrite`. */
+  readonly overwritten: number;
+  /** Units refused because the memory already held a different translation and `overwrite` was off. */
+  readonly kept: number;
+  /** Later units in the same file repeating a source the file had already translated. */
+  readonly duplicates: number;
+  /** Units refused before they could be stored, by reason. */
+  readonly rejected: TmxRejectionCounts;
+}
+
+/** A language tag in the file that no configured locale could be resolved to. */
+export interface TmxLanguageReport {
+  /** The tag exactly as the file spelled it. */
+  readonly language: string;
+  /** How many units carried a segment in it. */
+  readonly units: number;
+}
+
+/** What {@link importTmx} read and what it wrote. */
+export interface ImportTmxResult {
+  /** Whether the run was a dry run, in which case the memory file was not written. */
+  readonly dryRun: boolean;
+  /** The resolved path the file was read from. */
+  readonly file: string;
+  /** The `srclang` the file's header declared, or undefined if it declared none. */
+  readonly sourceLanguage: string | undefined;
+  /** How many translation units the file held. */
+  readonly units: number;
+  /** Per-target-locale account of what was stored. */
+  readonly locales: readonly ImportTmxLocaleResult[];
+  /** Units the reader could not use at all, such as a unit with no segment. */
+  readonly skippedUnits: number;
+  /** Units carrying no segment in the configured source locale, so nothing could be keyed. */
+  readonly unmatchedSourceUnits: number;
+  /** Units whose segments carried inline markup, which is flattened to its text. */
+  readonly markupStrippedUnits: number;
+  /** Language tags that resolved to no configured locale, with how many units carried each. */
+  readonly unmatchedLanguages: readonly TmxLanguageReport[];
+  /** Language tags that two or more configured locales could claim, so none was chosen. */
+  readonly ambiguousLanguages: readonly TmxLanguageReport[];
+  /**
+   * Whether the memory file could be written. False when the project's cache was written by a newer
+   * build, which is left untouched rather than downgraded.
+   */
+  readonly memoryWritable: boolean;
+}
+
+/** Input for {@link importTmx}. */
+export interface ImportTmxInput {
+  /** The resolved project config, normally from {@link loadConfig}. */
+  readonly config: VerbatraConfig;
+  /** Path to the TMX file, resolved against `cwd`. */
+  readonly file: string;
+  /** Directory the file and the memory are resolved against. Defaults to the process working directory. */
+  readonly cwd?: string;
+  /** Read and validate the file but write nothing. Defaults to false. */
+  readonly dryRun?: boolean;
+  /**
+   * Let an imported unit replace a translation the memory already holds for the same source and
+   * locale. Off by default, so the project's own memory wins a collision.
+   */
+  readonly overwrite?: boolean;
+  /** Subset of configured target locales to import. Defaults to all of them. */
+  readonly locales?: readonly string[];
+}
+
+/** Injectable dependencies for {@link importTmx}. Every field has a working default. */
+export interface ImportTmxDeps {
+  /** Format-adapter registry, used for placeholder extraction and ICU validation. Defaults to the built-in registry. */
+  readonly adapterRegistry?: AdapterRegistry;
+  /** File-system port. Defaults to the real file system. */
+  readonly fs?: SdkFs;
+}
+
+const NO_REJECTIONS: TmxRejectionCounts = {
+  placeholder: 0,
+  icu: 0,
+  degenerate: 0,
+  empty: 0,
+  sourceBlank: 0,
+};
+
+interface LocaleTally {
+  added: number;
+  unchanged: number;
+  overwritten: number;
+  kept: number;
+  duplicates: number;
+  rejected: Record<TmxRejectionReason, number>;
+  additions: Record<string, CacheAddition>;
+  seenHashes: Set<string>;
+}
+
+function emptyTally(): LocaleTally {
+  return {
+    added: 0,
+    unchanged: 0,
+    overwritten: 0,
+    kept: 0,
+    duplicates: 0,
+    rejected: { ...NO_REJECTIONS },
+    additions: {},
+    seenHashes: new Set<string>(),
+  };
+}
+
+function sourceEntryFor(sourceText: string, adapter: FormatAdapter): TranslationEntry {
+  return {
+    key: "tmx",
+    namespace: "",
+    value: sourceText,
+    placeholders: adapter.extractPlaceholders(sourceText),
+    isPlural: false,
+  };
+}
+
+async function readTmxText(path: string, fs: SdkFs): Promise<string> {
+  const read = await fs.readFileBounded(path, MAX_TMX_FILE_BYTES);
+  if (read.kind === "missing") {
+    throw new SdkError("SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
+  }
+  if (read.kind === "too-large") {
+    throw new SdkError(
+      "SOURCE_INVALID",
+      `The TMX file at ${path} exceeds the maximum allowed size of ${MAX_TMX_FILE_BYTES} bytes.`,
+    );
+  }
+  return read.content;
+}
+
+function parse(text: string, path: string): ReturnType<typeof readTmx> {
+  try {
+    return readTmx(text);
+  } catch (error) {
+    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`);
+  }
+}
+
+class LanguageCensus {
+  private readonly unmatched = new Map<string, number>();
+  private readonly ambiguous = new Map<string, number>();
+
+  record(language: string, kind: "unmatched" | "ambiguous"): void {
+    const into = kind === "unmatched" ? this.unmatched : this.ambiguous;
+    into.set(language, (into.get(language) ?? 0) + 1);
+  }
+
+  report(kind: "unmatched" | "ambiguous"): readonly TmxLanguageReport[] {
+    const from = kind === "unmatched" ? this.unmatched : this.ambiguous;
+    return [...from.entries()]
+      .map(([language, units]) => ({ language, units }))
+      .sort((left, right) => left.language.localeCompare(right.language));
+  }
+}
+
+interface UnitPlan {
+  readonly sourceText: string | undefined;
+  readonly translations: ReadonlyMap<string, string>;
+}
+
+function planUnit(
+  unit: TmxUnit,
+  sourceLocale: string,
+  targetLocales: readonly string[],
+  census: LanguageCensus,
+): UnitPlan {
+  let sourceText: string | undefined;
+  const translations = new Map<string, string>();
+  for (const segment of unit.segments) {
+    if (matchLanguageTag(segment.language, [sourceLocale]).kind === "matched") {
+      sourceText = segment.text;
+      continue;
+    }
+    const match = matchLanguageTag(segment.language, targetLocales);
+    if (match.kind === "matched") {
+      translations.set(match.locale, segment.text);
+      continue;
+    }
+    census.record(segment.language, match.kind);
+  }
+  return { sourceText, translations };
+}
+
+type Decision = "duplicates" | "unchanged" | "kept" | "added" | "overwritten";
+
+function decide(
+  tally: LocaleTally,
+  existing: string | undefined,
+  hash: string,
+  candidate: string,
+  overwrite: boolean,
+): Decision {
+  if (tally.seenHashes.has(hash)) {
+    return "duplicates";
+  }
+  tally.seenHashes.add(hash);
+  if (existing === candidate) {
+    return "unchanged";
+  }
+  if (existing === undefined) {
+    return "added";
+  }
+  return overwrite ? "overwritten" : "kept";
+}
+
+interface ApplyContext {
+  readonly memory: TranslationMemory;
+  readonly fingerprint: string;
+  readonly adapter: FormatAdapter;
+  readonly overwrite: boolean;
+}
+
+const STAGED: ReadonlySet<Decision> = new Set<Decision>(["added", "overwritten"]);
+
+function applyTranslation(
+  ctx: ApplyContext,
+  tally: LocaleTally,
+  locale: string,
+  sourceEntry: TranslationEntry,
+  candidate: string,
+): void {
+  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter);
+  if (!gate.accepted) {
+    tally.rejected[gate.reason] += 1;
+    return;
+  }
+  const hash = contentHash(sourceEntry);
+  const existing = ctx.memory.entries[ctx.fingerprint]?.[locale]?.[hash];
+  const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
+  tally[decision] += 1;
+  const fillsMissingSource =
+    decision === "unchanged" && ctx.memory.sources[hash] !== sourceEntry.value;
+  if (STAGED.has(decision) || fillsMissingSource) {
+    tally.additions[hash] = { contentHash: hash, value: candidate, source: sourceEntry.value };
+  }
+}
+
+interface ScanTotals {
+  readonly unmatchedSourceUnits: number;
+  readonly markupStrippedUnits: number;
+}
+
+function rejectBlankSource(plan: UnitPlan, tallies: ReadonlyMap<string, LocaleTally>): void {
+  for (const locale of plan.translations.keys()) {
+    const tally = tallies.get(locale);
+    if (tally !== undefined) {
+      tally.rejected.sourceBlank += 1;
+    }
+  }
+}
+
+function importUnit(
+  ctx: ApplyContext,
+  plan: UnitPlan,
+  tallies: ReadonlyMap<string, LocaleTally>,
+): boolean {
+  if (plan.sourceText === undefined) {
+    return false;
+  }
+  if (plan.sourceText.trim() === "") {
+    rejectBlankSource(plan, tallies);
+    return true;
+  }
+  const sourceEntry = sourceEntryFor(plan.sourceText, ctx.adapter);
+  for (const [locale, candidate] of plan.translations) {
+    const tally = tallies.get(locale);
+    if (tally !== undefined) {
+      applyTranslation(ctx, tally, locale, sourceEntry, candidate);
+    }
+  }
+  return true;
+}
+
+function scanUnits(
+  ctx: ApplyContext,
+  units: readonly TmxUnit[],
+  sourceLocale: string,
+  locales: readonly string[],
+  census: LanguageCensus,
+  tallies: ReadonlyMap<string, LocaleTally>,
+): ScanTotals {
+  let unmatchedSourceUnits = 0;
+  let markupStrippedUnits = 0;
+  for (const unit of units) {
+    if (unit.markupStripped) {
+      markupStrippedUnits += 1;
+    }
+    if (!importUnit(ctx, planUnit(unit, sourceLocale, locales, census), tallies)) {
+      unmatchedSourceUnits += 1;
+    }
+  }
+  return { unmatchedSourceUnits, markupStrippedUnits };
+}
+
+function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResult {
+  return {
+    locale,
+    added: tally.added,
+    unchanged: tally.unchanged,
+    overwritten: tally.overwritten,
+    kept: tally.kept,
+    duplicates: tally.duplicates,
+    rejected: { ...tally.rejected },
+  };
+}
+
+function additionsByLocale(
+  tallies: ReadonlyMap<string, LocaleTally>,
+): Map<string, Record<string, CacheAddition>> {
+  const byLocale = new Map<string, Record<string, CacheAddition>>();
+  for (const [locale, tally] of tallies) {
+    if (Object.keys(tally.additions).length > 0) {
+      byLocale.set(locale, tally.additions);
+    }
+  }
+  return byLocale;
+}
+
+/**
+ * Reads a TMX translation memory into the project's own memory, so a team arriving with years of
+ * accumulated translations does not start cold. It calls no provider and needs no API key: every
+ * value comes from the file.
+ *
+ * Nothing from the file is trusted. The XML is parsed under the interchange package's hardening
+ * (entity declarations refused, size and unit bounds enforced), a language tag is resolved to a
+ * configured locale by an explicit rule rather than guessed at, and every candidate translation
+ * must pass the same placeholder, ICU, degeneracy and emptiness gate that a provider's output and a
+ * filled translator handoff already face before it is stored. A unit that fails is counted, never
+ * written, so it can never later be served as a cache hit that was never validated.
+ *
+ * Units are stored under the project's current configuration fingerprint, the same key a real run
+ * writes. That is deliberate: an imported memory is reused exactly when the configuration that
+ * would consume it matches, and stops matching when the provider, model, tone or glossary changes,
+ * which is the protection the fingerprint layer exists to give. Re-import after such a change.
+ *
+ * A collision is decided in favour of what the project already has: if the memory already holds a
+ * different translation for the same source and locale, the imported one is refused and counted as
+ * `kept` unless {@link ImportTmxInput.overwrite} is set. Importing the same file twice therefore
+ * changes nothing the second time.
+ *
+ * @param input - The config, the file path, and the dry-run, overwrite and locale-subset switches.
+ * @param deps - Optional adapter registry and file-system overrides.
+ * @returns What was read, what was stored, and everything that was skipped or refused.
+ *
+ * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
+ * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,
+ * or declares an XML entity.
+ *
+ * @example
+ * ```ts
+ * const result = await importTmx({ config, file: "legacy-memory.tmx" });
+ * for (const locale of result.locales) {
+ *   console.log(`${locale.locale}: ${locale.added} added, ${locale.kept} kept`);
+ * }
+ * ```
+ */
+export async function importTmx(
+  input: ImportTmxInput,
+  deps: ImportTmxDeps = {},
+): Promise<ImportTmxResult> {
+  const cwd = input.cwd ?? process.cwd();
+  const fs = deps.fs ?? defaultFs;
+  const adapter = selectAdapter(input.config.format, deps.adapterRegistry, deps.fs);
+  const locales = selectLocales(input.config, input.locales);
+  const file = resolve(cwd, input.file);
+  const document = parse(await readTmxText(file, fs), file);
+
+  const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
+  const fingerprint = computeFingerprint(input.config);
+  const ctx: ApplyContext = { memory, fingerprint, adapter, overwrite: input.overwrite ?? false };
+  const census = new LanguageCensus();
+  const tallies = new Map<string, LocaleTally>(locales.map((locale) => [locale, emptyTally()]));
+
+  const totals = scanUnits(
+    ctx,
+    document.units,
+    input.config.sourceLocale,
+    locales,
+    census,
+    tallies,
+  );
+
+  const dryRun = input.dryRun ?? false;
+  const byLocale = additionsByLocale(tallies);
+  if (!dryRun && writable && byLocale.size > 0) {
+    await writeTranslationMemory(
+      cacheFilePath(cwd),
+      applyAdditions(memory, fingerprint, byLocale),
+      fs,
+    );
+  }
+
+  return {
+    dryRun,
+    file,
+    sourceLanguage: document.sourceLanguage,
+    units: document.units.length,
+    locales: locales.map((locale) => toLocaleResult(locale, tallies.get(locale) ?? emptyTally())),
+    skippedUnits: document.skipped.length,
+    unmatchedSourceUnits: totals.unmatchedSourceUnits,
+    markupStrippedUnits: totals.markupStrippedUnits,
+    unmatchedLanguages: census.report("unmatched"),
+    ambiguousLanguages: census.report("ambiguous"),
+    memoryWritable: writable,
+  };
+}
