@@ -156,6 +156,30 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
     },
   );
 
+  it("attributes a synchronous throw from an async member, not just a rejection", async () => {
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({
+        read: () => {
+          throw new TypeError("boom");
+        },
+      }),
+    );
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure.code).toBe("ADAPTER_FAILED");
+    expect(failure.message).toContain("custom:toml");
+  });
+
+  it("attributes a thrown null without tripping over it", async () => {
+    const adapter = attributeAdapterFailures(throwingAdapter({ read: () => Promise.reject(null) }));
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure.code).toBe("ADAPTER_FAILED");
+    expect(failure.message).toContain("custom:toml");
+  });
+
   it("describes a thrown non-error without losing the attribution", async () => {
     const adapter = attributeAdapterFailures(
       throwingAdapter({
@@ -167,6 +191,42 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
 
     expect(failure.code).toBe("ADAPTER_FAILED");
     expect(failure.message).toContain("custom:toml");
+  });
+});
+
+describe("attributeAdapterFailures covers the whole contract, not a hand-copied subset", () => {
+  it("carries every member of the adapter it wrapped, so none is dropped", () => {
+    const adapter = workingAdapter();
+
+    const wrapped = attributeAdapterFailures(adapter);
+
+    expect(Object.keys(wrapped).sort()).toEqual(Object.keys(adapter).sort());
+  });
+
+  it("guards every function member, so a seventh one cannot skip attribution", async () => {
+    const adapter = workingAdapter();
+    const methods = Object.keys(adapter).filter(
+      (key) => typeof adapter[key as keyof FormatAdapter] === "function",
+    );
+    const boom = (): never => {
+      throw new TypeError("boom");
+    };
+    const wrapped = attributeAdapterFailures(
+      Object.fromEntries([
+        ...Object.entries(adapter),
+        ...methods.map((key) => [key, boom] as const),
+      ]) as unknown as FormatAdapter,
+    ) as unknown as Record<string, (...args: never[]) => unknown>;
+
+    const codes = await Promise.all(
+      methods.map(async (method) => {
+        const failure = await failureFrom(() => wrapped[method]?.());
+        return failure instanceof AdapterError ? failure.code : "UNGUARDED";
+      }),
+    );
+
+    expect(methods.length).toBeGreaterThanOrEqual(6);
+    expect(codes).toEqual(methods.map(() => "ADAPTER_FAILED"));
   });
 });
 
@@ -233,13 +293,4 @@ describe("attributeAdapterFailures leaves errors that already carry meaning alon
       await expect(adapter.write(RESOURCE, "a.toml")).rejects.toBe(original);
     },
   );
-
-  it("rethrows a filesystem write error unchanged, so its remedy still resolves", async () => {
-    const original = errno("EACCES");
-    const adapter = attributeAdapterFailures(
-      throwingAdapter({ write: () => Promise.reject(original) }),
-    );
-
-    await expect(adapter.write(RESOURCE, "a.toml")).rejects.toBe(original);
-  });
 });

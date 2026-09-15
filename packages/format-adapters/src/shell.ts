@@ -116,8 +116,9 @@ export function buildCanHandle(
   extensions: readonly string[],
   sniff?: Sniff,
 ): (filePath: string, sample?: string) => boolean {
+  const claimed = extensions.map((extension) => extension.toLowerCase());
   return (filePath, sample): boolean => {
-    if (!extensions.includes(extname(filePath).toLowerCase())) {
+    if (!claimed.includes(extname(filePath).toLowerCase())) {
       return false;
     }
     return sample === undefined || sniff === undefined || sniff(sample);
