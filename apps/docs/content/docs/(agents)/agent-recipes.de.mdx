@@ -22,12 +22,13 @@ Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JS
 | [`export`](/docs/cli/export) | ja | den geschriebenen Pfad und die Zeilenzahl pro Locale |
 | [`import`](/docs/cli/import) | ja | ein `RunSummary` |
 | [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
+| [`types`](/docs/cli/types) | ja | den Pfad der Deklaration, die Anzahl der Keys, wie viele Keys Argumente nehmen, die Keys, deren Argumente nicht bestimmt werden konnten, und ob die Datei geschrieben wurde |
 | [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
 | [`init`](/docs/cli/init) | nein | |
 | [`studio`](/docs/cli/studio) | nein | |
 | [`mcp`](/docs/cli/mcp) | nein | |
 
-`init` legt interaktiv ein Projekt an, und `studio` und `mcp` sind langlaufende Server, deshalb hat keiner der drei einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen neun erreichbar.
+`init` legt interaktiv ein Projekt an, und `studio` und `mcp` sind langlaufende Server, deshalb hat keiner der drei einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen zehn erreichbar.
 
 `doctor` kam in 0.9.0 dazu. `pseudo` und `extract` sind die jüngsten Zugänge zu dieser Liste.
 

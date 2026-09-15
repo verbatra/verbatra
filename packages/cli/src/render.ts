@@ -7,6 +7,7 @@ import type {
   ExportWorkbookResult,
   ExtractResult,
   FuzzyCacheHit,
+  GenerateTypesResult,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -393,4 +394,34 @@ export function renderExtractHuman(result: ExtractResult): string {
   ];
   const trailer = result.dryRun ? "dry run, nothing written" : undefined;
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
+}
+
+function renderTypesOutcome(result: GenerateTypesResult): string {
+  if (result.check) {
+    return result.stale
+      ? `  ${result.path} is out of date, re-run verbatra types`
+      : `  ${result.path} is up to date`;
+  }
+  return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
+}
+
+export function renderTypesHuman(result: GenerateTypesResult): string {
+  const unresolved =
+    result.unresolved.length === 0
+      ? []
+      : [
+          `  arguments not determined (${result.unresolved.length}):`,
+          ...result.unresolved.map((entry) => `    ${entry.key}  ${entry.reason}`),
+        ];
+  const excluded =
+    result.excluded.length === 0
+      ? []
+      : [`  excluded by the adapter (${result.excluded.length}): ${result.excluded.join(", ")}`];
+  return [
+    "verbatra types",
+    `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
+    ...unresolved,
+    ...excluded,
+    renderTypesOutcome(result),
+  ].join("\n");
 }

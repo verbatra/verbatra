@@ -147,6 +147,7 @@ A `verbatra.config.ts` is typed by `defineConfig`, and a JSON or YAML config get
 | `verbatra diff` | List the keys per locale that would be added, re-translated, or are orphaned, without writing (read-only) | `--cwd`, `--config`, `--locales`, `--json` |
 | `verbatra doctor` | Validate the project setup and report every problem at once, without calling a provider or reading a key value (read-only) | `--cwd`, `--config`, `--json` |
 | `verbatra pseudo` | Generate a pseudolocale from the source strings to expose layout truncation and unextracted strings, without calling a provider or reading a key value | `--cwd`, `--config`, `--locale <code>`, `--out <path>`, `--json` |
+| `verbatra types` | Generate a TypeScript declaration of every source catalog key and the arguments its message interpolates, without calling a provider or reading a key value | `--cwd`, `--config`, `--out <path>`, `--check`, `--json` |
 | `verbatra export` | Export untranslated strings into a translator handoff: a styled Excel workbook, or one CSV or TSV file per locale | `--out`, `--locales`, `--include-unchanged`, `--format <xlsx\|csv\|tsv>`, `--cwd`, `--config`, `--json` |
 | `verbatra import <workbook>` | Import a filled handoff back into the locale files, with the same safety checks (the argument is a workbook file, one CSV or TSV file, or the directory holding them) | `--dry-run`, `--format <xlsx\|csv\|tsv>`, `--cwd`, `--config`, `--json` |
 | `verbatra studio` | Start Verbatra Studio, a local web dashboard over the project | `--port`, `--allow-spend`, `--expose-agent-tools`, `--cwd`, `--config` |
@@ -160,8 +161,8 @@ Every command follows the same contract, so a CI step can branch on the code alo
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `pseudo` generated its locale, `export` wrote its handoff, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
-| `1` | It ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale (a partial locale is one whose file was written with some keys still missing), `check` found drift, `diff` found a missing or changed key (orphaned keys alone never produce `1`), `doctor` found at least one failed check, or `studio` or `mcp` failed while shutting its server down |
+| `0` | Success: `translate` or `import` succeeded for every locale, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `pseudo` generated its locale, `types` wrote its declaration, `export` wrote its handoff, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
+| `1` | It ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale (a partial locale is one whose file was written with some keys still missing), `check` found drift, `diff` found a missing or changed key (orphaned keys alone never produce `1`), `doctor` found at least one failed check, `types --check` found the committed declaration out of date, or `studio` or `mcp` failed while shutting its server down |
 | `2` | Could not run: a whole-run error, a usage error, `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, or `studio` given a bad `--port` or unable to load the config, import `@verbatra/studio`, or start its server |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt |
 

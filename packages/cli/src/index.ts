@@ -5,6 +5,7 @@ import {
   doctor,
   exportWorkbook,
   extract,
+  generateTypes,
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
@@ -30,6 +31,7 @@ const code = await run(
     importStudio: () => import("@verbatra/studio"),
     importMcp: () => import("@verbatra/mcp"),
     extract,
+    generateTypes,
   },
   {
     out: (text) => {

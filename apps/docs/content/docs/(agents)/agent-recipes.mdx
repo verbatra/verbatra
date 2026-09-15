@@ -22,12 +22,13 @@ The recipes below use `jq` to read stdout, because that is the smallest thing th
 | [`export`](/docs/cli/export) | yes | the written path and the per-locale row counts |
 | [`import`](/docs/cli/import) | yes | one `RunSummary` |
 | [`pseudo`](/docs/cli/pseudo) | yes | the generated pseudolocale, its path, and the entry counts |
+| [`types`](/docs/cli/types) | yes | the declaration path, the key count, how many keys take arguments, the keys whose arguments could not be determined, and whether the file was written |
 | [`extract`](/docs/cli/extract) | yes | the keys added to the source locale, plus what the scan could not resolve |
 | [`init`](/docs/cli/init) | no | |
 | [`studio`](/docs/cli/studio) | no | |
 | [`mcp`](/docs/cli/mcp) | no | |
 
-`init` is an interactive scaffolder, and `studio` and `mcp` are long-running servers, so none of the three has a machine-readable mode. Everything else an agent needs from a project is reachable from the other nine.
+`init` is an interactive scaffolder, and `studio` and `mcp` are long-running servers, so none of the three has a machine-readable mode. Everything else an agent needs from a project is reachable from the other ten.
 
 `doctor` joined that list in 0.9.0. `pseudo` and `extract` are the most recent additions.
 

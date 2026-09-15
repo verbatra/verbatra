@@ -10,6 +10,8 @@ import type {
   ExportWorkbookResult,
   ExtractInput,
   ExtractResult,
+  GenerateTypesInput,
+  GenerateTypesResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -43,6 +45,7 @@ export interface CliDeps {
   importStudio(): Promise<StudioModule>;
   importMcp(): Promise<McpModule>;
   extract(input: ExtractInput): Promise<ExtractResult>;
+  generateTypes(input: GenerateTypesInput): Promise<GenerateTypesResult>;
 }
 
 export interface StudioModule {
