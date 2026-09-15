@@ -23,7 +23,7 @@ import { unflattenEntries } from "./unflatten.js";
  * Builds the tree to serialize from the entries about to be written, for a format that patches an
  * existing document rather than rebuilding it from the entries alone.
  */
-type BuildWriteTree = (
+export type BuildWriteTree = (
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
@@ -33,7 +33,7 @@ type BuildWriteTree = (
  * Pulls per-key translator descriptions out of the raw file text, for a format that carries them as
  * metadata alongside the values.
  */
-type DeriveDescriptions = (content: string) => ReadonlyMap<string, string>;
+export type DeriveDescriptions = (content: string) => ReadonlyMap<string, string>;
 
 /** Everything {@link createTreeFileAdapter} needs to turn a nested-tree format into an adapter. */
 export interface TreeFileAdapterOptions {
