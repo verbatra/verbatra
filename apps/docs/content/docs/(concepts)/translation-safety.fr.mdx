@@ -53,6 +53,10 @@ pour cela que la barrière est rejouée par clé.
   qui rend son refus sûr sans connaître les délimiteurs de ton projet. Le contrôle ne va que dans ce
   sens, donc une candidate qui laisse tomber un tel jeton ou modifie le texte littéral qui l'entoure
   passe sans encombre.
+- Parité du balisage en ligne : la valeur traduite doit porter le même HTML ou XML en ligne que sa
+  source, et le porter bien formé. Une balise perdue, inventée, renommée ou déséquilibrée casse le
+  rendu d'une chaîne comme un placeholder perdu casse son interpolation, elle est donc refusée de
+  la même façon. Voir [Parité du balisage en ligne](#parité-du-balisage-en-ligne) plus bas.
 - Dégénérescence : la valeur ne doit pas être structurellement dégénérée, comme une boucle de
   répétition ou une longueur qui s'est emballée par rapport à la source. Cela attrape un modèle qui
   s'est effondré en répétant un fragment même si chaque placeholder a survécu.
@@ -70,6 +74,34 @@ un échec fournisseur, pas comme un défaut d'intégrité. Les deux se retentent
 
 Côté source, une clé source dont la propre valeur est de l'ICU invalide est mise de côté avant la
 traduction et rapportée, au lieu d'être envoyée au fournisseur dans un état cassé.
+
+### Parité du balisage en ligne
+
+<AvailableFrom version="0.11.0" />
+
+Le texte enrichi arrive dans une chaîne traduisible sous forme de balisage en ligne : un `<b>`
+autour d'une partie d'un bloc `Trans` d'i18next, un `&lt;b&gt;` échappé dans un `<string>` Android,
+un `<a href>` dans un catalogue gettext. Rien de tout cela n'est un placeholder, donc rien ne le
+comparait jusqu'ici.
+
+Les balises sont comparées comme un multiensemble de noms de balise plus noms d'attribut, et c'est
+ce qui décide si quelque chose est un constat :
+
+- Refusé : une balise perdue, une balise inventée, une balise renommée, un ensemble de noms
+  d'attribut différent, et un balisage qui revient déséquilibré ou mal imbriqué, comme
+  `<b>a<i>b</b></i>`.
+- Accepté : les mêmes balises dans un autre ordre, parce que traduire une phrase déplace son
+  balisage, et une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé
+  est une traduction correcte et non une traduction cassée.
+
+La vérification est volontairement discrète. Une suite de chevrons ne compte comme balise que
+lorsqu'elle se lit proprement comme telle : `5 < 10`, `x <= y`, `<support@example.com>` et un
+`&lt;b&gt;` échappé restent du texte ordinaire. Elle se retire complètement tant que le balisage de
+la source n'est pas lui-même bien formé, donc une chaîne qui mentionne seulement `<Enter>` n'est
+jamais tenue à une structure qu'elle n'a jamais eue. Et elle ne s'applique jamais à une valeur dont
+le format signale déjà son balisage comme des placeholders : un élément en ligne XLIFF et une
+balise de texte enrichi next-intl ou ARB sont couverts par la vérification des placeholders, et ne
+sont jamais signalés deux fois.
 
 ## Signalements de révision
 

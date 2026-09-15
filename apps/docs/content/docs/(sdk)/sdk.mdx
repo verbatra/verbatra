@@ -273,9 +273,11 @@ calls a provider.
 
 Input: `{ config, cwd?, locale, key, value }`. Returns a two-armed result:
 `{ accepted: true, value }`, or
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }` with nothing
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with nothing
 written. `"empty"` covers an empty or whitespace-only value for a source that has text: an edit
-cannot express clearing a key, so use the workbook's `[[CLEAR]]` sentinel for that.
+cannot express clearing a key, so use the workbook's `[[CLEAR]]` sentinel for that. The
+reason set is published as the `INTEGRITY_GATE_REASONS` tuple, so build any runtime schema or
+exhaustive lookup from it rather than retyping the members.
 
 ### retranslateEntry
 
@@ -285,7 +287,7 @@ locale file and lock entry for that key only.
 
 Input: `{ config, cwd?, locale, key }`. Returns `{ accepted: true, value, reviewReasons }` (the
 review reason codes, if any, that apply to the new value) or
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. Unlike
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Unlike
 `translate`, a provider failure here throws: a `ProviderError` from `@verbatra/ai-providers` with a
 stable code such as `RATE_LIMITED` or `AUTH_FAILED`.
 

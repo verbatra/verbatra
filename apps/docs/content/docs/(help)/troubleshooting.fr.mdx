@@ -229,6 +229,26 @@ sont traduites à l'exécution suivante ; augmente `maxTokens` ou passe à `"war
 terminer en une exécution. Un budget face à DeepL ou pendant un dry run rapporte
 `supported: false` et ne se déclenche jamais, parce qu'aucun usage de tokens n'existe à mesurer.
 
+## Une traduction est retenue à cause du balisage en ligne (discordance d'intégrité)
+
+**Symptôme** : une clé apparaît sous `integrityMismatches` dans le résumé d'exécution et conserve
+sa traduction précédente. Dans Studio, un retranslate ou une modification revient en
+`Rejected: inline markup mismatch`.
+
+**Cause** : la candidate ne porte pas le HTML ou XML en ligne de la source, ou le porte
+déséquilibré ou mal imbriqué. Un modèle qui perd un `<a href>`, renomme `<b>` en `<strong>` ou
+ferme `<b>` avec `</i>` produit une chaîne qui s'affiche mal, donc la porte la refuse comme elle
+refuse un placeholder perdu. Voir
+[parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) pour savoir exactement
+ce qui est comparé.
+
+**Solution** : relance la clé, ou corrige la valeur à la main dans Studio ou dans un classeur
+importé : la même porte juge les deux, donc une valeur saisie à la main avec des balises
+correspondantes et bien formées est acceptée. L'ordre des mots et les valeurs d'attribut ne sont
+jamais en cause, puisque ni l'un ni l'autre n'est comparé. Si c'est la valeur source qui porte le
+balisage cassé, corrige-la là : la vérification se retire quand le balisage de la source n'est pas
+bien formé, donc une source cassée la désactive silencieusement pour cette clé.
+
 ## Studio : le port est déjà utilisé
 
 **Symptôme** : `port 5849 is already in use` (ou ta valeur de `--port`).

@@ -52,6 +52,11 @@ nuevo por clave.
   rechazarlo sin conocer los delimitadores de tu proyecto. La comprobación corre solo en esa
   dirección, así que una candidata que elimina uno de esos tokens o cambia el texto literal que lo
   rodea se deja pasar.
+- Paridad del marcado en línea: el valor traducido debe llevar las mismas etiquetas HTML o XML en
+  línea que su origen, y llevarlas bien formadas. Una etiqueta perdida, inventada, renombrada o sin
+  equilibrar rompe la representación de una cadena igual que un marcador de posición perdido rompe
+  su interpolación, así que se rechaza de la misma manera. Mira
+  [Paridad del marcado en línea](#paridad-del-marcado-en-línea) más abajo.
 - Degeneración: el valor no debe ser estructuralmente degenerado, como un bucle de repetición o una
   longitud que se ha disparado respecto al origen. Esto atrapa a un modelo que se derrumbó
   repitiendo un fragmento aunque todos los marcadores de posición sobrevivieran.
@@ -70,6 +75,34 @@ la misma manera.
 
 Del lado del origen, una clave de origen cuyo propio valor es ICU inválido se aparta antes de la
 traducción y se informa, en lugar de enviarse al proveedor en un estado roto.
+
+### Paridad del marcado en línea
+
+<AvailableFrom version="0.11.0" />
+
+El texto enriquecido llega a una cadena traducible como marcado en línea: un `<b>` alrededor de
+parte de un bloque `Trans` de i18next, un `&lt;b&gt;` escapado dentro de un `<string>` de Android,
+un `<a href>` en un catálogo de gettext. Nada de eso es un marcador de posición, así que hasta
+ahora nada lo comparaba.
+
+Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
+eso es lo que decide si algo es un hallazgo:
+
+- Rechazado: una etiqueta perdida, una etiqueta inventada, una etiqueta renombrada, un conjunto
+  distinto de nombres de atributo y marcado que vuelve sin equilibrar o mal anidado, como
+  `<b>a<i>b</b></i>`.
+- Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de
+  sitio, y un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
+  traducción correcta y no una rota.
+
+La comprobación es deliberadamente discreta. Una secuencia de corchetes angulares cuenta como
+etiqueta solo cuando se lee limpiamente como tal, así que `5 < 10`, `x <= y`,
+`<support@example.com>` y un `&lt;b&gt;` escapado siguen siendo texto corriente. Se retira por
+completo salvo que el marcado del propio origen esté bien formado, así que una cadena que solo
+menciona `<Enter>` nunca se mide contra una estructura que nunca tuvo. Y nunca se aplica a un valor
+cuyo propio formato ya informa de su marcado como marcadores de posición: un elemento en línea de
+XLIFF y una etiqueta de texto enriquecido de next-intl o ARB los cubre la comprobación de
+marcadores de posición, y nunca se informan dos veces.
 
 ## Señales de revisión
 

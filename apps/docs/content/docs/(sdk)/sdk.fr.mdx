@@ -179,13 +179,13 @@ Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ source, target? }` ; `targ
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur.
+Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres.
 
 ### retranslateEntry
 
 Relance le fournisseur pour exactement une clé et une locale : un appel à entrée unique via le même chemin de fournisseur que `translate`, passé par les mêmes vérifications d'intégrité. À l'acceptation, il écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
 
-Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`.
+Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`.
 
 ## Lectures de contenu en masse
 

@@ -217,6 +217,33 @@ Die vierzehn Formate oben sind die, die verbatra mitbringt. Ein Format, das es n
 
 Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Eigene Formatadapter](/docs/custom-format-adapters).
 
+## Inline-Markup in Werten
+
+<AvailableFrom version="0.11.0" />
+
+Ein Wert kann eigenes Inline-HTML oder -XML tragen: `<b>` in einem i18next-`Trans`-Block oder einem
+gettext-Katalog, `<a href>` in einer Vue-I18n- oder ngx-translate-Message, ein maskiertes
+`&lt;b&gt;` in einem Android-`<string>`. Dieses Markup ist in keinem dieser Formate ein
+Platzhalter, deshalb vergleicht die
+[Markup-Paritätsprüfung](/docs/translation-safety#inline-markup-parität) es getrennt und lehnt eine
+Übersetzung ab, die ein Tag weglässt, erfindet, umbenennt oder aus dem Gleichgewicht bringt.
+
+Sie gilt für jedes Format, aber pro Wert statt pro Format, und sie tritt bei einem Wert zurück,
+dessen eigener Adapter sein Markup bereits als Platzhalter meldet:
+
+- `xliff` extrahiert seine Inline-Platzhalterelemente (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
+  selbst, sie sind also von der Platzhalterprüfung abgedeckt und werden nie doppelt gezählt.
+  Einfaches HTML, das XLIFF nicht tokenisiert, etwa ein `<b>`-Paar, wird weiterhin als Markup
+  verglichen.
+- `next-intl-json` und `arb` parsen ICU-Rich-Text-Tags, ein gepaartes `<b>...</b>` ist für sie also
+  bereits ein Platzhalter. Ein Tag mit Attributen ist überhaupt kein gültiges ICU, und diese
+  Formate lehnen es unabhängig von der Markup-Parität als ungültige Message-Syntax ab.
+- `android-xml`-Werte erreichen die Prüfung mit aufgelöster Maskierung, ein `&lt;b&gt;` auf der
+  Platte wird also als `<b>` verglichen. Ein `<string>`, das echte Inline-Elemente enthält, wird
+  durchgereicht und wie oben beschrieben gar nicht erst übersetzt.
+- Jedes andere Format hat kein eigenes Markup-Konzept, die Markup-Parität ist dort also die einzige
+  Prüfung, die es sieht.
+
 ## Warum das Format wichtig ist
 
 Das Format sagt verbatra zwei Dinge, die es für einen sicheren Lauf braucht. Erstens die Platzhaltersyntax, damit die [Platzhalter-Integritätsprüfung](/docs/translation-safety) weiß, was sie vor und nach der Übersetzung vergleichen soll. Zweitens, für die ICU-Formate, welche Werte zu validieren sind, damit ein Quell-Key mit ungültigem ICU übersprungen statt in kaputtem Zustand gesendet wird. Das falsche Format vergleicht die falschen Tokens, wähle es also passend zu deiner i18n-Bibliothek: `i18next-json` für i18next, `vue-i18n-json` für vue-i18n, `next-intl-json` für next-intl, `ngx-translate-json` für ngx-translate, `xliff` für XLIFF-Dateien, `yaml` für YAML-basierte i18n, `arb` für Flutter, `properties` für Java- oder Spring-`.properties`-Dateien, `apple-strings` für Apple-`.strings`-Dateien, `apple-xcstrings` für Xcode-String-Catalog-`.xcstrings`-Dateien, `android-xml` für Android `strings.xml` `gettext-po` für gettext-`.po`/`.pot`-Kataloge, `ini` für INI-Konfigurationsdateien und `resx` für .NET-Ressourcendateien.

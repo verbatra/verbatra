@@ -53,6 +53,11 @@ erneut.
   abzulehnen, ohne die Delimiter des Projekts zu kennen. Die Prüfung läuft nur in diese eine
   Richtung: Ein Kandidat, der ein solches Token fallen lässt oder den umgebenden Literaltext ändert,
   bleibt unangetastet.
+- Inline-Markup-Parität: Der übersetzte Wert muss dasselbe Inline-HTML bzw. -XML tragen wie seine
+  Quelle, und zwar wohlgeformt. Ein weggelassenes, erfundenes, umbenanntes oder unausgeglichenes
+  Tag zerstört die Darstellung eines Strings so, wie ein weggelassener Platzhalter dessen
+  Interpolation zerstört, und wird deshalb genauso abgelehnt. Siehe
+  [Inline-Markup-Parität](#inline-markup-parität) weiter unten.
 - Degeneriertheit: Der Wert darf nicht strukturell degeneriert sein, etwa eine Wiederholungsschleife
   oder eine Länge, die der Quelle davongelaufen ist. Das fängt ein Modell ab, das in das Wiederholen
   eines Fragments gekippt ist, selbst wenn jeder Platzhalter überlebt hat.
@@ -71,6 +76,32 @@ demselben Weg erneut versucht.
 
 Auf der Quellseite wird ein Quell-Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
 beiseitegelegt und gemeldet, statt in kaputtem Zustand an den Provider zu gehen.
+
+### Inline-Markup-Parität
+
+<AvailableFrom version="0.11.0" />
+
+Rich Text erreicht einen übersetzbaren String als Inline-Markup: ein `<b>` um einen Teil eines
+i18next-`Trans`-Blocks, ein maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in
+einem gettext-Katalog. Nichts davon ist ein Platzhalter, also hat es vorher nichts verglichen.
+
+Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen, und genau das entscheidet,
+was ein Befund ist:
+
+- Abgelehnt: ein weggelassenes Tag, ein erfundenes Tag, ein umbenanntes Tag, ein geänderter Satz
+  von Attributnamen sowie Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
+  `<b>a<i>b</b></i>`.
+- Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
+  verschiebt, und ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
+  `href` eine korrekte Übersetzung ist und keine kaputte.
+
+Die Prüfung ist bewusst zurückhaltend. Eine Folge spitzer Klammern gilt nur dann als Tag, wenn sie
+sich sauber als eines lesen lässt, `5 < 10`, `x <= y`, `<support@example.com>` und ein maskiertes
+`&lt;b&gt;` bleiben also normaler Text. Sie tritt vollständig zurück, solange das Markup der Quelle
+nicht selbst wohlgeformt ist, ein String, der nur `<Enter>` erwähnt, wird also nie an einer
+Struktur gemessen, die er nie hatte. Und sie greift nie bei einem Wert, dessen eigenes Format sein
+Markup bereits als Platzhalter meldet: ein XLIFF-Inline-Element und ein Rich-Text-Tag von next-intl
+oder ARB werden stattdessen von der Platzhalterprüfung abgedeckt und nie doppelt gemeldet.
 
 ## Review-Flags
 

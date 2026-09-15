@@ -45,6 +45,10 @@ keys can match without being byte-identical. That is exactly why the gate is re-
   fabrication under any interpolation convention, which is what makes it safe to refuse without
   knowing the project's delimiters. The check runs in that one direction only, so a candidate that
   drops or changes the surrounding literal text is left alone.
+- Inline markup parity: the translated value must carry the same inline HTML or XML tags as its
+  source, and must carry them well formed. A dropped, invented, renamed, or unbalanced tag breaks
+  the rendering of a string the way a dropped placeholder breaks its interpolation, so it is
+  refused the same way. See [Inline markup parity](#inline-markup-parity) below.
 - Degeneracy: the value must not be structurally degenerate, such as a repetition loop or a length
   that has run away from the source. This catches a model that collapsed into repeating a fragment
   even when every placeholder survived.
@@ -60,6 +64,30 @@ provider failure, not an integrity mismatch. Both retry the same way.
 
 On the source side, a source key whose own value is invalid ICU is set aside before translation
 and reported, instead of being sent to the provider in a broken state.
+
+### Inline markup parity
+
+<AvailableFrom version="0.11.0" />
+
+Rich text reaches a translatable string as inline markup: a `<b>` around part of an i18next `Trans`
+block, an escaped `&lt;b&gt;` inside an Android `<string>`, an `<a href>` in a gettext catalog.
+None of that is a placeholder, so before this nothing compared it.
+
+Tags are compared as a multiset of tag names plus attribute names, which is what decides whether
+something is a finding:
+
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names, and
+  markup that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`.
+- Accepted: the same tags in a different order, because translating a sentence moves its markup
+  around, and a changed attribute value, because a translated `title` or a localized `href` is a
+  correct translation rather than a broken one.
+
+The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly
+as one, so `5 < 10`, `x <= y`, `<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary
+text. It stands down entirely unless the source's own markup is well formed, so a string that only
+mentions `<Enter>` is never held to a structure it never had. And it never applies to a value whose
+own format already reports its markup as placeholders: an XLIFF inline element and a next-intl or
+ARB rich-text tag are covered by the placeholder check instead, and are never reported twice.
 
 ## Review flags
 

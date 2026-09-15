@@ -217,6 +217,34 @@ Los catorce formatos de arriba son los que verbatra trae de serie. Un formato qu
 
 Es una vía programática a través de `@verbatra/sdk`, no una vía de línea de comandos: el binario `verbatra` no carga ningún plugin por su cuenta. Un adaptador que instales es código de plena confianza, al nivel de confianza de cualquier otra dependencia, y verbatra no lo aísla. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes cómo construir uno y en qué confías al instalarlo.
 
+## Marcado en línea en los valores
+
+<AvailableFrom version="0.11.0" />
+
+Un valor puede llevar HTML o XML en línea propio: `<b>` en un bloque `Trans` de i18next o en un
+catálogo de gettext, `<a href>` en un mensaje de Vue I18n o de ngx-translate, un `&lt;b&gt;`
+escapado dentro de un `<string>` de Android. Ese marcado no es un marcador de posición en ninguno
+de estos formatos, así que la
+[comprobación de paridad del marcado](/docs/translation-safety#paridad-del-marcado-en-línea) lo
+compara aparte y rechaza una traducción que pierda, invente, renombre o desequilibre una etiqueta.
+
+Se aplica a todos los formatos, pero por valor y no por formato, y se retira ante un valor cuyo
+propio adaptador ya informa de su marcado como marcadores de posición:
+
+- `xliff` extrae por su cuenta sus elementos de marcador de posición en línea (`x`, `g`, `bx`,
+  `ex`, `ph`, `it`, `mrk`), así que los cubre la comprobación de marcadores de posición y nunca se
+  cuentan dos veces. El HTML simple que XLIFF no tokeniza, como un par `<b>`, sí se compara como
+  marcado.
+- `next-intl-json` y `arb` analizan las etiquetas de texto enriquecido de ICU, así que un
+  `<b>...</b>` emparejado ya es un marcador de posición para ellos. Una etiqueta con atributos no
+  es ICU válido en absoluto y estos formatos la rechazan como sintaxis de mensaje inválida, con
+  independencia de la paridad del marcado.
+- Los valores de `android-xml` llegan a la comprobación con su escapado ya resuelto, así que un
+  `&lt;b&gt;` en disco se compara como `<b>`. Un `<string>` que contiene elementos en línea reales
+  se pasa tal cual y nunca llega a traducirse, como se describe más arriba.
+- Cualquier otro formato no tiene concepto propio de marcado, así que la paridad del marcado es la
+  única comprobación que lo ve.
+
 ## Por qué importa el formato
 
 El formato le dice a verbatra dos cosas que necesita para una ejecución segura. Primero, la sintaxis de los marcadores de posición, para que la [comprobación de integridad de marcadores de posición](/docs/translation-safety) sepa qué comparar antes y después de la traducción. Segundo, para los formatos ICU, qué valores validar, para que una clave de origen con ICU inválido se omita en lugar de enviarse en un estado roto. El formato equivocado compara los tokens equivocados, así que hazlo coincidir con tu librería de i18n: `i18next-json` para i18next, `vue-i18n-json` para vue-i18n, `next-intl-json` para next-intl, `ngx-translate-json` para ngx-translate, `xliff` para archivos XLIFF, `yaml` para i18n basado en YAML, `arb` para Flutter, `properties` para archivos `.properties` de Java o Spring, `apple-strings` para archivos `.strings` de Apple, `apple-xcstrings` para archivos `.xcstrings` de Xcode String Catalog, `android-xml` para `strings.xml` de Android, `gettext-po` para catálogos `.po`/`.pot` de gettext, `ini` para archivos de configuración INI y `resx` para archivos de recursos de .NET.

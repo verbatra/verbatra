@@ -236,6 +236,26 @@ Baselines und werden beim nächsten Lauf übersetzt; erhöhe `maxTokens` oder we
 wenn du den Abschluss in einem einzigen Lauf willst. Ein Budget gegen DeepL oder einen Dry-Run
 meldet `supported: false` und löst nie aus, weil kein Token-Verbrauch zum Messen existiert.
 
+## Eine Übersetzung wird wegen Inline-Markup zurückgehalten (Integritätsabweichung)
+
+**Symptom**: Ein Key taucht in der Laufzusammenfassung unter `integrityMismatches` auf und behält
+seine bisherige Übersetzung. In Studio kommt ein Retranslate oder eine Bearbeitung als
+`Rejected: inline markup mismatch` zurück.
+
+**Ursache**: Der Kandidat trägt nicht das Inline-HTML bzw. -XML der Quelle oder trägt es
+unausgeglichen oder falsch verschachtelt. Ein Modell, das ein `<a href>` weglässt, `<b>` in
+`<strong>` umbenennt oder `<b>` mit `</i>` schließt, erzeugt einen String, der falsch dargestellt
+wird, deshalb lehnt die Prüfung ihn genauso ab wie einen weggelassenen Platzhalter. Was genau
+verglichen wird, steht unter
+[Markup-Parität](/docs/translation-safety#inline-markup-parität).
+
+**Lösung**: Lass den Key erneut laufen oder korrigiere den Wert von Hand in Studio oder in einer
+importierten Arbeitsmappe: Dieselbe Prüfung beurteilt beides, ein handgetippter Wert mit passenden,
+wohlgeformten Tags wird also angenommen. Wortreihenfolge und Attributwerte sind nie die Ursache,
+denn beides wird nicht verglichen. Liegt das kaputte Markup im Quellwert, korrigiere es dort: Die
+Prüfung tritt zurück, wenn das Markup der Quelle nicht wohlgeformt ist, eine kaputte Quelle
+schaltet sie für diesen Key also stillschweigend ab.
+
 ## Studio: Der Port ist schon belegt
 
 **Symptom**: `port 5849 is already in use` (oder dein `--port`-Wert).

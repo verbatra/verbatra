@@ -280,10 +280,12 @@ des Schreib-Locks des Locales aktualisiert. Ruft nie einen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, value }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`, wobei nichts
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`, wobei nichts
 geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert für eine
 Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze dafür also
-das `[[CLEAR]]`-Sentinel der Arbeitsmappe.
+das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
+`INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
+daraus, statt die Mitglieder abzutippen.
 
 ### retranslateEntry
 
@@ -294,7 +296,7 @@ Key.
 
 Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. Anders als
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Anders als
 bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`.
 

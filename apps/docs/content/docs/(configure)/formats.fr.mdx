@@ -217,6 +217,33 @@ Les quatorze formats ci-dessus sont ceux que verbatra fournit. Un format qu'il n
 
 C'est une voie programmatique via `@verbatra/sdk`, pas une voie en ligne de commande : le binaire `verbatra` ne charge aucun plugin de lui-même. Un adaptateur que tu installes est du code pleinement de confiance, au niveau de confiance de n'importe quelle autre dépendance, et verbatra ne le met pas en bac à sable. Voir [Adaptateurs de format personnalisés](/docs/custom-format-adapters) pour savoir comment en construire un et ce à quoi tu accordes ta confiance en l'installant.
 
+## Balisage en ligne dans les valeurs
+
+<AvailableFrom version="0.11.0" />
+
+Une valeur peut porter son propre HTML ou XML en ligne : `<b>` dans un bloc `Trans` d'i18next ou
+dans un catalogue gettext, `<a href>` dans un message Vue I18n ou ngx-translate, un `&lt;b&gt;`
+échappé dans un `<string>` Android. Ce balisage n'est un placeholder dans aucun de ces formats,
+donc la
+[vérification de parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) le
+compare séparément et refuse une traduction qui perd, invente, renomme ou déséquilibre une balise.
+
+Elle s'applique à tous les formats, mais par valeur et non par format, et elle se retire pour une
+valeur dont l'adaptateur signale déjà son balisage comme des placeholders :
+
+- `xliff` extrait lui-même ses éléments de placeholder en ligne (`x`, `g`, `bx`, `ex`, `ph`, `it`,
+  `mrk`), ils sont donc couverts par la vérification des placeholders et jamais comptés deux fois.
+  Le HTML simple que XLIFF ne tokenise pas, comme une paire `<b>`, reste comparé comme du balisage.
+- `next-intl-json` et `arb` analysent les balises de texte enrichi ICU, donc un `<b>...</b>`
+  apparié est déjà un placeholder pour eux. Une balise portant des attributs n'est pas de l'ICU
+  valide du tout et ces formats la refusent comme syntaxe de message invalide, indépendamment de la
+  parité du balisage.
+- Les valeurs `android-xml` arrivent à la vérification avec leur échappement décodé, donc un
+  `&lt;b&gt;` sur le disque est comparé comme `<b>`. Un `<string>` qui contient de vrais éléments
+  en ligne est transmis tel quel et n'est jamais traduit, comme décrit plus haut.
+- Tout autre format n'a pas de notion propre de balisage, la parité du balisage est donc la seule
+  vérification qui le voit.
+
 ## Pourquoi le format compte
 
 Le format dit à verbatra deux choses dont il a besoin pour une exécution sûre. D'abord, la syntaxe des placeholders, pour que le [contrôle d'intégrité des placeholders](/docs/translation-safety) sache quoi comparer avant et après la traduction. Ensuite, pour les formats ICU, quelles valeurs valider, pour qu'une clé source à l'ICU invalide soit sautée plutôt qu'envoyée dans un état cassé. Le mauvais format compare les mauvais jetons, donc fais-le correspondre à ta bibliothèque i18n : `i18next-json` pour i18next, `vue-i18n-json` pour vue-i18n, `next-intl-json` pour next-intl, `ngx-translate-json` pour ngx-translate, `xliff` pour les fichiers XLIFF, `yaml` pour l'i18n basée sur YAML, `arb` pour Flutter, `properties` pour les fichiers `.properties` Java ou Spring, `apple-strings` pour les fichiers `.strings` d'Apple, `apple-xcstrings` pour les fichiers `.xcstrings` de Xcode String Catalog, `android-xml` pour le `strings.xml` d'Android, `gettext-po` pour les catalogues `.po`/`.pot` gettext, `ini` pour les fichiers de configuration INI et `resx` pour les fichiers de ressources .NET.

@@ -274,10 +274,12 @@ del bloqueo de escritura del locale. Nunca llama a un proveedor.
 
 Entrada: `{ config, cwd?, locale, key, value }`. Devuelve un resultado de dos ramas:
 `{ accepted: true, value }`, o
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }` sin escribir
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin escribir
 nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto: una
 edición no puede expresar el vaciado de una clave, así que usa para eso el centinela `[[CLEAR]]` del
-libro.
+libro. El conjunto de motivos se publica como la tupla `INTEGRITY_GATE_REASONS`, así que construye
+cualquier esquema en tiempo de ejecución o tabla exhaustiva a partir de ella en lugar de reescribir
+sus miembros.
 
 ### retranslateEntry
 
@@ -287,7 +289,7 @@ integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo s
 
 Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
 códigos de motivo de revisión, si los hay, que aplican al nuevo valor) o
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. A diferencia de
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A diferencia de
 `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de `@verbatra/ai-providers` con un
 código estable como `RATE_LIMITED` o `AUTH_FAILED`.
 
