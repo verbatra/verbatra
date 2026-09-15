@@ -186,31 +186,6 @@ function assertUnitCount(count: number, limits: TmxLimits): void {
   }
 }
 
-/**
- * Parses a TMX 1.4b translation memory into plain-text segments.
- *
- * The input is treated as untrusted third-party data throughout: the size is bounded before the
- * parser sees it, entity declarations and internal DTD subsets are refused outright, a bare
- * external doctype is discarded rather than fetched, and unit, language, and segment-length bounds
- * are enforced during the walk. Inline markup (`bpt`, `ept`, `ph`, `it`) is flattened to its text
- * and reported on {@link TmxUnit.markupStripped}; a unit that cannot be read at all is reported on
- * {@link TmxDocument.skipped} rather than dropped silently or treated as fatal.
- *
- * @param text - The whole TMX document, decoded as UTF-8.
- * @param options - Optional limit overrides; {@link DEFAULT_TMX_LIMITS} otherwise.
- * @returns The header source language, the readable units, and the units that were skipped.
- *
- * @throws {@link ExchangeError} `TMX_INVALID`: the document is oversized, not well-formed XML, not
- * a TMX document, declares an entity or an internal DTD subset, or breaks one of the limits.
- *
- * @example
- * ```ts
- * const memory = readTmx(await readFile("memory.tmx", "utf8"));
- * for (const unit of memory.units) {
- *   console.log(unit.segments.map((segment) => `${segment.language}: ${segment.text}`));
- * }
- * ```
- */
 export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument {
   const limits = options.limits ?? DEFAULT_TMX_LIMITS;
   assertInputBytes(text, limits);
