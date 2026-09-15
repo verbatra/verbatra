@@ -405,6 +405,10 @@ function renderTypesOutcome(result: GenerateTypesResult): string {
   return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
 }
 
+function renderTypesKeyList(label: string, keys: readonly string[]): readonly string[] {
+  return keys.length === 0 ? [] : [`  ${label} (${keys.length}): ${keys.join(", ")}`];
+}
+
 export function renderTypesHuman(result: GenerateTypesResult): string {
   const unresolved =
     result.unresolved.length === 0
@@ -413,15 +417,12 @@ export function renderTypesHuman(result: GenerateTypesResult): string {
           `  arguments not determined (${result.unresolved.length}):`,
           ...result.unresolved.map((entry) => `    ${entry.key}  ${entry.reason}`),
         ];
-  const excluded =
-    result.excluded.length === 0
-      ? []
-      : [`  excluded by the adapter (${result.excluded.length}): ${result.excluded.join(", ")}`];
   return [
     "verbatra types",
     `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
     ...unresolved,
-    ...excluded,
+    ...renderTypesKeyList("excluded by the adapter", result.excluded),
+    ...renderTypesKeyList("plural keys", result.plural),
     renderTypesOutcome(result),
   ].join("\n");
 }

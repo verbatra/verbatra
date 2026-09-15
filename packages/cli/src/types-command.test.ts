@@ -57,6 +57,15 @@ describe("run types: SDK delegation and flags", () => {
     expect(cap.err()).toContain("INVALID_OUT");
   });
 
+  it("passes --config through as the config path to load", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["types", "--config", "custom/verbatra.config.ts"], deps, cap.streams);
+
+    expect(calls.loadConfig[0]).toMatchObject({ configPath: "custom/verbatra.config.ts" });
+  });
+
   it("never calls a provider-facing dependency", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();
@@ -126,7 +135,18 @@ describe("run types: rendering", () => {
     expect(cap.out()).toContain("excluded by the adapter (2): retries, enabled");
   });
 
-  it("says nothing about unresolved keys or excluded leaves when there are none", async () => {
+  it("names the keys the adapter marked as carrying plural forms", async () => {
+    const { deps } = recordingDeps({
+      generateTypes: async () => makeTypesResult({ plural: ["item_one", "item_other"] }),
+    });
+    const cap = captureStreams();
+
+    await run(["types"], deps, cap.streams);
+
+    expect(cap.out()).toContain("plural keys (2): item_one, item_other");
+  });
+
+  it("says nothing about unresolved keys, excluded leaves or plural keys when there are none", async () => {
     const { deps } = recordingDeps();
     const cap = captureStreams();
 
@@ -134,6 +154,7 @@ describe("run types: rendering", () => {
 
     expect(cap.out()).not.toContain("arguments not determined");
     expect(cap.out()).not.toContain("excluded by the adapter");
+    expect(cap.out()).not.toContain("plural keys");
   });
 });
 

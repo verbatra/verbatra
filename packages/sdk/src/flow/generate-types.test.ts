@@ -3,7 +3,14 @@ import { join } from "node:path";
 import { AdapterRegistry } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import { SdkError } from "../errors.js";
-import { baseConfig, makeTempDir, readTextFile, writeJsonFile } from "../test-support.js";
+import { defaultFs } from "../fs.js";
+import {
+  baseConfig,
+  declaredMembers,
+  makeTempDir,
+  readTextFile,
+  writeJsonFile,
+} from "../test-support.js";
 import { DEFAULT_TYPES_PATH, generateTypes } from "./generate-types.js";
 
 async function seed(catalog: Record<string, unknown>): Promise<string> {
@@ -11,11 +18,6 @@ async function seed(catalog: Record<string, unknown>): Promise<string> {
   await mkdir(join(dir, "locales"), { recursive: true });
   await writeJsonFile(join(dir, "locales", "en.json"), catalog);
   return dir;
-}
-
-function membersOf(declaration: string): readonly string[] {
-  const body = /export interface VerbatraMessages \{\n([\s\S]*?)\n\}/.exec(declaration);
-  return body?.[1] === undefined ? [] : body[1].split("\n");
 }
 
 async function declarationIn(dir: string): Promise<string> {
@@ -36,7 +38,7 @@ describe("generateTypes: generating the declaration", () => {
       stale: true,
       check: false,
     });
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "title": VerbatraNoArguments;',
       '  "greeting": { readonly "name": VerbatraArgument };',
     ]);
@@ -58,7 +60,7 @@ describe("generateTypes: generating the declaration", () => {
 
     await generateTypes({ config: baseConfig(), cwd: dir });
 
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "zebra": VerbatraNoArguments;',
       '  "apple": VerbatraNoArguments;',
       '  "mango": VerbatraNoArguments;',
@@ -84,7 +86,7 @@ describe("generateTypes: generating the declaration", () => {
     const result = await generateTypes({ config: baseConfig(), cwd: dir });
 
     expect(result).toMatchObject({ written: true, stale: true, keys: 2 });
-    expect(membersOf(await declarationIn(dir))).toContain('  "added": VerbatraNoArguments;');
+    expect(declaredMembers(await declarationIn(dir))).toContain('  "added": VerbatraNoArguments;');
   });
 
   it("writes to a nested output path, creating the directory it needs", async () => {
@@ -113,7 +115,7 @@ describe("generateTypes: keys the format spells in ways TypeScript does not", ()
 
     await generateTypes({ config: baseConfig(), cwd: dir });
 
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "class": VerbatraNoArguments;',
       '  "1st": VerbatraNoArguments;',
       '  "": VerbatraNoArguments;',
@@ -127,7 +129,9 @@ describe("generateTypes: keys the format spells in ways TypeScript does not", ()
 
     await generateTypes({ config: baseConfig(), cwd: dir });
 
-    expect(membersOf(await declarationIn(dir))).toEqual(['  "app.nav.home": VerbatraNoArguments;']);
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "app.nav.home": VerbatraNoArguments;',
+    ]);
   });
 
   it("keeps the adapter's escaping of a literal dot rather than re-splitting the key", async () => {
@@ -135,7 +139,9 @@ describe("generateTypes: keys the format spells in ways TypeScript does not", ()
 
     await generateTypes({ config: baseConfig(), cwd: dir });
 
-    expect(membersOf(await declarationIn(dir))).toEqual(['  "a\\\\.b": VerbatraNoArguments;']);
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "a\\\\.b": VerbatraNoArguments;',
+    ]);
   });
 
   it("keeps the adapter's escaping of a literal backslash", async () => {
@@ -143,7 +149,9 @@ describe("generateTypes: keys the format spells in ways TypeScript does not", ()
 
     await generateTypes({ config: baseConfig(), cwd: dir });
 
-    expect(membersOf(await declarationIn(dir))).toEqual(['  "a\\\\\\\\b": VerbatraNoArguments;']);
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "a\\\\\\\\b": VerbatraNoArguments;',
+    ]);
   });
 });
 
@@ -155,7 +163,7 @@ describe("generateTypes: what the read reported as unusable", () => {
 
     expect(result.excluded).toEqual(["retries"]);
     expect(result.keys).toBe(1);
-    expect(membersOf(await declarationIn(dir))).toEqual(['  "title": VerbatraNoArguments;']);
+    expect(declaredMembers(await declarationIn(dir))).toEqual(['  "title": VerbatraNoArguments;']);
   });
 
   it("keeps a key whose message syntax is invalid but claims nothing about its arguments", async () => {
@@ -167,10 +175,80 @@ describe("generateTypes: what the read reported as unusable", () => {
     });
 
     expect(result.unresolved).toEqual([{ key: "broken", reason: "invalid-message-syntax" }]);
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "good": { readonly "name": VerbatraArgument };',
       '  "broken": VerbatraUnknownArguments;',
     ]);
+  });
+});
+
+describe("generateTypes: a catalog value that tries to size the output", () => {
+  const vueConfig = { format: "vue-i18n-json" } as const;
+
+  it("declares an out-of-range index as undetermined instead of allocating from it", async () => {
+    const dir = await seed({ ok: "Hi {name}", boom: "Value {3000000} here" });
+
+    const result = await generateTypes({ config: baseConfig(vueConfig), cwd: dir });
+
+    expect(result.unresolved).toEqual([{ key: "boom", reason: "argument-index-out-of-range" }]);
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "ok": { readonly "name": VerbatraArgument };',
+      '  "boom": VerbatraUnknownArguments;',
+    ]);
+  });
+
+  it("keeps the declaration proportional to the catalog rather than to the index", async () => {
+    const dir = await seed({ boom: "Value {3000000} here" });
+
+    await generateTypes({ config: baseConfig(vueConfig), cwd: dir });
+
+    expect((await declarationIn(dir)).length).toBeLessThan(2000);
+  });
+
+  it("does not throw a raw error on an index that would exhaust memory", async () => {
+    const dir = await seed({ boom: "Value {2147483647} here" });
+
+    const result = await generateTypes({ config: baseConfig(vueConfig), cwd: dir });
+
+    expect(result.unresolved).toEqual([{ key: "boom", reason: "argument-index-out-of-range" }]);
+  });
+});
+
+describe("generateTypes: comparing against whatever is already on disk", () => {
+  it("bounds the read by the declaration it just built, not by a fixed size", async () => {
+    const reads: { path: string; maxBytes: number }[] = [];
+    const recordingFs = {
+      ...defaultFs,
+      readFileBounded: async (path: string, maxBytes: number) => {
+        reads.push({ path, maxBytes });
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    };
+    const small = await seed({ a: "one key" });
+    const large = await seed(
+      Object.fromEntries(Array.from({ length: 40 }, (_, index) => [`k${index}`, "v"])),
+    );
+
+    const first = await generateTypes({ config: baseConfig(), cwd: small }, { fs: recordingFs });
+    const second = await generateTypes({ config: baseConfig(), cwd: large }, { fs: recordingFs });
+    const boundFor = (path: string): number =>
+      reads.find((read) => read.path === path)?.maxBytes ?? 0;
+
+    expect(boundFor(first.path)).toBe((await declarationIn(small)).length);
+    expect(boundFor(second.path)).toBe((await declarationIn(large)).length);
+    expect(boundFor(first.path)).toBeLessThan(boundFor(second.path));
+  });
+
+  it("treats a file too large to read back as stale and replaces it", async () => {
+    const dir = await seed({ a: "one key" });
+    await generateTypes({ config: baseConfig(), cwd: dir });
+    const fresh = await declarationIn(dir);
+    await writeFile(join(dir, DEFAULT_TYPES_PATH), `${fresh}// padding beyond the fresh length\n`);
+
+    const result = await generateTypes({ config: baseConfig(), cwd: dir });
+
+    expect(result).toMatchObject({ stale: true, written: true });
+    expect(await declarationIn(dir)).toBe(fresh);
   });
 });
 
@@ -188,7 +266,7 @@ describe("generateTypes: plural keys", () => {
     expect(await declarationIn(dir)).toContain(
       'export type VerbatraPluralMessageKey = "item_one" | "item_other";',
     );
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "title": VerbatraNoArguments;',
       '  "item_one": { readonly "count": VerbatraArgument };',
       '  "item_other": { readonly "count": VerbatraArgument };',
@@ -214,7 +292,7 @@ describe("generateTypes: a format whose arguments are positional", () => {
       cwd: dir,
     });
 
-    expect(membersOf(await declarationIn(dir))).toEqual([
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "welcome": readonly [VerbatraArgument, number];',
     ]);
   });
@@ -300,6 +378,59 @@ describe("generateTypes: refusals", () => {
       generateTypes({ config: baseConfig(), cwd: dir, out: "locales/de.json" }),
     ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
   });
+
+  it("refuses to write the declaration over the lock file, which holds the translation baseline", async () => {
+    const dir = await seed({ title: "Verbatra" });
+    await writeFile(join(dir, "verbatra.lock.json"), '{"version":1}\n');
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "verbatra.lock.json" }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+    expect(await readTextFile(join(dir, "verbatra.lock.json"))).toBe('{"version":1}\n');
+  });
+
+  it("refuses to write the declaration over the translation-memory cache", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "verbatra.cache.json" }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+  });
+
+  it.each([
+    "verbatra.config.ts",
+    "verbatra.config.js",
+    "verbatra.config.cjs",
+    ".verbatrarc",
+    ".verbatrarc.json",
+    ".verbatrarc.ts",
+    "package.json",
+  ])("refuses to write the declaration over %s", async (name) => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: name }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+  });
+
+  it("refuses an output path that is not a TypeScript file at all", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "notes.txt" }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+  });
+
+  it.each(["messages.d.ts", "messages.ts", "messages.d.mts", "messages.cts"])(
+    "accepts %s as a TypeScript output path",
+    async (name) => {
+      const dir = await seed({ title: "Verbatra" });
+
+      const result = await generateTypes({ config: baseConfig(), cwd: dir, out: name });
+
+      expect(result.path).toBe(join(dir, name));
+    },
+  );
 
   it("refuses an output path naming no file", async () => {
     const dir = await seed({ title: "Verbatra" });

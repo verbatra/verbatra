@@ -239,6 +239,50 @@ describe("describeMessageArguments: a message verbatra will not guess at", () =>
   });
 });
 
+describe("describeMessageArguments: an index a catalog must not be trusted with", () => {
+  it("accepts the highest index that still fits the bound", () => {
+    expect(describeMessageArguments(["{63}"])).toMatchObject({
+      style: "positional",
+      positional: expect.objectContaining({ length: 64 }),
+    });
+  });
+
+  it("refuses the first index past the bound rather than sizing a tuple from it", () => {
+    expect(describeMessageArguments(["{64}"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
+  it("refuses an index large enough to exhaust memory, without throwing", () => {
+    expect(describeMessageArguments(["{2147483647}"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
+  it("refuses an index large enough to render a catalog-sized declaration", () => {
+    expect(describeMessageArguments(["{3000000}"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
+  it("refuses an out-of-range printf position the same way", () => {
+    expect(describeMessageArguments(["%999999$d"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
+  it("refuses the whole message when one of several indexes is out of range", () => {
+    expect(describeMessageArguments(["{0}", "{9000000}"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+});
+
 describe("describeMessageArguments: one position mentioned twice", () => {
   it("keeps the type both mentions agree on", () => {
     expect(describeMessageArguments(["{0,number}", "{0,number}"])).toEqual({

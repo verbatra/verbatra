@@ -1,10 +1,13 @@
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
+import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
+import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { describeMessageArguments, type UnresolvedArgumentReason } from "./message-arguments.js";
 import { readSourceResource } from "./source.js";
@@ -17,8 +20,6 @@ import { type DeclaredMessage, renderTypesDeclaration } from "./types-declaratio
  * first, and so `check` mode has a committed file to compare against.
  */
 export const DEFAULT_TYPES_PATH = "verbatra-types.d.ts";
-
-const MAX_DECLARATION_BYTES = 8 * 1024 * 1024;
 
 /** One key whose arguments verbatra declined to describe, and why. */
 export interface UnresolvedMessage {
@@ -91,11 +92,29 @@ function refuseOutput(requested: string, why: string): never {
   );
 }
 
-function resolveOutputPath(
+const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
+
+function reservedPaths(
   cwd: string,
   config: VerbatraConfig,
   resolver: LocalePathResolver,
+): Map<string, string> {
+  const reserved = new Map<string, string>();
+  for (const locale of [config.sourceLocale, ...config.targetLocales]) {
+    reserved.set(resolver.pathFor(locale), `the locale file for "${locale}"`);
+  }
+  reserved.set(resolve(cwd, LOCK_FILE_NAME), "the lock file, which holds the translation baseline");
+  reserved.set(resolve(cwd, CACHE_FILE_NAME), "the translation-memory cache");
+  for (const place of CONFIG_SEARCH_PLACES) {
+    reserved.set(resolve(cwd, place), "a file verbatra loads its configuration from");
+  }
+  return reserved;
+}
+
+function resolveOutputPath(
+  cwd: string,
   out: string | undefined,
+  reserved: ReadonlyMap<string, string>,
 ): string {
   const requested = out ?? DEFAULT_TYPES_PATH;
   if (requested.trim() === "") {
@@ -108,10 +127,12 @@ function resolveOutputPath(
   if (escapesWorkingDirectory(relative(cwd, outputPath))) {
     refuseOutput(requested, "is not inside the working directory.");
   }
-  for (const locale of [config.sourceLocale, ...config.targetLocales]) {
-    if (resolver.pathFor(locale) === outputPath) {
-      refuseOutput(requested, `is the locale file for "${locale}".`);
-    }
+  const claimed = reserved.get(outputPath);
+  if (claimed !== undefined) {
+    refuseOutput(requested, `is ${claimed}.`);
+  }
+  if (!TYPESCRIPT_EXTENSIONS.some((extension) => basename(requested).endsWith(extension))) {
+    refuseOutput(requested, `is not a TypeScript file (${TYPESCRIPT_EXTENSIONS.join(", ")}).`);
   }
   return outputPath;
 }
@@ -131,9 +152,9 @@ function toPosix(path: string): string {
   return path.split(sep).join("/");
 }
 
-async function readExistingDeclaration(fs: SdkFs, path: string): Promise<string | undefined> {
-  const read = await fs.readFileBounded(path, MAX_DECLARATION_BYTES);
-  return read.kind === "ok" ? read.content : undefined;
+async function matchesOnDisk(fs: SdkFs, path: string, declaration: string): Promise<boolean> {
+  const read = await fs.readFileBounded(path, Buffer.byteLength(declaration, "utf8"));
+  return read.kind === "ok" && read.content === declaration;
 }
 
 function unresolvedMessages(messages: readonly DeclaredMessage[]): readonly UnresolvedMessage[] {
@@ -215,7 +236,7 @@ export async function generateTypes(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = resolveOutputPath(cwd, config, resolver, input.out);
+  const outputPath = resolveOutputPath(cwd, input.out, reservedPaths(cwd, config, resolver));
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);
@@ -225,7 +246,7 @@ export async function generateTypes(
   const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
   const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });
 
-  const stale = (await readExistingDeclaration(fs, outputPath)) !== declaration;
+  const stale = !(await matchesOnDisk(fs, outputPath, declaration));
   const check = input.check === true;
   if (stale && !check) {
     await writeDeclaration(fs, outputPath, declaration);

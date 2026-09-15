@@ -100,12 +100,24 @@ The keys and the placeholder tokens are exactly what the format adapter already 
 | numbered or anonymous placeholders (`{0}`, `%@`, `%1$d`) | a `readonly` tuple, one position per argument |
 | a placeholder the format annotated as numeric (`{count,number}`, `%d`) | `number` |
 | a placeholder the format left untyped | `VerbatraArgument`, an alias for `string \| number` |
-| invalid message syntax, reported by the adapter | `VerbatraUnknownArguments`, and the key is named in the output |
+| invalid message syntax, which only `next-intl-json` and `arb` check for | `VerbatraUnknownArguments`, and the key is named in the output |
 | a message that both names and numbers its arguments | `VerbatraUnknownArguments`, and the key is named in the output |
 
 Argument names come from the placeholder tokens the adapter extracted, so a format whose placeholders carry no name (Apple `.strings`, Android `strings.xml`, positional gettext conversions) gets a tuple rather than invented names. Argument types come only from what your catalog actually records. Most formats name an argument without saying what may be passed for it, and for those verbatra declares `string | number` rather than asserting a type the catalog never carried. Nothing is ever declared as `any`.
 
 Keys are always emitted as quoted string literals, so a key carrying a dot, a reserved word, a leading digit, a quote, or nothing at all is declared verbatim rather than dropped or re-split. A key the adapter reported as excluded from translation (a stray non-string leaf, an Android `translatable="false"` resource) is never declared, and is named in the output so you can see what was left out.
+
+### A key whose own name contains a dot
+
+That one is worth knowing about, because the adapter escapes it before verbatra ever sees it. A JSON catalog holding `{"a.b": "..."}` carries one key spelled `a\.b`, deliberately distinct from the nested path `a.b`, and the escaped spelling is what the declaration declares and what your call site has to write:
+
+```ts
+t("a\\.b", {});
+```
+
+### The one case where the declaration is wrong rather than merely silent
+
+Only `next-intl-json` and `arb` validate message syntax. For every other format, a value that is broken rather than merely plain (`"Hello {name"`, with the closing brace missing) yields no placeholder token at all, so the message is declared as taking no arguments, and passing the argument it really wants is then a compile error. Nothing reports it, because nothing detected it. The fix is the catalog, not the declaration.
 
 ### Plural keys
 
@@ -127,6 +139,12 @@ Pass `--out` to put it where your app already imports from, for example `--out s
 
 ```yaml
 - run: npx verbatra types --check
+```
+
+Set one thing up before you rely on it. The declaration is always written with line-feed endings and `--check` compares exact bytes, so a checkout that rewrites line endings leaves it permanently out of date with no way to fix it by re-running. Pin the endings in `.gitattributes`:
+
+```text
+verbatra-types.d.ts text eol=lf
 ```
 
 Run it beside [`verbatra check`](/docs/cli/check) in the same job. `check` catches locales drifting behind the source; `types --check` catches your types drifting behind it.
@@ -169,6 +187,7 @@ verbatra types
 And in check mode, once the catalog has moved on:
 
 ```text
+$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
   /app/verbatra-types.d.ts is out of date, re-run verbatra types

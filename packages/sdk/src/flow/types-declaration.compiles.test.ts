@@ -98,34 +98,53 @@ const TSCONFIG = {
     module: "NodeNext",
     moduleResolution: "NodeNext",
     noEmit: true,
-    skipLibCheck: true,
+    skipLibCheck: false,
     types: [],
   },
   files: ["usage.ts"],
 };
 
+interface Compilation {
+  readonly code: number;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+async function compile(declaration: string): Promise<Compilation> {
+  const dir = await mkdtemp(join(tmpdir(), "verbatra-types-"));
+  await writeFile(join(dir, "verbatra-types.d.ts"), declaration, "utf8");
+  await writeFile(join(dir, "usage.ts"), USAGE, "utf8");
+  await writeFile(join(dir, "tsconfig.json"), JSON.stringify(TSCONFIG, null, 2), "utf8");
+  try {
+    const ok = await run(TSC, ["-p", dir], { cwd: dir });
+    return { code: 0, stdout: ok.stdout, stderr: ok.stderr };
+  } catch (error) {
+    const failure = error as { code?: number; stdout?: string; stderr?: string };
+    return { code: failure.code ?? 1, stdout: failure.stdout ?? "", stderr: failure.stderr ?? "" };
+  }
+}
+
+const DECLARATION = renderTypesDeclaration({
+  sourcePath: "locales/en.json",
+  format: "i18next-json",
+  messages: MESSAGES,
+});
+
 describe("the generated declaration is real TypeScript a consumer can rely on", () => {
   it("compiles under strict TypeScript and rejects every wrong call site", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "verbatra-types-"));
-    await writeFile(
-      join(dir, "verbatra-types.d.ts"),
-      renderTypesDeclaration({
-        sourcePath: "locales/en.json",
-        format: "i18next-json",
-        messages: MESSAGES,
-      }),
-      "utf8",
-    );
-    await writeFile(join(dir, "usage.ts"), USAGE, "utf8");
-    await writeFile(join(dir, "tsconfig.json"), JSON.stringify(TSCONFIG, null, 2), "utf8");
+    const compiled = await compile(DECLARATION);
 
-    let out = "";
-    try {
-      out = (await run(TSC, ["-p", dir], { cwd: dir })).stdout;
-    } catch (error) {
-      out = String((error as { stdout?: string }).stdout ?? error);
-    }
+    expect({ stdout: compiled.stdout, stderr: compiled.stderr, code: compiled.code }).toEqual({
+      stdout: "",
+      stderr: "",
+      code: 0,
+    });
+  }, 120_000);
 
-    expect(out).toBe("");
+  it("fails when the declaration itself is invalid, so the check cannot pass vacuously", async () => {
+    const compiled = await compile(`${DECLARATION}export type Broken = NoSuchType;\n`);
+
+    expect(compiled.code).not.toBe(0);
+    expect(`${compiled.stdout}${compiled.stderr}`).toContain("verbatra-types.d.ts");
   }, 120_000);
 });

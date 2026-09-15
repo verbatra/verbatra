@@ -100,12 +100,24 @@ Les clés et les jetons de marqueurs sont exactement ce que l'adaptateur de form
 | des marqueurs numérotés ou anonymes (`{0}`, `%@`, `%1$d`) | un tuple `readonly`, une position par argument |
 | un marqueur que le format annote comme numérique (`{count,number}`, `%d`) | `number` |
 | un marqueur que le format laisse sans type | `VerbatraArgument`, un alias de `string \| number` |
-| une syntaxe de message invalide, signalée par l'adaptateur | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
+| une syntaxe de message invalide, que seuls `next-intl-json` et `arb` vérifient | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 | un message qui à la fois nomme et numérote ses arguments | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 
 Les noms d'arguments viennent des jetons de marqueurs que l'adaptateur a extraits : un format dont les marqueurs ne portent aucun nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit donc un tuple plutôt que des noms inventés. Les types d'arguments viennent uniquement de ce que ton catalogue enregistre vraiment. La plupart des formats nomment un argument sans dire ce qu'on peut lui passer, et pour ceux-là verbatra déclare `string | number` au lieu d'affirmer un type que le catalogue n'a jamais porté. Rien n'est jamais déclaré en `any`.
 
 Les clés sont toujours émises comme des littéraux de chaîne entre guillemets : une clé portant un point, un mot réservé, un chiffre en tête, un guillemet, ou même la clé vide, est donc déclarée telle quelle plutôt qu'abandonnée ou redécoupée. Une clé que l'adaptateur a signalée comme exclue de la traduction (une feuille isolée qui n'est pas une chaîne, une ressource Android avec `translatable="false"`) n'est jamais déclarée, et elle est nommée dans la sortie pour que tu voies ce qui a été laissé de côté.
+
+### Une clé dont le nom contient lui-même un point
+
+Ce cas mérite qu'on s'y arrête, car l'adaptateur l'échappe avant même que verbatra le voie. Un catalogue JSON contenant `{"a.b": "..."}` porte une clé écrite `a\.b`, délibérément distincte du chemin imbriqué `a.b`, et c'est cette graphie échappée que le fichier déclare et que ton site d'appel doit écrire :
+
+```ts
+t("a\\.b", {});
+```
+
+### Le seul cas où la déclaration se trompe au lieu de simplement se taire
+
+Seuls `next-intl-json` et `arb` valident la syntaxe des messages. Pour tout autre format, une valeur cassée et pas seulement ordinaire (`"Hello {name"`, sans l'accolade fermante) ne produit aucun jeton de marqueur : le message est donc déclaré comme ne prenant aucun argument, et passer l'argument qu'il veut vraiment devient une erreur de compilation. Rien ne le signale, parce que rien ne l'a détecté. Ce qu'il faut corriger, c'est le catalogue, pas la déclaration.
 
 ### Clés au pluriel
 
@@ -127,6 +139,12 @@ Passe `--out` pour la mettre là où ton application importe déjà, par exemple
 
 ```yaml
 - run: npx verbatra types --check
+```
+
+Mets une chose en place avant de t'y fier. La déclaration est toujours écrite avec des fins de ligne line feed et `--check` compare des octets exacts : un checkout qui réécrit les fins de ligne la laisse donc périmée en permanence, sans qu'une nouvelle exécution puisse y remédier. Fixe les fins de ligne dans `.gitattributes` :
+
+```text
+verbatra-types.d.ts text eol=lf
 ```
 
 Lance-la à côté de [`verbatra check`](/docs/cli/check) dans le même job. `check` attrape les locales qui prennent du retard sur la source ; `types --check` attrape tes types qui en prennent.
@@ -169,6 +187,7 @@ verbatra types
 Et en mode vérification, une fois que le catalogue a avancé :
 
 ```text
+$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
   /app/verbatra-types.d.ts is out of date, re-run verbatra types

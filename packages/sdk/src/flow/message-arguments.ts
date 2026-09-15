@@ -1,47 +1,30 @@
-/**
- * What a message argument accepts, as far as the source format records it. `unknown` is not a
- * failure: most formats name their arguments without saying what may be passed for them, and
- * reporting that honestly is better than asserting a type the catalog never carried.
- */
 export type MessageArgumentType = "string" | "number" | "unknown";
 
-/** One argument a message interpolates by name. */
 export interface NamedMessageArgument {
-  /** The name exactly as the format spells it, which need not be a valid identifier. */
   readonly name: string;
-  /** What the argument accepts, as far as the format records it. */
   readonly type: MessageArgumentType;
 }
 
 /** Why verbatra declined to describe a message's arguments rather than guessing at them. */
-export type UnresolvedArgumentReason = "invalid-message-syntax" | "mixed-argument-styles";
+export type UnresolvedArgumentReason =
+  | "invalid-message-syntax"
+  | "mixed-argument-styles"
+  | "argument-index-out-of-range";
 
-/**
- * How a message takes its arguments. A format either names them, numbers them, or takes none; a
- * message that appears to do two of those at once is reported as unresolved rather than flattened
- * into whichever reading happens to be listed first.
- */
 export type MessageArguments =
   | {
-      /** The message interpolates nothing. */
       readonly style: "none";
     }
   | {
-      /** The message interpolates arguments by name. */
       readonly style: "named";
-      /** The arguments, in the order the message first mentions them, each name appearing once. */
       readonly named: readonly NamedMessageArgument[];
     }
   | {
-      /** The message interpolates arguments by position. */
       readonly style: "positional";
-      /** What each position accepts, indexed from zero. */
       readonly positional: readonly MessageArgumentType[];
     }
   | {
-      /** The message's arguments could not be determined. */
       readonly style: "unresolved";
-      /** Why they could not be determined. */
       readonly reason: UnresolvedArgumentReason;
     };
 
@@ -66,6 +49,8 @@ const PRINTF_NUMBERED = /^%(\d+)\$([\s\S])$/;
 const PRINTF_PLAIN = /^%([\s\S])$/;
 
 const ALL_DIGITS = /^\d+$/;
+
+const MAX_POSITIONAL_ARGUMENTS = 64;
 
 const NUMERIC_CONVERSIONS = new Set([
   "d",
@@ -176,6 +161,12 @@ function namedArguments(tokens: readonly ClassifiedToken[]): MessageArguments {
   };
 }
 
+function indexOutOfRange(tokens: readonly ClassifiedToken[]): boolean {
+  return tokens.some(
+    (token) => token.kind === "indexed" && token.index >= MAX_POSITIONAL_ARGUMENTS,
+  );
+}
+
 function positionalArguments(tokens: readonly ClassifiedToken[]): MessageArguments {
   const slots: MessageArgumentType[] = [];
   for (const token of tokens) {
@@ -191,14 +182,6 @@ function positionalArguments(tokens: readonly ClassifiedToken[]): MessageArgumen
   };
 }
 
-/**
- * Describe the arguments a message takes, from the placeholder tokens the format adapter already
- * extracted from it. Nothing here re-parses the message: the token list is the adapter's own output
- * in document order, and this only reads the shape of each token.
- *
- * @param placeholders - The adapter's placeholder tokens for one message, in document order.
- * @returns How the message takes its arguments, or why that could not be determined.
- */
 export function describeMessageArguments(placeholders: readonly string[]): MessageArguments {
   const tokens = placeholders.map(classifyToken).filter((token) => token.kind !== "ignored");
   if (tokens.length === 0) {
@@ -209,6 +192,9 @@ export function describeMessageArguments(placeholders: readonly string[]): Messa
   const anonymous = tokens.some((token) => token.kind === "anonymous");
   if ((named && (indexed || anonymous)) || (indexed && anonymous)) {
     return { style: "unresolved", reason: "mixed-argument-styles" };
+  }
+  if (indexOutOfRange(tokens)) {
+    return { style: "unresolved", reason: "argument-index-out-of-range" };
   }
   return named ? namedArguments(tokens) : positionalArguments(tokens);
 }

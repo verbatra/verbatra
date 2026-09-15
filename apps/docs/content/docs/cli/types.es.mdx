@@ -100,12 +100,24 @@ Las claves y los tokens de marcadores de posición son exactamente lo que el ada
 | marcadores numerados o anónimos (`{0}`, `%@`, `%1$d`) | una tupla `readonly`, una posición por argumento |
 | un marcador que el formato anota como numérico (`{count,number}`, `%d`) | `number` |
 | un marcador que el formato deja sin tipar | `VerbatraArgument`, un alias de `string \| number` |
-| sintaxis de mensaje inválida, reportada por el adaptador | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
+| sintaxis de mensaje inválida, que solo comprueban `next-intl-json` y `arb` | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
 | un mensaje que a la vez nombra y numera sus argumentos | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
 
 Los nombres de argumento vienen de los tokens de marcadores que el adaptador extrajo, así que un formato cuyos marcadores no llevan nombre (Apple `.strings`, Android `strings.xml`, conversiones posicionales de gettext) recibe una tupla en lugar de nombres inventados. Los tipos de argumento vienen solo de lo que tu catálogo registra de verdad. La mayoría de los formatos nombran un argumento sin decir qué puede pasarse para él, y para esos verbatra declara `string | number` en vez de afirmar un tipo que el catálogo nunca llevó. Nada se declara jamás como `any`.
 
 Las claves se emiten siempre como literales de cadena entrecomillados, así que una clave con un punto, una palabra reservada, un dígito inicial, una comilla, o incluso la clave vacía, se declara tal cual en lugar de descartarse o volver a partirse. Una clave que el adaptador reportó como excluida de la traducción (una hoja suelta que no es una cadena, un recurso de Android con `translatable="false"`) no se declara nunca, y se nombra en la salida para que veas qué quedó fuera.
+
+### Una clave cuyo propio nombre contiene un punto
+
+Ese caso merece atención, porque el adaptador lo escapa antes de que verbatra llegue a verlo. Un catálogo JSON con `{"a.b": "..."}` lleva una clave escrita `a\.b`, deliberadamente distinta de la ruta anidada `a.b`, y esa grafía escapada es la que declara el archivo y la que tiene que escribir tu sitio de llamada:
+
+```ts
+t("a\\.b", {});
+```
+
+### El único caso en que la declaración se equivoca en lugar de solo callar
+
+Solo `next-intl-json` y `arb` validan la sintaxis de mensaje. Para cualquier otro formato, un valor roto y no simplemente llano (`"Hello {name"`, sin la llave de cierre) no produce ningún token de marcador, así que el mensaje se declara como si no tomara argumentos, y pasar el argumento que realmente quiere pasa a ser un error de compilación. Nada lo reporta, porque nada lo detectó. Lo que hay que arreglar es el catálogo, no la declaración.
 
 ### Claves con plural
 
@@ -127,6 +139,12 @@ Pasa `--out` para dejarla donde tu aplicación ya importa, por ejemplo `--out sr
 
 ```yaml
 - run: npx verbatra types --check
+```
+
+Prepara una cosa antes de confiar en ello. La declaración se escribe siempre con finales de línea de tipo line feed y `--check` compara bytes exactos, así que un checkout que reescriba los finales de línea la deja permanentemente desactualizada sin que volver a ejecutar lo arregle. Fija los finales de línea en `.gitattributes`:
+
+```text
+verbatra-types.d.ts text eol=lf
 ```
 
 Ejecútalo junto a [`verbatra check`](/docs/cli/check) en el mismo job. `check` detecta locales que se quedan atrás respecto a la fuente; `types --check` detecta tus tipos quedándose atrás respecto a ella.
@@ -169,6 +187,7 @@ verbatra types
 Y en modo de comprobación, una vez que el catálogo ha seguido adelante:
 
 ```text
+$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
   /app/verbatra-types.d.ts is out of date, re-run verbatra types

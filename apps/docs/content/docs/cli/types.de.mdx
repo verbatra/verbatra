@@ -100,12 +100,24 @@ Die Keys und die Platzhalter-Tokens sind genau das, was der Format-Adapter beim 
 | nummerierte oder anonyme Platzhalter (`{0}`, `%@`, `%1$d`) | ein `readonly`-Tupel, eine Position pro Argument |
 | ein Platzhalter, den das Format als numerisch annotiert (`{count,number}`, `%d`) | `number` |
 | ein Platzhalter, den das Format untypisiert lässt | `VerbatraArgument`, ein Alias für `string \| number` |
-| ungültige Nachrichtensyntax, vom Adapter gemeldet | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
+| ungültige Nachrichtensyntax, die nur `next-intl-json` und `arb` prüfen | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 | eine Nachricht, die ihre Argumente zugleich benennt und nummeriert | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 
 Argumentnamen stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Ein Format, dessen Platzhalter gar keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt deshalb ein Tupel statt erfundener Namen. Argumenttypen stammen ausschließlich daraus, was dein Katalog tatsächlich festhält. Die meisten Formate benennen ein Argument, ohne zu sagen, was dafür übergeben werden darf, und dafür deklariert verbatra `string | number`, statt einen Typ zu behaupten, den der Katalog nie getragen hat. Nichts wird je als `any` deklariert.
 
 Keys werden immer als Zeichenketten-Literale in Anführungszeichen ausgegeben. Ein Key mit einem Punkt, ein reserviertes Wort, eine führende Ziffer, ein Anführungszeichen oder ein leerer Key wird also wortwörtlich deklariert, statt verworfen oder neu aufgeteilt zu werden. Ein Key, den der Adapter als von der Übersetzung ausgeschlossen gemeldet hat (ein verirrtes Blatt, das kein String ist, eine Android-Ressource mit `translatable="false"`), wird nie deklariert und in der Ausgabe genannt, damit du siehst, was weggelassen wurde.
+
+### Ein Key, dessen eigener Name einen Punkt enthält
+
+Der ist einen Blick wert, denn der Adapter escapet ihn, bevor verbatra ihn überhaupt sieht. Ein JSON-Katalog mit `{"a.b": "..."}` trägt einen Key, der `a\.b` geschrieben wird, bewusst verschieden vom verschachtelten Pfad `a.b`. Genau diese escapete Schreibweise deklariert die Datei, und genau sie muss dein Aufrufort schreiben:
+
+```ts
+t("a\\.b", {});
+```
+
+### Der eine Fall, in dem die Deklaration falsch statt nur still ist
+
+Nur `next-intl-json` und `arb` prüfen die Nachrichtensyntax. Bei jedem anderen Format liefert ein Wert, der kaputt und nicht bloß schlicht ist (`"Hello {name"`, ohne schließende Klammer), überhaupt kein Platzhalter-Token. Die Nachricht wird deshalb als argumentlos deklariert, und das Argument zu übergeben, das sie eigentlich will, ist dann ein Compile-Fehler. Gemeldet wird das nicht, weil es nicht erkannt wurde. Reparieren musst du den Katalog, nicht die Deklaration.
 
 ### Plural-Keys
 
@@ -127,6 +139,12 @@ Mit `--out` legst du sie dorthin, wo deine App ohnehin schon importiert, zum Bei
 
 ```yaml
 - run: npx verbatra types --check
+```
+
+Richte eine Sache ein, bevor du dich darauf verlässt. Die Deklaration wird immer mit Line-Feed-Zeilenenden geschrieben, und `--check` vergleicht exakte Bytes. Ein Checkout, der Zeilenenden umschreibt, lässt sie also dauerhaft veraltet aussehen, ohne dass ein erneuter Lauf das beheben kann. Nagle die Zeilenenden in `.gitattributes` fest:
+
+```text
+verbatra-types.d.ts text eol=lf
 ```
 
 Lass ihn im selben Job neben [`verbatra check`](/docs/cli/check) laufen. `check` fängt Locales ab, die hinter der Quelle zurückbleiben; `types --check` fängt deine Typen ab, die hinter ihr zurückbleiben.
@@ -169,6 +187,7 @@ verbatra types
 Und im Check-Modus, sobald der Katalog weitergezogen ist:
 
 ```text
+$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
   /app/verbatra-types.d.ts is out of date, re-run verbatra types
