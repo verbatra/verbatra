@@ -70,7 +70,7 @@ El análisis solo confía en las funciones de traducción cuya creación puede v
 
 - `const { t } = useTranslation(...)` (también `{ t: alias }`, `i18n`, `ready` o un array `[t, i18n]`), sin exportar, llamada sin argumentos, con un namespace estático o un array de namespaces y, opcionalmente, un objeto literal cuyo `keyPrefix`, si existe, es un string estático y que no tiene spread ni claves calculadas.
 - `const f = i18n.getFixedT(...)`, sin exportar, con un idioma estático, `null` o con nombre primero (como `i18n.language`) y después solo strings estáticos, arrays de strings, `null` o `undefined`.
-- Una llamada directa sobre un miembro `t`, como `i18n.t("key")` o `this.props.t("key")`, y un `const tr = i18n.t` o `const tr = i18n.t.bind(i18n)` local y sin exportar.
+- Una llamada directa sobre un miembro `t`, como `i18n.t("key")` o `this.props.t("key")`, un `const tr = i18n.t` o `const tr = i18n.t.bind(i18n)` local y sin exportar, y un `const { t } = i18next` o `const { t: tr } = i18n` local y sin exportar.
 - `<Translation>{(t) => ...}</Translation>` o `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, cuyo componente llama a `props.t(...)`.
 - `import { t } from "i18next"` (también `t as alias`) e importaciones simples de `useTranslation`, `withTranslation`, `getFixedT` y `Translation`.

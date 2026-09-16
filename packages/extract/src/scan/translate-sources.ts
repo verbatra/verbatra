@@ -6,6 +6,7 @@ import {
   aliasBinding,
   fixedBinding,
   hookBinding,
+  instanceBinding,
   isRecognisedHoc,
   memberBinding,
   renderPropBinding,
@@ -46,6 +47,9 @@ function sourceOutcome(
   }
   if (isIdentNamed(token, rules.fixedTranslateNames)) {
     return fixedBinding(tokens, index);
+  }
+  if (isIdentNamed(token, rules.translateInstanceNames)) {
+    return instanceBinding(tokens, index) ?? null;
   }
   if (isPunct(token, "<") && isIdentNamed(tokenAt(tokens, index + 1), rules.renderPropElements)) {
     return renderPropBinding(tokens, index);

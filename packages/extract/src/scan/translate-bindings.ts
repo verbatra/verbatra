@@ -45,14 +45,16 @@ function nameBinding(
     : { names: [name], indices: [index] };
 }
 
-function hookPatternItem(
+function patternItem(
   tokens: readonly SourceToken[],
   item: readonly number[],
+  accepted: ReadonlySet<string> | undefined,
 ): Binding | undefined {
   const [nameIndex, colonIndex, aliasIndex] = item;
   const name = identValue(tokenAt(tokens, nameIndex ?? -1));
   const alias = identValue(tokenAt(tokens, aliasIndex ?? -1));
-  if (name === undefined || nameIndex === undefined || !HOOK_PATTERN_NAMES.has(name)) {
+  const isRejected = name !== undefined && accepted !== undefined && !accepted.has(name);
+  if (name === undefined || nameIndex === undefined || isRejected) {
     return undefined;
   }
   const isRenamed =
@@ -70,8 +72,9 @@ function hookPatternItem(
 function objectPatternBinding(
   tokens: readonly SourceToken[],
   items: readonly (readonly number[])[],
+  accepted: ReadonlySet<string> | undefined,
 ): Binding | undefined {
-  const bindings = items.map((item) => hookPatternItem(tokens, item));
+  const bindings = items.map((item) => patternItem(tokens, item, accepted));
   if (bindings.some((binding) => binding === undefined)) {
     return undefined;
   }
@@ -95,7 +98,11 @@ function arrayPatternBinding(
     : undefined;
 }
 
-function declaredPattern(tokens: readonly SourceToken[], valueStart: number): Binding | undefined {
+function declaredPattern(
+  tokens: readonly SourceToken[],
+  valueStart: number,
+  accepted: ReadonlySet<string> | undefined,
+): Binding | undefined {
   const closer = valueStart - 2;
   const opener = matchingOpen(tokens, closer);
   const isDeclared =
@@ -108,7 +115,7 @@ function declaredPattern(tokens: readonly SourceToken[], valueStart: number): Bi
   }
   const items = listItems(tokens, opener, closer);
   if (isPunct(tokenAt(tokens, opener), "{")) {
-    return objectPatternBinding(tokens, items);
+    return objectPatternBinding(tokens, items, accepted);
   }
   return isPunct(tokenAt(tokens, opener), "[") ? arrayPatternBinding(tokens, items) : undefined;
 }
@@ -126,7 +133,17 @@ export function hookBinding(
   const isStatic =
     (namespace === undefined || isStaticNamespace(tokens, namespace)) &&
     (options === undefined || isStaticOptions(tokens, options, rules));
-  return isStatic ? declaredPattern(tokens, index) : undefined;
+  return isStatic ? declaredPattern(tokens, index, HOOK_PATTERN_NAMES) : undefined;
+}
+
+export function instanceBinding(
+  tokens: readonly SourceToken[],
+  index: number,
+): Binding | undefined {
+  const isObjectPattern =
+    isPunct(tokenAt(tokens, index - 2), "}") && isStatementEnd(tokens, index + 1);
+  const binding = isObjectPattern ? declaredPattern(tokens, index, undefined) : undefined;
+  return binding !== undefined && binding.names.length > 0 ? binding : undefined;
 }
 
 export function fixedBinding(tokens: readonly SourceToken[], index: number): Binding | undefined {

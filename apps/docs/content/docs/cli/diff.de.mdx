@@ -70,7 +70,7 @@ Der Scan vertraut nur Übersetzungsfunktionen, deren Entstehung er sieht. Jede V
 
 - `const { t } = useTranslation(...)` (auch `{ t: alias }`, `i18n`, `ready` oder ein Array `[t, i18n]`), nicht exportiert, aufgerufen ohne Argumente, mit einem statischen Namespace oder Namespace-Array und optional einem Objekt-Literal, dessen `keyPrefix`, falls vorhanden, ein statischer String ist und das keinen Spread und keinen berechneten Key enthält.
 - `const f = i18n.getFixedT(...)`, nicht exportiert, mit einer statischen, `null`- oder benannten Sprache zuerst (etwa `i18n.language`) und danach nur statischen Strings, String-Arrays, `null` oder `undefined`.
-- Ein direkter Aufruf eines Members `t`, etwa `i18n.t("key")` oder `this.props.t("key")`, und ein lokales, nicht exportiertes `const tr = i18n.t` oder `const tr = i18n.t.bind(i18n)`.
+- Ein direkter Aufruf eines Members `t`, etwa `i18n.t("key")` oder `this.props.t("key")`, ein lokales, nicht exportiertes `const tr = i18n.t` oder `const tr = i18n.t.bind(i18n)` und ein lokales, nicht exportiertes `const { t } = i18next` oder `const { t: tr } = i18n`.
 - `<Translation>{(t) => ...}</Translation>` oder `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, dessen Komponente `props.t(...)` aufruft.
 - `import { t } from "i18next"` (auch `t as alias`) sowie einfache Imports von `useTranslation`, `withTranslation`, `getFixedT` und `Translation`.

@@ -22,6 +22,7 @@ export interface KeyUsageRules {
   readonly hocNames: ReadonlySet<string>;
   readonly renderPropElements: ReadonlySet<string>;
   readonly memberTranslateNames: ReadonlySet<string>;
+  readonly translateInstanceNames: ReadonlySet<string>;
   readonly translateModules: ReadonlySet<string>;
   readonly dependencyHookNames: ReadonlySet<string>;
 }

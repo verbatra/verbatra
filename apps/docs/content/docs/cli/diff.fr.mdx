@@ -70,7 +70,7 @@ L'analyse ne fait confiance qu'aux fonctions de traduction dont elle voit la cr�
 
 - `const { t } = useTranslation(...)` (aussi `{ t: alias }`, `i18n`, `ready` ou un tableau `[t, i18n]`), non exporté, appelé sans argument, avec un namespace statique ou un tableau de namespaces et, en option, un objet littéral dont le `keyPrefix`, s'il existe, est une chaîne statique et qui n'a ni spread ni clé calculée.
 - `const f = i18n.getFixedT(...)`, non exporté, avec une langue statique, `null` ou nommée en premier (comme `i18n.language`) puis uniquement des chaînes statiques, des tableaux de chaînes, `null` ou `undefined`.
-- Un appel direct sur un membre `t`, comme `i18n.t("key")` ou `this.props.t("key")`, et un `const tr = i18n.t` ou `const tr = i18n.t.bind(i18n)` local et non exporté.
+- Un appel direct sur un membre `t`, comme `i18n.t("key")` ou `this.props.t("key")`, un `const tr = i18n.t` ou `const tr = i18n.t.bind(i18n)` local et non exporté, et un `const { t } = i18next` ou `const { t: tr } = i18n` local et non exporté.
 - `<Translation>{(t) => ...}</Translation>` ou `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, dont le composant appelle `props.t(...)`.
 - `import { t } from "i18next"` (aussi `t as alias`), et les imports simples de `useTranslation`, `withTranslation`, `getFixedT` et `Translation`.

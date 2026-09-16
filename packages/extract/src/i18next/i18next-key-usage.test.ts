@@ -322,6 +322,8 @@ describe("i18next key usage: translate sources", () => {
     ["a direct member call", 'i18n.t("a");\nthis.props.t("b");'],
     ["a local bound member t", "const tr = i18next.t.bind(i18next);"],
     ["a local member t", "const tr = i18n.t;"],
+    ["Q09: t destructured from the i18next instance", "const { t } = i18next;"],
+    ["Q09: t renamed out of an i18n instance", 'let { t: tr } = i18n;\ntr("a");'],
     [
       "R19: a Translation render prop with a bare parameter",
       '<Translation>{t => t("a")}</Translation>',
@@ -362,6 +364,9 @@ describe("i18next key usage: translate sources", () => {
     ["a member t passed on", "renderRow(i18n.t);"],
     ["an unrelated member named t, an accepted false alarm", "const y = frame.t + 1;"],
     ["an exported member t", "export const tr = i18n.t;"],
+    ["t destructured from an instance and exported", "export const { t } = i18next;"],
+    ["t destructured from a member of an instance", "const { t } = i18next.services;"],
+    ["t destructured from an instance with a default", "const { t = fallback } = i18n;"],
     ["a Translation element with no render prop", "<Translation>{children}</Translation>"],
     ["a self-closing Translation element", "<Translation />"],
     ["withTranslation with a dynamic namespace", "withTranslation(ns)(Page);"],
@@ -375,6 +380,12 @@ describe("i18next key usage: translate sources", () => {
     expect(unrecognised('t("a");\n\nconst { t } = useTranslation(ns);')).toEqual([
       { reason: "unrecognised-translate-source", line: 3 },
     ]);
+  });
+
+  it("Q09: follows t destructured from an i18next instance as a translate identifier", () => {
+    expect(referenced('const { t: tr, language } = i18next;\ntr("a");')).toEqual(["a"]);
+    expect(usage('const { t: tr } = i18n;\ntr("a");').unresolved).toEqual([]);
+    expect(usage("const { language } = i18n;\nconst [first] = i18next;").unresolved).toEqual([]);
   });
 
   it("follows t imported from i18next under another name as a translate identifier", () => {

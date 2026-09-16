@@ -39,6 +39,7 @@ const I18NEXT_RULES: CallSiteRules = {
   hocNames: new Set(["withTranslation"]),
   renderPropElements: RENDER_PROP_ELEMENTS,
   memberTranslateNames: new Set(["t"]),
+  translateInstanceNames: new Set(["i18next", "i18n"]),
   translateModules: new Set(["i18next", "react-i18next", "next-i18next"]),
   dependencyHookNames: new Set(["useEffect", "useLayoutEffect", "useMemo", "useCallback"]),
 };

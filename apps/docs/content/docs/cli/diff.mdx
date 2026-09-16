@@ -70,7 +70,7 @@ The scan only trusts translate functions it can see being created. Every use of 
 
 - `const { t } = useTranslation(...)` (also `{ t: alias }`, `i18n`, `ready`, or an array `[t, i18n]`), not exported, called with no arguments, a static namespace or namespace array, and optionally an object literal whose `keyPrefix`, if present, is a static string and which has no spread or computed key.
 - `const f = i18n.getFixedT(...)`, not exported, with a static, `null`, or named language first (such as `i18n.language`) and only static strings, string arrays, `null`, or `undefined` after it.
-- A direct call on a member `t`, such as `i18n.t("key")` or `this.props.t("key")`, and a local `const tr = i18n.t` or `const tr = i18n.t.bind(i18n)` that is not exported.
+- A direct call on a member `t`, such as `i18n.t("key")` or `this.props.t("key")`, a local `const tr = i18n.t` or `const tr = i18n.t.bind(i18n)` that is not exported, and a local `const { t } = i18next` or `const { t: tr } = i18n` that is not exported.
 - `<Translation>{(t) => ...}</Translation>` or `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, whose component calls `props.t(...)`.
 - `import { t } from "i18next"` (also `t as alias`), and plain imports of `useTranslation`, `withTranslation`, `getFixedT`, and `Translation`.

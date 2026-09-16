@@ -465,6 +465,20 @@ describe("findUnusedKeys only trusts translate sources it recognises", () => {
       { "src/page.ts": 'import { t } from "i18next";\nt("home");' },
     ],
     [
+      "Q09",
+      "t destructured from the i18next instance under another name",
+      { home: "H", stale: "S" },
+      {
+        "src/page.ts": 'import i18next from "i18next";\nconst { t: tr } = i18next;\ntr("home");',
+      },
+    ],
+    [
+      "Q09",
+      "t destructured from an i18n instance",
+      { home: "H", stale: "S" },
+      { "src/page.ts": 'import i18n from "./i18n";\nconst { t } = i18n;\nt("home");' },
+    ],
+    [
       "Q12",
       "an array-destructured useTranslation",
       { home: "H", stale: "S" },
