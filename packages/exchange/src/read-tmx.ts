@@ -48,7 +48,7 @@ const SUBFLOW_ELEMENT = "sub";
 
 const ENTITY_DECLARATION = /<!ENTITY/i;
 
-const UTF8_BOM = "﻿";
+const UTF8_BOM = "\uFEFF";
 
 const TMX_NAMESPACES: ReadonlySet<string> = new Set(["http://www.lisa.org/tmx14"]);
 
