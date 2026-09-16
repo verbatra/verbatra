@@ -188,7 +188,7 @@ Multipliziere diesen gemessenen Wert mit der Zahl deiner übrigen Locales. Die T
 
 Der Kalibrierungslauf ist ein echter Lauf: er gibt echtes Geld aus und schreibt echte Übersetzungen für dieses Locale. Genau das ist der Sinn, und die Arbeit ist nicht verloren, weil die übrigen Locales von derselben Quelle ausgehen und das kalibrierte Locale nun fertig ist.
 
-Um einen Lauf zu deckeln, statt ihn vorherzusagen, setze `maxTokens` mit `budgetBehavior: "stop"`. Damit wird jeder noch nicht versuchte Key zurückgehalten, sobald die Obergrenze überschritten ist; zurückgehaltene Keys werden im nächsten Lauf automatisch erneut versucht. Siehe [die Konfigurationsreferenz](/docs/config-file).
+Um einen Lauf zu deckeln, statt ihn vorherzusagen, setze `maxTokens` mit `budgetBehavior: "stop"`. Damit wird jede Anfrage projiziert, bevor sie gesendet wird, und eine Anfrage, die den Lauf über die Obergrenze brächte, wird zurückgehalten, ebenso jeder danach noch nicht versuchte Key; zurückgehaltene Keys werden im nächsten Lauf automatisch erneut versucht. Reserviert wird gegen dieselbe Projektion, die diese Seite beschreibt, einmal pro tatsächlich gesendeter Anfrage, auch eine nach einer abgeschnittenen Antwort neu aufgeteilte Anfrage wird also je Hälfte geprüft. Die Zählung wird nach jeder Anfrage auf das abgeglichen, was der Provider meldet, ein Lauf kann deshalb um die Differenz der letzten zugelassenen Anfrage über der Obergrenze enden, und um nicht mehr. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen. Die Obergrenze begrenzt einen Lauf: `watch` startet für jeden ausgelösten Lauf ein frisches Budget. Siehe [die Konfigurationsreferenz](/docs/config-file).
 
 ## DeepL wird anders abgerechnet
 
@@ -197,13 +197,13 @@ DeepL ist eine maschinelle Übersetzungs-API, kein nach Tokens abgerechnetes LLM
 - Die abrechenbare Einheit sind **Quellzeichen**. Für das Beispielprojekt sind das 400 Keys x 40 Zeichen = 16.000 Zeichen pro Locale, 48.000 über drei.
 - verbatra sendet an DeepL nur den Quelltext. Es gibt keine Systemregeln, keine Key-Namen und keinen JSON-Umschlag in der abgerechneten Payload, also auch keine Konstante pro Request, die sich amortisieren ließe.
 - DeepL hält Strings mit Platzhaltern oder ICU-Syntax zurück, statt sie zu riskieren. Die tatsächlich gesendeten Zeichen können also unter der Rohsumme liegen.
-- DeepL meldet keine Token-Nutzung, ein konfiguriertes `maxTokens`-Budget wird deshalb als nicht unterstützt ausgewiesen, statt scheinbar zu funktionieren.
+- DeepL meldet keine Token-Nutzung, ein konfiguriertes `maxTokens`-Budget wird deshalb aus verbatras eigener Projektion gezählt. Es greift trotzdem; die Lauf-Zusammenfassung weist die Zahl als geschätzt statt als gemeldet aus.
 
 ## Google Cloud Translation wird genauso abgerechnet
 
 <AvailableFrom version="0.10.0" />
 
-Google Cloud Translation ist ebenfalls eine maschinelle Übersetzungs-API und wird wie DeepL oben abgerechnet: Die Einheit sind Quell**zeichen**, keine Tokens (siehe [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra sendet nur den Quelltext, hält Strings mit Platzhaltern oder ICU-Syntax zurück, statt sie zu riskieren, und meldet keine Token-Nutzung, ein konfiguriertes `maxTokens`-Budget wird deshalb als nicht unterstützt ausgewiesen, statt scheinbar zu funktionieren.
+Google Cloud Translation ist ebenfalls eine maschinelle Übersetzungs-API und wird wie DeepL oben abgerechnet: Die Einheit sind Quell**zeichen**, keine Tokens (siehe [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra sendet nur den Quelltext, hält Strings mit Platzhaltern oder ICU-Syntax zurück, statt sie zu riskieren, und meldet keine Token-Nutzung, ein konfiguriertes `maxTokens`-Budget wird deshalb aus verbatras eigener Projektion gezählt, greift trotzdem und wird in der Lauf-Zusammenfassung als geschätzt statt als gemeldet ausgewiesen.
 
 ## Warum der zweite Lauf fast kostenlos ist
 

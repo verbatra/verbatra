@@ -129,22 +129,40 @@ liegende Übersetzung korrigierst.
 ## Das Token-Budget
 
 Die Kosten beim Provider sollten eine Obergrenze haben, die du setzt, nicht eine, die du auf der
-Rechnung entdeckst. Mit konfiguriertem `maxTokens` verfolgt verbatra den kumulierten
-Token-Verbrauch über den ganzen Lauf und prüft ihn nach jedem abgeschlossenen Sub-Batch. Was an
-der Obergrenze passiert, bestimmt `budgetBehavior`:
+Rechnung entdeckst. Mit konfiguriertem `maxTokens` zählt verbatra, was der Lauf über jeden
+Provider-Aufruf und jede Ziel-Locale hinweg ausgibt. Was an der Obergrenze passiert, bestimmt
+`budgetBehavior`:
 
 - `warn` (der Default): Der Lauf geht weiter, und die Zusammenfassung vermerkt, dass das Budget
-  überschritten wurde.
-- `stop`: Es folgen keine weiteren Provider-Aufrufe; jeder verbleibende Kandidat wird als
-  `budgetWithheld` zurückgehalten, behält seinen vorherigen Lock-Hash und wird beim nächsten Lauf
-  erneut versucht.
+  überschritten wurde. Es wird nichts zurückgehalten.
+- `stop`: Jede Anfrage wird projiziert, bevor sie gesendet wird, und eine, die den Lauf über die
+  Obergrenze brächte, wird gar nicht erst gesendet. Ihre Keys und jeder weitere verbleibende
+  Kandidat werden als `budgetWithheld` zurückgehalten, behalten ihren vorherigen Lock-Hash und
+  werden beim nächsten Lauf erneut versucht.
 
-Der Sub-Batch, der die Obergrenze überschreitet, wird nie rückgängig gemacht. Unter `warn` ändert
-das Budget nie den Exit-Code des Befehls. Unter `stop` kann es das: Eine Locale, bei der Keys
-zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys trotzdem gelandet sind, und
-als `failed`, wenn gar keiner, und beide enden mit `1`. Bei einem Provider, der keinen Token-Verbrauch meldet
-(DeepL), ist der Schutzmechanismus ehrlich wirkungslos: Die Zusammenfassung markiert ihn als nicht
-unterstützt, statt eine Zählung vorzutäuschen.
+Bereits Geleistetes wird nie rückgängig gemacht, und es bleibt nichts halb Fertiges zurück: Was vor
+der Obergrenze übersetzt wurde, bleibt geschrieben und gelockt, und ein zurückgehaltener Key behält
+seine bisherige Baseline. Ein gestoppter Lauf hinterlässt also keine halb geschriebene
+Locale-Datei und keinen Lock-Eintrag, der zurückgehaltene Arbeit beansprucht. Die Prüfung gilt für
+jede Anfrage, die der Lauf sendet, auch für jede Hälfte einer nach einer abgeschnittenen Antwort
+neu aufgeteilten Anfrage, eine Kaskade von Retrys kann eine Reservierung also nicht überholen. Das
+Einzige, was eine Projektion nicht zusichern kann, ist die bereits laufende Anfrage: Sie kann mehr
+melden als projiziert war. Die Endsumme kann deshalb um die Differenz dieser einen Anfrage über
+`maxTokens` liegen, und um nicht mehr. Danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen.
+
+Zwei Grenzen gehören klar gesagt. Die Obergrenze begrenzt einen Lauf, keine Sitzung: `watch`
+startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder
+Quelltext-Änderung erneut bis zu `maxTokens` ausgeben. Und sie gilt für `translate` und sonst
+nichts: Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/studio) oder
+den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese
+Ausgabe.
+
+Unter `warn` ändert das Budget nie den Exit-Code des Befehls. Unter `stop` kann es das: Eine
+Locale, bei der Keys zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys trotzdem
+gelandet sind, und als `failed`, wenn gar keiner, und beide enden mit `1`. Ein Provider, der keinen
+eigenen Token-Verbrauch meldet (DeepL, Google Cloud Translation), wird über die Projektion gezählt
+statt ungemessen zu bleiben, der Schutzmechanismus greift dort also ebenfalls; `supported` im
+Budget der Zusammenfassung sagt, dass die Zahl verbatras Zählung ist und nicht die des Providers.
 
 ## Fehler geben nichts preis
 

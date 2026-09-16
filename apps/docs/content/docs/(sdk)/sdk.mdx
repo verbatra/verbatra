@@ -581,8 +581,15 @@ The parts worth knowing:
   a dry run never calls a provider, and DeepL never reports tokens. `RunSummary.usage` is the sum
   over the locales.
 - **budget** appears only when `maxTokens` is configured: `{ maxTokens, behavior, supported,
-  tokensUsed, exceeded }`. Against a token-less provider or a dry run it is still present with
-  `supported: false`, so the guardrail is visibly inert rather than falsely tripped.
+  tokensUsed, exceeded }`. `supported` says whether `tokensUsed` is entirely the provider's own
+  reported usage; it is `false` as soon as one request came back without a usable figure, and the
+  total is then partly verbatra's projection, which is counted and enforced just the same. A dry run
+  reports it with `tokensUsed: 0`, since nothing was sent. Under `behavior: "stop"` the ceiling is
+  checked before every request the run sends, each half of a re-split request included, so
+  `tokensUsed` lands at or below `maxTokens` apart from one residual: the last request admitted is
+  reconciled to what the provider reported, which can push the total past the ceiling after the
+  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do. The budget bounds one `translate` call: `watch` starts
+  a fresh one per run, and `retranslateEntry` is not covered by it at all.
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
   with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than

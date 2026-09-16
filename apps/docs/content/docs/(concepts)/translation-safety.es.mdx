@@ -126,21 +126,38 @@ señal es corregir la traducción subyacente.
 ## El presupuesto de tokens
 
 El gasto de proveedor debería tener un techo que fijas tú, no uno que descubres en la factura. Con
-`maxTokens` configurado, verbatra rastrea el uso acumulado de tokens a lo largo de toda la
-ejecución y lo comprueba después de cada sublote completado. Lo que pasa al llegar al techo es
-`budgetBehavior`:
+`maxTokens` configurado, verbatra cuenta lo que gasta la ejecución a través de cada llamada al
+proveedor y cada locale de destino. Lo que pasa al llegar al techo es `budgetBehavior`:
 
 - `warn` (el valor por defecto): la ejecución continúa y el resumen señala que el presupuesto se
-  superó.
-- `stop`: no se hacen más llamadas al proveedor; cada candidata restante se retiene como
-  `budgetWithheld`, conserva su hash anterior en el bloqueo y se reintenta en la siguiente
+  superó. No se retiene nada.
+- `stop`: cada petición se proyecta antes de enviarse, y una que llevaría la ejecución por encima
+  del techo no se envía en absoluto. Sus claves, y cada candidata restante tras ella, se retienen
+  como `budgetWithheld`, conservan su hash anterior en el bloqueo y se reintentan en la siguiente
   ejecución.
 
-El sublote que cruza el techo nunca se deshace. Con `warn` el presupuesto nunca cambia el código de
-salida del comando. Con `stop` sí puede: un locale al que se le retuvieron claves se informa como
-`partial` cuando algunas claves sí llegaron a escribirse y como `failed` cuando no llegó ninguna, y
-ambos salen con `1`. Con un proveedor que no informa del uso de tokens (DeepL), la salvaguarda es
-honestamente inerte: el resumen la marca como no soportada en lugar de fingir un recuento.
+Lo ya hecho nunca se deshace, y no queda nada a medias: lo que se tradujo antes del techo queda
+escrito y bloqueado, y una clave retenida conserva la baseline que tenía, así que una ejecución
+detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que
+reclame trabajo retenido. La comprobación cubre cada petición que envía la ejecución, incluida cada
+mitad de una petición vuelta a partir tras una respuesta truncada, así que una cascada de
+reintentos no puede adelantar a una reserva. Lo único que una proyección no puede prometer es la
+petición ya en vuelo: puede informar más de lo proyectado, así que el recuento final puede terminar
+por encima de `maxTokens` por la diferencia de esa única petición, y no más. Después de eso no se
+envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más.
+
+Conviene decir dos límites con claridad. El techo acota una ejecución, no una sesión: `watch`
+arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede
+gastar hasta `maxTokens` otra vez con cada edición del origen. Y cubre `translate` y nada más:
+retraducir una sola entrada desde [el panel de Studio](/docs/studio) o desde las herramientas de
+agente corre por su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
+
+Con `warn` el presupuesto nunca cambia el código de salida del comando. Con `stop` sí puede: un
+locale al que se le retuvieron claves se informa como `partial` cuando algunas claves sí llegaron a
+escribirse y como `failed` cuando no llegó ninguna, y ambos salen con `1`. Un proveedor que no
+informa de su propio uso de tokens (DeepL, Google Cloud Translation) se cuenta a partir de la
+proyección en lugar de quedar sin medir, así que la salvaguarda también muerde ahí; `supported` en
+el presupuesto del resumen dice que la cifra es la cuenta de verbatra y no la del proveedor.
 
 ## Los errores nunca filtran nada
 

@@ -111,17 +111,36 @@ translation.
 ## The token budget
 
 Provider spend should have a ceiling you set, not one you discover on the invoice. With
-`maxTokens` configured, verbatra tracks cumulative token usage across the whole run and checks it
-after each completed sub-batch. What happens at the ceiling is `budgetBehavior`:
+`maxTokens` configured, verbatra counts what the run spends across every provider call and every
+target locale. What happens at the ceiling is `budgetBehavior`:
 
 - `warn` (the default): the run continues and the summary flags that the budget was exceeded.
-- `stop`: no further provider calls are made; every remaining candidate is withheld as
-  `budgetWithheld`, keeps its prior lock hash, and is retried next run.
+  Nothing is withheld.
+- `stop`: every request is projected before it is sent, and one that would take the run past the
+  ceiling is not sent at all. Its keys, and every remaining candidate after it, are withheld as
+  `budgetWithheld`, keep their prior lock hash, and are retried next run.
 
-The sub-batch that crosses the ceiling is never undone. Under `warn` the budget never changes the
-command's exit code. Under `stop` it can: a locale that had keys withheld is reported as `partial`
-when some keys still landed and `failed` when none did, and both exit `1`. With a provider that does not report token usage (DeepL), the guardrail is honestly
-inert: the summary marks it unsupported instead of faking a count.
+Work already done is never undone, and nothing half-finished is left behind: whatever was
+translated before the ceiling stays written and locked, and a withheld key keeps the baseline it
+had, so a stopped run leaves no half-written locale file and no lock entry claiming work that was
+withheld. The check covers every request the run sends, each half of a request re-split after a
+truncated response included, so a cascade of retries cannot outrun one reservation. The one thing a
+projection cannot promise is the request already in flight: it can report more than it was
+projected to cost, so the final count can finish above `maxTokens` by that one request's
+difference, and by no more. Nothing further is sent once it does. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do.
+
+Two limits are worth stating plainly. The ceiling bounds one run, not a session: `watch` starts a
+fresh budget for every run it triggers, so a watch session can spend up to `maxTokens` again on
+each source edit. And it covers `translate` and nothing else: retranslating a single entry from
+[the Studio dashboard](/docs/studio) or the agent tools runs on its own path with its own provider,
+and no budget caps that spend.
+
+Under `warn` the budget never changes the command's exit code. Under `stop` it can: a locale that
+had keys withheld is reported as `partial` when some keys still landed and `failed` when none did,
+and both exit `1`. A provider that reports no token usage of its own (DeepL, Google Cloud
+Translation) is counted from the projection rather than left unmeasured, so the guardrail bites
+there too; `supported` on the summary's budget says the figure is verbatra's count and not the
+provider's.
 
 ## Errors never leak
 

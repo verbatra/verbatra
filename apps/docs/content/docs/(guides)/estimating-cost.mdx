@@ -188,7 +188,7 @@ Multiply that measured figure by your remaining locale count. Token usage is als
 
 The calibration run is a real run: it spends real money and writes real translations for that locale. That is the point, and the work is not wasted, because the remaining locales pick up from the same source and the calibrated locale is now done.
 
-To cap a run rather than predict it, set `maxTokens` with `budgetBehavior: "stop"`, which withholds every key not yet attempted once the ceiling is crossed; withheld keys are retried automatically on the next run. See [the configuration reference](/docs/config-file).
+To cap a run rather than predict it, set `maxTokens` with `budgetBehavior: "stop"`, which projects each request before sending it and withholds any request that would take the run past the ceiling, along with every key not yet attempted after it; withheld keys are retried automatically on the next run. It reserves against the same projection this page describes, once per request actually sent, so even a request re-split after a truncated response has each half checked. The count is reconciled to what the provider reports after each request, so a run can finish above the ceiling by the last admitted request's difference and by no more. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do. The ceiling bounds one run: `watch` starts a fresh budget for each run it triggers. See [the configuration reference](/docs/config-file).
 
 ## DeepL is billed differently
 
@@ -197,13 +197,13 @@ DeepL is a machine-translation API, not a token-billed LLM, so it does not share
 - The billable unit is **source characters**. For the example project that is 400 keys x 40 characters = 16,000 characters per locale, 48,000 across three.
 - verbatra sends DeepL only the source text. There are no system rules, no key names, and no JSON envelope in the billed payload, so there is no per-request constant to amortize.
 - DeepL withholds strings carrying placeholders or ICU syntax rather than risking them, so the characters actually sent can be lower than the raw total.
-- DeepL reports no token usage, so a configured `maxTokens` budget is reported as unsupported rather than silently appearing to work.
+- DeepL reports no token usage, so a configured `maxTokens` budget is counted from verbatra's own projection instead. It is enforced all the same; the run summary marks the figure as estimated rather than reported.
 
 ## Google Cloud Translation is billed the same way
 
 <AvailableFrom version="0.10.0" />
 
-Google Cloud Translation is also a machine-translation API, billed like DeepL above: the unit is source **characters**, not tokens (see [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra sends it only the source text, withholds strings carrying placeholders or ICU syntax rather than risking them, and it reports no token usage, so a configured `maxTokens` budget is reported as unsupported rather than silently appearing to work.
+Google Cloud Translation is also a machine-translation API, billed like DeepL above: the unit is source **characters**, not tokens (see [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra sends it only the source text, withholds strings carrying placeholders or ICU syntax rather than risking them, and it reports no token usage, so a configured `maxTokens` budget is counted from verbatra's own projection instead, enforced all the same and marked on the run summary as estimated rather than reported.
 
 ## Why the second run is nearly free
 
