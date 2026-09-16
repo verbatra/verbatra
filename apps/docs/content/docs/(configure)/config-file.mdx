@@ -167,6 +167,8 @@ Setting `maxTokens` also constrains how a run may be parallelized: a live run th
 
 Under `"warn"` a budget trip never changes the command's exit code. Under `"stop"` it can: a locale whose keys were withheld is reported as `partial` when some keys still landed and `failed` when none did, and both exit `1`. `budgetBehavior` without `maxTokens` is accepted and has no effect. A provider that reports no token usage of its own (DeepL, Google Cloud Translation) is budgeted from the projection instead, so a ceiling set against one of them withholds work like any other; `supported: false` on the run summary's `budget` says the figure is verbatra's own count rather than the provider's.
 
+The projection includes a fixed allowance for the prompt verbatra sends an LLM provider (its system rules and response schema), and that allowance is added for DeepL and Google Cloud Translation too, even though they receive no prompt. A request is projected as a whole batch, so under `"stop"` a `maxTokens` below what one batch projects refuses that batch on every run, and the run never gets past it. The refusal notice says so when it happens: lower `maxBatchSize` so each request projects less, or raise `maxTokens`.
+
 <Callout title="Two different maxTokens">
 The top-level `maxTokens` is the whole-run budget described here. The Anthropic provider also has its own `options.maxTokens`, which caps a single response. They are unrelated; see [Providers](/docs/providers).
 </Callout>

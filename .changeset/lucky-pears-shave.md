@@ -17,23 +17,28 @@ provider actually reported, because the provider is the authority on what was bi
 that reported nothing keeps its projection instead of counting zero.
 
 The reservation is taken per request actually sent, not per planned batch, so a request that
-verbatra re-splits after a truncated response has each half checked in turn and a cascade of
-retries cannot outrun one reservation. A request that fails or comes back truncated keeps its whole
+verbatra re-splits after a truncated response has each half checked in turn and a cascade of retries
+cannot outrun one reservation. A request that fails or comes back truncated keeps its whole
 projection charged rather than being refunded, because such a call has usually already billed for
 its prompt, and a report of zero or less is treated as no report at all rather than as a refund.
+Every projection carries a fixed allowance for the prompt, DeepL and Google Cloud Translation
+included, so a ceiling below one batch's projection refuses that batch on every run; the refusal
+notice now says so whenever the refused projection alone is above `maxTokens`, and names lowering
+`maxBatchSize` or raising `maxTokens` as the way out.
 
-A reported figure is normalized before it is counted: each field is floored at zero and rounded to
-a whole number, so a negative field can no longer cancel a positive one down below the invoice and
-a fractional report can no longer produce a run-status file the reader then refuses, which used to
-lose the whole run record rather than just the budget.
+A reported figure is normalized before it is counted or added to another request's figure, the
+halves of a re-split request included: each field is floored at zero and rounded to a whole number,
+so a negative field can no longer cancel a positive one down below the invoice and a fractional
+report can no longer produce a run-status file the reader then refuses, which used to lose the whole
+run record rather than just the budget.
 
 What a reservation cannot bound is what happens inside a request it already admitted, and that is
 documented rather than hidden. The provider layer sends one repair call of its own when keys come
 back missing, so one admitted batch can cost up to about twice its projection; a request can report
 more than it was projected to cost; and the count is only as good as what the provider reports. All
-of it lands at reconciliation, and nothing further is sent once it does. Withheld keys keep their prior lock hash and retry on the next run, exactly as
-before, so a stopped run leaves no half-written locale file and no lock entry claiming work that
-was withheld.
+of it lands at reconciliation, and nothing further is sent once it does. Withheld keys keep their
+prior lock hash and retry on the next run, exactly as before, so a stopped run leaves no
+half-written locale file and no lock entry claiming work that was withheld.
 
 The ceiling bounds one run, not a session: `watch` starts a fresh budget for each run it triggers,
 so a watch session can spend up to `maxTokens` again on every source edit. It covers `translate`
@@ -56,13 +61,30 @@ Behavior breaks, both on paths a user opted into:
 `RunBudget.supported` keeps its type and changes meaning: it now says whether `tokensUsed` is
 entirely the provider's own reported usage, rather than whether the budget can be enforced, because
 the budget is enforced either way. It is `false` as soon as one counted request came back without a
-usable figure, a failed or truncated request included. The CLI budget line no longer claims a
-budget is "not supported by this provider"; it prints the counted total, marked estimated when the
-count is not entirely the provider's. Studio's budget tile and its translations stat strip now show
-the consumption and the ceiling-reached state for an estimated budget instead of collapsing to an
-untracked placeholder, and the `usage.summary` agent tool's description now says where the counted
-figure came from rather than implying the provider reported it. A run with no `maxTokens` configured is unchanged: no projection is computed
-and no summary field moves.
+usable figure, a failed or truncated request included. The CLI budget line no longer claims a budget
+is "not supported by this provider"; it prints the counted total, marked estimated when the count is
+not entirely the provider's, and says a `stop` run that withheld a request while its count was still
+under the ceiling stopped before the ceiling rather than calling it exceeded. Studio's budget tile
+and its translations stat strip now show the consumption and the ceiling-reached state for an
+estimated budget instead of collapsing to an untracked placeholder, and tell a run stopped before
+its ceiling apart from one that reached it. The `usage.summary` agent tool's description now says
+where the counted figure came from rather than implying the provider reported it. `@verbatra/sdk`
+now exports `budgetStanding` and its `BudgetStanding` type, which classify a `RunBudget` as
+`within`, `stopped-before-ceiling`, or `reached`, so a caller no longer has to derive the difference
+between the last two from `exceeded`, `behavior`, and the count itself. The CLI budget line derives
+its wording from it, Studio takes its states from that type, and the `usage.summary` agent tool
+reports it as a new `budget.standing` field and describes each of the three states. A run with no
+`maxTokens` configured is unchanged: no projection is computed and no summary field moves.
+
+Because `supported: false` used to mean that nothing was counted at all, the run-status snapshot in
+`.verbatra-local/run-status.json` now carries a marker field saying its budget was counted under the
+enforced rules, and keeps its version. A snapshot without that marker is still read, but a budget it
+recorded with `supported: false` is dropped rather than presented as a count of zero, so Studio and
+the `usage.summary` agent tool no longer show an older DeepL or Google Cloud Translation run as
+within budget. An older Studio or MCP server ignores the marker and keeps reading the snapshot,
+review queue and usage included; until it is upgraded, it may show an estimated budget as not
+tracked. The `usage.summary` description also says that a run which sent no request at all reports
+`supported: false` with nothing counted, which is no estimate.
 
 The refusal to combine `maxTokens` with `--concurrency` above 1 on a live run is deliberately kept.
 The reservation is taken synchronously, so the ceiling would hold across concurrent locales, but

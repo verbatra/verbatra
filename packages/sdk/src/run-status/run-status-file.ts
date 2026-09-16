@@ -10,6 +10,8 @@ const RUN_STATUS_FILE_NAME = "run-status.json";
 
 const CURRENT_VERSION = 1;
 
+const RECONCILED_BUDGET_COUNTING = "reconciled";
+
 const MAX_RUN_STATUS_FILE_BYTES = 16 * 1024 * 1024;
 
 const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
@@ -51,6 +53,7 @@ const runStatusFileSchema = z.object({
   generatedAt: z.string(),
   usage: usageSummarySchema.optional(),
   budget: runBudgetSchema.optional(),
+  budgetCounting: z.literal(RECONCILED_BUDGET_COUNTING).optional(),
   locales: z.array(runStatusLocaleSchema),
 });
 
@@ -81,12 +84,22 @@ export function buildRunStatusFile(
   };
 }
 
-function fromParsed(data: z.infer<typeof runStatusFileSchema>): RunStatusFile {
+type ParsedRunStatusFile = z.infer<typeof runStatusFileSchema>;
+
+function countedBudget(data: ParsedRunStatusFile): ParsedRunStatusFile["budget"] {
+  if (data.budgetCounting === undefined && data.budget?.supported === false) {
+    return undefined;
+  }
+  return data.budget;
+}
+
+function fromParsed(data: ParsedRunStatusFile): RunStatusFile {
+  const budget = countedBudget(data);
   return {
     version: data.version,
     generatedAt: data.generatedAt,
     ...(data.usage !== undefined ? { usage: data.usage } : {}),
-    ...(data.budget !== undefined ? { budget: data.budget } : {}),
+    ...(budget !== undefined ? { budget } : {}),
     locales: data.locales.map((locale) => ({
       locale: locale.locale,
       status: locale.status,
@@ -129,5 +142,6 @@ export async function writeRunStatusFile(
   fs: SdkFs,
 ): Promise<void> {
   await fs.mkdir?.(dirname(path));
-  await fs.writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+  const persisted = { ...data, budgetCounting: RECONCILED_BUDGET_COUNTING };
+  await fs.writeFile(path, `${JSON.stringify(persisted, null, 2)}\n`);
 }

@@ -328,6 +328,14 @@ Best-Effort-Telemetrie, keine Korrektheits-Baseline.
 Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt `{ available: false }` oder
 `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
 
+Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
+weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das,
+dass gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
+Schnappschüsse behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, das ein älteres
+Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Review-Warteschlange und
+den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
+anzeigen.
+
 ## Operationen auf einzelnen Keys
 
 Das sind die Nahtstellen, die Verbatra Studio antreibt; nutze sie, um dein eigenes Review-Tooling
@@ -738,10 +746,14 @@ Die Teile, die du kennen solltest:
   Dry-Run meldet es mit `tokensUsed: 0`, weil nichts gesendet wurde. Unter `behavior: "stop"` wird
   die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
   aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
-  zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die
-  Summe nachträglich über die Obergrenze schieben kann. Danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen. Das
-  Budget begrenzt einen `translate`-Aufruf: `watch` startet je Lauf ein frisches, und
-  `retranslateEntry` fällt gar nicht darunter.
+  zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die Summe
+  nachträglich über die Obergrenze schieben kann. Danach wird nichts weiter gesendet. Zwei Dinge
+  liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits
+  zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn
+  Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten,
+  und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und
+  danach wird nichts weiter zugelassen. Das Budget begrenzt einen `translate`-Aufruf: `watch`
+  startet je Lauf ein frisches, und `retranslateEntry` fällt gar nicht darunter.
 - **error.code** auf einem fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
   also nicht als geschlossene Menge.
@@ -756,6 +768,17 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem CSV- oder TSV-Import
   vorhanden.
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Macht aus einem `RunBudget` einen von drei `BudgetStanding`-Werten, dieselbe Einordnung, die die
+Budgetzeile der CLI, Studio und das Agent-Tool `usage.summary` melden: `"within"`, wenn der Lauf
+seine Obergrenze nie erreicht hat, `"stopped-before-ceiling"`, wenn ein `"stop"`-Budget eine Anfrage
+zurückgehalten hat, während `tokensUsed` noch unter `maxTokens` lag, und `"reached"`, wenn
+`tokensUsed` `maxTokens` erreicht oder überschritten hat. Nutze es, statt nur `exceeded` zu lesen,
+das in beiden letzten Fällen `true` ist.
 
 ## Das Fehlermodell
 

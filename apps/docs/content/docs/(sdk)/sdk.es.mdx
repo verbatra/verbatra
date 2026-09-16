@@ -319,6 +319,14 @@ no una línea base de corrección.
 Entrada: `{ cwd? }`. No necesita configuración. Devuelve `{ available: false }` o
 `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
+Una instantánea escrita por una versión anterior a que el presupuesto de tokens se hiciera cumplir
+se sigue leyendo, pero su `budget` se omite cuando indica `supported: false`: entonces eso
+significaba que no se contaba nada, así que su `tokensUsed: 0` no es un recuento. Las instantáneas
+que se escriben ahora conservan la misma `version` y solo añaden un campo marcador que un Studio o
+un servidor de agentes más antiguo ignora, así que un lector más antiguo sigue mostrando la cola de
+revisión y el uso. Hasta que lo actualices, puede mostrar un presupuesto estimado como no
+registrado.
+
 ## Operaciones de una sola clave
 
 Estos son los puntos de integración que usa Verbatra Studio; úsalos para construir tu propia herramienta
@@ -717,9 +725,13 @@ Las partes que conviene conocer:
   se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
   vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
   última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
-  total por encima del techo a posteriori. Después de eso no se envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más. El presupuesto
-  acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y `retranslateEntry` no
-  queda cubierto en absoluto.
+  total por encima del techo a posteriori. Después de eso no se envía nada más. Dos cosas quedan
+  fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa
+  de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote
+  admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo
+  que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada
+  más. El presupuesto acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y
+  `retranslateEntry` no queda cubierto en absoluto.
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
   adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado.
 - **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)
@@ -732,6 +744,17 @@ Las partes que conviene conocer:
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
   que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`).
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Convierte un `RunBudget` en uno de tres valores `BudgetStanding`, la misma clasificación que
+informan la línea de presupuesto de la CLI, Studio y la herramienta de agente `usage.summary`:
+`"within"` cuando la ejecución nunca llegó a su techo, `"stopped-before-ceiling"` cuando un
+presupuesto `"stop"` retuvo una petición mientras `tokensUsed` seguía por debajo de `maxTokens`, y
+`"reached"` cuando `tokensUsed` alcanzó o superó `maxTokens`. Úsala en lugar de leer solo
+`exceeded`, que vale `true` en los dos últimos casos.
 
 ## El modelo de errores
 

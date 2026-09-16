@@ -1,7 +1,8 @@
+import type { BudgetStanding } from "@verbatra/sdk";
 import type { ReactNode } from "react";
 import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
-import { Badge } from "../Badge.js";
+import { Badge, type BadgeTone } from "../Badge.js";
 import { CommitList } from "../CommitList.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Loading } from "../Loading.js";
@@ -31,11 +32,19 @@ function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
   );
 }
 
+const STANDING_BADGE: Record<BudgetStanding, { readonly tone: BadgeTone; readonly label: string }> =
+  {
+    within: { tone: "success", label: "Within budget" },
+    "stopped-before-ceiling": { tone: "warning", label: "Stopped before the ceiling" },
+    reached: { tone: "danger", label: "Ceiling reached" },
+  };
+
 function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode {
   if (budget.kind === "none") {
     return null;
   }
   const counting = budget.counting === "estimated" ? ", estimated" : "";
+  const badge = STANDING_BADGE[budget.standing];
   return (
     <>
       <MetricCard
@@ -43,16 +52,9 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
         value={`${budget.tokensUsed.toLocaleString()} / ${budget.maxTokens.toLocaleString()}`}
         hint={`Behavior: ${budget.behavior}${counting}`}
         progress={budgetPercent(budget)}
-        progressTone={budget.exceeded ? "danger" : "primary"}
+        progressTone={budget.standing === "reached" ? "danger" : "primary"}
       />
-      <MetricCard
-        label="Budget status"
-        value={
-          <Badge tone={budget.exceeded ? "danger" : "success"}>
-            {budget.exceeded ? "Ceiling reached" : "Within budget"}
-          </Badge>
-        }
-      />
+      <MetricCard label="Budget status" value={<Badge tone={badge.tone}>{badge.label}</Badge>} />
     </>
   );
 }

@@ -1,3 +1,4 @@
+import type { BudgetStanding } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -170,6 +171,12 @@ function attentionTile(
   return { value: String(pending), hint: across, tone: "danger" };
 }
 
+const STANDING_HINT: Record<BudgetStanding, string> = {
+  within: "Within budget. ",
+  "stopped-before-ceiling": "Stopped before the budget ceiling. ",
+  reached: "Budget ceiling reached. ",
+};
+
 function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
   readonly value: string;
   readonly hint: string;
@@ -185,12 +192,7 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
     state.usage.kind === "reported"
       ? `${state.usage.inputTokens.toLocaleString()} / ${state.usage.outputTokens.toLocaleString()}`
       : "Not reported";
-  const budget =
-    state.budget.kind === "tracked"
-      ? state.budget.exceeded
-        ? "Budget ceiling reached. "
-        : "Within budget. "
-      : "";
+  const budget = state.budget.kind === "tracked" ? STANDING_HINT[state.budget.standing] : "";
   const hintLead = state.usage.kind === "reported" ? "Tokens in / out. " : "";
   return {
     value: usage,

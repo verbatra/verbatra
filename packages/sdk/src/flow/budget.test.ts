@@ -5,6 +5,7 @@ import {
   type BudgetTracker,
   budgetAlreadyStoppedNotice,
   budgetExceededNotice,
+  budgetStanding,
   budgetWithheldNotice,
   checkBudgetTrip,
   createBudgetTracker,
@@ -13,6 +14,7 @@ import {
   toBudgetSummary,
 } from "./budget.js";
 import type { PayloadContext } from "./estimate.js";
+import type { RunBudget } from "./summary.js";
 
 const context: PayloadContext = { sourceLocale: "en", targetLocale: "de" };
 
@@ -222,6 +224,19 @@ describe("toBudgetSummary after activity", () => {
     });
   });
 
+  it("reports exceeded for a count that reaches the ceiling exactly without passing it", () => {
+    const tracker = createBudgetTracker(50, "warn");
+    spend(tracker, 25, 25);
+    checkBudgetTrip(tracker);
+    expect(toBudgetSummary(tracker)).toEqual({
+      maxTokens: 50,
+      behavior: "warn",
+      supported: true,
+      tokensUsed: 50,
+      exceeded: true,
+    });
+  });
+
   it("reports a count and no provider-reported usage when every call was estimated", () => {
     const tracker = createBudgetTracker(100_000, "stop");
     reconcileBudget(tracker, reserveOrThrow(tracker), undefined);
@@ -240,6 +255,35 @@ describe("toBudgetSummary after activity", () => {
     spend(mixed, 10, 10);
     reconcileBudget(mixed, reserveOrThrow(mixed), undefined);
     expect(toBudgetSummary(mixed)?.supported).toBe(false);
+  });
+});
+
+describe("budgetStanding", () => {
+  const budget = (behavior: "warn" | "stop", tokensUsed: number, exceeded: boolean): RunBudget => ({
+    maxTokens: 1_000,
+    behavior,
+    supported: true,
+    tokensUsed,
+    exceeded,
+  });
+
+  it("is within while the run never reached its ceiling", () => {
+    expect(budgetStanding(budget("stop", 999, false))).toBe("within");
+    expect(budgetStanding(budget("warn", 0, false))).toBe("within");
+  });
+
+  it("is stopped-before-ceiling when a stop run withheld a request with the count still below it", () => {
+    expect(budgetStanding(budget("stop", 999, true))).toBe("stopped-before-ceiling");
+  });
+
+  it("is reached once the count lands on or past the ceiling, whatever the behavior", () => {
+    expect(budgetStanding(budget("stop", 1_000, true))).toBe("reached");
+    expect(budgetStanding(budget("stop", 1_200, true))).toBe("reached");
+    expect(budgetStanding(budget("warn", 1_000, true))).toBe("reached");
+  });
+
+  it("never calls a warn run stopped, even with its count below the ceiling", () => {
+    expect(budgetStanding(budget("warn", 999, true))).toBe("reached");
   });
 });
 
@@ -273,6 +317,39 @@ describe("budgetExceededNotice", () => {
     expect(notice.code).toBe("BUDGET_TOKENS_EXCEEDED");
     expect(notice.message).toContain("withheld");
     expect(notice.message).not.toContain("cumulative token usage (0) reached");
+  });
+
+  it("tells the user to shrink the batch when the refused request alone is above the budget", () => {
+    const tracker = createBudgetTracker(1, "stop");
+    const { refusedProjection } = reserveBudget(tracker, entries(2), context);
+    const projected = refusedProjection ?? 0;
+
+    expect(projected).toBeGreaterThan(1);
+    expect(budgetWithheldNotice(tracker, projected).message).toBe(
+      `The run's next provider request was projected at ${projected} tokens on top of the 0 ` +
+        "already counted, which would have crossed the configured budget of 1 tokens, so it was " +
+        "withheld rather than sent (behavior: stop). That request alone is projected above the " +
+        "whole budget, so it is refused on every run: lower maxBatchSize or raise maxTokens.",
+    );
+  });
+
+  it("adds no batch-size hint when the refused request alone would fit under the budget", () => {
+    const tracker = createBudgetTracker(100_000, "stop");
+    tracker.tokensUsed = 99_990;
+    const { refusedProjection } = reserveBudget(tracker, entries(2), context);
+    const projected = refusedProjection ?? 0;
+
+    expect(projected).toBeGreaterThan(10);
+    expect(projected).toBeLessThanOrEqual(100_000);
+    expect(budgetWithheldNotice(tracker, projected).message).not.toContain("maxBatchSize");
+  });
+
+  it("adds the hint only once the refused projection is strictly above the budget", () => {
+    const tracker = createBudgetTracker(1_000, "stop");
+    const hint = "refused on every run";
+
+    expect(budgetWithheldNotice(tracker, 1_000).message).not.toContain(hint);
+    expect(budgetWithheldNotice(tracker, 1_001).message).toContain(hint);
   });
 
   it("refuses without projecting once the run has already stopped", () => {

@@ -59,7 +59,7 @@ import type {
   UsageSummary,
 } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
-import { combineUsage, createUsageAccumulator, foldUsage } from "./usage.js";
+import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
 
 export interface LocaleRunParams {
@@ -747,9 +747,7 @@ async function translateAndCheck(
     foldUsage(usage, subResult.usage);
     withheld = withheld || subResult.withheld;
     refusedProjection = refusedProjection ?? subResult.refusedProjection;
-    if (checkBudgetTrip(params.budget)) {
-      counted = true;
-    }
+    counted = counted || subResult.counted;
   }
   return { notices, withheldByBudget: withheld, refusedProjection, counted, usage: usage.total };
 }
@@ -762,9 +760,10 @@ function withholdBatch(batch: readonly TranslationEntry[], budgetWithheld: strin
 
 interface SubBatchResult {
   readonly notices: readonly LocaleNotice[];
-  readonly usage: TranslateResult["usage"];
+  readonly usage: UsageSummary | undefined;
   readonly withheld: boolean;
   readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
 }
 
 async function runSubBatch(
@@ -782,6 +781,7 @@ async function runSubBatch(
       usage: undefined,
       withheld: true,
       refusedProjection: decision.refusedProjection,
+      counted: false,
     };
   }
   let result: TranslateResult;
@@ -789,9 +789,12 @@ async function runSubBatch(
     result = await provider.translateBatch(buildTranslateRequest(params, batch));
   } catch (error) {
     reconcileBudget(params.budget, decision.reservation, undefined);
-    return handleSubBatchFailure(error, provider, params, payload, batch, outcome);
+    const tripped = checkBudgetTrip(params.budget);
+    const failure = await handleSubBatchFailure(error, provider, params, payload, batch, outcome);
+    return { ...failure, counted: tripped || failure.counted };
   }
   reconcileBudget(params.budget, decision.reservation, result.usage);
+  const tripped = checkBudgetTrip(params.budget);
   for (const entry of batch) {
     foldEntryResult(
       entry,
@@ -809,9 +812,10 @@ async function runSubBatch(
   }
   return {
     notices: readNotices(result),
-    usage: result.usage,
+    usage: result.usage === undefined ? undefined : countableUsage(result.usage),
     withheld: false,
     refusedProjection: undefined,
+    counted: tripped,
   };
 }
 
@@ -838,6 +842,7 @@ async function handleSubBatchFailure(
     usage: undefined,
     withheld: false,
     refusedProjection: undefined,
+    counted: false,
   };
 }
 
@@ -849,17 +854,19 @@ async function retryTruncatedSplit(
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   const notices: LocaleNotice[] = [];
-  let usage: TranslateResult["usage"];
+  let usage: UsageSummary | undefined;
   let withheld = false;
   let refusedProjection: number | undefined;
+  let counted = false;
   for (const half of chunk(batch, Math.ceil(batch.length / 2))) {
     const sub = await runSubBatch(provider, params, payload, half, outcome);
     notices.push(...sub.notices);
     usage = combineUsage(usage, sub.usage);
     withheld = withheld || sub.withheld;
     refusedProjection = refusedProjection ?? sub.refusedProjection;
+    counted = counted || sub.counted;
   }
-  return { notices, usage, withheld, refusedProjection };
+  return { notices, usage, withheld, refusedProjection, counted };
 }
 
 function foldEntryResult(

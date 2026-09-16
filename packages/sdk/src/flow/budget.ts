@@ -105,6 +105,29 @@ export function checkBudgetTrip(tracker: BudgetTracker): boolean {
   return true;
 }
 
+/**
+ * Where a finished run stands against its token budget.
+ *
+ * - `within`: the run never reached its ceiling.
+ * - `stopped-before-ceiling`: under `stop`, a request was withheld because sending it would have
+ *   passed the ceiling, while the counted total was still below it.
+ * - `reached`: the counted total reached or passed the ceiling.
+ */
+export type BudgetStanding = "within" | "stopped-before-ceiling" | "reached";
+
+/**
+ * Classifies a {@link RunBudget} into its {@link BudgetStanding}, so every surface that reports a
+ * budget tells a `stop` run halted short of its ceiling apart from one that actually reached it.
+ */
+export function budgetStanding(budget: RunBudget): BudgetStanding {
+  if (!budget.exceeded) {
+    return "within";
+  }
+  return budget.behavior === "stop" && budget.tokensUsed < budget.maxTokens
+    ? "stopped-before-ceiling"
+    : "reached";
+}
+
 export function toBudgetSummary(tracker: BudgetTracker): RunBudget | undefined {
   if (tracker.maxTokens === undefined) {
     return undefined;
@@ -127,6 +150,13 @@ export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
   };
 }
 
+function oversizedRequestHint(tracker: BudgetTracker, projected: number): string {
+  return tracker.maxTokens !== undefined && projected > tracker.maxTokens
+    ? " That request alone is projected above the whole budget, so it is refused on every run: " +
+        "lower maxBatchSize or raise maxTokens."
+    : "";
+}
+
 export function budgetWithheldNotice(tracker: BudgetTracker, projected: number): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
@@ -134,7 +164,7 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
       `The run's next provider request was projected at ${projected} tokens on top of the ` +
       `${tracker.tokensUsed} already counted, which would have crossed the configured budget of ` +
       `${tracker.maxTokens} tokens, so it was withheld rather than sent ` +
-      `(behavior: ${tracker.behavior}).`,
+      `(behavior: ${tracker.behavior}).${oversizedRequestHint(tracker, projected)}`,
   };
 }
 

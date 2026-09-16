@@ -1,4 +1,4 @@
-import type { BudgetBehavior, RunBudget, UsageSummary } from "@verbatra/sdk";
+import type { BudgetBehavior, BudgetStanding, RunBudget, UsageSummary } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { RpcCallResult } from "./rpc-client.js";
 import type { FetchOutcome } from "./state.js";
@@ -16,7 +16,7 @@ export type BudgetDisplay =
       readonly maxTokens: number;
       readonly behavior: BudgetBehavior;
       readonly tokensUsed: number;
-      readonly exceeded: boolean;
+      readonly standing: BudgetStanding;
       readonly counting: "reported" | "estimated";
     };
 
@@ -36,6 +36,15 @@ function toUsageDisplay(usage: UsageSummary | undefined): UsageDisplay {
   return { kind: "reported", inputTokens: usage.inputTokens, outputTokens: usage.outputTokens };
 }
 
+function budgetStanding(budget: RunBudget): BudgetStanding {
+  if (!budget.exceeded) {
+    return "within";
+  }
+  return budget.behavior === "stop" && budget.tokensUsed < budget.maxTokens
+    ? "stopped-before-ceiling"
+    : "reached";
+}
+
 function toBudgetDisplay(budget: RunBudget | undefined): BudgetDisplay {
   if (budget === undefined) {
     return { kind: "none" };
@@ -45,7 +54,7 @@ function toBudgetDisplay(budget: RunBudget | undefined): BudgetDisplay {
     maxTokens: budget.maxTokens,
     behavior: budget.behavior,
     tokensUsed: budget.tokensUsed,
-    exceeded: budget.exceeded,
+    standing: budgetStanding(budget),
     counting: budget.supported || budget.tokensUsed === 0 ? "reported" : "estimated",
   };
 }

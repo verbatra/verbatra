@@ -316,6 +316,89 @@ describe("translate: budget crossed, stop behavior", () => {
   });
 });
 
+function failingOnCall(failingCall: number, usage: Usage): TranslationProvider {
+  let call = 0;
+  return {
+    id: "failing-on-call",
+    kind: "llm",
+    supportsGlossary: true,
+    translateBatch: (request: TranslateRequest): Promise<TranslateResult> => {
+      call += 1;
+      if (call >= failingCall) {
+        return Promise.reject(new Error("boom"));
+      }
+      const values = new Map<string, string>();
+      const integrity = new Map<string, PlaceholderIntegrityResult>();
+      for (const entry of request.entries) {
+        values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+        integrity.set(entry.key, { matches: true, missing: [], extra: [], reordered: false });
+      }
+      return Promise.resolve({ values, integrity, usage });
+    },
+  };
+}
+
+describe("translate: budget crossed by a failed request", () => {
+  it("marks the run exceeded under warn when the last request fails past the ceiling", async () => {
+    const dir = await project(keyedSource(4), { de: undefined });
+    const provider = failingOnCall(2, { inputTokens: 6, outputTokens: 4 });
+
+    const summary = await translate(
+      {
+        config: cfg({ maxBatchSize: 2, maxTokens: 11, budgetBehavior: "warn" }),
+        cwd: dir,
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.budget?.exceeded).toBe(true);
+    expect(summary.budget?.tokensUsed).toBeGreaterThanOrEqual(11);
+    expect(summary.locales[0]?.budgetWithheld).toEqual([]);
+    const notice = summary.locales[0]?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
+    expect(notice?.message).toContain("reached the configured budget of 11 tokens");
+  });
+
+  it("stops the run under stop when a failed request lands exactly on the ceiling", async () => {
+    const calibrationDir = await project(keyedSource(2), { de: undefined });
+    const calibration = await translate(
+      { config: cfg({ maxTokens: 1_000_000, budgetBehavior: "warn" }), cwd: calibrationDir },
+      { createProvider: () => failingOnCall(1, USAGE_100) },
+    );
+    const projected = calibration.budget?.tokensUsed ?? 0;
+    expect(projected).toBeGreaterThan(0);
+
+    const dir = await project(keyedSource(2), { de: undefined, fr: undefined });
+    const stub = makeStubProvider({ throwForLocales: new Set(["de"]) });
+
+    const summary = await translate(
+      {
+        config: cfg({
+          targetLocales: ["de", "fr"],
+          maxTokens: projected,
+          budgetBehavior: "stop",
+        }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls.map((c) => c.request.targetLocale)).toEqual(["de"]);
+    expect(summary.budget?.exceeded).toBe(true);
+    expect(summary.budget?.tokensUsed).toBe(projected);
+    const deNotice = summary.locales
+      .find((l) => l.locale === "de")
+      ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
+    const frNotice = summary.locales
+      .find((l) => l.locale === "fr")
+      ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
+    expect(deNotice?.message).toContain(`reached the configured budget of ${projected} tokens`);
+    expect(frNotice?.message).toContain("had already reached");
+    expect(
+      [...(summary.locales.find((l) => l.locale === "fr")?.budgetWithheld ?? [])].sort(),
+    ).toEqual(["k0", "k1"]);
+  });
+});
+
 describe("translate: a provider reporting odd numbers", () => {
   it("leaves a readable run-status file when the provider reports fractional usage", async () => {
     const dir = await project(keyedSource(2), { de: undefined });

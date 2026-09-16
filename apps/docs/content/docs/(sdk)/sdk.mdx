@@ -313,6 +313,12 @@ correctness baseline.
 Input: `{ cwd? }`. No config needed. Returns `{ available: false }` or
 `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
+A snapshot written by a release from before the token budget was enforced is still read, but its
+`budget` is left out when it says `supported: false`: back then that meant nothing was counted, so
+its `tokensUsed: 0` is not a count. Snapshots written now keep the same `version` and only add a
+marker field that an older Studio or agent server ignores, so an older reader keeps showing the
+review queue and usage. Until it is upgraded, it may show an estimated budget as not tracked.
+
 ## Single-key operations
 
 These are the seams Verbatra Studio drives; use them to build your own review tooling. All three
@@ -695,8 +701,12 @@ The parts worth knowing:
   checked before every request the run sends, each half of a re-split request included, so
   `tokensUsed` lands at or below `maxTokens` apart from one residual: the last request admitted is
   reconciled to what the provider reported, which can push the total past the ceiling after the
-  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do. The budget bounds one `translate` call: `watch` starts
-  a fresh one per run, and `retranslateEntry` is not covered by it at all.
+  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound,
+  because they happen inside a request it already admitted: the provider layer sends one repair call
+  of its own when keys come back missing, so one admitted batch can cost up to about twice its
+  projection, and the count is only as good as what the provider reports. Both land at
+  reconciliation, and nothing further is admitted once they do. The budget bounds one `translate`
+  call: `watch` starts a fresh one per run, and `retranslateEntry` is not covered by it at all.
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
   with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
@@ -708,6 +718,17 @@ The parts worth knowing:
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
   import.
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Classifies a `RunBudget` into one of three `BudgetStanding` values, the same classification the CLI
+budget line, Studio, and the `usage.summary` agent tool report: `"within"` when the run never
+reached its ceiling, `"stopped-before-ceiling"` when a `"stop"` budget withheld a request while
+`tokensUsed` was still below `maxTokens`, and `"reached"` when `tokensUsed` reached or passed
+`maxTokens`. Use it rather than reading `exceeded` alone, which is `true` in both of the last two
+cases.
 
 ## The error model
 
