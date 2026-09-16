@@ -60,3 +60,12 @@ key. Possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` repor
 
 The source scan behind `verbatra extract` and the unused-key report now reads a regular expression
 after a `<` operator correctly while keeping a JSX closing tag as markup.
+
+In a `.tsx`, `.jsx`, or `.js` file, the same scan now reads JSX text and quoted attribute values as
+markup rather than as code, so an apostrophe in them (`<p>Don't worry</p>`) never hides a call,
+never pairs with another apostrophe to swallow the code between, and a word such as `t` in them
+never counts as a use of the translate function. Such a file whose JSX element never closes, or
+whose quoted string in code runs into the end of its line, is reported as an `unparseable`
+diagnostic by `verbatra extract` and makes the unused-key report `unreliable` with
+`incomplete-scan`, rather than being judged from a partial reading. `.ts`, `.mts`, `.cts`,
+`.mjs`, and `.cjs` files are read as code only, as before.

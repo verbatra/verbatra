@@ -87,7 +87,7 @@ Tout ce que l'analyse ne peut pas résoudre revient sous forme de données, pour
 | `dynamic` | l'argument de la clé n'est pas une seule chaîne statique complète, ou il nomme un chemin que verbatra ne peut pas adresser : une variable, un accès de propriété, un littéral de gabarit contenant une expression, une concaténation, une clé qualifiée par un espace de noms ou une clé avec un segment de chemin vide. Elle n'est jamais écrite avec une clé devinée, tronquée ou non adressable. |
 | `conflicts` | une clé est trouvée sur deux appels qui ne s'accordent pas sur sa valeur par défaut. Aucune des deux n'est écrite, car en choisir une ferait dépendre ton catalogue de l'ordre de parcours des répertoires. |
 | `withoutDefault` | une clé a été ajoutée avec une valeur vide, parce que son appel ne fournissait aucune valeur par défaut. Remplis-la, puis traduis. |
-| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu jusqu'au bout : il a disparu, il dépasse la limite de taille, l'analyse a échoué dessus, ou un commentaire de bloc ou un gabarit non fermé a abandonné le reste. Ce qui a été lu avant ce point est tout de même signalé. |
+| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu jusqu'au bout : il a disparu, il dépasse la limite de taille, l'analyse a échoué dessus, un commentaire de bloc ou un gabarit non fermé a abandonné le reste, ou, dans un fichier `.tsx`, `.jsx` ou `.js`, un élément JSX n'est jamais fermé ou une chaîne entre guillemets dans le code atteint la fin de sa ligne. Ce qui a été lu avant ce point est tout de même signalé. |
 
 Rien de tout cela ne change le code de sortie. Ce sont des constats, pas des échecs.
 
