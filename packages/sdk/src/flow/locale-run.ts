@@ -59,7 +59,7 @@ import type {
   UsageSummary,
 } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
-import { combineUsage, createUsageAccumulator, foldUsage } from "./usage.js";
+import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
 
 export interface LocaleRunParams {
@@ -760,7 +760,7 @@ function withholdBatch(batch: readonly TranslationEntry[], budgetWithheld: strin
 
 interface SubBatchResult {
   readonly notices: readonly LocaleNotice[];
-  readonly usage: TranslateResult["usage"];
+  readonly usage: UsageSummary | undefined;
   readonly withheld: boolean;
   readonly refusedProjection: number | undefined;
   readonly counted: boolean;
@@ -812,7 +812,7 @@ async function runSubBatch(
   }
   return {
     notices: readNotices(result),
-    usage: result.usage,
+    usage: result.usage === undefined ? undefined : countableUsage(result.usage),
     withheld: false,
     refusedProjection: undefined,
     counted: tripped,
@@ -854,7 +854,7 @@ async function retryTruncatedSplit(
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   const notices: LocaleNotice[] = [];
-  let usage: TranslateResult["usage"];
+  let usage: UsageSummary | undefined;
   let withheld = false;
   let refusedProjection: number | undefined;
   let counted = false;

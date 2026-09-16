@@ -435,6 +435,31 @@ describe("spend guarantee: a re-split half that crosses the ceiling", () => {
   });
 });
 
+describe("spend guarantee: re-split halves count usage the way the budget does", () => {
+  it("floors a negative half before adding it, so usage and budget agree", async () => {
+    const dir = await project(keyedSource(2), { de: undefined });
+    const negativeFirstHalf: Behave = (request, call) => {
+      if (call === 1) {
+        return TRUNCATED();
+      }
+      return call === 2
+        ? respond(request, { inputTokens: -50, outputTokens: 10 })
+        : respond(request, { inputTokens: 100, outputTokens: 20 });
+    };
+
+    const summary = await translate(
+      { config: cfg({ maxBatchSize: 2, maxTokens: 10_000_000, budgetBehavior: "warn" }), cwd: dir },
+      { createProvider: () => makeRecordingProvider(negativeFirstHalf) },
+    );
+
+    const whole = reserves()[0]?.projected ?? 0;
+    expect(calls().map((call) => call.batchSize)).toEqual([2, 1, 1]);
+    expect(summary.locales[0]?.usage).toEqual({ inputTokens: 100, outputTokens: 30 });
+    expect(summary.usage).toEqual({ inputTokens: 100, outputTokens: 30 });
+    expect((summary.budget?.tokensUsed ?? 0) - whole).toBe(130);
+  });
+});
+
 describe("spend guarantee: a locale that fails part-way, then a later locale", () => {
   it("keeps every later request reserved and under the ceiling", async () => {
     const dir = await project(keyedSource(6), { de: undefined, fr: undefined });
