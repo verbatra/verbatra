@@ -98,7 +98,7 @@ Die Keys sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin 
 | keine Platzhalter | `VerbatraNoArguments`, jedes übergebene Argument ist also ein Typfehler |
 | benannte Platzhalter (`{{name}}`, `{name}`, `%(name)s`) | eine Objektform mit genau diesen Namen |
 | nummerierte oder anonyme Platzhalter (`{0}`, `%@`, `%1$d`) | ein `readonly`-Tupel, eine Position pro Argument |
-| ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden (`next-intl-json`, `arb`) | ein optionales Mitglied, `name?:`; eines, das jeder Zweig verwendet, bleibt Pflicht |
+| ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden (`next-intl-json`, `arb`) | ein optionales Mitglied, `name?:`, oder bei einem nummerierten Argument eine optionale Tupel-Position (`[number, VerbatraArgument?]`); eines, das jeder Zweig verwendet, bleibt Pflicht |
 | ein ICU-Argument vom Typ `number`, `plural` oder `selectordinal` (`{count, number}`, `{count, plural, ...}`) in `next-intl-json` oder `arb` | `number` |
 | ein ICU-Argument vom Typ `date` oder `time` (`{d, date, short}`) in `next-intl-json` oder `arb` | `Date \| number` |
 | ein ICU-Argument vom Typ `select` (`{gender, select, ...}`) in `next-intl-json` oder `arb` | `string` |
@@ -111,6 +111,8 @@ Die Keys sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin 
 | jeder andere Platzhalter, auch ein schlichtes ICU-Argument (`{name}`) | `VerbatraArgument`, ein Alias für `string \| number` |
 | ungültige Nachrichtensyntax, die nur `next-intl-json` und `arb` prüfen | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 | eine Nachricht, die ihre Argumente zugleich benennt und nummeriert | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
+
+Ein Tupel kann nur Positionen am Ende weglassen. Ein nummeriertes Argument, das nur einige Zweige verwenden, wird deshalb nur dann als optional deklariert, wenn jede Position danach ebenfalls optional ist. In `{0, select, a {{1}} other {x}} {2}` bleibt Position `1` Pflicht, weil ihr die Pflicht-Position `2` folgt.
 
 Argumentnamen stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Ein Format, dessen Platzhalter gar keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt deshalb ein Tupel statt erfundener Namen. Argumenttypen stammen ausschließlich daraus, was dein Katalog tatsächlich festhält: wie eine ICU-Nachricht ein Argument formatiert, oder welchen Formatter oder welche Konvertierung ein Platzhalter nennt. Wo ein Format ein Argument benennt, ohne zu sagen, was dafür übergeben werden darf, deklariert verbatra `string | number`, statt einen Typ zu behaupten, den der Katalog nie getragen hat. Ein Name, der mehrfach mit unterschiedlichen Typen vorkommt, wird als Vereinigung von allem deklariert, was die einzelnen Verwendungen akzeptieren: `{d, date, short}` neben einem schlichten `{d}` wird zu `Date | number | string`, und `{n, plural, ...}` neben einem schlichten `{n}` wird zu `string | number`. Nichts wird je als `any` deklariert.
 

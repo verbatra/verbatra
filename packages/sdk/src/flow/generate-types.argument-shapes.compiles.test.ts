@@ -181,6 +181,25 @@ t("count", { n: false });
 t("count", { n: new Date() });
 `,
   ),
+  arb(
+    "arb-optional-positions",
+    {
+      pick: "{0, plural, one {{1}} other {x}}",
+      gap: "{0, select, a {{1}} other {x}} {2}",
+    },
+    `
+t("pick", [1]);
+t("pick", [1, "one"]);
+// @ts-expect-error the plural position every branch uses is required
+t("pick", []);
+// @ts-expect-error no branch uses a third position
+t("pick", [1, "one", 2]);
+
+t("gap", ["a", "b", "c"]);
+// @ts-expect-error an optional position followed by a required one stays required
+t("gap", ["a"]);
+`,
+  ),
   nextIntl("next-intl-branch-only", { invite: INVITE }, INVITE_USAGE),
   arb("arb-branch-only", { invite: INVITE }, INVITE_USAGE),
   nextIntl(

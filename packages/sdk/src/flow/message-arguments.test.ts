@@ -392,6 +392,44 @@ describe("describeIcuMessageArguments: an ICU message read for its full argument
     });
   });
 
+  it("declares a trailing position only some branches use as optional", () => {
+    expect(describeIcuMessageArguments("{0, plural, one {{1}} other {x}}")).toEqual({
+      style: "positional",
+      positional: ["number", "unknown"],
+      optionalFrom: 1,
+    });
+  });
+
+  it("declares every trailing position as optional once all of them are", () => {
+    expect(describeIcuMessageArguments("{0, select, a {{1} {2}} other {x}}")).toEqual({
+      style: "positional",
+      positional: ["string", "unknown", "unknown"],
+      optionalFrom: 1,
+    });
+  });
+
+  it("keeps an optional position required when a required one follows it", () => {
+    expect(describeIcuMessageArguments("{0, select, a {{1}} other {x}} {2}")).toEqual({
+      style: "positional",
+      positional: ["string", "unknown", "unknown"],
+    });
+  });
+
+  it("keeps an unused gap before an optional position required", () => {
+    expect(describeIcuMessageArguments("{0, select, a {{2}} other {x}}")).toEqual({
+      style: "positional",
+      positional: ["string", "unknown", "unknown"],
+      optionalFrom: 2,
+    });
+  });
+
+  it("keeps a position required when one mention of it is required", () => {
+    expect(describeIcuMessageArguments("{0, select, a {{1}} other {x}} {1}")).toEqual({
+      style: "positional",
+      positional: ["string", "unknown"],
+    });
+  });
+
   it("keeps the index bound for a numbered ICU argument", () => {
     expect(describeIcuMessageArguments("{64}")).toEqual({
       style: "unresolved",

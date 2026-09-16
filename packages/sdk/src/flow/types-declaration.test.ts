@@ -221,6 +221,23 @@ describe("renderTypesDeclaration: argument shapes", () => {
     ]);
   });
 
+  it("marks the trailing positions from the first optional one as optional tuple slots", () => {
+    const declaration = render([
+      message({
+        key: "pick",
+        arguments: {
+          style: "positional",
+          positional: ["number", "unknown", "string"],
+          optionalFrom: 1,
+        },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "pick": readonly [number, VerbatraArgument?, string?];',
+    ]);
+  });
+
   it("emits an empty tuple rather than a no-argument shape for an empty position list", () => {
     const declaration = render([
       message({ key: "edge", arguments: { style: "positional", positional: [] } }),

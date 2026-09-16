@@ -29,6 +29,7 @@ export type MessageArguments =
   | {
       readonly style: "positional";
       readonly positional: readonly MessageArgumentType[];
+      readonly optionalFrom?: number;
     }
   | {
       readonly style: "unresolved";
@@ -43,7 +44,12 @@ type ClassifiedToken =
       readonly type: MessageArgumentType;
       readonly optional?: boolean;
     }
-  | { readonly kind: "indexed"; readonly index: number; readonly type: MessageArgumentType }
+  | {
+      readonly kind: "indexed";
+      readonly index: number;
+      readonly type: MessageArgumentType;
+      readonly optional?: boolean;
+    }
   | { readonly kind: "anonymous"; readonly type: MessageArgumentType };
 
 const IGNORED: ClassifiedToken = { kind: "ignored" };
@@ -234,18 +240,44 @@ function indexOutOfRange(tokens: readonly ClassifiedToken[]): boolean {
   );
 }
 
+interface PositionalSlot {
+  readonly type: MessageArgumentType;
+  readonly optional: boolean;
+}
+
+function slotAfter(
+  existing: PositionalSlot | undefined,
+  type: MessageArgumentType,
+  optional: boolean,
+): PositionalSlot {
+  return {
+    type: mergeType(existing?.type, type),
+    optional: optional && (existing?.optional ?? true),
+  };
+}
+
+function firstOptionalOfTrailingRun(slots: readonly (PositionalSlot | undefined)[]): number {
+  let from = slots.length;
+  while (from > 0 && slots[from - 1]?.optional === true) {
+    from -= 1;
+  }
+  return from;
+}
+
 function positionalArguments(tokens: readonly ClassifiedToken[]): MessageArguments {
-  const slots: MessageArgumentType[] = [];
+  const slots: (PositionalSlot | undefined)[] = [];
   for (const token of tokens) {
     if (token.kind === "anonymous") {
-      slots.push(token.type);
+      slots.push(slotAfter(undefined, token.type, false));
     } else if (token.kind === "indexed") {
-      slots[token.index] = mergeType(slots[token.index], token.type);
+      slots[token.index] = slotAfter(slots[token.index], token.type, token.optional === true);
     }
   }
+  const optionalFrom = firstOptionalOfTrailingRun(slots);
   return {
     style: "positional",
-    positional: Array.from(slots, (slot: MessageArgumentType | undefined) => slot ?? "unknown"),
+    positional: Array.from(slots, (slot: PositionalSlot | undefined) => slot?.type ?? "unknown"),
+    ...(optionalFrom < slots.length ? { optionalFrom } : {}),
   };
 }
 
@@ -255,15 +287,11 @@ function icuArgumentType(kinds: readonly IcuArgumentKind[]): MessageArgumentType
 
 function classifyIcuArgument(argument: IcuMessageArgument): ClassifiedToken {
   const type = icuArgumentType(argument.kinds);
+  const optional = argument.required ? {} : { optional: true };
   if (ALL_DIGITS.test(argument.name)) {
-    return { kind: "indexed", index: Number(argument.name), type };
+    return { kind: "indexed", index: Number(argument.name), type, ...optional };
   }
-  return {
-    kind: "named",
-    name: argument.name,
-    type,
-    ...(argument.required ? {} : { optional: true }),
-  };
+  return { kind: "named", name: argument.name, type, ...optional };
 }
 
 export function describeMessageArguments(placeholders: readonly string[]): MessageArguments {

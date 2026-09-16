@@ -98,7 +98,7 @@ The keys are exactly what the format adapter already produced when it read the c
 | no placeholders | `VerbatraNoArguments`, so passing anything is a type error |
 | named placeholders (`{{name}}`, `{name}`, `%(name)s`) | an object shape with those names |
 | numbered or anonymous placeholders (`{0}`, `%@`, `%1$d`) | a `readonly` tuple, one position per argument |
-| an argument only some `select` or `plural` branches use (`next-intl-json`, `arb`) | an optional member, `name?:`; one every branch uses stays required |
+| an argument only some `select` or `plural` branches use (`next-intl-json`, `arb`) | an optional member, `name?:`, or for a numbered argument an optional tuple position (`[number, VerbatraArgument?]`); one every branch uses stays required |
 | an ICU `number`, `plural` or `selectordinal` argument (`{count, number}`, `{count, plural, ...}`) in `next-intl-json` or `arb` | `number` |
 | an ICU `date` or `time` argument (`{d, date, short}`) in `next-intl-json` or `arb` | `Date \| number` |
 | an ICU `select` argument (`{gender, select, ...}`) in `next-intl-json` or `arb` | `string` |
@@ -111,6 +111,8 @@ The keys are exactly what the format adapter already produced when it read the c
 | any other placeholder, including a plain ICU argument (`{name}`) | `VerbatraArgument`, an alias for `string \| number` |
 | invalid message syntax, which only `next-intl-json` and `arb` check for | `VerbatraUnknownArguments`, and the key is named in the output |
 | a message that both names and numbers its arguments | `VerbatraUnknownArguments`, and the key is named in the output |
+
+A tuple can only leave out positions at its end, so a numbered argument only some branches use is declared optional only when every position after it is optional too. In `{0, select, a {{1}} other {x}} {2}`, position `1` stays required, because the required position `2` follows it.
 
 Argument names come from the placeholder tokens the adapter extracted, so a format whose placeholders carry no name (Apple `.strings`, Android `strings.xml`, positional gettext conversions) gets a tuple rather than invented names. Argument types come only from what your catalog actually records: how an ICU message formats an argument, or the formatter or conversion a placeholder names. Where a format names an argument without saying what may be passed for it, verbatra declares `string | number` rather than asserting a type the catalog never carried. A name used more than once with different types is declared as the union of everything each use accepts: `{d, date, short}` next to a plain `{d}` becomes `Date | number | string`, and `{n, plural, ...}` next to a plain `{n}` becomes `string | number`. Nothing is ever declared as `any`.
 

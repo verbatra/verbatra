@@ -75,7 +75,11 @@ function argumentsExpression(argumentsTaken: MessageArguments): string {
     return "VerbatraUnknownArguments";
   }
   if (argumentsTaken.style === "positional") {
-    return `readonly [${argumentsTaken.positional.map(typeExpression).join(", ")}]`;
+    const optionalFrom = argumentsTaken.optionalFrom ?? argumentsTaken.positional.length;
+    const slots = argumentsTaken.positional.map(
+      (type, index) => `${typeExpression(type)}${index >= optionalFrom ? "?" : ""}`,
+    );
+    return `readonly [${slots.join(", ")}]`;
   }
   const fields = argumentsTaken.named.map(
     (argument) =>

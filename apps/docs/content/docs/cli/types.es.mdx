@@ -98,7 +98,7 @@ Las claves son exactamente lo que el adaptador de formato ya produjo al leer el 
 | sin marcadores de posición | `VerbatraNoArguments`, así que pasar cualquier cosa es un error de tipo |
 | marcadores con nombre (`{{name}}`, `{name}`, `%(name)s`) | una forma de objeto con esos nombres |
 | marcadores numerados o anónimos (`{0}`, `%@`, `%1$d`) | una tupla `readonly`, una posición por argumento |
-| un argumento que solo usan algunas ramas `select` o `plural` (`next-intl-json`, `arb`) | un miembro opcional, `name?:`; uno que usan todas las ramas sigue siendo obligatorio |
+| un argumento que solo usan algunas ramas `select` o `plural` (`next-intl-json`, `arb`) | un miembro opcional, `name?:`, o para un argumento numerado una posición opcional de la tupla (`[number, VerbatraArgument?]`); uno que usan todas las ramas sigue siendo obligatorio |
 | un argumento ICU `number`, `plural` o `selectordinal` (`{count, number}`, `{count, plural, ...}`) en `next-intl-json` o `arb` | `number` |
 | un argumento ICU `date` o `time` (`{d, date, short}`) en `next-intl-json` o `arb` | `Date \| number` |
 | un argumento ICU `select` (`{gender, select, ...}`) en `next-intl-json` o `arb` | `string` |
@@ -111,6 +111,8 @@ Las claves son exactamente lo que el adaptador de formato ya produjo al leer el 
 | cualquier otro marcador, incluido un argumento ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
 | sintaxis de mensaje inválida, que solo comprueban `next-intl-json` y `arb` | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
 | un mensaje que a la vez nombra y numera sus argumentos | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
+
+Una tupla solo puede omitir posiciones al final, así que un argumento numerado que solo usan algunas ramas se declara opcional únicamente si todas las posiciones que le siguen también lo son. En `{0, select, a {{1}} other {x}} {2}`, la posición `1` sigue siendo obligatoria, porque la sigue la posición obligatoria `2`.
 
 Los nombres de argumento vienen de los tokens de marcadores que el adaptador extrajo, así que un formato cuyos marcadores no llevan nombre (Apple `.strings`, Android `strings.xml`, conversiones posicionales de gettext) recibe una tupla en lugar de nombres inventados. Los tipos de argumento vienen solo de lo que tu catálogo registra de verdad: cómo formatea un mensaje ICU un argumento, o el formateador o la conversión que nombra un marcador. Cuando un formato nombra un argumento sin decir qué puede pasarse para él, verbatra declara `string | number` en vez de afirmar un tipo que el catálogo nunca llevó. Un nombre que aparece varias veces con tipos distintos se declara como la unión de todo lo que acepta cada uso: `{d, date, short}` junto a un `{d}` simple pasa a ser `Date | number | string`, y `{n, plural, ...}` junto a un `{n}` simple pasa a ser `string | number`. Nada se declara jamás como `any`.
 

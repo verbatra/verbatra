@@ -98,7 +98,7 @@ Les clés sont exactement ce que l'adaptateur de format avait déjà produit en 
 | aucun marqueur | `VerbatraNoArguments`, donc passer quoi que ce soit est une erreur de type |
 | des marqueurs nommés (`{{name}}`, `{name}`, `%(name)s`) | une forme d'objet portant ces noms |
 | des marqueurs numérotés ou anonymes (`{0}`, `%@`, `%1$d`) | un tuple `readonly`, une position par argument |
-| un argument que seules certaines branches `select` ou `plural` utilisent (`next-intl-json`, `arb`) | un membre optionnel, `name?:` ; un argument utilisé par toutes les branches reste obligatoire |
+| un argument que seules certaines branches `select` ou `plural` utilisent (`next-intl-json`, `arb`) | un membre optionnel, `name?:`, ou pour un argument numéroté une position de tuple optionnelle (`[number, VerbatraArgument?]`) ; un argument utilisé par toutes les branches reste obligatoire |
 | un argument ICU `number`, `plural` ou `selectordinal` (`{count, number}`, `{count, plural, ...}`) dans `next-intl-json` ou `arb` | `number` |
 | un argument ICU `date` ou `time` (`{d, date, short}`) dans `next-intl-json` ou `arb` | `Date \| number` |
 | un argument ICU `select` (`{gender, select, ...}`) dans `next-intl-json` ou `arb` | `string` |
@@ -111,6 +111,8 @@ Les clés sont exactement ce que l'adaptateur de format avait déjà produit en 
 | tout autre marqueur, y compris un argument ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
 | une syntaxe de message invalide, que seuls `next-intl-json` et `arb` vérifient | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 | un message qui à la fois nomme et numérote ses arguments | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
+
+Un tuple ne peut omettre que des positions à sa fin : un argument numéroté que seules certaines branches utilisent n'est donc déclaré optionnel que si toutes les positions qui le suivent le sont aussi. Dans `{0, select, a {{1}} other {x}} {2}`, la position `1` reste obligatoire, parce que la position obligatoire `2` la suit.
 
 Les noms d'arguments viennent des jetons de marqueurs que l'adaptateur a extraits : un format dont les marqueurs ne portent aucun nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit donc un tuple plutôt que des noms inventés. Les types d'arguments viennent uniquement de ce que ton catalogue enregistre vraiment : la façon dont un message ICU formate un argument, ou le formateur ou la conversion que nomme un marqueur. Quand un format nomme un argument sans dire ce qu'on peut lui passer, verbatra déclare `string | number` au lieu d'affirmer un type que le catalogue n'a jamais porté. Un nom utilisé plusieurs fois avec des types différents est déclaré comme l'union de tout ce qu'accepte chaque utilisation : `{d, date, short}` à côté d'un simple `{d}` devient `Date | number | string`, et `{n, plural, ...}` à côté d'un simple `{n}` devient `string | number`. Rien n'est jamais déclaré en `any`.
 
