@@ -1,7 +1,8 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import {
   baseConfig,
@@ -167,5 +168,175 @@ describe("check", () => {
     await expect(check({ config: cfg({ targetLocales: ["de"] }), cwd: dir })).rejects.toMatchObject(
       { code: "LOCK_FILE_INVALID" },
     );
+  });
+});
+
+const PO_HEADER = 'msgid ""\nmsgstr "Content-Type: text/plain; charset=UTF-8\\n"\n\n';
+
+function poFile(
+  units: readonly (readonly [context: string | undefined, id: string, str: string])[],
+) {
+  const bodies = units.map(
+    ([context, id, str]) =>
+      `${context === undefined ? "" : `msgctxt "${context}"\n`}msgid "${id}"\nmsgstr "${str}"\n`,
+  );
+  return `${PO_HEADER}${bodies.join("\n")}`;
+}
+
+describe("check with consistency", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("omits the report unless it is asked for", async () => {
+    const dir = await project(
+      { a: "Save", b: "Save" },
+      { de: { a: "Speichern", b: "Sichern" }, fr: { a: "Enregistrer", b: "Enregistrer" } },
+    );
+    const summary = await check({ config: cfg(), cwd: dir });
+    expect(summary.locales[0]).not.toHaveProperty("inconsistencies");
+    const explicitOff = await check({ config: cfg(), cwd: dir, consistency: false });
+    expect(explicitOff.locales[0]).not.toHaveProperty("inconsistencies");
+  });
+
+  it("reports each locale's inconsistency groups and leaves the verdict and counts alone", async () => {
+    const dir = await project(
+      { a: "Save", b: "Save", c: "Cancel" },
+      {
+        de: { a: "Speichern", b: "Sichern", c: "Abbrechen" },
+        fr: { a: "Enregistrer", b: "Enregistrer", c: "Annuler" },
+      },
+    );
+    const summary = await check({ config: cfg(), cwd: dir, consistency: true });
+
+    expect(summary.inSync).toBe(true);
+    expect(summary.locales).toEqual([
+      {
+        locale: "de",
+        missing: 0,
+        stale: 0,
+        upToDate: 3,
+        inSync: true,
+        inconsistencies: [
+          {
+            source: "Save",
+            isPlural: false,
+            translations: [
+              { value: "Sichern", keys: ["b"] },
+              { value: "Speichern", keys: ["a"] },
+            ],
+          },
+        ],
+      },
+      { locale: "fr", missing: 0, stale: 0, upToDate: 3, inSync: true, inconsistencies: [] },
+    ]);
+  });
+
+  it("does not turn an out-of-sync locale in sync or the reverse", async () => {
+    const dir = await project(
+      { a: "Save", b: "Save", c: "New" },
+      { de: { a: "Speichern", b: "Sichern" } },
+    );
+    const summary = await check({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+      consistency: true,
+    });
+    expect(summary.inSync).toBe(false);
+    expect(summary.locales[0]).toMatchObject({ missing: 1, upToDate: 2, inSync: false });
+    expect(summary.locales[0]?.inconsistencies).toHaveLength(1);
+  });
+
+  it("compares only up-to-date keys, never a stale translation of an older source", async () => {
+    const dir = await project({ a: "Save", b: "Save" }, { de: { a: "Speichern", b: "Löschen" } });
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: {
+        de: {
+          a: contentHash({ ...entry("Save"), key: "a" }),
+          b: contentHash({ ...entry("Delete"), key: "b" }),
+        },
+      },
+    });
+    const summary = await check({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+      consistency: true,
+    });
+    expect(summary.locales[0]).toMatchObject({ stale: 1, upToDate: 1, inconsistencies: [] });
+  });
+
+  it("never groups gettext entries that a msgctxt disambiguates", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeFile(
+      join(dir, "locales", "en.po"),
+      poFile([
+        ["door", "open", "Open"],
+        ["file", "open", "Open"],
+        [undefined, "save.a", "Save"],
+        [undefined, "save.b", "Save"],
+      ]),
+    );
+    await writeFile(
+      join(dir, "locales", "de.po"),
+      poFile([
+        ["door", "open", "Aufmachen"],
+        ["file", "open", "\u00d6ffnen"],
+        [undefined, "save.a", "Speichern"],
+        [undefined, "save.b", "Sichern"],
+      ]),
+    );
+    const summary = await check({
+      config: cfg({
+        targetLocales: ["de"],
+        format: "gettext-po",
+        files: { pattern: "locales/{locale}.po" },
+      }),
+      cwd: dir,
+      consistency: true,
+    });
+    expect(summary.locales[0]?.upToDate).toBe(4);
+    expect(summary.locales[0]?.inconsistencies).toEqual([
+      {
+        source: "Save",
+        isPlural: false,
+        translations: [
+          { value: "Sichern", keys: ["save.b"] },
+          { value: "Speichern", keys: ["save.a"] },
+        ],
+      },
+    ]);
+  });
+
+  it("runs with no API key set, no network, and no file written", async () => {
+    for (const name of Object.values(PROVIDER_ENV)) {
+      vi.stubEnv(name, undefined);
+    }
+    vi.stubGlobal("fetch", () => {
+      throw new Error("check must not make a network request");
+    });
+    const dir = await project({ a: "Save", b: "Save" }, { de: { a: "Speichern", b: "Sichern" } });
+    const fs = makeFakeFs({
+      ...realDiskReads(),
+      writeFile: async () => {
+        throw new Error("check must not write a file");
+      },
+      writeBytes: async () => {
+        throw new Error("check must not write bytes");
+      },
+      createExclusive: async () => {
+        throw new Error("check must not create a file");
+      },
+      deleteFile: async () => {
+        throw new Error("check must not delete a file");
+      },
+    });
+    const summary = await check(
+      { config: cfg({ targetLocales: ["de"] }), cwd: dir, consistency: true },
+      { fs },
+    );
+    expect(summary.locales[0]?.inconsistencies).toHaveLength(1);
   });
 });
