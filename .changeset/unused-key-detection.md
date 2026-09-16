@@ -28,9 +28,10 @@ The report is `complete` only when the scan can bound every key the source reach
 - A template-literal key with a static head (`` t(`nav.${page}`) ``) lists the keys under that head
   as `possiblyDynamic`, apart from `unused`.
 - A fully dynamic key, a non-literal key prefix, a `Trans` element without a static `i18nKey`, `t`
-  assigned to something other than a plain variable, template files the scan does not read (`.vue`,
-  `.svelte`, `.html`, and similar), or a file it could not read make the report `unreliable`, with
-  each reason and its sites.
+  assigned to something other than a plain variable, `t` passed on as a value (a call argument, a
+  JSX attribute, an object property, an array element, or a return value), template files the scan
+  does not read (`.vue`, `.svelte`, `.html`, and similar), or a file it could not read make the
+  report `unreliable`, with each reason and its sites.
 - The report is `not-run`, with a reason code and no key list, when there is no `extract` block, the
   format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json` (runtimes the scan does not
   model), there is no source file under the roots, or the scanned files reference no key at all.

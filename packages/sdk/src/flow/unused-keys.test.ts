@@ -224,6 +224,33 @@ describe("findUnusedKeys on aliases of the translate function", () => {
   });
 });
 
+describe("findUnusedKeys when the translate function escapes the scan", () => {
+  it.each([
+    ["a JSX attribute", "src/a.tsx", 'export const A = () => <Child t={t} />;\nt("b");'],
+    ["a call argument", "src/a.ts", 'renderRow(t);\nt("b");'],
+    ["a returned object", "src/a.ts", 'export function api() {\n  t("b");\n  return { t };\n}'],
+    ["an object property value", "src/a.ts", 'const api = { translate: t };\nt("b");'],
+  ])("marks the result unreliable when t is passed on as %s", async (_name, file, content) => {
+    const report = await unusedIn({ a: "A", b: "B" }, { [file]: content });
+
+    expect(report.status).toBe("unreliable");
+    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([
+      "translate-function-escapes",
+    ]);
+    expect(report.unreliableBecause[0]?.sites[0]?.file).toBe(file);
+  });
+
+  it.each([
+    ["a direct call", 't("a");\nt("b");'],
+    ["a destructured hook result", 'const { t } = useTranslation();\nt("a");\nt("b");'],
+    ["a renamed hook result", 'const { t: tr } = useTranslation();\ntr("a");\ntr("b");'],
+  ])("stays complete for %s", async (_name, content) => {
+    const report = await unusedIn({ a: "A", b: "B" }, { "src/a.tsx": content });
+
+    expect(report).toMatchObject({ status: "complete", unused: [] });
+  });
+});
+
 describe("findUnusedKeys on keys spelled other than as a plain path", () => {
   it("references a flat dotted key through its escaped catalog key, displaying it decoded", async () => {
     const report = await unusedIn(
