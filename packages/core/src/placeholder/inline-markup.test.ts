@@ -930,16 +930,12 @@ describe("compareInlineMarkup: tags are read the way an HTML parser reads them",
     });
   });
 
-  it.each([
-    "Hallo <0 x>",
-    "Hallo </0 x>",
-    "Hallo <1",
-    "Hallo </",
-    "Hallo <a title='never closed",
-    "Hallo <a",
-  ])("reads %j as text or as a tag the parser never finishes, so nothing is invented", (value) => {
-    expect(compareInlineMarkup("Hello", value).matches).toBe(true);
-  });
+  it.each(["Hallo <0 x>", "Hallo </0 x>", "Hallo <1", "Hallo </"])(
+    "reads %j as text or as a tag the parser never finishes, so nothing is invented",
+    (value) => {
+      expect(compareInlineMarkup("Hello", value).matches).toBe(true);
+    },
+  );
 
   it.each([
     '<a title="x > y">z</a>',

@@ -1,3 +1,12 @@
+import { GREATER_THAN, isAsciiAlpha, isAsciiDigit, isHtmlSpace, SLASH } from "./html-chars.js";
+import {
+  isRawTextElement,
+  type OccurrenceFinder,
+  occurrenceFinder,
+  opensForeignContext,
+  readRawText,
+} from "./raw-text.js";
+
 export interface InlineTag {
   readonly token: string;
   readonly name: string;
@@ -8,11 +17,16 @@ export interface InlineTag {
 export interface ScannedMarkup {
   readonly constructs: readonly string[];
   readonly tags: readonly InlineTag[];
+  readonly ambiguous: readonly string[];
+  readonly unterminated: string | undefined;
 }
 
 interface MutableScan {
   readonly constructs: string[];
   readonly tags: InlineTag[];
+  readonly ambiguous: string[];
+  unterminated: string | undefined;
+  foreignPossible: boolean;
 }
 
 interface AttributeList {
@@ -29,13 +43,13 @@ interface Construct {
 interface ReadTag {
   readonly tag: InlineTag | undefined;
   readonly end: number;
+  readonly unterminated?: string;
 }
-
-type OccurrenceFinder = (start: number) => number;
 
 interface CommentFinders {
   readonly dashEnd: OccurrenceFinder;
   readonly bangEnd: OccurrenceFinder;
+  readonly escapeOpen: OccurrenceFinder;
 }
 
 export const MAX_MARKUP_ITEMS = 256;
@@ -62,9 +76,7 @@ const WHITESPACE_RUN = /\s+/g;
 const BANG = 33;
 const DOUBLE_QUOTE = 34;
 const SINGLE_QUOTE = 39;
-const SLASH = 47;
 const EQUALS = 61;
-const GREATER_THAN = 62;
 const QUESTION_MARK = 63;
 
 export function isVoidElement(name: string): boolean {
@@ -73,19 +85,6 @@ export function isVoidElement(name: string): boolean {
 
 function collapseWhitespace(text: string): string {
   return text.replace(WHITESPACE_RUN, " ");
-}
-
-function occurrenceFinder(value: string, needle: string): OccurrenceFinder {
-  let searchedFrom = Number.POSITIVE_INFINITY;
-  let found = -1;
-  return (start) => {
-    const reusable = start >= searchedFrom && (found === -1 || found >= start);
-    if (!reusable) {
-      searchedFrom = start;
-      found = value.indexOf(needle, start);
-    }
-    return found;
-  };
 }
 
 function readComment(value: string, start: number, finders: CommentFinders): Construct {
@@ -109,19 +108,6 @@ function readBogusComment(value: string, start: number): Construct {
   return { token: collapseWhitespace(value.slice(start, end)), end };
 }
 
-function isAsciiAlpha(code: number): boolean {
-  const lower = code | 32;
-  return lower >= 97 && lower <= 122;
-}
-
-function isAsciiDigit(code: number): boolean {
-  return code >= 48 && code <= 57;
-}
-
-function isHtmlSpace(code: number): boolean {
-  return code === 9 || code === 10 || code === 12 || code === 13 || code === 32;
-}
-
 function opensEndTag(value: string, start: number): boolean {
   const code = value.charCodeAt(start + 2);
   return isAsciiAlpha(code) || isAsciiDigit(code);
@@ -131,12 +117,16 @@ function readConstruct(
   value: string,
   start: number,
   finders: CommentFinders,
+  scan: MutableScan,
 ): Construct | undefined {
   if (value.startsWith("<!--", start)) {
     return readComment(value, start, finders);
   }
   const marker = value.charCodeAt(start + 1);
   if (marker === BANG || marker === QUESTION_MARK) {
+    if (scan.foreignPossible && value.startsWith("<![CDATA[", start)) {
+      scan.ambiguous.push("<![CDATA[...]]>");
+    }
     return readBogusComment(value, start);
   }
   if (marker === SLASH && start + 2 < value.length && !opensEndTag(value, start)) {
@@ -228,11 +218,11 @@ function readAttributes(value: string, from: number): AttributeList | undefined 
 function readNamedTag(value: string, start: number, closing: boolean): ReadTag {
   const nameStart = start + (closing ? 2 : 1);
   const nameEnd = tagNameEnd(value, nameStart);
+  const name = value.slice(nameStart, nameEnd);
   const attributes = readAttributes(value, nameEnd);
   if (attributes === undefined) {
-    return { tag: undefined, end: value.length };
+    return { tag: undefined, end: value.length, unterminated: `<${closing ? "/" : ""}${name}` };
   }
-  const name = value.slice(nameStart, nameEnd);
   const bare = attributes.end === nameEnd + 1;
   if (closing) {
     return { tag: { token: `</${name}>`, name, kind: "close", bare }, end: attributes.end };
@@ -295,46 +285,63 @@ function readTag(value: string, start: number): ReadTag {
   return textAt(start);
 }
 
-function isFull(scan: MutableScan): boolean {
-  return scan.constructs.length + scan.tags.length === MAX_MARKUP_ITEMS;
-}
-
-function scanAt(
+function continueAfterTag(
   value: string,
-  start: number,
+  tag: InlineTag,
+  end: number,
   finders: CommentFinders,
   scan: MutableScan,
-): number | undefined {
-  const construct = readConstruct(value, start, finders);
+): number {
+  const name = tag.name.toLowerCase();
+  if (tag.kind === "close" || !isRawTextElement(name)) {
+    scan.foreignPossible ||= tag.kind !== "close" && opensForeignContext(name);
+    return end;
+  }
+  const context = { value, escapeOpen: finders.escapeOpen, foreignPossible: scan.foreignPossible };
+  const span = readRawText(context, name, end);
+  if (span.ambiguous) {
+    scan.ambiguous.push(`<${name}>...</${name}>`);
+  }
+  return span.end;
+}
+
+function scanAt(value: string, start: number, finders: CommentFinders, scan: MutableScan): number {
+  const construct = readConstruct(value, start, finders, scan);
   if (construct !== undefined) {
-    if (isFull(scan)) {
-      return undefined;
-    }
     scan.constructs.push(construct.token);
     return construct.end;
   }
-  const { tag, end } = readTag(value, start);
-  if (tag !== undefined) {
-    if (isFull(scan)) {
-      return undefined;
-    }
-    scan.tags.push(tag);
+  const { tag, end, unterminated } = readTag(value, start);
+  if (unterminated !== undefined) {
+    scan.unterminated = unterminated;
   }
-  return end;
+  if (tag === undefined) {
+    return end;
+  }
+  scan.tags.push(tag);
+  return continueAfterTag(value, tag, end, finders, scan);
 }
 
-export function scanMarkup(value: string): ScannedMarkup | undefined {
-  const scan: MutableScan = { constructs: [], tags: [] };
+export function countScannedItems(scan: ScannedMarkup): number {
+  return scan.constructs.length + scan.tags.length;
+}
+
+export function scanMarkup(value: string): ScannedMarkup {
+  const scan: MutableScan = {
+    constructs: [],
+    tags: [],
+    ambiguous: [],
+    unterminated: undefined,
+    foreignPossible: false,
+  };
   const finders: CommentFinders = {
     dashEnd: occurrenceFinder(value, "-->"),
     bangEnd: occurrenceFinder(value, "--!>"),
+    escapeOpen: occurrenceFinder(value, "<!--"),
   };
   let start = value.indexOf("<");
   while (start !== -1) {
     const end = scanAt(value, start, finders, scan);
-    if (end === undefined) {
-      return undefined;
-    }
     start = end >= value.length ? -1 : value.indexOf("<", end);
   }
   return scan;

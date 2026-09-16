@@ -1,5 +1,6 @@
 import { HTML_ELEMENT_NAMES } from "./html-elements.js";
 import {
+  countScannedItems,
   type InlineTag,
   isVoidElement,
   MAX_MARKUP_ITEMS,
@@ -321,6 +322,18 @@ function compareAgainstUnmarkedSource(
   return extra.length === 0 ? MATCHED : { matches: false, missing: [], extra, malformed: false };
 }
 
+function readingFindings(
+  identical: boolean,
+  source: ScannedMarkup,
+  translated: ScannedMarkup,
+): readonly string[] {
+  const findings = identical ? [] : [...translated.ambiguous];
+  if (translated.unterminated !== undefined && source.unterminated === undefined) {
+    findings.push(translated.unterminated);
+  }
+  return findings;
+}
+
 function singleTagIn(token: string): InlineTag | undefined {
   if (!token.startsWith("<") || !token.endsWith(">")) {
     return undefined;
@@ -344,12 +357,14 @@ export function compareInlineMarkup(
     return MATCHED;
   }
   const source = scanMarkup(sourceValue);
-  if (source === undefined) {
+  if (countScannedItems(source) > MAX_MARKUP_ITEMS) {
     return MATCHED;
   }
   const translated = scanMarkup(translatedValue);
-  if (translated === undefined) {
+  if (countScannedItems(translated) > MAX_MARKUP_ITEMS) {
     return TAG_LIMIT_EXCEEDED;
   }
-  return compareScannedMarkup(source, translated, collectIgnoredTags(options.ignoreTags ?? []));
+  const ignored = collectIgnoredTags(options.ignoreTags ?? []);
+  const reading = readingFindings(sourceValue === translatedValue, source, translated);
+  return withFindings(compareScannedMarkup(source, translated, ignored), [], reading);
 }
