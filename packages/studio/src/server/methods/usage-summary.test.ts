@@ -151,8 +151,9 @@ describe("usageSummaryHandler", () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
     try {
       await writeRunStatusFile(project, {
-        version: 2,
+        version: 1,
         generatedAt: "2026-07-16T00:00:00.000Z",
+        budgetCounting: "reconciled",
         budget: {
           maxTokens: 1000,
           behavior: "stop",
