@@ -217,7 +217,9 @@ exists to measure.
 ## A translation is withheld for inline markup (integrity mismatch)
 
 **Symptom**: a key appears under `integrityMismatches` in the run summary and keeps its previous
-translation. In Studio, a retranslate or an edit comes back as `Rejected: inline markup mismatch`.
+translation. In Studio, a retranslate or an edit comes back as `Rejected: inline markup mismatch`,
+followed by the tags at fault: `-<a href>` for one the source had and the candidate dropped, `+<i>`
+for one the candidate invented.
 
 **Cause**: the candidate does not carry the source's inline HTML or XML tags, or carries them
 unbalanced or mis-nested. A model that drops an `<a href>`, renames `<b>` to `<strong>`, or closes
@@ -226,10 +228,13 @@ refuses a dropped placeholder. See
 [markup parity](/docs/translation-safety#inline-markup-parity) for exactly what is compared.
 
 **Fix**: run the key again, or fix the value by hand in Studio or in an imported workbook: the same
-gate judges both, so a hand-typed value with matching, well-formed tags is accepted. Word order and
-attribute values are never the cause, since neither is compared. If the source value is the one
-with the broken markup, fix it there: the check stands down when the source's own markup is not
-well formed, which means a broken source silently disables it for that key.
+gate judges both, so a hand-typed value with matching, well-formed tags is accepted. Word order,
+attribute values, and the two spellings of a void element (`<br>` and `<br/>`) are never the cause,
+since none of them is compared. A refusal with no tags named is a structural one: the markup came
+back mis-nested, or a tag the source had beside another of the same name came back nested inside
+it. If the source value is the one with the broken markup, fix it there: the check stands down when
+the source's own markup is not well formed, which means a broken source silently disables it for
+that key.
 
 ## Studio: the port is already in use
 

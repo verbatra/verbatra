@@ -76,18 +76,26 @@ None of that is a placeholder, so before this nothing compared it.
 Tags are compared as a multiset of tag names plus attribute names, which is what decides whether
 something is a finding:
 
-- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names, and
-  markup that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`.
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names,
+  markup that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes
+  back nested inside another of the same name when the source had them as siblings, which is how
+  two links silently become one.
 - Accepted: the same tags in a different order, because translating a sentence moves its markup
-  around, and a changed attribute value, because a translated `title` or a localized `href` is a
-  correct translation rather than a broken one.
+  around, a changed attribute value, because a translated `title` or a localized `href` is a
+  correct translation rather than a broken one, and either spelling of a void element, so `<br>`
+  and `<br/>` are one tag.
+- Counted by presence rather than by occurrence for a value the format reports as one plural
+  message, so a language needing four plural arms where English declares two is not refused for
+  repeating the source's own markup.
 
 The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly
 as one, so `5 < 10`, `x <= y`, `<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary
 text. It stands down entirely unless the source's own markup is well formed, so a string that only
-mentions `<Enter>` is never held to a structure it never had. And it never applies to a value whose
-own format already reports its markup as placeholders: an XLIFF inline element and a next-intl or
-ARB rich-text tag are covered by the placeholder check instead, and are never reported twice.
+mentions `<Enter>` is never held to a structure it never had. And it stands down per tag: a tag the
+format already reports as a placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text
+tag) is left to the placeholder check and never reported twice, while every other tag in the same
+value is still compared. A refusal names the tags behind it, each prefixed with `-` for one the
+source had and the candidate dropped or `+` for one the candidate invented.
 
 ## Review flags
 

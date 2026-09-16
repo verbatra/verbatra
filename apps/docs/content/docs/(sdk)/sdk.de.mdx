@@ -285,7 +285,9 @@ geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehend
 Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze dafür also
 das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
 `INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
-daraus, statt die Mitglieder abzutippen.
+daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzlich `details`, die
+betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
+oder `+` für eines, das der Kandidat erfunden hat.
 
 ### retranslateEntry
 

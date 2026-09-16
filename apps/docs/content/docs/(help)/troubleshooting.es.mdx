@@ -231,7 +231,8 @@ en una sola ejecución. Un presupuesto contra DeepL o una ejecución en seco inf
 
 **Síntoma**: una clave aparece bajo `integrityMismatches` en el resumen de la ejecución y conserva
 su traducción anterior. En Studio, un retranslate o una edición vuelve como
-`Rejected: inline markup mismatch`.
+`Rejected: inline markup mismatch`, seguido de las etiquetas causantes: `-<a href>` para una que el
+origen tenía y la candidata perdió, `+<i>` para una que la candidata inventó.
 
 **Causa**: la candidata no lleva el HTML o XML en línea del origen, o lo lleva sin equilibrar o mal
 anidado. Un modelo que pierde un `<a href>`, renombra `<b>` a `<strong>` o cierra `<b>` con `</i>`
@@ -242,10 +243,12 @@ exactamente qué se compara.
 
 **Solución**: vuelve a ejecutar la clave, o corrige el valor a mano en Studio o en un libro
 importado: la misma puerta juzga ambos, así que un valor escrito a mano con etiquetas coincidentes
-y bien formadas se acepta. El orden de las palabras y los valores de los atributos nunca son la
-causa, porque ninguno se compara. Si el marcado roto está en el valor de origen, corrígelo ahí: la
-comprobación se retira cuando el marcado del propio origen no está bien formado, lo que significa
-que un origen roto la desactiva en silencio para esa clave.
+y bien formadas se acepta. El orden de las palabras, los valores de los atributos y las dos grafías
+de un elemento vacío (`<br>` y `<br/>`) nunca son la causa, porque ninguno se compara. Un rechazo
+que no nombra etiquetas es estructural: el marcado volvió mal anidado, o una etiqueta que el origen
+tenía junto a otra del mismo nombre volvió anidada dentro de ella. Si el marcado roto está en el
+valor de origen, corrígelo ahí: la comprobación se retira cuando el marcado del propio origen no
+está bien formado, lo que significa que un origen roto la desactiva en silencio para esa clave.
 
 ## Studio: el puerto ya está en uso
 

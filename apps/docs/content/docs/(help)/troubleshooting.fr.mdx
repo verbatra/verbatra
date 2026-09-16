@@ -233,7 +233,8 @@ terminer en une exécution. Un budget face à DeepL ou pendant un dry run rappor
 
 **Symptôme** : une clé apparaît sous `integrityMismatches` dans le résumé d'exécution et conserve
 sa traduction précédente. Dans Studio, un retranslate ou une modification revient en
-`Rejected: inline markup mismatch`.
+`Rejected: inline markup mismatch`, suivi des balises en cause : `-<a href>` pour une que la source
+avait et que la candidate a perdue, `+<i>` pour une que la candidate a inventée.
 
 **Cause** : la candidate ne porte pas le HTML ou XML en ligne de la source, ou le porte
 déséquilibré ou mal imbriqué. Un modèle qui perd un `<a href>`, renomme `<b>` en `<strong>` ou
@@ -244,10 +245,13 @@ ce qui est comparé.
 
 **Solution** : relance la clé, ou corrige la valeur à la main dans Studio ou dans un classeur
 importé : la même porte juge les deux, donc une valeur saisie à la main avec des balises
-correspondantes et bien formées est acceptée. L'ordre des mots et les valeurs d'attribut ne sont
-jamais en cause, puisque ni l'un ni l'autre n'est comparé. Si c'est la valeur source qui porte le
-balisage cassé, corrige-la là : la vérification se retire quand le balisage de la source n'est pas
-bien formé, donc une source cassée la désactive silencieusement pour cette clé.
+correspondantes et bien formées est acceptée. L'ordre des mots, les valeurs d'attribut et les deux
+graphies d'un élément vide (`<br>` et `<br/>`) ne sont jamais en cause, puisque rien de tout cela
+n'est comparé. Un refus qui ne nomme aucune balise est structurel : le balisage est revenu mal
+imbriqué, ou une balise que la source avait à côté d'une autre du même nom est revenue imbriquée
+dedans. Si c'est la valeur source qui porte le balisage cassé, corrige-la là : la vérification se
+retire quand le balisage de la source n'est pas bien formé, donc une source cassée la désactive
+silencieusement pour cette clé.
 
 ## Studio : le port est déjà utilisé
 

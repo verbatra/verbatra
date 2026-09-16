@@ -228,16 +228,18 @@ Platzhalter, deshalb vergleicht die
 [Markup-Paritätsprüfung](/docs/translation-safety#inline-markup-parität) es getrennt und lehnt eine
 Übersetzung ab, die ein Tag weglässt, erfindet, umbenennt oder aus dem Gleichgewicht bringt.
 
-Sie gilt für jedes Format, aber pro Wert statt pro Format, und sie tritt bei einem Wert zurück,
-dessen eigener Adapter sein Markup bereits als Platzhalter meldet:
+Sie gilt für jedes Format und tritt pro Tag statt pro Wert zurück: Ein Tag, das der Adapter ohnehin
+als Platzhalter meldet, bleibt der Platzhalterprüfung überlassen, während jedes andere Tag im
+selben Wert weiterhin verglichen wird.
 
 - `xliff` extrahiert seine Inline-Platzhalterelemente (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
   selbst, sie sind also von der Platzhalterprüfung abgedeckt und werden nie doppelt gezählt.
   Einfaches HTML, das XLIFF nicht tokenisiert, etwa ein `<b>`-Paar, wird weiterhin als Markup
-  verglichen.
+  verglichen, auch wenn es im selben Wert neben einem Inline-Element steht.
 - `next-intl-json` und `arb` parsen ICU-Rich-Text-Tags, ein gepaartes `<b>...</b>` ist für sie also
-  bereits ein Platzhalter. Ein Tag mit Attributen ist überhaupt kein gültiges ICU, und diese
-  Formate lehnen es unabhängig von der Markup-Parität als ungültige Message-Syntax ab.
+  bereits ein Platzhalter, ein selbstschließendes `<br/>` im selben Wert dagegen nicht und wird als
+  Markup verglichen. Ein Tag mit Attributen ist überhaupt kein gültiges ICU, und diese Formate
+  lehnen es unabhängig von der Markup-Parität als ungültige Message-Syntax ab.
 - `android-xml`-Werte erreichen die Prüfung mit aufgelöster Maskierung, ein `&lt;b&gt;` auf der
   Platte wird also als `<b>` verglichen. Ein `<string>`, das echte Inline-Elemente enthält, wird
   durchgereicht und wie oben beschrieben gar nicht erst übersetzt.

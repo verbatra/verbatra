@@ -88,20 +88,27 @@ Les balises sont comparées comme un multiensemble de noms de balise plus noms d
 ce qui décide si quelque chose est un constat :
 
 - Refusé : une balise perdue, une balise inventée, une balise renommée, un ensemble de noms
-  d'attribut différent, et un balisage qui revient déséquilibré ou mal imbriqué, comme
-  `<b>a<i>b</b></i>`.
+  d'attribut différent, un balisage qui revient déséquilibré ou mal imbriqué, comme
+  `<b>a<i>b</b></i>`, et une balise qui revient imbriquée dans une autre du même nom alors que la
+  source les avait côte à côte, ce qui transforme silencieusement deux liens en un seul.
 - Accepté : les mêmes balises dans un autre ordre, parce que traduire une phrase déplace son
-  balisage, et une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé
-  est une traduction correcte et non une traduction cassée.
+  balisage, une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé est
+  une traduction correcte et non une traduction cassée, et l'une ou l'autre graphie d'un élément
+  vide, `<br>` et `<br/>` étant la même balise.
+- Comptées par présence et non par nombre d'occurrences pour une valeur que le format signale comme
+  un seul message pluriel, afin qu'une langue qui a besoin de quatre formes plurielles là où
+  l'anglais en déclare deux ne soit pas refusée pour avoir répété le balisage de la source.
 
 La vérification est volontairement discrète. Une suite de chevrons ne compte comme balise que
 lorsqu'elle se lit proprement comme telle : `5 < 10`, `x <= y`, `<support@example.com>` et un
 `&lt;b&gt;` échappé restent du texte ordinaire. Elle se retire complètement tant que le balisage de
 la source n'est pas lui-même bien formé, donc une chaîne qui mentionne seulement `<Enter>` n'est
-jamais tenue à une structure qu'elle n'a jamais eue. Et elle ne s'applique jamais à une valeur dont
-le format signale déjà son balisage comme des placeholders : un élément en ligne XLIFF et une
-balise de texte enrichi next-intl ou ARB sont couverts par la vérification des placeholders, et ne
-sont jamais signalés deux fois.
+jamais tenue à une structure qu'elle n'a jamais eue. Et elle se retire balise par balise : une
+balise que le format signale déjà comme placeholder (un élément en ligne XLIFF, une balise de texte
+enrichi ICU next-intl ou ARB) est laissée à la vérification des placeholders et n'est jamais
+signalée deux fois, tandis que toute autre balise de la même valeur reste comparée. Un refus nomme
+les balises en cause, chacune préfixée de `-` pour une que la source avait et que la candidate a
+perdue, ou de `+` pour une que la candidate a inventée.
 
 ## Signalements de révision
 

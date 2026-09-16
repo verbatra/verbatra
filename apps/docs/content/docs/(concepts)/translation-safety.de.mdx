@@ -89,19 +89,28 @@ Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen, und gena
 was ein Befund ist:
 
 - Abgelehnt: ein weggelassenes Tag, ein erfundenes Tag, ein umbenanntes Tag, ein geänderter Satz
-  von Attributnamen sowie Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
-  `<b>a<i>b</b></i>`.
+  von Attributnamen, Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
+  `<b>a<i>b</b></i>`, sowie ein Tag, das in einem anderen gleichen Namens verschachtelt
+  zurückkommt, obwohl die Quelle sie nebeneinander hatte, denn so werden aus zwei Links still und
+  leise einer.
 - Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
-  verschiebt, und ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
-  `href` eine korrekte Übersetzung ist und keine kaputte.
+  verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
+  `href` eine korrekte Übersetzung ist und keine kaputte, und beide Schreibweisen eines leeren
+  Elements, `<br>` und `<br/>` sind dasselbe Tag.
+- Nach Vorhandensein statt nach Anzahl gezählt, wenn das Format den Wert als eine einzige
+  Pluralnachricht meldet, damit eine Sprache mit vier Pluralformen dort, wo Englisch zwei
+  deklariert, nicht dafür abgelehnt wird, das Markup der Quelle zu wiederholen.
 
 Die Prüfung ist bewusst zurückhaltend. Eine Folge spitzer Klammern gilt nur dann als Tag, wenn sie
 sich sauber als eines lesen lässt, `5 < 10`, `x <= y`, `<support@example.com>` und ein maskiertes
 `&lt;b&gt;` bleiben also normaler Text. Sie tritt vollständig zurück, solange das Markup der Quelle
 nicht selbst wohlgeformt ist, ein String, der nur `<Enter>` erwähnt, wird also nie an einer
-Struktur gemessen, die er nie hatte. Und sie greift nie bei einem Wert, dessen eigenes Format sein
-Markup bereits als Platzhalter meldet: ein XLIFF-Inline-Element und ein Rich-Text-Tag von next-intl
-oder ARB werden stattdessen von der Platzhalterprüfung abgedeckt und nie doppelt gemeldet.
+Struktur gemessen, die er nie hatte. Und sie tritt pro Tag zurück: Ein Tag, das das Format ohnehin
+als Platzhalter meldet (ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB),
+bleibt der Platzhalterprüfung überlassen und wird nie doppelt gemeldet, während jedes andere Tag im
+selben Wert weiterhin verglichen wird. Eine Ablehnung nennt die betroffenen Tags, jeweils mit `-`
+für eines, das die Quelle hatte und der Kandidat weggelassen hat, oder `+` für eines, das der
+Kandidat erfunden hat.
 
 ## Review-Flags
 

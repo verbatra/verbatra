@@ -228,16 +228,19 @@ donc la
 [vérification de parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) le
 compare séparément et refuse une traduction qui perd, invente, renomme ou déséquilibre une balise.
 
-Elle s'applique à tous les formats, mais par valeur et non par format, et elle se retire pour une
-valeur dont l'adaptateur signale déjà son balisage comme des placeholders :
+Elle s'applique à tous les formats et se retire balise par balise plutôt que valeur par valeur :
+une balise que l'adaptateur signale déjà comme placeholder est laissée à la vérification des
+placeholders, tandis que toute autre balise de la même valeur reste comparée.
 
 - `xliff` extrait lui-même ses éléments de placeholder en ligne (`x`, `g`, `bx`, `ex`, `ph`, `it`,
   `mrk`), ils sont donc couverts par la vérification des placeholders et jamais comptés deux fois.
-  Le HTML simple que XLIFF ne tokenise pas, comme une paire `<b>`, reste comparé comme du balisage.
+  Le HTML simple que XLIFF ne tokenise pas, comme une paire `<b>`, reste comparé comme du balisage,
+  y compris lorsqu'il se trouve dans la même valeur qu'un élément en ligne.
 - `next-intl-json` et `arb` analysent les balises de texte enrichi ICU, donc un `<b>...</b>`
-  apparié est déjà un placeholder pour eux. Une balise portant des attributs n'est pas de l'ICU
-  valide du tout et ces formats la refusent comme syntaxe de message invalide, indépendamment de la
-  parité du balisage.
+  apparié est déjà un placeholder pour eux, tandis qu'un `<br/>` auto-fermant dans la même valeur
+  ne l'est pas et est comparé comme du balisage. Une balise portant des attributs n'est pas de
+  l'ICU valide du tout et ces formats la refusent comme syntaxe de message invalide, indépendamment
+  de la parité du balisage.
 - Les valeurs `android-xml` arrivent à la vérification avec leur échappement décodé, donc un
   `&lt;b&gt;` sur le disque est comparé comme `<b>`. Un `<string>` qui contient de vrais éléments
   en ligne est transmis tel quel et n'est jamais traduit, comme décrit plus haut.

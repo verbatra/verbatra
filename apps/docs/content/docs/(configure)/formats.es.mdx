@@ -228,15 +228,17 @@ de estos formatos, así que la
 [comprobación de paridad del marcado](/docs/translation-safety#paridad-del-marcado-en-línea) lo
 compara aparte y rechaza una traducción que pierda, invente, renombre o desequilibre una etiqueta.
 
-Se aplica a todos los formatos, pero por valor y no por formato, y se retira ante un valor cuyo
-propio adaptador ya informa de su marcado como marcadores de posición:
+Se aplica a todos los formatos y se retira etiqueta por etiqueta en lugar de valor por valor: una
+etiqueta que el adaptador ya informa como marcador de posición queda para la comprobación de
+marcadores de posición, mientras que cualquier otra etiqueta del mismo valor sí se compara.
 
 - `xliff` extrae por su cuenta sus elementos de marcador de posición en línea (`x`, `g`, `bx`,
   `ex`, `ph`, `it`, `mrk`), así que los cubre la comprobación de marcadores de posición y nunca se
   cuentan dos veces. El HTML simple que XLIFF no tokeniza, como un par `<b>`, sí se compara como
-  marcado.
+  marcado, incluso cuando está en el mismo valor que un elemento en línea.
 - `next-intl-json` y `arb` analizan las etiquetas de texto enriquecido de ICU, así que un
-  `<b>...</b>` emparejado ya es un marcador de posición para ellos. Una etiqueta con atributos no
+  `<b>...</b>` emparejado ya es un marcador de posición para ellos, mientras que un `<br/>`
+  autocerrado en el mismo valor no lo es y se compara como marcado. Una etiqueta con atributos no
   es ICU válido en absoluto y estos formatos la rechazan como sintaxis de mensaje inválida, con
   independencia de la paridad del marcado.
 - Los valores de `android-xml` llegan a la comprobación con su escapado ya resuelto, así que un

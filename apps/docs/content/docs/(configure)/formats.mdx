@@ -227,15 +227,18 @@ Android `<string>`. This markup is not a placeholder in any of these formats, so
 [markup parity check](/docs/translation-safety#inline-markup-parity) compares it separately and
 refuses a translation that drops, invents, renames or unbalances a tag.
 
-It applies to every format, but per value rather than per format, and it stands down for a value
-whose own adapter already reports its markup as placeholders:
+It applies to every format, and it stands down per tag rather than per value: a tag the adapter
+already reports as a placeholder is left to the placeholder check, while every other tag in the
+same value is still compared.
 
 - `xliff` extracts its inline placeholder elements (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
   itself, so those are guarded by the placeholder check and never counted twice. Plain HTML that
-  XLIFF does not tokenise, such as a `<b>` pair, is still compared as markup.
+  XLIFF does not tokenise, such as a `<b>` pair, is still compared as markup, including when it
+  sits in the same value as an inline element.
 - `next-intl-json` and `arb` parse ICU rich-text tags, so a paired `<b>...</b>` is already a
-  placeholder for them. An attribute-bearing tag is not valid ICU at all and these formats refuse
-  it as invalid message syntax, independently of markup parity.
+  placeholder for them, while a self-closing `<br/>` in the same value is not and is compared as
+  markup. An attribute-bearing tag is not valid ICU at all and these formats refuse it as invalid
+  message syntax, independently of markup parity.
 - `android-xml` values reach the check with their escaping decoded, so `&lt;b&gt;` on disk is
   compared as `<b>`. A `<string>` holding live inline elements is read-through and never
   translated at all, as described above.
