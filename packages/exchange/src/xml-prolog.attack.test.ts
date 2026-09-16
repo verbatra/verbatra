@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ExchangeError } from "./errors.js";
 import { readTmx } from "./read-tmx.js";
-import { removeSpans, scanProlog } from "./xml-prolog.js";
+import { blankSpans, scanProlog } from "./xml-prolog.js";
 
 const BOM = "﻿";
 
@@ -31,7 +31,7 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
 
     expect(scan.doctypeSpans).toEqual([]);
     expect(text.slice(scan.rootStart)).toBe(document(""));
-    expect(removeSpans(text, scan.doctypeSpans)).toBe(text);
+    expect(blankSpans(text, scan.doctypeSpans)).toBe(text);
   });
 
   it("reads a document whose prolog comment merely mentions a doctype", () => {
@@ -44,7 +44,7 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
     const scan = scanProlog(text);
 
     expect(scan.doctypeSpans).toEqual([[0, text.indexOf("<tmx")]]);
-    expect(removeSpans(text, scan.doctypeSpans)).toBe(document(""));
+    expect(blankSpans(text, scan.doctypeSpans)).toBe(document(" ".repeat(text.indexOf("<tmx"))));
   });
 
   it("refuses rather than half-cutting when a comment inside a doctype closes it early", () => {
@@ -71,7 +71,9 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
   it("does not end a single-quoted system identifier at an angle bracket inside it", () => {
     const text = document("<!DOCTYPE tmx SYSTEM 'a>b\"c.dtd'>");
 
-    expect(removeSpans(text, scanProlog(text).doctypeSpans)).toBe(document(""));
+    expect(blankSpans(text, scanProlog(text).doctypeSpans)).toBe(
+      document(" ".repeat("<!DOCTYPE tmx SYSTEM 'a>b\"c.dtd'>".length)),
+    );
     expect(firstSegmentText(text)).toBe("payload");
   });
 
@@ -82,14 +84,14 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
     expect(caught(() => readTmx(text)).message).toContain("not valid XML");
   });
 
-  it("removes only the prolog doctype and keeps a doctype-shaped payload byte for byte", () => {
+  it("blanks only the prolog doctype and keeps a doctype-shaped payload byte for byte", () => {
     const payload = '<![CDATA[<!DOCTYPE evil SYSTEM "x.dtd">]]>';
     const text = document('<!DOCTYPE tmx SYSTEM "real.dtd">', payload);
 
     const scan = scanProlog(text);
 
     expect(scan.doctypeSpans).toHaveLength(1);
-    expect(removeSpans(text, scan.doctypeSpans)).toContain(payload);
+    expect(blankSpans(text, scan.doctypeSpans)).toContain(payload);
     expect(firstSegmentText(text)).toBe('<!DOCTYPE evil SYSTEM "x.dtd">');
   });
 
@@ -114,13 +116,13 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
   it("refuses a byte order mark that is not the very first character of the file", () => {
     const text = `<?xml version="1.0"?>${BOM}<!DOCTYPE tmx SYSTEM "t.dtd">${document("")}`;
 
-    expect(removeSpans(text, scanProlog(text).doctypeSpans)).toBe(
-      `<?xml version="1.0"?>${BOM}${document("")}`,
+    expect(blankSpans(text, scanProlog(text).doctypeSpans)).toBe(
+      `<?xml version="1.0"?>${BOM}${document(" ".repeat('<!DOCTYPE tmx SYSTEM "t.dtd">'.length))}`,
     );
     expect(caught(() => readTmx(text)).message).toContain("not valid XML");
   });
 
-  it("reports the doctype spans in ascending order, so removal never shifts a later one", () => {
+  it("reports the doctype spans in ascending order, one per declaration", () => {
     const text = document('<!DOCTYPE a SYSTEM "a.dtd"><!-- gap --><!DOCTYPE b SYSTEM "b.dtd">');
 
     const spans = scanProlog(text).doctypeSpans;
@@ -129,7 +131,12 @@ describe("the prolog walker decides on the pre-root slice and never on the paylo
       '<!DOCTYPE a SYSTEM "a.dtd">',
       '<!DOCTYPE b SYSTEM "b.dtd">',
     ]);
-    expect(removeSpans(text, spans)).toBe(document("<!-- gap -->"));
+    const blank = (declaration: string): string => " ".repeat(declaration.length);
+    expect(blankSpans(text, spans)).toBe(
+      document(
+        `${blank('<!DOCTYPE a SYSTEM "a.dtd">')}<!-- gap -->${blank('<!DOCTYPE b SYSTEM "b.dtd">')}`,
+      ),
+    );
   });
 });
 

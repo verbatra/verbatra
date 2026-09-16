@@ -470,3 +470,153 @@ describe("readTmx refuses an entity declaration the prolog scan walks past", () 
     );
   });
 });
+
+describe("readTmx says where in the file a refusal happened", () => {
+  const LINES = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<tmx version="1.4">',
+    '  <header srclang="en"/>',
+    "  <body>",
+    "  <tu>",
+    '    <tuv xml:lang="en"><seg>a</seg></tuv>',
+    "  </tu>",
+    "  <tu>",
+    '    <tuv xml:lang="en"><seg>bbbbbb</seg></tuv>',
+    "  </tu>",
+    "  </body>",
+    "</tmx>",
+  ];
+
+  function withLine(index: number, replacement: string): string {
+    return LINES.map((line, at) => (at === index ? replacement : line)).join("\n");
+  }
+
+  it("locates a mismatched closing tag in the second unit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(withLine(8, '    <tuv xml:lang="en"><seg>bbbbbb</tuv>')),
+    );
+
+    expect(error.location).toEqual({ line: 9, column: 29, unit: 2 });
+    expect(error.message).toContain("line 9, column 29, unit 2");
+    expect(error.message).toContain("not valid XML");
+    expect(error.message).toContain("tag mismatch");
+  });
+
+  it("locates a truncated file at the point the text ran out, in a message of its own", () => {
+    const truncated = LINES.slice(0, 6).join("\n").slice(0, -12);
+    const mismatch = expectTmxInvalid(() =>
+      readTmx(withLine(8, '    <tuv xml:lang="en"><seg>bbbbbb</tuv>')),
+    );
+
+    const error = expectTmxInvalid(() => readTmx(truncated));
+
+    expect(error.location).toEqual({ line: 6, column: 24, unit: 1 });
+    expect(error.message).toContain("line 6, column 24, unit 1");
+    expect(error.message).toContain("unclosed");
+    expect(error.message).not.toBe(mismatch.message);
+  });
+
+  it("leaves out the unit when the problem sits outside every unit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx('<tmx version="1.4">\n<header srclang="en">\n</tmx>'),
+    );
+
+    expect(error.location).toEqual({ line: expect.any(Number), column: expect.any(Number) });
+    expect(error.location).not.toHaveProperty("unit");
+    expect(error.message).toMatch(/line \d+, column \d+: /);
+  });
+
+  it("does not let a removed multi-line doctype shift the line it reports", () => {
+    const text = withLine(8, '    <tuv xml:lang="en"><seg>bbbbbb</tuv>').replace(
+      '<tmx version="1.4">',
+      '<!DOCTYPE tmx\n  SYSTEM "tmx14.dtd">\n<tmx version="1.4">',
+    );
+
+    expect(expectTmxInvalid(() => readTmx(text)).location).toEqual({
+      line: 11,
+      column: 29,
+      unit: 2,
+    });
+  });
+
+  it("does not let a doctype on the root element's line shift the column it reports", () => {
+    const broken = withLine(1, '<tmx version="1.4"><tu><tuv xml:lang="en"><seg>x</tuv>');
+    const doctype = '<!DOCTYPE tmx SYSTEM "t.dtd">';
+    const withDoctype = broken.replace("<tmx ", `${doctype}<tmx `);
+    const padded = broken.replace("<tmx ", `${" ".repeat(doctype.length)}<tmx `);
+
+    const located = expectTmxInvalid(() => readTmx(withDoctype)).location;
+
+    expect(located).toEqual(expectTmxInvalid(() => readTmx(padded)).location);
+    expect(located).not.toEqual(expectTmxInvalid(() => readTmx(broken)).location);
+  });
+
+  it("locates a segment past the length limit by its unit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(LINES.join("\n"), { limits: { ...DEFAULT_TMX_LIMITS, maxSegmentLength: 4 } }),
+    );
+
+    expect(error.location).toEqual({ line: 9, column: 24, unit: 2 });
+    expect(error.message).toContain("line 9, column 24, unit 2");
+    expect(error.message).toContain("longer than the maximum of 4");
+  });
+
+  it("locates a segment carrying a character XML 1.0 forbids by its unit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(withLine(8, `    <tuv xml:lang="en"><seg>b${String.fromCharCode(7)}b</seg></tuv>`)),
+    );
+
+    expect(error.location).toEqual({ line: 9, column: 24, unit: 2 });
+    expect(error.message).toContain("unit 2");
+  });
+
+  it("locates the unit that crossed the language limit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(
+        withLine(
+          8,
+          '    <tuv xml:lang="en"><seg>b</seg></tuv><tuv xml:lang="de"><seg>c</seg></tuv>',
+        ),
+        { limits: { ...DEFAULT_TMX_LIMITS, maxLanguagesPerUnit: 1 } },
+      ),
+    );
+
+    expect(error.location).toEqual({ line: 9, column: 42, unit: 2 });
+  });
+
+  it("locates the unit that crossed the unit limit", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(LINES.join("\n"), { limits: { ...DEFAULT_TMX_LIMITS, maxUnitCount: 1 } }),
+    );
+
+    expect(error.location).toEqual({ line: 8, column: 3, unit: 2 });
+    expect(error.message).toContain("line 8, column 3, unit 2");
+  });
+
+  it("caps the length of what the parser reports", () => {
+    const name = `t${"x".repeat(400)}`;
+    const error = expectTmxInvalid(() => readTmx(`<tmx version="1.4"><${name}></tmx>`));
+
+    expect(error.message.length).toBeLessThan(400);
+    expect(error.message).toContain("...");
+  });
+
+  it("neutralizes a control character the parser echoes back from the file", () => {
+    const escapeCharacter = String.fromCharCode(27);
+    const error = expectTmxInvalid(() =>
+      readTmx(`<tmx version="1.4"><seg>a</seg${escapeCharacter}></tmx>`),
+    );
+
+    expect(error.message).not.toContain(escapeCharacter);
+    expect(error.message).toContain('"seg "');
+  });
+
+  it("carries no location on a refusal that has no place in the file", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx(tmx(unit([["en", "a"]])), { limits: { ...DEFAULT_TMX_LIMITS, maxInputBytes: 16 } }),
+    );
+
+    expect(error.location).toBeUndefined();
+    expect(error.message).not.toContain("line");
+  });
+});
