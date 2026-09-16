@@ -496,3 +496,47 @@ describe("inlineTagToken", () => {
     },
   );
 });
+
+describe("compareInlineMarkup: both spellings of one name accounted for", () => {
+  const BOTH = ['<x id="1"/>', '<x id="1">'];
+
+  it("stands the whole name down, so a value that dropped all of it still matches", () => {
+    expect(
+      compareInlineMarkup('<x id="1"/> and <x id="1">a</x>', "nichts", { ignoreTags: BOTH })
+        .matches,
+    ).toBe(true);
+  });
+
+  it("still compares a different name carried in the same value", () => {
+    const result = compareInlineMarkup(
+      '<x id="1"/> and <x id="1">a</x><br/>b',
+      '<x id="1"/> und <x id="1">a</x>b',
+      { ignoreTags: BOTH },
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<br>"]);
+  });
+
+  it("ignores a closing tag it is handed on its own without ignoring its opening one", () => {
+    const result = compareInlineMarkup("<b>a</b><br/>b", "a b", { ignoreTags: ["</b>"] });
+    expect(result.matches).toBe(true);
+  });
+});
+
+describe("compareInlineMarkup: the tag-count ceiling fails open", () => {
+  const FLOOD = "<i>x</i>".repeat(150);
+
+  it("goes quiet for a candidate that carries more tags than the scanner will read", () => {
+    expect(compareInlineMarkup("<b>a</b>", `b${FLOOD}`).matches).toBe(true);
+  });
+
+  it("still compares the same shape when the candidate stays under the ceiling", () => {
+    const result = compareInlineMarkup("<b>a</b>", `b${"<i>x</i>".repeat(100)}`);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["</b>", "<b>"]);
+  });
+
+  it("goes quiet for a source that carries more tags than the scanner will read", () => {
+    expect(compareInlineMarkup(`${"<b>a</b>".repeat(130)}<em>k</em>`, "nichts").matches).toBe(true);
+  });
+});
