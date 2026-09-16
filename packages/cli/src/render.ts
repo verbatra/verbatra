@@ -245,12 +245,19 @@ function quoted(text: string): string {
   return `"${neutralizeControlCharacters(text)}"`;
 }
 
+function renderPluralQualifier(group: InconsistencyGroup): string | undefined {
+  if (!group.isPlural) {
+    return undefined;
+  }
+  return group.pluralForm === undefined ? "plural" : `plural form ${quoted(group.pluralForm)}`;
+}
+
 function renderGroupQualifiers(group: InconsistencyGroup): string {
   const qualifiers = [
     group.context !== undefined ? `context ${quoted(group.context)}` : undefined,
     group.description !== undefined ? `description ${quoted(group.description)}` : undefined,
     group.meaning !== undefined ? `meaning ${quoted(group.meaning)}` : undefined,
-    group.isPlural ? "plural" : undefined,
+    renderPluralQualifier(group),
   ].filter((qualifier) => qualifier !== undefined);
   return qualifiers.length === 0 ? "" : ` (${qualifiers.join(", ")})`;
 }

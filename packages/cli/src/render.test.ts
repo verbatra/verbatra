@@ -179,6 +179,33 @@ describe("render: check consistency report", () => {
     expect(text).toContain('"Save [2J" is translated 2 ways:');
     expect(text).toContain('"Sichern now": a ');
   });
+
+  it("names the plural form a group shares", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "ru",
+          missing: 0,
+          stale: 0,
+          upToDate: 4,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "%d file",
+              isPlural: true,
+              pluralForm: "one",
+              translations: [
+                { value: "%d документ", keys: ["b_one"] },
+                { value: "%d файл", keys: ["a_one"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain('    "%d file" (plural form "one") is translated 2 ways:');
+  });
 });
 
 describe("render: diff summary", () => {
