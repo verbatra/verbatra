@@ -70,6 +70,22 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     });
   });
 
+  it("refuses an XLIFF inline element whose closing tag the candidate dropped", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
+    expect(gateCandidateValue(source, 'Lies <g id="1">Doku', adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</g>"],
+    });
+  });
+
+  it("accepts an XLIFF self-closing inline element carried through", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <x id="1"/> now');
+    expect(gateCandidateValue(source, 'Lies <x id="1"/> jetzt', adapter).accepted).toBe(true);
+  });
+
   it("stands down per tag name, so untokenised markup in the same value is still compared", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');

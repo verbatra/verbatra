@@ -30,6 +30,11 @@ interface ScannedMarkup {
   readonly tags: readonly InlineTag[] | undefined;
 }
 
+interface WithoutIgnored {
+  readonly tags: readonly InlineTag[];
+  readonly unclosed: readonly string[];
+}
+
 interface SplitTags {
   readonly tags: readonly InlineTag[];
   readonly words: readonly InlineTag[];
@@ -198,12 +203,19 @@ function consumeIgnoredOpen(unclosed: Map<string, number>, name: string): boolea
   return true;
 }
 
-function withoutIgnoredTags(
-  tags: readonly InlineTag[],
-  ignored: IgnoredTags,
-): readonly InlineTag[] {
+function unclosedClosingTokens(unclosed: ReadonlyMap<string, number>): readonly string[] {
+  const tokens: string[] = [];
+  for (const [name, count] of unclosed) {
+    for (let i = 0; i < count; i += 1) {
+      tokens.push(`</${name}>`);
+    }
+  }
+  return tokens;
+}
+
+function withoutIgnoredTags(tags: readonly InlineTag[], ignored: IgnoredTags): WithoutIgnored {
   if (ignored.tokens.size === 0) {
-    return tags;
+    return { tags, unclosed: [] };
   }
   const unclosed = new Map<string, number>();
   const kept: InlineTag[] = [];
@@ -213,14 +225,14 @@ function withoutIgnoredTags(
         kept.push(tag);
       }
     } else if (ignored.tokens.has(tag.token)) {
-      if (tag.kind === "open") {
+      if (tag.kind === "open" && !isVoidElement(tag.name)) {
         unclosed.set(tag.name, (unclosed.get(tag.name) ?? 0) + 1);
       }
     } else {
       kept.push(tag);
     }
   }
-  return kept;
+  return { tags: kept, unclosed: unclosedClosingTokens(unclosed) };
 }
 
 function recordDepth(depths: Map<string, number>, name: string, depth: number): void {
@@ -351,6 +363,35 @@ function inventedWords(
   return invented;
 }
 
+function withFindings(
+  comparison: InlineMarkupComparison,
+  missing: readonly string[],
+  extra: readonly string[],
+): InlineMarkupComparison {
+  if (missing.length === 0 && extra.length === 0) {
+    return comparison;
+  }
+  return {
+    matches: false,
+    missing: [...comparison.missing, ...missing].sort(),
+    extra: [...comparison.extra, ...extra].sort(),
+    malformed: false,
+  };
+}
+
+function compareTags(source: WithoutIgnored, translated: WithoutIgnored): InlineMarkupComparison {
+  const sourceSplit = splitBracketedWords(source.tags);
+  const translatedSplit = splitBracketedWords(translated.tags);
+  if (sourceSplit.tags.length === 0) {
+    return compareAgainstUnmarkedSource(translatedSplit, sourceSplit.words);
+  }
+  const sourceStructure = structureOf(sourceSplit.tags);
+  if (!sourceStructure.wellFormed) {
+    return MATCHED;
+  }
+  return compareScanned(sourceSplit, translatedSplit, sourceStructure);
+}
+
 function compareConstructs(
   source: readonly string[],
   translated: readonly string[],
@@ -408,14 +449,13 @@ export function compareInlineMarkup(
     return constructs;
   }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
-  const sourceSplit = splitBracketedWords(withoutIgnoredTags(source.tags, ignored));
-  const translatedSplit = splitBracketedWords(withoutIgnoredTags(translated.tags, ignored));
-  if (sourceSplit.tags.length === 0) {
-    return compareAgainstUnmarkedSource(translatedSplit, sourceSplit.words);
-  }
-  const sourceStructure = structureOf(sourceSplit.tags);
-  if (!sourceStructure.wellFormed) {
-    return MATCHED;
-  }
-  return compareScanned(sourceSplit, translatedSplit, sourceStructure);
+  const sourceKept = withoutIgnoredTags(source.tags, ignored);
+  const translatedKept = withoutIgnoredTags(translated.tags, ignored);
+  const sourceUnclosed = countTokens(sourceKept.unclosed);
+  const translatedUnclosed = countTokens(translatedKept.unclosed);
+  return withFindings(
+    compareTags(sourceKept, translatedKept),
+    multisetExcess(translatedUnclosed, sourceUnclosed),
+    multisetExcess(sourceUnclosed, translatedUnclosed),
+  );
 }

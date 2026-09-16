@@ -655,6 +655,38 @@ describe("compareInlineMarkup: tags the caller's format already reports as place
     expect(result.missing).toEqual(["<br>"]);
   });
 
+  it("refuses an ignored opening tag left unclosed at the end of the value", () => {
+    expect(
+      compareInlineMarkup('Read <g id="1">the docs</g>', 'Lies <g id="1">Doku', {
+        ignoreTags: ["<g id>"],
+      }),
+    ).toEqual({ matches: false, missing: ["</g>"], extra: [], malformed: false });
+  });
+
+  it("refuses an ignored opening tag left unclosed beside other compared markup", () => {
+    expect(
+      compareInlineMarkup('Read <g id="1">the <b>docs</b></g>', 'Lies <g id="1">die <b>Doku</b>', {
+        ignoreTags: ["<g id>"],
+      }),
+    ).toEqual({ matches: false, missing: ["</g>"], extra: [], malformed: false });
+  });
+
+  it("accepts an ignored opening tag the source leaves unclosed the same number of times", () => {
+    expect(
+      compareInlineMarkup('Read <g id="1">the docs', 'Lies <g id="1">die Doku', {
+        ignoreTags: ["<g id>"],
+      }).matches,
+    ).toBe(true);
+  });
+
+  it("leaves an ignored self-closing tag out of the unclosed count", () => {
+    expect(
+      compareInlineMarkup('Read <x id="1"/> now', 'Lies <x id="1"/> jetzt', {
+        ignoreTags: ["<x id/>"],
+      }).matches,
+    ).toBe(true);
+  });
+
   it("ignores a self-closing tag it is given without ignoring the paired spelling", () => {
     const result = compareInlineMarkup("<x id/> and <x>a</x>", "<x id/>", {
       ignoreTags: ["<x id/>"],
