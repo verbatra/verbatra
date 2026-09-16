@@ -1,5 +1,5 @@
-import { discoverSourceFiles } from "./discovery.js";
-import type { SourceExtractor } from "./extractor.js";
+import { discoverSourceFiles, TEMPLATE_FILE_EXTENSIONS } from "./discovery.js";
+import type { FileExtraction, SourceExtractor, UnresolvedKeySiteReason } from "./extractor.js";
 import { toReportedPath } from "./reported-path.js";
 import { nodeSourceFs, type SourceFs } from "./source-fs-port.js";
 
@@ -47,11 +47,31 @@ export interface ScanDiagnostic {
   readonly reason: ScanDiagnosticReason;
 }
 
+/** A key argument with a static head, located in the project. */
+export interface KeyPrefixLocation extends SourceLocation {
+  /** The static head every key the site can reach starts with. */
+  readonly prefix: string;
+}
+
+/** A place whose reachable keys cannot be bounded, located in the project. */
+export interface UnresolvedKeyLocation extends SourceLocation {
+  /** Why the keys it reaches are unknown. */
+  readonly reason: UnresolvedKeySiteReason;
+}
+
+export interface ProjectKeyUsage {
+  readonly referencedKeys: readonly string[];
+  readonly dynamic: readonly SourceLocation[];
+  readonly prefixes: readonly KeyPrefixLocation[];
+  readonly unresolved: readonly UnresolvedKeyLocation[];
+  readonly templateFiles: readonly string[];
+}
+
 export interface ProjectScan {
   readonly scannedFiles: number;
   readonly keys: readonly ExtractedKey[];
   readonly dynamic: readonly SourceLocation[];
-  readonly indirect: readonly SourceLocation[];
+  readonly usage: ProjectKeyUsage;
   readonly conflicts: readonly KeyConflict[];
   readonly diagnostics: readonly ScanDiagnostic[];
 }
@@ -69,16 +89,55 @@ interface KeyRecord {
   readonly defaults: Map<string, SourceLocation>;
 }
 
+interface UsageState {
+  readonly referencedKeys: Set<string>;
+  readonly dynamic: SourceLocation[];
+  readonly prefixes: KeyPrefixLocation[];
+  readonly unresolved: UnresolvedKeyLocation[];
+  readonly templateFiles: Set<string>;
+}
+
 interface ScanState {
   readonly keys: Map<string, KeyRecord>;
   readonly dynamic: SourceLocation[];
-  readonly indirect: SourceLocation[];
+  readonly usage: UsageState;
   readonly diagnostics: ScanDiagnostic[];
   scannedFiles: number;
 }
 
 function createScanState(): ScanState {
-  return { keys: new Map(), dynamic: [], indirect: [], diagnostics: [], scannedFiles: 0 };
+  return {
+    keys: new Map(),
+    dynamic: [],
+    usage: {
+      referencedKeys: new Set(),
+      dynamic: [],
+      prefixes: [],
+      unresolved: [],
+      templateFiles: new Set(),
+    },
+    diagnostics: [],
+    scannedFiles: 0,
+  };
+}
+
+function recordUsage(state: UsageState, file: string, extraction: FileExtraction): void {
+  const usage = extraction.usage ?? {
+    references: extraction.calls,
+    dynamic: extraction.dynamic,
+    prefixes: [],
+    unresolved: [],
+  };
+  for (const site of usage.references) {
+    state.referencedKeys.add(site.key);
+  }
+  state.dynamic.push(...usage.dynamic.map((site) => ({ file, line: site.line })));
+  state.prefixes.push(
+    ...usage.prefixes.map((site) => ({ prefix: site.prefix, file, line: site.line })),
+  );
+  state.unresolved.push(
+    ...usage.unresolved.map((site) => ({ reason: site.reason, file, line: site.line })),
+  );
 }
 
 function recordCall(
@@ -148,9 +207,11 @@ async function scanFile(
   for (const site of extraction.dynamic) {
     state.dynamic.push({ file, line: site.line });
   }
-  for (const site of extraction.indirect ?? []) {
-    state.indirect.push({ file, line: site.line });
-  }
+  recordUsage(state.usage, file, extraction);
+}
+
+function templateExtensions(extractor: SourceExtractor): readonly string[] {
+  return TEMPLATE_FILE_EXTENSIONS.filter((extension) => !extractor.extensions.includes(extension));
 }
 
 export async function scanProject(
@@ -163,6 +224,8 @@ export async function scanProject(
       roots: input.roots,
       extensions: input.extractor.extensions,
       ...(input.exclude !== undefined ? { exclude: input.exclude } : {}),
+      templateExtensions: templateExtensions(input.extractor),
+      onTemplateFile: (path) => state.usage.templateFiles.add(toReportedPath(input.cwd, path)),
       onUnreadableDirectory: (path) =>
         state.diagnostics.push({
           file: toReportedPath(input.cwd, path),
@@ -181,7 +244,13 @@ export async function scanProject(
       .map(([key, record]) => toExtractedKey(key, record))
       .filter((entry): entry is ExtractedKey => entry !== undefined),
     dynamic: state.dynamic,
-    indirect: state.indirect,
+    usage: {
+      referencedKeys: [...state.usage.referencedKeys],
+      dynamic: state.usage.dynamic,
+      prefixes: state.usage.prefixes,
+      unresolved: state.usage.unresolved,
+      templateFiles: [...state.usage.templateFiles].sort(),
+    },
     conflicts: entries
       .map(([key, record]) => toConflict(key, record))
       .filter((conflict): conflict is KeyConflict => conflict !== undefined),

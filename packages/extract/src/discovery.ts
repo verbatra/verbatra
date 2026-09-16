@@ -12,11 +12,28 @@ export const DEFAULT_EXCLUDED_DIRECTORIES = [
   "coverage",
 ] as const;
 
+export const TEMPLATE_FILE_EXTENSIONS = [
+  ".vue",
+  ".svelte",
+  ".html",
+  ".htm",
+  ".astro",
+  ".hbs",
+  ".handlebars",
+  ".ejs",
+  ".pug",
+  ".njk",
+  ".liquid",
+  ".mdx",
+] as const;
+
 export interface SourceDiscoveryInput {
   readonly roots: readonly string[];
   readonly extensions: readonly string[];
   readonly exclude?: readonly string[];
   readonly onUnreadableDirectory?: (path: string) => void;
+  readonly templateExtensions?: readonly string[];
+  readonly onTemplateFile?: (path: string) => void;
 }
 
 function isSourceFile(name: string, extensions: readonly string[]): boolean {
@@ -51,6 +68,8 @@ async function walk(
     const child = join(path, entry.name);
     if (entry.kind === "file" && isSourceFile(entry.name, input.extensions)) {
       found.add(child);
+    } else if (entry.kind === "file" && isSourceFile(entry.name, input.templateExtensions ?? [])) {
+      input.onTemplateFile?.(child);
     }
     if (entry.kind === "directory" && !excluded.has(entry.name)) {
       await walk(child, fs, input, excluded, found);

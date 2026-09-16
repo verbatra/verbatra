@@ -1,7 +1,12 @@
 export type SourceToken =
   | { readonly kind: "ident"; readonly value: string; readonly line: number }
   | { readonly kind: "string"; readonly value: string; readonly line: number }
-  | { readonly kind: "dynamic"; readonly line: number }
+  | {
+      readonly kind: "dynamic";
+      readonly line: number;
+      readonly head?: string;
+      readonly span?: number;
+    }
   | { readonly kind: "punct"; readonly value: string; readonly line: number };
 
 interface Cursor {
@@ -244,6 +249,7 @@ function skipBalancedExpression(cursor: Cursor): void {
 
 interface TemplateParts {
   readonly line: number;
+  readonly head: string;
   readonly staticValue: string;
   readonly expressions: readonly { readonly text: string; readonly line: number }[];
   readonly dynamic: boolean;
@@ -253,6 +259,7 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
   const line = cursor.line;
   cursor.index += 1;
   let staticValue = "";
+  let head: string | undefined;
   let dynamic = false;
   const expressions: { text: string; line: number }[] = [];
   while (!atEnd(cursor)) {
@@ -261,8 +268,9 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
       staticValue += readEscape(cursor);
     } else if (char === "`") {
       cursor.index += 1;
-      return { line, staticValue, expressions, dynamic };
+      return { line, head: head ?? staticValue, staticValue, expressions, dynamic };
     } else if (char === "$" && charAt(cursor, 1) === "{") {
+      head ??= staticValue;
       dynamic = true;
       cursor.index += 2;
       const start = cursor.index;
@@ -274,7 +282,7 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
     }
   }
   cursor.truncated = true;
-  return { line, staticValue, expressions, dynamic: true };
+  return { line, head: head ?? staticValue, staticValue, expressions, dynamic: true };
 }
 
 function shiftLine(token: SourceToken, offset: number): SourceToken {
@@ -298,7 +306,7 @@ function readTemplateTokens(cursor: Cursor): readonly SourceToken[] {
     return [{ kind: "string", value: parts.staticValue, line: parts.line }];
   }
   const inner = parts.expressions.flatMap((expression) => readExpressionTokens(cursor, expression));
-  return [{ kind: "dynamic", line: parts.line }, ...inner];
+  return [{ kind: "dynamic", line: parts.line, head: parts.head, span: inner.length }, ...inner];
 }
 
 function readAtomToken(cursor: Cursor): SourceToken {

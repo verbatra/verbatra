@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { discoverSourceFiles } from "./discovery.js";
+import { discoverSourceFiles, TEMPLATE_FILE_EXTENSIONS } from "./discovery.js";
 import { createI18nextExtractor } from "./i18next/i18next-extractor.js";
 import type { DirectoryEntry, SourceFs } from "./source-fs-port.js";
 
@@ -98,6 +98,50 @@ describe("discoverSourceFiles", () => {
 
     expect(files).toEqual([join(other, "a.ts")]);
     expect(unreadable).toEqual([root]);
+  });
+
+  it("reports template files by the template extensions, never under an excluded directory", async () => {
+    const generated = join(root, "generated");
+    const fs = fakeFs({
+      [root]: [
+        { name: "App.vue", kind: "file" },
+        { name: "a.ts", kind: "file" },
+        { name: "generated", kind: "directory" },
+      ],
+      [generated]: [{ name: "Page.svelte", kind: "file" }],
+    });
+    const templates: string[] = [];
+
+    const files = await discoverSourceFiles(
+      {
+        roots: [root],
+        extensions,
+        exclude: ["generated"],
+        templateExtensions: TEMPLATE_FILE_EXTENSIONS,
+        onTemplateFile: (path) => templates.push(path),
+      },
+      fs,
+    );
+
+    expect(files).toEqual([join(root, "a.ts")]);
+    expect(templates).toEqual([join(root, "App.vue")]);
+  });
+
+  it("names the template extensions a script extractor cannot read", () => {
+    expect(TEMPLATE_FILE_EXTENSIONS).toEqual([
+      ".vue",
+      ".svelte",
+      ".html",
+      ".htm",
+      ".astro",
+      ".hbs",
+      ".handlebars",
+      ".ejs",
+      ".pug",
+      ".njk",
+      ".liquid",
+      ".mdx",
+    ]);
   });
 
   it("yields each file once when two roots overlap", async () => {

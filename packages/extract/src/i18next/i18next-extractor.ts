@@ -3,12 +3,23 @@ import { type CallSiteRules, findCallSites } from "../scan/call-sites.js";
 
 const I18NEXT_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"] as const;
 
+export const I18NEXT_TRANSLATION_ELEMENTS = ["Trans", "Translation"] as const;
+
+type I18nextTranslationElement = (typeof I18NEXT_TRANSLATION_ELEMENTS)[number];
+
+const KEYED_ELEMENTS: ReadonlySet<I18nextTranslationElement> = new Set(["Trans"]);
+
 const I18NEXT_RULES: CallSiteRules = {
   calleeNames: new Set(["t", "$t"]),
   defaultValueKeys: new Set(["defaultValue"]),
   namespaceSeparator: ":",
   keySeparator: ".",
-  indirectNames: new Set(["keyPrefix", "Trans", "i18nKey"]),
+  fixedTranslateNames: new Set(["getFixedT"]),
+  hookNames: new Set(["useTranslation"]),
+  keyPrefixNames: new Set(["keyPrefix"]),
+  keyAttributeNames: new Set(["i18nKey"]),
+  translationElements: new Set(I18NEXT_TRANSLATION_ELEMENTS),
+  keyedElements: KEYED_ELEMENTS,
 };
 
 export function createI18nextExtractor(): SourceExtractor {

@@ -1,12 +1,39 @@
-import type { DynamicCallSite, ExtractedCallSite, FileExtraction } from "../extractor.js";
+import type {
+  DynamicCallSite,
+  ExtractedCallSite,
+  FileExtraction,
+  KeyPrefixSite,
+  ReferencedKeySite,
+} from "../extractor.js";
+import {
+  type KeyUsageRules,
+  type KeyUsageSites,
+  keyForms,
+  prefixedKey,
+  prefixForms,
+  readKeyUsageSites,
+} from "./key-usage.js";
+import { callOpenIndex, closeIndex, isFollowedBy, isPunct, tokenAt } from "./token-query.js";
 import { type SourceToken, tokenizeSource } from "./tokenize.js";
 
-export interface CallSiteRules {
-  readonly calleeNames: ReadonlySet<string>;
+export interface CallSiteRules extends KeyUsageRules {
   readonly defaultValueKeys: ReadonlySet<string>;
-  readonly namespaceSeparator?: string;
-  readonly keySeparator?: string;
-  readonly indirectNames: ReadonlySet<string>;
+}
+
+type TemplateToken = Extract<SourceToken, { readonly kind: "dynamic" }>;
+
+type CallSiteReading =
+  | { readonly kind: "static"; readonly site: ExtractedCallSite }
+  | { readonly kind: "named"; readonly keys: readonly string[]; readonly line: number }
+  | { readonly kind: "prefix"; readonly prefixes: readonly string[]; readonly line: number }
+  | { readonly kind: "dynamic"; readonly line: number };
+
+interface CallSiteState {
+  readonly calls: ExtractedCallSite[];
+  readonly dynamic: DynamicCallSite[];
+  readonly references: ReferencedKeySite[];
+  readonly usageDynamic: DynamicCallSite[];
+  readonly prefixes: KeyPrefixSite[];
 }
 
 const ARGUMENT_TERMINATORS = new Set([",", ")"]);
@@ -32,68 +59,6 @@ const MEMBER_MODIFIERS = new Set([
 
 const SIGNATURE_FOLLOWERS = new Set(["{", ":"]);
 
-function tokenAt(tokens: readonly SourceToken[], index: number): SourceToken | undefined {
-  return tokens[index];
-}
-
-function isPunct(token: SourceToken | undefined, value: string): boolean {
-  return token?.kind === "punct" && token.value === value;
-}
-
-function isFollowedBy(
-  tokens: readonly SourceToken[],
-  index: number,
-  terminators: ReadonlySet<string>,
-): boolean {
-  const next = tokenAt(tokens, index + 1);
-  return next === undefined || (next.kind === "punct" && terminators.has(next.value));
-}
-
-function skipTypeArguments(tokens: readonly SourceToken[], index: number): number | undefined {
-  let depth = 0;
-  for (let cursor = index; cursor < tokens.length; cursor += 1) {
-    if (isPunct(tokenAt(tokens, cursor), "<")) {
-      depth += 1;
-    } else if (isPunct(tokenAt(tokens, cursor), ">")) {
-      depth -= 1;
-      if (depth === 0) {
-        return cursor + 1;
-      }
-    }
-  }
-  return undefined;
-}
-
-function callOpenIndex(tokens: readonly SourceToken[], index: number): number | undefined {
-  let cursor = index + 1;
-  if (isPunct(tokenAt(tokens, cursor), "?") && isPunct(tokenAt(tokens, cursor + 1), ".")) {
-    cursor += 2;
-  }
-  if (isPunct(tokenAt(tokens, cursor), "<")) {
-    const afterTypeArguments = skipTypeArguments(tokens, cursor);
-    if (afterTypeArguments === undefined) {
-      return undefined;
-    }
-    cursor = afterTypeArguments;
-  }
-  return isPunct(tokenAt(tokens, cursor), "(") ? cursor : undefined;
-}
-
-function closeIndex(tokens: readonly SourceToken[], openIndex: number): number {
-  let depth = 0;
-  for (let cursor = openIndex; cursor < tokens.length; cursor += 1) {
-    if (isPunct(tokenAt(tokens, cursor), "(")) {
-      depth += 1;
-    } else if (isPunct(tokenAt(tokens, cursor), ")")) {
-      depth -= 1;
-      if (depth === 0) {
-        return cursor;
-      }
-    }
-  }
-  return tokens.length;
-}
-
 function isSignature(tokens: readonly SourceToken[], index: number, openIndex: number): boolean {
   const previous = tokenAt(tokens, index - 1);
   if (previous?.kind === "ident") {
@@ -104,22 +69,6 @@ function isSignature(tokens: readonly SourceToken[], index: number, openIndex: n
   }
   const follower = tokenAt(tokens, closeIndex(tokens, openIndex) + 1);
   return follower?.kind === "punct" && SIGNATURE_FOLLOWERS.has(follower.value);
-}
-
-function indirectSiteAt(
-  tokens: readonly SourceToken[],
-  index: number,
-  rules: CallSiteRules,
-): DynamicCallSite | undefined {
-  const token = tokenAt(tokens, index);
-  return token?.kind === "ident" && rules.indirectNames.has(token.value)
-    ? { line: token.line }
-    : undefined;
-}
-
-function isCallee(tokens: readonly SourceToken[], index: number, rules: CallSiteRules): boolean {
-  const token = tokenAt(tokens, index);
-  return token?.kind === "ident" && rules.calleeNames.has(token.value);
 }
 
 function readOptionsDefault(
@@ -178,11 +127,27 @@ function isUnresolvableKey(key: string, rules: CallSiteRules): boolean {
   return isNamespaced(key, rules) || hasEmptySegment(key, rules);
 }
 
+function templateReading(
+  tokens: readonly SourceToken[],
+  keyIndex: number,
+  template: TemplateToken,
+  rules: CallSiteRules,
+): CallSiteReading {
+  const prefixes =
+    template.head === undefined || template.head === ""
+      ? undefined
+      : prefixForms(template.head, rules);
+  const endsArgument = isFollowedBy(tokens, keyIndex + (template.span ?? 0), ARGUMENT_TERMINATORS);
+  return prefixes !== undefined && endsArgument
+    ? { kind: "prefix", prefixes, line: template.line }
+    : { kind: "dynamic", line: template.line };
+}
+
 function callSiteAt(
   tokens: readonly SourceToken[],
   index: number,
   rules: CallSiteRules,
-): ExtractedCallSite | DynamicCallSite | undefined {
+): CallSiteReading | undefined {
   const openIndex = callOpenIndex(tokens, index);
   if (openIndex === undefined || isSignature(tokens, index, openIndex)) {
     return undefined;
@@ -192,50 +157,104 @@ function callSiteAt(
   if (argument === undefined || isPunct(argument, ")")) {
     return undefined;
   }
+  if (argument.kind === "dynamic") {
+    return templateReading(tokens, keyIndex, argument, rules);
+  }
   if (argument.kind !== "string" || !isFollowedBy(tokens, keyIndex, ARGUMENT_TERMINATORS)) {
-    return { line: argument.line };
+    return { kind: "dynamic", line: argument.line };
   }
   if (argument.value === "") {
     return undefined;
   }
   if (isUnresolvableKey(argument.value, rules)) {
-    return { line: argument.line };
+    return { kind: "named", keys: keyForms(argument.value, rules), line: argument.line };
   }
   const defaultValue = readDefaultValue(tokens, keyIndex, rules);
   return {
-    key: argument.value,
-    ...(defaultValue !== undefined ? { defaultValue } : {}),
-    line: argument.line,
+    kind: "static",
+    site: {
+      key: argument.value,
+      ...(defaultValue !== undefined ? { defaultValue } : {}),
+      line: argument.line,
+    },
   };
+}
+
+function collectExtracted(reading: CallSiteReading, state: CallSiteState): void {
+  if (reading.kind === "static") {
+    state.calls.push(reading.site);
+  } else {
+    state.dynamic.push({ line: reading.line });
+  }
+}
+
+function collectUsage(reading: CallSiteReading, state: CallSiteState): void {
+  const line = reading.kind === "static" ? reading.site.line : reading.line;
+  if (reading.kind === "static") {
+    state.references.push({ key: reading.site.key, line });
+  } else if (reading.kind === "named") {
+    state.references.push(...reading.keys.map((key) => ({ key, line })));
+  } else if (reading.kind === "prefix") {
+    state.prefixes.push(...reading.prefixes.map((prefix) => ({ prefix, line })));
+  } else {
+    state.usageDynamic.push({ line });
+  }
+}
+
+function byLine<T extends { readonly line: number }>(sites: readonly T[]): T[] {
+  return [...sites].sort((left, right) => left.line - right.line);
+}
+
+function withKeyPrefixes<T>(
+  found: readonly T[],
+  sites: KeyUsageSites,
+  prefix: (site: T, keyPrefix: string) => T,
+): T[] {
+  return [
+    ...found,
+    ...sites.keyPrefixes.flatMap((keyPrefix) => found.map((site) => prefix(site, keyPrefix))),
+  ];
 }
 
 export function findCallSites(content: string, rules: CallSiteRules): FileExtraction {
   const { tokens, truncated } = tokenizeSource(content);
-  const calls: ExtractedCallSite[] = [];
-  const dynamic: DynamicCallSite[] = [];
-  const indirect: DynamicCallSite[] = [];
+  const sites = readKeyUsageSites(tokens, rules);
+  const state: CallSiteState = {
+    calls: [],
+    dynamic: [],
+    references: [],
+    usageDynamic: [],
+    prefixes: [],
+  };
   for (let index = 0; index < tokens.length; index += 1) {
-    const indirectSite = indirectSiteAt(tokens, index, rules);
-    if (indirectSite !== undefined) {
-      indirect.push(indirectSite);
-    }
-    if (!isCallee(tokens, index, rules)) {
+    const token = tokenAt(tokens, index);
+    const extracted = token?.kind === "ident" && rules.calleeNames.has(token.value);
+    const aliased = token?.kind === "ident" && sites.callees.has(token.value);
+    const reading = extracted || aliased ? callSiteAt(tokens, index, rules) : undefined;
+    if (reading === undefined) {
       continue;
     }
-    const site = callSiteAt(tokens, index, rules);
-    if (site === undefined) {
-      continue;
+    if (extracted) {
+      collectExtracted(reading, state);
     }
-    if ("key" in site) {
-      calls.push(site);
-    } else {
-      dynamic.push(site);
-    }
+    collectUsage(reading, state);
   }
   return {
-    calls,
-    dynamic,
-    ...(indirect.length > 0 ? { indirect } : {}),
+    calls: state.calls,
+    dynamic: state.dynamic,
+    usage: {
+      references: withKeyPrefixes(
+        byLine([...state.references, ...sites.references]),
+        sites,
+        (site, keyPrefix) => ({ key: prefixedKey(keyPrefix, site.key, rules), line: site.line }),
+      ),
+      dynamic: state.usageDynamic,
+      prefixes: withKeyPrefixes(state.prefixes, sites, (site, keyPrefix) => ({
+        prefix: prefixedKey(keyPrefix, site.prefix, rules),
+        line: site.line,
+      })),
+      unresolved: byLine(sites.unresolved),
+    },
     ...(truncated ? { truncated } : {}),
   };
 }
