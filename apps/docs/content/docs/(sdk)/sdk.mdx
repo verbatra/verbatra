@@ -212,8 +212,8 @@ keys, naming the `source`, every distinct translation as `{ value, keys }`, and 
 `description`, `meaning`, `isPlural`, and `pluralForm` the grouped keys share. Only up-to-date keys
 are compared, values are compared after NFC normalization and trimming surrounding whitespace, keys
 whose description, meaning, plural flag, or gettext `msgctxt` differ are never grouped, and plural
-forms stored under their own keys are compared per form. It is a report
-only: it never changes `inSync`, a count, or any file, and it calls no provider.
+forms stored under their own keys are compared per form. It is a report only: it never changes
+`inSync`, a count, or any file, and it calls no provider.
 
 ### diff
 
