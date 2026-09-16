@@ -84,6 +84,7 @@ describe("usage.summary", () => {
           supported: true,
           tokensUsed: 150,
           exceeded: false,
+          standing: "within",
         },
       },
       structuredContent: {
@@ -96,10 +97,44 @@ describe("usage.summary", () => {
           supported: true,
           tokensUsed: 150,
           exceeded: false,
+          standing: "within",
         },
       },
     });
   });
+
+  it("explains each budget standing in its description", () => {
+    expect(usageSummaryTool.description).toContain("budget.standing");
+    expect(usageSummaryTool.description).toContain("within when it never reached it");
+    expect(usageSummaryTool.description).toContain("stopped-before-ceiling when a stop budget");
+    expect(usageSummaryTool.description).toContain("reached when the counted total reached");
+  });
+
+  it.each([
+    { behavior: "stop", tokensUsed: 900, exceeded: true, standing: "stopped-before-ceiling" },
+    { behavior: "stop", tokensUsed: 1000, exceeded: true, standing: "reached" },
+    { behavior: "warn", tokensUsed: 1200, exceeded: true, standing: "reached" },
+  ])(
+    "reports a $behavior budget at $tokensUsed/1000 as $standing",
+    async ({ behavior, tokensUsed, exceeded, standing }) => {
+      const dir = await makeTempDir();
+      await mkdir(join(dir, ".verbatra-local"), { recursive: true });
+      await writeJsonFile(join(dir, ".verbatra-local", "run-status.json"), {
+        version: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        budget: { maxTokens: 1000, behavior, supported: true, tokensUsed, exceeded },
+        locales: [],
+      });
+
+      const outcome = await usageSummaryTool.execute({}, makeContext({ cwd: dir }));
+
+      expect(outcome).toMatchObject({
+        kind: "ok",
+        result: { budget: { standing } },
+        structuredContent: { budget: { standing } },
+      });
+    },
+  );
 
   it("omits usage and budget when the run recorded neither", async () => {
     const dir = await makeTempDir();
