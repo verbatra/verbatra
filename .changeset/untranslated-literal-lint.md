@@ -41,6 +41,8 @@ config check and the literal check only. It exits `0` when nothing was found, `1
 found or a file could not be scanned (a file the scanner cannot read to the end, such as one with an
 unterminated comment or template literal, or with a JSX element that never closes or is closed by an
 enclosing element's tag, is a diagnostic, never a silent pass; a generic function type such as
-`<T>(x: T) => T` in a `.tsx` file is read as code and never fails the file), and `2` when it cannot
-run. `--json` prints the usual envelope with the scan under `result.literals`. `doctor({ literals:
-true })` is the SDK entry point, and `DoctorResult.literals` carries the same data.
+`<T>(x: T) => T` or a type parameter list such as `<const T = "a">(x: T) => x` in a `.tsx` file is
+read as code and never fails the file, and type arguments of any length on an element are skipped),
+and `2` when it cannot run. `--json` prints the usual envelope with the scan under
+`result.literals`. `doctor({ literals: true })` is the SDK entry point, and `DoctorResult.literals`
+carries the same data.
