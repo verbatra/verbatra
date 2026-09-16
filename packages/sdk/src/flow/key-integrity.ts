@@ -1,6 +1,8 @@
 import {
   checkPlaceholders,
+  compareInlineMarkup,
   diffResources,
+  inlineTagToken,
   type LocaleResource,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -28,6 +30,19 @@ export interface KeyIntegrityEntry {
   readonly extra: readonly string[];
   /** True when the translation parses as a valid ICU message under the configured format. */
   readonly icuValid: boolean;
+  /**
+   * True when the translation carries the source's inline HTML or XML tags, well formed. Compared
+   * exactly as the write-time gate compares them, so a value already on disk is judged by the same
+   * rule as one about to be written.
+   */
+  readonly markupMatches: boolean;
+  /**
+   * The tags behind a `markupMatches: false` verdict, each prefixed with `-` for one the source has
+   * and the translation lacks or `+` for one the translation added. Empty when the markup matches,
+   * and empty when no single tag is at fault because the translation's markup is structurally
+   * broken.
+   */
+  readonly markupDetails: readonly string[];
 }
 
 /** One locale's per-key integrity verdicts. */
@@ -58,6 +73,17 @@ export interface KeyIntegrityDeps {
   readonly fs?: SdkFs;
 }
 
+function ignoredTagsFor(placeholders: readonly string[]): readonly string[] {
+  const tags: string[] = [];
+  for (const placeholder of placeholders) {
+    const tag = inlineTagToken(placeholder);
+    if (tag !== undefined) {
+      tags.push(tag);
+    }
+  }
+  return tags;
+}
+
 function checkEntryIntegrity(
   adapter: FormatAdapter,
   sourceEntry: TranslationEntry,
@@ -66,6 +92,9 @@ function checkEntryIntegrity(
   const result =
     adapter.comparePlaceholders?.(sourceEntry.value, targetEntry.value) ??
     checkPlaceholders(sourceEntry.placeholders, targetEntry.placeholders);
+  const markup = compareInlineMarkup(sourceEntry.value, targetEntry.value, {
+    ignoreTags: ignoredTagsFor(sourceEntry.placeholders),
+  });
   return {
     key: sourceEntry.key,
     hasPlaceholders: sourceEntry.placeholders.length > 0,
@@ -73,6 +102,11 @@ function checkEntryIntegrity(
     missing: result.missing,
     extra: result.extra,
     icuValid: adapter.validateMessage(targetEntry.value),
+    markupMatches: markup.matches,
+    markupDetails: [
+      ...markup.missing.map((token) => `-${token}`),
+      ...markup.extra.map((token) => `+${token}`),
+    ],
   };
 }
 
@@ -116,11 +150,13 @@ function integrityEntriesFor(
  * edit may have just invalidated. Only keys present in both the source and the target are judged,
  * since a missing translation has no placeholders to compare.
  *
- * This is the read-only counterpart to the placeholder and ICU checks the gate that
+ * This is the read-only counterpart to the placeholder, ICU and inline-markup checks the gate that
  * {@link editEntry} and {@link retranslateEntry} enforce at write time, and the data behind a
- * review dashboard's per-key integrity indicator. The gate's remaining reasons (inline markup,
- * degeneracy, emptiness) judge a candidate value rather than a value already on disk, so they have
- * no verdict to report here.
+ * review dashboard's per-key integrity indicator. Reporting markup here is what makes drift that
+ * predates the gate visible at all: a translation written before the check existed, edited outside
+ * verbatra, or produced by a path that never crossed the gate is judged here by the same rule.
+ * Emptiness and degeneracy are deliberately not reported: both describe a candidate that was
+ * refused rather than a state a stored translation can usefully be in.
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending

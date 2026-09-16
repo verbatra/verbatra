@@ -59,6 +59,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          markupMatches: true,
+          markupDetails: [],
         },
       ]);
     } finally {
@@ -85,6 +87,8 @@ describe("keyIntegrityHandler", () => {
           missing: ["{{name}}"],
           extra: [],
           icuValid: true,
+          markupMatches: true,
+          markupDetails: [],
         },
       ]);
     } finally {
@@ -108,6 +112,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: ["{{name}}"],
           icuValid: true,
+          markupMatches: true,
+          markupDetails: [],
         },
       ]);
     } finally {
@@ -131,6 +137,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          markupMatches: true,
+          markupDetails: [],
         },
       ]);
     } finally {

@@ -39,6 +39,13 @@ export function deriveIntegrityPillView(
   if (!entry.icuValid) {
     return { tone: "danger", label: "Invalid message syntax", detail: null };
   }
+  if (!entry.markupMatches) {
+    return {
+      tone: "danger",
+      label: "Inline markup mismatch",
+      detail: entry.markupDetails.length > 0 ? entry.markupDetails.join(" ") : null,
+    };
+  }
   if (!entry.hasPlaceholders) {
     return { tone: "neutral", label: "No placeholders", detail: null };
   }

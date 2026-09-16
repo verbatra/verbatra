@@ -14,6 +14,8 @@ const keyIntegrityEntrySchema = z.strictObject({
   missing: z.array(z.string()).readonly(),
   extra: z.array(z.string()).readonly(),
   icuValid: z.boolean(),
+  markupMatches: z.boolean(),
+  markupDetails: z.array(z.string()).readonly(),
 });
 
 const keyIntegrityLocaleSchema = z.strictObject({
@@ -34,6 +36,8 @@ function toKeyIntegrityEntry(entry: KeyIntegrityEntry): z.infer<typeof keyIntegr
     missing: entry.missing,
     extra: entry.extra,
     icuValid: entry.icuValid,
+    markupMatches: entry.markupMatches,
+    markupDetails: entry.markupDetails,
   };
 }
 
