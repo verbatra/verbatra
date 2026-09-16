@@ -23,7 +23,7 @@ export {
   compareInlineMarkup,
   type InlineMarkupComparison,
   type InlineMarkupOptions,
-  inlineTagName,
+  inlineTagToken,
 } from "./placeholder/inline-markup.js";
 export { checkPlaceholders } from "./placeholder/integrity.js";
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";

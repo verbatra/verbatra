@@ -8,8 +8,12 @@ export interface InlineMarkupComparison {
 }
 
 export interface InlineMarkupOptions {
-  readonly ignoreTagNames?: readonly string[];
-  readonly pluralArms?: boolean;
+  readonly ignoreTags?: readonly string[];
+}
+
+interface IgnoredTags {
+  readonly tokens: ReadonlySet<string>;
+  readonly closingNames: ReadonlySet<string>;
 }
 
 interface InlineTag {
@@ -65,7 +69,7 @@ const MALFORMED: InlineMarkupComparison = {
 };
 
 function isVoidElement(name: string): boolean {
-  return VOID_ELEMENTS.has(name.toLowerCase());
+  return VOID_ELEMENTS.has(name);
 }
 
 function attributeNames(chunk: string): readonly string[] | undefined {
@@ -127,11 +131,33 @@ function scanInlineTags(value: string): readonly InlineTag[] | undefined {
   return tags;
 }
 
-function withoutIgnoredNames(
+function collectIgnoredTags(tokens: readonly string[]): IgnoredTags {
+  const ignoredTokens = new Set<string>();
+  const closingNames = new Set<string>();
+  for (const token of tokens) {
+    const tag = singleTagIn(token);
+    if (tag === undefined) {
+      continue;
+    }
+    ignoredTokens.add(tag.token);
+    if (tag.kind === "open") {
+      closingNames.add(tag.name);
+    }
+  }
+  return { tokens: ignoredTokens, closingNames };
+}
+
+function isIgnored(tag: InlineTag, ignored: IgnoredTags): boolean {
+  return (
+    ignored.tokens.has(tag.token) || (tag.kind === "close" && ignored.closingNames.has(tag.name))
+  );
+}
+
+function withoutIgnoredTags(
   tags: readonly InlineTag[],
-  ignored: ReadonlySet<string>,
+  ignored: IgnoredTags,
 ): readonly InlineTag[] {
-  return ignored.size === 0 ? tags : tags.filter((tag) => !ignored.has(tag.name));
+  return ignored.tokens.size === 0 ? tags : tags.filter((tag) => !isIgnored(tag, ignored));
 }
 
 function recordDepth(depths: Map<string, number>, name: string, depth: number): void {
@@ -177,23 +203,13 @@ function tokensOf(tags: readonly InlineTag[]): readonly string[] {
   return tags.map((tag) => tag.token);
 }
 
-function presenceCounts(tokens: readonly string[]): Map<string, number> {
-  const counts = countTokens(tokens);
-  for (const token of counts.keys()) {
-    counts.set(token, 1);
-  }
-  return counts;
-}
-
 function compareScanned(
   sourceTags: readonly InlineTag[],
   translatedTags: readonly InlineTag[],
   sourceStructure: TagStructure,
-  pluralArms: boolean,
 ): InlineMarkupComparison {
-  const count = pluralArms ? presenceCounts : countTokens;
-  const sourceCounts = count(tokensOf(sourceTags));
-  const translatedCounts = count(tokensOf(translatedTags));
+  const sourceCounts = countTokens(tokensOf(sourceTags));
+  const translatedCounts = countTokens(tokensOf(translatedTags));
   const missing = multisetExcess(sourceCounts, translatedCounts);
   const extra = multisetExcess(translatedCounts, sourceCounts);
   if (missing.length > 0 || extra.length > 0) {
@@ -220,12 +236,16 @@ function compareAgainstUnmarkedSource(
   };
 }
 
-export function inlineTagName(token: string): string | undefined {
+function singleTagIn(token: string): InlineTag | undefined {
   if (!token.startsWith("<") || !token.endsWith(">")) {
     return undefined;
   }
   const tags = scanInlineTags(token);
-  return tags?.length === 1 ? tags[0]?.name : undefined;
+  return tags?.length === 1 ? tags[0] : undefined;
+}
+
+export function inlineTagToken(token: string): string | undefined {
+  return singleTagIn(token)?.token;
 }
 
 export function compareInlineMarkup(
@@ -241,9 +261,9 @@ export function compareInlineMarkup(
   if (scannedSource === undefined || scannedTranslated === undefined) {
     return MATCHED;
   }
-  const ignored = new Set(options.ignoreTagNames ?? []);
-  const sourceTags = withoutIgnoredNames(scannedSource, ignored);
-  const translatedTags = withoutIgnoredNames(scannedTranslated, ignored);
+  const ignored = collectIgnoredTags(options.ignoreTags ?? []);
+  const sourceTags = withoutIgnoredTags(scannedSource, ignored);
+  const translatedTags = withoutIgnoredTags(scannedTranslated, ignored);
   if (sourceTags.length === 0) {
     return compareAgainstUnmarkedSource(translatedTags);
   }
@@ -251,5 +271,5 @@ export function compareInlineMarkup(
   if (!sourceStructure.wellFormed) {
     return MATCHED;
   }
-  return compareScanned(sourceTags, translatedTags, sourceStructure, options.pluralArms === true);
+  return compareScanned(sourceTags, translatedTags, sourceStructure);
 }

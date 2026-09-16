@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareInlineMarkup, inlineTagName } from "./inline-markup.js";
+import { compareInlineMarkup, inlineTagToken } from "./inline-markup.js";
 
 describe("compareInlineMarkup: prose that merely contains an angle bracket is never markup", () => {
   it.each([
@@ -202,10 +202,8 @@ describe("compareInlineMarkup: self-closing and void elements", () => {
     });
   });
 
-  it("reads a void element case-insensitively, so an uppercase BR stays a void element", () => {
-    const result = compareInlineMarkup("<p>a<BR>b</p>", "<p>a b</p>");
-    expect(result.matches).toBe(false);
-    expect(result.missing).toEqual(["<BR>"]);
+  it("stands down for an uppercase void element, which is not one of the names it knows", () => {
+    expect(compareInlineMarkup("<p>a<BR>b</p>", "<p>a b</p>").matches).toBe(true);
   });
 
   it("reports a dropped self-closing tag", () => {
@@ -338,78 +336,76 @@ describe("compareInlineMarkup: the shape an angle-bracket run has to have to cou
 });
 
 describe("compareInlineMarkup: tags the caller's format already reports as placeholders", () => {
-  it("ignores every tag with an ignored name, on both sides", () => {
+  it("ignores an opening tag it is given, and the closing tag that pairs with it", () => {
     expect(
-      compareInlineMarkup("Read <b>the docs</b>", "Lies die Doku", { ignoreTagNames: ["b"] }),
+      compareInlineMarkup("Read <b>the docs</b>", "Lies die Doku", { ignoreTags: ["<b>"] }),
     ).toEqual({ matches: true, missing: [], extra: [], malformed: false });
+  });
+
+  it("ignores every occurrence of that pair, however many arms repeat it", () => {
+    expect(
+      compareInlineMarkup("<b>a</b> und <b>b</b>", "<b>a</b> <b>b</b> <b>c</b> <b>d</b>", {
+        ignoreTags: ["<b>"],
+      }).matches,
+    ).toBe(true);
   });
 
   it("still compares a tag the format does not report, beside one it does", () => {
     const result = compareInlineMarkup(
       "Read <b>the docs</b>.<br/>Then go.",
       "Lies <b>die Doku</b>. Dann los.",
-      { ignoreTagNames: ["b"] },
+      { ignoreTags: ["<b>"] },
     );
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["<br>"]);
   });
 
+  it("does not ignore a second spelling of the same name that the format never reported", () => {
+    const result = compareInlineMarkup("Read <b>the docs</b> and <b/>", "Lies <b>die Doku</b>", {
+      ignoreTags: ["<b>"],
+    });
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<b/>"]);
+  });
+
   it("does not let an ignored tag's own nesting decide whether the source is well formed", () => {
     const result = compareInlineMarkup('Read <g id="1">the docs</g><br/>now', "Lies die Doku", {
-      ignoreTagNames: ["g"],
+      ignoreTags: ["<g id>"],
     });
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["<br>"]);
   });
 
-  it("ignores a name that appears in neither value without inventing a finding", () => {
+  it("ignores a self-closing tag it is given without ignoring the paired spelling", () => {
+    const result = compareInlineMarkup("<x id/> and <x>a</x>", "<x id/>", {
+      ignoreTags: ["<x id/>"],
+    });
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["</x>", "<x>"]);
+  });
+
+  it("ignores a token that appears in neither value without inventing a finding", () => {
     expect(
-      compareInlineMarkup("<b>a</b>", "<b>a</b>", { ignoreTagNames: ["x", "g"] }).matches,
+      compareInlineMarkup("<b>a</b>", "<b>a</b>", { ignoreTags: ["<x>", "<g>"] }).matches,
+    ).toBe(true);
+  });
+
+  it("ignores a token that is not a tag at all without inventing a finding", () => {
+    expect(
+      compareInlineMarkup("<b>a</b>", "<b>a</b>", { ignoreTags: ["{count}", "%1$s"] }).matches,
     ).toBe(true);
   });
 });
 
-describe("compareInlineMarkup: a value holding several plural arms", () => {
-  it("accepts a translation that needs more arms than the source has", () => {
-    expect(
-      compareInlineMarkup(
-        "<b>one</b> apple | <b>{count}</b> apples",
-        "<b>jedno</b> jablko | <b>{count}</b> jablka | <b>{count}</b> jablek | <b>{count}</b> jablka",
-        { pluralArms: true },
-      ),
-    ).toEqual({ matches: true, missing: [], extra: [], malformed: false });
-  });
-
-  it("still refuses a tag dropped from every arm", () => {
-    const result = compareInlineMarkup(
-      "<b>one</b> apple | <b>{count}</b> apples",
-      "jedno jablko | {count} jablka | {count} jablek",
-      { pluralArms: true },
-    );
+describe("compareInlineMarkup: repeated tags are counted, not just noticed", () => {
+  it("refuses a value that dropped one of two identical pairs", () => {
+    const result = compareInlineMarkup("<b>a</b> and <b>b</b>", "<b>a</b> und b");
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["</b>", "<b>"]);
   });
 
-  it("still refuses a tag invented in one arm", () => {
-    const result = compareInlineMarkup(
-      "<b>one</b> apple | <b>{count}</b> apples",
-      "<b>jedno</b> jablko | <b>{count}</b> <i>jablka</i>",
-      { pluralArms: true },
-    );
-    expect(result.matches).toBe(false);
-    expect(result.extra).toEqual(["</i>", "<i>"]);
-  });
-
-  it("still refuses markup that comes back mis-nested", () => {
-    expect(
-      compareInlineMarkup("<b>one</b><i>x</i> | <b>two</b><i>y</i>", "<b>a<i>b</b></i>", {
-        pluralArms: true,
-      }).malformed,
-    ).toBe(true);
-  });
-
-  it("compares counts when the value is not a plural message", () => {
-    const result = compareInlineMarkup("<b>a</b> and <b>b</b>", "<b>a</b> und b");
+  it("refuses two adjacent pairs merged into one, which changes what is inside the tag", () => {
+    const result = compareInlineMarkup("<b>a</b> <b>b</b>", "<b>a b</b>");
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["</b>", "<b>"]);
   });
@@ -458,21 +454,45 @@ describe("compareInlineMarkup: an angle bracket inside an attribute value", () =
   });
 });
 
-describe("inlineTagName", () => {
+describe("compareInlineMarkup: tag names are compared exactly, void elements included", () => {
+  it("treats a case change as a different tag", () => {
+    const result = compareInlineMarkup("<b>a</b>", "<B>a</B>");
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["</b>", "<b>"]);
+    expect(result.extra).toEqual(["</B>", "<B>"]);
+  });
+
+  it("gives void handling to the lowercase spelling only, so an uppercase one needs closing", () => {
+    expect(compareInlineMarkup("a<BR>b", "voellig anders").matches).toBe(true);
+    expect(compareInlineMarkup("a<br>b", "voellig anders")).toEqual({
+      matches: false,
+      missing: ["<br>"],
+      extra: [],
+      malformed: false,
+    });
+  });
+
+  it("compares an uppercase element that is properly closed like any other", () => {
+    expect(compareInlineMarkup("<BR>a</BR>", "<BR>b</BR>").matches).toBe(true);
+  });
+});
+
+describe("inlineTagToken", () => {
   it.each([
-    ["<b>", "b"],
-    ["</b>", "b"],
-    ['<g id="1">', "g"],
-    ['<x id="2"/>', "x"],
-    ["<0>", "0"],
-  ])("reads %j as %j", (token, name) => {
-    expect(inlineTagName(token)).toBe(name);
+    ["<b>", "<b>"],
+    ["</b>", "</b>"],
+    ['<g id="1">', "<g id>"],
+    ['<x id="2"/>', "<x id/>"],
+    ["<br/>", "<br>"],
+    ["<0>", "<0>"],
+  ])("canonicalizes %j to %j", (token, canonical) => {
+    expect(inlineTagToken(token)).toBe(canonical);
   });
 
   it.each(["{count}", "%1$s", "$t(a.b)", "<not a tag", "<a>trailing", "", "<a><b>"])(
-    "reads no name from %j",
+    "reads no tag from %j",
     (token) => {
-      expect(inlineTagName(token)).toBeUndefined();
+      expect(inlineTagToken(token)).toBeUndefined();
     },
   );
 });
