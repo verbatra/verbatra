@@ -30,6 +30,11 @@ interface ScannedMarkup {
   readonly tags: readonly InlineTag[] | undefined;
 }
 
+interface SplitTags {
+  readonly tags: readonly InlineTag[];
+  readonly words: readonly InlineTag[];
+}
+
 interface TagStructure {
   readonly wellFormed: boolean;
   readonly depths: ReadonlyMap<string, number>;
@@ -262,38 +267,54 @@ function tokensOf(tags: readonly InlineTag[]): readonly string[] {
 }
 
 function compareScanned(
-  sourceTags: readonly InlineTag[],
-  translatedTags: readonly InlineTag[],
+  source: SplitTags,
+  translated: SplitTags,
   sourceStructure: TagStructure,
 ): InlineMarkupComparison {
-  const sourceCounts = countTokens(tokensOf(sourceTags));
-  const translatedCounts = countTokens(tokensOf(translatedTags));
+  const sourceCounts = countTokens(tokensOf([...source.tags, ...source.words]));
+  const translatedCounts = countTokens(tokensOf([...translated.tags, ...translated.words]));
   const missing = multisetExcess(sourceCounts, translatedCounts);
   const extra = multisetExcess(translatedCounts, sourceCounts);
   if (missing.length > 0 || extra.length > 0) {
     return { matches: false, missing, extra, malformed: false };
   }
-  const translatedStructure = structureOf(translatedTags);
+  const translatedStructure = structureOf(translated.tags);
   if (!translatedStructure.wellFormed) {
     return MALFORMED;
   }
   return sameDepths(sourceStructure.depths, translatedStructure.depths) ? MATCHED : MALFORMED;
 }
 
-function closeInventedTag(tag: InlineTag, open: InlineTag[], invented: string[]): void {
-  invented.push(tag.token);
-  const index = open.map((opener) => opener.name).lastIndexOf(tag.name);
-  const [opener] = index === -1 ? [] : open.splice(index, 1);
-  if (opener !== undefined) {
-    invented.push(opener.token);
-  }
+function takeOpener(open: InlineTag[], name: string): InlineTag | undefined {
+  const index = open.map((opener) => opener.name).lastIndexOf(name);
+  return index === -1 ? undefined : open.splice(index, 1)[0];
+}
+
+function isBracketedWord(tag: InlineTag): boolean {
+  return tag.bare && WORD_NAME.test(tag.name);
 }
 
 function isProseWord(tag: InlineTag): boolean {
-  return tag.bare && WORD_NAME.test(tag.name) && !HTML_ELEMENT_NAMES.has(tag.name.toLowerCase());
+  return !HTML_ELEMENT_NAMES.has(tag.name.toLowerCase());
 }
 
-function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
+function splitBracketedWords(tags: readonly InlineTag[]): SplitTags {
+  const open: InlineTag[] = [];
+  for (const tag of tags) {
+    if (tag.kind === "close") {
+      takeOpener(open, tag.name);
+    } else if (tag.kind === "open" && !isVoidElement(tag.name)) {
+      open.push(tag);
+    }
+  }
+  const words = new Set(open.filter(isBracketedWord));
+  return {
+    tags: tags.filter((tag) => !words.has(tag)),
+    words: tags.filter((tag) => words.has(tag)),
+  };
+}
+
+function inventedTags(translatedTags: readonly InlineTag[]): string[] {
   const invented: string[] = [];
   const open: InlineTag[] = [];
   for (const tag of translatedTags) {
@@ -302,15 +323,32 @@ function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
     } else if (tag.kind === "open") {
       open.push(tag);
     } else {
-      closeInventedTag(tag, open, invented);
-    }
-  }
-  for (const tag of open) {
-    if (!isProseWord(tag)) {
       invented.push(tag.token);
+      const opener = takeOpener(open, tag.name);
+      if (opener !== undefined) {
+        invented.push(opener.token);
+      }
     }
   }
-  return invented.sort();
+  invented.push(...tokensOf(open));
+  return invented;
+}
+
+function inventedWords(
+  translatedWords: readonly InlineTag[],
+  sourceWords: readonly InlineTag[],
+): readonly string[] {
+  const available = countTokens(tokensOf(sourceWords));
+  const invented: string[] = [];
+  for (const word of translatedWords) {
+    const count = available.get(word.token) ?? 0;
+    if (count > 0) {
+      available.set(word.token, count - 1);
+    } else if (!isProseWord(word)) {
+      invented.push(word.token);
+    }
+  }
+  return invented;
 }
 
 function compareConstructs(
@@ -327,9 +365,13 @@ function compareConstructs(
 }
 
 function compareAgainstUnmarkedSource(
-  translatedTags: readonly InlineTag[],
+  translated: SplitTags,
+  sourceWords: readonly InlineTag[],
 ): InlineMarkupComparison {
-  const extra = inventedTags(translatedTags);
+  const extra = [
+    ...inventedTags(translated.tags),
+    ...inventedWords(translated.words, sourceWords),
+  ].sort();
   return extra.length === 0 ? MATCHED : { matches: false, missing: [], extra, malformed: false };
 }
 
@@ -366,14 +408,14 @@ export function compareInlineMarkup(
     return constructs;
   }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
-  const sourceTags = withoutIgnoredTags(source.tags, ignored);
-  const translatedTags = withoutIgnoredTags(translated.tags, ignored);
-  if (sourceTags.length === 0) {
-    return compareAgainstUnmarkedSource(translatedTags);
+  const sourceSplit = splitBracketedWords(withoutIgnoredTags(source.tags, ignored));
+  const translatedSplit = splitBracketedWords(withoutIgnoredTags(translated.tags, ignored));
+  if (sourceSplit.tags.length === 0) {
+    return compareAgainstUnmarkedSource(translatedSplit, sourceSplit.words);
   }
-  const sourceStructure = structureOf(sourceTags);
+  const sourceStructure = structureOf(sourceSplit.tags);
   if (!sourceStructure.wellFormed) {
     return MATCHED;
   }
-  return compareScanned(sourceTags, translatedTags, sourceStructure);
+  return compareScanned(sourceSplit, translatedSplit, sourceStructure);
 }

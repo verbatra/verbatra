@@ -371,6 +371,97 @@ describe("compareInlineMarkup: only an attribute-free bracketed word is read as 
   });
 });
 
+describe("compareInlineMarkup: a bracketed word in the source is set aside, not read as malformed markup", () => {
+  it("still refuses a dropped pair beside a bracketed word the source carries", () => {
+    expect(
+      compareInlineMarkup("Press <Enter> to <b>save</b>", "Drücke <Enter> zum Speichern"),
+    ).toEqual({ matches: false, missing: ["</b>", "<b>"], extra: [], malformed: false });
+  });
+
+  it("still refuses a pair invented beside a bracketed word the source carries", () => {
+    expect(
+      compareInlineMarkup("Press <Enter> to continue", "Drücke <Enter> <script>alert(1)</script>"),
+    ).toEqual({ matches: false, missing: [], extra: ["</script>", "<script>"], malformed: false });
+  });
+
+  it("accepts a translation that keeps the bracketed word", () => {
+    expect(
+      compareInlineMarkup("Press <Enter> to continue", "Drücke <Enter> zum Fortfahren"),
+    ).toEqual({ matches: true, missing: [], extra: [], malformed: false });
+  });
+
+  it.each(["Press <Enter> to <b>save</b>", "Press <Enter> to continue"])(
+    "accepts %j translated as itself",
+    (value) => {
+      expect(compareInlineMarkup(value, value)).toEqual({
+        matches: true,
+        missing: [],
+        extra: [],
+        malformed: false,
+      });
+    },
+  );
+
+  it("counts bracketed words like tags once the source carries tags", () => {
+    expect(compareInlineMarkup("Press <Enter> to <b>save</b>", "Drücke <b>speichern</b>")).toEqual({
+      matches: false,
+      missing: ["<Enter>"],
+      extra: [],
+      malformed: false,
+    });
+    expect(
+      compareInlineMarkup("Press <Enter> to <b>save</b>", "Drücke <Enter> <Tab> <b>speichern</b>"),
+    ).toEqual({ matches: false, missing: [], extra: ["<Tab>"], malformed: false });
+  });
+
+  it("matches an unclosed opening tag against the same tag closed in the source", () => {
+    expect(compareInlineMarkup("<b>Bold</b>", "<b>Fett")).toEqual({
+      matches: false,
+      missing: ["</b>"],
+      extra: [],
+      malformed: false,
+    });
+  });
+});
+
+describe("compareInlineMarkup: a bracketed word that is also an HTML element name", () => {
+  it.each([
+    ["Remove", "<Del>Entfernen", "<Del>"],
+    ["Pick", "<Option> wählen", "<Option>"],
+    ["Pick", "<Select> wählen", "<Select>"],
+    ["Type", "<Input> eingeben", "<Input>"],
+    ["Open", "<Menu> öffnen", "<Menu>"],
+  ])("refuses %j translated as %j when the source has no such word", (source, translated, tag) => {
+    expect(compareInlineMarkup(source, translated)).toEqual({
+      matches: false,
+      missing: [],
+      extra: [tag],
+      malformed: false,
+    });
+  });
+
+  it("accepts the word once the source carries it too", () => {
+    expect(compareInlineMarkup("Press <Del> to remove", "Drücke <Del> zum Entfernen").matches).toBe(
+      true,
+    );
+    expect(compareInlineMarkup("Press <Input> to type", "Drücke <Input> zum Tippen").matches).toBe(
+      true,
+    );
+  });
+
+  it("still refuses markup invented beside a word the source carries", () => {
+    expect(
+      compareInlineMarkup("Press <Del> to remove", "Drücke <Del> <script>alert(1)</script>"),
+    ).toEqual({ matches: false, missing: [], extra: ["</script>", "<script>"], malformed: false });
+  });
+
+  it("refuses a second copy of a word the source carries once", () => {
+    const result = compareInlineMarkup("Press <Del> to remove", "Drücke <Del> oder <Del>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<Del>"]);
+  });
+});
+
 describe("compareInlineMarkup: constructs that are not inline tags", () => {
   it.each([
     ["<!-- a comment -->", "<!-- ein Kommentar -->"],
@@ -712,7 +803,12 @@ describe("compareInlineMarkup: both spellings of one name accounted for", () => 
 
   it("ignores a closing tag it is handed on its own without ignoring its opening one", () => {
     const result = compareInlineMarkup("<b>a</b><br/>b", "a b", { ignoreTags: ["</b>"] });
-    expect(result.matches).toBe(true);
+    expect(result).toEqual({
+      matches: false,
+      missing: ["<b>", "<br>"],
+      extra: [],
+      malformed: false,
+    });
   });
 });
 
