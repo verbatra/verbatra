@@ -1,9 +1,11 @@
 import type { LiteralRules } from "../literals/find-literals.js";
-import { I18NEXT_CALLEE_NAMES, I18NEXT_EXTENSIONS } from "./i18next-extractor.js";
+import {
+  I18NEXT_CALLEE_NAMES,
+  I18NEXT_EXTENSIONS,
+  I18NEXT_TRANSLATION_ELEMENTS,
+} from "./i18next-extractor.js";
 
 const I18NEXT_MARKUP_EXTENSIONS = [".tsx", ".jsx", ".js"] as const;
-
-export const I18NEXT_TRANSLATION_ELEMENTS = ["Trans", "Translation"] as const;
 
 const I18NEXT_TRANSLATION_HOOKS = ["useTranslation"] as const;
 

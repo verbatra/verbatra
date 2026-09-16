@@ -1,9 +1,7 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { describe, expect, it } from "vitest";
-import {
-  createI18nextLiteralRules,
-  I18NEXT_TRANSLATION_ELEMENTS,
-} from "../i18next/i18next-literal-rules.js";
+import { I18NEXT_TRANSLATION_ELEMENTS } from "../i18next/i18next-extractor.js";
+import { createI18nextLiteralRules } from "../i18next/i18next-literal-rules.js";
 import { findLiterals } from "./find-literals.js";
 
 const rules = createI18nextLiteralRules();
