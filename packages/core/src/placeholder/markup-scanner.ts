@@ -47,7 +47,7 @@ interface AttributeValue {
 }
 
 interface Construct {
-  readonly token: string;
+  readonly token: string | undefined;
   readonly end: number;
 }
 
@@ -119,9 +119,17 @@ function readBogusComment(value: string, start: number): Construct {
   return { token: collapseWhitespace(value.slice(start, end)), end };
 }
 
-function opensEndTag(value: string, start: number): boolean {
+function closesNumericTag(value: string, start: number): boolean {
+  return value.charCodeAt(skipSpaces(value, digitsEnd(value, start + 2))) === GREATER_THAN;
+}
+
+function readEndTagOpen(value: string, start: number): Construct | undefined {
   const code = value.charCodeAt(start + 2);
-  return isAsciiAlpha(code) || isAsciiDigit(code);
+  if (code === GREATER_THAN) {
+    return { token: undefined, end: start + 3 };
+  }
+  const endTag = isAsciiAlpha(code) || (isAsciiDigit(code) && closesNumericTag(value, start));
+  return endTag || start + 2 >= value.length ? undefined : readBogusComment(value, start);
 }
 
 function readConstruct(
@@ -140,10 +148,7 @@ function readConstruct(
     }
     return readBogusComment(value, start);
   }
-  if (marker === SLASH && start + 2 < value.length && !opensEndTag(value, start)) {
-    return readBogusComment(value, start);
-  }
-  return undefined;
+  return marker === SLASH ? readEndTagOpen(value, start) : undefined;
 }
 
 function openTagToken(
@@ -270,11 +275,7 @@ function textAt(start: number): ReadTag {
   return { tag: undefined, end: start + 1 };
 }
 
-function readNumericClose(value: string, start: number, name: string, nameEnd: number): ReadTag {
-  const close = skipSpaces(value, nameEnd);
-  if (value.charCodeAt(close) !== GREATER_THAN) {
-    return textAt(start);
-  }
+function readNumericClose(name: string, nameEnd: number, close: number): ReadTag {
   const bare = close === nameEnd;
   return {
     tag: { token: `</${name}>`, name, kind: "close", bare, attributes: [] },
@@ -298,7 +299,7 @@ function readNumericTag(value: string, start: number, closing: boolean): ReadTag
   const nameEnd = digitsEnd(value, nameStart);
   const name = value.slice(nameStart, nameEnd);
   return closing
-    ? readNumericClose(value, start, name, nameEnd)
+    ? readNumericClose(name, nameEnd, skipSpaces(value, nameEnd))
     : readNumericOpen(value, start, name, nameEnd);
 }
 
@@ -337,7 +338,9 @@ function continueAfterTag(
 function scanAt(value: string, start: number, finders: CommentFinders, scan: MutableScan): number {
   const construct = readConstruct(value, start, finders, scan);
   if (construct !== undefined) {
-    scan.constructs.push(construct.token);
+    if (construct.token !== undefined) {
+      scan.constructs.push(construct.token);
+    }
     return construct.end;
   }
   const { tag, end, unterminated } = readTag(value, start);

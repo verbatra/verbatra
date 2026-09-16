@@ -565,7 +565,6 @@ describe("compareInlineMarkup: comments and bogus comments end where an HTML par
     ["Hallo <!----!> x", ["<!---->"]],
     ["Hallo <!--!> x", ["<!--!> x"]],
     ["Hallo <!> x", ["<!>"]],
-    ["Hallo </>", ["</>"]],
     ["Hallo <?php echo <b>x</b>", ["</b>", "<?php echo <b>"]],
     ["Hallo <![CDATA[ unterminated", ["<![CDATA[ unterminated"]],
   ])("refuses %j against a source with no markup", (translated, extra) => {
@@ -930,7 +929,7 @@ describe("compareInlineMarkup: tags are read the way an HTML parser reads them",
     });
   });
 
-  it.each(["Hallo <0 x>", "Hallo </0 x>", "Hallo <1", "Hallo </"])(
+  it.each(["Hallo <0 x>", "Hallo <1", "Hallo </"])(
     "reads %j as text or as a tag the parser never finishes, so nothing is invented",
     (value) => {
       expect(compareInlineMarkup("Hello", value).matches).toBe(true);
