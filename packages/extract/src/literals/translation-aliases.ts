@@ -40,19 +40,88 @@ function aliasAt(
   return renamesTranslation && rules.translationHooks.has(source) ? alias : undefined;
 }
 
-export function withTranslationAliases(
+interface AliasScope {
+  readonly name: string;
+  readonly first: number;
+  last: number;
+}
+
+interface RecognitionSegment {
+  readonly start: number;
+  readonly recognition: TranslationRecognition;
+}
+
+export type RecognitionAt = (index: number) => TranslationRecognition;
+
+function collectAliasScopes(
   tokens: readonly PositionedToken[],
   rules: TranslationRecognition,
-): TranslationRecognition {
-  const aliases = new Set<string>();
-  tokens.forEach((_token, index) => {
-    const alias = aliasAt(tokens, index, rules);
-    if (alias !== undefined) {
-      aliases.add(alias);
+): AliasScope[] {
+  const scopes: AliasScope[] = [];
+  const blocks: AliasScope[][] = [[]];
+  tokens.forEach((token, index) => {
+    if (isPunct(token, "{")) {
+      blocks.push([]);
+    } else if (isPunct(token, "}") && blocks.length > 1) {
+      for (const scope of blocks.pop() ?? []) {
+        scope.last = index;
+      }
+    }
+    const name = aliasAt(tokens, index, rules);
+    if (name !== undefined) {
+      const scope = { name, first: index, last: tokens.length - 1 };
+      scopes.push(scope);
+      blocks[blocks.length - 2]?.push(scope);
     }
   });
-  if (aliases.size === 0) {
+  return scopes;
+}
+
+function recognitionWith(
+  rules: TranslationRecognition,
+  scopes: readonly AliasScope[],
+  index: number,
+): TranslationRecognition {
+  const active = scopes.filter((scope) => scope.first <= index && index <= scope.last);
+  if (active.length === 0) {
     return rules;
   }
-  return { ...rules, calleeNames: new Set([...rules.calleeNames, ...aliases]) };
+  const calleeNames = new Set([...rules.calleeNames, ...active.map((scope) => scope.name)]);
+  return { ...rules, calleeNames };
+}
+
+function segmentsOf(
+  rules: TranslationRecognition,
+  scopes: readonly AliasScope[],
+): RecognitionSegment[] {
+  const starts = new Set([0, ...scopes.flatMap((scope) => [scope.first, scope.last + 1])]);
+  return [...starts]
+    .sort((left, right) => left - right)
+    .map((start) => ({ start, recognition: recognitionWith(rules, scopes, start) }));
+}
+
+function segmentIndexAt(segments: readonly RecognitionSegment[], index: number): number {
+  let low = 0;
+  let high = segments.length - 1;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if ((segments[middle]?.start ?? 0) <= index) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return low;
+}
+
+export function translationRecognitionAt(
+  tokens: readonly PositionedToken[],
+  rules: TranslationRecognition,
+): RecognitionAt {
+  const scopes = collectAliasScopes(tokens, rules);
+  if (scopes.length === 0) {
+    return () => rules;
+  }
+  const segments = segmentsOf(rules, scopes);
+  return (index) => segments[segmentIndexAt(segments, index)]?.recognition ?? rules;
 }

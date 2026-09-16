@@ -92,6 +92,41 @@ describe("findLiterals: a renamed translation function", () => {
     );
   });
 
+  it("applies a rename from its declaration to the end of the enclosing block", () => {
+    onlyControl(
+      [
+        "function One() {",
+        '  const { t: translate } = useTranslation("common");',
+        "  if (ready) {",
+        '    translate("Hello world");',
+        "  }",
+        '  return <p title={translate("Hello world")}>{translate("Hello world")}</p>;',
+        "}",
+      ].join("\n"),
+    );
+    onlyControl(
+      'const { t: translate } = useTranslation();\nfunction f() { translate("Hello world"); }',
+    );
+  });
+
+  it("does not apply a rename outside its block or before its declaration", () => {
+    expect(
+      texts(
+        [
+          "function One() {",
+          '  translate("Used before the rename");',
+          "  const { t: translate } = useTranslation();",
+          '  return translate("Hello world");',
+          "}",
+          "function Two() {",
+          '  return translate("Local helper copy");',
+          "}",
+        ].join("\n"),
+        false,
+      ),
+    ).toEqual(["Used before the rename", "Local helper copy"]);
+  });
+
   it("still reports a literal passed to a name renamed out of something else", () => {
     expect(
       texts('const { t: translate } = useSomethingElse();\ntranslate("Hello world");', false),

@@ -11,7 +11,8 @@ attribute (`alt`, `title`, `placeholder`, `label`, `aria-label` and similar), an
 literal that does not go through a recognised translation call. Each finding carries its file, line,
 and column, and its text has whitespace collapsed, JSX character references such as `&amp;` decoded,
 and is cut to at most 80 characters. The scan prefers staying quiet to being noisy: a literal passed
-to `t()` (also when renamed, as in `const { t: translate } = useTranslation()`) or rendered inside
+to `t()` (also when renamed, as in `const { t: translate } = useTranslation()`, from that declaration to the
+end of its block) or rendered inside
 `<Trans>` or `<Translation>`, an object key, an import specifier, a class name or CSS value, a test
 id or `data-*` attribute, an attribute that holds ids or a keyword (`aria-describedby`,
 `aria-labelledby`, `rel`, `sandbox`, `autoComplete`, `referrerPolicy` and similar), a URL, a literal

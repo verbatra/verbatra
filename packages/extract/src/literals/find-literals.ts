@@ -4,7 +4,7 @@ import { isUntranslatedLiteral, type TranslationRecognition } from "./literal-au
 import { directiveSuppression } from "./literal-directives.js";
 import { type LiteralFrame, updateFrames } from "./literal-frames.js";
 import { decodeCharacterReferences, normalizeLiteralText } from "./literal-text.js";
-import { withTranslationAliases } from "./translation-aliases.js";
+import { translationRecognitionAt } from "./translation-aliases.js";
 
 export interface LiteralRules extends TranslationRecognition {
   readonly extensions: readonly string[];
@@ -37,7 +37,7 @@ export function findLiterals(
   markup: boolean,
 ): FileLiterals {
   const scan = scanSource(content, markup ? { markup: readMarkup } : {});
-  const recognition = withTranslationAliases(scan.tokens, rules);
+  const recognitionAt = translationRecognitionAt(scan.tokens, rules);
   const isSuppressed = directiveSuppression(scan);
   const frames: LiteralFrame[] = [];
   const found: FoundLiteral[] = [];
@@ -45,7 +45,7 @@ export function findLiterals(
   scan.tokens.forEach((token, index) => {
     if (
       (token.kind === "string" || token.kind === "markup-text") &&
-      isUntranslatedLiteral(scan.tokens, index, frames, recognition)
+      isUntranslatedLiteral(scan.tokens, index, frames, recognitionAt(index))
     ) {
       (isSuppressed(token, index) ? suppressed : found).push(
         toFound(
