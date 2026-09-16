@@ -42,8 +42,13 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  *   source's tags and constructs, or more than 256 for a smaller source. Also refused: a tag the
  *   candidate never finishes when the source finishes all of its own; a `javascript:`,
  *   `vbscript:`, or `data:` scheme in a URL attribute value, read after decoding character
- *   references, unless the source carries that exact value on the same tag and attribute; a
- *   changed `srcdoc` or event handler value; any change to the content of a `script`, `style`,
+ *   references, unless the source carries that exact value on the same tag and attribute; a URL
+ *   in such a value whose scheme and authority no source value of the same tag and attribute has,
+ *   or a relative URL made absolute; a changed value of `meta` `http-equiv` or `content`, `script`
+ *   `type`, `nomodule`, `integrity` or `crossorigin`, `link` `rel`, `as`, `integrity`,
+ *   `crossorigin` or `type`, `base` `target`, SVG animation `attributeName` or `attributeType`,
+ *   `iframe` `sandbox`, `allow` or `allowfullscreen`, `form` `method`, `enctype` or `target`, or
+ *   any `style`, `srcdoc` or event handler; any change to the content of a `script`, `style`,
  *   `iframe`, `noembed`, `noframes`, `noscript`, `xmp`, or `plaintext` element (`title` and
  *   `textarea` content may be translated); and, unless the candidate is the source unchanged,
  *   raw text an HTML parser can read two ways (a `script` whose content opens `<!--`, a `noscript`

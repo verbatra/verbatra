@@ -82,8 +82,8 @@ something is a finding:
   links silently become one.
 - Accepted: the same tags in a different order, because translating a sentence moves its markup
   around, a changed attribute value, because a translated `title` or a localized `href` is a correct
-  translation rather than a broken one (within the limits on URL, `srcdoc` and event handler values
-  described below), and either spelling of a void element, so `<br>` and `<br/>` are one tag.
+  translation rather than a broken one (within the limits on attribute values described below), and
+  either spelling of a void element, so `<br>` and `<br/>` are one tag.
 - Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
   `<b>a b</b>`) is refused, because the comparison cannot tell a cosmetic merge from two links
   collapsing into one.
@@ -166,15 +166,30 @@ attribute. No source is too large to compare either. A candidate is refused only
 more than twice as many tags and constructs as its source, or more than 256 for a smaller source,
 with the detail `+more than N inline tags` naming that limit.
 
-Attribute values are free with three exceptions, which exist because a translated value ends up in a
-page. The value of a URL attribute (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
-`data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive`, and
-the SVG animation attributes `to`, `from`, `values` and `by`) is read after decoding numeric
-character references and `&colon;`, `&Tab;` and `&NewLine;` and ignoring tabs, line breaks and
-leading control characters, and a `javascript:`, `vbscript:` or `data:` scheme in it is refused
+Attribute values are free with exceptions, which exist because a translated value ends up in a page.
+The value of a URL attribute (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`, `data`,
+`background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive`, and the SVG
+animation attributes `to`, `from`, `values` and `by`) is read after decoding numeric character
+references and `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` and `&bsol;` and ignoring tabs, line breaks
+and surrounding control characters. A `javascript:`, `vbscript:` or `data:` scheme in it is refused
 unless the source carries that exact value on the same tag and attribute, with a detail such as
-`+<a href="javascript:...">`. A `srcdoc` value and an event handler value such as `onclick` that the
-source carries must come back byte for byte. A localized `href="/de/docs"` is accepted as before.
+`+<a href="javascript:...">`. Beyond that, every URL in the value, including each URL of a `srcset`,
+`ping`, `archive` or `values` list, must keep a scheme and authority (host and port, or the host of
+a scheme-relative `//host` URL) that a source value of the same tag and attribute has, and a
+relative URL must stay relative. So `/docs` may become `/de/docs` and `https://verbatra.dev/en` may
+become `https://verbatra.dev/de`, but `/docs` may not become `https://evil.example/docs` or
+`//evil.example/docs`, and a localized absolute link has to keep the same host; the detail names the
+new origin, such as `+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute
+link made relative. The path, query and fragment may change freely.
+
+Some attribute values must come back exactly as the source has them, compared after decoding
+character references, with a detail such as `+<meta content="...">`: `http-equiv` and `content` on
+`meta`; `type`, `nomodule`, `integrity` and `crossorigin` on `script`; `rel`, `as`, `integrity`,
+`crossorigin` and `type` on `link`; `target` on `base`; `attributeName` and `attributeType` on
+`set`, `animate`, `animateTransform` and `animateMotion`; `sandbox`, `allow` and `allowfullscreen`
+on `iframe`; `method`, `enctype` and `target` on `form`; and `style`, `srcdoc` and every event
+handler such as `onclick` on any element. A translatable attribute such as `title` or `alt` stays
+free.
 
 Two format-shaped limits follow from comparing whole values. For a format that packs several plural
 arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language

@@ -53,8 +53,8 @@ describe("compareInlineMarkup: a URL attribute value may not gain a script-runni
 
   it.each([
     '<a href="/de/docs">Doku</a>',
-    '<a href="https://example.com/metadata:v2">Doku</a>',
-    '<a href="mailto:hi@example.com">Doku</a>',
+    '<a href="/de/metadata:v2">Doku</a>',
+    '<a href="docs?lang=de">Doku</a>',
     '<a href="?q=javascriptish">Doku</a>',
     '<a href="&amp;&unknown;/de">Doku</a>',
     '<a href="&#x110000;&#0;/de">Doku</a>',
@@ -77,7 +77,7 @@ describe("compareInlineMarkup: a URL attribute value may not gain a script-runni
       '<a href="/x">Öffnen</a> <img src="javascript:void(0)">',
     );
     expect(result.matches).toBe(false);
-    expect(result.extra).toEqual(['<img src="javascript:...">']);
+    expect(result.extra).toEqual(['<a href="./...">', '<img src="javascript:...">']);
   });
 
   it("refuses a dangerous value that differs from the source's in any byte", () => {

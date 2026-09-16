@@ -55,15 +55,28 @@ compared as a multiset of its text with whitespace runs collapsed, so a construc
 adds, drops or rewrites is refused, including a comment or CDATA section whose text was translated,
 and tags after a construct's end are compared as usual.
 
-Attribute values are free with three exceptions, because a translated value ends up in a page. A
+Attribute values are free with exceptions, because a translated value ends up in a page. A
 `javascript:`, `vbscript:` or `data:` scheme in the value of a URL attribute (`href`, `src`,
 `action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`,
 `srcset`, `manifest`, `codebase`, `archive`, and the SVG animation attributes `to`, `from`, `values`
-and `by`), read after decoding numeric character references and `&colon;`, `&Tab;` and `&NewLine;`
-and ignoring tabs, line breaks and leading control characters, is refused unless the source carries
-that exact value on the same tag and attribute, with a detail such as `+<a href="javascript:...">`.
-A `srcdoc` value and an event handler value such as `onclick` that the source carries must come back
-byte for byte.
+and `by`), read after decoding numeric character references and `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` and `&bsol;` and ignoring tabs, line breaks and surrounding control characters, is refused
+unless the source carries that exact value on the same tag and attribute, with a detail such as
+`+<a href="javascript:...">`. Every URL in such a value, including each URL of a `srcset`, `ping`,
+`archive` or `values` list, must also keep a scheme and authority (host and port, or the host of a
+scheme-relative `//host` URL) that a source value of the same tag and attribute has, and a relative
+URL must stay relative: `/docs` may become `/de/docs` and `https://verbatra.dev/en` may become
+`https://verbatra.dev/de`, but a link, base, script or stylesheet URL may not move to another host,
+so a localized absolute link has to keep the same host. The detail names the new origin, such as
+`+<a href="https://evil.example...">`.
+
+The value of `meta` `http-equiv` and `content`; `script` `type`, `nomodule`, `integrity` and
+`crossorigin`; `link` `rel`, `as`, `integrity`, `crossorigin` and `type`; `base` `target`;
+`attributeName` and `attributeType` on `set`, `animate`, `animateTransform` and `animateMotion`;
+`iframe` `sandbox`, `allow` and `allowfullscreen`; `form` `method`, `enctype` and `target`; and any
+`style`, `srcdoc` or event handler such as `onclick` must equal, after decoding character
+references, a value the source carries on the same tag and attribute, with a detail such as
+`+<meta content="...">`.
 
 The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
 `plaintext` element runs or styles the page rather than being shown, so each such element in the

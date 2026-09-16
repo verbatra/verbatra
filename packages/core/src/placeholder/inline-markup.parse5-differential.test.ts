@@ -6,6 +6,7 @@ import {
 } from "parse5";
 import { describe, expect, it } from "vitest";
 import { compareInlineMarkup, type InlineMarkupOptions } from "./inline-markup.js";
+import { URL_ATTRIBUTES } from "./url-attributes.js";
 
 type ParserNode = DefaultTreeAdapterMap["node"];
 type ParserElement = DefaultTreeAdapterMap["element"];
@@ -15,8 +16,14 @@ interface ParsedShape {
   readonly attributes: ReadonlySet<string>;
   readonly comments: number;
   readonly values: ReadonlySet<string>;
-  readonly unsafeValues: readonly string[];
+  readonly guardedValues: readonly string[];
+  readonly origins: ReadonlySet<string>;
+  readonly urlOrigins: readonly string[];
   readonly verbatim: ReadonlyMap<string, readonly string[]>;
+}
+
+interface UrlConstructor {
+  new (url: string, base: string): { readonly protocol: string; readonly host: string };
 }
 
 interface GeneratedPair {
@@ -28,16 +35,51 @@ interface GeneratedPair {
 const SEED = 270;
 const PAIR_COUNT = 3000;
 const PROSE_WORD_ELEMENTS: ReadonlySet<string> = new Set(["enter", "tab"]);
-const URL_ATTRIBUTES: ReadonlySet<string> = new Set([
-  "action",
-  "background",
-  "formaction",
-  "href",
-  "poster",
-  "src",
-  "srcset",
-  "xlink:href",
+const WHATWG_URL = (globalThis as unknown as { readonly URL: UrlConstructor }).URL;
+const RELATIVE_BASE = "https://relative.invalid/base/";
+const URL_LIST_SEPARATORS: Readonly<Record<string, RegExp>> = {
+  archive: /[\s,]+/,
+  ping: /\s+/,
+  srcset: /,/,
+  values: /;/,
+};
+const SCRIPTING_MODES = [true, false];
+const GUARDED_ATTRIBUTES: ReadonlySet<string> = new Set([
+  "animate attributename",
+  "animate attributetype",
+  "animatemotion attributename",
+  "animatemotion attributetype",
+  "animatetransform attributename",
+  "animatetransform attributetype",
+  "base target",
+  "form enctype",
+  "form method",
+  "form target",
+  "iframe allow",
+  "iframe allowfullscreen",
+  "iframe sandbox",
+  "link as",
+  "link crossorigin",
+  "link integrity",
+  "link rel",
+  "link type",
+  "meta content",
+  "meta http-equiv",
+  "script crossorigin",
+  "script integrity",
+  "script nomodule",
+  "script type",
+  "set attributename",
+  "set attributetype",
 ]);
+
+function isGuarded(element: string, name: string): boolean {
+  return (
+    GUARDED_ATTRIBUTES.has(`${element} ${name}`) ||
+    ["srcdoc", "style"].includes(name) ||
+    name.startsWith("on")
+  );
+}
 const VERBATIM_ELEMENTS: ReadonlySet<string> = new Set([
   "iframe",
   "noembed",
@@ -144,8 +186,57 @@ const ELEMENT_WORDS = [
   "</svg>",
   "<math>",
 ];
+const ORIGINS = [
+  '<a href="https://verbatra.dev/en">',
+  '<a href="https://verbatra.dev/de">',
+  '<a href="https://evil.example/">',
+  '<a href="//evil.example/x">',
+  '<a href="/\\evil.example/x">',
+  '<a href="&sol;&sol;evil.example/">',
+  '<a href="/de/docs">',
+  '<base href="/">',
+  '<base href="https://evil.example/">',
+  '<script src="/a.js">',
+  '<script src="https://evil.example/a.js">',
+  '<link rel="stylesheet" href="/s.css">',
+  '<link rel="stylesheet" href="https://evil.example/s.css">',
+  '<img srcset="/a.png 1x, /b.png 2x">',
+  '<img srcset="/a.png 1x, https://evil.example/b.png 2x">',
+  '<a ping="/p https://evil.example/p">',
+];
+const GUARDED = [
+  '<meta http-equiv="refresh" content="5;url=/home">',
+  '<meta http-equiv="refresh" content="0;url=javascript:alert(1)">',
+  '<meta http-equiv="refresh" content="5&#59;url=/home">',
+  '<link rel="import" href="/s.css">',
+  '<link rel="stylesheet" href="/s.css">',
+  '<script type="text/template">',
+  '<script type="module">',
+  '<span style="color:red">',
+  '<span style="background:url(javascript:alert(1))">',
+  "</span>",
+  '<svg><set attributeName="fill" to="red"/>',
+  '<svg><set attributeName="onclick" to="red"/>',
+  '<iframe sandbox="allow-forms">',
+  '<iframe sandbox="allow-scripts allow-same-origin">',
+  '<b onclick="go()">',
+  '<b onclick="alert(1)">',
+];
 const XLIFF = ['<g id="1">', "</g>", '<x id="2"/>'];
-const POOLS = [TEXT, TEXT, PHRASING, RAW_TEXT, INJECTIONS, CONSTRUCTS, URLS, ELEMENT_WORDS, XLIFF];
+const POOLS = [
+  TEXT,
+  TEXT,
+  PHRASING,
+  RAW_TEXT,
+  INJECTIONS,
+  CONSTRUCTS,
+  URLS,
+  ORIGINS,
+  GUARDED,
+  GUARDED,
+  ELEMENT_WORDS,
+  XLIFF,
+];
 
 function mulberry32(seed: number): () => number {
   let state = seed;
@@ -244,6 +335,25 @@ function readableUrl(value: string): string {
   return value.replace(/[\t\n\r]/g, "").toLowerCase();
 }
 
+function urlsIn(name: string, value: string): readonly string[] {
+  const separator = URL_LIST_SEPARATORS[name];
+  if (separator === undefined) {
+    return [value];
+  }
+  const parts = value.split(separator).map((part) => part.trim());
+  const urls = name === "srcset" ? parts.map((part) => part.split(/\s+/, 1).join("")) : parts;
+  return urls.filter((url) => url.length > 0);
+}
+
+function resolvedOrigin(url: string): string {
+  try {
+    const resolved = new WHATWG_URL(url, RELATIVE_BASE);
+    return `${resolved.protocol}//${resolved.host}`;
+  } catch {
+    return `unparsable ${url}`;
+  }
+}
+
 function childrenOf(node: ParserNode): readonly ParserNode[] {
   if (!("childNodes" in node)) {
     return [];
@@ -272,70 +382,103 @@ function verbatimContents(node: ParserNode, contents: Map<string, string[]>): vo
   }
 }
 
-function shapeOf(html: string): ParsedShape {
-  const elements = new Set<string>();
-  const attributes = new Set<string>();
-  const values = new Set<string>();
-  const unsafeValues: string[] = [];
-  let comments = 0;
-  const fragment = parseFragment(DIV, html, {});
-  const verbatim = new Map<string, string[]>();
-  verbatimContents(fragment, verbatim);
+interface MutableShape {
+  readonly elements: Set<string>;
+  readonly attributes: Set<string>;
+  readonly values: Set<string>;
+  readonly guardedValues: string[];
+  readonly origins: Set<string>;
+  readonly urlOrigins: string[];
+  readonly verbatim: Map<string, string[]>;
+  comments: number;
+}
+
+function recordAttribute(shape: MutableShape, element: string, name: string, raw: string): void {
+  const key = `${element} ${name}`;
+  const value = `${key}=${raw}`;
+  shape.attributes.add(key);
+  shape.values.add(value);
+  const dangerous = URL_ATTRIBUTES.has(name) && DANGEROUS_SCHEME.test(readableUrl(raw));
+  if (dangerous || isGuarded(element, name)) {
+    shape.guardedValues.push(value);
+  }
+  for (const url of URL_ATTRIBUTES.has(name) ? urlsIn(name, raw) : []) {
+    const origin = `${key} ${resolvedOrigin(url)}`;
+    shape.origins.add(origin);
+    shape.urlOrigins.push(origin);
+  }
+}
+
+function recordNode(shape: MutableShape, node: ParserNode): void {
+  if (tree.isCommentNode(node)) {
+    shape.comments += 1;
+  }
+  if (!tree.isElementNode(node)) {
+    return;
+  }
+  const element = node.tagName.toLowerCase();
+  shape.elements.add(element);
+  for (const attribute of node.attrs) {
+    recordAttribute(shape, element, attributeName(attribute), attribute.value);
+  }
+}
+
+function shapeOf(html: string, scriptingEnabled: boolean): ParsedShape {
+  const shape: MutableShape = {
+    elements: new Set(),
+    attributes: new Set(),
+    values: new Set(),
+    guardedValues: [],
+    origins: new Set(),
+    urlOrigins: [],
+    verbatim: new Map(),
+    comments: 0,
+  };
+  const fragment = parseFragment(DIV, html, { scriptingEnabled });
+  verbatimContents(fragment, shape.verbatim);
   const pending: ParserNode[] = [fragment];
   for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
     pending.push(...childrenOf(node));
-    if (tree.isCommentNode(node)) {
-      comments += 1;
-    }
-    if (!tree.isElementNode(node)) {
-      continue;
-    }
-    const element = node.tagName.toLowerCase();
-    elements.add(element);
-    for (const attribute of node.attrs) {
-      const name = attributeName(attribute);
-      const key = `${element} ${name}`;
-      attributes.add(key);
-      values.add(`${key}=${attribute.value}`);
-      const urlScheme =
-        URL_ATTRIBUTES.has(name) && DANGEROUS_SCHEME.test(readableUrl(attribute.value));
-      if (urlScheme || name === "srcdoc" || name.startsWith("on")) {
-        unsafeValues.push(`${key}=${attribute.value}`);
-      }
-    }
+    recordNode(shape, node);
   }
-  return { elements, attributes, comments, values, unsafeValues, verbatim };
+  return shape;
 }
 
-function introducedBy(source: ParsedShape, candidate: ParsedShape): readonly string[] {
-  const introduced: string[] = [];
-  for (const element of candidate.elements) {
-    if (!source.elements.has(element) && !PROSE_WORD_ELEMENTS.has(element)) {
-      introduced.push(`element ${element}`);
-    }
-  }
-  for (const attribute of candidate.attributes) {
-    if (!source.attributes.has(attribute)) {
-      introduced.push(`attribute ${attribute}`);
-    }
-  }
-  if (candidate.comments > source.comments) {
-    introduced.push(`${candidate.comments - source.comments} comment(s)`);
-  }
-  for (const value of candidate.unsafeValues) {
-    if (!source.values.has(value)) {
-      introduced.push(`value ${value}`);
-    }
-  }
+function absentFrom(
+  known: ReadonlySet<string>,
+  items: Iterable<string>,
+  label: string,
+): readonly string[] {
+  return [...items].filter((item) => !known.has(item)).map((item) => `${label} ${item}`);
+}
+
+function changedContents(source: ParsedShape, candidate: ParsedShape): readonly string[] {
+  const changed: string[] = [];
   for (const [name, contents] of candidate.verbatim) {
     const expected = source.verbatim.get(name) ?? [];
     contents.forEach((content, index) => {
       if (expected[index] !== content) {
-        introduced.push(`${name} content ${JSON.stringify(content)}`);
+        changed.push(`${name} content ${JSON.stringify(content)}`);
       }
     });
   }
-  return introduced;
+  return changed;
+}
+
+function introducedBy(source: ParsedShape, candidate: ParsedShape): readonly string[] {
+  const elements = [...candidate.elements].filter((element) => !PROSE_WORD_ELEMENTS.has(element));
+  const comments =
+    candidate.comments > source.comments
+      ? [`${candidate.comments - source.comments} comment(s)`]
+      : [];
+  return [
+    ...absentFrom(source.elements, elements, "element"),
+    ...absentFrom(source.attributes, candidate.attributes, "attribute"),
+    ...comments,
+    ...absentFrom(source.values, candidate.guardedValues, "value"),
+    ...absentFrom(source.origins, candidate.urlOrigins, "url origin"),
+    ...changedContents(source, candidate),
+  ];
 }
 
 function placeholdersOf(value: string): string {
@@ -362,13 +505,15 @@ describe("compareInlineMarkup against the parse5 HTML parser", () => {
     expect(refusedIdentity).toEqual([]);
   });
 
-  it("introduces no element, attribute, comment, unsafe value or script-like content parse5 does not find in the source", () => {
+  it("introduces nothing parse5 does not find in the source, with scripting on or off", () => {
     const misses = pairs
       .filter((pair) => passesPlaceholderCheck(pair))
       .filter((pair) => compareInlineMarkup(pair.source, pair.candidate, pair.options).matches)
       .map((pair) => ({
         ...pair,
-        introduced: introducedBy(shapeOf(pair.source), shapeOf(pair.candidate)),
+        introduced: SCRIPTING_MODES.flatMap((scripting) =>
+          introducedBy(shapeOf(pair.source, scripting), shapeOf(pair.candidate, scripting)),
+        ),
       }))
       .filter((pair) => pair.introduced.length > 0);
     expect(misses).toEqual([]);

@@ -1,6 +1,4 @@
-import type { InlineTag, MarkupAttribute } from "./markup-scanner.js";
-
-const URL_ATTRIBUTES: ReadonlySet<string> = new Set([
+export const URL_ATTRIBUTES: ReadonlySet<string> = new Set([
   "action",
   "archive",
   "background",
@@ -22,11 +20,21 @@ const URL_ATTRIBUTES: ReadonlySet<string> = new Set([
   "xlink:href",
 ]);
 
+const LIST_SEPARATORS: Readonly<Record<string, RegExp>> = {
+  archive: /[\s,]+/,
+  ping: /\s+/,
+  srcset: /,/,
+  values: /;/,
+};
+
 const NUMERIC_REFERENCE = /&#(?:[xX]([0-9a-fA-F]+)|([0-9]+));?/g;
-const NAMED_REFERENCE = /&(colon|tab|newline);?/gi;
+const NAMED_REFERENCE = /&(colon|tab|newline|sol|bsol);?/gi;
 const TAB_OR_NEWLINE = /[\t\n\r]/g;
 const EMBEDDED_SCHEME = /(?:^|[^a-z0-9+.-])(javascript|vbscript|data):/;
 const LEADING_SCHEME = /^(javascript|vbscript|data):/;
+const SCHEME = /^([a-z][a-z0-9+.-]*):/;
+const LEADING_SLASHES = /^[/\\]*/;
+const AUTHORITY_END = /[/\\?#]/;
 const REPLACEMENT_CHARACTER = "�";
 
 function decodeNumeric(
@@ -43,11 +51,22 @@ function decodeNumeric(
 }
 
 function decodeNamed(_match: string, name: string): string {
-  const lower = name.toLowerCase();
-  if (lower === "colon") {
-    return ":";
+  switch (name.toLowerCase()) {
+    case "colon":
+      return ":";
+    case "tab":
+      return "\t";
+    case "newline":
+      return "\n";
+    case "sol":
+      return "/";
+    default:
+      return "\\";
   }
-  return lower === "tab" ? "\t" : "\n";
+}
+
+export function decodeReferences(raw: string): string {
+  return raw.replace(NUMERIC_REFERENCE, decodeNumeric).replace(NAMED_REFERENCE, decodeNamed);
 }
 
 function withoutControlsOrSpaces(text: string): string {
@@ -60,71 +79,52 @@ function withoutControlsOrSpaces(text: string): string {
   return kept;
 }
 
-function dangerousScheme(raw: string): string | undefined {
-  const decoded = raw
-    .replace(NUMERIC_REFERENCE, decodeNumeric)
-    .replace(NAMED_REFERENCE, decodeNamed)
-    .toLowerCase();
+function trimControlsOrSpaces(text: string): string {
+  let start = 0;
+  let end = text.length;
+  while (start < end && text.charCodeAt(start) <= 32) {
+    start += 1;
+  }
+  while (end > start && text.charCodeAt(end - 1) <= 32) {
+    end -= 1;
+  }
+  return text.slice(start, end);
+}
+
+export function isUrlAttribute(attributeName: string): boolean {
+  return URL_ATTRIBUTES.has(attributeName.toLowerCase());
+}
+
+export function dangerousScheme(raw: string): string | undefined {
+  const decoded = decodeReferences(raw).toLowerCase();
   return (
     LEADING_SCHEME.exec(withoutControlsOrSpaces(decoded))?.[1] ??
     EMBEDDED_SCHEME.exec(decoded.replace(TAB_OR_NEWLINE, ""))?.[1]
   );
 }
 
-function valueKey(tagName: string, attributeName: string): string {
-  return `${tagName.toLowerCase()} ${attributeName.toLowerCase()}`;
-}
-
-function sourceValues(tags: readonly InlineTag[]): ReadonlyMap<string, ReadonlySet<string>> {
-  const values = new Map<string, Set<string>>();
-  for (const tag of tags) {
-    for (const attribute of tag.attributes) {
-      const key = valueKey(tag.name, attribute.name);
-      const known = values.get(key) ?? new Set<string>();
-      known.add(attribute.value);
-      values.set(key, known);
-    }
-  }
-  return values;
-}
-
-function mustMatchSource(attributeName: string): boolean {
+export function urlsIn(attributeName: string, raw: string): readonly string[] {
   const name = attributeName.toLowerCase();
-  return name === "srcdoc" || name.startsWith("on");
+  const separator = LIST_SEPARATORS[name];
+  const decoded = decodeReferences(raw);
+  if (separator === undefined) {
+    return [decoded];
+  }
+  const parts = decoded.split(separator).map(trimControlsOrSpaces);
+  const urls = name === "srcset" ? parts.map((part) => part.split(/\s+/, 1).join("")) : parts;
+  return urls.filter((url) => url.length > 0);
 }
 
-function attributeFinding(
-  tag: InlineTag,
-  attribute: MarkupAttribute,
-  sourceCarriesName: boolean,
-): string | undefined {
-  if (mustMatchSource(attribute.name)) {
-    return sourceCarriesName ? `<${tag.name} ${attribute.name}="...">` : undefined;
+export function urlOrigin(decodedUrl: string): string {
+  const url = trimControlsOrSpaces(decodedUrl.replace(TAB_OR_NEWLINE, "")).toLowerCase();
+  const scheme = SCHEME.exec(url)?.[1];
+  const rest = scheme === undefined ? url : url.slice(scheme.length + 1);
+  const slashes = rest.length - rest.replace(LEADING_SLASHES, "").length;
+  if (scheme === undefined && slashes < 2) {
+    return "./";
   }
-  if (!URL_ATTRIBUTES.has(attribute.name.toLowerCase())) {
-    return undefined;
-  }
-  const scheme = dangerousScheme(attribute.value);
-  return scheme === undefined ? undefined : `<${tag.name} ${attribute.name}="${scheme}:...">`;
-}
-
-export function unsafeAttributeValues(
-  sourceTags: readonly InlineTag[],
-  translatedTags: readonly InlineTag[],
-): readonly string[] {
-  const allowed = sourceValues(sourceTags);
-  const findings: string[] = [];
-  for (const tag of translatedTags) {
-    for (const attribute of tag.attributes) {
-      const known = allowed.get(valueKey(tag.name, attribute.name));
-      if (known?.has(attribute.value) === true) {
-        continue;
-      }
-      const finding = attributeFinding(tag, attribute, known !== undefined);
-      if (finding !== undefined) {
-        findings.push(finding);
-      }
-    }
-  }
-  return findings;
+  const afterSlashes = rest.slice(slashes);
+  const end = afterSlashes.search(AUTHORITY_END);
+  const authority = end === -1 ? afterSlashes : afterSlashes.slice(0, end);
+  return scheme === undefined ? `//${authority}` : `${scheme}://${authority}`;
 }
