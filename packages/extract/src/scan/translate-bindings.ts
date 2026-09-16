@@ -3,6 +3,7 @@ import { closeIndex, isPunct, listItems, matchingOpen, tokenAt } from "./token-q
 import type { SourceToken } from "./tokenize.js";
 import {
   callArguments,
+  isLanguageArgument,
   isStatementEnd,
   isStaticFixedArgument,
   isStaticNamespace,
@@ -126,7 +127,9 @@ export function fixedBinding(tokens: readonly SourceToken[], index: number): Bin
   const isStatic =
     call !== undefined &&
     call.items.length <= 3 &&
-    call.items.every((item) => isStaticFixedArgument(tokens, item)) &&
+    call.items.every((item, position) =>
+      position === 0 ? isLanguageArgument(tokens, item) : isStaticFixedArgument(tokens, item),
+    ) &&
     isStatementEnd(tokens, call.close + 1);
   return isStatic
     ? nameBinding(tokens, declaredNameIndex(tokens, referenceStart(tokens, index)))
@@ -175,15 +178,17 @@ export function renderPropBinding(
     return undefined;
   }
   const parameters = end + 2;
+  const isBare = tokenAt(tokens, parameters)?.kind === "ident";
   const paramsClose = isPunct(tokenAt(tokens, parameters), "(")
     ? closeIndex(tokens, parameters)
     : undefined;
+  const arrowAt = isBare ? parameters : paramsClose;
   const isRenderProp =
     isPunct(tokenAt(tokens, end + 1), "{") &&
-    paramsClose !== undefined &&
-    isPunct(tokenAt(tokens, paramsClose + 1), "=") &&
-    isPunct(tokenAt(tokens, paramsClose + 2), ">");
-  return isRenderProp ? nameBinding(tokens, parameters + 1) : undefined;
+    arrowAt !== undefined &&
+    isPunct(tokenAt(tokens, arrowAt + 1), "=") &&
+    isPunct(tokenAt(tokens, arrowAt + 2), ">");
+  return isRenderProp ? nameBinding(tokens, isBare ? parameters : parameters + 1) : undefined;
 }
 
 export function aliasBinding(

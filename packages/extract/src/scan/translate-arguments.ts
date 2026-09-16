@@ -55,6 +55,19 @@ export function isStaticFixedArgument(
   return isIdentNamed(only, ABSENT_ARGUMENT_NAMES) || isStaticNamespace(tokens, indices);
 }
 
+export function isLanguageArgument(
+  tokens: readonly SourceToken[],
+  indices: readonly number[],
+): boolean {
+  const isMemberChain = indices.every((index, position) =>
+    position % 2 === 0
+      ? tokenAt(tokens, index)?.kind === "ident"
+      : isPunct(tokenAt(tokens, index), "."),
+  );
+  const isWhole = indices.length % 2 === 1;
+  return (isMemberChain && isWhole) || isStaticFixedArgument(tokens, indices);
+}
+
 function isStaticOptionItem(
   tokens: readonly SourceToken[],
   item: readonly number[],

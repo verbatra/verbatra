@@ -638,6 +638,16 @@ describe("findUnusedKeys checks every binding named like the translate function"
       { "src/other.ts": 'export function other(t) {\n  return t("x");\n}' },
     ],
     [
+      "R19",
+      { a: "A", stale: "S" },
+      { "src/a.tsx": 'export const A = () => <Translation>{t => t("a")}</Translation>;' },
+    ],
+    [
+      "P28",
+      { nav: { home: "H" }, stale: "S" },
+      { "src/page.ts": 'const nt = i18n.getFixedT(i18n.language, null, "nav");\nnt("home");' },
+    ],
+    [
       "R20",
       { home: "H", stale: "S" },
       {
@@ -645,12 +655,15 @@ describe("findUnusedKeys checks every binding named like the translate function"
           'function Page(props) {\n  const { t } = props;\n  return props.t("home") + t("home");\n}\nexport default withTranslation("c")(Page);',
       },
     ],
-  ] as const)("%s: stays complete for t received as a parameter", async (_id, catalog, files) => {
-    const report = await unusedIn(catalog, files);
+  ] as const)(
+    "%s: stays complete for t received as a parameter or a recognised source",
+    async (_id, catalog, files) => {
+      const report = await unusedIn(catalog, files);
 
-    expect(report.status).toBe("complete");
-    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
-  });
+      expect(report.status).toBe("complete");
+      expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+    },
+  );
 });
 
 describe("findUnusedKeys on keys spelled other than as a plain path", () => {
