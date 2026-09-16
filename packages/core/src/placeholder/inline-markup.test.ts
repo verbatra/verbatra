@@ -202,8 +202,17 @@ describe("compareInlineMarkup: self-closing and void elements", () => {
     });
   });
 
-  it("stands down for an uppercase void element, which is not one of the names it knows", () => {
-    expect(compareInlineMarkup("<p>a<BR>b</p>", "<p>a b</p>").matches).toBe(true);
+  it("recognises an uppercase void element, so the source stays well formed and a drop is caught", () => {
+    expect(compareInlineMarkup("<p>a<BR>b</p>", "<p>a b</p>")).toEqual({
+      matches: false,
+      missing: ["<BR>"],
+      extra: [],
+      malformed: false,
+    });
+  });
+
+  it("treats the two spellings of an uppercase void element as the same tag", () => {
+    expect(compareInlineMarkup("<p>a<BR/>b</p>", "<p>a<BR>b</p>").matches).toBe(true);
   });
 
   it("reports a dropped self-closing tag", () => {
@@ -240,6 +249,10 @@ describe("compareInlineMarkup: a source whose own markup is not well formed", ()
       extra: [],
       malformed: false,
     });
+  });
+
+  it("stays silent for prose whose comparison reads as an unclosed tag with attributes", () => {
+    expect(compareInlineMarkup("a<b and c>d", "voellig anders").matches).toBe(true);
   });
 
   it("stays silent for a mis-nested source", () => {
@@ -509,7 +522,7 @@ describe("compareInlineMarkup: an angle bracket inside an attribute value", () =
   });
 });
 
-describe("compareInlineMarkup: tag names are compared exactly, void elements included", () => {
+describe("compareInlineMarkup: tag names are compared exactly, void elements recognised in any case", () => {
   it("treats a case change as a different tag", () => {
     const result = compareInlineMarkup("<b>a</b>", "<B>a</B>");
     expect(result.matches).toBe(false);
@@ -517,8 +530,13 @@ describe("compareInlineMarkup: tag names are compared exactly, void elements inc
     expect(result.extra).toEqual(["</B>", "<B>"]);
   });
 
-  it("gives void handling to the lowercase spelling only, so an uppercase one needs closing", () => {
-    expect(compareInlineMarkup("a<BR>b", "voellig anders").matches).toBe(true);
+  it("gives void handling to every case spelling of a void element", () => {
+    expect(compareInlineMarkup("a<BR>b", "voellig anders")).toEqual({
+      matches: false,
+      missing: ["<BR>"],
+      extra: [],
+      malformed: false,
+    });
     expect(compareInlineMarkup("a<br>b", "voellig anders")).toEqual({
       matches: false,
       missing: ["<br>"],

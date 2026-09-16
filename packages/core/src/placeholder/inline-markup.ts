@@ -79,7 +79,7 @@ const TAG_LIMIT_EXCEEDED: InlineMarkupComparison = {
 };
 
 function isVoidElement(name: string): boolean {
-  return VOID_ELEMENTS.has(name);
+  return VOID_ELEMENTS.has(name.toLowerCase());
 }
 
 function attributeNames(chunk: string): readonly string[] | undefined {
