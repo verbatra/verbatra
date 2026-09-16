@@ -1,5 +1,6 @@
 ---
 "@verbatra/sdk": minor
+"@verbatra/cli": minor
 ---
 
 Add pseudolocale generation: a new `pseudolocalize` SDK entry point and a `verbatra pseudo` command that build a fake locale from the source strings alone, so layout truncation and untranslated hardcoded strings show up before any API key exists.
