@@ -95,7 +95,7 @@ const cases: readonly MarkupCase[] = [
     source: "<b>x</b>",
     candidate: "<!-- <b>x</b>",
     matches: false,
-    details: ["+<!--"],
+    details: ["-</b>", "-<b>", "+<!-- <b>x</b>"],
   },
   {
     name: "a processing instruction the source never had",

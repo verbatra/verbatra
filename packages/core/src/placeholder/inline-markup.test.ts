@@ -464,19 +464,34 @@ describe("compareInlineMarkup: a bracketed word that is also an HTML element nam
 
 describe("compareInlineMarkup: constructs that are not inline tags", () => {
   it.each([
-    ["<!-- a comment -->", "<!-- ein Kommentar -->"],
-    ["<![CDATA[raw]]>", "<![CDATA[roh]]>"],
+    ["<!-- a comment -->", "<!-- a comment -->"],
+    ["<![CDATA[raw]]>", "<![CDATA[raw]]>"],
     ['<?xml version="1.0"?>', '<?xml version="1.0"?>'],
     ["<!DOCTYPE html>", "<!DOCTYPE html>"],
-  ])("ignores %j", (source, translated) => {
+  ])("accepts %j carried through unchanged", (source, translated) => {
     expect(compareInlineMarkup(source, translated).matches).toBe(true);
+  });
+
+  it("refuses a comment or CDATA section whose text the candidate changed", () => {
+    expect(compareInlineMarkup("<!-- a comment -->", "<!-- ein Kommentar -->")).toEqual({
+      matches: false,
+      missing: ["<!-- a comment -->"],
+      extra: ["<!-- ein Kommentar -->"],
+      malformed: false,
+    });
+    expect(compareInlineMarkup("<![CDATA[raw]]>", "<![CDATA[roh]]>")).toEqual({
+      matches: false,
+      missing: ["<![CDATA[raw]]>"],
+      extra: ["<![CDATA[roh]]>"],
+      malformed: false,
+    });
   });
 
   it("refuses an unterminated comment in the candidate, which would hide the rest of the value", () => {
     expect(compareInlineMarkup("<b>x</b>", "<!-- <b>x</b>")).toEqual({
       matches: false,
-      missing: [],
-      extra: ["<!--"],
+      missing: ["</b>", "<b>"],
+      extra: ["<!-- <b>x</b>"],
       malformed: false,
     });
   });
@@ -484,11 +499,17 @@ describe("compareInlineMarkup: constructs that are not inline tags", () => {
   it("refuses an unterminated comment that closes on a bare angle bracket", () => {
     const result = compareInlineMarkup("Hello world", "Hallo <!-- Welt>");
     expect(result.matches).toBe(false);
-    expect(result.extra).toEqual(["<!--"]);
+    expect(result.extra).toEqual(["<!-- Welt>"]);
   });
 
-  it("accepts an unterminated comment the source already carried", () => {
-    expect(compareInlineMarkup("a <!-- b", "x <!-- y").matches).toBe(true);
+  it("accepts an unterminated comment the source already carried with the same text", () => {
+    expect(compareInlineMarkup("a <!-- b", "x <!-- b").matches).toBe(true);
+  });
+
+  it("refuses an unterminated comment whose hidden text the candidate changed", () => {
+    const result = compareInlineMarkup("a <!-- b", "x <!-- y");
+    expect(result.missing).toEqual(["<!-- b"]);
+    expect(result.extra).toEqual(["<!-- y"]);
   });
 
   it("refuses a processing instruction the source never had", () => {
@@ -530,6 +551,76 @@ describe("compareInlineMarkup: constructs that are not inline tags", () => {
   });
 });
 
+describe("compareInlineMarkup: comments and bogus comments end where an HTML parser ends them", () => {
+  it.each([
+    ["Hallo <!--><img src=x onerror=alert(1)>-->", ["<!---->", "<img onerror src>"]],
+    ["Hallo <!---><img src=x onerror=alert(1)>-->", ["<!---->", "<img onerror src>"]],
+    ["Hallo <!-- --!><img src=x onerror=alert(1)> -->", ["<!-- -->", "<img onerror src>"]],
+    ["Hallo <![CDATA[><img src=x onerror=alert(1)>]]>", ["<![CDATA[>", "<img onerror src>"]],
+    ["Hallo <!x><img src=x onerror=alert(1)>", ["<!x>", "<img onerror src>"]],
+    ["Hallo <?x > <img src=x onerror=alert(1)> ?>", ["<?x >", "<img onerror src>"]],
+    ["Hallo </ x><img src=x onerror=alert(1)>", ["</ x>", "<img onerror src>"]],
+    ["Hallo <!-- a -->", ["<!-- a -->"]],
+    ["Hallo <!---->", ["<!---->"]],
+    ["Hallo <!----!> x", ["<!---->"]],
+    ["Hallo <!--!> x", ["<!--!> x"]],
+    ["Hallo <!> x", ["<!>"]],
+    ["Hallo </>", ["</>"]],
+    ["Hallo <?php echo <b>x</b>", ["</b>", "<?php echo <b>"]],
+    ["Hallo <![CDATA[ unterminated", ["<![CDATA[ unterminated"]],
+  ])("refuses %j against a source with no markup", (translated, extra) => {
+    expect(compareInlineMarkup("Hello", translated)).toEqual({
+      matches: false,
+      missing: [],
+      extra,
+      malformed: false,
+    });
+  });
+
+  it.each([
+    "<b>a</b><!-- note -->",
+    "<![CDATA[raw]]> text",
+    "<![CDATA[a > b]]>",
+    "<![CDATA[<b>bold</b>]]>",
+    "Hi <!--> there <b>x</b>",
+    "Hi <!---> there",
+    "<!-- x --!> <i>y</i>",
+    "a <!-- b <b>c</b>",
+    "<?php if ($a > 1) ?> ok",
+    "Press </ x> now",
+  ])("accepts %j translated as itself", (value) => {
+    expect(compareInlineMarkup(value, value)).toEqual({
+      matches: true,
+      missing: [],
+      extra: [],
+      malformed: false,
+    });
+  });
+
+  it("compares a comment by its text with runs of whitespace collapsed", () => {
+    expect(compareInlineMarkup("<!--  a\n b -->", "<!-- a b -->").matches).toBe(true);
+  });
+
+  it("reports a construct finding together with the tag findings in the same value", () => {
+    expect(compareInlineMarkup("<b>a</b>", "<!-- x -->a <i>b</i>")).toEqual({
+      matches: false,
+      missing: ["</b>", "<b>"],
+      extra: ["<!-- x -->", "</i>", "<i>"],
+      malformed: false,
+    });
+  });
+
+  it("counts constructs against the ceiling, so a flood of them is refused", () => {
+    expect(compareInlineMarkup("Hello", `Hallo${"<!---->".repeat(300)}`)).toEqual({
+      matches: false,
+      missing: [],
+      extra: [],
+      malformed: false,
+      tagLimitExceeded: 256,
+    });
+  });
+});
+
 describe("compareInlineMarkup: adversarial input", () => {
   it("stays silent rather than guessing once a value carries more tags than it can reason about", () => {
     const source = "<b>x</b>".repeat(400);
@@ -552,7 +643,7 @@ describe("compareInlineMarkup: what is deliberately not read as a tag still lets
   it("skips a tag written inside a comment, so the markup around it is still compared", () => {
     const result = compareInlineMarkup("<b>a</b><!-- <i> -->", "a");
     expect(result.matches).toBe(false);
-    expect(result.missing).toEqual(["</b>", "<b>"]);
+    expect(result.missing).toEqual(["<!-- <i> -->", "</b>", "<b>"]);
   });
 
   it("does not read an angle-bracketed address as an invented tag", () => {

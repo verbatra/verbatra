@@ -1,4 +1,11 @@
 import { HTML_ELEMENT_NAMES } from "./html-elements.js";
+import {
+  type InlineTag,
+  isVoidElement,
+  MAX_MARKUP_ITEMS,
+  type ScannedMarkup,
+  scanMarkup,
+} from "./markup-scanner.js";
 import { countTokens, multisetExcess } from "./multiset.js";
 
 export interface InlineMarkupComparison {
@@ -18,18 +25,6 @@ interface IgnoredTags {
   readonly closingNames: ReadonlySet<string>;
 }
 
-interface InlineTag {
-  readonly token: string;
-  readonly name: string;
-  readonly kind: "open" | "close" | "self";
-  readonly bare: boolean;
-}
-
-interface ScannedMarkup {
-  readonly constructs: readonly string[];
-  readonly tags: readonly InlineTag[] | undefined;
-}
-
 interface WithoutIgnored {
   readonly tags: readonly InlineTag[];
   readonly unclosed: readonly string[];
@@ -44,35 +39,6 @@ interface TagStructure {
   readonly wellFormed: boolean;
   readonly depths: ReadonlyMap<string, number>;
 }
-
-const MAX_TAGS = 256;
-
-const VOID_ELEMENTS: ReadonlySet<string> = new Set([
-  "area",
-  "base",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "param",
-  "source",
-  "track",
-  "wbr",
-]);
-
-const NON_TAG_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!--|<![^<>]*>|<\?[\s\S]*?\?>/g;
-
-const TRANSLATABLE_CONSTRUCT = /^(?:<!--[\s\S]*-->|<!\[CDATA\[[\s\S]*\]\]>)$/;
-
-const TAG = /<(\/?)([A-Za-z_][A-Za-z0-9_.:-]*|[0-9]+)([^<>]*)>/g;
-
-const ATTRIBUTE = /\s+([^\s"'=<>`/]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/y;
-
-const NUMERIC_NAME = /^[0-9]+$/;
 
 const WORD_NAME = /^[\p{L}\p{N}_-]+$/u;
 
@@ -95,84 +61,8 @@ const TAG_LIMIT_EXCEEDED: InlineMarkupComparison = {
   missing: [],
   extra: [],
   malformed: false,
-  tagLimitExceeded: MAX_TAGS,
+  tagLimitExceeded: MAX_MARKUP_ITEMS,
 };
-
-function isVoidElement(name: string): boolean {
-  return VOID_ELEMENTS.has(name.toLowerCase());
-}
-
-function attributeNames(chunk: string): readonly string[] | undefined {
-  const names: string[] = [];
-  ATTRIBUTE.lastIndex = 0;
-  let consumed = 0;
-  while (consumed < chunk.length) {
-    ATTRIBUTE.lastIndex = consumed;
-    const match = ATTRIBUTE.exec(chunk);
-    if (match === null) {
-      return chunk.slice(consumed).trim() === "" ? names : undefined;
-    }
-    /* v8 ignore next -- the name group in ATTRIBUTE is mandatory, so a match always carries it. */
-    names.push(match[1] ?? "");
-    consumed = ATTRIBUTE.lastIndex;
-  }
-  return names;
-}
-
-function openTagToken(name: string, names: readonly string[], selfClosing: boolean): string {
-  const attributes = names.length === 0 ? "" : ` ${[...names].sort().join(" ")}`;
-  const marker = selfClosing && !isVoidElement(name) ? "/" : "";
-  return `<${name}${attributes}${marker}>`;
-}
-
-function readTag(slash: string, name: string, chunk: string): InlineTag | undefined {
-  if (slash === "/") {
-    return chunk.trim() === ""
-      ? { token: `</${name}>`, name, kind: "close", bare: chunk === "" }
-      : undefined;
-  }
-  const selfClosing = chunk.endsWith("/");
-  const names = attributeNames(selfClosing ? chunk.slice(0, -1) : chunk);
-  if (names === undefined) {
-    return undefined;
-  }
-  if (names.length > 0 && NUMERIC_NAME.test(name)) {
-    return undefined;
-  }
-  return {
-    token: openTagToken(name, names, selfClosing),
-    name,
-    kind: selfClosing ? "self" : "open",
-    bare: chunk === "",
-  };
-}
-
-function scanInlineTags(scannable: string): readonly InlineTag[] | undefined {
-  const tags: InlineTag[] = [];
-  TAG.lastIndex = 0;
-  for (let match = TAG.exec(scannable); match !== null; match = TAG.exec(scannable)) {
-    /* v8 ignore next 2 -- every group in TAG is mandatory, so a match always carries all three. */
-    const tag = readTag(match[1] ?? "", match[2] ?? "", match[3] ?? "");
-    if (tag !== undefined) {
-      if (tags.length === MAX_TAGS) {
-        return undefined;
-      }
-      tags.push(tag);
-    }
-  }
-  return tags;
-}
-
-function scanMarkup(value: string): ScannedMarkup {
-  const constructs: string[] = [];
-  const scannable = value.replace(NON_TAG_MARKUP, (construct) => {
-    if (!TRANSLATABLE_CONSTRUCT.test(construct)) {
-      constructs.push(construct);
-    }
-    return "";
-  });
-  return { constructs, tags: scanInlineTags(scannable) };
-}
 
 function collectIgnoredTags(tokens: readonly string[]): IgnoredTags {
   const ignoredTokens = new Set<string>();
@@ -392,17 +282,32 @@ function compareTags(source: WithoutIgnored, translated: WithoutIgnored): Inline
   return compareScanned(sourceSplit, translatedSplit, sourceStructure);
 }
 
-function compareConstructs(
-  source: readonly string[],
-  translated: readonly string[],
-): InlineMarkupComparison | undefined {
-  const sourceCounts = countTokens(source);
-  const translatedCounts = countTokens(translated);
-  const missing = multisetExcess(sourceCounts, translatedCounts);
-  const extra = multisetExcess(translatedCounts, sourceCounts);
-  return missing.length === 0 && extra.length === 0
-    ? undefined
-    : { matches: false, missing, extra, malformed: false };
+function multisetDifference(
+  expected: readonly string[],
+  actual: readonly string[],
+): { readonly missing: readonly string[]; readonly extra: readonly string[] } {
+  const expectedCounts = countTokens(expected);
+  const actualCounts = countTokens(actual);
+  return {
+    missing: multisetExcess(expectedCounts, actualCounts),
+    extra: multisetExcess(actualCounts, expectedCounts),
+  };
+}
+
+function compareScannedMarkup(
+  source: ScannedMarkup,
+  translated: ScannedMarkup,
+  ignored: IgnoredTags,
+): InlineMarkupComparison {
+  const sourceKept = withoutIgnoredTags(source.tags, ignored);
+  const translatedKept = withoutIgnoredTags(translated.tags, ignored);
+  const constructs = multisetDifference(source.constructs, translated.constructs);
+  const closingTags = multisetDifference(translatedKept.unclosed, sourceKept.unclosed);
+  return withFindings(
+    compareTags(sourceKept, translatedKept),
+    [...constructs.missing, ...closingTags.missing],
+    [...constructs.extra, ...closingTags.extra],
+  );
 }
 
 function compareAgainstUnmarkedSource(
@@ -420,8 +325,10 @@ function singleTagIn(token: string): InlineTag | undefined {
   if (!token.startsWith("<") || !token.endsWith(">")) {
     return undefined;
   }
-  const { constructs, tags } = scanMarkup(token);
-  return constructs.length === 0 && tags?.length === 1 ? tags[0] : undefined;
+  const scanned = scanMarkup(token);
+  return scanned?.constructs.length === 0 && scanned.tags.length === 1
+    ? scanned.tags[0]
+    : undefined;
 }
 
 export function inlineTagToken(token: string): string | undefined {
@@ -437,25 +344,12 @@ export function compareInlineMarkup(
     return MATCHED;
   }
   const source = scanMarkup(sourceValue);
-  if (source.tags === undefined) {
+  if (source === undefined) {
     return MATCHED;
   }
   const translated = scanMarkup(translatedValue);
-  if (translated.tags === undefined) {
+  if (translated === undefined) {
     return TAG_LIMIT_EXCEEDED;
   }
-  const constructs = compareConstructs(source.constructs, translated.constructs);
-  if (constructs !== undefined) {
-    return constructs;
-  }
-  const ignored = collectIgnoredTags(options.ignoreTags ?? []);
-  const sourceKept = withoutIgnoredTags(source.tags, ignored);
-  const translatedKept = withoutIgnoredTags(translated.tags, ignored);
-  const sourceUnclosed = countTokens(sourceKept.unclosed);
-  const translatedUnclosed = countTokens(translatedKept.unclosed);
-  return withFindings(
-    compareTags(sourceKept, translatedKept),
-    multisetExcess(translatedUnclosed, sourceUnclosed),
-    multisetExcess(sourceUnclosed, translatedUnclosed),
-  );
+  return compareScannedMarkup(source, translated, collectIgnoredTags(options.ignoreTags ?? []));
 }
