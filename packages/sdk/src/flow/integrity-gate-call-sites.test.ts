@@ -18,12 +18,18 @@ const COVERED_BY: Readonly<Record<string, readonly string[]>> = {
 };
 
 const GATE_IMPORT =
-  /import\s*\{[^}]*\bgateCandidateValue\b[^}]*\}\s*from\s*"[^"]*integrity-gate\.js"/s;
+  /(?:import|export)\s*\{[^}]*\bgateCandidateValue\b[^}]*\}\s*from\s*"[^"]*integrity-gate\.js"/s;
 
 const VERDICT_IMPORT =
-  /import\s*\{[^}]*\bjudgeEntryMarkup\b[^}]*\}\s*from\s*"[^"]*markup-verdict\.js"/s;
+  /(?:import|export)\s*\{[^}]*\bjudgeEntryMarkup\b[^}]*\}\s*from\s*"[^"]*markup-verdict\.js"/s;
 
-const MARKUP_IMPORT = /import\s*\{[^}]*\bcompareInlineMarkup\b[^}]*\}\s*from\s*"@verbatra\/core"/s;
+const WHOLE_MODULE_IMPORT =
+  /(?:import\s*\*\s*as\s+[\w$]+|export\s*\*(?:\s*as\s+[\w$]+)?)\s*from\s*"[^"]*(?:integrity-gate|markup-verdict)\.js"/;
+
+const MARKUP_IMPORT =
+  /(?:import|export)\s*\{[^}]*\bcompareInlineMarkup\b[^}]*\}\s*from\s*"@verbatra\/core"/s;
+
+const CORE_NAMESPACE_IMPORT = /import\s*\*\s*as\s+([\w$]+)\s*from\s*"@verbatra\/core"/;
 
 function sourceFilesUnder(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -37,8 +43,23 @@ function sourceFilesUnder(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+function comparesThroughCoreNamespace(source: string): boolean {
+  const namespace = CORE_NAMESPACE_IMPORT.exec(source)?.[1];
+  if (namespace === undefined) {
+    return false;
+  }
+  const escaped = namespace.replaceAll("$", "\\$");
+  return new RegExp(`\\b${escaped}\\s*\\.\\s*compareInlineMarkup\\b`).test(source);
+}
+
 function judgesMarkup(source: string): boolean {
-  return GATE_IMPORT.test(source) || VERDICT_IMPORT.test(source) || MARKUP_IMPORT.test(source);
+  return (
+    GATE_IMPORT.test(source) ||
+    VERDICT_IMPORT.test(source) ||
+    WHOLE_MODULE_IMPORT.test(source) ||
+    MARKUP_IMPORT.test(source) ||
+    comparesThroughCoreNamespace(source)
+  );
 }
 
 function gateCallSites(): readonly string[] {
@@ -80,6 +101,31 @@ describe("every place that judges inline markup is named by a test that drives i
 
   it("sees a call site that judges markup through the shared verdict helper", () => {
     expect(judgesMarkup('import { judgeEntryMarkup } from "./markup-verdict.js";')).toBe(true);
+  });
+
+  it.each([
+    'import * as gate from "./integrity-gate.js";',
+    'import * as verdict from "../markup-verdict.js";',
+    'import * as core from "@verbatra/core";\ncore.compareInlineMarkup(a, b);',
+    'export { gateCandidateValue } from "./integrity-gate.js";',
+    'export { judgeEntryMarkup as judge } from "./markup-verdict.js";',
+    'export { compareInlineMarkup } from "@verbatra/core";',
+    'export * from "./integrity-gate.js";',
+    'export * as verdict from "./markup-verdict.js";',
+  ])("sees a call site that reaches the judges through %j", (source) => {
+    expect(judgesMarkup(source)).toBe(true);
+  });
+
+  it("does not claim a module that imports core as a namespace without comparing markup", () => {
+    expect(judgesMarkup('import * as core from "@verbatra/core";\ncore.contentHash(a);')).toBe(
+      false,
+    );
+  });
+
+  it("does not claim a module that re-exports only the reason tuple from the gate", () => {
+    expect(judgesMarkup('export { INTEGRITY_GATE_REASONS } from "./flow/integrity-gate.js";')).toBe(
+      false,
+    );
   });
 
   it("does not claim an ordinary module that merely mentions the names in a comment", () => {
