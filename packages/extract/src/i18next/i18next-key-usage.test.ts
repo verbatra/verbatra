@@ -437,7 +437,6 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     ["a shadowing declaration", "for (const t of items) {}"],
     ["a property key", "const o = { t: 1 };"],
     ["a type annotation", "function f(t: TFunction) {}"],
-    ["the tail of a contraction in JSX text", "<p>Don't worry</p>;"],
     [
       "a typed arrow parameter with a return type",
       'const label = (t: TFunction): string => t("a");',
@@ -506,5 +505,70 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     ["a loop binding", "for (const t of items) {}"],
   ])("does not report %s", (_name, content) => {
     expect(usage(content).unresolved).toEqual([]);
+  });
+});
+
+describe("i18next key usage: JSX text and attribute values read as markup", () => {
+  function sourceUsage(path: string, content: string): KeyUsage {
+    const result = extractor.extract({ path, content }).usage;
+    if (result === undefined) {
+      throw new Error("the i18next extractor always reports its key usage");
+    }
+    return result;
+  }
+
+  it("reports t escaping on the same line as a contraction in JSX text", () => {
+    expect(usage("<p>Don't worry</p>; const x = { t };").unresolved).toEqual([
+      { reason: "translate-function-escapes", line: 1 },
+    ]);
+  });
+
+  it("reports t escaping between two JSX texts whose apostrophes would pair up as a string", () => {
+    expect(usage("<div><p>Don't</p>{renderRow(t)}<p>It's fine</p></div>;").unresolved).toEqual([
+      { reason: "translate-function-escapes", line: 1 },
+    ]);
+  });
+
+  it("references a key called after JSX text holding an apostrophe", () => {
+    const result = usage('<p>We\'re glad</p>; t("a");');
+
+    expect(result.references).toEqual([{ key: "a", line: 1 }]);
+    expect(result.unresolved).toEqual([]);
+  });
+
+  it("references a key called after a JSX attribute value holding an apostrophe", () => {
+    const result = usage('<p title="it\'s">x</p>; t("b");');
+
+    expect(result.references).toEqual([{ key: "b", line: 1 }]);
+    expect(result.unresolved).toEqual([]);
+  });
+
+  it("never reads a word in JSX text as the translate function", () => {
+    expect(usage("<p>Don't worry, t is only a letter here</p>;").unresolved).toEqual([]);
+  });
+
+  it("keeps the static head of a template key whose expression holds an element", () => {
+    const result = usage("t(`nav.${open ? <b>on</b> : <i />}`)");
+
+    expect(result.prefixes).toEqual([{ prefix: "nav.", line: 1 }]);
+    expect(result.dynamic).toEqual([]);
+  });
+
+  it("reads Trans and its attributes inside an element passed as an attribute value", () => {
+    const result = usage('<Card icon=<Trans i18nKey="a">x</Trans> title=<Trans /> {...rest} />;');
+
+    expect(result.references).toEqual([{ key: "a", line: 1 }]);
+    expect(result.unresolved).toEqual([{ reason: "trans-without-key", line: 1 }]);
+  });
+
+  it("reads a Trans inside a fragment", () => {
+    expect(usage("<><Trans /></>;").unresolved).toEqual([{ reason: "trans-without-key", line: 1 }]);
+  });
+
+  it.each([".tsx", ".jsx", ".js"])("reads a %s file as markup", (extension) => {
+    expect(
+      sourceUsage(`app${extension}`, "<div><p>Don't</p>{renderRow(t)}<p>It's</p></div>;")
+        .unresolved,
+    ).toEqual([{ reason: "translate-function-escapes", line: 1 }]);
   });
 });

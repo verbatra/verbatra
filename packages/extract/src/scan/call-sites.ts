@@ -13,6 +13,7 @@ import {
   prefixForms,
   readKeyUsageSites,
 } from "./key-usage.js";
+import { tokenizeMarkupSource } from "./markup-source.js";
 import {
   callOpenIndex,
   closeIndex,
@@ -251,8 +252,12 @@ function withKeyPrefixes<T>(
   ];
 }
 
-export function findCallSites(content: string, rules: CallSiteRules): FileExtraction {
-  const { tokens, truncated } = tokenizeSource(content);
+export function findCallSites(
+  content: string,
+  rules: CallSiteRules,
+  markup: boolean,
+): FileExtraction {
+  const { tokens, truncated } = markup ? tokenizeMarkupSource(content) : tokenizeSource(content);
   const sites = readKeyUsageSites(tokens, rules);
   const sources = readTranslateSources(tokens, rules);
   const state: CallSiteState = {

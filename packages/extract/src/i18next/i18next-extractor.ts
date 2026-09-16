@@ -1,3 +1,4 @@
+import { hasExtension } from "../discovery.js";
 import type { FileExtraction, SourceExtractor, SourceFile } from "../extractor.js";
 import { type CallSiteRules, findCallSites } from "../scan/call-sites.js";
 
@@ -46,6 +47,11 @@ export function createI18nextExtractor(): SourceExtractor {
   return {
     framework: "i18next",
     extensions: I18NEXT_EXTENSIONS,
-    extract: (file: SourceFile): FileExtraction => findCallSites(file.content, I18NEXT_RULES),
+    extract: (file: SourceFile): FileExtraction =>
+      findCallSites(
+        file.content,
+        I18NEXT_RULES,
+        hasExtension(file.path, I18NEXT_MARKUP_EXTENSIONS),
+      ),
   };
 }
