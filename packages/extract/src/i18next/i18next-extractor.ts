@@ -12,6 +12,8 @@ export const I18NEXT_EXTENSIONS = [
   ".cts",
 ] as const;
 
+export const I18NEXT_MARKUP_EXTENSIONS = [".tsx", ".jsx", ".js"] as const;
+
 export const I18NEXT_CALLEE_NAMES = ["t", "$t"] as const;
 
 export const I18NEXT_TRANSLATION_ELEMENTS = ["Trans", "Translation"] as const;

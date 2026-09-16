@@ -1,4 +1,4 @@
-import { discoverSourceFiles } from "../discovery.js";
+import { discoverSourceFiles, hasExtension } from "../discovery.js";
 import { toReportedPath } from "../reported-path.js";
 import { DEFAULT_MAX_SOURCE_FILE_BYTES, type ScanDiagnostic } from "../scan-project.js";
 import { nodeSourceFs, type SourceFs } from "../source-fs-port.js";
@@ -86,10 +86,6 @@ interface LiteralScanState {
 
 function toFinding(file: string, literal: FoundLiteral): LiteralFinding {
   return { file, line: literal.line, column: literal.column, ...boundLiteralText(literal.text) };
-}
-
-function hasExtension(path: string, extensions: readonly string[]): boolean {
-  return extensions.some((extension) => path.endsWith(extension));
 }
 
 function extractLiterals(

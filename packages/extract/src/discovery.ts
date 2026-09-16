@@ -36,7 +36,7 @@ export interface SourceDiscoveryInput {
   readonly onTemplateFile?: (path: string) => void;
 }
 
-function isSourceFile(name: string, extensions: readonly string[]): boolean {
+export function hasExtension(name: string, extensions: readonly string[]): boolean {
   return extensions.some((extension) => name.endsWith(extension));
 }
 
@@ -66,9 +66,9 @@ async function walk(
 ): Promise<void> {
   for (const entry of await readDirectory(path, fs, input)) {
     const child = join(path, entry.name);
-    if (entry.kind === "file" && isSourceFile(entry.name, input.extensions)) {
+    if (entry.kind === "file" && hasExtension(entry.name, input.extensions)) {
       found.add(child);
-    } else if (entry.kind === "file" && isSourceFile(entry.name, input.templateExtensions ?? [])) {
+    } else if (entry.kind === "file" && hasExtension(entry.name, input.templateExtensions ?? [])) {
       input.onTemplateFile?.(child);
     }
     if (entry.kind === "directory" && !excluded.has(entry.name)) {
