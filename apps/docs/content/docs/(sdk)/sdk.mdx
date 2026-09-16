@@ -215,9 +215,13 @@ Input: `{ config, cwd?, locales? }`. Returns a `DiffSummary`.
 ### keyIntegrity
 
 Reports, for each locale's changed keys, whether the current target value still matches the
-source's placeholders and whether it is valid ICU. Each entry carries `key`, `hasPlaceholders`,
-`matches`, the `missing` and `extra` placeholder tokens on a mismatch, and `icuValid`. Entries
-never carry a source or target string value. This is the per-key integrity report Studio surfaces.
+source's placeholders, whether it still carries the source's inline markup, and whether it is valid
+ICU. Each entry carries `key`, `hasPlaceholders`, `matches`, the `missing` and `extra` placeholder
+tokens on a mismatch, `icuValid`, `markupMatches`, and `markupDetails` naming the tags behind a
+markup mismatch. Entries never carry a source or target string value. Reporting markup here is what
+makes drift that predates the write-time gate visible: a translation written before the check
+existed, edited outside verbatra, or produced by a path that never crossed the gate is judged here
+by the same rule. This is the per-key integrity report Studio surfaces.
 
 Input: `{ config, cwd?, locales?, keys? }`. `keys` narrows the check; only keys that are "changed"
 for a locale are ever checked. Returns one `LocaleKeyIntegrity` per checked locale.

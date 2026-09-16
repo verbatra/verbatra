@@ -24,15 +24,21 @@ Tags are compared as a multiset of tag names plus attribute names. A dropped, in
 mis-nested tag is refused, and so is a tag that comes back nested inside another of the same name
 when the source had them as siblings, which is how two links silently become one. A different word
 order, a translated attribute value, and either spelling of a void element (`<br>` and `<br/>`) are
-all accepted. For a value the format reports as a single plural message, tags are counted by
-presence rather than by occurrence, so a language needing four plural arms where English declares
-two is not refused for repeating the source's own markup.
+all accepted. Names are compared exactly, so a case change is a finding, and only the lowercase
+spellings of the HTML void elements are treated as needing no closing tag.
 
 The comparison stays out of the way of ordinary prose: an angle-bracket run counts as a tag only
 when it parses cleanly as one, and the check stands down entirely unless the source's own markup is
-well formed. It also stands down per tag for a tag the format already reports as a placeholder, so
-an XLIFF inline element and a next-intl or ARB ICU rich-text tag stay with the placeholder check
-and are never reported twice, while any other tag in the same value is still compared.
+well formed. It also stands down per tag, not per value: a tag the format already reports as a
+placeholder is left to the placeholder check together with the closing tag that pairs with it, so
+an XLIFF inline element and a next-intl or ARB ICU rich-text tag are never reported twice, while
+every other tag in the same value is still compared, including a second spelling of the same name.
+
+The read-only side reports it too. `keyIntegrity`, and through it `verbatra check` and Studio's
+per-key indicator, now carry `markupMatches` and `markupDetails` beside the placeholder and ICU
+verdicts, which is what makes drift that predates the gate visible at all: a translation written
+before the check existed, edited outside verbatra, or produced by a path that never crossed the
+gate is judged by the same rule.
 
 The gate's reason set is now published as the `INTEGRITY_GATE_REASONS` tuple, with
 `IntegrityGateReason` derived from it, so a runtime schema or an exhaustive lookup can be built

@@ -96,15 +96,28 @@ eso es lo que decide si algo es un hallazgo:
   sitio, un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
   traducción correcta y no una rota, y cualquiera de las dos grafías de un elemento vacío, así que
   `<br>` y `<br/>` son la misma etiqueta.
-- Contado por presencia y no por número de apariciones cuando el formato informa del valor como un
-  único mensaje plural, para que un idioma que necesita cuatro formas plurales donde el inglés
-  declara dos no sea rechazado por repetir el marcado del propio origen.
+- Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa
+  a ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
+  dos enlaces que se convierten en uno.
+- Comparado de forma exacta, así que un cambio de mayúsculas es un hallazgo, y solo las grafías en
+  minúscula de los elementos vacíos de HTML se tratan como elementos que no necesitan cierre.
+- Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
+  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres; el
+  conjunto de nombres no lo es.
 
 La comprobación es deliberadamente discreta. Una secuencia de corchetes angulares cuenta como
 etiqueta solo cuando se lee limpiamente como tal, así que `5 < 10`, `x <= y`,
 `<support@example.com>` y un `&lt;b&gt;` escapado siguen siendo texto corriente. Se retira por
 completo salvo que el marcado del propio origen esté bien formado, así que una cadena que solo
-menciona `<Enter>` nunca se mide contra una estructura que nunca tuvo. Y se retira etiqueta por
+menciona `<Enter>` nunca se mide contra una estructura que nunca tuvo, y lo mismo cuando una
+etiqueta del origen no se analiza en absoluto, como una cuyo valor de atributo contiene un `>`.
+Ambos casos fallan hacia el lado abierto: la comprobación calla para ese valor en lugar de adivinar.
+
+De comparar valores enteros se sigue un límite propio del formato: en un formato que mete varias
+formas plurales en un mismo valor separadas por una barra vertical (Vue I18n), una traducción que
+añade las formas que su idioma necesita repite el marcado del origen y se rechaza. El valor se
+retiene y la traducción anterior se conserva, así que no se pierde nada, pero las formas hay que
+añadirlas sin multiplicar también el marcado. Y se retira etiqueta por
 etiqueta: una etiqueta que el formato ya informa como marcador de posición (un elemento en línea de
 XLIFF, una etiqueta de texto enriquecido ICU de next-intl o ARB) queda para la comprobación de
 marcadores de posición y nunca se informa dos veces, mientras que cualquier otra etiqueta del mismo

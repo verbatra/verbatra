@@ -84,14 +84,26 @@ something is a finding:
   around, a changed attribute value, because a translated `title` or a localized `href` is a
   correct translation rather than a broken one, and either spelling of a void element, so `<br>`
   and `<br/>` are one tag.
-- Counted by presence rather than by occurrence for a value the format reports as one plural
-  message, so a language needing four plural arms where English declares two is not refused for
-  repeating the source's own markup.
+- Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
+  `<b>a b</b>`) is refused, because the comparison cannot tell a cosmetic merge from two links
+  collapsing into one.
+- Compared exactly, so a case change is a finding, and only the lowercase spellings of the HTML
+  void elements are treated as needing no closing tag.
+- Refused when an attribute name is added or removed, which includes adding a `dir` attribute for a
+  right-to-left target. Attribute values are free; the set of names is not.
 
 The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly
 as one, so `5 < 10`, `x <= y`, `<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary
 text. It stands down entirely unless the source's own markup is well formed, so a string that only
-mentions `<Enter>` is never held to a structure it never had. And it stands down per tag: a tag the
+mentions `<Enter>` is never held to a structure it never had, and likewise when a tag in the source
+does not parse at all, such as one whose attribute value contains a `>`. Both cases fail open: the
+check goes quiet for that value rather than guessing.
+
+One format-shaped limit follows from comparing whole values: for a format that packs several plural
+arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language
+needs repeats the source's markup and is refused. The value is withheld and the previous
+translation stays, so nothing is lost, but the arms have to be added without also multiplying the
+markup. And it stands down per tag: a tag the
 format already reports as a placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text
 tag) is left to the placeholder check and never reported twice, while every other tag in the same
 value is still compared. A refusal names the tags behind it, each prefixed with `-` for one the

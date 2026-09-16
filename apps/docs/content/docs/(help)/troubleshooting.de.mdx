@@ -239,7 +239,8 @@ meldet `supported: false` und löst nie aus, weil kein Token-Verbrauch zum Messe
 ## Eine Übersetzung wird wegen Inline-Markup zurückgehalten (Integritätsabweichung)
 
 **Symptom**: Ein Key taucht in der Laufzusammenfassung unter `integrityMismatches` auf und behält
-seine bisherige Übersetzung. In Studio kommt ein Retranslate oder eine Bearbeitung als
+seine bisherige Übersetzung, oder `verbatra check` und die Key-Anzeige in Studio melden eine
+Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. In Studio kommt ein Retranslate oder eine Bearbeitung als
 `Rejected: inline markup mismatch` zurück, gefolgt von den betroffenen Tags: `-<a href>` für eines,
 das die Quelle hatte und der Kandidat weggelassen hat, `+<i>` für eines, das der Kandidat erfunden
 hat.
@@ -257,7 +258,11 @@ wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die 
 Schreibweisen eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon
 wird verglichen. Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch
 verschachtelt zurück, oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin
-verschachtelt zurück. Liegt das kaputte Markup im Quellwert, korrigiere es dort: Die Prüfung tritt
+verschachtelt zurück. Drei weitere Fälle sind gewollte Ablehnungen und keine Fehler: zwei
+benachbarte Paare zu einem verschmelzen, die Groß- und Kleinschreibung eines Tags ändern und einen
+Attributnamen ergänzen oder entfernen, einschließlich eines `dir`-Attributs für ein rechtsläufiges
+Ziel. Lass die Tags so, wie die Quelle sie hat, und bring die Änderung dort unter, wo die Prüfung
+nicht hinsieht, etwa in einem Attributwert. Liegt das kaputte Markup im Quellwert, korrigiere es dort: Die Prüfung tritt
 zurück, wenn das Markup der Quelle nicht wohlgeformt ist, eine kaputte Quelle schaltet sie für
 diesen Key also stillschweigend ab.
 

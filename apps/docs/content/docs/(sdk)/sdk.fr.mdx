@@ -143,7 +143,7 @@ Entrée : `{ config, cwd?, locales? }`. Renvoie un `DiffSummary`.
 
 ### keyIntegrity
 
-Rapporte, pour les clés modifiées de chaque locale, si la valeur cible actuelle correspond toujours aux placeholders de la source et si elle est de l'ICU valide. Chaque entrée porte `key`, `hasPlaceholders`, `matches`, les jetons de placeholder `missing` et `extra` en cas de discordance, et `icuValid`. Les entrées ne portent jamais de valeur de chaîne source ou cible. C'est le rapport d'intégrité par clé que Studio affiche.
+Rapporte, pour les clés modifiées de chaque locale, si la valeur cible actuelle correspond toujours aux placeholders de la source, si elle porte toujours le balisage en ligne de la source et si elle est de l'ICU valide. Chaque entrée porte `key`, `hasPlaceholders`, `matches`, les jetons de placeholder `missing` et `extra` en cas de discordance, `icuValid`, `markupMatches` et `markupDetails` qui nomme les balises en cause. Les entrées ne portent jamais de valeur de chaîne source ou cible. Rapporter le balisage ici est ce qui rend visible la dérive antérieure à la porte d'écriture : une traduction écrite avant que la vérification existe, modifiée hors de verbatra, ou produite par un chemin qui n'a jamais franchi la porte est jugée ici selon la même règle. C'est le rapport d'intégrité par clé que Studio affiche.
 
 Entrée : `{ config, cwd?, locales?, keys? }`. `keys` restreint la vérification ; seules les clés "modifiées" pour une locale sont vérifiées. Renvoie un `LocaleKeyIntegrity` par locale vérifiée.
 

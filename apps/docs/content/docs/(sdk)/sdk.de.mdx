@@ -219,10 +219,14 @@ Eingabe: `{ config, cwd?, locales? }`. Gibt eine `DiffSummary` zurück.
 ### keyIntegrity
 
 Meldet für die geänderten Keys jedes Locales, ob der aktuelle Zielwert noch zu den Platzhaltern
-der Quelle passt und ob er gültiges ICU ist. Jeder Eintrag trägt `key`, `hasPlaceholders`,
-`matches`, bei einer Abweichung die `missing`- und `extra`-Platzhalter-Tokens sowie `icuValid`.
-Einträge tragen nie einen Quell- oder Zielstring-Wert. Das ist der Integritätsbericht pro Key, den
-Studio anzeigt.
+der Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
+Eintrag trägt `key`, `hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und
+`extra`-Platzhalter-Tokens, `icuValid`, `markupMatches` sowie `markupDetails` mit den Tags hinter
+einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Dass Markup hier
+gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Schreiben: eine
+Übersetzung, die vor der Prüfung entstand, außerhalb von verbatra bearbeitet wurde oder über einen
+Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
+Integritätsbericht pro Key, den Studio anzeigt.
 
 Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; geprüft werden immer
 nur Keys, die für ein Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüftem Locale

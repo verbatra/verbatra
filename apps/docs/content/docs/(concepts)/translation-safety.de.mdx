@@ -97,15 +97,29 @@ was ein Befund ist:
   verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
   `href` eine korrekte Übersetzung ist und keine kaputte, und beide Schreibweisen eines leeren
   Elements, `<br>` und `<br/>` sind dasselbe Tag.
-- Nach Vorhandensein statt nach Anzahl gezählt, wenn das Format den Wert als eine einzige
-  Pluralnachricht meldet, damit eine Sprache mit vier Pluralformen dort, wo Englisch zwei
-  deklariert, nicht dafür abgelehnt wird, das Markup der Quelle zu wiederholen.
+- Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
+  (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
+  Verschmelzung nicht davon unterscheiden kann, dass zwei Links zu einem werden.
+- Exakt verglichen: Eine Änderung der Groß- und Kleinschreibung ist ein Befund, und nur die
+  kleingeschriebenen Namen der leeren HTML-Elemente gelten als solche, die kein schließendes Tag
+  brauchen.
+- Abgelehnt, wenn ein Attributname hinzukommt oder wegfällt, also auch, wenn für ein
+  rechtsläufiges Ziel ein `dir`-Attribut ergänzt wird. Attributwerte sind frei, die Menge der Namen
+  ist es nicht.
 
 Die Prüfung ist bewusst zurückhaltend. Eine Folge spitzer Klammern gilt nur dann als Tag, wenn sie
 sich sauber als eines lesen lässt, `5 < 10`, `x <= y`, `<support@example.com>` und ein maskiertes
 `&lt;b&gt;` bleiben also normaler Text. Sie tritt vollständig zurück, solange das Markup der Quelle
 nicht selbst wohlgeformt ist, ein String, der nur `<Enter>` erwähnt, wird also nie an einer
-Struktur gemessen, die er nie hatte. Und sie tritt pro Tag zurück: Ein Tag, das das Format ohnehin
+Struktur gemessen, die er nie hatte, und ebenso, wenn ein Tag der Quelle gar nicht parst, etwa
+eines, dessen Attributwert ein `>` enthält. Beide Fälle scheitern nach oben: Die Prüfung schweigt
+für diesen Wert, statt zu raten.
+
+Aus dem Vergleich ganzer Werte folgt eine formatbedingte Grenze: Bei einem Format, das mehrere
+Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt
+eine Übersetzung, die die Formen ihrer Sprache ergänzt, das Markup der Quelle und wird abgelehnt.
+Der Wert wird zurückgehalten und die bisherige Übersetzung bleibt, es geht also nichts verloren,
+aber die Formen müssen ergänzt werden, ohne das Markup mitzuvervielfachen. Und sie tritt pro Tag zurück: Ein Tag, das das Format ohnehin
 als Platzhalter meldet (ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB),
 bleibt der Platzhalterprüfung überlassen und wird nie doppelt gemeldet, während jedes andere Tag im
 selben Wert weiterhin verglichen wird. Eine Ablehnung nennt die betroffenen Tags, jeweils mit `-`

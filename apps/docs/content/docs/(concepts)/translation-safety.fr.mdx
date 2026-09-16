@@ -95,15 +95,28 @@ ce qui décide si quelque chose est un constat :
   balisage, une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé est
   une traduction correcte et non une traduction cassée, et l'une ou l'autre graphie d'un élément
   vide, `<br>` et `<br/>` étant la même balise.
-- Comptées par présence et non par nombre d'occurrences pour une valeur que le format signale comme
-  un seul message pluriel, afin qu'une langue qui a besoin de quatre formes plurielles là où
-  l'anglais en déclare deux ne soit pas refusée pour avoir répété le balisage de la source.
+- Comptées, pas seulement remarquées : deux paires adjacentes fusionnées en une seule
+  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusé, parce que la comparaison ne peut pas
+  distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
+- Comparées exactement : un changement de casse est un constat, et seules les graphies en
+  minuscules des éléments vides HTML sont traitées comme n'ayant pas besoin de balise fermante.
+- Refusées quand un nom d'attribut est ajouté ou retiré, ce qui inclut l'ajout d'un attribut `dir`
+  pour une cible écrite de droite à gauche. Les valeurs d'attribut sont libres ; l'ensemble des
+  noms ne l'est pas.
 
 La vérification est volontairement discrète. Une suite de chevrons ne compte comme balise que
 lorsqu'elle se lit proprement comme telle : `5 < 10`, `x <= y`, `<support@example.com>` et un
 `&lt;b&gt;` échappé restent du texte ordinaire. Elle se retire complètement tant que le balisage de
 la source n'est pas lui-même bien formé, donc une chaîne qui mentionne seulement `<Enter>` n'est
-jamais tenue à une structure qu'elle n'a jamais eue. Et elle se retire balise par balise : une
+jamais tenue à une structure qu'elle n'a jamais eue, et de même quand une balise de la source ne
+s'analyse pas du tout, par exemple une dont la valeur d'attribut contient un `>`. Les deux cas
+échouent du côté ouvert : la vérification se tait pour cette valeur plutôt que de deviner.
+
+Comparer des valeurs entières entraîne une limite propre au format : pour un format qui range
+plusieurs formes plurielles dans une même valeur séparées par une barre verticale (Vue I18n), une
+traduction qui ajoute les formes dont sa langue a besoin répète le balisage de la source et est
+refusée. La valeur est retenue et la traduction précédente reste en place, donc rien n'est perdu,
+mais les formes doivent être ajoutées sans multiplier aussi le balisage. Et elle se retire balise par balise : une
 balise que le format signale déjà comme placeholder (un élément en ligne XLIFF, une balise de texte
 enrichi ICU next-intl ou ARB) est laissée à la vérification des placeholders et n'est jamais
 signalée deux fois, tandis que toute autre balise de la même valeur reste comparée. Un refus nomme

@@ -217,7 +217,8 @@ exists to measure.
 ## A translation is withheld for inline markup (integrity mismatch)
 
 **Symptom**: a key appears under `integrityMismatches` in the run summary and keeps its previous
-translation. In Studio, a retranslate or an edit comes back as `Rejected: inline markup mismatch`,
+translation, or `verbatra check` and Studio's per-key indicator report an inline markup mismatch
+for a translation that is already on disk. In Studio, a retranslate or an edit comes back as `Rejected: inline markup mismatch`,
 followed by the tags at fault: `-<a href>` for one the source had and the candidate dropped, `+<i>`
 for one the candidate invented.
 
@@ -232,7 +233,10 @@ gate judges both, so a hand-typed value with matching, well-formed tags is accep
 attribute values, and the two spellings of a void element (`<br>` and `<br/>`) are never the cause,
 since none of them is compared. A refusal with no tags named is a structural one: the markup came
 back mis-nested, or a tag the source had beside another of the same name came back nested inside
-it. If the source value is the one with the broken markup, fix it there: the check stands down when
+it. Three further cases are refusals by design rather than bugs: merging two adjacent pairs into
+one, changing a tag's letter case, and adding or removing an attribute name, including a `dir`
+attribute for a right-to-left target. Keep the tags as the source has them and put the change
+somewhere the check does not look, such as an attribute value. If the source value is the one with the broken markup, fix it there: the check stands down when
 the source's own markup is not well formed, which means a broken source silently disables it for
 that key.
 
