@@ -24,13 +24,19 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  *   of which breaks the rendering of the string the way a dropped placeholder breaks its
  *   interpolation. Tags are compared as a multiset of names plus attribute names, so a different
  *   word order and a translated attribute value are both accepted, and the two spellings of a void
- *   element (`<br>` and `<br/>`) are one tag. Tag names are compared exactly, and only the
- *   lowercase spellings of the HTML void elements are treated as needing no closing tag. The check
- *   is silent unless the source's own markup is well formed, and it stands down per tag: a tag the
- *   format already reports as a placeholder (an XLIFF inline element, a next-intl or ARB ICU
- *   rich-text tag) is left to the `placeholder` reason together with the closing tag that pairs
- *   with it, while any other tag in the same value is still compared, including a second spelling
- *   of the same name. {@link IntegrityGateResult} names the offending tags in `details`.
+ *   element (`<br>` and `<br/>`) are one tag. Tag names are compared exactly, while the HTML void
+ *   elements are recognised as needing no closing tag in any case spelling. Where the source has no
+ *   markup, the candidate is refused for a closing tag with no opening tag, an unclosed opening tag
+ *   named after a standard HTML element, and any closed pair, void, or self-closing tag; an unclosed
+ *   bracketed word such as `<Enter>` is read as prose. An unterminated comment, and any `<?...?>`
+ *   or `<!...>` construct the source does not carry the same number of times, is refused too. The
+ *   tag comparison is silent unless the source's own tags are well formed, and the whole check
+ *   stands down when the source carries more than 256 tags; a candidate that alone exceeds that
+ *   limit is refused. The check stands down per tag: a tag the format already reports as a
+ *   placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text tag) is left to the
+ *   `placeholder` reason together with as many closing tags as it has openings, while any other tag
+ *   in the same value is still compared, including a second spelling of the same name. The
+ *   refusal's `details` names the offending tags.
  * - `icu`: the candidate is not a valid ICU message under the configured format's adapter.
  * - `degenerate`: the candidate collapsed into runaway output rather than a translation. Two shapes
  *   are detected: the candidate is at least twelve times the length of a source of meaningful
@@ -70,12 +76,6 @@ export type IntegrityGateResult =
   | {
       readonly accepted: false;
       readonly reason: IntegrityGateReason;
-      /**
-       * The specific tokens behind the refusal, when the reason can name them, each prefixed with
-       * `-` for something the source had and the candidate dropped or `+` for something the
-       * candidate invented. Absent for a reason that has nothing to name, and absent for
-       * structurally broken markup, where no single tag is at fault.
-       */
       readonly details?: readonly string[];
     };
 
