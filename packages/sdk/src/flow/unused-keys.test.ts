@@ -501,6 +501,62 @@ describe("findUnusedKeys only trusts translate sources it recognises", () => {
   });
 });
 
+describe("findUnusedKeys reads markup and regular expressions without losing a call", () => {
+  it("R13: references a call after a regular expression holding a quote", async () => {
+    const report = await unusedIn(
+      { a: "A", b: "B" },
+      { "src/a.ts": 'if (n < /"/.test(s)) { t("a"); }\nt("b");' },
+    );
+
+    expect(report).toMatchObject({ status: "complete", unused: [] });
+  });
+
+  it("references a call after a less-than comparison with a regular expression", async () => {
+    const report = await unusedIn(
+      { a: "A", b: "B" },
+      { "src/a.ts": 'const ok = a < /re/.test(s);\nt("a");\nt("b");' },
+    );
+
+    expect(report).toMatchObject({ status: "complete", unused: [] });
+  });
+
+  it.each([
+    [
+      "R12",
+      { a: "A", stale: "S" },
+      {
+        "src/a.tsx":
+          'import { Translation } from "react-i18next";\nexport const A = () => (\n  <div>\n    <Translation>{(t) => <Foo.Bar>{t("a")}</Foo.Bar>}</Translation>\n  </div>\n);',
+      },
+    ],
+    [
+      "P10",
+      { nav: { home: "H" }, stale: "S" },
+      {
+        "src/page.tsx":
+          'import { Translation } from "react-i18next";\nexport const A = () => <Translation keyPrefix="nav">{(t) => <p>{t("home")}</p>}</Translation>;',
+      },
+    ],
+  ] as const)(
+    "%s: stays complete for a render prop with closing tags",
+    async (_id, catalog, files) => {
+      const report = await unusedIn(catalog, files);
+
+      expect(report.status).toBe("complete");
+      expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+    },
+  );
+
+  it("reports a file whose quoted string runs into the end of a line as an incomplete scan", async () => {
+    const report = await unusedIn(
+      { a: "A", b: "B" },
+      { "src/a.ts": 'const s = "unterminated\nt("a");', "src/b.ts": 't("b");' },
+    );
+
+    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual(["incomplete-scan"]);
+  });
+});
+
 describe("findUnusedKeys on keys spelled other than as a plain path", () => {
   it("references a flat dotted key through its escaped catalog key, displaying it decoded", async () => {
     const report = await unusedIn(

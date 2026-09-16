@@ -48,7 +48,11 @@ const REGEX_FOLLOWING_KEYWORDS = new Set([
   "case",
 ]);
 
-const VALUE_CLOSING_PUNCT = new Set([")", "]", "}", "<"]);
+const VALUE_CLOSING_PUNCT = new Set([")", "]", "}"]);
+
+const CLOSING_TAG = /^\/[A-Za-z0-9\-.:]*\s*>/;
+
+const CLOSING_TAG_LOOKAHEAD = 256;
 
 function charAt(cursor: Cursor, offset: number): string {
   return cursor.text[cursor.index + offset] ?? "";
@@ -182,6 +186,7 @@ function readStringToken(cursor: Cursor, quote: string): SourceToken {
   }
   cursor.index = start + 1;
   cursor.line = line;
+  cursor.truncated = true;
   return { kind: "punct", value: quote, line };
 }
 
@@ -354,6 +359,14 @@ function trySkipRegex(cursor: Cursor): boolean {
   return false;
 }
 
+function isClosingTag(cursor: Cursor, previous: SourceToken | undefined): boolean {
+  const opensTag = previous?.kind === "punct" && previous.value === "<";
+  return (
+    opensTag &&
+    CLOSING_TAG.test(cursor.text.slice(cursor.index, cursor.index + CLOSING_TAG_LOOKAHEAD))
+  );
+}
+
 function nextTokens(cursor: Cursor, previous: SourceToken | undefined): readonly SourceToken[] {
   const char = charAt(cursor, 0);
   if (char === '"' || char === "'") {
@@ -365,7 +378,12 @@ function nextTokens(cursor: Cursor, previous: SourceToken | undefined): readonly
   if (isAtomChar(char)) {
     return [readAtomToken(cursor)];
   }
-  if (char === "/" && regexCanStart(previous) && trySkipRegex(cursor)) {
+  if (
+    char === "/" &&
+    !isClosingTag(cursor, previous) &&
+    regexCanStart(previous) &&
+    trySkipRegex(cursor)
+  ) {
     return [];
   }
   const line = cursor.line;

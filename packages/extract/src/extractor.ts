@@ -103,10 +103,11 @@ export interface FileExtraction {
    */
   readonly usage?: KeyUsage;
   /**
-   * Whether the file could not be read to its end, so everything above it is partial. An
-   * unterminated block comment or template literal abandons the rest of the file. The scan records
-   * it as an `unparseable` diagnostic and carries on, rather than reporting a short result as if
-   * it were the whole file.
+   * Whether the file could not be read with confidence to its end, so everything in it may be
+   * partial. An unterminated block comment or template literal abandons the rest of the file, and
+   * a quoted string that runs into the end of its line means the reading around it may be wrong.
+   * The scan records it as an `unparseable` diagnostic and carries on, rather than reporting a
+   * short result as if it were the whole file.
    */
   readonly truncated?: boolean;
 }

@@ -430,7 +430,7 @@ describe("extract on a file of call shapes it cannot resolve whole", () => {
       { file: "src/nav.ts", line: 9 },
     ]);
     expect(result.conflicts).toEqual([]);
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toEqual([{ file: "src/nav.ts", reason: "unparseable" }]);
   });
 
   it("writes no catalog at all when every call site is unresolvable", async () => {

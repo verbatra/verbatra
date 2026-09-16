@@ -54,3 +54,7 @@ decoded key or a pattern in which `*` matches any run of characters. An excluded
 key. Possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` report never produce exit
 `1` on their own. `--json` carries the whole report inside the usual `diff` envelope. Without
 `--unused`, `diff` scans nothing and behaves exactly as before.
+
+`verbatra extract` and the unused-key scan now also report a file whose quoted string runs into the
+end of its line as an `unparseable` diagnostic, since the reading around such a string may be
+wrong, and a JSX closing tag after `<` is no longer read as a regular expression.

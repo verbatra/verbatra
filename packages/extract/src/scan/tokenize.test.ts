@@ -231,8 +231,11 @@ describe("tokenizeSource on a file it cannot read to the end", () => {
     expect(truncated('/* fine */ t("kept");\n`a${b}c`')).toBe(false);
   });
 
-  it("reports an unterminated string as whole, since the line is recovered", () => {
-    expect(truncated('t("unterminated\nt("kept")')).toBe(false);
+  it("marks an unterminated string truncated, even though the next line is still read", () => {
+    const content = 't("unterminated\nt("kept")';
+
+    expect(truncated(content)).toBe(true);
+    expect(strings(content)).toEqual(["kept"]);
   });
 
   it("reads a JSX closing tag as markup rather than as the start of a regular expression", () => {
@@ -256,5 +259,29 @@ describe("tokenizeSource on a file it cannot read to the end", () => {
       "ident",
       "punct",
     ]);
+  });
+
+  it("reads a regular expression after a less-than operator, so its quote hides no call", () => {
+    const content = 'if (n < /"/.test(s)) { t("a"); }';
+
+    expect(strings(content)).toEqual(["a"]);
+    expect(truncated(content)).toBe(false);
+    expect(strings('const ok = a < /re/.test(s);\nt("b");')).toEqual(["b"]);
+  });
+
+  it.each([
+    ["a member tag", '<Foo.Bar>{t("a")}</Foo.Bar>;\nt("b");'],
+    ["a custom element", '<my-el>{t("a")}</my-el>;\nt("b");'],
+    ["a namespaced tag", '<svg:g>{t("a")}</svg:g>;\nt("b");'],
+    ["a fragment", '<>{t("a")}</>;\nt("b");'],
+    ["a tag with space before the bracket", '<p>{t("a")}</p >;\nt("b");'],
+  ])("reads the closing tag of %s as markup", (_name, content) => {
+    expect(strings(content)).toEqual(["a", "b"]);
+  });
+
+  it("marks a file truncated when a quoted string runs into the end of its line", () => {
+    expect(truncated('const s = \'unterminated\nt("a");')).toBe(true);
+    expect(truncated('const s = "unterminated')).toBe(true);
+    expect(truncated('const s = "fine";')).toBe(false);
   });
 });
