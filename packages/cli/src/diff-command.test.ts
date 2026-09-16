@@ -1,3 +1,4 @@
+import type { DiffSummary, UnusedKeysScan } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run } from "./run.js";
@@ -166,5 +167,143 @@ describe("run diff: SDK delegation, rendering, and exit codes", () => {
     expect(calls.diff[0]).toMatchObject({ locales: ["fr"] });
     expect(cap.err()).toContain("[UNKNOWN_LOCALE]");
     expect(cap.out()).toBe("");
+  });
+});
+
+function unusedScan(overrides: Partial<UnusedKeysScan> = {}): UnusedKeysScan {
+  return {
+    status: "complete",
+    unreliableBecause: [],
+    scannedFiles: 3,
+    unused: [],
+    ignored: [],
+    dynamic: [],
+    indirect: [],
+    diagnostics: [],
+    ...overrides,
+  };
+}
+
+function inSyncWith(unused: DiffSummary["unused"]): DiffSummary {
+  return makeDiffSummary({
+    hasPendingChanges: false,
+    locales: [{ locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false }],
+    ...(unused === undefined ? {} : { unused }),
+  });
+}
+
+describe("run diff --unused: the unused-key report", () => {
+  it("does not ask the SDK for the report unless --unused is given", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["diff"], deps, cap.streams);
+
+    expect(calls.diff[0]).not.toHaveProperty("unused");
+  });
+
+  it("asks the SDK for the report with --unused", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["diff", "--unused"], deps, cap.streams);
+
+    expect(calls.diff[0]).toMatchObject({ unused: true });
+  });
+
+  it("exits 1 when a complete scan finds unused keys, listing them apart from orphaned keys", async () => {
+    const summary = inSyncWith(unusedScan({ unused: ["legacy.banner", "old.cta"] }));
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    const code = await run(["diff", "--unused"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(cap.out()).toContain("unused source keys: 2 unused, 0 ignored, 3 files scanned");
+    expect(cap.out()).toContain("unused (2):\n    legacy.banner\n    old.cta");
+    expect(cap.out()).toContain("de: no pending changes");
+  });
+
+  it("exits 0 when a complete scan finds only ignored keys, still naming them", async () => {
+    const summary = inSyncWith(unusedScan({ ignored: ["emails.welcome"] }));
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    const code = await run(["diff", "--unused"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.out()).toContain("ignored (1):\n    emails.welcome");
+  });
+
+  it("exits 0 on an unreliable scan, saying why and where, rather than failing on a guess", async () => {
+    const summary = inSyncWith(
+      unusedScan({
+        status: "unreliable",
+        unreliableBecause: ["dynamic-keys", "indirect-key-sites", "incomplete-scan"],
+        unused: ["errors.notFound"],
+        dynamic: [{ file: "src/errors.ts", line: 4 }],
+        indirect: [{ file: "src/nav.tsx", line: 2 }],
+        diagnostics: [{ file: "src/broken.ts", reason: "unparseable" }],
+      }),
+    );
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    const code = await run(["diff", "--unused"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.out()).toContain(
+      "unreliable (dynamic-keys, indirect-key-sites, incomplete-scan): a key listed as unused may still be in use",
+    );
+    expect(cap.out()).toContain("dynamic keys (1):\n    src/errors.ts:4");
+    expect(cap.out()).toContain("indirect key sites (1):\n    src/nav.tsx:2");
+    expect(cap.out()).toContain("skipped (1):\n    src/broken.ts  unparseable");
+  });
+
+  it("exits 0 and says it could not run when there was nothing to scan", async () => {
+    const summary = inSyncWith({
+      status: "not-run",
+      reason: "EXTRACT_NOT_CONFIGURED",
+      message: "No extract block is configured.",
+    });
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    const code = await run(["diff", "--unused"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.out()).toContain(
+      "unused source keys: not run [EXTRACT_NOT_CONFIGURED] No extract block is configured.",
+    );
+  });
+
+  it("still exits 1 for pending changes when the unused-key scan could not run", async () => {
+    const summary = makeDiffSummary({
+      hasPendingChanges: true,
+      locales: [
+        { locale: "de", missing: ["a"], changed: [], orphaned: [], hasPendingChanges: true },
+      ],
+      unused: { status: "not-run", reason: "NO_SOURCE_FILES", message: "nothing scanned" },
+    });
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    expect(await run(["diff", "--unused"], deps, cap.streams)).toBe(1);
+  });
+
+  it("--json carries the report inside the same diff envelope", async () => {
+    const summary = inSyncWith(unusedScan({ unused: ["legacy.banner"] }));
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    const code = await run(["diff", "--unused", "--json"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(parseEnvelope(cap.out())).toEqual({
+      ok: true,
+      version: JSON_ENVELOPE_VERSION,
+      command: "diff",
+      result: summary,
+    });
   });
 });

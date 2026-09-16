@@ -15,6 +15,8 @@ import type {
   RunBudget,
   RunEstimate,
   RunSummary,
+  UnusedKeysReport,
+  UnusedKeysScan,
   UsageSummary,
   WatchRunResult,
 } from "@verbatra/sdk";
@@ -273,13 +275,53 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   return [header, ...groups];
 }
 
+function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
+  const header = `  unused source keys: ${report.unused.length} unused, ${report.ignored.length} ignored, ${report.scannedFiles} files scanned`;
+  const verdict =
+    report.status === "complete"
+      ? []
+      : [
+          `  unreliable (${report.unreliableBecause.join(", ")}): a key listed as unused may still be in use`,
+        ];
+  return [
+    header,
+    ...verdict,
+    ...renderExtractList("unused", report.unused, Number.POSITIVE_INFINITY),
+    ...renderExtractList("ignored", report.ignored, Number.POSITIVE_INFINITY),
+    ...renderExtractList(
+      "dynamic keys",
+      report.dynamic.map((site) => `${site.file}:${site.line}`),
+    ),
+    ...renderExtractList(
+      "indirect key sites",
+      report.indirect.map((site) => `${site.file}:${site.line}`),
+    ),
+    ...renderExtractList(
+      "skipped",
+      report.diagnostics.map((entry) => `${entry.file}  ${entry.reason}`),
+    ),
+  ];
+}
+
+function renderUnusedReport(report: UnusedKeysReport | undefined): readonly string[] {
+  if (report === undefined) {
+    return [];
+  }
+  if (report.status === "not-run") {
+    return [`  unused source keys: not run [${report.reason}] ${report.message}`];
+  }
+  return renderUnusedScan(report);
+}
+
 export function renderDiffHuman(summary: DiffSummary): string {
   const localeLines = summary.locales.flatMap(renderDiffLocale);
   const count = summary.locales.length;
   const trailer = `${count} ${count === 1 ? "locale" : "locales"}, ${
     summary.hasPendingChanges ? "pending changes" : "no pending changes"
   }`;
-  return ["verbatra diff", ...localeLines, trailer].join("\n");
+  return ["verbatra diff", ...localeLines, ...renderUnusedReport(summary.unused), trailer].join(
+    "\n",
+  );
 }
 
 function renderLockHolder(event: LockWaitEvent): string {
@@ -347,11 +389,15 @@ export function renderPseudoHuman(result: PseudolocalizeResult): string {
 
 const EXTRACT_LIST_LIMIT = 10;
 
-function renderExtractList(label: string, lines: readonly string[]): readonly string[] {
+function renderExtractList(
+  label: string,
+  lines: readonly string[],
+  limit = EXTRACT_LIST_LIMIT,
+): readonly string[] {
   if (lines.length === 0) {
     return [];
   }
-  const shown = lines.slice(0, EXTRACT_LIST_LIMIT);
+  const shown = lines.slice(0, limit);
   const rest = lines.length - shown.length;
   const trailer = rest > 0 ? [`    and ${rest} more`] : [];
   return [`  ${label} (${lines.length}):`, ...shown.map((line) => `    ${line}`), ...trailer];

@@ -1,5 +1,6 @@
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  type DiffSummary,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
   type LockWaitEvent,
@@ -98,6 +99,7 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
+  unused: z.boolean().optional(),
 });
 
 const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
@@ -561,6 +563,10 @@ async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
   });
 }
 
+function hasConfirmedUnusedKeys(summary: DiffSummary): boolean {
+  return summary.unused?.status === "complete" && summary.unused.unused.length > 0;
+}
+
 async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("diff", rawOpts, streams);
   return withLocaleOpts(diffOptsSchema, rawOpts, context, async (opts) => {
@@ -574,13 +580,14 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
           config,
           cwd,
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+          ...(opts.unused === true ? { unused: true } : {}),
         });
         streams.out(
           context.json
             ? `${renderSuccessEnvelope("diff", summary)}\n`
             : `${renderDiffHuman(summary)}\n`,
         );
-        return summary.hasPendingChanges ? 1 : 0;
+        return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
     );
   });
@@ -821,6 +828,10 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option(
+      "--unused",
+      "also report source-locale keys no source reference names, using the extract block's roots",
+    )
     .option("--json", "print the diff summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDiff(opts, ctx.deps, ctx.streams));
@@ -832,6 +843,7 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
         "Examples:",
         "  $ verbatra diff                  list the pending keys per locale (exit 1 if any are pending)",
         "  $ verbatra diff --locales de,fr  only diff the German and French locales",
+        "  $ verbatra diff --unused         also list source keys no source reference names (exit 1 if any)",
         "  $ verbatra diff --json           machine-readable key lists on stdout for CI",
       ].join("\n"),
     );

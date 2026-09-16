@@ -1,10 +1,11 @@
 ---
 "@verbatra/sdk": minor
+"@verbatra/cli": minor
 ---
 
 Report source-catalog keys that nothing in your application source references any more:
-`diff({ config, unused: true })` scans the source roots named by the `extract` block and adds an
-`unused` report to the `DiffSummary`.
+`verbatra diff --unused`, backed by `diff({ config, unused: true })`, scans the source roots named
+by the `extract` block and adds an `unused` report to the diff summary.
 
 The report is a separate axis from each locale's `orphaned` list: a key is orphaned when a target
 locale still carries it after it left the source catalog, and unused when the source catalog still
@@ -32,3 +33,8 @@ never dropped silently. The field is part of the shipped config JSON Schema.
 
 The i18next extractor now also reports `keyPrefix`, `Trans`, and `i18nKey` as indirect key sites
 in its scan result; `extract` itself is unchanged.
+
+`diff --unused` exits `1` when anything is pending or a `complete` scan finds at least one unused
+key. An `unreliable` or `not-run` report, and ignored keys, never produce exit `1` on their own, so
+a CI gate cannot fail on a guess. `--json` carries the report inside the usual `diff` envelope.
+Without `--unused`, `diff` scans nothing and behaves exactly as before.
