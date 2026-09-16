@@ -19,29 +19,45 @@ workbook import row, a Studio edit, and a single-key retranslate). The refusal n
 it in `details`, each prefixed with `-` for one the source had and the candidate dropped or `+` for
 one the candidate invented, so a rejection says which tag rather than only that something was wrong.
 
-Tags are compared as a multiset of tag names plus attribute names. A dropped, invented, renamed or
-mis-nested tag is refused, and so is a tag that comes back nested inside another of the same name
-when the source had them as siblings, which is how two links silently become one. A different word
-order, a translated attribute value, and either spelling of a void element (`<br>` and `<br/>`) are
-all accepted. Names are compared exactly, so a case change is a finding, while the HTML void
-elements are recognised as needing no closing tag in any case spelling.
+Tags are read the way an HTML parser reads them and compared as a multiset of tag names plus
+attribute names. A tag starts at `<` or `</` followed by a letter (or digits, for a numeric
+rich-text tag such as `<0>`), its name runs to whitespace, `/` or `>`, and a quoted attribute value
+may contain `>`, so `<img title=">" src=x onerror=...>` and `<img/src/onerror=...>` are tags and
+`5 < 10` is text. A dropped, invented, renamed or mis-nested tag is refused, and so is a tag that
+comes back nested inside another of the same name when the source had them as siblings, which is how
+two links silently become one. A different word order, a translated attribute value, and either
+spelling of a void element (`<br>` and `<br/>`) are all accepted. Names are compared exactly, so a
+case change is a finding, while the HTML void elements are recognised as needing no closing tag in
+any case spelling.
 
-A source with no markup is protected too. A candidate is refused for any tag pair, void or
-self-closing tag it adds, for a closing tag with no opening tag, and for an unclosed opening tag
-whose name is a standard HTML element, such as `<script>`; an unclosed bracketed word that is not an
-HTML element name, such as `<Enter>`, is still read as prose. An unterminated `<!--`, which hides
-the rest of the rendered value, is refused, and `<?...?>` and `<!...>` constructs are compared as a
-multiset, so one the candidate invents or drops is refused. A complete comment and a CDATA section
-stay translatable text.
+An unclosed bracketed word with nothing but its name, made of letters, digits, hyphens and
+underscores, such as `<Enter>`, is set aside on both sides before the source is judged, so a source
+that carries one is still compared, and once the source carries tags such words are counted like
+tags. A source with no tags is protected too. A candidate is refused for any tag pair, void or
+self-closing tag it adds, for a closing tag with no opening tag, for an unclosed opening tag that
+carries anything beyond its name (`<Enter onfocus=...>`, `<x-key onmouseover=...>`), and for a
+bracketed word the source does not carry whose name, in any letter case, is a standard HTML element,
+such as `<script>`, `<Del>` or `<Option>`; any other added bracketed word, such as `<Enter>`, is
+read as prose. Keeping such a word in the source makes a translation that keeps it acceptable.
 
-The comparison stays out of the way of ordinary prose: an angle-bracket run counts as a tag only
-when it parses cleanly as one, and the tag comparison stands down for a value whose source tags are
-malformed, or whose source carries more than 256 tags. A candidate that alone carries more than 256
-tags is refused, with the detail `+more than 256 inline tags`. The check also stands down per tag,
-not per value: a tag the format already reports as a placeholder is left to the placeholder check
-together with as many closing tags as it has openings, so an XLIFF inline element and a next-intl or
-ARB ICU rich-text tag are never reported twice, while every other tag in the same value is still
-compared, including a surplus closing tag and a second spelling of the same name.
+Comments, CDATA sections, declarations and processing instructions end where an HTML parser ends
+them: `<!-->` and `<!--->` are complete empty comments, a comment ends at the first `-->` or `--!>`
+or else runs to the end of the value, and `<![CDATA[`, `<!...`, `<?...` and a `</` not followed by a
+letter or digit end at the first `>`. Each is compared as a multiset of its text with whitespace
+runs collapsed, so a construct the candidate adds, drops or rewrites is refused, including a comment
+or CDATA section whose text was translated, and tags after a construct's end are compared as usual.
+
+The comparison stays out of the way of ordinary prose: the tag comparison stands down for a value
+whose source tags are malformed once placeholder tags and bracketed words are set aside, while its
+constructs are still compared, and the whole check stands down when the source carries more than 256
+tags and constructs. A candidate that alone carries more than that is refused, with the detail
+`+more than 256 inline tags`. The check also stands down per tag, not per value: a tag the format
+already reports as a placeholder is left to the placeholder check together with as many closing tags
+as it has openings, so an XLIFF inline element and a next-intl or ARB ICU rich-text tag are never
+reported twice, while one the candidate leaves unclosed is refused with its missing closing tag
+(`-</g>`), and every other tag in the same value is still compared, including a surplus closing tag
+and a second spelling of the same name. The scan is a single linear pass, so a long adversarial
+value cannot stall it.
 
 The read-only side reports it too. `keyIntegrity`, and through it the MCP server's `key.integrity`
 tool and Studio's per-key indicator, now carry `markupMatches` and `markupDetails` beside the

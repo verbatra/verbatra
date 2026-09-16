@@ -107,33 +107,51 @@ was ein Befund ist:
 
 Auch eine Quelle ganz ohne Markup ist gegen hineinerfundenes Markup geschützt. Der Kandidat wird
 abgelehnt für jedes Tag-Paar, leere Element oder selbstschließende Tag, das er ergänzt, für ein
-schließendes Tag ohne öffnendes (`Hallo</div>`) und für ein nie geschlossenes öffnendes Tag, dessen
-Name in beliebiger Schreibweise ein Standard-HTML-Element ist (`Hallo <script>`). Ein nie
-geschlossenes Wort in spitzen Klammern, das kein HTML-Elementname ist, etwa `<Enter>` in
-`Druecke <Enter>`, gilt als normaler Text und wird angenommen.
+schließendes Tag ohne öffnendes (`Hallo</div>`) und für ein nie geschlossenes öffnendes Tag, das
+mehr als seinen Namen trägt, etwa `<Enter onfocus=...>` oder `<x-key onmouseover=...>`.
 
-Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind keine Tags. Ein
-vollständiger Kommentar und ein CDATA-Abschnitt sind übersetzbarer Text und werden nicht verglichen.
-Ein nicht abgeschlossenes `<!--` verbirgt den Rest des dargestellten Werts, ein Kandidat, der eines
-trägt, das die Quelle nicht hat, wird also abgelehnt. Deklarationen und Verarbeitungsanweisungen wie
-`<!DOCTYPE html>` oder `<?php ?>` werden als Multimenge ihres genauen Texts verglichen, eine, die
-der Kandidat erfindet oder weglässt, wird also abgelehnt.
+Ein nie geschlossenes `<Word>`, das nur aus seinem Namen besteht und dessen Name nur Buchstaben,
+Ziffern, Bindestriche und Unterstriche enthält, ist ein Wort in spitzen Klammern, etwa `<Enter>` in
+`Druecke <Enter>`. Solche Wörter werden auf beiden Seiten beiseitegelegt, bevor die Quelle beurteilt
+wird, eine Quelle mit einem solchen Wort wird also trotzdem verglichen: Ein Kandidat, der neben
+`<Enter>` ein `<b>`-Paar weglässt oder ein `<script>`-Paar erfindet, wird abgelehnt. Sobald die
+Quelle Tags trägt, werden Wörter in spitzen Klammern wie Tags gezählt. Trägt sie keine, gilt ein
+Wort in spitzen Klammern, das der Kandidat ergänzt, als normaler Text und wird angenommen, es sei
+denn, sein Name ist in beliebiger Schreibweise ein Standard-HTML-Element (`Hallo <script>`).
 
-Die Prüfung ist bewusst zurückhaltend. Eine Folge spitzer Klammern gilt nur dann als Tag, wenn sie
-sich sauber als eines lesen lässt: ein Name, danach nur wohlgeformte Attribute, danach `>`.
-`5 < 10`, `x <= y`, `<support@example.com>` und ein maskiertes `&lt;b&gt;` bleiben also normaler
-Text, und eine Folge, die sich nicht lesen lässt, etwa ein Tag, dessen Attributwert ein `>` enthält,
-ist ebenfalls Text. Der Tag-Vergleich tritt für einen Wert zurück, dessen Quell-Tags fehlerhaft
-sind. Nachdem die Tags beiseitegelegt sind, die das Format als Platzhalter meldet, gilt eine Quelle
-als fehlerhaft, wenn sie ein öffnendes Tag hat, das nie geschlossen wird (leere Elemente
-ausgenommen), ein schließendes Tag ohne öffnendes oder Tags, die in falscher Reihenfolge geschlossen
-werden. Normaler Text kann das versehentlich auslösen: In `a<b and c>d` liest sich `<b and c>` als
-öffnendes `b`-Tag mit den Attributen `and` und `c`, das nie geschlossen wird, die Quelle gilt also
-als fehlerhaft. Ein Tag, das sich nicht lesen lässt, lässt oft sein schließendes Tag ohne Gegenstück
-zurück, mit derselben Wirkung. In beiden Fällen schweigt die Prüfung für diesen Wert, statt zu
-raten. Sie tritt außerdem vollständig zurück, wenn die Quelle mehr als 256 Tags trägt, während ein
-Kandidat, der diese Grenze als einziger überschreitet, mit dem Detail `+more than 256 inline tags`
-abgelehnt wird.
+Dieser Namenstest ist bewusst vorsichtig: Ein gewöhnliches Wort, das zufällig ein Elementname ist,
+etwa `<Del>`, `<Option>`, `<Select>`, `<Input>` oder `<Menu>`, wird abgelehnt, wenn eine Übersetzung
+es zu einer Quelle hinzufügt, die es nicht hat. Als Ausweg behältst du das Wort in spitzen Klammern
+auch in deinem Quelltext: Eine Übersetzung, die dieselben Wörter in spitzen Klammern trägt wie ihre
+Quelle, wird angenommen.
+
+Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind keine Tags, und sie
+werden so gelesen, wie ein HTML-Parser sie liest, denn genau dort landen die Werte. `<!-->` und
+`<!--->` sind vollständige leere Kommentare, ein Kommentar endet beim ersten `-->` oder `--!>`, und
+ein Kommentar ohne Ende verbirgt den Rest des Werts. `<![CDATA[`, `<!DOCTYPE html>`, jedes andere
+`<!...`, `<?...` und ein `</`, auf das weder ein Buchstabe noch eine Ziffer folgt, enden alle beim
+ersten `>`. Jedes solche Konstrukt wird als Multimenge seines Texts verglichen, wobei Folgen von
+Leerraum zusammengefasst werden, eines, das der Kandidat ergänzt, weglässt oder umschreibt, wird
+also abgelehnt, auch ein Kommentar, dessen Text übersetzt wurde. Tags nach dem Ende eines Konstrukts
+werden wie gewohnt verglichen, `Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das
+Konstrukt als auch für das `<img>` abgelehnt.
+
+Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
+beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
+wie `<0>`, von Ziffern. Sein Name reicht bis zu Leerraum, `/` oder `>`, und ein Attributwert in
+Anführungszeichen darf `>` enthalten. `5 < 10`, `x <= y` und ein maskiertes `&lt;b&gt;` bleiben also
+normaler Text, während `<support@example.com>` und `<abbr title="a > b">` Tags sind, und ein `<`,
+das sein `>` nie erreicht, stellt nichts dar und ist kein Tag. Der Tag-Vergleich tritt für einen
+Wert zurück, dessen Quell-Tags fehlerhaft sind. Nachdem die Tags, die das Format als Platzhalter
+meldet, und alle Wörter in spitzen Klammern beiseitegelegt sind, gilt eine Quelle als fehlerhaft,
+wenn sie ein öffnendes Tag hat, das nie geschlossen wird (leere Elemente ausgenommen), ein
+schließendes Tag ohne öffnendes oder Tags, die in falscher Reihenfolge geschlossen werden. Normaler
+Text kann das versehentlich auslösen: In `a<b and c>d` ist `<b and c>` ein öffnendes `b`-Tag mit den
+Attributen `and` und `c`, das nie geschlossen wird, die Quelle gilt also als fehlerhaft. Die Prüfung
+schweigt dann für die Tags dieses Werts, statt zu raten, während Kommentare und andere Konstrukte
+weiterhin verglichen werden. Sie tritt außerdem vollständig zurück, wenn die Quelle zusammen mehr
+als 256 Tags und Konstrukte trägt, während ein Kandidat, der diese Grenze als einziger
+überschreitet, mit dem Detail `+more than 256 inline tags` abgelehnt wird.
 
 Aus dem Vergleich ganzer Werte folgen zwei formatbedingte Grenzen. Bei einem Format, das mehrere
 Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt eine
@@ -148,10 +166,11 @@ ohne das Markup mitzuvervielfachen.
 Die Prüfung tritt außerdem pro Tag zurück. Ein Tag, das das Format ohnehin als Platzhalter meldet
 (ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB), bleibt zusammen mit so
 vielen schließenden Tags, wie es öffnende gibt, der Platzhalterprüfung überlassen und wird nie
-doppelt gemeldet. Jedes andere Tag im selben Wert wird weiterhin verglichen, auch ein überzähliges
-schließendes Tag wie ein zweites `</g>`. Eine Ablehnung nennt die betroffenen Tags, jeweils mit `-`
-für eines, das die Quelle hatte und der Kandidat weggelassen hat, oder `+` für eines, das der
-Kandidat erfunden hat.
+doppelt gemeldet. Ein solches öffnendes Tag, das der Kandidat nie schließt, wird trotzdem abgelehnt
+und über das fehlende schließende Tag benannt, etwa `-</g>`. Jedes andere Tag im selben Wert wird
+weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine Ablehnung
+nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat
+weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
 
 ## Review-Flags
 

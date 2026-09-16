@@ -22,21 +22,26 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  * - `markup`: the candidate does not carry the same inline HTML or XML tags as the source, or it
  *   carries them unbalanced, mis-nested, or newly nested inside another tag of the same name, any
  *   of which breaks the rendering of the string the way a dropped placeholder breaks its
- *   interpolation. Tags are compared as a multiset of names plus attribute names, so a different
- *   word order and a translated attribute value are both accepted, and the two spellings of a void
+ *   interpolation. Tags are read the way an HTML parser reads them (quoted attribute values may
+ *   contain `>`) and compared as a multiset of names plus attribute names, so a different word
+ *   order and a translated attribute value are both accepted, and the two spellings of a void
  *   element (`<br>` and `<br/>`) are one tag. Tag names are compared exactly, while the HTML void
- *   elements are recognised as needing no closing tag in any case spelling. Where the source has no
- *   markup, the candidate is refused for a closing tag with no opening tag, an unclosed opening tag
- *   named after a standard HTML element, and any closed pair, void, or self-closing tag; an unclosed
- *   bracketed word such as `<Enter>` is read as prose. An unterminated comment, and any `<?...?>`
- *   or `<!...>` construct the source does not carry the same number of times, is refused too. The
- *   tag comparison is silent unless the source's own tags are well formed, and the whole check
- *   stands down when the source carries more than 256 tags; a candidate that alone exceeds that
- *   limit is refused. The check stands down per tag: a tag the format already reports as a
- *   placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text tag) is left to the
- *   `placeholder` reason together with as many closing tags as it has openings, while any other tag
- *   in the same value is still compared, including a second spelling of the same name. The
- *   refusal's `details` names the offending tags.
+ *   elements are recognised as needing no closing tag in any case spelling. An unclosed bracketed
+ *   word that is only a name of letters, digits, hyphens, and underscores, such as `<Enter>`, is set
+ *   aside on both sides and counted like a tag once the source carries tags; where the source has
+ *   no tags, the candidate is refused for a closing tag with no opening tag, an unclosed tag that
+ *   carries anything beyond its name, any closed pair, void, or self-closing tag, and a bracketed
+ *   word named after a standard HTML element that the source does not carry. Comments, CDATA
+ *   sections, declarations, and processing instructions end where an HTML parser ends them and are
+ *   compared as a multiset of their text, so one the candidate adds, drops, or rewrites is refused.
+ *   The tag comparison is silent unless the source's own tags are well formed, and the whole check
+ *   stands down when the source carries more than 256 tags and constructs; a candidate that alone
+ *   exceeds that limit is refused. The check stands down per tag: a tag the format already reports
+ *   as a placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text tag) is left to the
+ *   `placeholder` reason together with as many closing tags as it has openings, while one the
+ *   candidate leaves unclosed is still refused, and any other tag in the same value is still
+ *   compared, including a second spelling of the same name. The refusal's `details` names the
+ *   offending tags.
  * - `icu`: the candidate is not a valid ICU message under the configured format's adapter.
  * - `degenerate`: the candidate collapsed into runaway output rather than a translation. Two shapes
  *   are detected: the candidate is at least twelve times the length of a source of meaningful

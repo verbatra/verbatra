@@ -95,29 +95,46 @@ something is a finding:
 
 A source with no markup at all is still protected against markup invented into it. The candidate is
 refused for any tag pair, void element or self-closing tag it adds, for a closing tag with no
-opening tag (`Hallo</div>`), and for an unclosed opening tag whose name, in any letter case, is a
-standard HTML element (`Hallo <script>`). An unclosed bracketed word that is not an HTML element
-name, such as `<Enter>` in `Druecke <Enter>`, is read as prose and accepted.
+opening tag (`Hallo</div>`), and for an unclosed opening tag that carries anything beyond its name,
+such as `<Enter onfocus=...>` or `<x-key onmouseover=...>`.
 
-Comments, CDATA sections, declarations and processing instructions are not tags. A complete comment
-and a CDATA section are translatable text and are not compared. An unterminated `<!--` hides the
-rest of the rendered value, so a candidate that carries one the source does not is refused.
-Declarations and processing instructions, such as `<!DOCTYPE html>` or `<?php ?>`, are compared as a
-multiset of their exact text, so one the candidate invents or drops is refused.
+An unclosed `<Word>` with nothing but its name, where the name is only letters, digits, hyphens and
+underscores, is a bracketed word, such as `<Enter>` in `Druecke <Enter>`. Bracketed words are set
+aside on both sides before the source is judged, so a source that carries one is still compared: a
+candidate that drops a `<b>` pair beside `<Enter>`, or invents a `<script>` pair beside it, is
+refused. Once the source carries tags, bracketed words are counted like tags. Where it carries none,
+a bracketed word the candidate adds is read as prose and accepted, unless its name, in any letter
+case, is a standard HTML element (`Hallo <script>`).
 
-The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly as
-one: a name, then only well-formed attributes, then `>`. So `5 < 10`, `x <= y`,
-`<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary text, and a run that does not
-parse, such as a tag whose attribute value contains a `>`, is text too. The tag comparison stands
-down for a value whose source tags are malformed. After setting aside the tags the format reports as
-placeholders, a source counts as malformed when it has an opening tag that is never closed (void
-elements excepted), a closing tag with no opening tag, or tags closed in the wrong order. Prose can
-trip this by accident: in `a<b and c>d`, the run `<b and c>` parses as an opening `b` tag with the
-attributes `and` and `c` that is never closed, so the source counts as malformed. A tag that does
-not parse often leaves its closing tag unmatched, which has the same effect. In both cases the check
-goes quiet for that value rather than guessing. It also stands down entirely when the source carries
-more than 256 tags, while a candidate that alone exceeds that limit is refused with the detail
-`+more than 256 inline tags`.
+That name test is deliberately cautious, so an ordinary word that happens to be an element name,
+such as `<Del>`, `<Option>`, `<Select>`, `<Input>` or `<Menu>`, is refused when a translation adds
+it to a source that does not have it. The workaround is to keep the bracketed word in your source
+string too: a translation that carries the same bracketed words as its source is accepted.
+
+Comments, CDATA sections, declarations and processing instructions are not tags, and they are read
+the way an HTML parser reads them, because that is where the values end up. `<!-->` and `<!--->` are
+complete empty comments, a comment ends at the first `-->` or `--!>`, and a comment with no end
+hides the rest of the value. `<![CDATA[`, `<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</`
+not followed by a letter or digit all end at the first `>`. Each such construct is compared as a
+multiset of its text with runs of whitespace collapsed, so one the candidate adds, drops or rewrites
+is refused, including a comment whose text was translated. Tags after a construct's end are compared
+as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>` is refused for both the construct and the
+`<img>`.
+
+The check is deliberately quiet, but it reads tags the way an HTML parser does. A tag starts at `<`
+or `</` followed by a letter or, for a numeric rich-text tag such as `<0>`, by digits. Its name runs
+to whitespace, `/` or `>`, and a quoted attribute value may contain `>`. So `5 < 10`, `x <= y` and
+an escaped `&lt;b&gt;` stay ordinary text, while `<support@example.com>` and `<abbr title="a > b">`
+are tags, and a `<` that never reaches its `>` renders nothing and is not a tag. The tag comparison
+stands down for a value whose source tags are malformed. After setting aside the tags the format
+reports as placeholders and any bracketed words, a source counts as malformed when it has an opening
+tag that is never closed (void elements excepted), a closing tag with no opening tag, or tags closed
+in the wrong order. Prose can trip this by accident: in `a<b and c>d`, the run `<b and c>` is an
+opening `b` tag with the attributes `and` and `c` that is never closed, so the source counts as
+malformed. The check then goes quiet for that value's tags rather than guessing, while comments and
+other constructs are still compared. It also stands down entirely when the source carries more than
+256 tags and constructs together, while a candidate that alone exceeds that limit is refused with
+the detail `+more than 256 inline tags`.
 
 Two format-shaped limits follow from comparing whole values. For a format that packs several plural
 arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language
@@ -130,10 +147,11 @@ without also multiplying the markup.
 
 The check also stands down per tag. A tag the format already reports as a placeholder (an XLIFF
 inline element, a next-intl or ARB ICU rich-text tag) is left to the placeholder check, together
-with as many closing tags as it has openings, and is never reported twice. Every other tag in the
-same value is still compared, including a surplus closing tag such as a second `</g>`. A refusal
-names the tags behind it, each prefixed with `-` for one the source had and the candidate dropped or
-`+` for one the candidate invented.
+with as many closing tags as it has openings, and is never reported twice. An opening tag of that
+kind that the candidate leaves unclosed is still refused, named by the closing tag it is missing,
+such as `-</g>`. Every other tag in the same value is still compared, including a surplus closing
+tag such as a second `</g>`. A refusal names the tags behind it, each prefixed with `-` for one the
+source had and the candidate dropped or `+` for one the candidate invented.
 
 ## Review flags
 
