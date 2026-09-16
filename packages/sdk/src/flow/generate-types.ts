@@ -131,7 +131,7 @@ const REFUSAL_HINTS: Readonly<Record<TypesOutputRefusal, string>> = {
   "lock-file": RELATIVE_PATH_HINT,
   "translation-memory-cache": RELATIVE_PATH_HINT,
   "config-search-place": RELATIVE_PATH_HINT,
-  "loaded-config": RELATIVE_PATH_HINT,
+  "loaded-config": "Choose an output path other than the config file.",
   "unverified-existing-file":
     "Pass a different --out path, or delete the file if it really is an old declaration.",
 };

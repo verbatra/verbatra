@@ -43,6 +43,22 @@ describe("the config file the run actually loaded", () => {
     expect(await readTextFile(join(dir, "config", "custom.ts"))).toBe(USER_CODE);
   });
 
+  it("is refused with a hint to pick another path, not to pass a relative one", async () => {
+    const dir = await seed();
+
+    const refused = await failure(
+      generateTypes({
+        config: baseConfig(),
+        cwd: dir,
+        configPath: "config/custom.ts",
+        out: "config/custom.ts",
+      }),
+    );
+
+    expect(refused.message).toContain("Choose an output path other than the config file");
+    expect(refused.message).not.toContain("Pass a relative path");
+  });
+
   it("is refused when named by an absolute path, spelled in a different case", async () => {
     const dir = await seed();
 
