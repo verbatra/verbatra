@@ -197,10 +197,11 @@ a reason to restart the process.
 
 ## Formats
 
-`format` in the config is one of these fourteen built-in formats, or a `custom:`
-identifier such as `custom:toml` for an adapter shipped outside verbatra. The CLI
-loads no plugin, so a `custom:` format only runs through `@verbatra/sdk`, where the
-project's own code registers the adapter.
+`format` in the config is one of these fourteen. The built-in set is closed; the
+only other accepted value is a `custom:` identifier such as `custom:toml`, naming an
+adapter shipped outside verbatra. The CLI loads no plugin, so a `custom:` format
+only runs through `@verbatra/sdk`, where the project's own code registers the
+adapter.
 
 | Format id | What it claims |
 | --- | --- |
