@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { describe, expect, it } from "vitest";
 import { readMarkup } from "./markup.js";
 import { type PositionedToken, scanSource } from "./tokenize.js";
@@ -221,6 +222,10 @@ describe("readMarkup on markup that makes the file unreadable", () => {
     ["a generic arrow function", "const f = <T,>(x: T) => x;"],
   ])("does not flag %s", (_label, text) => {
     expect(scan(text).unreadableMarkup).toBe(false);
+  });
+
+  it("flags an element that never closes inside a template expression", () => {
+    expect(scan("const a = `${ok && <p>Never closed}`;").unreadableMarkup).toBe(true);
   });
 
   it("still flags broken markup that follows a generic function type", () => {
