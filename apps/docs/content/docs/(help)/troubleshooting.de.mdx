@@ -78,10 +78,13 @@ damit sich kein Geheimnis in einer committeten Datei verstecken kann.
 Formate.
 
 **Ursache**: Das `format` der Konfiguration ist keine der vierzehn registrierten Format-Ids. Das
-wird geprüft, bevor irgendeine Datei gelesen wird.
+wird geprüft, bevor irgendeine Datei gelesen wird. Bei einer `custom:`-Id nennt die Meldung
+stattdessen das Fremdformat: Die Registry, die der Lauf bekommen hat, enthält keinen Adapter dafür.
+Die `verbatra`-Kommandozeile lädt kein Plugin, deshalb läuft ein `custom:`-Format dort nicht.
 
 **Lösung**: Verwende eine der Ids aus [Formate](/docs/formats), zum Beispiel `i18next-json` oder
-`xliff`.
+`xliff`. Für ein `custom:`-Format arbeite über `@verbatra/sdk` und übergib eine Registry, die seinen
+Adapter enthält: siehe [Eigene Formatadapter](/docs/custom-format-adapters).
 
 ## Die angeforderte Locale ist nicht konfiguriert (UNKNOWN_LOCALE)
 

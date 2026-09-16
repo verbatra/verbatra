@@ -74,10 +74,14 @@ que un secreto no pueda esconderse en un archivo confirmado.
 **Síntoma**: `No adapter is registered for format "..."` seguido de la lista soportada.
 
 **Causa**: el `format` de la configuración no es uno de los catorce ids de formato registrados. Esto
-se comprueba antes de leer ningún archivo.
+se comprueba antes de leer ningún archivo. Con un identificador `custom:` el mensaje nombra en su
+lugar el formato de terceros: la registry que recibió la ejecución no tiene ningún adaptador para él.
+La línea de comandos `verbatra` no carga ningún plugin, así que ahí un formato `custom:` no
+puede ejecutarse.
 
 **Solución**: usa uno de los ids de [Formatos](/docs/formats), por ejemplo `i18next-json` o
-`xliff`.
+`xliff`. Para un formato `custom:`, trabaja con `@verbatra/sdk` y pasa una registry que contenga su
+adaptador: consulta [Adaptadores de formato propios](/docs/custom-format-adapters).
 
 ## El locale solicitado no está configurado (UNKNOWN_LOCALE)
 
