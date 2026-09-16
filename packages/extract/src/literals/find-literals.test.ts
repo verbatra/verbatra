@@ -1,6 +1,9 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { describe, expect, it } from "vitest";
-import { createI18nextLiteralRules } from "../i18next/i18next-literal-rules.js";
+import {
+  createI18nextLiteralRules,
+  I18NEXT_TRANSLATION_ELEMENTS,
+} from "../i18next/i18next-literal-rules.js";
 import { findLiterals } from "./find-literals.js";
 
 const rules = createI18nextLiteralRules();
@@ -71,6 +74,12 @@ describe("findLiterals: a literal passed to a recognised translation call", () =
     ],
   ])("is never reported: %s", (_label, source) => {
     onlyControl(source);
+  });
+});
+
+describe("findLiterals: text inside an i18next translation element", () => {
+  it.each(I18NEXT_TRANSLATION_ELEMENTS)("is never reported inside <%s>", (name) => {
+    onlyControl(`(<${name} title="Hello there friend">Hello there friend</${name}>)`);
   });
 });
 
