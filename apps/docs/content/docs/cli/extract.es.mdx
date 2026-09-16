@@ -72,7 +72,7 @@ Conviene que sepas lo que cuesta antes de ejecutarlo: si tu proyecto nombra un e
 Solo el archivo de la locale de origen, y solo las claves que son realmente nuevas:
 
 - Una clave que ya está en el catálogo conserva su valor tal cual. Un valor por defecto dejado en una llamada nunca sobrescribe un valor que tú o una traductora hayáis editado.
-- Una clave del catálogo que ninguna llamada menciona se deja intacta. `extract` añade e informa; nunca borra.
+- Una clave del catálogo que ninguna llamada menciona se deja intacta. `extract` añade e informa; nunca borra. [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
 - Una ejecución que no encuentra nada nuevo no escribe nada en absoluto, así que el archivo queda idéntico byte a byte y su fecha de modificación no cambia.
 - Nunca se escribe un archivo de locale de destino. Ejecuta [`verbatra translate`](/docs/cli/translate) después de `extract` para rellenar las claves nuevas.
 

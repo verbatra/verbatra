@@ -72,7 +72,7 @@ Du solltest wissen, was das kostet, bevor du den Befehl ausführst: Wenn dein Pr
 Nur die Quell-Locale-Datei, und nur Keys, die wirklich neu sind:
 
 - Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert. Ein Standardwert an einer Aufrufstelle überschreibt nie einen Wert, den du oder eine Übersetzerin bearbeitet habt.
-- Ein Key im Katalog, den keine Aufrufstelle nennt, bleibt unangetastet. `extract` ergänzt und meldet, er löscht nie.
+- Ein Key im Katalog, den keine Aufrufstelle nennt, bleibt unangetastet. `extract` ergänzt und meldet, er löscht nie. [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) listet diese Keys auf.
 - Ein Lauf, der nichts Neues findet, schreibt gar nichts: Die Datei bleibt byteidentisch und ihr Änderungszeitpunkt bleibt gleich.
 - Eine Ziel-Locale-Datei wird nie geschrieben. Führe nach `extract` [`verbatra translate`](/docs/cli/translate) aus, um die neuen Keys zu füllen.
 

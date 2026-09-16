@@ -94,7 +94,7 @@ The CLI returns codes you can branch on in CI and scripts:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` and `--version`); for `check` and `diff`, every locale is in sync, and for `doctor`, every check passed. |
-| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync; for `doctor`, at least one check failed. |
+| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync, or `diff --unused` found an unused source key in a complete scan; for `doctor`, at least one check failed. |
 | `2` | Could not run: a whole-run error or a usage error. |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt. A single interrupt stops gracefully and exits `0`; if the shutdown itself fails, `watch` exits `2` and `studio` exits `1`. |
 

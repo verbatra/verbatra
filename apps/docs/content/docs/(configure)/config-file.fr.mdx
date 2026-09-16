@@ -192,13 +192,14 @@ Le bloc ne change rien à une exécution réelle : ni ce qui est envoyé, ni ce 
 
 <AvailableFrom version="0.11.0" />
 
-Optionnel, et utilisé uniquement par [`verbatra extract`](/docs/cli/extract). Toutes les autres commandes l'ignorent.
+Optionnel, et utilisé uniquement par [`verbatra extract`](/docs/cli/extract) et [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées). Toutes les autres commandes l'ignorent.
 
 ```ts
 extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
+  ignoreUnused: ["emails.*"],
 }
 ```
 
@@ -207,6 +208,8 @@ extract: {
 `roots` liste les répertoires parcourus, résolus par rapport au répertoire de travail. Au moins un est requis, et rien en dehors d'eux n'est jamais lu.
 
 `exclude` ajoute des noms de répertoire à l'ensemble toujours ignoré, qui couvre déjà `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` et `coverage`. Des noms, pas des chemins : une entrée correspond à un répertoire de ce nom n'importe où sous une racine.
+
+`ignoreUnused` liste les clés que `diff --unused` ne doit jamais signaler comme inutilisées, pour une clé référencée uniquement hors du code analysé, comme un template serveur, un CMS ou une fixture de test. Chaque entrée est une clé exacte, ou un motif dans lequel `*` correspond à n'importe quelle suite de caractères, comme `emails.*`. Une clé correspondante est signalée comme ignorée plutôt qu'omise.
 
 Les clés inconnues dans le bloc sont refusées, exactement comme au niveau supérieur.
 

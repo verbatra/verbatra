@@ -139,7 +139,9 @@ Entrée : `{ config, cwd?, locales? }`. Renvoie un `CheckSummary` dont `inSync` 
 
 Le frère détaillé de `check` : le même calcul, mais il renvoie les listes de clés par locale (`missing`, `changed`, `orphaned`) au lieu de comptes. Les clés orphelines sont rapportées seulement et ne font jamais basculer `hasPendingChanges`, puisqu'une exécution par défaut ne les supprime pas.
 
-Entrée : `{ config, cwd?, locales? }`. Renvoie un `DiffSummary`.
+Avec `unused: true`, il analyse aussi les racines du bloc `extract` de la config et ajoute un rapport `unused`, séparé de chaque liste `orphaned` : les clés de la locale source qu'aucun appel ne nomme, dans l'ordre du catalogue. Il est en lecture seule et ne demande aucune clé. Les variantes de pluriel et de contexte d'une clé référencée, et les clés sous un parent référencé, comptent comme référencées ; les clés qui correspondent à `extract.ignoreUnused` vont dans `ignored`. Son `status` vaut `complete`, `unreliable` (avec `unreliableBecause` nommant des clés dynamiques, des sites de clé indirects ou une analyse incomplète, plus leurs emplacements) ou `not-run` (avec une `reason` et sans liste de clés). Le rapport ne fait jamais basculer `hasPendingChanges`.
+
+Entrée : `{ config, cwd?, locales?, unused? }`. Renvoie un `DiffSummary`.
 
 ### keyIntegrity
 

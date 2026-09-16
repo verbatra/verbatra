@@ -72,7 +72,7 @@ Know what that costs before you run it: if your project names a namespace at eve
 Only the source locale file, and only keys that are genuinely new:
 
 - A key already in the catalog keeps its existing value exactly as it stands. A default left at a call site never overwrites a value you or a translator edited.
-- A key in the catalog that no call site mentions is left alone. `extract` adds and reports; it never deletes.
+- A key in the catalog that no call site mentions is left alone. `extract` adds and reports; it never deletes. [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys) lists those keys.
 - A run that finds nothing new writes nothing at all, so the file stays byte-identical and its modification time does not change.
 - A target locale file is never written. Run [`verbatra translate`](/docs/cli/translate) after `extract` to fill the new keys in.
 

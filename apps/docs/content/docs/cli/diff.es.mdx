@@ -17,9 +17,34 @@ verbatra diff [flags]
 | `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino separado por comas sobre el que hacer el diff |
+| `--unused` | ninguno | desactivado | analiza también las raíces del [bloque `extract`](/docs/config-file#extract) y lista las claves del locale de origen que ninguna llamada nombra (consulta [Claves de origen sin uso](#claves-de-origen-sin-uso)) |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen del diff bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 Un locale tiene cambios pendientes cuando tiene al menos una clave que añadir o retraducir. Las claves huérfanas se informan pero nunca cuentan como pendientes, porque una ejecución por defecto no las elimina (solo lo hace [`verbatra translate --prune`](/docs/cli/translate)). Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comparar nada en silencio. Donde [`verbatra check`](/docs/cli/check) responde "cuánto se ha desfasado" con contadores, `diff` responde "qué claves" con las listas.
+
+## Claves de origen sin uso
+
+<AvailableFrom version="0.11.0" />
+
+`orphaned` responde "qué claves de destino salieron del origen". `--unused` responde otra pregunta: ¿qué claves de tu archivo de locale de origen ya no nombra tu aplicación en ningún sitio? Analiza las `roots` del [bloque `extract`](/docs/config-file#extract) con el mismo lector que usa [`verbatra extract`](/docs/cli/extract) y lista cada clave del locale de origen que ninguna llamada nombra. Las dos listas nunca se mezclan: una clave puede estar huérfana en `de` y, por separado, sin uso en el origen.
+
+Sigue siendo de solo lectura. No se elimina, reescribe ni reordena nada, no se construye ningún proveedor y no se lee ninguna API key. Borrar una clave es decisión tuya.
+
+Nunca se lista una clave que el código todavía puede alcanzar:
+
+- Cuenta una referencia en cualquier lugar bajo las raíces, incluido un archivo que ninguna ruta importa.
+- Una variante de plural o de contexto de una clave referenciada cuenta como referenciada: `t("items", { count })` cubre `items_one` e `items_other`, y `t("friend", { context })` cubre `friend_male`, `place_ordinal_one` y similares. Coincide con cómo `translate` deja las formas plurales generadas fuera de la lista de huérfanas.
+- También cuenta cada clave bajo una clave padre referenciada, así que `t("nav", { returnObjects: true })` cubre `nav.home`.
+
+El informe lleva un `status`:
+
+| `status` | Significado |
+| --- | --- |
+| `complete` | nada del análisis pone en duda la lista |
+| `unreliable` | el análisis encontró algo que puede alcanzar una clave que no sabe nombrar, así que una clave listada podría seguir en uso. `unreliableBecause` dice qué: `dynamic-keys` (una clave que no es una única cadena estática, incluida una clave con namespace), `indirect-key-sites` (una opción `keyPrefix`, un componente `Trans` o un atributo `i18nKey`) o `incomplete-scan` (un archivo o directorio que no se pudo leer hasta el final). Cada uno viene con su archivo y línea. |
+| `not-run` | no había nada que analizar, y no se lista ninguna clave. `reason` es `EXTRACT_NOT_CONFIGURED` (sin bloque `extract`), `EXTRACT_FS_UNSUPPORTED` (el sistema de archivos de quien llama al SDK no puede listar directorios) o `NO_SOURCE_FILES` (ningún archivo de código bajo las raíces) |
+
+Una clave referenciada solo desde fuera del código analizado (una plantilla de servidor, un CMS, un fixture de test) va en [`extract.ignoreUnused`](/docs/config-file#extract). Una clave que coincide aparece bajo `ignored`, nunca bajo `unused`, y nunca se descarta en silencio.
 
 ## Ejemplos
 
@@ -29,18 +54,22 @@ verbatra diff
 
 # machine-readable key lists for tooling or a PR comment
 verbatra diff --json
+
+# also list the source keys your code no longer names (exit 1 if a complete scan finds any)
+verbatra diff --unused
 ```
 
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
-| `0` | sin cambios pendientes: ningún locale tiene una clave que añadir o retraducir |
-| `1` | cambios pendientes: al menos un locale tiene una clave faltante o modificada (las claves huérfanas por sí solas nunca producen `1`) |
+| `0` | sin cambios pendientes: ningún locale tiene una clave que añadir o retraducir, y con `--unused` ningún análisis completo encontró una clave sin uso |
+| `1` | cambios pendientes: al menos un locale tiene una clave faltante o modificada, o con `--unused` un análisis `complete` encontró al menos una clave sin uso (las claves huérfanas, las ignoradas y un informe `unreliable` o `not-run` nunca producen `1` por sí solos) |
 | `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido) |
 
 ## Relacionado
 
 - [`verbatra check`](/docs/cli/check) da los contadores por locale detrás de estas listas.
+- [El archivo de configuración](/docs/config-file#extract) documenta el bloque `extract` que analiza `--unused`, incluido `ignoreUnused`.
 - [`verbatra translate`](/docs/cli/translate) aplica los cambios pendientes; `--prune` elimina las claves huérfanas.
 - [CI y códigos de salida](/docs/ci-and-exit-codes) muestra diff en una canalización.

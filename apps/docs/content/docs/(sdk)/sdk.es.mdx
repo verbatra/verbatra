@@ -209,7 +209,16 @@ El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de 
 (`missing`, `changed`, `orphaned`) en lugar de contadores. Las claves huérfanas son solo informativas y
 nunca activan `hasPendingChanges`, porque una ejecución por defecto no elimina claves.
 
-Entrada: `{ config, cwd?, locales? }`. Devuelve un `DiffSummary`.
+Con `unused: true` también analiza las raíces del bloque `extract` de la configuración y añade un
+informe `unused`, separado de cada lista `orphaned`: las claves del locale de origen que ninguna
+llamada nombra, en el orden del catálogo. Es de solo lectura y no necesita clave. Las variantes de
+plural y de contexto de una clave referenciada, y las claves bajo un padre referenciado, cuentan como
+referenciadas; las claves que coinciden con `extract.ignoreUnused` van a `ignored`. Su `status` es
+`complete`, `unreliable` (con `unreliableBecause` nombrando claves dinámicas, sitios de clave
+indirectos o un análisis incompleto, más sus ubicaciones) o `not-run` (con un `reason` y sin lista de
+claves). El informe nunca activa `hasPendingChanges`.
+
+Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
 
 ### keyIntegrity
 

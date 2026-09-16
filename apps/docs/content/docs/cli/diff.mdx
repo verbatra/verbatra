@@ -17,9 +17,34 @@ verbatra diff [flags]
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--locales` | `<list>` | all configured targets | comma-separated subset of target locales to diff |
+| `--unused` | none | off | also scan the source roots of the [`extract` block](/docs/config-file#extract) and list the source-locale keys no call site names (see [Unused source keys](#unused-source-keys)) |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the diff summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A locale has pending changes when it has at least one key to add or re-translate. Orphaned keys are reported but never count as pending, because a default run does not remove them (only [`verbatra translate --prune`](/docs/cli/translate) does). An empty or unknown `--locales` value is rejected with exit `2` rather than silently diffing nothing. Where [`verbatra check`](/docs/cli/check) answers "how much has drifted" with counts, `diff` answers "which keys" with the lists.
+
+## Unused source keys
+
+<AvailableFrom version="0.11.0" />
+
+`orphaned` answers "which target keys left the source". `--unused` answers a different question: which keys in the source locale file does your application no longer name anywhere? It scans the `roots` of the [`extract` block](/docs/config-file#extract) with the same reader [`verbatra extract`](/docs/cli/extract) uses, and lists every source-locale key no call site names. The two lists are never merged: a key can be orphaned in `de` and, separately, unused in the source.
+
+It stays read-only. Nothing is removed, rewritten, or reordered, no provider is constructed, and no API key is read. Deleting a key is your call.
+
+A key the code can still reach is never listed:
+
+- A reference anywhere under the roots counts, including a file no route imports.
+- A plural or context variant of a referenced key counts as referenced: `t("items", { count })` covers `items_one` and `items_other`, and `t("friend", { context })` covers `friend_male`, `place_ordinal_one` and the like. This matches how `translate` keeps generated plural forms off the orphan list.
+- Every key under a referenced parent counts too, so `t("nav", { returnObjects: true })` covers `nav.home`.
+
+The report carries a `status`:
+
+| `status` | Meaning |
+| --- | --- |
+| `complete` | nothing in the scan casts doubt on the list |
+| `unreliable` | the scan met something that can reach a key it cannot name, so a listed key may still be in use. `unreliableBecause` says what: `dynamic-keys` (a key that is not one static string, including a namespace-qualified key), `indirect-key-sites` (a `keyPrefix` option, a `Trans` component, or an `i18nKey` attribute), or `incomplete-scan` (a file or directory that could not be read to its end). Each comes with its file and line. |
+| `not-run` | there was nothing to scan, and no key is listed at all. `reason` is `EXTRACT_NOT_CONFIGURED` (no `extract` block), `EXTRACT_FS_UNSUPPORTED` (an SDK caller's file system cannot list directories), or `NO_SOURCE_FILES` (no source file under the roots) |
+
+A key referenced only from outside the scanned source (a server template, a CMS, a test fixture) belongs in [`extract.ignoreUnused`](/docs/config-file#extract). A matched key is listed under `ignored`, never under `unused`, and never silently dropped.
 
 ## Examples
 
@@ -29,18 +54,22 @@ verbatra diff
 
 # machine-readable key lists for tooling or a PR comment
 verbatra diff --json
+
+# also list the source keys your code no longer names (exit 1 if a complete scan finds any)
+verbatra diff --unused
 ```
 
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
-| `0` | no pending changes: no locale has a key to add or re-translate |
-| `1` | pending changes: at least one locale has a missing or changed key (orphaned keys alone never produce `1`) |
+| `0` | no pending changes: no locale has a key to add or re-translate, and with `--unused` no complete scan found an unused key |
+| `1` | pending changes: at least one locale has a missing or changed key, or with `--unused` a `complete` scan found at least one unused key (orphaned keys, ignored keys, and an `unreliable` or `not-run` report never produce `1` on their own) |
 | `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value) |
 
 ## Related
 
 - [`verbatra check`](/docs/cli/check) gives the per-locale counts behind these lists.
+- [The config file](/docs/config-file#extract) documents the `extract` block `--unused` scans with, including `ignoreUnused`.
 - [`verbatra translate`](/docs/cli/translate) applies the pending changes; `--prune` removes the orphaned keys.
 - [CI and exit codes](/docs/ci-and-exit-codes) shows diff in a pipeline.

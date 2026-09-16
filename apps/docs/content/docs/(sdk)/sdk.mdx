@@ -210,7 +210,15 @@ The detailed sibling of `check`: the same computation, but it returns the key li
 (`missing`, `changed`, `orphaned`) instead of counts. Orphaned keys are report-only and never flip
 `hasPendingChanges`, since a default run does not prune.
 
-Input: `{ config, cwd?, locales? }`. Returns a `DiffSummary`.
+With `unused: true` it also scans the roots of the config's `extract` block and adds an `unused`
+report, separate from every `orphaned` list: the source-locale keys no call site names, in catalog
+order. It is read-only and keyless. Plural and context variants of a referenced key, and keys under
+a referenced parent, count as referenced; keys matched by `extract.ignoreUnused` land in `ignored`.
+Its `status` is `complete`, `unreliable` (with `unreliableBecause` naming dynamic keys, indirect key
+sites, or an incomplete scan, plus their locations), or `not-run` (with a `reason` and no key list).
+The report never flips `hasPendingChanges`.
+
+Input: `{ config, cwd?, locales?, unused? }`. Returns a `DiffSummary`.
 
 ### keyIntegrity
 

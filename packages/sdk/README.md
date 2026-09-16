@@ -139,6 +139,8 @@ if (!summary.inSync) {
 
 Lists the keys a run would touch, without writing anything. `input` is the same `{ config, cwd?, locales? }` shape as `check`. Resolves to a `DiffSummary` whose `locales` lists one `LocaleDiff` each, with the key arrays `missing` (would be added), `changed` (would be re-translated), and `orphaned` (present in the target but absent from the source), plus a per-locale `hasPendingChanges` driven by `missing` and `changed` only, since a default run does not prune. The top-level `hasPendingChanges` is true when any checked locale has some.
 
+With `unused: true` it also scans the roots of the config's `extract` block and adds `summary.unused`, a report of the source-locale keys no call site names, kept apart from every `orphaned` list. It is read-only and keyless, counts plural and context variants of a referenced key (and keys under a referenced parent) as referenced, lists keys matched by `extract.ignoreUnused` under `ignored`, and carries a `status` of `"complete"`, `"unreliable"` (with `unreliableBecause` and the dynamic, indirect, or unreadable locations behind it), or `"not-run"` (with a `reason` and no key list). It never flips `hasPendingChanges`.
+
 ```ts
 import { diff, loadConfig } from "@verbatra/sdk";
 

@@ -17,9 +17,34 @@ verbatra diff [flags]
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--locales` | `<list>` | toutes les cibles configurées | sous-ensemble de locales cibles à comparer, séparées par des virgules |
+| `--unused` | aucun | désactivé | analyse aussi les racines du [bloc `extract`](/docs/config-file#extract) et liste les clés de la locale source qu'aucun appel ne nomme (voir [Clés source inutilisées](#clés-source-inutilisées)) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de comparaison sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 Une locale a des changements en attente quand elle a au moins une clé à ajouter ou à retraduire. Les clés orphelines sont signalées mais ne comptent jamais comme en attente, parce qu'une exécution par défaut ne les supprime pas (seul [`verbatra translate --prune`](/docs/cli/translate) le fait). Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien comparer en silence. Là où [`verbatra check`](/docs/cli/check) répond "combien a dérivé" avec des comptes, `diff` répond "quelles clés" avec les listes.
+
+## Clés source inutilisées
+
+<AvailableFrom version="0.11.0" />
+
+`orphaned` répond à "quelles clés cibles ont quitté la source". `--unused` répond à une autre question : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus nulle part ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le même lecteur que [`verbatra extract`](/docs/cli/extract), et liste chaque clé de la locale source qu'aucun appel ne nomme. Les deux listes ne sont jamais fusionnées : une clé peut être orpheline en `de` et, séparément, inutilisée dans la source.
+
+Il reste en lecture seule. Rien n'est supprimé, réécrit ou réordonné, aucun fournisseur n'est construit et aucune clé d'API n'est lue. Supprimer une clé reste ta décision.
+
+Une clé que le code peut encore atteindre n'est jamais listée :
+
+- Une référence n'importe où sous les racines compte, y compris dans un fichier qu'aucune route n'importe.
+- Une variante de pluriel ou de contexte d'une clé référencée compte comme référencée : `t("items", { count })` couvre `items_one` et `items_other`, et `t("friend", { context })` couvre `friend_male`, `place_ordinal_one` et les formes semblables. C'est cohérent avec la façon dont `translate` garde les formes plurielles générées hors de la liste des orphelines.
+- Chaque clé sous une clé parente référencée compte aussi, donc `t("nav", { returnObjects: true })` couvre `nav.home`.
+
+Le rapport porte un `status` :
+
+| `status` | Signification |
+| --- | --- |
+| `complete` | rien dans l'analyse ne remet la liste en cause |
+| `unreliable` | l'analyse a rencontré quelque chose qui peut atteindre une clé qu'elle ne sait pas nommer, donc une clé listée peut encore être utilisée. `unreliableBecause` dit quoi : `dynamic-keys` (une clé qui n'est pas une seule chaîne statique, y compris une clé avec namespace), `indirect-key-sites` (une option `keyPrefix`, un composant `Trans` ou un attribut `i18nKey`) ou `incomplete-scan` (un fichier ou un répertoire qui n'a pas pu être lu jusqu'au bout). Chacun est accompagné de son fichier et de sa ligne. |
+| `not-run` | il n'y avait rien à analyser, et aucune clé n'est listée. `reason` vaut `EXTRACT_NOT_CONFIGURED` (pas de bloc `extract`), `EXTRACT_FS_UNSUPPORTED` (le système de fichiers d'un appelant du SDK ne sait pas lister les répertoires) ou `NO_SOURCE_FILES` (aucun fichier source sous les racines) |
+
+Une clé référencée uniquement hors du code analysé (un template serveur, un CMS, une fixture de test) va dans [`extract.ignoreUnused`](/docs/config-file#extract). Une clé correspondante apparaît sous `ignored`, jamais sous `unused`, et n'est jamais écartée en silence.
 
 ## Exemples
 
@@ -29,18 +54,22 @@ verbatra diff
 
 # machine-readable key lists for tooling or a PR comment
 verbatra diff --json
+
+# also list the source keys your code no longer names (exit 1 if a complete scan finds any)
+verbatra diff --unused
 ```
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
-| `0` | aucun changement en attente : aucune locale n'a de clé à ajouter ou à retraduire |
-| `1` | changements en attente : au moins une locale a une clé manquante ou modifiée (les clés orphelines seules ne produisent jamais `1`) |
+| `0` | aucun changement en attente : aucune locale n'a de clé à ajouter ou à retraduire, et avec `--unused` aucune analyse complète n'a trouvé de clé inutilisée |
+| `1` | changements en attente : au moins une locale a une clé manquante ou modifiée, ou avec `--unused` une analyse `complete` a trouvé au moins une clé inutilisée (les clés orphelines, les clés ignorées et un rapport `unreliable` ou `not-run` ne produisent jamais `1` à eux seuls) |
 | `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue) |
 
 ## Voir aussi
 
 - [`verbatra check`](/docs/cli/check) donne les comptes par locale derrière ces listes.
+- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` qu'analyse `--unused`, y compris `ignoreUnused`.
 - [`verbatra translate`](/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
 - [CI et codes de sortie](/docs/ci-and-exit-codes) montre diff dans un pipeline.

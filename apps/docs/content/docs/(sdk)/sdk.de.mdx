@@ -214,7 +214,16 @@ Das detaillierte Geschwister von `check`: dieselbe Berechnung, aber es gibt die 
 Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
 und kippen nie `hasPendingChanges`, da ein Standardlauf nicht prunt.
 
-Eingabe: `{ config, cwd?, locales? }`. Gibt eine `DiffSummary` zurück.
+Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
+einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
+Aufrufstelle nennt, in Katalogreihenfolge. Er ist rein lesend und braucht keinen Key. Plural- und
+Kontextvarianten eines referenzierten Keys sowie Keys unter einem referenzierten Eltern-Key gelten als
+referenziert; Keys, die `extract.ignoreUnused` trifft, landen in `ignored`. Sein `status` ist
+`complete`, `unreliable` (mit `unreliableBecause`, das dynamische Keys, indirekte Key-Stellen oder
+einen unvollständigen Scan samt Fundstellen nennt) oder `not-run` (mit `reason` und ohne Key-Liste).
+Der Bericht kippt nie `hasPendingChanges`.
+
+Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
 
 ### keyIntegrity
 

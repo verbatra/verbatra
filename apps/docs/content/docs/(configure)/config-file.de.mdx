@@ -192,13 +192,14 @@ Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, 
 
 <AvailableFrom version="0.11.0" />
 
-Optional und nur von [`verbatra extract`](/docs/cli/extract) genutzt. Jeder andere Befehl ignoriert es.
+Optional und nur von [`verbatra extract`](/docs/cli/extract) und [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) genutzt. Jeder andere Befehl ignoriert es.
 
 ```ts
 extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
+  ignoreUnused: ["emails.*"],
 }
 ```
 
@@ -207,6 +208,8 @@ extract: {
 `roots` listet die Verzeichnisse auf, die durchlaufen werden, aufgelöst gegen das Arbeitsverzeichnis. Mindestens eines ist erforderlich, und nichts außerhalb davon wird je gelesen.
 
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
+
+`ignoreUnused` listet die Keys, die `diff --unused` nie als ungenutzt melden darf, für einen Key, der nur von außerhalb des gescannten Quellcodes referenziert wird, etwa aus einem Server-Template, einem CMS oder einer Test-Fixture. Jeder Eintrag ist ein exakter Key oder ein Muster, in dem `*` für eine beliebige Zeichenfolge steht, etwa `emails.*`. Ein getroffener Key wird als ignoriert gemeldet, statt wegzufallen.
 
 Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 
