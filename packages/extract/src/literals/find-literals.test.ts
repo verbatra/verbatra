@@ -109,6 +109,8 @@ describe("findLiterals: non-user-facing literals are not reported", () => {
   it("skips logging, errors, comparisons, case labels, tagged templates, and directives", () => {
     onlyControl('console.log("Starting the app now");\nlogger.info("Server is up");');
     onlyControl('throw new Error("Something went wrong");');
+    onlyControl('const e = new ValidationError("bad input value");');
+    onlyControl('throw new errors.HttpError("bad gateway response");');
     onlyControl('if (a === "Hello there" || "Bye now" !== b) {}');
     onlyControl('switch (a) { case "Hello there": break; }');
     onlyControl("const q = sql`select all rows`;");
@@ -162,6 +164,15 @@ describe("findLiterals: what is reported", () => {
         false,
       ),
     ).toEqual(["Welcome back", "All done now", "Not yet ready"]);
+  });
+
+  it("reports a message passed to a function whose name ends in Error", () => {
+    expect(
+      texts(
+        'setError("email", { message: "Invalid email address" });\nshowError("Failed to save your changes");',
+        false,
+      ),
+    ).toEqual(["Invalid email address", "Failed to save your changes"]);
   });
 
   it("reports JSX text inside a mapped child element", () => {

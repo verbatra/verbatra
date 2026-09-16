@@ -128,7 +128,7 @@ function isExcludedCall(frame: LiteralFrame & { kind: "call" }, rules: Translati
     rules.calleeNames.has(frame.callee) ||
     NON_USER_FACING_CALLEES.has(frame.callee) ||
     LOG_RECEIVERS.has(frame.receiver) ||
-    frame.callee.endsWith("Error")
+    (frame.constructed && frame.callee.endsWith("Error"))
   );
 }
 

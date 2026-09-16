@@ -42,7 +42,9 @@ describe("updateFrames: looking back for a call's type arguments", () => {
   it("still names the callee behind type arguments", () => {
     const frames = walk(scanSource("useState<Map<string, number>>(").tokens);
 
-    expect(frames).toEqual([{ kind: "call", callee: "useState", receiver: "" }]);
+    expect(frames).toEqual([
+      { kind: "call", callee: "useState", receiver: "", constructed: false },
+    ]);
   });
 
   it("does not read an arrow as the end of type arguments", () => {

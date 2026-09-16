@@ -1,7 +1,12 @@
 import type { PositionedToken } from "../scan/tokenize.js";
 
 export type LiteralFrame =
-  | { readonly kind: "call"; readonly callee: string; readonly receiver: string }
+  | {
+      readonly kind: "call";
+      readonly callee: string;
+      readonly receiver: string;
+      readonly constructed: boolean;
+    }
   | { readonly kind: "group"; readonly bracket: "(" | "[" }
   | { readonly kind: "attribute"; readonly name: string }
   | { readonly kind: "child" }
@@ -120,8 +125,10 @@ function callFrame(tokens: readonly PositionedToken[], openIndex: number): Liter
   if (callee === undefined) {
     return { kind: "group", bracket: "(" };
   }
-  const receiver = isPunct(tokens[index - 1], ".") ? (identValue(tokens[index - 2]) ?? "") : "";
-  return { kind: "call", callee, receiver };
+  const hasReceiver = isPunct(tokens[index - 1], ".");
+  const receiver = hasReceiver ? (identValue(tokens[index - 2]) ?? "") : "";
+  const constructed = identValue(tokens[index - (hasReceiver ? 3 : 1)]) === "new";
+  return { kind: "call", callee, receiver, constructed };
 }
 
 function declaresTypeAlias(tokens: readonly PositionedToken[], equalsIndex: number): boolean {
