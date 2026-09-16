@@ -619,6 +619,12 @@ Las partes que conviene conocer:
   que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada
   más. El presupuesto acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y
   `retranslateEntry` no queda cubierto en absoluto.
+- **budgetStanding(budget)** convierte un `RunBudget` en uno de tres valores `BudgetStanding`, la
+  misma clasificación que informan la línea de presupuesto de la CLI, Studio y la herramienta de
+  agente `usage.summary`: `"within"` cuando la ejecución nunca llegó a su techo,
+  `"stopped-before-ceiling"` cuando un presupuesto `"stop"` retuvo una petición mientras
+  `tokensUsed` seguía por debajo de `maxTokens`, y `"reached"` cuando `tokensUsed` alcanzó o superó
+  `maxTokens`. Úsala en lugar de leer solo `exceeded`, que vale `true` en los dos últimos casos.
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
   adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado.
 - **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)

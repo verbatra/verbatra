@@ -600,6 +600,12 @@ The parts worth knowing:
   projection, and the count is only as good as what the provider reports. Both land at
   reconciliation, and nothing further is admitted once they do. The budget bounds one `translate`
   call: `watch` starts a fresh one per run, and `retranslateEntry` is not covered by it at all.
+- **budgetStanding(budget)** turns a `RunBudget` into one of three `BudgetStanding` values, the
+  same classification the CLI budget line, Studio, and the `usage.summary` agent tool report:
+  `"within"` when the run never reached its ceiling, `"stopped-before-ceiling"` when a `"stop"`
+  budget withheld a request while `tokensUsed` was still below `maxTokens`, and `"reached"` when
+  `tokensUsed` reached or passed `maxTokens`. Use it rather than reading `exceeded` alone, which is
+  `true` in both of the last two cases.
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
   with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
