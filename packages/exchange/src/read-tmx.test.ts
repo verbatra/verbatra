@@ -647,6 +647,27 @@ describe("readTmx says where in the file a refusal happened", () => {
     expect(error.message).toContain('"seg "');
   });
 
+  it("strips the nested error prefix the parser puts on an element parse error", () => {
+    const error = expectTmxInvalid(() =>
+      readTmx('<tmx version="1.4"><body><tu =" "/></body></tmx>'),
+    );
+
+    expect(error.message).toBe(
+      "line 1, column 26: The TMX file is not valid XML: element parse error: attribute equal must after attrName.",
+    );
+  });
+
+  it("does not leave a space before the closing period when the parser message ends in one", () => {
+    const deleteCharacter = String.fromCharCode(127);
+    const error = expectTmxInvalid(() =>
+      readTmx(`<tmx version="1.4"><body><1${deleteCharacter}/></body></tmx>`),
+    );
+
+    expect(error.message).toBe(
+      "line 1, column 26: The TMX file is not valid XML: element parse error: invalid tagName:1.",
+    );
+  });
+
   it("carries no location on a refusal that has no place in the file", () => {
     const error = expectTmxInvalid(() =>
       readTmx(tmx(unit([["en", "a"]])), { limits: { ...DEFAULT_TMX_LIMITS, maxInputBytes: 16 } }),

@@ -58,6 +58,8 @@ const CONTROL_CHARACTER_SOURCE = "[\\u0000-\\u001F\\u007F-\\u009F]";
 
 const CONTROL_CHARACTERS = new RegExp(CONTROL_CHARACTER_SOURCE, "g");
 
+const NESTED_ERROR_PREFIX = /(^|: )Error: /g;
+
 function invalid(message: string, location?: ExchangeErrorLocation): ExchangeError {
   return new ExchangeError("TMX_INVALID", message, location);
 }
@@ -138,7 +140,10 @@ function parserLocation(context: ParserContext): ExchangeErrorLocation | undefin
 }
 
 function describeParserMessage(message: string): string {
-  const flat = message.replace(CONTROL_CHARACTERS, " ");
+  const flat = message
+    .replace(CONTROL_CHARACTERS, " ")
+    .replace(NESTED_ERROR_PREFIX, "$1")
+    .trimEnd();
   return flat.length > PARSER_MESSAGE_LIMIT ? `${flat.slice(0, PARSER_MESSAGE_LIMIT)}...` : flat;
 }
 
