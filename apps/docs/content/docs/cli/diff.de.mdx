@@ -59,7 +59,7 @@ Der Bericht trägt einen `status`:
 | `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle steht an einer anderen als den unten erlaubten Stellen, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
 | `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, ein Member `t` oder ein `t`-Import in einer Form, die unten nicht aufgeführt ist, etwa ein Wrapper-Hook, der `useTranslation(...)` zurückgibt, Hook-Optionen über einen Namen oder mit Spread, oder ein exportiertes `getFixedT`-Ergebnis |
 | `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
-| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
+| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, ein String in Anführungszeichen, der bis ans Zeilenende läuft (etwa ein Apostroph in JSX-Text), oder ein Verzeichnis, das sich nicht auflisten lässt |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
 | `EXTRACT_FS_UNSUPPORTED` | `not-run` | das Dateisystem eines SDK-Aufrufers kann keine Verzeichnisse auflisten |
 | `FRAMEWORK_NOT_MODELED` | `not-run` | das Format ist `next-intl-json`, `vue-i18n-json` oder `ngx-translate-json`, deren Laufzeiten der Scan nicht nachbildet |
@@ -69,13 +69,13 @@ Der Bericht trägt einen `status`:
 Der Scan vertraut nur Übersetzungsfunktionen, deren Entstehung er sieht. Jede Verwendung einer Übersetzungsquelle muss eine dieser Formen haben, sonst ist der Bericht `unreliable` mit `unrecognised-translate-source`:
 
 - `const { t } = useTranslation(...)` (auch `{ t: alias }`, `i18n`, `ready` oder ein Array `[t, i18n]`), nicht exportiert, aufgerufen ohne Argumente, mit einem statischen Namespace oder Namespace-Array und optional einem Objekt-Literal, dessen `keyPrefix`, falls vorhanden, ein statischer String ist und das keinen Spread und keinen berechneten Key enthält.
-- `const f = i18n.getFixedT(...)`, nicht exportiert, nur mit statischen Strings, String-Arrays, `null` oder `undefined` als Argumente.
+- `const f = i18n.getFixedT(...)`, nicht exportiert, mit einer statischen, `null`- oder benannten Sprache zuerst (etwa `i18n.language`) und danach nur statischen Strings, String-Arrays, `null` oder `undefined`.
 - Ein direkter Aufruf eines Members `t`, etwa `i18n.t("key")` oder `this.props.t("key")`, und ein lokales, nicht exportiertes `const tr = i18n.t` oder `const tr = i18n.t.bind(i18n)`.
-- `<Translation>{(t) => ...}</Translation>`.
+- `<Translation>{(t) => ...}</Translation>` oder `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, dessen Komponente `props.t(...)` aufruft.
 - `import { t } from "i18next"` (auch `t as alias`) sowie einfache Imports von `useTranslation`, `withTranslation`, `getFixedT` und `Translation`.
 
-Eine so gebundene Übersetzungsfunktion und jeder lokale Alias `const tr = t` davon darf nur als direkter Aufruf, als eigene Bindung, als lokaler Alias, als `t={t}`-Attribut von `Trans` oder `Translation` oder als Eintrag im Abhängigkeits-Array von `useEffect`, `useLayoutEffect`, `useMemo` oder `useCallback` vorkommen. Überall sonst (als Argument, Prop, Objekt-Property, Rückgabewert, Operand eines ternären Ausdrucks oder Export) ist der Bericht `unreliable` mit `translate-function-escapes`. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert.
+Jede Bindung namens `t` oder `$t` wird geprüft, egal woher sie stammt, ebenso jede oben gebundene Übersetzungsfunktion und jeder lokale Alias `const tr = t`. Sie dürfen nur als direkter Aufruf, als eigene Bindung, als lokaler Alias, als `t={t}`-Attribut von `Trans` oder `Translation` oder als Eintrag im Abhängigkeits-Array von `useEffect`, `useLayoutEffect`, `useMemo` oder `useCallback` vorkommen. Überall sonst (als Argument, Prop, Objekt-Property, Rückgabewert, Operand eines ternären Ausdrucks oder Export) ist der Bericht `unreliable` mit `translate-function-escapes`. Ein `t` oder `$t`, das aus etwas anderem als einer erkannten Quelle, einem lokalen Alias, einem Funktionsparameter oder `this.props` deklariert oder destrukturiert wird, ergibt `unrecognised-translate-source`; ein Funktionsparameter namens `t` ist in Ordnung, solange er nur aufgerufen wird. Eine unabhängige Variable oder ein Member namens `t`, etwa `frame.t + 1`, wird genauso beurteilt und kann einen Bericht daher unzuverlässig machen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert.
 
 Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
 

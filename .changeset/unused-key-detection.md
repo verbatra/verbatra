@@ -33,13 +33,16 @@ The report is `complete` only when the scan can bound every key the source reach
   `unreliable`, with each reason and its sites.
 - The scan only trusts translate functions it sees being created in a recognised shape: a local
   `const { t } = useTranslation(...)` with static arguments, a local `getFixedT(...)` with static
-  arguments, a direct `i18n.t(...)` call or local `i18n.t` alias, a `Translation` render prop,
-  `withTranslation("ns")(Component)`, or `import { t } from "i18next"`. Any other use of those
-  sources (a wrapper hook, options passed by name, an exported `getFixedT` result) is reported as
-  `unrecognised-translate-source`, and a translate function used anywhere but a direct call, its
-  own binding, a local alias, the `t={t}` attribute of `Trans` or `Translation`, or a React hook
-  dependency array (for example passed as an argument, exported, or used in a ternary) is reported
-  as `translate-function-escapes`. Both make the report `unreliable`.
+  arguments (a named language such as `i18n.language` may come first), a direct `i18n.t(...)` call
+  or local `i18n.t` alias, a `Translation` render prop, `withTranslation("ns")(Component)`, or
+  `import { t } from "i18next"`. Any other use of those sources (a wrapper hook, options passed by
+  name, an exported `getFixedT` result) is reported as `unrecognised-translate-source`, and a
+  translate function used anywhere but a direct call, its own binding, a local alias, the `t={t}`
+  attribute of `Trans` or `Translation`, or a React hook dependency array (for example passed as an
+  argument, exported, or used in a ternary) is reported as `translate-function-escapes`. Every
+  binding named `t` or `$t` is checked this way, whatever it is bound from: a function parameter
+  named `t` is fine while it is only called, and a `t` declared or destructured from anything
+  unrecognised is `unrecognised-translate-source`. Both reasons make the report `unreliable`.
 - The report is `not-run`, with a reason code and no key list, when there is no `extract` block, the
   format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json` (runtimes the scan does not
   model), there is no source file under the roots, or the scanned files reference no key at all.
