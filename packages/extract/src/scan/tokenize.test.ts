@@ -410,6 +410,14 @@ describe("tokenizeSource on a regular expression inside a template substitution"
     ]);
   });
 
+  it("counts the lines of a line continuation in a template nested inside a substitution", () => {
+    const { tokens } = tokenizeSource('`${f(`a \\\nb \\\nc`)}`;\nt("kept");');
+
+    expect(tokens.filter((token) => token.kind === "ident").map((token) => token.line)).toEqual([
+      1, 4,
+    ]);
+  });
+
   it("reads templates nested ten thousand deep without exhausting the stack", () => {
     const depth = 10_000;
     const content = `${"`${".repeat(depth)}x${"}`".repeat(depth)}`;

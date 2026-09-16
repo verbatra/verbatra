@@ -19,3 +19,7 @@ expression inside it is recognised by the same rule, including its character cla
 flags. Templates nested inside substitutions are read without recursion, so deeply nested templates
 no longer exhaust the stack, and reading them no longer costs time proportional to the square of
 the nesting depth.
+
+The line of every call site after a template that holds a line continuation (a backslash at the end
+of a line) and sits inside another template's substitution is now reported correctly; it was
+reported as many lines too early as there were continuations.
