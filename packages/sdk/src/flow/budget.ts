@@ -127,6 +127,13 @@ export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
   };
 }
 
+function oversizedRequestHint(tracker: BudgetTracker, projected: number): string {
+  return tracker.maxTokens !== undefined && projected > tracker.maxTokens
+    ? " That request alone is projected above the whole budget, so it is refused on every run: " +
+        "lower maxBatchSize or raise maxTokens."
+    : "";
+}
+
 export function budgetWithheldNotice(tracker: BudgetTracker, projected: number): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
@@ -134,7 +141,7 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
       `The run's next provider request was projected at ${projected} tokens on top of the ` +
       `${tracker.tokensUsed} already counted, which would have crossed the configured budget of ` +
       `${tracker.maxTokens} tokens, so it was withheld rather than sent ` +
-      `(behavior: ${tracker.behavior}).`,
+      `(behavior: ${tracker.behavior}).${oversizedRequestHint(tracker, projected)}`,
   };
 }
 

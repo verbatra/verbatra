@@ -288,6 +288,31 @@ describe("budgetExceededNotice", () => {
     expect(notice.message).not.toContain("cumulative token usage (0) reached");
   });
 
+  it("tells the user to shrink the batch when the refused request alone is above the budget", () => {
+    const tracker = createBudgetTracker(1, "stop");
+    const { refusedProjection } = reserveBudget(tracker, entries(2), context);
+    const projected = refusedProjection ?? 0;
+
+    expect(projected).toBeGreaterThan(1);
+    expect(budgetWithheldNotice(tracker, projected).message).toBe(
+      `The run's next provider request was projected at ${projected} tokens on top of the 0 ` +
+        "already counted, which would have crossed the configured budget of 1 tokens, so it was " +
+        "withheld rather than sent (behavior: stop). That request alone is projected above the " +
+        "whole budget, so it is refused on every run: lower maxBatchSize or raise maxTokens.",
+    );
+  });
+
+  it("adds no batch-size hint when the refused request alone would fit under the budget", () => {
+    const tracker = createBudgetTracker(100_000, "stop");
+    tracker.tokensUsed = 99_990;
+    const { refusedProjection } = reserveBudget(tracker, entries(2), context);
+    const projected = refusedProjection ?? 0;
+
+    expect(projected).toBeGreaterThan(10);
+    expect(projected).toBeLessThanOrEqual(100_000);
+    expect(budgetWithheldNotice(tracker, projected).message).not.toContain("maxBatchSize");
+  });
+
   it("refuses without projecting once the run has already stopped", () => {
     const tracker = createBudgetTracker(1, "stop");
     reserveBudget(tracker, entries(2), context);
