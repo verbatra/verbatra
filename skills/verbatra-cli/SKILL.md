@@ -55,7 +55,10 @@ The single most useful habit: **ask what is pending before you translate.** A ru
 bills per key sent, so the cheap read-only question comes first.
 
 - `verbatra diff --json` names the exact keys per locale. Exit `1` means there is
-  work. This is the question built for the decision.
+  work. This is the question built for the decision. Add `--unused` to also list
+  source-locale keys no source reference names, scanned from the config's
+  `extract` roots; unused keys only raise the exit code when the scan was
+  complete, and they are a report, never something to delete without asking.
 - `verbatra check --json` answers the same thing in counts when a yes or no is
   enough. Add `--consistency` to also list source strings a locale translates
   more than one way under different keys; that report never changes the exit
@@ -102,6 +105,12 @@ file faces the same integrity gate provider output does, and a translation the
 project already holds wins a disagreement unless `--overwrite` is passed. Neither
 direction calls a provider or reads a key.
 
+Three commands read application source through the config's `extract` block, and
+none of them calls a provider: `extract` adds keys found at translation call
+sites to the source locale, `diff --unused` lists source keys nothing references,
+and `doctor --literals` lists hardcoded user-facing strings that never went
+through a translation call. Only `extract` writes, and only the source locale.
+
 Never read a missing `--allow-spend` as proof that a session cannot spend. Both
 servers take the capability from an environment variable as readily as from the
 flag, so an inherited shell or a CI job can grant it with nothing on the command
@@ -147,7 +156,7 @@ run" with "did the work land".
 | Code | Meaning |
 | --- | --- |
 | `0` | Success: nothing outstanding, or everything requested completed. |
-| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift, `diff` found pending keys, `doctor` found a failed check, `types --check` found the committed declaration out of date. |
+| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift, `diff` found pending keys or, with `--unused`, a complete scan found unused source keys, `doctor` found a failed check or, with `--literals`, an untranslated literal or an unreadable source file, `types --check` found the committed declaration out of date. |
 | `2` | It could not run: bad config, unreadable source, corrupt lock file, or a usage error such as an unknown `--locales` value. |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt. All three return the same stoppable session. |
 
@@ -188,8 +197,10 @@ a reason to restart the process.
 
 ## Formats
 
-`format` in the config is one of these fourteen. It is a closed set: a format
-outside it cannot be represented.
+`format` in the config is one of these fourteen built-in formats, or a `custom:`
+identifier such as `custom:toml` for an adapter shipped outside verbatra. The CLI
+loads no plugin, so a `custom:` format only runs through `@verbatra/sdk`, where the
+project's own code registers the adapter.
 
 | Format id | What it claims |
 | --- | --- |
