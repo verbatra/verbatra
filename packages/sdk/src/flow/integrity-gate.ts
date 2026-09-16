@@ -43,7 +43,9 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
  *   candidate never finishes when the source finishes all of its own; a `javascript:`,
  *   `vbscript:`, or `data:` scheme in a URL attribute value, read after decoding character
  *   references, unless the source carries that exact value on the same tag and attribute; a
- *   changed `srcdoc` or event handler value; and, unless the candidate is the source unchanged,
+ *   changed `srcdoc` or event handler value; any change to the content of a `script`, `style`,
+ *   `iframe`, `noembed`, `noframes`, `noscript`, `xmp`, or `plaintext` element (`title` and
+ *   `textarea` content may be translated); and, unless the candidate is the source unchanged,
  *   raw text an HTML parser can read two ways (a `script` whose content opens `<!--`, a `noscript`
  *   whose content holds a `<`, a raw text element whose content holds a `<` after an `svg`,
  *   `math`, or `select` tag) or a CDATA section or `image` tag in a value that opens `svg`, `math`,
