@@ -589,6 +589,36 @@ describe("findUnusedKeys reads a regular expression inside a template substituti
   );
 });
 
+describe("findUnusedKeys on a .jsx file", () => {
+  it("stays complete for a t call after JSX text holding an apostrophe", async () => {
+    const report = await unusedIn(
+      { a: "A", stale: "S" },
+      {
+        "src/a.jsx":
+          'import { useTranslation } from "react-i18next";\nexport function A() {\n  const { t } = useTranslation();\n  return <p>We\'re glad {t("a")}</p>;\n}\n',
+      },
+    );
+
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+
+  it("marks the report unreliable when a bound t escapes after JSX text holding an apostrophe", async () => {
+    const report = await unusedIn(
+      { a: "A", stale: "S" },
+      {
+        "src/a.jsx":
+          'const { t } = useTranslation();\nexport const A = () => <p>Don\'t worry {t("a")}</p>;\nrenderRow(t);\n',
+      },
+    );
+
+    expect(report.unreliableBecause).toEqual([
+      { reason: "translate-function-escapes", count: 1, sites: [{ file: "src/a.jsx", line: 3 }] },
+    ]);
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+});
+
 describe("findUnusedKeys reads JSX text and attribute values as markup", () => {
   it("reports t escaping on the same line as a contraction in JSX text", async () => {
     const report = await unusedIn(
