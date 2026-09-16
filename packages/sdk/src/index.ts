@@ -205,6 +205,13 @@ export {
   type TranslateInput,
   translate,
 } from "./flow/translate-project.js";
+export type {
+  UnusedKeysNotRun,
+  UnusedKeysNotRunReason,
+  UnusedKeysReport,
+  UnusedKeysScan,
+  UnusedKeysUnreliableReason,
+} from "./flow/unused-keys.js";
 export {
   DEFAULT_EXCHANGE_FORMAT,
   EXCHANGE_FORMATS,

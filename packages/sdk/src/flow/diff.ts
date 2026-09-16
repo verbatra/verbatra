@@ -1,8 +1,10 @@
 import type { DiffResult } from "@verbatra/core";
+import type { SourceExtractor, SourceFramework } from "@verbatra/extract";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { diffLocales } from "./diff-locales.js";
+import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 
 /** One locale's pending work in a {@link DiffSummary}, as key names rather than counts. */
 export interface LocaleDiff {
@@ -30,6 +32,12 @@ export interface DiffSummary {
   readonly hasPendingChanges: boolean;
   /** Per-locale key lists, in configured target order. */
   readonly locales: readonly LocaleDiff[];
+  /**
+   * Source-catalog keys nothing in the scanned application source references. Present only when
+   * {@link DiffInput.unused} was set. It is a separate axis from each locale's `orphaned` list and
+   * never flips {@link DiffSummary.hasPendingChanges}.
+   */
+  readonly unused?: UnusedKeysReport;
 }
 
 /** Input for {@link diff}. */
@@ -40,14 +48,24 @@ export interface DiffInput {
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
+  /**
+   * Also scan the application source configured in the `extract` block and report the
+   * source-catalog keys nothing references, as {@link DiffSummary.unused}. Off by default.
+   */
+  readonly unused?: boolean;
 }
 
 /** Injectable dependencies for {@link diff}. Every field has a working default. */
 export interface DiffDeps {
   /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
   readonly adapterRegistry?: AdapterRegistry;
-  /** File-system port. Defaults to the real file system. */
+  /**
+   * File-system port. Defaults to the real file system. The unused-key scan needs its
+   * `readDirectory` member and reports its absence as `EXTRACT_FS_UNSUPPORTED`.
+   */
   readonly fs?: SdkFs;
+  /** Extractor factory for the unused-key scan. Defaults to the built-in table keyed by the configured framework. */
+  readonly createExtractor?: (framework: SourceFramework) => SourceExtractor;
 }
 
 function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
@@ -69,14 +87,25 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * since the key was last translated rather than merely that the two strings differ. Orphaned keys
  * are reported but never removed here; pruning happens only in {@link translate}.
  *
+ * With `unused` set, it also scans the application source named by the config's `extract` block
+ * and reports, in {@link DiffSummary.unused}, every source-catalog key that no call site names. The
+ * scan is read-only like the rest of `diff`: it never removes, rewrites, or reorders a catalog, and
+ * it constructs no provider and reads no API key. A key that is a plural or context variant of a
+ * referenced key (`items_one`, `friend_male`), or that sits under a referenced parent key, counts as
+ * referenced. Keys matched by `extract.ignoreUnused` are listed as `ignored`, not as `unused`. When
+ * the scan met a dynamic key, an indirect key site, or a file it could not read, the report is
+ * `unreliable` and says why; when there is nothing to scan (no `extract` block, a file system with
+ * no `readDirectory`, or no source file under the roots) it is `not-run` and lists no key at all.
+ *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
- * @param input - The config and the optional locale filter.
- * @param deps - Optional adapter registry and file-system overrides.
- * @returns Per-locale missing, changed, and orphaned key lists.
+ * @param input - The config, the optional locale filter, and whether to report unused keys.
+ * @param deps - Optional adapter registry, file-system, and extractor-factory overrides.
+ * @returns Per-locale missing, changed, and orphaned key lists, plus the unused-key report when
+ *   asked for.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -91,5 +120,13 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const results = await diffLocales(input, deps);
   const locales = results.map(({ locale, diff: result }) => toLocaleDiff(locale, result));
-  return { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
+  const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
+  if (input.unused !== true) {
+    return summary;
+  }
+  const unused = await findUnusedKeys(
+    { config: input.config, cwd: input.cwd ?? process.cwd() },
+    deps,
+  );
+  return { ...summary, unused };
 }

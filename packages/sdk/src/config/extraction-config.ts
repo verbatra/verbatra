@@ -16,6 +16,7 @@ export const extractionConfigSchema = z.strictObject({
   framework: sourceFrameworkSchema,
   roots: z.array(z.string().min(1)).min(1),
   exclude: z.array(z.string().min(1)).optional(),
+  ignoreUnused: z.array(z.string().min(1)).optional(),
 });
 
 /**
@@ -25,6 +26,11 @@ export const extractionConfigSchema = z.strictObject({
  * `roots` are resolved against the run's working directory, and the scan never reads outside them.
  * `exclude` adds directory names to the set that is always skipped, which already covers
  * `node_modules`, `.git`, and the usual build output directories.
+ *
+ * `ignoreUnused` names catalog keys the unused-key report must not count as unused, for a key
+ * referenced only from outside the scanned source (a server template, a CMS, a test fixture). Each
+ * entry is an exact key, or a pattern in which `*` matches any run of characters, such as
+ * `emails.*`. A matched key is reported as ignored, never dropped from the report.
  */
 export type ExtractionConfig = z.infer<typeof extractionConfigSchema>;
 

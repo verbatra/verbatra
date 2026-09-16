@@ -1,24 +1,20 @@
-import { resolve } from "node:path";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import {
   type ExtractedKey,
   type KeyConflict,
-  type ProjectScan,
   type ScanDiagnostic,
   type SourceExtractor,
   type SourceFramework,
-  type SourceFs,
   type SourceLocation,
-  scanProject,
   toReportedPath,
 } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
-import { buildExtractor, type ExtractionConfig } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { requireExtractionConfig, runScan } from "./source-scan.js";
 
 /** One key the run added to the source catalog, and the call site it was found at. */
 export interface AddedKey {
@@ -80,30 +76,6 @@ export interface ExtractDeps {
   readonly fs?: SdkFs;
   /** Extractor factory. Defaults to the built-in table keyed by the configured framework. */
   readonly createExtractor?: (framework: SourceFramework) => SourceExtractor;
-}
-
-function requireExtractionConfig(config: VerbatraConfig): ExtractionConfig {
-  if (config.extract === undefined) {
-    throw new SdkError(
-      "EXTRACT_NOT_CONFIGURED",
-      "No extract block is configured. Add an extract block naming a framework and at least one source root to the verbatra config.",
-    );
-  }
-  return config.extract;
-}
-
-function toSourceFs(fs: SdkFs): SourceFs {
-  const readDirectory = fs.readDirectory;
-  if (readDirectory === undefined) {
-    throw new SdkError(
-      "EXTRACT_FS_UNSUPPORTED",
-      "The supplied file system implements no readDirectory, so no source file can be discovered.",
-    );
-  }
-  return {
-    listDirectory: (path) => readDirectory(path),
-    readTextBounded: async (path, maxBytes) => fs.readFileBounded(path, maxBytes),
-  };
 }
 
 async function readExistingResource(
@@ -175,24 +147,6 @@ function toAddedKey(key: ExtractedKey): AddedKey {
   return { key: key.key, value: key.value, file: key.file, line: key.line };
 }
 
-async function runScan(
-  extraction: ExtractionConfig,
-  cwd: string,
-  fs: SdkFs,
-  deps: ExtractDeps,
-): Promise<ProjectScan> {
-  const create = deps.createExtractor ?? buildExtractor;
-  return scanProject(
-    {
-      cwd,
-      roots: extraction.roots.map((root) => resolve(cwd, root)),
-      extractor: create(extraction.framework),
-      ...(extraction.exclude !== undefined ? { exclude: extraction.exclude } : {}),
-    },
-    toSourceFs(fs),
-  );
-}
-
 /**
  * Scans a project's own source for translation call sites and merges what it finds into the source
  * locale catalog. It is the one entry point that reads application code rather than a locale file,
@@ -243,7 +197,7 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, fs);
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
-  const scan = await runScan(extraction, cwd, fs, deps);
+  const scan = await runScan(extraction, cwd, fs, deps.createExtractor);
   const resource = await readExistingResource(sourcePath, input.config, fs, adapter);
   const added = scan.keys.filter((key) => !resource.entries.has(key.key));
   const dryRun = input.dryRun === true;
