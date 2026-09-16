@@ -24,6 +24,8 @@ export interface ScannedMarkup {
   readonly constructs: readonly string[];
   readonly tags: readonly InlineTag[];
   readonly ambiguous: readonly string[];
+  readonly contextSensitive: readonly string[];
+  readonly foreignPossible: boolean;
   readonly unterminated: string | undefined;
 }
 
@@ -32,6 +34,7 @@ interface MutableScan {
   readonly tags: InlineTag[];
   readonly ambiguous: string[];
   unterminated: string | undefined;
+  readonly contextSensitive: string[];
   foreignPossible: boolean;
 }
 
@@ -143,8 +146,8 @@ function readConstruct(
   }
   const marker = value.charCodeAt(start + 1);
   if (marker === BANG || marker === QUESTION_MARK) {
-    if (scan.foreignPossible && value.startsWith("<![CDATA[", start)) {
-      scan.ambiguous.push("<![CDATA[...]]>");
+    if (value.startsWith("<![CDATA[", start)) {
+      scan.contextSensitive.push("<![CDATA[...]]>");
     }
     return readBogusComment(value, start);
   }
@@ -323,8 +326,14 @@ function continueAfterTag(
   scan: MutableScan,
 ): number {
   const name = tag.name.toLowerCase();
-  if (tag.kind === "close" || !isRawTextElement(name)) {
-    scan.foreignPossible ||= tag.kind !== "close" && opensForeignContext(name);
+  if (tag.kind === "close") {
+    return end;
+  }
+  if (name === "image") {
+    scan.contextSensitive.push("<image>");
+  }
+  if (!isRawTextElement(name)) {
+    scan.foreignPossible ||= opensForeignContext(name);
     return end;
   }
   const context = { value, escapeOpen: finders.escapeOpen, foreignPossible: scan.foreignPossible };
@@ -364,6 +373,7 @@ export function scanMarkup(value: string): ScannedMarkup {
     tags: [],
     ambiguous: [],
     unterminated: undefined,
+    contextSensitive: [],
     foreignPossible: false,
   };
   const finders: CommentFinders = {

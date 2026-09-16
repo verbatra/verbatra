@@ -337,6 +337,18 @@ function multisetDifference(
   };
 }
 
+function surfacedIgnoredTags(
+  source: ScannedMarkup,
+  translated: ScannedMarkup,
+  ignored: IgnoredTags,
+): readonly string[] {
+  const carried = new Set(tokensOf(source.tags));
+  const surfaced = translated.tags
+    .filter((tag) => ignored.tokens.has(tag.token) && !carried.has(tag.token))
+    .map((tag) => tag.token);
+  return [...new Set(surfaced)];
+}
+
 function compareScannedMarkup(
   source: ScannedMarkup,
   translated: ScannedMarkup,
@@ -346,10 +358,11 @@ function compareScannedMarkup(
   const translatedKept = withoutIgnoredTags(translated.tags, ignored);
   const constructs = multisetDifference(source.constructs, translated.constructs);
   const closingTags = multisetDifference(translatedKept.unclosed, sourceKept.unclosed);
+  const surfaced = surfacedIgnoredTags(source, translated, ignored);
   return withFindings(
     compareTags(source, translated, sourceKept, translatedKept),
     [...constructs.missing, ...closingTags.missing],
-    [...constructs.extra, ...closingTags.extra],
+    [...constructs.extra, ...closingTags.extra, ...surfaced],
   );
 }
 
@@ -369,7 +382,13 @@ function readingFindings(
   source: ScannedMarkup,
   translated: ScannedMarkup,
 ): readonly string[] {
-  const findings = identical ? [] : [...translated.ambiguous];
+  if (identical) {
+    return [];
+  }
+  const findings = [...translated.ambiguous];
+  if (source.foreignPossible || translated.foreignPossible) {
+    findings.push(...translated.contextSensitive);
+  }
   if (translated.unterminated !== undefined && source.unterminated === undefined) {
     findings.push(translated.unterminated);
   }
