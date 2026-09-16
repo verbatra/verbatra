@@ -397,6 +397,10 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     ["a spread", "<Child {...{ t }} />;"],
     ["a JSX child", "<p>{t}</p>;"],
     ["an attribute on another element", "<Child t={t} i18nKey={t} />;"],
+    ["R14: a call argument in a ternary branch", "const x = cond ? renderRow(t) : null;"],
+    ["R15: a parenthesized ternary branch", "const x = cond ? (t) : other;"],
+    ["R16: a property value in a ternary branch", "const x = cond ? f({ x: t }) : null;"],
+    ["a call argument in a nested ternary", "const x = a ? b : c ? renderRow(t) : d;"],
   ])("reports t used as %s", (_name, content) => {
     expect(escapes(content)).toHaveLength(1);
   });
@@ -419,6 +423,26 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     ["a shadowing declaration", "for (const t of items) {}"],
     ["a property key", "const o = { t: 1 };"],
     ["a type annotation", "function f(t: TFunction) {}"],
+    [
+      "a typed arrow parameter with a return type",
+      'const label = (t: TFunction): string => t("a");',
+    ],
+    ["a function parameter with a return type", 'function label(t): string {\n  return t("a");\n}'],
+    [
+      "a method parameter with a return type",
+      'class X {\n  render(t: TFunction): string {\n    return t("a");\n  }\n}',
+    ],
+    [
+      "an async arrow parameter with a return type",
+      'const f = async (t): Promise<string> => t("a");',
+    ],
+    ["a default-exported arrow with a return type", 'export default (t): string => t("a");'],
+    ["an arrow argument with a return type", 'run((t): string => t("a"));'],
+    ["an arrow inside a ternary branch", 'const f = cond ? run((t): string => t("a")) : null;'],
+    [
+      "an object method with a return type",
+      'const o = { a: 1, render(t): string {\n  return t("a");\n} };',
+    ],
   ])("allows t as %s", (_name, content) => {
     expect(escapes(content)).toEqual([]);
   });

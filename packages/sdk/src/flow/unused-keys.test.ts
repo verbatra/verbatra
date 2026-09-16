@@ -557,6 +557,54 @@ describe("findUnusedKeys reads markup and regular expressions without losing a c
   });
 });
 
+describe("findUnusedKeys tells a return type from a ternary branch", () => {
+  it.each([
+    [
+      "R14",
+      { a: "A", b: "B" },
+      {
+        "src/a.tsx":
+          'const { t } = useTranslation();\nconst x = cond ? renderRow(t) : null;\nt("b");',
+      },
+    ],
+    [
+      "R15",
+      { a: "A", b: "B" },
+      { "src/a.tsx": 'const { t } = useTranslation();\nconst x = cond ? (t) : other;\nt("b");' },
+    ],
+    [
+      "R16",
+      { a: "A", b: "B" },
+      {
+        "src/a.tsx":
+          'const { t } = useTranslation();\nconst x = cond ? f({ x: t }) : null;\nt("b");',
+      },
+    ],
+  ] as const)(
+    "%s: marks t passed on inside a ternary branch as escaping",
+    async (_id, catalog, files) => {
+      const report = await unusedIn(catalog, files);
+
+      expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([
+        "translate-function-escapes",
+      ]);
+    },
+  );
+
+  it("R18: stays complete for typed parameters with return types", async () => {
+    const report = await unusedIn(
+      { a: "A", stale: "S" },
+      {
+        "src/a.ts":
+          'const { t } = useTranslation();\nconst label = (tt: TFunction): string => tt("a");\nclass X {\n  render(tr: TFunction): string {\n    return t("a");\n  }\n}',
+      },
+    );
+
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+});
+
 describe("findUnusedKeys on keys spelled other than as a plain path", () => {
   it("references a flat dotted key through its escaped catalog key, displaying it decoded", async () => {
     const report = await unusedIn(

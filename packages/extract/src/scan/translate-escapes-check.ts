@@ -17,7 +17,30 @@ const PARAMETER_PRECEDERS = new Set(["(", ","]);
 
 const PARAMETER_FOLLOWERS = new Set([")", ",", ":", "=", "?"]);
 
-const BLOCK_FOLLOWERS = new Set(["{", ":"]);
+const FUNCTION_OPENERS = new Set(["function", "async", "return", "default"]);
+
+const FUNCTION_KEYWORD = new Set(["function"]);
+
+const METHOD_PRECEDERS = new Set(["{", "}", ";", ","]);
+
+const METHOD_MODIFIERS = new Set([
+  "static",
+  "get",
+  "set",
+  "async",
+  "public",
+  "private",
+  "protected",
+  "readonly",
+  "override",
+  "abstract",
+]);
+
+const ARROW_PRECEDERS = new Set(["=", "(", ","]);
+
+const OPENERS = new Set(["(", "[", "{"]);
+
+const CLOSERS = new Set([")", "]", "}"]);
 
 const PATTERN_CONTINUATIONS = new Set([")", ",", ":"]);
 
@@ -55,12 +78,66 @@ function isDependencyListItem(
   );
 }
 
+function isParameterListOpen(tokens: readonly SourceToken[], opener: number): boolean {
+  const before = tokenAt(tokens, opener - 1);
+  const beforeName = tokenAt(tokens, opener - 2);
+  if (isIdentNamed(before, FUNCTION_OPENERS) || isIdentNamed(beforeName, FUNCTION_KEYWORD)) {
+    return true;
+  }
+  if (before?.kind === "ident") {
+    return isPunctIn(beforeName, METHOD_PRECEDERS) || isIdentNamed(beforeName, METHOD_MODIFIERS);
+  }
+  if (isPunct(before, ">")) {
+    return isPunct(beforeName, "=");
+  }
+  return before === undefined || isPunctIn(before, ARROW_PRECEDERS);
+}
+
+function questionMarkAt(tokens: readonly SourceToken[], cursor: number): boolean {
+  const isOptionalChain = isPunct(tokenAt(tokens, cursor + 1), ".");
+  const isNullish =
+    isPunct(tokenAt(tokens, cursor + 1), "?") || isPunct(tokenAt(tokens, cursor - 1), "?");
+  return isPunct(tokenAt(tokens, cursor), "?") && !isOptionalChain && !isNullish;
+}
+
+function ternaryBalance(tokens: readonly SourceToken[], cursor: number): number {
+  if (isPunct(tokenAt(tokens, cursor), ":")) {
+    return 1;
+  }
+  return questionMarkAt(tokens, cursor) ? -1 : 0;
+}
+
+function isInsideTernaryBranch(tokens: readonly SourceToken[], opener: number): boolean {
+  let depth = 0;
+  let colons = 0;
+  for (let cursor = opener - 1; cursor >= 0; cursor -= 1) {
+    const token = tokenAt(tokens, cursor);
+    depth += isPunctIn(token, CLOSERS) ? 1 : 0;
+    depth -= isPunctIn(token, OPENERS) ? 1 : 0;
+    if (depth < 0 || (depth === 0 && isPunct(token, ";"))) {
+      return false;
+    }
+    colons += depth === 0 ? ternaryBalance(tokens, cursor) : 0;
+    if (colons < 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function closesParameters(tokens: readonly SourceToken[], parenClose: number): boolean {
   const next = tokenAt(tokens, parenClose + 1);
   const isArrow = isPunct(next, "=") && isPunct(tokenAt(tokens, parenClose + 2), ">");
-  const opener = matchingOpen(tokens, parenClose);
-  const isCondition = isIdentNamed(tokenAt(tokens, (opener ?? 0) - 1), CONDITION_KEYWORDS);
-  return isArrow || (isPunctIn(next, BLOCK_FOLLOWERS) && !isCondition);
+  const opener = matchingOpen(tokens, parenClose) ?? 0;
+  const isCondition = isIdentNamed(tokenAt(tokens, opener - 1), CONDITION_KEYWORDS);
+  if (isArrow || (isPunct(next, "{") && !isCondition)) {
+    return true;
+  }
+  return (
+    isPunct(next, ":") &&
+    isParameterListOpen(tokens, opener) &&
+    !isInsideTernaryBranch(tokens, opener)
+  );
 }
 
 function isParameter(tokens: readonly SourceToken[], index: number): boolean {
