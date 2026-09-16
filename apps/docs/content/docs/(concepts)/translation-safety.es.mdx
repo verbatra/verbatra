@@ -206,7 +206,10 @@ siendo relativa. Así, `/docs` puede pasar a `/de/docs` y `https://verbatra.dev/
 `//evil.example/docs`, y un enlace absoluto localizado tiene que conservar el mismo host; el detalle
 nombra el nuevo origen, como `+<a href="https://evil.example...">`, o `+<a href="./...">` para un
 enlace absoluto que se volvió relativo. La ruta, la consulta y el fragmento pueden cambiar
-libremente.
+libremente. Una URL cambiada sin un esquema explícito `http`, `https`, `ws`, `wss`, `ftp` o `file`
+también se rechaza cuando lleva una barra invertida (`\` o `%5C`) en sus barras iniciales o en su
+host, porque una página con otro esquema lee `//verbatra.dev\@evil.example/` como un enlace a
+evil.example.
 
 Algunos valores de atributo tienen que volver exactamente como los tiene el origen, comparados tras
 decodificar las referencias de caracteres, con un detalle como `+<meta content="...">`: `http-equiv`

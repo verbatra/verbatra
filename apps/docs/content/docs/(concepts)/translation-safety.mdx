@@ -180,7 +180,10 @@ relative URL must stay relative. So `/docs` may become `/de/docs` and `https://v
 become `https://verbatra.dev/de`, but `/docs` may not become `https://evil.example/docs` or
 `//evil.example/docs`, and a localized absolute link has to keep the same host; the detail names the
 new origin, such as `+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute
-link made relative. The path, query and fragment may change freely.
+link made relative. The path, query and fragment may change freely. A changed URL without an
+explicit `http`, `https`, `ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\`
+or `%5C`) sits in its leading slashes or its host, because a page on another scheme reads
+`//verbatra.dev\@evil.example/` as a link to evil.example.
 
 Some attribute values must come back exactly as the source has them, compared after decoding
 character references, with a detail such as `+<meta content="...">`: `http-equiv` and `content` on
