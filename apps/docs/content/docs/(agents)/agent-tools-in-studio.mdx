@@ -41,9 +41,9 @@ Then open the printed loopback URL in your WebMCP-capable browser. The agent on 
 
 ## The tool catalog
 
-With the opt-in on, Studio registers fourteen tools, one per dashboard action. Without `--allow-spend` it registers twelve: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
+With the opt-in on, Studio registers fifteen tools, one per dashboard action. Without `--allow-spend` it registers thirteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
 
-### Read tools (ten)
+### Read tools (eleven)
 
 Inspect project state without changing anything. These are marked read-only.
 
@@ -59,6 +59,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_review_queue` | the needs-review queue |
 | `verbatra_usage_summary` | the last run's token usage and budget |
 | `verbatra_key_value` | the source and target values for one key and locale |
+| `verbatra_locale_values` | the source and target values for every key across every target locale |
 
 ### Write tools (two)
 
@@ -83,7 +84,7 @@ Registration has three possible outcomes, and only one of them is a problem.
 
 **Nothing attempted, nothing reported.** When `document.modelContext` is absent (a browser without WebMCP, or Chrome without the flag) or when you did not opt in, Studio attempts no registration at all. The dashboard is unchanged and the console stays quiet. That is the designed no-op, not a failure.
 
-**Twelve tools and no notice.** Without `--allow-spend`, Studio attempts twelve registrations rather than fourteen: the two spend tools are skipped before they are ever attempted. Twelve tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
+**Thirteen tools and no notice.** Without `--allow-spend`, Studio attempts thirteen registrations rather than fifteen: the two spend tools are skipped before they are ever attempted. Thirteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
 
 **The notice.** If Studio attempted a registration and the browser rejected it, the dashboard renders a warning at the top of the content area, on every view:
 
@@ -100,10 +101,10 @@ A failing tool never cancels the ones after it, so every tool that did register 
 Studio writes one aggregate line at error level, not one line per tool, because a shared cause fails every tool identically:
 
 ```text
-Verbatra agent tools: 2 of 14 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-The first sentence gives how many of the attempted registrations failed, and out of how many attempts: fourteen here, because this session was started with `--allow-spend`, and twelve in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
+The first sentence gives how many of the attempted registrations failed, and out of how many attempts: fifteen here, because this session was started with `--allow-spend`, and thirteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
 
 A pass that never reached the per-tool loop reports a different line and does not raise the notice:
 
