@@ -225,6 +225,7 @@ describe("findUnusedKeys on aliases of the translate function", () => {
 
     expect(report.unreliableBecause).toEqual([
       { reason: "aliased-translate-function", count: 1, sites: [{ file: "src/a.ts", line: 1 }] },
+      { reason: "translate-function-escapes", count: 1, sites: [{ file: "src/a.ts", line: 1 }] },
     ]);
   });
 });
@@ -599,6 +600,53 @@ describe("findUnusedKeys tells a return type from a ternary branch", () => {
           'const { t } = useTranslation();\nconst label = (tt: TFunction): string => tt("a");\nclass X {\n  render(tr: TFunction): string {\n    return t("a");\n  }\n}',
       },
     );
+
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+});
+
+describe("findUnusedKeys checks every binding named like the translate function", () => {
+  it("R06: marks a destructured t parameter passed on as escaping", async () => {
+    const report = await unusedIn(
+      { a: "A", b: "B" },
+      {
+        "src/c.tsx": 'export function C({ t }) {\n  t("b");\n  return <Child translate={t} />;\n}',
+      },
+    );
+
+    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([
+      "translate-function-escapes",
+    ]);
+  });
+
+  it("R17: marks t destructured from an unrecognised hook as an unrecognised source", async () => {
+    const report = await unusedIn(
+      { nav: { home: "H" }, b: "B" },
+      { "src/page.tsx": 'const { t } = useNav();\nt("home");\nt("b");' },
+    );
+
+    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([
+      "unrecognised-translate-source",
+    ]);
+  });
+
+  it.each([
+    [
+      "R11",
+      { x: "X", stale: "S" },
+      { "src/other.ts": 'export function other(t) {\n  return t("x");\n}' },
+    ],
+    [
+      "R20",
+      { home: "H", stale: "S" },
+      {
+        "src/page.tsx":
+          'function Page(props) {\n  const { t } = props;\n  return props.t("home") + t("home");\n}\nexport default withTranslation("c")(Page);',
+      },
+    ],
+  ] as const)("%s: stays complete for t received as a parameter", async (_id, catalog, files) => {
+    const report = await unusedIn(catalog, files);
 
     expect(report.status).toBe("complete");
     expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);

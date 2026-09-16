@@ -254,9 +254,12 @@ describe("i18next key usage: aliases of the translate function", () => {
         .unresolved,
     ).toEqual([
       { reason: "aliased-translate-function", line: 1 },
+      { reason: "translate-function-escapes", line: 1 },
       { reason: "aliased-translate-function", line: 2 },
       { reason: "unrecognised-translate-source", line: 2 },
+      { reason: "translate-function-escapes", line: 3 },
       { reason: "aliased-translate-function", line: 4 },
+      { reason: "translate-function-escapes", line: 4 },
     ]);
   });
 
@@ -265,7 +268,9 @@ describe("i18next key usage: aliases of the translate function", () => {
       'const a = t("x");\nif (b == t) {}\nconst d = t.length;\nconst e = t ?? f;',
     );
 
-    expect(result.unresolved).toEqual([]);
+    expect(
+      result.unresolved.filter((site) => site.reason === "aliased-translate-function"),
+    ).toEqual([]);
     expect(result.references).toEqual([{ key: "x", line: 1 }]);
   });
 
@@ -447,7 +452,49 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     expect(escapes(content)).toEqual([]);
   });
 
-  it("does not check a name bound by no translate source", () => {
-    expect(usage("renderRow(t);\nconst x = cond ? t : y;").unresolved).toEqual([]);
+  it("checks t wherever it is bound, even by no recognised source", () => {
+    expect(usage("renderRow(t);\nconst x = cond ? t : y;").unresolved).toEqual([
+      { reason: "translate-function-escapes", line: 1 },
+      { reason: "translate-function-escapes", line: 2 },
+    ]);
+  });
+
+  it.each([
+    [
+      "R06: a destructured parameter passed on",
+      "function C({ t }) {\n  return <Child translate={t} />;\n}",
+    ],
+    ["a plain parameter passed on", "function other(t) {\n  return renderRow(t);\n}"],
+  ])("reports %s as escaping", (_name, content) => {
+    expect(usage(content).unresolved).toEqual([{ reason: "translate-function-escapes", line: 2 }]);
+  });
+
+  it.each([
+    ["R17: a destructured custom hook", 'const { t } = useNav();\nt("a");'],
+    ["a renamed destructured custom hook", 'const { t: tr } = useNav();\ntr("a");'],
+    ["an array-destructured custom hook", 'const [t] = useNav();\nt("a");'],
+    ["a t declared from a call", 'const t = makeT();\nt("a");'],
+    ["a t declared from a member", 'let t = api.translate;\nt("a");'],
+    ["a destructured object that is not a parameter", 'const { t } = context;\nt("a");'],
+  ])("reports %s as an unrecognised source", (_name, content) => {
+    expect(usage(content).unresolved).toEqual([
+      { reason: "unrecognised-translate-source", line: 1 },
+    ]);
+  });
+
+  it.each([
+    ["R11: a plain parameter called", 'function other(t) {\n  return t("x");\n}'],
+    ["a destructured parameter called", 'function C({ t }) {\n  return t("x");\n}'],
+    [
+      "t destructured from a props parameter",
+      'function Page(props) {\n  const { t } = props;\n  return t("x");\n}',
+    ],
+    [
+      "t destructured from this.props",
+      'class Page {\n  render() {\n    const { t } = this.props;\n    return t("x");\n  }\n}',
+    ],
+    ["a loop binding", "for (const t of items) {}"],
+  ])("does not report %s", (_name, content) => {
+    expect(usage(content).unresolved).toEqual([]);
   });
 });

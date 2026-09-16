@@ -10,7 +10,7 @@ import {
   memberBinding,
   renderPropBinding,
 } from "./translate-bindings.js";
-import { collectEscapes } from "./translate-escapes-check.js";
+import { collectEscapes, collectUnrecognisedBindings } from "./translate-escapes-check.js";
 import { collectImports } from "./translate-imports.js";
 import { type Binding, lineAt, recordBinding, type SourceState } from "./translate-state.js";
 
@@ -90,7 +90,11 @@ export function readTranslateSources(
       recordSource(tokens, index, state, outcome);
     }
   }
+  for (const name of rules.calleeNames) {
+    state.identifiers.add(name);
+  }
   collectAliases(tokens, state);
+  collectUnrecognisedBindings(tokens, rules, state);
   collectEscapes(tokens, rules, state);
   const unique = new Map(state.unresolved.map((site) => [`${site.reason}:${site.line}`, site]));
   return { identifiers: state.identifiers, unresolved: [...unique.values()] };

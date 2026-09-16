@@ -122,6 +122,7 @@ describe("scanProject", () => {
       ],
       unresolved: [
         { reason: "aliased-translate-function", file: "src/b.ts", line: 3 },
+        { reason: "translate-function-escapes", file: "src/b.ts", line: 3 },
         { reason: "trans-without-key", file: "src/b.ts", line: 4 },
       ],
       templateFiles: [],

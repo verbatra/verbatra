@@ -8,6 +8,7 @@ import {
   tokenAt,
 } from "./token-query.js";
 import type { SourceToken } from "./tokenize.js";
+import { isStatementEnd } from "./translate-arguments.js";
 import { DECLARATION_KEYWORDS, TRANSLATE_PATTERN_NAME } from "./translate-bindings.js";
 import { identValue, lineAt, type SourceState } from "./translate-state.js";
 
@@ -49,6 +50,14 @@ const PATTERN_ITEM_TERMINATORS = new Set(["}", ","]);
 const CONDITION_KEYWORDS = new Set(["if", "while", "switch", "with"]);
 
 const MARKUP_TAG_ENDS = new Set([";", ">"]);
+
+const PATTERN_ITEM_PRECEDERS = new Set(["{", "[", ","]);
+
+const PATTERN_BINDING_FOLLOWERS = new Set(["}", "]", ",", ":", "="]);
+
+const PATTERN_CLOSERS = new Set(["}", "]"]);
+
+const PROPS_NAME = "props";
 
 function isPropertyKey(tokens: readonly SourceToken[], index: number): boolean {
   const next = tokenAt(tokens, index + 1);
@@ -221,6 +230,7 @@ function isAllowedOccurrence(
     isAttributeName(tokens, index) ||
     isParameter(tokens, index) ||
     isPatternItem(tokens, index) ||
+    patternAssignmentCloser(tokens, index) !== undefined ||
     isTranslationAttribute(tokens, index, rules) ||
     isDependencyListItem(tokens, index, rules)
   );
@@ -239,6 +249,81 @@ export function collectEscapes(
       !state.imports.has(index);
     if (isCandidate && !isAllowedOccurrence(tokens, index, rules)) {
       state.unresolved.push({ reason: "translate-function-escapes", line: lineAt(tokens, index) });
+    }
+  }
+}
+
+function isThisProps(tokens: readonly SourceToken[], start: number): boolean {
+  return (
+    identValue(tokenAt(tokens, start)) === "this" &&
+    isPunct(tokenAt(tokens, start + 1), ".") &&
+    identValue(tokenAt(tokens, start + 2)) === PROPS_NAME &&
+    isStatementEnd(tokens, start + 3)
+  );
+}
+
+function isParameterName(tokens: readonly SourceToken[], name: string): boolean {
+  for (let index = 0; index < tokens.length; index += 1) {
+    if (identValue(tokenAt(tokens, index)) === name && isParameter(tokens, index)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isParameterInitializer(tokens: readonly SourceToken[], start: number): boolean {
+  const name = identValue(tokenAt(tokens, start));
+  if (name === undefined) {
+    return false;
+  }
+  if (isThisProps(tokens, start)) {
+    return true;
+  }
+  return isStatementEnd(tokens, start + 1) && isParameterName(tokens, name);
+}
+
+function patternAssignmentCloser(
+  tokens: readonly SourceToken[],
+  index: number,
+): number | undefined {
+  const inItemPosition =
+    isPunctIn(tokenAt(tokens, index - 1), PATTERN_ITEM_PRECEDERS) &&
+    isPunctIn(tokenAt(tokens, index + 1), PATTERN_BINDING_FOLLOWERS);
+  const closer = inItemPosition ? matchingClose(tokens, index + 1) : undefined;
+  const isPattern =
+    closer !== undefined &&
+    isPunctIn(tokenAt(tokens, closer), PATTERN_CLOSERS) &&
+    isAssignmentAt(tokens, closer + 1);
+  return isPattern ? closer : undefined;
+}
+
+function isUnrecognisedBinding(tokens: readonly SourceToken[], index: number): boolean {
+  const isDeclared =
+    isIdentNamed(tokenAt(tokens, index - 1), DECLARATION_KEYWORDS) &&
+    isAssignmentAt(tokens, index + 1);
+  if (isDeclared) {
+    return true;
+  }
+  const closer = patternAssignmentCloser(tokens, index);
+  return closer !== undefined && !isParameterInitializer(tokens, closer + 2);
+}
+
+export function collectUnrecognisedBindings(
+  tokens: readonly SourceToken[],
+  rules: KeyUsageRules,
+  state: SourceState,
+): void {
+  for (let index = 0; index < tokens.length; index += 1) {
+    const isCandidate =
+      isIdentNamed(tokenAt(tokens, index), rules.calleeNames) &&
+      !isPunct(tokenAt(tokens, index - 1), ".") &&
+      !state.allowed.has(index) &&
+      !state.imports.has(index);
+    if (isCandidate && isUnrecognisedBinding(tokens, index)) {
+      state.unresolved.push({
+        reason: "unrecognised-translate-source",
+        line: lineAt(tokens, index),
+      });
     }
   }
 }
