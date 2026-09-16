@@ -46,15 +46,25 @@ describe("compareInlineMarkup: the candidate ceiling grows with the source", () 
   });
 });
 
+const SCALE = 8;
+const LINEAR_RATIO_CEILING = 20;
+const TIMER_FLOOR_MS = 5;
+
+function millisecondsToCompare(value: string): number {
+  const started = Date.now();
+  expect(compareInlineMarkup(value, value).matches).toBe(true);
+  expect(compareInlineMarkup("Hallo", value).matches).toBe(false);
+  return Date.now() - started;
+}
+
 describe("compareInlineMarkup: comparison work stays proportional to the number of tags", () => {
   it.each([
-    ["deeply nested pairs", `${"<b>".repeat(60_000)}x${"</b>".repeat(60_000)}`],
-    ["unclosed openers", "<i>".repeat(120_000)],
-    ["closing tags with no opener", `<b>x</b>${"</i>".repeat(120_000)}`],
-  ])("compares %s promptly", (_label, value) => {
-    const started = Date.now();
-    expect(compareInlineMarkup(value, value).matches).toBe(true);
-    expect(compareInlineMarkup("Hallo", value).matches).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2_000);
+    ["deeply nested pairs", (n: number) => `${"<b>".repeat(n / 2)}x${"</b>".repeat(n / 2)}`],
+    ["unclosed openers", (n: number) => "<i>".repeat(n)],
+    ["closing tags with no opener", (n: number) => `<b>x</b>${"</i>".repeat(n)}`],
+  ])("compares %s in time that grows linearly with the tag count", (_label, build) => {
+    const small = millisecondsToCompare(build(120_000 / SCALE));
+    const large = millisecondsToCompare(build(120_000));
+    expect(large).toBeLessThan(LINEAR_RATIO_CEILING * Math.max(small, TIMER_FLOOR_MS));
   });
 });
