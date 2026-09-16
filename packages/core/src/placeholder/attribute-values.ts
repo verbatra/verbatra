@@ -1,8 +1,16 @@
 import type { InlineTag, MarkupAttribute } from "./markup-scanner.js";
-import { dangerousScheme, isUrlAttribute, urlOrigin, urlsIn } from "./url-attributes.js";
+import {
+  dangerousScheme,
+  decodeReferences,
+  isUrlAttribute,
+  urlOrigin,
+  urlsIn,
+} from "./url-attributes.js";
+import { keepsValueVerbatim } from "./verbatim-attributes.js";
 
 interface SourceAttribute {
   readonly values: Set<string>;
+  readonly decodedValues: Set<string>;
   readonly origins: Set<string>;
 }
 
@@ -25,9 +33,11 @@ function sourceAttributes(tags: readonly InlineTag[]): SourceAttributes {
       const key = valueKey(tag.name, attribute.name);
       const known = attributes.get(key) ?? {
         values: new Set<string>(),
+        decodedValues: new Set<string>(),
         origins: new Set<string>(),
       };
       known.values.add(attribute.value);
+      known.decodedValues.add(decodeReferences(attribute.value));
       for (const origin of originsOf(attribute)) {
         known.origins.add(origin);
       }
@@ -35,11 +45,6 @@ function sourceAttributes(tags: readonly InlineTag[]): SourceAttributes {
     }
   }
   return attributes;
-}
-
-function mustMatchSource(attributeName: string): boolean {
-  const name = attributeName.toLowerCase();
-  return name === "srcdoc" || name.startsWith("on");
 }
 
 function urlFinding(
@@ -60,8 +65,10 @@ function attributeFinding(
   attribute: MarkupAttribute,
   source: SourceAttribute | undefined,
 ): string | undefined {
-  if (mustMatchSource(attribute.name)) {
-    return source === undefined ? undefined : `<${tag.name} ${attribute.name}="...">`;
+  if (keepsValueVerbatim(tag.name, attribute.name)) {
+    const kept =
+      source === undefined || source.decodedValues.has(decodeReferences(attribute.value));
+    return kept ? undefined : `<${tag.name} ${attribute.name}="...">`;
   }
   return isUrlAttribute(attribute.name) ? urlFinding(tag, attribute, source) : undefined;
 }
