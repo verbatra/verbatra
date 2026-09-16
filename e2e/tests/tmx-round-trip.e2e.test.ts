@@ -27,7 +27,10 @@ interface ImportTmxJson {
     rejected: Record<string, number>;
   }[];
   skippedUnits: number;
+  unreachableUnits: number;
   unmatchedSourceUnits: number;
+  conflictingSourceUnits: number;
+  sourceLanguageMismatch: string | undefined;
   markupStrippedUnits: number;
   unmatchedLanguages: { language: string; units: number }[];
   ambiguousLanguages: { language: string; units: number }[];
@@ -319,6 +322,106 @@ describe("tmx interchange in an installed consumer", () => {
       kept: 0,
       overwritten: 1,
     });
+  });
+
+  it("keeps a regional target apart from the bare source locale it shares a subtag with", async () => {
+    const regional = {
+      sourceLocale: "pt",
+      targetLocales: ["pt-BR", "de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+    };
+    const dir = join(consumer.dir, "tmx-regional");
+    await writeJsonIn(dir, ".verbatrarc.json", regional);
+    await writeJsonIn(dir, "locales/pt.json", { greeting: "SOURCE-pt" });
+    await writeFileIn(
+      dir,
+      "legacy.tmx",
+      tmxFile(
+        [
+          unit([
+            ["pt", "SOURCE-pt"],
+            ["pt-BR", "TARGET-ptBR"],
+            ["de", "TARGET-de"],
+          ]),
+        ],
+        "pt",
+      ),
+    );
+
+    const result = await runVerbatra(consumer, ["tmx", "import", "legacy.tmx", "--json"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const report = importPayload(result.stdout);
+    expect(report.locales.map((locale) => [locale.locale, locale.added])).toEqual([
+      ["pt-BR", 1],
+      ["de", 1],
+    ]);
+    expect(report.conflictingSourceUnits).toBe(0);
+
+    const exported = await runVerbatra(consumer, ["tmx", "export", "out.tmx"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+    expect(exported.exitCode).toBe(0);
+    const text = await readFile(join(dir, "out.tmx"), "utf8");
+    expect(text).toContain("<seg>SOURCE-pt</seg>");
+    expect(text).not.toContain("<seg>TARGET-ptBR</seg>\n      <tuv");
+  });
+
+  it("keeps a doctype and an entity declaration inside a data section as payload", async () => {
+    const dir = await seedProject("tmx-data-section", {
+      greeting: "Write <!DOCTYPE html> at the top",
+    });
+    await writeFileIn(
+      dir,
+      "docs.tmx",
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<tmx version="1.4">',
+        '  <header srclang="en"/>',
+        "  <body>",
+        "    <tu>",
+        '      <tuv xml:lang="en"><seg><![CDATA[Write <!DOCTYPE html> at the top]]></seg></tuv>',
+        '      <tuv xml:lang="de"><seg><![CDATA[Schreibe <!ENTITY x "y"> oben hin]]></seg></tuv>',
+        "    </tu>",
+        "  </body>",
+        "</tmx>",
+      ].join("\n"),
+    );
+
+    const result = await runVerbatra(consumer, ["tmx", "import", "docs.tmx", "--json"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(importPayload(result.stdout).locales[0]?.added).toBe(1);
+
+    const exported = await runVerbatra(consumer, ["tmx", "export", "back.tmx"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+    const text = await readFile(join(dir, "back.tmx"), "utf8");
+    expect(exported.exitCode).toBe(0);
+    expect(text).toContain("Write &lt;!DOCTYPE html&gt; at the top");
+    expect(text).toContain('Schreibe &lt;!ENTITY x "y"&gt; oben hin');
+  });
+
+  it("refuses --dry-run on an export rather than writing while promising not to", async () => {
+    const dir = await seedProject("tmx-export-flags", { greeting: "Hello" });
+
+    const result = await runVerbatra(consumer, ["tmx", "export", "out.tmx", "--dry-run"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+
+    expect(result.exitCode).toBe(2);
+    await expect(readFile(join(dir, "out.tmx"), "utf8")).rejects.toThrow();
   });
 
   it("refuses a file that declares an XML entity, without reading the file it names", async () => {

@@ -23,8 +23,8 @@ verbatra tmx <direction> [file] [flags]
 | `--cwd` | `<path>` | directorio actual | resolver la configuración y la memoria desde este directorio |
 | `--config` | `<path>` | se busca una | cargar este archivo de configuración en lugar de buscar uno |
 | `--locales` | `<list>` | todas las configuradas | subconjunto de locales de destino separado por comas |
-| `--dry-run` | ninguno | desactivado | en el import, validar e informar sin tocar la memoria |
-| `--overwrite` | ninguno | desactivado | en el import, dejar que una unidad importada sustituya una traducción que la memoria ya tiene |
+| `--dry-run` | ninguno | desactivado | solo en el import, rechazado en un export: validar e informar sin tocar la memoria |
+| `--overwrite` | ninguno | desactivado | solo en el import, rechazado en un export: dejar que una unidad importada sustituya una traducción que la memoria ya tiene |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout con el resultado, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 ## Ejemplos
@@ -67,6 +67,12 @@ Un archivo TMX escribe sus idiomas como los escribió la herramienta de su autor
 2. Si no, la unidad va al único locale configurado que comparte la subetiqueta primaria. Un archivo escrito en `en-US` aterriza así en un proyecto configurado con `en`, y un archivo escrito en `pt` aterriza en un proyecto configurado solo con `pt-BR`.
 3. Si dos locales configurados pudieran reclamar la etiqueta por igual, no se elige ninguno. `pt-PT` en un proyecto con `pt-BR` y `pt-AO` se informa como ambiguo, no se adjudica al que llegó primero.
 
+Cada segmento se resuelve en una sola pasada contra el locale de origen y todos tus locales de destino configurados, no primero contra el origen y luego contra los destinos. Eso es lo que impide que un destino regional se tome por la etiqueta de origen simple con la que comparte subetiqueta primaria: en un proyecto cuyo origen es `pt` y cuyos destinos incluyen `pt-BR`, el segmento `pt-BR` es ese destino y nunca una segunda lectura del origen. Sigue valiendo cuando acotas una ejecución con `--locales`, porque la resolución ve todos los locales configurados igualmente.
+
+Una unidad con dos segmentos que resuelven ambos a tu locale de origen, como `en` y `en-US` en un proyecto configurado con `en`, se rechaza y se cuenta en lugar de adjudicarse al que llegó último. Una configuración cuyo locale de origen y uno de sus locales de destino son la misma etiqueta una vez normalizadas mayúsculas y separadores se rechaza de plano, porque ningún segmento podría atribuirse a ninguno de los dos.
+
+También se cuentan las unidades que el lector no pudo aprovechar, las que no tienen segmento de origen, aquellas cuyo marcado se aplanó y los elementos `tu` que quedan fuera del primer `body` del archivo. Si la cabecera declara un `srclang` que no es tu locale de origen, se informa en vez de pasarse por alto.
+
 Las etiquetas que no coinciden con nada configurado se cuentan por etiqueta y se informan, de modo que un archivo lleno de idiomas que no traduces te lo dice, en lugar de parecer un import vacío.
 
 ## Cuando el archivo y la memoria no coinciden
@@ -82,6 +88,12 @@ Importar el mismo archivo dos veces, por tanto, no cambia nada la segunda vez, y
 Las unidades importadas se guardan bajo la huella de configuración actual del proyecto, la misma clave que escribe una ejecución real. Es deliberado: una memoria importada se reutiliza exactamente cuando coincide la configuración que la consumiría, y deja de coincidir cuando cambian el proveedor, el modelo, el tono o el glosario, que es justo la protección para la que existe la capa de huella. Vuelve a importar el archivo después de un cambio así.
 
 Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, el import lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar.
+
+## Unidades importadas y reutilización difusa
+
+Vale la pena decir una consecuencia con claridad, porque ninguna comprobación en el momento del import puede vigilarla. El texto de origen de una unidad aceptada se escribe en el índice de orígenes de la memoria, que es justo contra lo que la [reutilización difusa](/docs/the-cache) puntúa una cadena modificada. Un origen importado que solo se parece a una cadena de tu proyecto puede por tanto servirse para esa cadena por reutilización difusa, aunque el camino exacto nunca la emparejaría: el camino exacto se indexa por un hash que cubre la descripción, el significado y la marca de plural, y una unidad TMX no lleva ninguno de los tres, mientras que la reutilización difusa compara solo textos de origen.
+
+Esa reutilización sigue pasando por la puerta de integridad contra tu entrada real, y se informa como marca de revisión `FUZZY_CACHE_REUSE` en el resumen de la ejecución, así que es visible y no silenciosa. Si prefieres que una memoria importada no sea alcanzable por esa vía, deja `fuzzyCache` fuera de tu configuración: sin ella, solo se reutiliza una coincidencia exacta de hash de contenido.
 
 ## Qué escribe el export
 

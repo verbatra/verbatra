@@ -23,8 +23,8 @@ verbatra tmx <direction> [file] [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Memory von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--locales` | `<list>` | alle konfigurierten | kommagetrennte Teilmenge der Ziel-Locales |
-| `--dry-run` | keins | aus | beim Import prüfen und melden, ohne den Memory zu verändern |
-| `--overwrite` | keins | aus | beim Import eine importierte Einheit eine Übersetzung ersetzen lassen, die der Memory schon hat |
+| `--dry-run` | keins | aus | nur beim Import, beim Export abgelehnt: prüfen und melden, ohne den Memory zu verändern |
+| `--overwrite` | keins | aus | nur beim Import, beim Export abgelehnt: eine importierte Einheit eine Übersetzung ersetzen lassen, die der Memory schon hat |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Beispiele
@@ -67,6 +67,12 @@ Eine TMX-Datei schreibt ihre Sprachen so, wie das Werkzeug ihrer Autorin sie ges
 2. Andernfalls landet die Einheit dort, wo genau eine konfigurierte Locale den primären Subtag des Tags teilt. Eine Datei in `en-US` landet also in einem Projekt, das `en` konfiguriert hat, und eine Datei in `pt` landet in einem Projekt, das nur `pt-BR` konfiguriert hat.
 3. Könnten zwei konfigurierte Locales das Tag gleichermaßen beanspruchen, wird nichts gewählt. `pt-PT` in einem Projekt mit `pt-BR` und `pt-AO` wird als mehrdeutig gemeldet, nicht derjenigen zugeschlagen, die zuerst kam.
 
+Jedes Segment wird in einem Durchgang gegen die Quell-Locale und alle deine konfigurierten Ziel-Locales aufgelöst, nicht erst gegen die Quelle und danach gegen die Ziele. Genau das verhindert, dass eine regionale Ziel-Locale für das schlichte Quell-Tag gehalten wird, mit dem sie den primären Subtag teilt: In einem Projekt mit der Quelle `pt` und `pt-BR` unter den Zielen ist das `pt-BR`-Segment genau dieses Ziel und nie eine zweite Lesart der Quelle. Das gilt auch, wenn du einen Lauf mit `--locales` einschränkst, denn die Auflösung sieht so oder so jede konfigurierte Locale.
+
+Eine Einheit mit zwei Segmenten, die beide auf deine Quell-Locale auflösen, etwa `en` und `en-US` in einem Projekt mit `en`, wird abgelehnt und gezählt, statt derjenigen zugeschlagen zu werden, die zuletzt kam. Eine Konfiguration, deren Quell-Locale und eine ihrer Ziel-Locales nach Normalisierung von Schreibweise und Trennzeichen dasselbe Tag sind, wird rundweg abgelehnt, weil sich kein Segment einer von beiden zuordnen ließe.
+
+Einheiten, die der Leser nicht verwerten konnte, Einheiten ohne Quellsegment, Einheiten mit eingeebnetem Markup und `tu`-Elemente außerhalb des ersten `body` der Datei werden ebenfalls gezählt. Deklariert der Header ein `srclang`, das nicht deine Quell-Locale ist, wird das gemeldet statt übergangen.
+
 Tags, die zu nichts Konfiguriertem passen, werden pro Tag gezählt und gemeldet. Eine Datei voller Sprachen, die du nicht übersetzt, sagt dir das also, statt wie ein leerer Import auszusehen.
 
 ## Wenn Datei und Memory sich widersprechen
@@ -82,6 +88,12 @@ Dieselbe Datei ein zweites Mal zu importieren ändert deshalb nichts und schreib
 Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, demselben Schlüssel, den auch ein echter Lauf schreibt. Das ist Absicht: ein importierter Memory wird genau dann wiederverwendet, wenn die Konfiguration passt, die ihn verbrauchen würde, und hört auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar ändern. Genau dafür gibt es die Fingerprint-Schicht. Importiere die Datei nach so einer Änderung erneut.
 
 Wurde die Memory-Datei von einem neueren verbatra geschrieben als dem, das du ausführst, lässt der Import sie unangetastet und sagt es dir, statt eine Datei zu schreiben, der das neuere Build danach misstrauen müsste.
+
+## Importierte Einheiten und unscharfe Wiederverwendung
+
+Eine Folge ist es wert, klar gesagt zu werden, weil keine Prüfung zur Importzeit sie abfangen kann. Der Quelltext einer akzeptierten Einheit wird in den Quelltext-Index des Memorys geschrieben, und genau daran misst die [unscharfe Wiederverwendung](/docs/the-cache) einen geänderten String. Eine importierte Quelle, die einem String in deinem Projekt nur ähnelt, kann deshalb per unscharfer Wiederverwendung für diesen String ausgeliefert werden, obwohl der exakte Pfad sie nie treffen würde: Der exakte Pfad schlüsselt über einen Hash, der Beschreibung, Bedeutung und Plural-Flag umfasst, und nichts davon trägt eine TMX-Einheit, während die unscharfe Wiederverwendung allein Quelltexte vergleicht.
+
+So eine Wiederverwendung unterliegt weiterhin dem Integritäts-Gate gegen deinen echten Eintrag und wird in der Lauf-Zusammenfassung als Review-Flag `FUZZY_CACHE_REUSE` gemeldet, ist also sichtbar und nicht still. Soll ein importierter Memory auf diesem Weg gar nicht erreichbar sein, lass `fuzzyCache` aus deiner Konfiguration weg: ohne sie wird nur ein exakter Content-Hash-Treffer je wiederverwendet.
 
 ## Was der Export schreibt
 
