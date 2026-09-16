@@ -35,6 +35,9 @@ const LEADING_SCHEME = /^(javascript|vbscript|data):/;
 const SCHEME = /^([a-z][a-z0-9+.-]*):/;
 const LEADING_SLASHES = /^[/\\]*/;
 const AUTHORITY_END = /[/\\?#]/;
+const NON_SPECIAL_AUTHORITY_END = /[/?#]/;
+const BACKSLASH = /\\|%5c/;
+const SPECIAL_SCHEMES: ReadonlySet<string> = new Set(["file", "ftp", "http", "https", "ws", "wss"]);
 const REPLACEMENT_CHARACTER = "�";
 
 function decodeNumeric(
@@ -115,6 +118,12 @@ export function urlsIn(attributeName: string, raw: string): readonly string[] {
   return urls.filter((url) => url.length > 0);
 }
 
+function readsBackslashAsHost(slashes: string, afterSlashes: string): boolean {
+  const end = afterSlashes.search(NON_SPECIAL_AUTHORITY_END);
+  const authority = end === -1 ? afterSlashes : afterSlashes.slice(0, end);
+  return BACKSLASH.test(slashes) || BACKSLASH.test(authority);
+}
+
 export function urlOrigin(decodedUrl: string): string {
   const url = trimControlsOrSpaces(decodedUrl.replace(TAB_OR_NEWLINE, "")).toLowerCase();
   const scheme = SCHEME.exec(url)?.[1];
@@ -124,6 +133,12 @@ export function urlOrigin(decodedUrl: string): string {
     return "./";
   }
   const afterSlashes = rest.slice(slashes);
+  if (
+    !SPECIAL_SCHEMES.has(scheme ?? "") &&
+    readsBackslashAsHost(rest.slice(0, slashes), afterSlashes)
+  ) {
+    return url;
+  }
   const end = afterSlashes.search(AUTHORITY_END);
   const authority = end === -1 ? afterSlashes : afterSlashes.slice(0, end);
   return scheme === undefined ? `//${authority}` : `${scheme}://${authority}`;

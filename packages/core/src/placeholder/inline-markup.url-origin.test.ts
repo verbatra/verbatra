@@ -45,7 +45,7 @@ describe("compareInlineMarkup: a URL attribute keeps its source's scheme and aut
       "https://evil.example",
     ],
     ['<a href="/docs">Docs</a>', '<a href="//evil.example/docs">Doku</a>', "//evil.example"],
-    ['<a href="/docs">Docs</a>', '<a href="/\\evil.example/docs">Doku</a>', "//evil.example"],
+    ['<a href="/docs">Docs</a>', '<a href="/\\evil.example/docs">Doku</a>', "/\\evil.example/docs"],
     [
       '<a href="/docs">Docs</a>',
       '<a href="&sol;&sol;evil.example/docs">Doku</a>',
@@ -93,6 +93,41 @@ describe("compareInlineMarkup: a URL attribute keeps its source's scheme and aut
     expect(result.matches).toBe(false);
     expect(result.extra.some((token) => token.includes(`="${origin}`))).toBe(true);
   });
+
+  it.each([
+    ['<a href="//verbatra.dev/en">Docs</a>', '<a href="//verbatra.dev\\@evil.example/">Doku</a>'],
+    ['<a href="//verbatra.dev/en">Docs</a>', '<a href="//verbatra.dev%5C@evil.example/">Doku</a>'],
+    [
+      '<a href="//verbatra.dev/en">Docs</a>',
+      '<a href="//verbatra.dev&bsol;@evil.example/">Doku</a>',
+    ],
+    ['<a href="/docs">Docs</a>', '<a href="\\\\evil.example/docs">Doku</a>'],
+    [
+      '<a href="app://verbatra.dev/en">Docs</a>',
+      '<a href="app://verbatra.dev\\@evil.example/">Doku</a>',
+    ],
+  ])(
+    "refuses %j rewritten as %j, whose backslash a page without a web scheme reads differently",
+    (source, translated) => {
+      const result = compareInlineMarkup(source, translated);
+      expect(result.matches).toBe(false);
+      expect(result.extra.some((token) => /\\|%5c/i.test(token))).toBe(true);
+    },
+  );
+
+  it.each([
+    [
+      '<a href="https://verbatra.dev/">Home</a>',
+      '<a href="https://verbatra.dev\\@evil.example/">Start</a>',
+    ],
+    ['<a href="//verbatra.dev/en">Docs</a>', '<a href="//verbatra.dev/de">Doku</a>'],
+    ['<a href="docs">Docs</a>', '<a href="docs\\de">Doku</a>'],
+  ])(
+    "accepts %j rewritten as %j, where a web scheme, no backslash or a started path fixes the host",
+    (source, translated) => {
+      expect(compareInlineMarkup(source, translated).matches).toBe(true);
+    },
+  );
 
   it("allows a value whose origin any source value of the same tag and attribute carries", () => {
     expect(
