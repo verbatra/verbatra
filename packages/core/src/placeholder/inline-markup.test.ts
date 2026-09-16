@@ -646,10 +646,13 @@ describe("compareInlineMarkup: what is deliberately not read as a tag still lets
     expect(result.missing).toEqual(["<!-- <i> -->", "</b>", "<b>"]);
   });
 
-  it("does not read an angle-bracketed address as an invented tag", () => {
-    expect(compareInlineMarkup("<b>ok</b>", "<b>Mail <support@example.com> ok</b>").matches).toBe(
-      true,
-    );
+  it("reads an angle-bracketed address the way an HTML parser does, as an invented tag", () => {
+    expect(compareInlineMarkup("<b>ok</b>", "<b>Mail <support@example.com> ok</b>")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<support@example.com>"],
+      malformed: false,
+    });
   });
 
   it("does not read a less-than sign followed by a digit as a numeric rich-text tag", () => {
@@ -672,12 +675,22 @@ describe("compareInlineMarkup: the shape an angle-bracket run has to have to cou
     expect(result.missing).toEqual(["</b>", "<b>"]);
   });
 
-  it("rejects an opening tag whose attribute list does not parse", () => {
-    expect(compareInlineMarkup('<a href="/x"junk>Docs</a>', "Doku").matches).toBe(true);
+  it("reads an attribute written straight after a quoted value, as an HTML parser does", () => {
+    expect(compareInlineMarkup('<a href="/x"junk>Docs</a>', "Doku")).toEqual({
+      matches: false,
+      missing: ["</a>", "<a href junk>"],
+      extra: [],
+      malformed: false,
+    });
   });
 
-  it("rejects a closing tag that carries anything but whitespace", () => {
-    expect(compareInlineMarkup("<b>a</b junk>", "a").matches).toBe(true);
+  it("reads a closing tag that carries attributes as the closing tag, as an HTML parser does", () => {
+    expect(compareInlineMarkup("<b>a</b junk>", "a")).toEqual({
+      matches: false,
+      missing: ["</b>", "<b>"],
+      extra: [],
+      malformed: false,
+    });
   });
 });
 
@@ -849,10 +862,13 @@ describe("compareInlineMarkup: a reorder that nests a tag inside another of the 
 });
 
 describe("compareInlineMarkup: an angle bracket inside an attribute value", () => {
-  it("stands down rather than guessing, because the tag no longer parses", () => {
-    expect(compareInlineMarkup('<abbr title="a > b">x</abbr>', "voellig anders").matches).toBe(
-      true,
-    );
+  it("reads past it inside quotes, so the tag is still compared", () => {
+    expect(compareInlineMarkup('<abbr title="a > b">x</abbr>', "voellig anders")).toEqual({
+      matches: false,
+      missing: ["</abbr>", "<abbr title>"],
+      extra: [],
+      malformed: false,
+    });
   });
 });
 
@@ -884,6 +900,101 @@ describe("compareInlineMarkup: tag names are compared exactly, void elements rec
   });
 });
 
+describe("compareInlineMarkup: tags are read the way an HTML parser reads them", () => {
+  it.each([
+    ['Hallo <a"b onmouseover=alert(1)>Welt', ['<a"b onmouseover>']],
+    ['Hallo <img title=">" src=x onerror=alert(1)>', ["<img onerror src title>"]],
+    ["Hallo <img/src/onerror=alert(1)>", ["<img onerror src>"]],
+    ["Hallo <x onclick=alert(1)>", ["<x onclick>"]],
+    ["Hallo <b\tonmouseover=alert(1)>x</b>", ["</b>", "<b onmouseover>"]],
+    ["Hallo <a href=x'y onclick=z>", ["<a href onclick>"]],
+    ["Hallo <p =x>", ["<p =x>"]],
+    ["Hallo <details open ontoggle=alert(1)>", ["<details ontoggle open>"]],
+    ["Hallo <b a=1/>", ["<b a>"]],
+    ["Hallo <i/>", ["<i/>"]],
+  ])("refuses %j against a source with no markup", (translated, extra) => {
+    expect(compareInlineMarkup("Hello", translated)).toEqual({
+      matches: false,
+      missing: [],
+      extra,
+      malformed: false,
+    });
+  });
+
+  it("refuses an event handler hidden behind a closing angle bracket inside a quoted value", () => {
+    expect(compareInlineMarkup("<b>a</b>", '<b title="</b>" onmouseover=x>a</b>')).toEqual({
+      matches: false,
+      missing: ["<b>"],
+      extra: ["<b onmouseover title>"],
+      malformed: false,
+    });
+  });
+
+  it.each([
+    "Hallo <0 x>",
+    "Hallo </0 x>",
+    "Hallo <1",
+    "Hallo </",
+    "Hallo <a title='never closed",
+    "Hallo <a",
+  ])("reads %j as text or as a tag the parser never finishes, so nothing is invented", (value) => {
+    expect(compareInlineMarkup("Hello", value).matches).toBe(true);
+  });
+
+  it.each([
+    '<a title="x > y">z</a>',
+    "a<b and c>d",
+    "Mail us at <support@example.com>",
+    "Compare with <b",
+    "<0>x</0> <1/> </2 >",
+    "<a href=/x/>y</a>",
+    "<p =x>y</p>",
+  ])("accepts %j translated as itself", (value) => {
+    expect(compareInlineMarkup(value, value).matches).toBe(true);
+  });
+});
+
+function scanSteps(run: () => void): number {
+  const { indexOf, charCodeAt } = String.prototype;
+  let steps = 0;
+  String.prototype.indexOf = function (this: string, needle: string, from?: number): number {
+    const start = from ?? 0;
+    const found = indexOf.call(this, needle, start);
+    steps += (found === -1 ? this.length : found) - start + 1;
+    return found;
+  };
+  String.prototype.charCodeAt = function (this: string, index: number): number {
+    steps += 1;
+    return charCodeAt.call(this, index);
+  };
+  try {
+    run();
+  } finally {
+    String.prototype.indexOf = indexOf;
+    String.prototype.charCodeAt = charCodeAt;
+  }
+  return steps;
+}
+
+describe("compareInlineMarkup: the scan does work in proportion to the value's length", () => {
+  it.each([
+    ["an unterminated comment opener repeated", "<!--".repeat(25_000)],
+    ["a tag name that never closes", `<${"a".repeat(100_000)}`],
+    ["a CDATA opener repeated", "<![CDATA[".repeat(10_000)],
+    ["empty comments before a lone bang terminator", `${"<!---->".repeat(14_000)}--!>`],
+    ["bang-terminated comments before a lone dash terminator", `${"<!----!>".repeat(12_500)}-->`],
+    ["an attribute value whose quote never closes", `<a title="${"x".repeat(100_000)}`],
+    ["a run of tag openers inside one tag name", "<a".repeat(50_000)],
+    ["numeric openers that never become tags", "<1".repeat(50_000)],
+    ["an end tag that never closes", `</a${" x".repeat(50_000)}`],
+    ["attributes that never close", `<a${" x=y".repeat(25_000)}`],
+  ])("scans %s in a bounded number of steps", (_label, noise) => {
+    const steps = scanSteps(() => compareInlineMarkup(noise, noise));
+    expect(steps).toBeGreaterThanOrEqual(noise.length);
+    expect(steps).toBeLessThanOrEqual(noise.length * 12);
+  });
+});
+
 describe("inlineTagToken", () => {
   it.each([
     ["<b>", "<b>"],
@@ -892,6 +1003,7 @@ describe("inlineTagToken", () => {
     ['<x id="2"/>', "<x id/>"],
     ["<br/>", "<br>"],
     ["<0>", "<0>"],
+    ['<a title=">">', "<a title>"],
   ])("canonicalizes %j to %j", (token, canonical) => {
     expect(inlineTagToken(token)).toBe(canonical);
   });
