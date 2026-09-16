@@ -107,6 +107,16 @@ describe("the guard and the schema cannot drift apart", () => {
     " custom:toml",
     "custom:toml\n",
     "custom:toml ",
+    "custom:my_toml",
+    "custom:my.toml",
+    "custom:my/toml",
+    "custom:@acme/toml",
+    "custom:my toml",
+    "custom: toml",
+    "custom:toml\t",
+    "custom:custom:toml",
+    "custom:custom",
+    "custom:tomlé",
     "toml",
     "i18next-json",
     "",
@@ -114,5 +124,19 @@ describe("the guard and the schema cannot drift apart", () => {
 
   it.each(candidates)("agrees on %j", (candidate) => {
     expect(isCustomFormatId(candidate)).toBe(customFormatIdSchema.safeParse(candidate).success);
+  });
+});
+
+describe("the identifier pattern is anchored at both ends", () => {
+  const embedded = [
+    ["a valid name with an appended invalid character", "custom:toml!"],
+    ["a valid name with a prepended invalid character", "custom:!toml"],
+    ["a valid name wrapped in invalid characters", "custom:_toml_"],
+    ["a valid name after a newline", "custom:\ntoml"],
+  ] as const;
+
+  it.each(embedded)("refuses %s", (_label, candidate) => {
+    expect(isCustomFormatId(candidate)).toBe(false);
+    expect(customFormatIdSchema.safeParse(candidate).success).toBe(false);
   });
 });

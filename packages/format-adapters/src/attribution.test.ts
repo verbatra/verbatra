@@ -294,3 +294,125 @@ describe("attributeAdapterFailures leaves errors that already carry meaning alon
     },
   );
 });
+
+function guardCodesOver(
+  wrap: (adapter: FormatAdapter) => FormatAdapter,
+): Promise<readonly string[]> {
+  const adapter = workingAdapter();
+  const methods = Object.keys(adapter).filter(
+    (key) => typeof adapter[key as keyof FormatAdapter] === "function",
+  );
+  const boom = (): never => {
+    throw new TypeError("boom");
+  };
+  const wrapped = wrap(
+    Object.fromEntries([
+      ...Object.entries(adapter),
+      ...methods.map((key) => [key, boom] as const),
+    ]) as unknown as FormatAdapter,
+  ) as unknown as Record<string, ((...args: never[]) => unknown) | undefined>;
+  return Promise.all(
+    methods.map(async (method) => {
+      const failure = await failureFrom(() => wrapped[method]?.());
+      return failure instanceof AdapterError ? failure.code : "UNGUARDED";
+    }),
+  );
+}
+
+describe("the containment pin is a real tripwire, not a self-satisfying check", () => {
+  it("reports UNGUARDED when a method escapes the wrapper, so the derived check can fail", async () => {
+    const leaky = (adapter: FormatAdapter): FormatAdapter => ({
+      ...attributeAdapterFailures(adapter),
+      validateMessage: adapter.validateMessage.bind(adapter),
+    });
+
+    await expect(guardCodesOver(leaky)).resolves.toContain("UNGUARDED");
+  });
+
+  it("reports ADAPTER_FAILED for every method of the real wrapper", async () => {
+    await expect(guardCodesOver(attributeAdapterFailures)).resolves.not.toContain("UNGUARDED");
+  });
+
+  it("drops a seventh member the wrapper does not know about, so the key pin trips", () => {
+    const seventh = Object.assign(workingAdapter(), {
+      describeFile: (): string => "x",
+    }) as unknown as FormatAdapter;
+
+    const wrapped = attributeAdapterFailures(seventh);
+
+    expect(Object.keys(wrapped)).not.toContain("describeFile");
+    expect(Object.keys(wrapped).sort()).not.toEqual(Object.keys(seventh).sort());
+  });
+
+  it("pins the wrapped surface to exactly the six contract methods plus the format", () => {
+    expect(Object.keys(attributeAdapterFailures(workingAdapter())).sort()).toEqual([
+      "canHandle",
+      "comparePlaceholders",
+      "extractPlaceholders",
+      "format",
+      "read",
+      "validateMessage",
+      "write",
+    ]);
+  });
+});
+
+describe("attributeAdapterFailures and the shape of what a plugin throws", () => {
+  const thrown: ReadonlyArray<readonly [string, unknown]> = [
+    ["a plain Error with no code", new Error("plain boom")],
+    ["an Error with an empty message", new Error("")],
+    ["an Error whose code is not a string", Object.assign(new Error("boom"), { code: 42 })],
+    ["an Error with a lowercase code", Object.assign(new Error("boom"), { code: "enoent" })],
+    ["an underscored Node code", Object.assign(new Error("boom"), { code: "ERR_UNKNOWN" })],
+    ["a code with an underscore after the E", Object.assign(new Error("boom"), { code: "E_BAD" })],
+    ["undefined", undefined],
+    ["a number", 7],
+    ["a plain object", { message: "boom" }],
+  ];
+
+  it.each(thrown)("attributes %s to the plugin", async (_label, value) => {
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ read: () => Promise.reject(value) }),
+    );
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure).toBeInstanceOf(AdapterError);
+    expect(failure.code).toBe("ADAPTER_FAILED");
+    expect(failure.message).toContain("custom:toml");
+    expect(failure.message).toContain("read");
+  });
+
+  it("describes an Error with an empty message by its string form, not as an empty detail", async () => {
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ read: () => Promise.reject(new Error("")) }),
+    );
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure.message).toContain("Error");
+  });
+});
+
+describe("the errno heuristic is shape-based, so a plugin can mint a code that escapes it", () => {
+  const minted = ["EPARSE", "ETOML", "E1", "EVERYTHING"] as const;
+
+  it.each(minted)("passes a plugin-minted %s through unattributed", async (code) => {
+    const original = errno(code);
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ read: () => Promise.reject(original) }),
+    );
+
+    await expect(adapter.read("a.toml", "de")).rejects.toBe(original);
+  });
+
+  it("does not let a minted code through once it stops looking like an errno", async () => {
+    const adapter = attributeAdapterFailures(
+      throwingAdapter({ read: () => Promise.reject(errno("Eparse")) }),
+    );
+
+    const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
+
+    expect(failure.code).toBe("ADAPTER_FAILED");
+  });
+});
