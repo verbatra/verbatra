@@ -252,14 +252,18 @@ correspondantes et bien formées est acceptée. L'ordre des mots, les valeurs d'
 graphies d'un élément vide (`<br>` et `<br/>`) ne sont jamais en cause, puisque rien de tout cela
 n'est comparé. Un refus qui ne nomme aucune balise est structurel : le balisage est revenu mal
 imbriqué, ou une balise que la source avait à côté d'une autre du même nom est revenue imbriquée
-dedans. Un refus qui nomme `+more than 256 inline tags` signifie que la candidate porte plus de
-balises que la vérification n'en lit, alors que sa source non. Trois autres cas sont des refus
-voulus et non des bugs : fusionner deux paires adjacentes en une seule, changer la casse d'une
-balise, et ajouter ou retirer un nom d'attribut, y compris un attribut `dir` pour une cible écrite
-de droite à gauche. Laisse les balises telles que la source les a et place le changement là où la
-vérification ne regarde pas, par exemple dans une valeur d'attribut. Si c'est la valeur source qui
-porte le balisage cassé, corrige-la là : la vérification se retire quand les balises de la source
-sont malformées, donc une source cassée la désactive silencieusement pour cette clé.
+dedans. Un refus qui nomme `+more than N inline tags` signifie que la candidate porte plus de deux
+fois plus de balises et de constructions que sa source, ou plus de 256 pour une source plus petite.
+Un détail comme `+<a href="javascript:...">` nomme un attribut d'URL qui a gagné un schéma exécutant
+du script, `+<noscript>...</noscript>` nomme du texte brut qu'un analyseur peut lire de deux façons
+et qu'une traduction doit garder exactement tel que la source l'a, et un détail sans chevron
+fermant, comme `+<a`, nomme une balise que la candidate n'a jamais achevée. Trois autres cas sont
+des refus voulus et non des bugs : fusionner deux paires adjacentes en une seule, changer la casse
+d'une balise, et ajouter ou retirer un nom d'attribut, y compris un attribut `dir` pour une cible
+écrite de droite à gauche. Laisse les balises telles que la source les a et place le changement là
+où la vérification ne regarde pas, par exemple dans une valeur d'attribut. Si c'est la valeur source
+qui porte le balisage cassé, corrige-la là : une source dont les propres balises sont malformées
+reste comparée balise par balise, donc chaque traduction doit répéter les mêmes balises cassées.
 
 ## Studio : le port est déjà utilisé
 

@@ -94,7 +94,8 @@ was ein Befund ist:
   obwohl die Quelle sie nebeneinander hatte, denn so werden aus zwei Links still und leise einer.
 - Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
   verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
-  `href` eine korrekte Übersetzung ist und keine kaputte, und beide Schreibweisen eines leeren
+  `href` eine korrekte Übersetzung ist und keine kaputte (innerhalb der weiter unten beschriebenen
+  Grenzen für URL-, `srcdoc`- und Event-Handler-Werte), und beide Schreibweisen eines leeren
   Elements, `<br>` und `<br/>` sind dasselbe Tag.
 - Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
   (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
@@ -103,7 +104,8 @@ was ein Befund ist:
   HTML-Elemente (`<br>`, `<img>`, `<hr>` und die übrigen) brauchen in jeder Schreibweise kein
   schließendes Tag, `<BR>` wird also genauso als leeres Element erkannt wie `<br>`.
 - Abgelehnt, wenn ein Attributname hinzukommt oder wegfällt, also auch, wenn für ein rechtsläufiges
-  Ziel ein `dir`-Attribut ergänzt wird. Attributwerte sind frei, die Menge der Namen ist es nicht.
+  Ziel ein `dir`-Attribut ergänzt wird. Attributwerte sind bis auf diese Grenzen frei, die Menge der
+  Namen ist es nicht.
 
 Auch eine Quelle ganz ohne Markup ist gegen hineinerfundenes Markup geschützt. Der Kandidat wird
 abgelehnt für jedes Tag-Paar, leere Element oder selbstschließende Tag, das er ergänzt, für ein
@@ -117,7 +119,9 @@ wird, eine Quelle mit einem solchen Wort wird also trotzdem verglichen: Ein Kand
 `<Enter>` ein `<b>`-Paar weglässt oder ein `<script>`-Paar erfindet, wird abgelehnt. Sobald die
 Quelle Tags trägt, werden Wörter in spitzen Klammern wie Tags gezählt. Trägt sie keine, gilt ein
 Wort in spitzen Klammern, das der Kandidat ergänzt, als normaler Text und wird angenommen, es sei
-denn, sein Name ist in beliebiger Schreibweise ein Standard-HTML-Element (`Hallo <script>`).
+denn, sein Name ist in beliebiger Schreibweise ein Standard-HTML-Element (`Hallo <script>`), lautet
+`image`, woraus ein Parser ein `<img>` macht, oder enthält einen Bindestrich, was ihn zu einem
+Custom Element macht (`Hallo <my-widget>`).
 
 Dieser Namenstest ist bewusst vorsichtig: Ein gewöhnliches Wort, das zufällig ein Elementname ist,
 etwa `<Del>`, `<Option>`, `<Select>`, `<Input>` oder `<Menu>`, wird abgelehnt, wenn eine Übersetzung
@@ -129,29 +133,63 @@ Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind ke
 werden so gelesen, wie ein HTML-Parser sie liest, denn genau dort landen die Werte. `<!-->` und
 `<!--->` sind vollständige leere Kommentare, ein Kommentar endet beim ersten `-->` oder `--!>`, und
 ein Kommentar ohne Ende verbirgt den Rest des Werts. `<![CDATA[`, `<!DOCTYPE html>`, jedes andere
-`<!...`, `<?...` und ein `</`, auf das weder ein Buchstabe noch eine Ziffer folgt, enden alle beim
-ersten `>`. Jedes solche Konstrukt wird als Multimenge seines Texts verglichen, wobei Folgen von
-Leerraum zusammengefasst werden, eines, das der Kandidat ergänzt, weglässt oder umschreibt, wird
-also abgelehnt, auch ein Kommentar, dessen Text übersetzt wurde. Tags nach dem Ende eines Konstrukts
-werden wie gewohnt verglichen, `Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das
-Konstrukt als auch für das `<img>` abgelehnt.
+`<!...`, `<?...` und ein `</`, auf das etwas anderes als ein Buchstabe folgt, etwa `</1 x>`, enden
+alle beim ersten `>`, während ein leeres `</>` wegfällt, so wie ein Parser es verwirft, und ein
+numerisches schließendes Tag wie `</0>` als Tag verglichen wird. Jedes solche Konstrukt wird als
+Multimenge seines Texts verglichen, wobei Folgen von Leerraum zusammengefasst werden, eines, das der
+Kandidat ergänzt, weglässt oder umschreibt, wird also abgelehnt, auch ein Kommentar, dessen Text
+übersetzt wurde. Tags nach dem Ende eines Konstrukts werden wie gewohnt verglichen,
+`Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das Konstrukt als auch für das
+`<img>` abgelehnt.
+
+Auch der Inhalt eines Raw-Text-Elements ist Text, denn so liest ihn ein Parser. Nach einem öffnenden
+`script`-, `style`-, `title`-, `textarea`-, `xmp`-, `iframe`-, `noscript`-, `noembed`- oder
+`noframes`-Tag ist alles bis zu seinem schließenden Tag Text, in beliebiger Schreibweise und gefolgt
+von Leerraum, `/` oder `>`, und nach `<plaintext>` ist alles bis zum Ende des Werts Text. Ein Tag,
+das in einem solchen Element steht, wird nicht verglichen, und ein Attributwert in Anführungszeichen
+kann nicht über das schließende Tag hinwegreichen, um zu verbergen, was folgt:
+`Füge ein <script><b x="</script><img src=x onerror=...>` wird für das `<img>` abgelehnt. Wo ein
+Parser diesen Inhalt auf zwei Arten lesen kann, wird der Kandidat abgelehnt, es sei denn, er ist die
+unveränderte Quelle, mit einem Detail wie `+<noscript>...</noscript>`: ein `script`, dessen Inhalt
+`<!--` öffnet, ein `noscript`, dessen Inhalt ein `<` enthält, weil dann davon abhängt, ob Skripte
+aktiviert sind, wie er gelesen wird, und jedes Raw-Text-Element, dessen Inhalt nach einem `svg`-,
+`math`- oder `select`-Tag ein `<` enthält, denn dort ist es womöglich gar kein Raw Text. Aus
+demselben Grund wird ein CDATA-Abschnitt oder ein `image`-Tag in einem Wert, in dem die Quelle oder
+der Kandidat `svg`, `math` oder `select` öffnet, abgelehnt, es sei denn, der Kandidat ist die
+unveränderte Quelle.
 
 Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
 beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
 wie `<0>`, von Ziffern. Sein Name reicht bis zu Leerraum, `/` oder `>`, und ein Attributwert in
 Anführungszeichen darf `>` enthalten. `5 < 10`, `x <= y` und ein maskiertes `&lt;b&gt;` bleiben also
 normaler Text, während `<support@example.com>` und `<abbr title="a > b">` Tags sind, und ein `<`,
-das sein `>` nie erreicht, stellt nichts dar und ist kein Tag. Der Tag-Vergleich tritt für einen
-Wert zurück, dessen Quell-Tags fehlerhaft sind. Nachdem die Tags, die das Format als Platzhalter
-meldet, und alle Wörter in spitzen Klammern beiseitegelegt sind, gilt eine Quelle als fehlerhaft,
-wenn sie ein öffnendes Tag hat, das nie geschlossen wird (leere Elemente ausgenommen), ein
-schließendes Tag ohne öffnendes oder Tags, die in falscher Reihenfolge geschlossen werden. Normaler
-Text kann das versehentlich auslösen: In `a<b and c>d` ist `<b and c>` ein öffnendes `b`-Tag mit den
-Attributen `and` und `c`, das nie geschlossen wird, die Quelle gilt also als fehlerhaft. Die Prüfung
-schweigt dann für die Tags dieses Werts, statt zu raten, während Kommentare und andere Konstrukte
-weiterhin verglichen werden. Sie tritt außerdem vollständig zurück, wenn die Quelle zusammen mehr
-als 256 Tags und Konstrukte trägt, während ein Kandidat, der diese Grenze als einziger
-überschreitet, mit dem Detail `+more than 256 inline tags` abgelehnt wird.
+das sein `>` nie erreicht, stellt nichts dar und ist kein Tag. Ein Kandidat, der ein Tag auf diese
+Weise unvollendet lässt, wird trotzdem abgelehnt, wenn seine Quelle jedes Tag vollendet, mit einem
+Detail, das den unvollendeten Anfang nennt, etwa `+<a`. Eine Quelle, deren eigene Tags fehlerhaft
+sind, wird trotzdem verglichen. Nachdem die Tags, die das Format als Platzhalter meldet, und alle
+Wörter in spitzen Klammern beiseitegelegt sind, gilt eine Quelle als fehlerhaft, wenn sie ein
+öffnendes Tag hat, das nie geschlossen wird (leere Elemente ausgenommen), ein schließendes Tag ohne
+öffnendes oder Tags, die in falscher Reihenfolge geschlossen werden. Normaler Text kann das
+versehentlich auslösen: In `a<b and c>d` ist `<b and c>` ein öffnendes `b`-Tag mit den Attributen
+`and` und `c`, das nie geschlossen wird, die Quelle gilt also als fehlerhaft. Bei einer solchen
+Quelle entfällt nur die Prüfung der Verschachtelung: Ihre Tags werden wie alle anderen als
+Multimenge verglichen, eine Übersetzung, die `a<b and c>d` exakt beibehält, wird also angenommen,
+eine, die daneben ein `<img>` ergänzt, abgelehnt, und ebenso eine, die die Wörter innerhalb der
+Folge übersetzt (`a<b und c>d`), weil ein Parser `und` als neues Attribut liest. Auch ist keine
+Quelle zu groß für den Vergleich. Ein Kandidat wird erst abgelehnt, wenn er mehr als doppelt so
+viele Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256, mit dem
+Detail `+more than N inline tags`, das diese Grenze nennt.
+
+Attributwerte sind frei, mit drei Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
+landet. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
+`data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive` sowie
+die SVG-Animationsattribute `to`, `from`, `values` und `by`) wird gelesen, nachdem numerische
+Zeichenreferenzen sowie `&colon;`, `&Tab;` und `&NewLine;` dekodiert und Tabs, Zeilenumbrüche und
+führende Steuerzeichen ignoriert wurden, und ein Schema `javascript:`, `vbscript:` oder `data:`
+darin wird abgelehnt, es sei denn, die Quelle trägt genau diesen Wert am selben Tag und Attribut,
+mit einem Detail wie `+<a href="javascript:...">`. Ein `srcdoc`-Wert und ein Event-Handler-Wert wie
+`onclick`, den die Quelle trägt, müssen Byte für Byte zurückkommen. Ein lokalisiertes
+`href="/de/docs"` wird wie bisher angenommen.
 
 Aus dem Vergleich ganzer Werte folgen zwei formatbedingte Grenzen. Bei einem Format, das mehrere
 Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt eine
@@ -167,10 +205,13 @@ Die Prüfung tritt außerdem pro Tag zurück. Ein Tag, das das Format ohnehin al
 (ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB), bleibt zusammen mit so
 vielen schließenden Tags, wie es öffnende gibt, der Platzhalterprüfung überlassen und wird nie
 doppelt gemeldet. Ein solches öffnendes Tag, das der Kandidat nie schließt, wird trotzdem abgelehnt
-und über das fehlende schließende Tag benannt, etwa `-</g>`. Jedes andere Tag im selben Wert wird
-weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine Ablehnung
-nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat
-weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
+und über das fehlende schließende Tag benannt, etwa `-</g>`. Ebenso eines, dessen Verschachtelung
+mit den übrigen Tags nicht mehr der Quelle entspricht, etwa ein `<b>`, das das `<g>`, in dem es
+stand, jetzt kreuzt, und eines, das die Quelle nur als Text trägt, in einem Kommentar oder einem
+Raw-Text-Element, weil es herausgezogen das Element erzeugen würde. Jedes andere Tag im selben Wert
+wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine
+Ablehnung nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der
+Kandidat weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
 
 ## Review-Flags
 

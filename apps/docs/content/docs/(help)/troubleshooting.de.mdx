@@ -259,14 +259,19 @@ wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die 
 eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon wird verglichen.
 Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch verschachtelt zurück,
 oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin verschachtelt zurück.
-Eine Ablehnung mit `+more than 256 inline tags` bedeutet, dass der Kandidat mehr Tags trägt, als die
-Prüfung liest, seine Quelle aber nicht. Drei weitere Fälle sind gewollte Ablehnungen und keine
-Fehler: zwei benachbarte Paare zu einem verschmelzen, die Groß- und Kleinschreibung eines Tags
-ändern und einen Attributnamen ergänzen oder entfernen, einschließlich eines `dir`-Attributs für ein
-rechtsläufiges Ziel. Lass die Tags so, wie die Quelle sie hat, und bring die Änderung dort unter, wo
-die Prüfung nicht hinsieht, etwa in einem Attributwert. Liegt das kaputte Markup im Quellwert,
-korrigiere es dort: Die Prüfung tritt zurück, wenn die Tags der Quelle fehlerhaft sind, eine kaputte
-Quelle schaltet sie für diesen Key also stillschweigend ab.
+Eine Ablehnung mit `+more than N inline tags` bedeutet, dass der Kandidat mehr als doppelt so viele
+Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256. Ein Detail wie
+`+<a href="javascript:...">` nennt ein URL-Attribut, das ein skriptausführendes Schema bekommen hat,
+`+<noscript>...</noscript>` nennt Raw Text, den ein Parser auf zwei Arten lesen kann und den eine
+Übersetzung genau so beibehalten muss, wie die Quelle ihn hat, und ein Detail ohne schließende
+Klammer, etwa `+<a`, nennt ein Tag, das der Kandidat nie vollendet hat. Drei weitere Fälle sind
+gewollte Ablehnungen und keine Fehler: zwei benachbarte Paare zu einem verschmelzen, die Groß- und
+Kleinschreibung eines Tags ändern und einen Attributnamen ergänzen oder entfernen, einschließlich
+eines `dir`-Attributs für ein rechtsläufiges Ziel. Lass die Tags so, wie die Quelle sie hat, und
+bring die Änderung dort unter, wo die Prüfung nicht hinsieht, etwa in einem Attributwert. Liegt das
+kaputte Markup im Quellwert, korrigiere es dort: Eine Quelle, deren eigene Tags fehlerhaft sind,
+wird trotzdem Tag für Tag verglichen, jede Übersetzung muss also dieselben kaputten Tags
+wiederholen.
 
 ## Studio: Der Port ist schon belegt
 

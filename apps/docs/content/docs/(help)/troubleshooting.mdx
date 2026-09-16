@@ -235,13 +235,17 @@ gate judges both, so a hand-typed value with matching, well-formed tags is accep
 attribute values, and the two spellings of a void element (`<br>` and `<br/>`) are never the cause,
 since none of them is compared. A refusal with no tags named is a structural one: the markup came
 back mis-nested, or a tag the source had beside another of the same name came back nested inside it.
-A refusal naming `+more than 256 inline tags` means the candidate carries more tags than the check
-reads while its source does not. Three further cases are refusals by design rather than bugs:
-merging two adjacent pairs into one, changing a tag's letter case, and adding or removing an
-attribute name, including a `dir` attribute for a right-to-left target. Keep the tags as the source
-has them and put the change somewhere the check does not look, such as an attribute value. If the
-source value is the one with the broken markup, fix it there: the check stands down when the
-source's own tags are malformed, which means a broken source silently disables it for that key.
+A refusal naming `+more than N inline tags` means the candidate carries more than twice as many tags
+and constructs as its source, or more than 256 for a smaller source. A detail such as
+`+<a href="javascript:...">` names a URL attribute that gained a script-running scheme,
+`+<noscript>...</noscript>` names raw text a parser can read two ways, which a translation has to
+keep exactly as the source has it, and a detail with no closing bracket, such as `+<a`, names a tag
+the candidate never finished. Three further cases are refusals by design rather than bugs: merging
+two adjacent pairs into one, changing a tag's letter case, and adding or removing an attribute name,
+including a `dir` attribute for a right-to-left target. Keep the tags as the source has them and put
+the change somewhere the check does not look, such as an attribute value. If the source value is the
+one with the broken markup, fix it there: a source whose own tags are malformed is still compared
+tag for tag, so every translation has to repeat the same broken tags.
 
 ## Studio: the port is already in use
 

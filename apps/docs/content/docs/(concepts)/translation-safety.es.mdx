@@ -94,8 +94,9 @@ eso es lo que decide si algo es un hallazgo:
   origen las tenía como hermanas, que es como dos enlaces se convierten en uno en silencio.
 - Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de sitio,
   un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
-  traducción correcta y no una rota, y cualquiera de las dos grafías de un elemento vacío, así que
-  `<br>` y `<br/>` son la misma etiqueta.
+  traducción correcta y no una rota (dentro de los límites para los valores de URL, `srcdoc` y
+  manejadores de eventos que se describen más abajo), y cualquiera de las dos grafías de un elemento
+  vacío, así que `<br>` y `<br/>` son la misma etiqueta.
 - Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa a
   ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
   dos enlaces que se convierten en uno.
@@ -103,8 +104,8 @@ eso es lo que decide si algo es un hallazgo:
   HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
   que `<BR>` se reconoce como elemento vacío igual que `<br>`.
 - Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
-  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres; el conjunto
-  de nombres no lo es.
+  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres salvo por
+  esos límites; el conjunto de nombres no lo es.
 
 Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
 candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
@@ -118,7 +119,9 @@ origen que lleve una se sigue comparando: una candidata que pierda un par `<b>` 
 que invente un par `<script>` junto a ella, se rechaza. En cuanto el origen lleva etiquetas, las
 palabras entre corchetes angulares se cuentan como etiquetas. Si no lleva ninguna, una palabra entre
 corchetes angulares que añada la candidata se lee como texto y se acepta, salvo que su nombre, se
-escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`).
+escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`), sea `image`, que un
+analizador convierte en un `<img>`, o contenga un guion, lo que lo convierte en un elemento
+personalizado (`Hallo <my-widget>`).
 
 Esa comprobación del nombre es deliberadamente prudente, así que una palabra corriente que resulte
 ser un nombre de elemento, como `<Del>`, `<Option>`, `<Select>`, `<Input>` o `<Menu>`, se rechaza
@@ -130,31 +133,62 @@ Los comentarios, las secciones CDATA, las declaraciones y las instrucciones de p
 etiquetas, y se leen como las lee un analizador de HTML, porque ahí es donde acaban los valores.
 `<!-->` y `<!--->` son comentarios vacíos completos, un comentario termina en el primer `-->` o
 `--!>`, y un comentario sin final oculta el resto del valor. `<![CDATA[`, `<!DOCTYPE html>`,
-cualquier otro `<!...`, `<?...` y un `</` que no va seguido de una letra ni de un dígito terminan
-todos en el primer `>`. Cada una de estas construcciones se compara como un multiconjunto de su
-texto, con las secuencias de espacios reducidas a uno, así que una que la candidata añada, pierda o
-reescriba se rechaza, incluido un comentario cuyo texto se tradujo. Las etiquetas que siguen al
-final de una construcción se comparan como siempre, así que
-`Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la construcción como por el
-`<img>`.
+cualquier otro `<!...`, `<?...` y un `</` seguido de algo que no sea una letra, como `</1 x>`,
+terminan todos en el primer `>`, mientras que un `</>` vacío se descarta, igual que lo descarta un
+analizador, y una etiqueta de cierre numérica como `</0>` se compara como etiqueta. Cada una de
+estas construcciones se compara como un multiconjunto de su texto, con las secuencias de espacios
+reducidas a uno, así que una que la candidata añada, pierda o reescriba se rechaza, incluido un
+comentario cuyo texto se tradujo. Las etiquetas que siguen al final de una construcción se comparan
+como siempre, así que `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la
+construcción como por el `<img>`.
+
+El contenido de un elemento de texto sin formato también es texto, porque así lo lee un analizador.
+Tras una etiqueta de apertura `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
+`noembed` o `noframes`, todo hasta su etiqueta de cierre, escrita como se escriba y seguida de un
+espacio, `/` o `>`, es texto, y todo lo que sigue a `<plaintext>` es texto hasta el final del valor.
+Una etiqueta escrita dentro de un elemento así no se compara, y un valor de atributo entre comillas
+no puede extenderse más allá de la etiqueta de cierre para ocultar lo que sigue:
+`Füge ein <script><b x="</script><img src=x onerror=...>` se rechaza por el `<img>`. Cuando un
+analizador puede leer ese contenido de dos maneras, la candidata se rechaza salvo que sea el origen
+sin cambios, con un detalle como `+<noscript>...</noscript>`: un `script` cuyo contenido abre
+`<!--`, un `noscript` cuyo contenido lleva un `<`, porque entonces cómo se lee depende de si los
+scripts están activados, y cualquier elemento de texto sin formato cuyo contenido lleva un `<`
+después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera sea texto sin formato.
+Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
+candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
 
 La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
 HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
 enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
 atributo entre comillas puede contener `>`. Así que `5 < 10`, `x <= y` y un `&lt;b&gt;` escapado
 siguen siendo texto corriente, mientras que `<support@example.com>` y `<abbr title="a > b">` son
-etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. La comparación
-de etiquetas se retira para un valor cuyas etiquetas de origen están mal formadas. Tras apartar las
-etiquetas que el formato informa como marcadores de posición y las palabras entre corchetes
-angulares, un origen cuenta como mal formado cuando tiene una etiqueta de apertura que nunca se
-cierra (salvo los elementos vacíos), una etiqueta de cierre sin apertura o etiquetas cerradas en el
-orden equivocado. El texto corriente puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es
-una etiqueta de apertura `b` con los atributos `and` y `c` que nunca se cierra, así que el origen
-cuenta como mal formado. La comprobación calla entonces para las etiquetas de ese valor en lugar de
-adivinar, mientras que los comentarios y las demás construcciones se siguen comparando. También se
-retira por completo cuando el origen lleva más de 256 etiquetas y construcciones en total, mientras
-que una candidata que es la única en superar ese límite se rechaza con el detalle
-`+more than 256 inline tags`.
+etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Una candidata
+que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
+etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
+etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
+informa como marcadores de posición y las palabras entre corchetes angulares, un origen cuenta como
+mal formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos),
+una etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
+puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es una etiqueta de apertura `b` con los
+atributos `and` y `c` que nunca se cierra, así que el origen cuenta como mal formado. Para un origen
+así solo se omite la comprobación del anidamiento: sus etiquetas se comparan como un multiconjunto
+igual que cualquier otro, así que una traducción que conserva `a<b and c>d` tal cual se acepta, una
+que añade un `<img>` a su lado se rechaza, y también una que traduce las palabras dentro de la
+secuencia (`a<b und c>d`), porque un analizador lee `und` como un atributo nuevo. Tampoco hay origen
+demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva más del doble de
+etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
+`+more than N inline tags` que nombra ese límite.
+
+Los valores de los atributos son libres con tres excepciones, que existen porque un valor traducido
+acaba en una página. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`,
+`xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`,
+`codebase`, `archive`, y los atributos de animación SVG `to`, `from`, `values` y `by`) se lee tras
+decodificar las referencias numéricas de caracteres y `&colon;`, `&Tab;` y `&NewLine;` e ignorar
+tabuladores, saltos de línea y caracteres de control iniciales, y un esquema `javascript:`,
+`vbscript:` o `data:` en él se rechaza salvo que el origen lleve exactamente ese valor en la misma
+etiqueta y el mismo atributo, con un detalle como `+<a href="javascript:...">`. Un valor `srcdoc` y
+un valor de manejador de eventos como `onclick` que lleve el origen tienen que volver byte a byte.
+Un `href="/de/docs"` localizado se acepta como antes.
 
 De comparar valores enteros se siguen dos límites propios del formato. En un formato que mete varias
 formas plurales en un mismo valor separadas por una barra vertical (Vue I18n), una traducción que
@@ -170,9 +204,12 @@ marcador de posición (un elemento en línea de XLIFF, una etiqueta de texto enr
 next-intl o ARB) queda para la comprobación de marcadores de posición, junto con tantas etiquetas de
 cierre como aperturas tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que
 la candidata deja sin cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta,
-como `-</g>`. Cualquier otra etiqueta del mismo valor sí se compara, incluida una etiqueta de cierre
-sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron, cada una con `-`
-si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+como `-</g>`. Lo mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el
+origen, como un `<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen
+solo lleva como texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla
+de ahí crearía el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una
+etiqueta de cierre sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron,
+cada una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
 
 ## Señales de revisión
 

@@ -251,14 +251,18 @@ bien formadas se acepta. El orden de las palabras, los valores de los atributos 
 un elemento vacío (`<br>` y `<br/>`) nunca son la causa, porque ninguno se compara. Un rechazo que
 no nombra etiquetas es estructural: el marcado volvió mal anidado, o una etiqueta que el origen
 tenía junto a otra del mismo nombre volvió anidada dentro de ella. Un rechazo que nombra
-`+more than 256 inline tags` significa que la candidata lleva más etiquetas de las que lee la
-comprobación y su origen no. Otros tres casos son rechazos por diseño y no fallos: fusionar dos
-pares adyacentes en uno, cambiar las mayúsculas de una etiqueta y añadir o quitar un nombre de
-atributo, incluido un atributo `dir` para un destino de derecha a izquierda. Deja las etiquetas como
-las tiene el origen y pon el cambio donde la comprobación no mira, por ejemplo en un valor de
-atributo. Si el marcado roto está en el valor de origen, corrígelo ahí: la comprobación se retira
-cuando las etiquetas del propio origen están mal formadas, lo que significa que un origen roto la
-desactiva en silencio para esa clave.
+`+more than N inline tags` significa que la candidata lleva más del doble de etiquetas y
+construcciones que su origen, o más de 256 para un origen más pequeño. Un detalle como
+`+<a href="javascript:...">` nombra un atributo de URL que ganó un esquema que ejecuta scripts,
+`+<noscript>...</noscript>` nombra texto sin formato que un analizador puede leer de dos maneras y
+que una traducción tiene que conservar exactamente como lo tiene el origen, y un detalle sin
+corchete de cierre, como `+<a`, nombra una etiqueta que la candidata nunca terminó. Otros tres casos
+son rechazos por diseño y no fallos: fusionar dos pares adyacentes en uno, cambiar las mayúsculas de
+una etiqueta y añadir o quitar un nombre de atributo, incluido un atributo `dir` para un destino de
+derecha a izquierda. Deja las etiquetas como las tiene el origen y pon el cambio donde la
+comprobación no mira, por ejemplo en un valor de atributo. Si el marcado roto está en el valor de
+origen, corrígelo ahí: un origen cuyas propias etiquetas están mal formadas se sigue comparando
+etiqueta por etiqueta, así que cada traducción tiene que repetir las mismas etiquetas rotas.
 
 ## Studio: el puerto ya está en uso
 
