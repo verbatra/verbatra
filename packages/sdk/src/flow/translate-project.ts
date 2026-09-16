@@ -111,8 +111,9 @@ export interface TranslateInput {
   readonly lockAcquireTimeoutMs?: number;
   /**
    * How many locales to run at once. Must be an integer of at least 1; defaults to 1. On a live
-   * run it cannot be combined with a configured token budget, because concurrent locales would
-   * overshoot the budget nondeterministically.
+   * run it cannot be combined with a configured token budget: the ceiling would still hold, but
+   * which locale loses its remaining work would depend on the order the locales interleave, so the
+   * run would not be reproducible.
    */
   readonly concurrency?: number;
   /**
@@ -431,8 +432,9 @@ export function resolveRunConcurrency(
     throw new SdkError(
       "CONCURRENCY_BUDGET_CONFLICT",
       "A token budget (maxTokens) and concurrency greater than 1 cannot be combined on a live run: " +
-        "concurrent locales would overshoot the budget nondeterministically. Set concurrency to 1, " +
-        "remove maxTokens, or use --dry-run.",
+        "the ceiling still holds, but which locale loses its remaining work would depend on the " +
+        "order the locales happen to interleave, so the same project would not produce the same " +
+        "run twice. Set concurrency to 1, remove maxTokens, or use --dry-run.",
     );
   }
   return concurrency;

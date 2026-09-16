@@ -195,7 +195,7 @@ describe("translate: budget crossed, warn behavior", () => {
 });
 
 describe("translate: budget crossed, stop behavior", () => {
-  it("accepts the crossing sub-batch, withholds later sub-batches in-locale, and skips later locales entirely", async () => {
+  it("withholds the sub-batch that would cross, in-locale, and skips later locales entirely", async () => {
     const dir = await project(keyedSource(6), { de: undefined, fr: undefined });
     const stub = makeStubProvider({ usage: USAGE_100 });
 
@@ -204,7 +204,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 150,
+          maxTokens: 500,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -230,7 +230,7 @@ describe("translate: budget crossed, stop behavior", () => {
     expect(summary.failed).toEqual(["fr"]);
 
     expect(summary.budget).toEqual({
-      maxTokens: 150,
+      maxTokens: 500,
       behavior: "stop",
       supported: true,
       tokensUsed: 200,
@@ -240,6 +240,78 @@ describe("translate: budget crossed, stop behavior", () => {
     const deFile = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
     expect(deFile.k0).toBe("[de] v0");
     expect(deFile.k4).toBeUndefined();
+  });
+
+  it("never lets the run's counted total pass the ceiling it was given", async () => {
+    const dir = await project(keyedSource(6), { de: undefined, fr: undefined });
+    const stub = makeStubProvider({ usage: USAGE_100 });
+
+    const summary = await translate(
+      {
+        config: cfg({
+          targetLocales: ["de", "fr"],
+          maxBatchSize: 2,
+          maxTokens: 500,
+          budgetBehavior: "stop",
+        }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(500);
+    expect(stub.calls).toHaveLength(2);
+  });
+
+  it("tells a later locale the run had already stopped, not a projection it never computed", async () => {
+    const dir = await project(keyedSource(6), { de: undefined, fr: undefined });
+    const stub = makeStubProvider({ usage: USAGE_100 });
+
+    const summary = await translate(
+      {
+        config: cfg({
+          targetLocales: ["de", "fr"],
+          maxBatchSize: 2,
+          maxTokens: 500,
+          budgetBehavior: "stop",
+        }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    const deNotice = summary.locales
+      .find((l) => l.locale === "de")
+      ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
+    const frNotice = summary.locales
+      .find((l) => l.locale === "fr")
+      ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
+
+    expect(deNotice?.message).toContain("projected at");
+    expect(frNotice?.message).toContain("had already reached");
+    expect(frNotice?.message).not.toContain("projected at");
+  });
+
+  it("can still land above the ceiling by one call's reconciliation delta, and stops there", async () => {
+    const dir = await project(keyedSource(6), { de: undefined });
+    const stub = makeStubProvider({ usage: { inputTokens: 4_000, outputTokens: 1_000 } });
+
+    const summary = await translate(
+      {
+        config: cfg({ maxBatchSize: 2, maxTokens: 500, budgetBehavior: "stop" }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(1);
+    expect(summary.budget?.tokensUsed).toBe(5_000);
+    expect([...(summary.locales[0]?.budgetWithheld ?? [])].sort()).toEqual([
+      "k2",
+      "k3",
+      "k4",
+      "k5",
+    ]);
   });
 });
 
@@ -291,25 +363,50 @@ describe("translate: budget-withheld keys retry next run", () => {
 });
 
 describe("translate: token-less provider with a configured budget", () => {
-  it("reports an inert, honest budget instead of a false trip, and withholds nothing", async () => {
-    const dir = await project(keyedSource(2), { de: undefined });
+  it("counts an estimate instead of nothing, and withholds once the estimate crosses", async () => {
+    const dir = await project(keyedSource(6), { de: undefined });
     const stub = makeStubProvider({ kind: "machine-translation" });
 
     const summary = await translate(
-      { config: cfg({ maxTokens: 1 }), cwd: dir },
+      { config: cfg({ maxBatchSize: 2, maxTokens: 1000, budgetBehavior: "stop" }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 
+    expect(stub.calls).toHaveLength(2);
     expect(summary.budget).toEqual({
-      maxTokens: 1,
-      behavior: "warn",
+      maxTokens: 1000,
+      behavior: "stop",
       supported: false,
-      tokensUsed: 0,
-      exceeded: false,
+      tokensUsed: 788,
+      exceeded: true,
     });
     expect(summary.usage).toBeUndefined();
-    expect(summary.locales[0]?.usage).toBeUndefined();
+    expect([...(summary.locales[0]?.budgetWithheld ?? [])].sort()).toEqual(["k4", "k5"]);
+    expect(summary.locales[0]?.notices.map((n) => n.code)).toContain("BUDGET_TOKENS_EXCEEDED");
+  });
+
+  it("withholds nothing from a token-less provider under the warn default, but still counts it", async () => {
+    const dir = await project(keyedSource(6), { de: undefined });
+    const stub = makeStubProvider({ kind: "machine-translation" });
+
+    const summary = await translate(
+      { config: cfg({ maxBatchSize: 2, maxTokens: 1 }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(3);
+    expect(summary.budget?.behavior).toBe("warn");
+    expect(summary.budget?.tokensUsed).toBeGreaterThan(0);
+    expect(summary.budget?.exceeded).toBe(true);
     expect(summary.locales.flatMap((l) => l.budgetWithheld)).toEqual([]);
+    expect([...(summary.locales[0]?.translated ?? [])].sort()).toEqual([
+      "k0",
+      "k1",
+      "k2",
+      "k3",
+      "k4",
+      "k5",
+    ]);
   });
 
   it("stays inert for a dry-run with maxTokens set, since the provider is never called", async () => {

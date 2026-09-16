@@ -241,7 +241,7 @@ describe("translation-memory cache: cross-key reuse", () => {
     const dir = await project({ a_solo: "Solo", z_a: "Dup", z_b: "Dup" }, { de: {} });
     const stub = makeStubProvider({ usage: USAGE_100 });
     const summary = await translate(
-      { config: cfg({ maxTokens: 50, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
+      { config: cfg({ maxTokens: 400, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 

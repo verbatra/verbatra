@@ -12,8 +12,9 @@ import type { ProviderId } from "../config/provider-config.js";
  *   reported as `partial` rather than failed.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
  *   and its lock-file baseline were kept rather than being erased.
- * - `BUDGET_TOKENS_EXCEEDED`: the configured token budget was passed. Under `warn` the run
- *   continues; under `stop` the remaining keys are withheld.
+ * - `BUDGET_TOKENS_EXCEEDED`: the configured token budget was reached. Under `warn` the run
+ *   continues and the overrun is reported; under `stop` the request that would have crossed the
+ *   ceiling is withheld before it is sent, and so is every request after it.
  * - `CACHE_VERSION_UNRECOGNIZED`: the translation memory is at a version this release does not
  *   understand, so it was ignored rather than trusted.
  */
@@ -36,25 +37,57 @@ export interface UsageSummary {
 }
 
 /**
- * What a run does when it passes its token budget: `warn` finishes the work and reports the
- * overrun, `stop` withholds the remaining keys.
+ * What a run does about its token budget. `warn`, the default, counts the spend and reports the
+ * overrun without withholding anything. `stop` turns the figure into a ceiling: before each
+ * provider request the run projects what that request will cost, and withholds it, and everything
+ * after it, rather than send a request that would take the run past `maxTokens`.
  */
 export type BudgetBehavior = "warn" | "stop";
 
-/** The token budget in force for a run, and how much of it was actually consumed. */
+/**
+ * The token budget in force for one run, and how much of it that run consumed.
+ *
+ * It is enforced for every provider, including the machine-translation APIs that report no usage of
+ * their own: those are counted from the same projection the pre-run estimate uses, so a ceiling set
+ * against DeepL or Google Cloud Translation withholds work rather than sitting inert.
+ * {@link supported} says which of the two the figure came from.
+ *
+ * It bounds one run, not a session. {@link watch} starts a fresh budget for every run it triggers,
+ * so a watch session can spend up to `maxTokens` again on each source edit. It also covers
+ * {@link translate} and nothing else: `retranslateEntry` constructs its own provider on a separate
+ * path, reached from the Studio dashboard and the agent tools, and no budget here caps that spend.
+ *
+ * Under `stop` the ceiling is checked before every request the run sends, each half of a re-split
+ * request included, and a refused request is never sent. What a reservation cannot bound is what
+ * happens inside a request it already admitted. The provider layer sends one repair call of its own
+ * when keys come back missing, so one admitted batch can cost up to about twice its projection; and
+ * the count is only as good as what the provider reports, so a provider under-reporting its usage
+ * would leave the ceiling further away than it looks. Both land at reconciliation, and nothing
+ * further is admitted once they do. A request that fails or comes back truncated keeps its whole
+ * projection charged rather than being refunded, because such a call has usually already billed for
+ * its prompt.
+ */
 export interface RunBudget {
   /** The configured ceiling, in tokens. */
   readonly maxTokens: number;
-  /** Whether passing the ceiling warns or stops the run. */
+  /** Whether passing the ceiling only warns, or withholds work to stay under it. */
   readonly behavior: BudgetBehavior;
   /**
-   * Whether the configured provider reports usage at all. When false the budget cannot be enforced,
-   * because there is nothing to count.
+   * Whether {@link tokensUsed} is entirely the provider's own reported usage. False as soon as one
+   * counted request came back without a usable figure, so the total is partly verbatra's own
+   * projection: a machine-translation API reports none at all, and a failed or truncated request
+   * reports none either. The budget is enforced either way.
    */
   readonly supported: boolean;
-  /** Tokens consumed across the whole run so far. */
+  /**
+   * Tokens counted across the run: reported usage for every request that gave one, and the
+   * projection for every request that did not.
+   */
   readonly tokensUsed: number;
-  /** True once `tokensUsed` passed `maxTokens`. */
+  /**
+   * True once the run reached its ceiling: either `tokensUsed` passed `maxTokens`, or, under
+   * `stop`, a request was withheld because sending it would have.
+   */
   readonly exceeded: boolean;
 }
 

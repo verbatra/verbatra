@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   createAnthropicProvider,
   ProviderError,
+  type TranslateResult,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import type { LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
@@ -24,7 +25,8 @@ import {
   readTextFile,
   writeJsonFile,
 } from "../test-support.js";
-import { createBudgetTracker } from "./budget.js";
+import { createBudgetTracker, projectBatchTokens, toBudgetSummary } from "./budget.js";
+import { payloadContextOf } from "./estimate.js";
 import { type LocaleRunParams, runLocale } from "./locale-run.js";
 
 function anthropicStubProvider(
@@ -1004,5 +1006,280 @@ describe("runLocale: lock entries for prototype-shaped keys", () => {
     const { lockEntries } = await runLocale(params);
 
     expect(Object.keys(lockEntries).sort()).toEqual(["__proto__", "a"]);
+  });
+});
+
+describe("runLocale: the token budget is a pre-call reservation, not a post-hoc count", () => {
+  const twelveKeys = Object.fromEntries(
+    Array.from({ length: 12 }, (_, index) => {
+      const suffix = String(index).padStart(2, "0");
+      return [`k${suffix}`, `v${suffix}`];
+    }),
+  );
+
+  it("issues no sub-batch whose projected cost would cross the ceiling", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
+    const budget = createBudgetTracker(700, "stop");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(3);
+    expect(budget.tokensUsed).toBe(450);
+    expect(
+      projectBatchTokens(
+        [...sourceResource.entries.values()].slice(6, 8),
+        payloadContextOf(params),
+      ),
+    ).toBeGreaterThan(700 - 450);
+    expect(result.summary.translated).toEqual(["k00", "k01", "k02", "k03", "k04", "k05"]);
+    expect(result.summary.budgetWithheld).toEqual(["k06", "k07", "k08", "k09", "k10", "k11"]);
+  });
+
+  it("writes and locks only the keys it actually paid for, never a withheld one", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget: createBudgetTracker(700, "stop") },
+    );
+
+    const result = await runLocale(params);
+
+    const written = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
+    expect(Object.keys(written)).toEqual(["k00", "k01", "k02", "k03", "k04", "k05"]);
+    expect(Object.keys(result.lockEntries)).toEqual(["k00", "k01", "k02", "k03", "k04", "k05"]);
+    for (const key of result.summary.budgetWithheld) {
+      expect(written[key]).toBeUndefined();
+      expect(result.lockEntries[key]).toBeUndefined();
+    }
+  });
+
+  it("stops after one call when reported usage overruns its projection, leaving only that residual", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 4_000, outputTokens: 1_000 } });
+    const budget = createBudgetTracker(700, "stop");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(1);
+    expect(budget.tokensUsed).toBe(5_000);
+    expect(result.summary.translated).toEqual(["k00", "k01"]);
+    expect(result.summary.budgetWithheld).toHaveLength(10);
+  });
+
+  it("frees an over-estimate back to the run, so a cheap provider gets every batch", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 6, outputTokens: 4 } });
+    const budget = createBudgetTracker(700, "stop");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(6);
+    expect(budget.tokensUsed).toBe(60);
+    expect(result.summary.budgetWithheld).toEqual([]);
+  });
+
+  it("counts a projection for a provider that reports no usage, so the ceiling still bites", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ kind: "machine-translation" });
+    const budget = createBudgetTracker(1_000, "stop");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      {
+        provider: stub.provider,
+        providerKind: "machine-translation",
+        maxBatchSize: 2,
+        budget,
+      },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(2);
+    expect(budget.tokensUsed).toBe(794);
+    expect(budget.usageSeen).toBe(false);
+    expect(result.summary.translated).toEqual(["k00", "k01", "k02", "k03"]);
+    expect(result.summary.budgetWithheld).toHaveLength(8);
+  });
+
+  it("withholds nothing under the warn default, however far past the ceiling the run goes", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
+    const budget = createBudgetTracker(1, "warn");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(6);
+    expect(result.summary.budgetWithheld).toEqual([]);
+    expect(budget.exceeded).toBe(true);
+  });
+
+  it("projects nothing and calls nothing extra when no ceiling is configured", async () => {
+    const { dir, sourceResource } = await setup(twelveKeys);
+    const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
+    const budget = createBudgetTracker(undefined, "warn");
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { provider: stub.provider, maxBatchSize: 2, budget },
+    );
+
+    const result = await runLocale(params);
+
+    expect(stub.calls).toHaveLength(6);
+    expect(budget.tokensUsed).toBe(900);
+    expect(result.summary.budgetWithheld).toEqual([]);
+  });
+});
+
+describe("runLocale: a truncation split reserves every half it sends", () => {
+  const fourKeys = Object.fromEntries(
+    Array.from({ length: 4 }, (_, index) => {
+      const suffix = String(index).padStart(2, "0");
+      return [`k${suffix}`, `v${suffix}`];
+    }),
+  );
+
+  function splittingProvider(
+    usageFor: (call: number) => { inputTokens: number; outputTokens: number },
+  ): { provider: TranslationProvider; calls: { keys: readonly string[] }[] } {
+    const calls: { keys: readonly string[] }[] = [];
+    const provider: TranslationProvider = {
+      id: "splitter",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: (request): Promise<TranslateResult> => {
+        calls.push({ keys: request.entries.map((entry) => entry.key) });
+        if (calls.length === 1) {
+          return Promise.reject(new ProviderError("OUTPUT_TRUNCATED", "output was cut off"));
+        }
+        const values = new Map<string, string>();
+        const integrity = new Map<string, PlaceholderIntegrityResult>();
+        for (const entry of request.entries) {
+          values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+          integrity.set(entry.key, { matches: true, missing: [], extra: [], reordered: false });
+        }
+        return Promise.resolve({ values, integrity, usage: usageFor(calls.length) });
+      },
+    };
+    return { provider, calls };
+  }
+
+  it("charges each half its own projection instead of riding the parent's reservation", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
+    const budget = createBudgetTracker(100_000, "stop");
+
+    await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        { provider: splitter.provider, maxBatchSize: 4, budget },
+      ),
+    );
+
+    expect(splitter.calls).toHaveLength(3);
+    expect(budget.tokensUsed).toBe(446);
+  });
+
+  it("keeps the truncated request's projection charged rather than refunding its priciest call", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
+    const budget = createBudgetTracker(100_000, "stop");
+
+    await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        { provider: splitter.provider, maxBatchSize: 4, budget },
+      ),
+    );
+
+    expect(budget.tokensUsed).toBeGreaterThan(20);
+    expect(budget.tokensUsed - 20).toBe(426);
+  });
+
+  it("keeps a failed call's projection charged and marks the count estimated", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    let call = 0;
+    const provider: TranslationProvider = {
+      id: "flaky",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: (request): Promise<TranslateResult> => {
+        call += 1;
+        if (call === 2) {
+          return Promise.reject(new Error("transport died"));
+        }
+        const values = new Map<string, string>();
+        const integrity = new Map<string, PlaceholderIntegrityResult>();
+        for (const entry of request.entries) {
+          values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+          integrity.set(entry.key, { matches: true, missing: [], extra: [], reordered: false });
+        }
+        return Promise.resolve({ values, integrity, usage: { inputTokens: 5, outputTokens: 5 } });
+      },
+    };
+    const budget = createBudgetTracker(100_000, "stop");
+
+    const result = await runLocale(
+      makeParams({ source: sourceResource, cwd: dir }, { provider, maxBatchSize: 2, budget }),
+    );
+
+    expect(budget.tokensUsed).toBe(407);
+    expect(toBudgetSummary(budget)?.supported).toBe(false);
+    expect(result.summary.providerFailures).toEqual(["k02", "k03"]);
+  });
+
+  it("declines the second half once the first half has already crossed the ceiling", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    const splitter = splittingProvider((call) =>
+      call === 2
+        ? { inputTokens: 500_000, outputTokens: 500_000 }
+        : { inputTokens: 1, outputTokens: 1 },
+    );
+    const budget = createBudgetTracker(1_000_000, "stop");
+
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        { provider: splitter.provider, maxBatchSize: 4, budget },
+      ),
+    );
+
+    expect(splitter.calls).toHaveLength(2);
+    expect(result.summary.translated).toEqual(["k00", "k01"]);
+    expect(result.summary.budgetWithheld).toEqual(["k02", "k03"]);
+  });
+
+  it("sends no half at all when the ceiling cannot take one after the truncated parent", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
+    const budget = createBudgetTracker(500, "stop");
+
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        { provider: splitter.provider, maxBatchSize: 4, budget },
+      ),
+    );
+
+    expect(splitter.calls).toHaveLength(1);
+    expect(budget.tokensUsed).toBe(426);
+    expect(result.summary.budgetWithheld).toEqual(["k00", "k01", "k02", "k03"]);
   });
 });

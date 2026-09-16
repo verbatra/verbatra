@@ -80,6 +80,22 @@ export interface PayloadContext {
   readonly tone?: Tone;
 }
 
+export interface PayloadContextSource {
+  readonly sourceLocale: string;
+  readonly targetLocale: string;
+  readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly tone?: Tone | undefined;
+}
+
+export function payloadContextOf(source: PayloadContextSource): PayloadContext {
+  return {
+    sourceLocale: source.sourceLocale,
+    targetLocale: source.targetLocale,
+    ...(source.glossary !== undefined ? { glossary: source.glossary } : {}),
+    ...(source.tone !== undefined ? { tone: source.tone } : {}),
+  };
+}
+
 function expansionAllowance(batch: readonly TranslationEntry[]): number {
   let allowance = 0;
   for (const entry of batch) {
@@ -88,7 +104,7 @@ function expansionAllowance(batch: readonly TranslationEntry[]): number {
   return allowance;
 }
 
-function quantifyBatch(
+export function quantifyBatch(
   batch: readonly TranslationEntry[],
   context: PayloadContext,
 ): EstimatedQuantity {
@@ -214,15 +230,6 @@ function quantifyEverySend(
   );
 }
 
-function contextFor(input: EstimateRunInput, targetLocale: string): PayloadContext {
-  return {
-    sourceLocale: input.sourceLocale,
-    targetLocale,
-    ...(input.glossary !== undefined ? { glossary: input.glossary } : {}),
-    ...(input.tone !== undefined ? { tone: input.tone } : {}),
-  };
-}
-
 interface MeasuredLocale {
   readonly quantity: EstimatedQuantity;
   readonly estimate: LocaleEstimateQuantity;
@@ -232,7 +239,7 @@ function measureLocales(input: EstimateRunInput, unit: BillingUnit): readonly Me
   return input.locales.map((locale) => {
     const quantity = quantifyEverySend(
       locale,
-      contextFor(input, locale.locale),
+      payloadContextOf({ ...input, targetLocale: locale.locale }),
       input.maxBatchSize,
     );
     return { quantity, estimate: localeQuantityOf(locale.locale, quantity, unit) };
