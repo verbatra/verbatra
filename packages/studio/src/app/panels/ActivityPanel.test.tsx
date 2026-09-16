@@ -230,6 +230,44 @@ describe("ActivityPanel", () => {
     expect(view.text()).not.toContain("Not tracked for this provider.");
   });
 
+  it("does not call the budget estimated when the run counted nothing at all", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      budget: {
+        maxTokens: 800,
+        behavior: "warn",
+        supported: false,
+        tokensUsed: 0,
+        exceeded: false,
+      },
+    });
+
+    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+
+    expect(metricValue(view, "Budget")).toBe("0 / 800");
+    expect(metricHint(view, "Budget")).toBe("Behavior: warn");
+    expect(metricCard(view, "Budget status").textContent).toContain("Within budget");
+  });
+
+  it("labels a provider-reported budget by its behavior alone, with no estimated marker", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      budget: {
+        maxTokens: 800,
+        behavior: "stop",
+        supported: true,
+        tokensUsed: 120,
+        exceeded: false,
+      },
+    });
+
+    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+
+    expect(metricHint(view, "Budget")).toBe("Behavior: stop");
+  });
+
   it("renders no budget tile at all when the run had no budget configured", async () => {
     stubActivity({
       available: true,
