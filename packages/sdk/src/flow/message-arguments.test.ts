@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeMessageArguments } from "./message-arguments.js";
+import { describeIcuMessageArguments, describeMessageArguments } from "./message-arguments.js";
 
 describe("describeMessageArguments: a message with nothing to interpolate", () => {
   it("reports no arguments for an empty token list", () => {
@@ -355,6 +355,47 @@ describe("tokens the classifier deliberately ignores", () => {
     expect(describeMessageArguments(["%", "{{name}}", "stray"])).toEqual({
       style: "named",
       named: [{ name: "name", type: "unknown" }],
+    });
+  });
+});
+
+describe("describeIcuMessageArguments: an ICU message read for its full argument set", () => {
+  it("declares an argument only one select branch uses, as optional", () => {
+    expect(
+      describeIcuMessageArguments(
+        "{gender, select, female {{name} invited you} other {Someone invited you}}",
+      ),
+    ).toEqual({
+      style: "named",
+      named: [
+        { name: "gender", type: "unknown" },
+        { name: "name", type: "unknown", optional: true },
+      ],
+    });
+  });
+
+  it("reports a message it cannot parse as having invalid syntax", () => {
+    expect(describeIcuMessageArguments("Hello {name")).toEqual({
+      style: "unresolved",
+      reason: "invalid-message-syntax",
+    });
+  });
+
+  it("reports no arguments for plain text", () => {
+    expect(describeIcuMessageArguments("Hello")).toEqual({ style: "none" });
+  });
+
+  it("keeps reading a numbered ICU argument as positional", () => {
+    expect(describeIcuMessageArguments("{1} and {0}")).toEqual({
+      style: "positional",
+      positional: ["unknown", "unknown"],
+    });
+  });
+
+  it("keeps the index bound for a numbered ICU argument", () => {
+    expect(describeIcuMessageArguments("{64}")).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
     });
   });
 });

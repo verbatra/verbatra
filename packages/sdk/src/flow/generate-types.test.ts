@@ -182,6 +182,34 @@ describe("generateTypes: what the read reported as unusable", () => {
   });
 });
 
+describe("generateTypes: an ICU message whose branches use different arguments", () => {
+  it("declares every argument any branch uses, optional where a branch leaves it out", async () => {
+    const dir = await seed({
+      invite: "{gender, select, female {{name} invited you} other {Someone invited you}}",
+    });
+
+    const result = await generateTypes({
+      config: baseConfig({ format: "next-intl-json" }),
+      cwd: dir,
+    });
+
+    expect(result.unresolved).toEqual([]);
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "invite": { readonly "gender": VerbatraArgument; readonly "name"?: VerbatraArgument };',
+    ]);
+  });
+
+  it("keeps reading a non-ICU format from the tokens the adapter extracted", async () => {
+    const dir = await seed({ greeting: "Hello {{name}}" });
+
+    await generateTypes({ config: baseConfig(), cwd: dir });
+
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "greeting": { readonly "name": VerbatraArgument };',
+    ]);
+  });
+});
+
 describe("generateTypes: a catalog value that tries to size the output", () => {
   const vueConfig = { format: "vue-i18n-json" } as const;
 

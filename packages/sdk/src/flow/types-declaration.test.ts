@@ -165,6 +165,25 @@ describe("renderTypesDeclaration: argument shapes", () => {
     ]);
   });
 
+  it("marks an argument only some branches use as an optional member", () => {
+    const declaration = render([
+      message({
+        key: "invite",
+        arguments: {
+          style: "named",
+          named: [
+            { name: "gender", type: "unknown" },
+            { name: "name", type: "unknown", optional: true },
+          ],
+        },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "invite": { readonly "gender": VerbatraArgument; readonly "name"?: VerbatraArgument };',
+    ]);
+  });
+
   it("emits a readonly tuple for a message whose arguments are positional", () => {
     const declaration = render([
       message({

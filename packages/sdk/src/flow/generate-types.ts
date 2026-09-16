@@ -1,5 +1,5 @@
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
-import type { TranslationEntry } from "@verbatra/core";
+import type { FormatId, TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
 import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
@@ -9,7 +9,12 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { describeMessageArguments, type UnresolvedArgumentReason } from "./message-arguments.js";
+import {
+  describeIcuMessageArguments,
+  describeMessageArguments,
+  type MessageArguments,
+  type UnresolvedArgumentReason,
+} from "./message-arguments.js";
 import { readSourceResource } from "./source.js";
 import { type DeclaredMessage, renderTypesDeclaration } from "./types-declaration.js";
 
@@ -141,14 +146,23 @@ function resolveOutputPath(
   return outputPath;
 }
 
+const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
+
+function argumentsOf(entry: TranslationEntry, format: FormatId): MessageArguments {
+  return ICU_MESSAGE_FORMATS.has(format)
+    ? describeIcuMessageArguments(entry.value)
+    : describeMessageArguments(entry.placeholders);
+}
+
 function declareMessage(
   key: string,
   entry: TranslationEntry,
   invalid: ReadonlySet<string>,
+  format: FormatId,
 ): DeclaredMessage {
   const argumentsTaken = invalid.has(key)
     ? ({ style: "unresolved", reason: "invalid-message-syntax" } as const)
-    : describeMessageArguments(entry.placeholders);
+    : argumentsOf(entry, format);
   return { key, arguments: argumentsTaken, isPlural: entry.isPlural };
 }
 
@@ -193,9 +207,11 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * constructs no provider, reads no API key and makes no network request, so it runs on a fresh
  * checkout before any key exists.
  *
- * Nothing is re-parsed: the keys and the placeholder tokens are exactly what the format adapter
- * already produced when reading the catalog, in document order, so two runs over an unchanged
- * catalog write byte-identical bytes. Keys are emitted as quoted string literals, so a key
+ * The keys are exactly what the format adapter produced when reading the catalog, in document
+ * order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
+ * placeholder tokens the adapter extracted, except for the ICU message formats (`next-intl-json`
+ * and `arb`): there each message is analysed with the same ICU parser the adapter uses, so an
+ * argument that only some `select` or `plural` branches use is still declared, as optional. Keys are emitted as quoted string literals, so a key
  * carrying a dot, a reserved word, a leading digit, a quote, or nothing at all is declared
  * verbatim rather than dropped or re-split.
  *
@@ -245,7 +261,7 @@ export async function generateTypes(
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);
   const messages = [...read.resource.entries].map(([key, entry]) =>
-    declareMessage(key, entry, invalid),
+    declareMessage(key, entry, invalid, config.format),
   );
   const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
   const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });

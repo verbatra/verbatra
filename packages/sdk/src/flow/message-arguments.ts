@@ -1,8 +1,11 @@
+import { type IcuMessageArgument, icuMessageArguments } from "@verbatra/format-adapters";
+
 export type MessageArgumentType = "string" | "number" | "unknown";
 
 export interface NamedMessageArgument {
   readonly name: string;
   readonly type: MessageArgumentType;
+  readonly optional?: boolean;
 }
 
 /** Why verbatra declined to describe a message's arguments rather than guessing at them. */
@@ -30,7 +33,12 @@ export type MessageArguments =
 
 type ClassifiedToken =
   | { readonly kind: "ignored" }
-  | { readonly kind: "named"; readonly name: string; readonly type: MessageArgumentType }
+  | {
+      readonly kind: "named";
+      readonly name: string;
+      readonly type: MessageArgumentType;
+      readonly optional?: boolean;
+    }
   | { readonly kind: "indexed"; readonly index: number; readonly type: MessageArgumentType }
   | { readonly kind: "anonymous"; readonly type: MessageArgumentType };
 
@@ -149,16 +157,20 @@ function mergeType(
 }
 
 function namedArguments(tokens: readonly ClassifiedToken[]): MessageArguments {
-  const types = new Map<string, MessageArgumentType>();
+  const named = new Map<string, NamedMessageArgument>();
   for (const token of tokens) {
     if (token.kind === "named") {
-      types.set(token.name, mergeType(types.get(token.name), token.type));
+      const existing = named.get(token.name);
+      const optional =
+        token.optional === true && (existing === undefined || existing.optional === true);
+      named.set(token.name, {
+        name: token.name,
+        type: mergeType(existing?.type, token.type),
+        ...(optional ? { optional: true } : {}),
+      });
     }
   }
-  return {
-    style: "named",
-    named: [...types].map(([name, type]) => ({ name, type })),
-  };
+  return { style: "named", named: [...named.values()] };
 }
 
 function indexOutOfRange(tokens: readonly ClassifiedToken[]): boolean {
@@ -183,8 +195,33 @@ function positionalArguments(tokens: readonly ClassifiedToken[]): MessageArgumen
   };
 }
 
+function classifyIcuArgument(argument: IcuMessageArgument): ClassifiedToken {
+  if (ALL_DIGITS.test(argument.name)) {
+    return { kind: "indexed", index: Number(argument.name), type: "unknown" };
+  }
+  return {
+    kind: "named",
+    name: argument.name,
+    type: "unknown",
+    ...(argument.required ? {} : { optional: true }),
+  };
+}
+
 export function describeMessageArguments(placeholders: readonly string[]): MessageArguments {
-  const tokens = placeholders.map(classifyToken).filter((token) => token.kind !== "ignored");
+  return describeClassifiedTokens(
+    placeholders.map(classifyToken).filter((token) => token.kind !== "ignored"),
+  );
+}
+
+export function describeIcuMessageArguments(value: string): MessageArguments {
+  const analysis = icuMessageArguments(value);
+  if (!analysis.valid) {
+    return { style: "unresolved", reason: "invalid-message-syntax" };
+  }
+  return describeClassifiedTokens(analysis.arguments.map(classifyIcuArgument));
+}
+
+function describeClassifiedTokens(tokens: readonly ClassifiedToken[]): MessageArguments {
   if (tokens.length === 0) {
     return { style: "none" };
   }

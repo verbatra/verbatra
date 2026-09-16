@@ -71,7 +71,8 @@ function argumentsExpression(argumentsTaken: MessageArguments): string {
     return `readonly [${argumentsTaken.positional.map(typeExpression).join(", ")}]`;
   }
   const fields = argumentsTaken.named.map(
-    (argument) => `readonly ${quote(argument.name)}: ${typeExpression(argument.type)}`,
+    (argument) =>
+      `readonly ${quote(argument.name)}${argument.optional === true ? "?" : ""}: ${typeExpression(argument.type)}`,
   );
   return `{ ${fields.join("; ")} }`;
 }
