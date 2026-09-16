@@ -252,8 +252,9 @@ Input: `{ cwd? }`. No config needed. Returns `{ available: false }` or
 
 A snapshot written by a release from before the token budget was enforced is still read, but its
 `budget` is left out when it says `supported: false`: back then that meant nothing was counted, so
-its `tokensUsed: 0` is not a count. Snapshots written now carry a newer `version`, which an older
-Studio or agent server reports as `{ available: false }` instead of misreading their budget.
+its `tokensUsed: 0` is not a count. Snapshots written now keep the same `version` and only add a
+marker field that an older Studio or agent server ignores, so an older reader keeps showing the
+review queue and usage. Until it is upgraded, it may show an estimated budget as not tracked.
 
 ## Single-key operations
 

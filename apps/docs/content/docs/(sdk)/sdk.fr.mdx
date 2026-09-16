@@ -165,7 +165,7 @@ Lit l'instantané des signalements de révision et de la consommation de tokens 
 
 Entrée : `{ cwd? }`. Aucune config requise. Renvoie `{ available: false }` ou `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
-Un instantané écrit par une version antérieure à l'application du budget de tokens est toujours lu, mais son `budget` est omis quand il indique `supported: false` : à l'époque, cela voulait dire que rien n'était compté, donc son `tokensUsed: 0` n'est pas un décompte. Les instantanés écrits désormais portent une `version` plus récente, qu'un Studio ou un serveur d'agents plus ancien rapporte comme `{ available: false }` au lieu de mal lire leur budget.
+Un instantané écrit par une version antérieure à l'application du budget de tokens est toujours lu, mais son `budget` est omis quand il indique `supported: false` : à l'époque, cela voulait dire que rien n'était compté, donc son `tokensUsed: 0` n'est pas un décompte. Les instantanés écrits désormais gardent la même `version` et ajoutent seulement un champ marqueur qu'un Studio ou un serveur d'agents plus ancien ignore : un lecteur plus ancien continue donc d'afficher la file de révision et l'usage. Tant qu'il n'est pas mis à jour, il peut afficher un budget estimé comme non suivi.
 
 ## Opérations sur une seule clé
 

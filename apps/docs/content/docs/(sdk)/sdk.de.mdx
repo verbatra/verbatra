@@ -258,10 +258,12 @@ Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt `{ available: false }` ode
 `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
 
 Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
-weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das, dass
-gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
-Schnappschüsse tragen eine neuere `version`, die ein älteres Studio oder ein älterer Agent-Server als
-`{ available: false }` meldet, statt ihr Budget falsch zu lesen.
+weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das,
+dass gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
+Schnappschüsse behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, das ein älteres
+Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Review-Warteschlange und
+den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
+anzeigen.
 
 ## Operationen auf einzelnen Keys
 
