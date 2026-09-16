@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { importTmx } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import {
@@ -263,5 +267,54 @@ describe("verbatra tmx refuses a direction it does not know", () => {
 
     expect(code).toBe(2);
     expect(calls.exportTmx).toEqual([]);
+  });
+});
+
+describe("verbatra tmx import names where a malformed file went wrong", () => {
+  const MALFORMED = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<tmx version="1.4">',
+    '  <header srclang="en"/>',
+    "  <body>",
+    '    <tu><tuv xml:lang="en"><seg>Save</seg></tuv></tu>',
+    "    <tu>",
+    '      <tuv xml:lang="en"><seg>Cancel</tuv>',
+    "    </tu>",
+    "  </body>",
+    "</tmx>",
+  ].join("\n");
+
+  async function malformedProject(): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-tmx-"));
+    await writeFile(join(dir, "legacy.tmx"), MALFORMED, "utf8");
+    return dir;
+  }
+
+  it("prints the line, column and unit on the human error line", async () => {
+    const dir = await malformedProject();
+    const { deps } = recordingDeps({ importTmx });
+    const { streams, err } = captureStreams();
+
+    const code = await run(["tmx", "import", "legacy.tmx", "--cwd", dir], deps, streams);
+
+    expect(code).toBe(2);
+    expect(err()).toContain("[SOURCE_INVALID]");
+    expect(err()).toContain("line 7, column 31, unit 2");
+  });
+
+  it("carries the same location in the JSON error envelope", async () => {
+    const dir = await malformedProject();
+    const { deps } = recordingDeps({ importTmx });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "import", "legacy.tmx", "--cwd", dir, "--json"], deps, streams);
+
+    expect(JSON.parse(out())).toEqual(
+      expect.objectContaining({
+        ok: false,
+        code: "SOURCE_INVALID",
+        message: expect.stringContaining("line 7, column 31, unit 2"),
+      }),
+    );
   });
 });
