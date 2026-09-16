@@ -69,7 +69,10 @@ scheme-relative `//host` URL) that a source value of the same tag and attribute 
 URL must stay relative: `/docs` may become `/de/docs` and `https://verbatra.dev/en` may become
 `https://verbatra.dev/de`, but a link, base, script or stylesheet URL may not move to another host,
 so a localized absolute link has to keep the same host. The detail names the new origin, such as
-`+<a href="https://evil.example...">`.
+`+<a href="https://evil.example...">`. A changed URL without an explicit `http`, `https`, `ws`,
+`wss`, `ftp` or `file` scheme is also refused when a backslash (`\` or `%5C`) sits in its leading
+slashes or its host, because a page on another scheme reads `//verbatra.dev\@evil.example/` as a
+link to evil.example.
 
 The value of `meta` `http-equiv` and `content`; `script` `type`, `nomodule`, `integrity` and
 `crossorigin`; `link` `rel`, `as`, `integrity`, `crossorigin` and `type`; `base` `target`;

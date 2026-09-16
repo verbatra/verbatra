@@ -205,7 +205,10 @@ also zu `/de/docs` werden und `https://verbatra.dev/en` zu `https://verbatra.dev
 darf nicht zu `https://evil.example/docs` oder `//evil.example/docs` werden, und ein lokalisierter
 absoluter Link muss denselben Host behalten; das Detail nennt den neuen Ursprung, etwa
 `+<a href="https://evil.example...">`, oder `+<a href="./...">` für einen absoluten Link, der
-relativ gemacht wurde. Pfad, Query und Fragment dürfen sich frei ändern.
+relativ gemacht wurde. Pfad, Query und Fragment dürfen sich frei ändern. Eine geänderte URL ohne
+explizites Schema `http`, `https`, `ws`, `wss`, `ftp` oder `file` wird außerdem abgelehnt, wenn ein
+Backslash (`\` oder `%5C`) in ihren führenden Schrägstrichen oder ihrem Host steht, denn eine Seite
+mit einem anderen Schema liest `//verbatra.dev\@evil.example/` als Link auf evil.example.
 
 Manche Attributwerte müssen genau so zurückkommen, wie die Quelle sie hat, verglichen nach dem
 Dekodieren von Zeichenreferenzen, mit einem Detail wie `+<meta content="...">`: `http-equiv` und

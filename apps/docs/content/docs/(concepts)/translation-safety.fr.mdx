@@ -204,7 +204,10 @@ attribut possède, et une URL relative doit rester relative. Ainsi `/docs` peut 
 `https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu localisé doit garder le même
 hôte ; le détail nomme la nouvelle origine, comme `+<a href="https://evil.example...">`, ou
 `+<a href="./...">` pour un lien absolu rendu relatif. Le chemin, la requête et le fragment peuvent
-changer librement.
+changer librement. Une URL modifiée sans schéma explicite `http`, `https`, `ws`, `wss`, `ftp` ou
+`file` est aussi refusée quand une barre oblique inversée (`\` ou `%5C`) se trouve dans ses barres
+obliques initiales ou dans son hôte, car une page sur un autre schéma lit
+`//verbatra.dev\@evil.example/` comme un lien vers evil.example.
 
 Certaines valeurs d'attribut doivent revenir exactement telles que la source les a, comparées après
 décodage des références de caractères, avec un détail comme `+<meta content="...">` : `http-equiv`
