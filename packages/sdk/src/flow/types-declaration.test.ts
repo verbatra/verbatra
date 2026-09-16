@@ -146,6 +146,17 @@ describe("renderTypesDeclaration: argument shapes", () => {
     expect(declaredMembers(declaration)).toEqual(['  "who": { readonly "who": string };']);
   });
 
+  it("types a date argument as a Date or a timestamp", () => {
+    const declaration = render([
+      message({
+        key: "due",
+        arguments: { style: "named", named: [{ name: "d", type: "date" }] },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual(['  "due": { readonly "d": Date | number };']);
+  });
+
   it("keeps several named arguments in the order they were described", () => {
     const declaration = render([
       message({

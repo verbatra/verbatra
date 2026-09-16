@@ -53,11 +53,15 @@ function quote(value: string): string {
   return JSON.stringify(value);
 }
 
+const TYPE_EXPRESSIONS: Readonly<Record<MessageArgumentType, string>> = {
+  unknown: "VerbatraArgument",
+  string: "string",
+  number: "number",
+  date: "Date | number",
+};
+
 function typeExpression(type: MessageArgumentType): string {
-  if (type === "unknown") {
-    return "VerbatraArgument";
-  }
-  return type;
+  return TYPE_EXPRESSIONS[type];
 }
 
 function argumentsExpression(argumentsTaken: MessageArguments): string {

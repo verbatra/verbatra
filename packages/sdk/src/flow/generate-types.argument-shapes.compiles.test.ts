@@ -57,7 +57,91 @@ t("invite", { name: "Ada" });
 t("invite", { gender: "female", nickname: "Ada" });
 `;
 
+function i18next(name: string, messages: Record<string, string>, usage: string): Scenario {
+  return {
+    name,
+    format: "i18next-json",
+    pattern: "locales/{locale}.json",
+    catalogPath: "locales/en.json",
+    catalog: json(messages),
+    usage,
+  };
+}
+
+const ICU_TYPED = {
+  day: "Due {d, date, short}",
+  clock: "At {t, time}",
+  price: "Costs {n, number}",
+  items: "{c, plural, one {# item} other {# items}}",
+  place: "{p, selectordinal, one {#st} other {#th}}",
+  pronoun: "{g, select, female {she} other {they}}",
+  plain: "Hello {x}",
+  broken: "Hello {x",
+};
+
+const ICU_TYPED_USAGE = `
+t("day", { d: new Date() });
+t("day", { d: Date.now() });
+// @ts-expect-error a date argument rejects a string
+t("day", { d: "2026-01-01" });
+
+t("clock", { t: new Date() });
+t("clock", { t: 0 });
+// @ts-expect-error a time argument rejects a string
+t("clock", { t: "noon" });
+
+t("price", { n: 2 });
+// @ts-expect-error a number argument rejects a string
+t("price", { n: "2" });
+
+t("items", { c: 2 });
+// @ts-expect-error a plural argument rejects a string
+t("items", { c: "2" });
+
+t("place", { p: 1 });
+// @ts-expect-error a selectordinal argument rejects a string
+t("place", { p: "1" });
+
+t("pronoun", { g: "female" });
+// @ts-expect-error a select argument rejects a number
+t("pronoun", { g: 1 });
+
+t("plain", { x: "Ada" });
+t("plain", { x: 1 });
+// @ts-expect-error a plain argument keeps the untyped alias, which is not a Date
+t("plain", { x: new Date() });
+
+t("broken", { anything: "at all" });
+`;
+
 const SCENARIOS: readonly Scenario[] = [
+  nextIntl("next-intl-typed", ICU_TYPED, ICU_TYPED_USAGE),
+  arb("arb-typed", ICU_TYPED, ICU_TYPED_USAGE),
+  i18next(
+    "i18next-typed",
+    {
+      day: "Due {{d, datetime}}",
+      dayWithOptions: "Due {{d, datetime(dateStyle: short)}}",
+      price: "Costs {{n, number}}",
+      plain: "Hello {{x}}",
+    },
+    `
+t("day", { d: new Date() });
+t("day", { d: Date.now() });
+// @ts-expect-error a datetime argument rejects a string
+t("day", { d: "2026-01-01" });
+
+t("dayWithOptions", { d: new Date() });
+
+t("price", { n: 2 });
+// @ts-expect-error a number argument rejects a string
+t("price", { n: "2" });
+
+t("plain", { x: "Ada" });
+// @ts-expect-error a plain argument keeps the untyped alias, which is not a Date
+t("plain", { x: new Date() });
+`,
+  ),
   nextIntl("next-intl-branch-only", { invite: INVITE }, INVITE_USAGE),
   arb("arb-branch-only", { invite: INVITE }, INVITE_USAGE),
   nextIntl(

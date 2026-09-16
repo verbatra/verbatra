@@ -195,7 +195,7 @@ describe("generateTypes: an ICU message whose branches use different arguments",
 
     expect(result.unresolved).toEqual([]);
     expect(declaredMembers(await declarationIn(dir))).toEqual([
-      '  "invite": { readonly "gender": VerbatraArgument; readonly "name"?: VerbatraArgument };',
+      '  "invite": { readonly "gender": string; readonly "name"?: VerbatraArgument };',
     ]);
   });
 

@@ -1,6 +1,10 @@
-import { type IcuMessageArgument, icuMessageArguments } from "@verbatra/format-adapters";
+import {
+  type IcuArgumentKind,
+  type IcuMessageArgument,
+  icuMessageArguments,
+} from "@verbatra/format-adapters";
 
-export type MessageArgumentType = "string" | "number" | "unknown";
+export type MessageArgumentType = "string" | "number" | "date" | "unknown";
 
 export interface NamedMessageArgument {
   readonly name: string;
@@ -81,6 +85,18 @@ const TEXT_CONVERSIONS = new Set(["s", "S", "c", "C"]);
 
 const NUMERIC_ARGUMENT_TYPES = new Set(["number", "plural", "selectordinal", "choice"]);
 
+const DOUBLE_BRACE_DATE_FORMATS = new Set(["datetime"]);
+
+const ICU_KIND_TYPES: Readonly<Record<IcuArgumentKind, MessageArgumentType>> = {
+  argument: "unknown",
+  number: "number",
+  plural: "number",
+  selectordinal: "number",
+  date: "date",
+  time: "date",
+  select: "string",
+};
+
 function conversionType(conversion: string): MessageArgumentType {
   if (NUMERIC_CONVERSIONS.has(conversion)) {
     return "number";
@@ -95,7 +111,22 @@ function annotatedType(annotation: string | undefined): MessageArgumentType {
   return NUMERIC_ARGUMENT_TYPES.has(annotation.trim()) ? "number" : "unknown";
 }
 
-function classifyBraceArgument(inner: string): ClassifiedToken {
+function formatterName(annotation: string): string {
+  const options = annotation.indexOf("(");
+  return (options === -1 ? annotation : annotation.slice(0, options)).trim();
+}
+
+function doubleBraceType(annotation: string | undefined): MessageArgumentType {
+  if (annotation !== undefined && DOUBLE_BRACE_DATE_FORMATS.has(formatterName(annotation))) {
+    return "date";
+  }
+  return annotatedType(annotation === undefined ? undefined : formatterName(annotation));
+}
+
+function classifyBraceArgument(
+  inner: string,
+  typeOf: (annotation: string | undefined) => MessageArgumentType,
+): ClassifiedToken {
   const composite = COMPOSITE_ITEM.exec(inner.trim());
   if (composite?.[1] !== undefined) {
     return { kind: "indexed", index: Number(composite[1]), type: "unknown" };
@@ -105,7 +136,7 @@ function classifyBraceArgument(inner: string): ClassifiedToken {
   if (name === "") {
     return IGNORED;
   }
-  const type = annotatedType(comma === -1 ? undefined : inner.slice(comma + 1).split(",")[0]);
+  const type = typeOf(comma === -1 ? undefined : inner.slice(comma + 1).split(",")[0]);
   if (ALL_DIGITS.test(name)) {
     return { kind: "indexed", index: Number(name), type };
   }
@@ -134,11 +165,11 @@ function classifyToken(token: string): ClassifiedToken {
   }
   const doubleBrace = DOUBLE_BRACE.exec(token);
   if (doubleBrace?.[1] !== undefined) {
-    return classifyBraceArgument(doubleBrace[1]);
+    return classifyBraceArgument(doubleBrace[1], doubleBraceType);
   }
   const singleBrace = SINGLE_BRACE.exec(token);
   if (singleBrace?.[1] !== undefined) {
-    return classifyBraceArgument(singleBrace[1]);
+    return classifyBraceArgument(singleBrace[1], annotatedType);
   }
   if (token.startsWith("%")) {
     return classifyPrintfToken(token);
@@ -195,14 +226,19 @@ function positionalArguments(tokens: readonly ClassifiedToken[]): MessageArgumen
   };
 }
 
+function icuArgumentType(kinds: readonly IcuArgumentKind[]): MessageArgumentType {
+  return kinds.map((kind) => ICU_KIND_TYPES[kind]).reduce(mergeType);
+}
+
 function classifyIcuArgument(argument: IcuMessageArgument): ClassifiedToken {
+  const type = icuArgumentType(argument.kinds);
   if (ALL_DIGITS.test(argument.name)) {
-    return { kind: "indexed", index: Number(argument.name), type: "unknown" };
+    return { kind: "indexed", index: Number(argument.name), type };
   }
   return {
     kind: "named",
     name: argument.name,
-    type: "unknown",
+    type,
     ...(argument.required ? {} : { optional: true }),
   };
 }

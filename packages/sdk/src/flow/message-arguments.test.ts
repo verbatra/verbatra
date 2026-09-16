@@ -368,7 +368,7 @@ describe("describeIcuMessageArguments: an ICU message read for its full argument
     ).toEqual({
       style: "named",
       named: [
-        { name: "gender", type: "unknown" },
+        { name: "gender", type: "string" },
         { name: "name", type: "unknown", optional: true },
       ],
     });
@@ -396,6 +396,82 @@ describe("describeIcuMessageArguments: an ICU message read for its full argument
     expect(describeIcuMessageArguments("{64}")).toEqual({
       style: "unresolved",
       reason: "argument-index-out-of-range",
+    });
+  });
+});
+
+describe("describeIcuMessageArguments: the type each ICU argument kind declares", () => {
+  it.each([
+    ["a plain argument", "{v}", "unknown"],
+    ["a number argument", "{v, number}", "number"],
+    ["a plural argument", "{v, plural, other {#}}", "number"],
+    ["a selectordinal argument", "{v, selectordinal, other {#th}}", "number"],
+    ["a date argument", "{v, date, short}", "date"],
+    ["a time argument", "{v, time}", "date"],
+    ["a select argument", "{v, select, a {A} other {B}}", "string"],
+  ])("declares %s as %s", (_label, message, type) => {
+    expect(describeIcuMessageArguments(message)).toEqual({
+      style: "named",
+      named: [{ name: "v", type }],
+    });
+  });
+
+  it("keeps a type two kinds agree on", () => {
+    expect(describeIcuMessageArguments("{v, plural, other {{v, number}}}")).toEqual({
+      style: "named",
+      named: [{ name: "v", type: "number" }],
+    });
+  });
+
+  it("widens a name formatted as two kinds that disagree", () => {
+    expect(describeIcuMessageArguments("{v, date} {v, number}")).toEqual({
+      style: "named",
+      named: [{ name: "v", type: "unknown" }],
+    });
+  });
+
+  it("types a numbered ICU argument by its kind", () => {
+    expect(describeIcuMessageArguments("{0, number}")).toEqual({
+      style: "positional",
+      positional: ["number"],
+    });
+  });
+});
+
+describe("describeMessageArguments: an i18next formatter", () => {
+  it("types a double-brace datetime argument as a date", () => {
+    expect(describeMessageArguments(["{{when, datetime}}"])).toEqual({
+      style: "named",
+      named: [{ name: "when", type: "date" }],
+    });
+  });
+
+  it("reads a formatter's name past its inline options", () => {
+    expect(
+      describeMessageArguments([
+        "{{when, datetime(dateStyle: short)}}",
+        "{{n, number(minimumFractionDigits: 2)}}",
+      ]),
+    ).toEqual({
+      style: "named",
+      named: [
+        { name: "when", type: "date" },
+        { name: "n", type: "number" },
+      ],
+    });
+  });
+
+  it("leaves an unrecognised double-brace formatter untyped", () => {
+    expect(describeMessageArguments(["{{name, uppercase}}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("does not read datetime as a date inside a single-brace token", () => {
+    expect(describeMessageArguments(["{when,datetime}"])).toEqual({
+      style: "named",
+      named: [{ name: "when", type: "unknown" }],
     });
   });
 });
