@@ -16,6 +16,7 @@ interface ParsedShape {
   readonly comments: number;
   readonly values: ReadonlySet<string>;
   readonly unsafeValues: readonly string[];
+  readonly verbatim: ReadonlyMap<string, readonly string[]>;
 }
 
 interface GeneratedPair {
@@ -36,6 +37,16 @@ const URL_ATTRIBUTES: ReadonlySet<string> = new Set([
   "src",
   "srcset",
   "xlink:href",
+]);
+const VERBATIM_ELEMENTS: ReadonlySet<string> = new Set([
+  "iframe",
+  "noembed",
+  "noframes",
+  "noscript",
+  "plaintext",
+  "script",
+  "style",
+  "xmp",
 ]);
 const DANGEROUS_SCHEME = /(?:^|[\s,])(?:javascript|vbscript|data):/;
 const XLIFF_TAGS = ['<g id="1">', "<x id/>"];
@@ -244,13 +255,33 @@ function childrenOf(node: ParserNode): readonly ParserNode[] {
   return children;
 }
 
+function textOf(node: ParserNode): string {
+  if (tree.isTextNode(node)) {
+    return node.value;
+  }
+  return childrenOf(node).map(textOf).join("");
+}
+
+function verbatimContents(node: ParserNode, contents: Map<string, string[]>): void {
+  for (const child of childrenOf(node)) {
+    const name = tree.isElementNode(child) ? child.tagName.toLowerCase() : "";
+    if (VERBATIM_ELEMENTS.has(name)) {
+      contents.set(name, [...(contents.get(name) ?? []), textOf(child)]);
+    }
+    verbatimContents(child, contents);
+  }
+}
+
 function shapeOf(html: string): ParsedShape {
   const elements = new Set<string>();
   const attributes = new Set<string>();
   const values = new Set<string>();
   const unsafeValues: string[] = [];
   let comments = 0;
-  const pending: ParserNode[] = [parseFragment(DIV, html, {})];
+  const fragment = parseFragment(DIV, html, {});
+  const verbatim = new Map<string, string[]>();
+  verbatimContents(fragment, verbatim);
+  const pending: ParserNode[] = [fragment];
   for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
     pending.push(...childrenOf(node));
     if (tree.isCommentNode(node)) {
@@ -273,7 +304,7 @@ function shapeOf(html: string): ParsedShape {
       }
     }
   }
-  return { elements, attributes, comments, values, unsafeValues };
+  return { elements, attributes, comments, values, unsafeValues, verbatim };
 }
 
 function introducedBy(source: ParsedShape, candidate: ParsedShape): readonly string[] {
@@ -295,6 +326,14 @@ function introducedBy(source: ParsedShape, candidate: ParsedShape): readonly str
     if (!source.values.has(value)) {
       introduced.push(`value ${value}`);
     }
+  }
+  for (const [name, contents] of candidate.verbatim) {
+    const expected = source.verbatim.get(name) ?? [];
+    contents.forEach((content, index) => {
+      if (expected[index] !== content) {
+        introduced.push(`${name} content ${JSON.stringify(content)}`);
+      }
+    });
   }
   return introduced;
 }
@@ -323,7 +362,7 @@ describe("compareInlineMarkup against the parse5 HTML parser", () => {
     expect(refusedIdentity).toEqual([]);
   });
 
-  it("introduces no element, attribute, comment or unsafe value parse5 does not find in the source", () => {
+  it("introduces no element, attribute, comment, unsafe value or script-like content parse5 does not find in the source", () => {
     const misses = pairs
       .filter((pair) => passesPlaceholderCheck(pair))
       .filter((pair) => compareInlineMarkup(pair.source, pair.candidate, pair.options).matches)
