@@ -479,7 +479,9 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
     );
   }
   if (result.markupStrippedUnits > 0) {
-    notes.push(`  ${result.markupStrippedUnits} units carried inline markup, which was dropped`);
+    notes.push(
+      `  ${result.markupStrippedUnits} units carried inline markup, which was flattened to its text`,
+    );
   }
   if (result.subflowDroppedUnits > 0) {
     notes.push(

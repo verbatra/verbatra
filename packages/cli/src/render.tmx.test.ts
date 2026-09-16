@@ -35,7 +35,8 @@ describe("render: tmx import summary", () => {
 
     expect(text).toContain("2 units could not be read and were skipped");
     expect(text).toContain("3 units carried no segment in the source locale");
-    expect(text).toContain("4 units carried inline markup, which was dropped");
+    expect(text).toContain("4 units carried inline markup, which was flattened to its text");
+    expect(text).not.toContain("was dropped");
     expect(text).toContain("languages two configured locales could claim: pt-PT (1)");
     expect(text).toContain("newer verbatra");
     expect(text).toContain("dry run: nothing written");
