@@ -48,7 +48,7 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`), the handoff commands (`export`, `import`), `extract`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`), the handoff commands (`export`, `import`), `extract`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
 
 ## Exit codes
 
@@ -57,7 +57,7 @@ The exit code is the contract a CI step or script branches on:
 | Code | Meaning |
 | --- | --- |
 | `0` | success (also `--help` and `--version`) |
-| `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes, `doctor` found a setup problem, or `types --check` found the committed declaration out of date |
+| `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes (or, with `--unused`, a complete scan found an unused source key), `doctor` found a setup problem or, with `--literals`, an untranslated literal, or `types --check` found the committed declaration out of date |
 | `2` | could not run: a whole-run error (config, source, provider, lock), or a usage error |
 | `130` | `watch`, `studio`, or `mcp` was force-stopped by a second interrupt |
 

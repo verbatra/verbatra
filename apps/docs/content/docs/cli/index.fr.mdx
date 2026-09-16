@@ -48,7 +48,7 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
 
 ## Fichiers d'environnement
 
-`translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`), les commandes de passation (`export`, `import`), `extract`, `pseudo`, `types` et `tmx` n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
+`translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. `doctor --literals` fait exception : il ne lit aucune clé d'API, donc il ne charge aucun des deux fichiers. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`), les commandes de passation (`export`, `import`), `extract`, `pseudo`, `types` et `tmx` n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
 
 ## Codes de sortie
 
@@ -57,7 +57,7 @@ Le code de sortie est le contrat sur lequel une étape CI ou un script se branch
 | Code | Signification |
 | --- | --- |
 | `0` | succès (aussi `--help` et `--version`) |
-| `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente, `doctor` a trouvé un problème de configuration, ou `types --check` a trouvé la déclaration commitée obsolète |
+| `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé un problème de configuration ou, avec `--literals`, un littéral non traduit, ou `types --check` a trouvé la déclaration commitée obsolète |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, fournisseur, verrou) ou une erreur d'utilisation |
 | `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
 

@@ -96,7 +96,7 @@ The CLI returns codes you can branch on in CI and scripts:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` and `--version`); for `check` and `diff`, every locale is in sync, and for `doctor`, every check passed. |
-| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync, or `diff --unused` found an unused source key in a complete scan; for `doctor`, at least one check failed; for `types --check`, the committed declaration is out of date. |
+| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync, or `diff --unused` found an unused source key in a complete scan; for `doctor`, at least one check failed, including an untranslated literal found by `doctor --literals`; for `types --check`, the committed declaration is out of date. |
 | `2` | Could not run: a whole-run error or a usage error. |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt. A single interrupt stops gracefully and exits `0`; if the shutdown itself fails, `watch` exits `2` and `studio` exits `1`. |
 
@@ -116,7 +116,7 @@ Keys are read only from the environment, never from the config. Each provider re
 
 `openai-compatible` is not in this table: most local servers need no key at all, and when one is required it comes from `OPENAI_COMPATIBLE_API_KEY` or from whichever variable the provider's `apiKeyEnvVar` option names. See the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers) for its key resolution.
 
-`verbatra init` writes a `.env.example` and makes sure your `.gitignore` covers the paths a verbatra project keeps out of version control: `.env` and `.env.local` for your keys, plus `.verbatra-local/` and `verbatra.cache.json` for the local, regenerable state a run produces. `translate`, `watch`, `import`, and `pseudo` silently top up an existing `.gitignore` with any of those entries it is missing, so a project scaffolded before an entry existed still gets it; none of them creates a `.gitignore` that is not already there, and a failure to write one never fails the run. `translate`, `watch`, `studio`, and `doctor` load `.env.local` and then `.env` from the working directory before running; a variable already set in the real environment always wins.
+`verbatra init` writes a `.env.example` and makes sure your `.gitignore` covers the paths a verbatra project keeps out of version control: `.env` and `.env.local` for your keys, plus `.verbatra-local/` and `verbatra.cache.json` for the local, regenerable state a run produces. `translate`, `watch`, `import`, `tmx import`, and `pseudo` silently top up an existing `.gitignore` with any of those entries it is missing, so a project scaffolded before an entry existed still gets it; none of them creates a `.gitignore` that is not already there, and a failure to write one never fails the run. `translate`, `watch`, `studio`, `mcp`, and `doctor` load `.env.local` and then `.env` from the working directory before running (`doctor --literals` loads neither); a variable already set in the real environment always wins.
 
 ## Configuration
 

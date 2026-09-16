@@ -48,7 +48,7 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Es liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Exit-Codes
 
@@ -57,7 +57,7 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Erfolg (auch `--help` und `--version`) |
-| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben `partial`, `check` fand ein Locale nicht synchron, `diff` fand ausstehende Änderungen, `doctor` fand ein Einrichtungsproblem, oder `types --check` fand die committete Deklaration veraltet |
+| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben `partial`, `check` fand ein Locale nicht synchron, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand ein Einrichtungsproblem oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
 | `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 

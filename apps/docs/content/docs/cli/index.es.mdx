@@ -48,7 +48,7 @@ Necesitas Node.js `>=22.14.0`.
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Códigos de salida
 
@@ -57,7 +57,7 @@ El código de salida es el contrato sobre el que ramifica un paso de CI o un scr
 | Código | Significado |
 | --- | --- |
 | `0` | éxito (también `--help` y `--version`) |
-| `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes, `doctor` encontró un problema de configuración, o `types --check` encontró que la declaración confirmada está desactualizada |
+| `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró un problema de configuración o, con `--literals`, un literal sin traducir, o `types --check` encontró que la declaración confirmada está desactualizada |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, proveedor, bloqueo) o un error de uso |
 | `130` | `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
 
