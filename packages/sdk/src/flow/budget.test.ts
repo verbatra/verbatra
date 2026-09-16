@@ -313,6 +313,14 @@ describe("budgetExceededNotice", () => {
     expect(budgetWithheldNotice(tracker, projected).message).not.toContain("maxBatchSize");
   });
 
+  it("adds the hint only once the refused projection is strictly above the budget", () => {
+    const tracker = createBudgetTracker(1_000, "stop");
+    const hint = "refused on every run";
+
+    expect(budgetWithheldNotice(tracker, 1_000).message).not.toContain(hint);
+    expect(budgetWithheldNotice(tracker, 1_001).message).toContain(hint);
+  });
+
   it("refuses without projecting once the run has already stopped", () => {
     const tracker = createBudgetTracker(1, "stop");
     reserveBudget(tracker, entries(2), context);
