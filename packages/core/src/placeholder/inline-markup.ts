@@ -1,3 +1,4 @@
+import { unsafeAttributeValues } from "./attribute-values.js";
 import { HTML_ELEMENT_NAMES } from "./html-elements.js";
 import {
   countScannedItems,
@@ -9,7 +10,6 @@ import {
 } from "./markup-scanner.js";
 import { countTokens, multisetExcess } from "./multiset.js";
 import { changedRawTextContents } from "./raw-text.js";
-import { unsafeAttributeValues } from "./url-attributes.js";
 
 export interface InlineMarkupComparison {
   readonly matches: boolean;
