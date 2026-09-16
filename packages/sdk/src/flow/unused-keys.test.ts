@@ -562,6 +562,67 @@ describe("findUnusedKeys reads markup and regular expressions without losing a c
   });
 });
 
+describe("findUnusedKeys reads JSX text and attribute values as markup", () => {
+  it("reports t escaping on the same line as a contraction in JSX text", async () => {
+    const report = await unusedIn(
+      { a: "A", stale: "S" },
+      {
+        "src/a.tsx":
+          'const { t } = useTranslation();\n<p>Don\'t worry</p>; const x = { t };\nt("a");',
+      },
+    );
+
+    expect(report.status).toBe("unreliable");
+    expect(report.unreliableBecause).toEqual([
+      {
+        reason: "translate-function-escapes",
+        count: 1,
+        sites: [{ file: "src/a.tsx", line: 2 }],
+      },
+    ]);
+  });
+
+  it("reports t escaping between two JSX texts whose apostrophes would pair up", async () => {
+    const report = await unusedIn(
+      { a: "A" },
+      { "src/a.tsx": "<div><p>Don't</p>{renderRow(t)}<p>It's fine</p></div>;\nt(\"a\");" },
+    );
+
+    expect(reasons(report)).toEqual(["translate-function-escapes"]);
+  });
+
+  it.each([
+    ["JSX text", { "src/a.tsx": '<p>We\'re glad</p>; t("a");' }],
+    ["a JSX attribute value", { "src/a.tsx": '<p title="it\'s">x</p>; t("a");' }],
+    ["JSX text in a .jsx file", { "src/a.jsx": '<p>We\'re glad</p>; t("a");' }],
+    ["JSX text in a .js file", { "src/a.js": '<p>We\'re glad</p>; t("a");' }],
+  ])("stays complete with a key called after an apostrophe in %s", async (_name, files) => {
+    const report = await unusedIn({ a: "A", stale: "S" }, files);
+
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+
+  it.each([
+    ["a JSX element that never closes", 't("a");\nexport const A = () => <div><p>Mid edit'],
+    ["a JSX element closed by its parent's tag", 't("a");\nconst A = <div><span>x</div>;'],
+    ["a quoted string in code that runs into the end of its line", 't("a");\nconst s = \'open;'],
+    ["an unterminated template literal", 't("a");\nconst s = `open;'],
+    ["an unterminated block comment", 't("a");\n/* never closed'],
+  ])("reports a markup file with %s as an incomplete scan", async (_name, content) => {
+    const report = await unusedIn({ a: "A", stale: "S" }, { "src/a.tsx": content });
+
+    expect(report.status).toBe("unreliable");
+    expect(report.unreliableBecause).toEqual([
+      {
+        reason: "incomplete-scan",
+        count: 1,
+        sites: [{ file: "src/a.tsx", detail: "unparseable" }],
+      },
+    ]);
+  });
+});
+
 describe("findUnusedKeys tells a return type from a ternary branch", () => {
   it.each([
     [

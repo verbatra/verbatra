@@ -190,6 +190,23 @@ describe("extract on JSX text with apostrophes", () => {
   });
 });
 
+describe("extract on markup files holding apostrophes", () => {
+  it.each(["src/card.tsx", "src/card.jsx", "src/card.js"])(
+    "reads the calls in %s without an unparseable diagnostic",
+    async (file) => {
+      const cwd = await project({
+        [file]:
+          'export const Card = () => (\n  <div title="it\'s" aria-label=\'We are "here"\'>\n    <p>Don\'t worry, we\'re here</p>\n    <p>{t("card.body", "Body")}</p>\n  </div>\n);\nt("card.title");\n',
+      });
+
+      const result = await extract({ config: config(), cwd, dryRun: true });
+
+      expect(result.diagnostics).toEqual([]);
+      expect(result.added.map((entry) => entry.key)).toEqual(["card.body", "card.title"]);
+    },
+  );
+});
+
 describe("extract dry run", () => {
   it("reports what would be added and writes nothing", async () => {
     const cwd = await project({ "src/nav.ts": 't("nav.home", "Home");' });
