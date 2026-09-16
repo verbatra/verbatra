@@ -26,25 +26,49 @@ A locale has pending changes when it has at least one key to add or re-translate
 
 <AvailableFrom version="0.11.0" />
 
-`orphaned` answers "which target keys left the source". `--unused` answers a different question: which keys in the source locale file does your application no longer name anywhere? It scans the `roots` of the [`extract` block](/docs/config-file#extract) with the same reader [`verbatra extract`](/docs/cli/extract) uses, and lists every source-locale key no call site names. The two lists are never merged: a key can be orphaned in `de` and, separately, unused in the source.
+`orphaned` answers "which target keys left the source". `--unused` answers a different question: which keys in the source locale file does your application no longer name anywhere? It scans the `roots` of the [`extract` block](/docs/config-file#extract) with the same reader [`verbatra extract`](/docs/cli/extract) uses, and lists every source-locale key no static reference names. The two lists are never merged: a key can be orphaned in `de` and, separately, unused in the source.
 
-It stays read-only. Nothing is removed, rewritten, or reordered, no provider is constructed, and no API key is read. Deleting a key is your call.
+It stays read-only. Nothing is removed, rewritten, or reordered, no provider is constructed, and no API key is read. Deleting a key is your call, so review the list before you do.
 
-A key the code can still reach is never listed:
+The scan models the i18next runtime. These count as a reference to a key:
 
-- A reference anywhere under the roots counts, including a file no route imports.
-- A plural or context variant of a referenced key counts as referenced: `t("items", { count })` covers `items_one` and `items_other`, and `t("friend", { context })` covers `friend_male`, `place_ordinal_one` and the like. This matches how `translate` keeps generated plural forms off the orphan list.
-- Every key under a referenced parent counts too, so `t("nav", { returnObjects: true })` covers `nav.home`.
+- A `t(...)`, `$t(...)`, or `<object>.t(...)` call anywhere under the roots, including a file no route imports, and a call through an alias of `t`: `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)`, or `i18n.getFixedT(...)`.
+- A static `keyPrefix` (an option, an object property, or a JSX attribute) or a static third `getFixedT` argument. Every static key in that file then also covers the prefixed key, so `t("home")` under `keyPrefix: "nav"` covers `nav.home` (and still `home`).
+- A static `i18nKey` on a `Trans` element or in an object.
+- A namespace-qualified key such as `common:nav.home` (it covers `common:nav.home` and `nav.home`) and a natural-language key such as `Loading...` or `Error: failed`.
+- A plural or context variant of a referenced key: `t("items", { count })` covers `items_one` and `items_other`, and `t("friend", { context })` covers `friend_male`, `place_ordinal_one` and the like. This matches how `translate` keeps generated plural forms off the orphan list. Every key under a referenced parent counts too, so `t("nav", { returnObjects: true })` covers `nav.home`.
+
+Keys are compared in the catalog format's own encoding, so a flat dotted JSON key (`{ "a.b": "..." }`), a gettext plural (`msgstr[0]`, `msgstr[1]`) or `msgctxt` entry (`t("Open", { context: "menu" })`), and an Android `<plurals>` entry all match the key your code names.
+
+A template-literal key with a static head, such as `` t(`nav.${page}`) ``, does not make the report unreliable: the keys under `nav.` are listed as `possiblyDynamic`, apart from `unused`, and never fail the run.
 
 The report carries a `status`:
 
 | `status` | Meaning |
 | --- | --- |
-| `complete` | nothing in the scan casts doubt on the list |
-| `unreliable` | the scan met something that can reach a key it cannot name, so a listed key may still be in use. `unreliableBecause` says what: `dynamic-keys` (a key that is not one static string, including a namespace-qualified key), `indirect-key-sites` (a `keyPrefix` option, a `Trans` component, or an `i18nKey` attribute), or `incomplete-scan` (a file or directory that could not be read to its end). Each comes with its file and line. |
-| `not-run` | there was nothing to scan, and no key is listed at all. `reason` is `EXTRACT_NOT_CONFIGURED` (no `extract` block), `EXTRACT_FS_UNSUPPORTED` (an SDK caller's file system cannot list directories), or `NO_SOURCE_FILES` (no source file under the roots) |
+| `complete` | the scan could bound every key the modeled constructs reach, so `unused` lists keys no static reference names |
+| `unreliable` | the scan met something it cannot bound, so a listed key may still be in use. `unreliableBecause` names every reason, each with its count and its sites (file and line) |
+| `not-run` | there is nothing trustworthy to judge by, and no key is listed at all. `reason` says why |
 
-A key referenced only from outside the scanned source (a server template, a CMS, a test fixture) belongs in [`extract.ignoreUnused`](/docs/config-file#extract). A matched key is listed under `ignored`, never under `unused`, and never silently dropped.
+| Reason | `status` | When |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | a key with no static part: `t(key)`, a template literal with no static head, or a concatenation |
+| `dynamic-key-prefix` | `unreliable` | a `keyPrefix` or `getFixedT` prefix that is not a static string |
+| `trans-without-key` | `unreliable` | a `Trans` element without a static `i18nKey` |
+| `aliased-translate-function` | `unreliable` | `t` assigned to anything but a plain variable, such as `this.tr = t` |
+| `template-files-not-scanned` | `unreliable` | `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid`, or `.mdx` files under the roots (the first 20 are listed, all are counted) |
+| `incomplete-scan` | `unreliable` | a file that is too large, unreadable, or not readable to its end, or a directory that cannot be listed |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | no `extract` block |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | an SDK caller's file system cannot list directories |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | the format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json`, whose runtimes the scan does not model |
+| `NO_SOURCE_FILES` | `not-run` | there is no source file under the roots |
+| `NO_REFERENCES_FOUND` | `not-run` | the scanned files name no key and hold no dynamic key site while the catalog is not empty, which usually means the roots miss your code |
+
+Know the limits. A key prefix applies to every key in the file that declares it. Passing `t` on as a function argument or a component prop is not followed, so a key named only through such a call can still show up as unused in a `complete` report.
+
+Each listed key shows its decoded spelling (`Welcome. Enjoy`, and a gettext `msgctxt` entry as `menu|Open`); `--json` also carries the `catalogKey` as the adapter spells it (`Welcome\. Enjoy`).
+
+A key referenced only from outside the scanned source (a server template, a CMS, a test fixture) belongs in [`extract.unused.ignore`](/docs/config-file#extract). A pattern matches the decoded key. A matched key is listed under `ignored`, never under `unused` or `possiblyDynamic`, and never silently dropped.
 
 ## Examples
 
@@ -64,12 +88,12 @@ verbatra diff --unused
 | Code | Meaning |
 | --- | --- |
 | `0` | no pending changes: no locale has a key to add or re-translate, and with `--unused` no complete scan found an unused key |
-| `1` | pending changes: at least one locale has a missing or changed key, or with `--unused` a `complete` scan found at least one unused key (orphaned keys, ignored keys, and an `unreliable` or `not-run` report never produce `1` on their own) |
+| `1` | pending changes: at least one locale has a missing or changed key, or with `--unused` a `complete` scan found at least one unused key (orphaned keys, possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` report never produce `1` on their own) |
 | `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value) |
 
 ## Related
 
 - [`verbatra check`](/docs/cli/check) gives the per-locale counts behind these lists.
-- [The config file](/docs/config-file#extract) documents the `extract` block `--unused` scans with, including `ignoreUnused`.
+- [The config file](/docs/config-file#extract) documents the `extract` block `--unused` scans with, including `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) applies the pending changes; `--prune` removes the orphaned keys.
 - [CI and exit codes](/docs/ci-and-exit-codes) shows diff in a pipeline.

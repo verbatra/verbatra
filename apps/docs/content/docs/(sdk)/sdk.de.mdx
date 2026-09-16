@@ -216,12 +216,16 @@ und kippen nie `hasPendingChanges`, da ein Standardlauf nicht prunt.
 
 Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
 einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
-Aufrufstelle nennt, in Katalogreihenfolge. Er ist rein lesend und braucht keinen Key. Plural- und
-Kontextvarianten eines referenzierten Keys sowie Keys unter einem referenzierten Eltern-Key gelten als
-referenziert; Keys, die `extract.ignoreUnused` trifft, landen in `ignored`. Sein `status` ist
-`complete`, `unreliable` (mit `unreliableBecause`, das dynamische Keys, indirekte Key-Stellen oder
-einen unvollständigen Scan samt Fundstellen nennt) oder `not-run` (mit `reason` und ohne Key-Liste).
-Der Bericht kippt nie `hasPendingChanges`.
+statische Referenz nennt, in Katalogreihenfolge. Er ist rein lesend, braucht keinen Key und bildet
+die i18next-Laufzeit nach (`t`-Aufrufe und ihre Aliase, statische `keyPrefix`- und
+`getFixedT`-Präfixe, `Trans`-Keys, Keys mit Namespace sowie Plural- und Kontextvarianten), wobei
+Keys in der Kodierung des Katalogformats verglichen werden. Jeder gelistete Key trägt seinen
+dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` trifft, landen in
+`ignored`, und Keys, die ein Template-Literal mit statischem Anfang erreichen könnte, in
+`possiblyDynamic`. Sein `status` ist `complete`, `unreliable` (mit `unreliableBecause`, das jeden
+Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne Key-Liste). Alle
+Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
+kippt nie `hasPendingChanges`.
 
 Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
 

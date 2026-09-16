@@ -199,7 +199,7 @@ extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
-  ignoreUnused: ["emails.*"],
+  unused: { ignore: ["emails.*"] },
 }
 ```
 
@@ -209,7 +209,7 @@ extract: {
 
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
 
-`ignoreUnused` listet die Keys, die `diff --unused` nie als ungenutzt melden darf, für einen Key, der nur von außerhalb des gescannten Quellcodes referenziert wird, etwa aus einem Server-Template, einem CMS oder einer Test-Fixture. Jeder Eintrag ist ein exakter Key oder ein Muster, in dem `*` für eine beliebige Zeichenfolge steht, etwa `emails.*`. Ein getroffener Key wird als ignoriert gemeldet, statt wegzufallen.
+`unused.ignore` listet die Keys, die `diff --unused` nicht als ungenutzt melden darf, für einen Key, der nur von außerhalb des gescannten Quellcodes referenziert wird, etwa aus einem Server-Template, einem CMS oder einer Test-Fixture. Jeder Eintrag ist ein exakter Key oder ein Muster, in dem `*` für eine beliebige Zeichenfolge steht, etwa `emails.*`. Er trifft den dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`, nicht das maskierte `Welcome\. Enjoy`). Ein getroffener Key wird als ignoriert gemeldet, statt wegzufallen. `unused` akzeptiert kein weiteres Feld.
 
 Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 

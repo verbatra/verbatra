@@ -26,25 +26,49 @@ Une locale a des changements en attente quand elle a au moins une clé à ajoute
 
 <AvailableFrom version="0.11.0" />
 
-`orphaned` répond à "quelles clés cibles ont quitté la source". `--unused` répond à une autre question : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus nulle part ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le même lecteur que [`verbatra extract`](/docs/cli/extract), et liste chaque clé de la locale source qu'aucun appel ne nomme. Les deux listes ne sont jamais fusionnées : une clé peut être orpheline en `de` et, séparément, inutilisée dans la source.
+`orphaned` répond à "quelles clés cibles ont quitté la source". `--unused` répond à une autre question : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus nulle part ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le même lecteur que [`verbatra extract`](/docs/cli/extract), et liste chaque clé de la locale source qu'aucune référence statique ne nomme. Les deux listes ne sont jamais fusionnées : une clé peut être orpheline dans `de` et, indépendamment, inutilisée dans la source.
 
-Il reste en lecture seule. Rien n'est supprimé, réécrit ou réordonné, aucun fournisseur n'est construit et aucune clé d'API n'est lue. Supprimer une clé reste ta décision.
+Il reste en lecture seule. Rien n'est supprimé, réécrit ni réordonné, aucun fournisseur n'est construit et aucune clé d'API n'est lue. Supprimer une clé reste ta décision, alors relis la liste avant.
 
-Une clé que le code peut encore atteindre n'est jamais listée :
+L'analyse modélise le runtime i18next. Voici ce qui compte comme référence à une clé :
 
-- Une référence n'importe où sous les racines compte, y compris dans un fichier qu'aucune route n'importe.
-- Une variante de pluriel ou de contexte d'une clé référencée compte comme référencée : `t("items", { count })` couvre `items_one` et `items_other`, et `t("friend", { context })` couvre `friend_male`, `place_ordinal_one` et les formes semblables. C'est cohérent avec la façon dont `translate` garde les formes plurielles générées hors de la liste des orphelines.
-- Chaque clé sous une clé parente référencée compte aussi, donc `t("nav", { returnObjects: true })` couvre `nav.home`.
+- Un appel `t(...)`, `$t(...)` ou `<object>.t(...)` n'importe où sous les racines, y compris dans un fichier qu'aucune route n'importe, et un appel via un alias de `t` : `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` ou `i18n.getFixedT(...)`.
+- Un `keyPrefix` statique (en option, en propriété d'objet ou en attribut JSX) ou un troisième argument statique de `getFixedT`. Chaque clé statique de ce fichier couvre alors aussi la clé préfixée, donc `t("home")` sous `keyPrefix: "nav"` couvre `nav.home` (et toujours `home`).
+- Un `i18nKey` statique sur un élément `Trans` ou dans un objet.
+- Une clé avec namespace comme `common:nav.home` (elle couvre `common:nav.home` et `nav.home`) et une clé en langage naturel comme `Loading...` ou `Error: failed`.
+- Une variante de pluriel ou de contexte d'une clé référencée : `t("items", { count })` couvre `items_one` et `items_other`, et `t("friend", { context })` couvre `friend_male`, `place_ordinal_one` et similaires. Cela correspond à la façon dont `translate` garde les formes plurielles générées hors de la liste des orphelines. Chaque clé sous un parent référencé compte aussi, donc `t("nav", { returnObjects: true })` couvre `nav.home`.
+
+Les clés sont comparées dans l'encodage propre au format du catalogue, donc une clé JSON plate avec un point (`{ "a.b": "..." }`), un pluriel gettext (`msgstr[0]`, `msgstr[1]`) ou une entrée `msgctxt` (`t("Open", { context: "menu" })`) et une entrée Android `<plurals>` correspondent toutes à la clé que ton code nomme.
+
+Une clé en template literal avec un début statique, comme `` t(`nav.${page}`) ``, ne rend pas le rapport peu fiable : les clés sous `nav.` sont listées comme `possiblyDynamic`, à part de `unused`, et ne font jamais échouer l'exécution.
 
 Le rapport porte un `status` :
 
 | `status` | Signification |
 | --- | --- |
-| `complete` | rien dans l'analyse ne remet la liste en cause |
-| `unreliable` | l'analyse a rencontré quelque chose qui peut atteindre une clé qu'elle ne sait pas nommer, donc une clé listée peut encore être utilisée. `unreliableBecause` dit quoi : `dynamic-keys` (une clé qui n'est pas une seule chaîne statique, y compris une clé avec namespace), `indirect-key-sites` (une option `keyPrefix`, un composant `Trans` ou un attribut `i18nKey`) ou `incomplete-scan` (un fichier ou un répertoire qui n'a pas pu être lu jusqu'au bout). Chacun est accompagné de son fichier et de sa ligne. |
-| `not-run` | il n'y avait rien à analyser, et aucune clé n'est listée. `reason` vaut `EXTRACT_NOT_CONFIGURED` (pas de bloc `extract`), `EXTRACT_FS_UNSUPPORTED` (le système de fichiers d'un appelant du SDK ne sait pas lister les répertoires) ou `NO_SOURCE_FILES` (aucun fichier source sous les racines) |
+| `complete` | l'analyse a pu borner chaque clé qu'atteignent les constructions modélisées, donc `unused` liste des clés qu'aucune référence statique ne nomme |
+| `unreliable` | l'analyse a rencontré quelque chose qu'elle ne peut pas borner, donc une clé listée peut encore être utilisée. `unreliableBecause` nomme chaque raison avec son nombre et ses emplacements (fichier et ligne) |
+| `not-run` | il n'y a rien de fiable sur quoi juger, et aucune clé n'est listée. `reason` dit pourquoi |
 
-Une clé référencée uniquement hors du code analysé (un template serveur, un CMS, une fixture de test) va dans [`extract.ignoreUnused`](/docs/config-file#extract). Une clé correspondante apparaît sous `ignored`, jamais sous `unused`, et n'est jamais écartée en silence.
+| Raison | `status` | Quand |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | une clé sans partie statique : `t(key)`, un template literal sans début statique ou une concaténation |
+| `dynamic-key-prefix` | `unreliable` | un préfixe `keyPrefix` ou `getFixedT` qui n'est pas une chaîne statique |
+| `trans-without-key` | `unreliable` | un élément `Trans` sans `i18nKey` statique |
+| `aliased-translate-function` | `unreliable` | `t` affectée à autre chose qu'une simple variable, comme `this.tr = t` |
+| `template-files-not-scanned` | `unreliable` | des fichiers `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` ou `.mdx` sous les racines (les 20 premiers sont listés, tous sont comptés) |
+| `incomplete-scan` | `unreliable` | un fichier trop volumineux, illisible ou impossible à lire jusqu'au bout, ou un dossier impossible à lister |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | aucun bloc `extract` |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | le système de fichiers d'un appelant du SDK ne peut pas lister les dossiers |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | le format est `next-intl-json`, `vue-i18n-json` ou `ngx-translate-json`, dont l'analyse ne modélise pas les runtimes |
+| `NO_SOURCE_FILES` | `not-run` | aucun fichier source sous les racines |
+| `NO_REFERENCES_FOUND` | `not-run` | les fichiers analysés ne nomment aucune clé et ne contiennent aucun appel à clé dynamique alors que le catalogue n'est pas vide, ce qui signifie en général que les racines ne couvrent pas ton code |
+
+Connais les limites. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare. Passer `t` en argument de fonction ou en prop de composant n'est pas suivi, donc une clé nommée uniquement via un tel appel peut apparaître comme inutilisée même dans un rapport `complete`.
+
+Chaque clé listée affiche sa forme décodée (`Welcome. Enjoy`, et une entrée gettext avec `msgctxt` sous la forme `menu|Open`) ; `--json` porte aussi le `catalogKey` tel que l'adaptateur l'écrit (`Welcome\. Enjoy`).
+
+Une clé référencée uniquement hors du code analysé (un template serveur, un CMS, une fixture de test) va dans [`extract.unused.ignore`](/docs/config-file#extract). Un motif correspond à la clé décodée. Une clé correspondante apparaît sous `ignored`, jamais sous `unused` ni `possiblyDynamic`, et n'est jamais écartée en silence.
 
 ## Exemples
 
@@ -64,12 +88,12 @@ verbatra diff --unused
 | Code | Signification |
 | --- | --- |
 | `0` | aucun changement en attente : aucune locale n'a de clé à ajouter ou à retraduire, et avec `--unused` aucune analyse complète n'a trouvé de clé inutilisée |
-| `1` | changements en attente : au moins une locale a une clé manquante ou modifiée, ou avec `--unused` une analyse `complete` a trouvé au moins une clé inutilisée (les clés orphelines, les clés ignorées et un rapport `unreliable` ou `not-run` ne produisent jamais `1` à eux seuls) |
+| `1` | changements en attente : au moins une locale a une clé manquante ou modifiée, ou avec `--unused` une analyse `complete` a trouvé au moins une clé inutilisée (les clés orphelines, les clés possiblement dynamiques, les clés ignorées et un rapport `unreliable` ou `not-run` ne produisent jamais `1` à eux seuls) |
 | `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue) |
 
 ## Voir aussi
 
 - [`verbatra check`](/docs/cli/check) donne les comptes par locale derrière ces listes.
-- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` qu'analyse `--unused`, y compris `ignoreUnused`.
+- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` qu'analyse `--unused`, y compris `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
 - [CI et codes de sortie](/docs/ci-and-exit-codes) montre diff dans un pipeline.

@@ -26,25 +26,49 @@ Ein Locale hat ausstehende Änderungen, wenn es mindestens einen Key zum Hinzuf�
 
 <AvailableFrom version="0.11.0" />
 
-`orphaned` beantwortet "welche Ziel-Keys sind aus der Quelle verschwunden". `--unused` beantwortet eine andere Frage: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nirgends mehr? Es scannt die `roots` des [`extract`-Blocks](/docs/config-file#extract) mit demselben Leser, den [`verbatra extract`](/docs/cli/extract) nutzt, und listet jeden Key der Quell-Locale auf, den keine Aufrufstelle nennt. Die beiden Listen werden nie zusammengeführt: Ein Key kann in `de` verwaist und unabhängig davon in der Quelle ungenutzt sein.
+`orphaned` beantwortet "welche Ziel-Keys sind aus der Quelle verschwunden". `--unused` beantwortet eine andere Frage: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nirgends mehr? Es scannt die `roots` des [`extract`-Blocks](/docs/config-file#extract) mit demselben Leser, den [`verbatra extract`](/docs/cli/extract) nutzt, und listet jeden Key der Quell-Locale auf, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt: Ein Key kann in `de` verwaist und unabhängig davon in der Quelle ungenutzt sein.
 
-Es bleibt rein lesend. Nichts wird entfernt, umgeschrieben oder umsortiert, kein Provider wird erzeugt und kein API-Key gelesen. Ob du einen Key löschst, entscheidest du.
+Es bleibt rein lesend. Nichts wird entfernt, umgeschrieben oder umsortiert, kein Provider wird erzeugt und kein API-Key gelesen. Ob du einen Key löschst, entscheidest du, also prüf die Liste vorher.
 
-Ein Key, den der Code noch erreichen kann, wird nie aufgelistet:
+Der Scan bildet die i18next-Laufzeit nach. Folgendes zählt als Referenz auf einen Key:
 
-- Eine Referenz irgendwo unterhalb der Roots zählt, auch in einer Datei, die keine Route importiert.
-- Eine Plural- oder Kontextvariante eines referenzierten Keys gilt als referenziert: `t("items", { count })` deckt `items_one` und `items_other` ab, und `t("friend", { context })` deckt `friend_male`, `place_ordinal_one` und Ähnliches ab. Das entspricht dem, wie `translate` generierte Pluralformen aus der Liste verwaister Keys heraushält.
-- Auch jeder Key unter einem referenzierten Eltern-Key zählt, also deckt `t("nav", { returnObjects: true })` `nav.home` ab.
+- Ein Aufruf `t(...)`, `$t(...)` oder `<object>.t(...)` irgendwo unter den Roots, auch in einer Datei, die keine Route importiert, und ein Aufruf über einen Alias von `t`: `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` oder `i18n.getFixedT(...)`.
+- Ein statischer `keyPrefix` (als Option, Objekt-Property oder JSX-Attribut) oder ein statisches drittes Argument von `getFixedT`. Jeder statische Key in dieser Datei deckt dann auch den Key mit Präfix ab, `t("home")` unter `keyPrefix: "nav"` deckt also `nav.home` ab (und weiterhin `home`).
+- Ein statischer `i18nKey` an einem `Trans`-Element oder in einem Objekt.
+- Ein Key mit Namespace wie `common:nav.home` (er deckt `common:nav.home` und `nav.home` ab) und ein Key in natürlicher Sprache wie `Loading...` oder `Error: failed`.
+- Eine Plural- oder Kontext-Variante eines referenzierten Keys: `t("items", { count })` deckt `items_one` und `items_other` ab, und `t("friend", { context })` deckt `friend_male`, `place_ordinal_one` und Ähnliches ab. Das entspricht dem, wie `translate` generierte Pluralformen aus der Orphan-Liste heraushält. Auch jeder Key unter einem referenzierten Eltern-Key zählt, `t("nav", { returnObjects: true })` deckt also `nav.home` ab.
+
+Keys werden in der eigenen Kodierung des Katalogformats verglichen, sodass ein flacher JSON-Key mit Punkt (`{ "a.b": "..." }`), ein gettext-Plural (`msgstr[0]`, `msgstr[1]`) oder `msgctxt`-Eintrag (`t("Open", { context: "menu" })`) und ein Android-`<plurals>`-Eintrag alle zu dem Key passen, den dein Code nennt.
+
+Ein Template-Literal-Key mit statischem Anfang wie `` t(`nav.${page}`) `` macht den Bericht nicht unzuverlässig: Die Keys unter `nav.` erscheinen getrennt von `unused` als `possiblyDynamic` und lassen den Lauf nie fehlschlagen.
 
 Der Bericht trägt einen `status`:
 
 | `status` | Bedeutung |
 | --- | --- |
-| `complete` | nichts im Scan stellt die Liste infrage |
-| `unreliable` | der Scan ist auf etwas gestoßen, das einen Key erreichen kann, den er nicht benennen kann; ein aufgelisteter Key kann also noch in Gebrauch sein. `unreliableBecause` sagt, worauf: `dynamic-keys` (ein Key, der kein einzelner statischer String ist, auch ein Key mit Namespace), `indirect-key-sites` (eine `keyPrefix`-Option, eine `Trans`-Komponente oder ein `i18nKey`-Attribut) oder `incomplete-scan` (eine Datei oder ein Verzeichnis, das nicht bis zum Ende gelesen werden konnte). Jeder Fund kommt mit Datei und Zeile. |
-| `not-run` | es gab nichts zu scannen, und es wird überhaupt kein Key aufgelistet. `reason` ist `EXTRACT_NOT_CONFIGURED` (kein `extract`-Block), `EXTRACT_FS_UNSUPPORTED` (das Dateisystem eines SDK-Aufrufers kann keine Verzeichnisse auflisten) oder `NO_SOURCE_FILES` (keine Quelldatei unterhalb der Roots) |
+| `complete` | der Scan konnte jeden Key eingrenzen, den die nachgebildeten Konstrukte erreichen, `unused` listet also Keys, die keine statische Referenz nennt |
+| `unreliable` | der Scan ist auf etwas gestoßen, das er nicht eingrenzen kann, ein gelisteter Key kann also noch genutzt werden. `unreliableBecause` nennt jeden Grund mit Anzahl und Fundstellen (Datei und Zeile) |
+| `not-run` | es gibt nichts Verlässliches, woran sich urteilen ließe, und es wird gar kein Key aufgelistet. `reason` sagt, warum |
 
-Ein Key, der nur von außerhalb des gescannten Quellcodes referenziert wird (ein Server-Template, ein CMS, eine Test-Fixture), gehört in [`extract.ignoreUnused`](/docs/config-file#extract). Ein getroffener Key erscheint unter `ignored`, nie unter `unused`, und fällt nie stillschweigend weg.
+| Grund | `status` | Wann |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | ein Key ohne statischen Teil: `t(key)`, ein Template-Literal ohne statischen Anfang oder eine Verkettung |
+| `dynamic-key-prefix` | `unreliable` | ein `keyPrefix` oder `getFixedT`-Präfix, der kein statischer String ist |
+| `trans-without-key` | `unreliable` | ein `Trans`-Element ohne statischen `i18nKey` |
+| `aliased-translate-function` | `unreliable` | `t` wird etwas anderem als einer einfachen Variable zugewiesen, etwa `this.tr = t` |
+| `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
+| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | das Dateisystem eines SDK-Aufrufers kann keine Verzeichnisse auflisten |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | das Format ist `next-intl-json`, `vue-i18n-json` oder `ngx-translate-json`, deren Laufzeiten der Scan nicht nachbildet |
+| `NO_SOURCE_FILES` | `not-run` | unter den Roots liegt keine Quelldatei |
+| `NO_REFERENCES_FOUND` | `not-run` | die gescannten Dateien nennen keinen Key und enthalten keine dynamische Key-Stelle, während der Katalog nicht leer ist, was meist heißt, dass die Roots deinen Code verfehlen |
+
+Kenn die Grenzen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert. Wird `t` als Funktionsargument oder Komponenten-Prop weitergereicht, verfolgt der Scan das nicht, ein nur über einen solchen Aufruf genannter Key kann also auch in einem `complete`-Bericht als ungenutzt erscheinen.
+
+Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
+
+Ein Key, der nur von außerhalb des gescannten Quellcodes referenziert wird (ein Server-Template, ein CMS, eine Test-Fixture), gehört in [`extract.unused.ignore`](/docs/config-file#extract). Ein Muster trifft den dekodierten Key. Ein getroffener Key erscheint unter `ignored`, nie unter `unused` oder `possiblyDynamic`, und fällt nie still weg.
 
 ## Beispiele
 
@@ -64,12 +88,12 @@ verbatra diff --unused
 | Code | Bedeutung |
 | --- | --- |
 | `0` | keine ausstehenden Änderungen: kein Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und mit `--unused` hat kein vollständiger Scan einen ungenutzten Key gefunden |
-| `1` | ausstehende Änderungen: mindestens ein Locale hat einen fehlenden oder geänderten Key, oder mit `--unused` hat ein `complete`-Scan mindestens einen ungenutzten Key gefunden (verwaiste Keys, ignorierte Keys und ein `unreliable`- oder `not-run`-Bericht erzeugen allein nie `1`) |
+| `1` | ausstehende Änderungen: mindestens ein Locale hat einen fehlenden oder geänderten Key, oder mit `--unused` hat ein `complete`-Scan mindestens einen ungenutzten Key gefunden (verwaiste Keys, möglicherweise dynamische Keys, ignorierte Keys und ein `unreliable`- oder `not-run`-Bericht erzeugen nie allein eine `1`) |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts) |
 
 ## Siehe auch
 
 - [`verbatra check`](/docs/cli/check) liefert die Zähler pro Locale hinter diesen Listen.
-- [Die Konfigurationsdatei](/docs/config-file#extract) dokumentiert den `extract`-Block, den `--unused` scannt, einschließlich `ignoreUnused`.
+- [Die Konfigurationsdatei](/docs/config-file#extract) dokumentiert den `extract`-Block, den `--unused` scannt, einschließlich `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) wendet die ausstehenden Änderungen an; `--prune` entfernt die verwaisten Keys.
 - [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt diff in einer Pipeline.

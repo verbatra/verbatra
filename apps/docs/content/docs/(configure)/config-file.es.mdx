@@ -199,7 +199,7 @@ extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
-  ignoreUnused: ["emails.*"],
+  unused: { ignore: ["emails.*"] },
 }
 ```
 
@@ -209,7 +209,7 @@ extract: {
 
 `exclude` añade nombres de directorio al conjunto que siempre se omite, que ya cubre `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` y `coverage`. Nombres, no rutas: una entrada coincide con un directorio con ese nombre en cualquier punto bajo una raíz.
 
-`ignoreUnused` lista las claves que `diff --unused` nunca debe informar como sin uso, para una clave referenciada solo desde fuera del código analizado, como una plantilla de servidor, un CMS o un fixture de test. Cada entrada es una clave exacta o un patrón en el que `*` coincide con cualquier secuencia de caracteres, como `emails.*`. Una clave que coincide se informa como ignorada en lugar de omitirse.
+`unused.ignore` lista las claves que `diff --unused` no debe informar como sin uso, para una clave referenciada solo desde fuera del código analizado, como una plantilla de servidor, un CMS o un fixture de test. Cada entrada es una clave exacta o un patrón en el que `*` coincide con cualquier secuencia de caracteres, como `emails.*`. Coincide con la clave decodificada que muestra el informe (`Welcome. Enjoy`, no la forma escapada `Welcome\. Enjoy`). Una clave que coincide se informa como ignorada en lugar de omitirse. `unused` no acepta ningún otro campo.
 
 Las claves desconocidas dentro del bloque se rechazan, igual que en el nivel superior.
 
