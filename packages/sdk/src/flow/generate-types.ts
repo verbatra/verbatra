@@ -51,7 +51,8 @@ export interface GenerateTypesInput {
    * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
    * for its configuration, or the {@link GenerateTypesInput.configPath} file. Names are compared
    * case-insensitively. A generating run also refuses to replace an existing file there unless
-   * that file begins with the header line verbatra writes.
+   * that file begins with the header line verbatra writes, after any leading byte order mark and
+   * blank lines, and refuses one too large to verify.
    */
   readonly out?: string;
   /**
@@ -325,9 +326,9 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
  * placeholder tokens the adapter extracted, except for the ICU message formats (`next-intl-json`
  * and `arb`): there each message is analysed with the same ICU parser the adapter uses, so an
- * argument that only some `select` or `plural` branches use is still declared, as optional. Keys are emitted as quoted string literals, so a key
- * carrying a dot, a reserved word, a leading digit, a quote, or nothing at all is declared
- * verbatim rather than dropped or re-split.
+ * argument that only some `select` or `plural` branches use is still declared, as optional. Keys
+ * are emitted as quoted string literals, so a key carrying a dot, a reserved word, a leading digit,
+ * a quote, or nothing at all is declared verbatim rather than dropped or re-split.
  *
  * What it will not claim is as important as what it will. A message whose placeholders name their
  * arguments gets an object shape; one whose placeholders are numbered or anonymous gets a readonly
@@ -359,7 +360,8 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined.
- * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same
+ * path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  */
