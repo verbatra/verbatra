@@ -192,8 +192,8 @@ describe("importTmx lands units in the translation memory", () => {
   it("counts a filtered locale on a unit whose source segments conflict", async () => {
     const dir = await project([
       tu([
-        ["en", "Color"],
         ["en-US", "Color"],
+        ["en-GB", "Colour"],
         ["de", "Farbe"],
         ["fr", "Couleur"],
       ]),
@@ -388,12 +388,65 @@ describe("importTmx never lets one segment stand in for two locales", () => {
     expect(bucket(memory, config, "de")).toEqual({ [entryHash("SOURCE-pt")]: "TARGET-de" });
   });
 
-  it("refuses a unit whose two segments both resolve to the source locale", async () => {
+  it("does not refuse a unit whose exact and prefix source segments carry the same value", async () => {
     const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
     const dir = await project([
       tu([
+        ["en", "Save"],
+        ["en-US", "Save"],
+        ["de", "Speichern"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.conflictingSourceUnits).toBe(0);
+    expect(result.locales[0]?.added).toBe(1);
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({
+      [entryHash("Save")]: "Speichern",
+    });
+  });
+
+  it("takes the exact source segment over a prefix one carrying a different value", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en-GB", "Colour"],
         ["en", "Color"],
+        ["de", "Farbe"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.conflictingSourceUnits).toBe(0);
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({
+      [entryHash("Color")]: "Farbe",
+    });
+  });
+
+  it("does not refuse a unit whose two prefix source segments carry the same value", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en-US", "Save"],
+        ["en-GB", "Save"],
+        ["de", "Speichern"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.conflictingSourceUnits).toBe(0);
+    expect(result.locales[0]?.added).toBe(1);
+  });
+
+  it("refuses a unit whose two equal-ranked source segments carry different values", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
         ["en-US", "Color"],
+        ["en-GB", "Colour"],
         ["de", "Farbe"],
       ]),
     ]);

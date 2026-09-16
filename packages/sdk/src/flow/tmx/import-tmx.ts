@@ -102,9 +102,11 @@ export interface ImportTmxResult {
   /** Units carrying no segment in the configured source locale, so nothing could be keyed. */
   readonly unmatchedSourceUnits: number;
   /**
-   * Units carrying two or more segments that both resolve to the configured source locale, such as
-   * a `en` and a `en-US` segment in a project configured for `en`. Which one the translations belong
-   * to cannot be known, so the unit is refused rather than attributed to whichever came last.
+   * Units carrying two segments of equal standing that resolve to the configured source locale with
+   * different values, such as an `en-US` "Color" and an `en-GB` "Colour" segment in a project
+   * configured for `en`. An exact tag outranks a prefix match and identical values agree, so neither
+   * counts here. Which value the translations belong to cannot be known, so the unit is refused
+   * rather than attributed to whichever came last.
    */
   readonly conflictingSourceUnits: number;
   /** Units whose segments carried inline markup, which is flattened to its text. */
@@ -243,13 +245,13 @@ class LanguageCensus {
   }
 }
 
-interface TargetPick {
+interface SegmentPick {
   readonly text: string;
   readonly exact: boolean;
   readonly conflicted: boolean;
 }
 
-function pickTarget(current: TargetPick | undefined, text: string, exact: boolean): TargetPick {
+function pickSegment(current: SegmentPick | undefined, text: string, exact: boolean): SegmentPick {
   if (current === undefined || (exact && !current.exact)) {
     return { text, exact, conflicted: false };
   }
@@ -263,10 +265,10 @@ type UnitPlan =
   | {
       readonly kind: "ok";
       readonly sourceText: string;
-      readonly targets: ReadonlyMap<string, TargetPick>;
+      readonly targets: ReadonlyMap<string, SegmentPick>;
     }
   | { readonly kind: "no-source" }
-  | { readonly kind: "conflicting-source"; readonly targets: ReadonlyMap<string, TargetPick> };
+  | { readonly kind: "conflicting-source"; readonly targets: ReadonlyMap<string, SegmentPick> };
 
 function planUnit(
   unit: TmxUnit,
@@ -275,26 +277,24 @@ function planUnit(
   census: LanguageCensus,
 ): UnitPlan {
   const universe = [sourceLocale, ...configuredTargets];
-  const targets = new Map<string, TargetPick>();
-  let sourceText: string | undefined;
-  let sourceSegments = 0;
+  const targets = new Map<string, SegmentPick>();
+  let source: SegmentPick | undefined;
   for (const segment of unit.segments) {
     const match = matchLanguageTag(segment.language, universe);
     if (match.kind !== "matched") {
       census.record(segment.language, match.kind);
-      continue;
+    } else if (match.locale === sourceLocale) {
+      source = pickSegment(source, segment.text, match.exact);
+    } else {
+      targets.set(match.locale, pickSegment(targets.get(match.locale), segment.text, match.exact));
     }
-    if (match.locale === sourceLocale) {
-      sourceSegments += 1;
-      sourceText = segment.text;
-      continue;
-    }
-    targets.set(match.locale, pickTarget(targets.get(match.locale), segment.text, match.exact));
   }
-  if (sourceSegments > 1) {
-    return { kind: "conflicting-source", targets };
+  if (source === undefined) {
+    return { kind: "no-source" };
   }
-  return sourceText === undefined ? { kind: "no-source" } : { kind: "ok", sourceText, targets };
+  return source.conflicted
+    ? { kind: "conflicting-source", targets }
+    : { kind: "ok", sourceText: source.text, targets };
 }
 
 type Decision = "duplicates" | "unchanged" | "kept" | "added" | "overwritten";

@@ -326,11 +326,11 @@ describe("locale resolution never attributes a translation to the wrong source t
     expect(await storedFor(dir, config, "en-GB")).toEqual([]);
   });
 
-  it("refuses the whole unit when two segments both resolve to the source locale", async () => {
+  it("refuses the whole unit when two equal-ranked segments both resolve to the source locale", async () => {
     const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
     const dir = await project([
       tu([
-        ["en", "Color"],
+        ["en-US", "Color"],
         ["en-GB", "Colour"],
         ["de", "Farbe"],
       ]),

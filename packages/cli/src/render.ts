@@ -465,7 +465,7 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   }
   if (result.conflictingSourceUnits > 0) {
     notes.push(
-      `  ${result.conflictingSourceUnits} units carried two segments that both resolve to the source locale, and were refused`,
+      `  ${result.conflictingSourceUnits} units carried source-locale segments of equal standing with different values, and were refused`,
     );
   }
   if (result.unreachableUnits > 0) {
