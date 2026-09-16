@@ -64,6 +64,15 @@ untracked placeholder, and the `usage.summary` agent tool's description now says
 figure came from rather than implying the provider reported it. A run with no `maxTokens` configured is unchanged: no projection is computed
 and no summary field moves.
 
+Because `supported: false` used to mean that nothing was counted at all, the run-status snapshot
+in `.verbatra-local/run-status.json` moves to version 2. A version 1 snapshot is still read, but a
+budget it recorded with `supported: false` is dropped rather than presented as a count of zero, so
+Studio and the `usage.summary` agent tool no longer show an older DeepL or Google Cloud Translation
+run as within budget. An older Studio or MCP server reads a version 2 snapshot as unavailable
+instead of calling an enforced budget untracked. The `usage.summary` description also says that a
+run which sent no request at all reports `supported: false` with nothing counted, which is no
+estimate.
+
 The refusal to combine `maxTokens` with `--concurrency` above 1 on a live run is deliberately kept.
 The reservation is taken synchronously, so the ceiling would hold across concurrent locales, but
 which locale loses its remaining work would depend on the order the locales interleave. That reason

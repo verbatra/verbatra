@@ -251,6 +251,12 @@ no una línea base de corrección.
 Entrada: `{ cwd? }`. No necesita configuración. Devuelve `{ available: false }` o
 `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
+Una instantánea escrita por una versión anterior a que el presupuesto de tokens se hiciera cumplir se
+sigue leyendo, pero su `budget` se omite cuando indica `supported: false`: entonces eso significaba
+que no se contaba nada, así que su `tokensUsed: 0` no es un recuento. Las instantáneas que se escriben
+ahora llevan una `version` más nueva, que un Studio o un servidor de agentes más antiguo informa como
+`{ available: false }` en lugar de malinterpretar su presupuesto.
+
 ## Operaciones de una sola clave
 
 Estos son los puntos de integración que usa Verbatra Studio; úsalos para construir tu propia herramienta

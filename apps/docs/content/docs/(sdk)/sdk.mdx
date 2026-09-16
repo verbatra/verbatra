@@ -250,6 +250,11 @@ correctness baseline.
 Input: `{ cwd? }`. No config needed. Returns `{ available: false }` or
 `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
+A snapshot written by a release from before the token budget was enforced is still read, but its
+`budget` is left out when it says `supported: false`: back then that meant nothing was counted, so
+its `tokensUsed: 0` is not a count. Snapshots written now carry a newer `version`, which an older
+Studio or agent server reports as `{ available: false }` instead of misreading their budget.
+
 ## Single-key operations
 
 These are the seams Verbatra Studio drives; use them to build your own review tooling. All three
