@@ -35,9 +35,15 @@ La comparación sigue una única regla, aplicada por igual al origen y a la trad
 - Los valores se comparan tras la normalización Unicode NFC, convertir `\r\n` en `\n` y recortar los espacios del principio y del final, así que `"Save "` y `"Save"` cuentan como la misma cadena. Los espacios dentro del valor y las mayúsculas sí cuentan.
 - Solo se comparan las claves al día. Una clave que falta aún no tiene traducción, y la traducción de una clave obsoleta pertenece a un texto de origen anterior, que `check` ya informa.
 - Las claves nunca se agrupan si difieren en descripción, significado, marca de plural o `msgctxt` de gettext, porque esos metadatos existen precisamente para permitir otra traducción.
+- Las formas plurales se comparan forma por forma. Un formato que guarda cada forma bajo su propia clave (i18next, Apple `.stringsdict` y `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`) nunca agrupa entre sí las formas `one` y `other` de una misma clave, aunque su texto de origen sea idéntico; la misma forma bajo claves distintas se sigue comparando.
 - Una traducción idéntica a su propio origen no es un hallazgo aquí; una ejecución de traducción ya la marca para revisión como `EQUALS_SOURCE`.
 
-Los grupos se ordenan por cadena de origen, las traducciones por valor y las claves por nombre, así que el mismo catálogo produce siempre el mismo informe. Con `--json`, cada locale en `result.locales` lleva un array `inconsistencies` de `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; sin el flag el campo no aparece.
+Los grupos se ordenan por cadena de origen, las traducciones por valor y las claves por nombre, así que el mismo catálogo produce siempre el mismo informe. Con `--json`, cada locale en `result.locales` lleva un array `inconsistencies` de `{ source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }`; sin el flag el campo no aparece.
+
+### Limitaciones conocidas
+
+- Las variantes de contexto de i18next se informan. i18next codifica un contexto como sufijo de la clave (`invite_male`, `invite_female`), que no se distingue de una clave snake_case normal, así que dos variantes de contexto con el mismo texto de origen pero traducidas de forma distinta aparecen como hallazgo. Si tu formato lo permite, dales una descripción o un significado distintos para que nunca se agrupen; si no, ignora el hallazgo.
+- Las entradas de gettext marcadas con `#, fuzzy` cuentan como traducciones. El adaptador de gettext no conserva la marca fuzzy, así que un `msgstr` aproximado se compara como uno revisado y puede aparecer en un hallazgo. Revisa o limpia las entradas fuzzy antes de fiarte del informe.
 
 ## Ejemplos
 

@@ -35,9 +35,15 @@ The comparison follows one rule, applied to source and translation alike:
 - Values are compared after Unicode NFC normalization, folding `\r\n` to `\n`, and trimming leading and trailing whitespace, so `"Save "` and `"Save"` count as the same string. Whitespace inside the value and letter case do count.
 - Only up-to-date keys are compared. A missing key has no translation yet, and a stale key's translation belongs to an older source text, which `check` already reports.
 - Keys are never grouped when their description, meaning, plural flag, or gettext `msgctxt` differ, because that metadata exists to allow a different translation.
+- Plural forms are compared per form. A format that stores each form under its own key (i18next, Apple `.stringsdict` and `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`) never groups the `one` and `other` forms of one key with each other, even when their source text is identical; the same form under different keys is still compared.
 - A translation identical to its own source is not a finding here; a translate run already flags that for review as `EQUALS_SOURCE`.
 
-Groups are sorted by source string, translations by value, and keys by name, so the same catalog always produces the same report. With `--json`, each locale in `result.locales` carries an `inconsistencies` array of `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; without the flag the field is absent.
+Groups are sorted by source string, translations by value, and keys by name, so the same catalog always produces the same report. With `--json`, each locale in `result.locales` carries an `inconsistencies` array of `{ source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }`; without the flag the field is absent.
+
+### Known limitations
+
+- i18next context variants are reported. i18next encodes a context as a key suffix (`invite_male`, `invite_female`), which cannot be told apart from an ordinary snake_case key, so two context variants that share a source text but are translated differently show up as a finding. Where your format supports it, give them a differing description or meaning so they are never grouped; otherwise ignore the finding.
+- gettext entries marked `#, fuzzy` count as translations. The gettext adapter does not keep the fuzzy flag, so a fuzzy `msgstr` is compared like a reviewed one and can show up in a finding. Review or clear fuzzy entries before you rely on the report.
 
 ## Examples
 

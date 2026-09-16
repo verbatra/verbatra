@@ -208,10 +208,11 @@ exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 Con `consistency: true`, cada `LocaleCheckSummary` lleva además `inconsistencies`: un
 `InconsistencyGroup` por cada cadena de origen que el locale traduce de más de una forma bajo claves
 distintas, con el `source`, cada traducción distinta como `{ value, keys }` y el `context`, la
-`description`, el `meaning` e `isPlural` que comparten las claves agrupadas. Solo se comparan las
-claves al día, los valores se comparan tras la normalización NFC y sin los espacios del principio y
-del final, y las claves con distinta descripción, significado, marca de plural o `msgctxt` de
-gettext nunca se agrupan. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
+`description`, el `meaning`, `isPlural` y `pluralForm` que comparten las claves agrupadas. Solo se
+comparan las claves al día, los valores se comparan tras la normalización NFC y sin los espacios
+del principio y del final, las claves con distinta descripción, significado, marca de plural o
+`msgctxt` de gettext nunca se agrupan, y las formas plurales guardadas bajo su propia clave se
+comparan forma por forma. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
 no llama a ningún proveedor.
 
 ### diff

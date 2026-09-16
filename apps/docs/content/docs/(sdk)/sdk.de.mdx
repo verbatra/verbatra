@@ -213,10 +213,11 @@ genau dann true ist, wenn jedes geprüfte Locale nichts Fehlendes und nichts Ver
 Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsistencies`: eine
 `InconsistencyGroup` pro Quellstring, den das Locale unter verschiedenen Keys unterschiedlich
 übersetzt, mit der `source`, jeder abweichenden Übersetzung als `{ value, keys }` sowie dem
-`context`, der `description`, der `meaning` und `isPlural`, die die gruppierten Keys teilen.
-Verglichen werden nur aktuelle Keys, Werte nach NFC-Normalisierung und ohne Leerraum am Anfang und
-Ende, und Keys mit abweichender Beschreibung, Bedeutung, Plural-Kennzeichen oder gettext-`msgctxt`
-werden nie gruppiert. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei
+`context`, der `description`, der `meaning`, `isPlural` und `pluralForm`, die die gruppierten Keys
+teilen. Verglichen werden nur aktuelle Keys, Werte nach NFC-Normalisierung und ohne Leerraum am
+Anfang und Ende, Keys mit abweichender Beschreibung, Bedeutung, Plural-Kennzeichen oder
+gettext-`msgctxt` werden nie gruppiert, und Pluralformen unter eigenen Keys werden pro Form
+verglichen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei
 und ruft keinen Provider auf.
 
 ### diff

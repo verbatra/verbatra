@@ -35,9 +35,15 @@ Der Vergleich folgt einer Regel, für Quelle und Übersetzung gleichermaßen:
 - Werte werden nach Unicode-NFC-Normalisierung, dem Umwandeln von `\r\n` in `\n` und dem Entfernen von Leerraum am Anfang und Ende verglichen, `"Save "` und `"Save"` gelten also als derselbe String. Leerraum innerhalb des Werts und Groß- und Kleinschreibung zählen.
 - Verglichen werden nur aktuelle Keys. Ein fehlender Key hat noch keine Übersetzung, und die Übersetzung eines veralteten Keys gehört zu einem älteren Quelltext, den `check` ohnehin meldet.
 - Keys werden nie gruppiert, wenn sich Beschreibung, Bedeutung, Plural-Kennzeichen oder gettext-`msgctxt` unterscheiden, denn diese Metadaten sind genau dafür da, eine andere Übersetzung zu erlauben.
+- Pluralformen werden pro Form verglichen. Ein Format, das jede Form unter einem eigenen Key ablegt (i18next, Apple `.stringsdict` und `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`), gruppiert die Formen `one` und `other` eines Keys nie miteinander, auch wenn ihr Quelltext identisch ist; dieselbe Form unter verschiedenen Keys wird weiterhin verglichen.
 - Eine Übersetzung, die mit ihrer eigenen Quelle identisch ist, ist hier kein Fund; ein Übersetzungslauf markiert das bereits als `EQUALS_SOURCE` zur Prüfung.
 
-Gruppen sind nach Quellstring sortiert, Übersetzungen nach Wert und Keys nach Namen, derselbe Katalog ergibt also immer denselben Bericht. Mit `--json` trägt jedes Locale in `result.locales` ein Array `inconsistencies` aus `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; ohne das Flag fehlt das Feld.
+Gruppen sind nach Quellstring sortiert, Übersetzungen nach Wert und Keys nach Namen, derselbe Katalog ergibt also immer denselben Bericht. Mit `--json` trägt jedes Locale in `result.locales` ein Array `inconsistencies` aus `{ source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }`; ohne das Flag fehlt das Feld.
+
+### Bekannte Einschränkungen
+
+- i18next-Kontextvarianten werden gemeldet. i18next kodiert einen Kontext als Key-Suffix (`invite_male`, `invite_female`), das sich nicht von einem gewöhnlichen snake_case-Key unterscheiden lässt. Zwei Kontextvarianten mit gleichem Quelltext, aber unterschiedlicher Übersetzung erscheinen deshalb als Fund. Wenn dein Format es unterstützt, gib ihnen eine abweichende Beschreibung oder Bedeutung, dann werden sie nie gruppiert; andernfalls ignoriere den Fund.
+- gettext-Einträge mit `#, fuzzy` zählen als Übersetzungen. Der gettext-Adapter übernimmt das Fuzzy-Flag nicht, deshalb wird ein unscharfer `msgstr` wie ein geprüfter verglichen und kann in einem Fund auftauchen. Prüfe oder bereinige Fuzzy-Einträge, bevor du dich auf den Bericht verlässt.
 
 ## Beispiele
 

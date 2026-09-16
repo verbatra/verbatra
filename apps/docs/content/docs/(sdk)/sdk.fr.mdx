@@ -137,7 +137,7 @@ Entrée : `{ config, cwd?, locales?, consistency? }`. Renvoie un `CheckSummary` 
 
 <AvailableFrom version="0.11.0" />
 
-Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistencies` : un `InconsistencyGroup` par chaîne source que la locale traduit de plusieurs façons sous des clés différentes, avec la `source`, chaque traduction distincte sous forme `{ value, keys }` et le `context`, la `description`, le `meaning` et `isPlural` que partagent les clés regroupées. Seules les clés à jour sont comparées, les valeurs sont comparées après normalisation NFC et sans les espaces de début et de fin, et les clés dont la description, le sens, la marque de pluriel ou le `msgctxt` gettext diffèrent ne sont jamais regroupées. Ce n'est qu'un rapport : il ne change jamais `inSync`, un compte ou un fichier, et n'appelle aucun fournisseur.
+Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistencies` : un `InconsistencyGroup` par chaîne source que la locale traduit de plusieurs façons sous des clés différentes, avec la `source`, chaque traduction distincte sous forme `{ value, keys }` et le `context`, la `description`, le `meaning`, `isPlural` et `pluralForm` que partagent les clés regroupées. Seules les clés à jour sont comparées, les valeurs sont comparées après normalisation NFC et sans les espaces de début et de fin, les clés dont la description, le sens, la marque de pluriel ou le `msgctxt` gettext diffèrent ne sont jamais regroupées, et les formes plurielles rangées sous leur propre clé sont comparées forme par forme. Ce n'est qu'un rapport : il ne change jamais `inSync`, un compte ou un fichier, et n'appelle aucun fournisseur.
 
 ### diff
 
