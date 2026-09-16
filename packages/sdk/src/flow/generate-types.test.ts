@@ -413,6 +413,39 @@ describe("generateTypes: refusals", () => {
     ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
   });
 
+  it.each([
+    "Verbatra.Lock.json",
+    "VERBATRA.CACHE.json",
+    "Verbatra.Config.ts",
+    "VERBATRA.config.ts",
+    ".VerbatraRC.ts",
+    "Package.json",
+  ])("refuses %s, whose spelling differs only in case from a reserved file", async (name) => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: name }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+  });
+
+  it("leaves a config file whose spelling differs only in case untouched", async () => {
+    const dir = await seed({ title: "Verbatra" });
+    await writeFile(join(dir, "verbatra.config.ts"), "ORIGINAL CONFIG BYTES\n");
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "Verbatra.Config.ts" }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+    expect(await readTextFile(join(dir, "verbatra.config.ts"))).toBe("ORIGINAL CONFIG BYTES\n");
+  });
+
+  it("accepts a TypeScript extension spelled in upper case", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    const result = await generateTypes({ config: baseConfig(), cwd: dir, out: "Messages.D.TS" });
+
+    expect(result.path).toBe(join(dir, "Messages.D.TS"));
+  });
+
   it("refuses an output path that is not a TypeScript file at all", async () => {
     const dir = await seed({ title: "Verbatra" });
 

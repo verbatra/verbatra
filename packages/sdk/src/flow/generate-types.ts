@@ -100,13 +100,16 @@ function reservedPaths(
   resolver: LocalePathResolver,
 ): Map<string, string> {
   const reserved = new Map<string, string>();
+  const claim = (path: string, what: string): void => {
+    reserved.set(path.toLowerCase(), what);
+  };
   for (const locale of [config.sourceLocale, ...config.targetLocales]) {
-    reserved.set(resolver.pathFor(locale), `the locale file for "${locale}"`);
+    claim(resolver.pathFor(locale), `the locale file for "${locale}"`);
   }
-  reserved.set(resolve(cwd, LOCK_FILE_NAME), "the lock file, which holds the translation baseline");
-  reserved.set(resolve(cwd, CACHE_FILE_NAME), "the translation-memory cache");
+  claim(resolve(cwd, LOCK_FILE_NAME), "the lock file, which holds the translation baseline");
+  claim(resolve(cwd, CACHE_FILE_NAME), "the translation-memory cache");
   for (const place of CONFIG_SEARCH_PLACES) {
-    reserved.set(resolve(cwd, place), "a file verbatra loads its configuration from");
+    claim(resolve(cwd, place), "a file verbatra loads its configuration from");
   }
   return reserved;
 }
@@ -127,11 +130,12 @@ function resolveOutputPath(
   if (escapesWorkingDirectory(relative(cwd, outputPath))) {
     refuseOutput(requested, "is not inside the working directory.");
   }
-  const claimed = reserved.get(outputPath);
+  const claimed = reserved.get(outputPath.toLowerCase());
   if (claimed !== undefined) {
     refuseOutput(requested, `is ${claimed}.`);
   }
-  if (!TYPESCRIPT_EXTENSIONS.some((extension) => basename(requested).endsWith(extension))) {
+  const name = basename(requested).toLowerCase();
+  if (!TYPESCRIPT_EXTENSIONS.some((extension) => name.endsWith(extension))) {
     refuseOutput(requested, `is not a TypeScript file (${TYPESCRIPT_EXTENSIONS.join(", ")}).`);
   }
   return outputPath;

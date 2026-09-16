@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -155,6 +155,26 @@ describe("types (no provider, no key)", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toContain("TYPES_OUTPUT_CONFLICT");
+  });
+
+  it.each([
+    ["verbatra.lock.json", "the lock file"],
+    ["verbatra.cache.json", "the translation-memory cache"],
+    ["verbatra.config.ts", "a config file"],
+    ["Verbatra.Config.ts", "a config file spelled in another case"],
+    ["notes.txt", "a path that is not TypeScript at all"],
+  ])("refuses to write the declaration over %s", async (out) => {
+    const dir = await seedProject(`types-reserved-${out.replace(/[^a-z0-9]/gi, "-")}`);
+    const target = join(dir, out);
+    await writeFile(target, "ORIGINAL BYTES\n", "utf8");
+
+    const result = await runVerbatra(consumer, ["types", "--json", "--out", out, "--cwd", dir], {
+      env: NO_PROVIDER_KEYS,
+    });
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("TYPES_OUTPUT_CONFLICT");
+    expect(await readFile(target, "utf8")).toBe("ORIGINAL BYTES\n");
   });
 
   it("refuses to write the declaration over a configured locale file", async () => {

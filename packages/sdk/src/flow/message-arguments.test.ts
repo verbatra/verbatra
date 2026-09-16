@@ -268,6 +268,27 @@ describe("describeMessageArguments: an index a catalog must not be trusted with"
     });
   });
 
+  it("keeps the lowest printf position a message may legitimately name", () => {
+    expect(describeMessageArguments(["%1$@"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it("refuses a printf position below the first one rather than dropping it", () => {
+    expect(describeMessageArguments(["%0$@"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
+  it("refuses the whole message when a below-range position sits beside a valid one", () => {
+    expect(describeMessageArguments(["%0$@", "%1$@"])).toEqual({
+      style: "unresolved",
+      reason: "argument-index-out-of-range",
+    });
+  });
+
   it("refuses an out-of-range printf position the same way", () => {
     expect(describeMessageArguments(["%999999$d"])).toEqual({
       style: "unresolved",
@@ -302,6 +323,38 @@ describe("describeMessageArguments: one position mentioned twice", () => {
     expect(describeMessageArguments(["{0}", "{0,number}"])).toEqual({
       style: "positional",
       positional: ["unknown"],
+    });
+  });
+});
+
+describe("tokens the classifier deliberately ignores", () => {
+  it.each([
+    ["a bare percent sign", "%"],
+    ["a percent followed by two letters", "%ab"],
+    ["a gettext-shaped token with no conversion letter", "%(name)"],
+  ])("ignores %s rather than inventing an argument", (_label, token) => {
+    expect(describeMessageArguments([token])).toEqual({ style: "none" });
+  });
+
+  it("still reads a single unknown conversion character as one anonymous argument", () => {
+    expect(describeMessageArguments(["%$"])).toEqual({
+      style: "positional",
+      positional: ["unknown"],
+    });
+  });
+
+  it.each([
+    ["a token with no delimiter at all", "name"],
+    ["an unclosed brace", "{name"],
+    ["a lone closing brace", "name}"],
+  ])("ignores %s", (_label, token) => {
+    expect(describeMessageArguments([token])).toEqual({ style: "none" });
+  });
+
+  it("ignores an unrecognised token without discarding a recognised sibling", () => {
+    expect(describeMessageArguments(["%", "{{name}}", "stray"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
     });
   });
 });

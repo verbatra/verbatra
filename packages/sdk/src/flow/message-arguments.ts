@@ -163,7 +163,8 @@ function namedArguments(tokens: readonly ClassifiedToken[]): MessageArguments {
 
 function indexOutOfRange(tokens: readonly ClassifiedToken[]): boolean {
   return tokens.some(
-    (token) => token.kind === "indexed" && token.index >= MAX_POSITIONAL_ARGUMENTS,
+    (token) =>
+      token.kind === "indexed" && (token.index < 0 || token.index >= MAX_POSITIONAL_ARGUMENTS),
   );
 }
 

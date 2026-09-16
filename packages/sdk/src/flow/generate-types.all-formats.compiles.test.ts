@@ -182,7 +182,7 @@ const TSCONFIG = {
     module: "NodeNext",
     moduleResolution: "NodeNext",
     noEmit: true,
-    skipLibCheck: true,
+    skipLibCheck: false,
     types: [],
   },
   files: [...SUPPORTED_FORMATS.map((format) => `${format}/usage.ts`), `${CONTROL}/usage.ts`],

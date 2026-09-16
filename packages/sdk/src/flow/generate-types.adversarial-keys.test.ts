@@ -51,7 +51,7 @@ const TSCONFIG = {
     module: "NodeNext",
     moduleResolution: "NodeNext",
     noEmit: true,
-    skipLibCheck: true,
+    skipLibCheck: false,
     types: [],
   },
   files: ["usage.ts"],
