@@ -326,12 +326,11 @@ function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
   }
   return [
     ...scan.findings.map(
-      (finding) =>
-        `    ${finding.file}:${finding.line}:${finding.column}  ${JSON.stringify(finding.text)}`,
+      (finding) => `    ${finding.file}:${finding.line}:${finding.column}  ${quoted(finding.text)}`,
     ),
     ...scan.suppressed.map(
       (entry) =>
-        `    suppressed (${entry.reason}) ${entry.file}:${entry.line}:${entry.column}  ${JSON.stringify(entry.text)}`,
+        `    suppressed (${entry.reason}) ${entry.file}:${entry.line}:${entry.column}  ${quoted(entry.text)}`,
     ),
     ...scan.diagnostics.map(
       (diagnostic) => `    not scanned (${diagnostic.reason}) ${diagnostic.file}`,

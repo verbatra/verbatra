@@ -284,6 +284,39 @@ describe("run doctor --literals", () => {
     expect(cap.out()).toContain("    not scanned (unparseable) src/broken.tsx");
   });
 
+  it("neutralizes control, bidi, and separator characters in the literal text it echoes back", async () => {
+    const hostile = "\u001b[31mred\u009b2J\u202eflip\u2028line";
+    const report = literalReport({
+      literals: {
+        scannedFiles: 1,
+        findings: [{ file: "src/app.tsx", line: 1, column: 1, text: hostile, truncated: false }],
+        suppressed: [
+          {
+            file: "src/app.tsx",
+            line: 2,
+            column: 1,
+            text: hostile,
+            truncated: false,
+            reason: "ignore-list",
+          },
+        ],
+        diagnostics: [],
+      },
+    });
+    const { deps } = recordingDeps({ doctor: async () => report });
+    const cap = captureStreams();
+
+    await run(["doctor", "--literals"], deps, cap.streams);
+
+    expect(cap.out()).toContain('    src/app.tsx:1:1  " [31mred 2J flip line"');
+    expect(cap.out()).toContain(
+      '    suppressed (ignore-list) src/app.tsx:2:1  " [31mred 2J flip line"',
+    );
+    for (const character of ["\u001b", "\u009b", "\u202e", "\u2028"]) {
+      expect(cap.out()).not.toContain(character);
+    }
+  });
+
   it("exits 0 and reports zero on a project with no findings", async () => {
     const clean = literalReport({
       ok: true,
