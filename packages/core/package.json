@@ -43,6 +43,7 @@
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "fast-check": "4.9.0",
+    "parse5": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
