@@ -34,7 +34,23 @@ function readAt(cursor: Cursor, index: number): string {
   return charAt(cursor, index - cursor.index);
 }
 
-function quoteEnd(cursor: Cursor, start: number): number {
+type TemplateFrame =
+  | { readonly kind: "template"; readonly start: number }
+  | { readonly kind: "expression"; depth: number };
+
+const knownTemplateEnds = new WeakMap<Cursor, Map<number, number>>();
+
+function templateEndsOf(cursor: Cursor): Map<number, number> {
+  const known = knownTemplateEnds.get(cursor);
+  if (known !== undefined) {
+    return known;
+  }
+  const created = new Map<number, number>();
+  knownTemplateEnds.set(cursor, created);
+  return created;
+}
+
+function stringEnd(cursor: Cursor, start: number): number {
   const quote = readAt(cursor, start);
   for (let index = start + 1; index < cursor.text.length; index += 1) {
     const char = readAt(cursor, index);
@@ -42,11 +58,85 @@ function quoteEnd(cursor: Cursor, start: number): number {
       index += 1;
     } else if (char === quote) {
       return index;
-    } else if (char === "\n" && quote !== "`") {
+    } else if (char === "\n") {
       return -1;
     }
   }
   return -1;
+}
+
+function stepTemplateText(
+  cursor: Cursor,
+  index: number,
+  frames: TemplateFrame[],
+  ends: Map<number, number>,
+): number {
+  const char = readAt(cursor, index);
+  if (char === "\\") {
+    return index + 1;
+  }
+  if (char === "$" && readAt(cursor, index + 1) === "{") {
+    frames.push({ kind: "expression", depth: 0 });
+    return index + 1;
+  }
+  const frame = frames[frames.length - 1];
+  if (char === "`" && frame?.kind === "template") {
+    frames.pop();
+    ends.set(frame.start, index);
+  }
+  return index;
+}
+
+function stepTemplateExpression(
+  cursor: Cursor,
+  index: number,
+  frames: TemplateFrame[],
+  ends: Map<number, number>,
+): number {
+  const char = readAt(cursor, index);
+  const frame = frames[frames.length - 1];
+  const known = char === "`" ? ends.get(index) : undefined;
+  if (known !== undefined) {
+    return known < 0 ? cursor.text.length : known;
+  }
+  if (char === "`") {
+    frames.push({ kind: "template", start: index });
+  } else if (char === '"' || char === "'") {
+    const end = stringEnd(cursor, index);
+    return end < 0 ? cursor.text.length : end;
+  } else if (frame?.kind === "expression" && char === "{") {
+    frame.depth += 1;
+  } else if (frame?.kind === "expression" && char === "}") {
+    frame.depth -= 1;
+    if (frame.depth < 0) {
+      frames.pop();
+    }
+  }
+  return index;
+}
+
+function templateEnd(cursor: Cursor, start: number): number {
+  const ends = templateEndsOf(cursor);
+  const known = ends.get(start);
+  if (known !== undefined) {
+    return known;
+  }
+  const frames: TemplateFrame[] = [{ kind: "template", start }];
+  for (let index = start + 1; index < cursor.text.length && frames.length > 0; index += 1) {
+    const step =
+      frames[frames.length - 1]?.kind === "template" ? stepTemplateText : stepTemplateExpression;
+    index = step(cursor, index, frames, ends);
+  }
+  for (const frame of frames) {
+    if (frame.kind === "template") {
+      ends.set(frame.start, -1);
+    }
+  }
+  return ends.get(start) ?? -1;
+}
+
+function quoteEnd(cursor: Cursor, start: number): number {
+  return readAt(cursor, start) === "`" ? templateEnd(cursor, start) : stringEnd(cursor, start);
 }
 
 function isCloser(cursor: Cursor, index: number, char: string): boolean {

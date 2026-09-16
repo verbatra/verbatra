@@ -126,6 +126,13 @@ describe("readMarkup", () => {
     ]);
   });
 
+  it("reads an element whose type arguments hold a template literal type with nested templates", () => {
+    const result = scan('x = <Foo<`a${`>`}`> x="1">Nested template copy</Foo>');
+
+    expect(result.unreadableMarkup).toBe(false);
+    expect(result.tokens.map(describeToken)).toContain("text:Nested template copy");
+  });
+
   it("reads an element used as an attribute value", () => {
     expect(shape('x = <Foo icon=<Bar /> label="x">Inner copy</Foo>')).toEqual([
       "ident:x",

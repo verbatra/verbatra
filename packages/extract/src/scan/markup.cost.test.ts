@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { describe, expect, it, vi } from "vitest";
 import { readMarkup } from "./markup.js";
 import { scanSource } from "./tokenize.js";
@@ -35,6 +36,8 @@ describe("readMarkup: cost on input that never closes type arguments", () => {
       "a closed tag with long type arguments",
       `(<Foo<{ ${"field: string; ".repeat(20)}}> x="1">Hi</Foo>);\n`,
     ],
+    ["unclosed type arguments holding nested template literal types", "(<Foo<`a${`>`}` | "],
+    ["a closed tag with a nested template literal type", '(<Foo<`a${`>`}`> x="1">Hi</Foo>);\n'],
     [
       "const type parameters with defaults",
       'const f = <const T extends object = { a: "b" }>(x: T) => x;\n',
