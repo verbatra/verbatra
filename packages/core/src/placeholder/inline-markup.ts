@@ -213,7 +213,7 @@ function isBracketedWord(tag: InlineTag): boolean {
 }
 
 function isProseWord(tag: InlineTag): boolean {
-  return !HTML_ELEMENT_NAMES.has(tag.name.toLowerCase());
+  return !tag.name.includes("-") && !HTML_ELEMENT_NAMES.has(tag.name.toLowerCase());
 }
 
 function splitBracketedWords(tags: readonly InlineTag[]): SplitTags {
