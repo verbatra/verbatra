@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareInlineMarkup } from "./inline-markup.js";
+import { compareInlineMarkup, inlineTagName } from "./inline-markup.js";
 
 describe("compareInlineMarkup: prose that merely contains an angle bracket is never markup", () => {
   it.each([
@@ -177,11 +177,20 @@ describe("compareInlineMarkup: self-closing and void elements", () => {
     expect(compareInlineMarkup("Line<br/>break", "Zeilen<br/>umbruch").matches).toBe(true);
   });
 
+  it("treats the two spellings of a void element as the same tag", () => {
+    expect(compareInlineMarkup("a<br/>b", "a<br>b")).toEqual({
+      matches: true,
+      missing: [],
+      extra: [],
+      malformed: false,
+    });
+  });
+
   it("treats a self-closing tag as distinct from the open tag of the same name", () => {
-    const result = compareInlineMarkup("a<br/>b", "a<br>b");
+    const result = compareInlineMarkup("a<icon/>b", "a<icon>b");
     expect(result.matches).toBe(false);
-    expect(result.missing).toEqual(["<br/>"]);
-    expect(result.extra).toEqual(["<br>"]);
+    expect(result.missing).toEqual(["<icon/>"]);
+    expect(result.extra).toEqual(["<icon>"]);
   });
 
   it("does not demand a closing tag for a void element", () => {
@@ -193,10 +202,22 @@ describe("compareInlineMarkup: self-closing and void elements", () => {
     });
   });
 
+  it("reads a void element case-insensitively, so an uppercase BR stays a void element", () => {
+    const result = compareInlineMarkup("<p>a<BR>b</p>", "<p>a b</p>");
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<BR>"]);
+  });
+
   it("reports a dropped self-closing tag", () => {
+    const result = compareInlineMarkup("a<icon/>b", "a b");
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<icon/>"]);
+  });
+
+  it("reports a dropped void element under its normalised spelling", () => {
     const result = compareInlineMarkup("a<br/>b", "a b");
     expect(result.matches).toBe(false);
-    expect(result.missing).toEqual(["<br/>"]);
+    expect(result.missing).toEqual(["<br>"]);
   });
 });
 
@@ -314,4 +335,144 @@ describe("compareInlineMarkup: the shape an angle-bracket run has to have to cou
   it("rejects a closing tag that carries anything but whitespace", () => {
     expect(compareInlineMarkup("<b>a</b junk>", "a").matches).toBe(true);
   });
+});
+
+describe("compareInlineMarkup: tags the caller's format already reports as placeholders", () => {
+  it("ignores every tag with an ignored name, on both sides", () => {
+    expect(
+      compareInlineMarkup("Read <b>the docs</b>", "Lies die Doku", { ignoreTagNames: ["b"] }),
+    ).toEqual({ matches: true, missing: [], extra: [], malformed: false });
+  });
+
+  it("still compares a tag the format does not report, beside one it does", () => {
+    const result = compareInlineMarkup(
+      "Read <b>the docs</b>.<br/>Then go.",
+      "Lies <b>die Doku</b>. Dann los.",
+      { ignoreTagNames: ["b"] },
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<br>"]);
+  });
+
+  it("does not let an ignored tag's own nesting decide whether the source is well formed", () => {
+    const result = compareInlineMarkup('Read <g id="1">the docs</g><br/>now', "Lies die Doku", {
+      ignoreTagNames: ["g"],
+    });
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["<br>"]);
+  });
+
+  it("ignores a name that appears in neither value without inventing a finding", () => {
+    expect(
+      compareInlineMarkup("<b>a</b>", "<b>a</b>", { ignoreTagNames: ["x", "g"] }).matches,
+    ).toBe(true);
+  });
+});
+
+describe("compareInlineMarkup: a value holding several plural arms", () => {
+  it("accepts a translation that needs more arms than the source has", () => {
+    expect(
+      compareInlineMarkup(
+        "<b>one</b> apple | <b>{count}</b> apples",
+        "<b>jedno</b> jablko | <b>{count}</b> jablka | <b>{count}</b> jablek | <b>{count}</b> jablka",
+        { pluralArms: true },
+      ),
+    ).toEqual({ matches: true, missing: [], extra: [], malformed: false });
+  });
+
+  it("still refuses a tag dropped from every arm", () => {
+    const result = compareInlineMarkup(
+      "<b>one</b> apple | <b>{count}</b> apples",
+      "jedno jablko | {count} jablka | {count} jablek",
+      { pluralArms: true },
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["</b>", "<b>"]);
+  });
+
+  it("still refuses a tag invented in one arm", () => {
+    const result = compareInlineMarkup(
+      "<b>one</b> apple | <b>{count}</b> apples",
+      "<b>jedno</b> jablko | <b>{count}</b> <i>jablka</i>",
+      { pluralArms: true },
+    );
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</i>", "<i>"]);
+  });
+
+  it("still refuses markup that comes back mis-nested", () => {
+    expect(
+      compareInlineMarkup("<b>one</b><i>x</i> | <b>two</b><i>y</i>", "<b>a<i>b</b></i>", {
+        pluralArms: true,
+      }).malformed,
+    ).toBe(true);
+  });
+
+  it("compares counts when the value is not a plural message", () => {
+    const result = compareInlineMarkup("<b>a</b> and <b>b</b>", "<b>a</b> und b");
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["</b>", "<b>"]);
+  });
+});
+
+describe("compareInlineMarkup: a reorder that nests a tag inside another of the same name", () => {
+  it("refuses two sibling anchors that come back nested", () => {
+    const result = compareInlineMarkup(
+      '<a href="/a">one</a> and <a href="/b">two</a>',
+      '<a href="/a">eins und <a href="/b">zwei</a></a>',
+    );
+    expect(result.matches).toBe(false);
+    expect(result.malformed).toBe(true);
+  });
+
+  it("refuses two sibling list items that come back nested", () => {
+    const result = compareInlineMarkup("<li>a</li><li>b</li>", "<li>a<li>b</li></li>");
+    expect(result.matches).toBe(false);
+    expect(result.malformed).toBe(true);
+  });
+
+  it("accepts same-name nesting the source already had", () => {
+    expect(
+      compareInlineMarkup(
+        "<span>outer <span>inner</span></span>",
+        "<span>aussen <span>innen</span></span>",
+      ).matches,
+    ).toBe(true);
+  });
+
+  it("still accepts an ordinary sibling reorder of the same tag", () => {
+    expect(
+      compareInlineMarkup(
+        '<a href="/a">one</a> and <a href="/b">two</a>',
+        '<a href="/b">zwei</a> und <a href="/a">eins</a>',
+      ).matches,
+    ).toBe(true);
+  });
+});
+
+describe("compareInlineMarkup: an angle bracket inside an attribute value", () => {
+  it("stands down rather than guessing, because the tag no longer parses", () => {
+    expect(compareInlineMarkup('<abbr title="a > b">x</abbr>', "voellig anders").matches).toBe(
+      true,
+    );
+  });
+});
+
+describe("inlineTagName", () => {
+  it.each([
+    ["<b>", "b"],
+    ["</b>", "b"],
+    ['<g id="1">', "g"],
+    ['<x id="2"/>', "x"],
+    ["<0>", "0"],
+  ])("reads %j as %j", (token, name) => {
+    expect(inlineTagName(token)).toBe(name);
+  });
+
+  it.each(["{count}", "%1$s", "$t(a.b)", "<not a tag", "<a>trailing", "", "<a><b>"])(
+    "reads no name from %j",
+    (token) => {
+      expect(inlineTagName(token)).toBeUndefined();
+    },
+  );
 });

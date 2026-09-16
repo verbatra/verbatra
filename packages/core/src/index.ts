@@ -22,6 +22,8 @@ export { type TranslationEntry, translationEntrySchema } from "./model/translati
 export {
   compareInlineMarkup,
   type InlineMarkupComparison,
+  type InlineMarkupOptions,
+  inlineTagName,
 } from "./placeholder/inline-markup.js";
 export { checkPlaceholders } from "./placeholder/integrity.js";
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";

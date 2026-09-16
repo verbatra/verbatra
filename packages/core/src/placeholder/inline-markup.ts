@@ -7,10 +7,20 @@ export interface InlineMarkupComparison {
   readonly malformed: boolean;
 }
 
+export interface InlineMarkupOptions {
+  readonly ignoreTagNames?: readonly string[];
+  readonly pluralArms?: boolean;
+}
+
 interface InlineTag {
   readonly token: string;
   readonly name: string;
   readonly kind: "open" | "close" | "self";
+}
+
+interface TagStructure {
+  readonly wellFormed: boolean;
+  readonly depths: ReadonlyMap<string, number>;
 }
 
 const MAX_TAGS = 256;
@@ -47,6 +57,17 @@ const MATCHED: InlineMarkupComparison = {
   malformed: false,
 };
 
+const MALFORMED: InlineMarkupComparison = {
+  matches: false,
+  missing: [],
+  extra: [],
+  malformed: true,
+};
+
+function isVoidElement(name: string): boolean {
+  return VOID_ELEMENTS.has(name.toLowerCase());
+}
+
 function attributeNames(chunk: string): readonly string[] | undefined {
   const names: string[] = [];
   ATTRIBUTE.lastIndex = 0;
@@ -66,7 +87,8 @@ function attributeNames(chunk: string): readonly string[] | undefined {
 
 function openTagToken(name: string, names: readonly string[], selfClosing: boolean): string {
   const attributes = names.length === 0 ? "" : ` ${[...names].sort().join(" ")}`;
-  return `<${name}${attributes}${selfClosing ? "/" : ""}>`;
+  const marker = selfClosing && !isVoidElement(name) ? "/" : "";
+  return `<${name}${attributes}${marker}>`;
 }
 
 function readTag(slash: string, name: string, chunk: string): InlineTag | undefined {
@@ -105,75 +127,129 @@ function scanInlineTags(value: string): readonly InlineTag[] | undefined {
   return tags;
 }
 
-function isWellFormed(tags: readonly InlineTag[]): boolean {
+function withoutIgnoredNames(
+  tags: readonly InlineTag[],
+  ignored: ReadonlySet<string>,
+): readonly InlineTag[] {
+  return ignored.size === 0 ? tags : tags.filter((tag) => !ignored.has(tag.name));
+}
+
+function recordDepth(depths: Map<string, number>, name: string, depth: number): void {
+  if (depth > (depths.get(name) ?? 0)) {
+    depths.set(name, depth);
+  }
+}
+
+function structureOf(tags: readonly InlineTag[]): TagStructure {
   const open: string[] = [];
+  const depths = new Map<string, number>();
   for (const tag of tags) {
-    if (tag.kind === "self" || VOID_ELEMENTS.has(tag.name.toLowerCase())) {
+    if (tag.kind === "self" || isVoidElement(tag.name)) {
       continue;
     }
     if (tag.kind === "open") {
       open.push(tag.name);
+      recordDepth(depths, tag.name, open.filter((name) => name === tag.name).length);
       continue;
     }
     if (open.pop() !== tag.name) {
+      return { wellFormed: false, depths };
+    }
+  }
+  return { wellFormed: open.length === 0, depths };
+}
+
+function sameDepths(a: ReadonlyMap<string, number>, b: ReadonlyMap<string, number>): boolean {
+  /* v8 ignore next 3 -- depths are only compared once the token multisets match, which forces the
+   * two maps to hold the same names; the size guard keeps the comparison correct without it. */
+  if (a.size !== b.size) {
+    return false;
+  }
+  for (const [name, depth] of a) {
+    if (b.get(name) !== depth) {
       return false;
     }
   }
-  return open.length === 0;
+  return true;
 }
 
 function tokensOf(tags: readonly InlineTag[]): readonly string[] {
   return tags.map((tag) => tag.token);
 }
 
+function presenceCounts(tokens: readonly string[]): Map<string, number> {
+  const counts = countTokens(tokens);
+  for (const token of counts.keys()) {
+    counts.set(token, 1);
+  }
+  return counts;
+}
+
 function compareScanned(
   sourceTags: readonly InlineTag[],
   translatedTags: readonly InlineTag[],
+  sourceStructure: TagStructure,
+  pluralArms: boolean,
 ): InlineMarkupComparison {
-  const sourceCounts = countTokens(tokensOf(sourceTags));
-  const translatedCounts = countTokens(tokensOf(translatedTags));
+  const count = pluralArms ? presenceCounts : countTokens;
+  const sourceCounts = count(tokensOf(sourceTags));
+  const translatedCounts = count(tokensOf(translatedTags));
   const missing = multisetExcess(sourceCounts, translatedCounts);
   const extra = multisetExcess(translatedCounts, sourceCounts);
   if (missing.length > 0 || extra.length > 0) {
     return { matches: false, missing, extra, malformed: false };
   }
-  if (!isWellFormed(translatedTags)) {
-    return { matches: false, missing: [], extra: [], malformed: true };
+  const translatedStructure = structureOf(translatedTags);
+  if (!translatedStructure.wellFormed) {
+    return MALFORMED;
   }
-  return MATCHED;
+  return sameDepths(sourceStructure.depths, translatedStructure.depths) ? MATCHED : MALFORMED;
 }
 
 function compareAgainstUnmarkedSource(
   translatedTags: readonly InlineTag[],
 ): InlineMarkupComparison {
-  if (translatedTags.length === 0 || !isWellFormed(translatedTags)) {
+  if (translatedTags.length === 0 || !structureOf(translatedTags).wellFormed) {
     return MATCHED;
   }
   return {
     matches: false,
     missing: [],
-    extra: multisetExcess(countTokens(tokensOf(translatedTags)), new Map()),
+    extra: [...tokensOf(translatedTags)].sort(),
     malformed: false,
   };
+}
+
+export function inlineTagName(token: string): string | undefined {
+  if (!token.startsWith("<") || !token.endsWith(">")) {
+    return undefined;
+  }
+  const tags = scanInlineTags(token);
+  return tags?.length === 1 ? tags[0]?.name : undefined;
 }
 
 export function compareInlineMarkup(
   sourceValue: string,
   translatedValue: string,
+  options: InlineMarkupOptions = {},
 ): InlineMarkupComparison {
   if (!sourceValue.includes("<") && !translatedValue.includes("<")) {
     return MATCHED;
   }
-  const sourceTags = scanInlineTags(sourceValue);
-  const translatedTags = scanInlineTags(translatedValue);
-  if (sourceTags === undefined || translatedTags === undefined) {
+  const scannedSource = scanInlineTags(sourceValue);
+  const scannedTranslated = scanInlineTags(translatedValue);
+  if (scannedSource === undefined || scannedTranslated === undefined) {
     return MATCHED;
   }
+  const ignored = new Set(options.ignoreTagNames ?? []);
+  const sourceTags = withoutIgnoredNames(scannedSource, ignored);
+  const translatedTags = withoutIgnoredNames(scannedTranslated, ignored);
   if (sourceTags.length === 0) {
     return compareAgainstUnmarkedSource(translatedTags);
   }
-  if (!isWellFormed(sourceTags)) {
+  const sourceStructure = structureOf(sourceTags);
+  if (!sourceStructure.wellFormed) {
     return MATCHED;
   }
-  return compareScanned(sourceTags, translatedTags);
+  return compareScanned(sourceTags, translatedTags, sourceStructure, options.pluralArms === true);
 }
