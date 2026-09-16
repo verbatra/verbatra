@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
-import { readTmx, type TmxUnit } from "@verbatra/exchange";
+import { DEFAULT_TMX_LIMITS, readTmx, type TmxUnit } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import {
@@ -16,9 +16,7 @@ import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
 import { selectLocales } from "../select-locales.js";
-import { matchLanguageTag } from "./locale-match.js";
-
-const MAX_TMX_FILE_BYTES = 32 * 1024 * 1024;
+import { matchLanguageTag, sameTag } from "./locale-match.js";
 
 /**
  * Why one translation unit in an imported TMX file was refused. The first four are the shared
@@ -72,8 +70,23 @@ export interface ImportTmxResult {
   readonly locales: readonly ImportTmxLocaleResult[];
   /** Units the reader could not use at all, such as a unit with no segment. */
   readonly skippedUnits: number;
+  /** `tu` elements outside the file's first `body`, which the reader never walked. */
+  readonly unreachableUnits: number;
+  /**
+   * The header's `srclang` when it does not resolve to the configured source locale, so a file
+   * exported from a project with a different source language is visible rather than silently
+   * yielding nothing. Undefined when it matches, when the header declares none, or when it is the
+   * TMX `*all*` wildcard, which declares that the source varies per unit.
+   */
+  readonly sourceLanguageMismatch: string | undefined;
   /** Units carrying no segment in the configured source locale, so nothing could be keyed. */
   readonly unmatchedSourceUnits: number;
+  /**
+   * Units carrying two or more segments that both resolve to the configured source locale, such as
+   * a `en` and a `en-US` segment in a project configured for `en`. Which one the translations belong
+   * to cannot be known, so the unit is refused rather than attributed to whichever came last.
+   */
+  readonly conflictingSourceUnits: number;
   /** Units whose segments carried inline markup, which is flattened to its text. */
   readonly markupStrippedUnits: number;
   /** Language tags that resolved to no configured locale, with how many units carried each. */
@@ -157,14 +170,14 @@ function sourceEntryFor(sourceText: string, adapter: FormatAdapter): Translation
 }
 
 async function readTmxText(path: string, fs: SdkFs): Promise<string> {
-  const read = await fs.readFileBounded(path, MAX_TMX_FILE_BYTES);
+  const read = await fs.readFileBounded(path, DEFAULT_TMX_LIMITS.maxInputBytes);
   if (read.kind === "missing") {
     throw new SdkError("SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
   }
   if (read.kind === "too-large") {
     throw new SdkError(
       "SOURCE_INVALID",
-      `The TMX file at ${path} exceeds the maximum allowed size of ${MAX_TMX_FILE_BYTES} bytes.`,
+      `The TMX file at ${path} exceeds the maximum allowed size of ${DEFAULT_TMX_LIMITS.maxInputBytes} bytes.`,
     );
   }
   return read.content;
@@ -195,32 +208,57 @@ class LanguageCensus {
   }
 }
 
-interface UnitPlan {
-  readonly sourceText: string | undefined;
-  readonly translations: ReadonlyMap<string, string>;
+type UnitPlan =
+  | {
+      readonly kind: "ok";
+      readonly sourceText: string;
+      readonly translations: ReadonlyMap<string, string>;
+    }
+  | { readonly kind: "no-source" }
+  | { readonly kind: "conflicting-source"; readonly translations: ReadonlyMap<string, string> };
+
+function assertDistinctLocales(sourceLocale: string, targetLocales: readonly string[]): void {
+  const collision = targetLocales.find(
+    (locale) =>
+      matchLanguageTag(locale, [sourceLocale]).kind === "matched" && sameTag(locale, sourceLocale),
+  );
+  if (collision !== undefined) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      `The target locale "${collision}" and the source locale "${sourceLocale}" are the same language tag once case and separators are normalized, so a TMX segment could not be attributed to either. Spell them differently or drop one.`,
+    );
+  }
 }
 
 function planUnit(
   unit: TmxUnit,
   sourceLocale: string,
-  targetLocales: readonly string[],
+  configuredTargets: readonly string[],
   census: LanguageCensus,
 ): UnitPlan {
-  let sourceText: string | undefined;
+  const universe = [sourceLocale, ...configuredTargets];
   const translations = new Map<string, string>();
+  let sourceText: string | undefined;
+  let sourceSegments = 0;
   for (const segment of unit.segments) {
-    if (matchLanguageTag(segment.language, [sourceLocale]).kind === "matched") {
+    const match = matchLanguageTag(segment.language, universe);
+    if (match.kind !== "matched") {
+      census.record(segment.language, match.kind);
+      continue;
+    }
+    if (match.locale === sourceLocale) {
+      sourceSegments += 1;
       sourceText = segment.text;
       continue;
     }
-    const match = matchLanguageTag(segment.language, targetLocales);
-    if (match.kind === "matched") {
-      translations.set(match.locale, segment.text);
-      continue;
-    }
-    census.record(segment.language, match.kind);
+    translations.set(match.locale, segment.text);
   }
-  return { sourceText, translations };
+  if (sourceSegments > 1) {
+    return { kind: "conflicting-source", translations };
+  }
+  return sourceText === undefined
+    ? { kind: "no-source" }
+    : { kind: "ok", sourceText, translations };
 }
 
 type Decision = "duplicates" | "unchanged" | "kept" | "added" | "overwritten";
@@ -270,20 +308,22 @@ function applyTranslation(
   const existing = ctx.memory.entries[ctx.fingerprint]?.[locale]?.[hash];
   const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
   tally[decision] += 1;
-  const fillsMissingSource =
-    decision === "unchanged" && ctx.memory.sources[hash] !== sourceEntry.value;
-  if (STAGED.has(decision) || fillsMissingSource) {
+  if (STAGED.has(decision)) {
     tally.additions[hash] = { contentHash: hash, value: candidate, source: sourceEntry.value };
   }
 }
 
 interface ScanTotals {
   readonly unmatchedSourceUnits: number;
+  readonly conflictingSourceUnits: number;
   readonly markupStrippedUnits: number;
 }
 
-function rejectBlankSource(plan: UnitPlan, tallies: ReadonlyMap<string, LocaleTally>): void {
-  for (const locale of plan.translations.keys()) {
+function rejectBlankSource(
+  translations: ReadonlyMap<string, string>,
+  tallies: ReadonlyMap<string, LocaleTally>,
+): void {
+  for (const locale of translations.keys()) {
     const tally = tallies.get(locale);
     if (tally !== undefined) {
       tally.rejected.sourceBlank += 1;
@@ -295,13 +335,13 @@ function importUnit(
   ctx: ApplyContext,
   plan: UnitPlan,
   tallies: ReadonlyMap<string, LocaleTally>,
-): boolean {
-  if (plan.sourceText === undefined) {
-    return false;
+): UnitPlan["kind"] {
+  if (plan.kind !== "ok") {
+    return plan.kind;
   }
   if (plan.sourceText.trim() === "") {
-    rejectBlankSource(plan, tallies);
-    return true;
+    rejectBlankSource(plan.translations, tallies);
+    return "ok";
   }
   const sourceEntry = sourceEntryFor(plan.sourceText, ctx.adapter);
   for (const [locale, candidate] of plan.translations) {
@@ -310,28 +350,51 @@ function importUnit(
       applyTranslation(ctx, tally, locale, sourceEntry, candidate);
     }
   }
-  return true;
+  return "ok";
 }
 
 function scanUnits(
   ctx: ApplyContext,
   units: readonly TmxUnit[],
   sourceLocale: string,
-  locales: readonly string[],
+  configuredTargets: readonly string[],
   census: LanguageCensus,
   tallies: ReadonlyMap<string, LocaleTally>,
 ): ScanTotals {
   let unmatchedSourceUnits = 0;
+  let conflictingSourceUnits = 0;
   let markupStrippedUnits = 0;
   for (const unit of units) {
     if (unit.markupStripped) {
       markupStrippedUnits += 1;
     }
-    if (!importUnit(ctx, planUnit(unit, sourceLocale, locales, census), tallies)) {
+    const outcome = importUnit(
+      ctx,
+      planUnit(unit, sourceLocale, configuredTargets, census),
+      tallies,
+    );
+    if (outcome === "no-source") {
       unmatchedSourceUnits += 1;
     }
+    if (outcome === "conflicting-source") {
+      conflictingSourceUnits += 1;
+    }
   }
-  return { unmatchedSourceUnits, markupStrippedUnits };
+  return { unmatchedSourceUnits, conflictingSourceUnits, markupStrippedUnits };
+}
+
+const SOURCE_LANGUAGE_WILDCARD = "*all*";
+
+function sourceLanguageMismatch(
+  declared: string | undefined,
+  config: VerbatraConfig,
+): string | undefined {
+  if (declared === undefined || declared.toLowerCase() === SOURCE_LANGUAGE_WILDCARD) {
+    return undefined;
+  }
+  const match = matchLanguageTag(declared, [config.sourceLocale, ...config.targetLocales]);
+  const matchesSource = match.kind === "matched" && match.locale === config.sourceLocale;
+  return matchesSource ? undefined : declared;
 }
 
 function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResult {
@@ -378,7 +441,17 @@ function additionsByLocale(
  * A collision is decided in favour of what the project already has: if the memory already holds a
  * different translation for the same source and locale, the imported one is refused and counted as
  * `kept` unless {@link ImportTmxInput.overwrite} is set. Importing the same file twice therefore
- * changes nothing the second time.
+ * changes nothing the second time, and writes no file at all.
+ *
+ * One consequence is worth stating plainly, because no import-time check can police it. An accepted
+ * unit's source text is written into the memory's source index, which is the same index fuzzy reuse
+ * scores a changed string against. An imported source that merely resembles a string in the project
+ * can therefore be served for that string by fuzzy reuse, even though the exact path would never
+ * match it: the exact path keys on a hash covering the description, meaning, and plural flag, none
+ * of which a TMX unit carries, while fuzzy reuse compares source text alone. Such a reuse is still
+ * held to the integrity gate against the real entry and is reported as a `FUZZY_CACHE_REUSE` review
+ * flag on the run summary, so it is visible rather than silent. A project that does not want an
+ * imported memory reachable that way should leave `fuzzyCache` out of its config.
  *
  * @param input - The config, the file path, and the dry-run, overwrite and locale-subset switches.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -405,6 +478,7 @@ export async function importTmx(
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, deps.fs);
+  assertDistinctLocales(input.config.sourceLocale, input.config.targetLocales);
   const locales = selectLocales(input.config, input.locales);
   const file = resolve(cwd, input.file);
   const document = parse(await readTmxText(file, fs), file);
@@ -419,7 +493,7 @@ export async function importTmx(
     ctx,
     document.units,
     input.config.sourceLocale,
-    locales,
+    input.config.targetLocales,
     census,
     tallies,
   );
@@ -438,10 +512,13 @@ export async function importTmx(
     dryRun,
     file,
     sourceLanguage: document.sourceLanguage,
+    sourceLanguageMismatch: sourceLanguageMismatch(document.sourceLanguage, input.config),
     units: document.units.length,
     locales: locales.map((locale) => toLocaleResult(locale, tallies.get(locale) ?? emptyTally())),
     skippedUnits: document.skipped.length,
+    unreachableUnits: document.unreachableUnits,
     unmatchedSourceUnits: totals.unmatchedSourceUnits,
+    conflictingSourceUnits: totals.conflictingSourceUnits,
     markupStrippedUnits: totals.markupStrippedUnits,
     unmatchedLanguages: census.report("unmatched"),
     ambiguousLanguages: census.report("ambiguous"),

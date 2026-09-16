@@ -254,6 +254,172 @@ describe("importTmx matches language tags by an explicit rule", () => {
   });
 });
 
+describe("importTmx never lets one segment stand in for two locales", () => {
+  it("does not swallow a regional target as the bare source locale", async () => {
+    const config = cfg({ sourceLocale: "pt", targetLocales: ["pt-BR", "de"] });
+    const dir = await project([
+      tu([
+        ["pt", "SOURCE-pt"],
+        ["pt-BR", "TARGET-ptBR"],
+        ["de", "TARGET-de"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    const memory = await memoryOf(dir);
+    expect(memory.sources).toEqual({ [entryHash("SOURCE-pt")]: "SOURCE-pt" });
+    expect(bucket(memory, config, "pt-BR")).toEqual({ [entryHash("SOURCE-pt")]: "TARGET-ptBR" });
+    expect(bucket(memory, config, "de")).toEqual({ [entryHash("SOURCE-pt")]: "TARGET-de" });
+    expect(result.locales.map((each) => [each.locale, each.added])).toEqual([
+      ["pt-BR", 1],
+      ["de", 1],
+    ]);
+  });
+
+  it("does the same for two regional variants of the bare source locale", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["en-GB", "de"] });
+    const dir = await project([
+      tu([
+        ["en", "Color"],
+        ["en-GB", "Colour"],
+        ["de", "Farbe"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    const memory = await memoryOf(dir);
+    expect(memory.sources).toEqual({ [entryHash("Color")]: "Color" });
+    expect(bucket(memory, config, "en-GB")).toEqual({ [entryHash("Color")]: "Colour" });
+  });
+
+  it("resolves a target against every configured locale even when the run imports a subset", async () => {
+    const config = cfg({ sourceLocale: "pt", targetLocales: ["pt-BR", "de"] });
+    const dir = await project([
+      tu([
+        ["pt", "SOURCE-pt"],
+        ["pt-BR", "TARGET-ptBR"],
+        ["de", "TARGET-de"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir, locales: ["de"] });
+
+    const memory = await memoryOf(dir);
+    expect(memory.sources).toEqual({ [entryHash("SOURCE-pt")]: "SOURCE-pt" });
+    expect(bucket(memory, config, "de")).toEqual({ [entryHash("SOURCE-pt")]: "TARGET-de" });
+  });
+
+  it("refuses a unit whose two segments both resolve to the source locale", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Color"],
+        ["en-US", "Color"],
+        ["de", "Farbe"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.conflictingSourceUnits).toBe(1);
+    expect(result.locales[0]?.added).toBe(0);
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({});
+  });
+
+  it("refuses a config whose source and a target are the same tag once normalized", async () => {
+    const dir = await project([tu([["en", "Hello"]])]);
+
+    await expect(
+      importTmx({
+        config: cfg({ sourceLocale: "pt-BR", targetLocales: ["pt_BR"] }),
+        file: "memory.tmx",
+        cwd: dir,
+      }),
+    ).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+  });
+
+  it("reports a header source language that is not the configured source locale", async () => {
+    const dir = await project([tu([["de", "Hallo"]])], "fr-FR");
+
+    const result = await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir });
+
+    expect(result.sourceLanguageMismatch).toBe("fr-FR");
+  });
+
+  it("treats the TMX all-languages wildcard as no mismatch", async () => {
+    const dir = await project([tu([["en", "Hello"]])], "*all*");
+
+    expect(
+      (await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir })).sourceLanguageMismatch,
+    ).toBeUndefined();
+  });
+
+  it("reports no mismatch when the header spells the source locale differently", async () => {
+    const dir = await project([tu([["en-US", "Hello"]])], "en-US");
+
+    expect(
+      (await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir })).sourceLanguageMismatch,
+    ).toBeUndefined();
+  });
+});
+
+describe("importTmx feeds the fuzzy corpus, which no import-time gate can police", () => {
+  it("stores the imported source text into the block fuzzy matching scores against", async () => {
+    const config = cfg();
+    const dir = await project([
+      tu([
+        ["en", "Save the document"],
+        ["de", "Dokument speichern"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect((await memoryOf(dir)).sources).toEqual({
+      [entryHash("Save the document")]: "Save the document",
+    });
+  });
+
+  it("is an exact miss for a source the project spells with an invisible difference", async () => {
+    const config = cfg();
+    const dir = await project([
+      tu([
+        ["en", `Save the document${"\u200b"}`],
+        ["de", "Dokument speichern"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    const memory = await memoryOf(dir);
+    expect(Object.keys(bucket(memory, config, "de"))).not.toContain(entryHash("Save the document"));
+  });
+
+  it("reaches entries the exact path cannot, because the hash covers a description and fuzzy does not", async () => {
+    const config = cfg();
+    const dir = await project([
+      tu([
+        ["en", "Save"],
+        ["de", "Speichern"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    const described = contentHash({
+      key: "k",
+      namespace: "",
+      value: "Save",
+      placeholders: [],
+      isPlural: false,
+      description: "toolbar button",
+    });
+    expect(Object.keys(bucket(await memoryOf(dir), config, "de"))).not.toContain(described);
+  });
+});
+
 describe("importTmx holds an imported unit to the same gate a provider's output faces", () => {
   it("refuses a translation that drops a placeholder the source carries", async () => {
     const config = cfg();
@@ -493,7 +659,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     expect(bucket(await memoryOf(dir), config, "de")).toEqual({ [entryHash("Hello")]: "Hallo" });
   });
 
-  it("fills in a source the memory was missing without changing the translation", async () => {
+  it("leaves a memory that already holds the translation completely alone, source block included", async () => {
     const config = cfg();
     const dir = await project([
       tu([
@@ -507,10 +673,12 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
       sources: {},
     });
 
+    const before = await readFile(join(dir, CACHE_FILE_NAME), "utf8");
+
     const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
 
     expect(result.locales[0]?.unchanged).toBe(1);
-    expect((await memoryOf(dir)).sources).toEqual({ [entryHash("Hello")]: "Hello" });
+    expect(await readFile(join(dir, CACHE_FILE_NAME), "utf8")).toBe(before);
   });
 
   it("stores nothing under a fingerprint the config no longer produces", async () => {

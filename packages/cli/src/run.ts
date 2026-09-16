@@ -105,6 +105,20 @@ const tmxOptsSchema = sharedCommandOptsSchema.extend({
 
 type TmxDirection = (typeof TMX_DIRECTIONS)[number];
 
+const IMPORT_ONLY_TMX_FLAGS = ["dry-run", "overwrite"] as const;
+
+function assertExportFlags(opts: z.infer<typeof tmxOptsSchema>): void {
+  const given = IMPORT_ONLY_TMX_FLAGS.filter((flag) =>
+    flag === "dry-run" ? opts.dryRun === true : opts.overwrite === true,
+  );
+  if (given.length > 0) {
+    throw new CliUsageError(
+      "INVALID_DIRECTION",
+      `${given.map((flag) => `--${flag}`).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to "tmx import" only. An export reads the translation memory and writes a file; it never changes the memory.`,
+    );
+  }
+}
+
 function parseTmxDirection(raw: string): TmxDirection {
   const direction = TMX_DIRECTIONS.find((known) => known === raw);
   if (direction === undefined) {
@@ -630,10 +644,14 @@ export async function runTmx(
 ): Promise<number> {
   const context = commandContext("tmx", rawOpts, streams);
   return withParsedOpts(
-    () => ({
-      direction: parseTmxDirection(rawDirection),
-      opts: parseLocaleCommandOpts(tmxOptsSchema, rawOpts),
-    }),
+    () => {
+      const direction = parseTmxDirection(rawDirection);
+      const opts = parseLocaleCommandOpts(tmxOptsSchema, rawOpts);
+      if (direction === "export") {
+        assertExportFlags(opts);
+      }
+      return { direction, opts };
+    },
     context,
     async ({ direction, opts }) => {
       const cwd = opts.cwd ?? process.cwd();

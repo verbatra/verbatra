@@ -11,6 +11,10 @@ function primarySubtag(tag: string): string {
   return canonical(tag).split("-")[0] ?? "";
 }
 
+export function sameTag(left: string, right: string): boolean {
+  return canonical(left) === canonical(right);
+}
+
 export function matchLanguageTag(tag: string, locales: readonly string[]): LanguageTagMatch {
   const wanted = canonical(tag);
   if (wanted === "") {

@@ -403,6 +403,14 @@ export function renderExtractHuman(result: ExtractResult): string {
 
 const LANGUAGE_TAG_PREVIEW = 20;
 
+const TMX_REJECTION_REASONS: readonly TmxRejectionReason[] = [
+  "placeholder",
+  "icu",
+  "degenerate",
+  "empty",
+  "sourceBlank",
+];
+
 const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
   placeholder: "placeholders do not match the source",
   icu: "not a valid ICU message",
@@ -412,11 +420,9 @@ const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
 };
 
 function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
-  return Object.entries(result.rejected)
-    .filter(([, count]) => count > 0)
-    .map(
-      ([reason, count]) => `      ${count} ${TMX_REJECTION_LABELS[reason as TmxRejectionReason]}`,
-    );
+  return TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
+    (reason) => `      ${result.rejected[reason]} ${TMX_REJECTION_LABELS[reason]}`,
+  );
 }
 
 function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {
@@ -450,6 +456,21 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   }
   if (result.unmatchedSourceUnits > 0) {
     notes.push(`  ${result.unmatchedSourceUnits} units carried no segment in the source locale`);
+  }
+  if (result.conflictingSourceUnits > 0) {
+    notes.push(
+      `  ${result.conflictingSourceUnits} units carried two segments that both resolve to the source locale, and were refused`,
+    );
+  }
+  if (result.unreachableUnits > 0) {
+    notes.push(
+      `  ${result.unreachableUnits} units sit outside the file's first body and were not read`,
+    );
+  }
+  if (result.sourceLanguageMismatch !== undefined) {
+    notes.push(
+      `  the file declares source language ${preview(result.sourceLanguageMismatch, LANGUAGE_TAG_PREVIEW)}, which is not the configured source locale`,
+    );
   }
   if (result.markupStrippedUnits > 0) {
     notes.push(`  ${result.markupStrippedUnits} units carried inline markup, which was dropped`);

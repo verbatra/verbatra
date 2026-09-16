@@ -27,9 +27,10 @@ export interface ExportTmxResult {
   /** Per-locale contribution to that total. */
   readonly locales: readonly ExportTmxLocaleCount[];
   /**
-   * Memory entries left out because the memory holds no source text for them. A cache carried
-   * forward from an older schema stores translations without their source, and TMX cannot represent
-   * a unit with no source segment. Those entries fill in as later runs touch the same strings.
+   * Translations left out because the memory holds no source text for their content hash, counted
+   * once per locale and hash rather than once per distinct source string. A cache carried forward
+   * from an older schema stores translations without their source, and TMX cannot represent a unit
+   * with no source segment. Those entries fill in as later runs touch the same strings.
    */
   readonly withoutSource: number;
 }
@@ -54,6 +55,25 @@ export interface ExportTmxDeps {
   readonly fs?: SdkFs;
 }
 
+interface Collecting {
+  readonly source: string;
+  readonly translations: TmxTranslation[];
+}
+
+function addTranslation(
+  into: Map<string, Collecting>,
+  hash: string,
+  source: string,
+  translation: TmxTranslation,
+): void {
+  const existing = into.get(hash);
+  if (existing === undefined) {
+    into.set(hash, { source, translations: [translation] });
+    return;
+  }
+  existing.translations.push(translation);
+}
+
 interface Collected {
   readonly units: readonly TmxExportUnit[];
   readonly counts: readonly ExportTmxLocaleCount[];
@@ -65,7 +85,7 @@ function collect(
   fingerprint: string,
   locales: readonly string[],
 ): Collected {
-  const byHash = new Map<string, TmxExportUnit>();
+  const byHash = new Map<string, Collecting>();
   const counts: ExportTmxLocaleCount[] = [];
   let withoutSource = 0;
   for (const locale of locales) {
@@ -76,16 +96,14 @@ function collect(
         withoutSource += 1;
         continue;
       }
-      const unit = byHash.get(hash) ?? { source, translations: [] as TmxTranslation[] };
-      (unit.translations as TmxTranslation[]).push({ language: locale, text: value });
-      byHash.set(hash, unit);
+      addTranslation(byHash, hash, source, { language: locale, text: value });
       kept += 1;
     }
     counts.push({ locale, units: kept });
   }
-  const units = [...byHash.entries()]
+  const units: TmxExportUnit[] = [...byHash.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([, unit]) => unit);
+    .map(([, unit]) => ({ source: unit.source, translations: unit.translations }));
   return { units, counts, withoutSource };
 }
 
@@ -103,6 +121,9 @@ function collect(
  * @param input - The config, the output path, the locale subset, and the tool version to stamp.
  * @param deps - Optional file-system override.
  * @returns The path written, the unit count, and what was left out.
+ *
+ * It reads the memory and writes a file; it never changes the memory, which is why the CLI refuses
+ * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  *

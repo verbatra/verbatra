@@ -186,6 +186,47 @@ describe("verbatra tmx refuses a direction it does not know", () => {
     expect(calls.exportTmx).toEqual([]);
   });
 
+  it("refuses --dry-run on an export rather than ignoring it", async () => {
+    const { deps, calls } = recordingDeps();
+    const { streams, err } = captureStreams();
+
+    const code = await run(["tmx", "export", "--cwd", "/proj", "--dry-run"], deps, streams);
+
+    expect(code).toBe(2);
+    expect(err()).toContain("--dry-run");
+    expect(err()).toContain('"tmx import" only');
+    expect(calls.exportTmx).toEqual([]);
+  });
+
+  it("refuses --overwrite on an export, and names both flags when both are given", async () => {
+    const { deps, calls } = recordingDeps();
+    const { streams, err } = captureStreams();
+
+    const code = await run(
+      ["tmx", "export", "--cwd", "/proj", "--overwrite", "--dry-run"],
+      deps,
+      streams,
+    );
+
+    expect(code).toBe(2);
+    expect(err()).toContain("--dry-run and --overwrite");
+    expect(calls.exportTmx).toEqual([]);
+  });
+
+  it("still accepts both flags on an import", async () => {
+    const { deps, calls } = recordingDeps();
+    const { streams } = captureStreams();
+
+    const code = await run(
+      ["tmx", "import", "f.tmx", "--cwd", "/proj", "--overwrite", "--dry-run"],
+      deps,
+      streams,
+    );
+
+    expect(code).toBe(0);
+    expect(calls.importTmx).toHaveLength(1);
+  });
+
   it("refuses an empty locale list rather than silently using all of them", async () => {
     const { deps, calls } = recordingDeps();
     const { streams } = captureStreams();
