@@ -435,6 +435,22 @@ Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wu
 `memoryWritable` ist `false`, wenn die Memory-Datei von einem neueren verbatra geschrieben wurde;
 sie bleibt dann unangetastet.
 
+### tmxErrorLocation
+
+Liest aus dem, was `importTmx` geworfen hat, wo eine abgelehnte TMX-Datei schiefging. Gibt für eine
+`SOURCE_INVALID`-Ablehnung mit einem Ort in der Datei eine `TmxErrorLocation` zurück
+(`{ line, column, unit? }`, alle ab 1 gezählt) und bei jedem anderen Fehler `undefined`, auch bei
+einer fehlenden oder zu großen Datei, sodass du weder den Fehler noch seinen `cause` casten musst.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
 ### exportTmx
 
 Schreibt den Memory als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, locales?, toolVersion? }`,

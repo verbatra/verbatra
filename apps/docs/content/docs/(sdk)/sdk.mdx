@@ -413,6 +413,22 @@ by reason, plus the units that were skipped, carried no source segment, lost inl
 ambiguously. `memoryWritable` is false when the memory file was written by a newer verbatra, in
 which case it is left untouched.
 
+### tmxErrorLocation
+
+Reads where a refused TMX file went wrong from whatever `importTmx` threw. It returns a
+`TmxErrorLocation` (`{ line, column, unit? }`, all 1-based) for a `SOURCE_INVALID` refusal that has
+a place in the file, and `undefined` for any other error, including a missing or oversized file, so
+you never cast the error or its `cause`.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
 ### exportTmx
 
 Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, locales?, toolVersion? }`, with

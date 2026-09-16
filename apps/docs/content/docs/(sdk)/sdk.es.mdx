@@ -422,6 +422,23 @@ texto `sub` se dejó fuera (`subflowDroppedUnits`), y las etiquetas de idioma qu
 coincidieron de forma ambigua. `memoryWritable` es `false` cuando el archivo de memoria lo escribió
 un verbatra más nuevo, en cuyo caso se deja intacto.
 
+### tmxErrorLocation
+
+Lee, a partir de lo que lanzó `importTmx`, dónde falló un archivo TMX rechazado. Devuelve una
+`TmxErrorLocation` (`{ line, column, unit? }`, todo contando desde 1) para un rechazo
+`SOURCE_INVALID` que tiene un lugar en el archivo, y `undefined` para cualquier otro error, incluido
+un archivo que falta o es demasiado grande, así que nunca tienes que hacer cast del error ni de su
+`cause`.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
 ### exportTmx
 
 Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, locales?, toolVersion? }`, donde
