@@ -1,9 +1,11 @@
 import { GREATER_THAN, isAsciiAlpha, isAsciiDigit, isHtmlSpace, SLASH } from "./html-chars.js";
 import {
   isRawTextElement,
+  keepsContentVerbatim,
   type OccurrenceFinder,
   occurrenceFinder,
   opensForeignContext,
+  type RawTextContent,
   readRawText,
 } from "./raw-text.js";
 
@@ -25,6 +27,7 @@ export interface ScannedMarkup {
   readonly tags: readonly InlineTag[];
   readonly ambiguous: readonly string[];
   readonly contextSensitive: readonly string[];
+  readonly rawTextContents: readonly RawTextContent[];
   readonly foreignPossible: boolean;
   readonly unterminated: string | undefined;
 }
@@ -35,6 +38,7 @@ interface MutableScan {
   readonly ambiguous: string[];
   unterminated: string | undefined;
   readonly contextSensitive: string[];
+  readonly rawTextContents: RawTextContent[];
   foreignPossible: boolean;
 }
 
@@ -338,6 +342,13 @@ function continueAfterTag(
   }
   const context = { value, escapeOpen: finders.escapeOpen, foreignPossible: scan.foreignPossible };
   const span = readRawText(context, name, end);
+  if (keepsContentVerbatim(name)) {
+    const content = value.slice(end, span.end);
+    scan.rawTextContents.push({ name, content, foreignPossible: scan.foreignPossible });
+    if (scan.foreignPossible) {
+      scan.contextSensitive.push(`<${name}> content`);
+    }
+  }
   if (span.ambiguous) {
     scan.ambiguous.push(`<${name}>...</${name}>`);
   }
@@ -374,6 +385,7 @@ export function scanMarkup(value: string): ScannedMarkup {
     ambiguous: [],
     unterminated: undefined,
     contextSensitive: [],
+    rawTextContents: [],
     foreignPossible: false,
   };
   const finders: CommentFinders = {

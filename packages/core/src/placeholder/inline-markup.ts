@@ -8,6 +8,7 @@ import {
   scanMarkup,
 } from "./markup-scanner.js";
 import { countTokens, multisetExcess } from "./multiset.js";
+import { changedRawTextContents } from "./raw-text.js";
 import { unsafeAttributeValues } from "./url-attributes.js";
 
 export interface InlineMarkupComparison {
@@ -426,9 +427,8 @@ export function compareInlineMarkup(
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
   const reading = readingFindings(sourceValue === translatedValue, source, translated);
   const values = unsafeAttributeValues(source.tags, translated.tags);
-  return withFindings(
-    compareScannedMarkup(source, translated, ignored),
-    [],
-    [...reading, ...values],
-  );
+  const rawText = changedRawTextContents(source.rawTextContents, translated.rawTextContents);
+  const comparison = compareScannedMarkup(source, translated, ignored);
+  const unmatched = comparison.matches ? rawText.unmatched : [];
+  return withFindings(comparison, [], [...reading, ...values, ...rawText.changed, ...unmatched]);
 }

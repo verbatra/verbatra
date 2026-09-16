@@ -8,6 +8,22 @@ export interface RawTextContext {
   readonly foreignPossible: boolean;
 }
 
+export interface RawTextContent {
+  readonly name: string;
+  readonly content: string;
+  readonly foreignPossible: boolean;
+}
+
+export interface RawTextChanges {
+  readonly changed: readonly string[];
+  readonly unmatched: readonly string[];
+}
+
+interface PendingContents {
+  readonly contents: RawTextContent[];
+  next: number;
+}
+
 export interface RawTextSpan {
   readonly end: number;
   readonly ambiguous: boolean;
@@ -23,6 +39,17 @@ const RAW_TEXT_ELEMENTS: ReadonlySet<string> = new Set([
   "style",
   "textarea",
   "title",
+  "xmp",
+]);
+
+const VERBATIM_RAW_TEXT_ELEMENTS: ReadonlySet<string> = new Set([
+  "iframe",
+  "noembed",
+  "noframes",
+  "noscript",
+  "plaintext",
+  "script",
+  "style",
   "xmp",
 ]);
 
@@ -43,6 +70,48 @@ export function occurrenceFinder(value: string, needle: string): OccurrenceFinde
 
 export function isRawTextElement(name: string): boolean {
   return RAW_TEXT_ELEMENTS.has(name);
+}
+
+export function keepsContentVerbatim(name: string): boolean {
+  return VERBATIM_RAW_TEXT_ELEMENTS.has(name);
+}
+
+function pendingByName(contents: readonly RawTextContent[]): Map<string, PendingContents> {
+  const pending = new Map<string, PendingContents>();
+  for (const content of contents) {
+    const entry = pending.get(content.name);
+    if (entry === undefined) {
+      pending.set(content.name, { contents: [content], next: 0 });
+    } else {
+      entry.contents.push(content);
+    }
+  }
+  return pending;
+}
+
+export function changedRawTextContents(
+  source: readonly RawTextContent[],
+  translated: readonly RawTextContent[],
+): RawTextChanges {
+  const pending = pendingByName(source);
+  const changed: string[] = [];
+  const unmatched: string[] = [];
+  for (const actual of translated) {
+    const entry = pending.get(actual.name);
+    const expected = entry?.contents[entry.next];
+    if (entry === undefined || expected === undefined) {
+      unmatched.push(`<${actual.name}> content`);
+      continue;
+    }
+    entry.next += 1;
+    if (
+      expected.content !== actual.content ||
+      expected.foreignPossible !== actual.foreignPossible
+    ) {
+      changed.push(`<${actual.name}> content`);
+    }
+  }
+  return { changed, unmatched };
 }
 
 export function opensForeignContext(name: string): boolean {

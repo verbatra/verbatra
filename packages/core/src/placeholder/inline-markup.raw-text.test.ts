@@ -33,8 +33,8 @@ describe("compareInlineMarkup: the content of a raw text element is text, as an 
     ).toBe(false);
   });
 
-  it("accepts a translation that keeps a raw text element named as a word", () => {
-    expect(compareInlineMarkup("Add a <script> tag", "Füge ein <script>-Tag hinzu").matches).toBe(
+  it("accepts a translation that keeps a text-rendered raw text element named as a word", () => {
+    expect(compareInlineMarkup("Set the <title> field", "Setze das <title>-Feld").matches).toBe(
       true,
     );
   });
@@ -71,8 +71,10 @@ describe("compareInlineMarkup: the content of a raw text element is text, as an 
 
   it("reads everything after a plaintext element as text, past any closing tag", () => {
     expect(
-      compareInlineMarkup("Use <plaintext>", "<plaintext></plaintext><img src=x onerror=1>")
-        .matches,
+      compareInlineMarkup(
+        "Use <plaintext></plaintext><img src=x onerror=1>",
+        "Nutze <plaintext></plaintext><img src=x onerror=1>",
+      ).matches,
     ).toBe(true);
   });
 });
@@ -132,9 +134,9 @@ describe("compareInlineMarkup: raw text an HTML parser can read two ways is refu
   });
 
   it.each([
-    ["Use <noscript>Enable scripts</noscript>", "<noscript>Aktiviere Skripte</noscript>"],
-    ["<svg></svg><style>a{}</style>", "<style>b{}</style><svg></svg>"],
-    ["<script>a()</script>", "<script>b()</script>"],
+    ["Use <noscript>Enable scripts</noscript>", "Nutze <noscript>Enable scripts</noscript>"],
+    ["<style>a{}</style> and <b>x</b>", "<b>x</b> und <style>a{}</style>"],
+    ["<title>a</title>", "<title>b</title>"],
   ])("accepts %j translated with content that holds no markup", (source, translated) => {
     expect(compareInlineMarkup(source, translated).matches).toBe(true);
   });

@@ -46,8 +46,8 @@ describe("compareInlineMarkup: a placeholder tag left aside cannot surface from 
   });
 
   it("still accepts a placeholder tag moved into text, which the placeholder check judges", () => {
-    expect(compareInlineMarkup('<x id="2"/><iframe>', '<iframe><x id="2"/>', XLIFF).matches).toBe(
-      true,
-    );
+    expect(
+      compareInlineMarkup('<x id="2"/><textarea>', '<textarea><x id="2"/>', XLIFF).matches,
+    ).toBe(true);
   });
 });
