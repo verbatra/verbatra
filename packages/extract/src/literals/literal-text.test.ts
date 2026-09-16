@@ -61,9 +61,53 @@ describe("decodeCharacterReferences", () => {
     expect(decodeCharacterReferences("a&nbsp;b &#8594; &#x2192;")).toBe("a\u00a0b \u2192 \u2192");
   });
 
+  it.each([
+    ["nbsp", "\u00a0"],
+    ["amp", "&"],
+    ["lt", "<"],
+    ["gt", ">"],
+    ["quot", '"'],
+    ["apos", "'"],
+    ["rsquo", "\u2019"],
+    ["lsquo", "\u2018"],
+    ["rdquo", "\u201d"],
+    ["ldquo", "\u201c"],
+    ["sbquo", "\u201a"],
+    ["bdquo", "\u201e"],
+    ["hellip", "\u2026"],
+    ["mdash", "\u2014"],
+    ["ndash", "\u2013"],
+    ["copy", "\u00a9"],
+    ["reg", "\u00ae"],
+    ["trade", "\u2122"],
+    ["deg", "\u00b0"],
+    ["euro", "\u20ac"],
+    ["pound", "\u00a3"],
+    ["yen", "\u00a5"],
+    ["cent", "\u00a2"],
+    ["sect", "\u00a7"],
+    ["para", "\u00b6"],
+    ["middot", "\u00b7"],
+    ["bull", "\u2022"],
+    ["laquo", "\u00ab"],
+    ["raquo", "\u00bb"],
+    ["times", "\u00d7"],
+    ["divide", "\u00f7"],
+    ["plusmn", "\u00b1"],
+    ["frac12", "\u00bd"],
+    ["frac14", "\u00bc"],
+    ["frac34", "\u00be"],
+    ["iexcl", "\u00a1"],
+    ["iquest", "\u00bf"],
+    ["shy", "\u00ad"],
+  ])("decodes the named reference &%s;", (name, expected) => {
+    expect(decodeCharacterReferences(`a&${name};b`)).toBe(`a${expected}b`);
+  });
+
   it("leaves an unknown or out-of-range reference as written", () => {
     expect(decodeCharacterReferences("&copy2; &unknown; &#x110000; &#0;")).toBe(
       "&copy2; &unknown; &#x110000; &#0;",
     );
+    expect(decodeCharacterReferences("&constructor; &toString;")).toBe("&constructor; &toString;");
   });
 });

@@ -29,7 +29,8 @@ function that only ends in `Error`, such as `setError`, is still checked.
 A `// verbatra-ignore-next-line` or `// verbatra-ignore-line` comment (also as `{/* ... */}` in JSX)
 holds a literal back at the call site. A next-line directive covers the next non-blank line and,
 when a JSX element starts there, that whole element. The new optional `extract.literals.ignore` list
-holds exact texts back project-wide. Held-back literals are still listed, under `suppressed`, with
+holds exact texts back project-wide, matched against the text as reported (whitespace collapsed,
+character references decoded). Held-back literals are still listed, under `suppressed`, with
 the reason.
 
 The lint reads source and never writes it, constructs no provider, reads no API key environment

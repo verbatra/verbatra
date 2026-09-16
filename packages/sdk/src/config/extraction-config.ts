@@ -34,9 +34,10 @@ export const extractionConfigSchema = z.strictObject({
  * `node_modules`, `.git`, and the usual build output directories.
  *
  * `literals.ignore` lists string literals the untranslated-literal scan (`verbatra doctor
- * --literals`) holds back project-wide, matched against the whole literal text with whitespace
- * collapsed. A held-back literal is still reported, under `suppressed`, so nothing vanishes
- * silently.
+ * --literals`) holds back project-wide, matched against the whole literal text as it is reported:
+ * whitespace collapsed and, in JSX text or a quoted JSX attribute value, character references such
+ * as `&amp;` decoded, so an entry is written `Tom & Jerry`, not `Tom &amp; Jerry`. A held-back
+ * literal is still reported, under `suppressed`, so nothing vanishes silently.
  */
 export type ExtractionConfig = z.infer<typeof extractionConfigSchema>;
 

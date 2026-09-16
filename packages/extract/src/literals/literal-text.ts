@@ -12,14 +12,48 @@ const CLASS_MARKER = /[-:[\]/0-9]/;
 
 const DIRECTIVES = new Set(["use client", "use server", "use strict"]);
 
-const NAMED_REFERENCES: Readonly<Record<string, string>> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: "\u00a0",
-};
+const NAMED_REFERENCES: ReadonlyMap<string, string> = new Map(
+  Object.entries({
+    amp: "&",
+    apos: "'",
+    bdquo: "\u201e",
+    bull: "\u2022",
+    cent: "\u00a2",
+    copy: "\u00a9",
+    deg: "\u00b0",
+    divide: "\u00f7",
+    euro: "\u20ac",
+    frac12: "\u00bd",
+    frac14: "\u00bc",
+    frac34: "\u00be",
+    gt: ">",
+    hellip: "\u2026",
+    iexcl: "\u00a1",
+    iquest: "\u00bf",
+    laquo: "\u00ab",
+    ldquo: "\u201c",
+    lsquo: "\u2018",
+    lt: "<",
+    mdash: "\u2014",
+    middot: "\u00b7",
+    nbsp: "\u00a0",
+    ndash: "\u2013",
+    para: "\u00b6",
+    plusmn: "\u00b1",
+    pound: "\u00a3",
+    quot: '"',
+    raquo: "\u00bb",
+    rdquo: "\u201d",
+    reg: "\u00ae",
+    rsquo: "\u2019",
+    sbquo: "\u201a",
+    sect: "\u00a7",
+    shy: "\u00ad",
+    times: "\u00d7",
+    trade: "\u2122",
+    yen: "\u00a5",
+  }),
+);
 
 const MAX_CODE_POINT = 0x10_ff_ff;
 
@@ -33,7 +67,7 @@ function decodeReference(reference: string): string {
   const body = reference.slice(1, -1);
   const decoded = body.startsWith("#")
     ? decodeNumericReference(body.slice(1))
-    : NAMED_REFERENCES[body];
+    : NAMED_REFERENCES.get(body);
   return decoded ?? reference;
 }
 

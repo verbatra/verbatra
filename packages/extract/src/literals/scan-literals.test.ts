@@ -119,6 +119,19 @@ describe("scanLiterals", () => {
     ]);
   });
 
+  it("matches an ignore entry against the decoded text of JSX", async () => {
+    const result = await scan(
+      {
+        [join(root, "a.tsx")]:
+          "const a = <p>Tom &amp; Jerry&rsquo;s</p>;\nconst b = <p>Rock &amp; roll</p>;",
+      },
+      { ignore: ["Tom & Jerry\u2019s", "Rock &amp; roll"] },
+    );
+
+    expect(result.findings.map((finding) => finding.text)).toEqual(["Rock & roll"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Tom & Jerry\u2019s"]);
+  });
+
   it("reads the ignore list once per scan, not once per file", async () => {
     let entryReads = 0;
     const ignore = new Proxy(["Hidden by list"], {
