@@ -82,6 +82,7 @@ export {
   verbatraConfigSchema,
 } from "./config/schema.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
+export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {
   type CheckDeps,
   type CheckInput,

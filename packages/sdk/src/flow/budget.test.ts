@@ -5,6 +5,7 @@ import {
   type BudgetTracker,
   budgetAlreadyStoppedNotice,
   budgetExceededNotice,
+  budgetStanding,
   budgetWithheldNotice,
   checkBudgetTrip,
   createBudgetTracker,
@@ -13,6 +14,7 @@ import {
   toBudgetSummary,
 } from "./budget.js";
 import type { PayloadContext } from "./estimate.js";
+import type { RunBudget } from "./summary.js";
 
 const context: PayloadContext = { sourceLocale: "en", targetLocale: "de" };
 
@@ -253,6 +255,35 @@ describe("toBudgetSummary after activity", () => {
     spend(mixed, 10, 10);
     reconcileBudget(mixed, reserveOrThrow(mixed), undefined);
     expect(toBudgetSummary(mixed)?.supported).toBe(false);
+  });
+});
+
+describe("budgetStanding", () => {
+  const budget = (behavior: "warn" | "stop", tokensUsed: number, exceeded: boolean): RunBudget => ({
+    maxTokens: 1_000,
+    behavior,
+    supported: true,
+    tokensUsed,
+    exceeded,
+  });
+
+  it("is within while the run never reached its ceiling", () => {
+    expect(budgetStanding(budget("stop", 999, false))).toBe("within");
+    expect(budgetStanding(budget("warn", 0, false))).toBe("within");
+  });
+
+  it("is stopped-before-ceiling when a stop run withheld a request with the count still below it", () => {
+    expect(budgetStanding(budget("stop", 999, true))).toBe("stopped-before-ceiling");
+  });
+
+  it("is reached once the count lands on or past the ceiling, whatever the behavior", () => {
+    expect(budgetStanding(budget("stop", 1_000, true))).toBe("reached");
+    expect(budgetStanding(budget("stop", 1_200, true))).toBe("reached");
+    expect(budgetStanding(budget("warn", 1_000, true))).toBe("reached");
+  });
+
+  it("never calls a warn run stopped, even with its count below the ceiling", () => {
+    expect(budgetStanding(budget("warn", 999, true))).toBe("reached");
   });
 });
 
