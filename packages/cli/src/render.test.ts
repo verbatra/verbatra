@@ -438,6 +438,21 @@ describe("render: human run summary", () => {
     expect(text).not.toContain("\u001b[31m");
   });
 
+  it("neutralizes line and paragraph separators in the source it echoes back", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [{ key: "a", previousSource: "Save\u2028now\u2029later", similarity: 0.95 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('a (95% like "Save now later")');
+    expect(text).not.toMatch(/[\u2028\u2029]/);
+  });
+
   it("counts a surrogate pair as one character rather than splitting it", () => {
     const flags = "\u{1f1e9}\u{1f1ea}".repeat(30);
     const text = renderHuman(
