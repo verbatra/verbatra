@@ -208,6 +208,10 @@ function isNonUserFacingCallArgument(
   index: number,
   frame: LiteralFrame & { kind: "call" },
 ): boolean {
+  const next = tokens[index + 1];
+  if (!isPunct(next, ",") && !isPunct(next, ")")) {
+    return false;
+  }
   const previous = tokens[index - 1];
   if (isPunct(previous, "(") && isFirstArgumentCallee(frame)) {
     return true;

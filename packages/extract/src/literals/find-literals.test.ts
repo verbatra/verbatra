@@ -262,6 +262,15 @@ describe("findLiterals: noisy non-user-facing positions are not reported", () =>
     expect(texts(source)).toContain(text);
   });
 
+  it("still reports a direct argument that is only part of an expression", () => {
+    expect(
+      texts(
+        'format("Welcome back to the app " + name);\nquery(`id`, "Select a user to continue" + suffix);\nsocket.emit("Your session has ended " + reason);',
+        false,
+      ),
+    ).toEqual(["Welcome back to the app", "Select a user to continue", "Your session has ended"]);
+  });
+
   it("still reports the values of an object passed to format", () => {
     expect(
       texts('intl.format({ one: "One item left", other: "Many items left" });', false),

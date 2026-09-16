@@ -19,12 +19,13 @@ holds ids or a keyword (`aria-describedby`, `aria-labelledby`, `rel`, `sandbox`,
 `satisfies`), a logging message, the message of a constructed error (`new ValidationError(...)`) or
 of a built-in error called without `new` (`throw Error(...)`), a comparison operand, a literal with
 no letters, and test, story, declaration and config files are never reported, and a single word
-outside JSX is not reported either. The direct string arguments of `describe`, `query`, `execute`,
-`prepare`, `format`, and `parse`, the string elements of the array passed directly to `z.enum`,
-every string argument of `setItem`, `getItem`, and `removeItem`, and the first argument of `on`,
-`off`, `once`, `emit`, `addEventListener`, and a member `get` or `set` call, are skipped too. A
-string nested deeper inside one of those calls, such as in a callback, an object, or JSX, is still
-checked. A function that only ends in `Error`, such as `setError`, is still checked.
+outside JSX is not reported either. The direct string arguments (a string that is a whole argument
+on its own) of `describe`, `query`, `execute`, `prepare`, `format`, and `parse`, the string elements
+of the array passed directly to `z.enum`, every string argument of `setItem`, `getItem`, and
+`removeItem`, and the first argument of `on`, `off`, `once`, `emit`, `addEventListener`, and a
+member `get` or `set` call, are skipped too. A string nested deeper inside one of those calls, such
+as in a callback, an object, or JSX, is still checked. A function that only ends in `Error`, such as
+`setError`, is still checked.
 
 A `// verbatra-ignore-next-line` or `// verbatra-ignore-line` comment (also as `{/* ... */}` in JSX)
 holds a literal back at the call site. A next-line directive targets the next line that holds code
