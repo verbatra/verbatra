@@ -105,11 +105,47 @@ function escapesWorkingDirectory(inside: string): boolean {
   return inside === "" || inside === ".." || inside.startsWith(`..${sep}`);
 }
 
-function refuseOutput(requested: string, why: string): never {
+export const TYPES_OUTPUT_REFUSALS = [
+  "names-no-file",
+  "absolute",
+  "outside-working-directory",
+  "not-typescript",
+  "locale-file",
+  "lock-file",
+  "translation-memory-cache",
+  "config-search-place",
+  "loaded-config",
+  "not-generated-by-verbatra",
+] as const;
+
+export type TypesOutputRefusal = (typeof TYPES_OUTPUT_REFUSALS)[number];
+
+const RELATIVE_PATH_HINT = `Pass a relative path naming a file inside the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`;
+
+const REFUSAL_HINTS: Readonly<Record<TypesOutputRefusal, string>> = {
+  "names-no-file": RELATIVE_PATH_HINT,
+  absolute: RELATIVE_PATH_HINT,
+  "outside-working-directory": RELATIVE_PATH_HINT,
+  "not-typescript": RELATIVE_PATH_HINT,
+  "locale-file": RELATIVE_PATH_HINT,
+  "lock-file": RELATIVE_PATH_HINT,
+  "translation-memory-cache": RELATIVE_PATH_HINT,
+  "config-search-place": RELATIVE_PATH_HINT,
+  "loaded-config": RELATIVE_PATH_HINT,
+  "not-generated-by-verbatra":
+    "Pass a different --out path, or delete the file if it really is an old declaration.",
+};
+
+function refuseOutput(requested: string, refusal: TypesOutputRefusal, why: string): never {
   throw new SdkError(
     "TYPES_OUTPUT_CONFLICT",
-    `The output path "${requested}" ${why} Pass a relative path naming a file inside the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`,
+    `The output path "${requested}" ${why} ${REFUSAL_HINTS[refusal]}`,
   );
+}
+
+interface ReservedPath {
+  readonly refusal: TypesOutputRefusal;
+  readonly what: string;
 }
 
 const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
@@ -118,22 +154,34 @@ function reservedPaths(
   cwd: string,
   input: GenerateTypesInput,
   resolver: LocalePathResolver,
-): Map<string, string> {
+): Map<string, ReservedPath> {
   const { config } = input;
-  const reserved = new Map<string, string>();
-  const claim = (path: string, what: string): void => {
-    reserved.set(path.toLowerCase(), what);
+  const reserved = new Map<string, ReservedPath>();
+  const claim = (path: string, refusal: TypesOutputRefusal, what: string): void => {
+    reserved.set(path.toLowerCase(), { refusal, what });
   };
   for (const locale of [config.sourceLocale, ...config.targetLocales]) {
-    claim(resolver.pathFor(locale), `the locale file for "${locale}"`);
+    claim(resolver.pathFor(locale), "locale-file", `the locale file for "${locale}"`);
   }
-  claim(resolve(cwd, LOCK_FILE_NAME), "the lock file, which holds the translation baseline");
-  claim(resolve(cwd, CACHE_FILE_NAME), "the translation-memory cache");
+  claim(
+    resolve(cwd, LOCK_FILE_NAME),
+    "lock-file",
+    "the lock file, which holds the translation baseline",
+  );
+  claim(resolve(cwd, CACHE_FILE_NAME), "translation-memory-cache", "the translation-memory cache");
   for (const place of CONFIG_SEARCH_PLACES) {
-    claim(resolve(cwd, place), "a file verbatra loads its configuration from");
+    claim(
+      resolve(cwd, place),
+      "config-search-place",
+      "a file verbatra loads its configuration from",
+    );
   }
   if (input.configPath !== undefined) {
-    claim(resolve(cwd, input.configPath), "the configuration file this run loaded");
+    claim(
+      resolve(cwd, input.configPath),
+      "loaded-config",
+      "the configuration file this run loaded",
+    );
   }
   return reserved;
 }
@@ -141,26 +189,30 @@ function reservedPaths(
 function resolveOutputPath(
   cwd: string,
   out: string | undefined,
-  reserved: ReadonlyMap<string, string>,
+  reserved: ReadonlyMap<string, ReservedPath>,
 ): string {
   const requested = out ?? DEFAULT_TYPES_PATH;
   if (requested.trim() === "") {
-    refuseOutput(requested, "names no file.");
+    refuseOutput(requested, "names-no-file", "names no file.");
   }
   if (isAbsolute(requested)) {
-    refuseOutput(requested, "is absolute.");
+    refuseOutput(requested, "absolute", "is absolute.");
   }
   const outputPath = resolve(cwd, requested);
   if (escapesWorkingDirectory(relative(cwd, outputPath))) {
-    refuseOutput(requested, "is not inside the working directory.");
+    refuseOutput(requested, "outside-working-directory", "is not inside the working directory.");
   }
   const claimed = reserved.get(outputPath.toLowerCase());
   if (claimed !== undefined) {
-    refuseOutput(requested, `is ${claimed}.`);
+    refuseOutput(requested, claimed.refusal, `is ${claimed.what}.`);
   }
   const name = basename(requested).toLowerCase();
   if (!TYPESCRIPT_EXTENSIONS.some((extension) => name.endsWith(extension))) {
-    refuseOutput(requested, `is not a TypeScript file (${TYPESCRIPT_EXTENSIONS.join(", ")}).`);
+    refuseOutput(
+      requested,
+      "not-typescript",
+      `is not a TypeScript file (${TYPESCRIPT_EXTENSIONS.join(", ")}).`,
+    );
   }
   return outputPath;
 }
@@ -231,9 +283,10 @@ async function refuseForeignOutput(
   if (existing.kind === "ok" && existing.content.startsWith(GENERATED_HEADER)) {
     return;
   }
-  throw new SdkError(
-    "TYPES_OUTPUT_CONFLICT",
-    `The output path "${requested}" already holds a file that was not generated by verbatra: it does not begin with the "${GENERATED_HEADER.trim()}" header. It was left untouched. Pass a different --out path, or delete the file if it really is an old declaration.`,
+  refuseOutput(
+    requested,
+    "not-generated-by-verbatra",
+    `already holds a file that was not generated by verbatra: it does not begin with the "${GENERATED_HEADER.trim()}" header. It was left untouched.`,
   );
 }
 

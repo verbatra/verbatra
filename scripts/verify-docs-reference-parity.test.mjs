@@ -168,18 +168,16 @@ function configSearchPlaces() {
 
 function typesOutputRefusals() {
   const source = readRepoFile("packages/sdk/src/flow/generate-types.ts");
-  const pathChecks = [...source.matchAll(/^\s*refuseOutput\(requested, /gm)].length;
-  const reservedDispatch = [...source.matchAll(/refuseOutput\(requested, `is \$\{claimed\}\.`\)/g)]
-    .length;
-  const reservedTargets = [...source.matchAll(/^\s*claim\(/gm)].length;
-  const conflictThrows = [...source.matchAll(/new SdkError\(\s*"TYPES_OUTPUT_CONFLICT"/g)].length;
+  const table = /^export const TYPES_OUTPUT_REFUSALS = \[\n([^\]]*)\] as const;$/m.exec(
+    source,
+  )?.[1];
+  if (table === undefined) {
+    throw new Error("TYPES_OUTPUT_REFUSALS could not be located in generate-types.ts");
+  }
   const extensions = /const TYPESCRIPT_EXTENSIONS = \[([^\]]*)\];/.exec(source)?.[1] ?? "";
   return {
-    pathChecks,
-    reservedDispatch,
-    reservedTargets,
-    conflictThrows,
-    count: pathChecks - reservedDispatch + reservedTargets + (conflictThrows - 1),
+    entries: table.split("\n").filter((line) => line.trim() !== ""),
+    ids: [...table.matchAll(/^ {2}"([a-z-]+)",$/gm)].map((match) => match[1]),
     extensions: [...extensions.matchAll(/"([^"]+)"/g)].map((match) => match[1]),
   };
 }
@@ -208,16 +206,15 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   ];
 
   it("extracts the refusal set from the code, so the comparison cannot pass vacuously", () => {
-    expect(refusals.pathChecks).toBeGreaterThanOrEqual(4);
-    expect(refusals.reservedDispatch).toBe(1);
-    expect(refusals.reservedTargets).toBeGreaterThanOrEqual(4);
-    expect(refusals.conflictThrows).toBeGreaterThanOrEqual(1);
+    expect(refusals.ids.length).toBeGreaterThanOrEqual(10);
+    expect(refusals.ids).toHaveLength(refusals.entries.length);
+    expect(new Set(refusals.ids).size).toBe(refusals.ids.length);
     expect(refusals.extensions).toEqual([".ts", ".mts", ".cts"]);
     expect(names).toContain("verbatra.config.ts");
   });
 
   it.each(LOCALE_SUFFIXES)("has one bullet per refusal in types%s.mdx", (suffix) => {
-    expect(documentedTypesRefusals(suffix)).toHaveLength(refusals.count);
+    expect(documentedTypesRefusals(suffix)).toHaveLength(refusals.ids.length);
   });
 
   it.each(LOCALE_SUFFIXES)("names every reserved file and extension in types%s.mdx", (suffix) => {
