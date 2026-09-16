@@ -657,9 +657,16 @@ Die Teile, die du kennen solltest:
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
   `RunSummary.usage` ist die Summe über die Locales.
 - **budget** erscheint nur, wenn `maxTokens` konfiguriert ist: `{ maxTokens, behavior, supported,
-  tokensUsed, exceeded }`. Gegen einen Provider ohne Token-Meldung oder in einem Dry-Run ist es
-  trotzdem vorhanden, mit `supported: false`; die Leitplanke ist also sichtbar wirkungslos statt
-  fälschlich ausgelöst.
+  tokensUsed, exceeded }`. `supported` sagt, ob `tokensUsed` vollständig der vom Provider selbst
+  gemeldete Verbrauch ist; es ist `false`, sobald eine Anfrage ohne brauchbare Zahl zurückkam, und
+  die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein
+  Dry-Run meldet es mit `tokensUsed: 0`, weil nichts gesendet wurde. Unter `behavior: "stop"` wird
+  die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
+  aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
+  zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die
+  Summe nachträglich über die Obergrenze schieben kann. Danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen. Das
+  Budget begrenzt einen `translate`-Aufruf: `watch` startet je Lauf ein frisches, und
+  `retranslateEntry` fällt gar nicht darunter.
 - **error.code** auf einem fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
   also nicht als geschlossene Menge.

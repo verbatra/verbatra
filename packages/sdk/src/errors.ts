@@ -66,8 +66,9 @@
  *   {@link translate} before any locale runs, and by {@link watch} once at startup, before any
  *   watching begins, since the value is fixed for the session rather than re-read per run.
  * - `CONCURRENCY_BUDGET_CONFLICT`: a live run requested a `concurrency` above 1 while a token
- *   budget is configured. The two are mutually exclusive because concurrency makes the budget's
- *   stop guarantee nondeterministic. A dry run is exempt, since it never consults the budget.
+ *   budget is configured. The ceiling itself would still hold, but which locale loses its
+ *   remaining work would depend on the order the locales interleave, so the same project would not
+ *   produce the same run twice. A dry run is exempt, since it never consults the budget.
  * - `TARGET_UNWRITABLE`: a target locale file could not be written, because its directory is not
  *   writable, does not exist, is read-only, or is out of space. The message names the target file
  *   relative to `cwd` and the underlying file-system code, never the internal temporary file the

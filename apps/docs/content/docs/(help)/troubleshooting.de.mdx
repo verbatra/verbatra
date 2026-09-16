@@ -222,19 +222,31 @@ durch einen Skalar. Ist die Datei deine Quell-Locale, erscheint der Fehler umhü
 
 ## Der Lauf hat einige Keys ausgelassen (Token-Budget)
 
-**Symptom**: Ein `BUDGET_TOKENS_EXCEEDED`-Hinweis: `The run's cumulative token usage (N) reached
-the configured budget of M tokens (behavior: ...)`; mit `budgetBehavior: "stop"` erscheinen Keys
-außerdem unter `budgetWithheld`.
+**Symptom**: Ein `BUDGET_TOKENS_EXCEEDED`-Hinweis. Unter `"warn"` lautet er `The run's cumulative
+token usage (N) reached the configured budget of M tokens (behavior: warn)`. Unter
+`budgetBehavior: "stop"` lautet er `The run's next provider request was projected at P tokens on
+top of the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, und Keys erscheinen außerdem unter `budgetWithheld`.
 
-**Ursache**: Die konfigurierte `maxTokens`-Obergrenze wurde überschritten. Mit `"warn"` (dem
-Default) läuft der Lauf unverändert weiter und ändert den Exit-Code nicht; mit `"stop"` wird jeder
-noch nicht versuchte Key für den Rest des Laufs zurückgehalten, was diese Locale als `partial`
-(einige Keys sind gelandet) oder `failed` (gar keiner) zurücklässt, und beide enden mit `1`.
+**Ursache**: Der Lauf hat seine konfigurierte `maxTokens`-Obergrenze erreicht. Mit `"warn"` (dem
+Default) läuft der Lauf unverändert weiter und ändert den Exit-Code nicht; mit `"stop"` wird die
+Anfrage, die die Obergrenze überschritten hätte, gar nicht erst gesendet, jeder noch nicht
+versuchte Key wird für den Rest des Laufs zurückgehalten, und das lässt die Locale als `partial`
+(einige Keys sind gelandet) oder `failed` (gar keiner) zurück, beide enden mit `1`.
 
-**Lösung**: Das ist der Schutzmechanismus bei der Arbeit. Zurückgehaltene Keys behalten ihre
-Baselines und werden beim nächsten Lauf übersetzt; erhöhe `maxTokens` oder wechsle zu `"warn"`,
-wenn du den Abschluss in einem einzigen Lauf willst. Ein Budget gegen DeepL oder einen Dry-Run
-meldet `supported: false` und löst nie aus, weil kein Token-Verbrauch zum Messen existiert.
+**Lösung**: Das ist der Schutzmechanismus bei der Arbeit. Es bleibt nichts halb geschrieben: Die
+Keys, die vor der Obergrenze übersetzt wurden, liegen auf der Platte und sind gelockt, und
+zurückgehaltene Keys behalten ihre Baselines und werden beim nächsten Lauf übersetzt. Erhöhe
+`maxTokens` oder wechsle zu `"warn"`, wenn du den Abschluss in einem einzigen Lauf willst. Zwei
+Details lohnen sich: Ein Dry-Run löst nie aus, weil er keinen Provider erzeugt und nichts sendet;
+und ein Budget gegen DeepL oder Google Cloud Translation löst sehr wohl aus, gezählt aus verbatras
+eigener Projektion, wobei `supported: false` in der Zusammenfassung sagt, dass die Zahl geschätzt
+und nicht gemeldet ist. Ein Lauf kann außerdem leicht über `maxTokens` enden: Die zuletzt
+zugelassene Anfrage wird auf das abgeglichen, was der Provider tatsächlich abgerechnet hat, und
+wenn sie mehr meldet als projiziert war, kommt diese Differenz erst im Nachhinein an. Danach wird
+nichts weiter gesendet. Und die Obergrenze begrenzt einen Lauf: `watch` startet je Lauf ein
+frisches Budget, und das Neuübersetzen eines einzelnen Eintrags aus Studio oder den Agent-Tools
+fällt gar nicht darunter.
 
 ## Studio: Der Port ist schon belegt
 

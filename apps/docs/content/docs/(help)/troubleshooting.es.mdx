@@ -213,19 +213,30 @@ Consulta [Formatos](/docs/formats) para las reglas de claves de cada formato.
 
 ## La ejecución se quedó corta con algunas claves (presupuesto de tokens)
 
-**Síntoma**: un aviso `BUDGET_TOKENS_EXCEEDED`: `The run's cumulative token usage (N) reached the
-configured budget of M tokens (behavior: ...)`; con `budgetBehavior: "stop"`, las claves también
-aparecen bajo `budgetWithheld`.
+**Síntoma**: un aviso `BUDGET_TOKENS_EXCEEDED`. Con `"warn"` dice `The run's cumulative token
+usage (N) reached the configured budget of M tokens (behavior: warn)`. Con
+`budgetBehavior: "stop"` dice `The run's next provider request was projected at P tokens on top of
+the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, y las claves también aparecen bajo `budgetWithheld`.
 
-**Causa**: se cruzó el techo de `maxTokens` configurado. Con `"warn"` (el valor por defecto) la
-ejecución continúa sin cambios y no cambia el código de salida; con `"stop"` cada clave aún no
-intentada se retiene durante el resto de la ejecución, lo que deja ese locale `partial` (algunas
-claves llegaron) o `failed` (ninguna lo hizo), y ambos salen con `1`.
+**Causa**: la ejecución alcanzó el techo de `maxTokens` configurado. Con `"warn"` (el valor por
+defecto) la ejecución continúa sin cambios y no cambia el código de salida; con `"stop"` la
+petición que habría cruzado el techo no se envía en absoluto, cada clave aún no intentada se
+retiene durante el resto de la ejecución, y eso deja ese locale `partial` (algunas claves llegaron)
+o `failed` (ninguna lo hizo), y ambos salen con `1`.
 
-**Solución**: esto es la salvaguarda funcionando. Las claves retenidas conservan sus líneas base y
-se traducen en la siguiente ejecución; sube `maxTokens` o cambia a `"warn"` si quieres completarlo
-en una sola ejecución. Un presupuesto contra DeepL o una ejecución en seco informa
-`supported: false` y nunca salta, porque no existe uso de tokens que medir.
+**Solución**: esto es la salvaguarda funcionando. No queda nada a medio escribir: las claves
+traducidas antes del techo están en disco y bloqueadas, y las claves retenidas conservan sus líneas
+base y se traducen en la siguiente ejecución. Sube `maxTokens` o cambia a `"warn"` si quieres
+completarlo en una sola ejecución. Dos detalles que conviene saber: una ejecución en seco nunca
+salta, porque no construye proveedor ni envía nada; y un presupuesto contra DeepL o Google Cloud
+Translation sí salta, contado a partir de la proyección propia de verbatra, con `supported: false`
+en el resumen diciendo que la cifra es estimada y no informada. Una ejecución también puede
+terminar algo por encima de `maxTokens`: la última petición admitida se reconcilia con lo que el
+proveedor facturó de verdad, y si informa más de lo proyectado esa diferencia llega a posteriori.
+Después de eso no se envía nada más. Y el techo acota una ejecución: `watch` arranca un presupuesto
+nuevo por ejecución, y retraducir una sola entrada desde Studio o desde las herramientas de agente
+no queda cubierto por él.
 
 ## Studio: el puerto ya está en uso
 

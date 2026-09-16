@@ -641,8 +641,16 @@ Las partes que conviene conocer:
   una ejecución en seco nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
   es la suma sobre los locales.
 - **budget** aparece solo cuando `maxTokens` está configurado: `{ maxTokens, behavior, supported,
-  tokensUsed, exceeded }`. Frente a un proveedor sin tokens o una ejecución en seco sigue presente con
-  `supported: false`, así que la barrera es visiblemente inerte en lugar de dispararse en falso.
+  tokensUsed, exceeded }`. `supported` dice si `tokensUsed` es enteramente el uso que informa el
+  propio proveedor; es `false` en cuanto una petición vuelve sin una cifra utilizable, y entonces el
+  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Una ejecución
+  en seco lo informa con `tokensUsed: 0`, porque no se envió nada. Con `behavior: "stop"` el techo
+  se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
+  vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
+  última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
+  total por encima del techo a posteriori. Después de eso no se envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más. El presupuesto
+  acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y `retranslateEntry` no
+  queda cubierto en absoluto.
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
   adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado.
 - **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)

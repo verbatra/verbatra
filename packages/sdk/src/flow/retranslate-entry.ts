@@ -93,6 +93,11 @@ export type RetranslateEntryResult =
  * adapter codes to its own copy. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file on either path.
  *
+ * It spends outside the token budget. `maxTokens` and `budgetBehavior` bound a {@link translate}
+ * run, and this is its own single-key path with its own provider, so a configured ceiling neither
+ * withholds this call nor counts it. A caller that exposes retranslation to users, as the Studio
+ * dashboard and the agent tools do, has to bound that spend itself.
+ *
  * @param input - The config, locale, and key to retranslate.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
  * @returns Whether the new value was accepted, with review reasons or the rejection reason.

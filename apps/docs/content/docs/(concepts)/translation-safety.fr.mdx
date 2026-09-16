@@ -126,20 +126,40 @@ signalement est de corriger la traduction sous-jacente.
 ## Le budget de tokens
 
 La dépense fournisseur devrait avoir un plafond que tu fixes, pas un que tu découvres sur la
-facture. Avec `maxTokens` configuré, verbatra suit l'usage cumulé de tokens sur toute l'exécution
-et le vérifie après chaque sous-lot terminé. Ce qui se passe au plafond est `budgetBehavior` :
+facture. Avec `maxTokens` configuré, verbatra compte ce que l'exécution dépense sur chaque appel
+fournisseur et chaque locale cible. Ce qui se passe au plafond est `budgetBehavior` :
 
-- `warn` (le défaut) : l'exécution continue et le résumé signale que le budget a été dépassé.
-- `stop` : plus aucun appel fournisseur n'est fait ; chaque candidate restante est retenue comme
-  `budgetWithheld`, garde son hash de verrouillage précédent, et est retentée à l'exécution
-  suivante.
+- `warn` (le défaut) : l'exécution continue et le résumé signale que le budget a été dépassé. Rien
+  n'est retenu.
+- `stop` : chaque requête est projetée avant d'être envoyée, et celle qui ferait passer l'exécution
+  au-dessus du plafond n'est pas envoyée du tout. Ses clés, et chaque candidate restante après
+  elle, sont retenues comme `budgetWithheld`, gardent leur hash de verrouillage précédent, et sont
+  retentées à l'exécution suivante.
 
-Le sous-lot qui franchit le plafond n'est jamais annulé. Sous `warn`, le budget ne change jamais le
-code de sortie de la commande. Sous `stop`, il le peut : une locale dont des clés ont été retenues
-est rapportée comme `partial` quand certaines clés sont quand même arrivées et `failed` quand
-aucune n'est arrivée, et les deux sortent avec `1`. Avec un fournisseur qui ne rapporte pas d'usage de tokens (DeepL), le
-garde-fou est honnêtement inerte : le résumé le marque comme non pris en charge au lieu de
-fabriquer un compte.
+Le travail déjà fait n'est jamais annulé, et rien n'est laissé à moitié : ce qui a été traduit
+avant le plafond reste écrit et verrouillé, et une clé retenue garde la baseline qu'elle avait,
+donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de
+verrouillage revendiquant du travail retenu. La vérification couvre chaque requête que l'exécution
+envoie, y compris chaque moitié d'une requête redécoupée après une réponse tronquée : une cascade
+de retries ne peut donc pas dépasser une réservation. La seule chose qu'une projection ne peut pas
+promettre est la requête déjà partie : elle peut rapporter plus que sa projection, donc le compte
+final peut finir au-dessus de `maxTokens` de l'écart de cette seule requête, et pas davantage. Plus
+rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite.
+
+Deux limites méritent d'être dites clairement. Le plafond borne une exécution, pas une session :
+`watch` démarre un budget neuf pour chaque exécution qu'il déclenche, donc une session watch peut
+dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source. Et il couvre
+`translate` et rien d'autre : retraduire une seule entrée depuis [le tableau de bord
+Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin avec son propre
+fournisseur, et aucun budget ne borne cette dépense.
+
+Sous `warn`, le budget ne change jamais le code de sortie de la commande. Sous `stop`, il le peut :
+une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont
+quand même arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. Un
+fournisseur qui ne rapporte pas son propre usage de tokens (DeepL, Google Cloud Translation) est
+compté à partir de la projection au lieu de rester non mesuré, donc le garde-fou mord là aussi ;
+`supported` sur le budget du résumé indique que le chiffre est le décompte de verbatra et non celui
+du fournisseur.
 
 ## Les erreurs ne fuient jamais
 

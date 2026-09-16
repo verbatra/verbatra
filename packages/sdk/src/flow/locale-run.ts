@@ -26,10 +26,14 @@ import type { ProgressListener } from "../progress/types.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import {
   type BudgetTracker,
+  budgetAlreadyStoppedNotice,
   budgetExceededNotice,
+  budgetWithheldNotice,
   checkBudgetTrip,
-  foldTrackerUsage,
+  reconcileBudget,
+  reserveBudget,
 } from "./budget.js";
+import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { deriveLocaleStatus } from "./locale-failure.js";
 import { readNotices } from "./notices.js";
@@ -510,7 +514,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...pluralNotices,
     ...translation.notices,
     ...generation.notices,
-    ...budgetLocaleNotices(params.budget, startedStopped, translation.tripped, generation.tripped),
+    ...budgetLocaleNotices(params.budget, startedStopped, translation, generation),
   ];
 
   const withheld = new Set([
@@ -555,7 +559,9 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
   budgetWithheld: [],
   notices: [],
   usage: undefined,
-  tripped: false,
+  withheldByBudget: false,
+  refusedProjection: undefined,
+  counted: false,
 };
 
 function generationEnabled(params: LocaleRunParams): boolean {
@@ -605,13 +611,28 @@ async function runGeneration(
   });
 }
 
+interface BudgetLocaleOutcome {
+  readonly withheldByBudget: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
+}
+
 function budgetLocaleNotices(
   budget: BudgetTracker,
   startedStopped: boolean,
-  mainTripped: boolean,
-  generationTripped: boolean,
+  main: BudgetLocaleOutcome,
+  generation: BudgetLocaleOutcome,
 ): readonly LocaleNotice[] {
-  return startedStopped || mainTripped || generationTripped ? [budgetExceededNotice(budget)] : [];
+  const refused = main.refusedProjection ?? generation.refusedProjection;
+  if (refused !== undefined) {
+    return [budgetWithheldNotice(budget, refused)];
+  }
+  if (main.counted || generation.counted) {
+    return [budgetExceededNotice(budget)];
+  }
+  return startedStopped || main.withheldByBudget || generation.withheldByBudget
+    ? [budgetAlreadyStoppedNotice(budget)]
+    : [];
 }
 
 function pluralNoticeFor(params: LocaleRunParams, keys: Iterable<string>): readonly LocaleNotice[] {
@@ -682,7 +703,9 @@ function needsReviewFor(
 
 interface TranslateAndCheckResult {
   readonly notices: readonly LocaleNotice[];
-  readonly tripped: boolean;
+  readonly withheldByBudget: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
   readonly usage: UsageSummary | undefined;
 }
 
@@ -698,7 +721,9 @@ async function translateAndCheck(
 ): Promise<TranslateAndCheckResult> {
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
-  let tripped = false;
+  let withheld = false;
+  let refusedProjection: number | undefined;
+  let counted = false;
   const outcome: TranslationOutcome = {
     accepted,
     integrityMismatches,
@@ -707,6 +732,7 @@ async function translateAndCheck(
     reviewFlags,
   };
   const batches = chunk(entries, params.maxBatchSize);
+  const payload = payloadContextOf(params);
   let batchIndex = 0;
   for (const batch of batches) {
     batchIndex += 1;
@@ -716,40 +742,56 @@ async function translateAndCheck(
       batchIndex,
       totalBatches: batches.length,
     });
-    if (params.budget.stopped) {
-      for (const entry of batch) {
-        budgetWithheld.push(entry.key);
-      }
-      continue;
-    }
-    const subResult = await runSubBatch(provider, params, batch, outcome);
+    const subResult = await runSubBatch(provider, params, payload, batch, outcome);
     notices.push(...subResult.notices);
     foldUsage(usage, subResult.usage);
-    foldTrackerUsage(params.budget, subResult.usage);
+    withheld = withheld || subResult.withheld;
+    refusedProjection = refusedProjection ?? subResult.refusedProjection;
     if (checkBudgetTrip(params.budget)) {
-      tripped = true;
+      counted = true;
     }
   }
-  return { notices, tripped, usage: usage.total };
+  return { notices, withheldByBudget: withheld, refusedProjection, counted, usage: usage.total };
+}
+
+function withholdBatch(batch: readonly TranslationEntry[], budgetWithheld: string[]): void {
+  for (const entry of batch) {
+    budgetWithheld.push(entry.key);
+  }
 }
 
 interface SubBatchResult {
   readonly notices: readonly LocaleNotice[];
   readonly usage: TranslateResult["usage"];
+  readonly withheld: boolean;
+  readonly refusedProjection: number | undefined;
 }
 
 async function runSubBatch(
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
+  const decision = reserveBudget(params.budget, batch, payload);
+  if (decision.reservation === undefined) {
+    withholdBatch(batch, outcome.budgetWithheld);
+    return {
+      notices: [],
+      usage: undefined,
+      withheld: true,
+      refusedProjection: decision.refusedProjection,
+    };
+  }
   let result: TranslateResult;
   try {
     result = await provider.translateBatch(buildTranslateRequest(params, batch));
   } catch (error) {
-    return handleSubBatchFailure(error, provider, params, batch, outcome);
+    reconcileBudget(params.budget, decision.reservation, undefined);
+    return handleSubBatchFailure(error, provider, params, payload, batch, outcome);
   }
+  reconcileBudget(params.budget, decision.reservation, result.usage);
   for (const entry of batch) {
     foldEntryResult(
       entry,
@@ -765,7 +807,12 @@ async function runSubBatch(
       outcome.reviewFlags.set(key, flag);
     }
   }
-  return { notices: readNotices(result), usage: result.usage };
+  return {
+    notices: readNotices(result),
+    usage: result.usage,
+    withheld: false,
+    refusedProjection: undefined,
+  };
 }
 
 function isOutputTruncated(error: unknown): boolean {
@@ -776,32 +823,43 @@ async function handleSubBatchFailure(
   error: unknown,
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   if (isOutputTruncated(error) && batch.length > 1) {
-    return retryTruncatedSplit(provider, params, batch, outcome);
+    return retryTruncatedSplit(provider, params, payload, batch, outcome);
   }
   for (const entry of batch) {
     outcome.providerFailures.push(entry.key);
   }
-  return { notices: [subBatchFailedNotice(batch.length, error)], usage: undefined };
+  return {
+    notices: [subBatchFailedNotice(batch.length, error)],
+    usage: undefined,
+    withheld: false,
+    refusedProjection: undefined,
+  };
 }
 
 async function retryTruncatedSplit(
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   const notices: LocaleNotice[] = [];
   let usage: TranslateResult["usage"];
+  let withheld = false;
+  let refusedProjection: number | undefined;
   for (const half of chunk(batch, Math.ceil(batch.length / 2))) {
-    const sub = await runSubBatch(provider, params, half, outcome);
+    const sub = await runSubBatch(provider, params, payload, half, outcome);
     notices.push(...sub.notices);
     usage = combineUsage(usage, sub.usage);
+    withheld = withheld || sub.withheld;
+    refusedProjection = refusedProjection ?? sub.refusedProjection;
   }
-  return { notices, usage };
+  return { notices, usage, withheld, refusedProjection };
 }
 
 function foldEntryResult(

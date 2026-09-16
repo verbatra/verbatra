@@ -200,19 +200,29 @@ the file is your source locale, this surfaces wrapped in `SOURCE_INVALID`. See
 
 ## The run stopped short of some keys (token budget)
 
-**Symptom**: a `BUDGET_TOKENS_EXCEEDED` notice: `The run's cumulative token usage (N) reached the
-configured budget of M tokens (behavior: ...)`; with `budgetBehavior: "stop"`, keys also appear
-under `budgetWithheld`.
+**Symptom**: a `BUDGET_TOKENS_EXCEEDED` notice. Under `"warn"` it reads `The run's cumulative
+token usage (N) reached the configured budget of M tokens (behavior: warn)`. Under
+`budgetBehavior: "stop"` it reads `The run's next provider request was projected at P tokens on top
+of the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, and keys also appear under `budgetWithheld`.
 
-**Cause**: the configured `maxTokens` ceiling was crossed. With `"warn"` (the default) the run
-continues unchanged and does not change the exit code; with `"stop"` every key not yet attempted is
-withheld for the rest of the run, which leaves that locale `partial` (some keys landed) or `failed`
-(none did), and both exit `1`.
+**Cause**: the run reached its configured `maxTokens` ceiling. With `"warn"` (the default) the run
+continues unchanged and does not change the exit code; with `"stop"` the request that would have
+crossed the ceiling is not sent at all, every key not yet attempted is withheld for the rest of the
+run, and that leaves the locale `partial` (some keys landed) or `failed` (none did), both exiting
+`1`.
 
-**Fix**: this is the guardrail working. Withheld keys keep their baselines and are translated on
-the next run; raise `maxTokens` or switch to `"warn"` if you want single-run completion. A budget
-against DeepL or a dry run reports `supported: false` and never trips, because no token usage
-exists to measure.
+**Fix**: this is the guardrail working. Nothing is half-written: the keys that were translated
+before the ceiling are on disk and locked, and withheld keys keep their baselines and are
+translated on the next run. Raise `maxTokens` or switch to `"warn"` if you want single-run
+completion. Two details worth knowing: a dry run never trips, because it constructs no provider and
+sends nothing; and a budget against DeepL or Google Cloud Translation does trip, counted from
+verbatra's own projection, with `supported: false` on the summary saying the figure is estimated
+rather than reported. A run can also finish a little above `maxTokens`: the last request
+admitted is reconciled to what the provider actually billed, and reporting more than its projection
+lands that difference after the fact. Nothing further is sent once it does. And the ceiling bounds
+one run: `watch` starts a fresh budget per run, and retranslating a single entry from Studio or the
+agent tools is not covered by it at all.
 
 ## Studio: the port is already in use
 

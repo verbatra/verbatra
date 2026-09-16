@@ -53,6 +53,7 @@ describe("toUsageTickerDisplayState", () => {
         behavior: "warn",
         tokensUsed: 460,
         exceeded: false,
+        counting: "reported",
       },
     });
   });
@@ -78,7 +79,35 @@ describe("toUsageTickerDisplayState", () => {
     }
   });
 
-  it("maps a budget with supported: false to the not-tracked budget state, never implying 0 usage", () => {
+  it("keeps an estimated budget tracked, carrying the consumption and the ceiling-reached flag", () => {
+    const data: UsageTickerData = {
+      available: true,
+      generatedAt: "2026-07-16T00:00:00.000Z",
+      budget: {
+        maxTokens: 500,
+        behavior: "stop",
+        supported: false,
+        tokensUsed: 494,
+        exceeded: true,
+      },
+    };
+
+    const state = toUsageTickerDisplayState(data);
+
+    expect(state.kind).toBe("available");
+    if (state.kind === "available") {
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "stop",
+        tokensUsed: 494,
+        exceeded: true,
+        counting: "estimated",
+      });
+    }
+  });
+
+  it("does not call a budget estimated when the run counted nothing at all", () => {
     const data: UsageTickerData = {
       available: true,
       generatedAt: "2026-07-16T00:00:00.000Z",
@@ -95,7 +124,42 @@ describe("toUsageTickerDisplayState", () => {
 
     expect(state.kind).toBe("available");
     if (state.kind === "available") {
-      expect(state.budget).toEqual({ kind: "not-tracked", maxTokens: 500, behavior: "warn" });
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "warn",
+        tokensUsed: 0,
+        exceeded: false,
+        counting: "reported",
+      });
+    }
+  });
+
+  it("marks a provider-reported budget as reported rather than estimated", () => {
+    const data: UsageTickerData = {
+      available: true,
+      generatedAt: "2026-07-16T00:00:00.000Z",
+      budget: {
+        maxTokens: 500,
+        behavior: "warn",
+        supported: true,
+        tokensUsed: 120,
+        exceeded: false,
+      },
+    };
+
+    const state = toUsageTickerDisplayState(data);
+
+    expect(state.kind).toBe("available");
+    if (state.kind === "available") {
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "warn",
+        tokensUsed: 120,
+        exceeded: false,
+        counting: "reported",
+      });
     }
   });
 

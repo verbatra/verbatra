@@ -29,7 +29,7 @@ With `--json`, each run emits one [envelope](/docs/ci-and-exit-codes#json-output
 
 `--lock-timeout` applies to every cycle: it tunes how long a locale waits for a contended [write lock](/docs/the-lock-file) before that run fails with `LOCK_CONTENDED`. A failed run is only a record on the stream, so the watcher keeps going either way.
 
-`--concurrency` applies to each cycle's run. Because each run's token budget is fresh, a `--concurrency` above `1` cannot be honored when the config sets a `maxTokens` budget: `watch` refuses that combination at startup and exits `2` before the initial run, instead of starting a session that fails every cycle. `--no-cache` bypasses the [translation-memory cache](/docs/the-cache) on every cycle.
+`--concurrency` applies to each cycle's run. Each run gets a fresh token budget, and a `--concurrency` above `1` is still refused when the config sets a `maxTokens` budget, because which locale loses its remaining work would depend on the order the locales interleave: `watch` refuses that combination at startup and exits `2` before the initial run, instead of starting a session that fails every cycle. `--no-cache` bypasses the [translation-memory cache](/docs/the-cache) on every cycle.
 
 ## Stopping
 

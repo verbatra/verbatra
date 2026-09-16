@@ -215,19 +215,30 @@ Voir [Formats](/docs/formats) pour les règles de clés de chaque format.
 
 ## L'exécution s'est arrêtée avant certaines clés (budget de tokens)
 
-**Symptôme** : un avis `BUDGET_TOKENS_EXCEEDED` : `The run's cumulative token usage (N) reached the
-configured budget of M tokens (behavior: ...)` ; avec `budgetBehavior: "stop"`, des clés
-apparaissent aussi sous `budgetWithheld`.
+**Symptôme** : un avis `BUDGET_TOKENS_EXCEEDED`. Sous `"warn"`, il indique `The run's cumulative
+token usage (N) reached the configured budget of M tokens (behavior: warn)`. Sous
+`budgetBehavior: "stop"`, il indique `The run's next provider request was projected at P tokens on
+top of the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, et des clés apparaissent aussi sous `budgetWithheld`.
 
-**Cause** : le plafond `maxTokens` configuré a été franchi. Avec `"warn"` (le défaut) l'exécution
-continue sans changement et ne modifie pas le code de sortie ; avec `"stop"` chaque clé pas encore
-tentée est retenue pour le reste de l'exécution, ce qui laisse cette locale `partial` (certaines
-clés sont arrivées) ou `failed` (aucune), et les deux sortent avec `1`.
+**Cause** : l'exécution a atteint son plafond `maxTokens` configuré. Avec `"warn"` (le défaut)
+l'exécution continue sans changement et ne modifie pas le code de sortie ; avec `"stop"` la requête
+qui aurait franchi le plafond n'est pas envoyée du tout, chaque clé pas encore tentée est retenue
+pour le reste de l'exécution, et cela laisse cette locale `partial` (certaines clés sont arrivées)
+ou `failed` (aucune), les deux sortant avec `1`.
 
-**Solution** : c'est le garde-fou qui fonctionne. Les clés retenues gardent leurs références et
-sont traduites à l'exécution suivante ; augmente `maxTokens` ou passe à `"warn"` si tu veux tout
-terminer en une exécution. Un budget face à DeepL ou pendant un dry run rapporte
-`supported: false` et ne se déclenche jamais, parce qu'aucun usage de tokens n'existe à mesurer.
+**Solution** : c'est le garde-fou qui fonctionne. Rien n'est laissé à moitié écrit : les clés
+traduites avant le plafond sont sur le disque et verrouillées, et les clés retenues gardent leurs
+références et sont traduites à l'exécution suivante. Augmente `maxTokens` ou passe à `"warn"` si tu
+veux tout terminer en une exécution. Deux détails à connaître : un dry run ne se déclenche jamais,
+puisqu'il ne construit aucun fournisseur et n'envoie rien ; et un budget face à DeepL ou Google
+Cloud Translation se déclenche bel et bien, compté à partir de la projection propre à verbatra,
+avec `supported: false` sur le résumé pour dire que le chiffre est estimé et non rapporté. Une
+exécution peut aussi finir un peu au-dessus de `maxTokens` : la dernière requête admise est
+réconciliée avec ce que le fournisseur a réellement facturé, et si elle rapporte plus que sa
+projection, cet écart arrive après coup. Plus rien n'est envoyé ensuite. Et le plafond borne une
+exécution : `watch` démarre un budget neuf par exécution, et retraduire une seule entrée depuis
+Studio ou depuis les outils d'agent n'est pas couvert du tout.
 
 ## Studio : le port est déjà utilisé
 

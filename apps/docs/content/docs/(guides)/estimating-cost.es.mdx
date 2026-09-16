@@ -188,7 +188,7 @@ Multiplica esa cifra medida por el número de idiomas que te quedan. El uso de t
 
 La ejecución de calibración es una ejecución real: gasta dinero real y escribe traducciones reales para ese idioma. Ese es justamente el punto, y el trabajo no se pierde, porque los idiomas restantes parten del mismo origen y el idioma calibrado ya está terminado.
 
-Para poner un tope a una ejecución en lugar de predecirla, configura `maxTokens` con `budgetBehavior: "stop"`, que retiene toda clave aún no intentada en cuanto se cruza el techo; las claves retenidas se reintentan automáticamente en la ejecución siguiente. Consulta [la referencia de configuración](/docs/config-file).
+Para poner un tope a una ejecución en lugar de predecirla, configura `maxTokens` con `budgetBehavior: "stop"`, que proyecta cada petición antes de enviarla y retiene cualquiera que llevaría la ejecución por encima del techo, junto con toda clave aún no intentada tras ella; las claves retenidas se reintentan automáticamente en la ejecución siguiente. Reserva contra la misma proyección que describe esta página, una vez por cada petición realmente enviada, así que incluso una petición vuelta a partir tras una respuesta truncada se comprueba mitad a mitad. El recuento se reconcilia con lo que informa el proveedor después de cada petición, así que una ejecución puede terminar por encima del techo por la diferencia de la última petición admitida, y no más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más. El techo acota una ejecución: `watch` arranca un presupuesto nuevo para cada ejecución que dispara. Consulta [la referencia de configuración](/docs/config-file).
 
 ## DeepL se factura de otra manera
 
@@ -197,13 +197,13 @@ DeepL es una API de traducción automática, no un LLM facturado por tokens, as�
 - La unidad facturable son los **caracteres de origen**. Para el proyecto de ejemplo son 400 claves x 40 caracteres = 16.000 caracteres por idioma, 48.000 entre los tres.
 - verbatra envía a DeepL solo el texto de origen. No hay reglas del sistema, ni nombres de clave, ni envoltorio JSON en la carga facturada, así que no hay ninguna constante por petición que amortizar.
 - DeepL retiene las cadenas que llevan marcadores de posición o sintaxis ICU en lugar de arriesgarlas, así que los caracteres realmente enviados pueden ser menos que el total bruto.
-- DeepL no informa de uso de tokens, así que un presupuesto `maxTokens` configurado se informa como no soportado en lugar de aparentar que funciona.
+- DeepL no informa de uso de tokens, así que un presupuesto `maxTokens` configurado se cuenta a partir de la proyección propia de verbatra. Se aplica igualmente; el resumen de la ejecución marca la cifra como estimada en lugar de informada.
 
 ## Google Cloud Translation se factura de la misma manera
 
 <AvailableFrom version="0.10.0" />
 
-Google Cloud Translation es también una API de traducción automática, facturada como DeepL arriba: la unidad son los **caracteres** de origen, no tokens (consulta [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra le envía solo el texto de origen, retiene las cadenas que llevan marcadores de posición o sintaxis ICU en lugar de arriesgarlas, y no informa de uso de tokens, así que un presupuesto `maxTokens` configurado se informa como no soportado en lugar de aparentar que funciona.
+Google Cloud Translation es también una API de traducción automática, facturada como DeepL arriba: la unidad son los **caracteres** de origen, no tokens (consulta [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra le envía solo el texto de origen, retiene las cadenas que llevan marcadores de posición o sintaxis ICU en lugar de arriesgarlas, y no informa de uso de tokens, así que un presupuesto `maxTokens` configurado se cuenta a partir de la proyección propia de verbatra, se aplica igualmente y el resumen de la ejecución lo marca como estimado en lugar de informado.
 
 ## Por qué la segunda ejecución es casi gratis
 
