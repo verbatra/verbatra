@@ -36,7 +36,7 @@ const SEED = 270;
 const PAIR_COUNT = 3000;
 const PROSE_WORD_ELEMENTS: ReadonlySet<string> = new Set(["enter", "tab"]);
 const WHATWG_URL = (globalThis as unknown as { readonly URL: UrlConstructor }).URL;
-const RELATIVE_BASE = "https://relative.invalid/base/";
+const RESOLUTION_BASES = ["https://relative.invalid/base/", "app://relative.invalid/base/"];
 const URL_LIST_SEPARATORS: Readonly<Record<string, RegExp>> = {
   archive: /[\s,]+/,
   ping: /\s+/,
@@ -203,6 +203,11 @@ const ORIGINS = [
   '<img srcset="/a.png 1x, /b.png 2x">',
   '<img srcset="/a.png 1x, https://evil.example/b.png 2x">',
   '<a ping="/p https://evil.example/p">',
+  '<a href="//verbatra.dev/en">',
+  '<a href="//verbatra.dev/de">',
+  '<a href="//verbatra.dev\\@evil.example/">',
+  '<a href="//verbatra.dev%5C@evil.example/">',
+  '<a href="https://verbatra.dev\\@evil.example/">',
 ];
 const GUARDED = [
   '<meta http-equiv="refresh" content="5;url=/home">',
@@ -345,10 +350,10 @@ function urlsIn(name: string, value: string): readonly string[] {
   return urls.filter((url) => url.length > 0);
 }
 
-function resolvedOrigin(url: string): string {
+function resolvedOrigin(url: string, base: string): string {
   try {
-    const resolved = new WHATWG_URL(url, RELATIVE_BASE);
-    return `${resolved.protocol}//${resolved.host}`;
+    const resolved = new WHATWG_URL(url, base);
+    return `${base} ${resolved.protocol}//${resolved.host}`;
   } catch {
     return `unparsable ${url}`;
   }
@@ -403,9 +408,11 @@ function recordAttribute(shape: MutableShape, element: string, name: string, raw
     shape.guardedValues.push(value);
   }
   for (const url of URL_ATTRIBUTES.has(name) ? urlsIn(name, raw) : []) {
-    const origin = `${key} ${resolvedOrigin(url)}`;
-    shape.origins.add(origin);
-    shape.urlOrigins.push(origin);
+    for (const base of RESOLUTION_BASES) {
+      const origin = `${key} ${resolvedOrigin(url, base)}`;
+      shape.origins.add(origin);
+      shape.urlOrigins.push(origin);
+    }
   }
 }
 
