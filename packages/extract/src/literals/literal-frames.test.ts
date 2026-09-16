@@ -43,7 +43,7 @@ describe("updateFrames: looking back for a call's type arguments", () => {
     const frames = walk(scanSource("useState<Map<string, number>>(").tokens);
 
     expect(frames).toEqual([
-      { kind: "call", callee: "useState", receiver: "", constructed: false },
+      { kind: "call", callee: "useState", receiver: "", member: false, constructed: false },
     ]);
   });
 

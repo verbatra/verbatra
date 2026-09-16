@@ -5,6 +5,7 @@ export type LiteralFrame =
       readonly kind: "call";
       readonly callee: string;
       readonly receiver: string;
+      readonly member: boolean;
       readonly constructed: boolean;
     }
   | { readonly kind: "group"; readonly bracket: "(" | "[" }
@@ -125,10 +126,10 @@ function callFrame(tokens: readonly PositionedToken[], openIndex: number): Liter
   if (callee === undefined) {
     return { kind: "group", bracket: "(" };
   }
-  const hasReceiver = isPunct(tokens[index - 1], ".");
-  const receiver = hasReceiver ? (identValue(tokens[index - 2]) ?? "") : "";
-  const constructed = identValue(tokens[index - (hasReceiver ? 3 : 1)]) === "new";
-  return { kind: "call", callee, receiver, constructed };
+  const member = isPunct(tokens[index - 1], ".");
+  const receiver = member ? (identValue(tokens[index - 2]) ?? "") : "";
+  const constructed = identValue(tokens[index - (member ? 3 : 1)]) === "new";
+  return { kind: "call", callee, receiver, member, constructed };
 }
 
 function declaresTypeAlias(tokens: readonly PositionedToken[], equalsIndex: number): boolean {

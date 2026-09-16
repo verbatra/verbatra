@@ -28,16 +28,25 @@ const USER_FACING_ATTRIBUTES = new Set([
 const NON_USER_FACING_NAMES = new Set([
   "accept",
   "action",
+  "allow",
+  "aria-activedescendant",
+  "aria-controls",
+  "aria-describedby",
+  "aria-flowto",
+  "aria-labelledby",
+  "aria-owns",
   "as",
   "autoComplete",
   "class",
   "className",
   "classNames",
   "color",
+  "crossOrigin",
   "css",
   "d",
   "dir",
   "encType",
+  "enterKeyHint",
   "fill",
   "form",
   "href",
@@ -52,8 +61,10 @@ const NON_USER_FACING_NAMES = new Set([
   "pattern",
   "points",
   "ref",
+  "referrerPolicy",
   "rel",
   "role",
+  "sandbox",
   "size",
   "slot",
   "src",
@@ -76,7 +87,6 @@ const NON_USER_FACING_NAMES = new Set([
 ]);
 
 const NON_USER_FACING_CALLEES = new Set([
-  "addEventListener",
   "classNames",
   "classnames",
   "closest",
@@ -87,29 +97,45 @@ const NON_USER_FACING_CALLEES = new Set([
   "cva",
   "cx",
   "debug",
+  "describe",
+  "enum",
+  "execute",
   "findAllByTestId",
   "findByTestId",
+  "format",
   "getAllByTestId",
   "getAttribute",
   "getByTestId",
   "getElementById",
   "getElementsByClassName",
+  "getItem",
   "import",
   "keyframes",
   "matches",
   "matchMedia",
+  "parse",
+  "prepare",
+  "query",
   "queryAllByTestId",
   "queryByTestId",
   "querySelector",
   "querySelectorAll",
   "removeEventListener",
+  "removeItem",
   "require",
   "setAttribute",
+  "setItem",
   "styled",
   "tv",
   "twJoin",
   "twMerge",
 ]);
+
+const FIRST_ARGUMENT_CALLEES = new Set(["addEventListener", "emit", "off", "on", "once"]);
+
+const FIRST_ARGUMENT_MEMBERS = new Set(["get", "set"]);
+
+const TYPE_FOLLOWERS = new Set(["as", "satisfies"]);
 
 const LOG_RECEIVERS = new Set(["console", "logger", "log"]);
 
@@ -149,6 +175,20 @@ function isExcludedFrame(frame: LiteralFrame, rules: TranslationRecognition): bo
   }
 }
 
+function isNonUserFacingFirstArgument(
+  tokens: readonly PositionedToken[],
+  index: number,
+  frames: readonly LiteralFrame[],
+): boolean {
+  const top = frames[frames.length - 1];
+  if (top?.kind !== "call" || !isPunct(tokens[index - 1], "(")) {
+    return false;
+  }
+  return (
+    FIRST_ARGUMENT_CALLEES.has(top.callee) || (top.member && FIRST_ARGUMENT_MEMBERS.has(top.callee))
+  );
+}
+
 function isSingleOperator(tokens: readonly PositionedToken[], index: number, step: 1 | -1) {
   const token = tokens[index];
   return (
@@ -166,7 +206,7 @@ function isTypePosition(
   if (isSingleOperator(tokens, index - 1, -1) || isSingleOperator(tokens, index + 1, 1)) {
     return true;
   }
-  if (isPunct(tokens[index - 1], "<")) {
+  if (isPunct(tokens[index - 1], "<") || TYPE_FOLLOWERS.has(identValue(tokens[index + 1]) ?? "")) {
     return true;
   }
   return isPunct(tokens[index - 1], ":") && isTypeAnnotationColon(tokens, index - 1, frames);
@@ -216,6 +256,7 @@ function isExcludedPosition(
     isKeyPosition(tokens, index) ||
     isTypePosition(tokens, index, frames) ||
     isComparisonOperand(tokens, index) ||
+    isNonUserFacingFirstArgument(tokens, index, frames) ||
     isNonUserFacingPropertyValue(tokens, index)
   );
 }

@@ -126,6 +126,74 @@ describe("findLiterals: non-user-facing literals are not reported", () => {
   });
 });
 
+describe("findLiterals: noisy non-user-facing positions are not reported", () => {
+  it.each([
+    "aria-controls",
+    "aria-describedby",
+    "aria-labelledby",
+    "aria-owns",
+    "aria-flowto",
+    "aria-activedescendant",
+    "allow",
+    "sandbox",
+    "referrerPolicy",
+    "crossOrigin",
+    "autoComplete",
+    "inputMode",
+    "enterKeyHint",
+    "rel",
+    "as",
+  ])("skips the value of the %s attribute", (name) => {
+    onlyControl(`(<iframe ${name}="first second third">{x}</iframe>)`);
+  });
+
+  it.each([
+    ["a zod describe call", 'z.string().describe("The user email address");'],
+    ["a query call", 'db.query("select all users");'],
+    ["an execute call", 'db.execute("delete from users");'],
+    ["a prepare call", 'db.prepare("select one user");'],
+    ["a format call", 'format(date, "do MMMM yyyy");'],
+    ["a parse call", 'parse(value, "dd MM yyyy", new Date());'],
+    ["a setItem call", 'localStorage.setItem("user settings", "dark mode on");'],
+    ["a getItem call", 'sessionStorage.getItem("user settings");'],
+    ["a removeItem call", 'localStorage.removeItem("user settings");'],
+    ["a z.enum call", 'const Theme = z.enum(["Light mode", "Dark mode"]);'],
+  ])("skips every string argument of %s", (_label, source) => {
+    onlyControl(source, false);
+  });
+
+  it.each([
+    ["a member get call", 'cookies().get("session token name");'],
+    ["a member set call", 'cookies().set("session token name", token);'],
+    ["an on call", 'socket.on("user joined room", handler);'],
+    ["an off call", 'socket.off("user joined room", handler);'],
+    ["a once call", 'socket.once("user joined room", handler);'],
+    ["an emit call", 'socket.emit("user joined room");'],
+    ["an addEventListener call", 'window.addEventListener("before print now", handler);'],
+  ])("skips the first string argument of %s", (_label, source) => {
+    onlyControl(source, false);
+  });
+
+  it("still reports a later string argument of an event call", () => {
+    expect(texts('socket.emit("user joined room", "Welcome to the room");', false)).toEqual([
+      "Welcome to the room",
+    ]);
+  });
+
+  it("skips a literal followed by as or satisfies", () => {
+    onlyControl('const a = "Hello there friend" as Greeting;', false);
+    onlyControl('const b = "Hello there friend" satisfies Greeting;', false);
+  });
+
+  it("still reports toast copy, alt, placeholder, JSX text, and a label value", () => {
+    expect(
+      texts(
+        'toast("Saved successfully");\nconst a = <img alt="Company logo" />;\nconst b = <input placeholder="Your email" />;\nconst c = <p>Hello world</p>;\nconst d = { label: "Save changes" };',
+      ),
+    ).toEqual(["Saved successfully", "Company logo", "Your email", "Hello world", "Save changes"]);
+  });
+});
+
 describe("findLiterals: a literal with no letters", () => {
   it.each([
     ["punctuation", '"...!?"'],
