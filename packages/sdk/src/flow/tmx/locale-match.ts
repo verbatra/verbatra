@@ -19,6 +19,32 @@ function extendsOrIsExtendedBy(left: readonly string[], right: readonly string[]
   return isSubtagPrefix(left, right) || isSubtagPrefix(right, left);
 }
 
+interface Candidate {
+  readonly locale: string;
+  readonly subtags: readonly string[];
+}
+
+function liesOnOneChain(candidates: readonly Candidate[]): boolean {
+  const byLength = [...candidates].sort(
+    (left, right) => left.subtags.length - right.subtags.length,
+  );
+  return byLength.every((candidate, index) => {
+    const longer = byLength[index + 1];
+    return longer === undefined || isSubtagPrefix(candidate.subtags, longer.subtags);
+  });
+}
+
+function nearestOnChain(candidates: readonly Candidate[], length: number): Candidate | undefined {
+  const prefixes = candidates.filter((candidate) => candidate.subtags.length < length);
+  const pool = prefixes.length > 0 ? prefixes : candidates;
+  const distance = (candidate: Candidate): number => Math.abs(candidate.subtags.length - length);
+  return pool.reduce<Candidate | undefined>(
+    (best, candidate) =>
+      best === undefined || distance(candidate) < distance(best) ? candidate : best,
+    undefined,
+  );
+}
+
 export function sameTag(left: string, right: string): boolean {
   return canonical(left) === canonical(right);
 }
@@ -33,13 +59,18 @@ export function matchLanguageTag(tag: string, locales: readonly string[]): Langu
     return { kind: "matched", locale: exact, exact: true };
   }
   const subtags = wanted.split("-");
-  const candidates = locales.filter((locale) =>
-    extendsOrIsExtendedBy(subtags, canonical(locale).split("-")),
-  );
-  if (candidates.length === 1 && candidates[0] !== undefined) {
-    return { kind: "matched", locale: candidates[0], exact: false };
+  const candidates = locales
+    .map((locale) => ({ locale, subtags: canonical(locale).split("-") }))
+    .filter((candidate) => extendsOrIsExtendedBy(subtags, candidate.subtags));
+  if (candidates.length === 0) {
+    return { kind: "unmatched" };
   }
-  return candidates.length === 0 ? { kind: "unmatched" } : { kind: "ambiguous", candidates };
+  const nearest = liesOnOneChain(candidates)
+    ? nearestOnChain(candidates, subtags.length)
+    : undefined;
+  return nearest === undefined
+    ? { kind: "ambiguous", candidates: candidates.map((candidate) => candidate.locale) }
+    : { kind: "matched", locale: nearest.locale, exact: false };
 }
 
 export function assertDistinctLocales(

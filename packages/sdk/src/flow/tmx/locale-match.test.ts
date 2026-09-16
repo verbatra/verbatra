@@ -81,10 +81,51 @@ describe("matchLanguageTag falls back only along a subtag prefix, and only when 
     });
   });
 
-  it("refuses to guess when two configured locales are both prefixes of the tag", () => {
+  it("picks the longest configured locale when several are prefixes of the tag", () => {
     expect(matchLanguageTag("de-CH-1901", ["de", "de-CH"])).toEqual({
+      kind: "matched",
+      locale: "de-CH",
+      exact: false,
+    });
+  });
+
+  it("picks the longest prefix whatever order the locales are configured in", () => {
+    expect(matchLanguageTag("de-AT-1996", ["de-AT", "de"])).toEqual({
+      kind: "matched",
+      locale: "de-AT",
+      exact: false,
+    });
+    expect(matchLanguageTag("de-AT-u-co-phonebk", ["de", "de-AT"])).toMatchObject({
+      kind: "matched",
+      locale: "de-AT",
+    });
+  });
+
+  it("falls back to the shorter prefix when the longer configured locale diverges", () => {
+    expect(matchLanguageTag("de-CH-u-co-phonebk", ["de", "de-AT"])).toMatchObject({
+      kind: "matched",
+      locale: "de",
+    });
+  });
+
+  it("prefers a configured locale the tag extends over one extending the tag", () => {
+    expect(matchLanguageTag("de-AT", ["de-AT-1996", "de"])).toMatchObject({
+      kind: "matched",
+      locale: "de",
+    });
+  });
+
+  it("picks the nearest configured locale on a chain extending the tag", () => {
+    expect(matchLanguageTag("de", ["de-AT-1996", "de-AT"])).toMatchObject({
+      kind: "matched",
+      locale: "de-AT",
+    });
+  });
+
+  it("refuses to guess when the candidates do not lie on one prefix chain", () => {
+    expect(matchLanguageTag("de-AT", ["de", "de-AT-1996", "de-AT-1901"])).toEqual({
       kind: "ambiguous",
-      candidates: ["de", "de-CH"],
+      candidates: ["de", "de-AT-1996", "de-AT-1901"],
     });
   });
 
