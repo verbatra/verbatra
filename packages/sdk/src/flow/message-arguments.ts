@@ -4,7 +4,7 @@ import {
   icuMessageArguments,
 } from "@verbatra/format-adapters";
 
-export type MessageArgumentType = "string" | "number" | "date" | "unknown";
+export type MessageArgumentType = "string" | "number" | "date" | "unknown" | "date-or-string";
 
 export interface NamedMessageArgument {
   readonly name: string;
@@ -182,14 +182,32 @@ function classifyToken(token: string): ClassifiedToken {
   return IGNORED;
 }
 
+type AcceptedValue = "Date" | "number" | "string";
+
+const ACCEPTED_VALUES: Readonly<Record<MessageArgumentType, readonly AcceptedValue[]>> = {
+  string: ["string"],
+  number: ["number"],
+  unknown: ["number", "string"],
+  date: ["Date", "number"],
+  "date-or-string": ["Date", "number", "string"],
+};
+
+const NARROWEST_FIRST: readonly MessageArgumentType[] = ["string", "number", "unknown", "date"];
+
 function mergeType(
   existing: MessageArgumentType | undefined,
   incoming: MessageArgumentType,
 ): MessageArgumentType {
-  if (existing === undefined || existing === incoming) {
+  if (existing === undefined) {
     return incoming;
   }
-  return "unknown";
+  const accepted = new Set([...ACCEPTED_VALUES[existing], ...ACCEPTED_VALUES[incoming]]);
+  for (const type of NARROWEST_FIRST) {
+    if ([...accepted].every((value) => ACCEPTED_VALUES[type].includes(value))) {
+      return type;
+    }
+  }
+  return "date-or-string";
 }
 
 function namedArguments(tokens: readonly ClassifiedToken[]): MessageArguments {

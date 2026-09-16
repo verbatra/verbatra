@@ -157,6 +157,19 @@ describe("renderTypesDeclaration: argument shapes", () => {
     expect(declaredMembers(declaration)).toEqual(['  "due": { readonly "d": Date | number };']);
   });
 
+  it("types an argument used as a date and as plain text as the union of both", () => {
+    const declaration = render([
+      message({
+        key: "due",
+        arguments: { style: "named", named: [{ name: "d", type: "date-or-string" }] },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "due": { readonly "d": Date | number | string };',
+    ]);
+  });
+
   it("keeps several named arguments in the order they were described", () => {
     const declaration = render([
       message({

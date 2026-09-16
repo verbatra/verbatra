@@ -423,10 +423,45 @@ describe("describeIcuMessageArguments: the type each ICU argument kind declares"
     });
   });
 
-  it("widens a name formatted as two kinds that disagree", () => {
+  it("keeps a date and a number use of one name as a date, whose type already accepts a number", () => {
     expect(describeIcuMessageArguments("{v, date} {v, number}")).toEqual({
       style: "named",
-      named: [{ name: "v", type: "unknown" }],
+      named: [{ name: "v", type: "date" }],
+    });
+  });
+
+  it("declares a date and a plain use of one name as the union of both", () => {
+    expect(describeIcuMessageArguments("{d, date, short} ({d})")).toEqual({
+      style: "named",
+      named: [{ name: "d", type: "date-or-string" }],
+    });
+  });
+
+  it("declares a date and a select use of one name as the union of both", () => {
+    expect(describeIcuMessageArguments("{d, date} {d, select, a {A} other {B}}")).toEqual({
+      style: "named",
+      named: [{ name: "d", type: "date-or-string" }],
+    });
+  });
+
+  it("declares a plural and a plain use of one name as the untyped union of both", () => {
+    expect(describeIcuMessageArguments("{n, plural, other {#}} {n}")).toEqual({
+      style: "named",
+      named: [{ name: "n", type: "unknown" }],
+    });
+  });
+
+  it("declares a number and a select use of one name as the untyped union of both", () => {
+    expect(describeIcuMessageArguments("{n, number} {n, select, a {A} other {B}}")).toEqual({
+      style: "named",
+      named: [{ name: "n", type: "unknown" }],
+    });
+  });
+
+  it("declares a numbered date and plain use of one position as the union of both", () => {
+    expect(describeIcuMessageArguments("{0, date} {0}")).toEqual({
+      style: "positional",
+      positional: ["date-or-string"],
     });
   });
 
@@ -443,6 +478,13 @@ describe("describeMessageArguments: an i18next formatter", () => {
     expect(describeMessageArguments(["{{when, datetime}}"])).toEqual({
       style: "named",
       named: [{ name: "when", type: "date" }],
+    });
+  });
+
+  it("declares a datetime and a plain use of one name as the union of both", () => {
+    expect(describeMessageArguments(["{{d, datetime}}", "{{d}}"])).toEqual({
+      style: "named",
+      named: [{ name: "d", type: "date-or-string" }],
     });
   });
 

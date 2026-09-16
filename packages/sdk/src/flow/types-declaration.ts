@@ -60,6 +60,7 @@ const TYPE_EXPRESSIONS: Readonly<Record<MessageArgumentType, string>> = {
   string: "string",
   number: "number",
   date: "Date | number",
+  "date-or-string": "Date | number | string",
 };
 
 function typeExpression(type: MessageArgumentType): string {

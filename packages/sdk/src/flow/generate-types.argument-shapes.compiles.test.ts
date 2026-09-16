@@ -163,6 +163,24 @@ t("plain", { x: "Ada" });
 t("plain", { x: new Date() });
 `,
   ),
+  nextIntl(
+    "one-name-several-kinds",
+    { due: "{d, date, short} ({d})", count: "{n, plural, other {#}} {n}" },
+    `
+t("due", { d: new Date() });
+t("due", { d: Date.now() });
+t("due", { d: "tomorrow" });
+// @ts-expect-error the union of a date and a plain argument still rejects a boolean
+t("due", { d: true });
+
+t("count", { n: 2 });
+t("count", { n: "2" });
+// @ts-expect-error the union of a plural and a plain argument still rejects a boolean
+t("count", { n: false });
+// @ts-expect-error the union of a plural and a plain argument does not accept a Date
+t("count", { n: new Date() });
+`,
+  ),
   nextIntl("next-intl-branch-only", { invite: INVITE }, INVITE_USAGE),
   arb("arb-branch-only", { invite: INVITE }, INVITE_USAGE),
   nextIntl(

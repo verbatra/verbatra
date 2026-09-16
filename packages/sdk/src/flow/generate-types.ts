@@ -274,7 +274,8 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * its arguments at once, are declared with {@link GenerateTypesResult.unresolved} recording why,
  * rather than being silently declared as taking nothing. Argument types come only from what the
  * catalog actually records: `number` where the format annotated one, and a `string | number` alias
- * everywhere else, never a permissive `any`.
+ * everywhere else, never a permissive `any`. A name used with several types is declared as the
+ * union of what each use accepts.
  *
  * With `check` set, nothing is written: the run reports whether the committed file still matches
  * what a fresh generation would produce, which is the shape a CI gate wants.
