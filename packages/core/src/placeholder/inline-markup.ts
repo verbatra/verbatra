@@ -174,17 +174,42 @@ function collectIgnoredTags(tokens: readonly string[]): IgnoredTags {
   return { tokens: ignoredTokens, closingNames };
 }
 
-function isIgnored(tag: InlineTag, ignored: IgnoredTags): boolean {
-  return (
-    ignored.tokens.has(tag.token) || (tag.kind === "close" && ignored.closingNames.has(tag.name))
-  );
+function pairsWithIgnoredOpen(tag: InlineTag, ignored: IgnoredTags): boolean {
+  return tag.kind === "close" && ignored.closingNames.has(tag.name);
+}
+
+function consumeIgnoredOpen(unclosed: Map<string, number>, name: string): boolean {
+  const count = unclosed.get(name) ?? 0;
+  if (count === 0) {
+    return false;
+  }
+  unclosed.set(name, count - 1);
+  return true;
 }
 
 function withoutIgnoredTags(
   tags: readonly InlineTag[],
   ignored: IgnoredTags,
 ): readonly InlineTag[] {
-  return ignored.tokens.size === 0 ? tags : tags.filter((tag) => !isIgnored(tag, ignored));
+  if (ignored.tokens.size === 0) {
+    return tags;
+  }
+  const unclosed = new Map<string, number>();
+  const kept: InlineTag[] = [];
+  for (const tag of tags) {
+    if (pairsWithIgnoredOpen(tag, ignored)) {
+      if (!consumeIgnoredOpen(unclosed, tag.name)) {
+        kept.push(tag);
+      }
+    } else if (ignored.tokens.has(tag.token)) {
+      if (tag.kind === "open") {
+        unclosed.set(tag.name, (unclosed.get(tag.name) ?? 0) + 1);
+      }
+    } else {
+      kept.push(tag);
+    }
+  }
+  return kept;
 }
 
 function recordDepth(depths: Map<string, number>, name: string, depth: number): void {

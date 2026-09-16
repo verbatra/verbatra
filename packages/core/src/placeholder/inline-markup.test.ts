@@ -471,6 +471,30 @@ describe("compareInlineMarkup: tags the caller's format already reports as place
     ).toBe(true);
   });
 
+  it("refuses a closing tag beyond the opening tags it ignores, counting per value", () => {
+    expect(
+      compareInlineMarkup('Read <g id="1">the docs</g>', 'Lies <g id="1">Doku</g></g>', {
+        ignoreTags: ["<g id>"],
+      }),
+    ).toEqual({ matches: false, missing: [], extra: ["</g>"], malformed: false });
+  });
+
+  it("refuses a closing tag that comes before the ignored opening tag it would pair with", () => {
+    const result = compareInlineMarkup('Read <g id="1">the docs</g>', 'Lies </g><g id="1">Doku', {
+      ignoreTags: ["<g id>"],
+    });
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</g>"]);
+  });
+
+  it("counts closing tags against ignored opening tags even when the closing token is listed too", () => {
+    const result = compareInlineMarkup("Read <b>docs</b>", "Lies <b>Doku</b></b>", {
+      ignoreTags: ["<b>", "</b>"],
+    });
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</b>"]);
+  });
+
   it("still compares a tag the format does not report, beside one it does", () => {
     const result = compareInlineMarkup(
       "Read <b>the docs</b>.<br/>Then go.",

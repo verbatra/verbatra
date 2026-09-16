@@ -48,6 +48,16 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     expect(gateCandidateValue(source, 'Hallo <g id="1">Welt</g>', adapter).accepted).toBe(true);
   });
 
+  it("refuses a surplus XLIFF closing tag the placeholder check cannot see", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
+    expect(gateCandidateValue(source, 'Lies <g id="1">Doku</g></g>', adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["+</g>"],
+    });
+  });
+
   it("stands down per tag name, so untokenised markup in the same value is still compared", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
