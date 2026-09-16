@@ -10,6 +10,7 @@ import type { PlaceholderIntegrityResult } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig, makeStubProvider, makeTempDir, readJsonFile } from "../test-support.js";
+import { runStatus } from "./run-status.js";
 import { translate } from "./translate-project.js";
 
 async function project(
@@ -312,6 +313,44 @@ describe("translate: budget crossed, stop behavior", () => {
       "k4",
       "k5",
     ]);
+  });
+});
+
+describe("translate: a provider reporting odd numbers", () => {
+  it("leaves a readable run-status file when the provider reports fractional usage", async () => {
+    const dir = await project(keyedSource(2), { de: undefined });
+    const stub = makeStubProvider({ usage: { inputTokens: 10.5, outputTokens: 4.4 } });
+
+    const summary = await translate(
+      { config: cfg({ maxTokens: 1000 }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(Number.isInteger(summary.budget?.tokensUsed ?? 0)).toBe(true);
+    expect(summary.budget?.tokensUsed).toBe(15);
+    expect(summary.usage).toEqual({ inputTokens: 11, outputTokens: 4 });
+
+    const status = await runStatus({ cwd: dir });
+    expect(status.available).toBe(true);
+    if (status.available) {
+      expect(status.budget?.tokensUsed).toBe(15);
+    }
+  });
+
+  it("never publishes a negative total when the provider reports a negative field", async () => {
+    const dir = await project(keyedSource(2), { de: undefined });
+    const stub = makeStubProvider({ usage: { inputTokens: 100, outputTokens: -60 } });
+
+    const summary = await translate(
+      { config: cfg({ maxTokens: 1000 }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(summary.budget?.tokensUsed).toBe(100);
+    expect(summary.usage).toEqual({ inputTokens: 100, outputTokens: 0 });
+
+    const status = await runStatus({ cwd: dir });
+    expect(status.available).toBe(true);
   });
 });
 

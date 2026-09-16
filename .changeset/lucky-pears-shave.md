@@ -2,6 +2,7 @@
 "@verbatra/sdk": minor
 "@verbatra/cli": minor
 "@verbatra/studio": patch
+"@verbatra/mcp": patch
 ---
 
 Turn `budgetBehavior: "stop"` into an enforceable ceiling, and stop the budget being inert for
@@ -20,6 +21,11 @@ verbatra re-splits after a truncated response has each half checked in turn and 
 retries cannot outrun one reservation. A request that fails or comes back truncated keeps its whole
 projection charged rather than being refunded, because such a call has usually already billed for
 its prompt, and a report of zero or less is treated as no report at all rather than as a refund.
+
+A reported figure is normalized before it is counted: each field is floored at zero and rounded to
+a whole number, so a negative field can no longer cancel a positive one down below the invoice and
+a fractional report can no longer produce a run-status file the reader then refuses, which used to
+lose the whole run record rather than just the budget.
 
 What a reservation cannot bound is what happens inside a request it already admitted, and that is
 documented rather than hidden. The provider layer sends one repair call of its own when keys come
@@ -54,7 +60,8 @@ usable figure, a failed or truncated request included. The CLI budget line no lo
 budget is "not supported by this provider"; it prints the counted total, marked estimated when the
 count is not entirely the provider's. Studio's budget tile and its translations stat strip now show
 the consumption and the ceiling-reached state for an estimated budget instead of collapsing to an
-untracked placeholder. A run with no `maxTokens` configured is unchanged: no projection is computed
+untracked placeholder, and the `usage.summary` agent tool's description now says where the counted
+figure came from rather than implying the provider reported it. A run with no `maxTokens` configured is unchanged: no projection is computed
 and no summary field moves.
 
 The refusal to combine `maxTokens` with `--concurrency` above 1 on a live run is deliberately kept.

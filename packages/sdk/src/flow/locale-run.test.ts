@@ -1181,7 +1181,7 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     return { provider, calls };
   }
 
-  it("charges each half its own projection instead of riding the parent's reservation", async () => {
+  it("charges each half its own projection and keeps the truncated parent's, never refunding it", async () => {
     const { dir, sourceResource } = await setup(fourKeys);
     const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
     const budget = createBudgetTracker(100_000, "stop");
@@ -1195,22 +1195,6 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
 
     expect(splitter.calls).toHaveLength(3);
     expect(budget.tokensUsed).toBe(446);
-  });
-
-  it("keeps the truncated request's projection charged rather than refunding its priciest call", async () => {
-    const { dir, sourceResource } = await setup(fourKeys);
-    const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
-    const budget = createBudgetTracker(100_000, "stop");
-
-    await runLocale(
-      makeParams(
-        { source: sourceResource, cwd: dir },
-        { provider: splitter.provider, maxBatchSize: 4, budget },
-      ),
-    );
-
-    expect(budget.tokensUsed).toBeGreaterThan(20);
-    expect(budget.tokensUsed - 20).toBe(426);
   });
 
   it("keeps a failed call's projection charged and marks the count estimated", async () => {

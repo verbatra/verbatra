@@ -129,6 +129,23 @@ describe("reconcileBudget", () => {
     expect(tracker.usageSeen).toBe(false);
   });
 
+  it("floors a negative field at zero rather than letting it cancel a positive one", () => {
+    const tracker = createBudgetTracker(100_000, "stop");
+    const reservation = reserveOrThrow(tracker);
+
+    reconcileBudget(tracker, reservation, { inputTokens: 100, outputTokens: -60 });
+    expect(tracker.tokensUsed).toBe(100);
+  });
+
+  it("keeps the counted total a whole number when the provider reports fractions", () => {
+    const tracker = createBudgetTracker(100_000, "stop");
+    const reservation = reserveOrThrow(tracker);
+
+    reconcileBudget(tracker, reservation, { inputTokens: 10.5, outputTokens: 4.4 });
+    expect(tracker.tokensUsed).toBe(15);
+    expect(Number.isInteger(tracker.tokensUsed)).toBe(true);
+  });
+
   it("refuses to let a negative report drive the counted total down", () => {
     const tracker = createBudgetTracker(100_000, "stop");
     const reservation = reserveOrThrow(tracker);

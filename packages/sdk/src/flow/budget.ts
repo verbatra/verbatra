@@ -2,6 +2,7 @@ import type { Usage } from "@verbatra/ai-providers";
 import type { TranslationEntry } from "@verbatra/core";
 import { type PayloadContext, quantifyBatch } from "./estimate.js";
 import type { BudgetBehavior, RunBudget, SdkNotice } from "./summary.js";
+import { countableUsage } from "./usage.js";
 
 export interface BudgetTracker {
   readonly maxTokens: number | undefined;
@@ -79,7 +80,8 @@ export function reconcileBudget(
   reservation: BudgetReservation,
   usage: Usage | undefined,
 ): void {
-  const reported = usage === undefined ? 0 : usage.inputTokens + usage.outputTokens;
+  const counted = usage === undefined ? undefined : countableUsage(usage);
+  const reported = counted === undefined ? 0 : counted.inputTokens + counted.outputTokens;
   if (reported <= 0) {
     tracker.estimatedSeen = true;
     return;
