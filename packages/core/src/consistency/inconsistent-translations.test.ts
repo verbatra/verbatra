@@ -384,7 +384,7 @@ describe("findInconsistentTranslations", () => {
     expect(groups[0]).not.toHaveProperty("pluralForm");
   });
 
-  it("reads each key's entries once and resolves its context once, however large the catalog", () => {
+  it("reads each entry and context once", () => {
     const measure = (size: number) => {
       const sourceEntries = new CountingMap<string, TranslationEntry>();
       const targetEntries = new CountingMap<string, TranslationEntry>();
