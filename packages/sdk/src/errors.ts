@@ -88,6 +88,12 @@
  *   `readDirectory`, so no source file can be discovered. The member is optional on {@link SdkFs}
  *   precisely so an implementation written before extraction existed keeps compiling; this is the
  *   error it gets if it is then handed to {@link extract}.
+ * - `TYPES_OUTPUT_CONFLICT`: {@link generateTypes} was asked to write its declaration to an
+ *   absolute path, to one that climbs out of the working directory, to no path at all, or onto a
+ *   configured locale file. Refused before anything is read or written, so generating types can
+ *   never overwrite a catalog or land outside the project.
+ * - `TYPES_UNWRITABLE`: the declaration file {@link generateTypes} produces could not be written,
+ *   because its directory is not writable, does not exist, or the disk is out of space.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -113,6 +119,8 @@ export type SdkErrorCode =
   | "SOURCE_UNWRITABLE"
   | "EXTRACT_NOT_CONFIGURED"
   | "EXTRACT_FS_UNSUPPORTED"
+  | "TYPES_OUTPUT_CONFLICT"
+  | "TYPES_UNWRITABLE"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

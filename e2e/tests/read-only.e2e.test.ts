@@ -86,7 +86,16 @@ describe("packaging", () => {
   it("installs the verbatra binary and responds to --help", async () => {
     const result = await runVerbatra(consumer, ["--help"]);
     expect(result.exitCode).toBe(0);
-    for (const command of ["translate", "watch", "check", "diff", "export", "import", "init"]) {
+    for (const command of [
+      "translate",
+      "watch",
+      "check",
+      "diff",
+      "export",
+      "import",
+      "types",
+      "init",
+    ]) {
       expect(result.stdout).toContain(command);
     }
   });

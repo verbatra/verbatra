@@ -7,6 +7,7 @@ import type {
   ExportWorkbookResult,
   ExtractResult,
   FuzzyCacheHit,
+  GenerateTypesResult,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -393,4 +394,35 @@ export function renderExtractHuman(result: ExtractResult): string {
   ];
   const trailer = result.dryRun ? "dry run, nothing written" : undefined;
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
+}
+
+function renderTypesOutcome(result: GenerateTypesResult): string {
+  if (result.check) {
+    return result.stale
+      ? `  ${result.path} is out of date, re-run verbatra types`
+      : `  ${result.path} is up to date`;
+  }
+  return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
+}
+
+function renderTypesKeyList(label: string, keys: readonly string[]): readonly string[] {
+  return keys.length === 0 ? [] : [`  ${label} (${keys.length}): ${keys.join(", ")}`];
+}
+
+export function renderTypesHuman(result: GenerateTypesResult): string {
+  const unresolved =
+    result.unresolved.length === 0
+      ? []
+      : [
+          `  arguments not determined (${result.unresolved.length}):`,
+          ...result.unresolved.map((entry) => `    ${entry.key}  ${entry.reason}`),
+        ];
+  return [
+    "verbatra types",
+    `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
+    ...unresolved,
+    ...renderTypesKeyList("excluded by the adapter", result.excluded),
+    ...renderTypesKeyList("plural keys", result.plural),
+    renderTypesOutcome(result),
+  ].join("\n");
 }

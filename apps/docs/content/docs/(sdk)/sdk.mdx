@@ -153,6 +153,45 @@ document that already exists, the output is re-copied from the source on every w
 added to the source after the first run still reaches the pseudolocale, and a copied XLIFF has its
 `target-language` rewritten to the pseudolocale.
 
+## Typed catalogs
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+Declares a project's source catalog as TypeScript: a union of every key it holds and, per key, the
+arguments its message interpolates. Type a translation function against the result and a misspelled
+key or a missing interpolation argument becomes a compile error instead of a runtime lookup failure.
+It spends nothing: no provider is constructed, no API key environment variable is read, and no
+network request is made.
+
+It reads one file (the source locale catalog) and writes one file (the declaration); a target locale
+file is never touched. Nothing is re-parsed either: the keys and the placeholder tokens are exactly
+what the format adapter already produced, in document order, so two runs over an unchanged catalog
+write byte-identical bytes. Every key is emitted as a quoted string literal, so one carrying a dot,
+a reserved word, a leading digit, a quote, or nothing at all is declared verbatim rather than
+dropped or re-split, and a key the adapter reported in `excludedLeafPaths` is never declared at all.
+
+What it declines to claim matters as much as what it declares. A message with no placeholders gets a
+shape that makes passing any argument a type error; one whose placeholders name their arguments gets
+an object shape; one whose placeholders are numbered or anonymous gets a readonly tuple. Argument
+types come only from what the catalog records, `number` where the format annotated one and a
+`string | number` alias everywhere else, never a permissive `any`. A message the adapter reported as
+invalid, and one that appears to both name and number its arguments, are declared with their
+arguments reported in `unresolved` rather than silently declared as taking none. Plural siblings are
+never collapsed: each is declared on its own, and the ones the adapter marked plural are listed.
+
+Input: `{ config, cwd?, out?, check? }`. `out` defaults to `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`) and must name a file inside `cwd`: an absolute path, one that climbs out
+with `..`, and any configured locale file are refused with `TYPES_OUTPUT_CONFLICT` before anything
+is read or written. With `check` set nothing is written at all and the run only reports whether the
+committed file still matches, which is the shape a CI gate wants.
+
+Returns a `GenerateTypesResult`: the absolute `path`, the `sourcePath` it was built from, how many
+`keys` were declared and how many of those take arguments (`withArguments`), the `unresolved` keys
+and the `excluded` and `plural` ones, whether anything was `written`, whether the file on disk was
+`stale` when the run started, and whether this was a `check` run.
+
 ## Inspect state without writing
 
 None of these call a provider, write a file, or mutate the lock.

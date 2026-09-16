@@ -1,5 +1,6 @@
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  DEFAULT_TYPES_PATH,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
   type LockWaitEvent,
@@ -28,6 +29,7 @@ import {
   renderLockWait,
   renderProgress,
   renderPseudoHuman,
+  renderTypesHuman,
   toRenderableError,
 } from "./render.js";
 import { runStudio } from "./studio-command.js";
@@ -99,6 +101,22 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
 const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
 });
+
+const typesOptsSchema = sharedCommandOptsSchema.extend({
+  out: z.string().optional(),
+  check: z.boolean().optional(),
+});
+
+function parseTypesCommandOpts(rawOpts: unknown): z.infer<typeof typesOptsSchema> {
+  const opts = typesOptsSchema.parse(rawOpts);
+  if (opts.out !== undefined && opts.out.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OUT",
+      `The --out option was provided but names no file. Pass a path relative to the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`,
+    );
+  }
+  return opts;
+}
 
 const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 
@@ -617,6 +635,36 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
   );
 }
 
+async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("types", rawOpts, streams);
+  return withParsedOpts(
+    () => parseTypesCommandOpts(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.generateTypes({
+            config,
+            cwd,
+            ...(opts.out !== undefined ? { out: opts.out } : {}),
+            ...(opts.check === true ? { check: true } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("types", result)}\n`
+              : `${renderTypesHuman(result)}\n`,
+          );
+          return result.check && result.stale ? 1 : 0;
+        },
+      );
+    },
+  );
+}
+
 async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("doctor", rawOpts, streams);
   return withParsedOpts(
@@ -868,6 +916,37 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+function registerTypesCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("types")
+    .description("Generate TypeScript declarations for your catalog keys and message arguments")
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option(
+      "--out <path>",
+      `write the declaration here, relative to the working directory and inside it (default ${DEFAULT_TYPES_PATH})`,
+    )
+    .option("--check", "report whether the committed declaration is current, writing nothing")
+    .option("--json", "print the generation result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runTypes(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        `  $ verbatra types                       write ${DEFAULT_TYPES_PATH} from the source catalog`,
+        "  $ verbatra types --out src/messages.d.ts  write it somewhere your app already imports from",
+        "  $ verbatra types --check               exit 1 if the committed declaration is stale (for CI)",
+        "  $ verbatra types --json                machine-readable result on stdout",
+        "",
+        "It constructs no provider, reads no API key and makes no network request, so it runs " +
+          "before any key exists.",
+      ].join("\n"),
+    );
+}
+
 function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("doctor")
@@ -1062,6 +1141,7 @@ function buildProgram(
   registerCheckCommand(program, ctx);
   registerDiffCommand(program, ctx);
   registerPseudoCommand(program, ctx);
+  registerTypesCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   registerStudioCommand(program, ctx);
   registerMcpCommand(program, ctx);

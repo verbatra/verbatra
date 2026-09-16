@@ -16,8 +16,8 @@ The exit code is the contract your CI step branches on:
 
 | Code | Meaning |
 | --- | --- |
-| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `export` wrote its workbook, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
-| `1` | it ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale, `check` found a locale out of sync, `diff` found a missing or changed key, `doctor` found at least one failed check, or `studio` or `mcp` failed while shutting its server down |
+| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `types` generated its declaration, `export` wrote its workbook, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
+| `1` | it ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale, `check` found a locale out of sync, `diff` found a missing or changed key, `doctor` found at least one failed check, `types --check` found the committed declaration out of date, or `studio` or `mcp` failed while shutting its server down |
 | `2` | could not run: a whole-run error (bad config, unreadable source, corrupt lock file), a usage error (an empty or unknown `--locales` value, an invalid `--debounce` or `--port`), `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, `studio` unable to load the config, import `@verbatra/studio`, or start its server, or `mcp` unable to load the config, import `@verbatra/mcp`, or start its server |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt |
 
@@ -51,7 +51,7 @@ Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid 
 
 ## JSON output
 
-Nine commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor`, `pseudo`, and `extract`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
+Ten commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `doctor`, `pseudo`, `types`, and `extract`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
 
 ```ts
 type Envelope<TResult> =
@@ -201,6 +201,6 @@ If you would rather not write these jobs yourself, the [GitHub Action](/docs/git
 
 - **Install from the lockfile.** `pnpm install --frozen-lockfile` (or `npm ci`) pins the exact `@verbatra/cli` release your lockfile records, so a CI run is reproducible and cannot silently pull a newer release. The CLI requires Node `>=22.14.0`.
 - **Keys are environment variables, never flags.** The CLI takes no key argument and reads no key from config; providers read only their environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Store the key in your CI secret store and map it into `env`. Error messages name the variable but never contain a key value.
-- **Read-only gates need no key.** `check`, `diff`, and `export` never call a provider, so keep secrets out of those jobs entirely. `pseudo` calls none either, and writes only its own generated locale. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass.
+- **Read-only gates need no key.** `check`, `diff`, and `export` never call a provider, so keep secrets out of those jobs entirely. `pseudo` calls none either, and writes only its own generated locale. `types` calls none either, and writes only its generated declaration. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass.
 
-`translate`, `watch`, `studio`, and `doctor` also load `.env.local` and then `.env` from the working directory before they run, with real environment variables always winning; `check`, `diff`, `export`, `import`, and `pseudo` load no `.env` files, so in CI you will normally rely on `env:` alone.
+`translate`, `watch`, `studio`, and `doctor` also load `.env.local` and then `.env` from the working directory before they run, with real environment variables always winning; `check`, `diff`, `export`, `import`, `pseudo`, and `types` load no `.env` files, so in CI you will normally rely on `env:` alone.

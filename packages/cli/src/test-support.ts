@@ -10,6 +10,8 @@ import type {
   ExportWorkbookResult,
   ExtractInput,
   ExtractResult,
+  GenerateTypesInput,
+  GenerateTypesResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -123,6 +125,22 @@ export function makeExtractResult(overrides: Partial<ExtractResult> = {}): Extra
   };
 }
 
+export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): GenerateTypesResult {
+  return {
+    path: "/proj/verbatra-types.d.ts",
+    sourcePath: "locales/en.json",
+    keys: 1,
+    withArguments: 0,
+    unresolved: [],
+    excluded: [],
+    plural: [],
+    written: true,
+    stale: true,
+    check: false,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -194,6 +212,7 @@ export interface DepCalls {
   importStudio: undefined[];
   importMcp: undefined[];
   extract: ExtractInput[];
+  generateTypes: GenerateTypesInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -211,6 +230,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importStudio: [],
     importMcp: [],
     extract: [],
+    generateTypes: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -264,6 +284,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     extract: async (input) => {
       calls.extract.push(input);
       return impl.extract ? impl.extract(input) : makeExtractResult();
+    },
+    generateTypes: async (input) => {
+      calls.generateTypes.push(input);
+      return impl.generateTypes ? impl.generateTypes(input) : makeTypesResult();
     },
   };
   return { deps, calls };

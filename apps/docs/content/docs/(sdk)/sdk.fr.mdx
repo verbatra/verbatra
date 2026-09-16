@@ -107,6 +107,52 @@ chaque écriture, si bien qu'une clé ajoutée à la source après la première 
 même à la pseudo-locale, et un XLIFF copié voit son `target-language` réécrit vers la
 pseudo-locale.
 
+## Catalogues typés
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+Déclare le catalogue source d'un projet en TypeScript : une union de toutes les clés qu'il contient
+et, par clé, les arguments que son message interpole. Type une fonction de traduction sur le
+résultat et une clé mal orthographiée ou un argument d'interpolation manquant devient une erreur de
+compilation au lieu d'un échec de recherche à l'exécution. Cela ne coûte rien : aucun fournisseur
+n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête
+réseau n'est faite.
+
+Un fichier est lu (le catalogue de la locale source) et un fichier est écrit (la déclaration) ; un
+fichier de locale cible n'est jamais touché. Rien n'est re-parsé non plus : les clés et les jetons
+de marqueurs sont exactement ce que l'adaptateur de format avait déjà produit, dans l'ordre du
+document, si bien que deux exécutions sur un catalogue inchangé écrivent des octets identiques.
+Chaque clé est émise comme un littéral de chaîne entre guillemets : une clé portant un point, un mot
+réservé, un chiffre en tête, un guillemet, ou même la clé vide, est donc déclarée telle quelle
+plutôt qu'abandonnée ou redécoupée, et une clé que l'adaptateur a signalée dans `excludedLeafPaths`
+n'est pas déclarée du tout.
+
+Ce qu'elle refuse d'affirmer compte autant que ce qu'elle déclare. Un message sans marqueur reçoit
+une forme qui fait de tout argument passé une erreur de type ; un message dont les marqueurs nomment
+leurs arguments reçoit une forme d'objet ; un message aux marqueurs numérotés ou anonymes reçoit un
+tuple readonly. Les types d'arguments viennent uniquement de ce que le catalogue enregistre :
+`number` là où le format l'a annoté et un alias de `string | number` partout ailleurs, jamais un
+`any` permissif. Un message que l'adaptateur a signalé comme invalide, et un message qui semble à la
+fois nommer et numéroter ses arguments, sont déclarés avec leurs arguments signalés dans
+`unresolved` plutôt que déclarés en silence comme n'en prenant aucun. Les clés plurielles sœurs ne
+sont jamais fusionnées : chacune est déclarée à part, et celles que l'adaptateur a marquées au
+pluriel sont listées.
+
+Entrée : `{ config, cwd?, out?, check? }`. `out` vaut par défaut `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`) et doit nommer un fichier à l'intérieur de `cwd` : un chemin absolu, un
+chemin qui sort avec `..`, et tout fichier de locale configuré sont refusés avec
+`TYPES_OUTPUT_CONFLICT` avant toute lecture ou écriture. Avec `check`, rien n'est écrit du tout et
+l'exécution signale seulement si le fichier versionné correspond toujours, ce qui est exactement la
+forme qu'attend un garde-fou de CI.
+
+Renvoie un `GenerateTypesResult` : le `path` absolu, le `sourcePath` dont il a été construit,
+combien de `keys` ont été déclarées et combien d'entre elles prennent des arguments
+(`withArguments`), les clés `unresolved` ainsi que les `excluded` et `plural`, si quelque chose a
+été `written`, si le fichier sur disque était `stale` au démarrage de l'exécution, et s'il
+s'agissait d'une exécution `check`.
+
 ## Inspecter l'état sans écrire
 
 Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modifie le verrou.

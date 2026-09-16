@@ -1,6 +1,6 @@
 ---
 name: verbatra-cli
-description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key exists in the source locale but is missing in de/es/fr, a translation needs re-running after the source text changed, translation drift has to gate a pull request, strings have to be handed to a human translator and imported back, or a project needs verbatra set up. Also use when deciding whether a command costs money before running it, when branching on a verbatra exit code, or when reading verbatra.lock.json. Covers translate, watch, check, diff, doctor, export, import, extract, pseudo, init, and the JSON envelope.
+description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key exists in the source locale but is missing in de/es/fr, a translation needs re-running after the source text changed, translation drift has to gate a pull request, strings have to be handed to a human translator and imported back, or a project needs verbatra set up. Also use when deciding whether a command costs money before running it, when branching on a verbatra exit code, or when reading verbatra.lock.json. Covers translate, watch, check, diff, doctor, export, import, extract, pseudo, types, init, and the JSON envelope.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/verbatra'
@@ -80,6 +80,7 @@ Read this table before running anything unattended.
 | `check` | no | no | no |
 | `diff` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
+| `types` | no | yes, the generated declaration, unless `--check` | no |
 | `doctor` | no | no | no, it never reads a key value |
 | `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
 | `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
@@ -135,7 +136,7 @@ run" with "did the work land".
 | Code | Meaning |
 | --- | --- |
 | `0` | Success: nothing outstanding, or everything requested completed. |
-| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift, `diff` found pending keys, `doctor` found a failed check. |
+| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift, `diff` found pending keys, `doctor` found a failed check, `types --check` found the committed declaration out of date. |
 | `2` | It could not run: bad config, unreadable source, corrupt lock file, or a usage error such as an unknown `--locales` value. |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt. All three return the same stoppable session. |
 
