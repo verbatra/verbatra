@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { contentHash } from "@verbatra/core";
 import { readTmx } from "@verbatra/exchange";
@@ -9,6 +9,7 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { baseConfig, makeTempDir, writeJsonFile } from "../../test-support.js";
 import { DEFAULT_TMX_PATH, exportTmx } from "./export-tmx.js";
+import { importTmx } from "./import-tmx.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({
@@ -213,5 +214,37 @@ describe("exportTmx writes the memory as TMX", () => {
     const second = await exportTmx({ config, cwd: dir, out: "b.tmx", toolVersion: "1" });
 
     expect(await readFile(second.path, "utf8")).toBe(await readFile(first.path, "utf8"));
+  });
+});
+
+describe("exportTmx writes BCP 47 language tags however the config spells its locales", () => {
+  it("writes en_US and pt_BR as en-US and pt-BR, and the file re-imports into the same config", async () => {
+    const config = cfg({ sourceLocale: "en_US", targetLocales: ["pt_BR"] });
+    const dir = await withMemory(
+      config,
+      { pt_BR: { [hashOf("Save")]: "Salvar" } },
+      { [hashOf("Save")]: "Save" },
+    );
+
+    const result = await exportTmx({ config, cwd: dir });
+    const text = await readFile(result.path, "utf8");
+
+    expect(text).toContain('srclang="en-US"');
+    expect(text).toContain('<tuv xml:lang="en-US"><seg>Save</seg></tuv>');
+    expect(text).toContain('<tuv xml:lang="pt-BR"><seg>Salvar</seg></tuv>');
+    expect(text).not.toContain("_");
+
+    const fresh = await makeTempDir();
+    await writeFile(join(fresh, "memory.tmx"), text, "utf8");
+    const imported = await importTmx({ config, file: "memory.tmx", cwd: fresh });
+
+    expect(imported.sourceLanguageMismatch).toBeUndefined();
+    expect(imported.unmatchedLanguages).toEqual([]);
+    expect(imported.locales).toEqual([expect.objectContaining({ locale: "pt_BR", added: 1 })]);
+    const memory = JSON.parse(await readFile(join(fresh, CACHE_FILE_NAME), "utf8"));
+    expect(memory.entries[computeFingerprint(config)]).toEqual({
+      pt_BR: { [hashOf("Save")]: "Salvar" },
+    });
+    expect(memory.sources).toEqual({ [hashOf("Save")]: "Save" });
   });
 });
