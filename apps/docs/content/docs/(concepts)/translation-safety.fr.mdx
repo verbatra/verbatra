@@ -94,8 +94,8 @@ ce qui décide si quelque chose est un constat :
 - Accepté : les mêmes balises dans un autre ordre, parce que traduire une phrase déplace son
   balisage, une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé est
   une traduction correcte et non une traduction cassée (dans les limites décrites plus bas pour les
-  valeurs d'URL, de `srcdoc` et de gestionnaires d'événements), et l'une ou l'autre graphie d'un
-  élément vide, `<br>` et `<br/>` étant la même balise.
+  valeurs d'attribut), et l'une ou l'autre graphie d'un élément vide, `<br>` et `<br/>` étant la
+  même balise.
 - Comptées, pas seulement remarquées : deux paires adjacentes fusionnées en une seule
   (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusé, parce que la comparaison ne peut pas
   distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
@@ -188,16 +188,32 @@ pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus de
 balises et de constructions que sa source, ou plus de 256 pour une source plus petite, avec le
 détail `+more than N inline tags` qui nomme cette limite.
 
-Les valeurs d'attribut sont libres, à trois exceptions près, qui existent parce qu'une valeur
+Les valeurs d'attribut sont libres, à quelques exceptions près, qui existent parce qu'une valeur
 traduite finit dans une page. La valeur d'un attribut d'URL (`href`, `src`, `action`, `formaction`,
 `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`,
 `codebase`, `archive`, ainsi que les attributs d'animation SVG `to`, `from`, `values` et `by`) est
-lue après décodage des références numériques de caractères et de `&colon;`, `&Tab;` et `&NewLine;`,
-en ignorant les tabulations, les sauts de ligne et les caractères de contrôle initiaux, et un schéma
-`javascript:`, `vbscript:` ou `data:` y est refusé sauf si la source porte exactement cette valeur
-sur la même balise et le même attribut, avec un détail comme `+<a href="javascript:...">`. Une
-valeur `srcdoc` et une valeur de gestionnaire d'événements comme `onclick` que porte la source
-doivent revenir à l'octet près. Un `href="/de/docs"` localisé est accepté comme avant.
+lue après décodage des références numériques de caractères et de `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de ligne et les caractères de contrôle
+qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:` y est refusé sauf si la source
+porte exactement cette valeur sur la même balise et le même attribut, avec un détail comme
+`+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris chaque URL d'une liste
+`srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une autorité (hôte et port, ou
+l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la même balise et du même
+attribut possède, et une URL relative doit rester relative. Ainsi `/docs` peut devenir `/de/docs` et
+`https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais `/docs` ne peut pas devenir
+`https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu localisé doit garder le même
+hôte ; le détail nomme la nouvelle origine, comme `+<a href="https://evil.example...">`, ou
+`+<a href="./...">` pour un lien absolu rendu relatif. Le chemin, la requête et le fragment peuvent
+changer librement.
+
+Certaines valeurs d'attribut doivent revenir exactement telles que la source les a, comparées après
+décodage des références de caractères, avec un détail comme `+<meta content="...">` : `http-equiv`
+et `content` sur `meta` ; `type`, `nomodule`, `integrity` et `crossorigin` sur `script` ; `rel`,
+`as`, `integrity`, `crossorigin` et `type` sur `link` ; `target` sur `base` ; `attributeName` et
+`attributeType` sur `set`, `animate`, `animateTransform` et `animateMotion` ; `sandbox`, `allow` et
+`allowfullscreen` sur `iframe` ; `method`, `enctype` et `target` sur `form` ; et `style`, `srcdoc`
+et tout gestionnaire d'événements comme `onclick` sur n'importe quel élément. Un attribut
+traduisible comme `title` ou `alt` reste libre.
 
 Comparer des valeurs entières entraîne deux limites propres au format. Pour un format qui range
 plusieurs formes plurielles dans une même valeur séparées par une barre verticale (Vue I18n), une

@@ -95,8 +95,8 @@ was ein Befund ist:
 - Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
   verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
   `href` eine korrekte Übersetzung ist und keine kaputte (innerhalb der weiter unten beschriebenen
-  Grenzen für URL-, `srcdoc`- und Event-Handler-Werte), und beide Schreibweisen eines leeren
-  Elements, `<br>` und `<br/>` sind dasselbe Tag.
+  Grenzen für Attributwerte), und beide Schreibweisen eines leeren Elements, `<br>` und `<br/>` sind
+  dasselbe Tag.
 - Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
   (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
   Verschmelzung nicht davon unterscheiden kann, dass zwei Links zu einem werden.
@@ -190,16 +190,31 @@ Quelle zu groß für den Vergleich. Ein Kandidat wird erst abgelehnt, wenn er me
 viele Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256, mit dem
 Detail `+more than N inline tags`, das diese Grenze nennt.
 
-Attributwerte sind frei, mit drei Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
+Attributwerte sind frei, mit Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
 landet. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
 `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive` sowie
 die SVG-Animationsattribute `to`, `from`, `values` und `by`) wird gelesen, nachdem numerische
-Zeichenreferenzen sowie `&colon;`, `&Tab;` und `&NewLine;` dekodiert und Tabs, Zeilenumbrüche und
-führende Steuerzeichen ignoriert wurden, und ein Schema `javascript:`, `vbscript:` oder `data:`
-darin wird abgelehnt, es sei denn, die Quelle trägt genau diesen Wert am selben Tag und Attribut,
-mit einem Detail wie `+<a href="javascript:...">`. Ein `srcdoc`-Wert und ein Event-Handler-Wert wie
-`onclick`, den die Quelle trägt, müssen Byte für Byte zurückkommen. Ein lokalisiertes
-`href="/de/docs"` wird wie bisher angenommen.
+Zeichenreferenzen sowie `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` und `&bsol;` dekodiert und Tabs,
+Zeilenumbrüche und umgebende Steuerzeichen ignoriert wurden. Ein Schema `javascript:`, `vbscript:`
+oder `data:` darin wird abgelehnt, es sei denn, die Quelle trägt genau diesen Wert am selben Tag und
+Attribut, mit einem Detail wie `+<a href="javascript:...">`. Darüber hinaus muss jede URL im Wert,
+auch jede URL einer `srcset`-, `ping`-, `archive`- oder `values`-Liste, ein Schema und eine
+Authority (Host und Port oder den Host einer schemarelativen `//host`-URL) behalten, die ein
+Quellwert desselben Tags und Attributs hat, und eine relative URL muss relativ bleiben. `/docs` darf
+also zu `/de/docs` werden und `https://verbatra.dev/en` zu `https://verbatra.dev/de`, aber `/docs`
+darf nicht zu `https://evil.example/docs` oder `//evil.example/docs` werden, und ein lokalisierter
+absoluter Link muss denselben Host behalten; das Detail nennt den neuen Ursprung, etwa
+`+<a href="https://evil.example...">`, oder `+<a href="./...">` für einen absoluten Link, der
+relativ gemacht wurde. Pfad, Query und Fragment dürfen sich frei ändern.
+
+Manche Attributwerte müssen genau so zurückkommen, wie die Quelle sie hat, verglichen nach dem
+Dekodieren von Zeichenreferenzen, mit einem Detail wie `+<meta content="...">`: `http-equiv` und
+`content` an `meta`; `type`, `nomodule`, `integrity` und `crossorigin` an `script`; `rel`, `as`,
+`integrity`, `crossorigin` und `type` an `link`; `target` an `base`; `attributeName` und
+`attributeType` an `set`, `animate`, `animateTransform` und `animateMotion`; `sandbox`, `allow` und
+`allowfullscreen` an `iframe`; `method`, `enctype` und `target` an `form`; sowie `style`, `srcdoc`
+und jeder Event-Handler wie `onclick` an jedem Element. Ein übersetzbares Attribut wie `title` oder
+`alt` bleibt frei.
 
 Aus dem Vergleich ganzer Werte folgen zwei formatbedingte Grenzen. Bei einem Format, das mehrere
 Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt eine
