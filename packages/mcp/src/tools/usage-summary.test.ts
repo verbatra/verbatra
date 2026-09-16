@@ -5,6 +5,12 @@ import { makeContext, makeTempDir, trackFsCalls, writeJsonFile } from "../test-s
 import { usageSummaryTool } from "./usage-summary.js";
 
 describe("usage.summary", () => {
+  it("tells its reader where the counted budget figure came from", () => {
+    expect(usageSummaryTool.description).toContain("budget.supported");
+    expect(usageSummaryTool.description).toContain("estimate");
+    expect(usageSummaryTool.description).toContain("does not cap a single-entry retranslation");
+  });
+
   it("reports available: false when no run has completed in this project yet", async () => {
     const dir = await makeTempDir();
 

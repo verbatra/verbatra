@@ -51,9 +51,13 @@ export const usageSummaryTool = defineTool({
   description:
     "Read the token usage and budget status left behind by the last translate or " +
     "translation.translatePending run: input and output tokens consumed, and, when a token " +
-    "budget is configured, its ceiling, behavior, and whether it was exceeded. Reports " +
-    "available: false when no non-dry-run has completed in this project yet. Read-only, calls no " +
-    "provider.",
+    "budget is configured, its ceiling, behavior, how much of it was counted, and whether it was " +
+    "exceeded. budget.supported says where budget.tokensUsed came from: true when every request " +
+    "reported its own usage, false when at least one did not and the figure is partly verbatra's " +
+    "own estimate, which is the case for DeepL and Google Cloud Translation and for any request " +
+    "that failed. The budget is enforced either way, and it covers one translate run: it does not " +
+    "cap a single-entry retranslation. Reports available: false when no non-dry-run has completed " +
+    "in this project yet. Read-only, calls no provider.",
   paramsSchema,
   outputSchema: usageSummaryResultSchema,
   annotations: {
