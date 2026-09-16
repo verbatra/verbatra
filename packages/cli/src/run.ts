@@ -3,6 +3,8 @@ import {
   DEFAULT_TYPES_PATH,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type GenerateTypesInput,
+  type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
   resolveDryRun,
@@ -635,6 +637,20 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
   );
 }
 
+function typesInput(
+  loaded: LoadedConfig,
+  cwd: string,
+  opts: z.infer<typeof typesOptsSchema>,
+): GenerateTypesInput {
+  return {
+    config: loaded.config,
+    cwd,
+    ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
+    ...(opts.out !== undefined ? { out: opts.out } : {}),
+    ...(opts.check === true ? { check: true } : {}),
+  };
+}
+
 async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("types", rawOpts, streams);
   return withParsedOpts(
@@ -642,25 +658,20 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      return withWholeRunErrors(
-        deps,
-        context,
-        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
-          const result = await deps.generateTypes({
-            config,
-            cwd,
-            ...(opts.out !== undefined ? { out: opts.out } : {}),
-            ...(opts.check === true ? { check: true } : {}),
-          });
-          streams.out(
-            context.json
-              ? `${renderSuccessEnvelope("types", result)}\n`
-              : `${renderTypesHuman(result)}\n`,
-          );
-          return result.check && result.stale ? 1 : 0;
-        },
-      );
+      try {
+        const loaded = await deps.loadConfigWithMeta(
+          loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        );
+        const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
+        streams.out(
+          context.json
+            ? `${renderSuccessEnvelope("types", result)}\n`
+            : `${renderTypesHuman(result)}\n`,
+        );
+        return result.check && result.stale ? 1 : 0;
+      } catch (error) {
+        return renderFailureExit2(error, context);
+      }
     },
   );
 }
