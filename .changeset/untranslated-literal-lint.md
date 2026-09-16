@@ -15,7 +15,7 @@ to `t()` (also when renamed, as in `const { t: translate } = useTranslation()`) 
 `<Trans>` or `<Translation>`, an object key, an import specifier, a class name or CSS value, a test
 id or `data-*` attribute, an attribute that holds ids or a keyword (`aria-describedby`,
 `aria-labelledby`, `rel`, `sandbox`, `autoComplete`, `referrerPolicy` and similar), a URL, a literal
-in a type position (including one followed by `as` or `satisfies`), a logging message, the message
+in a type position (including one after `as` or `satisfies`), a logging message, the message
 of a constructed error (`new ValidationError(...)`), a comparison operand, a literal with no
 letters, and test, story, declaration and config files are never reported, and a single word outside
 JSX is not reported either. Every string argument of `describe`, `query`, `execute`, `prepare`,

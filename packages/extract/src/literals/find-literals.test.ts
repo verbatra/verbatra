@@ -222,9 +222,18 @@ describe("findLiterals: noisy non-user-facing positions are not reported", () =>
     ]);
   });
 
-  it("skips a literal followed by as or satisfies", () => {
-    onlyControl('const a = "Hello there friend" as Greeting;', false);
-    onlyControl('const b = "Hello there friend" satisfies Greeting;', false);
+  it("reports a literal followed by as or satisfies, which is a value", () => {
+    expect(
+      texts(
+        'const TITLE = "Welcome to verbatra" as const;\nconst b = "Hello there friend" satisfies Greeting;',
+        false,
+      ),
+    ).toEqual(["Welcome to verbatra", "Hello there friend"]);
+  });
+
+  it("skips a literal after as or satisfies, which is a type", () => {
+    onlyControl('const a = x as "Hello there" | "Bye for now";', false);
+    onlyControl('const b = y satisfies "Hello there" | "Bye for now";', false);
   });
 
   it("still reports toast copy, alt, placeholder, JSX text, and a label value", () => {

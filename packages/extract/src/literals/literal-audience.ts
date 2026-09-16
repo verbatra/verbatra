@@ -136,8 +136,6 @@ const FIRST_ARGUMENT_CALLEES = new Set(["addEventListener", "emit", "off", "on",
 
 const FIRST_ARGUMENT_MEMBERS = new Set(["get", "set"]);
 
-const TYPE_FOLLOWERS = new Set(["as", "satisfies"]);
-
 const LOG_RECEIVERS = new Set(["console", "logger", "log"]);
 
 const IGNORED_ELEMENTS = new Set(["script", "style", "code"]);
@@ -207,7 +205,7 @@ function isTypePosition(
   if (isSingleOperator(tokens, index - 1, -1) || isSingleOperator(tokens, index + 1, 1)) {
     return true;
   }
-  if (isPunct(tokens[index - 1], "<") || TYPE_FOLLOWERS.has(identValue(tokens[index + 1]) ?? "")) {
+  if (isPunct(tokens[index - 1], "<")) {
     return true;
   }
   return isPunct(tokens[index - 1], ":") && isTypeAnnotationColon(tokens, index - 1, frames);
