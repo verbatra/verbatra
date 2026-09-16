@@ -481,6 +481,11 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   if (result.markupStrippedUnits > 0) {
     notes.push(`  ${result.markupStrippedUnits} units carried inline markup, which was dropped`);
   }
+  if (result.subflowDroppedUnits > 0) {
+    notes.push(
+      `  ${result.subflowDroppedUnits} units carried sub-flow text inside inline markup, which was left out`,
+    );
+  }
   notes.push(
     ...renderTmxLanguages("languages matching no configured locale", result.unmatchedLanguages),
   );

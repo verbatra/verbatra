@@ -140,6 +140,7 @@ export function makeImportTmxResult(overrides: Partial<ImportTmxResult> = {}): I
     unmatchedSourceUnits: 0,
     conflictingSourceUnits: 0,
     markupStrippedUnits: 0,
+    subflowDroppedUnits: 0,
     unmatchedLanguages: [],
     ambiguousLanguages: [],
     notImported: [],

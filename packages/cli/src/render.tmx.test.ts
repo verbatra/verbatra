@@ -41,6 +41,13 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("dry run: nothing written");
   });
 
+  it("reports units whose sub-flow text was left out, only when there are some", () => {
+    expect(renderTmxImportHuman(makeImportTmxResult({ subflowDroppedUnits: 2 }))).toContain(
+      "2 units carried sub-flow text inside inline markup, which was left out",
+    );
+    expect(renderTmxImportHuman(makeImportTmxResult())).not.toContain("sub-flow");
+  });
+
   it("neutralizes control characters in a language tag it echoes back", () => {
     const text = renderTmxImportHuman(
       makeImportTmxResult({ unmatchedLanguages: [{ language: `${ESCAPE}[31mde\nx`, units: 1 }] }),
