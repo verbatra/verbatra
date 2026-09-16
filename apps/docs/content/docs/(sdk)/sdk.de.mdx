@@ -408,15 +408,18 @@ wird. Hat das Problem einen Ort in der Datei, nennt die Meldung Zeile, Spalte un
 als `TmxErrorLocation`, bei jedem anderen Fehler `undefined`, sodass du weder den Fehler noch seinen
 `cause` casten musst. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten
 Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu
-Bindestrichen; sonst die einzige konfigurierte Locale, die das Tag Subtag für Subtag erweitert oder
-von ihm erweitert wird, sodass zwei Tags mit unterschiedlichen Schrift- oder Regions-Subtags
-(`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag, das mehrere Locales beanspruchen könnten,
-wird gemeldet statt geraten. Zwei Zielsegmente einer Einheit, die auf dieselbe Locale auflösen,
-lassen nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
+Bindestrichen; sonst die längste konfigurierte Locale, die ein Subtag-Präfix des Tags ist (Lookup
+nach RFC 4647), oder andernfalls eine konfigurierte Locale, die das Tag nur um Regions- oder
+Varianten-Subtags erweitert, nie um eine Schrift, sodass zwei Tags mit unterschiedlichen Schrift-
+oder Regions-Subtags (`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag wird nur dann als
+mehrdeutig gemeldet, wenn die Locales, die es erreichen könnte, nicht auf einer Präfix-Kette liegen.
+Segmente einer Einheit, die auf dieselbe Locale auflösen, die Quell-Locale eingeschlossen, lassen
+nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
 Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und werden als `conflicting`
-gezählt. Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter, ICU, Ausartung und Leere,
-dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon unterliegen, geprüft beim
-Eintritt in den Memory statt überlassen an den Lauf, der sie später liest.
+gezählt (bei der Quell-Locale wird die Einheit abgelehnt und in `conflictingSourceUnits` gezählt).
+Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter, ICU, Ausartung und Leere, dem
+Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon unterliegen, geprüft beim Eintritt in
+den Memory statt überlassen an den Lauf, der sie später liest.
 
 Widerspricht eine importierte Einheit einer Übersetzung, die der Memory schon hat, gewinnt der
 Memory, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem aktuellen

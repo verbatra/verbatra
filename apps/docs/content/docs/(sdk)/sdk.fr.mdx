@@ -266,16 +266,20 @@ unité de traduction, son rang en comptant à partir de 1, et `tmxErrorLocation(
 même emplacement sous forme de `TmxErrorLocation`, ou `undefined` pour toute autre erreur, si bien
 que tu n'as jamais à caster l'erreur ni son `cause`. Une étiquette de langue est résolue vers une
 locale configurée par une règle explicite : écriture exacte après mise en minuscules et conversion
-des tirets bas en traits d'union ; à défaut, la seule locale configurée que l'étiquette prolonge ou
-qui la prolonge, sous-étiquette par sous-étiquette, si bien que deux étiquettes aux sous-étiquettes
-d'écriture ou de région différentes (`zh-CN` et `zh-TW`) ne correspondent jamais ; et une étiquette
-que plusieurs locales pourraient revendiquer est signalée plutôt que devinée. Deux segments cibles
-d'une unité qui se résolvent vers la même locale ne laissent jamais le dernier l'emporter : une
-étiquette exacte l'emporte sur une correspondance par préfixe, et deux segments de même rang aux
-valeurs différentes ne stockent rien pour cette locale et sont comptés comme `conflicting`. Chaque
-traduction candidate passe ensuite la même barrière de variables, d'ICU, de dégénérescence et de
-vacuité que subissent déjà la sortie du fournisseur et une ligne de classeur remplie, vérifiée à
-l'entrée de l'enregistrement dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard.
+des tirets bas en traits d'union ; à défaut, la plus longue locale configurée qui est un préfixe de
+sous-étiquettes de l'étiquette (recherche de la RFC 4647), ou sinon une locale configurée qui ne
+prolonge l'étiquette que par des sous-étiquettes de région ou de variante, jamais par une écriture,
+si bien que deux étiquettes aux sous-étiquettes d'écriture ou de région différentes (`zh-CN` et
+`zh-TW`) ne correspondent jamais ; et une étiquette n'est signalée comme ambiguë que lorsque les
+locales qu'elle pourrait atteindre ne se trouvent pas sur une même chaîne de préfixes. Les segments
+d'une unité qui se résolvent vers la même locale, locale source comprise, ne laissent jamais le
+dernier l'emporter : une étiquette exacte l'emporte sur une correspondance par préfixe, et deux
+segments de même rang aux valeurs différentes ne stockent rien pour cette locale et sont comptés
+comme `conflicting` (pour la locale source, l'unité est refusée et comptée dans
+`conflictingSourceUnits`). Chaque traduction candidate passe ensuite la même barrière de variables,
+d'ICU, de dégénérescence et de vacuité que subissent déjà la sortie du fournisseur et une ligne de
+classeur remplie, vérifiée à l'entrée de l'enregistrement dans la mémoire plutôt que laissée à
+l'exécution qui la lira plus tard.
 
 Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
 sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,

@@ -389,14 +389,17 @@ message names its line, column and, inside a translation unit, the unit's 1-base
 `tmxErrorLocation(error)` returns the same place as a `TmxErrorLocation`, or `undefined` for any
 other error, so you never cast the error or its `cause`. A language tag is resolved to a configured
 locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens;
-failing that, the single configured locale the tag extends or is extended by, subtag by subtag, so
-two tags whose script or region subtags differ (`zh-CN` and `zh-TW`) never match; and a tag several
-locales could claim is reported rather than guessed at. Two target segments of one unit that resolve
-to the same locale never let the last one win: an exact tag outranks a prefix match, and two
-equal-ranked segments with different values store nothing for that locale and are counted as
-`conflicting`. Every candidate translation then passes the same placeholder, ICU, degeneracy, and
-emptiness gate that provider output and a filled workbook row already face, checked as the record
-enters the memory rather than left to the run that later reads it.
+failing that, the longest configured locale that is a subtag prefix of the tag (RFC 4647 lookup), or
+else a configured locale that extends the tag only by region or variant subtags, never by a script,
+so two tags whose script or region subtags differ (`zh-CN` and `zh-TW`) never match; and a tag is
+reported as ambiguous only when the locales it could reach do not lie on one prefix chain. Segments
+of one unit that resolve to the same locale, the source locale included, never let the last one win:
+an exact tag outranks a prefix match, and two equal-ranked segments with different values store
+nothing for that locale and are counted as `conflicting` (for the source locale, the unit is refused
+and counted in `conflictingSourceUnits`). Every candidate translation then passes the same
+placeholder, ICU, degeneracy, and emptiness gate that provider output and a filled workbook row
+already face, checked as the record enters the memory rather than left to the run that later reads
+it.
 
 Where an imported unit disagrees with a translation the memory already holds, the memory wins unless
 `overwrite` is set. Units are stored under the current configuration fingerprint, the same key a real
