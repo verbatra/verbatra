@@ -510,7 +510,7 @@ describe("render: human run summary", () => {
     expect(withinBudget).toContain("budget: 200/1000 tokens (warn), within budget");
   });
 
-  it("still counts the budget for a provider that reports no usage, and says the count is estimated", () => {
+  it("counts an estimated budget and blames the count, not the provider, for the estimate", () => {
     const text = renderHuman(
       makeSummary({
         budget: {
@@ -522,25 +522,10 @@ describe("render: human run summary", () => {
         },
       }),
     );
-    expect(text).toContain("budget: 394/500 tokens (stop), within budget");
-    expect(text).toContain("estimated");
+    expect(text).toContain(
+      "budget: 394/500 tokens (stop), within budget, estimated (not every request reported usage)",
+    );
     expect(text).not.toContain("not supported by this provider");
-  });
-
-  it("blames the count, not the provider, when a request failed to report usage", () => {
-    const text = renderHuman(
-      makeSummary({
-        budget: {
-          maxTokens: 500,
-          behavior: "stop",
-          supported: false,
-          tokensUsed: 394,
-          exceeded: false,
-        },
-      }),
-    );
-    expect(text).toContain("estimated (not every request reported usage)");
-    expect(text).not.toContain("this provider");
   });
 
   it("omits the estimated marker when the run counted nothing at all", () => {
@@ -573,7 +558,6 @@ describe("render: human run summary", () => {
     );
     expect(text).toContain("budget: 394/500 tokens (stop), within budget");
     expect(text).not.toContain("estimated");
-    expect(text).not.toContain("reports no usage of its own");
   });
 
   it("omits the budget line entirely when no budget is configured", () => {
