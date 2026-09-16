@@ -101,3 +101,7 @@ export function decomposeKey(key: string): DecomposedKey {
 export function gettextKeyContext(key: string): string | undefined {
   return decomposeKey(key).msgctxt;
 }
+
+export function gettextKeyPluralIndex(key: string): number | undefined {
+  return decomposeKey(key).pluralIndex;
+}
