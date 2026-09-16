@@ -92,7 +92,7 @@ function requireExtractionConfig(config: VerbatraConfig): ExtractionConfig {
   return config.extract;
 }
 
-function toSourceFs(fs: SdkFs): SourceFs {
+export function toSourceFs(fs: SdkFs): SourceFs {
   const readDirectory = fs.readDirectory;
   if (readDirectory === undefined) {
     throw new SdkError(
