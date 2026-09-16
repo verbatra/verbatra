@@ -5,6 +5,7 @@ export interface InlineMarkupComparison {
   readonly missing: readonly string[];
   readonly extra: readonly string[];
   readonly malformed: boolean;
+  readonly tagLimitExceeded?: number;
 }
 
 export interface InlineMarkupOptions {
@@ -66,6 +67,14 @@ const MALFORMED: InlineMarkupComparison = {
   missing: [],
   extra: [],
   malformed: true,
+};
+
+const TAG_LIMIT_EXCEEDED: InlineMarkupComparison = {
+  matches: false,
+  missing: [],
+  extra: [],
+  malformed: false,
+  tagLimitExceeded: MAX_TAGS,
 };
 
 function isVoidElement(name: string): boolean {
@@ -257,9 +266,12 @@ export function compareInlineMarkup(
     return MATCHED;
   }
   const scannedSource = scanInlineTags(sourceValue);
-  const scannedTranslated = scanInlineTags(translatedValue);
-  if (scannedSource === undefined || scannedTranslated === undefined) {
+  if (scannedSource === undefined) {
     return MATCHED;
+  }
+  const scannedTranslated = scanInlineTags(translatedValue);
+  if (scannedTranslated === undefined) {
+    return TAG_LIMIT_EXCEEDED;
   }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
   const sourceTags = withoutIgnoredTags(scannedSource, ignored);

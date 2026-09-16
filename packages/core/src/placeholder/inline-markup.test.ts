@@ -523,11 +523,37 @@ describe("compareInlineMarkup: both spellings of one name accounted for", () => 
   });
 });
 
-describe("compareInlineMarkup: the tag-count ceiling fails open", () => {
+describe("compareInlineMarkup: the tag-count ceiling stands down only for the source", () => {
   const FLOOD = "<i>x</i>".repeat(150);
 
-  it("goes quiet for a candidate that carries more tags than the scanner will read", () => {
-    expect(compareInlineMarkup("<b>a</b>", `b${FLOOD}`).matches).toBe(true);
+  it("refuses a candidate that carries more tags than the scanner will read, naming the limit", () => {
+    expect(compareInlineMarkup("<b>a</b>", `b${FLOOD}`)).toEqual({
+      matches: false,
+      missing: [],
+      extra: [],
+      malformed: false,
+      tagLimitExceeded: 256,
+    });
+  });
+
+  it("refuses an empty invented flood against a small source", () => {
+    const result = compareInlineMarkup("<b>x</b>", `x${"<i></i>".repeat(200)}`);
+    expect(result.matches).toBe(false);
+    expect(result.tagLimitExceeded).toBe(256);
+  });
+
+  it("refuses a flood against a source with no markup at all", () => {
+    expect(compareInlineMarkup("Save", `Speichern${"<i></i>".repeat(200)}`).matches).toBe(false);
+  });
+
+  it("stands down when both the source and the candidate exceed the ceiling", () => {
+    expect(compareInlineMarkup("<b>x</b>".repeat(400), "nichts").matches).toBe(true);
+    expect(compareInlineMarkup("<b>x</b>".repeat(400), "<i>y</i>".repeat(400)).matches).toBe(true);
+  });
+
+  it("accepts a candidate that sits exactly at the ceiling when the source does too", () => {
+    const atCeiling = "<b>x</b>".repeat(128);
+    expect(compareInlineMarkup(atCeiling, atCeiling).matches).toBe(true);
   });
 
   it("still compares the same shape when the candidate stays under the ceiling", () => {

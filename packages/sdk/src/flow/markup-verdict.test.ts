@@ -69,6 +69,13 @@ const cases: readonly MarkupCase[] = [
     matches: false,
     details: ["+</b>", "+<b>"],
   },
+  {
+    name: "a candidate flooded past the tag ceiling",
+    source: "<b>x</b>",
+    candidate: `x${"<i></i>".repeat(200)}`,
+    matches: false,
+    details: ["+more than 256 inline tags"],
+  },
 ];
 
 function entryFor(value: string) {

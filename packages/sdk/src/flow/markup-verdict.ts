@@ -22,6 +22,9 @@ function placeholderTags(placeholders: readonly string[]): readonly string[] {
 }
 
 function detailsOf(comparison: InlineMarkupComparison): readonly string[] {
+  if (comparison.tagLimitExceeded !== undefined) {
+    return [`+more than ${comparison.tagLimitExceeded} inline tags`];
+  }
   return [
     ...comparison.missing.map((token) => `-${token}`),
     ...comparison.extra.map((token) => `+${token}`),

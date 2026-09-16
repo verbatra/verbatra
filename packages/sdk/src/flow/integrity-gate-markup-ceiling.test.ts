@@ -23,7 +23,7 @@ function entryFor(adapter: FormatAdapter, value: string): TranslationEntry {
 
 const PROSE = `Lorem ipsum dolor sit amet. ${"Filler sentence here. ".repeat(60)}`;
 
-describe("the markup gate stops comparing once a value exceeds the scanner's tag ceiling", () => {
+describe("the markup gate stops comparing only once the source exceeds the scanner's tag ceiling", () => {
   const adapter = adapterFor("i18next-json");
 
   it("refuses a flood that stays under the ceiling, dropped pair and invented tags alike", () => {
@@ -36,12 +36,26 @@ describe("the markup gate stops comparing once a value exceeds the scanner's tag
     });
   });
 
-  it("accepts the same shape once the flood crosses the ceiling, which is the current fail-open", () => {
+  it("refuses the same shape once the flood crosses the ceiling, naming the limit", () => {
     const source = entryFor(adapter, `<b>${PROSE}</b>`);
     const candidate = `${PROSE}${"<i>x</i>".repeat(150)}`;
 
     expect(candidate.length / source.value.length).toBeLessThan(12);
-    expect(gateCandidateValue(source, candidate, adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, candidate, adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["+more than 256 inline tags"],
+    });
+  });
+
+  it("refuses a flood of empty invented tags against a small source", () => {
+    const source = entryFor(adapter, "<b>x</b>");
+
+    expect(gateCandidateValue(source, `x${"<i></i>".repeat(200)}`, adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["+more than 256 inline tags"],
+    });
   });
 
   it("accepts a total markup loss when the source itself crosses the ceiling", () => {
