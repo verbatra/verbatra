@@ -2,6 +2,7 @@ export { buildDelimited } from "./build-delimited.js";
 export {
   type BuildTmxInput,
   buildTmx,
+  removedCharacterCount,
   type TmxExportUnit,
   type TmxTranslation,
 } from "./build-tmx.js";

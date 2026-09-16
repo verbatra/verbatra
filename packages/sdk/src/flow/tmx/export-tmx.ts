@@ -1,5 +1,11 @@
 import { dirname, resolve } from "node:path";
-import { buildTmx, type TmxExportUnit, type TmxTranslation } from "@verbatra/exchange";
+import {
+  type BuildTmxInput,
+  buildTmx,
+  removedCharacterCount,
+  type TmxExportUnit,
+  type TmxTranslation,
+} from "@verbatra/exchange";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import { cacheFilePath, readTranslationMemory } from "../../cache/translation-memory.js";
 import type { TranslationMemory } from "../../cache/types.js";
@@ -34,6 +40,13 @@ export interface ExportTmxResult {
    * with no source segment. Those entries fill in as later runs touch the same strings.
    */
   readonly withoutSource: number;
+  /**
+   * Characters removed from segment text because XML 1.0 cannot represent them at all, such as a
+   * control character, a lone surrogate or a noncharacter, counted across every written segment.
+   * Writing them would produce a file no conformant parser accepts, so they are left out and counted
+   * rather than dropped silently.
+   */
+  readonly illegalCharactersRemoved: number;
 }
 
 /** Input for {@link exportTmx}. */
@@ -150,18 +163,17 @@ export async function exportTmx(
   const collected = collect(memory, computeFingerprint(input.config), locales);
   const path = resolve(cwd, input.out ?? DEFAULT_TMX_PATH);
   await fs.mkdir?.(dirname(path));
-  await fs.writeFile(
-    path,
-    buildTmx({
-      sourceLanguage: input.config.sourceLocale,
-      units: collected.units,
-      ...(input.toolVersion !== undefined ? { toolVersion: input.toolVersion } : {}),
-    }),
-  );
+  const build: BuildTmxInput = {
+    sourceLanguage: input.config.sourceLocale,
+    units: collected.units,
+    ...(input.toolVersion !== undefined ? { toolVersion: input.toolVersion } : {}),
+  };
+  await fs.writeFile(path, buildTmx(build));
   return {
     path,
     units: collected.units.length,
     locales: collected.counts,
     withoutSource: collected.withoutSource,
+    illegalCharactersRemoved: removedCharacterCount(build),
   };
 }

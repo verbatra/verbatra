@@ -1,4 +1,4 @@
-import { stripIllegalXmlCharacters } from "./xml-character.js";
+import { countIllegalXmlCharacters, stripIllegalXmlCharacters } from "./xml-character.js";
 
 export interface TmxTranslation {
   readonly language: string;
@@ -95,4 +95,15 @@ export function buildTmx(input: BuildTmxInput): string {
     "</tmx>",
     "",
   ].join("\n");
+}
+
+export function removedCharacterCount(input: BuildTmxInput): number {
+  let removed = 0;
+  for (const unit of input.units) {
+    removed += countIllegalXmlCharacters(unit.source);
+    for (const translation of unit.translations) {
+      removed += countIllegalXmlCharacters(translation.text);
+    }
+  }
+  return removed;
 }

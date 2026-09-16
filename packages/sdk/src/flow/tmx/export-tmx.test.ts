@@ -248,3 +248,34 @@ describe("exportTmx writes BCP 47 language tags however the config spells its lo
     expect(memory.sources).toEqual({ [hashOf("Save")]: "Save" });
   });
 });
+
+describe("exportTmx counts the characters XML 1.0 made it leave out", () => {
+  it("reports how many characters were removed from the exported text", async () => {
+    const config = cfg();
+    const bell = String.fromCharCode(7);
+    const dir = await withMemory(
+      config,
+      {
+        de: { [hashOf(`Ring${bell}`)]: `Klingel${bell}${bell}` },
+        fr: { [hashOf(`Ring${bell}`)]: "Sonnette" },
+      },
+      { [hashOf(`Ring${bell}`)]: `Ring${bell}` },
+    );
+
+    const result = await exportTmx({ config, cwd: dir });
+
+    expect(result.illegalCharactersRemoved).toBe(3);
+    expect(await readFile(result.path, "utf8")).toContain("<seg>Klingel</seg>");
+  });
+
+  it("reports zero when nothing had to be removed", async () => {
+    const config = cfg();
+    const dir = await withMemory(
+      config,
+      { de: { [hashOf("Hello")]: "Hallo" } },
+      { [hashOf("Hello")]: "Hello" },
+    );
+
+    expect((await exportTmx({ config, cwd: dir })).illegalCharactersRemoved).toBe(0);
+  });
+});

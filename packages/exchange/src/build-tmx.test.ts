@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTmx } from "./build-tmx.js";
+import { buildTmx, removedCharacterCount } from "./build-tmx.js";
 
 function headerAttributes(text: string): Record<string, string> {
   const header = /<header([^>]*)\/>/.exec(text)?.[1] ?? "";
@@ -151,5 +151,48 @@ describe("buildTmx writes language tags in BCP 47 form", () => {
 
   it("leaves adminlang as the BCP 47 tag it already is", () => {
     expect(headerAttributes(buildTmx({ sourceLanguage: "en_US", units: [] })).adminlang).toBe("en");
+  });
+});
+
+describe("removedCharacterCount counts what buildTmx has to leave out", () => {
+  const bell = String.fromCharCode(7);
+  const loneSurrogate = String.fromCharCode(0xd800);
+  const planeNoncharacter = String.fromCharCode(0xd83f, 0xdffe);
+
+  it("counts each character XML 1.0 cannot represent across every segment", () => {
+    expect(
+      removedCharacterCount({
+        sourceLanguage: "en",
+        units: [
+          {
+            source: `a${bell}b${bell}`,
+            translations: [{ language: "de", text: `${loneSurrogate}x${planeNoncharacter}` }],
+          },
+          { source: "clean", translations: [{ language: "de", text: `y${bell}` }] },
+        ],
+      }),
+    ).toBe(5);
+  });
+
+  it("matches exactly the characters buildTmx drops", () => {
+    const input = {
+      sourceLanguage: "en",
+      units: [
+        { source: `a${bell}b`, translations: [{ language: "de", text: `c${planeNoncharacter}` }] },
+      ],
+    };
+
+    expect(removedCharacterCount(input)).toBe(2);
+    expect(buildTmx(input)).toContain("<seg>ab</seg>");
+    expect(buildTmx(input)).toContain("<seg>c</seg>");
+  });
+
+  it("counts nothing for clean text, a tab, a line feed or a carriage return", () => {
+    expect(
+      removedCharacterCount({
+        sourceLanguage: "en",
+        units: [{ source: "a\tb\nc\rd", translations: [{ language: "de", text: "🎉" }] }],
+      }),
+    ).toBe(0);
   });
 });
