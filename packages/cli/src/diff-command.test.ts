@@ -1,4 +1,4 @@
-import type { DiffSummary, UnusedKeysScan } from "@verbatra/sdk";
+import type { DiffSummary, UnusedKey, UnusedKeysScan } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run } from "./run.js";
@@ -176,12 +176,15 @@ function unusedScan(overrides: Partial<UnusedKeysScan> = {}): UnusedKeysScan {
     unreliableBecause: [],
     scannedFiles: 3,
     unused: [],
+    possiblyDynamic: [],
     ignored: [],
-    dynamic: [],
-    indirect: [],
-    diagnostics: [],
+    dynamicPrefixes: [],
     ...overrides,
   };
+}
+
+function keys(...names: readonly string[]): readonly UnusedKey[] {
+  return names.map((key) => ({ key, catalogKey: key }));
 }
 
 function inSyncWith(unused: DiffSummary["unused"]): DiffSummary {
@@ -190,6 +193,13 @@ function inSyncWith(unused: DiffSummary["unused"]): DiffSummary {
     locales: [{ locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false }],
     ...(unused === undefined ? {} : { unused }),
   });
+}
+
+async function runUnused(summary: DiffSummary, ...extra: readonly string[]) {
+  const { deps } = recordingDeps({ diff: async () => summary });
+  const cap = captureStreams();
+  const code = await run(["diff", "--unused", ...extra], deps, cap.streams);
+  return { code, out: cap.out() };
 }
 
 describe("run diff --unused: the unused-key report", () => {
@@ -211,68 +221,93 @@ describe("run diff --unused: the unused-key report", () => {
     expect(calls.diff[0]).toMatchObject({ unused: true });
   });
 
-  it("exits 1 when a complete scan finds unused keys, listing them apart from orphaned keys", async () => {
-    const summary = inSyncWith(unusedScan({ unused: ["legacy.banner", "old.cta"] }));
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
-
-    const code = await run(["diff", "--unused"], deps, cap.streams);
+  it("exits 1 when a complete scan finds unused keys, listing their decoded spelling", async () => {
+    const { code, out } = await runUnused(
+      inSyncWith(
+        unusedScan({
+          unused: [
+            { key: "legacy.banner", catalogKey: "legacy.banner" },
+            { key: "Welcome. Enjoy", catalogKey: "Welcome\\. Enjoy" },
+          ],
+        }),
+      ),
+    );
 
     expect(code).toBe(1);
-    expect(cap.out()).toContain("unused source keys: 2 unused, 0 ignored, 3 files scanned");
-    expect(cap.out()).toContain("unused (2):\n    legacy.banner\n    old.cta");
-    expect(cap.out()).toContain("de: no pending changes");
+    expect(out).toContain(
+      "unused source keys: complete, 2 unused, 0 possibly dynamic, 0 ignored, 3 files scanned",
+    );
+    expect(out).toContain("unused (2):\n    legacy.banner\n    Welcome. Enjoy");
+    expect(out).not.toContain("Welcome\\.");
+    expect(out).toContain("de: no pending changes");
+  });
+
+  it("exits 0 when a complete scan finds only possibly dynamic keys, naming their prefix", async () => {
+    const { code, out } = await runUnused(
+      inSyncWith(
+        unusedScan({
+          possiblyDynamic: [{ key: "nav.home", catalogKey: "nav.home", prefix: "nav." }],
+          dynamicPrefixes: [{ prefix: "nav.", file: "src/nav.ts", line: 3 }],
+        }),
+      ),
+    );
+
+    expect(code).toBe(0);
+    expect(out).toContain("possibly dynamic (1):\n    nav.home  (prefix nav.)");
   });
 
   it("exits 0 when a complete scan finds only ignored keys, still naming them", async () => {
-    const summary = inSyncWith(unusedScan({ ignored: ["emails.welcome"] }));
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
-
-    const code = await run(["diff", "--unused"], deps, cap.streams);
+    const { code, out } = await runUnused(
+      inSyncWith(unusedScan({ ignored: keys("emails.welcome") })),
+    );
 
     expect(code).toBe(0);
-    expect(cap.out()).toContain("ignored (1):\n    emails.welcome");
+    expect(out).toContain("ignored (1):\n    emails.welcome");
   });
 
-  it("exits 0 on an unreliable scan, saying why and where, rather than failing on a guess", async () => {
-    const summary = inSyncWith(
-      unusedScan({
-        status: "unreliable",
-        unreliableBecause: ["dynamic-keys", "indirect-key-sites", "incomplete-scan"],
-        unused: ["errors.notFound"],
-        dynamic: [{ file: "src/errors.ts", line: 4 }],
-        indirect: [{ file: "src/nav.tsx", line: 2 }],
-        diagnostics: [{ file: "src/broken.ts", reason: "unparseable" }],
-      }),
+  it("exits 0 on an unreliable scan, naming every reason with its sites", async () => {
+    const { code, out } = await runUnused(
+      inSyncWith(
+        unusedScan({
+          status: "unreliable",
+          unreliableBecause: [
+            { reason: "dynamic-keys", count: 1, sites: [{ file: "src/errors.ts", line: 4 }] },
+            {
+              reason: "template-files-not-scanned",
+              count: 25,
+              sites: Array.from({ length: 20 }, (_, index) => ({ file: `src/p${index}.vue` })),
+            },
+            {
+              reason: "incomplete-scan",
+              count: 1,
+              sites: [{ file: "src/broken.ts", detail: "unparseable" }],
+            },
+          ],
+          unused: keys("errors.notFound"),
+        }),
+      ),
     );
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
-
-    const code = await run(["diff", "--unused"], deps, cap.streams);
 
     expect(code).toBe(0);
-    expect(cap.out()).toContain(
-      "unreliable (dynamic-keys, indirect-key-sites, incomplete-scan): a key listed as unused may still be in use",
-    );
-    expect(cap.out()).toContain("dynamic keys (1):\n    src/errors.ts:4");
-    expect(cap.out()).toContain("indirect key sites (1):\n    src/nav.tsx:2");
-    expect(cap.out()).toContain("skipped (1):\n    src/broken.ts  unparseable");
+    expect(out).toContain("unused source keys: unreliable, 1 unused");
+    expect(out).toContain("unreliable: a key listed as unused may still be in use");
+    expect(out).toContain("dynamic-keys (1):\n      src/errors.ts:4");
+    expect(out).toContain("template-files-not-scanned (25):\n      src/p0.vue");
+    expect(out).toContain("      src/p9.vue\n      and 15 more");
+    expect(out).toContain("incomplete-scan (1):\n      src/broken.ts  unparseable");
   });
 
   it("exits 0 and says it could not run when there was nothing to scan", async () => {
-    const summary = inSyncWith({
-      status: "not-run",
-      reason: "EXTRACT_NOT_CONFIGURED",
-      message: "No extract block is configured.",
-    });
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
-
-    const code = await run(["diff", "--unused"], deps, cap.streams);
+    const { code, out } = await runUnused(
+      inSyncWith({
+        status: "not-run",
+        reason: "EXTRACT_NOT_CONFIGURED",
+        message: "No extract block is configured.",
+      }),
+    );
 
     expect(code).toBe(0);
-    expect(cap.out()).toContain(
+    expect(out).toContain(
       "unused source keys: not run [EXTRACT_NOT_CONFIGURED] No extract block is configured.",
     );
   });
@@ -285,21 +320,22 @@ describe("run diff --unused: the unused-key report", () => {
       ],
       unused: { status: "not-run", reason: "NO_SOURCE_FILES", message: "nothing scanned" },
     });
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
 
-    expect(await run(["diff", "--unused"], deps, cap.streams)).toBe(1);
+    expect((await runUnused(summary)).code).toBe(1);
   });
 
-  it("--json carries the report inside the same diff envelope", async () => {
-    const summary = inSyncWith(unusedScan({ unused: ["legacy.banner"] }));
-    const { deps } = recordingDeps({ diff: async () => summary });
-    const cap = captureStreams();
+  it("--json carries the whole report inside the same diff envelope", async () => {
+    const summary = inSyncWith(
+      unusedScan({
+        unused: [{ key: "Welcome. Enjoy", catalogKey: "Welcome\\. Enjoy" }],
+        possiblyDynamic: [{ key: "nav.home", catalogKey: "nav.home", prefix: "nav." }],
+      }),
+    );
 
-    const code = await run(["diff", "--unused", "--json"], deps, cap.streams);
+    const { code, out } = await runUnused(summary, "--json");
 
     expect(code).toBe(1);
-    expect(parseEnvelope(cap.out())).toEqual({
+    expect(parseEnvelope(out)).toEqual({
       ok: true,
       version: JSON_ENVELOPE_VERSION,
       command: "diff",

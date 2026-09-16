@@ -843,7 +843,7 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
         "Examples:",
         "  $ verbatra diff                  list the pending keys per locale (exit 1 if any are pending)",
         "  $ verbatra diff --locales de,fr  only diff the German and French locales",
-        "  $ verbatra diff --unused         also list source keys no source reference names (exit 1 if any)",
+        "  $ verbatra diff --unused         also list unused source keys (exit 1 only on a complete scan)",
         "  $ verbatra diff --json           machine-readable key lists on stdout for CI",
       ].join("\n"),
     );

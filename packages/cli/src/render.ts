@@ -17,6 +17,8 @@ import type {
   RunSummary,
   UnusedKeysReport,
   UnusedKeysScan,
+  UnusedKeysSite,
+  UnusedKeysUnreliability,
   UsageSummary,
   WatchRunResult,
 } from "@verbatra/sdk";
@@ -275,30 +277,51 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   return [header, ...groups];
 }
 
+function renderUnusedSite(site: UnusedKeysSite): string {
+  const location = site.line === undefined ? site.file : `${site.file}:${site.line}`;
+  return site.detail === undefined ? location : `${location}  ${site.detail}`;
+}
+
+function renderUnreliability(entry: UnusedKeysUnreliability): readonly string[] {
+  const shown = entry.sites.slice(0, EXTRACT_LIST_LIMIT);
+  const rest = entry.count - shown.length;
+  return [
+    `    ${entry.reason} (${entry.count}):`,
+    ...shown.map((site) => `      ${renderUnusedSite(site)}`),
+    ...(rest > 0 ? [`      and ${rest} more`] : []),
+  ];
+}
+
 function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
-  const header = `  unused source keys: ${report.unused.length} unused, ${report.ignored.length} ignored, ${report.scannedFiles} files scanned`;
+  const header =
+    `  unused source keys: ${report.status}, ${report.unused.length} unused, ` +
+    `${report.possiblyDynamic.length} possibly dynamic, ${report.ignored.length} ignored, ` +
+    `${report.scannedFiles} files scanned`;
   const verdict =
     report.status === "complete"
       ? []
       : [
-          `  unreliable (${report.unreliableBecause.join(", ")}): a key listed as unused may still be in use`,
+          "  unreliable: a key listed as unused may still be in use",
+          ...report.unreliableBecause.flatMap(renderUnreliability),
         ];
+  const unlimited = Number.POSITIVE_INFINITY;
   return [
     header,
     ...verdict,
-    ...renderExtractList("unused", report.unused, Number.POSITIVE_INFINITY),
-    ...renderExtractList("ignored", report.ignored, Number.POSITIVE_INFINITY),
     ...renderExtractList(
-      "dynamic keys",
-      report.dynamic.map((site) => `${site.file}:${site.line}`),
+      "unused",
+      report.unused.map((entry) => entry.key),
+      unlimited,
     ),
     ...renderExtractList(
-      "indirect key sites",
-      report.indirect.map((site) => `${site.file}:${site.line}`),
+      "possibly dynamic",
+      report.possiblyDynamic.map((entry) => `${entry.key}  (prefix ${entry.prefix})`),
+      unlimited,
     ),
     ...renderExtractList(
-      "skipped",
-      report.diagnostics.map((entry) => `${entry.file}  ${entry.reason}`),
+      "ignored",
+      report.ignored.map((entry) => entry.key),
+      unlimited,
     ),
   ];
 }
