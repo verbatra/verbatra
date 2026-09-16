@@ -209,7 +209,7 @@ extract: {
 
 `exclude` adds directory names to the always-skipped set, which already covers `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build`, and `coverage`. Names, not paths: an entry matches a directory of that name anywhere under a root.
 
-`literals.ignore` lists exact texts that [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) holds back everywhere, such as a brand name. An entry matches a literal whose whole text is the same once whitespace is collapsed. A held-back literal is still reported as suppressed, never dropped.
+`literals.ignore` lists exact texts that [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) holds back everywhere, such as a brand name. An entry matches a literal whose whole text is the same once whitespace is collapsed and character references such as `&amp;` are decoded, so write `Tom & Jerry`, not `Tom &amp; Jerry`. A held-back literal is still reported as suppressed, never dropped.
 
 Unknown keys inside the block are rejected, exactly as they are at the top level.
 

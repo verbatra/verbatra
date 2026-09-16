@@ -209,7 +209,7 @@ extract: {
 
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
 
-`literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum gleich ist. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
+`literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen wie `&amp;` gleich ist, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
 
 Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 

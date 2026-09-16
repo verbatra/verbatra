@@ -209,7 +209,7 @@ extract: {
 
 `exclude` ajoute des noms de répertoire à l'ensemble toujours ignoré, qui couvre déjà `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` et `coverage`. Des noms, pas des chemins : une entrée correspond à un répertoire de ce nom n'importe où sous une racine.
 
-`literals.ignore` liste des textes exacts que [`verbatra doctor --literals`](/docs/cli/doctor) retient partout, comme un nom de marque. Une entrée correspond à un littéral dont le texte complet est identique une fois les espaces regroupés. Un littéral retenu est toujours signalé comme supprimé, jamais écarté.
+`literals.ignore` liste des textes exacts que [`verbatra doctor --literals`](/docs/cli/doctor) retient partout, comme un nom de marque. Une entrée correspond à un littéral dont le texte complet est identique une fois les espaces regroupés et les références de caractères comme `&amp;` décodées : écris donc `Tom & Jerry`, pas `Tom &amp; Jerry`. Un littéral retenu est toujours signalé comme supprimé, jamais écarté.
 
 Les clés inconnues dans le bloc sont refusées, exactement comme au niveau supérieur.
 
