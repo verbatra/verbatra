@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tmx version="1.4">
+<header creationtool="another-cat-tool" creationtoolversion="6.1.0" segtype="paragraph" o-tmf="another-cat-tool TMX" adminlang="EN" srclang="EN" datatype="unknown"/>
+<body>
+<tu>
+<tuv lang="EN"><seg>Save <bpt i="1">&lt;b&gt;</bpt>all<ept i="1">&lt;/b&gt;</ept> changes</seg></tuv>
+<tuv lang="DE"><seg>Alle <bpt i="1">&lt;b&gt;</bpt>&#196;nderungen<ept i="1">&lt;/b&gt;</ept> speichern</seg></tuv>
+</tu>
+<tu>
+<tuv lang="EN"><seg><![CDATA[Filter results < 100]]></seg></tuv>
+<tuv lang="DE"><seg><![CDATA[Ergebnisse < 100 filtern]]></seg></tuv>
+</tu>
+<tu>
+<tuv lang="EN"><seg>Unsaved draft</seg></tuv>
+<tuv lang="DE"><seg/></tuv>
+</tu>
+<tu>
+<tuv lang="EN"><seg>Only English here</seg></tuv>
+</tu>
+<tu>
+<tuv lang="EN"><seg>Line one
+Line two</seg></tuv>
+<tuv lang="pt_BR"><seg>Linha um
+Linha dois</seg></tuv>
+</tu>
+</body>
+</tmx>

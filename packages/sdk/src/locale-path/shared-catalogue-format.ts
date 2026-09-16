@@ -1,9 +1,7 @@
-import type { SupportedFormat } from "@verbatra/core";
+import type { FormatId } from "@verbatra/core";
 
-const SHARED_CATALOGUE_FORMATS: ReadonlySet<SupportedFormat> = new Set<SupportedFormat>([
-  "apple-xcstrings",
-]);
+const SHARED_CATALOGUE_FORMATS: ReadonlySet<FormatId> = new Set<FormatId>(["apple-xcstrings"]);
 
-export function isSharedCatalogueFormat(format: SupportedFormat): boolean {
+export function isSharedCatalogueFormat(format: FormatId): boolean {
   return SHARED_CATALOGUE_FORMATS.has(format);
 }

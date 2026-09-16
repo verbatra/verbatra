@@ -97,6 +97,12 @@ Ce qui change par rapport au classeur :
 - **Un nouvel export plus étroit met hors service les locales abandonnées.** Chaque export note les locales qu'il a écrites dans un manifeste caché du répertoire de sortie. Les fichiers d'une sélection antérieure plus large restent sur le disque, mais l'import les refuse (`HANDOFF_FILE_STALE`) au lieu de les appliquer comme s'ils étaient récents. Rien n'est jamais supprimé, un fichier étranger dans ce répertoire est donc en sécurité.
 - **Tout le reste est identique.** Le même diff choisit les lignes, et chaque ligne renvoyée passe par la même barrière d'intégrité : une remise délimitée et un classeur donnent le même résultat pour les mêmes valeurs.
 
+## TMX, l'autre chemin
+
+<AvailableFrom version="0.11.0" />
+
+Une passation porte vers une personne qui traduit une tranche du delta en attente, locale par locale ; [`verbatra tmx`](/docs/cli/tmx) porte toute la mémoire de traduction dans un seul fichier multilingue, pour la déplacer entre outils plutôt que pour faire traduire des chaînes. TMX n'est pas une valeur de `--format` : `xlsx`, `csv` et `tsv` sont les formes de passation, utilise donc `verbatra tmx export` et `verbatra tmx import` plutôt que `verbatra export --format tmx`.
+
 ## Choisir quoi exporter
 
 Par défaut, l'export n'inclut que les chaînes manquantes et modifiées, le travail qui a vraiment besoin d'être fait :
@@ -119,11 +125,12 @@ Prends `--include-unchanged` quand un traducteur veut le contexte complet d'une 
 `Review status` et `Review reasons` sont une couche non bloquante au-dessus des vérifications ci-dessus : les heuristiques de verbatra pour repérer une traduction structurellement correcte mais qui mérite un second regard. Elles ne retiennent jamais une ligne et l'import ne les lit jamais ; la seule façon d'effacer un signalement est de corriger la traduction. Les deux colonnes sont recalculées à chaque export depuis la source et les valeurs cibles actuelles :
 
 - `length-ratio-outlier` : la traduction est bien plus courte ou plus longue que sa source.
+- `max-length-exceeded` : la traduction est plus longue que le budget configuré pour sa clé.
 - `equals-source` : la traduction est identique à la source.
 - `glossary-term-missed` : un terme du glossaire configuré n'est pas arrivé dans la traduction.
 - `integrity-reordered` : les placeholders correspondent mais ont atterri dans un ordre différent de la source.
 
-Une cinquième raison, `provider-degraded`, n'existe qu'au moment de translate (un avis de dégradation DeepL sur le lot d'où vient une clé) ; comme l'export n'appelle jamais de fournisseur, elle n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les vérifications d'intégrité strictes.
+Une sixième raison, `provider-degraded`, n'existe qu'au moment de translate (un avis de dégradation DeepL sur le lot d'où vient une clé) ; comme l'export n'appelle jamais de fournisseur, elle n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les vérifications d'intégrité strictes.
 
 ## Depuis le SDK
 

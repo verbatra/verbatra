@@ -1,9 +1,15 @@
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  DEFAULT_TMX_PATH,
+  DEFAULT_TYPES_PATH,
+  type DiffSummary,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type GenerateTypesInput,
+  type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
+  resolveDryRun,
   type TranslateInput,
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
@@ -22,9 +28,14 @@ import {
   renderDoctorHuman,
   renderError,
   renderExportHuman,
+  renderExtractHuman,
   renderHuman,
   renderLockWait,
   renderProgress,
+  renderPseudoHuman,
+  renderTmxExportHuman,
+  renderTmxImportHuman,
+  renderTypesHuman,
   toRenderableError,
 } from "./render.js";
 import { runStudio } from "./studio-command.js";
@@ -63,6 +74,7 @@ const translateOptsSchema = sharedCommandOptsSchema.extend({
   lockTimeout: z.string().optional(),
   concurrency: z.string().optional(),
   cache: z.boolean().optional(),
+  estimate: z.boolean().optional(),
 });
 
 const watchOptsSchema = sharedCommandOptsSchema.extend({
@@ -88,13 +100,90 @@ const importOptsSchema = sharedCommandOptsSchema.extend({
   format: exchangeFormatSchema,
 });
 
+const TMX_DIRECTIONS = ["import", "export"] as const;
+
+const tmxOptsSchema = sharedCommandOptsSchema.extend({
+  locales: localeListSchema,
+  dryRun: z.boolean().optional(),
+  overwrite: z.boolean().optional(),
+});
+
+type TmxDirection = (typeof TMX_DIRECTIONS)[number];
+
+const IMPORT_ONLY_TMX_FLAGS = ["dry-run", "overwrite"] as const;
+
+function assertExportFlags(opts: z.infer<typeof tmxOptsSchema>): void {
+  const given = IMPORT_ONLY_TMX_FLAGS.filter((flag) =>
+    flag === "dry-run" ? opts.dryRun === true : opts.overwrite === true,
+  );
+  if (given.length > 0) {
+    throw new CliUsageError(
+      "INVALID_DIRECTION",
+      `${given.map((flag) => `--${flag}`).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to "tmx import" only. An export reads the translation memory and writes a file; it never changes the memory.`,
+    );
+  }
+}
+
+function parseTmxDirection(raw: string): TmxDirection {
+  const direction = TMX_DIRECTIONS.find((known) => known === raw);
+  if (direction === undefined) {
+    throw new CliUsageError(
+      "INVALID_DIRECTION",
+      `The tmx command takes "import" or "export" as its direction, got "${raw}".`,
+    );
+  }
+  return direction;
+}
+
 const checkOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
+  consistency: z.boolean().optional(),
 });
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
+  unused: z.boolean().optional(),
 });
+
+const typesOptsSchema = sharedCommandOptsSchema.extend({
+  out: z.string().optional(),
+  check: z.boolean().optional(),
+});
+
+function parseTypesCommandOpts(rawOpts: unknown): z.infer<typeof typesOptsSchema> {
+  const opts = typesOptsSchema.parse(rawOpts);
+  if (opts.out !== undefined && opts.out.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OUT",
+      `The --out option was provided but names no file. Pass a path relative to the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`,
+    );
+  }
+  return opts;
+}
+
+const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+
+const pseudoOptsSchema = sharedCommandOptsSchema.extend({
+  locale: z.string().optional(),
+  out: z.string().optional(),
+});
+
+function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSchema> {
+  const opts = pseudoOptsSchema.parse(rawOpts);
+  if (opts.locale !== undefined && !PSEUDO_LOCALE_TAG.test(opts.locale)) {
+    throw new CliUsageError(
+      "INVALID_LOCALE",
+      `The --locale option must be a language tag such as en-XA, made of letters, digits, and hyphens, got "${opts.locale}".`,
+    );
+  }
+  if (opts.out !== undefined && opts.out.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OUT",
+      "The --out option was provided but names no directory. Pass a path relative to the working directory, or omit it to use .verbatra-local/pseudo.",
+    );
+  }
+  return opts;
+}
 
 function runExitCode(summary: {
   readonly partial: readonly string[];
@@ -197,6 +286,21 @@ function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?:
   };
 }
 
+async function withLoadedRunErrors<Loaded>(
+  context: CommandContext,
+  load: () => Promise<Loaded>,
+  body: (loaded: Loaded) => Promise<number>,
+  beforeLoad?: () => void,
+): Promise<number> {
+  try {
+    beforeLoad?.();
+    const loaded = await load();
+    return await body(loaded);
+  } catch (error) {
+    return renderFailureExit2(error, context);
+  }
+}
+
 async function withWholeRunErrors(
   deps: CliDeps,
   context: CommandContext,
@@ -204,13 +308,7 @@ async function withWholeRunErrors(
   body: (config: Awaited<ReturnType<CliDeps["loadConfig"]>>) => Promise<number>,
   beforeLoad?: () => void,
 ): Promise<number> {
-  try {
-    beforeLoad?.();
-    const config = await deps.loadConfig(loadOpts);
-    return await body(config);
-  } catch (error) {
-    return renderFailureExit2(error, context);
-  }
+  return withLoadedRunErrors(context, () => deps.loadConfig(loadOpts), body, beforeLoad);
 }
 
 const MAX_DEBOUNCE_MS = 60_000;
@@ -313,6 +411,7 @@ function buildTranslateInput(
       : {}),
     ...(opts.concurrencyValue !== undefined ? { concurrency: opts.concurrencyValue } : {}),
     ...(opts.cache === false ? { cache: false } : {}),
+    ...(opts.estimate === true ? { estimate: true } : {}),
   };
 }
 
@@ -327,7 +426,7 @@ export async function runTranslate(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      appendMissingGitignoreEntries(cwd, resolveDryRun(opts));
       return withWholeRunErrors(
         deps,
         context,
@@ -507,6 +606,96 @@ export async function runImport(
   );
 }
 
+async function runTmxImport(
+  file: string | undefined,
+  opts: z.infer<typeof tmxOptsSchema>,
+  cwd: string,
+  deps: CliDeps,
+  streams: Streams,
+  context: CommandContext,
+): Promise<number> {
+  return withWholeRunErrors(
+    deps,
+    context,
+    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+    async (config) => {
+      const result = await deps.importTmx({
+        config,
+        cwd,
+        file: file ?? DEFAULT_TMX_PATH,
+        ...(opts.dryRun === true ? { dryRun: true } : {}),
+        ...(opts.overwrite === true ? { overwrite: true } : {}),
+        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+      });
+      streams.out(
+        context.json
+          ? `${renderSuccessEnvelope("tmx", result)}\n`
+          : `${renderTmxImportHuman(result)}\n`,
+      );
+      return 0;
+    },
+  );
+}
+
+async function runTmxExport(
+  file: string | undefined,
+  opts: z.infer<typeof tmxOptsSchema>,
+  cwd: string,
+  deps: CliDeps,
+  streams: Streams,
+  context: CommandContext,
+): Promise<number> {
+  return withWholeRunErrors(
+    deps,
+    context,
+    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+    async (config) => {
+      const result = await deps.exportTmx({
+        config,
+        cwd,
+        toolVersion: CLI_VERSION,
+        ...(file !== undefined ? { out: file } : {}),
+        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+      });
+      streams.out(
+        context.json
+          ? `${renderSuccessEnvelope("tmx", result)}\n`
+          : `${renderTmxExportHuman(result)}\n`,
+      );
+      return 0;
+    },
+  );
+}
+
+export async function runTmx(
+  rawDirection: string,
+  file: string | undefined,
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+): Promise<number> {
+  const context = commandContext("tmx", rawOpts, streams);
+  return withParsedOpts(
+    () => {
+      const direction = parseTmxDirection(rawDirection);
+      const opts = parseLocaleCommandOpts(tmxOptsSchema, rawOpts);
+      if (direction === "export") {
+        assertExportFlags(opts);
+      }
+      return { direction, opts };
+    },
+    context,
+    async ({ direction, opts }) => {
+      const cwd = opts.cwd ?? process.cwd();
+      if (direction === "export") {
+        return runTmxExport(file, opts, cwd, deps, streams, context);
+      }
+      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      return runTmxImport(file, opts, cwd, deps, streams, context);
+    },
+  );
+}
+
 async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("check", rawOpts, streams);
   return withLocaleOpts(checkOptsSchema, rawOpts, context, async (opts) => {
@@ -520,6 +709,7 @@ async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
           config,
           cwd,
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+          ...(opts.consistency === true ? { consistency: true } : {}),
         });
         streams.out(
           context.json
@@ -530,6 +720,10 @@ async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
       },
     );
   });
+}
+
+function hasConfirmedUnusedKeys(summary: DiffSummary): boolean {
+  return summary.unused?.status === "complete" && summary.unused.unused.length > 0;
 }
 
 async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
@@ -545,30 +739,111 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
           config,
           cwd,
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+          ...(opts.unused === true ? { unused: true } : {}),
         });
         streams.out(
           context.json
             ? `${renderSuccessEnvelope("diff", summary)}\n`
             : `${renderDiffHuman(summary)}\n`,
         );
-        return summary.hasPendingChanges ? 1 : 0;
+        return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
     );
   });
 }
 
-async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("doctor", rawOpts, streams);
+async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("pseudo", rawOpts, streams);
   return withParsedOpts(
-    () => sharedCommandOptsSchema.parse(rawOpts),
+    () => parsePseudoCommandOpts(rawOpts),
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
+      appendMissingGitignoreEntries(cwd);
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.pseudolocalize({
+            config,
+            cwd,
+            ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
+            ...(opts.out !== undefined ? { out: opts.out } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("pseudo", result)}\n`
+              : `${renderPseudoHuman(result)}\n`,
+          );
+          return 0;
+        },
+      );
+    },
+  );
+}
+
+function typesInput(
+  loaded: LoadedConfig,
+  cwd: string,
+  opts: z.infer<typeof typesOptsSchema>,
+): GenerateTypesInput {
+  return {
+    config: loaded.config,
+    cwd,
+    ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
+    ...(opts.out !== undefined ? { out: opts.out } : {}),
+    ...(opts.check === true ? { check: true } : {}),
+  };
+}
+
+async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("types", rawOpts, streams);
+  return withParsedOpts(
+    () => parseTypesCommandOpts(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withLoadedRunErrors(
+        context,
+        () =>
+          deps.loadConfigWithMeta(
+            loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          ),
+        async (loaded) => {
+          const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("types", result)}\n`
+              : `${renderTypesHuman(result)}\n`,
+          );
+          return result.check && result.stale ? 1 : 0;
+        },
+      );
+    },
+  );
+}
+
+const doctorOptsSchema = sharedCommandOptsSchema.extend({
+  literals: z.boolean().optional(),
+});
+
+async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("doctor", rawOpts, streams);
+  return withParsedOpts(
+    () => doctorOptsSchema.parse(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      const literals = opts.literals === true;
       try {
-        loadEnvFiles(cwd);
+        if (!literals) {
+          loadEnvFiles(cwd);
+        }
         const result = await deps.doctor({
           cwd,
           ...(opts.config !== undefined ? { configPath: opts.config } : {}),
+          ...(literals ? { literals: true } : {}),
         });
         streams.out(
           context.json
@@ -615,6 +890,10 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "bypass the local translation-memory cache (verbatra.cache.json) for this run",
     )
     .option("--json", "print the run summary as JSON")
+    .option(
+      "--estimate",
+      "estimate what the run would send and cost, then exit without calling a provider (implies --dry-run)",
+    )
     .action(async (opts: unknown) => {
       ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams));
     })
@@ -629,6 +908,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra translate --prune         also remove orphaned keys from target files",
         "  $ verbatra translate --prune --dry-run  preview the keys that would be pruned",
         "  $ verbatra translate --json          machine-readable summary on stdout",
+        "  $ verbatra translate --estimate      size and price the run without spending anything",
       ].join("\n"),
     );
 }
@@ -724,6 +1004,43 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+function registerTmxCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("tmx")
+    .argument("<direction>", 'either "import" or "export"')
+    .argument(
+      "[file]",
+      `the TMX file to read or write (default ${DEFAULT_TMX_PATH} in the working directory)`,
+    )
+    .description(
+      "Import a TMX translation memory from another tool, or export this project's memory as TMX",
+    )
+    .option("--cwd <path>", "resolve config and the memory from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option("--dry-run", "on import, validate and report without changing the memory")
+    .option(
+      "--overwrite",
+      "on import, let an imported unit replace a translation the memory already holds",
+    )
+    .option("--json", "print the result as JSON")
+    .action(async (direction: string, file: string | undefined, opts: unknown) => {
+      ctx.setCode(await runTmx(direction, file, opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra tmx import legacy.tmx        land another tool's memory in this project",
+        "  $ verbatra tmx import legacy.tmx --dry-run  report what would land, change nothing",
+        "  $ verbatra tmx import legacy.tmx --overwrite  let the file win where the two disagree",
+        "  $ verbatra tmx export                   write the memory to verbatra-memory.tmx",
+        "  $ verbatra tmx export out/memory.tmx --locales de  only German, to a chosen path",
+      ].join("\n"),
+    );
+}
+
 function registerCheckCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("check")
@@ -731,6 +1048,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option(
+      "--consistency",
+      "also report source strings translated more than one way (report only, exit code unchanged)",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams));
@@ -743,6 +1064,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check                  report missing and stale keys per locale (exit 1 if drifted)",
         "  $ verbatra check --locales de,fr  only check the German and French locales",
         "  $ verbatra check --json           machine-readable status on stdout for CI",
+        "  $ verbatra check --consistency    also list source strings translated more than one way",
       ].join("\n"),
     );
 }
@@ -756,6 +1078,10 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option(
+      "--unused",
+      "also report source-locale keys no source reference names, using the extract block's roots",
+    )
     .option("--json", "print the diff summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDiff(opts, ctx.deps, ctx.streams));
@@ -767,7 +1093,70 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
         "Examples:",
         "  $ verbatra diff                  list the pending keys per locale (exit 1 if any are pending)",
         "  $ verbatra diff --locales de,fr  only diff the German and French locales",
+        "  $ verbatra diff --unused         also list unused source keys (exit 1 only on a complete scan)",
         "  $ verbatra diff --json           machine-readable key lists on stdout for CI",
+      ].join("\n"),
+    );
+}
+
+function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("pseudo")
+    .description("Generate a pseudolocale from the source strings without calling a provider")
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--locale <code>", "pseudolocale code to generate (default en-XA)")
+    .option(
+      "--out <path>",
+      "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
+    )
+    .option("--json", "print the pseudolocale result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runPseudo(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra pseudo                     generate en-XA under .verbatra-local/pseudo",
+        "  $ verbatra pseudo --locale en-XB      generate a second pseudolocale instead",
+        "  $ verbatra pseudo --out build/pseudo  write it somewhere your dev server serves",
+        "  $ verbatra pseudo --json              machine-readable result on stdout",
+        "",
+        "It constructs no provider, reads no API key and makes no network request, so it runs " +
+          "before any key exists.",
+      ].join("\n"),
+    );
+}
+
+function registerTypesCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("types")
+    .description("Generate TypeScript declarations for your catalog keys and message arguments")
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option(
+      "--out <path>",
+      `write the declaration here, relative to the working directory and inside it (default ${DEFAULT_TYPES_PATH})`,
+    )
+    .option("--check", "report whether the committed declaration is current, writing nothing")
+    .option("--json", "print the generation result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runTypes(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        `  $ verbatra types                       write ${DEFAULT_TYPES_PATH} from the source catalog`,
+        "  $ verbatra types --out src/messages.d.ts  write it somewhere your app already imports from",
+        "  $ verbatra types --check               exit 1 if the committed declaration is stale (for CI)",
+        "  $ verbatra types --json                machine-readable result on stdout",
+        "",
+        "It constructs no provider, reads no API key and makes no network request, so it runs " +
+          "before any key exists.",
       ].join("\n"),
     );
 }
@@ -778,6 +1167,10 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
     .description("Validate the project setup without calling a provider or reading an API key")
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
+    .option(
+      "--literals",
+      "scan the extract source roots for hardcoded user-facing strings instead of checking the setup",
+    )
     .option("--json", "print the doctor report as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams));
@@ -787,8 +1180,12 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
       [
         "",
         "Examples:",
-        "  $ verbatra doctor         report every setup problem at once (exit 1 if any)",
-        "  $ verbatra doctor --json  machine-readable report on stdout for CI",
+        "  $ verbatra doctor             report every setup problem at once (exit 1 if any)",
+        "  $ verbatra doctor --json      machine-readable report on stdout for CI",
+        "  $ verbatra doctor --literals  list untranslated string literals (exit 1 if any)",
+        "",
+        "With --literals it reads your source and never writes it, constructs no provider, and " +
+          "reads no API key, so it runs before any key exists.",
       ].join("\n"),
     );
 }
@@ -884,6 +1281,64 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+const extractOptsSchema = sharedCommandOptsSchema.extend({
+  dryRun: z.boolean().optional(),
+});
+
+async function runExtract(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
+  const context = commandContext("extract", rawOpts, streams);
+  return withParsedOpts(
+    () => extractOptsSchema.parse(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const result = await deps.extract({
+            config,
+            cwd,
+            ...(opts.dryRun === true ? { dryRun: true } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("extract", result)}\n`
+              : `${renderExtractHuman(result)}\n`,
+          );
+          return 0;
+        },
+      );
+    },
+  );
+}
+
+function registerExtractCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("extract")
+    .description(
+      "Scan your source for translation call sites and add new keys to the source locale",
+    )
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--dry-run", "report what would be added without writing the source locale file")
+    .option("--json", "print the extraction result as JSON")
+    .action(async (opts: unknown) => {
+      ctx.setCode(await runExtract(opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra extract            add every new key found in your source to the source locale",
+        "  $ verbatra extract --dry-run  preview the keys that would be added, write nothing",
+        "  $ verbatra extract --json     machine-readable result on stdout for CI",
+      ].join("\n"),
+    );
+}
+
 function buildProgram(
   deps: CliDeps,
   streams: Streams,
@@ -905,12 +1360,16 @@ function buildProgram(
   registerWatchCommand(program, ctx);
   registerExportCommand(program, ctx);
   registerImportCommand(program, ctx);
+  registerTmxCommand(program, ctx);
   registerCheckCommand(program, ctx);
   registerDiffCommand(program, ctx);
+  registerPseudoCommand(program, ctx);
+  registerTypesCommand(program, ctx);
   registerDoctorCommand(program, ctx);
   registerStudioCommand(program, ctx);
   registerMcpCommand(program, ctx);
   registerInitCommand(program, ctx);
+  registerExtractCommand(program, ctx);
 
   return program;
 }

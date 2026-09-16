@@ -1,12 +1,15 @@
-import { checkPlaceholders } from "@verbatra/core";
+import { checkPlaceholders, SUPPORTED_FORMATS, type SupportedFormat } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 import { createArbAdapter } from "./arb/arb-adapter.js";
+import { createDefaultRegistry } from "./default-registry.js";
 import { createGettextAdapter } from "./gettext/gettext-adapter.js";
 import { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 import { analyzeIcuValue } from "./icu/analyze.js";
+import { createIniAdapter } from "./ini/ini-adapter.js";
 import { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
 import { createPropertiesAdapter } from "./properties/properties-adapter.js";
+import { createResxAdapter } from "./resx/resx-adapter.js";
 import { createVueI18nJsonAdapter } from "./vue-i18n/vue-i18n-adapter.js";
 import { createXliffAdapter } from "./xliff/xliff-adapter.js";
 import { createYamlAdapter } from "./yaml/yaml-adapter.js";
@@ -193,4 +196,125 @@ describe("placeholder integrity is multiset-aware end to end", () => {
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["{name}"]);
   });
+});
+
+describe("placeholder integrity covers the resx and ini adapters too", () => {
+  it("resx: dropping a repeated composite format item is a mismatch", () => {
+    const adapter = createResxAdapter();
+    const source = adapter.extractPlaceholders("{0} of {0}");
+    const translated = adapter.extractPlaceholders("{0} insgesamt");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{0}"]);
+  });
+
+  it("resx: unescaping a doubled brace into a single one is a mismatch", () => {
+    const adapter = createResxAdapter();
+    const result = checkPlaceholders(
+      adapter.extractPlaceholders("Use {{ and }} around {0}"),
+      adapter.extractPlaceholders("Nutze { und } um {0}"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{{", "}}"]);
+  });
+
+  it("resx: a faithful translation that reorders the items matches", () => {
+    const adapter = createResxAdapter();
+    expect(
+      checkPlaceholders(
+        adapter.extractPlaceholders("{0} owes {1:C}"),
+        adapter.extractPlaceholders("{1:C} schuldet {0}"),
+      ).matches,
+    ).toBe(true);
+  });
+
+  it("ini: dropping a repeated single-brace token is a mismatch", () => {
+    const adapter = createIniAdapter();
+    const source = adapter.extractPlaceholders("{name} and {name}");
+    const translated = adapter.extractPlaceholders("{name}");
+    const result = checkPlaceholders(source, translated);
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{name}"]);
+  });
+
+  it("ini: renaming a token is both a missing and an extra", () => {
+    const adapter = createIniAdapter();
+    const result = checkPlaceholders(
+      adapter.extractPlaceholders("Hello {name}"),
+      adapter.extractPlaceholders("Hallo {nom}"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{name}"]);
+    expect(result.extra).toEqual(["{nom}"]);
+  });
+
+  it("ini: a faithful translation that reorders the tokens matches", () => {
+    const adapter = createIniAdapter();
+    expect(
+      checkPlaceholders(
+        adapter.extractPlaceholders("{count} of {total}"),
+        adapter.extractPlaceholders("{total} davon {count}"),
+      ).matches,
+    ).toBe(true);
+  });
+});
+
+describe("which adapters report an inline tag as a placeholder of their own", () => {
+  const MARKUP_VALUES: Readonly<Record<SupportedFormat, string>> = {
+    "i18next-json": "Read <b>the docs</b> for {{count}} tips",
+    "vue-i18n-json": "Read <b>the docs</b> for {count} tips",
+    "next-intl-json": "Read <b>the docs</b> for {count} tips",
+    "ngx-translate-json": "Read <b>the docs</b> for {{count}} tips",
+    xliff: 'Read <g id="1">the docs</g> and <b>this</b>',
+    yaml: "Read <b>the docs</b> for {{count}} tips",
+    arb: "Read <b>the docs</b> for {count} tips",
+    properties: "Read <b>the docs</b> for {0} tips",
+    "apple-strings": "Read <b>the docs</b> for %d tips",
+    "apple-xcstrings": "Read <b>the docs</b> for %d tips",
+    "android-xml": "Read <b>the docs</b> for %1$s tips",
+    "gettext-po": "Read <b>the docs</b> for %d tips",
+    ini: "Read <b>the docs</b> for {count} tips",
+    resx: "Read <b>the docs</b> for {0} tips",
+  };
+
+  const ADAPTERS_THAT_OWN_THEIR_MARKUP: readonly SupportedFormat[] = [
+    "xliff",
+    "next-intl-json",
+    "arb",
+  ];
+
+  function adapterFor(format: SupportedFormat) {
+    const resolution = createDefaultRegistry().resolve("", { format });
+    if (resolution.status !== "resolved") {
+      throw new Error(`no adapter resolved for ${format}`);
+    }
+    return resolution.adapter;
+  }
+
+  it("covers every supported format, so a new one cannot slip past this matrix", () => {
+    expect(Object.keys(MARKUP_VALUES).sort()).toEqual([...SUPPORTED_FORMATS].sort());
+  });
+
+  it.each(SUPPORTED_FORMATS)("%s", (format) => {
+    const tokens = adapterFor(format).extractPlaceholders(MARKUP_VALUES[format]);
+    expect(tokens.some((token) => token.startsWith("<"))).toBe(
+      ADAPTERS_THAT_OWN_THEIR_MARKUP.includes(format),
+    );
+  });
+
+  it.each(SUPPORTED_FORMATS)(
+    "%s leaves an attribute-bearing tag to the markup comparison, tokenising nothing itself",
+    (format) => {
+      const tokens = adapterFor(format).extractPlaceholders('Read <a href="/docs">the docs</a>');
+      expect(tokens.some((token) => token.startsWith("<"))).toBe(false);
+    },
+  );
+
+  it.each(SUPPORTED_FORMATS)(
+    "%s leaves a self-closing tag to the markup comparison, tokenising nothing itself",
+    (format) => {
+      const tokens = adapterFor(format).extractPlaceholders("One<br/>two");
+      expect(tokens.some((token) => token.startsWith("<"))).toBe(false);
+    },
+  );
 });

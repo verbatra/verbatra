@@ -41,9 +41,9 @@ Flag und Umgebungsvariable werden genau wie bei `--allow-spend` aufgelöst: `1`,
 
 ## Der Tool-Katalog
 
-Mit aktiviertem Opt-in registriert Studio vierzehn Tools, eines pro Dashboard-Aktion. Ohne `--allow-spend` sind es zwölf: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
+Mit aktiviertem Opt-in registriert Studio fünfzehn Tools, eines pro Dashboard-Aktion. Ohne `--allow-spend` sind es dreizehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
 
-### Lese-Tools (zehn)
+### Lese-Tools (elf)
 
 Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only markiert.
 
@@ -59,6 +59,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only 
 | `verbatra_review_queue` | die Review-Warteschlange |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und ein Locale |
+| `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jedem Ziel-Locale |
 
 ### Schreib-Tools (zwei)
 
@@ -83,7 +84,7 @@ Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Prob
 
 **Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du die Freigabe nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
 
-**Zwölf Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio zwölf Registrierungen statt vierzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Zwölf Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
+**Dreizehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio dreizehn Registrierungen statt fünfzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Dreizehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
 
 **Der Hinweis.** Hat Studio eine Registrierung versucht und der Browser sie abgelehnt, zeigt das Dashboard oben im Inhaltsbereich eine Warnung, auf jeder Ansicht:
 
@@ -100,10 +101,10 @@ Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool
 Studio schreibt eine einzige zusammengefasste Zeile auf Error-Ebene, nicht eine Zeile pro Tool, denn eine gemeinsame Ursache lässt jedes Tool identisch scheitern:
 
 ```text
-Verbatra agent tools: 2 of 14 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier vierzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und zwölf in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
+Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier fünfzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und dreizehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
 
 Ein Durchlauf, der die Tool-Schleife nie erreicht hat, meldet eine andere Zeile und löst den Hinweis nicht aus:
 

@@ -12,14 +12,20 @@ import type { CacheAddition, TranslationMemory } from "./types.js";
  */
 export const CACHE_FILE_NAME = "verbatra.cache.json";
 
-const CURRENT_VERSION = 1;
-const EMPTY_MEMORY: TranslationMemory = { version: CURRENT_VERSION, entries: {} };
+export const CURRENT_CACHE_VERSION = 2;
+
+const EMPTY_MEMORY: TranslationMemory = {
+  version: CURRENT_CACHE_VERSION,
+  entries: {},
+  sources: {},
+};
 
 const MAX_CACHE_FILE_BYTES = 64 * 1024 * 1024;
 
 const translationMemorySchema = z.object({
   version: z.number().int().positive(),
   entries: z.record(z.string(), z.record(z.string(), z.record(z.string(), z.string()))),
+  sources: z.record(z.string(), z.string()).optional(),
 });
 
 export function cacheFilePath(cwd: string): string {
@@ -56,10 +62,17 @@ export async function readTranslationMemory(
   if (!result.success) {
     return UNUSABLE;
   }
-  if (result.data.version !== CURRENT_VERSION) {
+  if (result.data.version > CURRENT_CACHE_VERSION) {
     return { memory: EMPTY_MEMORY, writable: false };
   }
-  return { memory: result.data, writable: true };
+  return {
+    memory: {
+      version: CURRENT_CACHE_VERSION,
+      entries: result.data.entries,
+      sources: result.data.sources ?? {},
+    },
+    writable: true,
+  };
 }
 
 export function lookupMemory(
@@ -71,10 +84,16 @@ export function lookupMemory(
   return memory.entries[fingerprint]?.[locale]?.[contentHash];
 }
 
+export function lookupSource(memory: TranslationMemory, contentHash: string): string | undefined {
+  return memory.sources[contentHash];
+}
+
+type LocaleAdditions = ReadonlyMap<string, Readonly<Record<string, CacheAddition>>>;
+
 export function applyAdditions(
   base: TranslationMemory,
   fingerprint: string,
-  additionsByLocale: ReadonlyMap<string, Readonly<Record<string, string>>>,
+  additionsByLocale: LocaleAdditions,
 ): TranslationMemory {
   if (additionsByLocale.size === 0) {
     return base;
@@ -83,19 +102,28 @@ export function applyAdditions(
   for (const [locale, hashes] of Object.entries(base.entries[fingerprint] ?? {})) {
     fingerprintEntries[locale] = { ...hashes };
   }
-  for (const [locale, hashes] of additionsByLocale) {
-    fingerprintEntries[locale] = { ...fingerprintEntries[locale], ...hashes };
+  const sources: Record<string, string> = { ...base.sources };
+  for (const [locale, additions] of additionsByLocale) {
+    const values: Record<string, string> = { ...fingerprintEntries[locale] };
+    for (const addition of Object.values(additions)) {
+      values[addition.contentHash] = addition.value;
+      sources[addition.contentHash] = addition.source;
+    }
+    fingerprintEntries[locale] = values;
   }
   return {
-    version: base.version,
+    version: CURRENT_CACHE_VERSION,
     entries: { ...base.entries, [fingerprint]: fingerprintEntries },
+    sources,
   };
 }
 
-export function additionsToRecord(additions: readonly CacheAddition[]): Record<string, string> {
-  const record: Record<string, string> = {};
+export function additionsToRecord(
+  additions: readonly CacheAddition[],
+): Record<string, CacheAddition> {
+  const record: Record<string, CacheAddition> = {};
   for (const addition of additions) {
-    record[addition.contentHash] = addition.value;
+    record[addition.contentHash] = addition;
   }
   return record;
 }
@@ -109,7 +137,12 @@ function serialize(memory: TranslationMemory): string {
     }
     entries[fingerprint] = localeMap;
   }
-  return `${JSON.stringify({ version: memory.version, entries }, null, 2)}\n`;
+  const document = {
+    version: CURRENT_CACHE_VERSION,
+    entries,
+    sources: sortRecordKeys(memory.sources),
+  };
+  return `${JSON.stringify(document, null, 2)}\n`;
 }
 
 export async function writeTranslationMemory(
@@ -124,7 +157,7 @@ export async function feedTranslationMemory(
   cwd: string,
   fs: SdkFs,
   fingerprint: string,
-  additionsByLocale: ReadonlyMap<string, Readonly<Record<string, string>>>,
+  additionsByLocale: LocaleAdditions,
 ): Promise<void> {
   if (additionsByLocale.size === 0) {
     return;

@@ -23,16 +23,21 @@ verbatra translate [flags]
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; doit être un entier positif |
 | `--no-cache` | aucun | désactivé (cache activé) | contourne le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`) pour cette exécution |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la [forme `RunSummary`](/docs/sdk)), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
+| `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et ce qu'elle coûterait, puis se termine sans appeler de fournisseur ; implique `--dry-run`, aucune clé d'API n'est donc requise |
 
 Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et laissées en place. `--prune` supprime exactement ces clés et rien d'autre, et remplace l'option `prune` de la config pour cette exécution. Avant de s'exécuter, `translate` charge `.env.local` puis `.env` depuis le répertoire de travail ; une variable déjà définie dans l'environnement réel l'emporte.
 
 `--dry-run` ne construit aucun fournisseur, il ne demande donc aucune clé d'API et ne peut rien dépenser : il lit les fichiers source et cible, les compare au fichier de verrouillage et signale exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrouillage, ni instantané d'état d'exécution), il ne lit ni n'écrit le cache, et il ne prend aucun verrou d'écriture par locale, donc il n'attend jamais une exécution déjà en cours. Le chargement de `.env` ci-dessus a toujours lieu lors d'un dry run ; il n'y a simplement aucune clé à lire. Cela en fait un moyen complet d'essayer verbatra sur un vrai projet avant de créer un compte chez un fournisseur.
 
+`--estimate` ajoute à ce dry run une estimation de coût avant exécution : combien de clés seraient envoyées, en combien de requêtes au fournisseur elles seraient réparties, et quelle quantité le fournisseur configuré facture réellement (tokens de prompt et de réponse estimés pour un LLM, caractères source estimés pour DeepL ou Google Cloud Translation, et aucun coût du tout pour un endpoint `openai-compatible` auto-hébergé). Il implique `--dry-run` : il ne dépense rien et n'écrit rien. Une somme n'apparaît que si la config porte un bloc `rates` couvrant le fournisseur et le modèle configurés ; sans lui, la quantité est tout de même rapportée et la clé de tarif manquante est nommée, plutôt que d'inventer un coût de `0.00`. Chaque chiffre est affiché à côté de la date à laquelle ces tarifs ont été lus, et à côté d'une ligne nommant ce que l'estimation laisse de côté. Voir [Estimer le coût](/docs/estimating-cost).
+
+<AvailableFrom version="0.11.0" />
+
 `--locales de,fr` restreint l'exécution à un sous-ensemble des cibles configurées. Les locales laissées de côté restent intactes : leurs fichiers, leurs entrées de verrouillage et leurs entrées de cache restent tels quels. C'est l'option à sortir face à une offre gratuite à débit limité, où traduire une locale à la fois est le seul moyen d'y arriver, et c'est aussi la façon la plus rapide de relancer une seule locale ressortie partielle. L'instantané d'état d'exécution décrit toujours la seule exécution la plus récente, donc une exécution sur un sous-ensemble le réduit à ce sous-ensemble.
 
 `--lock-timeout` règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que l'exécution n'échoue avec `LOCK_CONTENDED` : augmente-le quand une autre exécution détient légitimement le verrou un moment, baisse-le pour échouer vite en CI.
 
-`--concurrency` traduit plusieurs locales cibles en parallèle pour terminer plus vite un gros projet. Il est refusé avec le code `2` quand la config fixe un budget `maxTokens`, car des locales concurrentes ne peuvent pas respecter un plafond de tokens de façon déterministe (un dry-run est exempté). Si une erreur globale (en pratique un fichier de verrouillage corrompu) surgit alors que des locales tournent déjà, aucune autre locale n'est démarrée, et celles en cours terminent et libèrent leurs verrous d'écriture avant que la commande ne sorte avec le code `2`, donc l'exécution ne laisse derrière elle aucun verrou que la suivante devrait attendre. À mesure qu'une exécution avance, la progression est affichée sur stderr (une ligne par démarrage de locale, sous-lot du fournisseur et fin de locale), donc le stdout d'une exécution `--json` reste un unique résumé propre. `--no-cache` saute le [cache de mémoire de traduction](/docs/the-cache) pour l'exécution, en faisant exactement les appels au fournisseur qu'il ferait sans cache présent.
+`--concurrency` traduit plusieurs locales cibles en parallèle pour terminer plus vite un gros projet. Il est refusé avec le code `2` quand la config fixe un budget `maxTokens`, car le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution (un dry-run est exempté). Si une erreur globale (en pratique un fichier de verrouillage corrompu) surgit alors que des locales tournent déjà, aucune autre locale n'est démarrée, et celles en cours terminent et libèrent leurs verrous d'écriture avant que la commande ne sorte avec le code `2`, donc l'exécution ne laisse derrière elle aucun verrou que la suivante devrait attendre. À mesure qu'une exécution avance, la progression est affichée sur stderr (une ligne par démarrage de locale, sous-lot du fournisseur et fin de locale), donc le stdout d'une exécution `--json` reste un unique résumé propre. `--no-cache` saute le [cache de mémoire de traduction](/docs/the-cache) pour l'exécution, en faisant exactement les appels au fournisseur qu'il ferait sans cache présent.
 
 ## Exemples
 
@@ -45,6 +50,9 @@ verbatra translate --prune --dry-run
 
 # one locale at a time, which is what a rate-limited free tier needs
 verbatra translate --locales de
+
+# dimensionner et chiffrer l'exécution sans rien dépenser
+verbatra translate --estimate
 ```
 
 ## Codes de sortie

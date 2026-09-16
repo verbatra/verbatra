@@ -1,17 +1,11 @@
-import type { ReviewReasonCode } from "@verbatra/sdk";
+import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { reviewReasonLabel } from "./review-reason-labels.js";
 
-const ALL_CODES: readonly ReviewReasonCode[] = [
-  "LENGTH_RATIO_OUTLIER",
-  "EQUALS_SOURCE",
-  "GLOSSARY_TERM_MISSED",
-  "INTEGRITY_REORDERED",
-  "PROVIDER_DEGRADED",
-];
+const ALL_CODES: readonly ReviewReasonCode[] = REVIEW_REASON_CODES;
 
 describe("reviewReasonLabel", () => {
-  it("renders all five ReviewReasonCode values with a distinct, non-empty label", () => {
+  it("renders every ReviewReasonCode value with a distinct, non-empty label", () => {
     const labels = ALL_CODES.map((code) => reviewReasonLabel(code).label);
     expect(new Set(labels).size).toBe(ALL_CODES.length);
     for (const label of labels) {
@@ -32,7 +26,7 @@ describe("reviewReasonLabel", () => {
     }
   });
 
-  it("gives PROVIDER_DEGRADED a distinct tone from the four content-derived reasons", () => {
+  it("gives PROVIDER_DEGRADED a distinct tone from every other reason", () => {
     expect(reviewReasonLabel("PROVIDER_DEGRADED").tone).toBe("neutral");
     for (const code of ALL_CODES.filter((c) => c !== "PROVIDER_DEGRADED")) {
       expect(reviewReasonLabel(code).tone).toBe("warning");

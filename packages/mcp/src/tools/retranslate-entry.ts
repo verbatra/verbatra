@@ -1,28 +1,22 @@
-import { retranslateEntry } from "@verbatra/sdk";
+import { REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
 });
 
-const integrityGateReasonSchema = z.enum(["placeholder", "icu", "degenerate", "empty"]);
-
-const reviewReasonCodeSchema = z.enum([
-  "LENGTH_RATIO_OUTLIER",
-  "EQUALS_SOURCE",
-  "GLOSSARY_TERM_MISSED",
-  "INTEGRITY_REORDERED",
-  "PROVIDER_DEGRADED",
-]);
+const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 
 const retranslateEntryResultSchema = z.object({
   accepted: z.boolean(),
   value: z.string(),
   reviewReasons: z.array(reviewReasonCodeSchema).readonly().optional(),
   reason: integrityGateReasonSchema.optional(),
+  details: z.array(z.string()).readonly().optional(),
 });
 
 type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;

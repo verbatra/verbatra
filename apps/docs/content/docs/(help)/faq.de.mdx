@@ -74,9 +74,11 @@ gegenüber ihrer vorherigen Version. Siehe [Formate](/docs/formats).
 
 Akzeptierte Übersetzungen durchlaufen Review-Heuristiken, die verdächtige Ergebnisse markieren,
 ohne sie zurückzuhalten: eine Länge weit außer Verhältnis zur Quelle (`LENGTH_RATIO_OUTLIER`),
+ein Wert länger als das für seinen Key konfigurierte Budget (`MAX_LENGTH_EXCEEDED`),
 eine Übersetzung identisch zur Quelle (`EQUALS_SOURCE`), ein verfehlter Glossarbegriff
-(`GLOSSARY_TERM_MISSED`), umsortierte Platzhalter (`INTEGRITY_REORDERED`) oder ein herabgestufter
-Provider-Pfad (`PROVIDER_DEGRADED`). Die Flags landen in der `needsReview`-Liste der
+(`GLOSSARY_TERM_MISSED`), umsortierte Platzhalter (`INTEGRITY_REORDERED`), ein herabgestufter
+Provider-Pfad (`PROVIDER_DEGRADED`) oder ein aus dem Cache wiederverwendeter Wert für einen seither
+bearbeiteten Quellstring (`FUZZY_CACHE_REUSE`). Die Flags landen in der `needsReview`-Liste der
 Lauf-Zusammenfassung und in Studios Review-Warteschlange. Siehe
 [Übersetzungssicherheit](/docs/translation-safety).
 

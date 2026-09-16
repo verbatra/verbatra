@@ -49,7 +49,7 @@ description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, 
 
 Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
 
-verbatra lit et écrit douze formats et traduit via six fournisseurs derrière une seule interface. Voir [Formats](/docs/formats) et [Fournisseurs](/docs/providers).
+verbatra lit et écrit quatorze formats et traduit via six fournisseurs derrière une seule interface. Voir [Formats](/docs/formats) et [Fournisseurs](/docs/providers).
 
 ## Les paquets
 
@@ -57,7 +57,7 @@ verbatra lit et écrit douze formats et traduit via six fournisseurs derrière u
   features={[
     {
       title: "@verbatra/cli",
-      body: "Le binaire verbatra : dix commandes, une fine couche au-dessus du SDK. Commence ici.",
+      body: "Le binaire verbatra : quatorze commandes, une fine couche au-dessus du SDK. Commence ici.",
       href: "/docs/cli",
     },
     {

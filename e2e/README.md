@@ -26,7 +26,10 @@ deterministic test joins the required gate automatically.
 
 - **No-key tier** (everything except `tests/*.live.e2e.test.ts`, run with `npm run test:nokey`):
   packaging smoke, `init` scaffolding, `check` across i18next, YAML, Flutter ARB, and `.properties`
-  projects, `diff` and `export` on the i18next project, `translate --dry-run`, `export` then
+  projects, `diff` and `export` on the i18next project, `translate --dry-run`, `translate --estimate` with every provider key blanked
+  (`tests/estimate.e2e.test.ts`: the quantity line, the explicit missing-rate line, a priced run
+  once the config carries `rates`, the structured JSON fields, and that no locale, lock, or cache
+  file is written), `export` then
   `import` round-trips for i18next and `.properties` (a workbook filled in code the way a
   translator would) plus an import of the untouched, structure-locked bytes `export` wrote, the
   keyless flag surface (`--dry-run --concurrency 2` with progress on stderr and a clean stdout

@@ -37,6 +37,12 @@ export {
 } from "./google-translate/google-translate-provider.js";
 export type { GoogleTranslateResult } from "./google-translate/types.js";
 export {
+  type DataPayloadInput,
+  dataPayloadCharacters,
+  resultPayloadCharacters,
+  type TranslationItem,
+} from "./llm/payload.js";
+export {
   type OpenAiConfig,
   openAiConfigSchema,
 } from "./openai/config.js";
@@ -67,6 +73,7 @@ export type {
   TranslationProvider,
   Usage,
 } from "./provider.js";
+export { REVIEW_REASON_CODES } from "./provider.js";
 export { redact } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
 export { computeReviewFlags, type ReviewFlagInput } from "./review-flags.js";

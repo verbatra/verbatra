@@ -3,21 +3,46 @@ import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/cor
 import { AdapterError } from "./errors.js";
 import type { JsonRecord } from "./json/json-tree.js";
 
+/**
+ * Finds a format's placeholder tokens in one translatable value, in document order. Resolves
+ * nothing and never throws; a value with no placeholders yields an empty list.
+ */
 export type ExtractPlaceholders = (value: string) => readonly string[];
 
+/**
+ * Reports the keys whose values are invalid for a format's message syntax, given every entry read
+ * from one file. Only the ICU-message formats need one; a format with no message syntax omits it.
+ */
 export type ComputeInvalidIcuKeys = (
   entries: ReadonlyMap<string, TranslationEntry>,
 ) => readonly string[];
 
+/**
+ * Decides whether one candidate value is valid for a format's message syntax before it is written.
+ * Never throws: an unparseable value returns false.
+ */
 export type ValidateMessage = (value: string) => boolean;
 
+/**
+ * Compares a source value against its translation as whole values rather than as two flat token
+ * lists, for a format whose structure (an ICU plural or select branch, for example) would be lost by
+ * flattening. Never throws: a mismatch is data.
+ */
 export type ComparePlaceholders = (
   sourceValue: string,
   targetValue: string,
 ) => PlaceholderIntegrityResult;
 
+/**
+ * Rejects a parsed tree that is structurally wrong for a format, by throwing an `AdapterError`.
+ * Returns nothing when the tree is acceptable.
+ */
 export type ValidateTree = (tree: JsonRecord) => void;
 
+/**
+ * Decides whether a leading content sample looks like this format, so two adapters claiming the same
+ * file extension can still be told apart. Consulted only when a sample is available.
+ */
 export type Sniff = (sample: string) => boolean;
 
 export type LineTerminator = "\n" | "\r\n" | "\r";
@@ -30,6 +55,21 @@ export function detectLineTerminator(content: string): LineTerminator {
     return "\r\n";
   }
   return content.includes("\r") ? "\r" : "\n";
+}
+
+const LINE_FEED = 0x0a;
+const CARRIAGE_RETURN = 0x0d;
+
+function isLineBreakCode(code: number): boolean {
+  return code === LINE_FEED || code === CARRIAGE_RETURN;
+}
+
+export function trailingLineBreaks(content: string): string {
+  let start = content.length;
+  while (start > 0 && isLineBreakCode(content.charCodeAt(start - 1))) {
+    start -= 1;
+  }
+  return content.slice(start);
 }
 
 export function splitPhysicalLines(content: string): string[] {
@@ -91,8 +131,9 @@ export function buildCanHandle(
   extensions: readonly string[],
   sniff?: Sniff,
 ): (filePath: string, sample?: string) => boolean {
+  const claimed = extensions.map((extension) => extension.toLowerCase());
   return (filePath, sample): boolean => {
-    if (!extensions.includes(extname(filePath).toLowerCase())) {
+    if (!claimed.includes(extname(filePath).toLowerCase())) {
       return false;
     }
     return sample === undefined || sniff === undefined || sniff(sample);

@@ -1,4 +1,12 @@
-import type { LockWaitEvent, ProgressEvent, WatchRunResult } from "@verbatra/sdk";
+import type {
+  EstimateCaveatCode,
+  LockWaitEvent,
+  PricedRunEstimate,
+  ProgressEvent,
+  RunEstimate,
+  UnpricedRunEstimate,
+  WatchRunResult,
+} from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   renderCheckHuman,
@@ -54,6 +62,177 @@ describe("render: check summary", () => {
     });
     expect(text).toContain("all locales in sync");
     expect(text).not.toContain("out of sync");
+  });
+});
+
+describe("render: check consistency report", () => {
+  it("prints no consistency block when the report was not requested", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [{ locale: "de", missing: 0, stale: 0, upToDate: 2, inSync: true }],
+    });
+    expect(text).not.toContain("consistency");
+  });
+
+  it("lists each group with its qualifiers, translations, and keys, and marks a clean locale", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 6,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Open",
+              context: "menu",
+              description: "a file",
+              meaning: "verb",
+              isPlural: true,
+              translations: [
+                { value: "Aufmachen", keys: ["b"] },
+                { value: "\u00d6ffnen", keys: ["a", "c"] },
+              ],
+            },
+            {
+              source: "Save",
+              isPlural: false,
+              translations: [
+                { value: "Sichern", keys: ["d"] },
+                { value: "Speichern", keys: ["e"] },
+                { value: "Ablegen", keys: ["f"] },
+              ],
+            },
+          ],
+        },
+        { locale: "fr", missing: 0, stale: 0, upToDate: 6, inSync: true, inconsistencies: [] },
+      ],
+    });
+    expect(text.split("\n").slice(3)).toEqual([
+      "all locales in sync",
+      "consistency (report only, never changes the exit code)",
+      "  de: 2 source strings translated more than one way",
+      '    "Open" (context "menu", description "a file", meaning "verb", plural) is translated 2 ways:',
+      '      "Aufmachen": b',
+      '      "\u00d6ffnen": a, c',
+      '    "Save" is translated 3 ways:',
+      '      "Sichern": d',
+      '      "Speichern": e',
+      '      "Ablegen": f',
+      "  fr: consistent",
+    ]);
+  });
+
+  it("uses the singular noun for one group", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save",
+              isPlural: false,
+              translations: [
+                { value: "Sichern", keys: ["a"] },
+                { value: "Speichern", keys: ["b"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain("  de: 1 source string translated more than one way");
+  });
+
+  it("folds control and format characters in untrusted text to spaces", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save\u001b[2J",
+              isPlural: false,
+              translations: [
+                { value: "Sichern\nnow", keys: ["a\u200b"] },
+                { value: "Speichern", keys: ["b"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).not.toContain("\u001b");
+    expect(text).not.toContain("\u200b");
+    expect(text).toContain('"Save [2J" is translated 2 ways:');
+    expect(text).toContain('"Sichern now": a ');
+  });
+
+  it("names the plural form a group shares", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "ru",
+          missing: 0,
+          stale: 0,
+          upToDate: 4,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "%d file",
+              isPlural: true,
+              pluralForm: "one",
+              translations: [
+                { value: "%d документ", keys: ["b_one"] },
+                { value: "%d файл", keys: ["a_one"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain('    "%d file" (plural form "one") is translated 2 ways:');
+  });
+
+  it("folds Unicode line and paragraph separators in untrusted text to spaces", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save\u2028now",
+              isPlural: false,
+              translations: [
+                { value: "Sichern\u2029jetzt", keys: ["a\u2028b"] },
+                { value: "Speichern", keys: ["c"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).not.toMatch(/[\u2028\u2029]/);
+    expect(text).toContain('"Save now" is translated 2 ways:');
+    expect(text).toContain('"Sichern jetzt": a b');
   });
 });
 
@@ -197,6 +376,99 @@ describe("render: human run summary", () => {
   it("omits the from-cache count when nothing was served from the cache", () => {
     const text = renderHuman(makeSummary({ locales: [makeLocale({ translated: ["a"] })] }));
     expect(text).not.toContain("from cache");
+  });
+
+  it("counts a fuzzy reuse apart from an exact cache hit", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            cacheHits: ["b"],
+            fuzzyHits: [{ key: "a", previousSource: "Save it", similarity: 0.93 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain("1 from cache");
+    expect(text).toContain("1 fuzzy-reused");
+  });
+
+  it("names the key, the score and the source each fuzzy reuse came from", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [
+              { key: "cart.empty", previousSource: "Your cart is empty", similarity: 0.94 },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('cart.empty (94% like "Your cart is empty")');
+  });
+
+  it("shortens a long previous source rather than printing the whole string", () => {
+    const long = "Your subscription renews automatically at the end of each billing period.";
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ fuzzyHits: [{ key: "a", previousSource: long, similarity: 1 }] })],
+      }),
+    );
+
+    expect(text).not.toContain(long);
+    expect(text).toContain("Your subscription renews");
+    expect(text).toContain("...");
+  });
+
+  it("neutralizes control characters in the source it echoes back", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [{ key: "a", previousSource: "\u001b[31mred\nline\ttab", similarity: 0.95 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('a (95% like " [31mred line tab")');
+    expect(text).not.toContain("\u001b[31m");
+  });
+
+  it("neutralizes line and paragraph separators in the source it echoes back", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            fuzzyHits: [{ key: "a", previousSource: "Save\u2028now\u2029later", similarity: 0.95 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(text).toContain('a (95% like "Save now later")');
+    expect(text).not.toMatch(/[\u2028\u2029]/);
+  });
+
+  it("counts a surrogate pair as one character rather than splitting it", () => {
+    const flags = "\u{1f1e9}\u{1f1ea}".repeat(30);
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ fuzzyHits: [{ key: "a", previousSource: flags, similarity: 1 }] })],
+      }),
+    );
+
+    expect(text).not.toContain("\ufffd");
+    expect(text).toContain("...");
+  });
+
+  it("omits the fuzzy-reused count when nothing was reused", () => {
+    const text = renderHuman(makeSummary({ locales: [makeLocale({ translated: ["a"] })] }));
+
+    expect(text).not.toContain("fuzzy-reused");
   });
 
   it("shows the generated count when plural forms were synthesized", () => {
@@ -424,7 +696,73 @@ describe("render: human run summary", () => {
     expect(withinBudget).toContain("budget: 200/1000 tokens (warn), within budget");
   });
 
-  it("renders the supported: false case as an explicit inert guardrail, not silently omitted", () => {
+  it("says a stop run halted before its ceiling when a refused request left the count under it", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 10000,
+          behavior: "stop",
+          supported: true,
+          tokensUsed: 6000,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain("budget: 6000/10000 tokens (stop), stopped before the ceiling");
+    expect(text).not.toContain("exceeded");
+  });
+
+  it("keeps the estimated marker on a stop run that halted before its ceiling", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 800,
+          behavior: "stop",
+          supported: false,
+          tokensUsed: 794,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain(
+      "budget: 794/800 tokens (stop), stopped before the ceiling, estimated (not every request reported usage)",
+    );
+  });
+
+  it("calls a count that landed exactly on the ceiling exceeded, since it reached it", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 1000,
+          behavior: "stop",
+          supported: true,
+          tokensUsed: 1000,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain("budget: 1000/1000 tokens (stop), exceeded");
+  });
+
+  it("counts an estimated budget and blames the count, not the provider, for the estimate", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 500,
+          behavior: "stop",
+          supported: false,
+          tokensUsed: 394,
+          exceeded: false,
+        },
+      }),
+    );
+    expect(text).toContain(
+      "budget: 394/500 tokens (stop), within budget, estimated (not every request reported usage)",
+    );
+    expect(text).not.toContain("not supported by this provider");
+  });
+
+  it("omits the estimated marker when the run counted nothing at all", () => {
     const text = renderHuman(
       makeSummary({
         budget: {
@@ -436,8 +774,24 @@ describe("render: human run summary", () => {
         },
       }),
     );
-    expect(text).toContain("budget: 500 tokens configured (warn)");
-    expect(text).toContain("not supported by this provider");
+    expect(text).toContain("budget: 0/500 tokens (warn), within budget");
+    expect(text).not.toContain("estimated");
+  });
+
+  it("marks a provider-reported count as reported rather than estimated", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 500,
+          behavior: "stop",
+          supported: true,
+          tokensUsed: 394,
+          exceeded: false,
+        },
+      }),
+    );
+    expect(text).toContain("budget: 394/500 tokens (stop), within budget");
+    expect(text).not.toContain("estimated");
   });
 
   it("omits the budget line entirely when no budget is configured", () => {
@@ -553,5 +907,203 @@ describe("render: watch run result", () => {
     };
     expect(renderRunResultHuman(ok)).toContain("1 succeeded");
     expect(renderRunResultHuman(bad)).toBe("verbatra: error [SOURCE_INVALID] x");
+  });
+});
+
+describe("renderHuman: pre-run estimate", () => {
+  const tokenEstimate: PricedRunEstimate = {
+    provider: "anthropic",
+    model: "sonnet-test",
+    rateKey: "anthropic/sonnet-test",
+    unit: "tokens",
+    pricing: "priced",
+    currency: "USD",
+    asOf: "2026-01-15",
+    locales: [
+      {
+        locale: "de",
+        keys: 400,
+        requests: 8,
+        inputTokens: 10800,
+        outputTokens: 7600,
+        cost: 0.1464,
+      },
+    ],
+    keys: 400,
+    requests: 8,
+    inputTokens: 10800,
+    outputTokens: 7600,
+    cost: 0.1464,
+    caveats: ["CACHE_NOT_CONSULTED", "SOURCE_DUPLICATES_NOT_DEDUPLICATED"],
+  };
+
+  function render(estimate: RunEstimate): string {
+    return renderHuman(makeSummary({ dryRun: true, estimate }));
+  }
+
+  function unpriced(pricing: UnpricedRunEstimate["pricing"]): UnpricedRunEstimate {
+    const { currency: _currency, asOf: _asOf, cost: _cost, locales, ...rest } = tokenEstimate;
+    return {
+      ...rest,
+      pricing,
+      locales: locales.map(({ cost: _localeCost, ...locale }) => locale),
+    };
+  }
+
+  it("reports keys, requests, and the token split for a token-billed provider", () => {
+    expect(render(tokenEstimate)).toContain(
+      "estimate: 400 keys in 8 requests, ~10800 input + ~7600 output tokens",
+    );
+  });
+
+  it("prints the currency code and the date the rates were read beside every figure", () => {
+    const line = render(tokenEstimate);
+    expect(line).toContain("0.1464 USD");
+    expect(line).toContain("rates as of 2026-01-15");
+  });
+
+  it("calls the figure an estimate rather than a price", () => {
+    expect(render(tokenEstimate)).toContain("estimate");
+    expect(render(tokenEstimate)).not.toContain("total cost:");
+  });
+
+  it("names what the figure leaves out, so it is not read as a bill", () => {
+    const line = render(tokenEstimate);
+    expect(line).toContain("cache hits");
+    expect(line).toContain("duplicate source strings");
+  });
+
+  it("reports source characters and no token figure for a character-billed provider", () => {
+    const { inputTokens: _in, outputTokens: _out, ...rest } = tokenEstimate;
+    const line = render({
+      ...rest,
+      provider: "deepl",
+      rateKey: "deepl",
+      unit: "characters",
+      sourceCharacters: 16000,
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000, cost: 0.1464 }],
+    });
+
+    expect(line).toContain("~16000 source characters");
+    expect(line).not.toContain("tokens");
+  });
+
+  it("says which rate is missing and where to add it, rather than showing zero", () => {
+    const line = render(unpriced("no-rate-on-file"));
+
+    expect(line).toContain("no rate on file for anthropic/sonnet-test");
+    expect(line).toContain('rates.table["anthropic/sonnet-test"]');
+    expect(line).not.toContain("0.00");
+  });
+
+  it("refuses a rate written in the wrong unit rather than applying it", () => {
+    const line = render(unpriced("rate-unit-mismatch"));
+
+    expect(line).toContain("is not priced in tokens");
+  });
+
+  it("reports a self-hosted endpoint as carrying no API cost", () => {
+    const line = render({
+      ...unpriced("not-billed"),
+      provider: "openai-compatible",
+      rateKey: "openai-compatible/llama-3",
+    });
+
+    expect(line).toContain("no API cost");
+    expect(line).toContain("self-hosted");
+  });
+
+  it("never rounds a real cost down to a printed zero", () => {
+    const line = render({ ...tokenEstimate, cost: 0.000022 });
+
+    expect(line).toContain("less than 0.0001 USD");
+    expect(line).not.toContain("0.0000 USD");
+  });
+
+  it("prints a genuinely costless run as zero, because that figure is accurate", () => {
+    const line = render({
+      ...tokenEstimate,
+      keys: 0,
+      requests: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cost: 0,
+      locales: [],
+    });
+
+    expect(line).toContain("0.0000 USD");
+    expect(line).not.toContain("less than");
+  });
+
+  it("prints the exact figure once it is large enough to survive four decimals", () => {
+    expect(render({ ...tokenEstimate, cost: 0.00005 })).toContain("0.0001 USD");
+    expect(render({ ...tokenEstimate, cost: 0.0000499 })).toContain("less than 0.0001 USD");
+  });
+
+  it("leaves the estimate lines out of a run that did not ask for one", () => {
+    expect(renderHuman(makeSummary({ dryRun: true }))).not.toContain("estimate:");
+  });
+
+  it("never leaks an undefined or a NaN into any branch of the estimate block", () => {
+    const { inputTokens: _in, outputTokens: _out, ...unpricedIdentity } = unpriced("not-billed");
+    const characterUnit: UnpricedRunEstimate = {
+      ...unpricedIdentity,
+      unit: "characters",
+      sourceCharacters: 16000,
+      locales: [{ locale: "de", keys: 400, requests: 8, sourceCharacters: 16000 }],
+    };
+    const branches: readonly RunEstimate[] = [
+      tokenEstimate,
+      unpriced("no-rate-on-file"),
+      unpriced("rate-unit-mismatch"),
+      unpriced("not-billed"),
+      characterUnit,
+    ];
+
+    for (const branch of branches) {
+      const line = render(branch);
+      expect(line).not.toContain("undefined");
+      expect(line).not.toContain("NaN");
+      expect(line).not.toContain("null");
+    }
+  });
+
+  it("spells out every caveat code in the union, so a new one cannot render as a blank", () => {
+    const everyCaveat: Record<EstimateCaveatCode, true> = {
+      CACHE_NOT_CONSULTED: true,
+      SOURCE_DUPLICATES_NOT_DEDUPLICATED: true,
+      TRANSPORT_RETRIES_NOT_COUNTED: true,
+      TRANSLATION_LENGTH_IS_ESTIMATED: true,
+      TOKEN_COUNT_IS_HEURISTIC: true,
+      REPAIR_REQUESTS_NOT_COUNTED: true,
+    };
+    const codes = Object.keys(everyCaveat) as readonly EstimateCaveatCode[];
+
+    for (const code of codes) {
+      const line = render({ ...tokenEstimate, caveats: [code] });
+      const phrase = line.split("estimate excludes: ")[1]?.split("\n")[0] ?? "";
+
+      expect(phrase, code).not.toBe("");
+      expect(phrase, code).not.toContain("undefined");
+    }
+  });
+
+  it("joins the whole token-billed list into one readable line", () => {
+    const line = render({
+      ...tokenEstimate,
+      caveats: [
+        "CACHE_NOT_CONSULTED",
+        "SOURCE_DUPLICATES_NOT_DEDUPLICATED",
+        "TRANSPORT_RETRIES_NOT_COUNTED",
+        "TRANSLATION_LENGTH_IS_ESTIMATED",
+        "TOKEN_COUNT_IS_HEURISTIC",
+        "REPAIR_REQUESTS_NOT_COUNTED",
+      ],
+    });
+
+    expect(line).toContain(
+      "estimate excludes: cache hits, duplicate source strings, provider-side retries, " +
+        "translation length, tokenizer differences, repair requests",
+    );
   });
 });

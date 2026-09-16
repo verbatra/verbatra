@@ -35,6 +35,8 @@ describe("createDefaultRegistry", () => {
     ["android-xml", "strings.xml"],
     ["gettext-po", "messages.po"],
     ["gettext-po", "messages.pot"],
+    ["ini", "settings.ini"],
+    ["resx", "Resources.resx"],
   ] as const)("resolves the %s adapter by detection from %s", (format, file) => {
     const result = createDefaultRegistry().resolve(file);
     expect(result.status).toBe("resolved");
@@ -51,6 +53,8 @@ describe("createDefaultRegistry", () => {
     "apple-strings",
     "android-xml",
     "gettext-po",
+    "ini",
+    "resx",
   ] as const)("resolves %s by explicit format", (format) => {
     const result = createDefaultRegistry().resolve("file", { format });
     expect(result.status).toBe("resolved");

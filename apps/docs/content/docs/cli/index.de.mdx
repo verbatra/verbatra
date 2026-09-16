@@ -1,19 +1,23 @@
 ---
 title: Übersicht
-description: "Der Befehl verbatra: seine zehn Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
+description: "Der Befehl verbatra: seine vierzehn Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest und der Exit-Code-Vertrag."
 ---
-`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Zehn Befehle erledigen die Arbeit:
+`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Vierzehn Befehle erledigen die Arbeit:
 
 | Befehl | Was er tut |
 | --- | --- |
 | [`init`](/docs/cli/init) | eine verbatra-Konfiguration und `.env.example` für dieses Projekt anlegen |
+| [`extract`](/docs/cli/extract) | deinen Anwendungscode nach Übersetzungsaufrufen durchsuchen und die neuen Keys in der Quell-Locale-Datei ergänzen |
 | [`translate`](/docs/cli/translate) | jedes Ziel-Locale einmal übersetzen, dann beenden |
 | [`watch`](/docs/cli/watch) | bei jeder Quelländerung neu übersetzen, bis unterbrochen wird |
 | [`check`](/docs/cli/check) | melden, welche Keys pro Locale fehlen oder veraltet sind, schreibgeschützt |
 | [`diff`](/docs/cli/diff) | die genauen Keys pro Locale listen, die hinzugefügt oder neu übersetzt würden oder verwaist sind, schreibgeschützt |
 | [`doctor`](/docs/cli/doctor) | die Projekteinrichtung prüfen und alle Probleme auf einmal melden, ohne einen Provider aufzurufen |
+| [`pseudo`](/docs/cli/pseudo) | aus den Quellstrings eine Pseudo-Locale erzeugen, ohne einen Provider aufzurufen |
+| [`types`](/docs/cli/types) | TypeScript-Deklarationen für deine Katalog-Keys und ihre Nachrichtenargumente erzeugen, ohne einen Provider aufzurufen |
 | [`export`](/docs/cli/export) | unübersetzte Strings für eine menschliche Übersetzerin exportieren, als Excel-Arbeitsmappe oder als je eine CSV- oder TSV-Datei pro Locale |
 | [`import`](/docs/cli/import) | eine ausgefüllte Arbeitsmappe oder Trennzeichen-Datei zurück in die Locale-Dateien importieren |
+| [`tmx`](/docs/cli/tmx) | einen TMX-Übersetzungsspeicher aus einem anderen Tool in den Speicher dieses Projekts importieren oder den Speicher dieses Projekts als TMX-Datei exportieren |
 | [`studio`](/docs/cli/studio) | Verbatra Studio starten, das lokale Übersetzungs-Dashboard |
 | [`mcp`](/docs/cli/mcp) | einen stdio-MCP-Server starten, der die Tools von verbatra für einen MCP-Client bereitstellt |
 
@@ -38,13 +42,13 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` nimmt es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
 - `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
   - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
-  - `translate`, `watch`, `check`, `diff`, `doctor`, `export` und `import` unterstützen es; `init`, `studio` und `mcp` nicht.
+  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` und `tmx` unterstützen es; `init`, `studio` und `mcp` nicht.
   - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben aus und enden mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`.
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`) und die Übergabe-Befehle (`export`, `import`) rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Es liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die schreibgeschützten Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Exit-Codes
 
@@ -53,7 +57,7 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Erfolg (auch `--help` und `--version`) |
-| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben `partial`, `check` fand ein Locale nicht synchron, `diff` fand ausstehende Änderungen, oder `doctor` fand ein Einrichtungsproblem |
+| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben `partial`, `check` fand ein Locale nicht synchron, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand ein Einrichtungsproblem oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
 | `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 

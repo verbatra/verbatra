@@ -50,9 +50,13 @@ Quand tu écris la configuration en TypeScript, ton éditeur propose pour `optio
 | `tone` | `"formal"`, `"informal"` ou `"neutral"` | aucun | Le registre que les traductions doivent employer. |
 | `prune` | booléen | `false` | Supprime les clés orphelines des fichiers cibles et du fichier de verrouillage. |
 | `generatePlurals` | booléen | `false` | Synthétise les formes plurielles CLDR dont une langue cible a besoin. |
+| `fuzzyCache` | objet | désactivé | Réutilise une traduction pour une chaîne source qui n'a que peu changé. |
 | `maxBatchSize` | entier positif | `50` | Le maximum d'entrées envoyées dans une seule requête fournisseur. |
+| `maxLength` | objet | aucun | Longueurs maximales par clé pour les valeurs traduites, comptées en groupes de graphèmes. |
 | `maxTokens` | entier positif | aucun | Un budget de tokens pour toute l'exécution, sur chaque appel fournisseur. |
 | `budgetBehavior` | `"warn"` ou `"stop"` | `"warn"` | Ce qui se passe quand `maxTokens` est atteint. |
+| `rates` | objet | aucun | Tarifs de fournisseur datés, pour que `translate --estimate` puisse donner une somme. |
+| `extract` | objet | aucun | Réglages de l'analyse de code pour [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` et `verbatra diff --unused` : le framework, les racines de code et les listes des littéraux et des clés inutilisées ignorés. |
 | `$schema` | chaîne | aucun | Un pointeur vers le document JSON Schema, pour les éditeurs seulement. Ignoré à l'exécution. |
 
 Les clés de premier niveau inconnues sont rejetées, à la seule exception de `$schema`. C'est aussi pourquoi une clé d'API ne peut pas vivre dans la configuration : les clés viennent de l'environnement, pas du fichier.
@@ -63,7 +67,7 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
 
 - **`sourceLocale`** doit être une chaîne non vide.
 - **`targetLocales`** doit contenir au moins une locale, ne doit pas inclure `sourceLocale`, et deux entrées ne peuvent pas être égales sans tenir compte de la casse (par exemple `["de", "DE"]` est rejeté), puisque chaque locale devient le nom de sa propre feuille Excel à l'export.
-- **`format`** est l'un de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml` ou `gettext-po`. Voir [Formats](/docs/formats).
+- **`format`** est l'un de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` ou `resx`, ou un identifiant `custom:` nommant un format fourni par un adaptateur extérieur à verbatra. Voir [Formats](/docs/formats) et [Adaptateurs de format personnalisés](/docs/custom-format-adapters).
 - **`files.pattern`** doit contenir le jeton `{locale}`, que verbatra remplace par chaque locale : `locales/{locale}.json` se résout en `locales/de.json`. Les chemins se résolvent contre le répertoire de travail. Le motif est un chemin littéral, pas un glob, et `{locale}` est le seul jeton qu'il comprend, donc une configuration adresse exactement un fichier par locale. Si ton projet répartit ses chaînes sur plusieurs fichiers d'espace de noms par locale, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms). La seule exception est `apple-xcstrings`, où toutes les locales partagent un seul fichier de catalogue : le jeton reste obligatoire dans le motif, mais il se résout vers le même chemin quelle que soit la locale. Voir [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
 - **`files.localeStyle`** décide en quoi le jeton se développe :
   - `literal`, la valeur par défaut, utilise la balise configurée telle quelle, ce dont ont besoin
@@ -115,26 +119,108 @@ Désactivé par défaut. Quand il vaut true, les clés présentes dans un fichie
 
 Désactivé par défaut. Quand il vaut true, verbatra synthétise les formes plurielles CLDR qu'une langue cible exige mais que la source ne fournit pas (par exemple few et many pour le polonais). Pris en charge uniquement pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL, les formats non i18next et les langues cibles inconnues retombent sur l'avertissement de pluriel par locale. Il n'y a pas d'option CLI, donc règle ça dans la configuration ; l'entrée de `translate()` dans le SDK accepte une surcharge `generatePlurals` par exécution, qui prime.
 
+### fuzzyCache
+
+<AvailableFrom version="0.11.0" />
+
+Désactivé tant que tu ne le mets pas. `fuzzyCache: { enabled: true }` laisse une clé dont le texte source a changé réutiliser la traduction de sa forme antérieure au lieu d'aller au fournisseur, du moment que les deux se ressemblent au moins à hauteur de `threshold`. `threshold` est un rapport de similarité de `0.5` à `1` et vaut `0.9` par défaut. Une réutilisation est rapportée à part d'un succès de cache exact, est toujours signalée pour révision avec la raison `FUZZY_CACHE_REUSE`, passe les mêmes contrôles d'intégrité que n'importe quelle autre valeur candidate, et n'est jamais réécrite dans le cache. Une entrée dont les caractères numériques diffèrent de la source actuelle est refusée quel que soit son score. Une clé réutilisée est écrite mais pas verrouillée : elle reste modifiée et est proposée à nouveau à chaque exécution ultérieure jusqu'à ce qu'une vraie traduction arrive. `threshold` règle la dépense fournisseur que tu évites, pas la sûreté de la réutilisation ; le pourquoi est dans [le cache](/docs/the-cache), et n'active pas cela si personne ne traite la file de révision. Configuration seulement : il n'y a pas de flag CLI, mais `--no-cache` le contourne avec le reste du cache.
+
 ### maxBatchSize
 
 Défaut `50`. Les entrées manquantes plus modifiées d'une locale sont découpées en sous-lots séquentiels pas plus grands que ça, pour qu'une requête fournisseur trop grosse ne puisse pas faire échouer toute la locale. Un sous-lot échoué est retenu et retenté à l'exécution suivante pendant que les autres avancent quand même. Doit être un entier positif ; zéro, négatif ou fractionnaire est rejeté. Configuration uniquement : pas d'option CLI ni de surcharge par exécution.
 
+### maxLength
+
+<AvailableFrom version="0.11.0" />
+
+Facultatif. Une table associant une clé de traduction à la plus grande valeur traduite que cette clé peut contenir, pour une chaîne soumise à une contrainte de mise en page : un libellé de navigation, un bouton, un en-tête de tableau.
+
+```ts
+maxLength: {
+  "nav.dashboard": 18,
+  "cta.submit": 12,
+}
+```
+
+Cette table est le seul endroit d'où un budget est lu. verbatra n'en déduit jamais un depuis la description d'une entrée ni depuis les métadonnées de longueur d'un format : un budget se trouve exactement là où tu l'as écrit et rien ne le remplace en silence. Les clés sont comparées littéralement, pas comme des globs ni des préfixes, et une clé absente de la table n'a aucun budget et n'est jamais mesurée.
+
+La longueur se compte en groupes de graphèmes : les caractères que perçoit la personne qui lit, et non des unités de code UTF-16 ni des points de code Unicode. Un emoji composé de plusieurs points de code compte pour un, et une lettre suivie d'un accent combinant aussi. Un caractère CJK compte également pour un, alors que la plupart des polices le rendent environ deux fois plus large qu'une lettre latine : fixe les budgets de ces locales en conséquence. La valeur est mesurée telle qu'elle est écrite, espaces de début et de fin compris, et la comparaison est inclusive : une valeur égale au budget passe, un graphème de plus non.
+
+Un budget est vérifié chaque fois que `translate` produit une valeur pour cette clé : une traduction fraîche, une valeur réutilisée depuis le cache, et une valeur propagée à une clé qui partage son texte source. Ce n'est pas un balayage de tout le catalogue. Une clé déjà traduite et toujours en phase avec sa source n'est pas retraduite, donc pas mesurée non plus : ajouter des budgets à un projet terminé ne signale donc rien tant que le texte source de cette clé n'a pas changé. Pour mesurer tout de suite chaque traduction actuelle face à son budget, lance [`verbatra export --include-unchanged`](/docs/cli/export) : l'export recalcule les colonnes de révision de chaque ligne qu'il écrit, et c'est cette option qui met dans le fichier les clés déjà à jour. Un `export` sans elle n'écrit que les lignes manquantes ou périmées, et sauterait donc exactement les clés dont parle ce paragraphe.
+
+Un budget doit être un entier positif. Le dépasser est consultatif, jamais bloquant : la traduction est toujours écrite dans le fichier de locale et toujours enregistrée dans le fichier de verrouillage, et la clé est signalée comme `MAX_LENGTH_EXCEEDED` dans la liste `needsReview` du résumé d'exécution, dans la file de Révision de Studio et dans les colonnes de révision du classeur. Voir [Sûreté de la traduction](/docs/translation-safety).
+
 ### maxTokens et budgetBehavior
 
-`maxTokens` est un budget de tokens pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction principale et génération de pluriels confondues) et sur chaque locale cible. Il est vérifié après chaque sous-lot terminé, jamais à l'intérieur d'un, donc le sous-lot dont l'achèvement franchit le plafond a déjà été envoyé, est accepté normalement, et ses tokens comptent quand même : un plafond souple a posteriori, pas une pré-vérification dure. Configuration uniquement, pas d'option CLI.
+`maxTokens` est un budget de tokens pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction principale et génération de pluriels confondues) et sur chaque locale cible. Configuration uniquement, pas d'option CLI.
 
 `budgetBehavior` décide de ce qui se passe une fois le plafond atteint :
 
-- `"warn"` (le défaut) signale le dépassement et laisse l'exécution continuer exactement comme si aucun budget n'était configuré.
-- `"stop"` retient chaque clé pas encore tentée pour le reste de l'exécution : les candidates restantes de la locale en cours, et entièrement les candidates de chaque locale cible suivante (leur comparaison et leur rapport d'orphelines tournent quand même ; seul l'appel fournisseur est sauté). Les clés retenues gardent leur hash de verrouillage précédent et sont retentées automatiquement à l'exécution suivante, comme un appel fournisseur échoué l'est déjà.
+- `"warn"` (le défaut) compte la dépense, signale le dépassement et laisse l'exécution continuer exactement comme si aucun budget n'était configuré. Rien n'est retenu.
+- `"stop"` transforme le chiffre en vrai plafond. Avant chaque requête fournisseur, l'exécution projette ce que cette requête va coûter, avec la projection que rapporte [l'estimation préalable](/docs/estimating-cost), et refuse d'en envoyer une qui ferait passer l'exécution au-dessus de `maxTokens`. Les clés de cette requête sont retenues, ainsi que chaque clé pas encore tentée pour le reste de l'exécution : les candidates restantes de la locale en cours, et entièrement les candidates de chaque locale cible suivante (leur comparaison et leur rapport d'orphelines tournent quand même ; seul l'appel fournisseur est sauté). Les clés retenues gardent leur hash de verrouillage précédent et sont retentées automatiquement à l'exécution suivante, comme un appel fournisseur échoué l'est déjà.
 
-Définir `maxTokens` contraint aussi la parallélisation d'une exécution : une exécution réelle qui le combine avec `--concurrency` supérieur à `1` est refusée avec le code de sortie `2` (`CONCURRENCY_BUDGET_CONFLICT`) avant tout appel fournisseur. La raison : des locales traduites en même temps ne peuvent pas partager un même budget de tokens de façon fiable, donc verbatra refuse plutôt que de risquer un plafond inexact. Un dry run est exempté. Retire le budget ou laisse la concurrence à `1`.
+Chaque requête que l'exécution envoie est vérifiée ainsi, y compris chaque moitié d'une requête que verbatra redécoupe après une réponse tronquée : une cascade de retries ne peut donc pas dépasser une seule réservation. Après chaque requête, le total compté est réconcilié avec l'usage que le fournisseur a réellement rapporté, car c'est lui qui fait autorité sur ce qui a été facturé. Une requête qui rapporte plus que sa projection apporte cet écart après coup : une exécution peut donc finir au-dessus de `maxTokens` de l'écart de la dernière requête admise, et pas davantage, puisque plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Une requête qui échoue ou revient tronquée garde toute sa projection à sa charge au lieu d'être remboursée, car un tel appel a presque toujours déjà facturé son prompt. Ce qui est déjà traduit reste écrit et verrouillé, et une clé retenue garde la baseline qu'elle avait, donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de verrouillage revendiquant du travail retenu.
 
-Sous `"warn"`, un déclenchement du budget ne change jamais le code de sortie de la commande. Sous `"stop"`, il peut le faire : une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont bien arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. `budgetBehavior` sans `maxTokens` est accepté et n'a aucun effet. Face à un fournisseur sans tokens (DeepL, qui ne rapporte aucun usage à mesurer), le garde-fou se déclare inerte (`supported: false` sur le `budget` du résumé d'exécution) plutôt que de produire un faux déclenchement.
+Le plafond borne une exécution, pas une session, et il couvre `translate` et rien d'autre. `watch` démarre un budget neuf pour chaque exécution qu'il déclenche : une session watch peut donc dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source ; sers-t'en pour borner une exécution, pas une journée. Retraduire une seule entrée depuis [le tableau de bord Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin avec son propre fournisseur, et aucun budget ne borne cette dépense.
+
+Définir `maxTokens` contraint aussi la parallélisation d'une exécution : une exécution réelle qui le combine avec `--concurrency` supérieur à `1` est refusée avec le code de sortie `2` (`CONCURRENCY_BUDGET_CONFLICT`) avant tout appel fournisseur. Le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution. Un dry run est exempté. Retire le budget ou laisse la concurrence à `1`.
+
+Sous `"warn"`, un déclenchement du budget ne change jamais le code de sortie de la commande. Sous `"stop"`, il peut le faire : une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont bien arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. `budgetBehavior` sans `maxTokens` est accepté et n'a aucun effet. Un fournisseur qui ne rapporte pas son propre usage de tokens (DeepL, Google Cloud Translation) est budgété à partir de la projection, donc un plafond posé contre l'un des deux retient du travail comme pour n'importe quel autre ; `supported: false` sur le `budget` du résumé d'exécution indique que le chiffre est le décompte propre de verbatra et non celui du fournisseur.
+
+La projection inclut une allocation fixe pour le prompt que verbatra envoie à un fournisseur LLM (ses règles système et son schéma de réponse), et cette allocation s'ajoute aussi pour DeepL et Google Cloud Translation, même s'ils ne reçoivent aucun prompt. Une requête est projetée comme un lot entier : sous `"stop"`, un `maxTokens` inférieur à ce que projette un lot refuse donc ce lot à chaque exécution, et l'exécution ne va jamais plus loin. L'avis de refus le signale quand cela arrive : baisse `maxBatchSize` pour que chaque requête projette moins, ou augmente `maxTokens`.
 
 <Callout title="Deux maxTokens différents">
 Le `maxTokens` de premier niveau est le budget de toute l'exécution décrit ici. Le fournisseur Anthropic a aussi son propre `options.maxTokens`, qui plafonne une seule réponse. Ils n'ont aucun lien ; voir [Fournisseurs](/docs/providers).
 </Callout>
+
+### rates
+
+<AvailableFrom version="0.11.0" />
+
+Optionnel, et lu par rien d'autre que [`verbatra translate --estimate`](/docs/cli/translate). verbatra ne livre aucun prix de son cru : ils appartiennent à un tiers et changent sans préavis, un nombre figé dans une version deviendrait donc obsolète en silence. C'est toi qui les fournis, et c'est toi qui notes la date à laquelle tu les as lus.
+
+```ts
+rates: {
+  asOf: "2026-01-15",
+  currency: "USD",
+  table: {
+    "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+    deepl: { perMillionCharacters: 25 },
+  },
+}
+```
+
+`asOf` est une date de calendrier écrite `YYYY-MM-DD`, et `currency` un code de trois lettres majuscules. Les deux sont obligatoires, et les deux sont affichés à côté de chaque chiffre tiré de la table : un nombre périmé se voit. `table` est indexée par clé de tarif : `provider/model` pour un fournisseur configuré avec un modèle, et l'identifiant de fournisseur seul pour un fournisseur qui n'en prend pas (`deepl`, `google-translate`). Une entrée facturée aux tokens porte `inputPerMillionTokens` et `outputPerMillionTokens` ; une entrée facturée aux caractères porte `perMillionCharacters`. Mélanger les deux formes dans une même entrée est refusé, tout comme un tarif négatif.
+
+Le bloc ne change rien à une exécution réelle : ni ce qui est envoyé, ni ce qui est facturé, ni ce qui est écrit. Une clé de tarif sans entrée est rapportée comme une absence explicite plutôt que comme un coût nul, et une entrée dans la mauvaise unité pour son fournisseur est refusée plutôt qu'appliquée. Voir [Estimer le coût](/docs/estimating-cost) pour la façon dont le chiffre est calculé et ce qu'il laisse délibérément de côté.
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Optionnel, et utilisé uniquement par [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor) et [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées). Toutes les autres commandes l'ignorent.
+
+```ts
+extract: {
+  framework: "i18next",
+  roots: ["src", "app"],
+  exclude: ["generated"],
+  literals: { ignore: ["Acme Inc."] },
+  unused: { ignore: ["emails.*"] },
+}
+```
+
+`framework` nomme le framework de traduction dont l'analyse cherche les appels. L'ensemble est fermé et `i18next` en est aujourd'hui le seul membre ; il couvre les formes `t(...)`, `$t(...)` et `<object>.t(...)`. Un framework sans extracteur est refusé plutôt qu'accepté puis ignoré en silence.
+
+`roots` liste les répertoires parcourus, résolus par rapport au répertoire de travail. Au moins un est requis, et rien en dehors d'eux n'est jamais lu.
+
+`exclude` ajoute des noms de répertoire à l'ensemble toujours ignoré, qui couvre déjà `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` et `coverage`. Des noms, pas des chemins : une entrée correspond à un répertoire de ce nom n'importe où sous une racine.
+
+`literals.ignore` liste des textes exacts que [`verbatra doctor --literals`](/docs/cli/doctor) retient partout, comme un nom de marque. Une entrée correspond à un littéral dont le texte complet est identique une fois les espaces regroupés et les références de caractères comme `&amp;` décodées : écris donc `Tom & Jerry`, pas `Tom &amp; Jerry`. Un littéral retenu est toujours signalé comme supprimé, jamais écarté.
+
+`unused.ignore` liste les clés que `diff --unused` ne doit pas signaler comme inutilisées, pour une clé référencée uniquement hors du code analysé, comme un template serveur, un CMS ou une fixture de test. Chaque entrée est une clé exacte, ou un motif dans lequel `*` correspond à n'importe quelle suite de caractères, comme `emails.*`. Elle correspond à la clé décodée qu'affiche le rapport (`Welcome. Enjoy`, et non la forme échappée `Welcome\. Enjoy`). Une clé correspondante est signalée comme ignorée plutôt qu'omise. `unused` n'accepte aucun autre champ.
+
+Les clés inconnues dans le bloc sont refusées, exactement comme au niveau supérieur.
 
 ## Ordre de découverte
 

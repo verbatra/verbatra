@@ -1,12 +1,21 @@
-import { supportedFormatSchema } from "@verbatra/core";
+import { formatIdSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
+import { extractionConfigSchema } from "./extraction-config.js";
 import { providerConfigSchema } from "./provider-config.js";
+import { rateCardSchema } from "./rate-card.js";
 
 export const DEFAULT_MAX_BATCH_SIZE = 50;
 
 export const DEFAULT_BUDGET_BEHAVIOR = "warn" as const;
+
+export const DEFAULT_FUZZY_THRESHOLD = 0.9;
+
+const fuzzyCacheSchema = z.strictObject({
+  enabled: z.boolean(),
+  threshold: z.number().min(0.5).max(1).optional(),
+});
 
 function findCaseInsensitiveDuplicate(locales: readonly string[]): string | undefined {
   const seen = new Set<string>();
@@ -31,6 +40,10 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * optional `$schema` key, accepted so a JSON or YAML config can point an editor at the JSON Schema
  * document the package ships as `@verbatra/sdk/config-schema.json`.
  *
+ * `fuzzyCache` is off unless `enabled` is set. With it on, a source string whose earlier form is in
+ * the translation memory close enough to clear `threshold` reuses that translation instead of
+ * paying the provider for it. `threshold` is a similarity ratio from `0.5` to `1` and defaults to `0.9`.
+ *
  * Beyond the per-field checks, two whole-config rules are enforced: `targetLocales` must not
  * contain the source locale, and it must not contain two locales that differ only in case (they
  * would collide on a case-insensitive file system). The `{locale}` token requirement is a
@@ -41,7 +54,7 @@ export const verbatraConfigSchema = z
     $schema: z.string().optional(),
     sourceLocale: z.string().min(1),
     targetLocales: z.array(z.string().min(1)).min(1),
-    format: supportedFormatSchema,
+    format: formatIdSchema,
     files: z.strictObject({
       pattern: z
         .string()
@@ -54,9 +67,13 @@ export const verbatraConfigSchema = z
     tone: z.enum(["formal", "informal", "neutral"]).optional(),
     prune: z.boolean().optional(),
     generatePlurals: z.boolean().optional(),
+    fuzzyCache: fuzzyCacheSchema.optional(),
     maxBatchSize: z.number().int().positive().optional(),
+    maxLength: z.record(z.string().min(1), z.number().int().positive()).optional(),
     maxTokens: z.number().int().positive().optional(),
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
+    rates: rateCardSchema.optional(),
+    extract: extractionConfigSchema.optional(),
   })
   .refine(
     (config) => {

@@ -4,7 +4,9 @@ import { join } from "node:path";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
+import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { MAX_INPUT_BYTES } from "../json/limits.js";
+import { createMemoryAdapterFs } from "../test-support.js";
 import { createAndroidXmlAdapter } from "./android-xml-adapter.js";
 
 const adapter = createAndroidXmlAdapter();
@@ -109,6 +111,38 @@ describe("createAndroidXmlAdapter read: translatable=false and read-through node
     const doc = `<resources><plurals name="count" translatable="false"><item quantity="one">x</item><item quantity="other">y</item></plurals></resources>`;
     const { resource } = await adapter.read(await tempFile("t.xml", doc), "en");
     expect(resource.entries.size).toBe(0);
+  });
+
+  it('reports a translatable="false" string as skipped rather than dropping it silently', async () => {
+    const doc = `<resources><string name="app_id" translatable="false">com.example.app</string><string name="ok">OK</string></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["app_id"]);
+  });
+
+  it('reports a translatable="false" plurals block as skipped', async () => {
+    const doc = `<resources><plurals name="count" translatable="false"><item quantity="one">x</item><item quantity="other">y</item></plurals></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["count"]);
+  });
+
+  it("reports every skipped name in document order", async () => {
+    const doc = `<resources><string name="b_id" translatable="false">x</string><string name="ok">OK</string><plurals name="a_count" translatable="false"><item quantity="other">y</item></plurals></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual(["b_id", "a_count"]);
+  });
+
+  it("reports nothing skipped for a file where everything is translatable", async () => {
+    const doc = `<resources><string name="ok">OK</string></resources>`;
+
+    const { excludedLeafPaths } = await adapter.read(await tempFile("t.xml", doc), "en");
+
+    expect(excludedLeafPaths).toEqual([]);
   });
 
   it("excludes a string-array from entries entirely", async () => {
@@ -575,5 +609,156 @@ describe("createAndroidXmlAdapter placeholders and the space-flag trap", () => {
     const doc = `<resources><string name="a">50% off</string></resources>`;
     const { resource } = await adapter.read(await tempFile("pct.xml", doc), "en");
     expect(resource.entries.get("a")?.placeholders).toEqual([]);
+  });
+});
+
+const SHARED_HELPER_FIXTURE = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- shipped strings -->
+    <string name="app_name">My App</string>
+    <string name="app_id" translatable="false">com.example.app</string>
+    <string name="quoted">He said \\"hi\\" &amp; left</string>
+    <string name="entity">Tom &amp; Jerry &lt;b&gt;not markup&lt;/b&gt;</string>
+    <string name="rich"><![CDATA[<b>bold</b>]]></string>
+    <string name="markup">Hello <b>you</b></string>
+    <string-array name="sizes">
+        <item>S</item>
+    </string-array>
+    <plurals name="count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+</resources>
+`;
+
+describe("createAndroidXmlAdapter after the shared XML helper extraction", () => {
+  it("reads exactly the translatable resources out of a realistic strings.xml", async () => {
+    const path = await tempFile("shared.xml", SHARED_HELPER_FIXTURE);
+    const { resource } = await adapter.read(path, "en");
+    expect([...resource.entries.keys()]).toEqual([
+      "app_name",
+      "quoted",
+      "entity",
+      "count[one]",
+      "count[other]",
+    ]);
+  });
+
+  it("decodes backslash escapes and XML entities the same way it always did", async () => {
+    const path = await tempFile("shared-decode.xml", SHARED_HELPER_FIXTURE);
+    const { resource } = await adapter.read(path, "en");
+    expect(resource.entries.get("quoted")?.value).toBe('He said "hi" & left');
+    expect(resource.entries.get("entity")?.value).toBe("Tom & Jerry <b>not markup</b>");
+  });
+
+  it("round-trips the whole document byte-identically apart from the trailing newline it drops", async () => {
+    const path = await tempFile("shared-rt.xml", SHARED_HELPER_FIXTURE);
+    const { resource } = await adapter.read(path, "en");
+    await adapter.write(resource, path);
+    expect(await readFile(path, "utf8")).toBe(SHARED_HELPER_FIXTURE.replace(/\n$/, ""));
+  });
+
+  it("drops the destination's trailing newline on every write, unlike the resx adapter which restores it", async () => {
+    const path = await tempFile("shared-nl.xml", SHARED_HELPER_FIXTURE);
+    for (let pass = 0; pass < 3; pass += 1) {
+      const { resource } = await adapter.read(path, "en");
+      await adapter.write(resource, path);
+    }
+    const written = await readFile(path, "utf8");
+    expect(written.endsWith("</resources>")).toBe(true);
+    expect(written).toBe(SHARED_HELPER_FIXTURE.replace(/\n$/, ""));
+  });
+
+  it("leaves the untranslatable, CDATA, markup, and array resources untouched when one value changes", async () => {
+    const path = await tempFile("shared-edit.xml", SHARED_HELPER_FIXTURE);
+    const { resource } = await adapter.read(path, "en");
+    const entries = new Map(resource.entries);
+    entries.set("app_name", {
+      key: "app_name",
+      namespace: resource.namespace,
+      value: "Meine App",
+      placeholders: [],
+      isPlural: false,
+    });
+    await adapter.write({ ...resource, entries }, path);
+    const written = await readFile(path, "utf8");
+    expect(written).toContain('<string name="app_name">Meine App</string>');
+    expect(written).toContain(
+      '<string name="app_id" translatable="false">com.example.app</string>',
+    );
+    expect(written).toContain("<![CDATA[<b>bold</b>]]>");
+    expect(written).toContain("Hello <b>you</b>");
+    expect(written).toContain('<string-array name="sizes">');
+    expect(written).toContain("<!-- shipped strings -->");
+  });
+
+  it("treats a missing destination as an empty one rather than an error", async () => {
+    const fs = createMemoryAdapterFs();
+    const scoped = createAndroidXmlAdapter(fs);
+    const entries = new Map<string, TranslationEntry>([
+      ["a", { key: "a", namespace: "n", value: "x", placeholders: [], isPlural: false }],
+    ]);
+    await scoped.write({ locale: "de", namespace: "n", format: "android-xml", entries }, "s.xml");
+    expect(fs.files.get("s.xml")).toContain('<string name="a">x</string>');
+  });
+
+  it("reports a destination read failure that is not a missing file as a structured AdapterError", async () => {
+    const fs: AdapterFs = {
+      async readBounded(): Promise<BoundedReadOutcome> {
+        throw Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+      },
+      async writeFileAtomic(): Promise<void> {},
+    };
+    const entries = new Map<string, TranslationEntry>([
+      ["a", { key: "a", namespace: "n", value: "x", placeholders: [], isPlural: false }],
+    ]);
+    const error = await readError(
+      createAndroidXmlAdapter(fs).write(
+        { locale: "de", namespace: "n", format: "android-xml", entries },
+        "s.xml",
+      ),
+    );
+    expect(error).toBeInstanceOf(AdapterError);
+    expect(errorCode(error)).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toBe("The destination file could not be read.");
+  });
+
+  it("reports a destination that is not a regular file as a structured AdapterError", async () => {
+    const fs: AdapterFs = {
+      async readBounded(): Promise<BoundedReadOutcome> {
+        return { kind: "not-a-file" };
+      },
+      async writeFileAtomic(): Promise<void> {},
+    };
+    const entries = new Map<string, TranslationEntry>([
+      ["a", { key: "a", namespace: "n", value: "x", placeholders: [], isPlural: false }],
+    ]);
+    const error = await readError(
+      createAndroidXmlAdapter(fs).write(
+        { locale: "de", namespace: "n", format: "android-xml", entries },
+        "s.xml",
+      ),
+    );
+    expect(errorCode(error)).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toBe("The destination path is not a regular file.");
+  });
+
+  it("lets a structured destination error through with its own code rather than reclassifying it", async () => {
+    const fs: AdapterFs = {
+      async readBounded(): Promise<BoundedReadOutcome> {
+        throw new AdapterError("INPUT_TOO_LARGE", "too large");
+      },
+      async writeFileAtomic(): Promise<void> {},
+    };
+    const entries = new Map<string, TranslationEntry>([
+      ["a", { key: "a", namespace: "n", value: "x", placeholders: [], isPlural: false }],
+    ]);
+    const error = await readError(
+      createAndroidXmlAdapter(fs).write(
+        { locale: "de", namespace: "n", format: "android-xml", entries },
+        "s.xml",
+      ),
+    );
+    expect(errorCode(error)).toBe("INPUT_TOO_LARGE");
   });
 });

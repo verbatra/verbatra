@@ -122,3 +122,14 @@ describe("the config JSON Schema document: shape cross-check", () => {
     expect(document.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
   });
 });
+
+describe("the config JSON Schema document: the extract block", () => {
+  it("carries the unused.ignore list, so an editor validates and completes it", () => {
+    const unused = propertyOf(propertyOf(document, "extract"), "unused");
+
+    expect(propertyOf(unused, "ignore")).toEqual({
+      type: "array",
+      items: { type: "string", minLength: 1 },
+    });
+  });
+});

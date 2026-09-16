@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
 import { z } from "zod";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
@@ -9,15 +10,11 @@ const RUN_STATUS_FILE_NAME = "run-status.json";
 
 const CURRENT_VERSION = 1;
 
+const RECONCILED_BUDGET_COUNTING = "reconciled";
+
 const MAX_RUN_STATUS_FILE_BYTES = 16 * 1024 * 1024;
 
-const reviewReasonCodeSchema = z.enum([
-  "LENGTH_RATIO_OUTLIER",
-  "EQUALS_SOURCE",
-  "GLOSSARY_TERM_MISSED",
-  "INTEGRITY_REORDERED",
-  "PROVIDER_DEGRADED",
-]);
+const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 
 const needsReviewEntrySchema = z.object({
   key: z.string(),
@@ -37,10 +34,17 @@ const runBudgetSchema = z.object({
   exceeded: z.boolean(),
 });
 
+const fuzzyCacheHitSchema = z.object({
+  key: z.string(),
+  previousSource: z.string(),
+  similarity: z.number().min(0).max(1),
+});
+
 const runStatusLocaleSchema = z.object({
   locale: z.string(),
   status: z.enum(["succeeded", "partial", "failed"]),
   needsReview: z.array(needsReviewEntrySchema),
+  fuzzyHits: z.array(fuzzyCacheHitSchema).optional(),
   usage: usageSummarySchema.optional(),
 });
 
@@ -49,6 +53,7 @@ const runStatusFileSchema = z.object({
   generatedAt: z.string(),
   usage: usageSummarySchema.optional(),
   budget: runBudgetSchema.optional(),
+  budgetCounting: z.literal(RECONCILED_BUDGET_COUNTING).optional(),
   locales: z.array(runStatusLocaleSchema),
 });
 
@@ -61,6 +66,7 @@ function toRunStatusLocale(locale: LocaleSummary): RunStatusLocale {
     locale: locale.locale,
     status: locale.status,
     needsReview: locale.needsReview,
+    ...(locale.fuzzyHits.length > 0 ? { fuzzyHits: locale.fuzzyHits } : {}),
     ...(locale.usage !== undefined ? { usage: locale.usage } : {}),
   };
 }
@@ -78,16 +84,27 @@ export function buildRunStatusFile(
   };
 }
 
-function fromParsed(data: z.infer<typeof runStatusFileSchema>): RunStatusFile {
+type ParsedRunStatusFile = z.infer<typeof runStatusFileSchema>;
+
+function countedBudget(data: ParsedRunStatusFile): ParsedRunStatusFile["budget"] {
+  if (data.budgetCounting === undefined && data.budget?.supported === false) {
+    return undefined;
+  }
+  return data.budget;
+}
+
+function fromParsed(data: ParsedRunStatusFile): RunStatusFile {
+  const budget = countedBudget(data);
   return {
     version: data.version,
     generatedAt: data.generatedAt,
     ...(data.usage !== undefined ? { usage: data.usage } : {}),
-    ...(data.budget !== undefined ? { budget: data.budget } : {}),
+    ...(budget !== undefined ? { budget } : {}),
     locales: data.locales.map((locale) => ({
       locale: locale.locale,
       status: locale.status,
       needsReview: locale.needsReview,
+      ...(locale.fuzzyHits !== undefined ? { fuzzyHits: locale.fuzzyHits } : {}),
       ...(locale.usage !== undefined ? { usage: locale.usage } : {}),
     })),
   };
@@ -125,5 +142,6 @@ export async function writeRunStatusFile(
   fs: SdkFs,
 ): Promise<void> {
   await fs.mkdir?.(dirname(path));
-  await fs.writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+  const persisted = { ...data, budgetCounting: RECONCILED_BUDGET_COUNTING };
+  await fs.writeFile(path, `${JSON.stringify(persisted, null, 2)}\n`);
 }

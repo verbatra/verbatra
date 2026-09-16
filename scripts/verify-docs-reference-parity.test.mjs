@@ -143,3 +143,83 @@ describe("the SDK heading rule separates real drift from ordinary prose", () => 
     expect(headingDocumentedExports(prose)).toEqual([]);
   });
 });
+
+function stringConstant(relativePath, name) {
+  const value = new RegExp(`export const ${name} = "([^"]*)";`).exec(
+    readRepoFile(relativePath),
+  )?.[1];
+  if (value === undefined) {
+    throw new Error(`${name} could not be located in ${relativePath}`);
+  }
+  return value;
+}
+
+function configSearchPlaces() {
+  const source = readRepoFile("packages/sdk/src/config/load-config.ts");
+  const moduleName = /const MODULE_NAME = "([^"]+)";/.exec(source)?.[1];
+  const list = /export const CONFIG_SEARCH_PLACES = \[([\s\S]*?)\];/.exec(source)?.[1];
+  if (moduleName === undefined || list === undefined) {
+    throw new Error("CONFIG_SEARCH_PLACES could not be located in load-config.ts");
+  }
+  return [...list.matchAll(/["`]([^"`]+)["`]/g)].map((match) =>
+    match[1].replace(/\$\{MODULE_NAME\}/, moduleName),
+  );
+}
+
+function typesOutputRefusals() {
+  const source = readRepoFile("packages/sdk/src/flow/generate-types.ts");
+  const table = /^export const TYPES_OUTPUT_REFUSALS = \[\n([^\]]*)\] as const;$/m.exec(
+    source,
+  )?.[1];
+  if (table === undefined) {
+    throw new Error("TYPES_OUTPUT_REFUSALS could not be located in generate-types.ts");
+  }
+  const extensions = /const TYPESCRIPT_EXTENSIONS = \[([^\]]*)\];/.exec(source)?.[1] ?? "";
+  return {
+    entries: table.split("\n").filter((line) => line.trim() !== ""),
+    ids: [...table.matchAll(/^ {2}"([a-z-]+)",$/gm)].map((match) => match[1]),
+    extensions: [...extensions.matchAll(/"([^"]+)"/g)].map((match) => match[1]),
+  };
+}
+
+function documentedTypesRefusals(suffix) {
+  const lines = readDocPage("cli/types", suffix).split("\n");
+  const start = lines.findIndex((line) => line.includes("`TYPES_OUTPUT_CONFLICT`"));
+  const bullets = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("- ")) {
+      bullets.push(line);
+    } else if (bullets.length > 0) {
+      break;
+    }
+  }
+  return bullets;
+}
+
+describe("the types page lists exactly the output paths generateTypes refuses", () => {
+  const refusals = typesOutputRefusals();
+  const names = [
+    stringConstant("packages/sdk/src/lock/lock-file.ts", "LOCK_FILE_NAME"),
+    stringConstant("packages/sdk/src/cache/translation-memory.ts", "CACHE_FILE_NAME"),
+    ...configSearchPlaces(),
+    ...refusals.extensions,
+  ];
+
+  it("extracts the refusal set from the code, so the comparison cannot pass vacuously", () => {
+    expect(refusals.ids.length).toBeGreaterThanOrEqual(10);
+    expect(refusals.ids).toHaveLength(refusals.entries.length);
+    expect(new Set(refusals.ids).size).toBe(refusals.ids.length);
+    expect(refusals.extensions).toEqual([".ts", ".mts", ".cts"]);
+    expect(names).toContain("verbatra.config.ts");
+  });
+
+  it.each(LOCALE_SUFFIXES)("has one bullet per refusal in types%s.mdx", (suffix) => {
+    expect(documentedTypesRefusals(suffix)).toHaveLength(refusals.ids.length);
+  });
+
+  it.each(LOCALE_SUFFIXES)("names every reserved file and extension in types%s.mdx", (suffix) => {
+    const page = readDocPage("cli/types", suffix);
+
+    expect(names.filter((name) => !mentionsCodeSpan(page, name))).toEqual([]);
+  });
+});

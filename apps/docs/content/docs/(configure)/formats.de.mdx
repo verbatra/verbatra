@@ -1,8 +1,8 @@
 ---
 title: Formate
-description: Die zwölf unterstützten Formate, wie jedes seine Dateien liest und schreibt, und die Garantie der Dokumentreihenfolge der Keys.
+description: Die vierzehn unterstützten Formate, wie jedes seine Dateien liest und schreibt, und die Garantie der Dokumentreihenfolge der Keys.
 ---
-verbatra arbeitet über einen Format-Adapter auf deinen Locale-Dateien. Jeder Adapter liest eine Datei in eine formatneutrale Form, auf der Vergleich, Hashing und Integritätsprüfungen laufen, und schreibt sie dann in der ursprünglichen Form der Datei zurück. Du wählst das Format über das `format`-Feld in deiner [Konfiguration](/docs/config-file). Zwölf werden unterstützt: vier JSON-Varianten plus XLIFF, YAML, ARB, Java/Spring-Properties, Apple-`.strings`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml` und gettext `.po`/`.pot`.
+verbatra arbeitet über einen Format-Adapter auf deinen Locale-Dateien. Jeder Adapter liest eine Datei in eine formatneutrale Form, auf der Vergleich, Hashing und Integritätsprüfungen laufen, und schreibt sie dann in der ursprünglichen Form der Datei zurück. Du wählst das Format über das `format`-Feld in deiner [Konfiguration](/docs/config-file). Vierzehn werden unterstützt: vier JSON-Varianten plus XLIFF, YAML, ARB, Java/Spring-Properties, Apple-`.strings`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, gettext `.po`/`.pot`, INI und .NET-`.resx`.
 
 ## Die vier JSON-Formate
 
@@ -155,6 +155,36 @@ Das `gettext-po`-Format deckt GNU gettexts `.po`- und `.pot`-Kataloge ab, erkann
 - **Fehlerhafte Eingaben sind spezifisch.** Ein strukturierter `AdapterError` benennt die betroffene `msgid` und die physische Zeile, zum Beispiel eine unterminierte gequotete Zeichenkette, eine unbekannte Escape-Sequenz, einen nicht zusammenhängenden `msgstr[n]`-Index oder einen Plural-Eintrag ohne `Plural-Forms`-Header, statt eines generischen Parse-Fehlers.
 - **Einschränkung: `--prune` hat kein Bewusstsein für Plural-Indizes.** verbatras Erkennung verwaister Keys und `--prune` vergleicht Keys gegen die eigene Key-Menge der Quelle, ohne Sonderfall für `key[n]`-Gruppen. Eine Ziel-Locale, die mehr Plural-Formen braucht als die Quelle deklariert (zum Beispiel eine Sprache mit mehr grammatischen Numerus-Unterscheidungen), hat nur im Ziel vorhandene Indizes, die ein `--prune`-Lauf nicht von einem echt entfernten Key unterscheiden kann, und kann sie löschen. Standardmäßig deaktiviert; ein gewöhnlicher `verbatra translate`-Lauf ohne `--prune` ist davon nicht betroffen.
 
+## INI
+
+<AvailableFrom version="0.11.0" />
+
+Das `ini`-Format deckt klassische INI-Konfigurationsdateien ab, erkannt an der Endung `.ini`: eine Ebene von `[section]`-Headern über `key=value`-Zeilen, nie in einen tieferen Baum aufgespalten.
+
+- **Eine Section wird zum ersten Key-Segment.** Ein Key innerhalb von `[home]` wird als `home.title` adressiert; ein Key oberhalb des ersten Section-Headers behält seinen blanken Namen. Ein wörtlicher Punkt in einem Section- oder Key-Namen wird im zusammengesetzten Key escapt, sodass ein `a.b` auf oberster Ebene und ein `b` innerhalb von `[a]` zwei verschiedene Einträge bleiben.
+- **Kommentare, Leerzeilen und Abstände überleben einen Schreibvorgang.** Ein Schreibvorgang liest die Zieldatei erneut und ersetzt nur den Wert jeder Zeile, zu der es einen Eintrag gibt; Key-Schreibweise, Leerraum um das `=`, die `;`- und `#`-Kommentare und die Leerzeilen bleiben genau so, wie sie waren. Ein Key, den die Datei noch nicht hat, wird am Ende seines eigenen Section-Blocks eingefügt statt am Dateiende, und eine noch nicht vorhandene Section wird am Ende angelegt.
+- **Werte sind Klartext, optional in Anführungszeichen.** Ein in doppelte Anführungszeichen gesetzter Wert wird beim Lesen entpackt, wobei `\\`, `\"`, `\n`, `\r` und `\t` dekodiert werden. Ein Wert, der sonst führenden oder abschließenden Leerraum verlieren würde oder einen Zeilenumbruch enthält, wird in Anführungszeichen zurückgeschrieben. Ein `;` mitten in der Zeile gehört zum Wert und ist kein Kommentar.
+- **Platzhalter sind Tokens mit einfachen geschweiften Klammern.** INI hat keine eigene Platzhalterkonvention, deshalb schützt verbatra `{name}` und `{0}`, die Syntax, auf die INI-basierte Setups konvergieren. Alles andere im Wert ist gewöhnlicher Text.
+- **Keine Plurale.** Das Format kennt kein Plural-Konstrukt, also ist jeder Eintrag eine einzelne Zeichenkette.
+- **Fehlerhafte Eingaben sind strukturiert.** Ein Section-Header darf einen angehängten `;`- oder `#`-Kommentar tragen. Ein unterminierter oder leerer `[section]`-Header, oder alles nach der schließenden Klammer, was kein Kommentar ist, löst einen strukturierten `AdapterError` aus statt eines rohen Parse-Fehlers. Eine Zeile ohne `=` bleibt wörtlich erhalten und wird nie zu einem Eintrag.
+- **Fehlende Zieldatei.** Eine noch nicht existierende `.ini`-Zieldatei wird aus den Einträgen heraus angelegt, statt den Schreibvorgang scheitern zu lassen.
+
+## .NET .resx
+
+<AvailableFrom version="0.11.0" />
+
+Das `resx`-Format deckt die XML-Ressourcendateien von .NET ab, erkannt an der Endung `.resx`: eine flache Liste von `<data name="Key"><value>Text</value></data>`-Elementen unter einem `<root>`, nie in einen Baum aufgespalten. Es beansprucht ausschließlich `.resx`, sodass ein Android-`strings.xml` weiterhin eindeutig zu `android-xml` aufgelöst wird.
+
+- **Die Schema-Präambel und die Header werden nie angefasst.** Ein Schreibvorgang liest das Zieldokument erneut und ersetzt nur das `<value>` der Einträge, die er hat; der eingebettete XSD-Schemablock, jedes `<resheader>`, jedes `<metadata>`- und `<assembly>`-Element und jeder Eintrag, für den es keine Übersetzung gibt, kommen unverändert zurück, auf dem Zeilenumbruch der Datei selbst. Das Einzige, was ein Schreibvorgang nicht wiederherstellt, ist ein führendes Byte Order Mark, das beim Lesen entfernt wird.
+- **Nicht-String- und Designer-Einträge bleiben erhalten und werden nicht übersetzt.** Ein `<data>`-Element mit einem `type`- oder `mimetype`-Attribut enthält ein serialisiertes Objekt (ein Bild, ein Icon, ein Byte-Array) und wird unangetastet durchgereicht. Ebenso jeder Eintrag, dessen Name mit `>>` oder `$` beginnt: das sind Designer-Metadaten von Visual Studio und kein für Nutzer sichtbarer Text. Keiner davon wird zu einem übersetzbaren Eintrag, und keiner wird neu geschrieben.
+- **Ein `<comment>` wird zur Beschreibung des Eintrags.** Er erreicht den Provider als Kontext zur Disambiguierung und erscheint in der [`Kontext`-Spalte](/docs/manual-translation) einer exportierten Arbeitsmappe. Zurückgeschrieben wird er nie.
+- **Platzhalter sind .NET-Composite-Format-Items.** `{0}`, `{1,-10}` und `{2:C}` werden vollständig extrahiert, samt Ausrichtung und Formatangabe, sodass eine Übersetzung, die `{0:C}` verliert oder zu `{0}` verflacht, die Integritätsprüfung nicht besteht. Weil hier die Platzhalter-Integrität der einzige Schutz ist, werden auch die Klammern geschützt: ein verdoppeltes `{{` oder `}}` und eine Klammer, die zu keinem Format-Item gehört, sind eigene Tokens. So wird ein zu `{` entschärftes `{{` oder eine erfundene einzelne Klammer erkannt, statt in deiner App als `FormatException` aufzuschlagen.
+- **Bewusst keine ICU-Validierung.** Composite Formatting ist kein ICU, und verbatras Kanal für Nachrichtengültigkeit meldet ausdrücklich ICU; `.resx`-Werte werden deshalb vollständig über die Platzhalter-Integrität geschützt statt über eine Syntaxprüfung, die den Fehler falsch benennen würde.
+- **Keine Plurale.** `.resx` kennt kein Plural-Konstrukt, also ist jeder Eintrag eine einzelne Zeichenkette.
+- **Fehlende Zieldatei.** Eine noch nicht existierende `.resx`-Zieldatei wird mit den Standard-Headern `resmimetype`, `version`, `reader` und `writer` erzeugt, sodass das Ergebnis so, wie es ist, unter `ResXResourceReader` lädt.
+- **Ein Name, den das Ziel nicht tragen kann, wird abgelehnt, nie still übersprungen.** Hält die Zieldatei einen Key bereits als typisierte Ressource, als Designer-Metadatum oder mit Markup in seinem `<value>`, kann der übersetzte Wert dort nicht hin. Der Schreibvorgang scheitert mit einem strukturierten `AdapterError`, der den Key benennt, statt Erfolg zu melden und den Wert zu verwerfen. Ein Key, der nie zurückgelesen werden könnte, wird genauso abgelehnt, auch wenn das Ziel unter diesem Namen nichts hält: ein leerer Key, oder einer, der mit `>>` oder `$` beginnt, käme beim nächsten Lesen als Designer-Metadatum zurück statt als Text.
+- **Fehlerhafte Eingaben sind strukturiert.** Ein Dokument, das kein gültiges XML ist, dessen Wurzelelement nicht `<root>` ist oder das eine DTD oder eine Entity deklariert, löst einen strukturierten `AdapterError` aus.
+
 ## Dokumentreihenfolge der Keys
 
 Schreibvorgänge erhalten die Key-Reihenfolge deines Dokuments. Die JSON-Familie, YAML und ARB tragen Keys exakt in Dokumentreihenfolge durch den Roundtrip:
@@ -175,10 +205,47 @@ Der eine Fall, der bewusst fehlschlägt, ist eine echte Kollision, bei der eine 
 
 ## Wie Dateien gelesen und geschrieben werden
 
-verbatra begrenzt beim Lesen Eingabegröße und Verschachtelungstiefe und widersteht einer Datei, die sich unter ihm ändert. Es schreibt atomar: erst in eine temporäre Datei, dann per Umbenennen an den Zielort, ein unterbrochener Schreibvorgang hinterlässt also nie eine halbfertige Locale-Datei. Wenn verbatra eine Datei nicht verarbeiten kann, erzeugt es einen strukturierten, geheimnisfreien Fehler mit stabilem Code statt eines rohen: `INVALID_JSON`, `INVALID_YAML` oder `INVALID_XML` für fehlerhafte Syntax, `INVALID_STRUCTURE` für eine parsebare Datei der falschen Form, `MAX_DEPTH_EXCEEDED` und `INPUT_TOO_LARGE` für die Obergrenzen und `MIXED_STRUCTURE` für ngx-translates Mischfall.
+verbatra begrenzt beim Lesen Eingabegröße und Verschachtelungstiefe und widersteht einer Datei, die sich unter ihm ändert. Es schreibt atomar: erst in eine temporäre Datei, dann per Umbenennen an den Zielort, ein unterbrochener Schreibvorgang hinterlässt also nie eine halbfertige Locale-Datei. Wenn verbatra eine Datei nicht verarbeiten kann, erzeugt es einen strukturierten, geheimnisfreien Fehler mit stabilem Code statt eines rohen: `INVALID_JSON`, `INVALID_YAML` oder `INVALID_XML` für fehlerhafte Syntax, `INVALID_STRUCTURE` für eine parsebare Datei der falschen Form, `MAX_DEPTH_EXCEEDED` und `INPUT_TOO_LARGE` für die Obergrenzen und `MIXED_STRUCTURE` für ngx-translates Mischfall. Zwei weitere Codes beschreiben einen Adapter statt einer Datei: `ADAPTER_FAILED` schreibt einen unerwarteten Fehler dem Drittanbieter-Adapter zu, aus dem er kam, und `DUPLICATE_FORMAT` weist es zurück, einen zweiten Adapter für einen bereits vergebenen Format-Bezeichner zu registrieren.
 
 Eine baumbasierte Locale-Datei (die JSON-Familie, YAML und ARB) kann ein Blatt tragen, das kein String ist, zum Beispiel ein `count: 5` oder `enabled: true` neben den übersetzbaren Keys. verbatra akzeptiert das: Ein Blatt darf String, Zahl, Boolean oder null sein, und nur ein Blatt eines anderen Typs, etwa ein Array, schlägt mit `INVALID_STRUCTURE` fehl. Ein Nicht-String-Blatt ist vom übersetzbaren Bestand ausgeschlossen: Es wird nie übersetzt, gehasht, verglichen oder auf Platzhalter oder ICU geprüft. Ausschluss ist keine Erhaltung: Schreibt verbatra später dieselbe Locale-Datei, wird der Schreibvorgang aus den Strings aufgebaut, die es verwaltet, ein beim Lesen vorhandenes Nicht-String-Blatt wird also nicht in die Ausgabe übernommen. Muss so ein Wert einen Neuschrieb überleben, halte ihn aus den Dateien heraus, in die verbatra schreibt. XLIFF-Trans-Unit-Werte und `.properties`-Werte sind immer Strings, dort gilt das also nicht.
 
+## Formate von außerhalb verbatra
+
+<AvailableFrom version="0.11.0" />
+
+Die vierzehn Formate oben sind die, die verbatra mitbringt. Ein Format, das es nicht mitbringt, kannst du über einen Adapter in deinem eigenen Paket liefern: Du benennst es mit einem `custom:`-Bezeichner wie `custom:toml` und übergibst es verbatra als Teil einer Registry. Die eingebaute Menge bleibt geschlossen, und kein eingebauter Name enthält einen Doppelpunkt, ein Bezeichner von aussen kann also nie einen eingebauten überdecken.
+
+Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Eigene Formatadapter](/docs/custom-format-adapters).
+
+## Inline-Markup in Werten
+
+<AvailableFrom version="0.11.0" />
+
+Ein Wert kann eigenes Inline-HTML oder -XML tragen: `<b>` in einem i18next-`Trans`-Block oder einem
+gettext-Katalog, `<a href>` in einer Vue-I18n- oder ngx-translate-Message, ein maskiertes
+`&lt;b&gt;` in einem Android-`<string>`. Dieses Markup ist in keinem dieser Formate ein
+Platzhalter, deshalb vergleicht die
+[Markup-Paritätsprüfung](/docs/translation-safety#inline-markup-parität) es getrennt und lehnt eine
+Übersetzung ab, die ein Tag weglässt, erfindet, umbenennt oder aus dem Gleichgewicht bringt.
+
+Sie gilt für jedes Format und tritt pro Tag statt pro Wert zurück: Ein Tag, das der Adapter ohnehin
+als Platzhalter meldet, bleibt der Platzhalterprüfung überlassen, während jedes andere Tag im
+selben Wert weiterhin verglichen wird.
+
+- `xliff` extrahiert seine Inline-Platzhalterelemente (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
+  selbst, sie sind also von der Platzhalterprüfung abgedeckt und werden nie doppelt gezählt.
+  Einfaches HTML, das XLIFF nicht tokenisiert, etwa ein `<b>`-Paar, wird weiterhin als Markup
+  verglichen, auch wenn es im selben Wert neben einem Inline-Element steht.
+- `next-intl-json` und `arb` parsen ICU-Rich-Text-Tags, ein gepaartes `<b>...</b>` ist für sie also
+  bereits ein Platzhalter, ein selbstschließendes `<br/>` im selben Wert dagegen nicht und wird als
+  Markup verglichen. Ein Tag mit Attributen ist überhaupt kein gültiges ICU, und diese Formate
+  lehnen es unabhängig von der Markup-Parität als ungültige Message-Syntax ab.
+- `android-xml`-Werte erreichen die Prüfung mit aufgelöster Maskierung, ein `&lt;b&gt;` auf der
+  Platte wird also als `<b>` verglichen. Ein `<string>`, das echte Inline-Elemente enthält, wird
+  durchgereicht und wie oben beschrieben gar nicht erst übersetzt.
+- Jedes andere Format hat kein eigenes Markup-Konzept, die Markup-Parität ist dort also die einzige
+  Prüfung, die es sieht.
+
 ## Warum das Format wichtig ist
 
-Das Format sagt verbatra zwei Dinge, die es für einen sicheren Lauf braucht. Erstens die Platzhaltersyntax, damit die [Platzhalter-Integritätsprüfung](/docs/translation-safety) weiß, was sie vor und nach der Übersetzung vergleichen soll. Zweitens, für die ICU-Formate, welche Werte zu validieren sind, damit ein Quell-Key mit ungültigem ICU übersprungen statt in kaputtem Zustand gesendet wird. Das falsche Format vergleicht die falschen Tokens, wähle es also passend zu deiner i18n-Bibliothek: `i18next-json` für i18next, `vue-i18n-json` für vue-i18n, `next-intl-json` für next-intl, `ngx-translate-json` für ngx-translate, `xliff` für XLIFF-Dateien, `yaml` für YAML-basierte i18n, `arb` für Flutter, `properties` für Java- oder Spring-`.properties`-Dateien, `apple-strings` für Apple-`.strings`-Dateien, `apple-xcstrings` für Xcode-String-Catalog-`.xcstrings`-Dateien, `android-xml` für Android `strings.xml` und `gettext-po` für gettext-`.po`/`.pot`-Kataloge.
+Das Format sagt verbatra zwei Dinge, die es für einen sicheren Lauf braucht. Erstens die Platzhaltersyntax, damit die [Platzhalter-Integritätsprüfung](/docs/translation-safety) weiß, was sie vor und nach der Übersetzung vergleichen soll. Zweitens, für die ICU-Formate, welche Werte zu validieren sind, damit ein Quell-Key mit ungültigem ICU übersprungen statt in kaputtem Zustand gesendet wird. Das falsche Format vergleicht die falschen Tokens, wähle es also passend zu deiner i18n-Bibliothek: `i18next-json` für i18next, `vue-i18n-json` für vue-i18n, `next-intl-json` für next-intl, `ngx-translate-json` für ngx-translate, `xliff` für XLIFF-Dateien, `yaml` für YAML-basierte i18n, `arb` für Flutter, `properties` für Java- oder Spring-`.properties`-Dateien, `apple-strings` für Apple-`.strings`-Dateien, `apple-xcstrings` für Xcode-String-Catalog-`.xcstrings`-Dateien, `android-xml` für Android `strings.xml` `gettext-po` für gettext-`.po`/`.pot`-Kataloge, `ini` für INI-Konfigurationsdateien und `resx` für .NET-Ressourcendateien.

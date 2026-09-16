@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { deriveLocaleStatus, failureSummary, partition } from "./locale-failure.js";
-import type { LocaleSummary } from "./summary.js";
+import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSummary {
   return {
@@ -12,6 +12,7 @@ function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSum
     pruned: [],
     invalidIcuSource: [],
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
@@ -27,6 +28,7 @@ function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSum
 const NO_STATUS_PARTS = {
   translated: [] as readonly string[],
   cacheHits: [] as readonly string[],
+  fuzzyHits: [] as readonly FuzzyCacheHit[],
   generated: [] as readonly string[],
   integrityMismatches: [] as readonly string[],
   providerFailures: [] as readonly string[],
@@ -45,6 +47,7 @@ describe("failureSummary", () => {
       pruned: [],
       invalidIcuSource: [],
       cacheHits: [],
+      fuzzyHits: [],
       integrityMismatches: [],
       providerFailures: [],
       budgetWithheld: [],

@@ -19,5 +19,6 @@ export type RetranslateEntryResult =
   | {
       readonly accepted: false;
       readonly reason: IntegrityGateReason;
+      readonly details?: readonly string[];
       readonly value: string;
     };

@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Translator interchange for verbatra: build and read styled Excel workbooks over a neutral, format-agnostic row model.",
+  "description": "Translator interchange for verbatra: build and read styled Excel workbooks over a neutral, format-agnostic row model, and read and write TMX translation memory.",
   "keywords": [
     "i18n",
     "internationalization",
@@ -51,6 +51,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xmldom/xmldom": "catalog:bundled",
     "exceljs": "catalog:bundled",
     "jszip": "catalog:bundled",
     "zod": "catalog:"

@@ -1,11 +1,11 @@
-import type { LocaleResource, SupportedFormat } from "@verbatra/core";
+import type { FormatId, LocaleResource } from "@verbatra/core";
 import { AdapterError, type FormatAdapter } from "@verbatra/format-adapters";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 
 export interface ReadTargetResourceInput {
   readonly resolver: LocalePathResolver;
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly locale: string;
   readonly adapter: FormatAdapter;
   readonly fs: SdkFs;

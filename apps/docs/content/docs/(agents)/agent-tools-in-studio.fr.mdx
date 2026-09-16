@@ -41,9 +41,9 @@ Ouvre ensuite l'URL loopback affichée dans ton navigateur compatible WebMCP. L'
 
 ## Le catalogue d'outils
 
-Avec l'option activée, Studio enregistre quatorze outils, un par action du tableau de bord. Sans `--allow-spend`, il en enregistre douze : les deux outils de dépense sont entièrement omis. Les noms d'outils sont préfixés et utilisent des tirets bas (par exemple `verbatra_project_snapshot`).
+Avec l'option activée, Studio enregistre quinze outils, un par action du tableau de bord. Sans `--allow-spend`, il en enregistre treize : les deux outils de dépense sont entièrement omis. Les noms d'outils sont préfixés et utilisent des tirets bas (par exemple `verbatra_project_snapshot`).
 
-### Outils de lecture (dix)
+### Outils de lecture (onze)
 
 Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture seule.
 
@@ -59,6 +59,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_review_queue` | la file de révision |
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
 | `verbatra_key_value` | les valeurs source et cible pour une clé et une locale |
+| `verbatra_locale_values` | les valeurs source et cible de chaque clé dans chaque locale cible |
 
 ### Outils d'écriture (deux)
 
@@ -83,7 +84,7 @@ L'enregistrement a trois issues possibles, et une seule est un problème.
 
 **Rien de tenté, rien de signalé.** Quand `document.modelContext` est absent (un navigateur sans WebMCP, ou Chrome sans le flag) ou quand tu n'as pas activé l'exposition, Studio ne tente aucun enregistrement. Le tableau de bord reste inchangé et la console reste muette. C'est le no-op prévu, pas un échec.
 
-**Douze outils et aucun avis.** Sans `--allow-spend`, Studio tente douze enregistrements plutôt que quatorze : les deux outils de dépense sont écartés avant même d'être tentés. Douze outils est le compte sain d'une session sans dépense, leur absence est donc l'état attendu et ne déclenche jamais d'avis.
+**Treize outils et aucun avis.** Sans `--allow-spend`, Studio tente treize enregistrements plutôt que quinze : les deux outils de dépense sont écartés avant même d'être tentés. Treize outils est le compte sain d'une session sans dépense, leur absence est donc l'état attendu et ne déclenche jamais d'avis.
 
 **L'avis.** Si Studio a tenté un enregistrement et que le navigateur l'a rejeté, le tableau de bord affiche un avertissement en haut de la zone de contenu, sur toutes les vues :
 
@@ -100,10 +101,10 @@ Un outil qui échoue n'annule jamais ceux qui suivent, donc tout outil bien enre
 Studio écrit une seule ligne agrégée au niveau erreur, et non une ligne par outil, parce qu'une cause commune fait échouer tous les outils de façon identique :
 
 ```text
-Verbatra agent tools: 2 of 14 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : quatorze ici, parce que cette session a été lancée avec `--allow-spend`, et douze dans une session sans ce flag. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
+La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : quinze ici, parce que cette session a été lancée avec `--allow-spend`, et treize dans une session sans ce flag. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
 
 Une passe qui n'a jamais atteint la boucle par outil signale une ligne différente et ne déclenche pas l'avis :
 

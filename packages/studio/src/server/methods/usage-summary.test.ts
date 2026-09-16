@@ -153,11 +153,12 @@ describe("usageSummaryHandler", () => {
       await writeRunStatusFile(project, {
         version: 1,
         generatedAt: "2026-07-16T00:00:00.000Z",
+        budgetCounting: "reconciled",
         budget: {
           maxTokens: 1000,
           behavior: "stop",
           supported: false,
-          tokensUsed: 0,
+          tokensUsed: 394,
           exceeded: false,
         },
         locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
@@ -172,11 +173,35 @@ describe("usageSummaryHandler", () => {
           maxTokens: 1000,
           behavior: "stop",
           supported: false,
-          tokensUsed: 0,
+          tokensUsed: 394,
           exceeded: false,
         },
       });
       expect((result as { usage?: unknown }).usage).toBeUndefined();
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("shows no budget, never a within-budget zero, for a token-less run recorded before the budget was enforced", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+    try {
+      await writeRunStatusFile(project, {
+        version: 1,
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        budget: {
+          maxTokens: 1000,
+          behavior: "stop",
+          supported: false,
+          tokensUsed: 0,
+          exceeded: false,
+        },
+        locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
+      });
+
+      const result = await usageSummaryHandler({}, deps(project));
+
+      expect(result).toEqual({ available: true, generatedAt: "2026-07-16T00:00:00.000Z" });
     } finally {
       await project.cleanup();
     }

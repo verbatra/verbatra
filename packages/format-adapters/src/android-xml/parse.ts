@@ -1,6 +1,7 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Element } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
+import type { FlatParseResult } from "../flat/flat-file-adapter.js";
 import { decodeAndroidEscapes } from "./escape.js";
 import { assertValidResourceName } from "./names.js";
 import { extractAndroidPlaceholders } from "./placeholders.js";
@@ -41,10 +42,12 @@ function parseStringElement(
   element: Element,
   namespace: string,
   out: Map<string, TranslationEntry>,
+  excluded: string[],
 ): void {
   const name = element.getAttribute("name") ?? "";
   assertValidResourceName(name, "string");
   if (!isTranslatable(element)) {
+    excluded.push(name);
     return;
   }
   const raw = singleTextValue(element);
@@ -72,10 +75,12 @@ function parsePluralsElement(
   element: Element,
   namespace: string,
   out: Map<string, TranslationEntry>,
+  excluded: string[],
 ): void {
   const name = element.getAttribute("name") ?? "";
   assertValidResourceName(name, "plurals");
   if (!isTranslatable(element)) {
+    excluded.push(name);
     return;
   }
   const items = elementChildren(element, "item");
@@ -106,18 +111,16 @@ function parsePluralsElement(
   }
 }
 
-export function parseAndroidXmlEntries(
-  content: string,
-  namespace: string,
-): Map<string, TranslationEntry> {
+export function parseAndroidXmlEntries(content: string, namespace: string): FlatParseResult {
   const { root } = parseAndroidXml(content);
   const out = new Map<string, TranslationEntry>();
+  const excluded: string[] = [];
   for (const element of elementChildren(root)) {
     if (element.localName === "string") {
-      parseStringElement(element, namespace, out);
+      parseStringElement(element, namespace, out, excluded);
     } else if (element.localName === "plurals") {
-      parsePluralsElement(element, namespace, out);
+      parsePluralsElement(element, namespace, out, excluded);
     }
   }
-  return out;
+  return { entries: out, excludedLeafPaths: excluded };
 }

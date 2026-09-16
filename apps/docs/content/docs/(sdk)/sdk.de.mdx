@@ -49,13 +49,17 @@ fehlenden und geänderten Keys an den Provider schicken, die Integritätsprüfun
 ausführen, die Locale-Dateien schreiben und das Lock aktualisieren. Nutze
 es für Skripte, Build-Schritte und CI-Jobs.
 
-Eingabe: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` schränkt den Lauf auf eine Teilmenge der konfigurierten Ziel-Locales ein, genau wie bei
   `check` und `diff`. Ein nicht konfiguriertes Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas
   gelesen oder ausgegeben wird. Lass es weg, um alle Ziel-Locales abzudecken.
 - `dryRun` liest, vergleicht und meldet, ohne den Provider zu konstruieren oder aufzurufen und
   ohne irgendetwas zu schreiben.
+- `estimate` ergänzt unter `RunSummary.estimate` eine Kostenschätzung vor dem Lauf und impliziert
+  `dryRun`: es konstruiert keinen Provider, liest keinen API-Key und schreibt nichts. Die Menge
+  wird immer gemeldet; ein Geldbetrag braucht einen `rates`-Block in der Konfiguration, der den
+  konfigurierten Provider und das Modell benennt.
 - `prune` entfernt verwaiste Keys (Ziel-Keys ohne Gegenstück in der Quelle) aus der geschriebenen
   Datei und dem Lock. `generatePlurals` synthetisiert fehlende CLDR-Pluralformen (nur i18next-JSON
   mit einem LLM-Provider). Beide sind standardmäßig aus; wenn gesetzt, übersteuert jedes die
@@ -83,6 +87,25 @@ Probleme des gesamten Laufs werfen einen `SdkError`; ein einzelnes fehlschlagend
 nie, sondern landet als `status: "failed"` auf dem Eintrag dieses Locales, während der Lauf
 weitergeht.
 
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Beantwortet, ob eine Menge von Lauf-Optionen zu einem Dry Run führt. Sie nimmt `dryRun` und
+`estimate`, die du gleich an `translate` übergibst, und liefert zurück, ob dieser Lauf einen
+Provider konstruiert, eine Datei schreibt oder irgendetwas ausgibt. Hier wird als einziger Stelle
+entschieden, dass `estimate` ein `dryRun` impliziert. Greif also darauf zurück, wenn etwas rund um
+einen Lauf das vorab wissen muss, statt die Implikation zu wiederholen und davon abzudriften.
+
+```ts
+import { resolveDryRun, translate } from "@verbatra/sdk";
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
 ### watch
 
 Beobachtet die Quell-Locale-Datei und führt `translate` bei jeder entprellten Änderung neu aus. Es
@@ -105,6 +128,102 @@ existiert, sodass `watch` selbst fehlschlägt, statt einen Controller zurückzug
 `CONCURRENCY_BUDGET_CONFLICT` (es gibt keinen Dry-Run-Watch, der Budgetkonflikt greift also
 immer), und eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`. Jeder Fehlschlag nach dem Start
 kommt über `onRun` an, und das Beobachten geht weiter.
+
+## Pseudolokalisierung
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+Baut allein aus den Quellstrings eine künstliche Locale, sodass abgeschnittene Layouts und Strings,
+die nie für die Übersetzung extrahiert wurden, auffallen, bevor überhaupt ein API-Key existiert.
+Jeder Wert wird akzentuiert, um etwa ein Drittel seiner übersetzbaren Länge verlängert und in die
+Begrenzungszeichen `[` und `]` gefasst, während Platzhalter in jeder Syntax unangetastet bleiben,
+die die Adapter kennen, einschließlich ICU-Plural- und -select-Zweigen, Markup-Tags und
+Escape-Sequenzen. Es konstruiert keinen Provider, liest keinen API-Key und stellt keine
+Netzwerkanfrage.
+
+Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie eine Provider-Übersetzung. Ein
+Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in `copied`
+genannt, statt kaputt geschrieben zu werden; der Eintrag ist also weiterhin vorhanden und wird
+weiterhin gerendert.
+
+Eingabe: `{ config, cwd?, locale?, out? }`. `locale` ist standardmäßig `en-XA` und `out`
+`.verbatra-local/pseudo`, was `verbatra init` bereits in `.gitignore` einträgt; das konfigurierte
+`files.pattern` wird darin expandiert, die Datei behält also das Layout, das die Anwendung
+erwartet. Eine Pseudo-Locale, die eine konfigurierte Locale benennt oder auf einer konfigurierten
+Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas
+gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
+eine einstehen. Ebenso ein `out`, das absolut ist oder aus `cwd` herausklettert. Weil die Datei außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für
+sie aus, und `check` und `diff` melden sie nie als abgedriftet.
+
+Gibt ein `PseudolocalizeResult` zurück: die `locale`, den absoluten `path`, wie viele `entries`
+verarbeitet wurden, wie viele `transformed` wurden, die `copied` Keys und ob überhaupt etwas
+`written` wurde. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quellen
+schreibt also nichts neu und meldet `written` als false. Bei `xliff` und `apple-xcstrings`, deren
+Writer nur ein bereits vorhandenes Dokument patchen, wird die Ausgabe bei jedem Schreibvorgang neu
+aus der Quelle kopiert, damit ein nach dem ersten Lauf hinzugefügter Key weiterhin in der
+Pseudo-Locale ankommt; bei einer kopierten XLIFF-Datei wird `target-language` auf die Pseudo-Locale
+umgeschrieben.
+
+## Typisierte Kataloge
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+Deklariert den Quellkatalog eines Projekts als TypeScript: eine Union aller Keys, die er enthält,
+und pro Key die Argumente, die dessen Nachricht interpoliert. Typisiere eine Übersetzungsfunktion
+gegen das Ergebnis, und aus einem vertippten Key oder einem fehlenden Interpolationsargument wird
+ein Compile-Fehler statt eines Lookup-Fehlers zur Laufzeit. Es kostet nichts: Es wird kein Provider
+konstruiert, keine API-Key-Umgebungsvariable gelesen und keine Netzwerkanfrage gestellt.
+
+Gelesen wird eine Datei (der Quell-Locale-Katalog), geschrieben eine Datei (die Deklaration); eine
+Ziel-Locale-Datei wird nie angefasst. Die Keys sind genau das, was der Format-Adapter ohnehin schon
+erzeugt hat, in Dokumentreihenfolge, zwei Läufe über einen unveränderten Katalog schreiben also
+byteidentische Bytes. Die Argumente stammen aus den Platzhalter-Tokens, die der Adapter extrahiert
+hat, außer in den ICU-Nachrichtenformaten (`next-intl-json` und `arb`): Dort wird jede Nachricht mit
+demselben ICU-Parser gelesen, den der Adapter verwendet. Jeder Key wird als Zeichenketten-Literal in
+Anführungszeichen ausgegeben, ein Key mit einem Punkt, ein reserviertes Wort, eine führende Ziffer,
+ein Anführungszeichen oder ein leerer Key wird also wortwörtlich deklariert, statt verworfen oder
+neu aufgeteilt zu werden, und ein Key, den der Adapter in `excludedLeafPaths` gemeldet hat, wird
+überhaupt nicht deklariert.
+
+Was nicht behauptet wird, zählt ebenso viel wie das, was deklariert wird. Eine Nachricht ohne
+Platzhalter bekommt eine Form, bei der jedes übergebene Argument ein Typfehler ist; eine, deren
+Platzhalter ihre Argumente benennen, bekommt eine Objektform; eine mit nummerierten oder anonymen
+Platzhaltern bekommt ein readonly-Tupel. Ein ICU-Argument, das nur einige `select`- oder
+`plural`-Zweige verwenden, wird als optionales Mitglied deklariert. Argumenttypen stammen
+ausschließlich aus dem, was der Katalog festhält: `number` für ein ICU-Argument vom Typ `number`,
+`plural` oder `selectordinal` und für einen numerischen Formatter oder eine numerische
+Konvertierung, `Date | number` für ein ICU-Argument vom Typ `date` oder `time` und einen
+i18next-Formatter `datetime`, `string` für ein ICU-Argument vom Typ `select` und eine
+printf-String-Konvertierung, und sonst ein Alias auf `string | number`, nie ein großzügiges `any`.
+Eine unescapte i18next-Interpolation (`{{- name}}`) wird unter dem Namen hinter ihrem Präfix
+deklariert. Eine Nachricht, die der Adapter als ungültig gemeldet hat, eine, die ihre Argumente
+zugleich zu benennen und zu nummerieren scheint, und eine mit einem Platzhalter-Index außerhalb des
+Bereichs werden mit ihren Argumenten in `unresolved` deklariert, statt still als argumentlos zu
+gelten. Plural-Geschwister werden nie zusammengefasst: Jedes wird für sich deklariert, und die vom
+Adapter als Plural markierten werden aufgelistet.
+
+Eingabe: `{ config, cwd?, out?, configPath?, check? }`. `out` fällt auf `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben wird, weist
+`TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt, absolut ist, mit `..` aus `cwd`
+herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte
+Locale-Datei, die Lock-Datei, den Translation-Memory-Cache, eine Datei, in der verbatra nach seiner
+Konfiguration sucht, oder `configPath` benennt, die Konfigurationsdatei, aus der `config` geladen
+wurde; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen. Ein generierender Lauf
+weist mit demselben Code außerdem zurück, eine bestehende Datei zu ersetzen, die nicht mit der
+Kopfzeile beginnt, die verbatra schreibt, und lässt diese Datei unangetastet. Die vollständige Liste
+steht auf der Seite zu [`verbatra types`](/docs/cli/types). Mit gesetztem `check` wird überhaupt
+nichts geschrieben, nichts wegen seines Inhalts zurückgewiesen, und der Lauf meldet nur, ob die
+committete Datei noch passt, und genau das braucht ein CI-Gate.
+
+Gibt ein `GenerateTypesResult` zurück: den absoluten `path`, den `sourcePath`, aus dem es gebaut
+wurde, wie viele `keys` deklariert wurden und wie viele davon mindestens ein Argument nehmen, das
+verbatra bestimmen konnte (`withArguments`, das einen Key aus `unresolved` nie mitzählt), die
+`unresolved` Keys sowie die `excluded` und `plural` Keys, ob etwas `written` wurde, ob die Datei auf
+der Platte beim Start `stale` war und ob dies ein `check`-Lauf war.
 
 ## Zustand inspizieren, ohne zu schreiben
 
@@ -130,13 +249,35 @@ Gibt ein `DoctorResult` zurück, dessen `ok` genau dann true ist, wenn keine Pr�
 ist. Es wirft `CONFIG_NOT_FOUND` nur für einen explizit angegebenen `configPath`, der nicht
 existiert.
 
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den Quell-Locale-Katalog zusammen. Es ist der eine Einstiegspunkt, der Anwendungscode statt einer Locale-Datei liest, und genau das macht verbatra in einem Projekt nutzbar, das noch keinen Katalog hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable gelesen und keine Netzwerkanfrage gestellt.
+
+Geschrieben wird ausschließlich die Quell-Locale-Datei, und nur wirklich neue Keys werden ergänzt: Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert, und ein Key im Katalog, den keine Aufrufstelle nennt, bleibt unangetastet. Ein Lauf, der nichts Neues findet, schreibt gar nichts. Alles, was der Scan nicht auflösen kann, kommt als Daten zurück statt geworfen zu werden: ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen Standardwerten in `conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
+
+Eingabe: `{ config, cwd?, dryRun? }`, wobei `config.extract` das Framework und die Quellverzeichnisse benennt. Gibt ein `ExtractResult` zurück. Die Dateisuche läuft über das optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als `EXTRACT_FS_UNSUPPORTED` gemeldet.
+
 ### check
 
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
 
-Eingabe: `{ config, cwd?, locales? }`. Gibt eine `CheckSummary` zurück, deren `inSync` genau dann
-true ist, wenn jedes geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
+Eingabe: `{ config, cwd?, locales?, consistency? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
+genau dann true ist, wenn jedes geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
+
+<AvailableFrom version="0.11.0" />
+
+Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsistencies`: eine
+`InconsistencyGroup` pro Quellstring, den das Locale unter verschiedenen Keys unterschiedlich
+übersetzt, mit der `source`, jeder abweichenden Übersetzung als `{ value, keys }` sowie dem
+`context`, der `description`, der `meaning`, `isPlural` und `pluralForm`, die die gruppierten Keys
+teilen. Verglichen werden nur aktuelle Keys, Werte nach NFC-Normalisierung und ohne Leerraum am
+Anfang und Ende, Keys mit abweichender Beschreibung, Bedeutung, Plural-Kennzeichen oder
+gettext-`msgctxt` werden nie gruppiert, und Pluralformen unter eigenen Keys werden pro Form
+verglichen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
+keinen Provider auf.
 
 ### diff
 
@@ -144,15 +285,32 @@ Das detaillierte Geschwister von `check`: dieselbe Berechnung, aber es gibt die 
 Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
 und kippen nie `hasPendingChanges`, da ein Standardlauf nicht prunt.
 
-Eingabe: `{ config, cwd?, locales? }`. Gibt eine `DiffSummary` zurück.
+Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
+einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
+statische Referenz nennt, in Katalogreihenfolge. Er ist rein lesend, braucht keinen Key und bildet
+die i18next-Laufzeit nach (`t`-Aufrufe und ihre Aliase, statische `keyPrefix`- und
+`getFixedT`-Präfixe, `Trans`-Keys, Keys mit Namespace sowie Plural- und Kontextvarianten), wobei
+Keys in der Kodierung des Katalogformats verglichen werden. Jeder gelistete Key trägt seinen
+dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` trifft, landen in
+`ignored`, und Keys, die ein Template-Literal mit statischem Anfang erreichen könnte, in
+`possiblyDynamic`. Sein `status` ist `complete`, `unreliable` (mit `unreliableBecause`, das jeden
+Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne Key-Liste). Alle
+Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
+kippt nie `hasPendingChanges`.
+
+Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
 
 ### keyIntegrity
 
-Meldet für die geänderten Keys jedes Locales, ob der aktuelle Zielwert noch zu den Platzhaltern
-der Quelle passt und ob er gültiges ICU ist. Jeder Eintrag trägt `key`, `hasPlaceholders`,
-`matches`, bei einer Abweichung die `missing`- und `extra`-Platzhalter-Tokens sowie `icuValid`.
-Einträge tragen nie einen Quell- oder Zielstring-Wert. Das ist der Integritätsbericht pro Key, den
-Studio anzeigt.
+Meldet für die geänderten Keys jedes Locales, ob der aktuelle Zielwert noch zu den Platzhaltern der
+Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
+Eintrag trägt `key`, `hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und
+`extra`-Platzhalter-Tokens, `icuValid`, `markupMatches` sowie `markupDetails` mit den Tags hinter
+einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Dass Markup hier
+gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Schreiben: eine
+Übersetzung, die vor der Prüfung entstand, außerhalb von verbatra bearbeitet wurde oder über einen
+Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
+Integritätsbericht pro Key, den Studio anzeigt.
 
 Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; geprüft werden immer
 nur Keys, die für ein Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüftem Locale
@@ -187,6 +345,14 @@ Best-Effort-Telemetrie, keine Korrektheits-Baseline.
 Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt `{ available: false }` oder
 `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
 
+Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
+weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das,
+dass gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
+Schnappschüsse behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, das ein älteres
+Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Review-Warteschlange und
+den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
+anzeigen.
+
 ## Operationen auf einzelnen Keys
 
 Das sind die Nahtstellen, die Verbatra Studio antreibt; nutze sie, um dein eigenes Review-Tooling
@@ -210,10 +376,14 @@ des Schreib-Locks des Locales aktualisiert. Ruft nie einen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, value }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`, wobei nichts
-geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert für eine
-Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze dafür also
-das `[[CLEAR]]`-Sentinel der Arbeitsmappe.
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
+wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
+für eine Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze
+dafür also das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
+`INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
+daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzlich `details`, die
+betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
+oder `+` für eines, das der Kandidat erfunden hat.
 
 ### retranslateEntry
 
@@ -224,8 +394,8 @@ Key.
 
 Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. Anders als
-bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
+Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`.
 
 ## Massenhafte Inhalts-Reads
@@ -315,8 +485,86 @@ dem Dateinamen. Gibt dieselbe `RunSummary`-Form zurück wie
 Locale, das kein konfiguriertes Ziel ist, lässt dieses Locale mit `CONFIG_INVALID` als Daten auf
 der Zusammenfassung fehlschlagen, kein Wurf.
 
-## Konfiguration
+## Das TMX-Paar
 
+`importTmx` und `exportTmx` bewegen den [Translation-Memory](/docs/the-cache) in TMX hinein und
+wieder heraus, also in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und
+lesen. Keine der beiden Funktionen baut einen Provider, liest einen API-Key oder stellt eine
+Netzwerkanfrage: jeder Wert kommt aus der Datei oder aus dem Memory, der ohnehin schon auf der Platte
+liegt. Das ist nicht das Arbeitsmappen-Paar in einem anderen Format. Das Arbeitsmappen-Paar übergibt
+einer Übersetzerin einen Ausschnitt des offenen Deltas pro Locale; dieses Paar bewegt den ganzen
+Memory als eine mehrsprachige Datei zwischen Werkzeugen.
+
+### importTmx
+
+Liest eine TMX-Datei in den Memory des Projekts. Eingabe:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung des
+Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
+oder eine fehlerhafte Datei mit einem strukturierten `SOURCE_INVALID`-Fehler abgelehnt statt geparst
+wird. Hat das Problem einen Ort in der Datei, nennt die Meldung Zeile, Spalte und, innerhalb einer
+Übersetzungseinheit, deren Ordnungszahl ab 1, und `tmxErrorLocation(error)` liefert denselben Ort
+als `TmxErrorLocation`, bei jedem anderen Fehler `undefined`, sodass du weder den Fehler noch seinen
+`cause` casten musst. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten
+Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu
+Bindestrichen; sonst die längste konfigurierte Locale, die ein Subtag-Präfix des Tags ist (Lookup
+nach RFC 4647), oder andernfalls eine konfigurierte Locale, die das Tag nur um Regions- oder
+Varianten-Subtags erweitert, nie um eine Schrift, sodass zwei Tags mit unterschiedlichen Schrift-
+oder Regions-Subtags (`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag wird nur dann als
+mehrdeutig gemeldet, wenn die Locales, die es erreichen könnte, nicht auf einer Präfix-Kette liegen.
+Segmente einer Einheit, die auf dieselbe Locale auflösen, die Quell-Locale eingeschlossen, lassen
+nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
+Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und werden als `conflicting`
+gezählt (bei der Quell-Locale wird die Einheit abgelehnt und in `conflictingSourceUnits` gezählt).
+Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter, Inline-Markup, ICU, Ausartung und Leere, dem
+Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon unterliegen, geprüft beim Eintritt in
+den Memory statt überlassen an den Lauf, der sie später liest.
+
+Widerspricht eine importierte Einheit einer Übersetzung, die der Memory schon hat, gewinnt der
+Memory, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem aktuellen
+Konfigurations-Fingerprint gespeichert, demselben Schlüssel, den ein echter Lauf schreibt, und hören
+deshalb auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar ändern. Dieselbe Datei ein
+zweites Mal zu importieren ändert nichts.
+
+Gibt bei beschädigten Daten einen Bericht zurück, statt zu werfen: wie viele Einheiten gelesen
+wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates`,
+`conflicting` und `rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein
+Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wurde
+(`subflowDroppedUnits`), sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
+`memoryWritable` ist `false`, wenn die Memory-Datei von einem neueren verbatra geschrieben wurde;
+sie bleibt dann unangetastet.
+
+### tmxErrorLocation
+
+Liest aus dem, was `importTmx` geworfen hat, wo eine abgelehnte TMX-Datei schiefging. Gibt für eine
+`SOURCE_INVALID`-Ablehnung mit einem Ort in der Datei eine `TmxErrorLocation` zurück
+(`{ line, column, unit? }`, alle ab 1 gezählt) und bei jedem anderen Fehler `undefined`, auch bei
+einer fehlenden oder zu großen Datei, sodass du weder den Fehler noch seinen `cause` casten musst.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+Schreibt den Memory als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, locales?, toolVersion? }`,
+wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt, das als Konstante exportiert
+wird. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
+Menge, die ein Lauf wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US`
+wird zu `en-US`), was nichts daran ändert, wie der Memory geschlüsselt ist. Ein leerer Memory ergibt
+eine gültige, leere Datei statt eines Fehlers. Gibt `{ path, units, locales, withoutSource,
+illegalCharactersRemoved }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der
+Memory keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor
+dem Speichern des Quelltexts geschrieben wurde, und `illegalCharactersRemoved` zählt die Zeichen,
+die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
+
+## Konfiguration
 ### loadConfig
 
 Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.
@@ -398,6 +646,39 @@ Eintrag, weil es kein Token-Limit entgegennimmt. Der Typ `ScaffoldableProviderId
 Provider ab; `openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende
 Umgebungsvariable hat.
 
+## Formatadapter
+
+<AvailableFrom version="0.11.0" />
+
+Alles, was du brauchst, um einen Formatadapter für ein Format zu bauen, das verbatra nicht mitbringt, und ihn neben den eingebauten zu registrieren. Ein Format von außerhalb verbatra wird mit einem `custom:`-Bezeichner wie `custom:toml` benannt, den die Konfiguration genau wie einen eingebauten Namen akzeptiert. Die vollständige Anleitung steht unter [Eigene Formatadapter](/docs/custom-format-adapters), samt dem, worauf du dich beim Installieren eines Drittanbieter-Adapters einlässt: Er ist voll vertrauenswürdiger Code, und verbatra kapselt ihn nicht ab.
+
+### createDefaultRegistry
+
+Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. `register` gibt die Registry zurück, Registrierungen lassen sich also verketten, und wirft einen `AdapterError` mit dem Code `DUPLICATE_FORMAT`, wenn das Format schon vergeben ist.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
+
+### createTreeFileAdapter
+
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Es nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter und die Pluralform meldet, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Es trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` und `keyMode`.
+
+### nodeAdapterFs
+
+Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
+
+### isCustomFormatId
+
+Grenzt einen Format-Bezeichner auf einen von außen ein: true für einen wohlgeformten `custom:`-Bezeichner, false für jeden eingebauten Formatnamen. Nützlich, wenn dein eigenes Werkzeug die beiden auseinanderhalten muss, etwa um zu entscheiden, ob vor einem Lauf erst eine Registry geliefert werden muss.
+
 ## Secret-Redaktion
 
 <AvailableFrom version="0.10.0" />
@@ -438,6 +719,13 @@ mitten im Schreiben nie eine halb geschriebene Datei hinterlässt, und `createEx
 gegenüber anderen Prozessen sein, weil es das Primitiv hinter der Schreibsperre pro Locale ist. Das
 Anlegen von Verzeichnissen ist Sache des Aufrufers.
 
+`readDirectory` ist optional, damit eine Implementierung, die vor der Quellcode-Extraktion
+geschrieben wurde, weiterhin kompiliert. [`extract`](#extract) ist der einzige Einstiegspunkt, der
+es braucht, und meldet sein Fehlen als `EXTRACT_FS_UNSUPPORTED`. Es listet die direkten Einträge
+eines Verzeichnisses als `{ name, kind }` auf, wobei `kind` `"file"`, `"directory"` oder `"other"`
+ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und genau das hält ihn
+innerhalb der übergebenen Roots.
+
 Das Einzige, was `deps.fs` nicht erreicht, ist eine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
@@ -455,6 +743,7 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
 }
 
 interface LocaleSummary {
@@ -462,6 +751,7 @@ interface LocaleSummary {
   status: "succeeded" | "partial" | "failed";
   translated: string[];          // keys translated this run (in dry-run, keys that would be)
   cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
   unchanged: string[];           // keys already up to date
   orphaned: string[];            // target keys with no matching source key (always reported)
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
@@ -483,8 +773,11 @@ interface LocaleSummary {
 Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
-  haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `EQUALS_SOURCE`,
-  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED` und `PROVIDER_DEGRADED`. Ein Review-Flag ist nur
+  haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`,
+  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
+  `FUZZY_CACHE_REUSE`. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jede
+  Laufzeit-Validierung und jedes vollständige Lookup daraus, statt die Mitglieder abzutippen. Ein
+  Review-Flag ist nur
   ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in `needsReview` und
   `integrityMismatches` zugleich. Was jeder Code bedeutet, steht in
   [Übersetzungssicherheit](/docs/translation-safety), das Abarbeiten der Warteschlange in
@@ -498,20 +791,45 @@ Die Teile, die du kennen solltest:
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
   `RunSummary.usage` ist die Summe über die Locales.
 - **budget** erscheint nur, wenn `maxTokens` konfiguriert ist: `{ maxTokens, behavior, supported,
-  tokensUsed, exceeded }`. Gegen einen Provider ohne Token-Meldung oder in einem Dry-Run ist es
-  trotzdem vorhanden, mit `supported: false`; die Leitplanke ist also sichtbar wirkungslos statt
-  fälschlich ausgelöst.
+  tokensUsed, exceeded }`. `supported` sagt, ob `tokensUsed` vollständig der vom Provider selbst
+  gemeldete Verbrauch ist; es ist `false`, sobald eine Anfrage ohne brauchbare Zahl zurückkam, und
+  die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein
+  Dry-Run meldet es mit `tokensUsed: 0`, weil nichts gesendet wurde. Unter `behavior: "stop"` wird
+  die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
+  aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
+  zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die Summe
+  nachträglich über die Obergrenze schieben kann. Danach wird nichts weiter gesendet. Zwei Dinge
+  liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits
+  zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn
+  Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten,
+  und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und
+  danach wird nichts weiter zugelassen. Das Budget begrenzt einen `translate`-Aufruf: `watch`
+  startet je Lauf ein frisches, und `retranslateEntry` fällt gar nicht darunter.
 - **error.code** auf einem fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
   also nicht als geschlossene Menge.
 - **cacheHits** listet Keys, die aus dem [Translation-Memory-Cache](/docs/the-cache) statt vom
-  Provider bedient wurden. **unfilled**, **malformedRows** und **duplicateKeys** werden nur von
+  Provider bedient wurden. **fuzzyHits** listet die Keys, die eine Übersetzung für einen
+  geänderten Quellstring wiederverwendet haben, jeweils mit `key`, `similarity` und dem getroffenen
+  `previousSource`; sie ist leer, solange `fuzzyCache` nicht aktiviert ist, und diese Keys zählen nie
+  in **cacheHits** mit. **unfilled**, **malformedRows** und **duplicateKeys** werden nur von
   `importWorkbook` befüllt (ein `translate`-Lauf lässt sie leer): eine leere Zeile, deren Key zum
   Importzeitpunkt weiterhin eine Übersetzung braucht (egal ob sie als `new` oder als `changed`
   exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte, und ein
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem CSV- oder TSV-Import
   vorhanden.
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Macht aus einem `RunBudget` einen von drei `BudgetStanding`-Werten, dieselbe Einordnung, die die
+Budgetzeile der CLI, Studio und das Agent-Tool `usage.summary` melden: `"within"`, wenn der Lauf
+seine Obergrenze nie erreicht hat, `"stopped-before-ceiling"`, wenn ein `"stop"`-Budget eine Anfrage
+zurückgehalten hat, während `tokensUsed` noch unter `maxTokens` lag, und `"reached"`, wenn
+`tokensUsed` `maxTokens` erreicht oder überschritten hat. Nutze es, statt nur `exceeded` zu lesen,
+das in beiden letzten Fällen `true` ist.
 
 ## Das Fehlermodell
 
@@ -539,6 +857,9 @@ geworfen.
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor ein Locale läuft |
 | `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während `maxTokens` konfiguriert ist; wird vor jedem Provider-Aufruf geworfen (ein Dry-Run ist ausgenommen) |
 | `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
+| `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
+| `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
+| `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` eines fehlgeschlagenen Locales |
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen

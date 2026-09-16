@@ -1,0 +1,114 @@
+---
+title: verbatra pseudo
+description: Erzeuge aus deinen Quellstrings eine Pseudo-Locale, ohne einen Provider aufzurufen oder einen API-Key zu lesen.
+status: new
+---
+<AvailableFrom version="0.11.0" />
+
+Starte deine App in einer Sprache, die es nicht gibt. `pseudo` baut allein aus deinen Quellstrings eine künstliche Locale: Jeder Wert wird mit Akzenten versehen, verlängert und in sichtbare Begrenzungszeichen gesetzt. So fallen ein abgeschnittener Button, ein aus zwei Fragmenten zusammengeklebter Satz und ein Label, das nie für die Übersetzung extrahiert wurde, sofort auf dem Bildschirm auf. Es kostet nichts: Es wird kein Provider konstruiert, keine Netzwerkanfrage gestellt und kein API-Key gelesen, es funktioniert also in einem frischen Checkout, bevor überhaupt ein Key existiert.
+
+Greif am ersten Tag dazu, bevor du ein Provider-Konto hast, und danach immer wieder, wenn du ein Layout änderst. [`verbatra translate --dry-run`](/docs/cli/translate) sagt dir, was ein echter Lauf übersetzen würde; `pseudo` gibt dir etwas, womit du die App wirklich starten kannst.
+
+## Aufruf
+
+```bash
+verbatra pseudo [flags]
+```
+
+## Flags
+
+| Flag | Argument | Standard | Wirkung |
+| --- | --- | --- | --- |
+| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien aus diesem Verzeichnis auflösen |
+| `--config` | `<path>` | eine suchen | diese Konfigurationsdatei laden, statt eine zu suchen |
+| `--locale` | `<code>` | `en-XA` | die zu erzeugende Pseudo-Locale |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, in das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb davon |
+| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis unter `result` trägt |
+
+## Was die Transformation tut
+
+| Schritt | Was du siehst |
+| --- | --- |
+| Akzentuieren | jeder ASCII-Buchstabe wird zu einem akzentuierten Doppelgänger, aus `Save` wird `Śáṽé` |
+| Verlängern | der Wert wächst um etwa ein Drittel seiner übersetzbaren Länge, ungefähr so viel, wie Deutsch gegenüber Englisch braucht |
+| Markieren | der Wert wird in `[` und `]` gefasst, ein abgeschnittener oder zusammengesetzter String fällt so auf einen Blick auf |
+
+Aus `Hello {{name}}, you have {{count}} unread messages` wird
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
+
+Alles, was kein übersetzbarer Text ist, bleibt unangetastet. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen: Tokens mit doppelten geschweiften Klammern, i18next-Verschachtelungsreferenzen, einfache geschweifte Klammern und ICU-Argumente, printf-Konvertierungen und Apple-Pluralvariablen, Markup-Tags, XML-Entities, verlinkte vue-i18n-Nachrichten und Escape-Sequenzen. Innerhalb einer ICU-Nachricht bleiben die Argumentnamen, die Schlüsselwörter `plural` und `select` und jeder Zweig-Selektor genau so stehen, wie sie geschrieben sind, und nur der Text innerhalb eines Zweigs wird akzentuiert.
+
+vue-i18n packt Pluralformen in einen einzigen, durch Pipe getrennten Wert, deshalb wird jede Form für sich akzentuiert, verlängert und markiert: Aus `car | cars` wird `[ćáŕ··] | [ćáŕś··]` statt eines einzigen geklammerten Laufs, und genau bei Pluralen ist das Layout am schwersten richtig hinzubekommen.
+
+Die Transformation ist deterministisch: Dieselbe Quelle erzeugt immer dieselbe Pseudo-Locale, und die Datei lässt sich sauber diffen.
+
+## Nichts Kaputtes landet je in der Datei
+
+Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie die Übersetzung eines Providers: dieselben Platzhalter wie die Quelle, gültig unter der Nachrichtensyntax des Formats, nicht entartet und nicht leer. Ein Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in der Ausgabe unter `copied verbatim` genannt. Der Eintrag ist also weiterhin vorhanden und wird weiterhin gerendert. Das ist ein Bericht, kein Fehlschlag, und der Befehl endet trotzdem mit `0`.
+
+## Wohin die Ausgabe geht
+
+Die Pseudo-Locale wird außerhalb deiner echten Locale-Dateien geschrieben, standardmäßig unter `.verbatra-local/pseudo`. [`verbatra init`](/docs/cli/init) trägt `.verbatra-local/` bereits in `.gitignore` ein, die erzeugte Datei wird also nicht versehentlich committet, und `pseudo` ergänzt diesen Eintrag in einer vorhandenen `.gitignore`, falls er fehlt.
+
+Dein konfiguriertes `files.pattern` wird innerhalb dieses Verzeichnisses expandiert, die Datei behält also das Layout, das deine App erwartet: Mit `locales/{locale}.json` schreibt der Standardlauf nach `.verbatra-local/pseudo/locales/en-XA.json`. Richte deinen Dev-Server oder deine i18n-Bibliothek auf dieses Verzeichnis, um sie zu laden. Mit `--out` schreibst du sie dorthin, wo dein Build sie ohnehin ausliefert.
+
+Zwei Regeln verhindern, dass sie je für eine echte Übersetzung einsteht:
+
+- Eine Pseudo-Locale, die deine Quell-Locale oder eine deiner Ziel-Locales benennt, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird.
+- Ein `--out`, das die Datei auf eine konfigurierte Locale-Datei legen würde, wird genauso zurückgewiesen.
+- Ein `--out`, das absolut ist oder mit `..` aus dem Arbeitsverzeichnis herausklettert, wird ebenfalls zurückgewiesen, damit eine erzeugte Pseudo-Locale nie außerhalb des Projekts landet, aus dem sie stammt.
+
+Weil die Datei außerhalb von `files.pattern` liegt, sieht [`verbatra translate`](/docs/cli/translate) sie nie und gibt nie Geld für sie aus, und [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) melden sie nie als fehlend oder veraltet. Es gibt nichts zu `targetLocales` hinzuzufügen und nichts aus der CI auszuschließen.
+
+### Formate, die durch Patchen einer vorhandenen Datei geschrieben werden
+
+`xliff` und `apple-xcstrings` werden nicht von Grund auf neu geschrieben: Ihre Writer patchen Einheiten, die bereits im Zieldokument stehen. Die Pseudo-Locale-Datei wird deshalb bei jedem Schreibvorgang neu aus deiner Quelldatei kopiert, damit ein Key, den du nach dem ersten Lauf zur Quelle hinzufügst, weiterhin in der Pseudo-Locale ankommt, statt still zu fehlen. Bei einer kopierten XLIFF-Datei wird außerdem das Attribut `target-language` auf die Pseudo-Locale umgeschrieben, damit die Datei nie behauptet, eine Sprache zu enthalten, die sie nicht enthält.
+
+## Beispiele
+
+```bash
+# en-XA unter .verbatra-local/pseudo erzeugen
+verbatra pseudo
+
+# eine zweite Pseudo-Locale daneben erzeugen
+verbatra pseudo --locale en-XB
+
+# dorthin schreiben, wo der Dev-Server schon statische Dateien ausliefert
+verbatra pseudo --out public/locales-pseudo
+
+# maschinenlesbares Ergebnis für ein Skript
+verbatra pseudo --json
+```
+
+Ein Lauf sieht so aus:
+
+```text
+verbatra pseudo
+  en-XA: 118 of 120 entries pseudolocalized
+    copied verbatim: legal.disclaimer, brand.name
+  wrote /app/.verbatra-local/pseudo/locales/en-XA.json
+```
+
+Lass ihn ohne Änderung an der Quelle noch einmal laufen, und er schreibt nichts neu:
+
+```text
+verbatra pseudo
+  en-XA: 120 of 120 entries pseudolocalized
+  unchanged /app/.verbatra-local/pseudo/locales/en-XA.json
+```
+
+## Exit-Codes
+
+| Code | Bedeutung |
+| --- | --- |
+| `0` | die Pseudo-Locale wurde erzeugt, egal ob sich die Datei geändert hat |
+| `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, oder eine zurückgewiesene Pseudo-Locale oder ein zurückgewiesener Ausgabepfad |
+
+Es gibt keinen Exit `1`: Ein wortwörtlich kopierter Wert wird gemeldet, nicht als Fehlschlag behandelt.
+
+## Verwandt
+
+- [`verbatra translate`](/docs/cli/translate) macht die echte Arbeit, sobald du einen Key hast.
+- [`verbatra doctor`](/docs/cli/doctor) ist der andere Befehl, der ein Projekt prüft, ohne etwas auszugeben.
+- [Formate](/docs/formats) listet die Platzhaltersyntax jedes Formats.
+- [Konfigurationsdatei](/docs/config-file) dokumentiert `files.pattern`, das über das Layout der erzeugten Datei entscheidet.

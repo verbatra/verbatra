@@ -11,6 +11,7 @@ export interface RunLocaleSummary {
   readonly translated?: readonly string[];
   readonly unchanged?: readonly string[];
   readonly cacheHits?: readonly string[];
+  readonly fuzzyHits?: ReadonlyArray<{ readonly key: string }>;
   readonly generated?: readonly string[];
   readonly providerFailures?: readonly string[];
   readonly integrityMismatches?: readonly string[];
@@ -51,6 +52,7 @@ function acceptedKeys(summary: RunLocaleSummary): readonly string[] {
     ...(summary.translated ?? []),
     ...(summary.unchanged ?? []),
     ...(summary.cacheHits ?? []),
+    ...(summary.fuzzyHits ?? []).map((hit) => hit.key),
     ...(summary.generated ?? []),
   ];
 }

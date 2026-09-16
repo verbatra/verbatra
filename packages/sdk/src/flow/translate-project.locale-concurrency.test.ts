@@ -241,6 +241,22 @@ describe("translate: bounded locale-level concurrency", () => {
     expect(providerConstructed).toBe(false);
   });
 
+  it("keeps the refusal on the ground that concurrent locales withhold unpredictably, not that they overspend", async () => {
+    const error = await translate({
+      config: cfg(["de", "fr"], { maxTokens: 1000 }),
+      cwd: "/nonexistent",
+      concurrency: 2,
+    }).then(
+      () => undefined,
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toMatchObject({ code: "CONCURRENCY_BUDGET_CONFLICT" });
+    const message = (error as { message: string }).message;
+    expect(message).toContain("which locale loses its remaining work");
+    expect(message).not.toContain("overshoot");
+  });
+
   it("allows concurrency greater than 1 with a budget on a dry run", async () => {
     const dir = await project({ a: "A" });
     const summary = await translate({

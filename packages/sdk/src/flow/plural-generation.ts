@@ -2,13 +2,15 @@ import type { Tone, TranslateResult, TranslationProvider } from "@verbatra/ai-pr
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { chunk, subBatchFailedNotice } from "./batching.js";
-import { type BudgetTracker, checkBudgetTrip, foldTrackerUsage } from "./budget.js";
+import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
+import { payloadContextOf } from "./estimate.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { readNotices } from "./notices.js";
 import {
   type CldrPluralCategory,
   type PluralGenerationItem,
   planPluralGeneration,
+  syntheticEntry,
 } from "./plural-categories.js";
 import type { LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
@@ -22,6 +24,7 @@ export interface PluralGenerationContext {
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly baseline: ReadonlyMap<string, string>;
   readonly targetKeys: ReadonlySet<string>;
@@ -42,7 +45,9 @@ export interface PluralGenerationResult {
   readonly budgetWithheld: readonly string[];
   readonly notices: readonly LocaleNotice[];
   readonly usage: UsageSummary | undefined;
-  readonly tripped: boolean;
+  readonly withheldByBudget: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
 }
 
 const EMPTY_RESULT: PluralGenerationResult = {
@@ -52,7 +57,9 @@ const EMPTY_RESULT: PluralGenerationResult = {
   budgetWithheld: [],
   notices: [],
   usage: undefined,
-  tripped: false,
+  withheldByBudget: false,
+  refusedProjection: undefined,
+  counted: false,
 };
 
 function generatedLockHash(
@@ -67,15 +74,6 @@ function generatedLockHash(
     placeholders: [],
     isPlural: true,
   });
-}
-
-function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
-  return {
-    ...item.sourceEntry,
-    key: item.targetKey,
-    isPlural: true,
-    meaning: `CLDR plural category "${item.category}"`,
-  };
 }
 
 function isAdopted(
@@ -96,14 +94,26 @@ function staleItems(
   });
 }
 
+export interface PendingPluralInput {
+  readonly source: LocaleResource;
+  readonly targetLocale: string;
+  readonly format: string;
+  readonly baseline: ReadonlyMap<string, string>;
+  readonly targetKeys: ReadonlySet<string>;
+}
+
+export function pendingPluralForms(input: PendingPluralInput): readonly PluralGenerationItem[] {
+  const plan = planPluralGeneration(input.source, input.targetLocale, input.format);
+  const candidates = plan.items.filter(
+    (item) => !isAdopted(item, input.targetKeys, input.baseline),
+  );
+  return staleItems(candidates, input.baseline);
+}
+
 export async function generatePluralForms(
   context: PluralGenerationContext,
 ): Promise<PluralGenerationResult> {
-  const plan = planPluralGeneration(context.source, context.targetLocale, context.format);
-  const candidates = plan.items.filter(
-    (item) => !isAdopted(item, context.targetKeys, context.baseline),
-  );
-  const stale = staleItems(candidates, context.baseline);
+  const stale = pendingPluralForms(context);
   if (stale.length === 0) {
     return EMPTY_RESULT;
   }
@@ -114,26 +124,34 @@ export async function generatePluralForms(
   const budgetWithheld: string[] = [];
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
-  let tripped = false;
+  let budgetWithheldAny = false;
+  let refusedProjection: number | undefined;
+  let counted = false;
+  const payload = payloadContextOf(context);
   for (const batch of chunk(stale, context.maxBatchSize)) {
-    if (context.budget.stopped) {
+    const entries = batch.map(syntheticEntry);
+    const decision = reserveBudget(context.budget, entries, payload);
+    if (decision.reservation === undefined) {
       for (const item of batch) {
         budgetWithheld.push(item.targetKey);
       }
+      budgetWithheldAny = true;
+      refusedProjection = refusedProjection ?? decision.refusedProjection;
       continue;
     }
     const subResult = await runGenerationSubBatch(
       context,
       batch,
+      entries,
       accepted,
       withheld,
       providerFailures,
     );
     notices.push(...subResult.notices);
     foldUsage(usage, subResult.usage);
-    foldTrackerUsage(context.budget, subResult.usage);
+    reconcileBudget(context.budget, decision.reservation, subResult.usage);
     if (checkBudgetTrip(context.budget)) {
-      tripped = true;
+      counted = true;
     }
   }
   return {
@@ -143,7 +161,9 @@ export async function generatePluralForms(
     budgetWithheld,
     notices,
     usage: usage.total,
-    tripped,
+    withheldByBudget: budgetWithheldAny,
+    refusedProjection,
+    counted,
   };
 }
 
@@ -155,13 +175,13 @@ interface GenerationSubBatchResult {
 async function runGenerationSubBatch(
   context: PluralGenerationContext,
   batch: readonly PluralGenerationItem[],
+  entries: readonly TranslationEntry[],
   accepted: GeneratedForm[],
   withheld: string[],
   providerFailures: string[],
 ): Promise<GenerationSubBatchResult> {
   let result: TranslateResult;
   try {
-    const entries = batch.map(syntheticEntry);
     result = await context.provider.translateBatch(buildTranslateRequest(context, entries));
   } catch (error) {
     for (const item of batch) {

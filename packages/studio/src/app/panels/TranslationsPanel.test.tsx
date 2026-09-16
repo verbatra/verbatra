@@ -567,6 +567,84 @@ describe("TranslationsPanel stat strip", () => {
     );
   });
 
+  it("says a stop run refused under its ceiling stopped before it, not that it reached it", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 4000, outputTokens: 2000 },
+          budget: {
+            maxTokens: 10000,
+            behavior: "stop",
+            supported: true,
+            tokensUsed: 6000,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
+    );
+  });
+
+  it("still reports where an estimated budget stopped, not silence", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 10, outputTokens: 20 },
+          budget: {
+            maxTokens: 1000,
+            behavior: "stop",
+            supported: false,
+            tokensUsed: 994,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
+    );
+  });
+
+  it("reports within-budget for an estimated budget that never reached its ceiling", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          budget: {
+            maxTokens: 1000,
+            behavior: "warn",
+            supported: false,
+            tokensUsed: 120,
+            exceeded: false,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run")).toMatchObject({
+      value: "Not reported",
+      hint: `Within budget. As of ${new Date(generatedAt).toLocaleString()}`,
+    });
+  });
+
   it("says so plainly when the provider reported no tokens and no budget was set", async () => {
     stubPage({ "usage.summary": { ok: true, result: { available: true, generatedAt } } });
 

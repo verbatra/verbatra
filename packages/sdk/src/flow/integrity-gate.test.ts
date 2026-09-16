@@ -19,6 +19,34 @@ function entry(value: string, placeholders: readonly string[] = []): Translation
   return { key: "k", namespace: "en", value, placeholders, isPlural: false };
 }
 
+describe("gateCandidateValue: the accepted result carries its placeholder comparison", () => {
+  const adapter = i18nextAdapter();
+
+  it("surfaces a matched, in-order comparison so callers need not recompute it", () => {
+    const result = gateCandidateValue(
+      entry("Hello {{first}} {{last}}", ["{{first}}", "{{last}}"]),
+      "Hallo {{first}} {{last}}",
+      adapter,
+    );
+    expect(result).toEqual({
+      accepted: true,
+      integrity: { matches: true, missing: [], extra: [], reordered: false },
+    });
+  });
+
+  it("surfaces a reordered comparison, which the gate accepts but review flags on", () => {
+    const result = gateCandidateValue(
+      entry("Hello {{first}} {{last}}", ["{{first}}", "{{last}}"]),
+      "Hallo {{last}} {{first}}",
+      adapter,
+    );
+    expect(result).toEqual({
+      accepted: true,
+      integrity: { matches: true, missing: [], extra: [], reordered: true },
+    });
+  });
+});
+
 describe("gateCandidateValue: placeholder-only formats", () => {
   const adapter = i18nextAdapter();
 
@@ -28,7 +56,7 @@ describe("gateCandidateValue: placeholder-only formats", () => {
       "Hallo {{name}}",
       adapter,
     );
-    expect(result).toEqual({ accepted: true });
+    expect(result).toMatchObject({ accepted: true });
   });
 
   it("rejects a candidate missing a source placeholder", () => {
@@ -38,7 +66,7 @@ describe("gateCandidateValue: placeholder-only formats", () => {
 
   it("always accepts message validity for a non-ICU format regardless of content", () => {
     const result = gateCandidateValue(entry("Hello", []), "anything { unbalanced", adapter);
-    expect(result).toEqual({ accepted: true });
+    expect(result).toMatchObject({ accepted: true });
   });
 
   it("rejects a placeholder-free, ICU-valid candidate that is a degenerate repetition loop", () => {
@@ -62,7 +90,7 @@ describe("gateCandidateValue: ICU-capable formats (branch-aware comparePlacehold
     const source = entry("{count, plural, one {One} other {# items}}", ["{count}"]);
     const candidate = "{count, plural, one {Eins} other {# Elemente}}";
     const result = gateCandidateValue(source, candidate, adapter);
-    expect(result).toEqual({ accepted: true });
+    expect(result).toMatchObject({ accepted: true });
   });
 
   it("rejects a malformed ICU candidate that nonetheless matches on placeholders", () => {
@@ -90,11 +118,11 @@ describe("gateCandidateValue: an empty candidate for a non-empty source", () => 
   );
 
   it("still round-trips an empty translation of a source that is itself empty", () => {
-    expect(gateCandidateValue(entry("", []), "", adapter)).toEqual({ accepted: true });
+    expect(gateCandidateValue(entry("", []), "", adapter)).toMatchObject({ accepted: true });
   });
 
   it("accepts an empty candidate for a whitespace-only source", () => {
-    expect(gateCandidateValue(entry("   ", []), "", adapter)).toEqual({ accepted: true });
+    expect(gateCandidateValue(entry("   ", []), "", adapter)).toMatchObject({ accepted: true });
   });
 
   it("keeps reporting placeholder for an empty candidate whose source carries a placeholder", () => {
@@ -129,6 +157,6 @@ describe.each([
   });
 
   it("still round-trips an empty translation of an empty source", () => {
-    expect(gateCandidateValue(entry("", []), "", adapter)).toEqual({ accepted: true });
+    expect(gateCandidateValue(entry("", []), "", adapter)).toMatchObject({ accepted: true });
   });
 });

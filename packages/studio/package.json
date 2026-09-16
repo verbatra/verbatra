@@ -74,9 +74,9 @@
     "tailwind-merge": "3.6.0",
     "tailwindcss": "4.3.3",
     "tsup": "catalog:",
-    "tsx": "4.23.12",
+    "tsx": "4.23.13",
     "typescript": "catalog:",
-    "vite": "8.2.2",
+    "vite": "8.3.0",
     "vitest": "catalog:"
   }
 }

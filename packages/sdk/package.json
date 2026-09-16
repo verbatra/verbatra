@@ -93,6 +93,7 @@
     "@verbatra/config": "workspace:*",
     "@verbatra/core": "workspace:*",
     "@verbatra/exchange": "workspace:*",
+    "@verbatra/extract": "workspace:*",
     "@verbatra/format-adapters": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "tsup": "catalog:",

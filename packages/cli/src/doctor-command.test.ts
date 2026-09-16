@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { DoctorResult } from "@verbatra/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
@@ -225,5 +228,147 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     await run(["--help"], recordingDeps().deps, cap.streams);
 
     expect(cap.out()).toContain("doctor");
+  });
+});
+
+function literalReport(overrides: Partial<DoctorResult> = {}): DoctorResult {
+  return makeDoctorResult({
+    ok: false,
+    checks: [
+      {
+        id: "config",
+        title: "Configuration",
+        status: "pass",
+        detail: "Loaded /proj/.verbatrarc.json.",
+      },
+      {
+        id: "untranslated-literals",
+        title: "Untranslated literals",
+        status: "fail",
+        detail: "Scanned 2 source files: 1 untranslated literal found (1 suppressed).",
+      },
+    ],
+    literals: {
+      scannedFiles: 2,
+      findings: [
+        { file: "src/app.tsx", line: 12, column: 7, text: "Welcome back", truncated: false },
+      ],
+      suppressed: [
+        {
+          file: "src/app.tsx",
+          line: 14,
+          column: 9,
+          text: "Acme Inc.",
+          truncated: false,
+          reason: "ignore-list",
+        },
+      ],
+      diagnostics: [{ file: "src/broken.tsx", reason: "unparseable" }],
+    },
+    ...overrides,
+  });
+}
+
+describe("run doctor --literals", () => {
+  it("asks the SDK for the literal scan and exits 1 with every finding located", async () => {
+    const { deps, calls } = recordingDeps({ doctor: async () => literalReport() });
+    const cap = captureStreams();
+
+    const code = await run(["doctor", "--literals", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(calls.doctor).toEqual([{ cwd: "/proj", literals: true }]);
+    expect(cap.out()).toContain("[fail] Untranslated literals: Scanned 2 source files");
+    expect(cap.out()).toContain('    src/app.tsx:12:7  "Welcome back"');
+    expect(cap.out()).toContain('    suppressed (ignore-list) src/app.tsx:14:9  "Acme Inc."');
+    expect(cap.out()).toContain("    not scanned (unparseable) src/broken.tsx");
+  });
+
+  it("neutralizes control, bidi, and separator characters in the literal text it echoes back", async () => {
+    const hostile = "\u001b[31mred\u009b2J\u202eflip\u2028line";
+    const report = literalReport({
+      literals: {
+        scannedFiles: 1,
+        findings: [{ file: "src/app.tsx", line: 1, column: 1, text: hostile, truncated: false }],
+        suppressed: [
+          {
+            file: "src/app.tsx",
+            line: 2,
+            column: 1,
+            text: hostile,
+            truncated: false,
+            reason: "ignore-list",
+          },
+        ],
+        diagnostics: [],
+      },
+    });
+    const { deps } = recordingDeps({ doctor: async () => report });
+    const cap = captureStreams();
+
+    await run(["doctor", "--literals"], deps, cap.streams);
+
+    expect(cap.out()).toContain('    src/app.tsx:1:1  " [31mred 2J flip line"');
+    expect(cap.out()).toContain(
+      '    suppressed (ignore-list) src/app.tsx:2:1  " [31mred 2J flip line"',
+    );
+    for (const character of ["\u001b", "\u009b", "\u202e", "\u2028"]) {
+      expect(cap.out()).not.toContain(character);
+    }
+  });
+
+  it("exits 0 and reports zero on a project with no findings", async () => {
+    const clean = literalReport({
+      ok: true,
+      literals: { scannedFiles: 3, findings: [], suppressed: [], diagnostics: [] },
+    });
+    const { deps } = recordingDeps({ doctor: async () => clean });
+    const cap = captureStreams();
+
+    const code = await run(["doctor", "--literals"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.out()).toContain("no problems found");
+  });
+
+  it("emits the standard success envelope carrying the scan under result", async () => {
+    const report = literalReport();
+    const { deps } = recordingDeps({ doctor: async () => report });
+    const cap = captureStreams();
+
+    const code = await run(["doctor", "--literals", "--json"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(parseEnvelope(cap.out())).toEqual({
+      ok: true,
+      version: JSON_ENVELOPE_VERSION,
+      command: "doctor",
+      result: report,
+    });
+  });
+
+  it("does not load dotenv files, so no API key reaches the environment", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-literals-"));
+    vi.stubEnv("ANTHROPIC_API_KEY", undefined);
+    try {
+      await writeFile(join(dir, ".env"), `ANTHROPIC_API_KEY=${KEY_CANARY}\n`, "utf8");
+      const { deps } = recordingDeps();
+
+      await run(["doctor", "--literals", "--cwd", dir], deps, captureStreams().streams);
+      expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+
+      await run(["doctor", "--cwd", dir], deps, captureStreams().streams);
+      expect(process.env.ANTHROPIC_API_KEY).toBe(KEY_CANARY);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("documents the flag in the command help", async () => {
+    const cap = captureStreams();
+
+    await run(["doctor", "--help"], recordingDeps().deps, cap.streams);
+
+    expect(cap.out()).toContain("--literals");
   });
 });

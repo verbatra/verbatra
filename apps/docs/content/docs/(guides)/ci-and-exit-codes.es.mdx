@@ -16,10 +16,10 @@ El código de salida es el contrato sobre el que ramifica tu paso de CI:
 
 | Código | Significado |
 | --- | --- |
-| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `export` escribió su libro, `init` preparó el proyecto, `watch` o `studio` se detuvo limpiamente, o se imprimió `--help` o `--version` |
-| `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado, `diff` encontró una clave ausente o cambiada, `doctor` encontró al menos una comprobación fallida, o `studio` falló al apagar su servidor |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración mala, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` sin un proveedor que pueda resolver o incapaz de componer una configuración válida, un arranque o una parada fallidos de `watch`, o `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor |
-| `130` | `watch` o `studio` fue detenido a la fuerza por una segunda interrupción |
+| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `types` generó su declaración, `export` escribió su libro, `tmx` importó o exportó su memoria de traducción, `init` preparó el proyecto, `watch`, `studio` o `mcp` se detuvo limpiamente, o se imprimió `--help` o `--version` |
+| `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado, `diff` encontró una clave ausente o cambiada (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró al menos una comprobación fallida, `types --check` encontró que la declaración confirmada está desactualizada, o `studio` o `mcp` falló al apagar su servidor |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración mala, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` sin un proveedor que pueda resolver o incapaz de componer una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
+| `130` | `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
 
 Algunos casos límite que conviene conocer:
 
@@ -27,7 +27,7 @@ Algunos casos límite que conviene conocer:
 
 - Un locale **parcial** cuenta como fallo. Significa que el archivo se escribió pero todavía faltan algunas claves, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción. Sale con `1` exactamente igual que un locale fallido, porque un locale a medio traducir en disco no es un estado que una canalización deba dejar pasar. Lee `partial` en el resumen para distinguir los dos casos.
 - Un **archivo de bloqueo corrupto** es un error de toda la ejecución tanto en `translate` como en `import`, nunca un único locale fallido. Es un solo archivo compartido, así que un archivo de bloqueo que se corrompe con la ejecución en marcha la detiene con `2` en vez de seguir con los locales restantes. Lo que se escribió antes del corte permanece en disco: repara el archivo de bloqueo y vuelve a ejecutar el comando.
-- Una sola interrupción es una parada limpia, y tanto `watch` como `studio` salen con `0` ante ella. Más allá de eso no des por hecho que se comportan igual: si la propia parada falla, `watch` sale con `2` y `studio` sale con `1`.
+- Una sola interrupción es una parada limpia, y los tres comandos de larga duración (`watch`, `studio` y `mcp`) salen con `0` ante ella. Más allá de eso no des por hecho que se comportan igual: si la propia parada falla, `watch` sale con `2` mientras que `studio` y `mcp` salen con `1`.
 - Una ejecución fallida durante `watch` aparece como un registro en el flujo de salida, nunca como un código de salida distinto de cero.
 - `export` no tiene modo de fallo por locale: sale con `0` o `2`, nunca con `1`.
 - `doctor` lee una configuración rota de forma distinta al resto de comandos: una config que la búsqueda no encuentra, o una que no supera la validación, es una comprobación fallida y salida `1`, porque informar precisamente de eso es el trabajo del comando. Sale con `2` solo cuando no puede ejecutarse en absoluto, por ejemplo con una ruta `--config` explícita que no existe.
@@ -51,7 +51,7 @@ Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` 
 
 ## Salida JSON
 
-Siete comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import` y `doctor`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que ramificas sobre un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
+Once comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types` y `extract`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que ramificas sobre un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
 
 ```ts
 type Envelope<TResult> =
@@ -84,8 +84,11 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
+  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
 }
 ```
+
+El objeto `estimate` lleva `keys`, `requests`, la cantidad facturable que cobra el proveedor y un código `pricing` que dice si se pudo derivar una cifra en moneda. Solo está presente en una ejecución con `--estimate`, que siempre es una ejecución en seco; consulta [Estimar el coste](/docs/estimating-cost) para saber qué significa cada campo.
 
 Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para revisión y más); consulta [la referencia del SDK](/docs/sdk) para la anatomía completa.
 
@@ -198,6 +201,6 @@ Si prefieres no escribir estos jobs tú mismo, la [GitHub Action](/docs/github-a
 
 - **Instala desde el lockfile.** `pnpm install --frozen-lockfile` (o `npm ci`) fija la versión exacta de `@verbatra/cli` que registra tu lockfile, así que una ejecución de CI es reproducible y no puede traer en silencio una versión más nueva. La CLI requiere Node `>=22.14.0`.
 - **Las claves son variables de entorno, nunca flags.** La CLI no acepta ningún argumento de clave y no lee ninguna clave de la configuración; los proveedores leen solo su variable de entorno (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Guarda la clave en el almacén de secretos de tu CI y mapéala en `env`. Los mensajes de error nombran la variable pero nunca contienen el valor de una clave.
-- **Las puertas de solo lectura no necesitan clave.** `check`, `diff` y `export` nunca llaman a un proveedor, así que deja los secretos completamente fuera de esos jobs. `doctor` tampoco llama a ningún proveedor y nunca lee el valor de una clave, pero informa de una variable de clave sin definir como comprobación fallida, así que mapea la clave en cualquier job donde quieras que esa comprobación pase.
+- **Las puertas de solo lectura no necesitan clave.** `check`, `diff`, `export`, `import`, `extract` y `tmx` nunca llaman a un proveedor, así que deja los secretos completamente fuera de esos jobs. `pseudo` tampoco llama a ninguno, y solo escribe su propia locale generada. `types` tampoco llama a ninguno, y solo escribe su declaración generada. `doctor` tampoco llama a ningún proveedor y nunca lee el valor de una clave, pero informa de una variable de clave sin definir como comprobación fallida, así que mapea la clave en cualquier job donde quieras que esa comprobación pase. `doctor --literals` no ejecuta ninguna de las dos comprobaciones, así que no necesita ninguna clave.
 
-`translate`, `watch`, `studio` y `doctor` también cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse, y las variables de entorno reales siempre ganan; `check`, `diff`, `export` e `import` no cargan archivos `.env`, así que en CI normalmente dependerás solo de `env:`.
+`translate`, `watch`, `studio`, `doctor` y `mcp` también cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse (`doctor --literals` no carga ninguno de los dos), y las variables de entorno reales siempre ganan; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types` y `tmx` no cargan archivos `.env`, así que en CI normalmente dependerás solo de `env:`.

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tmx SYSTEM "tmx14.dtd">
+<tmx version="1.4">
+  <header
+    creationtool="Some Translation Platform"
+    creationtoolversion="2024.3"
+    segtype="sentence"
+    o-tmf="TMX"
+    adminlang="en-US"
+    srclang="en-US"
+    datatype="plaintext"
+    creationdate="20240118T091500Z"
+    creationid="exporter">
+    <prop type="x-project">web-app</prop>
+  </header>
+  <body>
+    <tu tuid="1" creationdate="20240118T091500Z" changedate="20240119T101500Z">
+      <prop type="x-key">nav.home</prop>
+      <note>Top navigation label</note>
+      <tuv xml:lang="en-US">
+        <seg>Home</seg>
+      </tuv>
+      <tuv xml:lang="de-DE">
+        <seg>Startseite</seg>
+      </tuv>
+      <tuv xml:lang="fr-FR">
+        <seg>Accueil</seg>
+      </tuv>
+    </tu>
+    <tu tuid="2">
+      <tuv xml:lang="en-US">
+        <seg>Welcome back, {name}</seg>
+      </tuv>
+      <tuv xml:lang="de-DE">
+        <seg>Willkommen zur&#252;ck, {name}</seg>
+      </tuv>
+    </tu>
+    <tu tuid="3">
+      <tuv xml:lang="en-US">
+        <seg>Terms &amp; conditions</seg>
+      </tuv>
+      <tuv xml:lang="ja">
+        <seg>&#21033;&#29992;&#35215;&#32004;</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

@@ -9,14 +9,26 @@ export function createUsageAccumulator(): UsageAccumulator {
   return { total: undefined };
 }
 
+function countableTokens(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+}
+
+export function countableUsage(usage: Usage): UsageSummary {
+  return {
+    inputTokens: countableTokens(usage.inputTokens),
+    outputTokens: countableTokens(usage.outputTokens),
+  };
+}
+
 export function foldUsage(accumulator: UsageAccumulator, usage: Usage | undefined): void {
   if (usage === undefined) {
     return;
   }
+  const reported = countableUsage(usage);
   const prior = accumulator.total ?? { inputTokens: 0, outputTokens: 0 };
   accumulator.total = {
-    inputTokens: prior.inputTokens + usage.inputTokens,
-    outputTokens: prior.outputTokens + usage.outputTokens,
+    inputTokens: prior.inputTokens + reported.inputTokens,
+    outputTokens: prior.outputTokens + reported.outputTokens,
   };
 }
 

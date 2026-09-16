@@ -1,9 +1,6 @@
 import type { TranslationEntry } from "../model/translation-entry.js";
+import { normalizeText } from "./normalize-text.js";
 import { stableStringHash } from "./string-hash.js";
-
-function normalizeText(text: string): string {
-  return text.normalize("NFC").replace(/\r\n?/g, "\n");
-}
 
 function canonicalize(entry: TranslationEntry): string {
   return JSON.stringify([

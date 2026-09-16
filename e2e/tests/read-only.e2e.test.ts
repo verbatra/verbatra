@@ -21,7 +21,7 @@ import {
 
 interface CheckSummaryJson {
   inSync: boolean;
-  locales: { locale: string; missing: number }[];
+  locales: { locale: string; missing: number; inconsistencies?: unknown }[];
 }
 
 function expectSingleJsonDocument(stdout: string): void {
@@ -86,7 +86,16 @@ describe("packaging", () => {
   it("installs the verbatra binary and responds to --help", async () => {
     const result = await runVerbatra(consumer, ["--help"]);
     expect(result.exitCode).toBe(0);
-    for (const command of ["translate", "watch", "check", "diff", "export", "import", "init"]) {
+    for (const command of [
+      "translate",
+      "watch",
+      "check",
+      "diff",
+      "export",
+      "import",
+      "types",
+      "init",
+    ]) {
       expect(result.stdout).toContain(command);
     }
   });
@@ -119,6 +128,27 @@ describe("check (read-only, no provider)", () => {
     });
     const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
     expect(result.exitCode).toBe(0);
+  });
+
+  it("reports a source string translated two ways with --consistency and still exits 0", async () => {
+    const dir = await seedProject("check-consistency", i18nextConfig, {
+      "locales/en.json": { actions: { save: "Save" }, toolbar: { save: "Save" } },
+      "locales/de.json": { actions: { save: "Speichern" }, toolbar: { save: "Sichern" } },
+    });
+    const result = await runVerbatra(consumer, ["check", "--consistency", "--json", "--cwd", dir]);
+    expect(result.exitCode).toBe(0);
+    const summary = expectSuccessPayload<CheckSummaryJson>(result.stdout, "check");
+    expect(summary.inSync).toBe(true);
+    expect(summary.locales.find((entry) => entry.locale === "de")?.inconsistencies).toEqual([
+      {
+        source: "Save",
+        isPlural: false,
+        translations: [
+          { value: "Sichern", keys: ["toolbar.save"] },
+          { value: "Speichern", keys: ["actions.save"] },
+        ],
+      },
+    ]);
   });
 });
 
@@ -314,6 +344,56 @@ describe("other formats (read-only, no provider)", () => {
     expect(de?.missing).toBe(1);
   });
 
+  it("checks an INI project", async () => {
+    const dir = await seedProject(
+      "ini-check",
+      { ...i18nextConfig, format: "ini", files: { pattern: "locales/{locale}.ini" } },
+      {},
+    );
+    await writeFileIn(
+      dir,
+      "locales/en.ini",
+      "; ui strings\n[home]\ngreeting = Hello {name}\nfarewell = Goodbye\n",
+    );
+    await writeFileIn(dir, "locales/de.ini", "; ui strings\n[home]\ngreeting = Hallo {name}\n");
+    const result = await runVerbatra(consumer, ["check", "--json", "--cwd", dir]);
+    expect(result.exitCode).toBe(1);
+    const summary = expectSuccessPayload<CheckSummaryJson>(result.stdout, "check");
+    expect(summary.inSync).toBe(false);
+    const de = summary.locales.find((entry) => entry.locale === "de");
+    expect(de?.missing).toBe(1);
+  });
+
+  it("checks a .NET .resx project", async () => {
+    const dir = await seedProject(
+      "resx-check",
+      { ...i18nextConfig, format: "resx", files: { pattern: "locales/Resources.{locale}.resx" } },
+      {},
+    );
+    const document = (body: string): string =>
+      `<?xml version="1.0" encoding="utf-8"?>\n<root>\n  <resheader name="resmimetype">\n    <value>text/microsoft-resx</value>\n  </resheader>\n${body}</root>\n`;
+    await writeFileIn(
+      dir,
+      "locales/Resources.en.resx",
+      document(
+        '  <data name="Greeting" xml:space="preserve">\n    <value>Hello {0}</value>\n  </data>\n  <data name="Farewell" xml:space="preserve">\n    <value>Goodbye</value>\n  </data>\n',
+      ),
+    );
+    await writeFileIn(
+      dir,
+      "locales/Resources.de.resx",
+      document(
+        '  <data name="Greeting" xml:space="preserve">\n    <value>Hallo {0}</value>\n  </data>\n',
+      ),
+    );
+    const result = await runVerbatra(consumer, ["check", "--json", "--cwd", dir]);
+    expect(result.exitCode).toBe(1);
+    const summary = expectSuccessPayload<CheckSummaryJson>(result.stdout, "check");
+    expect(summary.inSync).toBe(false);
+    const de = summary.locales.find((entry) => entry.locale === "de");
+    expect(de?.missing).toBe(1);
+  });
+
   it("applies a human-filled workbook back into a .properties target file", async () => {
     const dir = await seedProject(
       "properties-roundtrip",
@@ -430,6 +510,38 @@ describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {
     const dir = await seedProject(
       "budget-invalid",
       { ...i18nextConfig, maxTokens: 0 },
+      {
+        "locales/en.json": { greeting: "Hello {{name}}" },
+        "locales/de.json": { greeting: "Hallo {{name}}" },
+      },
+    );
+
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("CONFIG_INVALID");
+  });
+
+  it("accepts a per-key maxLength budget in a packaged config", async () => {
+    const dir = await seedProject(
+      "max-length-valid",
+      { ...i18nextConfig, maxLength: { greeting: 24 } },
+      {
+        "locales/en.json": { greeting: "Hello {{name}}" },
+        "locales/de.json": { greeting: "Hallo {{name}}" },
+      },
+    );
+
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("check exits 2 with a structured CONFIG_INVALID error for a zero maxLength budget", async () => {
+    const dir = await seedProject(
+      "max-length-invalid",
+      { ...i18nextConfig, maxLength: { greeting: 0 } },
       {
         "locales/en.json": { greeting: "Hello {{name}}" },
         "locales/de.json": { greeting: "Hallo {{name}}" },

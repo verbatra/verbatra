@@ -3,11 +3,19 @@ import { AdapterError } from "../errors.js";
 import { isJsonNode, type JsonRecord } from "./json-tree.js";
 import { encodePathSegment, encodeSegment, joinEncodedSegments } from "./key-encoding.js";
 
+/**
+ * Derives the per-entry facts a format decides for itself from one key and its string value: the
+ * placeholder tokens the value carries, and whether the key is one plural form of a set.
+ */
 export type DeriveEntry = (
   key: string,
   value: string,
 ) => { readonly placeholders: readonly string[]; readonly isPlural: boolean };
 
+/**
+ * How a dotted key in the source document is addressed. `literal-leaf` keeps `"a.b"` as one key
+ * whose name contains a dot; `path-notation` reads it as the nested path `a` then `b`.
+ */
 export type KeyMode = "literal-leaf" | "path-notation";
 
 export interface FlattenResult {

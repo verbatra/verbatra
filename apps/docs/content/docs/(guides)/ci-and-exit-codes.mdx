@@ -16,10 +16,10 @@ The exit code is the contract your CI step branches on:
 
 | Code | Meaning |
 | --- | --- |
-| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `export` wrote its workbook, `init` scaffolded the project, `watch` or `studio` stopped cleanly, or `--help` or `--version` was printed |
-| `1` | it ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale, `check` found a locale out of sync, `diff` found a missing or changed key, `doctor` found at least one failed check, or `studio` failed while shutting its server down |
-| `2` | could not run: a whole-run error (bad config, unreadable source, corrupt lock file), a usage error (an empty or unknown `--locales` value, an invalid `--debounce` or `--port`), `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, or `studio` unable to load the config, import `@verbatra/studio`, or start its server |
-| `130` | `watch` or `studio` was force-stopped by a second interrupt |
+| `0` | success: `translate` or `import` finished every locale complete, `check` found every locale in sync, `diff` found no pending changes, `doctor` found no setup problem, `extract` completed its scan, `types` generated its declaration, `export` wrote its workbook, `tmx` imported or exported its translation memory, `init` scaffolded the project, `watch`, `studio` or `mcp` stopped cleanly, or `--help` or `--version` was printed |
+| `1` | it ran, but the result is not clean: `translate` or `import` finished with at least one failed or partial locale, `check` found a locale out of sync, `diff` found a missing or changed key (or, with `--unused`, a complete scan found an unused source key), `doctor` found at least one failed check, `types --check` found the committed declaration out of date, or `studio` or `mcp` failed while shutting its server down |
+| `2` | could not run: a whole-run error (bad config, unreadable source, corrupt lock file), a usage error (an empty or unknown `--locales` value, an invalid `--debounce` or `--port`), `init` without a resolvable provider or unable to scaffold a valid config, `watch` failing to start or to stop, `studio` unable to load the config, import `@verbatra/studio`, or start its server, or `mcp` unable to load the config, import `@verbatra/mcp`, or start its server |
+| `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt |
 
 Some edge cases worth knowing:
 
@@ -27,7 +27,7 @@ Some edge cases worth knowing:
 
 - A **partial** locale counts as failure. It means the file was written but some keys are still missing, usually because a provider sub-batch failed or the integrity gate refused a translation. It exits `1` exactly like a failed locale, because a half-translated locale on disk is not a state a pipeline should wave through. Read `partial` on the summary to tell the two apart.
 - A **corrupt lock file** is a whole-run error in `translate` and `import` alike, never one failed locale. It is a single shared file, so a lock file that turns corrupt while the run is under way stops the run with `2` rather than carrying on through the remaining locales. Whatever was written before the abort stays on disk; fix the lock file and re-run the command.
-- A single interrupt is a clean stop, and both `watch` and `studio` exit `0` on it. Do not assume the two behave alike beyond that: if the stop itself fails, `watch` exits `2` and `studio` exits `1`.
+- A single interrupt is a clean stop, and all three long-running commands (`watch`, `studio` and `mcp`) exit `0` on it. Do not assume they behave alike beyond that: if the stop itself fails, `watch` exits `2` while `studio` and `mcp` exit `1`.
 - A failed run during `watch` shows up as a record on the output stream, never as a non-zero exit code.
 - `export` has no per-locale failure mode: it exits `0` or `2`, never `1`.
 - `doctor` reads a broken config differently from every other command: a config the search does not find, or one that fails validation, is a failed check and exit `1`, because reporting exactly that is the command's job. It exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist.
@@ -51,7 +51,7 @@ Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid 
 
 ## JSON output
 
-Seven commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, and `doctor`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
+Eleven commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, and `extract`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
 
 ```ts
 type Envelope<TResult> =
@@ -84,8 +84,11 @@ interface RunSummary {
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
+  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
 }
 ```
+
+The `estimate` object carries `keys`, `requests`, the billing quantity the provider charges for, and a `pricing` code saying whether a currency figure could be derived. It is present only on a `--estimate` run, which is always a dry run; see [Estimating cost](/docs/estimating-cost) for what each field means.
 
 Each `LocaleSummary` carries the per-locale key lists (translated, unchanged, orphaned, withheld, flagged for review, and more); see [the SDK reference](/docs/sdk) for the full anatomy.
 
@@ -198,6 +201,6 @@ If you would rather not write these jobs yourself, the [GitHub Action](/docs/git
 
 - **Install from the lockfile.** `pnpm install --frozen-lockfile` (or `npm ci`) pins the exact `@verbatra/cli` release your lockfile records, so a CI run is reproducible and cannot silently pull a newer release. The CLI requires Node `>=22.14.0`.
 - **Keys are environment variables, never flags.** The CLI takes no key argument and reads no key from config; providers read only their environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Store the key in your CI secret store and map it into `env`. Error messages name the variable but never contain a key value.
-- **Read-only gates need no key.** `check`, `diff`, and `export` never call a provider, so keep secrets out of those jobs entirely. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass.
+- **Read-only gates need no key.** `check`, `diff`, `export`, `import`, `extract`, and `tmx` never call a provider, so keep secrets out of those jobs entirely. `pseudo` calls none either, and writes only its own generated locale. `types` calls none either, and writes only its generated declaration. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass. `doctor --literals` runs neither check, so it needs no key at all.
 
-`translate`, `watch`, `studio`, and `doctor` also load `.env.local` and then `.env` from the working directory before they run, with real environment variables always winning; `check`, `diff`, `export`, and `import` load no `.env` files, so in CI you will normally rely on `env:` alone.
+`translate`, `watch`, `studio`, `doctor`, and `mcp` also load `.env.local` and then `.env` from the working directory before they run (`doctor --literals` loads neither), with real environment variables always winning; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types`, and `tmx` load no `.env` files, so in CI you will normally rely on `env:` alone.

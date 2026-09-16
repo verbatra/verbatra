@@ -9,20 +9,29 @@ Acyclic, one-way, confirmed against every `packages/*/package.json` `dependencie
 `devDependencies` block:
 
 ```
-config <- core <- format-adapters / ai-providers <- sdk (+ exchange) <- cli / studio
+config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <- cli / studio / mcp
 ```
 
 - `@verbatra/core` (`packages/core/package.json`) depends only on `zod`. Nothing below it.
 - `@verbatra/format-adapters` depends on `@verbatra/core` (`packages/format-adapters/package.json`).
 - `@verbatra/ai-providers` depends on `@verbatra/core` (`packages/ai-providers/package.json`).
-- `@verbatra/exchange` (`packages/exchange/package.json`) has no *runtime* workspace dependency
-  (`dependencies` lists only `exceljs`/`jszip`/`zod`); its one workspace dependency is
-  `@verbatra/config` as a `devDependency`, for shared build/lint/test config only. It does not
-  depend on `core`, so it does not sit on the `core <- format-adapters / ai-providers` line; it
-  feeds into the sdk independently, parallel to that line.
+- `@verbatra/exchange` (`packages/exchange/package.json`) builds and reads Excel workbooks and
+  delimited files, and reads and writes TMX translation memory (`build-tmx.ts`, `read-tmx.ts`). It
+  has no *runtime* workspace dependency (`dependencies` lists only
+  `@xmldom/xmldom`/`exceljs`/`jszip`/`zod`); its one workspace dependency is `@verbatra/config` as
+  a `devDependency`, for shared build/lint/test config only. It does not depend on `core`, so it
+  does not sit on the `core <- format-adapters / ai-providers` line; it feeds into the sdk
+  independently, parallel to that line.
+- `@verbatra/extract` (`packages/extract/package.json`) takes the same position as `exchange`: its
+  `dependencies` list only `zod`, its one workspace dependency is `@verbatra/config` as a
+  `devDependency`, and it joins the graph at the sdk. It is a distinct capability class from
+  `format-adapters` (code to IR rather than file to IR) with its own Strategy family
+  (`SourceExtractor`) and its own file-system port (`packages/extract/src/source-fs-port.ts`,
+  enforced by `source-fs-port.no-direct-node-fs.test.ts`). The decision record is
+  `packages/extract/docs/adr/0001-source-string-extraction.md`.
 - `@verbatra/sdk` depends on `@verbatra/core`, `@verbatra/ai-providers`, `@verbatra/exchange`,
-  `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles them into
-  `dist/index.js`; see `packages/sdk/package.json`).
+  `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles
+  them into `dist/index.js`; see `packages/sdk/package.json`).
 - `@verbatra/cli` depends on `@verbatra/sdk` only, plus `commander` and `zod`
   (`packages/cli/package.json`). It carries `@verbatra/studio` as a `devDependency` only, reached
   through a dynamic import at runtime (`packages/cli/src/studio-command.ts`), never a static
@@ -41,19 +50,23 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange) <- cli / st
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward
-packages (ai-providers, format-adapters) get wired into the sdk; nothing downstream of sdk should
-need to reach back into core, format-adapters, or ai-providers directly except through the sdk's
-exported surface.
+packages (ai-providers, format-adapters) get wired into the sdk. `@verbatra/extract` is consumed
+by `packages/sdk/src/config/extraction-config.ts` and the sdk flows that back `verbatra extract`,
+`diff --unused`, and `doctor --literals` (`packages/sdk/src/flow/extract.ts`, `source-scan.ts`,
+`diff.ts`, `literal-lint.ts`, `doctor.ts`). Nothing downstream of sdk should need to reach back
+into core, format-adapters, ai-providers, or extract directly except through the sdk's exported
+surface.
 
 ## SDK-first, CLI and Studio stay thin
 
 Business logic lives in `@verbatra/sdk` and below. `@verbatra/cli`
 (`packages/cli/src/run.ts`, the `Command` registrations for `translate`, `watch`, `export`,
-`import`, `check`, `diff`, `doctor`, `studio`, `init`) is a thin wrapper: it parses args with zod
-schemas, calls into the sdk, and renders the result. `@verbatra/studio` is the local dashboard;
-its provider-spending actions (retranslate, translate pending) are gated behind `--allow-spend`
-(`packages/cli/src/studio-command.ts`, `packages/studio/src/app/panels/SettingsPanel.tsx`), but
-the underlying translate/retranslate logic itself lives in the sdk, not in the studio server or UI.
+`import`, `tmx`, `check`, `diff`, `pseudo`, `types`, `doctor`, `studio`, `mcp`, `init`, `extract`)
+is a thin wrapper: it parses args with zod schemas, calls into the sdk, and renders the result.
+`@verbatra/studio` is the local dashboard; its provider-spending actions (retranslate, translate
+pending) are gated behind `--allow-spend` (`packages/cli/src/studio-command.ts`,
+`packages/studio/src/app/panels/SettingsPanel.tsx`), but the underlying translate/retranslate logic
+itself lives in the sdk, not in the studio server or UI.
 
 ## Format adapters: build on the two shared factories
 
@@ -70,12 +83,12 @@ implementing the `FormatAdapter` interface (`packages/format-adapters/src/adapte
   key/value formats: takes `parseEntries`, `serializeEntries`, `extractPlaceholders`. Java/Spring
   `.properties` is the shipped example (`packages/format-adapters/src/properties/properties-adapter.ts`).
 
-All twelve shipped adapters (i18next, vue-i18n, next-intl, ngx-translate, XLIFF, YAML, Flutter
+All fourteen shipped adapters (i18next, vue-i18n, next-intl, ngx-translate, XLIFF, YAML, Flutter
 ARB, Java/Spring properties, Apple `.strings`/`.stringsdict`, Apple `.xcstrings`, Android
-`strings.xml`, gettext `.po`/`.pot`) are registered in `createDefaultRegistry`
-(`packages/format-adapters/src/default-registry.ts`). Adding a format means: add the member to
-`SupportedFormat` in `packages/core/src/model/supported-format.ts`, build the adapter on the
-matching factory, register it in `default-registry.ts`, export it from
+`strings.xml`, gettext `.po`/`.pot`, INI, .NET `.resx`) are registered in `createDefaultRegistry`
+(`packages/format-adapters/src/default-registry.ts`). Adding a built-in format means: add the
+member to `SupportedFormat` in `packages/core/src/model/supported-format.ts`, build the adapter on
+the matching factory, register it in `default-registry.ts`, export it from
 `packages/format-adapters/src/index.ts`. Do not reimplement read, write, or detection logic.
 
 One exception: `createAppleXcstringsAdapter` (`packages/format-adapters/src/xcstrings/xcstrings-adapter.ts`)
@@ -92,6 +105,20 @@ package.
 `AdapterRegistry` (`packages/format-adapters/src/registry.ts`) resolves a file to an adapter by
 explicit format or by `canHandle` detection, returning a structured `resolved` / `no-match` /
 `ambiguous` result rather than throwing.
+
+Third-party formats do not join `SupportedFormat`, which stays a closed set. The decision record
+is `docs/decisions/0001-third-party-format-adapters.md`. An outside adapter names itself with a
+`custom:` identifier (`CustomFormatId`, `FormatId`, `formatIdSchema` in
+`packages/core/src/model/format-id.ts`). The construction surface (`createTreeFileAdapter`,
+`createFlatFileAdapter`, `createDefaultRegistry`, `AdapterRegistry`, `AdapterFs`,
+`nodeAdapterFs`) is re-exported from `packages/sdk/src/index.ts` rather than by publishing
+`@verbatra/format-adapters`. A plugin is reached only through the `adapterRegistry` dependency
+the sdk flows accept (`packages/sdk/src/flow/translate-project.ts`); nothing loads one by name.
+`AdapterRegistry.register` rejects a malformed `custom:` identifier (`INVALID_FORMAT_ID`) and a
+second adapter for a held format (`DUPLICATE_FORMAT`), and wraps a `custom:` adapter in
+`attributeAdapterFailures` (`packages/format-adapters/src/attribution.ts`) so its throws surface
+as an `AdapterError` naming the format. That wrapper is attribution, not a sandbox: a plugin is
+trusted code.
 
 ## Providers: one interface, one factory table (Strategy + Factory)
 
@@ -132,8 +159,14 @@ has no I/O, no network, no file system, and depends only on `zod`
 (`packages/core/package.json` `dependencies`). It holds the domain model
 (`LocaleResource`, `TranslationEntry`, `SupportedFormat`), `diffResources`, content/string hashing,
 placeholder integrity checking, and validation. Nothing in `core` reads a file, makes a network
-call, or imports anything from `format-adapters`, `ai-providers`, `exchange`, `sdk`, `cli`, or
-`studio`.
+call, or imports anything from `format-adapters`, `ai-providers`, `exchange`, `extract`, `sdk`,
+`cli`, `mcp`, or `studio`.
+
+`parse5` is a `devDependency` of core (`packages/core/package.json` `devDependencies`), used only
+as a test oracle by `packages/core/src/placeholder/inline-markup.parse5-differential.test.ts`.
+`scripts/verify-core-runtime-imports.test.mjs` (run by `pnpm test:scripts`) scans every non-test
+source file under `packages/core/src` and fails if one imports anything other than `zod` or a
+relative module, so a test-only dependency cannot leak into core's runtime.
 
 ## Boundaries for zod
 

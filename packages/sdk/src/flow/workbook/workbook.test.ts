@@ -284,6 +284,26 @@ describe("exportWorkbook", () => {
     expect(row?.reviewReasons).toContain("length-ratio-outlier");
   });
 
+  it("recomputes MAX_LENGTH_EXCEEDED for a current target over its key's budget", async () => {
+    const dir = await project({ a: "Save your settings" }, { de: { a: "Einstellungen sichern" } });
+    const config = cfg({ targetLocales: ["de"], maxLength: { a: 10 } });
+    const result = await exportWorkbook({ config, cwd: dir, includeUnchanged: true });
+    const data = await readWorkbook(new Uint8Array(await readFile(result.path)));
+    const row = data.sheets[0]?.rows.find((r) => r.key === "a");
+    expect(row?.reviewStatus).toBe("review");
+    expect(row?.reviewReasons).toBe("max-length-exceeded");
+  });
+
+  it("leaves a current target unflagged when its key has no configured budget", async () => {
+    const dir = await project({ a: "Save your settings" }, { de: { a: "Einstellungen sichern" } });
+    const config = cfg({ targetLocales: ["de"], maxLength: { other: 10 } });
+    const result = await exportWorkbook({ config, cwd: dir, includeUnchanged: true });
+    const data = await readWorkbook(new Uint8Array(await readFile(result.path)));
+    const row = data.sheets[0]?.rows.find((r) => r.key === "a");
+    expect(row?.reviewStatus).toBe("ok");
+    expect(row?.reviewReasons).toBe("");
+  });
+
   it("recomputes GLOSSARY_TERM_MISSED using the configured glossary", async () => {
     const dir = await project(
       { a: "Click Save to continue" },

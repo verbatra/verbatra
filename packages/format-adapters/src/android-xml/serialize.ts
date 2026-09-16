@@ -1,8 +1,7 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
 import type { AdapterFs } from "../fs-port.js";
-import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { isEnoent } from "../shell.js";
+import { readXmlDestination, XML_PROLOG } from "../xml/document.js";
 import { encodeAndroidEscapes } from "./escape.js";
 import { assertValidResourceName } from "./names.js";
 import {
@@ -17,8 +16,6 @@ import {
   setSingleTextValue,
   singleTextValue,
 } from "./xml.js";
-
-const XML_PROLOG = '<?xml version="1.0" encoding="utf-8"?>\n';
 
 interface Grouped {
   readonly singular: ReadonlyMap<string, TranslationEntry>;
@@ -189,25 +186,13 @@ function patchDocument(doc: Document, root: Element, grouped: Grouped): void {
   appendUnmatched(doc, root, grouped, matched);
 }
 
-async function readDestination(filePath: string, fs: AdapterFs): Promise<string | undefined> {
-  try {
-    const outcome = await readBoundedFile(fs, filePath);
-    return outcomeToContent(outcome, "The destination path is not a regular file.");
-  } catch (error) {
-    if (isEnoent(error)) {
-      return undefined;
-    }
-    throw error;
-  }
-}
-
 export async function serializeAndroidXmlEntries(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
 ): Promise<string> {
   const grouped = groupEntries(entries);
-  const existing = await readDestination(filePath, fs);
+  const existing = await readXmlDestination(filePath, fs);
   if (existing === undefined) {
     const { doc, root } = createAndroidXmlDocument();
     appendUnmatched(doc, root, grouped, new Set());

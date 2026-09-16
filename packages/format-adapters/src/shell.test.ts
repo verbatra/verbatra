@@ -1,7 +1,13 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "./errors.js";
-import { buildCanHandle, computeIcu, namespaceOf, rethrowStructured } from "./shell.js";
+import {
+  buildCanHandle,
+  computeIcu,
+  namespaceOf,
+  rethrowStructured,
+  trailingLineBreaks,
+} from "./shell.js";
 
 function entry(key: string): TranslationEntry {
   return { key, namespace: "n", value: "v", placeholders: [], isPlural: false };
@@ -85,5 +91,48 @@ describe("buildCanHandle", () => {
   it("with no sniff, the extension match alone decides even with a sample", () => {
     const canHandle = buildCanHandle([".x"]);
     expect(canHandle("a.x", "anything")).toBe(true);
+  });
+});
+
+describe("trailingLineBreaks", () => {
+  it.each([
+    ["a\r\n", "\r\n"],
+    ["a\n\n", "\n\n"],
+    ["a\r", "\r"],
+    ["a\r\n\r\n", "\r\n\r\n"],
+    ["a\n\r", "\n\r"],
+    ["", ""],
+    ["\r\n", "\r\n"],
+    ["a", ""],
+    ["a\nb", ""],
+  ])("returns the maximal trailing run of carriage returns and line feeds of %j", (input, run) => {
+    expect(trailingLineBreaks(input)).toBe(run);
+  });
+
+  function countCharacterReads(content: string): { readonly run: string; readonly reads: number } {
+    const { charCodeAt } = String.prototype;
+    let reads = 0;
+    String.prototype.charCodeAt = function (this: string, index: number): number {
+      reads += 1;
+      return charCodeAt.call(this, index);
+    };
+    try {
+      return { run: trailingLineBreaks(content), reads };
+    } finally {
+      String.prototype.charCodeAt = charCodeAt;
+    }
+  }
+
+  it("reads only the last character when a long line-break run is followed by other text", () => {
+    const { run, reads } = countCharacterReads(`${"\n".repeat(100_000)}x`);
+    expect(run).toBe("");
+    expect(reads).toBe(1);
+  });
+
+  it("reads each character of a value made only of line breaks exactly once", () => {
+    const content = "\r\n".repeat(50_000);
+    const { run, reads } = countCharacterReads(content);
+    expect(run).toBe(content);
+    expect(reads).toBe(content.length);
   });
 });

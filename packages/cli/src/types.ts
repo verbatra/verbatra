@@ -6,11 +6,21 @@ import type {
   DiffSummary,
   DoctorInput,
   DoctorResult,
+  ExportTmxInput,
+  ExportTmxResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
+  GenerateTypesInput,
+  GenerateTypesResult,
+  ImportTmxInput,
+  ImportTmxResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
+  PseudolocalizeInput,
+  PseudolocalizeResult,
   RunSummary,
   TranslateInput,
   VerbatraConfig,
@@ -35,8 +45,13 @@ export interface CliDeps {
   diff(input: DiffInput): Promise<DiffSummary>;
   doctor(input: DoctorInput): Promise<DoctorResult>;
   loadConfigWithMeta(options: LoadConfigOptions): Promise<LoadedConfig>;
+  pseudolocalize(input: PseudolocalizeInput): Promise<PseudolocalizeResult>;
   importStudio(): Promise<StudioModule>;
   importMcp(): Promise<McpModule>;
+  extract(input: ExtractInput): Promise<ExtractResult>;
+  generateTypes(input: GenerateTypesInput): Promise<GenerateTypesResult>;
+  importTmx(input: ImportTmxInput): Promise<ImportTmxResult>;
+  exportTmx(input: ExportTmxInput): Promise<ExportTmxResult>;
 }
 
 export interface StudioModule {

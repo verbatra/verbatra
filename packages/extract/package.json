@@ -1,0 +1,63 @@
+{
+  "name": "@verbatra/extract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Source-code extraction for verbatra: find translation call sites in application source and report them as keys, values, and locations.",
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "localization",
+    "l10n",
+    "translation",
+    "extraction",
+    "i18next",
+    "verbatra"
+  ],
+  "license": "MIT",
+  "author": "Mario Kreitz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/verbatra/verbatra.git",
+    "directory": "packages/extract"
+  },
+  "homepage": "https://github.com/verbatra/verbatra/tree/main/packages/extract",
+  "bugs": {
+    "url": "https://github.com/verbatra/verbatra/issues"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "biome check .",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@verbatra/config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

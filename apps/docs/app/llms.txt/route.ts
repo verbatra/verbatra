@@ -60,7 +60,7 @@ verbatra is open source and MIT licensed. You maintain one source locale; on eac
 - Repository: https://github.com/verbatra/verbatra
 - npm packages: @verbatra/cli (the \`verbatra\` command), @verbatra/sdk (programmatic API), @verbatra/studio (local review dashboard, loaded by \`verbatra studio\`), @verbatra/mcp (stdio MCP server, loaded by \`verbatra mcp\`)
 - Translation providers: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, openai-compatible (local or self-hosted)
-- i18n formats: i18next, vue-i18n, next-intl, ngx-translate, Flutter ARB, YAML, XLIFF, Java/Spring properties, Apple .strings, Xcode String Catalogs, Android strings.xml, and gettext .po/.pot
+- i18n formats: i18next, vue-i18n, next-intl, ngx-translate, Flutter ARB, YAML, XLIFF, Java/Spring properties, Apple .strings, Xcode String Catalogs, Android strings.xml, gettext .po/.pot, INI, and .NET .resx
 - Frameworks: React, Vue, Angular, Node.js, Flutter
 - Requires Node.js >= 22.14.0
 

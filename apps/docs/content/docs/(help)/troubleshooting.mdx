@@ -70,10 +70,14 @@ full schema. If the message is `No verbatra configuration found...` (`CONFIG_NOT
 
 **Symptom**: `No adapter is registered for format "..."` followed by the supported list.
 
-**Cause**: the config's `format` is not one of the twelve registered format ids. This is checked
-before any file is read.
+**Cause**: the config's `format` is not one of the fourteen registered format ids. This is checked
+before any file is read. For a `custom:` identifier the message names the third-party format
+instead: the registry the run was handed holds no adapter for it. The `verbatra` command line loads
+no plugin, so a `custom:` format cannot run there.
 
 **Fix**: use one of the ids from [Formats](/docs/formats), for example `i18next-json` or `xliff`.
+For a `custom:` format, run through `@verbatra/sdk` and pass a registry that holds its adapter: see
+[Custom format adapters](/docs/custom-format-adapters).
 
 ## Requested locale is not configured (UNKNOWN_LOCALE)
 
@@ -200,19 +204,62 @@ the file is your source locale, this surfaces wrapped in `SOURCE_INVALID`. See
 
 ## The run stopped short of some keys (token budget)
 
-**Symptom**: a `BUDGET_TOKENS_EXCEEDED` notice: `The run's cumulative token usage (N) reached the
-configured budget of M tokens (behavior: ...)`; with `budgetBehavior: "stop"`, keys also appear
-under `budgetWithheld`.
+**Symptom**: a `BUDGET_TOKENS_EXCEEDED` notice. Under `"warn"` it reads `The run's cumulative
+token usage (N) reached the configured budget of M tokens (behavior: warn)`. Under
+`budgetBehavior: "stop"` it reads `The run's next provider request was projected at P tokens on top
+of the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, and keys also appear under `budgetWithheld`.
 
-**Cause**: the configured `maxTokens` ceiling was crossed. With `"warn"` (the default) the run
-continues unchanged and does not change the exit code; with `"stop"` every key not yet attempted is
-withheld for the rest of the run, which leaves that locale `partial` (some keys landed) or `failed`
-(none did), and both exit `1`.
+**Cause**: the run reached its configured `maxTokens` ceiling. With `"warn"` (the default) the run
+continues unchanged and does not change the exit code; with `"stop"` the request that would have
+crossed the ceiling is not sent at all, every key not yet attempted is withheld for the rest of the
+run, and that leaves the locale `partial` (some keys landed) or `failed` (none did), both exiting
+`1`.
 
-**Fix**: this is the guardrail working. Withheld keys keep their baselines and are translated on
-the next run; raise `maxTokens` or switch to `"warn"` if you want single-run completion. A budget
-against DeepL or a dry run reports `supported: false` and never trips, because no token usage
-exists to measure.
+**Fix**: this is the guardrail working. Nothing is half-written: the keys that were translated
+before the ceiling are on disk and locked, and withheld keys keep their baselines and are
+translated on the next run. Raise `maxTokens` or switch to `"warn"` if you want single-run
+completion. Two details worth knowing: a dry run never trips, because it constructs no provider and
+sends nothing; and a budget against DeepL or Google Cloud Translation does trip, counted from
+verbatra's own projection, with `supported: false` on the summary saying the figure is estimated
+rather than reported. A run can also finish a little above `maxTokens`: the last request
+admitted is reconciled to what the provider actually billed, and reporting more than its projection
+lands that difference after the fact. Nothing further is sent once it does. And the ceiling bounds
+one run: `watch` starts a fresh budget per run, and retranslating a single entry from Studio or the
+agent tools is not covered by it at all.
+
+## A translation is withheld for inline markup (integrity mismatch)
+
+**Symptom**: a key appears under `integrityMismatches` in the run summary and keeps its previous
+translation, or the per-key integrity report flags an inline markup mismatch for a translation that
+is already on disk. That report is `markupMatches: false` from the SDK's `keyIntegrity`, the MCP
+server's `key.integrity` tool, and Studio's per-key indicator (`Inline markup mismatch`);
+`verbatra check` does not report markup. In Studio, a retranslate or an edit comes back as
+`Rejected: inline markup mismatch`, followed by the tags at fault: `-<a href>` for one the source
+had and the candidate dropped, `+<i>` for one the candidate invented.
+
+**Cause**: the candidate does not carry the source's inline HTML or XML tags, or carries them
+unbalanced or mis-nested. A model that drops an `<a href>`, renames `<b>` to `<strong>`, or closes
+`<b>` with `</i>` produces a string that renders wrong, so the gate refuses it the same way it
+refuses a dropped placeholder. See [markup parity](/docs/translation-safety#inline-markup-parity)
+for exactly what is compared.
+
+**Fix**: run the key again, or fix the value by hand in Studio or in an imported workbook: the same
+gate judges both, so a hand-typed value with matching, well-formed tags is accepted. Word order,
+attribute values, and the two spellings of a void element (`<br>` and `<br/>`) are never the cause,
+since none of them is compared. A refusal with no tags named is a structural one: the markup came
+back mis-nested, or a tag the source had beside another of the same name came back nested inside it.
+A refusal naming `+more than N inline tags` means the candidate carries more than twice as many tags
+and constructs as its source, or more than 256 for a smaller source. A detail such as
+`+<a href="javascript:...">` names a URL attribute that gained a script-running scheme,
+`+<noscript>...</noscript>` names raw text a parser can read two ways, which a translation has to
+keep exactly as the source has it, and a detail with no closing bracket, such as `+<a`, names a tag
+the candidate never finished. Three further cases are refusals by design rather than bugs: merging
+two adjacent pairs into one, changing a tag's letter case, and adding or removing an attribute name,
+including a `dir` attribute for a right-to-left target. Keep the tags as the source has them and put
+the change somewhere the check does not look, such as an attribute value. If the source value is the
+one with the broken markup, fix it there: a source whose own tags are malformed is still compared
+tag for tag, so every translation has to repeat the same broken tags.
 
 ## Studio: the port is already in use
 
