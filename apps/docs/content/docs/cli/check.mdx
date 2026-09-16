@@ -17,9 +17,27 @@ verbatra check [flags]
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--locales` | `<list>` | all configured targets | comma-separated subset of target locales to check |
+| `--consistency` | none | off | also report, per locale, every source string translated more than one way under different keys; report only, it never changes the exit code |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the check summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A key is missing when the source has it and the target does not; stale when the source string changed since it was last translated. A locale is in sync when it has neither. An empty or unknown `--locales` value is rejected with exit `2` rather than silently checking nothing, so a typo in a locale name never lets a CI gate pass. Want the actual key lists behind the counts? That is [`verbatra diff`](/docs/cli/diff).
+
+## Consistency report
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` adds a second, read-only report: within each target locale, every source string that two or more keys translate differently. Each finding names the source string, every distinct translation, and the keys holding it, so you can pick one wording and align the rest by hand. Nothing is changed for you.
+
+It is a report and nothing else. It never changes the exit code, never flips a locale out of sync, never withholds or rewrites a value, and never flags a key for review. Like the rest of `check`, it calls no provider and needs no API key.
+
+The comparison follows one rule, applied to source and translation alike:
+
+- Values are compared after Unicode NFC normalization, folding `\r\n` to `\n`, and trimming leading and trailing whitespace, so `"Save "` and `"Save"` count as the same string. Whitespace inside the value and letter case do count.
+- Only up-to-date keys are compared. A missing key has no translation yet, and a stale key's translation belongs to an older source text, which `check` already reports.
+- Keys are never grouped when their description, meaning, plural flag, or gettext `msgctxt` differ, because that metadata exists to allow a different translation.
+- A translation identical to its own source is not a finding here; a translate run already flags that for review as `EQUALS_SOURCE`.
+
+Groups are sorted by source string, translations by value, and keys by name, so the same catalog always produces the same report. With `--json`, each locale in `result.locales` carries an `inconsistencies` array of `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; without the flag the field is absent.
 
 ## Examples
 
@@ -29,6 +47,9 @@ verbatra check
 
 # machine-readable status for two locales
 verbatra check --locales de,fr --json
+
+# also list source strings translated more than one way
+verbatra check --consistency
 ```
 
 ## Exit codes

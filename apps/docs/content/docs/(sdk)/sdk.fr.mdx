@@ -133,7 +133,11 @@ Entrée : `{ config, cwd?, dryRun? }`, où `config.extract` nomme le framework e
 
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme contrôle CI.
 
-Entrée : `{ config, cwd?, locales? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
+Entrée : `{ config, cwd?, locales?, consistency? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
+
+<AvailableFrom version="0.11.0" />
+
+Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistencies` : un `InconsistencyGroup` par chaîne source que la locale traduit de plusieurs façons sous des clés différentes, avec la `source`, chaque traduction distincte sous forme `{ value, keys }` et le `context`, la `description`, le `meaning` et `isPlural` que partagent les clés regroupées. Seules les clés à jour sont comparées, les valeurs sont comparées après normalisation NFC et sans les espaces de début et de fin, et les clés dont la description, le sens, la marque de pluriel ou le `msgctxt` gettext diffèrent ne sont jamais regroupées. Ce n'est qu'un rapport : il ne change jamais `inSync`, un compte ou un fichier, et n'appelle aucun fournisseur.
 
 ### diff
 

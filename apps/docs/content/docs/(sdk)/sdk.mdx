@@ -201,8 +201,18 @@ a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
 changed since last translated), and `upToDate`. Use it as a CI gate.
 
-Input: `{ config, cwd?, locales? }`. Returns a `CheckSummary` whose `inSync` is true exactly when
-every checked locale has nothing missing and nothing stale.
+Input: `{ config, cwd?, locales?, consistency? }`. Returns a `CheckSummary` whose `inSync` is true
+exactly when every checked locale has nothing missing and nothing stale.
+
+<AvailableFrom version="0.11.0" />
+
+With `consistency: true`, each `LocaleCheckSummary` also carries `inconsistencies`: one
+`InconsistencyGroup` per source string the locale translates more than one way under different
+keys, naming the `source`, every distinct translation as `{ value, keys }`, and the `context`,
+`description`, `meaning`, and `isPlural` the grouped keys share. Only up-to-date keys are compared,
+values are compared after NFC normalization and trimming surrounding whitespace, and keys whose
+description, meaning, plural flag, or gettext `msgctxt` differ are never grouped. It is a report
+only: it never changes `inSync`, a count, or any file, and it calls no provider.
 
 ### diff
 

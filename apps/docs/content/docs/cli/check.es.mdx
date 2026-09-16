@@ -17,9 +17,27 @@ verbatra check [flags]
 | `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino separado por comas a comprobar |
+| `--consistency` | ninguno | desactivado | además informa, por locale, de cada cadena de origen traducida de más de una forma bajo claves distintas; solo es un informe, nunca cambia el código de salida |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la comprobación bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 Una clave falta cuando el origen la tiene y el destino no; está obsoleta cuando la cadena de origen cambió desde la última vez que se tradujo. Un locale está sincronizado cuando no tiene ni lo uno ni lo otro. Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comprobar nada en silencio, así que una errata en un nombre de locale nunca deja pasar una puerta de CI. ¿Quieres las listas de claves detrás de los contadores? Eso es [`verbatra diff`](/docs/cli/diff).
+
+## Informe de consistencia
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` añade un segundo informe de solo lectura: dentro de cada locale de destino, cada cadena de origen que dos o más claves traducen de forma distinta. Cada hallazgo nombra la cadena de origen, cada traducción distinta y las claves que la contienen, para que elijas una redacción y alinees el resto a mano. No se cambia nada por ti.
+
+Es un informe y nada más. Nunca cambia el código de salida, nunca desincroniza un locale, nunca retiene ni reescribe un valor y nunca marca una clave para revisión. Como el resto de `check`, no llama a ningún proveedor ni necesita clave API.
+
+La comparación sigue una única regla, aplicada por igual al origen y a la traducción:
+
+- Los valores se comparan tras la normalización Unicode NFC, convertir `\r\n` en `\n` y recortar los espacios del principio y del final, así que `"Save "` y `"Save"` cuentan como la misma cadena. Los espacios dentro del valor y las mayúsculas sí cuentan.
+- Solo se comparan las claves al día. Una clave que falta aún no tiene traducción, y la traducción de una clave obsoleta pertenece a un texto de origen anterior, que `check` ya informa.
+- Las claves nunca se agrupan si difieren en descripción, significado, marca de plural o `msgctxt` de gettext, porque esos metadatos existen precisamente para permitir otra traducción.
+- Una traducción idéntica a su propio origen no es un hallazgo aquí; una ejecución de traducción ya la marca para revisión como `EQUALS_SOURCE`.
+
+Los grupos se ordenan por cadena de origen, las traducciones por valor y las claves por nombre, así que el mismo catálogo produce siempre el mismo informe. Con `--json`, cada locale en `result.locales` lleva un array `inconsistencies` de `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; sin el flag el campo no aparece.
 
 ## Ejemplos
 
@@ -29,6 +47,9 @@ verbatra check
 
 # machine-readable status for two locales
 verbatra check --locales de,fr --json
+
+# also list source strings translated more than one way
+verbatra check --consistency
 ```
 
 ## Códigos de salida

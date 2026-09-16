@@ -17,9 +17,27 @@ verbatra check [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die geprüft wird |
+| `--consistency` | keins | aus | zusätzlich pro Locale jeden Quellstring melden, der unter verschiedenen Keys unterschiedlich übersetzt ist; nur ein Bericht, der Exit-Code ändert sich nie |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Prüf-Zusammenfassung unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht; er ist veraltet, wenn sich der Quellstring seit der letzten Übersetzung geändert hat. Ein Locale ist synchron, wenn es keines von beidem hat. Ein leerer oder unbekannter `--locales`-Wert wird mit Exit `2` abgelehnt, statt stillschweigend nichts zu prüfen; ein Tippfehler in einem Locale-Namen lässt ein CI-Gate also nie durch. Du willst die konkreten Key-Listen hinter den Zählern? Das ist [`verbatra diff`](/docs/cli/diff).
+
+## Konsistenzbericht
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` ergänzt einen zweiten, rein lesenden Bericht: pro Ziel-Locale jeden Quellstring, den zwei oder mehr Keys unterschiedlich übersetzen. Jeder Fund nennt den Quellstring, jede abweichende Übersetzung und die Keys, die sie tragen, damit du dich für eine Formulierung entscheiden und den Rest von Hand angleichen kannst. Nichts wird für dich geändert.
+
+Es ist ein Bericht und sonst nichts. Er ändert nie den Exit-Code, macht kein Locale unsynchron, hält keinen Wert zurück, schreibt keinen um und markiert keinen Key zur Prüfung. Wie der Rest von `check` ruft er keinen Provider auf und braucht keinen API-Key.
+
+Der Vergleich folgt einer Regel, für Quelle und Übersetzung gleichermaßen:
+
+- Werte werden nach Unicode-NFC-Normalisierung, dem Umwandeln von `\r\n` in `\n` und dem Entfernen von Leerraum am Anfang und Ende verglichen, `"Save "` und `"Save"` gelten also als derselbe String. Leerraum innerhalb des Werts und Groß- und Kleinschreibung zählen.
+- Verglichen werden nur aktuelle Keys. Ein fehlender Key hat noch keine Übersetzung, und die Übersetzung eines veralteten Keys gehört zu einem älteren Quelltext, den `check` ohnehin meldet.
+- Keys werden nie gruppiert, wenn sich Beschreibung, Bedeutung, Plural-Kennzeichen oder gettext-`msgctxt` unterscheiden, denn diese Metadaten sind genau dafür da, eine andere Übersetzung zu erlauben.
+- Eine Übersetzung, die mit ihrer eigenen Quelle identisch ist, ist hier kein Fund; ein Übersetzungslauf markiert das bereits als `EQUALS_SOURCE` zur Prüfung.
+
+Gruppen sind nach Quellstring sortiert, Übersetzungen nach Wert und Keys nach Namen, derselbe Katalog ergibt also immer denselben Bericht. Mit `--json` trägt jedes Locale in `result.locales` ein Array `inconsistencies` aus `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }`; ohne das Flag fehlt das Feld.
 
 ## Beispiele
 
@@ -29,6 +47,9 @@ verbatra check
 
 # machine-readable status for two locales
 verbatra check --locales de,fr --json
+
+# also list source strings translated more than one way
+verbatra check --consistency
 ```
 
 ## Exit-Codes

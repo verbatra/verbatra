@@ -17,9 +17,27 @@ verbatra check [flags]
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--locales` | `<list>` | toutes les cibles configurées | sous-ensemble de locales cibles à vérifier, séparées par des virgules |
+| `--consistency` | aucun | désactivé | signale aussi, par locale, chaque chaîne source traduite de plusieurs façons sous des clés différentes ; simple rapport, le code de sortie ne change jamais |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de vérification sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 Une clé est manquante quand la source l'a et pas la cible ; obsolète quand la chaîne source a changé depuis sa dernière traduction. Une locale est synchronisée quand elle n'a ni l'un ni l'autre. Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien vérifier en silence, donc une coquille dans un nom de locale ne laisse jamais passer un contrôle CI. Tu veux les listes de clés derrière ces comptes ? C'est [`verbatra diff`](/docs/cli/diff).
+
+## Rapport de cohérence
+
+<AvailableFrom version="0.11.0" />
+
+`--consistency` ajoute un second rapport en lecture seule : dans chaque locale cible, chaque chaîne source que deux clés ou plus traduisent différemment. Chaque résultat nomme la chaîne source, chaque traduction distincte et les clés qui la portent, pour que tu choisisses une formulation et alignes le reste à la main. Rien n'est modifié à ta place.
+
+C'est un rapport, rien de plus. Il ne change jamais le code de sortie, ne désynchronise jamais une locale, ne retient ni ne réécrit aucune valeur et ne marque aucune clé pour relecture. Comme le reste de `check`, il n'appelle aucun fournisseur et n'a besoin d'aucune clé API.
+
+La comparaison suit une seule règle, appliquée à la source comme à la traduction :
+
+- Les valeurs sont comparées après normalisation Unicode NFC, conversion de `\r\n` en `\n` et suppression des espaces en début et en fin, donc `"Save "` et `"Save"` comptent comme la même chaîne. Les espaces à l'intérieur de la valeur et la casse comptent.
+- Seules les clés à jour sont comparées. Une clé manquante n'a pas encore de traduction, et la traduction d'une clé obsolète appartient à un texte source plus ancien, que `check` signale déjà.
+- Les clés ne sont jamais regroupées si leur description, leur sens, leur marque de pluriel ou leur `msgctxt` gettext diffèrent, car ces métadonnées existent justement pour permettre une autre traduction.
+- Une traduction identique à sa propre source n'est pas un résultat ici ; une exécution de traduction la marque déjà pour relecture avec `EQUALS_SOURCE`.
+
+Les groupes sont triés par chaîne source, les traductions par valeur et les clés par nom, donc le même catalogue produit toujours le même rapport. Avec `--json`, chaque locale de `result.locales` porte un tableau `inconsistencies` de `{ source, context?, description?, meaning?, isPlural, translations: [{ value, keys }] }` ; sans le flag, le champ est absent.
 
 ## Exemples
 
@@ -29,6 +47,9 @@ verbatra check
 
 # machine-readable status for two locales
 verbatra check --locales de,fr --json
+
+# also list source strings translated more than one way
+verbatra check --consistency
 ```
 
 ## Codes de sortie
