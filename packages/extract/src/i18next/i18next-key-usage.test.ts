@@ -253,13 +253,14 @@ describe("i18next key usage: aliases of the translate function", () => {
     ).toEqual([
       { reason: "aliased-translate-function", line: 1 },
       { reason: "aliased-translate-function", line: 2 },
+      { reason: "translate-function-escapes", line: 3 },
       { reason: "aliased-translate-function", line: 4 },
     ]);
   });
 
-  it("does not mistake a call, a comparison, or an arrow body for an alias", () => {
+  it("does not mistake a call, a comparison, or a member read for an alias", () => {
     const result = usage(
-      'const a = t("x");\nif (b == t) {}\nconst c = () => t;\nconst d = t.length;\nconst e = t ?? f;',
+      'const a = t("x");\nif (b == t) {}\nconst d = t.length;\nconst e = t ?? f;',
     );
 
     expect(result.unresolved).toEqual([]);
@@ -291,5 +292,60 @@ describe("i18next key usage at the edges of the source", () => {
     ]);
     expect(usage('getFixedT("en", "ns", "nav"').unresolved).toEqual([]);
     expect(referenced('const [tr, i18n = useTranslation();\ntr("a")')).toEqual([]);
+  });
+});
+
+describe("i18next key usage: the translate function escaping the file's view", () => {
+  function escapes(content: string) {
+    return usage(content).unresolved.filter((site) => site.reason === "translate-function-escapes");
+  }
+
+  it.each([
+    ["a JSX attribute", "<Child t={t} />"],
+    ["a call argument", "renderRow(t);"],
+    ["a later call argument", "renderRow(row, t, 1);"],
+    ["a shorthand property in a returned object", "return { t };"],
+    ["a property value", "const api = { translate: t };"],
+    ["a returned value", "return t;"],
+    ["an arrow body", "const get = () => t;"],
+    ["an array element", "const fns = [format, t];"],
+    ["a spread object attribute", "<Child {...{ t }} />"],
+    ["a member t passed on", "renderRow(i18n.t);"],
+    ["a bound t passed on", "renderRow(t.bind(i18n));"],
+    ["an alias passed on", "const { t: tr } = useTranslation();\nrenderRow(tr);"],
+    ["an argument beside nested brackets", "renderRow(a(b), t, { c: [1] });"],
+    ["an argument to a returned function", "getRenderer()(t);"],
+    ["an object inside an array", "const rows = [{ t }, other];"],
+  ])("reports t passed on as %s", (_name, content) => {
+    expect(escapes(content)).toHaveLength(1);
+  });
+
+  it("names the line the translate function escapes on", () => {
+    expect(escapes('t("a");\n\nrenderRow(t);')).toEqual([
+      { reason: "translate-function-escapes", line: 3 },
+    ]);
+  });
+
+  it.each([
+    ["a direct call", 't("a");'],
+    ["a destructured hook result", 'const { t } = useTranslation();\nt("a");'],
+    ["a renamed destructured hook result", 'const { t: tr } = useTranslation();\ntr("a");'],
+    ["an array destructured hook result", 'const [t, i18n] = useTranslation();\nt("a");'],
+    ["an alias binding", 'const tr = i18n.t;\ntr("a");'],
+    ["an import", 'import { t } from "./i18n";'],
+    ["a function parameter", 'function row(t) {\n  return t("a");\n}'],
+    ["an arrow parameter", '<Translation>{(t) => t("a")}</Translation>'],
+    ["a destructured parameter", 'function Row({ t }) {\n  return t("a");\n}'],
+    ["a typed destructured parameter", 'const Row = ({ t }: Props) => t("a");'],
+    ["a condition", 'if (t) {\n  t("a");\n}'],
+    ["a typeof check", 'if (typeof t === "function") {}'],
+    ["a property named t", "const o = { t: 1 };"],
+    ["a keyword condition without braces", 'if (t) run("a");'],
+    ["a parenthesized value", "const x = (t);"],
+    ["an unbalanced list", "a, t)"],
+    ["an unterminated call", "renderRow(t"],
+    ["an unterminated object", "const o = { a: t"],
+  ])("does not report %s", (_name, content) => {
+    expect(escapes(content)).toEqual([]);
   });
 });

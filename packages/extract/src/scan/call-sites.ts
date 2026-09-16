@@ -15,6 +15,7 @@ import {
 } from "./key-usage.js";
 import { callOpenIndex, closeIndex, isFollowedBy, isPunct, tokenAt } from "./token-query.js";
 import { type SourceToken, tokenizeSource } from "./tokenize.js";
+import { findTranslateEscapes } from "./translate-escapes.js";
 
 export interface CallSiteRules extends KeyUsageRules {
   readonly defaultValueKeys: ReadonlySet<string>;
@@ -253,7 +254,10 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
         prefix: prefixedKey(keyPrefix, site.prefix, rules),
         line: site.line,
       })),
-      unresolved: byLine(sites.unresolved),
+      unresolved: byLine([
+        ...sites.unresolved,
+        ...findTranslateEscapes(tokens, new Set([...rules.calleeNames, ...sites.callees])),
+      ]),
     },
     ...(truncated ? { truncated } : {}),
   };

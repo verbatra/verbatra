@@ -69,11 +69,13 @@ const ABSENT_PREFIX_NAMES = new Set(["undefined", "null"]);
 
 const TYPE_NAMES = new Set(["string"]);
 
+const IDENTIFIER_START = /^[A-Za-z_$]/;
+
 const BIND = "bind";
 
 const DEFAULT_KEY_SEPARATOR = ".";
 
-function isIdentNamed(token: SourceToken | undefined, names: ReadonlySet<string>): boolean {
+export function isIdentNamed(token: SourceToken | undefined, names: ReadonlySet<string>): boolean {
   return token?.kind === "ident" && names.has(token.value);
 }
 
@@ -111,7 +113,7 @@ export function prefixedKey(prefix: string, key: string, rules: KeyUsageRules): 
   return `${prefix}${rules.keySeparator ?? DEFAULT_KEY_SEPARATOR}${key}`;
 }
 
-function isAssignmentAt(tokens: readonly SourceToken[], index: number): boolean {
+export function isAssignmentAt(tokens: readonly SourceToken[], index: number): boolean {
   return (
     isPunct(tokenAt(tokens, index), "=") &&
     !isPunctIn(tokenAt(tokens, index + 1), ASSIGNMENT_FOLLOWERS) &&
@@ -283,7 +285,7 @@ function collectKeyPrefix(
   }
 }
 
-function boundEnd(tokens: readonly SourceToken[], index: number): number {
+export function boundEnd(tokens: readonly SourceToken[], index: number): number {
   const property = tokenAt(tokens, index + 1);
   const isBind =
     isPunct(tokenAt(tokens, index), ".") &&
@@ -321,7 +323,7 @@ function translateFunctionEnd(
     : undefined;
 }
 
-function isExpressionEnd(tokens: readonly SourceToken[], index: number): boolean {
+export function isExpressionEnd(tokens: readonly SourceToken[], index: number): boolean {
   const token = tokenAt(tokens, index);
   const previous = tokenAt(tokens, index - 1);
   if (token === undefined || previous === undefined || token.line > previous.line) {
@@ -370,7 +372,9 @@ function destructuredAliasAt(
     isIdentNamed(tokenAt(tokens, index), rules.calleeNames) &&
     isPropertyKey(tokens, index) &&
     isPunctIn(tokenAt(tokens, index + 3), ALIAS_TERMINATORS);
-  return isAlias && alias?.kind === "ident" ? alias.value : undefined;
+  return isAlias && alias?.kind === "ident" && IDENTIFIER_START.test(alias.value)
+    ? alias.value
+    : undefined;
 }
 
 function closingBracketIndex(tokens: readonly SourceToken[], openIndex: number): number {
