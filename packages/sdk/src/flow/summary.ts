@@ -85,8 +85,8 @@ export interface RunBudget {
    */
   readonly tokensUsed: number;
   /**
-   * True once the run reached its ceiling: either `tokensUsed` passed `maxTokens`, or, under
-   * `stop`, a request was withheld because sending it would have.
+   * True once the run reached its ceiling: either `tokensUsed` reached or passed `maxTokens`, or,
+   * under `stop`, a request was withheld because sending it would have passed it.
    */
   readonly exceeded: boolean;
 }

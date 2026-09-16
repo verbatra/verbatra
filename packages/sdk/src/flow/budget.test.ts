@@ -222,6 +222,19 @@ describe("toBudgetSummary after activity", () => {
     });
   });
 
+  it("reports exceeded for a count that reaches the ceiling exactly without passing it", () => {
+    const tracker = createBudgetTracker(50, "warn");
+    spend(tracker, 25, 25);
+    checkBudgetTrip(tracker);
+    expect(toBudgetSummary(tracker)).toEqual({
+      maxTokens: 50,
+      behavior: "warn",
+      supported: true,
+      tokensUsed: 50,
+      exceeded: true,
+    });
+  });
+
   it("reports a count and no provider-reported usage when every call was estimated", () => {
     const tracker = createBudgetTracker(100_000, "stop");
     reconcileBudget(tracker, reserveOrThrow(tracker), undefined);
