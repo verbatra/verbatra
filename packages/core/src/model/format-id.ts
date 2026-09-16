@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { type SupportedFormat, supportedFormatSchema } from "./supported-format.js";
 
-/** The reserved prefix every third-party format identifier carries. */
 export const CUSTOM_FORMAT_PREFIX = "custom:";
 
 const CUSTOM_FORMAT_NAME_SOURCE = "[a-z0-9]+(?:-[a-z0-9]+)*";
