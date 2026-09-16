@@ -11,13 +11,27 @@ import {
   skipTrivia,
 } from "./tokenize.js";
 
-type ElementOutcome = "closed" | "not-markup" | "unclosed";
+type Failure =
+  | { readonly kind: "not-markup" }
+  | { readonly kind: "end-of-file" }
+  | { readonly kind: "mismatched-close" }
+  | { readonly kind: "stray-close"; readonly name: string };
+
+type ElementOutcome = "closed" | Failure;
+
+const NOT_MARKUP: Failure = { kind: "not-markup" };
+
+const END_OF_FILE: Failure = { kind: "end-of-file" };
+
+const MISMATCHED_CLOSE: Failure = { kind: "mismatched-close" };
 
 const TAG_START = /[A-Za-z_$]/;
 
 const TAG_CHAR = /[A-Za-z0-9_$.:-]/;
 
 const GENERIC_PARAMETER_FOLLOWERS = new Set(["extends", ","]);
+
+const TYPE_ARGUMENTS_LIMIT = 128;
 
 interface Position {
   readonly line: number;
@@ -32,14 +46,19 @@ interface Snapshot {
   readonly truncated: boolean;
 }
 
-const failedElements = new WeakMap<Cursor, Set<number>>();
+interface OpenElement {
+  readonly name: string;
+  readonly start: number;
+}
 
-function failedStarts(cursor: Cursor): Set<number> {
+const failedElements = new WeakMap<Cursor, Map<number, Failure>>();
+
+function failureMemo(cursor: Cursor): Map<number, Failure> {
   const known = failedElements.get(cursor);
   if (known !== undefined) {
     return known;
   }
-  const created = new Set<number>();
+  const created = new Map<number, Failure>();
   failedElements.set(cursor, created);
   return created;
 }
@@ -124,23 +143,23 @@ function readAttributeValue(cursor: Cursor, out: PositionedToken[]): ElementOutc
   skipWhitespace(cursor);
   const char = charAt(cursor, 0);
   if (char === '"' || char === "'") {
-    return readQuotedValue(cursor, out) ? "closed" : "unclosed";
+    return readQuotedValue(cursor, out) ? "closed" : END_OF_FILE;
   }
   if (char === "{") {
-    return readBracedTokens(cursor, out) ? "closed" : "unclosed";
+    return readBracedTokens(cursor, out) ? "closed" : END_OF_FILE;
   }
-  return "not-markup";
+  return NOT_MARKUP;
 }
 
 function readAttribute(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
   const position = positionOf(cursor);
   if (charAt(cursor, 0) === "{") {
     out.push({ kind: "markup-attribute", name: "...", ...position });
-    return readBracedTokens(cursor, out) ? "closed" : "unclosed";
+    return readBracedTokens(cursor, out) ? "closed" : END_OF_FILE;
   }
   const name = readName(cursor);
   if (name === "") {
-    return "not-markup";
+    return NOT_MARKUP;
   }
   skipWhitespace(cursor);
   if (charAt(cursor, 0) !== "=") {
@@ -151,7 +170,7 @@ function readAttribute(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
   return readAttributeValue(cursor, out);
 }
 
-type TagEnd = "open" | "self-closed" | "not-markup" | "unclosed";
+type TagEnd = "open" | "self-closed" | Failure;
 
 function readTagEnd(cursor: Cursor, name: string, out: PositionedToken[]): TagEnd | undefined {
   const position = positionOf(cursor);
@@ -164,7 +183,7 @@ function readTagEnd(cursor: Cursor, name: string, out: PositionedToken[]): TagEn
     out.push({ kind: "markup-close", name, ...position });
     return "self-closed";
   }
-  return atEnd(cursor) ? "unclosed" : undefined;
+  return atEnd(cursor) ? END_OF_FILE : undefined;
 }
 
 function readAttributes(cursor: Cursor, name: string, out: PositionedToken[]): TagEnd {
@@ -190,8 +209,9 @@ function startsGenericParameters(cursor: Cursor): boolean {
 }
 
 function skipTypeArguments(cursor: Cursor): boolean {
+  const limit = cursor.index + TYPE_ARGUMENTS_LIMIT;
   let depth = 0;
-  while (!atEnd(cursor)) {
+  while (!atEnd(cursor) && cursor.index < limit) {
     const char = advance(cursor);
     if (char === "<") {
       depth += 1;
@@ -210,30 +230,33 @@ function readOpenTag(cursor: Cursor, out: PositionedToken[]): { name: string; en
   cursor.index += 1;
   const name = readName(cursor);
   if (name !== "" && startsGenericParameters(cursor)) {
-    return { name, end: "not-markup" };
+    return { name, end: NOT_MARKUP };
   }
   if (name !== "" && charAt(cursor, 0) === "<" && !skipTypeArguments(cursor)) {
-    return { name, end: "not-markup" };
+    return { name, end: NOT_MARKUP };
   }
   if (name === "" && charAt(cursor, 0) !== ">") {
-    return { name, end: "not-markup" };
+    return { name, end: NOT_MARKUP };
   }
   out.push({ kind: "markup-open", name, ...position });
   return { name, end: readAttributes(cursor, name, out) };
 }
 
-function readCloseTag(cursor: Cursor, opened: string, out: PositionedToken[]): boolean {
+function readCloseTag(cursor: Cursor, opened: string, out: PositionedToken[]): ElementOutcome {
   const position = positionOf(cursor);
   cursor.index += 2;
   skipWhitespace(cursor);
   const name = readName(cursor);
   skipWhitespace(cursor);
-  if (name !== opened || charAt(cursor, 0) !== ">") {
-    return false;
+  if (charAt(cursor, 0) !== ">") {
+    return atEnd(cursor) ? END_OF_FILE : NOT_MARKUP;
+  }
+  if (name !== opened) {
+    return { kind: "stray-close", name };
   }
   cursor.index += 1;
   out.push({ kind: "markup-close", name, ...position });
-  return true;
+  return "closed";
 }
 
 function readText(cursor: Cursor, out: PositionedToken[]): void {
@@ -248,53 +271,85 @@ function readText(cursor: Cursor, out: PositionedToken[]): void {
   }
 }
 
+function openElement(
+  cursor: Cursor,
+  out: PositionedToken[],
+  open: OpenElement[],
+  failures: Map<number, Failure>,
+): ElementOutcome | undefined {
+  const start = cursor.index;
+  const known = failures.get(start);
+  if (known !== undefined) {
+    return known;
+  }
+  const { name, end } = readOpenTag(cursor, out);
+  open.push({ name, start });
+  if (end === "open") {
+    return undefined;
+  }
+  if (end !== "self-closed") {
+    return end;
+  }
+  open.pop();
+  return open.length === 0 ? "closed" : undefined;
+}
+
+function closeElement(
+  cursor: Cursor,
+  out: PositionedToken[],
+  open: OpenElement[],
+): ElementOutcome | undefined {
+  const outcome = readCloseTag(cursor, open[open.length - 1]?.name ?? "", out);
+  if (outcome !== "closed") {
+    return outcome;
+  }
+  open.pop();
+  return open.length === 0 ? "closed" : undefined;
+}
+
 function readChild(
   cursor: Cursor,
-  opened: string,
   out: PositionedToken[],
+  open: OpenElement[],
+  failures: Map<number, Failure>,
 ): ElementOutcome | undefined {
   const char = charAt(cursor, 0);
   if (char === "<" && charAt(cursor, 1) === "/") {
-    return readCloseTag(cursor, opened, out) ? "closed" : "unclosed";
+    return closeElement(cursor, out, open);
   }
   if (char === "<") {
-    return readElement(cursor, out) === "closed" ? undefined : "unclosed";
+    return openElement(cursor, out, open, failures);
   }
   if (char === "{") {
-    return readBracedTokens(cursor, out) ? undefined : "unclosed";
+    return readBracedTokens(cursor, out) ? undefined : END_OF_FILE;
   }
   readText(cursor, out);
-  return atEnd(cursor) ? "unclosed" : undefined;
+  return atEnd(cursor) ? END_OF_FILE : undefined;
 }
 
-function readChildren(cursor: Cursor, opened: string, out: PositionedToken[]): ElementOutcome {
-  while (true) {
-    const outcome = readChild(cursor, opened, out);
-    if (outcome !== undefined) {
-      return outcome;
+function recordFailure(
+  open: readonly OpenElement[],
+  failure: Failure,
+  failures: Map<number, Failure>,
+): Failure {
+  let current = failure;
+  for (const element of [...open].reverse()) {
+    if (current.kind === "stray-close" && current.name === element.name) {
+      current = MISMATCHED_CLOSE;
     }
+    failures.set(element.start, current);
   }
-}
-
-function readElementOnce(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
-  const { name, end } = readOpenTag(cursor, out);
-  if (end === "open") {
-    return readChildren(cursor, name, out);
-  }
-  return end === "self-closed" ? "closed" : end;
+  return current;
 }
 
 function readElement(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
-  const failed = failedStarts(cursor);
-  const start = cursor.index;
-  if (failed.has(start)) {
-    return "unclosed";
+  const failures = failureMemo(cursor);
+  const open: OpenElement[] = [];
+  let outcome = openElement(cursor, out, open, failures);
+  while (outcome === undefined) {
+    outcome = readChild(cursor, out, open, failures);
   }
-  const outcome = readElementOnce(cursor, out);
-  if (outcome !== "closed") {
-    failed.add(start);
-  }
-  return outcome;
+  return outcome === "closed" ? outcome : recordFailure(open, outcome, failures);
 }
 
 function startsElement(cursor: Cursor, previous: PositionedToken | undefined): boolean {
@@ -311,9 +366,10 @@ export function readMarkup(
   }
   const saved = snapshot(cursor);
   const out: PositionedToken[] = [];
-  if (readElement(cursor, out) !== "closed") {
-    restore(cursor, saved);
-    return undefined;
+  const outcome = readElement(cursor, out);
+  if (outcome === "closed") {
+    return out;
   }
-  return out;
+  restore(cursor, saved);
+  return undefined;
 }
