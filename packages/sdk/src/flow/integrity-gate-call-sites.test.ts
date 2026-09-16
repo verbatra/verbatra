@@ -29,7 +29,15 @@ const WHOLE_MODULE_IMPORT =
 const MARKUP_IMPORT =
   /(?:import|export)\s*\{[^}]*\bcompareInlineMarkup\b[^}]*\}\s*from\s*"@verbatra\/core"/s;
 
-const CORE_NAMESPACE_IMPORT = /import\s*\*\s*as\s+([\w$]+)\s*from\s*"@verbatra\/core"/;
+const DYNAMIC_JUDGE_IMPORT =
+  /\bimport\s*\(\s*["'`][^"'`]*(?:integrity-gate|markup-verdict)\.js["'`]\s*\)/;
+
+const CORE_MODULE_REFERENCE =
+  /import\s*\*\s*as\s+[\w$]+\s*from\s*"@verbatra\/core"|\bimport\s*\(\s*["'`]@verbatra\/core["'`]\s*\)/;
+
+const COMPARISON_NAME = /\bcompareInlineMarkup\b/;
+
+const COMMENT = /\/\*[\s\S]*?\*\/|(?<![:"'`])\/\/[^\n]*/g;
 
 function sourceFilesUnder(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -43,22 +51,19 @@ function sourceFilesUnder(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-function comparesThroughCoreNamespace(source: string): boolean {
-  const namespace = CORE_NAMESPACE_IMPORT.exec(source)?.[1];
-  if (namespace === undefined) {
-    return false;
-  }
-  const escaped = namespace.replaceAll("$", "\\$");
-  return new RegExp(`\\b${escaped}\\s*\\.\\s*compareInlineMarkup\\b`).test(source);
+function comparesThroughCoreModule(code: string): boolean {
+  return CORE_MODULE_REFERENCE.test(code) && COMPARISON_NAME.test(code);
 }
 
 function judgesMarkup(source: string): boolean {
+  const code = source.replace(COMMENT, "");
   return (
-    GATE_IMPORT.test(source) ||
-    VERDICT_IMPORT.test(source) ||
-    WHOLE_MODULE_IMPORT.test(source) ||
-    MARKUP_IMPORT.test(source) ||
-    comparesThroughCoreNamespace(source)
+    GATE_IMPORT.test(code) ||
+    VERDICT_IMPORT.test(code) ||
+    WHOLE_MODULE_IMPORT.test(code) ||
+    MARKUP_IMPORT.test(code) ||
+    DYNAMIC_JUDGE_IMPORT.test(code) ||
+    comparesThroughCoreModule(code)
   );
 }
 
@@ -114,6 +119,31 @@ describe("every place that judges inline markup is named by a test that drives i
     'export * as verdict from "./markup-verdict.js";',
   ])("sees a call site that reaches the judges through %j", (source) => {
     expect(judgesMarkup(source)).toBe(true);
+  });
+
+  it.each([
+    'const gate = await import("./integrity-gate.js");',
+    "const { judgeEntryMarkup } = await import('../markup-verdict.js');",
+    "const verdict = await import(`./markup-verdict.js`);",
+    'const core = await import("@verbatra/core");\ncore.compareInlineMarkup(a, b);',
+    'const { compareInlineMarkup: judge } = await import("@verbatra/core");\njudge(a, b);',
+    '(await import("@verbatra/core")).compareInlineMarkup(a, b);',
+    'import * as core from "@verbatra/core";\nconst { compareInlineMarkup: judge } = core;',
+    'import * as core from "@verbatra/core";\nconst judge = core["compareInlineMarkup"];',
+  ])("sees a call site that reaches the judges dynamically or by destructuring: %j", (source) => {
+    expect(judgesMarkup(source)).toBe(true);
+  });
+
+  it("does not claim a module that imports core dynamically without comparing markup", () => {
+    expect(judgesMarkup('const core = await import("@verbatra/core");\ncore.contentHash(a);')).toBe(
+      false,
+    );
+  });
+
+  it("does not claim a core import whose only mention of the comparison is a comment", () => {
+    expect(
+      judgesMarkup('import * as core from "@verbatra/core";\n// core.compareInlineMarkup(a, b)\n'),
+    ).toBe(false);
   });
 
   it("does not claim a module that imports core as a namespace without comparing markup", () => {
