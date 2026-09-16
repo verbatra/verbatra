@@ -1,3 +1,4 @@
+import type { BudgetStanding } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,7 +16,7 @@ import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
-import { type BudgetStanding, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
+import { toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Accordion, AccordionItem } from "../Accordion.js";
 import { reviewOverlayStore, rpcClient } from "../api.js";
 import { Badge } from "../Badge.js";

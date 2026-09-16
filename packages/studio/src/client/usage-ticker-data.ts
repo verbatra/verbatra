@@ -1,4 +1,4 @@
-import type { BudgetBehavior, RunBudget, UsageSummary } from "@verbatra/sdk";
+import type { BudgetBehavior, BudgetStanding, RunBudget, UsageSummary } from "@verbatra/sdk";
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { RpcCallResult } from "./rpc-client.js";
 import type { FetchOutcome } from "./state.js";
@@ -8,8 +8,6 @@ export type UsageTickerData = RpcResultFor<"usage.summary">;
 export type UsageDisplay =
   | { readonly kind: "reported"; readonly inputTokens: number; readonly outputTokens: number }
   | { readonly kind: "not-reported" };
-
-export type BudgetStanding = "within" | "stopped-before-ceiling" | "reached";
 
 export type BudgetDisplay =
   | { readonly kind: "none" }

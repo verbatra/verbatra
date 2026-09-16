@@ -1,9 +1,6 @@
+import type { BudgetStanding } from "@verbatra/sdk";
 import type { ReactNode } from "react";
-import type {
-  BudgetDisplay,
-  BudgetStanding,
-  UsageDisplay,
-} from "../../client/usage-ticker-data.js";
+import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Badge, type BadgeTone } from "../Badge.js";
 import { CommitList } from "../CommitList.js";
