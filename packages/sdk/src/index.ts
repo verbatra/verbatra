@@ -2,6 +2,8 @@ export { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-provide
 export {
   type CustomFormatId,
   type FormatId,
+  type InconsistencyGroup,
+  type InconsistentTranslation,
   isCustomFormatId,
   type LocaleResource,
   type PlaceholderIntegrityResult,

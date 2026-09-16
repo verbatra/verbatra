@@ -65,6 +65,177 @@ describe("render: check summary", () => {
   });
 });
 
+describe("render: check consistency report", () => {
+  it("prints no consistency block when the report was not requested", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [{ locale: "de", missing: 0, stale: 0, upToDate: 2, inSync: true }],
+    });
+    expect(text).not.toContain("consistency");
+  });
+
+  it("lists each group with its qualifiers, translations, and keys, and marks a clean locale", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 6,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Open",
+              context: "menu",
+              description: "a file",
+              meaning: "verb",
+              isPlural: true,
+              translations: [
+                { value: "Aufmachen", keys: ["b"] },
+                { value: "\u00d6ffnen", keys: ["a", "c"] },
+              ],
+            },
+            {
+              source: "Save",
+              isPlural: false,
+              translations: [
+                { value: "Sichern", keys: ["d"] },
+                { value: "Speichern", keys: ["e"] },
+                { value: "Ablegen", keys: ["f"] },
+              ],
+            },
+          ],
+        },
+        { locale: "fr", missing: 0, stale: 0, upToDate: 6, inSync: true, inconsistencies: [] },
+      ],
+    });
+    expect(text.split("\n").slice(3)).toEqual([
+      "all locales in sync",
+      "consistency (report only, never changes the exit code)",
+      "  de: 2 source strings translated more than one way",
+      '    "Open" (context "menu", description "a file", meaning "verb", plural) is translated 2 ways:',
+      '      "Aufmachen": b',
+      '      "\u00d6ffnen": a, c',
+      '    "Save" is translated 3 ways:',
+      '      "Sichern": d',
+      '      "Speichern": e',
+      '      "Ablegen": f',
+      "  fr: consistent",
+    ]);
+  });
+
+  it("uses the singular noun for one group", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save",
+              isPlural: false,
+              translations: [
+                { value: "Sichern", keys: ["a"] },
+                { value: "Speichern", keys: ["b"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain("  de: 1 source string translated more than one way");
+  });
+
+  it("folds control and format characters in untrusted text to spaces", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save\u001b[2J",
+              isPlural: false,
+              translations: [
+                { value: "Sichern\nnow", keys: ["a\u200b"] },
+                { value: "Speichern", keys: ["b"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).not.toContain("\u001b");
+    expect(text).not.toContain("\u200b");
+    expect(text).toContain('"Save [2J" is translated 2 ways:');
+    expect(text).toContain('"Sichern now": a ');
+  });
+
+  it("names the plural form a group shares", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "ru",
+          missing: 0,
+          stale: 0,
+          upToDate: 4,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "%d file",
+              isPlural: true,
+              pluralForm: "one",
+              translations: [
+                { value: "%d документ", keys: ["b_one"] },
+                { value: "%d файл", keys: ["a_one"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).toContain('    "%d file" (plural form "one") is translated 2 ways:');
+  });
+
+  it("folds Unicode line and paragraph separators in untrusted text to spaces", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save\u2028now",
+              isPlural: false,
+              translations: [
+                { value: "Sichern\u2029jetzt", keys: ["a\u2028b"] },
+                { value: "Speichern", keys: ["c"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).not.toMatch(/[\u2028\u2029]/);
+    expect(text).toContain('"Save now" is translated 2 ways:');
+    expect(text).toContain('"Sichern jetzt": a b');
+  });
+});
+
 describe("render: diff summary", () => {
   it("renders a header, a per-locale count header, and the grouped key lists", () => {
     const text = renderDiffHuman({

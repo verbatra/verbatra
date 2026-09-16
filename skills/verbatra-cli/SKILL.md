@@ -57,7 +57,9 @@ bills per key sent, so the cheap read-only question comes first.
 - `verbatra diff --json` names the exact keys per locale. Exit `1` means there is
   work. This is the question built for the decision.
 - `verbatra check --json` answers the same thing in counts when a yes or no is
-  enough.
+  enough. Add `--consistency` to also list source strings a locale translates
+  more than one way under different keys; that report never changes the exit
+  code.
 - `verbatra translate --dry-run --json` produces the full run summary a real run
   would produce. A dry run constructs no provider object at all, so it reads no
   key, opens no connection, and writes nothing. It is safe on a machine that has

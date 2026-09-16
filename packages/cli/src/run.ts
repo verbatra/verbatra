@@ -134,6 +134,7 @@ function parseTmxDirection(raw: string): TmxDirection {
 
 const checkOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
+  consistency: z.boolean().optional(),
 });
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
@@ -695,6 +696,7 @@ async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
           config,
           cwd,
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+          ...(opts.consistency === true ? { consistency: true } : {}),
         });
         streams.out(
           context.json
@@ -1009,6 +1011,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option(
+      "--consistency",
+      "also report source strings translated more than one way (report only, exit code unchanged)",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams));
@@ -1021,6 +1027,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check                  report missing and stale keys per locale (exit 1 if drifted)",
         "  $ verbatra check --locales de,fr  only check the German and French locales",
         "  $ verbatra check --json           machine-readable status on stdout for CI",
+        "  $ verbatra check --consistency    also list source strings translated more than one way",
       ].join("\n"),
     );
 }

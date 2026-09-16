@@ -143,7 +143,7 @@ A `verbatra.config.ts` is typed by `defineConfig`, and a JSON or YAML config get
 | `verbatra extract` | Scan the application source for translation call sites and add the new keys to the source locale file, without calling a provider | `--cwd`, `--config`, `--dry-run`, `--json` |
 | `verbatra translate` | Translate every target locale once, then exit | `--cwd`, `--config`, `--locales`, `--dry-run`, `--prune`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
 | `verbatra watch` | Re-translate on every source change until interrupted | `--cwd`, `--config`, `--locales`, `--debounce <ms>`, `--lock-timeout <seconds>`, `--concurrency <n>`, `--no-cache`, `--json` |
-| `verbatra check` | Report per-locale missing, stale, and up-to-date counts without writing (read-only) | `--cwd`, `--config`, `--locales`, `--json` |
+| `verbatra check` | Report per-locale missing, stale, and up-to-date counts without writing (read-only) | `--cwd`, `--config`, `--locales`, `--consistency`, `--json` |
 | `verbatra diff` | List the keys per locale that would be added, re-translated, or are orphaned, without writing (read-only) | `--cwd`, `--config`, `--locales`, `--json` |
 | `verbatra doctor` | Validate the project setup and report every problem at once, without calling a provider or reading a key value (read-only) | `--cwd`, `--config`, `--json` |
 | `verbatra pseudo` | Generate a pseudolocale from the source strings to expose layout truncation and unextracted strings, without calling a provider or reading a key value | `--cwd`, `--config`, `--locale <code>`, `--out <path>`, `--json` |

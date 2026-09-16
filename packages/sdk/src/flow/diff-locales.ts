@@ -12,6 +12,8 @@ import { readSourceResource } from "./source.js";
 export interface LocaleDiffResult {
   readonly locale: string;
   readonly diff: DiffResult;
+  readonly source: LocaleResource;
+  readonly target: LocaleResource;
 }
 
 export interface DiffLocalesInput {
@@ -64,7 +66,7 @@ export async function diffLocales(
         fs,
       });
       const diff = diffResources(source.resource, target, { baseline: baselineFor(lock, locale) });
-      return { locale, diff };
+      return { locale, diff, source: source.resource, target };
     }),
   );
 }
