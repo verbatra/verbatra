@@ -61,3 +61,20 @@ describe("settledActionStatusLabel: the rejection labels stay in step with the g
     expect(labels.filter((candidate) => candidate === label)).toHaveLength(1);
   });
 });
+
+describe("settledActionStatusLabel: the tags behind a markup refusal", () => {
+  it("names the dropped and invented tags after the reason", () => {
+    expect(
+      settledActionStatusLabel(
+        { kind: "rejected", reason: "markup", details: ["-<b>", "+<i>"] },
+        "Saved",
+      ),
+    ).toBe("Rejected: inline markup mismatch (-<b> +<i>)");
+  });
+
+  it("falls back to the bare reason when no single tag is at fault", () => {
+    expect(
+      settledActionStatusLabel({ kind: "rejected", reason: "markup", details: [] }, "Saved"),
+    ).toBe("Rejected: inline markup mismatch");
+  });
+});

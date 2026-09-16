@@ -15,6 +15,7 @@ const editEntryResultSchema = z.object({
   accepted: z.boolean(),
   value: z.string(),
   reason: integrityGateReasonSchema.optional(),
+  details: z.array(z.string()).readonly().optional(),
 });
 
 type EditEntryResult = z.infer<typeof editEntryResultSchema>;

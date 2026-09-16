@@ -10,8 +10,9 @@ import {
 import { describe, expect, it } from "vitest";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
+import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
+import { editEntry } from "./edit-entry.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { runLocale } from "./locale-run.js";
 
@@ -47,12 +48,41 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     expect(gateCandidateValue(source, 'Hallo <g id="1">Welt</g>', adapter).accepted).toBe(true);
   });
 
+  it("stands down per tag name, so untokenised markup in the same value is still compared", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
+    expect(source.placeholders.some((token) => token.startsWith("<"))).toBe(true);
+    expect(gateCandidateValue(source, 'Lies <g id="1">die Doku</g> und das', adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</b>", "-<b>"],
+    });
+  });
+
+  it("keeps no markup opinion about the tag it does tokenise", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
+    expect(
+      gateCandidateValue(source, 'Lies <b>das</b> und <g id="1">die Doku</g>', adapter).accepted,
+    ).toBe(true);
+  });
+
+  it("names a value that drops both its tokenised and its untokenised markup once", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
+    expect(gateCandidateValue(source, "Lies die Doku und das", adapter)).toEqual({
+      accepted: false,
+      reason: "placeholder",
+    });
+  });
+
   it("still refuses html-shaped markup an XLIFF value carries that XLIFF does not tokenise", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, "Read <b>the docs</b>");
     expect(gateCandidateValue(source, "Lies die Doku", adapter)).toEqual({
       accepted: false,
       reason: "markup",
+      details: ["-</b>", "-<b>"],
     });
   });
 });
@@ -64,6 +94,7 @@ describe("gateCandidateValue: android string values carry their markup escaped",
     expect(gateCandidateValue(source, "Tippe auf Speichern", adapter)).toEqual({
       accepted: false,
       reason: "markup",
+      details: ["-</b>", "-<b>"],
     });
   });
 
@@ -188,6 +219,7 @@ describe("the markup gate covers every registered format", () => {
     expect(gateCandidateValue(source, "Lies die Doku", adapter)).toEqual({
       accepted: false,
       reason: "markup",
+      details: ["-</a>", "-<a href>"],
     });
   });
 
@@ -238,4 +270,156 @@ describe("the markup gate covers every registered format", () => {
       });
     },
   );
+});
+
+describe("the markup gate on a value whose format tokenises only part of its markup", () => {
+  const MIXED_SOURCE = "Read <b>the docs</b>.<br/>Then go.";
+  const MIXED_CANDIDATE = "Lies <b>die Doku</b>. Dann los.";
+
+  function adapterFor(format: SupportedFormat): FormatAdapter {
+    const resolution = createDefaultRegistry().resolve("", { format });
+    if (resolution.status !== "resolved") {
+      throw new Error(`no adapter resolved for ${format}`);
+    }
+    return resolution.adapter;
+  }
+
+  it.each(SUPPORTED_FORMATS)("%s refuses the dropped line break", (format) => {
+    const adapter = adapterFor(format);
+    const source = entryFor(adapter, MIXED_SOURCE);
+    expect(gateCandidateValue(source, MIXED_CANDIDATE, adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-<br>"],
+    });
+  });
+
+  it.each(["next-intl-json", "arb"] as const)(
+    "%s tokenises the bold tag and not the line break, which is what used to pass the whole value",
+    (format) => {
+      expect(adapterFor(format).extractPlaceholders(MIXED_SOURCE)).toEqual(["<b>"]);
+    },
+  );
+});
+
+describe("the markup gate on a plural message", () => {
+  const PLURAL_SOURCE = "<b>one</b> apple | <b>many</b> apples";
+
+  function vueAdapter(): FormatAdapter {
+    const resolution = createDefaultRegistry().resolve("", { format: "vue-i18n-json" });
+    if (resolution.status !== "resolved") {
+      throw new Error("vue-i18n adapter did not resolve");
+    }
+    return resolution.adapter;
+  }
+
+  function pluralSource(adapter: FormatAdapter): TranslationEntry {
+    return {
+      key: "apples",
+      namespace: "en",
+      value: PLURAL_SOURCE,
+      placeholders: adapter.extractPlaceholders(PLURAL_SOURCE),
+      isPlural: true,
+    };
+  }
+
+  it("accepts a target language that needs more plural arms than the source declares", () => {
+    const adapter = vueAdapter();
+    const candidate =
+      "<b>jedno</b> jablko | <b>kilka</b> jablka | <b>duzo</b> jablek | <b>inne</b> jablka";
+    expect(gateCandidateValue(pluralSource(adapter), candidate, adapter).accepted).toBe(true);
+  });
+
+  it("still refuses a plural message that drops the tag from every arm", () => {
+    const adapter = vueAdapter();
+    expect(
+      gateCandidateValue(
+        pluralSource(adapter),
+        "jedno jablko | kilka jablka | duzo jablek",
+        adapter,
+      ),
+    ).toEqual({ accepted: false, reason: "markup", details: ["-</b>", "-<b>"] });
+  });
+
+  it("keeps counting occurrences for a value the format does not report as plural", () => {
+    const adapter = i18nextAdapter();
+    const source = entryFor(adapter, "<b>a</b> and <b>b</b>");
+    expect(source.isPlural).toBe(false);
+    expect(gateCandidateValue(source, "<b>a</b> und b", adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</b>", "-<b>"],
+    });
+  });
+});
+
+describe("the markup gate on a reorder that nests a tag inside another of the same name", () => {
+  it("refuses two sibling anchors that come back nested, with no single tag to name", () => {
+    const adapter = i18nextAdapter();
+    const source = entryFor(adapter, '<a href="/a">one</a> and <a href="/b">two</a>');
+    expect(
+      gateCandidateValue(source, '<a href="/a">eins und <a href="/b">zwei</a></a>', adapter),
+    ).toEqual({ accepted: false, reason: "markup" });
+  });
+
+  it("still accepts an ordinary sibling reorder", () => {
+    const adapter = i18nextAdapter();
+    const source = entryFor(adapter, '<a href="/a">one</a> and <a href="/b">two</a>');
+    expect(
+      gateCandidateValue(source, '<a href="/b">zwei</a> und <a href="/a">eins</a>', adapter)
+        .accepted,
+    ).toBe(true);
+  });
+});
+
+describe("the markup gate on the two spellings of a void element", () => {
+  it("accepts a line break rewritten from self-closing to bare", () => {
+    const adapter = i18nextAdapter();
+    expect(
+      gateCandidateValue(entryFor(adapter, "One<br/>two"), "Eins<br>zwei", adapter).accepted,
+    ).toBe(true);
+  });
+
+  it("accepts a line break rewritten from bare to self-closing", () => {
+    const adapter = i18nextAdapter();
+    expect(
+      gateCandidateValue(entryFor(adapter, "One<br>two"), "Eins<br/>zwei", adapter).accepted,
+    ).toBe(true);
+  });
+});
+
+describe("the tags behind a refusal reach the single-key write paths", () => {
+  it("editEntry echoes them back so a review UI can say which tag was dropped", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      greeting: 'Read <a href="/docs">the docs</a>',
+    });
+    const result = await editEntry({
+      config: baseConfig({ targetLocales: ["de"], format: "i18next-json", sourceLocale: "en" }),
+      cwd: dir,
+      locale: "de",
+      key: "greeting",
+      value: "Lies die Doku",
+    });
+    expect(result).toMatchObject({
+      accepted: false,
+      reason: "markup",
+      details: ["-</a>", "-<a href>"],
+    });
+  });
+
+  it("editEntry carries no details for a reason that has no tag to name", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello {{name}}" });
+    const result = await editEntry({
+      config: baseConfig({ targetLocales: ["de"], format: "i18next-json", sourceLocale: "en" }),
+      cwd: dir,
+      locale: "de",
+      key: "greeting",
+      value: "Hallo",
+    });
+    expect(result).toEqual({ accepted: false, reason: "placeholder", value: "Hallo" });
+  });
 });

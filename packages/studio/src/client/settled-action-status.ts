@@ -2,7 +2,11 @@ import type { IntegrityGateReason } from "@verbatra/sdk";
 
 export type SettledActionOutcome =
   | { readonly kind: "success" }
-  | { readonly kind: "rejected"; readonly reason: IntegrityGateReason }
+  | {
+      readonly kind: "rejected";
+      readonly reason: IntegrityGateReason;
+      readonly details?: readonly string[];
+    }
   | { readonly kind: "error"; readonly message: string };
 
 const REJECTION_LABEL: Readonly<Record<IntegrityGateReason, string>> = {
@@ -21,7 +25,9 @@ export function settledActionStatusLabel(
     return successLabel;
   }
   if (outcome.kind === "rejected") {
-    return REJECTION_LABEL[outcome.reason];
+    const label = REJECTION_LABEL[outcome.reason];
+    const details = outcome.details ?? [];
+    return details.length === 0 ? label : `${label} (${details.join(" ")})`;
   }
   return `Failed: ${outcome.message}`;
 }

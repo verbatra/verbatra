@@ -2,6 +2,8 @@ import {
   assessValueDegeneracy,
   checkPlaceholders,
   compareInlineMarkup,
+  type InlineMarkupComparison,
+  inlineTagName,
   type PlaceholderIntegrityResult,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -20,12 +22,17 @@ import type { FormatAdapter } from "@verbatra/format-adapters";
  *   YAML) this also covers a single-brace `{name}`-shaped token the candidate invented and the
  *   source never had, which is a fabrication whichever interpolation delimiters the project uses.
  * - `markup`: the candidate does not carry the same inline HTML or XML tags as the source, or it
- *   carries them unbalanced or mis-nested, either of which breaks the rendering of the string the
- *   way a dropped placeholder breaks its interpolation. Tags are compared as a multiset of names
- *   plus attribute names, so a different word order and a translated attribute value are both
- *   accepted. The check is silent unless the source's own markup is well formed, and it never
- *   applies to a format whose adapter already reports its inline markup as placeholders (XLIFF),
- *   which the `placeholder` reason covers instead.
+ *   carries them unbalanced, mis-nested, or newly nested inside another tag of the same name, any
+ *   of which breaks the rendering of the string the way a dropped placeholder breaks its
+ *   interpolation. Tags are compared as a multiset of names plus attribute names, so a different
+ *   word order and a translated attribute value are both accepted, and the two spellings of a void
+ *   element (`<br>` and `<br/>`) are one tag. For a source entry the format reports as a plural
+ *   message, tags are compared by presence rather than by count, so a target language needing more
+ *   plural arms than the source declares is not refused for repeating the source's own markup. The
+ *   check is silent unless the source's own markup is well formed, and it stands down per tag
+ *   name: a tag the format already reports as a placeholder (an XLIFF inline element, a next-intl
+ *   or ARB ICU rich-text tag) is left to the `placeholder` reason, while any other tag in the same
+ *   value is still compared. {@link IntegrityGateResult} names the offending tags in `details`.
  * - `icu`: the candidate is not a valid ICU message under the configured format's adapter.
  * - `degenerate`: the candidate collapsed into runaway output rather than a translation. Two shapes
  *   are detected: the candidate is at least twelve times the length of a source of meaningful
@@ -62,10 +69,34 @@ export type IntegrityGateReason = (typeof INTEGRITY_GATE_REASONS)[number];
 
 export type IntegrityGateResult =
   | { readonly accepted: true; readonly integrity: PlaceholderIntegrityResult }
-  | { readonly accepted: false; readonly reason: IntegrityGateReason };
+  | {
+      readonly accepted: false;
+      readonly reason: IntegrityGateReason;
+      /**
+       * The specific tokens behind the refusal, when the reason can name them, each prefixed with
+       * `-` for something the source had and the candidate dropped or `+` for something the
+       * candidate invented. Absent for a reason that has nothing to name, and absent for
+       * structurally broken markup, where no single tag is at fault.
+       */
+      readonly details?: readonly string[];
+    };
 
-function adapterReportsMarkupAsPlaceholders(adapter: FormatAdapter, sourceValue: string): boolean {
-  return adapter.extractPlaceholders(sourceValue).some((token) => token.startsWith("<"));
+function placeholderTagNames(placeholders: readonly string[]): readonly string[] {
+  const names: string[] = [];
+  for (const placeholder of placeholders) {
+    const name = inlineTagName(placeholder);
+    if (name !== undefined) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+function markupDetails(comparison: InlineMarkupComparison): readonly string[] {
+  return [
+    ...comparison.missing.map((token) => `-${token}`),
+    ...comparison.extra.map((token) => `+${token}`),
+  ];
 }
 
 export function gateCandidateValue(
@@ -79,11 +110,15 @@ export function gateCandidateValue(
   if (!placeholderResult.matches) {
     return { accepted: false, reason: "placeholder" };
   }
-  if (
-    !compareInlineMarkup(sourceEntry.value, candidateValue).matches &&
-    !adapterReportsMarkupAsPlaceholders(adapter, sourceEntry.value)
-  ) {
-    return { accepted: false, reason: "markup" };
+  const markup = compareInlineMarkup(sourceEntry.value, candidateValue, {
+    ignoreTagNames: placeholderTagNames(sourceEntry.placeholders),
+    pluralArms: sourceEntry.isPlural,
+  });
+  if (!markup.matches) {
+    const details = markupDetails(markup);
+    return details.length > 0
+      ? { accepted: false, reason: "markup", details }
+      : { accepted: false, reason: "markup" };
   }
   if (!adapter.validateMessage(candidateValue)) {
     return { accepted: false, reason: "icu" };

@@ -17,6 +17,7 @@ const retranslateEntryResultSchema = z.object({
   value: z.string(),
   reviewReasons: z.array(reviewReasonCodeSchema).readonly().optional(),
   reason: integrityGateReasonSchema.optional(),
+  details: z.array(z.string()).readonly().optional(),
 });
 
 type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;
