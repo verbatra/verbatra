@@ -278,6 +278,11 @@ describe("run diff --unused: the unused-key report", () => {
               sites: [{ file: "src/row.tsx", line: 7 }],
             },
             {
+              reason: "unrecognised-translate-source",
+              count: 1,
+              sites: [{ file: "src/use-nav.ts", line: 2 }],
+            },
+            {
               reason: "template-files-not-scanned",
               count: 25,
               sites: Array.from({ length: 20 }, (_, index) => ({ file: `src/p${index}.vue` })),
@@ -298,6 +303,7 @@ describe("run diff --unused: the unused-key report", () => {
     expect(out).toContain("unreliable: a key listed as unused may still be in use");
     expect(out).toContain("dynamic-keys (1):\n      src/errors.ts:4");
     expect(out).toContain("translate-function-escapes (1):\n      src/row.tsx:7");
+    expect(out).toContain("unrecognised-translate-source (1):\n      src/use-nav.ts:2");
     expect(out).toContain("template-files-not-scanned (25):\n      src/p0.vue");
     expect(out).toContain("      src/p9.vue\n      and 15 more");
     expect(out).toContain("incomplete-scan (1):\n      src/broken.ts  unparseable");
