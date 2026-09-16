@@ -21,6 +21,7 @@ Las recetas de abajo leen stdout con `jq`, porque es lo más pequeño que lee un
 | [`doctor`](/docs/cli/doctor) | sí | un `DoctorResult` |
 | [`export`](/docs/cli/export) | sí | la ruta escrita y el número de filas por locale |
 | [`import`](/docs/cli/import) | sí | un `RunSummary` |
+| [`tmx`](/docs/cli/tmx) | sí | en `import`, las unidades leídas y, por locale, los recuentos de entradas añadidas, conservadas y rechazadas; en `export`, la ruta escrita y el número de unidades por locale |
 | [`pseudo`](/docs/cli/pseudo) | sí | la pseudolocale generada, su ruta y los recuentos de entradas |
 | [`types`](/docs/cli/types) | sí | la ruta de la declaración, el número de claves, cuántas claves aceptan argumentos, las claves cuyos argumentos no se pudieron determinar y si el archivo se escribió |
 | [`extract`](/docs/cli/extract) | sí | las claves añadidas a la locale de origen y lo que el escaneo no pudo resolver |
@@ -28,7 +29,7 @@ Las recetas de abajo leen stdout con `jq`, porque es lo más pequeño que lee un
 | [`studio`](/docs/cli/studio) | no | |
 | [`mcp`](/docs/cli/mcp) | no | |
 
-`init` es un andamiaje interactivo, y `studio` y `mcp` son servidores de larga duración, así que ninguno de los tres tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros diez.
+`init` es un andamiaje interactivo, y `studio` y `mcp` son servidores de larga duración, así que ninguno de los tres tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros once.
 
 `doctor` se incorporó en 0.9.0. `pseudo` y `extract` son las incorporaciones más recientes a esa lista.
 

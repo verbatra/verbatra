@@ -21,6 +21,7 @@ Les recettes ci-dessous lisent stdout avec `jq`, parce que c'est la plus petite 
 | [`doctor`](/docs/cli/doctor) | oui | un `DoctorResult` |
 | [`export`](/docs/cli/export) | oui | le chemin écrit et le nombre de lignes par locale |
 | [`import`](/docs/cli/import) | oui | un `RunSummary` |
+| [`tmx`](/docs/cli/tmx) | oui | pour `import`, les unités lues et, par locale, le nombre d'entrées ajoutées, conservées et rejetées ; pour `export`, le chemin écrit et le nombre d'unités par locale |
 | [`pseudo`](/docs/cli/pseudo) | oui | la pseudolocale générée, son chemin et le nombre d'entrées |
 | [`types`](/docs/cli/types) | oui | le chemin de la déclaration, le nombre de clés, combien de clés prennent des arguments, les clés dont les arguments n'ont pas pu être déterminés, et si le fichier a été écrit |
 | [`extract`](/docs/cli/extract) | oui | les clés ajoutées à la locale source, et ce que le scan n'a pas pu résoudre |
@@ -28,7 +29,7 @@ Les recettes ci-dessous lisent stdout avec `jq`, parce que c'est la plus petite 
 | [`studio`](/docs/cli/studio) | non | |
 | [`mcp`](/docs/cli/mcp) | non | |
 
-`init` est un générateur interactif, et `studio` et `mcp` sont des serveurs de longue durée : aucun des trois n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les dix autres.
+`init` est un générateur interactif, et `studio` et `mcp` sont des serveurs de longue durée : aucun des trois n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les onze autres.
 
 `doctor` est arrivée en 0.9.0. `pseudo` et `extract` sont les dernières arrivées dans cette liste.
 
