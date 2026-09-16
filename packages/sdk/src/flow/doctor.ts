@@ -1,4 +1,5 @@
 import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "@verbatra/ai-providers";
+import type { LiteralScan } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import {
   type ConfigSource,
@@ -16,6 +17,7 @@ import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import { readSourceResource } from "./source.js";
 
 /**
@@ -27,8 +29,17 @@ import { readSourceResource } from "./source.js";
  * - `api-key`: the environment variable the configured provider reads its key from is set.
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
+ * - `untranslated-literals`: the application source configured in the `extract` block holds no
+ *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
+ *   {@link DoctorInput.literals} is set.
  */
-export type DoctorCheckId = "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+export type DoctorCheckId =
+  | "config"
+  | "format-adapter"
+  | "provider"
+  | "api-key"
+  | "source-file"
+  | "untranslated-literals";
 
 /**
  * The verdict on one {@link DoctorCheck}. `skipped` is reported only for the checks that need a
@@ -57,8 +68,18 @@ export interface DoctorCheck {
 export interface DoctorResult {
   /** True only when no check failed. This is the value a script should branch on. */
   readonly ok: boolean;
-  /** Every check, always in the same order, one entry per {@link DoctorCheckId}. */
+  /**
+   * Every check that ran, always in the same order. A setup run has one entry per setup check:
+   * `config`, `format-adapter`, `provider`, `api-key`, and `source-file`. A literal run
+   * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
+   */
   readonly checks: readonly DoctorCheck[];
+  /**
+   * What the untranslated-literal scan found. Present only on a literal run whose scan actually
+   * ran; absent when the config could not be loaded, no `extract` block is configured, or the
+   * file system cannot list directories.
+   */
+  readonly literals?: LiteralScan;
 }
 
 /** Input for {@link doctor}. */
@@ -67,6 +88,13 @@ export interface DoctorInput {
   readonly cwd?: string;
   /** An explicit config file to validate, bypassing the search. A missing file is an error rather than a failed check. */
   readonly configPath?: string;
+  /**
+   * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
+   * source roots of its `extract` block are scanned for hardcoded user-facing string literals. The
+   * provider, API-key, format, and source-file checks do not run, so no API key environment
+   * variable is looked at and a run with no key set can pass.
+   */
+  readonly literals?: boolean;
 }
 
 /** Injectable dependencies for {@link doctor}. Every field has a working default. */
@@ -89,6 +117,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   provider: "Provider",
   "api-key": "API key environment variable",
   "source-file": "Source locale file",
+  "untranslated-literals": "Untranslated literals",
 };
 
 const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
@@ -247,6 +276,28 @@ async function checkSourceFile(
   }
 }
 
+async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<DoctorResult> {
+  const outcome = await loadForDoctor(input, deps);
+  if (outcome.kind === "failed") {
+    return toResult([
+      verdict("config", false, outcome.detail),
+      check("untranslated-literals", "skipped", SKIPPED_DETAIL),
+    ]);
+  }
+  const { config, source } = outcome.loaded;
+  const configCheck = verdict("config", true, configDetail(source));
+  const lint = await lintLiterals(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs);
+  if (lint.kind === "not-run") {
+    return toResult([configCheck, verdict("untranslated-literals", false, lint.detail)]);
+  }
+  const literalCheck = verdict(
+    "untranslated-literals",
+    isCleanLiteralScan(lint.scan),
+    describeLiteralScan(lint.scan),
+  );
+  return { ...toResult([configCheck, literalCheck]), literals: lint.scan };
+}
+
 /**
  * Validates a project's setup and spends nothing: no provider is constructed, no network request is
  * made, and no file is written. Run it before {@link translate} on a fresh project, or when a run
@@ -277,7 +328,18 @@ async function checkSourceFile(
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
- * @param input - The working directory and an optional explicit config path.
+ * With `literals: true` it runs the untranslated-literal scan instead of the setup checks. The
+ * source roots of the config's `extract` block are read, never written, and every string literal
+ * or piece of JSX text that reads as user-facing text without going through a recognised
+ * translation call is returned in {@link DoctorResult.literals} with its file, line, column, and
+ * an excerpt of at most 80 characters. Literals held back by a `verbatra-ignore-next-line` or
+ * `verbatra-ignore-line` comment, or by `extract.literals.ignore`, are returned under `suppressed`
+ * rather than dropped. The check fails when anything was found or when a file could not be
+ * scanned, so a partial scan is never reported as clean. No provider is constructed and no API key
+ * environment variable is read.
+ *
+ * @param input - The working directory, an optional explicit config path, and whether to run the
+ *   untranslated-literal scan instead of the setup checks.
  * @param deps - Optional adapter registry, file-system, and config-loader overrides.
  * @returns Every check with its verdict, and the project-wide `ok` verdict.
  *
@@ -299,6 +361,9 @@ export async function doctor(
   input: DoctorInput = {},
   deps: DoctorDeps = {},
 ): Promise<DoctorResult> {
+  if (input.literals === true) {
+    return literalDoctor(input, deps);
+  }
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
     return toResult([

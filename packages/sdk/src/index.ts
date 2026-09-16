@@ -12,10 +12,14 @@ export {
 } from "@verbatra/core";
 export type {
   KeyConflict,
+  LiteralFinding,
+  LiteralScan,
+  LiteralSuppressionReason,
   ScanDiagnostic,
   ScanDiagnosticReason,
   SourceFramework,
   SourceLocation,
+  SuppressedLiteral,
 } from "@verbatra/extract";
 export {
   AdapterError,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildExtractor,
+  buildLiteralRules,
   EXTRACTION_FRAMEWORKS,
   extractionConfigSchema,
 } from "./extraction-config.js";
@@ -50,5 +51,39 @@ describe("buildExtractor", () => {
 
   it("lists at least one framework, so the loop above cannot pass vacuously", () => {
     expect(EXTRACTION_FRAMEWORKS.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("extractionConfigSchema: the literals block", () => {
+  it("accepts an ignore list", () => {
+    const parsed = extractionConfigSchema.parse({
+      framework: "i18next",
+      roots: ["src"],
+      literals: { ignore: ["Acme Inc."] },
+    });
+
+    expect(parsed.literals).toEqual({ ignore: ["Acme Inc."] });
+  });
+
+  it("rejects an unrecognized key and an empty entry", () => {
+    const base = { framework: "i18next", roots: ["src"] };
+
+    expect(extractionConfigSchema.safeParse({ ...base, literals: { allow: [] } }).success).toBe(
+      false,
+    );
+    expect(extractionConfigSchema.safeParse({ ...base, literals: { ignore: [""] } }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("buildLiteralRules", () => {
+  it("resolves every framework to rules that recognise its translation calls", () => {
+    for (const framework of EXTRACTION_FRAMEWORKS) {
+      const rules = buildLiteralRules(framework);
+
+      expect(rules.calleeNames.size).toBeGreaterThan(0);
+      expect(rules.extensions).toEqual(buildExtractor(framework).extensions);
+    }
   });
 });

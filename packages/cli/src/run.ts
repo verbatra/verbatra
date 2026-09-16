@@ -817,18 +817,26 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
   );
 }
 
+const doctorOptsSchema = sharedCommandOptsSchema.extend({
+  literals: z.boolean().optional(),
+});
+
 async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("doctor", rawOpts, streams);
   return withParsedOpts(
-    () => sharedCommandOptsSchema.parse(rawOpts),
+    () => doctorOptsSchema.parse(rawOpts),
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
+      const literals = opts.literals === true;
       try {
-        loadEnvFiles(cwd);
+        if (!literals) {
+          loadEnvFiles(cwd);
+        }
         const result = await deps.doctor({
           cwd,
           ...(opts.config !== undefined ? { configPath: opts.config } : {}),
+          ...(literals ? { literals: true } : {}),
         });
         streams.out(
           context.json
@@ -1147,6 +1155,10 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
     .description("Validate the project setup without calling a provider or reading an API key")
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
+    .option(
+      "--literals",
+      "scan the extract source roots for hardcoded user-facing strings instead of checking the setup",
+    )
     .option("--json", "print the doctor report as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams));
@@ -1156,8 +1168,12 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
       [
         "",
         "Examples:",
-        "  $ verbatra doctor         report every setup problem at once (exit 1 if any)",
-        "  $ verbatra doctor --json  machine-readable report on stdout for CI",
+        "  $ verbatra doctor             report every setup problem at once (exit 1 if any)",
+        "  $ verbatra doctor --json      machine-readable report on stdout for CI",
+        "  $ verbatra doctor --literals  list untranslated string literals (exit 1 if any)",
+        "",
+        "With --literals it reads your source and never writes it, constructs no provider, and " +
+          "reads no API key, so it runs before any key exists.",
       ].join("\n"),
     );
 }

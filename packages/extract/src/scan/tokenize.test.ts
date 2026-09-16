@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { describe, expect, it } from "vitest";
-import { tokenizeSource } from "./tokenize.js";
+import { scanSource, tokenizeSource } from "./tokenize.js";
 
 function kinds(text: string): readonly string[] {
   return tokenizeSource(text).tokens.map((token) => token.kind);
@@ -233,5 +233,66 @@ describe("tokenizeSource on a file it cannot read to the end", () => {
 
   it("reports an unterminated string as whole, since the line is recovered", () => {
     expect(truncated('t("unterminated\nt("kept")')).toBe(false);
+  });
+});
+
+describe("scanSource positions and comments", () => {
+  it("gives every token a one-based column on its own line", () => {
+    const { tokens } = scanSource('a\n  t("x")');
+
+    expect(tokens.map((token) => [token.kind, token.line, token.column])).toEqual([
+      ["ident", 1, 1],
+      ["ident", 2, 3],
+      ["punct", 2, 4],
+      ["string", 2, 5],
+      ["punct", 2, 8],
+    ]);
+  });
+
+  it("places a template literal at its opening backtick", () => {
+    const { tokens } = scanSource("x = `hello`");
+
+    expect(tokens[2]).toEqual({ kind: "string", value: "hello", line: 1, column: 5 });
+  });
+
+  it("shifts tokens inside a template expression to their real line and column", () => {
+    const { tokens } = scanSource('  `a ${ t("k") } ${\n"b"}`');
+    const strings = tokens.filter((token) => token.kind === "string");
+
+    expect(strings.map((token) => [token.line, token.column])).toEqual([
+      [1, 11],
+      [2, 1],
+    ]);
+  });
+
+  it("restores the column after an unterminated string that crossed a line continuation", () => {
+    const { tokens } = scanSource('x "a\\\nb\ny');
+
+    expect(tokens[1]).toEqual({ kind: "punct", value: '"', line: 1, column: 3 });
+  });
+
+  it("records line and block comments with the lines they span", () => {
+    const { comments } = scanSource("// one\nx /* two\nthree */ y");
+
+    expect(comments).toEqual([
+      { text: "// one", line: 1, endLine: 1 },
+      { text: "/* two\nthree */", line: 2, endLine: 3 },
+    ]);
+  });
+
+  it("records a comment inside a template expression on its real line", () => {
+    const { comments } = scanSource("\n`${ // note\n x }`");
+
+    expect(comments).toEqual([{ text: "// note", line: 2, endLine: 2 }]);
+  });
+
+  it("keeps the legacy token stream free of columns", () => {
+    expect(tokenizeSource('t("x")').tokens[2]).toEqual({ kind: "string", value: "x", line: 1 });
+  });
+
+  it("never reads markup unless a markup reader is supplied", () => {
+    const { tokens } = scanSource("x = <p>Hi</p>");
+
+    expect(tokens.some((token) => token.kind.startsWith("markup"))).toBe(false);
   });
 });

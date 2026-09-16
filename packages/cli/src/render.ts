@@ -13,6 +13,7 @@ import {
   type GenerateTypesResult,
   type ImportTmxResult,
   type InconsistencyGroup,
+  type LiteralScan,
   type LocaleCheckSummary,
   type LocaleDiff,
   type LocaleSummary,
@@ -319,6 +320,25 @@ const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
   skipped: "skip",
 };
 
+function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
+  if (scan === undefined) {
+    return [];
+  }
+  return [
+    ...scan.findings.map(
+      (finding) =>
+        `    ${finding.file}:${finding.line}:${finding.column}  ${JSON.stringify(finding.text)}`,
+    ),
+    ...scan.suppressed.map(
+      (entry) =>
+        `    suppressed (${entry.reason}) ${entry.file}:${entry.line}:${entry.column}  ${JSON.stringify(entry.text)}`,
+    ),
+    ...scan.diagnostics.map(
+      (diagnostic) => `    not scanned (${diagnostic.reason}) ${diagnostic.file}`,
+    ),
+  ];
+}
+
 export function renderDoctorHuman(result: DoctorResult): string {
   const lines = result.checks.map(
     (entry) => `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
@@ -327,7 +347,7 @@ export function renderDoctorHuman(result: DoctorResult): string {
   const trailer = result.ok
     ? "no problems found"
     : `${failed} ${failed === 1 ? "problem" : "problems"} found (run verbatra doctor again after fixing them)`;
-  return ["verbatra doctor", ...lines, trailer].join("\n");
+  return ["verbatra doctor", ...lines, ...renderLiteralLines(result.literals), trailer].join("\n");
 }
 
 const DIFF_GROUP_WIDTH = 14;

@@ -13,7 +13,7 @@ import {
   readTextFile,
   writeJsonFile,
 } from "../test-support.js";
-import { extract } from "./extract.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE, extract } from "./extract.js";
 
 const EXTRACT_CONFIG = { framework: "i18next", roots: ["src"] } satisfies ExtractionConfig;
 
@@ -244,7 +244,9 @@ describe("extract failure modes", () => {
 
     await expect(extract({ config: baseConfig(), cwd })).rejects.toMatchObject({
       code: "EXTRACT_NOT_CONFIGURED",
+      message: EXTRACT_NOT_CONFIGURED_MESSAGE,
     });
+    expect(EXTRACT_NOT_CONFIGURED_MESSAGE).toContain("No extract block is configured");
   });
 
   it("refuses to run against a file system that cannot list a directory", async () => {

@@ -56,7 +56,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
 | `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
-| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract): das Framework und die Quellverzeichnisse. |
+| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract) und `verbatra doctor --literals`: das Framework, die Quellverzeichnisse und die Ignorierliste für Literale. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
 Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
@@ -198,13 +198,14 @@ Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, 
 
 <AvailableFrom version="0.11.0" />
 
-Optional und nur von [`verbatra extract`](/docs/cli/extract) genutzt. Jeder andere Befehl ignoriert es.
+Optional und nur von [`verbatra extract`](/docs/cli/extract) und [`verbatra doctor --literals`](/docs/cli/doctor) genutzt. Jeder andere Befehl ignoriert es.
 
 ```ts
 extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
+  literals: { ignore: ["Acme Inc."] },
 }
 ```
 
@@ -213,6 +214,8 @@ extract: {
 `roots` listet die Verzeichnisse auf, die durchlaufen werden, aufgelöst gegen das Arbeitsverzeichnis. Mindestens eines ist erforderlich, und nichts außerhalb davon wird je gelesen.
 
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
+
+`literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen wie `&amp;` gleich ist, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
 
 Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 
