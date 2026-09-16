@@ -10,6 +10,7 @@ import {
   regexCanStart,
   skipTrivia,
 } from "./tokenize.js";
+import { groupEnd, typeParameterListAt } from "./type-parameters.js";
 
 type Failure =
   | { readonly kind: "not-markup" }
@@ -31,13 +32,9 @@ const TAG_CHAR = /[A-Za-z0-9_$.:-]/;
 
 const GENERIC_PARAMETER_FOLLOWERS = new Set(["extends", ","]);
 
-const TYPE_ARGUMENTS_LIMIT = 128;
-
 const VALUE_POSITION_LOOKBEHIND = 64;
 
 const VALUE_POSITION = /(?:(?<![\w$])return|=>|&&|\|\||(?<![=!<>])=|[(?:,?])\s*$/;
-
-const TYPE_PARAMETER_LIST = /<[A-Za-z_$][\w$]*(?:\s+[A-Za-z_$][\w$]*)*\s*>\s*\(/y;
 
 interface Position {
   readonly line: number;
@@ -215,24 +212,21 @@ function startsGenericParameters(cursor: Cursor): boolean {
 }
 
 function skipTypeArguments(cursor: Cursor): boolean {
-  const limit = cursor.index + TYPE_ARGUMENTS_LIMIT;
-  let depth = 0;
-  while (!atEnd(cursor) && cursor.index < limit) {
-    const char = advance(cursor);
-    if (char === "<") {
-      depth += 1;
-    } else if (char === ">" && cursor.text[cursor.index - 2] !== "=") {
-      depth -= 1;
-    }
-    if (depth === 0) {
-      return true;
-    }
+  const end = groupEnd(cursor, cursor.index);
+  if (end < 0) {
+    return false;
   }
-  return false;
+  while (cursor.index <= end) {
+    advance(cursor);
+  }
+  return true;
 }
 
 function readOpenTag(cursor: Cursor, out: PositionedToken[]): { name: string; end: TagEnd } {
   const position = positionOf(cursor);
+  if (typeParameterListAt(cursor, cursor.index) === "marked") {
+    return { name: "", end: NOT_MARKUP };
+  }
   cursor.index += 1;
   const name = readName(cursor);
   if (name !== "" && startsGenericParameters(cursor)) {
@@ -368,10 +362,9 @@ function makesFileUnreadable(cursor: Cursor, failure: Failure): boolean {
     return false;
   }
   const lookbehind = Math.max(0, cursor.index - VALUE_POSITION_LOOKBEHIND);
-  TYPE_PARAMETER_LIST.lastIndex = cursor.index;
   return (
     VALUE_POSITION.test(cursor.text.slice(lookbehind, cursor.index)) &&
-    !TYPE_PARAMETER_LIST.test(cursor.text)
+    typeParameterListAt(cursor, cursor.index) === undefined
   );
 }
 

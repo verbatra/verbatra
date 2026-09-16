@@ -414,6 +414,28 @@ describe("findLiterals: a generic function type in a markup file", () => {
     ["a constructor type", "type Ctor = new <T>(x: T) => T;"],
     ["a parenthesized union member", "type U = string | (<T>(x: T) => T);"],
     ["a const type parameter", "type Fn = <const T>(x: T) => T;"],
+    ["a const type parameter with a default", 'const f = <const T = "a">(x: T) => x;'],
+    [
+      "a constrained const type parameter with an object default",
+      "const g = <const T extends object = {}>(x: T) => x;",
+    ],
+    [
+      "a constrained const type parameter with a string default",
+      'const h = <const T extends string = "a">(x: T) => x;',
+    ],
+    [
+      "a const type parameter in a parameter type",
+      'const k = (cb: <const T extends string = "a">(x: T) => T) => cb;',
+    ],
+    ["a returned const type parameter", "function r() { return <const T = {}>(x: T) => x; }"],
+    [
+      "const type parameters in both ternary branches",
+      "const s = ok ? <const T = {}>(x: T) => x : <const U = {}>(y: U) => y;",
+    ],
+    [
+      "several type parameters with nested defaults",
+      "const m = <K extends keyof Map<string, [number, () => void]>, V = { a: '>' }>(k: K, v: V) => v;",
+    ],
   ])("keeps reading markup after %s", (_label, construct) => {
     const result = findLiterals(
       `const a = <p>Before the type</p>;\n${construct}\nconst b = <p>After the type</p>;`,
@@ -437,6 +459,22 @@ describe("findLiterals: a generic function type in a markup file", () => {
 
     expect(result.truncated).toBe(false);
     expect(result.found.map((literal) => literal.text)).toEqual(["After both types"]);
+  });
+
+  it("reads an element whose type arguments are longer than any fixed budget", () => {
+    const type = `{ ${Array.from({ length: 12 }, (_, index) => `field${index}: string;`).join(" ")} }`;
+    const result = findLiterals(
+      `const a = (\n  <Table<${type}> rows={rows}>\n    Paths like src/* are matched\n  </Table>\n);\nconst b = <Foo<${type}> x="1">Hi</Foo>;`,
+      rules,
+      true,
+    );
+
+    expect(type.length).toBeGreaterThan(136);
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual([
+      "Paths like src/* are matched",
+      "Hi",
+    ]);
   });
 
   it("reads an element that carries type arguments", () => {

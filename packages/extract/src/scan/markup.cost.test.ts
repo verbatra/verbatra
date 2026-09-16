@@ -30,6 +30,15 @@ describe("readMarkup: cost on input that never closes type arguments", () => {
     ["a parenthesized tag with type arguments", "(<a<"],
     ["an assigned tag with type arguments", "= <a<"],
     ["a child tag with type arguments", "<p><Foo<Bar "],
+    ["a tag with long type arguments that never close", "(<Foo<{ a: string; b: Map<string, "],
+    [
+      "a closed tag with long type arguments",
+      `(<Foo<{ ${"field: string; ".repeat(20)}}> x="1">Hi</Foo>);\n`,
+    ],
+    [
+      "const type parameters with defaults",
+      'const f = <const T extends object = { a: "b" }>(x: T) => x;\n',
+    ],
   ])("reads a bounded number of characters per character for %s", (_label, unit) => {
     const half = characterReads(unit, 100_000);
     const full = characterReads(unit, 200_000);

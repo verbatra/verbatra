@@ -116,6 +116,16 @@ describe("readMarkup", () => {
     expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
   });
 
+  it("reads an element whose text starts with a parenthesis", () => {
+    expect(shape("x = <small>(beta)</small>")).toEqual([
+      "ident:x",
+      "punct:=",
+      "<small>",
+      "text:(beta)",
+      "</small>",
+    ]);
+  });
+
   it("reads an element used as an attribute value", () => {
     expect(shape('x = <Foo icon=<Bar /> label="x">Inner copy</Foo>')).toEqual([
       "ident:x",
@@ -220,6 +230,12 @@ describe("readMarkup on markup that makes the file unreadable", () => {
     ["a generic function type", "type Fn = <T>(x: T) => T;"],
     ["a generic function type with a modifier", "type Fn = <const T>(x: T) => T;"],
     ["a generic arrow function", "const f = <T,>(x: T) => x;"],
+    ["a const type parameter with a default", 'const f = <const T = "a">(x: T) => x;'],
+    [
+      "a constrained type parameter with a default",
+      "return <const T extends object = {}>(x: T) => x",
+    ],
+    ["type parameters after a ternary colon", "const f = ok ? null : <const T = {}>(x: T) => x"],
   ])("does not flag %s", (_label, text) => {
     expect(scan(text).unreadableMarkup).toBe(false);
   });
