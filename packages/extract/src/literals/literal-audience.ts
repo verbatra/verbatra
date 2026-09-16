@@ -134,6 +134,17 @@ const DIRECT_ARGUMENT_CALLEES = new Set([
   "query",
 ]);
 
+const BUILT_IN_ERRORS = new Set([
+  "AggregateError",
+  "Error",
+  "EvalError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "TypeError",
+  "URIError",
+]);
+
 const ARRAY_ARGUMENT_CALLEES = new Set(["enum"]);
 
 const FIRST_ARGUMENT_CALLEES = new Set(["addEventListener", "emit", "off", "on", "once"]);
@@ -185,6 +196,13 @@ function isFirstArgumentCallee(frame: LiteralFrame & { kind: "call" }): boolean 
   );
 }
 
+function isDirectArgumentCallee(frame: LiteralFrame & { kind: "call" }): boolean {
+  if (DIRECT_ARGUMENT_CALLEES.has(frame.callee)) {
+    return true;
+  }
+  return !frame.member && BUILT_IN_ERRORS.has(frame.callee);
+}
+
 function isNonUserFacingCallArgument(
   tokens: readonly PositionedToken[],
   index: number,
@@ -194,9 +212,7 @@ function isNonUserFacingCallArgument(
   if (isPunct(previous, "(") && isFirstArgumentCallee(frame)) {
     return true;
   }
-  return (
-    (isPunct(previous, "(") || isPunct(previous, ",")) && DIRECT_ARGUMENT_CALLEES.has(frame.callee)
-  );
+  return (isPunct(previous, "(") || isPunct(previous, ",")) && isDirectArgumentCallee(frame);
 }
 
 function isNonUserFacingArrayElement(

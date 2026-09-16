@@ -322,6 +322,32 @@ describe("findLiterals: what is reported", () => {
     ).toEqual(["Welcome back", "All done now", "Not yet ready"]);
   });
 
+  it.each([
+    "Error",
+    "TypeError",
+    "RangeError",
+    "SyntaxError",
+    "ReferenceError",
+    "EvalError",
+    "URIError",
+  ])("skips the message of a bare %s call without new", (name) => {
+    onlyControl(`throw ${name}("Something went wrong here");`, false);
+    onlyControl(`const e = ${name}("Something went wrong", { cause: err });`, false);
+  });
+
+  it("skips the message of a bare AggregateError call", () => {
+    onlyControl('throw AggregateError(errors, "Several requests failed");', false);
+  });
+
+  it("still reports copy nested inside a bare built-in error call or a member Error call", () => {
+    expect(
+      texts(
+        'throw Error(toast("Your changes were not saved"));\nerrors.Error("Please try again later");',
+        false,
+      ),
+    ).toEqual(["Your changes were not saved", "Please try again later"]);
+  });
+
   it("reports a message passed to a function whose name ends in Error", () => {
     expect(
       texts(
