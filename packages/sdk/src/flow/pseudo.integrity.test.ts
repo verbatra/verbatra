@@ -142,3 +142,46 @@ describe("a pseudolocalized value clears the integrity gate for every registered
     expect(pseudolocalizeValue(value)).toContain("{{name}}");
   });
 });
+
+describe("pseudolocalization survives the markup gate for every format", () => {
+  const MARKUP_VALUES = [
+    "One<br/>two",
+    "<b>Save</b> then <i>close</i>",
+    "Wait < 5 minutes",
+  ] as const;
+
+  it.each(SUPPORTED_FORMATS)("%s never refuses a pseudolocalized value for markup", (format) => {
+    const adapter = adapterFor(format);
+    for (const value of MARKUP_VALUES) {
+      const result = gateCandidateValue(
+        sourceEntry(value, adapter),
+        pseudolocalizeValue(value),
+        adapter,
+      );
+      expect({ value, reason: result.accepted ? undefined : result.reason }).toEqual({
+        value,
+        reason: undefined,
+      });
+    }
+  });
+
+  it.each(["next-intl-json", "arb"] as const)(
+    "%s refuses an attribute-bearing tag as invalid ICU, which pseudolocalization does not cause",
+    (format) => {
+      const adapter = adapterFor(format);
+      const value = 'Read <a href="/docs">the docs</a>';
+      expect(gateCandidateValue(sourceEntry(value, adapter), value, adapter)).toEqual({
+        accepted: false,
+        reason: "icu",
+      });
+    },
+  );
+
+  it("would notice if pseudolocalization started rewriting a tag", () => {
+    const adapter = adapterFor("i18next-json");
+    const mangled = pseudolocalizeValue("<b>Save</b>").replace("</b>", "</i>");
+    expect(gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter).accepted).toBe(
+      false,
+    );
+  });
+});
