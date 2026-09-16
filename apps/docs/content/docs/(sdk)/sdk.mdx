@@ -594,8 +594,12 @@ The parts worth knowing:
   checked before every request the run sends, each half of a re-split request included, so
   `tokensUsed` lands at or below `maxTokens` apart from one residual: the last request admitted is
   reconciled to what the provider reported, which can push the total past the ceiling after the
-  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do. The budget bounds one `translate` call: `watch` starts
-  a fresh one per run, and `retranslateEntry` is not covered by it at all.
+  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound,
+  because they happen inside a request it already admitted: the provider layer sends one repair call
+  of its own when keys come back missing, so one admitted batch can cost up to about twice its
+  projection, and the count is only as good as what the provider reports. Both land at
+  reconciliation, and nothing further is admitted once they do. The budget bounds one `translate`
+  call: `watch` starts a fresh one per run, and `retranslateEntry` is not covered by it at all.
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
   with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
