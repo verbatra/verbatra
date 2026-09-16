@@ -1042,4 +1042,23 @@ describe("importTmx reports an unusable file as a structured error", () => {
 
     expect(result.markupStrippedUnits).toBe(1);
   });
+
+  it("counts a unit whose inline markup carried sub-flow text it left out", async () => {
+    const dir = await project([
+      '    <tu>\n      <tuv xml:lang="en"><seg>Open <ph>&lt;a title="<sub>Tip</sub>"&gt;</ph>it</seg></tuv>\n      <tuv xml:lang="de"><seg>Oeffne <ph>&lt;a title="<sub>Hinweis</sub>"&gt;</ph>es</seg></tuv>\n    </tu>',
+      tu([
+        ["en", "Save"],
+        ["de", "Speichern"],
+      ]),
+    ]);
+    const config = cfg();
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.subflowDroppedUnits).toBe(1);
+    expect(result.markupStrippedUnits).toBe(1);
+    expect(bucket(await memoryOf(dir), config, "de")[entryHash('Open <a title="">it')]).toBe(
+      'Oeffne <a title="">es',
+    );
+  });
 });

@@ -109,6 +109,12 @@ export interface ImportTmxResult {
   readonly conflictingSourceUnits: number;
   /** Units whose segments carried inline markup, which is flattened to its text. */
   readonly markupStrippedUnits: number;
+  /**
+   * Units whose inline markup carried a `sub` element, a sub-flow such as a tooltip or alternative
+   * text embedded in the markup. Its text is not part of the segment's own string, so it is left out
+   * of the segment rather than flattened into it.
+   */
+  readonly subflowDroppedUnits: number;
   /** Language tags that resolved to no configured locale, with how many units carried each. */
   readonly unmatchedLanguages: readonly TmxLanguageReport[];
   /** Language tags that two or more configured locales could claim, so none was chosen. */
@@ -347,6 +353,7 @@ interface ScanTotals {
   readonly unmatchedSourceUnits: number;
   readonly conflictingSourceUnits: number;
   readonly markupStrippedUnits: number;
+  readonly subflowDroppedUnits: number;
 }
 
 function importUnit(
@@ -388,9 +395,13 @@ function scanUnits(
   let unmatchedSourceUnits = 0;
   let conflictingSourceUnits = 0;
   let markupStrippedUnits = 0;
+  let subflowDroppedUnits = 0;
   for (const unit of units) {
     if (unit.markupStripped) {
       markupStrippedUnits += 1;
+    }
+    if (unit.subflowDropped) {
+      subflowDroppedUnits += 1;
     }
     const outcome = importUnit(
       ctx,
@@ -405,7 +416,12 @@ function scanUnits(
       conflictingSourceUnits += 1;
     }
   }
-  return { unmatchedSourceUnits, conflictingSourceUnits, markupStrippedUnits };
+  return {
+    unmatchedSourceUnits,
+    conflictingSourceUnits,
+    markupStrippedUnits,
+    subflowDroppedUnits,
+  };
 }
 
 const SOURCE_LANGUAGE_WILDCARD = "*all*";
@@ -554,6 +570,7 @@ export async function importTmx(
     unmatchedSourceUnits: totals.unmatchedSourceUnits,
     conflictingSourceUnits: totals.conflictingSourceUnits,
     markupStrippedUnits: totals.markupStrippedUnits,
+    subflowDroppedUnits: totals.subflowDroppedUnits,
     unmatchedLanguages: census.report("unmatched"),
     ambiguousLanguages: census.report("ambiguous"),
     notImported: census.report("filtered"),
