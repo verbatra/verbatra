@@ -4,14 +4,11 @@ import { buildLiteralRules } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { toSourceFs } from "./extract.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE, toSourceFs } from "./extract.js";
 
 export type LiteralLintOutcome =
   | { readonly kind: "scanned"; readonly scan: LiteralScan }
   | { readonly kind: "not-run"; readonly detail: string };
-
-const NOT_CONFIGURED_DETAIL =
-  "No extract block is configured, so there is no source to scan. Add an extract block naming a framework and at least one source root to the verbatra config.";
 
 function plural(count: number, singular: string, pluralForm: string): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -39,7 +36,7 @@ export async function lintLiterals(
 ): Promise<LiteralLintOutcome> {
   const extraction = config.extract;
   if (extraction === undefined) {
-    return { kind: "not-run", detail: NOT_CONFIGURED_DETAIL };
+    return { kind: "not-run", detail: EXTRACT_NOT_CONFIGURED_MESSAGE };
   }
   try {
     const scan = await scanLiterals(

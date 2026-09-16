@@ -5,6 +5,7 @@ import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { doctor } from "./doctor.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE } from "./extract.js";
 
 const { providerFactoryCalls } = vi.hoisted(() => ({ providerFactoryCalls: [] as string[] }));
 
@@ -226,7 +227,7 @@ describe("doctor with literals: when the scan cannot give a clean verdict", () =
     expect(result.ok).toBe(false);
     expect(result.literals).toBeUndefined();
     expect(result.checks[1]).toMatchObject({ status: "fail" });
-    expect(result.checks[1]?.detail).toContain("No extract block is configured");
+    expect(result.checks[1]?.detail).toBe(EXTRACT_NOT_CONFIGURED_MESSAGE);
   });
 
   it("fails when the file system cannot list directories", async () => {

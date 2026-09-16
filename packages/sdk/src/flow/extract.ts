@@ -82,12 +82,12 @@ export interface ExtractDeps {
   readonly createExtractor?: (framework: SourceFramework) => SourceExtractor;
 }
 
+export const EXTRACT_NOT_CONFIGURED_MESSAGE =
+  "No extract block is configured. Add an extract block naming a framework and at least one source root to the verbatra config.";
+
 function requireExtractionConfig(config: VerbatraConfig): ExtractionConfig {
   if (config.extract === undefined) {
-    throw new SdkError(
-      "EXTRACT_NOT_CONFIGURED",
-      "No extract block is configured. Add an extract block naming a framework and at least one source root to the verbatra config.",
-    );
+    throw new SdkError("EXTRACT_NOT_CONFIGURED", EXTRACT_NOT_CONFIGURED_MESSAGE);
   }
   return config.extract;
 }
