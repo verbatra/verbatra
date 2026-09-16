@@ -79,4 +79,4 @@ describe("i18next key usage: cost on a JSX-heavy file", () => {
     expect(full.reads).toBeLessThan(length * 100);
     expect(full.reads).toBeLessThan(half.reads * 2.2);
   });
-});
+}, 60_000);

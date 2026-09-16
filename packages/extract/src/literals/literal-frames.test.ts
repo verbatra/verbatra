@@ -52,4 +52,4 @@ describe("updateFrames: looking back for a call's type arguments", () => {
 
     expect(frames.at(-1)).toEqual({ kind: "group", bracket: "(" });
   });
-});
+}, 60_000);

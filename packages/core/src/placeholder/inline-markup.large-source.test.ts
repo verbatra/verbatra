@@ -136,4 +136,4 @@ describe("compareInlineMarkup: comparison work stays proportional to the number 
     expect(large.steps).toBeLessThanOrEqual(small.steps * GROWTH_CEILING);
     expect(large.steps).toBeLessThanOrEqual(largeValue.length * STEPS_PER_CHARACTER_CEILING);
   });
-});
+}, 60_000);

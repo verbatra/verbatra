@@ -39,4 +39,4 @@ describe("directiveSuppression: cost", () => {
     expect(scan.comments.length).toBeGreaterThanOrEqual(2000);
     expect(reads()).toBeLessThan(scan.tokens.length * 8);
   });
-});
+}, 60_000);

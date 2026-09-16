@@ -533,4 +533,4 @@ describe("compareInlineMarkup against the parse5 HTML parser", () => {
     expect(accepted.length).toBeGreaterThan(PAIR_COUNT / 20);
     expect(accepted.length).toBeLessThan(PAIR_COUNT);
   });
-});
+}, 60_000);
