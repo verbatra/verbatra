@@ -83,10 +83,11 @@ export function scanProlog(text: string): PrologScan {
   throw invalid("The file is not valid XML: it has no root element.");
 }
 
-export function removeSpans(text: string, spans: ReadonlyArray<readonly [number, number]>): string {
+export function blankSpans(text: string, spans: ReadonlyArray<readonly [number, number]>): string {
   let result = text;
-  for (const [start, end] of [...spans].reverse()) {
-    result = `${result.slice(0, start)}${result.slice(end)}`;
+  for (const [start, end] of spans) {
+    const blanked = result.slice(start, end).replace(/[^\r\n]/g, " ");
+    result = `${result.slice(0, start)}${blanked}${result.slice(end)}`;
   }
   return result;
 }

@@ -159,9 +159,12 @@ export class SdkError extends Error {
   /**
    * @param code - The stable failure code.
    * @param message - A human-readable description of the failure. Never contains a secret.
+   * @param options - `cause` carries the error this one wraps, such as the interchange reader's
+   * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
+   * `tmxErrorLocation` rather than from the cause directly.
    */
-  constructor(code: SdkErrorCode, message: string) {
-    super(message);
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown }) {
+    super(message, options);
     this.name = "SdkError";
     this.code = code;
   }

@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { importTmx } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import {
@@ -86,6 +90,7 @@ describe("verbatra tmx import", () => {
               overwritten: 0,
               kept: 1,
               duplicates: 0,
+              conflicting: 0,
               rejected: { placeholder: 1, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
             },
           ],
@@ -111,6 +116,33 @@ describe("verbatra tmx import", () => {
     await run(["tmx", "import", "legacy.tmx", "--cwd", "/proj", "--json"], deps, streams);
 
     expect(JSON.parse(out())).toEqual(expect.objectContaining({ ok: true, command: "tmx" }));
+  });
+
+  it("carries the per-locale conflict count in the JSON envelope", async () => {
+    const { deps } = recordingDeps({
+      importTmx: async () =>
+        makeImportTmxResult({
+          locales: [
+            {
+              locale: "de",
+              added: 0,
+              unchanged: 0,
+              overwritten: 0,
+              kept: 0,
+              duplicates: 0,
+              conflicting: 1,
+              rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+            },
+          ],
+        }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "import", "legacy.tmx", "--cwd", "/proj", "--json"], deps, streams);
+
+    expect(JSON.parse(out()).result.locales[0]).toEqual(
+      expect.objectContaining({ locale: "de", conflicting: 1 }),
+    );
   });
 });
 
@@ -170,6 +202,32 @@ describe("verbatra tmx export", () => {
     expect(out()).toContain("de: 9 units");
     expect(out()).toContain("9 units across 2 locales");
     expect(out()).toContain("3 entries left out");
+  });
+});
+
+describe("verbatra tmx export reports removed characters", () => {
+  it("carries the removed-character count in the JSON envelope", async () => {
+    const { deps } = recordingDeps({
+      exportTmx: async () => makeExportTmxResult({ illegalCharactersRemoved: 2 }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj", "--json"], deps, streams);
+
+    expect(JSON.parse(out()).result).toEqual(
+      expect.objectContaining({ illegalCharactersRemoved: 2 }),
+    );
+  });
+
+  it("names the removed characters in the human summary", async () => {
+    const { deps } = recordingDeps({
+      exportTmx: async () => makeExportTmxResult({ illegalCharactersRemoved: 2 }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
+
+    expect(out()).toContain("2 characters XML 1.0 does not allow were removed from segment text");
   });
 });
 
@@ -235,5 +293,54 @@ describe("verbatra tmx refuses a direction it does not know", () => {
 
     expect(code).toBe(2);
     expect(calls.exportTmx).toEqual([]);
+  });
+});
+
+describe("verbatra tmx import names where a malformed file went wrong", () => {
+  const MALFORMED = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<tmx version="1.4">',
+    '  <header srclang="en"/>',
+    "  <body>",
+    '    <tu><tuv xml:lang="en"><seg>Save</seg></tuv></tu>',
+    "    <tu>",
+    '      <tuv xml:lang="en"><seg>Cancel</tuv>',
+    "    </tu>",
+    "  </body>",
+    "</tmx>",
+  ].join("\n");
+
+  async function malformedProject(): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-tmx-"));
+    await writeFile(join(dir, "legacy.tmx"), MALFORMED, "utf8");
+    return dir;
+  }
+
+  it("prints the line, column and unit on the human error line", async () => {
+    const dir = await malformedProject();
+    const { deps } = recordingDeps({ importTmx });
+    const { streams, err } = captureStreams();
+
+    const code = await run(["tmx", "import", "legacy.tmx", "--cwd", dir], deps, streams);
+
+    expect(code).toBe(2);
+    expect(err()).toContain("[SOURCE_INVALID]");
+    expect(err()).toContain("line 7, column 31, unit 2");
+  });
+
+  it("carries the same location in the JSON error envelope", async () => {
+    const dir = await malformedProject();
+    const { deps } = recordingDeps({ importTmx });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "import", "legacy.tmx", "--cwd", dir, "--json"], deps, streams);
+
+    expect(JSON.parse(out())).toEqual(
+      expect.objectContaining({
+        ok: false,
+        code: "SOURCE_INVALID",
+        message: expect.stringContaining("line 7, column 31, unit 2"),
+      }),
+    );
   });
 });

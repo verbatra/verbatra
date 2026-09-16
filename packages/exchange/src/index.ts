@@ -2,13 +2,14 @@ export { buildDelimited } from "./build-delimited.js";
 export {
   type BuildTmxInput,
   buildTmx,
+  removedCharacterCount,
   type TmxExportUnit,
   type TmxTranslation,
 } from "./build-tmx.js";
 export { buildWorkbook } from "./build-workbook.js";
 export { type DelimitedFormat, delimitedFileName } from "./delimited-format.js";
 export { DEFAULT_DELIMITED_LIMITS, type DelimitedLimits } from "./delimited-limits.js";
-export { ExchangeError, type ExchangeErrorCode } from "./errors.js";
+export { ExchangeError, type ExchangeErrorCode, type ExchangeErrorLocation } from "./errors.js";
 export { DEFAULT_WORKBOOK_LIMITS, type WorkbookLimits } from "./limits.js";
 export {
   type ReadDelimitedInput,

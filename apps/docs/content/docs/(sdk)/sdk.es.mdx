@@ -468,13 +468,23 @@ Lee un archivo TMX hacia la memoria del proyecto. Entrada:
 Nada del archivo se da por bueno. El XML se analiza con el endurecimiento del paquete de
 intercambio, de modo que una declaración de entidad, un subconjunto DTD interno, un archivo
 demasiado grande o uno mal formado se rechaza con un error estructurado `SOURCE_INVALID` en lugar de
-analizarse. Una etiqueta de idioma se resuelve a un locale configurado por una regla explícita:
-coincidencia exacta tras pasar a minúsculas y convertir guiones bajos en guiones, si no el único
-locale configurado que comparte la subetiqueta primaria, y una etiqueta que dos locales podrían
-reclamar se informa en vez de adivinarse. Cada traducción candidata pasa después por la misma puerta
-de marcadores, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro
-rellenada, comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la
-lee.
+analizarse. Cuando el problema tiene un lugar en el archivo, el mensaje indica la línea, la columna
+y, dentro de una unidad de traducción, su ordinal contando desde 1, y `tmxErrorLocation(error)`
+devuelve el mismo lugar como `TmxErrorLocation`, o `undefined` para cualquier otro error, así que
+nunca tienes que hacer cast del error ni de su `cause`. Una etiqueta de idioma se resuelve a un
+locale configurado por una regla explícita: coincidencia exacta tras pasar a minúsculas y convertir
+guiones bajos en guiones; si no, el locale configurado más largo que sea prefijo de subetiquetas de
+la etiqueta (búsqueda de RFC 4647), o en su defecto un locale configurado que amplía la etiqueta
+solo con subetiquetas de región o de variante, nunca con una escritura, de modo que dos etiquetas
+con subetiquetas de escritura o de región distintas (`zh-CN` y `zh-TW`) nunca coinciden; y una
+etiqueta solo se informa como ambigua cuando los locales a los que podría llegar no están en una
+misma cadena de prefijos. Los segmentos de una unidad que resuelven al mismo locale, incluido el de
+origen, nunca dejan ganar al último: una etiqueta exacta supera a una coincidencia por prefijo, y
+dos segmentos del mismo rango con valores distintos no guardan nada para ese locale y se cuentan
+como `conflicting` (en el locale de origen, la unidad se rechaza y se cuenta en
+`conflictingSourceUnits`). Cada traducción candidata pasa después por la misma puerta de marcadores,
+ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro rellenada,
+comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la lee.
 
 Cuando una unidad importada contradice una traducción que la memoria ya tiene, gana la memoria salvo
 que se pase `overwrite`. Las unidades se guardan bajo la huella de configuración actual, la misma
@@ -482,20 +492,41 @@ clave que escribe una ejecución real, así que dejan de coincidir cuando cambia
 modelo, el tono o el glosario. Importar el mismo archivo dos veces no cambia nada la segunda vez.
 
 Ante datos dañados devuelve un informe en lugar de lanzar: cuántas unidades se leyeron, una cuenta
-por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates` y `rejected` por motivo, más
-las unidades omitidas, sin segmento de origen o que perdieron marcado en línea, y las etiquetas de
-idioma que no coincidieron o coincidieron de forma ambigua. `memoryWritable` es `false` cuando el
-archivo de memoria lo escribió un verbatra más nuevo, en cuyo caso se deja intacto.
+por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` y `rejected`
+por motivo, más las unidades omitidas, sin segmento de origen, que perdieron marcado en línea o cuyo
+texto `sub` se dejó fuera (`subflowDroppedUnits`), y las etiquetas de idioma que no coincidieron o
+coincidieron de forma ambigua. `memoryWritable` es `false` cuando el archivo de memoria lo escribió
+un verbatra más nuevo, en cuyo caso se deja intacto.
+
+### tmxErrorLocation
+
+Lee, a partir de lo que lanzó `importTmx`, dónde falló un archivo TMX rechazado. Devuelve una
+`TmxErrorLocation` (`{ line, column, unit? }`, todo contando desde 1) para un rechazo
+`SOURCE_INVALID` que tiene un lugar en el archivo, y `undefined` para cualquier otro error, incluido
+un archivo que falta o es demasiado grande, así que nunca tienes que hacer cast del error ni de su
+`cause`.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
 
 ### exportTmx
 
 Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, locales?, toolVersion? }`, donde
 `out` por defecto es `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado como constante. Solo se
 escriben las entradas bajo la huella de configuración actual, que es el mismo conjunto que
-reutilizaría una ejecución. Una memoria vacía produce un archivo válido y vacío, no un error. Devuelve
-`{ path, units, locales, withoutSource }`; `withoutSource` cuenta las entradas dejadas fuera porque la
-memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché
-escrita antes de que la memoria guardase el texto de origen.
+reutilizaría una ejecución. Las etiquetas de idioma se escriben en forma BCP 47 (`en_US` pasa a
+`en-US`), lo que no cambia cómo se indexa la memoria. Una memoria vacía produce un archivo válido y
+vacío, no un error. Devuelve `{ path, units, locales, withoutSource, illegalCharactersRemoved }`;
+`withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para
+ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria
+guardase el texto de origen, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede
+representar y que se eliminaron del texto de los segmentos.
 
 ## Configuración
 ### loadConfig

@@ -1,6 +1,12 @@
 import { resolve } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
-import { DEFAULT_TMX_LIMITS, readTmx, type TmxUnit } from "@verbatra/exchange";
+import {
+  DEFAULT_TMX_LIMITS,
+  ExchangeError,
+  type ExchangeErrorLocation,
+  readTmx,
+  type TmxUnit,
+} from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import {
@@ -27,6 +33,39 @@ import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
  */
 export type TmxRejectionReason = IntegrityGateReason | "sourceBlank";
 
+/**
+ * Where in a TMX file a `SOURCE_INVALID` refusal from {@link importTmx} happened: the 1-based `line`
+ * and `column`, and the 1-based `unit` ordinal when the problem sits inside a translation unit. Read
+ * it from a caught error with {@link tmxErrorLocation}; the same place is named in the message.
+ */
+export type TmxErrorLocation = ExchangeErrorLocation;
+
+/**
+ * Reads where in a TMX file a refusal from {@link importTmx} happened, without casting the error or
+ * its `cause`.
+ *
+ * @param error - Whatever was caught from `importTmx`.
+ * @returns The {@link TmxErrorLocation} when `error` is an {@link SdkError} wrapping a TMX parse
+ * failure that has a place in the file; `undefined` for any other error, including a refusal with
+ * no place in the file such as a missing or oversized file.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await importTmx({ config, file: "legacy.tmx" });
+ * } catch (error) {
+ *   const at = tmxErrorLocation(error);
+ *   if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+ * }
+ * ```
+ */
+export function tmxErrorLocation(error: unknown): TmxErrorLocation | undefined {
+  if (!(error instanceof SdkError) || !(error.cause instanceof ExchangeError)) {
+    return undefined;
+  }
+  return error.cause.location;
+}
+
 /** How many units were refused, by reason. See {@link TmxRejectionReason}. */
 export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
 
@@ -44,6 +83,13 @@ export interface ImportTmxLocaleResult {
   readonly kept: number;
   /** Later units in the same file repeating a source the file had already translated. */
   readonly duplicates: number;
+  /**
+   * Units carrying two segments of equal standing for this locale with different values, such as
+   * `de-CH` and `de-AT` in a project configured for `de`. Which one is right cannot be known, so
+   * neither is stored. An exact tag always outranks one that only reaches the locale by subtag
+   * prefix, and two segments carrying the same value are not a conflict.
+   */
+  readonly conflicting: number;
   /** Units refused before they could be stored, by reason. */
   readonly rejected: TmxRejectionCounts;
 }
@@ -82,13 +128,21 @@ export interface ImportTmxResult {
   /** Units carrying no segment in the configured source locale, so nothing could be keyed. */
   readonly unmatchedSourceUnits: number;
   /**
-   * Units carrying two or more segments that both resolve to the configured source locale, such as
-   * a `en` and a `en-US` segment in a project configured for `en`. Which one the translations belong
-   * to cannot be known, so the unit is refused rather than attributed to whichever came last.
+   * Units carrying two segments of equal standing that resolve to the configured source locale with
+   * different values, such as an `en-US` "Color" and an `en-GB` "Colour" segment in a project
+   * configured for `en`. An exact tag outranks a prefix match and identical values agree, so neither
+   * counts here. Which value the translations belong to cannot be known, so the unit is refused
+   * rather than attributed to whichever came last.
    */
   readonly conflictingSourceUnits: number;
   /** Units whose segments carried inline markup, which is flattened to its text. */
   readonly markupStrippedUnits: number;
+  /**
+   * Units whose inline markup carried a `sub` element, a sub-flow such as a tooltip or alternative
+   * text embedded in the markup. Its text is not part of the segment's own string, so it is left out
+   * of the segment rather than flattened into it.
+   */
+  readonly subflowDroppedUnits: number;
   /** Language tags that resolved to no configured locale, with how many units carried each. */
   readonly unmatchedLanguages: readonly TmxLanguageReport[];
   /** Language tags that two or more configured locales could claim, so none was chosen. */
@@ -147,6 +201,7 @@ interface LocaleTally {
   overwritten: number;
   kept: number;
   duplicates: number;
+  conflicting: number;
   rejected: Record<TmxRejectionReason, number>;
   additions: Record<string, CacheAddition>;
   seenHashes: Set<string>;
@@ -159,6 +214,7 @@ function emptyTally(): LocaleTally {
     overwritten: 0,
     kept: 0,
     duplicates: 0,
+    conflicting: 0,
     rejected: { ...NO_REJECTIONS },
     additions: {},
     seenHashes: new Set<string>(),
@@ -193,7 +249,7 @@ function parse(text: string, path: string): ReturnType<typeof readTmx> {
   try {
     return readTmx(text);
   } catch (error) {
-    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`);
+    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`, { cause: error });
   }
 }
 
@@ -215,14 +271,30 @@ class LanguageCensus {
   }
 }
 
+interface SegmentPick {
+  readonly text: string;
+  readonly exact: boolean;
+  readonly conflicted: boolean;
+}
+
+function pickSegment(current: SegmentPick | undefined, text: string, exact: boolean): SegmentPick {
+  if (current === undefined || (exact && !current.exact)) {
+    return { text, exact, conflicted: false };
+  }
+  if (current.exact && !exact) {
+    return current;
+  }
+  return current.text === text ? current : { ...current, conflicted: true };
+}
+
 type UnitPlan =
   | {
       readonly kind: "ok";
       readonly sourceText: string;
-      readonly translations: ReadonlyMap<string, string>;
+      readonly targets: ReadonlyMap<string, SegmentPick>;
     }
   | { readonly kind: "no-source" }
-  | { readonly kind: "conflicting-source"; readonly translations: ReadonlyMap<string, string> };
+  | { readonly kind: "conflicting-source"; readonly targets: ReadonlyMap<string, SegmentPick> };
 
 function planUnit(
   unit: TmxUnit,
@@ -231,28 +303,24 @@ function planUnit(
   census: LanguageCensus,
 ): UnitPlan {
   const universe = [sourceLocale, ...configuredTargets];
-  const translations = new Map<string, string>();
-  let sourceText: string | undefined;
-  let sourceSegments = 0;
+  const targets = new Map<string, SegmentPick>();
+  let source: SegmentPick | undefined;
   for (const segment of unit.segments) {
     const match = matchLanguageTag(segment.language, universe);
     if (match.kind !== "matched") {
       census.record(segment.language, match.kind);
-      continue;
+    } else if (match.locale === sourceLocale) {
+      source = pickSegment(source, segment.text, match.exact);
+    } else {
+      targets.set(match.locale, pickSegment(targets.get(match.locale), segment.text, match.exact));
     }
-    if (match.locale === sourceLocale) {
-      sourceSegments += 1;
-      sourceText = segment.text;
-      continue;
-    }
-    translations.set(match.locale, segment.text);
   }
-  if (sourceSegments > 1) {
-    return { kind: "conflicting-source", translations };
+  if (source === undefined) {
+    return { kind: "no-source" };
   }
-  return sourceText === undefined
-    ? { kind: "no-source" }
-    : { kind: "ok", sourceText, translations };
+  return source.conflicted
+    ? { kind: "conflicting-source", targets }
+    : { kind: "ok", sourceText: source.text, targets };
 }
 
 type Decision = "duplicates" | "unchanged" | "kept" | "added" | "overwritten";
@@ -311,21 +379,7 @@ interface ScanTotals {
   readonly unmatchedSourceUnits: number;
   readonly conflictingSourceUnits: number;
   readonly markupStrippedUnits: number;
-}
-
-function rejectBlankSource(
-  translations: ReadonlyMap<string, string>,
-  tallies: ReadonlyMap<string, LocaleTally>,
-  census: LanguageCensus,
-): void {
-  for (const locale of translations.keys()) {
-    const tally = tallies.get(locale);
-    if (tally === undefined) {
-      census.record(locale, "filtered");
-      continue;
-    }
-    tally.rejected.sourceBlank += 1;
-  }
+  readonly subflowDroppedUnits: number;
 }
 
 function importUnit(
@@ -337,36 +391,23 @@ function importUnit(
   if (plan.kind === "no-source") {
     return plan.kind;
   }
-  if (plan.kind === "conflicting-source") {
-    countFiltered(plan.translations, tallies, census);
-    return plan.kind;
-  }
-  if (plan.sourceText.trim() === "") {
-    rejectBlankSource(plan.translations, tallies, census);
-    return "ok";
-  }
-  const sourceEntry = sourceEntryFor(plan.sourceText, ctx.adapter);
-  for (const [locale, candidate] of plan.translations) {
+  const refused = plan.kind === "conflicting-source";
+  const blankSource = plan.kind === "ok" && plan.sourceText.trim() === "";
+  const sourceEntry =
+    plan.kind === "ok" && !blankSource ? sourceEntryFor(plan.sourceText, ctx.adapter) : undefined;
+  for (const [locale, pick] of plan.targets) {
     const tally = tallies.get(locale);
     if (tally === undefined) {
       census.record(locale, "filtered");
-      continue;
-    }
-    applyTranslation(ctx, tally, locale, sourceEntry, candidate);
-  }
-  return "ok";
-}
-
-function countFiltered(
-  translations: ReadonlyMap<string, string>,
-  tallies: ReadonlyMap<string, LocaleTally>,
-  census: LanguageCensus,
-): void {
-  for (const locale of translations.keys()) {
-    if (!tallies.has(locale)) {
-      census.record(locale, "filtered");
+    } else if (blankSource) {
+      tally.rejected.sourceBlank += 1;
+    } else if (!refused && pick.conflicted) {
+      tally.conflicting += 1;
+    } else if (sourceEntry !== undefined) {
+      applyTranslation(ctx, tally, locale, sourceEntry, pick.text);
     }
   }
+  return plan.kind;
 }
 
 function scanUnits(
@@ -380,9 +421,13 @@ function scanUnits(
   let unmatchedSourceUnits = 0;
   let conflictingSourceUnits = 0;
   let markupStrippedUnits = 0;
+  let subflowDroppedUnits = 0;
   for (const unit of units) {
     if (unit.markupStripped) {
       markupStrippedUnits += 1;
+    }
+    if (unit.subflowDropped) {
+      subflowDroppedUnits += 1;
     }
     const outcome = importUnit(
       ctx,
@@ -397,7 +442,12 @@ function scanUnits(
       conflictingSourceUnits += 1;
     }
   }
-  return { unmatchedSourceUnits, conflictingSourceUnits, markupStrippedUnits };
+  return {
+    unmatchedSourceUnits,
+    conflictingSourceUnits,
+    markupStrippedUnits,
+    subflowDroppedUnits,
+  };
 }
 
 const SOURCE_LANGUAGE_WILDCARD = "*all*";
@@ -422,6 +472,7 @@ function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResu
     overwritten: tally.overwritten,
     kept: tally.kept,
     duplicates: tally.duplicates,
+    conflicting: tally.conflicting,
     rejected: { ...tally.rejected },
   };
 }
@@ -484,7 +535,9 @@ function additionsByLocale(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
  * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,
- * or declares an XML entity.
+ * or declares an XML entity. When the problem has a place in the file, the message names its line,
+ * column and, inside a translation unit, the unit's 1-based ordinal, and `cause` is the interchange
+ * reader's error carrying the same as a structured `location`.
  *
  * @example
  * ```ts
@@ -543,6 +596,7 @@ export async function importTmx(
     unmatchedSourceUnits: totals.unmatchedSourceUnits,
     conflictingSourceUnits: totals.conflictingSourceUnits,
     markupStrippedUnits: totals.markupStrippedUnits,
+    subflowDroppedUnits: totals.subflowDroppedUnits,
     unmatchedLanguages: census.report("unmatched"),
     ambiguousLanguages: census.report("ambiguous"),
     notImported: census.report("filtered"),

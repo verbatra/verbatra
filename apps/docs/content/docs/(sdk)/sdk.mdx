@@ -453,10 +453,19 @@ Reads a TMX file into the project's memory. Input:
 
 Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
 entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
-structured `SOURCE_INVALID` error rather than parsed. A language tag is resolved to a configured
-locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens,
-failing that the single configured locale sharing the primary subtag, and a tag two locales could
-claim is reported rather than guessed at. Every candidate translation then passes the same
+structured `SOURCE_INVALID` error rather than parsed. When the problem has a place in the file, the
+message names its line, column and, inside a translation unit, the unit's 1-based ordinal, and
+`tmxErrorLocation(error)` returns the same place as a `TmxErrorLocation`, or `undefined` for any
+other error, so you never cast the error or its `cause`. A language tag is resolved to a configured
+locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens;
+failing that, the longest configured locale that is a subtag prefix of the tag (RFC 4647 lookup), or
+else a configured locale that extends the tag only by region or variant subtags, never by a script,
+so two tags whose script or region subtags differ (`zh-CN` and `zh-TW`) never match; and a tag is
+reported as ambiguous only when the locales it could reach do not lie on one prefix chain. Segments
+of one unit that resolve to the same locale, the source locale included, never let the last one win:
+an exact tag outranks a prefix match, and two equal-ranked segments with different values store
+nothing for that locale and are counted as `conflicting` (for the source locale, the unit is refused
+and counted in `conflictingSourceUnits`). Every candidate translation then passes the same
 placeholder, ICU, degeneracy, and emptiness gate that provider output and a filled workbook row
 already face, checked as the record enters the memory rather than left to the run that later reads
 it.
@@ -466,21 +475,40 @@ Where an imported unit disagrees with a translation the memory already holds, th
 run writes, so they stop matching when the provider, model, tone, or glossary changes. Importing the
 same file twice changes nothing the second time.
 
-Returns a report rather than throwing on damaged data: how many units were read, a per-locale account
-of `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, and `rejected` by reason, plus the
-units that were skipped, carried no source segment, or lost inline markup, and the language tags that
-matched nothing or matched ambiguously. `memoryWritable` is false when the memory file was written by
-a newer verbatra, in which case it is left untouched.
+Returns a report rather than throwing on damaged data: how many units were read, a per-locale
+account of `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting`, and `rejected`
+by reason, plus the units that were skipped, carried no source segment, lost inline markup, or had
+`sub` text left out (`subflowDroppedUnits`), and the language tags that matched nothing or matched
+ambiguously. `memoryWritable` is false when the memory file was written by a newer verbatra, in
+which case it is left untouched.
+
+### tmxErrorLocation
+
+Reads where a refused TMX file went wrong from whatever `importTmx` threw. It returns a
+`TmxErrorLocation` (`{ line, column, unit? }`, all 1-based) for a `SOURCE_INVALID` refusal that has
+a place in the file, and `undefined` for any other error, including a missing or oversized file, so
+you never cast the error or its `cause`.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
 
 ### exportTmx
 
 Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, locales?, toolVersion? }`, with
 `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exported as a constant. Only entries
-under the current configuration fingerprint are written, which is the same set a run would reuse. An
-empty memory produces a valid, empty file rather than an error. Returns `{ path, units, locales,
-withoutSource }`; `withoutSource` counts entries left out because the memory holds no source text for
-them, which happens only for entries carried forward from a cache written before the memory stored
-source text.
+under the current configuration fingerprint are written, which is the same set a run would reuse.
+Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not change how the
+memory is keyed. An empty memory produces a valid, empty file rather than an error. Returns `{ path,
+units, locales, withoutSource, illegalCharactersRemoved }`; `withoutSource` counts entries left out
+because the memory holds no source text for them, which happens only for entries carried forward
+from a cache written before the memory stored source text, and `illegalCharactersRemoved` counts the
+characters XML 1.0 cannot represent that were removed from segment text.
 
 ## Config
 ### loadConfig

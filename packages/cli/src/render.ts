@@ -538,7 +538,13 @@ function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly s
     `${locale.overwritten} overwritten`,
     `${locale.duplicates} repeated in the file`,
   ].join(", ");
-  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale)];
+  const conflicts =
+    locale.conflicting > 0
+      ? [
+          `      ${locale.conflicting} units carried differing segments for this locale, so none of them was stored`,
+        ]
+      : [];
+  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale), ...conflicts];
 }
 
 function renderTmxLanguages(
@@ -564,7 +570,7 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   }
   if (result.conflictingSourceUnits > 0) {
     notes.push(
-      `  ${result.conflictingSourceUnits} units carried two segments that both resolve to the source locale, and were refused`,
+      `  ${result.conflictingSourceUnits} units carried source-locale segments of equal standing with different values, and were refused`,
     );
   }
   if (result.unreachableUnits > 0) {
@@ -578,7 +584,14 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
     );
   }
   if (result.markupStrippedUnits > 0) {
-    notes.push(`  ${result.markupStrippedUnits} units carried inline markup, which was dropped`);
+    notes.push(
+      `  ${result.markupStrippedUnits} units carried inline markup, which was flattened to its text`,
+    );
+  }
+  if (result.subflowDroppedUnits > 0) {
+    notes.push(
+      `  ${result.subflowDroppedUnits} units carried sub-flow text inside inline markup, which was left out`,
+    );
   }
   notes.push(
     ...renderTmxLanguages("languages matching no configured locale", result.unmatchedLanguages),
@@ -618,10 +631,17 @@ export function renderTmxExportHuman(result: ExportTmxResult): string {
     result.withoutSource > 0
       ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
       : [];
+  const removed =
+    result.illegalCharactersRemoved > 0
+      ? [
+          `  ${result.illegalCharactersRemoved} characters XML 1.0 does not allow were removed from segment text`,
+        ]
+      : [];
   return [
     `verbatra tmx export -> ${result.path}`,
     ...localeLines,
     `${result.units} units across ${result.locales.length} locales`,
     ...withoutSource,
+    ...removed,
   ].join("\n");
 }

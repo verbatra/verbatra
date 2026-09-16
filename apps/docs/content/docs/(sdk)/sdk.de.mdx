@@ -482,13 +482,23 @@ Liest eine TMX-Datei in den Memory des Projekts. Eingabe:
 Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung des
 Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
 oder eine fehlerhafte Datei mit einem strukturierten `SOURCE_INVALID`-Fehler abgelehnt statt geparst
-wird. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten Locale zugeordnet:
-exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu Bindestrichen, sonst die
-einzige konfigurierte Locale mit demselben primären Subtag, und ein Tag, das zwei Locales
-beanspruchen könnten, wird gemeldet statt geraten. Jede Übersetzung durchläuft dann dasselbe Gate für
-Platzhalter, ICU, Ausartung und Leere, dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile
-schon unterliegen, geprüft beim Eintritt in den Memory statt überlassen an den Lauf, der sie später
-liest.
+wird. Hat das Problem einen Ort in der Datei, nennt die Meldung Zeile, Spalte und, innerhalb einer
+Übersetzungseinheit, deren Ordnungszahl ab 1, und `tmxErrorLocation(error)` liefert denselben Ort
+als `TmxErrorLocation`, bei jedem anderen Fehler `undefined`, sodass du weder den Fehler noch seinen
+`cause` casten musst. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten
+Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu
+Bindestrichen; sonst die längste konfigurierte Locale, die ein Subtag-Präfix des Tags ist (Lookup
+nach RFC 4647), oder andernfalls eine konfigurierte Locale, die das Tag nur um Regions- oder
+Varianten-Subtags erweitert, nie um eine Schrift, sodass zwei Tags mit unterschiedlichen Schrift-
+oder Regions-Subtags (`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag wird nur dann als
+mehrdeutig gemeldet, wenn die Locales, die es erreichen könnte, nicht auf einer Präfix-Kette liegen.
+Segmente einer Einheit, die auf dieselbe Locale auflösen, die Quell-Locale eingeschlossen, lassen
+nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
+Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und werden als `conflicting`
+gezählt (bei der Quell-Locale wird die Einheit abgelehnt und in `conflictingSourceUnits` gezählt).
+Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter, ICU, Ausartung und Leere, dem
+Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon unterliegen, geprüft beim Eintritt in
+den Memory statt überlassen an den Lauf, der sie später liest.
 
 Widerspricht eine importierte Einheit einer Übersetzung, die der Memory schon hat, gewinnt der
 Memory, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem aktuellen
@@ -497,21 +507,41 @@ deshalb auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar änder
 zweites Mal zu importieren ändert nichts.
 
 Gibt bei beschädigten Daten einen Bericht zurück, statt zu werfen: wie viele Einheiten gelesen
-wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates` und
-`rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein Quellsegment hatten oder
-Inline-Markup verloren, sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
-`memoryWritable` ist `false`, wenn die Memory-Datei von einem neueren verbatra geschrieben wurde; sie
-bleibt dann unangetastet.
+wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates`,
+`conflicting` und `rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein
+Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wurde
+(`subflowDroppedUnits`), sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
+`memoryWritable` ist `false`, wenn die Memory-Datei von einem neueren verbatra geschrieben wurde;
+sie bleibt dann unangetastet.
+
+### tmxErrorLocation
+
+Liest aus dem, was `importTmx` geworfen hat, wo eine abgelehnte TMX-Datei schiefging. Gibt für eine
+`SOURCE_INVALID`-Ablehnung mit einem Ort in der Datei eine `TmxErrorLocation` zurück
+(`{ line, column, unit? }`, alle ab 1 gezählt) und bei jedem anderen Fehler `undefined`, auch bei
+einer fehlenden oder zu großen Datei, sodass du weder den Fehler noch seinen `cause` casten musst.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
 
 ### exportTmx
 
 Schreibt den Memory als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, locales?, toolVersion? }`,
 wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt, das als Konstante exportiert
 wird. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
-Menge, die ein Lauf wiederverwenden würde. Ein leerer Memory ergibt eine gültige, leere Datei statt
-eines Fehlers. Gibt `{ path, units, locales, withoutSource }` zurück; `withoutSource` zählt Einträge,
-die ausgelassen wurden, weil der Memory keinen Quelltext zu ihnen hat, was nur bei Einträgen aus
-einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde.
+Menge, die ein Lauf wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US`
+wird zu `en-US`), was nichts daran ändert, wie der Memory geschlüsselt ist. Ein leerer Memory ergibt
+eine gültige, leere Datei statt eines Fehlers. Gibt `{ path, units, locales, withoutSource,
+illegalCharactersRemoved }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der
+Memory keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor
+dem Speichern des Quelltexts geschrieben wurde, und `illegalCharactersRemoved` zählt die Zeichen,
+die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
 
 ## Konfiguration
 ### loadConfig

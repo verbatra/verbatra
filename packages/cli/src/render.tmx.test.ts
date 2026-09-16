@@ -35,10 +35,18 @@ describe("render: tmx import summary", () => {
 
     expect(text).toContain("2 units could not be read and were skipped");
     expect(text).toContain("3 units carried no segment in the source locale");
-    expect(text).toContain("4 units carried inline markup, which was dropped");
+    expect(text).toContain("4 units carried inline markup, which was flattened to its text");
+    expect(text).not.toContain("was dropped");
     expect(text).toContain("languages two configured locales could claim: pt-PT (1)");
     expect(text).toContain("newer verbatra");
     expect(text).toContain("dry run: nothing written");
+  });
+
+  it("reports units whose sub-flow text was left out, only when there are some", () => {
+    expect(renderTmxImportHuman(makeImportTmxResult({ subflowDroppedUnits: 2 }))).toContain(
+      "2 units carried sub-flow text inside inline markup, which was left out",
+    );
+    expect(renderTmxImportHuman(makeImportTmxResult())).not.toContain("sub-flow");
   });
 
   it("neutralizes control characters in a language tag it echoes back", () => {
@@ -84,6 +92,7 @@ describe("render: tmx import summary", () => {
             overwritten: 0,
             kept: 0,
             duplicates: 0,
+            conflicting: 0,
             rejected: { placeholder: 1, icu: 2, degenerate: 3, empty: 4, sourceBlank: 5 },
           },
         ],
@@ -97,6 +106,50 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("5 blank source segment");
   });
 
+  it("names the units whose segments disagreed for a locale", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "de",
+            added: 1,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 2,
+            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+          },
+        ],
+      }),
+    );
+
+    expect(text).toContain(
+      "2 units carried differing segments for this locale, so none of them was stored",
+    );
+  });
+
+  it("prints no conflict line for a locale whose segments agreed", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "de",
+            added: 1,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 0,
+            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+          },
+        ],
+      }),
+    );
+
+    expect(text).not.toContain("differing segments");
+  });
+
   it("prints no rejection line for a locale that refused nothing", () => {
     const text = renderTmxImportHuman(
       makeImportTmxResult({
@@ -108,6 +161,7 @@ describe("render: tmx import summary", () => {
             overwritten: 0,
             kept: 0,
             duplicates: 0,
+            conflicting: 0,
             rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
           },
         ],
@@ -131,5 +185,12 @@ describe("render: tmx export summary", () => {
     const text = renderTmxExportHuman(makeExportTmxResult({ withoutSource: 3 }));
 
     expect(text).toContain("3 entries left out: the memory holds no source text for them");
+  });
+
+  it("reports the characters XML does not allow that were removed, only when there are some", () => {
+    expect(renderTmxExportHuman(makeExportTmxResult({ illegalCharactersRemoved: 4 }))).toContain(
+      "4 characters XML 1.0 does not allow were removed from segment text",
+    );
+    expect(renderTmxExportHuman(makeExportTmxResult())).not.toContain("does not allow");
   });
 });

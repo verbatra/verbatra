@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ExchangeError } from "./errors.js";
-import { removeSpans, scanProlog } from "./xml-prolog.js";
+import { blankSpans, scanProlog } from "./xml-prolog.js";
 
 function expectInvalid(action: () => unknown): ExchangeError {
   try {
@@ -66,29 +66,34 @@ describe("scanProlog finds where the root element starts", () => {
   });
 });
 
-describe("removeSpans cuts exactly the recorded regions", () => {
-  it("removes one span and leaves the rest byte for byte", () => {
-    expect(removeSpans("abcdefg", [[2, 5]])).toBe("abfg");
+describe("blankSpans blanks exactly the recorded regions and keeps every offset", () => {
+  it("blanks one span and leaves the rest byte for byte", () => {
+    expect(blankSpans("abcdefg", [[2, 5]])).toBe("ab   fg");
   });
 
-  it("removes several spans without the earlier cut shifting the later one", () => {
+  it("blanks several spans without one shifting the other", () => {
     expect(
-      removeSpans("0123456789", [
+      blankSpans("0123456789", [
         [1, 3],
         [6, 8],
       ]),
-    ).toBe("034589");
+    ).toBe("0  345  89");
   });
 
-  it("returns the text unchanged when there is nothing to remove", () => {
-    expect(removeSpans("unchanged", [])).toBe("unchanged");
+  it("returns the text unchanged when there is nothing to blank", () => {
+    expect(blankSpans("unchanged", [])).toBe("unchanged");
   });
 
-  it("removes exactly the doctype scanProlog found, and nothing else", () => {
+  it("keeps a line break inside a blanked span, so later lines keep their numbers", () => {
+    expect(blankSpans("a<!DOCTYPE\r\nx>b", [[1, 14]])).toBe("a         \r\n  b");
+  });
+
+  it("blanks exactly the doctype scanProlog found, and nothing else", () => {
     const text = '<?xml version="1.0"?><!DOCTYPE tmx SYSTEM "t.dtd"><tmx>body</tmx>';
+    const doctype = '<!DOCTYPE tmx SYSTEM "t.dtd">';
 
-    expect(removeSpans(text, scanProlog(text).doctypeSpans)).toBe(
-      '<?xml version="1.0"?><tmx>body</tmx>',
+    expect(blankSpans(text, scanProlog(text).doctypeSpans)).toBe(
+      `<?xml version="1.0"?>${" ".repeat(doctype.length)}<tmx>body</tmx>`,
     );
   });
 });

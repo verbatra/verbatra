@@ -1,8 +1,8 @@
 import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
-import { ExchangeError } from "./errors.js";
+import { ExchangeError, type ExchangeErrorLocation } from "./errors.js";
 import { DEFAULT_TMX_LIMITS, type TmxLimits } from "./tmx-limits.js";
 import { hasIllegalXmlCharacter } from "./xml-character.js";
-import { removeSpans, scanProlog } from "./xml-prolog.js";
+import { blankSpans, scanProlog } from "./xml-prolog.js";
 
 export interface TmxSegment {
   readonly language: string;
@@ -23,6 +23,7 @@ export interface TmxSkippedUnit {
 export interface TmxUnit {
   readonly ordinal: number;
   readonly markupStripped: boolean;
+  readonly subflowDropped: boolean;
   readonly segments: readonly TmxSegment[];
 }
 
@@ -30,10 +31,6 @@ export interface TmxDocument {
   readonly sourceLanguage: string | undefined;
   readonly units: readonly TmxUnit[];
   readonly skipped: readonly TmxSkippedUnit[];
-  /**
-   * `tu` elements the walk never reached, because they sit outside the first `body` element. TMX
-   * allows exactly one `body`, so this is always zero for a conformant file.
-   */
   readonly unreachableUnits: number;
 }
 
@@ -43,14 +40,42 @@ export interface ReadTmxOptions {
 
 const ELEMENT_NODE = 1;
 
+const TEXT_NODE = 3;
+
+const CDATA_SECTION_NODE = 4;
+
+const SUBFLOW_ELEMENT = "sub";
+
 const ENTITY_DECLARATION = /<!ENTITY/i;
 
 const UTF8_BOM = "﻿";
 
 const TMX_NAMESPACES: ReadonlySet<string> = new Set(["http://www.lisa.org/tmx14"]);
 
-function invalid(message: string): ExchangeError {
-  return new ExchangeError("TMX_INVALID", message);
+const PARSER_MESSAGE_LIMIT = 160;
+
+const CONTROL_CHARACTER_SOURCE = "[\\u0000-\\u001F\\u007F-\\u009F]";
+
+const CONTROL_CHARACTERS = new RegExp(CONTROL_CHARACTER_SOURCE, "g");
+
+const NESTED_ERROR_PREFIX = /(^|: )Error: /g;
+
+function invalid(message: string, location?: ExchangeErrorLocation): ExchangeError {
+  return new ExchangeError("TMX_INVALID", message, location);
+}
+
+function isElement(node: Node): node is Element {
+  return node.nodeType === ELEMENT_NODE;
+}
+
+function elementLocation(element: Element, unit?: number): ExchangeErrorLocation | undefined {
+  const { lineNumber, columnNumber } = element;
+  /* v8 ignore next 3 -- the parser is always built with its locator on, so every element carries a position. */
+  if (lineNumber === undefined || columnNumber === undefined) {
+    return undefined;
+  }
+  const at = { line: lineNumber, column: columnNumber };
+  return unit === undefined ? at : { ...at, unit };
 }
 
 function assertInputBytes(text: string, limits: TmxLimits): void {
@@ -66,13 +91,60 @@ function withoutProlog(text: string): string {
       "The TMX file declares an XML entity. Entity declarations are refused, because they can expand without bound or name a file on this machine.",
     );
   }
-  return removeSpans(text, doctypeSpans);
+  return blankSpans(text, doctypeSpans);
 }
 
-function onWellFormednessProblem(level: "warning" | "error" | "fatalError"): void {
-  if (level !== "warning") {
-    throw new Error("malformed XML");
+interface ParserLocator {
+  readonly lineNumber?: number;
+  readonly columnNumber?: number;
+}
+
+interface ParserContext {
+  readonly locator?: ParserLocator;
+  readonly currentElement?: Node | null;
+}
+
+interface ParseProblem {
+  readonly description: string;
+  readonly location: ExchangeErrorLocation | undefined;
+}
+
+function enclosingUnit(node: Node | null | undefined): Element | undefined {
+  for (let current = node ?? null; current !== null; current = current.parentNode) {
+    if (isElement(current) && current.localName === "tu") {
+      return current;
+    }
   }
+  return undefined;
+}
+
+function unitOrdinal(tu: Element): number {
+  let ordinal = 1;
+  for (let sibling = tu.previousSibling; sibling !== null; sibling = sibling.previousSibling) {
+    if (isElement(sibling) && sibling.localName === "tu") {
+      ordinal += 1;
+    }
+  }
+  return ordinal;
+}
+
+function parserLocation(context: ParserContext): ExchangeErrorLocation | undefined {
+  const line = context.locator?.lineNumber;
+  const column = context.locator?.columnNumber;
+  /* v8 ignore next 3 -- the parser is always built with its locator on, so a report always carries a position. */
+  if (line === undefined || column === undefined) {
+    return undefined;
+  }
+  const tu = enclosingUnit(context.currentElement);
+  return tu === undefined ? { line, column } : { line, column, unit: unitOrdinal(tu) };
+}
+
+function describeParserMessage(message: string): string {
+  const flat = message
+    .replace(CONTROL_CHARACTERS, " ")
+    .replace(NESTED_ERROR_PREFIX, "$1")
+    .trimEnd();
+  return flat.length > PARSER_MESSAGE_LIMIT ? `${flat.slice(0, PARSER_MESSAGE_LIMIT)}...` : flat;
 }
 
 function assertNoDoctype(document: Document): void {
@@ -98,23 +170,29 @@ function assertTmxRoot(root: Element | null): asserts root is Element {
 }
 
 function parseDocumentElement(text: string): Element {
+  let problem: ParseProblem | undefined;
+  const onError = (
+    level: "warning" | "error" | "fatalError",
+    message: string,
+    context: ParserContext,
+  ): void => {
+    if (level === "warning") {
+      return;
+    }
+    problem = { description: describeParserMessage(message), location: parserLocation(context) };
+    throw new Error("malformed XML");
+  };
   let document: Document;
   try {
-    document = new DOMParser({ onError: onWellFormednessProblem }).parseFromString(
-      text,
-      "text/xml",
-    );
+    document = new DOMParser({ onError }).parseFromString(text, "text/xml");
   } catch {
-    throw invalid("The TMX file is not valid XML.");
+    const detail = problem === undefined ? "" : `: ${problem.description}`;
+    throw invalid(`The TMX file is not valid XML${detail}.`, problem?.location);
   }
   assertNoDoctype(document);
   const root = document.documentElement;
   assertTmxRoot(root);
   return root;
-}
-
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
 }
 
 function elementChildren(parent: Element): Element[] {
@@ -147,42 +225,93 @@ function segmentLanguage(tuv: Element): string | undefined {
   return declared === null || declared === "" ? undefined : declared;
 }
 
-function assertSegmentLength(text: string, limits: TmxLimits): void {
+function assertSegmentLength(
+  text: string,
+  limits: TmxLimits,
+  where: ExchangeErrorLocation | undefined,
+): void {
   if (text.length > limits.maxSegmentLength) {
     throw invalid(
       `The TMX file has a segment longer than the maximum of ${limits.maxSegmentLength} characters.`,
+      where,
     );
   }
 }
 
-function assertSegmentCharacters(text: string): void {
+function assertSegmentCharacters(text: string, where: ExchangeErrorLocation | undefined): void {
   if (hasIllegalXmlCharacter(text)) {
-    throw invalid("The TMX file has a segment carrying a character XML 1.0 does not allow.");
+    throw invalid("The TMX file has a segment carrying a character XML 1.0 does not allow.", where);
   }
 }
 
-function assertLanguageCount(count: number, limits: TmxLimits): void {
+function assertLanguageCount(
+  count: number,
+  limits: TmxLimits,
+  where: ExchangeErrorLocation | undefined,
+): void {
   if (count > limits.maxLanguagesPerUnit) {
     throw invalid(
       `The TMX file has a unit with more than the maximum of ${limits.maxLanguagesPerUnit} languages.`,
+      where,
     );
   }
 }
 
-function assertUnitCount(count: number, limits: TmxLimits): void {
+function assertUnitCount(count: number, limits: TmxLimits, tu: Element): void {
   if (count > limits.maxUnitCount) {
-    throw invalid(`The TMX file has more than the maximum of ${limits.maxUnitCount} units.`);
+    throw invalid(
+      `The TMX file has more than the maximum of ${limits.maxUnitCount} units.`,
+      elementLocation(tu, count),
+    );
   }
 }
 
+interface SegmentText {
+  readonly text: string;
+  readonly subflowDropped: boolean;
+}
+
+function pushChildrenInOrder(pending: Node[], parent: Node): void {
+  const children = parent.childNodes;
+  for (let index = children.length - 1; index >= 0; index -= 1) {
+    const child = children.item(index);
+    if (child !== null) {
+      pending.push(child);
+    }
+  }
+}
+
+function segmentText(seg: Element): SegmentText {
+  const parts: string[] = [];
+  let subflowDropped = false;
+  const pending: Node[] = [];
+  pushChildrenInOrder(pending, seg);
+  for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
+    if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) {
+      parts.push(node.nodeValue ?? "");
+    } else if (isElement(node) && node.localName === SUBFLOW_ELEMENT) {
+      subflowDropped = true;
+    } else if (isElement(node)) {
+      pushChildrenInOrder(pending, node);
+    }
+  }
+  return { text: parts.join(""), subflowDropped };
+}
+
 type UnitScan =
-  | { readonly kind: "unit"; readonly segments: TmxSegment[]; readonly markupStripped: boolean }
+  | {
+      readonly kind: "unit";
+      readonly segments: TmxSegment[];
+      readonly markupStripped: boolean;
+      readonly subflowDropped: boolean;
+    }
   | { readonly kind: "skip"; readonly reason: TmxSkipReason };
 
-function scanUnit(tu: Element, limits: TmxLimits): UnitScan {
+function scanUnit(tu: Element, ordinal: number, limits: TmxLimits): UnitScan {
   const segments: TmxSegment[] = [];
   const seen = new Set<string>();
   let markupStripped = false;
+  let subflowDropped = false;
   for (const tuv of childrenNamed(tu, "tuv")) {
     const language = segmentLanguage(tuv);
     if (language === undefined) {
@@ -199,17 +328,18 @@ function scanUnit(tu: Element, limits: TmxLimits): UnitScan {
     if (segs.length > 1) {
       return { kind: "skip", reason: "multiple-segments" };
     }
-    const text = seg.textContent ?? "";
-    assertSegmentLength(text, limits);
-    assertSegmentCharacters(text);
+    const { text, subflowDropped: dropped } = segmentText(seg);
+    assertSegmentLength(text, limits, elementLocation(seg, ordinal));
+    assertSegmentCharacters(text, elementLocation(seg, ordinal));
     markupStripped = markupStripped || elementChildren(seg).length > 0;
+    subflowDropped = subflowDropped || dropped;
     seen.add(language);
     segments.push({ language, text });
-    assertLanguageCount(segments.length, limits);
+    assertLanguageCount(segments.length, limits, elementLocation(tuv, ordinal));
   }
   return segments.length === 0
     ? { kind: "skip", reason: "no-segment" }
-    : { kind: "unit", segments, markupStripped };
+    : { kind: "unit", segments, markupStripped, subflowDropped };
 }
 
 function unreachableUnitCount(root: Element, walked: number): number {
@@ -226,13 +356,18 @@ export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument
   let ordinal = 0;
   for (const tu of childrenNamed(bodyOf(root), "tu")) {
     ordinal += 1;
-    assertUnitCount(ordinal, limits);
-    const scan = scanUnit(tu, limits);
+    assertUnitCount(ordinal, limits, tu);
+    const scan = scanUnit(tu, ordinal, limits);
     if (scan.kind === "skip") {
       skipped.push({ ordinal, reason: scan.reason });
       continue;
     }
-    units.push({ ordinal, markupStripped: scan.markupStripped, segments: scan.segments });
+    units.push({
+      ordinal,
+      markupStripped: scan.markupStripped,
+      subflowDropped: scan.subflowDropped,
+      segments: scan.segments,
+    });
   }
   return {
     sourceLanguage: headerSourceLanguage(root),

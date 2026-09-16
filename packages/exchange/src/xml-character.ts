@@ -20,3 +20,7 @@ export function hasIllegalXmlCharacter(text: string): boolean {
 export function stripIllegalXmlCharacters(text: string): string {
   return text.replace(ILLEGAL_XML_CHARACTERS, "");
 }
+
+export function countIllegalXmlCharacters(text: string): number {
+  return text.match(ILLEGAL_XML_CHARACTERS)?.length ?? 0;
+}
