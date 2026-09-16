@@ -2,7 +2,7 @@ import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
-import { detectLineTerminator, type LineTerminator } from "../shell.js";
+import { detectLineTerminator, type LineTerminator, trailingLineBreaks } from "../shell.js";
 import {
   applyLineTerminator,
   elementChildren,
@@ -15,7 +15,6 @@ import {
 import { extractResxPlaceholders } from "./placeholders.js";
 import { createResxDocument, parseResxXml } from "./xml.js";
 
-const TRAILING_NEWLINES = /(?:\r\n|[\r\n])+$/;
 const DESIGNER_NAME = /^(?:>>|\$)/;
 const SURROUNDING_WHITESPACE = /^\s|\s$/;
 
@@ -195,8 +194,7 @@ function withTrailingNewlines(
   output: string,
   terminator: LineTerminator,
 ): string {
-  const match = TRAILING_NEWLINES.exec(original);
-  return match === null ? output : `${output}${applyLineTerminator(match[0], terminator)}`;
+  return `${output}${applyLineTerminator(trailingLineBreaks(original), terminator)}`;
 }
 
 function serializeInto(original: string, doc: Document): string {

@@ -57,6 +57,21 @@ export function detectLineTerminator(content: string): LineTerminator {
   return content.includes("\r") ? "\r" : "\n";
 }
 
+const LINE_FEED = 0x0a;
+const CARRIAGE_RETURN = 0x0d;
+
+function isLineBreakCode(code: number): boolean {
+  return code === LINE_FEED || code === CARRIAGE_RETURN;
+}
+
+export function trailingLineBreaks(content: string): string {
+  let start = content.length;
+  while (start > 0 && isLineBreakCode(content.charCodeAt(start - 1))) {
+    start -= 1;
+  }
+  return content.slice(start);
+}
+
 export function splitPhysicalLines(content: string): string[] {
   if (content === "") {
     return [];
