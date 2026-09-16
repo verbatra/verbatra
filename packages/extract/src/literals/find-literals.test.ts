@@ -40,6 +40,17 @@ describe("findLiterals: where a finding points", () => {
     ]);
   });
 
+  it("decodes character references in JSX text and attribute values", () => {
+    expect(texts('(<p title="Rock &amp; roll">Tom &amp; Jerry &#8594; &lt;3</p>)')).toEqual([
+      "Rock & roll",
+      "Tom & Jerry \u2192 <3",
+    ]);
+  });
+
+  it("keeps a character reference in a code string as written", () => {
+    expect(texts('const a = "Tom &amp; Jerry";', false)).toEqual(["Tom &amp; Jerry"]);
+  });
+
   it("collapses whitespace inside the reported text", () => {
     expect(texts("(<p>Hello\n      world</p>)")).toEqual(["Hello world"]);
   });

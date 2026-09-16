@@ -12,6 +12,35 @@ const CLASS_MARKER = /[-:[\]/0-9]/;
 
 const DIRECTIVES = new Set(["use client", "use server", "use strict"]);
 
+const NAMED_REFERENCES: Readonly<Record<string, string>> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: "\u00a0",
+};
+
+const MAX_CODE_POINT = 0x10_ff_ff;
+
+function decodeNumericReference(digits: string): string | undefined {
+  const hex = digits.startsWith("x") || digits.startsWith("X");
+  const value = Number.parseInt(hex ? digits.slice(1) : digits, hex ? 16 : 10);
+  return value > 0 && value <= MAX_CODE_POINT ? String.fromCodePoint(value) : undefined;
+}
+
+function decodeReference(reference: string): string {
+  const body = reference.slice(1, -1);
+  const decoded = body.startsWith("#")
+    ? decodeNumericReference(body.slice(1))
+    : NAMED_REFERENCES[body];
+  return decoded ?? reference;
+}
+
+export function decodeCharacterReferences(value: string): string {
+  return value.replace(CHARACTER_REFERENCE, decodeReference);
+}
+
 export function normalizeLiteralText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }

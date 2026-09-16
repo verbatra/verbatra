@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   boundLiteralText,
+  decodeCharacterReferences,
   hasLetters,
   isProseLike,
   isUrlLike,
@@ -48,5 +49,21 @@ describe("boundLiteralText", () => {
     expect(bounded.truncated).toBe(true);
     expect(Array.from(bounded.text)).toHaveLength(MAX_LITERAL_TEXT_LENGTH + 3);
     expect(bounded.text.endsWith("...")).toBe(true);
+  });
+});
+
+describe("decodeCharacterReferences", () => {
+  it("decodes the common named references and numeric references", () => {
+    expect(decodeCharacterReferences("Tom &amp; Jerry")).toBe("Tom & Jerry");
+    expect(decodeCharacterReferences("&lt;b&gt; &quot;hi&quot; &apos;x&#39;")).toBe(
+      "<b> \"hi\" 'x'",
+    );
+    expect(decodeCharacterReferences("a&nbsp;b &#8594; &#x2192;")).toBe("a\u00a0b \u2192 \u2192");
+  });
+
+  it("leaves an unknown or out-of-range reference as written", () => {
+    expect(decodeCharacterReferences("&copy2; &unknown; &#x110000; &#0;")).toBe(
+      "&copy2; &unknown; &#x110000; &#0;",
+    );
   });
 });

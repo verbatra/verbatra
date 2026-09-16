@@ -3,7 +3,7 @@ import { type PositionedToken, scanSource } from "../scan/tokenize.js";
 import { isUntranslatedLiteral, type TranslationRecognition } from "./literal-audience.js";
 import { directiveSuppression } from "./literal-directives.js";
 import { type LiteralFrame, updateFrames } from "./literal-frames.js";
-import { normalizeLiteralText } from "./literal-text.js";
+import { decodeCharacterReferences, normalizeLiteralText } from "./literal-text.js";
 import { withTranslationAliases } from "./translation-aliases.js";
 
 export interface LiteralRules extends TranslationRecognition {
@@ -23,8 +23,12 @@ export interface FileLiterals {
   readonly truncated: boolean;
 }
 
-function toFound(token: PositionedToken & { readonly value: string }): FoundLiteral {
-  return { text: normalizeLiteralText(token.value), line: token.line, column: token.column };
+function toFound(
+  token: PositionedToken & { readonly value: string },
+  markupValue: boolean,
+): FoundLiteral {
+  const text = markupValue ? decodeCharacterReferences(token.value) : token.value;
+  return { text: normalizeLiteralText(text), line: token.line, column: token.column };
 }
 
 export function findLiterals(
@@ -43,7 +47,12 @@ export function findLiterals(
       (token.kind === "string" || token.kind === "markup-text") &&
       isUntranslatedLiteral(scan.tokens, index, frames, recognition)
     ) {
-      (isSuppressed(token, index) ? suppressed : found).push(toFound(token));
+      (isSuppressed(token, index) ? suppressed : found).push(
+        toFound(
+          token,
+          token.kind === "markup-text" || scan.tokens[index - 1]?.kind === "markup-attribute",
+        ),
+      );
     }
     updateFrames(scan.tokens, index, frames);
   });
