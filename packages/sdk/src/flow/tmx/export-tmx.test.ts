@@ -116,6 +116,15 @@ describe("exportTmx writes the memory as TMX", () => {
     ]);
   });
 
+  it("refuses the same config an import refuses, so it cannot write a file it could not read back", async () => {
+    const config = cfg({ sourceLocale: "pt-BR", targetLocales: ["pt_BR"] });
+    const dir = await makeTempDir();
+
+    await expect(exportTmx({ config, cwd: dir })).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+    });
+  });
+
   it("refuses a locale that is not configured", async () => {
     const config = cfg();
     const dir = await withMemory(config, {}, {});

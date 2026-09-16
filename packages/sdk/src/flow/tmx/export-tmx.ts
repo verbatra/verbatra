@@ -6,6 +6,7 @@ import type { TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectLocales } from "../select-locales.js";
+import { assertDistinctLocales } from "./locale-match.js";
 
 /** Default output path for a TMX export, used when {@link ExportTmxInput.out} is omitted. */
 export const DEFAULT_TMX_PATH = "verbatra-memory.tmx";
@@ -126,6 +127,10 @@ function collect(
  * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws {@link SdkError} `CONFIG_INVALID`: the source locale and one of the target locales are the
+ * same language tag once case and separators are normalized. Writing that file would produce two
+ * language attributes {@link importTmx} could not tell apart, so the file this project exported
+ * would be one it refuses to read back.
  *
  * @example
  * ```ts
@@ -139,6 +144,7 @@ export async function exportTmx(
 ): Promise<ExportTmxResult> {
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
+  assertDistinctLocales(input.config.sourceLocale, input.config.targetLocales);
   const locales = selectLocales(input.config, input.locales);
   const { memory } = await readTranslationMemory(cacheFilePath(cwd), fs);
   const collected = collect(memory, computeFingerprint(input.config), locales);

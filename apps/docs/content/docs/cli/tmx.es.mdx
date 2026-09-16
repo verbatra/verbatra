@@ -91,7 +91,9 @@ Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás e
 
 ## Unidades importadas y reutilización difusa
 
-Vale la pena decir una consecuencia con claridad, porque ninguna comprobación en el momento del import puede vigilarla. El texto de origen de una unidad aceptada se escribe en el índice de orígenes de la memoria, que es justo contra lo que la [reutilización difusa](/docs/the-cache) puntúa una cadena modificada. Un origen importado que solo se parece a una cadena de tu proyecto puede por tanto servirse para esa cadena por reutilización difusa, aunque el camino exacto nunca la emparejaría: el camino exacto se indexa por un hash que cubre la descripción, el significado y la marca de plural, y una unidad TMX no lleva ninguno de los tres, mientras que la reutilización difusa compara solo textos de origen.
+Vale la pena decir una consecuencia con claridad, porque ninguna comprobación en el momento del import puede vigilarla. El texto de origen de una unidad aceptada se escribe en el índice de orígenes de la memoria, que es justo contra lo que la [reutilización difusa](/docs/the-cache) puntúa una cadena modificada. Un origen importado que **difiere** de una cadena de tu proyecto puede por tanto servirse para esa cadena, que es lo que significa parecerse.
+
+Un origen importado **idéntico** a una de tus cadenas pero con otro hash no es alcanzable en absoluto. La reutilización difusa descarta cualquier candidato cuyo texto de origen normalizado sea igual a la cadena buscada, así que si tu entrada lleva una descripción, un significado o una marca de plural que una unidad TMX no puede llevar, los hashes difieren, el texto idéntico descalifica al candidato difuso y la cadena va al proveedor como siempre.
 
 Esa reutilización sigue pasando por la puerta de integridad contra tu entrada real, y se informa como marca de revisión `FUZZY_CACHE_REUSE` en el resumen de la ejecución, así que es visible y no silenciosa. Si prefieres que una memoria importada no sea alcanzable por esa vía, deja `fuzzyCache` fuera de tu configuración: sin ella, solo se reutiliza una coincidencia exacta de hash de contenido.
 

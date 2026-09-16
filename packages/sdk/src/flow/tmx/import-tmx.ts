@@ -16,7 +16,7 @@ import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
 import { selectLocales } from "../select-locales.js";
-import { matchLanguageTag, sameTag } from "./locale-match.js";
+import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
 /**
  * Why one translation unit in an imported TMX file was refused. The first four are the shared
@@ -93,6 +93,12 @@ export interface ImportTmxResult {
   readonly unmatchedLanguages: readonly TmxLanguageReport[];
   /** Language tags that two or more configured locales could claim, so none was chosen. */
   readonly ambiguousLanguages: readonly TmxLanguageReport[];
+  /**
+   * Segments that resolved cleanly to a configured target locale this run left out, because
+   * {@link ImportTmxInput.locales} narrowed it. Nothing is wrong with them; they are reported so a
+   * narrowed run does not look like a file that held less than it did.
+   */
+  readonly notImported: readonly TmxLanguageReport[];
   /**
    * Whether the memory file could be written. False when the project's cache was written by a newer
    * build, which is left untouched rather than downgraded.
@@ -191,18 +197,19 @@ function parse(text: string, path: string): ReturnType<typeof readTmx> {
   }
 }
 
-class LanguageCensus {
-  private readonly unmatched = new Map<string, number>();
-  private readonly ambiguous = new Map<string, number>();
+type CensusKind = "unmatched" | "ambiguous" | "filtered";
 
-  record(language: string, kind: "unmatched" | "ambiguous"): void {
-    const into = kind === "unmatched" ? this.unmatched : this.ambiguous;
+class LanguageCensus {
+  private readonly counts = new Map<CensusKind, Map<string, number>>();
+
+  record(language: string, kind: CensusKind): void {
+    const into = this.counts.get(kind) ?? new Map<string, number>();
     into.set(language, (into.get(language) ?? 0) + 1);
+    this.counts.set(kind, into);
   }
 
-  report(kind: "unmatched" | "ambiguous"): readonly TmxLanguageReport[] {
-    const from = kind === "unmatched" ? this.unmatched : this.ambiguous;
-    return [...from.entries()]
+  report(kind: CensusKind): readonly TmxLanguageReport[] {
+    return [...(this.counts.get(kind) ?? new Map<string, number>()).entries()]
       .map(([language, units]) => ({ language, units }))
       .sort((left, right) => left.language.localeCompare(right.language));
   }
@@ -216,19 +223,6 @@ type UnitPlan =
     }
   | { readonly kind: "no-source" }
   | { readonly kind: "conflicting-source"; readonly translations: ReadonlyMap<string, string> };
-
-function assertDistinctLocales(sourceLocale: string, targetLocales: readonly string[]): void {
-  const collision = targetLocales.find(
-    (locale) =>
-      matchLanguageTag(locale, [sourceLocale]).kind === "matched" && sameTag(locale, sourceLocale),
-  );
-  if (collision !== undefined) {
-    throw new SdkError(
-      "CONFIG_INVALID",
-      `The target locale "${collision}" and the source locale "${sourceLocale}" are the same language tag once case and separators are normalized, so a TMX segment could not be attributed to either. Spell them differently or drop one.`,
-    );
-  }
-}
 
 function planUnit(
   unit: TmxUnit,
@@ -322,12 +316,15 @@ interface ScanTotals {
 function rejectBlankSource(
   translations: ReadonlyMap<string, string>,
   tallies: ReadonlyMap<string, LocaleTally>,
+  census: LanguageCensus,
 ): void {
   for (const locale of translations.keys()) {
     const tally = tallies.get(locale);
-    if (tally !== undefined) {
-      tally.rejected.sourceBlank += 1;
+    if (tally === undefined) {
+      census.record(locale, "filtered");
+      continue;
     }
+    tally.rejected.sourceBlank += 1;
   }
 }
 
@@ -335,22 +332,41 @@ function importUnit(
   ctx: ApplyContext,
   plan: UnitPlan,
   tallies: ReadonlyMap<string, LocaleTally>,
+  census: LanguageCensus,
 ): UnitPlan["kind"] {
-  if (plan.kind !== "ok") {
+  if (plan.kind === "no-source") {
+    return plan.kind;
+  }
+  if (plan.kind === "conflicting-source") {
+    countFiltered(plan.translations, tallies, census);
     return plan.kind;
   }
   if (plan.sourceText.trim() === "") {
-    rejectBlankSource(plan.translations, tallies);
+    rejectBlankSource(plan.translations, tallies, census);
     return "ok";
   }
   const sourceEntry = sourceEntryFor(plan.sourceText, ctx.adapter);
   for (const [locale, candidate] of plan.translations) {
     const tally = tallies.get(locale);
-    if (tally !== undefined) {
-      applyTranslation(ctx, tally, locale, sourceEntry, candidate);
+    if (tally === undefined) {
+      census.record(locale, "filtered");
+      continue;
     }
+    applyTranslation(ctx, tally, locale, sourceEntry, candidate);
   }
   return "ok";
+}
+
+function countFiltered(
+  translations: ReadonlyMap<string, string>,
+  tallies: ReadonlyMap<string, LocaleTally>,
+  census: LanguageCensus,
+): void {
+  for (const locale of translations.keys()) {
+    if (!tallies.has(locale)) {
+      census.record(locale, "filtered");
+    }
+  }
 }
 
 function scanUnits(
@@ -372,6 +388,7 @@ function scanUnits(
       ctx,
       planUnit(unit, sourceLocale, configuredTargets, census),
       tallies,
+      census,
     );
     if (outcome === "no-source") {
       unmatchedSourceUnits += 1;
@@ -445,13 +462,19 @@ function additionsByLocale(
  *
  * One consequence is worth stating plainly, because no import-time check can police it. An accepted
  * unit's source text is written into the memory's source index, which is the same index fuzzy reuse
- * scores a changed string against. An imported source that merely resembles a string in the project
- * can therefore be served for that string by fuzzy reuse, even though the exact path would never
- * match it: the exact path keys on a hash covering the description, meaning, and plural flag, none
- * of which a TMX unit carries, while fuzzy reuse compares source text alone. Such a reuse is still
- * held to the integrity gate against the real entry and is reported as a `FUZZY_CACHE_REUSE` review
- * flag on the run summary, so it is visible rather than silent. A project that does not want an
- * imported memory reachable that way should leave `fuzzyCache` out of its config.
+ * scores a changed string against. An imported source that DIFFERS from a string in the project can
+ * therefore be served for that string by fuzzy reuse, which is what resemblance means.
+ *
+ * An imported source that is identical to a project string but hashes differently is not reachable
+ * at all. Fuzzy reuse discards any candidate whose normalized source equals the query, so a project
+ * entry that carries a description, a meaning, or a plural flag the unit cannot carry falls through
+ * to the provider rather than being served: the hashes differ, and the identical text disqualifies
+ * the fuzzy candidate.
+ *
+ * A fuzzy reuse is still held to the integrity gate against the real entry and is reported as a
+ * `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. A project
+ * that does not want an imported memory reachable that way should leave `fuzzyCache` out of its
+ * config.
  *
  * @param input - The config, the file path, and the dry-run, overwrite and locale-subset switches.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -522,6 +545,7 @@ export async function importTmx(
     markupStrippedUnits: totals.markupStrippedUnits,
     unmatchedLanguages: census.report("unmatched"),
     ambiguousLanguages: census.report("ambiguous"),
+    notImported: census.report("filtered"),
     memoryWritable: writable,
   };
 }

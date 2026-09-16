@@ -484,6 +484,7 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
       result.ambiguousLanguages,
     ),
   );
+  notes.push(...renderTmxLanguages("configured locales this run left out", result.notImported));
   if (!result.memoryWritable) {
     notes.push("  the translation memory was written by a newer verbatra and was left untouched");
   }

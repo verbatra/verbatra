@@ -65,6 +65,14 @@ describe("render: tmx import summary", () => {
     expect(text).not.toContain("x".repeat(30));
   });
 
+  it("names the configured locales a narrowed run left out", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({ notImported: [{ language: "fr", units: 4 }] }),
+    );
+
+    expect(text).toContain("configured locales this run left out: fr (4)");
+  });
+
   it("names every rejection reason it is given", () => {
     const text = renderTmxImportHuman(
       makeImportTmxResult({

@@ -142,6 +142,7 @@ export function makeImportTmxResult(overrides: Partial<ImportTmxResult> = {}): I
     markupStrippedUnits: 0,
     unmatchedLanguages: [],
     ambiguousLanguages: [],
+    notImported: [],
     memoryWritable: true,
     ...overrides,
   };

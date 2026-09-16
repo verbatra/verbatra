@@ -56,13 +56,21 @@ therefore changes nothing the second time and writes no file at all.
 
 One consequence is stated plainly in the published docs rather than left implicit, because no
 import-time check can police it: an accepted unit's source text lands in the memory's source index,
-which is what fuzzy reuse scores a changed string against. An imported source that merely resembles
-a project string can be served for it by fuzzy reuse even though the exact path never would, since
-the exact path keys on a hash covering the description, meaning and plural flag that a TMX unit does
-not carry, while fuzzy reuse compares source text alone. Such a reuse still faces the integrity gate
-against the real entry and is reported as a `FUZZY_CACHE_REUSE` review flag, so it is visible; a
-project that does not want an imported memory reachable that way should leave `fuzzyCache` out of
-its config.
+which is what fuzzy reuse scores a changed string against. An imported source that differs from a
+project string can therefore be served for it by fuzzy reuse, which is what resemblance means. An
+imported source that is identical to a project string but hashes differently is not reachable at
+all: fuzzy reuse discards any candidate whose normalized source equals the query, so a project entry
+carrying a description, a meaning, or a plural flag that a TMX unit cannot carry falls through to the
+provider instead. A fuzzy reuse still faces the integrity gate against the real entry and is reported
+as a `FUZZY_CACHE_REUSE` review flag, so it is visible; a project that does not want an imported
+memory reachable that way should leave `fuzzyCache` out of its config.
+
+Export refuses the same configuration import refuses: a source locale and a target locale that are
+one tag after normalizing case and separators would produce two language attributes the import could
+not tell apart, so the file a project exported would be one it could not read back.
+
+A narrowed run reports the configured locales it left out, so `--locales de` on a file that also
+carries French does not read like a file holding less than it does.
 
 Export writes one `tu` per distinct source string with the source segment and one target segment
 per exported locale, escaping segment text so markup inside a value stays data and a carriage

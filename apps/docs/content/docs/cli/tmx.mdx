@@ -91,9 +91,11 @@ If the memory file was written by a newer verbatra than the one you are running,
 
 ## Imported units and fuzzy reuse
 
-One consequence is worth stating plainly, because no check at import time can police it. An accepted unit's source text is written into the memory's source index, which is exactly what [fuzzy reuse](/docs/the-cache) scores a changed string against. An imported source that merely resembles a string in your project can therefore be served for that string by fuzzy reuse, even though the exact path would never match it: the exact path keys on a hash covering the description, meaning and plural flag, none of which a TMX unit carries, while fuzzy reuse compares source text alone.
+One consequence is worth stating plainly, because no check at import time can police it. An accepted unit's source text is written into the memory's source index, which is exactly what [fuzzy reuse](/docs/the-cache) scores a changed string against. An imported source that **differs** from a string in your project can therefore be served for that string, which is what resemblance means.
 
-Such a reuse is still held to the integrity gate against your real entry, and it is reported as a `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. If you would rather an imported memory were not reachable that way at all, leave `fuzzyCache` out of your config: without it, only an exact content-hash match is ever reused.
+An imported source that is **identical** to one of your strings but hashes differently is not reachable at all. Fuzzy reuse discards any candidate whose normalized source equals the string being looked up, so if your entry carries a description, a meaning, or a plural flag that a TMX unit cannot carry, the hashes differ, the identical text disqualifies the fuzzy candidate, and the string goes to the provider as usual.
+
+A fuzzy reuse is still held to the integrity gate against your real entry, and it is reported as a `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. If you would rather an imported memory were not reachable that way at all, leave `fuzzyCache` out of your config: without it, only an exact content-hash match is ever reused.
 
 ## What export writes
 
