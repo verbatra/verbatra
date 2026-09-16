@@ -91,6 +91,20 @@ const cases: readonly MarkupCase[] = [
     details: [],
   },
   {
+    name: "an unterminated comment that hides the rest of the candidate",
+    source: "<b>x</b>",
+    candidate: "<!-- <b>x</b>",
+    matches: false,
+    details: ["+<!--"],
+  },
+  {
+    name: "a processing instruction the source never had",
+    source: "Hello",
+    candidate: "Hallo <?php ?>",
+    matches: false,
+    details: ["+<?php ?>"],
+  },
+  {
     name: "a candidate flooded past the tag ceiling",
     source: "<b>x</b>",
     candidate: `x${"<i></i>".repeat(200)}`,

@@ -24,6 +24,11 @@ interface InlineTag {
   readonly kind: "open" | "close" | "self";
 }
 
+interface ScannedMarkup {
+  readonly constructs: readonly string[];
+  readonly tags: readonly InlineTag[] | undefined;
+}
+
 interface TagStructure {
   readonly wellFormed: boolean;
   readonly depths: ReadonlyMap<string, number>;
@@ -48,7 +53,9 @@ const VOID_ELEMENTS: ReadonlySet<string> = new Set([
   "wbr",
 ]);
 
-const IGNORABLE_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<![^<>]*>|<\?[\s\S]*?\?>/g;
+const NON_TAG_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!--|<![^<>]*>|<\?[\s\S]*?\?>/g;
+
+const TRANSLATABLE_CONSTRUCT = /^(?:<!--[\s\S]*-->|<!\[CDATA\[[\s\S]*\]\]>)$/;
 
 const TAG = /<(\/?)([A-Za-z_][A-Za-z0-9_.:-]*|[0-9]+)([^<>]*)>/g;
 
@@ -124,8 +131,7 @@ function readTag(slash: string, name: string, chunk: string): InlineTag | undefi
   };
 }
 
-function scanInlineTags(value: string): readonly InlineTag[] | undefined {
-  const scannable = value.replace(IGNORABLE_MARKUP, "");
+function scanInlineTags(scannable: string): readonly InlineTag[] | undefined {
   const tags: InlineTag[] = [];
   TAG.lastIndex = 0;
   for (let match = TAG.exec(scannable); match !== null; match = TAG.exec(scannable)) {
@@ -139,6 +145,17 @@ function scanInlineTags(value: string): readonly InlineTag[] | undefined {
     }
   }
   return tags;
+}
+
+function scanMarkup(value: string): ScannedMarkup {
+  const constructs: string[] = [];
+  const scannable = value.replace(NON_TAG_MARKUP, (construct) => {
+    if (!TRANSLATABLE_CONSTRUCT.test(construct)) {
+      constructs.push(construct);
+    }
+    return "";
+  });
+  return { constructs, tags: scanInlineTags(scannable) };
 }
 
 function collectIgnoredTags(tokens: readonly string[]): IgnoredTags {
@@ -261,6 +278,19 @@ function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
   return invented.sort();
 }
 
+function compareConstructs(
+  source: readonly string[],
+  translated: readonly string[],
+): InlineMarkupComparison | undefined {
+  const sourceCounts = countTokens(source);
+  const translatedCounts = countTokens(translated);
+  const missing = multisetExcess(sourceCounts, translatedCounts);
+  const extra = multisetExcess(translatedCounts, sourceCounts);
+  return missing.length === 0 && extra.length === 0
+    ? undefined
+    : { matches: false, missing, extra, malformed: false };
+}
+
 function compareAgainstUnmarkedSource(
   translatedTags: readonly InlineTag[],
 ): InlineMarkupComparison {
@@ -272,8 +302,8 @@ function singleTagIn(token: string): InlineTag | undefined {
   if (!token.startsWith("<") || !token.endsWith(">")) {
     return undefined;
   }
-  const tags = scanInlineTags(token);
-  return tags?.length === 1 ? tags[0] : undefined;
+  const { constructs, tags } = scanMarkup(token);
+  return constructs.length === 0 && tags?.length === 1 ? tags[0] : undefined;
 }
 
 export function inlineTagToken(token: string): string | undefined {
@@ -288,17 +318,21 @@ export function compareInlineMarkup(
   if (!sourceValue.includes("<") && !translatedValue.includes("<")) {
     return MATCHED;
   }
-  const scannedSource = scanInlineTags(sourceValue);
-  if (scannedSource === undefined) {
+  const source = scanMarkup(sourceValue);
+  if (source.tags === undefined) {
     return MATCHED;
   }
-  const scannedTranslated = scanInlineTags(translatedValue);
-  if (scannedTranslated === undefined) {
+  const translated = scanMarkup(translatedValue);
+  if (translated.tags === undefined) {
     return TAG_LIMIT_EXCEEDED;
   }
+  const constructs = compareConstructs(source.constructs, translated.constructs);
+  if (constructs !== undefined) {
+    return constructs;
+  }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
-  const sourceTags = withoutIgnoredTags(scannedSource, ignored);
-  const translatedTags = withoutIgnoredTags(scannedTranslated, ignored);
+  const sourceTags = withoutIgnoredTags(source.tags, ignored);
+  const translatedTags = withoutIgnoredTags(translated.tags, ignored);
   if (sourceTags.length === 0) {
     return compareAgainstUnmarkedSource(translatedTags);
   }

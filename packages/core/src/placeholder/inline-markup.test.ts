@@ -338,6 +338,59 @@ describe("compareInlineMarkup: constructs that are not inline tags", () => {
     expect(compareInlineMarkup(source, translated).matches).toBe(true);
   });
 
+  it("refuses an unterminated comment in the candidate, which would hide the rest of the value", () => {
+    expect(compareInlineMarkup("<b>x</b>", "<!-- <b>x</b>")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<!--"],
+      malformed: false,
+    });
+  });
+
+  it("refuses an unterminated comment that closes on a bare angle bracket", () => {
+    const result = compareInlineMarkup("Hello world", "Hallo <!-- Welt>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<!--"]);
+  });
+
+  it("accepts an unterminated comment the source already carried", () => {
+    expect(compareInlineMarkup("a <!-- b", "x <!-- y").matches).toBe(true);
+  });
+
+  it("refuses a processing instruction the source never had", () => {
+    expect(compareInlineMarkup("Hello", "Hallo <?php echo 1; ?>")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<?php echo 1; ?>"],
+      malformed: false,
+    });
+  });
+
+  it("refuses a declaration the source never had", () => {
+    expect(compareInlineMarkup("Hello", "Hallo <!x>")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<!x>"],
+      malformed: false,
+    });
+  });
+
+  it("counts declarations and processing instructions, so a second copy is a finding", () => {
+    const result = compareInlineMarkup("<!DOCTYPE html> a", "<!DOCTYPE html> a <!DOCTYPE html>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<!DOCTYPE html>"]);
+  });
+
+  it("reports a dropped declaration as missing", () => {
+    const result = compareInlineMarkup('<?xml version="1.0"?> a', "a");
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(['<?xml version="1.0"?>']);
+  });
+
+  it("still compares constructs when the source's tags are not well formed", () => {
+    expect(compareInlineMarkup("a<b and c>d", "a<b and c>d <?php ?>").matches).toBe(false);
+  });
+
   it("ignores a comment that would otherwise look unbalanced next to real markup", () => {
     expect(compareInlineMarkup("<b>a</b><!-- <i> -->", "<b>a</b><!-- <i> -->").matches).toBe(true);
   });
