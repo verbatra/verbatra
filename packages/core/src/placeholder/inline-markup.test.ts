@@ -255,8 +255,63 @@ describe("compareInlineMarkup: markup invented where the source had none", () =>
     expect(result.missing).toEqual([]);
   });
 
-  it("stays silent when the invented brackets do not form well-formed markup", () => {
+  it("stays silent for an unclosed bracketed word that is not an HTML element name", () => {
     expect(compareInlineMarkup("Press Enter", "Druecke <Enter>").matches).toBe(true);
+  });
+
+  it("stays silent for several unclosed bracketed words, none of them an HTML element name", () => {
+    expect(compareInlineMarkup("Press Ctrl and C", "Druecke <Ctrl> und <C>").matches).toBe(true);
+  });
+
+  it("refuses an unclosed script tag", () => {
+    expect(compareInlineMarkup("Hello", "Hallo <script>alert(1)")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<script>"],
+      malformed: false,
+    });
+  });
+
+  it("refuses an unclosed HTML element whatever case its name is written in", () => {
+    const result = compareInlineMarkup("Hello", "Hallo <DIV>Welt");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<DIV>"]);
+  });
+
+  it("refuses a closing tag with no opening tag", () => {
+    expect(compareInlineMarkup("Hello", "Hallo</div>")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["</div>"],
+      malformed: false,
+    });
+  });
+
+  it("refuses a closing tag whose name matches no opening tag beside a bracketed word", () => {
+    const result = compareInlineMarkup("Press Enter", "Druecke <Enter></Tab>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</Tab>"]);
+  });
+
+  it("refuses a closed pair hidden behind a bracketed word that keeps the value unbalanced", () => {
+    const result = compareInlineMarkup("Press Enter", "Druecke <Enter> <script>alert(1)</script>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</script>", "<script>"]);
+  });
+
+  it("refuses a void or self-closing tag hidden behind a bracketed word", () => {
+    const result = compareInlineMarkup(
+      "Press Enter",
+      'Druecke <Enter> <img src="x" onerror="y"> <icon/>',
+    );
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<icon/>", "<img onerror src>"]);
+  });
+
+  it("names a closed pair around an unclosed bracketed word without naming the word", () => {
+    const result = compareInlineMarkup("Press Enter", "<b>Druecke <Enter></b>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["</b>", "<b>"]);
   });
 });
 

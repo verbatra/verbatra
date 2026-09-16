@@ -1,3 +1,4 @@
+import { HTML_ELEMENT_NAMES } from "./html-elements.js";
 import { countTokens, multisetExcess } from "./multiset.js";
 
 export interface InlineMarkupComparison {
@@ -231,18 +232,40 @@ function compareScanned(
   return sameDepths(sourceStructure.depths, translatedStructure.depths) ? MATCHED : MALFORMED;
 }
 
+function closeInventedTag(tag: InlineTag, open: InlineTag[], invented: string[]): void {
+  invented.push(tag.token);
+  const index = open.map((opener) => opener.name).lastIndexOf(tag.name);
+  const [opener] = index === -1 ? [] : open.splice(index, 1);
+  if (opener !== undefined) {
+    invented.push(opener.token);
+  }
+}
+
+function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
+  const invented: string[] = [];
+  const open: InlineTag[] = [];
+  for (const tag of translatedTags) {
+    if (tag.kind === "self" || isVoidElement(tag.name)) {
+      invented.push(tag.token);
+    } else if (tag.kind === "open") {
+      open.push(tag);
+    } else {
+      closeInventedTag(tag, open, invented);
+    }
+  }
+  for (const tag of open) {
+    if (HTML_ELEMENT_NAMES.has(tag.name.toLowerCase())) {
+      invented.push(tag.token);
+    }
+  }
+  return invented.sort();
+}
+
 function compareAgainstUnmarkedSource(
   translatedTags: readonly InlineTag[],
 ): InlineMarkupComparison {
-  if (translatedTags.length === 0 || !structureOf(translatedTags).wellFormed) {
-    return MATCHED;
-  }
-  return {
-    matches: false,
-    missing: [],
-    extra: [...tokensOf(translatedTags)].sort(),
-    malformed: false,
-  };
+  const extra = inventedTags(translatedTags);
+  return extra.length === 0 ? MATCHED : { matches: false, missing: [], extra, malformed: false };
 }
 
 function singleTagIn(token: string): InlineTag | undefined {

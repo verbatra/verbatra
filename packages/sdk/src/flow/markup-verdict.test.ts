@@ -70,6 +70,27 @@ const cases: readonly MarkupCase[] = [
     details: ["+</b>", "+<b>"],
   },
   {
+    name: "an unclosed script tag invented where the source had none",
+    source: "Hello",
+    candidate: "Hallo <script>alert(1)",
+    matches: false,
+    details: ["+<script>"],
+  },
+  {
+    name: "a stray closing tag invented where the source had none",
+    source: "Hello",
+    candidate: "Hallo</div>",
+    matches: false,
+    details: ["+</div>"],
+  },
+  {
+    name: "an unclosed bracketed word that is not an HTML element name",
+    source: "Press Enter",
+    candidate: "Druecke <Enter>",
+    matches: true,
+    details: [],
+  },
+  {
     name: "a candidate flooded past the tag ceiling",
     source: "<b>x</b>",
     candidate: `x${"<i></i>".repeat(200)}`,
