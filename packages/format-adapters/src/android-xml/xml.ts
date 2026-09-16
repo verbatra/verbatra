@@ -3,14 +3,7 @@ import { createXmlDocument, parseXmlDocument } from "../xml/document.js";
 
 const ROOT_TAG = "resources";
 
-export {
-  ELEMENT_NODE,
-  elementChildren,
-  isElement,
-  setSingleTextValue,
-  singleTextValue,
-  TEXT_NODE,
-} from "../xml/document.js";
+export { elementChildren, setSingleTextValue, singleTextValue } from "../xml/document.js";
 
 export function parseAndroidXml(content: string): { doc: Document; root: Element } {
   return parseXmlDocument(content, ROOT_TAG, {
