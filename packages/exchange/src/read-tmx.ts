@@ -31,10 +31,6 @@ export interface TmxDocument {
   readonly sourceLanguage: string | undefined;
   readonly units: readonly TmxUnit[];
   readonly skipped: readonly TmxSkippedUnit[];
-  /**
-   * `tu` elements the walk never reached, because they sit outside the first `body` element. TMX
-   * allows exactly one `body`, so this is always zero for a conformant file.
-   */
   readonly unreachableUnits: number;
 }
 
