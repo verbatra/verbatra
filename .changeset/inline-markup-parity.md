@@ -65,6 +65,14 @@ that exact value on the same tag and attribute, with a detail such as `+<a href=
 A `srcdoc` value and an event handler value such as `onclick` that the source carries must come back
 byte for byte.
 
+The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
+`plaintext` element runs or styles the page rather than being shown, so each such element in the
+candidate must carry exactly the content of the element in the same position among those of its name
+in the source, or the candidate is refused with a detail such as `+<script> content`; `title` and
+`textarea` content may be translated. Prose that literally contains one of those tags, such as
+`Add a <script> tag`, therefore cannot be translated; escape the tag in the source as
+`&lt;script&gt;` instead.
+
 Wherever the markup could be read two ways, the candidate is refused unless it is the source
 unchanged: a `script` whose content opens `<!--`, a `noscript` whose content holds a `<` (the
 scripting flag decides how it is read), a raw text element whose content holds a `<` after an `svg`,
