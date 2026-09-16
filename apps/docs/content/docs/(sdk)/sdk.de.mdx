@@ -635,12 +635,6 @@ Die Teile, die du kennen solltest:
   und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und
   danach wird nichts weiter zugelassen. Das Budget begrenzt einen `translate`-Aufruf: `watch`
   startet je Lauf ein frisches, und `retranslateEntry` fällt gar nicht darunter.
-- **budgetStanding(budget)** macht aus einem `RunBudget` einen von drei `BudgetStanding`-Werten,
-  dieselbe Einordnung, die die Budgetzeile der CLI, Studio und das Agent-Tool `usage.summary`
-  melden: `"within"`, wenn der Lauf seine Obergrenze nie erreicht hat, `"stopped-before-ceiling"`,
-  wenn ein `"stop"`-Budget eine Anfrage zurückgehalten hat, während `tokensUsed` noch unter
-  `maxTokens` lag, und `"reached"`, wenn `tokensUsed` `maxTokens` erreicht oder überschritten hat.
-  Nutze es, statt nur `exceeded` zu lesen, das in beiden letzten Fällen `true` ist.
 - **error.code** auf einem fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
   also nicht als geschlossene Menge.
@@ -655,6 +649,17 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem CSV- oder TSV-Import
   vorhanden.
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Macht aus einem `RunBudget` einen von drei `BudgetStanding`-Werten, dieselbe Einordnung, die die
+Budgetzeile der CLI, Studio und das Agent-Tool `usage.summary` melden: `"within"`, wenn der Lauf
+seine Obergrenze nie erreicht hat, `"stopped-before-ceiling"`, wenn ein `"stop"`-Budget eine Anfrage
+zurückgehalten hat, während `tokensUsed` noch unter `maxTokens` lag, und `"reached"`, wenn
+`tokensUsed` `maxTokens` erreicht oder überschritten hat. Nutze es, statt nur `exceeded` zu lesen,
+das in beiden letzten Fällen `true` ist.
 
 ## Das Fehlermodell
 
