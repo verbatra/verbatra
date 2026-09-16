@@ -1,5 +1,5 @@
 import { chmod, mkdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import type { LocaleResource } from "@verbatra/core";
 import { AdapterError, type FormatAdapter } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it } from "vitest";
@@ -7,7 +7,11 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
 import { translate } from "./translate-project.js";
-import { targetUnwritableMessage, writeTargetResource } from "./write-target.js";
+import {
+  escapesWorkingDirectory,
+  targetUnwritableMessage,
+  writeTargetResource,
+} from "./write-target.js";
 
 const lockedDirectories: string[] = [];
 
@@ -90,6 +94,15 @@ describe("targetUnwritableMessage", () => {
     const outside = resolve("/elsewhere/de.json");
 
     expect(targetUnwritableMessage(outside, CWD, fsError("EACCES"))).toContain(outside);
+  });
+
+  it("names a target inside a directory whose name merely begins with two dots relative to cwd", () => {
+    const dotted = resolve(CWD, "..locales/de.json");
+
+    const message = targetUnwritableMessage(dotted, CWD, fsError("EACCES"));
+
+    expect(message).toContain("Could not write the locale file ..locales/de.json");
+    expect(message).not.toContain(dotted);
   });
 
   it.each([
@@ -179,5 +192,24 @@ describe("writeTargetResource", () => {
     const adapter = { ...adapterWriting(new Error("x")), write: async () => {} };
 
     await expect(writeTargetResource(adapter, RESOURCE, TARGET, CWD)).resolves.toBeUndefined();
+  });
+});
+
+describe("escapesWorkingDirectory", () => {
+  it.each([
+    ["the working directory itself", ""],
+    ["its parent", ".."],
+    ["a path through its parent", `..${sep}elsewhere`],
+    ["an absolute path, as relative returns across drives", resolve("/elsewhere")],
+  ])("refuses %s", (_label, inside) => {
+    expect(escapesWorkingDirectory(inside)).toBe(true);
+  });
+
+  it.each([
+    ["a nested file", join("locales", "de.json")],
+    ["a directory whose name merely begins with two dots", join("..pseudo", "de.json")],
+    ["a file whose name merely begins with two dots", "..d.ts"],
+  ])("accepts %s", (_label, inside) => {
+    expect(escapesWorkingDirectory(inside)).toBe(false);
   });
 });

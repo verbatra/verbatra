@@ -1,4 +1,4 @@
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type FormatId,
   type LocaleResource,
@@ -13,7 +13,11 @@ import { createLocalePathResolver, type LocalePathResolver } from "../locale-pat
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { readSourceResource } from "./source.js";
-import { targetUnwritableMessage, writeTargetResource } from "./write-target.js";
+import {
+  escapesWorkingDirectory,
+  targetUnwritableMessage,
+  writeTargetResource,
+} from "./write-target.js";
 
 const DEFAULT_PSEUDO_LOCALE = "en-XA";
 
@@ -83,10 +87,6 @@ export interface PseudolocalizeResult {
   readonly copied: readonly string[];
   /** False when the file on disk already matched, so nothing was rewritten. */
   readonly written: boolean;
-}
-
-function escapesWorkingDirectory(inside: string): boolean {
-  return inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
 }
 
 function resolveOutputRoot(cwd: string, out: string | undefined): string {

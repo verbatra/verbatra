@@ -21,6 +21,7 @@ import {
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
+import { escapesWorkingDirectory } from "./write-target.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
@@ -100,10 +101,6 @@ export interface GenerateTypesResult {
   readonly stale: boolean;
   /** Whether this was a `check` run. */
   readonly check: boolean;
-}
-
-function escapesWorkingDirectory(inside: string): boolean {
-  return inside === "" || inside === ".." || inside.startsWith(`..${sep}`);
 }
 
 export const TYPES_OUTPUT_REFUSALS = [

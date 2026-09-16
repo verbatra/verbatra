@@ -419,6 +419,35 @@ describe("generateTypes: refusals", () => {
     ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
   });
 
+  it("refuses an output path that climbs out only after a redundant segment", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "./foo/../../escaped.d.ts" }),
+    ).rejects.toMatchObject({ code: "TYPES_OUTPUT_CONFLICT" });
+  });
+
+  it("refuses the working directory itself as the output path", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    await expect(generateTypes({ config: baseConfig(), cwd: dir, out: "." })).rejects.toMatchObject(
+      { code: "TYPES_OUTPUT_CONFLICT" },
+    );
+  });
+
+  it("accepts an output path inside a directory whose name merely begins with two dots", async () => {
+    const dir = await seed({ title: "Verbatra" });
+
+    const result = await generateTypes({
+      config: baseConfig(),
+      cwd: dir,
+      out: "..types/messages.d.ts",
+    });
+
+    expect(result.path).toBe(join(dir, "..types", "messages.d.ts"));
+    expect(await readTextFile(result.path)).toContain('"title": VerbatraNoArguments;');
+  });
+
   it("refuses to write the declaration over a configured locale file", async () => {
     const dir = await seed({ title: "Verbatra" });
 
