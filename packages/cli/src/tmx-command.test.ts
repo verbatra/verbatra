@@ -86,6 +86,7 @@ describe("verbatra tmx import", () => {
               overwritten: 0,
               kept: 1,
               duplicates: 0,
+              conflicting: 0,
               rejected: { placeholder: 1, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
             },
           ],
@@ -111,6 +112,33 @@ describe("verbatra tmx import", () => {
     await run(["tmx", "import", "legacy.tmx", "--cwd", "/proj", "--json"], deps, streams);
 
     expect(JSON.parse(out())).toEqual(expect.objectContaining({ ok: true, command: "tmx" }));
+  });
+
+  it("carries the per-locale conflict count in the JSON envelope", async () => {
+    const { deps } = recordingDeps({
+      importTmx: async () =>
+        makeImportTmxResult({
+          locales: [
+            {
+              locale: "de",
+              added: 0,
+              unchanged: 0,
+              overwritten: 0,
+              kept: 0,
+              duplicates: 0,
+              conflicting: 1,
+              rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+            },
+          ],
+        }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "import", "legacy.tmx", "--cwd", "/proj", "--json"], deps, streams);
+
+    expect(JSON.parse(out()).result.locales[0]).toEqual(
+      expect.objectContaining({ locale: "de", conflicting: 1 }),
+    );
   });
 });
 

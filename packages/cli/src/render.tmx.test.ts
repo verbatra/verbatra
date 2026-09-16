@@ -84,6 +84,7 @@ describe("render: tmx import summary", () => {
             overwritten: 0,
             kept: 0,
             duplicates: 0,
+            conflicting: 0,
             rejected: { placeholder: 1, icu: 2, degenerate: 3, empty: 4, sourceBlank: 5 },
           },
         ],
@@ -97,6 +98,50 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("5 blank source segment");
   });
 
+  it("names the units whose segments disagreed for a locale", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "de",
+            added: 1,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 2,
+            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+          },
+        ],
+      }),
+    );
+
+    expect(text).toContain(
+      "2 units carried differing segments for this locale, so none of them was stored",
+    );
+  });
+
+  it("prints no conflict line for a locale whose segments agreed", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "de",
+            added: 1,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 0,
+            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+          },
+        ],
+      }),
+    );
+
+    expect(text).not.toContain("differing segments");
+  });
+
   it("prints no rejection line for a locale that refused nothing", () => {
     const text = renderTmxImportHuman(
       makeImportTmxResult({
@@ -108,6 +153,7 @@ describe("render: tmx import summary", () => {
             overwritten: 0,
             kept: 0,
             duplicates: 0,
+            conflicting: 0,
             rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
           },
         ],

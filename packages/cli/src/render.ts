@@ -433,7 +433,13 @@ function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly s
     `${locale.overwritten} overwritten`,
     `${locale.duplicates} repeated in the file`,
   ].join(", ");
-  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale)];
+  const conflicts =
+    locale.conflicting > 0
+      ? [
+          `      ${locale.conflicting} units carried differing segments for this locale, so none of them was stored`,
+        ]
+      : [];
+  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale), ...conflicts];
 }
 
 function renderTmxLanguages(
