@@ -510,6 +510,54 @@ describe("render: human run summary", () => {
     expect(withinBudget).toContain("budget: 200/1000 tokens (warn), within budget");
   });
 
+  it("says a stop run halted before its ceiling when a refused request left the count under it", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 10000,
+          behavior: "stop",
+          supported: true,
+          tokensUsed: 6000,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain("budget: 6000/10000 tokens (stop), stopped before the ceiling");
+    expect(text).not.toContain("exceeded");
+  });
+
+  it("keeps the estimated marker on a stop run that halted before its ceiling", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 800,
+          behavior: "stop",
+          supported: false,
+          tokensUsed: 794,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain(
+      "budget: 794/800 tokens (stop), stopped before the ceiling, estimated (not every request reported usage)",
+    );
+  });
+
+  it("calls a count that landed exactly on the ceiling exceeded, since it reached it", () => {
+    const text = renderHuman(
+      makeSummary({
+        budget: {
+          maxTokens: 1000,
+          behavior: "stop",
+          supported: true,
+          tokensUsed: 1000,
+          exceeded: true,
+        },
+      }),
+    );
+    expect(text).toContain("budget: 1000/1000 tokens (stop), exceeded");
+  });
+
   it("counts an estimated budget and blames the count, not the provider, for the estimate", () => {
     const text = renderHuman(
       makeSummary({

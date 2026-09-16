@@ -50,8 +50,17 @@ function renderTokens(usage: UsageSummary): string {
   return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
 }
 
+function budgetStatus(budget: RunBudget): string {
+  if (!budget.exceeded) {
+    return "within budget";
+  }
+  return budget.behavior === "stop" && budget.tokensUsed < budget.maxTokens
+    ? "stopped before the ceiling"
+    : "exceeded";
+}
+
 function renderBudgetLine(budget: RunBudget): string {
-  const status = budget.exceeded ? "exceeded" : "within budget";
+  const status = budgetStatus(budget);
   const counted = `${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior})`;
   const line = `  budget: ${counted}, ${status}`;
   return budget.supported || budget.tokensUsed === 0
