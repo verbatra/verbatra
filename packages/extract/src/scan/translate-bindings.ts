@@ -1,6 +1,7 @@
 import { boundEnd, isAssignmentAt, isIdentNamed, type KeyUsageRules } from "./key-usage.js";
 import {
   closeIndex,
+  DECLARATION_KEYWORDS,
   identValue,
   isPunct,
   listItems,
@@ -18,8 +19,6 @@ import {
   referenceStart,
 } from "./translate-arguments.js";
 import type { Binding } from "./translate-state.js";
-
-export const DECLARATION_KEYWORDS = new Set(["const", "let", "var"]);
 
 const HOOK_PATTERN_NAMES = new Set(["t", "i18n", "ready"]);
 

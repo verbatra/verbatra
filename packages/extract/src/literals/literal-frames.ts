@@ -1,4 +1,10 @@
-import { identValue, isPunct } from "../scan/token-query.js";
+import {
+  CLOSERS,
+  DECLARATION_KEYWORDS,
+  identValue,
+  isPunct,
+  OPENERS,
+} from "../scan/token-query.js";
 import type { PositionedToken } from "../scan/tokenize.js";
 
 export type LiteralFrame =
@@ -18,13 +24,7 @@ export type LiteralFrame =
 
 const LOOKBEHIND_LIMIT = 200;
 
-const DECLARATION_KEYWORDS = new Set(["let", "const", "var"]);
-
 const TERNARY_STOPPERS = new Set([";", ","]);
-
-const OPENERS = new Set(["(", "[", "{"]);
-
-const CLOSERS = new Set([")", "]", "}"]);
 
 function isTernaryQuestion(tokens: readonly PositionedToken[], index: number): boolean {
   return (

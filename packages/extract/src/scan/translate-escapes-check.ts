@@ -1,16 +1,19 @@
 import { isAssignmentAt, isAttributeName, isIdentNamed, type KeyUsageRules } from "./key-usage.js";
 import {
+  CLOSERS,
   callOpenIndex,
+  DECLARATION_KEYWORDS,
   identValue,
   isPunct,
   isPunctIn,
   matchingClose,
   matchingOpen,
+  OPENERS,
   tokenAt,
 } from "./token-query.js";
 import type { SourceToken } from "./tokenize.js";
 import { isStatementEnd } from "./translate-arguments.js";
-import { DECLARATION_KEYWORDS, TRANSLATE_PATTERN_NAME } from "./translate-bindings.js";
+import { TRANSLATE_PATTERN_NAME } from "./translate-bindings.js";
 import { lineAt, type SourceState } from "./translate-state.js";
 
 const PROPERTY_PRECEDERS = new Set(["{", ",", "("]);
@@ -39,10 +42,6 @@ const METHOD_MODIFIERS = new Set([
 ]);
 
 const ARROW_PRECEDERS = new Set(["=", "(", ","]);
-
-const OPENERS = new Set(["(", "[", "{"]);
-
-const CLOSERS = new Set([")", "]", "}"]);
 
 const PATTERN_CONTINUATIONS = new Set([")", ",", ":"]);
 

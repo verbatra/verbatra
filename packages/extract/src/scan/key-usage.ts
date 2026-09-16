@@ -1,10 +1,13 @@
 import type { ReferencedKeySite, UnresolvedKeySite } from "../extractor.js";
 import {
+  CLOSERS,
   callOpenIndex,
   closeIndex,
+  DECLARATION_KEYWORDS,
   isFollowedBy,
   isPunct,
   isPunctIn,
+  OPENERS,
   tokenAt,
 } from "./token-query.js";
 import type { SourceToken } from "./tokenize.js";
@@ -61,15 +64,9 @@ const EXPRESSION_ENDS = new Set([";", ",", ")", "}", "]", "|"]);
 
 const ARRAY_ELEMENT_TERMINATORS = new Set([",", "]"]);
 
-const DECLARATION_KEYWORDS = new Set(["const", "let", "var"]);
-
 const MARKUP_PRECEDING_KEYWORDS = new Set(["return", "yield", "await", "default"]);
 
 const VALUE_CLOSERS = new Set([")", "]"]);
-
-const ARGUMENT_OPENERS = new Set(["(", "[", "{"]);
-
-const ARGUMENT_CLOSERS = new Set([")", "]", "}"]);
 
 const ABSENT_PREFIX_NAMES = new Set(["undefined", "null"]);
 
@@ -239,9 +236,9 @@ function thirdArgument(
   let position = 0;
   for (let cursor = openIndex; cursor < tokens.length; cursor += 1) {
     const token = tokenAt(tokens, cursor);
-    if (isPunctIn(token, ARGUMENT_OPENERS)) {
+    if (isPunctIn(token, OPENERS)) {
       depth += 1;
-    } else if (isPunctIn(token, ARGUMENT_CLOSERS)) {
+    } else if (isPunctIn(token, CLOSERS)) {
       depth -= 1;
     }
     const endsArgument = (depth === 1 && isPunct(token, ",")) || depth === 0;

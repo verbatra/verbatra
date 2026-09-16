@@ -1,5 +1,11 @@
 import type { MarkupToken, SourceToken } from "./tokenize.js";
 
+export const OPENERS: ReadonlySet<string> = new Set(["(", "[", "{"]);
+
+export const CLOSERS: ReadonlySet<string> = new Set([")", "]", "}"]);
+
+export const DECLARATION_KEYWORDS: ReadonlySet<string> = new Set(["const", "let", "var"]);
+
 type QueriedToken = SourceToken | MarkupToken;
 
 export function tokenAt(tokens: readonly SourceToken[], index: number): SourceToken | undefined {
@@ -71,10 +77,6 @@ export function closeIndex(tokens: readonly SourceToken[], openIndex: number): n
   }
   return tokens.length;
 }
-
-const OPENERS = new Set(["(", "[", "{"]);
-
-const CLOSERS = new Set([")", "]", "}"]);
 
 export function matchingClose(tokens: readonly SourceToken[], from: number): number | undefined {
   let depth = 0;
