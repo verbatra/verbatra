@@ -7,11 +7,17 @@ import {
   readRawText,
 } from "./raw-text.js";
 
+export interface MarkupAttribute {
+  readonly name: string;
+  readonly value: string;
+}
+
 export interface InlineTag {
   readonly token: string;
   readonly name: string;
   readonly kind: "open" | "close" | "self";
   readonly bare: boolean;
+  readonly attributes: readonly MarkupAttribute[];
 }
 
 export interface ScannedMarkup {
@@ -30,8 +36,13 @@ interface MutableScan {
 }
 
 interface AttributeList {
-  readonly names: readonly string[];
+  readonly attributes: readonly MarkupAttribute[];
   readonly selfClosing: boolean;
+  readonly end: number;
+}
+
+interface AttributeValue {
+  readonly text: string;
   readonly end: number;
 }
 
@@ -135,8 +146,13 @@ function readConstruct(
   return undefined;
 }
 
-function openTagToken(name: string, names: readonly string[], selfClosing: boolean): string {
-  const attributes = names.length === 0 ? "" : ` ${[...names].sort().join(" ")}`;
+function openTagToken(
+  name: string,
+  attributeList: readonly MarkupAttribute[],
+  selfClosing: boolean,
+): string {
+  const names = attributeList.map((attribute) => attribute.name).sort();
+  const attributes = names.length === 0 ? "" : ` ${names.join(" ")}`;
   const marker = selfClosing && !isVoidElement(name) ? "/" : "";
   return `<${name}${attributes}${marker}>`;
 }
@@ -173,16 +189,8 @@ function attributeNameEnd(value: string, from: number): number {
   return index;
 }
 
-function attributeValueEnd(value: string, from: number): number {
-  if (value.charCodeAt(from) !== EQUALS) {
-    return from;
-  }
-  let index = skipSpaces(value, from + 1);
-  const quote = value.charCodeAt(index);
-  if (quote === DOUBLE_QUOTE || quote === SINGLE_QUOTE) {
-    const close = value.indexOf(String.fromCharCode(quote), index + 1);
-    return close === -1 ? value.length : close + 1;
-  }
+function unquotedValueEnd(value: string, from: number): number {
+  let index = from;
   while (index < value.length) {
     const code = value.charCodeAt(index);
     if (isHtmlSpace(code) || code === GREATER_THAN) {
@@ -193,23 +201,40 @@ function attributeValueEnd(value: string, from: number): number {
   return index;
 }
 
+function readAttributeValue(value: string, from: number): AttributeValue {
+  if (value.charCodeAt(from) !== EQUALS) {
+    return { text: "", end: from };
+  }
+  const index = skipSpaces(value, from + 1);
+  const quote = value.charCodeAt(index);
+  if (quote === DOUBLE_QUOTE || quote === SINGLE_QUOTE) {
+    const close = value.indexOf(String.fromCharCode(quote), index + 1);
+    return close === -1
+      ? { text: "", end: value.length }
+      : { text: value.slice(index + 1, close), end: close + 1 };
+  }
+  const end = unquotedValueEnd(value, index);
+  return { text: value.slice(index, end), end };
+}
+
 function readAttributes(value: string, from: number): AttributeList | undefined {
-  const names: string[] = [];
+  const attributes: MarkupAttribute[] = [];
   let index = from;
   while (index < value.length) {
     const code = value.charCodeAt(index);
     if (code === GREATER_THAN) {
-      return { names, selfClosing: false, end: index + 1 };
+      return { attributes, selfClosing: false, end: index + 1 };
     }
     if (code === SLASH && value.charCodeAt(index + 1) === GREATER_THAN) {
-      return { names, selfClosing: true, end: index + 2 };
+      return { attributes, selfClosing: true, end: index + 2 };
     }
     if (isHtmlSpace(code) || code === SLASH) {
       index += 1;
     } else {
       const nameEnd = attributeNameEnd(value, index + 1);
-      names.push(value.slice(index, nameEnd));
-      index = attributeValueEnd(value, skipSpaces(value, nameEnd));
+      const attributeValue = readAttributeValue(value, skipSpaces(value, nameEnd));
+      attributes.push({ name: value.slice(index, nameEnd), value: attributeValue.text });
+      index = attributeValue.end;
     }
   }
   return undefined;
@@ -224,12 +249,13 @@ function readNamedTag(value: string, start: number, closing: boolean): ReadTag {
     return { tag: undefined, end: value.length, unterminated: `<${closing ? "/" : ""}${name}` };
   }
   const bare = attributes.end === nameEnd + 1;
+  const end = attributes.end;
   if (closing) {
-    return { tag: { token: `</${name}>`, name, kind: "close", bare }, end: attributes.end };
+    return { tag: { token: `</${name}>`, name, kind: "close", bare, attributes: [] }, end };
   }
-  const { names, selfClosing } = attributes;
-  const token = openTagToken(name, names, selfClosing);
-  return { tag: { token, name, kind: selfClosing ? "self" : "open", bare }, end: attributes.end };
+  const token = openTagToken(name, attributes.attributes, attributes.selfClosing);
+  const kind = attributes.selfClosing ? "self" : "open";
+  return { tag: { token, name, kind, bare, attributes: attributes.attributes }, end };
 }
 
 function digitsEnd(value: string, from: number): number {
@@ -250,7 +276,10 @@ function readNumericClose(value: string, start: number, name: string, nameEnd: n
     return textAt(start);
   }
   const bare = close === nameEnd;
-  return { tag: { token: `</${name}>`, name, kind: "close", bare }, end: close + 1 };
+  return {
+    tag: { token: `</${name}>`, name, kind: "close", bare, attributes: [] },
+    end: close + 1,
+  };
 }
 
 function readNumericOpen(value: string, start: number, name: string, nameEnd: number): ReadTag {
@@ -261,7 +290,7 @@ function readNumericOpen(value: string, start: number, name: string, nameEnd: nu
   }
   const token = openTagToken(name, [], selfClosing);
   const kind = selfClosing ? "self" : "open";
-  return { tag: { token, name, kind, bare: !selfClosing }, end: close + 1 };
+  return { tag: { token, name, kind, bare: !selfClosing, attributes: [] }, end: close + 1 };
 }
 
 function readNumericTag(value: string, start: number, closing: boolean): ReadTag {

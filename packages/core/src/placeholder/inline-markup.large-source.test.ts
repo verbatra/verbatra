@@ -52,9 +52,9 @@ describe("compareInlineMarkup: comparison work stays proportional to the number 
     ["unclosed openers", "<i>".repeat(120_000)],
     ["closing tags with no opener", `<b>x</b>${"</i>".repeat(120_000)}`],
   ])("compares %s promptly", (_label, value) => {
-    const started = performance.now();
+    const started = Date.now();
     expect(compareInlineMarkup(value, value).matches).toBe(true);
     expect(compareInlineMarkup("Hallo", value).matches).toBe(false);
-    expect(performance.now() - started).toBeLessThan(2_000);
+    expect(Date.now() - started).toBeLessThan(2_000);
   });
 });

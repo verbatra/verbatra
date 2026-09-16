@@ -8,6 +8,7 @@ import {
   scanMarkup,
 } from "./markup-scanner.js";
 import { countTokens, multisetExcess } from "./multiset.js";
+import { unsafeAttributeValues } from "./url-attributes.js";
 
 export interface InlineMarkupComparison {
   readonly matches: boolean;
@@ -374,5 +375,10 @@ export function compareInlineMarkup(
   }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
   const reading = readingFindings(sourceValue === translatedValue, source, translated);
-  return withFindings(compareScannedMarkup(source, translated, ignored), [], reading);
+  const values = unsafeAttributeValues(source.tags, translated.tags);
+  return withFindings(
+    compareScannedMarkup(source, translated, ignored),
+    [],
+    [...reading, ...values],
+  );
 }
