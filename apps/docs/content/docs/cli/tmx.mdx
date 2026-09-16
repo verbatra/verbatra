@@ -1,0 +1,123 @@
+---
+title: verbatra tmx
+description: Import a TMX translation memory from another tool, or export this project's memory as TMX.
+---
+<AvailableFrom version="0.11.0" />
+
+TMX is the interchange format the mainstream translation platforms produce and consume. `verbatra tmx import` lands a memory one of them exported into [this project's translation memory](/docs/the-cache), so a later run reuses those strings instead of paying for them again. `verbatra tmx export` writes this project's memory back out in the same format, so the work can leave as easily as it arrived.
+
+Neither direction calls a provider, reads an API key, or makes a network request. Every value comes from the file or from the memory already on disk.
+
+## Synopsis
+
+```bash
+verbatra tmx <direction> [file] [flags]
+```
+
+`<direction>` is `import` or `export`. `[file]` is the TMX file to read or write, and defaults to `verbatra-memory.tmx` in the working directory.
+
+## Flags
+
+| Flag | Argument | Default | Effect |
+| --- | --- | --- | --- |
+| `--cwd` | `<path>` | current directory | resolve config and the memory from this directory |
+| `--config` | `<path>` | search for one | load this config file instead of searching for one |
+| `--locales` | `<list>` | all configured | comma-separated subset of target locales |
+| `--dry-run` | none | off | import only, refused on an export: validate and report without changing the memory |
+| `--overwrite` | none | off | import only, refused on an export: let an imported unit replace a translation the memory already holds |
+| `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the result, or the error code on a failed run; the human-readable error line still goes to stderr |
+
+## Examples
+
+```bash
+# land another tool's memory in this project
+verbatra tmx import legacy.tmx
+
+# report what would land, change nothing
+verbatra tmx import legacy.tmx --dry-run
+
+# let the file win where it disagrees with what the project already holds
+verbatra tmx import legacy.tmx --overwrite
+
+# write the memory to verbatra-memory.tmx
+verbatra tmx export
+
+# only German, to a chosen path
+verbatra tmx export out/memory.tmx --locales de
+```
+
+## What an imported unit has to satisfy
+
+A file from another tool is untrusted input, and a unit that reaches the memory can be reused without anyone being asked again. So nothing is stored until it has earned it. Every candidate translation faces the same integrity gate that [provider output and a filled translator handoff](/docs/translation-safety) already face, checked when the record enters the memory rather than left to the run that later reads it:
+
+- its placeholders have to match the placeholders of its own source segment,
+- it has to be a valid ICU message under the configured format's adapter,
+- it must not have collapsed into runaway output rather than a translation,
+- it must not be blank where the source has text.
+
+On top of that, a unit whose source segment is blank identifies no string at all, so it is refused too. Inline markup (`bpt`, `ept`, `ph`, `it`) is flattened to its text, which the placeholder check then catches if the markup was carrying something that mattered.
+
+Nothing is dropped quietly. Every refusal is counted by reason, and so is every unit the reader could not use, every unit with no segment in your source locale, and every unit whose markup was flattened.
+
+## Matching language tags
+
+A TMX file spells its languages however its author's tool spelled them, which is rarely how your config spells them. The rule is explicit, and it never guesses:
+
+1. Both sides are lowercased and underscores are folded to hyphens, so `pt_BR`, `pt-br` and `pt-BR` are one locale. An exact match at that point wins.
+2. Otherwise, if exactly one configured locale shares the tag's primary subtag, the unit lands there. A file written in `en-US` therefore lands in a project configured for `en`, and a file written in `pt` lands in a project configured only for `pt-BR`.
+3. If two configured locales could equally claim the tag, nothing is chosen. `pt-PT` in a project configured for `pt-BR` and `pt-AO` is reported as ambiguous, not assigned to whichever came first.
+
+Every segment is resolved against the source locale and all of your configured target locales in one pass, not against the source first and the targets afterwards. That is what stops a regional target being taken for the bare source tag it shares a primary subtag with: in a project whose source is `pt` and whose targets include `pt-BR`, the `pt-BR` segment is that target, never a second reading of the source. It still holds when you narrow a run with `--locales`, because the resolution sees every configured locale either way.
+
+A unit carrying two segments that both resolve to your source locale, such as `en` and `en-US` in a project configured for `en`, is refused and counted rather than attributed to whichever came last. A config whose source locale and one of its target locales are the same tag once case and separators are normalized is refused outright, because no segment could be attributed to either.
+
+Units the reader could not use, units with no source segment, units whose markup was flattened, and `tu` elements sitting outside the file's first `body` are all counted too. If the header declares a `srclang` that is not your source locale, that is reported rather than ignored.
+
+Tags that match nothing configured are counted per tag and reported, so a file full of languages you do not translate tells you so rather than looking like an empty import.
+
+## When the file and the memory disagree
+
+The project's own memory wins. If the memory already holds a different translation for the same source and locale, the imported one is refused and counted as kept. Pass `--overwrite` to reverse that and let the file win.
+
+Within one file, the first unit for a given source wins and later repeats are counted as duplicates.
+
+Importing the same file twice therefore changes nothing the second time, and writes no file at all.
+
+## Imported units and your configuration
+
+Imported units are stored under the project's current configuration fingerprint, the same key a real run writes. That is deliberate: an imported memory is reused exactly when the configuration that would consume it matches, and stops matching when the provider, model, tone, or glossary changes, which is the protection the fingerprint layer exists to give. Re-import the file after such a change.
+
+If the memory file was written by a newer verbatra than the one you are running, import leaves it untouched and says so, rather than writing a file the newer build would then have to distrust.
+
+## Imported units and fuzzy reuse
+
+One consequence is worth stating plainly, because no check at import time can police it. An accepted unit's source text is written into the memory's source index, which is exactly what [fuzzy reuse](/docs/the-cache) scores a changed string against. An imported source that **differs** from a string in your project can therefore be served for that string, which is what resemblance means.
+
+An imported source that is **identical** to one of your strings but hashes differently is not reachable at all. Fuzzy reuse discards any candidate whose normalized source equals the string being looked up, so if your entry carries a description, a meaning, or a plural flag that a TMX unit cannot carry, the hashes differ, the identical text disqualifies the fuzzy candidate, and the string goes to the provider as usual.
+
+A fuzzy reuse is still held to the integrity gate against your real entry, and it is reported as a `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. If you would rather an imported memory were not reachable that way at all, leave `fuzzyCache` out of your config: without it, only an exact content-hash match is ever reused.
+
+## What export writes
+
+One `tu` element per distinct source string, carrying the source segment and one target segment per exported locale, under a TMX 1.4b header naming `srclang`, `creationtool`, `creationtoolversion`, `segtype`, and `o-tmf`. Only entries stored under the current configuration fingerprint are written, which is the same set a run would reuse.
+
+An empty memory produces a valid, empty TMX file rather than an error.
+
+An entry the memory holds no source text for cannot be written, because TMX has no unit without a source segment. That happens only for entries carried forward from a cache written before the memory stored source text; they are left out and counted, and they fill in as later runs touch those strings again.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | the file was read or written |
+| `2` | could not run: a config error, a missing or unreadable file, a file that is not valid TMX, or a usage error |
+
+A file that is oversized, malformed, not a TMX document, or that declares an XML entity is refused with a structured error naming what failed. Entity declarations and internal DTD subsets are refused outright, so neither an external entity reference nor an unbounded expansion is ever reached, and the plain external doctype that real writers emit is discarded rather than fetched.
+
+Units that were skipped or refused do not fail the run. They are reported, because a real-world memory almost always carries some of both.
+
+## Related
+
+- [The cache](/docs/the-cache) explains what the translation memory is and how it is keyed.
+- [Manual translation](/docs/manual-translation) covers the xlsx, CSV, and TSV handoff, which is a different thing: a per-locale slice of the pending delta for a human translator, not the whole memory.
+- [Translation safety](/docs/translation-safety) explains the checks an imported unit has to pass.

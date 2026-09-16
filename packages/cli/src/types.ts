@@ -6,12 +6,16 @@ import type {
   DiffSummary,
   DoctorInput,
   DoctorResult,
+  ExportTmxInput,
+  ExportTmxResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
   ExtractInput,
   ExtractResult,
   GenerateTypesInput,
   GenerateTypesResult,
+  ImportTmxInput,
+  ImportTmxResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -46,6 +50,8 @@ export interface CliDeps {
   importMcp(): Promise<McpModule>;
   extract(input: ExtractInput): Promise<ExtractResult>;
   generateTypes(input: GenerateTypesInput): Promise<GenerateTypesResult>;
+  importTmx(input: ImportTmxInput): Promise<ImportTmxResult>;
+  exportTmx(input: ExportTmxInput): Promise<ExportTmxResult>;
 }
 
 export interface StudioModule {

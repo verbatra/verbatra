@@ -348,6 +348,9 @@ importers:
 
   packages/exchange:
     dependencies:
+      '@xmldom/xmldom':
+        specifier: catalog:bundled
+        version: 0.9.12
       exceljs:
         specifier: catalog:bundled
         version: 4.4.0

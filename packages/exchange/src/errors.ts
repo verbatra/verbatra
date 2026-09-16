@@ -1,4 +1,4 @@
-export type ExchangeErrorCode = "WORKBOOK_INVALID";
+export type ExchangeErrorCode = "TMX_INVALID" | "WORKBOOK_INVALID";
 
 export class ExchangeError extends Error {
   readonly code: ExchangeErrorCode;

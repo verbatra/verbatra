@@ -6,12 +6,16 @@ import type {
   DiffSummary,
   DoctorInput,
   DoctorResult,
+  ExportTmxInput,
+  ExportTmxResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
   ExtractInput,
   ExtractResult,
   GenerateTypesInput,
   GenerateTypesResult,
+  ImportTmxInput,
+  ImportTmxResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
@@ -141,6 +145,37 @@ export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): G
   };
 }
 
+export function makeImportTmxResult(overrides: Partial<ImportTmxResult> = {}): ImportTmxResult {
+  return {
+    dryRun: false,
+    file: "/proj/memory.tmx",
+    sourceLanguage: "en",
+    units: 0,
+    locales: [],
+    sourceLanguageMismatch: undefined,
+    skippedUnits: 0,
+    unreachableUnits: 0,
+    unmatchedSourceUnits: 0,
+    conflictingSourceUnits: 0,
+    markupStrippedUnits: 0,
+    unmatchedLanguages: [],
+    ambiguousLanguages: [],
+    notImported: [],
+    memoryWritable: true,
+    ...overrides,
+  };
+}
+
+export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): ExportTmxResult {
+  return {
+    path: "/proj/verbatra-memory.tmx",
+    units: 0,
+    locales: [],
+    withoutSource: 0,
+    ...overrides,
+  };
+}
+
 export function makeLoadedConfig(overrides: Partial<LoadedConfig> = {}): LoadedConfig {
   return {
     config: makeConfig(),
@@ -213,6 +248,8 @@ export interface DepCalls {
   importMcp: undefined[];
   extract: ExtractInput[];
   generateTypes: GenerateTypesInput[];
+  importTmx: ImportTmxInput[];
+  exportTmx: ExportTmxInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -231,6 +268,8 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importMcp: [],
     extract: [],
     generateTypes: [],
+    importTmx: [],
+    exportTmx: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -288,6 +327,14 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     generateTypes: async (input) => {
       calls.generateTypes.push(input);
       return impl.generateTypes ? impl.generateTypes(input) : makeTypesResult();
+    },
+    importTmx: async (input) => {
+      calls.importTmx.push(input);
+      return impl.importTmx ? impl.importTmx(input) : makeImportTmxResult();
+    },
+    exportTmx: async (input) => {
+      calls.exportTmx.push(input);
+      return impl.exportTmx ? impl.exportTmx(input) : makeExportTmxResult();
     },
   };
   return { deps, calls };

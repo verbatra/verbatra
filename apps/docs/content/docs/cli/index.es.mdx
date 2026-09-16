@@ -1,8 +1,8 @@
 ---
 title: Vista general
-description: "El comando verbatra: sus trece subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
+description: "El comando verbatra: sus catorce subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
 ---
-`@verbatra/cli` incluye el binario `verbatra`, una envoltura fina sobre [`@verbatra/sdk`](/docs/sdk). Trece comandos hacen el trabajo:
+`@verbatra/cli` incluye el binario `verbatra`, una envoltura fina sobre [`@verbatra/sdk`](/docs/sdk). Catorce comandos hacen el trabajo:
 
 | Comando | Qué hace |
 | --- | --- |
@@ -17,6 +17,7 @@ description: "El comando verbatra: sus trece subcomandos, los flags compartidos,
 | [`types`](/docs/cli/types) | genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor |
 | [`export`](/docs/cli/export) | exporta las cadenas sin traducir para un traductor humano, como libro de Excel o como un archivo CSV o TSV por locale |
 | [`import`](/docs/cli/import) | importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale |
+| [`tmx`](/docs/cli/tmx) | importa una memoria de traducción TMX de otra herramienta a la memoria de este proyecto, o exporta la memoria de este proyecto como archivo TMX |
 | [`studio`](/docs/cli/studio) | arranca Verbatra Studio, el panel local de traducción |
 | [`mcp`](/docs/cli/mcp) | arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP |
 
@@ -41,13 +42,13 @@ Necesitas Node.js `>=22.14.0`.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
 - `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar.
   - Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
-  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export` e `import`; `init`, `studio` y `mcp` no.
+  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` y `tmx`; `init`, `studio` y `mcp` no.
   - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo` y `types` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Códigos de salida
 

@@ -407,8 +407,52 @@ name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
 a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
 
-## Config
+## The TMX pair
 
+`importTmx` and `exportTmx` move the [translation memory](/docs/the-cache) in and out of TMX, the
+interchange format the mainstream translation platforms produce and consume. Neither constructs a
+provider, reads an API key, nor makes a network call: every value comes from the file or from the
+memory already on disk. This is not the workbook pair in another format. The workbook pair hands a
+per-locale slice of the pending delta to a human translator; this pair moves the whole memory as one
+multilingual file between tools.
+
+### importTmx
+
+Reads a TMX file into the project's memory. Input:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
+entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
+structured `SOURCE_INVALID` error rather than parsed. A language tag is resolved to a configured
+locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens,
+failing that the single configured locale sharing the primary subtag, and a tag two locales could
+claim is reported rather than guessed at. Every candidate translation then passes the same
+placeholder, ICU, degeneracy, and emptiness gate that provider output and a filled workbook row
+already face, checked as the record enters the memory rather than left to the run that later reads
+it.
+
+Where an imported unit disagrees with a translation the memory already holds, the memory wins unless
+`overwrite` is set. Units are stored under the current configuration fingerprint, the same key a real
+run writes, so they stop matching when the provider, model, tone, or glossary changes. Importing the
+same file twice changes nothing the second time.
+
+Returns a report rather than throwing on damaged data: how many units were read, a per-locale account
+of `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, and `rejected` by reason, plus the
+units that were skipped, carried no source segment, or lost inline markup, and the language tags that
+matched nothing or matched ambiguously. `memoryWritable` is false when the memory file was written by
+a newer verbatra, in which case it is left untouched.
+
+### exportTmx
+
+Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, locales?, toolVersion? }`, with
+`out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exported as a constant. Only entries
+under the current configuration fingerprint are written, which is the same set a run would reuse. An
+empty memory produces a valid, empty file rather than an error. Returns `{ path, units, locales,
+withoutSource }`; `withoutSource` counts entries left out because the memory holds no source text for
+them, which happens only for entries carried forward from a cache written before the memory stored
+source text.
+
+## Config
 ### loadConfig
 
 Finds, loads, and validates the project config, returning a `VerbatraConfig`. Options:

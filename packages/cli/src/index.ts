@@ -3,9 +3,11 @@ import {
   check,
   diff,
   doctor,
+  exportTmx,
   exportWorkbook,
   extract,
   generateTypes,
+  importTmx,
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
@@ -32,6 +34,8 @@ const code = await run(
     importMcp: () => import("@verbatra/mcp"),
     extract,
     generateTypes,
+    importTmx,
+    exportTmx,
   },
   {
     out: (text) => {

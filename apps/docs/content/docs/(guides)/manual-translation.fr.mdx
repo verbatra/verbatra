@@ -97,6 +97,12 @@ Ce qui change par rapport au classeur :
 - **Un nouvel export plus étroit met hors service les locales abandonnées.** Chaque export note les locales qu'il a écrites dans un manifeste caché du répertoire de sortie. Les fichiers d'une sélection antérieure plus large restent sur le disque, mais l'import les refuse (`HANDOFF_FILE_STALE`) au lieu de les appliquer comme s'ils étaient récents. Rien n'est jamais supprimé, un fichier étranger dans ce répertoire est donc en sécurité.
 - **Tout le reste est identique.** Le même diff choisit les lignes, et chaque ligne renvoyée passe par la même barrière d'intégrité : une remise délimitée et un classeur donnent le même résultat pour les mêmes valeurs.
 
+## TMX, l'autre chemin
+
+<AvailableFrom version="0.11.0" />
+
+Une passation porte vers une personne qui traduit une tranche du delta en attente, locale par locale ; [`verbatra tmx`](/docs/cli/tmx) porte toute la mémoire de traduction dans un seul fichier multilingue, pour la déplacer entre outils plutôt que pour faire traduire des chaînes. TMX n'est pas une valeur de `--format` : `xlsx`, `csv` et `tsv` sont les formes de passation, utilise donc `verbatra tmx export` et `verbatra tmx import` plutôt que `verbatra export --format tmx`.
+
 ## Choisir quoi exporter
 
 Par défaut, l'export n'inclut que les chaînes manquantes et modifiées, le travail qui a vraiment besoin d'être fait :

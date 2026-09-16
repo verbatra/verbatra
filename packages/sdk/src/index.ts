@@ -209,6 +209,24 @@ export type {
   UsageSummary,
 } from "./flow/summary.js";
 export {
+  DEFAULT_TMX_PATH,
+  type ExportTmxDeps,
+  type ExportTmxInput,
+  type ExportTmxLocaleCount,
+  type ExportTmxResult,
+  exportTmx,
+} from "./flow/tmx/export-tmx.js";
+export {
+  type ImportTmxDeps,
+  type ImportTmxInput,
+  type ImportTmxLocaleResult,
+  type ImportTmxResult,
+  importTmx,
+  type TmxLanguageReport,
+  type TmxRejectionCounts,
+  type TmxRejectionReason,
+} from "./flow/tmx/import-tmx.js";
+export {
   resolveDryRun,
   type TranslateDeps,
   type TranslateInput,

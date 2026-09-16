@@ -1,5 +1,6 @@
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  DEFAULT_TMX_PATH,
   DEFAULT_TYPES_PATH,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
@@ -29,6 +30,8 @@ import {
   renderLockWait,
   renderProgress,
   renderPseudoHuman,
+  renderTmxExportHuman,
+  renderTmxImportHuman,
   renderTypesHuman,
   toRenderableError,
 } from "./render.js";
@@ -93,6 +96,41 @@ const importOptsSchema = sharedCommandOptsSchema.extend({
   dryRun: z.boolean().optional(),
   format: exchangeFormatSchema,
 });
+
+const TMX_DIRECTIONS = ["import", "export"] as const;
+
+const tmxOptsSchema = sharedCommandOptsSchema.extend({
+  locales: localeListSchema,
+  dryRun: z.boolean().optional(),
+  overwrite: z.boolean().optional(),
+});
+
+type TmxDirection = (typeof TMX_DIRECTIONS)[number];
+
+const IMPORT_ONLY_TMX_FLAGS = ["dry-run", "overwrite"] as const;
+
+function assertExportFlags(opts: z.infer<typeof tmxOptsSchema>): void {
+  const given = IMPORT_ONLY_TMX_FLAGS.filter((flag) =>
+    flag === "dry-run" ? opts.dryRun === true : opts.overwrite === true,
+  );
+  if (given.length > 0) {
+    throw new CliUsageError(
+      "INVALID_DIRECTION",
+      `${given.map((flag) => `--${flag}`).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to "tmx import" only. An export reads the translation memory and writes a file; it never changes the memory.`,
+    );
+  }
+}
+
+function parseTmxDirection(raw: string): TmxDirection {
+  const direction = TMX_DIRECTIONS.find((known) => known === raw);
+  if (direction === undefined) {
+    throw new CliUsageError(
+      "INVALID_DIRECTION",
+      `The tmx command takes "import" or "export" as its direction, got "${raw}".`,
+    );
+  }
+  return direction;
+}
 
 const checkOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
@@ -554,6 +592,96 @@ export async function runImport(
   );
 }
 
+async function runTmxImport(
+  file: string | undefined,
+  opts: z.infer<typeof tmxOptsSchema>,
+  cwd: string,
+  deps: CliDeps,
+  streams: Streams,
+  context: CommandContext,
+): Promise<number> {
+  return withWholeRunErrors(
+    deps,
+    context,
+    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+    async (config) => {
+      const result = await deps.importTmx({
+        config,
+        cwd,
+        file: file ?? DEFAULT_TMX_PATH,
+        ...(opts.dryRun === true ? { dryRun: true } : {}),
+        ...(opts.overwrite === true ? { overwrite: true } : {}),
+        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+      });
+      streams.out(
+        context.json
+          ? `${renderSuccessEnvelope("tmx", result)}\n`
+          : `${renderTmxImportHuman(result)}\n`,
+      );
+      return 0;
+    },
+  );
+}
+
+async function runTmxExport(
+  file: string | undefined,
+  opts: z.infer<typeof tmxOptsSchema>,
+  cwd: string,
+  deps: CliDeps,
+  streams: Streams,
+  context: CommandContext,
+): Promise<number> {
+  return withWholeRunErrors(
+    deps,
+    context,
+    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+    async (config) => {
+      const result = await deps.exportTmx({
+        config,
+        cwd,
+        toolVersion: CLI_VERSION,
+        ...(file !== undefined ? { out: file } : {}),
+        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+      });
+      streams.out(
+        context.json
+          ? `${renderSuccessEnvelope("tmx", result)}\n`
+          : `${renderTmxExportHuman(result)}\n`,
+      );
+      return 0;
+    },
+  );
+}
+
+export async function runTmx(
+  rawDirection: string,
+  file: string | undefined,
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+): Promise<number> {
+  const context = commandContext("tmx", rawOpts, streams);
+  return withParsedOpts(
+    () => {
+      const direction = parseTmxDirection(rawDirection);
+      const opts = parseLocaleCommandOpts(tmxOptsSchema, rawOpts);
+      if (direction === "export") {
+        assertExportFlags(opts);
+      }
+      return { direction, opts };
+    },
+    context,
+    async ({ direction, opts }) => {
+      const cwd = opts.cwd ?? process.cwd();
+      if (direction === "export") {
+        return runTmxExport(file, opts, cwd, deps, streams, context);
+      }
+      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      return runTmxImport(file, opts, cwd, deps, streams, context);
+    },
+  );
+}
+
 async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("check", rawOpts, streams);
   return withLocaleOpts(checkOptsSchema, rawOpts, context, async (opts) => {
@@ -833,6 +961,43 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra import translations.xlsx             import the filled workbook",
         "  $ verbatra import translations.xlsx --dry-run   validate and report, write nothing",
         "  $ verbatra import handoff --format csv          import every <locale>.csv in the directory",
+      ].join("\n"),
+    );
+}
+
+function registerTmxCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("tmx")
+    .argument("<direction>", 'either "import" or "export"')
+    .argument(
+      "[file]",
+      `the TMX file to read or write (default ${DEFAULT_TMX_PATH} in the working directory)`,
+    )
+    .description(
+      "Import a TMX translation memory from another tool, or export this project's memory as TMX",
+    )
+    .option("--cwd <path>", "resolve config and the memory from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option("--dry-run", "on import, validate and report without changing the memory")
+    .option(
+      "--overwrite",
+      "on import, let an imported unit replace a translation the memory already holds",
+    )
+    .option("--json", "print the result as JSON")
+    .action(async (direction: string, file: string | undefined, opts: unknown) => {
+      ctx.setCode(await runTmx(direction, file, opts, ctx.deps, ctx.streams));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra tmx import legacy.tmx        land another tool's memory in this project",
+        "  $ verbatra tmx import legacy.tmx --dry-run  report what would land, change nothing",
+        "  $ verbatra tmx import legacy.tmx --overwrite  let the file win where the two disagree",
+        "  $ verbatra tmx export                   write the memory to verbatra-memory.tmx",
+        "  $ verbatra tmx export out/memory.tmx --locales de  only German, to a chosen path",
       ].join("\n"),
     );
 }
@@ -1138,6 +1303,7 @@ function buildProgram(
   registerWatchCommand(program, ctx);
   registerExportCommand(program, ctx);
   registerImportCommand(program, ctx);
+  registerTmxCommand(program, ctx);
   registerCheckCommand(program, ctx);
   registerDiffCommand(program, ctx);
   registerPseudoCommand(program, ctx);

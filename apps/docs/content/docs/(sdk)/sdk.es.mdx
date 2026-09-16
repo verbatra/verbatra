@@ -419,8 +419,53 @@ archivo. Devuelve la misma forma `RunSummary` que `translate`
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
 excepción.
 
-## Configuración
+## El par TMX
 
+`importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
+formato de intercambio que producen y leen las plataformas de traducción más extendidas. Ninguna de
+las dos construye un proveedor, lee una clave de API ni hace una petición de red: cada valor sale del
+archivo o de la memoria que ya está en disco. No es el par de libro en otro formato. El par de libro
+entrega a una traductora un corte por locale del delta pendiente; este par mueve la memoria entera
+como un único archivo multilingüe entre herramientas.
+
+### importTmx
+
+Lee un archivo TMX hacia la memoria del proyecto. Entrada:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nada del archivo se da por bueno. El XML se analiza con el endurecimiento del paquete de
+intercambio, de modo que una declaración de entidad, un subconjunto DTD interno, un archivo
+demasiado grande o uno mal formado se rechaza con un error estructurado `SOURCE_INVALID` en lugar de
+analizarse. Una etiqueta de idioma se resuelve a un locale configurado por una regla explícita:
+coincidencia exacta tras pasar a minúsculas y convertir guiones bajos en guiones, si no el único
+locale configurado que comparte la subetiqueta primaria, y una etiqueta que dos locales podrían
+reclamar se informa en vez de adivinarse. Cada traducción candidata pasa después por la misma puerta
+de marcadores, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro
+rellenada, comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la
+lee.
+
+Cuando una unidad importada contradice una traducción que la memoria ya tiene, gana la memoria salvo
+que se pase `overwrite`. Las unidades se guardan bajo la huella de configuración actual, la misma
+clave que escribe una ejecución real, así que dejan de coincidir cuando cambian el proveedor, el
+modelo, el tono o el glosario. Importar el mismo archivo dos veces no cambia nada la segunda vez.
+
+Ante datos dañados devuelve un informe en lugar de lanzar: cuántas unidades se leyeron, una cuenta
+por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates` y `rejected` por motivo, más
+las unidades omitidas, sin segmento de origen o que perdieron marcado en línea, y las etiquetas de
+idioma que no coincidieron o coincidieron de forma ambigua. `memoryWritable` es `false` cuando el
+archivo de memoria lo escribió un verbatra más nuevo, en cuyo caso se deja intacto.
+
+### exportTmx
+
+Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, locales?, toolVersion? }`, donde
+`out` por defecto es `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado como constante. Solo se
+escriben las entradas bajo la huella de configuración actual, que es el mismo conjunto que
+reutilizaría una ejecución. Una memoria vacía produce un archivo válido y vacío, no un error. Devuelve
+`{ path, units, locales, withoutSource }`; `withoutSource` cuenta las entradas dejadas fuera porque la
+memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché
+escrita antes de que la memoria guardase el texto de origen.
+
+## Configuración
 ### loadConfig
 
 Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. Opciones:

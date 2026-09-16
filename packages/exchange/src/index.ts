@@ -1,4 +1,10 @@
 export { buildDelimited } from "./build-delimited.js";
+export {
+  type BuildTmxInput,
+  buildTmx,
+  type TmxExportUnit,
+  type TmxTranslation,
+} from "./build-tmx.js";
 export { buildWorkbook } from "./build-workbook.js";
 export { type DelimitedFormat, delimitedFileName } from "./delimited-format.js";
 export { DEFAULT_DELIMITED_LIMITS, type DelimitedLimits } from "./delimited-limits.js";
@@ -9,7 +15,17 @@ export {
   type ReadDelimitedOptions,
   readDelimited,
 } from "./read-delimited.js";
+export {
+  type ReadTmxOptions,
+  readTmx,
+  type TmxDocument,
+  type TmxSegment,
+  type TmxSkippedUnit,
+  type TmxSkipReason,
+  type TmxUnit,
+} from "./read-tmx.js";
 export { type ReadWorkbookOptions, readWorkbook } from "./read-workbook.js";
+export { DEFAULT_TMX_LIMITS, type TmxLimits } from "./tmx-limits.js";
 export type {
   ReviewStatus,
   RowStatus,

@@ -290,8 +290,54 @@ Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes v
 
 Entrée : `{ config, workbook, cwd?, dryRun?, format? }`. Avec `csv` ou `tsv`, `workbook` est soit un seul fichier de remise, soit le répertoire qui en contient un par locale, et la locale vient du nom du fichier. Renvoie la même forme `RunSummary` que `translate` (avec `needsReview` toujours vide, puisqu'aucun fournisseur n'intervient). Une feuille pour une locale qui n'est pas une cible configurée fait échouer cette locale avec `CONFIG_INVALID` comme donnée sur le résumé, pas comme exception.
 
-## Config
+## La paire TMX
 
+`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) en TMX,
+le format d'échange que produisent et lisent les principales plateformes de traduction. Aucune des
+deux ne construit un fournisseur, ne lit une clé d'API ni ne fait de requête réseau : chaque valeur
+vient du fichier ou de la mémoire déjà présente sur le disque. Ce n'est pas la paire classeur dans un
+autre format. La paire classeur remet à une traductrice une tranche par locale du delta en attente ;
+cette paire déplace la mémoire entière sous la forme d'un seul fichier multilingue entre outils.
+
+### importTmx
+
+Lit un fichier TMX dans la mémoire du projet. Entrée :
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement du paquet d'échange,
+si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
+formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analysé. Une étiquette de
+langue est résolue vers une locale configurée par une règle explicite : écriture exacte après mise en
+minuscules et conversion des tirets bas en traits d'union, à défaut la seule locale configurée
+partageant la sous-étiquette primaire, et une étiquette que deux locales pourraient revendiquer est
+signalée plutôt que devinée. Chaque traduction candidate passe ensuite la même barrière de variables,
+d'ICU, de dégénérescence et de vacuité que subissent déjà la sortie du fournisseur et une ligne de
+classeur remplie, vérifiée à l'entrée de l'enregistrement dans la mémoire plutôt que laissée à
+l'exécution qui la lira plus tard.
+
+Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
+sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,
+la même clé qu'écrit une exécution réelle, et cessent donc de correspondre dès que le fournisseur, le
+modèle, le ton ou le glossaire changent. Importer deux fois le même fichier ne change rien la seconde
+fois.
+
+Face à des données abîmées, renvoie un rapport au lieu de lever : combien d'unités ont été lues, un
+décompte par locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates` et `rejected` par
+motif, plus les unités ignorées, sans segment source ou ayant perdu leur balisage en ligne, et les
+étiquettes de langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut `false`
+quand le fichier de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact.
+
+### exportTmx
+
+Écrit la mémoire en TMX 1.4b. Entrée : `{ config, out?, cwd?, locales?, toolVersion? }`, où `out` vaut
+par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme constante. Seules les entrées
+sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une exécution
+réutiliserait. Une mémoire vide produit un fichier valide et vide, pas une erreur. Renvoie
+`{ path, units, locales, withoutSource }` ; `withoutSource` compte les entrées laissées de côté parce
+que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache
+écrit avant que la mémoire ne stocke le texte source.
+
+## Config
 ### loadConfig
 
 Trouve, charge et valide la config du projet, en renvoyant une `VerbatraConfig`. Options : `{ cwd?, configPath?, configOverride? }`, avec la précédence `configOverride` (valider un objet en mémoire) sur `configPath` (charger un fichier explicite) sur la recherche. La recherche démarre à `cwd` et couvre `verbatra.config.ts` (aussi `.js`/`.cjs`), la famille `.verbatrarc` (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) et une propriété `"verbatra"` dans `package.json`. Un `glossary` donné comme chemin de fichier est lu et validé ici, donc le code en aval voit toujours un simple enregistrement.
