@@ -209,7 +209,7 @@ describe("ActivityPanel", () => {
     expect(metricCard(view, "Budget status").textContent).toContain("Ceiling reached");
   });
 
-  it("shows the ceiling-reached state for an estimated budget, not an untracked placeholder", async () => {
+  it("shows the stopped state for an estimated budget, not an untracked placeholder", async () => {
     stubActivity({
       available: true,
       generatedAt: GENERATED_AT,
@@ -226,8 +226,33 @@ describe("ActivityPanel", () => {
 
     expect(metricValue(view, "Budget")).toBe("794 / 800");
     expect(metricHint(view, "Budget")).toContain("estimated");
-    expect(metricCard(view, "Budget status").textContent).toContain("Ceiling reached");
+    expect(metricCard(view, "Budget status").textContent).toContain("Stopped before the ceiling");
     expect(view.text()).not.toContain("Not tracked for this provider.");
+  });
+
+  it("shows a stop run refused under its ceiling as stopped short, not as an overflow", async () => {
+    stubActivity({
+      available: true,
+      generatedAt: GENERATED_AT,
+      budget: {
+        maxTokens: 10000,
+        behavior: "stop",
+        supported: true,
+        tokensUsed: 6000,
+        exceeded: true,
+      },
+    });
+
+    const view = await renderAsync(<ActivityPanel refreshToken={0} />);
+    const meter = metricCard(view, "Budget").querySelector<HTMLElement>('[style*="width"]');
+    const status = metricCard(view, "Budget status");
+
+    expect(meter?.style.width).toBe("60%");
+    expect(meter?.className).toContain("bg-primary");
+    expect(meter?.className).not.toContain("bg-danger");
+    expect(status.textContent).toContain("Stopped before the ceiling");
+    expect(status.textContent).not.toContain("Ceiling reached");
+    expect(status.querySelector(".text-warning")).not.toBeNull();
   });
 
   it("does not call the budget estimated when the run counted nothing at all", async () => {

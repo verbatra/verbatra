@@ -15,7 +15,7 @@ import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
-import { toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
+import { type BudgetStanding, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Accordion, AccordionItem } from "../Accordion.js";
 import { reviewOverlayStore, rpcClient } from "../api.js";
 import { Badge } from "../Badge.js";
@@ -170,6 +170,12 @@ function attentionTile(
   return { value: String(pending), hint: across, tone: "danger" };
 }
 
+const STANDING_HINT: Record<BudgetStanding, string> = {
+  within: "Within budget. ",
+  "stopped-before-ceiling": "Stopped before the budget ceiling. ",
+  reached: "Budget ceiling reached. ",
+};
+
 function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
   readonly value: string;
   readonly hint: string;
@@ -185,12 +191,7 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
     state.usage.kind === "reported"
       ? `${state.usage.inputTokens.toLocaleString()} / ${state.usage.outputTokens.toLocaleString()}`
       : "Not reported";
-  const budget =
-    state.budget.kind === "tracked"
-      ? state.budget.exceeded
-        ? "Budget ceiling reached. "
-        : "Within budget. "
-      : "";
+  const budget = state.budget.kind === "tracked" ? STANDING_HINT[state.budget.standing] : "";
   const hintLead = state.usage.kind === "reported" ? "Tokens in / out. " : "";
   return {
     value: usage,

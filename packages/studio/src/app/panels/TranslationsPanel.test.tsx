@@ -567,7 +567,33 @@ describe("TranslationsPanel stat strip", () => {
     );
   });
 
-  it("still reports the ceiling state for an estimated budget, not silence", async () => {
+  it("says a stop run refused under its ceiling stopped before it, not that it reached it", async () => {
+    stubPage({
+      "usage.summary": {
+        ok: true,
+        result: {
+          available: true,
+          generatedAt,
+          usage: { inputTokens: 4000, outputTokens: 2000 },
+          budget: {
+            maxTokens: 10000,
+            behavior: "stop",
+            supported: true,
+            tokensUsed: 6000,
+            exceeded: true,
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    expect(metricTile(view, "Last run").hint).toBe(
+      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
+    );
+  });
+
+  it("still reports where an estimated budget stopped, not silence", async () => {
     stubPage({
       "usage.summary": {
         ok: true,
@@ -589,7 +615,7 @@ describe("TranslationsPanel stat strip", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Budget ceiling reached. As of ${new Date(generatedAt).toLocaleString()}`,
+      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
     );
   });
 
