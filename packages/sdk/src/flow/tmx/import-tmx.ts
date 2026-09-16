@@ -1,6 +1,11 @@
 import { resolve } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
-import { DEFAULT_TMX_LIMITS, readTmx, type TmxUnit } from "@verbatra/exchange";
+import {
+  DEFAULT_TMX_LIMITS,
+  type ExchangeErrorLocation,
+  readTmx,
+  type TmxUnit,
+} from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import {
@@ -26,6 +31,14 @@ import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
  * matched and is never stored.
  */
 export type TmxRejectionReason = IntegrityGateReason | "sourceBlank";
+
+/**
+ * Where in a TMX file a `SOURCE_INVALID` refusal from {@link importTmx} happened: the 1-based `line`
+ * and `column`, and the 1-based `unit` ordinal when the problem sits inside a translation unit. It is
+ * the `location` of the error carried as the thrown {@link SdkError}'s `cause`, and the same place is
+ * named in the message.
+ */
+export type TmxErrorLocation = ExchangeErrorLocation;
 
 /** How many units were refused, by reason. See {@link TmxRejectionReason}. */
 export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
@@ -202,7 +215,7 @@ function parse(text: string, path: string): ReturnType<typeof readTmx> {
   try {
     return readTmx(text);
   } catch (error) {
-    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`);
+    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`, { cause: error });
   }
 }
 
@@ -480,7 +493,9 @@ function additionsByLocale(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
  * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,
- * or declares an XML entity.
+ * or declares an XML entity. When the problem has a place in the file, the message names its line,
+ * column and, inside a translation unit, the unit's 1-based ordinal, and `cause` is the interchange
+ * reader's error carrying the same as a structured `location`.
  *
  * @example
  * ```ts

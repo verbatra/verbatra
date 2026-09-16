@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { contentHash } from "@verbatra/core";
+import { ExchangeError } from "@verbatra/exchange";
 import { describe, expect, it } from "vitest";
 import { computeFingerprint } from "../../cache/fingerprint.js";
 import { CACHE_FILE_NAME } from "../../cache/translation-memory.js";
@@ -963,6 +964,37 @@ describe("importTmx reports an unusable file as a structured error", () => {
 
     await expect(importTmx({ config: cfg(), file: "memory.tmx", cwd: dir })).rejects.toMatchObject({
       code: "SOURCE_INVALID",
+    });
+  });
+
+  it("says where a malformed file went wrong, in the message and on the wrapped cause", async () => {
+    const dir = await project([]);
+    const file = join(dir, "memory.tmx");
+    await writeFile(
+      file,
+      tmxDocument([
+        tu([
+          ["en", "Save"],
+          ["de", "Speichern"],
+        ]),
+        '    <tu>\n      <tuv xml:lang="en"><seg>Cancel</tuv>\n    </tu>',
+      ]),
+      "utf8",
+    );
+
+    const error = await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir }).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("SOURCE_INVALID");
+    expect((error as SdkError).message).toContain(file);
+    expect((error as SdkError).message).toContain("line 10, column 31, unit 2");
+    expect((error as SdkError).cause).toBeInstanceOf(ExchangeError);
+    expect(((error as SdkError).cause as ExchangeError).location).toEqual({
+      line: 10,
+      column: 31,
+      unit: 2,
     });
   });
 
