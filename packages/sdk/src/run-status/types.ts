@@ -40,9 +40,9 @@ export interface RunStatusFile {
   /** Token usage summed across every locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
   /**
-   * The token budget in force during the run, present only when one was configured. A snapshot at
-   * version 1 predates the enforceable budget, when `supported: false` meant nothing was counted at
-   * all, so such a budget is left out rather than read as a count of zero.
+   * The token budget in force during the run, present only when one was configured. A snapshot
+   * written before the budget was enforced, when `supported: false` meant nothing was counted at
+   * all, has such a budget left out rather than read as a count of zero.
    */
   readonly budget?: RunBudget;
   /** Per-locale outcomes from the recorded run. */

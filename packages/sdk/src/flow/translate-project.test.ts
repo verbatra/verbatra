@@ -130,7 +130,7 @@ describe("translate: run-status persistence", () => {
     );
 
     const runStatus = await readRunStatusJson(dir);
-    expect(runStatus.version).toBe(2);
+    expect(runStatus.version).toBe(1);
     expect(typeof runStatus.generatedAt).toBe("string");
     expect(runStatus.usage).toEqual(summary.usage);
     expect(runStatus.locales).toEqual(

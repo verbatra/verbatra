@@ -70,7 +70,7 @@ describe("buildRunStatusFile", () => {
     const file = buildRunStatusFile(summary, "2026-01-01T00:00:00.000Z");
 
     expect(file).toEqual({
-      version: 2,
+      version: 1,
       generatedAt: "2026-01-01T00:00:00.000Z",
       locales: [
         {

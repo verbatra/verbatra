@@ -8,9 +8,9 @@ import type { RunStatusFile, RunStatusLocale } from "./types.js";
 const RUN_STATUS_DIR_NAME = ".verbatra-local";
 const RUN_STATUS_FILE_NAME = "run-status.json";
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 1;
 
-const UNCOUNTED_BUDGET_VERSION = 1;
+const RECONCILED_BUDGET_COUNTING = "reconciled";
 
 const MAX_RUN_STATUS_FILE_BYTES = 16 * 1024 * 1024;
 
@@ -53,12 +53,9 @@ const runStatusFileSchema = z.object({
   generatedAt: z.string(),
   usage: usageSummarySchema.optional(),
   budget: runBudgetSchema.optional(),
+  budgetCounting: z.literal(RECONCILED_BUDGET_COUNTING).optional(),
   locales: z.array(runStatusLocaleSchema),
 });
-
-function isReadableVersion(version: number): boolean {
-  return version === CURRENT_VERSION || version === UNCOUNTED_BUDGET_VERSION;
-}
 
 export function runStatusFilePath(cwd: string): string {
   return resolve(cwd, RUN_STATUS_DIR_NAME, RUN_STATUS_FILE_NAME);
@@ -90,7 +87,7 @@ export function buildRunStatusFile(
 type ParsedRunStatusFile = z.infer<typeof runStatusFileSchema>;
 
 function countedBudget(data: ParsedRunStatusFile): ParsedRunStatusFile["budget"] {
-  if (data.version === UNCOUNTED_BUDGET_VERSION && data.budget?.supported === false) {
+  if (data.budgetCounting === undefined && data.budget?.supported === false) {
     return undefined;
   }
   return data.budget;
@@ -133,7 +130,7 @@ export async function readRunStatusFile(
     return undefined;
   }
   const result = runStatusFileSchema.safeParse(parsed);
-  if (!result.success || !isReadableVersion(result.data.version)) {
+  if (!result.success || result.data.version !== CURRENT_VERSION) {
     return undefined;
   }
   return fromParsed(result.data);
@@ -145,5 +142,6 @@ export async function writeRunStatusFile(
   fs: SdkFs,
 ): Promise<void> {
   await fs.mkdir?.(dirname(path));
-  await fs.writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+  const persisted = { ...data, budgetCounting: RECONCILED_BUDGET_COUNTING };
+  await fs.writeFile(path, `${JSON.stringify(persisted, null, 2)}\n`);
 }
