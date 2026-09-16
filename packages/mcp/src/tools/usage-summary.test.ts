@@ -11,6 +11,36 @@ describe("usage.summary", () => {
     expect(usageSummaryTool.description).toContain("does not cap a single-entry retranslation");
   });
 
+  it("does not call a run that counted nothing an estimate", () => {
+    expect(usageSummaryTool.description).toContain(
+      "false with tokensUsed 0 when the run sent no request at all, which is no estimate",
+    );
+  });
+
+  it("drops a budget from a run recorded before the budget was enforced, rather than reporting its zero", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"), { recursive: true });
+    await writeJsonFile(join(dir, ".verbatra-local", "run-status.json"), {
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      budget: {
+        maxTokens: 1000,
+        behavior: "stop",
+        supported: false,
+        tokensUsed: 0,
+        exceeded: false,
+      },
+      locales: [],
+    });
+
+    const outcome = await usageSummaryTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { available: true } });
+    if (outcome.kind === "ok") {
+      expect(Object.hasOwn(outcome.result as object, "budget")).toBe(false);
+    }
+  });
+
   it("reports available: false when no run has completed in this project yet", async () => {
     const dir = await makeTempDir();
 
