@@ -202,7 +202,7 @@ describe("doctor with literals: what it never does", () => {
 describe("doctor with literals: when the scan cannot give a clean verdict", () => {
   it("reports an unparseable file as a diagnostic, scans the rest, and does not pass", async () => {
     await writeConfig(EXTRACT);
-    await writeProjectFile("src/broken.tsx", "export const A = () => <p>never closed");
+    await writeProjectFile("src/broken.tsx", "export const A = () => <p>{`never closed");
     await writeProjectFile("src/fine.ts", "export const b = 1;");
 
     const result = await doctor({ cwd: projectDir, literals: true });

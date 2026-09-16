@@ -29,6 +29,19 @@ interface Snapshot {
   readonly line: number;
   readonly lineStart: number;
   readonly comments: number;
+  readonly truncated: boolean;
+}
+
+const failedElements = new WeakMap<Cursor, Set<number>>();
+
+function failedStarts(cursor: Cursor): Set<number> {
+  const known = failedElements.get(cursor);
+  if (known !== undefined) {
+    return known;
+  }
+  const created = new Set<number>();
+  failedElements.set(cursor, created);
+  return created;
 }
 
 function positionOf(cursor: Cursor): Position {
@@ -41,6 +54,7 @@ function snapshot(cursor: Cursor): Snapshot {
     line: cursor.line,
     lineStart: cursor.lineStart,
     comments: cursor.comments.length,
+    truncated: cursor.truncated,
   };
 }
 
@@ -49,6 +63,7 @@ function restore(cursor: Cursor, saved: Snapshot): void {
   cursor.line = saved.line;
   cursor.lineStart = saved.lineStart;
   cursor.comments.length = saved.comments;
+  cursor.truncated = saved.truncated;
 }
 
 function skipWhitespace(cursor: Cursor): void {
@@ -174,11 +189,30 @@ function startsGenericParameters(cursor: Cursor): boolean {
   return GENERIC_PARAMETER_FOLLOWERS.has(follower);
 }
 
+function skipTypeArguments(cursor: Cursor): boolean {
+  let depth = 0;
+  while (!atEnd(cursor)) {
+    const char = advance(cursor);
+    if (char === "<") {
+      depth += 1;
+    } else if (char === ">" && cursor.text[cursor.index - 2] !== "=") {
+      depth -= 1;
+    }
+    if (depth === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function readOpenTag(cursor: Cursor, out: PositionedToken[]): { name: string; end: TagEnd } {
   const position = positionOf(cursor);
   cursor.index += 1;
   const name = readName(cursor);
   if (name !== "" && startsGenericParameters(cursor)) {
+    return { name, end: "not-markup" };
+  }
+  if (name !== "" && charAt(cursor, 0) === "<" && !skipTypeArguments(cursor)) {
     return { name, end: "not-markup" };
   }
   if (name === "" && charAt(cursor, 0) !== ">") {
@@ -188,13 +222,13 @@ function readOpenTag(cursor: Cursor, out: PositionedToken[]): { name: string; en
   return { name, end: readAttributes(cursor, name, out) };
 }
 
-function readCloseTag(cursor: Cursor, out: PositionedToken[]): boolean {
+function readCloseTag(cursor: Cursor, opened: string, out: PositionedToken[]): boolean {
   const position = positionOf(cursor);
   cursor.index += 2;
   skipWhitespace(cursor);
   const name = readName(cursor);
   skipWhitespace(cursor);
-  if (charAt(cursor, 0) !== ">") {
+  if (name !== opened || charAt(cursor, 0) !== ">") {
     return false;
   }
   cursor.index += 1;
@@ -214,10 +248,14 @@ function readText(cursor: Cursor, out: PositionedToken[]): void {
   }
 }
 
-function readChild(cursor: Cursor, out: PositionedToken[]): ElementOutcome | undefined {
+function readChild(
+  cursor: Cursor,
+  opened: string,
+  out: PositionedToken[],
+): ElementOutcome | undefined {
   const char = charAt(cursor, 0);
   if (char === "<" && charAt(cursor, 1) === "/") {
-    return readCloseTag(cursor, out) ? "closed" : "unclosed";
+    return readCloseTag(cursor, opened, out) ? "closed" : "unclosed";
   }
   if (char === "<") {
     return readElement(cursor, out) === "closed" ? undefined : "unclosed";
@@ -229,21 +267,34 @@ function readChild(cursor: Cursor, out: PositionedToken[]): ElementOutcome | und
   return atEnd(cursor) ? "unclosed" : undefined;
 }
 
-function readChildren(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
+function readChildren(cursor: Cursor, opened: string, out: PositionedToken[]): ElementOutcome {
   while (true) {
-    const outcome = readChild(cursor, out);
+    const outcome = readChild(cursor, opened, out);
     if (outcome !== undefined) {
       return outcome;
     }
   }
 }
 
-function readElement(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
-  const { end } = readOpenTag(cursor, out);
+function readElementOnce(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
+  const { name, end } = readOpenTag(cursor, out);
   if (end === "open") {
-    return readChildren(cursor, out);
+    return readChildren(cursor, name, out);
   }
   return end === "self-closed" ? "closed" : end;
+}
+
+function readElement(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
+  const failed = failedStarts(cursor);
+  const start = cursor.index;
+  if (failed.has(start)) {
+    return "unclosed";
+  }
+  const outcome = readElementOnce(cursor, out);
+  if (outcome !== "closed") {
+    failed.add(start);
+  }
+  return outcome;
 }
 
 function startsElement(cursor: Cursor, previous: PositionedToken | undefined): boolean {
@@ -260,16 +311,9 @@ export function readMarkup(
   }
   const saved = snapshot(cursor);
   const out: PositionedToken[] = [];
-  const { end } = readOpenTag(cursor, out);
-  if (end === "not-markup") {
+  if (readElement(cursor, out) !== "closed") {
     restore(cursor, saved);
     return undefined;
-  }
-  const outcome = end === "open" ? readChildren(cursor, out) : end;
-  if (outcome === "unclosed" || outcome === "not-markup") {
-    cursor.truncated = true;
-    cursor.index = cursor.text.length;
-    return [];
   }
   return out;
 }

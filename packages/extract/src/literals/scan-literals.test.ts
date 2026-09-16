@@ -138,7 +138,7 @@ describe("scanLiterals", () => {
 
   it("reports a file it cannot parse as a diagnostic and carries on with the rest", async () => {
     const result = await scan({
-      [join(root, "a-broken.tsx")]: 'const a = "Welcome back";\nconst b = <p>never closed',
+      [join(root, "a-broken.tsx")]: 'const a = "Welcome back";\nconst b = <p>{`never closed',
       [join(root, "b-fine.ts")]: 'const c = "Also welcome here";',
     });
 

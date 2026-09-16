@@ -130,13 +130,35 @@ describe("readMarkup on markup it cannot read to the end", () => {
     ["a braced child that never closes", "(<p>{x"],
     ["a malformed closing tag", "(<p>x</p x)"],
     ["a nested element that is not markup", "(<p><1</p>)"],
-  ])("reports the file as truncated after %s", (_label, text) => {
-    expect(scan(text).truncated).toBe(true);
+  ])("reads the text as code without truncating after %s", (_label, text) => {
+    const result = scan(text);
+
+    expect(result.truncated).toBe(false);
+    expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
   });
 
-  it("abandons the rest of the file once markup cannot be closed", () => {
+  it("keeps reading the rest of the file once markup cannot be closed", () => {
     const result = scan('(<p>x</p x)\nconst after = "later";');
 
-    expect(result.tokens.some((token) => token.kind === "string")).toBe(false);
+    expect(result.tokens).toContainEqual({ kind: "string", value: "later", line: 2, column: 15 });
+  });
+
+  it("does not read a closing tag with another name as the end of an element", () => {
+    const result = scan("(<p>x</b>)");
+
+    expect(result.truncated).toBe(false);
+    expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
+  });
+
+  it("still reports truncation the tokenizer itself hits after backing out of markup", () => {
+    expect(scan("(<p>{`open</p>)").truncated).toBe(true);
+    expect(scan("(<p>{/* open</p>)").truncated).toBe(true);
+  });
+
+  it("does not read type arguments that never close as markup", () => {
+    const result = scan("x = <List<Item");
+
+    expect(result.truncated).toBe(false);
+    expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
   });
 });

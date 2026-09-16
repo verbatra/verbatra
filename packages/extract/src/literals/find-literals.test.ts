@@ -177,6 +177,66 @@ describe("findLiterals: what is reported", () => {
   });
 });
 
+describe("findLiterals: a generic function type in a markup file", () => {
+  it.each([
+    ["a type alias", "type Fn = <T>(x: T) => T;"],
+    ["an interface member", "interface I { m: <T>(x: T) => T }"],
+    ["a parameter annotation", "function f(cb: <T>(x: T) => void) {}"],
+    ["a variable annotation", "const g: <T>(x: T) => T = (x) => x;"],
+    ["a constructor type", "type Ctor = new <T>(x: T) => T;"],
+    ["a parenthesized union member", "type U = string | (<T>(x: T) => T);"],
+  ])("keeps reading markup after %s", (_label, construct) => {
+    const result = findLiterals(
+      `const a = <p>Before the type</p>;\n${construct}\nconst b = <p>After the type</p>;`,
+      rules,
+      true,
+    );
+
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual([
+      "Before the type",
+      "After the type",
+    ]);
+  });
+
+  it("keeps reading markup after several generic function types in a row", () => {
+    const result = findLiterals(
+      "type A = <T>(x: T) => T;\ntype B = <T>(x: T) => T;\nconst c = <p>After both types</p>;",
+      rules,
+      true,
+    );
+
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual(["After both types"]);
+  });
+
+  it("reads an element that carries type arguments", () => {
+    const result = findLiterals(
+      "const a = <p>Before the list</p>;\nconst l = <List<Item> items={x}>List text</List>;\nconst b = <p>After the list</p>;",
+      rules,
+      true,
+    );
+
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual([
+      "Before the list",
+      "List text",
+      "After the list",
+    ]);
+  });
+
+  it("reads a generic function type inside a braced attribute value", () => {
+    const result = findLiterals(
+      "const a = <Comp render={(cb: <T>(x: T) => T) => null}>Inside text</Comp>;",
+      rules,
+      true,
+    );
+
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual(["Inside text"]);
+  });
+});
+
 describe("findLiterals: inline suppression", () => {
   it("suppresses the next line with a line comment and keeps it accounted for", () => {
     const result = findLiterals(
@@ -220,7 +280,7 @@ describe("findLiterals: inline suppression", () => {
 
 describe("findLiterals: a file it cannot read to the end", () => {
   it("reports the file as truncated and keeps what it found before the break", () => {
-    const result = findLiterals('const a = "Visible prose text";\n(<p>Never closed', rules, true);
+    const result = findLiterals('const a = "Visible prose text";\n(<p>{`Never closed', rules, true);
 
     expect(result.truncated).toBe(true);
     expect(result.found.map((literal) => literal.text)).toEqual(["Visible prose text"]);
