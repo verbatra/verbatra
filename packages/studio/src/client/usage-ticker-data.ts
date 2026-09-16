@@ -11,13 +11,13 @@ export type UsageDisplay =
 
 export type BudgetDisplay =
   | { readonly kind: "none" }
-  | { readonly kind: "not-tracked"; readonly maxTokens: number; readonly behavior: BudgetBehavior }
   | {
       readonly kind: "tracked";
       readonly maxTokens: number;
       readonly behavior: BudgetBehavior;
       readonly tokensUsed: number;
       readonly exceeded: boolean;
+      readonly counting: "reported" | "estimated";
     };
 
 export type UsageTickerDisplayState =
@@ -40,15 +40,13 @@ function toBudgetDisplay(budget: RunBudget | undefined): BudgetDisplay {
   if (budget === undefined) {
     return { kind: "none" };
   }
-  if (!budget.supported) {
-    return { kind: "not-tracked", maxTokens: budget.maxTokens, behavior: budget.behavior };
-  }
   return {
     kind: "tracked",
     maxTokens: budget.maxTokens,
     behavior: budget.behavior,
     tokensUsed: budget.tokensUsed,
     exceeded: budget.exceeded,
+    counting: budget.supported || budget.tokensUsed === 0 ? "reported" : "estimated",
   };
 }
 

@@ -209,25 +209,25 @@ describe("ActivityPanel", () => {
     expect(metricCard(view, "Budget status").textContent).toContain("Ceiling reached");
   });
 
-  it("renders a configured but untracked budget as a ceiling with no consumption figure", async () => {
+  it("shows the ceiling-reached state for an estimated budget, not an untracked placeholder", async () => {
     stubActivity({
       available: true,
       generatedAt: GENERATED_AT,
-      usage: { inputTokens: 640, outputTokens: 128 },
       budget: {
         maxTokens: 800,
-        behavior: "warn",
+        behavior: "stop",
         supported: false,
-        tokensUsed: 0,
-        exceeded: false,
+        tokensUsed: 794,
+        exceeded: true,
       },
     });
 
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
-    expect(metricValue(view, "Budget ceiling")).toBe("800");
-    expect(metricHint(view, "Budget ceiling")).toBe("Not tracked for this provider.");
-    expect(view.text()).not.toContain("Budget status");
+    expect(metricValue(view, "Budget")).toBe("794 / 800");
+    expect(metricHint(view, "Budget")).toContain("estimated");
+    expect(metricCard(view, "Budget status").textContent).toContain("Ceiling reached");
+    expect(view.text()).not.toContain("Not tracked for this provider.");
   });
 
   it("renders no budget tile at all when the run had no budget configured", async () => {

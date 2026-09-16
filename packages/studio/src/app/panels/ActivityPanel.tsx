@@ -35,21 +35,13 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
   if (budget.kind === "none") {
     return null;
   }
-  if (budget.kind === "not-tracked") {
-    return (
-      <MetricCard
-        label="Budget ceiling"
-        value={budget.maxTokens.toLocaleString()}
-        hint="Not tracked for this provider."
-      />
-    );
-  }
+  const counting = budget.counting === "estimated" ? ", estimated" : "";
   return (
     <>
       <MetricCard
         label="Budget"
         value={`${budget.tokensUsed.toLocaleString()} / ${budget.maxTokens.toLocaleString()}`}
-        hint={`Behavior: ${budget.behavior}`}
+        hint={`Behavior: ${budget.behavior}${counting}`}
         progress={budgetPercent(budget)}
         progressTone={budget.exceeded ? "danger" : "primary"}
       />
