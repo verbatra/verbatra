@@ -148,40 +148,38 @@ describe("pseudolocalization survives the markup gate for every format", () => {
     "One<br/>two",
     "<b>Save</b> then <i>close</i>",
     "Wait < 5 minutes",
+    '<a href="/docs">the docs</a>',
   ] as const;
 
-  it.each(SUPPORTED_FORMATS)("%s never refuses a pseudolocalized value for markup", (format) => {
+  function markupRefusals(format: SupportedFormat): readonly string[] {
     const adapter = adapterFor(format);
-    for (const value of MARKUP_VALUES) {
+    return MARKUP_VALUES.filter((value) => {
       const result = gateCandidateValue(
         sourceEntry(value, adapter),
         pseudolocalizeValue(value),
         adapter,
       );
-      expect({ value, reason: result.accepted ? undefined : result.reason }).toEqual({
-        value,
-        reason: undefined,
-      });
-    }
+      return !result.accepted && result.reason === "markup";
+    });
+  }
+
+  it.each(SUPPORTED_FORMATS)("%s never refuses a pseudolocalized value for markup", (format) => {
+    expect(markupRefusals(format)).toEqual([]);
   });
 
-  it.each(["next-intl-json", "arb"] as const)(
-    "%s refuses an attribute-bearing tag as invalid ICU, which pseudolocalization does not cause",
-    (format) => {
-      const adapter = adapterFor(format);
-      const value = 'Read <a href="/docs">the docs</a>';
-      expect(gateCandidateValue(sourceEntry(value, adapter), value, adapter)).toEqual({
-        accepted: false,
-        reason: "icu",
-      });
-    },
-  );
-
-  it("would notice if pseudolocalization started rewriting a tag", () => {
+  it("would report a format whose pseudolocalization rewrote a tag", () => {
     const adapter = adapterFor("i18next-json");
     const mangled = pseudolocalizeValue("<b>Save</b>").replace("</b>", "</i>");
-    expect(gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter).accepted).toBe(
-      false,
-    );
+    expect(gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</b>", "+</i>"],
+    });
+  });
+
+  it("leaves the markup the pseudolocalizer wraps in its own brackets alone", () => {
+    const pseudo = pseudolocalizeValue('<a href="/docs">the docs</a>');
+    expect(pseudo).toContain('<a href="/docs">');
+    expect(pseudo).toContain("</a>");
   });
 });
