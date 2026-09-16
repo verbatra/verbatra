@@ -68,7 +68,12 @@ under the ceiling stopped before the ceiling rather than calling it exceeded. St
 and its translations stat strip now show the consumption and the ceiling-reached state for an
 estimated budget instead of collapsing to an untracked placeholder, and tell a run stopped before
 its ceiling apart from one that reached it. The `usage.summary` agent tool's description now says
-where the counted figure came from rather than implying the provider reported it. A run with no
+where the counted figure came from rather than implying the provider reported it. `@verbatra/sdk`
+now exports `budgetStanding` and its `BudgetStanding` type, which classify a `RunBudget` as
+`within`, `stopped-before-ceiling`, or `reached`, so a caller no longer has to derive the difference
+between the last two from `exceeded`, `behavior`, and the count itself. The CLI budget line derives
+its wording from it, Studio takes its states from that type, and the `usage.summary` agent tool
+reports it as a new `budget.standing` field and describes each of the three states. A run with no
 `maxTokens` configured is unchanged: no projection is computed and no summary field moves.
 
 Because `supported: false` used to mean that nothing was counted at all, the run-status snapshot in
