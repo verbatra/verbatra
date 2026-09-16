@@ -51,6 +51,7 @@ verbatra tmx export out/memory.tmx --locales de
 A file from another tool is untrusted input, and a unit that reaches the memory can be reused without anyone being asked again. So nothing is stored until it has earned it. Every candidate translation faces the same integrity gate that [provider output and a filled translator handoff](/docs/translation-safety) already face, checked when the record enters the memory rather than left to the run that later reads it:
 
 - its placeholders have to match the placeholders of its own source segment,
+- its inline HTML or XML tags have to match the tags of its own source segment, so a tag the source never had (such as an injected `<img onerror>`) is refused,
 - it has to be a valid ICU message under the configured format's adapter,
 - it must not have collapsed into runaway output rather than a translation,
 - it must not be blank where the source has text.

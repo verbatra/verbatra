@@ -51,6 +51,7 @@ verbatra tmx export out/memory.tmx --locales de
 Eine Datei aus einem anderen Werkzeug ist nicht vertrauenswürdige Eingabe, und eine Einheit, die es in den Memory schafft, kann wiederverwendet werden, ohne dass jemand noch einmal gefragt wird. Also wird nichts gespeichert, bevor es sich das verdient hat. Jede Übersetzung durchläuft dasselbe Integritäts-Gate wie [Provider-Ausgabe und eine ausgefüllte Übersetzer-Übergabe](/docs/translation-safety), geprüft beim Eintritt in den Memory statt überlassen an den Lauf, der sie später liest:
 
 - ihre Platzhalter müssen zu den Platzhaltern ihres eigenen Quellsegments passen,
+- ihre Inline-HTML- oder XML-Tags müssen zu den Tags ihres eigenen Quellsegments passen, ein Tag, das die Quelle nie hatte (etwa ein eingeschleustes `<img onerror>`), wird also abgelehnt,
 - sie muss unter dem Adapter des konfigurierten Formats eine gültige ICU-Nachricht sein,
 - sie darf nicht in ausufernde Ausgabe statt einer Übersetzung gekippt sein,
 - sie darf nicht leer sein, wo die Quelle Text hat.

@@ -51,6 +51,7 @@ verbatra tmx export out/memory.tmx --locales de
 Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui atteint la mémoire peut être réutilisée sans que personne ne soit consulté à nouveau. Rien n'est donc stocké avant de l'avoir mérité. Chaque traduction candidate passe par la même barrière d'intégrité que subissent déjà [la sortie du fournisseur et une remise remplie par une traductrice](/docs/translation-safety), vérifiée au moment où l'enregistrement entre dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard :
 
 - ses variables doivent correspondre à celles de son propre segment source,
+- ses balises HTML ou XML en ligne doivent correspondre à celles de son propre segment source, donc une balise que la source n'a jamais eue (comme un `<img onerror>` injecté) est refusée,
 - elle doit être un message ICU valide selon l'adaptateur du format configuré,
 - elle ne doit pas avoir dégénéré en sortie incontrôlée plutôt qu'en traduction,
 - elle ne doit pas être vide là où la source a du texte.

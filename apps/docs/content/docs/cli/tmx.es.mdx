@@ -51,6 +51,7 @@ verbatra tmx export out/memory.tmx --locales de
 Un archivo de otra herramienta es entrada no confiable, y una unidad que llega a la memoria puede reutilizarse sin volver a preguntar a nadie. Así que no se guarda nada hasta que se lo ha ganado. Cada traducción candidata pasa por la misma puerta de integridad que ya afrontan [la salida del proveedor y una entrega rellenada por una traductora](/docs/translation-safety), comprobada en el momento en que el registro entra en la memoria y no dejada a la ejecución que luego la lee:
 
 - sus marcadores tienen que coincidir con los de su propio segmento de origen,
+- sus etiquetas HTML o XML en línea tienen que coincidir con las de su propio segmento de origen, así que se rechaza una etiqueta que el origen nunca tuvo (como un `<img onerror>` inyectado),
 - tiene que ser un mensaje ICU válido según el adaptador del formato configurado,
 - no puede haberse desbocado hasta dejar de ser una traducción,
 - no puede estar vacía donde el origen tiene texto.
