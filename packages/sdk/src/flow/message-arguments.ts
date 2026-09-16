@@ -52,6 +52,8 @@ const DOUBLE_BRACE = /^\{\{([\s\S]*)\}\}$/;
 
 const SINGLE_BRACE = /^\{([\s\S]*)\}$/;
 
+const I18NEXT_UNESCAPE_PREFIX = /^\s*-\s*/;
+
 const COMPOSITE_ITEM = /^(\d+)(?:,(-?\d+))?(?::([\s\S]*))?$/;
 
 const GETTEXT_NAMED = /^%\((\w+)\)([A-Za-z])$/;
@@ -165,7 +167,10 @@ function classifyToken(token: string): ClassifiedToken {
   }
   const doubleBrace = DOUBLE_BRACE.exec(token);
   if (doubleBrace?.[1] !== undefined) {
-    return classifyBraceArgument(doubleBrace[1], doubleBraceType);
+    return classifyBraceArgument(
+      doubleBrace[1].replace(I18NEXT_UNESCAPE_PREFIX, ""),
+      doubleBraceType,
+    );
   }
   const singleBrace = SINGLE_BRACE.exec(token);
   if (singleBrace?.[1] !== undefined) {

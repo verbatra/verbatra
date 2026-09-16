@@ -475,3 +475,48 @@ describe("describeMessageArguments: an i18next formatter", () => {
     });
   });
 });
+
+describe("describeMessageArguments: an i18next unescaped interpolation", () => {
+  it.each([
+    ["with a space after the prefix", "{{- name}}"],
+    ["with no space after the prefix", "{{-name}}"],
+    ["with spaces around the prefix", "{{ -  name }}"],
+  ])("reads the name behind the prefix %s", (_label, token) => {
+    expect(describeMessageArguments([token])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("collapses an escaped and an unescaped use of one name into one argument", () => {
+    expect(describeMessageArguments(["{{name}}", "{{- name}}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("keeps a formatter behind the prefix", () => {
+    expect(describeMessageArguments(["{{- when, datetime}}"])).toEqual({
+      style: "named",
+      named: [{ name: "when", type: "date" }],
+    });
+  });
+
+  it("reads a name followed by a formatter as that name", () => {
+    expect(describeMessageArguments(["{{name, format}}"])).toEqual({
+      style: "named",
+      named: [{ name: "name", type: "unknown" }],
+    });
+  });
+
+  it("ignores a prefix with no name behind it", () => {
+    expect(describeMessageArguments(["{{-}}"])).toEqual({ style: "none" });
+  });
+
+  it("keeps a dash inside a single-brace name, which carries no unescape prefix", () => {
+    expect(describeMessageArguments(["{-name}"])).toEqual({
+      style: "named",
+      named: [{ name: "-name", type: "unknown" }],
+    });
+  });
+});

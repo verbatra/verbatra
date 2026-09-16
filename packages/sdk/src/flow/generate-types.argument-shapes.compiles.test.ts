@@ -115,6 +115,27 @@ t("broken", { anything: "at all" });
 `;
 
 const SCENARIOS: readonly Scenario[] = [
+  i18next(
+    "i18next-unescaped",
+    {
+      raw: "Hello {{- name}}",
+      rawTight: "Hello {{-name}}",
+      formatted: "Hello {{name, uppercase}}",
+    },
+    `
+t("raw", { name: "<b>Ada</b>" });
+// @ts-expect-error the unescape prefix is not part of the argument name
+t("raw", { "- name": "Ada" });
+// @ts-expect-error the argument behind the prefix is required
+t("raw", {});
+
+t("rawTight", { name: "Ada" });
+
+t("formatted", { name: "Ada" });
+// @ts-expect-error the formatter is not part of the argument name
+t("formatted", { "name, uppercase": "Ada" });
+`,
+  ),
   nextIntl("next-intl-typed", ICU_TYPED, ICU_TYPED_USAGE),
   arb("arb-typed", ICU_TYPED, ICU_TYPED_USAGE),
   i18next(
