@@ -37,10 +37,10 @@ export interface KeyIntegrityEntry {
   readonly markupMatches: boolean;
   /**
    * The tags behind a `markupMatches: false` verdict, each prefixed with `-` for one the source has
-   * and the translation lacks or `+` for one the translation added, or `+more than 256 inline
-   * tags` for a translation carrying more inline tags than the check reads. Empty when the markup
-   * matches, and empty when no single tag is at fault because the translation's markup is
-   * structurally broken.
+   * and the translation lacks or `+` for one the translation added, or `+more than N inline tags`
+   * for a translation carrying more than twice its source's inline tags and constructs (N is at
+   * least 256). Empty when the markup matches, and empty when no single tag is at fault because
+   * the translation's markup is structurally broken.
    */
   readonly markupDetails: readonly string[];
 }
