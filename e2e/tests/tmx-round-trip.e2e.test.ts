@@ -87,6 +87,21 @@ function unit(pairs: ReadonlyArray<readonly [string, string]>): string {
     .join("\n")}\n    </tu>`;
 }
 
+function dataSectionTmx(source: string, translated: string): string {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<tmx version="1.4">',
+    '  <header srclang="en"/>',
+    "  <body>",
+    "    <tu>",
+    `      <tuv xml:lang="en"><seg><![CDATA[${source}]]></seg></tuv>`,
+    `      <tuv xml:lang="de"><seg><![CDATA[${translated}]]></seg></tuv>`,
+    "    </tu>",
+    "  </body>",
+    "</tmx>",
+  ].join("\n");
+}
+
 let consumer: Consumer;
 
 async function seedProject(name: string, source: Record<string, string>): Promise<string> {
@@ -374,24 +389,40 @@ describe("tmx interchange in an installed consumer", () => {
   });
 
   it("keeps a doctype and an entity declaration inside a data section as payload", async () => {
-    const dir = await seedProject("tmx-data-section", {
-      greeting: "Write <!DOCTYPE html> at the top",
+    const source = 'Write <!DOCTYPE html> and <!ENTITY x "y"> at the top';
+    const translated = 'Schreibe <!DOCTYPE html> und <!ENTITY x "y"> oben hin';
+    const dir = await seedProject("tmx-data-section", { greeting: source });
+    await writeFileIn(dir, "docs.tmx", dataSectionTmx(source, translated));
+
+    const result = await runVerbatra(consumer, ["tmx", "import", "docs.tmx", "--json"], {
+      cwd: dir,
+      env: NO_KEYS,
     });
+
+    expect(result.exitCode).toBe(0);
+    const report = importPayload(result.stdout);
+    expect(report.locales[0]?.added).toBe(1);
+    expect(report.locales[0]?.rejected.markup).toBe(0);
+    const cache = await readFile(join(dir, "verbatra.cache.json"), "utf8");
+    expect(cache).toContain(JSON.stringify(translated));
+
+    const exported = await runVerbatra(consumer, ["tmx", "export", "back.tmx"], {
+      cwd: dir,
+      env: NO_KEYS,
+    });
+    const text = await readFile(join(dir, "back.tmx"), "utf8");
+    expect(exported.exitCode).toBe(0);
+    expect(text).toContain('Write &lt;!DOCTYPE html&gt; and &lt;!ENTITY x "y"&gt; at the top');
+    expect(text).toContain('Schreibe &lt;!DOCTYPE html&gt; und &lt;!ENTITY x "y"&gt; oben hin');
+  });
+
+  it("refuses a data-section translation whose declaration differs from its source", async () => {
+    const source = 'Write <!DOCTYPE html> and <!ENTITY x "y"> at the top';
+    const dir = await seedProject("tmx-data-section-mismatch", { greeting: source });
     await writeFileIn(
       dir,
       "docs.tmx",
-      [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<tmx version="1.4">',
-        '  <header srclang="en"/>',
-        "  <body>",
-        "    <tu>",
-        '      <tuv xml:lang="en"><seg><![CDATA[Write <!DOCTYPE html> at the top]]></seg></tuv>',
-        '      <tuv xml:lang="de"><seg><![CDATA[Schreibe <!ENTITY x "y"> oben hin]]></seg></tuv>',
-        "    </tu>",
-        "  </body>",
-        "</tmx>",
-      ].join("\n"),
+      dataSectionTmx(source, 'Schreibe <!DOCTYPE html> und <!ENTITY x "z"> oben hin'),
     );
 
     const result = await runVerbatra(consumer, ["tmx", "import", "docs.tmx", "--json"], {
@@ -400,16 +431,10 @@ describe("tmx interchange in an installed consumer", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(importPayload(result.stdout).locales[0]?.added).toBe(1);
-
-    const exported = await runVerbatra(consumer, ["tmx", "export", "back.tmx"], {
-      cwd: dir,
-      env: NO_KEYS,
-    });
-    const text = await readFile(join(dir, "back.tmx"), "utf8");
-    expect(exported.exitCode).toBe(0);
-    expect(text).toContain("Write &lt;!DOCTYPE html&gt; at the top");
-    expect(text).toContain('Schreibe &lt;!ENTITY x "y"&gt; oben hin');
+    const report = importPayload(result.stdout);
+    expect(report.locales[0]?.added).toBe(0);
+    expect(report.locales[0]?.rejected.markup).toBe(1);
+    await expect(readFile(join(dir, "verbatra.cache.json"), "utf8")).rejects.toThrow();
   });
 
   it("refuses --dry-run on an export rather than writing while promising not to", async () => {
