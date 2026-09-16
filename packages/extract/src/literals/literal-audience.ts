@@ -203,13 +203,51 @@ function isDirectArgumentCallee(frame: LiteralFrame & { kind: "call" }): boolean
   return !frame.member && BUILT_IN_ERRORS.has(frame.callee);
 }
 
+const TYPE_ASSERTIONS = new Set(["as", "satisfies"]);
+
+const ASSERTED_TYPE_LIMIT = 50;
+
+const TYPE_OPENERS = new Set(["(", "[", "{", "<"]);
+
+const TYPE_CLOSERS = new Set([")", "]", "}", ">"]);
+
+function typeDepthStep(tokens: readonly PositionedToken[], index: number): number {
+  const token = tokens[index];
+  if (token?.kind !== "punct") {
+    return 0;
+  }
+  if (TYPE_OPENERS.has(token.value)) {
+    return 1;
+  }
+  const arrow = token.value === ">" && isPunct(tokens[index - 1], "=");
+  return TYPE_CLOSERS.has(token.value) && !arrow ? -1 : 0;
+}
+
+function assertedTypeEnd(tokens: readonly PositionedToken[], start: number): number {
+  let depth = 0;
+  const limit = Math.min(tokens.length, start + ASSERTED_TYPE_LIMIT);
+  for (let index = start; index < limit; index += 1) {
+    const token = tokens[index];
+    if (depth === 0 && (isPunct(token, ",") || isPunct(token, ")"))) {
+      return index;
+    }
+    depth += typeDepthStep(tokens, index);
+  }
+  return limit;
+}
+
+function endsArgument(tokens: readonly PositionedToken[], index: number): boolean {
+  const asserted = TYPE_ASSERTIONS.has(identValue(tokens[index + 1]) ?? "");
+  const next = tokens[asserted ? assertedTypeEnd(tokens, index + 2) : index + 1];
+  return isPunct(next, ",") || isPunct(next, ")");
+}
+
 function isNonUserFacingCallArgument(
   tokens: readonly PositionedToken[],
   index: number,
   frame: LiteralFrame & { kind: "call" },
 ): boolean {
-  const next = tokens[index + 1];
-  if (!isPunct(next, ",") && !isPunct(next, ")")) {
+  if (!endsArgument(tokens, index)) {
     return false;
   }
   const previous = tokens[index - 1];

@@ -262,6 +262,17 @@ describe("findLiterals: noisy non-user-facing positions are not reported", () =>
     expect(texts(source)).toContain(text);
   });
 
+  it.each([
+    ["an as const assertion", 'parse(input, "dd MM yyyy" as const);'],
+    ["a satisfies clause", 'query("select all users" satisfies Sql);'],
+    [
+      "an assertion to a generic type",
+      'format(d, "MMM d, yyyy" as Format<Map<string, [number]>>, opts);',
+    ],
+  ])("skips a direct argument followed by %s", (_label, source) => {
+    onlyControl(source, false);
+  });
+
   it("still reports a direct argument that is only part of an expression", () => {
     expect(
       texts(
