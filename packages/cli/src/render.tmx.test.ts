@@ -186,4 +186,11 @@ describe("render: tmx export summary", () => {
 
     expect(text).toContain("3 entries left out: the memory holds no source text for them");
   });
+
+  it("reports the characters XML does not allow that were removed, only when there are some", () => {
+    expect(renderTmxExportHuman(makeExportTmxResult({ illegalCharactersRemoved: 4 }))).toContain(
+      "4 characters XML 1.0 does not allow were removed from segment text",
+    );
+    expect(renderTmxExportHuman(makeExportTmxResult())).not.toContain("does not allow");
+  });
 });

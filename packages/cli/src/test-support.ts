@@ -155,6 +155,7 @@ export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): E
     units: 0,
     locales: [],
     withoutSource: 0,
+    illegalCharactersRemoved: 0,
     ...overrides,
   };
 }

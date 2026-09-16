@@ -205,6 +205,32 @@ describe("verbatra tmx export", () => {
   });
 });
 
+describe("verbatra tmx export reports removed characters", () => {
+  it("carries the removed-character count in the JSON envelope", async () => {
+    const { deps } = recordingDeps({
+      exportTmx: async () => makeExportTmxResult({ illegalCharactersRemoved: 2 }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj", "--json"], deps, streams);
+
+    expect(JSON.parse(out()).result).toEqual(
+      expect.objectContaining({ illegalCharactersRemoved: 2 }),
+    );
+  });
+
+  it("names the removed characters in the human summary", async () => {
+    const { deps } = recordingDeps({
+      exportTmx: async () => makeExportTmxResult({ illegalCharactersRemoved: 2 }),
+    });
+    const { streams, out } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
+
+    expect(out()).toContain("2 characters XML 1.0 does not allow were removed from segment text");
+  });
+});
+
 describe("verbatra tmx refuses a direction it does not know", () => {
   it("exits 2 and names what it accepts", async () => {
     const { deps, calls } = recordingDeps();

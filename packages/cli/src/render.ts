@@ -526,10 +526,17 @@ export function renderTmxExportHuman(result: ExportTmxResult): string {
     result.withoutSource > 0
       ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
       : [];
+  const removed =
+    result.illegalCharactersRemoved > 0
+      ? [
+          `  ${result.illegalCharactersRemoved} characters XML 1.0 does not allow were removed from segment text`,
+        ]
+      : [];
   return [
     `verbatra tmx export -> ${result.path}`,
     ...localeLines,
     `${result.units} units across ${result.locales.length} locales`,
     ...withoutSource,
+    ...removed,
   ].join("\n");
 }
