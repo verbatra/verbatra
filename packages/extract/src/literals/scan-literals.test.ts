@@ -119,6 +119,30 @@ describe("scanLiterals", () => {
     ]);
   });
 
+  it("reads the ignore list once per scan, not once per file", async () => {
+    let entryReads = 0;
+    const ignore = new Proxy(["Hidden by list"], {
+      get(target, property, receiver) {
+        if (property === "0") {
+          entryReads += 1;
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+
+    const result = await scan(
+      {
+        [join(root, "a.ts")]: 'const a = "Hidden by list";',
+        [join(root, "b.ts")]: 'const b = "Hidden by list";',
+        [join(root, "c.ts")]: 'const c = "Hidden by list";',
+      },
+      { ignore },
+    );
+
+    expect(result.suppressed).toHaveLength(3);
+    expect(entryReads).toBe(1);
+  });
+
   it("skips test, story, declaration, and config files and test directories", async () => {
     const result = await scan(
       {

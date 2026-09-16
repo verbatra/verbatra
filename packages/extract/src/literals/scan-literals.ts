@@ -120,6 +120,7 @@ function recordLiterals(
 async function scanFile(
   path: string,
   input: ScanLiteralsInput,
+  ignored: ReadonlySet<string>,
   fs: SourceFs,
   state: LiteralScanState,
 ): Promise<void> {
@@ -138,7 +139,7 @@ async function scanFile(
   if (literals.truncated) {
     state.diagnostics.push({ file, reason: "unparseable" });
   }
-  recordLiterals(file, literals, new Set((input.ignore ?? []).map(normalizeLiteralText)), state);
+  recordLiterals(file, literals, ignored, state);
 }
 
 export async function scanLiterals(
@@ -164,8 +165,9 @@ export async function scanLiterals(
     },
     fs,
   );
+  const ignored = new Set((input.ignore ?? []).map(normalizeLiteralText));
   for (const path of files.filter((candidate) => !NON_APPLICATION_FILE.test(candidate))) {
-    await scanFile(path, input, fs, state);
+    await scanFile(path, input, ignored, fs, state);
   }
   return state;
 }
