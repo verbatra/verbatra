@@ -13,9 +13,17 @@ import {
   prefixForms,
   readKeyUsageSites,
 } from "./key-usage.js";
-import { callOpenIndex, closeIndex, isFollowedBy, isPunct, tokenAt } from "./token-query.js";
+import {
+  callOpenIndex,
+  closeIndex,
+  isFollowedBy,
+  isPunct,
+  listItems,
+  matchingClose,
+  tokenAt,
+} from "./token-query.js";
 import { type SourceToken, tokenizeSource } from "./tokenize.js";
-import { findTranslateEscapes } from "./translate-escapes.js";
+import { readTranslateSources } from "./translate-sources.js";
 
 export interface CallSiteRules extends KeyUsageRules {
   readonly defaultValueKeys: ReadonlySet<string>;
@@ -144,6 +152,29 @@ function templateReading(
     : { kind: "dynamic", line: template.line };
 }
 
+function keyListReading(
+  tokens: readonly SourceToken[],
+  keyIndex: number,
+  rules: CallSiteRules,
+): CallSiteReading {
+  const close = matchingClose(tokens, keyIndex + 1);
+  const items = close === undefined ? [] : listItems(tokens, keyIndex, close);
+  const keys = items.map((item) =>
+    item.length === 1 ? tokenAt(tokens, item[0] ?? -1) : undefined,
+  );
+  const line = tokenAt(tokens, keyIndex)?.line ?? 0;
+  const isStatic =
+    close !== undefined &&
+    keys.length > 0 &&
+    keys.every((key) => key?.kind === "string" && key.value !== "") &&
+    isFollowedBy(tokens, close, ARGUMENT_TERMINATORS);
+  if (!isStatic) {
+    return { kind: "dynamic", line };
+  }
+  const forms = keys.flatMap((key) => (key?.kind === "string" ? keyForms(key.value, rules) : []));
+  return { kind: "named", keys: forms, line };
+}
+
 function callSiteAt(
   tokens: readonly SourceToken[],
   index: number,
@@ -160,6 +191,9 @@ function callSiteAt(
   }
   if (argument.kind === "dynamic") {
     return templateReading(tokens, keyIndex, argument, rules);
+  }
+  if (isPunct(argument, "[")) {
+    return keyListReading(tokens, keyIndex, rules);
   }
   if (argument.kind !== "string" || !isFollowedBy(tokens, keyIndex, ARGUMENT_TERMINATORS)) {
     return { kind: "dynamic", line: argument.line };
@@ -220,6 +254,7 @@ function withKeyPrefixes<T>(
 export function findCallSites(content: string, rules: CallSiteRules): FileExtraction {
   const { tokens, truncated } = tokenizeSource(content);
   const sites = readKeyUsageSites(tokens, rules);
+  const sources = readTranslateSources(tokens, rules);
   const state: CallSiteState = {
     calls: [],
     dynamic: [],
@@ -230,7 +265,9 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokenAt(tokens, index);
     const extracted = token?.kind === "ident" && rules.calleeNames.has(token.value);
-    const aliased = token?.kind === "ident" && sites.callees.has(token.value);
+    const aliased =
+      token?.kind === "ident" &&
+      (sites.callees.has(token.value) || sources.identifiers.has(token.value));
     const reading = extracted || aliased ? callSiteAt(tokens, index, rules) : undefined;
     if (reading === undefined) {
       continue;
@@ -254,10 +291,7 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
         prefix: prefixedKey(keyPrefix, site.prefix, rules),
         line: site.line,
       })),
-      unresolved: byLine([
-        ...sites.unresolved,
-        ...findTranslateEscapes(tokens, new Set([...rules.calleeNames, ...sites.callees])),
-      ]),
+      unresolved: byLine([...sites.unresolved, ...sources.unresolved]),
     },
     ...(truncated ? { truncated } : {}),
   };

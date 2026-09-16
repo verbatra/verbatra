@@ -54,15 +54,20 @@ export interface KeyPrefixSite {
  * - `trans-without-key`: a `Trans` element carries no static `i18nKey`, so its key is its children.
  * - `aliased-translate-function`: the translate function is assigned somewhere its calls cannot be
  *   followed, such as an object property.
- * - `translate-function-escapes`: the translate function is passed on as a value (a call argument,
- *   a JSX attribute, an object property, an array element, or a return value), so the code that
- *   receives it can call it with keys this file never names.
+ * - `translate-function-escapes`: a translate function bound from a recognised source appears
+ *   somewhere other than a direct call, its own binding, a local alias, or the `t` attribute of a
+ *   `Trans` or `Translation` element (for example as an argument, a property, an export, or a
+ *   ternary operand), so other code can call it with keys this file never names.
+ * - `unrecognised-translate-source`: a translate source (`useTranslation`, `withTranslation`,
+ *   `getFixedT`, a `Translation` render prop, a member `t`, or a `t` import) is used in a shape the
+ *   scan does not recognise, so the keys and prefix the resulting function uses are unknown.
  */
 export type UnresolvedKeySiteReason =
   | "dynamic-key-prefix"
   | "trans-without-key"
   | "aliased-translate-function"
-  | "translate-function-escapes";
+  | "translate-function-escapes"
+  | "unrecognised-translate-source";
 
 /** A place whose reachable keys cannot be bounded statically. */
 export interface UnresolvedKeySite {

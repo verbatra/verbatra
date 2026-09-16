@@ -234,4 +234,27 @@ describe("tokenizeSource on a file it cannot read to the end", () => {
   it("reports an unterminated string as whole, since the line is recovered", () => {
     expect(truncated('t("unterminated\nt("kept")')).toBe(false);
   });
+
+  it("reads a JSX closing tag as markup rather than as the start of a regular expression", () => {
+    expect(kinds('<p>{t("a")}</p>}</Translation>')).toEqual([
+      "punct",
+      "ident",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+      "string",
+      "punct",
+      "punct",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+      "punct",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+    ]);
+  });
 });

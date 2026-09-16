@@ -19,6 +19,11 @@ export interface KeyUsageRules {
   readonly keyAttributeNames: ReadonlySet<string>;
   readonly translationElements: ReadonlySet<string>;
   readonly keyedElements: ReadonlySet<string>;
+  readonly hocNames: ReadonlySet<string>;
+  readonly renderPropElements: ReadonlySet<string>;
+  readonly memberTranslateNames: ReadonlySet<string>;
+  readonly translateModules: ReadonlySet<string>;
+  readonly dependencyHookNames: ReadonlySet<string>;
 }
 
 export interface KeyUsageSites {
@@ -146,7 +151,7 @@ function staticAttributeValue(tokens: readonly SourceToken[], index: number): st
     : undefined;
 }
 
-function isAttributeName(tokens: readonly SourceToken[], index: number): boolean {
+export function isAttributeName(tokens: readonly SourceToken[], index: number): boolean {
   const previous = tokenAt(tokens, index - 1);
   const followsMarkup =
     previous?.kind === "string" ||

@@ -48,7 +48,7 @@ const REGEX_FOLLOWING_KEYWORDS = new Set([
   "case",
 ]);
 
-const VALUE_CLOSING_PUNCT = new Set([")", "]", "}"]);
+const VALUE_CLOSING_PUNCT = new Set([")", "]", "}", "<"]);
 
 function charAt(cursor: Cursor, offset: number): string {
   return cursor.text[cursor.index + offset] ?? "";

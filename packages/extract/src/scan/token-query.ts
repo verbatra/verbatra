@@ -65,3 +65,63 @@ export function closeIndex(tokens: readonly SourceToken[], openIndex: number): n
   }
   return tokens.length;
 }
+
+const OPENERS = new Set(["(", "[", "{"]);
+
+const CLOSERS = new Set([")", "]", "}"]);
+
+export function matchingClose(tokens: readonly SourceToken[], from: number): number | undefined {
+  let depth = 0;
+  for (let cursor = from; cursor < tokens.length; cursor += 1) {
+    const token = tokenAt(tokens, cursor);
+    if (isPunctIn(token, OPENERS)) {
+      depth += 1;
+    } else if (isPunctIn(token, CLOSERS) && depth === 0) {
+      return cursor;
+    } else if (isPunctIn(token, CLOSERS)) {
+      depth -= 1;
+    }
+  }
+  return undefined;
+}
+
+export function matchingOpen(
+  tokens: readonly SourceToken[],
+  closeIndex: number,
+): number | undefined {
+  let depth = 0;
+  for (let cursor = closeIndex - 1; cursor >= 0; cursor -= 1) {
+    const token = tokenAt(tokens, cursor);
+    if (isPunctIn(token, CLOSERS)) {
+      depth += 1;
+    } else if (isPunctIn(token, OPENERS) && depth === 0) {
+      return cursor;
+    } else if (isPunctIn(token, OPENERS)) {
+      depth -= 1;
+    }
+  }
+  return undefined;
+}
+
+export function listItems(
+  tokens: readonly SourceToken[],
+  openIndex: number,
+  closeIndex: number,
+): readonly (readonly number[])[] {
+  const items: number[][] = [];
+  let current: number[] = [];
+  let depth = 0;
+  for (let cursor = openIndex + 1; cursor < closeIndex && cursor < tokens.length; cursor += 1) {
+    const token = tokenAt(tokens, cursor);
+    const closes = isPunctIn(token, CLOSERS);
+    if (depth === 0 && isPunct(token, ",")) {
+      items.push(current);
+      current = [];
+    } else {
+      current.push(cursor);
+    }
+    depth += isPunctIn(token, OPENERS) ? 1 : 0;
+    depth -= closes ? 1 : 0;
+  }
+  return current.length > 0 || items.length > 0 ? [...items, current] : [];
+}

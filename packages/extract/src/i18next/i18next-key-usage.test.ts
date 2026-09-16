@@ -13,6 +13,10 @@ function usage(content: string): KeyUsage {
   return result;
 }
 
+function prefixSites(content: string) {
+  return usage(content).unresolved.filter((site) => site.reason === "dynamic-key-prefix");
+}
+
 function referenced(content: string): readonly string[] {
   return usage(content).references.map((site) => site.key);
 }
@@ -103,27 +107,25 @@ describe("i18next key usage: key prefixes", () => {
   });
 
   it("reports a non-literal keyPrefix option as unresolved", () => {
-    expect(usage('useTranslation("ns", { keyPrefix: prefix });').unresolved).toEqual([
+    expect(prefixSites('useTranslation("ns", { keyPrefix: prefix });')).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
   });
 
   it("reports a shorthand keyPrefix property and a non-literal attribute as unresolved", () => {
-    expect(usage('useTranslation("ns", { keyPrefix });').unresolved).toEqual([
+    expect(prefixSites('useTranslation("ns", { keyPrefix });')).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
-    expect(usage("<Translation keyPrefix={prefix}>{render}</Translation>").unresolved).toEqual([
+    expect(prefixSites("<Translation keyPrefix={prefix}>{render}</Translation>")).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
   });
 
   it("reports a non-literal getFixedT prefix as unresolved, but not a null or absent one", () => {
-    expect(usage('getFixedT("en", "ns", prefix);').unresolved).toEqual([
+    expect(prefixSites('getFixedT("en", "ns", prefix);')).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
-    expect(usage('getFixedT("en", "ns", undefined);\ngetFixedT(null, null);').unresolved).toEqual(
-      [],
-    );
+    expect(prefixSites('getFixedT("en", "ns", undefined);\ngetFixedT(null, null);')).toEqual([]);
   });
 
   it("ignores an identifier merely named keyPrefix", () => {
@@ -253,7 +255,7 @@ describe("i18next key usage: aliases of the translate function", () => {
     ).toEqual([
       { reason: "aliased-translate-function", line: 1 },
       { reason: "aliased-translate-function", line: 2 },
-      { reason: "translate-function-escapes", line: 3 },
+      { reason: "unrecognised-translate-source", line: 2 },
       { reason: "aliased-translate-function", line: 4 },
     ]);
   });
@@ -281,71 +283,147 @@ describe("i18next key usage at the edges of the source", () => {
   });
 
   it("reads past nested objects around a non-literal keyPrefix", () => {
-    expect(usage('useTranslation("ns", { keyPrefix: p, nested: { a: 1 } });').unresolved).toEqual([
+    expect(prefixSites('useTranslation("ns", { keyPrefix: p, nested: { a: 1 } });')).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
   });
 
   it("reports sites cut off by the end of the file without failing", () => {
-    expect(usage("const o = { keyPrefix: p").unresolved).toEqual([
+    expect(prefixSites("const o = { keyPrefix: p")).toEqual([
       { reason: "dynamic-key-prefix", line: 1 },
     ]);
-    expect(usage('getFixedT("en", "ns", "nav"').unresolved).toEqual([]);
+    expect(prefixSites('getFixedT("en", "ns", "nav"')).toEqual([]);
     expect(referenced('const [tr, i18n = useTranslation();\ntr("a")')).toEqual([]);
   });
 });
 
-describe("i18next key usage: the translate function escaping the file's view", () => {
-  function escapes(content: string) {
-    return usage(content).unresolved.filter((site) => site.reason === "translate-function-escapes");
+describe("i18next key usage: translate sources", () => {
+  function unrecognised(content: string) {
+    return usage(content).unresolved.filter(
+      (site) => site.reason === "unrecognised-translate-source",
+    );
   }
 
   it.each([
-    ["a JSX attribute", "<Child t={t} />"],
+    ["a destructured hook result", 'const { t } = useTranslation();\nt("a");'],
+    [
+      "a hook with a namespace and a static prefix",
+      'const { t, i18n } = useTranslation("c", { keyPrefix: "nav", lng: x });',
+    ],
+    ["a hook with a namespace array", 'let { t: tr, ready } = useTranslation(["a", "b"]);'],
+    ["an array-destructured hook", 'var [t, i18n] = useTranslation("c");'],
+    ["a local fixed t", 'const nt = i18n.getFixedT(null, ["c"], "nav");'],
+    ["a bare local fixed t", "const nt = getFixedT(undefined)"],
+    ["a direct member call", 'i18n.t("a");\nthis.props.t("b");'],
+    ["a local bound member t", "const tr = i18next.t.bind(i18next);"],
+    ["a local member t", "const tr = i18n.t;"],
+    ["a Translation render prop", '<Translation ns="c">{(t, { i18n }) => t("a")}</Translation>'],
+    ["withTranslation around a component", 'export default withTranslation("c")(Page);'],
+    ["withTranslation with no namespace", "export default withTranslation()(Page);"],
+    [
+      "imports of the sources",
+      'import { useTranslation, Trans, withTranslation } from "react-i18next";\nimport { t as translate, getFixedT } from "i18next";\nimport type { TFunction } from "i18next";',
+    ],
+  ])("recognises %s", (_name, content) => {
+    expect(unrecognised(content)).toEqual([]);
+  });
+
+  it.each([
+    ["a returned hook result", 'function useNav() {\n  return useTranslation("c");\n}'],
+    ["an exported destructured hook", "export const { t } = useTranslation();"],
+    ["hook options passed by name", 'const { t } = useTranslation("c", opts);'],
+    ["hook options with a spread", 'const { t } = useTranslation("c", { ...base });'],
+    ["hook options with a computed key", 'const { t } = useTranslation("c", { [key]: "nav" });'],
+    ["hook options from a call", 'const { t } = useTranslation("c", makeOpts());'],
+    ["a non-literal hook prefix", 'const { t } = useTranslation("c", { keyPrefix: p });'],
+    ["a dynamic hook namespace", "const { t } = useTranslation(ns);"],
+    ["three hook arguments", 'const { t } = useTranslation("c", {}, extra);'],
+    ["a hook result destructured with other names", "const { t, other } = useTranslation();"],
+    ["a t member read on a hook call", "const t2 = useTranslation().t;"],
+    ["a hook call not assigned", "useTranslation();"],
+    ["a hook call followed by more", "const { t } = useTranslation() || fallback;"],
+    ["an exported fixed t", 'export const t = i18n.getFixedT(null, "c", "nav");'],
+    ["a fixed t inside an object", 'const tt = { nav: i18n.getFixedT(null, null, "nav") };'],
+    ["a fixed t with a dynamic argument", "const nt = i18n.getFixedT(lng);"],
+    ["a member t not assigned locally", "export default i18next.t.bind(i18next);"],
+    ["a member t passed on", "renderRow(i18n.t);"],
+    ["an exported member t", "export const tr = i18n.t;"],
+    ["a Translation element with no render prop", "<Translation>{children}</Translation>"],
+    ["a self-closing Translation element", "<Translation />"],
+    ["withTranslation with a dynamic namespace", "withTranslation(ns)(Page);"],
+    ["withTranslation not wrapping a component", 'const hoc = withTranslation("c");'],
+    ["a renamed hook import", 'import { useTranslation as useT } from "react-i18next";'],
+  ])("reports %s as an unrecognised source", (_name, content) => {
+    expect(unrecognised(content)).toHaveLength(1);
+  });
+
+  it("names the line of an unrecognised source", () => {
+    expect(unrecognised('t("a");\n\nconst { t } = useTranslation(ns);')).toEqual([
+      { reason: "unrecognised-translate-source", line: 3 },
+    ]);
+  });
+
+  it("follows t imported from i18next under another name as a translate identifier", () => {
+    expect(referenced('import { t as translate } from "i18next";\ntranslate("a");')).toEqual(["a"]);
+  });
+
+  it("references every element of a static key array, and nothing for a mixed one", () => {
+    expect(referenced('t(["a", "common:b"]);\nt(["c", d]);')).toEqual(["a", "common:b", "b"]);
+    expect(usage('t(["c", d]);\nt([]);').dynamic).toEqual([{ line: 1 }, { line: 2 }]);
+  });
+});
+
+describe("i18next key usage: where a translate identifier may appear", () => {
+  function escapes(content: string) {
+    return usage(`const { t } = useTranslation();\n${content}`).unresolved.filter(
+      (site) => site.reason === "translate-function-escapes",
+    );
+  }
+
+  it.each([
+    ["a JSX attribute", "<Child t={t} />;"],
     ["a call argument", "renderRow(t);"],
-    ["a later call argument", "renderRow(row, t, 1);"],
-    ["a shorthand property in a returned object", "return { t };"],
+    ["a shorthand property", "return { t };"],
     ["a property value", "const api = { translate: t };"],
-    ["a returned value", "return t;"],
+    ["a return value", "return t;"],
     ["an arrow body", "const get = () => t;"],
     ["an array element", "const fns = [format, t];"],
-    ["a spread object attribute", "<Child {...{ t }} />"],
-    ["a member t passed on", "renderRow(i18n.t);"],
-    ["a bound t passed on", "renderRow(t.bind(i18n));"],
-    ["an alias passed on", "const { t: tr } = useTranslation();\nrenderRow(tr);"],
-    ["an argument beside nested brackets", "renderRow(a(b), t, { c: [1] });"],
-    ["an argument to a returned function", "getRenderer()(t);"],
-    ["an object inside an array", "const rows = [{ t }, other];"],
-  ])("reports t passed on as %s", (_name, content) => {
+    ["a ternary operand", "const tr = cond ? t : other;"],
+    ["a default export", "export default t;"],
+    ["an export list", "export { t as default };"],
+    ["a member read", "const n = t.length;"],
+    ["a bound copy passed on", "renderRow(t.bind(i18n));"],
+    ["a condition", "if (t) {}"],
+    ["a spread", "<Child {...{ t }} />;"],
+    ["a JSX child", "<p>{t}</p>;"],
+    ["an attribute on another element", "<Child t={t} i18nKey={t} />;"],
+  ])("reports t used as %s", (_name, content) => {
     expect(escapes(content)).toHaveLength(1);
   });
 
-  it("names the line the translate function escapes on", () => {
-    expect(escapes('t("a");\n\nrenderRow(t);')).toEqual([
+  it("reports an alias escaping and names its line", () => {
+    expect(escapes("const tr = t;\nrenderRow(tr);")).toEqual([
       { reason: "translate-function-escapes", line: 3 },
     ]);
   });
 
   it.each([
     ["a direct call", 't("a");'],
-    ["a destructured hook result", 'const { t } = useTranslation();\nt("a");'],
-    ["a renamed destructured hook result", 'const { t: tr } = useTranslation();\ntr("a");'],
-    ["an array destructured hook result", 'const [t, i18n] = useTranslation();\nt("a");'],
-    ["an alias binding", 'const tr = i18n.t;\ntr("a");'],
-    ["an import", 'import { t } from "./i18n";'],
-    ["a function parameter", 'function row(t) {\n  return t("a");\n}'],
-    ["an arrow parameter", '<Translation>{(t) => t("a")}</Translation>'],
-    ["a destructured parameter", 'function Row({ t }) {\n  return t("a");\n}'],
-    ["a typed destructured parameter", 'const Row = ({ t }: Props) => t("a");'],
-    ["a condition", 'if (t) {\n  t("a");\n}'],
-    ["a typeof check", 'if (typeof t === "function") {}'],
-    ["a property named t", "const o = { t: 1 };"],
-    ["a keyword condition without braces", 'if (t) run("a");'],
-    ["a parenthesized value", "const x = (t);"],
-    ["an unbalanced list", "a, t)"],
-    ["an unterminated call", "renderRow(t"],
-    ["an unterminated object", "const o = { a: t"],
-  ])("does not report %s", (_name, content) => {
+    ["an optional call", 't?.("a");'],
+    ["a local alias and its call", 'const tr = t;\ntr("a");'],
+    ["a local bound alias", 'const tr = t.bind(i18n);\ntr("a");'],
+    ["the t attribute of Trans", '<Trans t={t} i18nKey="a" />;'],
+    ["the t attribute of Translation", '<Translation t={t}>{(tt) => tt("a")}</Translation>;'],
+    ["a shadowing parameter", 'function row(t) {\n  return t("a");\n}'],
+    ["a shadowing destructured parameter", "const Row = ({ t }: Props) => null;"],
+    ["a shadowing declaration", "for (const t of items) {}"],
+    ["a property key", "const o = { t: 1 };"],
+    ["a type annotation", "function f(t: TFunction) {}"],
+  ])("allows t as %s", (_name, content) => {
     expect(escapes(content)).toEqual([]);
+  });
+
+  it("does not check a name bound by no translate source", () => {
+    expect(usage("renderRow(t);\nconst x = cond ? t : y;").unresolved).toEqual([]);
   });
 });

@@ -47,15 +47,11 @@ export interface ScanDiagnostic {
   readonly reason: ScanDiagnosticReason;
 }
 
-/** A key argument with a static head, located in the project. */
 export interface KeyPrefixLocation extends SourceLocation {
-  /** The static head every key the site can reach starts with. */
   readonly prefix: string;
 }
 
-/** A place whose reachable keys cannot be bounded, located in the project. */
 export interface UnresolvedKeyLocation extends SourceLocation {
-  /** Why the keys it reaches are unknown. */
   readonly reason: UnresolvedKeySiteReason;
 }
 
