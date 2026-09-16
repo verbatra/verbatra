@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { SUPPORTED_FORMATS, type SupportedFormat, type TranslationEntry } from "@verbatra/core";
+import {
+  contentHash,
+  SUPPORTED_FORMATS,
+  type SupportedFormat,
+  type TranslationEntry,
+} from "@verbatra/core";
 import {
   createAndroidXmlAdapter,
   createDefaultRegistry,
@@ -8,13 +13,20 @@ import {
   type FormatAdapter,
 } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
+import type { TranslationMemory } from "../cache/types.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
+import {
+  baseConfig,
+  makeStubProvider,
+  makeTempDir,
+  readJsonFile,
+  writeJsonFile,
+} from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
 import { editEntry } from "./edit-entry.js";
 import { gateCandidateValue } from "./integrity-gate.js";
-import { runLocale } from "./locale-run.js";
+import { type LocaleRunParams, runLocale } from "./locale-run.js";
 
 function i18nextAdapter(): FormatAdapter {
   const resolution = createDefaultRegistry().resolve("", { format: "i18next-json" });
@@ -168,8 +180,8 @@ describe("runLocale: a markup-mismatched value is withheld on the android-xml pa
   });
 });
 
-describe("runLocale: the gate guards the cache-hit and content-duplicate paths too", () => {
-  it("withholds a cached value whose markup no longer matches its source", async () => {
+describe("runLocale: the gate guards the content-duplicate path too", () => {
+  it("withholds a markup-mismatched value from every key that shares its source content", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, "locales"));
     await writeJsonFile(join(dir, "locales", "en.json"), {
@@ -209,6 +221,129 @@ describe("runLocale: the gate guards the cache-hit and content-duplicate paths t
     expect(summary.integrityMismatches).toEqual(["one", "two"]);
     expect(lockEntries.one).toBeUndefined();
     expect(lockEntries.two).toBeUndefined();
+  });
+});
+
+async function i18nextRun(
+  sourceValues: Record<string, string>,
+  overrides: Partial<LocaleRunParams>,
+): Promise<{ dir: string; result: Awaited<ReturnType<typeof runLocale>> }> {
+  const dir = await makeTempDir();
+  await mkdir(join(dir, "locales"));
+  await writeJsonFile(join(dir, "locales", "en.json"), sourceValues);
+  const adapter = i18nextAdapter();
+  const source = (await adapter.read(join(dir, "locales", "en.json"), "en")).resource;
+  const result = await runLocale({
+    source,
+    sourceInvalidIcuKeys: [],
+    providerKind: "llm",
+    baseline: new Map(),
+    maxLength: undefined,
+    adapter,
+    provider: makeStubProvider({ translate: () => "Lies <b>die Doku</b>" }).provider,
+    cwd: dir,
+    resolver: createLocalePathResolver(dir, {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+    }),
+    sourceLocale: "en",
+    targetLocale: "de",
+    format: "i18next-json",
+    glossary: undefined,
+    tone: undefined,
+    prune: false,
+    generatePlurals: false,
+    maxBatchSize: 50,
+    fs: defaultFs,
+    budget: createBudgetTracker(undefined, "warn"),
+    ...overrides,
+  });
+  return { dir, result };
+}
+
+function memoryHolding(sourceValue: string, translation: string): TranslationMemory {
+  const hash = contentHash(entryFor(i18nextAdapter(), sourceValue));
+  return {
+    version: 2,
+    entries: { fp: { de: { [hash]: translation } } },
+    sources: { [hash]: sourceValue },
+  };
+}
+
+describe("runLocale: the markup gate guards reuse from the translation memory", () => {
+  const SOURCE = "Read <b>the docs</b> before you start the installation today";
+
+  it("refuses an exact cache hit whose markup was dropped and asks the provider instead", async () => {
+    const stub = makeStubProvider({ translate: () => "Lies <b>die Doku</b>" });
+    const { dir, result } = await i18nextRun(
+      { docs: SOURCE },
+      {
+        provider: stub.provider,
+        cache: { snapshot: memoryHolding(SOURCE, "Lies die Doku"), fingerprint: "fp" },
+      },
+    );
+
+    expect(result.summary.cacheHits).toEqual([]);
+    expect(stub.calls).toHaveLength(1);
+    expect(result.summary.translated).toEqual(["docs"]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({
+      docs: "Lies <b>die Doku</b>",
+    });
+  });
+
+  it("serves the same exact cache hit when its markup survives", async () => {
+    const stub = makeStubProvider();
+    const { result } = await i18nextRun(
+      { docs: SOURCE },
+      {
+        provider: stub.provider,
+        cache: { snapshot: memoryHolding(SOURCE, "Lies <b>die Doku</b>"), fingerprint: "fp" },
+      },
+    );
+
+    expect(result.summary.cacheHits).toEqual(["docs"]);
+    expect(stub.calls).toHaveLength(0);
+  });
+
+  it("refuses a fuzzy match whose markup was dropped and asks the provider instead", async () => {
+    const stub = makeStubProvider({ translate: () => "Lies <b>die Doku</b>" });
+    const { dir, result } = await i18nextRun(
+      { docs: `${SOURCE}!` },
+      {
+        provider: stub.provider,
+        cache: {
+          snapshot: memoryHolding(SOURCE, "Lies die Doku"),
+          fingerprint: "fp",
+          fuzzy: { threshold: 0.9 },
+        },
+      },
+    );
+
+    expect(result.summary.fuzzyHits).toEqual([]);
+    expect(stub.calls).toHaveLength(1);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({
+      docs: "Lies <b>die Doku</b>",
+    });
+  });
+
+  it("serves the same fuzzy match when its markup survives", async () => {
+    const stub = makeStubProvider();
+    const { result } = await i18nextRun(
+      { docs: `${SOURCE}!` },
+      {
+        provider: stub.provider,
+        cache: {
+          snapshot: memoryHolding(SOURCE, "Lies <b>die Doku</b>"),
+          fingerprint: "fp",
+          fuzzy: { threshold: 0.9 },
+        },
+      },
+    );
+
+    expect(result.summary.fuzzyHits.map((hit) => hit.key)).toEqual(["docs"]);
+    expect(stub.calls).toHaveLength(0);
   });
 });
 
