@@ -7,7 +7,8 @@ const SRC_ROOT = join(FLOW_ROOT, "..");
 
 const COVERED_BY: Readonly<Record<string, readonly string[]>> = {
   "flow/integrity-gate.ts": ["integrity-gate.test.ts", "integrity-gate-markup.test.ts"],
-  "flow/key-integrity.ts": ["key-integrity.test.ts"],
+  "flow/key-integrity.ts": ["key-integrity.test.ts", "markup-verdict.test.ts"],
+  "flow/markup-verdict.ts": ["markup-verdict.test.ts"],
   "flow/locale-run.ts": ["integrity-gate-agreement.test.ts"],
   "flow/edit-entry.ts": ["integrity-gate-agreement.test.ts"],
   "flow/retranslate-entry.ts": ["integrity-gate-agreement.test.ts"],
@@ -18,6 +19,9 @@ const COVERED_BY: Readonly<Record<string, readonly string[]>> = {
 
 const GATE_IMPORT =
   /import\s*\{[^}]*\bgateCandidateValue\b[^}]*\}\s*from\s*"[^"]*integrity-gate\.js"/s;
+
+const VERDICT_IMPORT =
+  /import\s*\{[^}]*\bjudgeEntryMarkup\b[^}]*\}\s*from\s*"[^"]*markup-verdict\.js"/s;
 
 const MARKUP_IMPORT = /import\s*\{[^}]*\bcompareInlineMarkup\b[^}]*\}\s*from\s*"@verbatra\/core"/s;
 
@@ -34,7 +38,7 @@ function sourceFilesUnder(dir: string, out: string[] = []): string[] {
 }
 
 function judgesMarkup(source: string): boolean {
-  return GATE_IMPORT.test(source) || MARKUP_IMPORT.test(source);
+  return GATE_IMPORT.test(source) || VERDICT_IMPORT.test(source) || MARKUP_IMPORT.test(source);
 }
 
 function gateCallSites(): readonly string[] {
@@ -72,6 +76,10 @@ describe("every place that judges inline markup is named by a test that drives i
 
   it("sees a call site that compares markup directly rather than through the gate", () => {
     expect(judgesMarkup('import { compareInlineMarkup } from "@verbatra/core";')).toBe(true);
+  });
+
+  it("sees a call site that judges markup through the shared verdict helper", () => {
+    expect(judgesMarkup('import { judgeEntryMarkup } from "./markup-verdict.js";')).toBe(true);
   });
 
   it("does not claim an ordinary module that merely mentions the names in a comment", () => {

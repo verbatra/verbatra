@@ -1,8 +1,6 @@
 import {
   checkPlaceholders,
-  compareInlineMarkup,
   diffResources,
-  inlineTagToken,
   type LocaleResource,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -12,6 +10,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { judgeEntryMarkup } from "./markup-verdict.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -73,17 +72,6 @@ export interface KeyIntegrityDeps {
   readonly fs?: SdkFs;
 }
 
-function ignoredTagsFor(placeholders: readonly string[]): readonly string[] {
-  const tags: string[] = [];
-  for (const placeholder of placeholders) {
-    const tag = inlineTagToken(placeholder);
-    if (tag !== undefined) {
-      tags.push(tag);
-    }
-  }
-  return tags;
-}
-
 function checkEntryIntegrity(
   adapter: FormatAdapter,
   sourceEntry: TranslationEntry,
@@ -92,9 +80,7 @@ function checkEntryIntegrity(
   const result =
     adapter.comparePlaceholders?.(sourceEntry.value, targetEntry.value) ??
     checkPlaceholders(sourceEntry.placeholders, targetEntry.placeholders);
-  const markup = compareInlineMarkup(sourceEntry.value, targetEntry.value, {
-    ignoreTags: ignoredTagsFor(sourceEntry.placeholders),
-  });
+  const markup = judgeEntryMarkup(sourceEntry, targetEntry.value);
   return {
     key: sourceEntry.key,
     hasPlaceholders: sourceEntry.placeholders.length > 0,
@@ -103,10 +89,7 @@ function checkEntryIntegrity(
     extra: result.extra,
     icuValid: adapter.validateMessage(targetEntry.value),
     markupMatches: markup.matches,
-    markupDetails: [
-      ...markup.missing.map((token) => `-${token}`),
-      ...markup.extra.map((token) => `+${token}`),
-    ],
+    markupDetails: markup.details,
   };
 }
 

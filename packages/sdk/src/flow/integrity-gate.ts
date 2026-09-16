@@ -1,13 +1,11 @@
 import {
   assessValueDegeneracy,
   checkPlaceholders,
-  compareInlineMarkup,
-  type InlineMarkupComparison,
-  inlineTagToken,
   type PlaceholderIntegrityResult,
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { judgeEntryMarkup } from "./markup-verdict.js";
 
 /**
  * Every reason a candidate translation can be refused before it is written. The same gate guards
@@ -81,24 +79,6 @@ export type IntegrityGateResult =
       readonly details?: readonly string[];
     };
 
-function placeholderTags(placeholders: readonly string[]): readonly string[] {
-  const tags: string[] = [];
-  for (const placeholder of placeholders) {
-    const tag = inlineTagToken(placeholder);
-    if (tag !== undefined) {
-      tags.push(tag);
-    }
-  }
-  return tags;
-}
-
-function markupDetails(comparison: InlineMarkupComparison): readonly string[] {
-  return [
-    ...comparison.missing.map((token) => `-${token}`),
-    ...comparison.extra.map((token) => `+${token}`),
-  ];
-}
-
 export function gateCandidateValue(
   sourceEntry: TranslationEntry,
   candidateValue: string,
@@ -110,13 +90,10 @@ export function gateCandidateValue(
   if (!placeholderResult.matches) {
     return { accepted: false, reason: "placeholder" };
   }
-  const markup = compareInlineMarkup(sourceEntry.value, candidateValue, {
-    ignoreTags: placeholderTags(sourceEntry.placeholders),
-  });
+  const markup = judgeEntryMarkup(sourceEntry, candidateValue);
   if (!markup.matches) {
-    const details = markupDetails(markup);
-    return details.length > 0
-      ? { accepted: false, reason: "markup", details }
+    return markup.details.length > 0
+      ? { accepted: false, reason: "markup", details: markup.details }
       : { accepted: false, reason: "markup" };
   }
   if (!adapter.validateMessage(candidateValue)) {
