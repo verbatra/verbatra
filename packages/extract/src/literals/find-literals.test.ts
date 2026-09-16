@@ -488,15 +488,15 @@ describe("findLiterals: inline suppression", () => {
     expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden"]);
   });
 
-  it("suppresses the whole element that starts on the next line", () => {
+  it("suppresses only what starts on the next line, not the children on later lines", () => {
     const result = findLiterals(
       [
         "const a = (",
         "  <div>",
         "    {/* verbatra-ignore-next-line */}",
         '    <p title="Hidden title">',
-        "      Hidden across lines",
-        "      <b>Also hidden</b>",
+        "      Shown across lines",
+        "      <b>Also shown</b>",
         "    </p>",
         "    <p>",
         "      Shown text",
@@ -508,12 +508,70 @@ describe("findLiterals: inline suppression", () => {
       true,
     );
 
-    expect(result.found.map((literal) => literal.text)).toEqual(["Shown text"]);
-    expect(result.suppressed.map((literal) => literal.text)).toEqual([
-      "Hidden title",
-      "Hidden across lines",
-      "Also hidden",
+    expect(result.found.map((literal) => literal.text)).toEqual([
+      "Shown across lines",
+      "Also shown",
+      "Shown text",
     ]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden title"]);
+  });
+
+  it("does not suppress the text of an element nested below a wrapping element", () => {
+    const result = findLiterals(
+      [
+        "export function Page() {",
+        "  return (",
+        "    // verbatra-ignore-next-line",
+        '    <div className="page">',
+        "      <h1>Title copy here</h1>",
+        "    </div>",
+        "  );",
+        "}",
+      ].join("\n"),
+      rules,
+      true,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Title copy here"]);
+    expect(result.suppressed).toEqual([]);
+  });
+
+  it("suppresses every attribute of an opening tag that starts on the next line", () => {
+    const result = findLiterals(
+      [
+        "const a = (",
+        "  <div>",
+        "    {/* verbatra-ignore-next-line */}",
+        "    <p",
+        '      title="Hover text"',
+        '      aria-label={open ? "Close the dialog" : "Open the dialog"}',
+        "    >",
+        "      Shown body text",
+        "    </p>",
+        "  </div>",
+        ");",
+      ].join("\n"),
+      rules,
+      true,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Shown body text"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual([
+      "Hover text",
+      "Close the dialog",
+      "Open the dialog",
+    ]);
+  });
+
+  it("targets the next line that holds code, skipping comment-only lines", () => {
+    const result = findLiterals(
+      '// verbatra-ignore-next-line\n// a note about the copy\n/* another note */\nconst a = "Hidden prose text";\nconst b = "Visible prose text";',
+      rules,
+      false,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Visible prose text"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden prose text"]);
   });
 
   it("skips blank lines between the directive and what it suppresses", () => {

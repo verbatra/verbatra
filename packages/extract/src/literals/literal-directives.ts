@@ -1,4 +1,5 @@
-import type { PositionedScan, PositionedToken, SourceComment } from "../scan/tokenize.js";
+import type { PositionedScan, PositionedToken } from "../scan/tokenize.js";
+import { isPunct } from "./literal-frames.js";
 
 const IGNORE_NEXT_LINE = /verbatra-ignore-next-line(?![\w-])/;
 
@@ -10,10 +11,6 @@ interface TokenRange {
 }
 
 export type DirectiveCheck = (token: PositionedToken, index: number) => boolean;
-
-function nextTokenLine(tokens: readonly PositionedToken[], afterLine: number): number | undefined {
-  return tokens.find((token) => token.line > afterLine)?.line;
-}
 
 function elementEnd(tokens: readonly PositionedToken[], openIndex: number): number {
   let depth = 0;
@@ -31,39 +28,96 @@ function elementEnd(tokens: readonly PositionedToken[], openIndex: number): numb
   return tokens.length - 1;
 }
 
-function elementsStartingOn(tokens: readonly PositionedToken[], line: number): TokenRange[] {
-  const ranges: TokenRange[] = [];
-  tokens.forEach((token, index) => {
-    if (token.kind === "markup-open" && token.line === line) {
-      ranges.push({ first: index, last: elementEnd(tokens, index) });
+function bracedEnd(tokens: readonly PositionedToken[], braceIndex: number): number {
+  let depth = 0;
+  for (let index = braceIndex; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    depth += isPunct(token, "{") ? 1 : 0;
+    depth -= isPunct(token, "}") ? 1 : 0;
+    if (depth === 0) {
+      return index;
     }
-  });
-  return ranges;
-}
-
-function suppressNextLine(
-  tokens: readonly PositionedToken[],
-  comment: SourceComment,
-  lines: Set<number>,
-  ranges: TokenRange[],
-): void {
-  const line = nextTokenLine(tokens, comment.endLine);
-  if (line !== undefined) {
-    lines.add(line);
-    ranges.push(...elementsStartingOn(tokens, line));
   }
+  return tokens.length - 1;
 }
 
-export function directiveSuppression(scan: PositionedScan): DirectiveCheck {
+function attributeValueEnd(tokens: readonly PositionedToken[], valueIndex: number): number {
+  const value = tokens[valueIndex];
+  if (value?.kind === "markup-open") {
+    return elementEnd(tokens, valueIndex);
+  }
+  return isPunct(value, "{") ? bracedEnd(tokens, valueIndex) : valueIndex;
+}
+
+function openingTagEnd(tokens: readonly PositionedToken[], openIndex: number): number {
+  let last = openIndex;
+  while (tokens[last + 1]?.kind === "markup-attribute") {
+    last = attributeValueEnd(tokens, last + 2);
+  }
+  return last;
+}
+
+function directiveLines(scan: PositionedScan): { lines: Set<number>; nextLineAfter: number[] } {
   const lines = new Set<number>();
-  const ranges: TokenRange[] = [];
+  const nextLineAfter: number[] = [];
   for (const comment of scan.comments) {
     if (IGNORE_NEXT_LINE.test(comment.text)) {
-      suppressNextLine(scan.tokens, comment, lines, ranges);
+      nextLineAfter.push(comment.endLine);
     } else if (IGNORE_LINE.test(comment.text)) {
       lines.add(comment.line);
     }
   }
-  return (token, index) =>
-    lines.has(token.line) || ranges.some((range) => index >= range.first && index <= range.last);
+  nextLineAfter.sort((left, right) => left - right);
+  return { lines, nextLineAfter };
+}
+
+function addOpeningTagRanges(
+  tokens: readonly PositionedToken[],
+  lineStart: number,
+  ranges: TokenRange[],
+): void {
+  const line = tokens[lineStart]?.line;
+  for (let index = lineStart; tokens[index]?.line === line; index += 1) {
+    const covered = (ranges[ranges.length - 1]?.last ?? -1) >= index;
+    if (tokens[index]?.kind === "markup-open" && !covered) {
+      ranges.push({ first: index, last: openingTagEnd(tokens, index) });
+    }
+  }
+}
+
+function isInRanges(ranges: readonly TokenRange[], index: number): boolean {
+  let low = 0;
+  let high = ranges.length - 1;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const range = ranges[middle] ?? { first: 0, last: -1 };
+    if (index < range.first) {
+      high = middle - 1;
+    } else if (index > range.last) {
+      low = middle + 1;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function directiveSuppression(scan: PositionedScan): DirectiveCheck {
+  const { tokens } = scan;
+  const { lines, nextLineAfter } = directiveLines(scan);
+  const ranges: TokenRange[] = [];
+  let lineStart = 0;
+  let targeted: number | undefined;
+  for (const endLine of nextLineAfter) {
+    while ((tokens[lineStart]?.line ?? Number.POSITIVE_INFINITY) <= endLine) {
+      lineStart += 1;
+    }
+    const line = tokens[lineStart]?.line;
+    if (line !== undefined && line !== targeted) {
+      targeted = line;
+      lines.add(line);
+      addOpeningTagRanges(tokens, lineStart, ranges);
+    }
+  }
+  return (token, index) => lines.has(token.line) || isInRanges(ranges, index);
 }

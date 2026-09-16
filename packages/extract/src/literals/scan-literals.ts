@@ -33,9 +33,11 @@ export interface LiteralFinding {
 /**
  * Why a literal that would have been reported was held back.
  *
- * - `directive`: a `verbatra-ignore-next-line` comment above it (the directive covers the next
- *   non-blank line and, when a JSX element starts on that line, the whole element), or a
- *   `verbatra-ignore-line` comment on the same line.
+ * - `directive`: a `verbatra-ignore-next-line` comment above it, or a `verbatra-ignore-line`
+ *   comment on the same line. A next-line directive targets the next line that holds code, skipping
+ *   blank and comment-only lines, and covers every literal that starts on that line plus every
+ *   attribute of a JSX opening tag that starts there, even when the tag spans several lines. Text and
+ *   nested elements on later lines are not covered.
  * - `ignore-list`: its text is listed in `extract.literals.ignore`.
  */
 export type LiteralSuppressionReason = "directive" | "ignore-list";

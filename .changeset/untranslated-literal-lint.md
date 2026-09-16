@@ -28,8 +28,10 @@ deeper inside one of those calls, such as in a callback, an object, or JSX, is s
 function that only ends in `Error`, such as `setError`, is still checked.
 
 A `// verbatra-ignore-next-line` or `// verbatra-ignore-line` comment (also as `{/* ... */}` in JSX)
-holds a literal back at the call site. A next-line directive covers the next non-blank line and,
-when a JSX element starts there, that whole element. The new optional `extract.literals.ignore` list
+holds a literal back at the call site. A next-line directive targets the next line that holds code
+(blank and comment-only lines are skipped) and covers what starts on that line, plus every attribute
+of a JSX opening tag that starts there, even across lines; text and nested elements on later lines
+need their own directive. The new optional `extract.literals.ignore` list
 holds exact texts back project-wide, matched against the text as reported (whitespace collapsed,
 character references decoded). Held-back literals are still listed, under `suppressed`, with
 the reason.
