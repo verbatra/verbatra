@@ -38,7 +38,7 @@ const AUTHORITY_END = /[/\\?#]/;
 const NON_SPECIAL_AUTHORITY_END = /[/?#]/;
 const BACKSLASH = /\\|%5c/;
 const SPECIAL_SCHEMES: ReadonlySet<string> = new Set(["file", "ftp", "http", "https", "ws", "wss"]);
-const REPLACEMENT_CHARACTER = "�";
+const REPLACEMENT_CHARACTER = "\uFFFD";
 
 function decodeNumeric(
   _match: string,
