@@ -15,8 +15,9 @@ export interface InconsistentTranslation {
 
 /**
  * One source string that is translated more than one way within a single target locale. Keys are
- * grouped only when their source value, description, meaning, plural flag, and context all agree,
- * so a string that deliberately carries different disambiguation metadata is never reported.
+ * grouped only when their source value, description, meaning, plural flag, plural form, and context
+ * all agree, so a string that deliberately carries different disambiguation metadata is never
+ * reported.
  */
 export interface InconsistencyGroup {
   /** The shared source value in its compared form (see {@link InconsistentTranslation.value}). */
@@ -29,12 +30,18 @@ export interface InconsistencyGroup {
   readonly meaning?: string;
   /** Whether the grouped source entries carry plural forms. */
   readonly isPlural: boolean;
+  /**
+   * The plural form every key in the group shares (a CLDR category such as `one`, or a format's own
+   * plural index), when the format encodes one per key. Different forms of one key are never grouped.
+   */
+  readonly pluralForm?: string;
   /** Every distinct translation, at least two, sorted by value in UTF-16 code unit order. */
   readonly translations: readonly InconsistentTranslation[];
 }
 
 export interface InconsistentTranslationsOptions {
   readonly contextOf?: (key: string) => string | undefined;
+  readonly pluralFormOf?: (key: string) => string | undefined;
 }
 
 interface GroupIdentity {
@@ -43,6 +50,7 @@ interface GroupIdentity {
   readonly description: string | undefined;
   readonly meaning: string | undefined;
   readonly isPlural: boolean;
+  readonly pluralForm: string | undefined;
 }
 
 interface GroupAccumulator {
@@ -69,6 +77,7 @@ function identityOf(
     description: optionalNormalized(sourceEntry.description),
     meaning: optionalNormalized(sourceEntry.meaning),
     isPlural: sourceEntry.isPlural,
+    pluralForm: sourceEntry.isPlural ? options.pluralFormOf?.(key) : undefined,
   };
 }
 
@@ -79,6 +88,7 @@ function groupKeyOf(identity: GroupIdentity): string {
     identity.description ?? null,
     identity.meaning ?? null,
     identity.isPlural,
+    identity.pluralForm ?? null,
   ]);
 }
 
@@ -102,7 +112,8 @@ function compareIdentities(left: GroupIdentity, right: GroupIdentity): number {
     compareOptional(left.context, right.context) ||
     compareOptional(left.description, right.description) ||
     compareOptional(left.meaning, right.meaning) ||
-    Number(left.isPlural) - Number(right.isPlural)
+    Number(left.isPlural) - Number(right.isPlural) ||
+    compareOptional(left.pluralForm, right.pluralForm)
   );
 }
 
@@ -137,6 +148,7 @@ function toGroup(accumulator: GroupAccumulator): InconsistencyGroup {
     ...(identity.description !== undefined ? { description: identity.description } : {}),
     ...(identity.meaning !== undefined ? { meaning: identity.meaning } : {}),
     isPlural: identity.isPlural,
+    ...(identity.pluralForm !== undefined ? { pluralForm: identity.pluralForm } : {}),
     translations,
   };
 }

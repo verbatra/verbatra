@@ -31,6 +31,10 @@ function catalog(rows: readonly Row[], sourceOverrides: Partial<TranslationEntry
   return { source, target, keys: rows.map(([key]) => key) };
 }
 
+function suffixPluralForm(key: string): string | undefined {
+  return /_(zero|one|two|few|many|other)$/.exec(key)?.[1];
+}
+
 function findIn(rows: readonly Row[]) {
   const { source, target, keys } = catalog(rows);
   return findInconsistentTranslations(source, target, keys);
@@ -299,6 +303,85 @@ describe("findInconsistentTranslations", () => {
       ["d", "m", false],
       ["e", undefined, false],
     ]);
+  });
+
+  it("never groups the different plural forms of one key with each other", () => {
+    const source = resource("en", [
+      entry({ key: "selected_one", value: "{{count}} selected", isPlural: true }),
+      entry({ key: "selected_other", value: "{{count}} selected", isPlural: true }),
+    ]);
+    const target = resource("ru", [
+      entry({ key: "selected_one", value: "Выбран {{count}}", isPlural: true }),
+      entry({ key: "selected_other", value: "Выбрано {{count}}", isPlural: true }),
+    ]);
+    expect(
+      findInconsistentTranslations(source, target, [...source.entries.keys()], {
+        pluralFormOf: suffixPluralForm,
+      }),
+    ).toEqual([]);
+  });
+
+  it("groups the same plural form across different keys and reports that form", () => {
+    const source = resource("en", [
+      entry({ key: "a_one", value: "{{count}} file", isPlural: true }),
+      entry({ key: "a_other", value: "{{count}} files", isPlural: true }),
+      entry({ key: "b_one", value: "{{count}} file", isPlural: true }),
+      entry({ key: "b_other", value: "{{count}} files", isPlural: true }),
+    ]);
+    const target = resource("ru", [
+      entry({ key: "a_one", value: "{{count}} файл", isPlural: true }),
+      entry({ key: "a_other", value: "{{count}} файлов", isPlural: true }),
+      entry({ key: "b_one", value: "{{count}} документ", isPlural: true }),
+      entry({ key: "b_other", value: "{{count}} файлов", isPlural: true }),
+    ]);
+    expect(
+      findInconsistentTranslations(source, target, [...source.entries.keys()], {
+        pluralFormOf: suffixPluralForm,
+      }),
+    ).toEqual([
+      {
+        source: "{{count}} file",
+        isPlural: true,
+        pluralForm: "one",
+        translations: [
+          { value: "{{count}} документ", keys: ["b_one"] },
+          { value: "{{count}} файл", keys: ["a_one"] },
+        ],
+      },
+    ]);
+  });
+
+  it("orders groups sharing a source and plural flag by plural form", () => {
+    const rows = ["x_other", "y_other", "x_one", "y_one"];
+    const source = resource(
+      "en",
+      rows.map((key) => entry({ key, value: "{{count}} selected", isPlural: true })),
+    );
+    const target = resource(
+      "de",
+      rows.map((key) => entry({ key, value: `${key} ausgewählt`, isPlural: true })),
+    );
+    const groups = findInconsistentTranslations(source, target, rows, {
+      pluralFormOf: suffixPluralForm,
+    });
+    expect(groups.map((group) => group.pluralForm)).toEqual(["one", "other"]);
+  });
+
+  it("asks for a plural form only for plural entries", () => {
+    const { source, target, keys } = catalog([
+      ["size_few", "Small", "Klein"],
+      ["size_many", "Small", "Winzig"],
+    ]);
+    const asked: string[] = [];
+    const groups = findInconsistentTranslations(source, target, keys, {
+      pluralFormOf: (key) => {
+        asked.push(key);
+        return suffixPluralForm(key);
+      },
+    });
+    expect(asked).toEqual([]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).not.toHaveProperty("pluralForm");
   });
 
   it("reads each key's entries once and resolves its context once, however large the catalog", () => {
