@@ -206,6 +206,34 @@ describe("render: check consistency report", () => {
     });
     expect(text).toContain('    "%d file" (plural form "one") is translated 2 ways:');
   });
+
+  it("folds Unicode line and paragraph separators in untrusted text to spaces", () => {
+    const text = renderCheckHuman({
+      inSync: true,
+      locales: [
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 2,
+          inSync: true,
+          inconsistencies: [
+            {
+              source: "Save\u2028now",
+              isPlural: false,
+              translations: [
+                { value: "Sichern\u2029jetzt", keys: ["a\u2028b"] },
+                { value: "Speichern", keys: ["c"] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(text).not.toMatch(/[\u2028\u2029]/);
+    expect(text).toContain('"Save now" is translated 2 ways:');
+    expect(text).toContain('"Sichern jetzt": a b');
+  });
 });
 
 describe("render: diff summary", () => {

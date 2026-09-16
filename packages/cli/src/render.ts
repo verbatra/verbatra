@@ -143,7 +143,7 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
 const FUZZY_SOURCE_PREVIEW = 40;
 
 function neutralizeControlCharacters(text: string): string {
-  return text.replace(/[\p{Cc}\p{Cf}]/gu, " ");
+  return text.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, " ");
 }
 
 function previewSource(source: string): string {
