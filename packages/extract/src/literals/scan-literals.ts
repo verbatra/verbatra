@@ -30,7 +30,8 @@ export interface LiteralFinding {
 /**
  * Why a literal that would have been reported was held back.
  *
- * - `directive`: a `verbatra-ignore-next-line` comment on the line above, or a
+ * - `directive`: a `verbatra-ignore-next-line` comment above it (the directive covers the next
+ *   non-blank line and, when a JSX element starts on that line, the whole element), or a
  *   `verbatra-ignore-line` comment on the same line.
  * - `ignore-list`: its text is listed in `extract.literals.ignore`.
  */

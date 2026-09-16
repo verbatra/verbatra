@@ -361,6 +361,56 @@ describe("findLiterals: inline suppression", () => {
     expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden"]);
   });
 
+  it("suppresses the whole element that starts on the next line", () => {
+    const result = findLiterals(
+      [
+        "const a = (",
+        "  <div>",
+        "    {/* verbatra-ignore-next-line */}",
+        '    <p title="Hidden title">',
+        "      Hidden across lines",
+        "      <b>Also hidden</b>",
+        "    </p>",
+        "    <p>",
+        "      Shown text",
+        "    </p>",
+        "  </div>",
+        ");",
+      ].join("\n"),
+      rules,
+      true,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Shown text"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual([
+      "Hidden title",
+      "Hidden across lines",
+      "Also hidden",
+    ]);
+  });
+
+  it("skips blank lines between the directive and what it suppresses", () => {
+    const result = findLiterals(
+      '// verbatra-ignore-next-line\n\n  \nconst a = "Hidden prose text";\nconst b = "Visible prose text";',
+      rules,
+      false,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Visible prose text"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden prose text"]);
+  });
+
+  it("does not stretch a next-line directive over an element that starts later", () => {
+    const result = findLiterals(
+      "// verbatra-ignore-next-line\nconst a = (\n  <p>Shown text</p>\n);\n// verbatra-ignore-next-line",
+      rules,
+      true,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Shown text"]);
+    expect(result.suppressed).toEqual([]);
+  });
+
   it("suppresses the same line with a trailing comment", () => {
     const result = findLiterals(
       'const a = "Hidden prose text"; // verbatra-ignore-line',
