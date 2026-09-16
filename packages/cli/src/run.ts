@@ -245,6 +245,21 @@ function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?:
   };
 }
 
+async function withLoadedRunErrors<Loaded>(
+  context: CommandContext,
+  load: () => Promise<Loaded>,
+  body: (loaded: Loaded) => Promise<number>,
+  beforeLoad?: () => void,
+): Promise<number> {
+  try {
+    beforeLoad?.();
+    const loaded = await load();
+    return await body(loaded);
+  } catch (error) {
+    return renderFailureExit2(error, context);
+  }
+}
+
 async function withWholeRunErrors(
   deps: CliDeps,
   context: CommandContext,
@@ -252,13 +267,7 @@ async function withWholeRunErrors(
   body: (config: Awaited<ReturnType<CliDeps["loadConfig"]>>) => Promise<number>,
   beforeLoad?: () => void,
 ): Promise<number> {
-  try {
-    beforeLoad?.();
-    const config = await deps.loadConfig(loadOpts);
-    return await body(config);
-  } catch (error) {
-    return renderFailureExit2(error, context);
-  }
+  return withLoadedRunErrors(context, () => deps.loadConfig(loadOpts), body, beforeLoad);
 }
 
 const MAX_DEBOUNCE_MS = 60_000;
@@ -658,20 +667,22 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      try {
-        const loaded = await deps.loadConfigWithMeta(
-          loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        );
-        const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
-        streams.out(
-          context.json
-            ? `${renderSuccessEnvelope("types", result)}\n`
-            : `${renderTypesHuman(result)}\n`,
-        );
-        return result.check && result.stale ? 1 : 0;
-      } catch (error) {
-        return renderFailureExit2(error, context);
-      }
+      return withLoadedRunErrors(
+        context,
+        () =>
+          deps.loadConfigWithMeta(
+            loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          ),
+        async (loaded) => {
+          const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("types", result)}\n`
+              : `${renderTypesHuman(result)}\n`,
+          );
+          return result.check && result.stale ? 1 : 0;
+        },
+      );
     },
   );
 }
