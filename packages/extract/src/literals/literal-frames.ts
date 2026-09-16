@@ -88,13 +88,18 @@ export function isTypeAnnotationColon(
   return DECLARATION_KEYWORDS.has(identValue(tokens[colonIndex - 2]) ?? "");
 }
 
+function isAngleClose(tokens: readonly PositionedToken[], index: number): boolean {
+  return isPunct(tokens[index], ">") && !isPunct(tokens[index - 1], "=");
+}
+
 function skipTypeArgumentsBackward(tokens: readonly PositionedToken[], index: number): number {
-  if (!isPunct(tokens[index], ">")) {
+  if (!isAngleClose(tokens, index)) {
     return index;
   }
   let depth = 0;
-  for (let cursor = index; cursor >= 0; cursor -= 1) {
-    if (isPunct(tokens[cursor], ">")) {
+  const floor = Math.max(0, index - LOOKBEHIND_LIMIT);
+  for (let cursor = index; cursor >= floor; cursor -= 1) {
+    if (isAngleClose(tokens, cursor)) {
       depth += 1;
     } else if (isPunct(tokens[cursor], "<")) {
       depth -= 1;
