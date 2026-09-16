@@ -20,6 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | directorio actual | resuelve la config y los archivos de locale desde este directorio |
 | `--config` | `<path>` | se busca uno | carga este archivo de config en lugar de buscar uno |
+| `--literals` | ninguno | desactivado | en lugar de comprobar la configuración, busca strings visibles para el usuario escritos a mano en las raíces de código del [bloque `extract`](/docs/config-file#extract) (ver más abajo) |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el informe bajo `result`; la línea de error legible por humanos sigue yendo a stderr |
 
 ## Qué comprueba
@@ -41,7 +42,37 @@ Cuatro detalles importan:
 - Un archivo de locale **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Los archivos destino no se comprueban en absoluto.
 - El archivo de locale **fuente** se lee y se parsea, no solo se comprueba su existencia. Un directorio en su lugar, un archivo vacío y contenido malformado fallan esta comprobación con el mismo mensaje que daría [`verbatra check`](/docs/cli/check), porque esos son justo los casos que hacen fallar a todos los demás comandos. Cuando el `format` configurado no resuelve a ningún adaptador no hay con qué parsear, así que la comprobación vuelve a la mera existencia y lo indica.
 
-Igual que [`verbatra translate`](/docs/cli/translate), `doctor` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de mirar el entorno, así que una clave guardada en un archivo dotenv cuenta como definida.
+Igual que [`verbatra translate`](/docs/cli/translate), `doctor` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de mirar el entorno, así que una clave guardada en un archivo dotenv cuenta como definida. Con `--literals` no carga ninguno de los dos archivos.
+
+## Literales sin traducir
+
+<AvailableFrom version="0.11.0" />
+
+`verbatra doctor --literals` busca el único error de i18n que ninguna otra comprobación ve: un string visible para el usuario que nunca llegó a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/docs/config-file#extract) e informa de cada string escrito a mano que se lee como texto para el usuario pero no pasa por ninguna llamada de traducción. Lee tu código y nunca lo escribe, no construye ningún proveedor, no lee ninguna variable de clave API y no carga ningún archivo `.env`, así que pasa en un job sin secretos. En este modo solo se ejecutan dos comprobaciones: la configuración y el escaneo de literales.
+
+Cada hallazgo indica archivo, línea y columna, y su texto se recorta a 80 caracteres como máximo:
+
+```text
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+1 problem found (run verbatra doctor again after fixing them)
+```
+
+Qué cuenta como hallazgo:
+
+- Texto JSX, como `<p>Welcome back</p>`, en archivos `.tsx`, `.jsx` y `.js`.
+- El valor de un atributo JSX visible para el usuario: `alt`, `title`, `placeholder`, `label`, `aria-label` y los demás atributos `aria-*` que llevan texto.
+- Un string en cualquier otra posición que se lee como prosa, es decir, de dos o más palabras. Una sola palabra fuera de JSX, como un nombre de evento o un valor de opción, no se informa.
+
+Lo que nunca se informa: un string pasado a una llamada de traducción reconocida (`t(...)`, `$t(...)`, `i18n.t(...)`) o renderizado dentro de `<Trans>`, una clave de objeto, un especificador de import, un nombre de clase o valor CSS, un test id o atributo `data-*`, una URL, un literal en posición de tipo, un mensaje de log o de error, un operando de comparación, un template literal con una expresión, un string sin letras (puntuación, espacios, un número, un emoji, un símbolo) y todo lo que esté en archivos de test, stories, declaraciones o configuración.
+
+Para retener un literal, pon `// verbatra-ignore-next-line` en la línea de arriba (en JSX, `{/* verbatra-ignore-next-line */}`), o `// verbatra-ignore-line` al final de su propia línea. Para un string que está bien en todas partes, como un nombre de marca, añádelo en `extract.literals.ignore` en [el archivo de config](/docs/config-file#extract). Un literal retenido se sigue listando como suprimido, con el motivo, así que nada desaparece en silencio.
+
+La comprobación falla cuando encuentra un literal, y también cuando un archivo no se pudo escanear. Un archivo que el escáner no puede parsear, no puede leer o considera demasiado grande se lista como no escaneado y el resto del escaneo continúa, pero la ejecución nunca se informa como limpia. Un proyecto sin bloque `extract` hace fallar la comprobación con un mensaje que nombra el bloque. Con `--json`, el escaneo viaja en el envoltorio bajo `result.literals`, dividido en `findings`, `suppressed` y `diagnostics`.
 
 ## Ejemplos
 
@@ -54,6 +85,9 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 
 # machine-readable report for a CI preflight step
 verbatra doctor --json
+
+# list hardcoded user-facing strings in your source, with no key set
+verbatra doctor --literals
 ```
 
 Una ejecución con dos problemas se ve así:
@@ -73,7 +107,7 @@ verbatra doctor
 | Código | Significado |
 | --- | --- |
 | `0` | todas las comprobaciones pasaron |
-| `1` | al menos una comprobación falló (el informe completo se imprime igualmente) |
+| `1` | al menos una comprobación falló (el informe completo se imprime igualmente); con `--literals`, se encontró un literal o un archivo no se pudo escanear |
 | `2` | no pudo ejecutarse: un error de uso, o una ruta `--config` explícita que no existe |
 
 La salida `1` significa "se ejecutó y encontró problemas". La salida `2` queda reservada a que `doctor` no pueda ejecutarse en absoluto, por eso un archivo de config que la búsqueda no encuentra es una comprobación fallida y salida `1`, mientras que una ruta `--config` que apunta a la nada es salida `2`.

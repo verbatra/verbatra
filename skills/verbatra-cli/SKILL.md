@@ -80,7 +80,7 @@ Read this table before running anything unattended.
 | `check` | no | no | no |
 | `diff` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
-| `doctor` | no | no | no, it never reads a key value |
+| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one |
 | `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
 | `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
 | `init` | no | yes, the config and env example | no |

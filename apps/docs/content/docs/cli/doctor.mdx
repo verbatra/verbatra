@@ -20,6 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
+| `--literals` | none | off | scan the source roots of the [`extract` block](/docs/config-file#extract) for hardcoded user-facing strings instead of checking the setup (see [Untranslated literals](#untranslated-literals)) |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the report under `result`; the human-readable error line still goes to stderr |
 
 ## What it checks
@@ -41,7 +42,37 @@ Four details are worth knowing:
 - A missing **target** locale file is not a problem: [`verbatra translate`](/docs/cli/translate) creates it. Target files are not checked at all.
 - The **source** locale file is read and parsed, not merely probed for. A directory standing in for it, an empty file, and malformed content all fail this check with the same message [`verbatra check`](/docs/cli/check) would give, because those are exactly the cases that make every other command fail. When the configured `format` resolves to no adapter there is nothing to parse with, so the check falls back to existence alone and says so.
 
-Like [`verbatra translate`](/docs/cli/translate), `doctor` loads `.env.local` and then `.env` from the working directory before it looks at the environment, so a key kept in a dotenv file counts as set.
+Like [`verbatra translate`](/docs/cli/translate), `doctor` loads `.env.local` and then `.env` from the working directory before it looks at the environment, so a key kept in a dotenv file counts as set. With `--literals` it loads neither file.
+
+## Untranslated literals
+
+<AvailableFrom version="0.11.0" />
+
+`verbatra doctor --literals` looks for the one i18n bug no other check can see: a user-facing string that never made it into a catalog. It walks the source roots of your [`extract` block](/docs/config-file#extract) and reports every hardcoded string that reads as user-facing text but does not go through a translation call. It reads your source and never writes it, constructs no provider, reads no API key variable, and loads no `.env` file, so it passes in a job that holds no secrets. In this mode only two checks run: the configuration and the literal scan.
+
+Every finding names its file, line, and column, and its text is cut to at most 80 characters:
+
+```text
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+1 problem found (run verbatra doctor again after fixing them)
+```
+
+What counts as a finding:
+
+- JSX text, such as `<p>Welcome back</p>`, in `.tsx`, `.jsx`, and `.js` files.
+- The value of a user-facing JSX attribute: `alt`, `title`, `placeholder`, `label`, `aria-label`, and the other text-carrying `aria-*` attributes.
+- A string anywhere else that reads as prose, meaning two or more words. A single word outside JSX, such as an event name or an option value, is not reported.
+
+What is never reported: a string passed to a recognised translation call (`t(...)`, `$t(...)`, `i18n.t(...)`) or rendered inside `<Trans>`, an object key, an import specifier, a class name or CSS value, a test id or `data-*` attribute, a URL, a literal in a type position, a logging or error message, a comparison operand, a template literal carrying an expression, a string with no letters (punctuation, whitespace, a number, an emoji, a symbol), and anything in test, story, declaration, or config files.
+
+To hold one literal back, put `// verbatra-ignore-next-line` on the line above it (in JSX, `{/* verbatra-ignore-next-line */}`), or `// verbatra-ignore-line` at the end of its own line. For a string that is fine everywhere, such as a brand name, list it under `extract.literals.ignore` in [the config file](/docs/config-file#extract). A held-back literal is still listed as suppressed, with the reason, so nothing disappears silently.
+
+The check fails when it finds a literal, and also when a file could not be scanned. A file the scanner cannot parse, cannot read, or finds too large is listed as not scanned and the rest of the scan carries on, but the run is never reported as clean. A project with no `extract` block fails the check with a message naming the block. With `--json`, the scan travels in the envelope under `result.literals`, split into `findings`, `suppressed`, and `diagnostics`.
 
 ## Examples
 
@@ -54,6 +85,9 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 
 # machine-readable report for a CI preflight step
 verbatra doctor --json
+
+# list hardcoded user-facing strings in your source, with no key set
+verbatra doctor --literals
 ```
 
 A run with two problems looks like this:
@@ -73,7 +107,7 @@ verbatra doctor
 | Code | Meaning |
 | --- | --- |
 | `0` | every check passed |
-| `1` | at least one check failed (the full report is still printed) |
+| `1` | at least one check failed (the full report is still printed); with `--literals`, a literal was found or a file could not be scanned |
 | `2` | could not run: a usage error, or an explicit `--config` path that does not exist |
 
 Exit `1` means "it ran, and it found problems". Exit `2` is reserved for `doctor` being unable to run at all, which is why a missing config file found by search is a failed check and exit `1`, while a `--config` path pointing at nothing is exit `2`.

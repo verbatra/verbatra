@@ -20,6 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
+| `--literals` | aucun | désactivé | au lieu de vérifier la configuration, cherche des chaînes visibles par l'utilisateur écrites en dur dans les racines de code du [bloc `extract`](/docs/config-file#extract) (voir plus bas) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le rapport sous `result` ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 ## Ce qu'il vérifie
@@ -41,7 +42,37 @@ Quatre détails comptent :
 - Un fichier de locale **cible** manquant n'est pas un problème : [`verbatra translate`](/docs/cli/translate) le crée. Les fichiers cibles ne sont pas vérifiés du tout.
 - Le fichier de locale **source** est lu et parsé, pas seulement sondé. Un répertoire à sa place, un fichier vide et un contenu malformé font tous échouer cette vérification avec le message que [`verbatra check`](/docs/cli/check) donnerait, car ce sont exactement les cas qui font échouer toutes les autres commandes. Quand le `format` configuré ne résout aucun adaptateur, il n'y a rien avec quoi parser, donc la vérification retombe sur la seule existence et le signale.
 
-Comme [`verbatra translate`](/docs/cli/translate), `doctor` charge `.env.local` puis `.env` depuis le répertoire de travail avant de regarder l'environnement : une clé rangée dans un fichier dotenv compte donc comme définie.
+Comme [`verbatra translate`](/docs/cli/translate), `doctor` charge `.env.local` puis `.env` depuis le répertoire de travail avant de regarder l'environnement : une clé rangée dans un fichier dotenv compte donc comme définie. Avec `--literals`, il ne charge aucun des deux fichiers.
+
+## Littéraux non traduits
+
+<AvailableFrom version="0.11.0" />
+
+`verbatra doctor --literals` cherche le seul bug i18n qu'aucune autre vérification ne voit : une chaîne visible par l'utilisateur qui n'est jamais arrivée dans un catalogue. Il parcourt les racines de code de ton [bloc `extract`](/docs/config-file#extract) et signale chaque chaîne écrite en dur qui se lit comme un texte destiné à l'utilisateur mais ne passe par aucun appel de traduction. Il lit ton code et ne l'écrit jamais, ne construit aucun fournisseur, ne lit aucune variable de clé d'API et ne charge aucun fichier `.env` : il passe donc dans un job sans secrets. Dans ce mode, seules deux vérifications s'exécutent : la configuration et l'analyse des littéraux.
+
+Chaque résultat indique le fichier, la ligne et la colonne, et son texte est coupé à 80 caractères au plus :
+
+```text
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+1 problem found (run verbatra doctor again after fixing them)
+```
+
+Ce qui compte comme un résultat :
+
+- Le texte JSX, comme `<p>Welcome back</p>`, dans les fichiers `.tsx`, `.jsx` et `.js`.
+- La valeur d'un attribut JSX visible par l'utilisateur : `alt`, `title`, `placeholder`, `label`, `aria-label` et les autres attributs `aria-*` porteurs de texte.
+- Une chaîne à tout autre endroit qui se lit comme de la prose, c'est-à-dire de deux mots ou plus. Un mot isolé hors JSX, comme un nom d'événement ou une valeur d'option, n'est pas signalé.
+
+Ce qui n'est jamais signalé : une chaîne passée à un appel de traduction reconnu (`t(...)`, `$t(...)`, `i18n.t(...)`) ou rendue dans `<Trans>`, une clé d'objet, un spécificateur d'import, un nom de classe ou une valeur CSS, un test id ou un attribut `data-*`, une URL, un littéral en position de type, un message de log ou d'erreur, un opérande de comparaison, un template literal contenant une expression, une chaîne sans lettres (ponctuation, espaces, un nombre, un emoji, un symbole) et tout ce qui se trouve dans les fichiers de test, de stories, de déclaration ou de configuration.
+
+Pour retenir un littéral, mets `// verbatra-ignore-next-line` sur la ligne au-dessus (en JSX, `{/* verbatra-ignore-next-line */}`), ou `// verbatra-ignore-line` à la fin de sa propre ligne. Pour une chaîne qui convient partout, comme un nom de marque, ajoute-la sous `extract.literals.ignore` dans [le fichier de config](/docs/config-file#extract). Un littéral retenu reste listé comme supprimé, avec la raison : rien ne disparaît en silence.
+
+La vérification échoue quand elle trouve un littéral, et aussi quand un fichier n'a pas pu être analysé. Un fichier que l'analyseur ne peut pas parser, ne peut pas lire ou juge trop gros est listé comme non analysé et le reste de l'analyse continue, mais l'exécution n'est jamais signalée comme propre. Un projet sans bloc `extract` fait échouer la vérification avec un message qui nomme le bloc. Avec `--json`, l'analyse voyage dans l'enveloppe sous `result.literals`, répartie en `findings`, `suppressed` et `diagnostics`.
 
 ## Exemples
 
@@ -54,6 +85,9 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 
 # machine-readable report for a CI preflight step
 verbatra doctor --json
+
+# list hardcoded user-facing strings in your source, with no key set
+verbatra doctor --literals
 ```
 
 Une exécution avec deux problèmes ressemble à ceci :
@@ -73,7 +107,7 @@ verbatra doctor
 | Code | Signification |
 | --- | --- |
 | `0` | toutes les vérifications sont passées |
-| `1` | au moins une vérification a échoué (le rapport complet est quand même affiché) |
+| `1` | au moins une vérification a échoué (le rapport complet est quand même affiché) ; avec `--literals`, un littéral a été trouvé ou un fichier n'a pas pu être analysé |
 | `2` | impossible de s'exécuter : une erreur d'utilisation, ou un chemin `--config` explicite qui n'existe pas |
 
 La sortie `1` signifie "il s'est exécuté et a trouvé des problèmes". La sortie `2` est réservée au cas où `doctor` ne peut pas s'exécuter du tout : c'est pourquoi un fichier de config introuvable par la recherche est une vérification en échec et la sortie `1`, alors qu'un chemin `--config` qui pointe dans le vide donne la sortie `2`.

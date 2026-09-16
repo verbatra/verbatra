@@ -20,6 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
+| `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe unten) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der den Bericht unter `result` trägt; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Was geprüft wird
@@ -41,7 +42,37 @@ Vier Details sind wichtig:
 - Eine fehlende **Ziel**-Locale-Datei ist kein Problem: [`verbatra translate`](/docs/cli/translate) legt sie an. Ziel-Dateien werden überhaupt nicht geprüft.
 - Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt lassen diese Prüfung alle mit derselben Meldung scheitern, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
 
-Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor es die Umgebung ansieht; ein Key in einer dotenv-Datei zählt also als gesetzt.
+Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor es die Umgebung ansieht; ein Key in einer dotenv-Datei zählt also als gesetzt. Mit `--literals` lädt es keine der beiden Dateien.
+
+## Nicht übersetzte Literale
+
+<AvailableFrom version="0.11.0" />
+
+`verbatra doctor --literals` sucht nach dem einen i18n-Fehler, den keine andere Prüfung sieht: einem für Nutzer sichtbaren String, der nie in einem Katalog gelandet ist. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/docs/config-file#extract) und meldet jeden hartcodierten String, der sich wie Text für Nutzer liest, aber durch keinen Übersetzungsaufruf geht. Es liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keine API-Key-Variable und lädt keine `.env`-Datei; es besteht also auch in einem Job ohne Secrets. In diesem Modus laufen nur zwei Prüfungen: die Konfiguration und der Literal-Scan.
+
+Jeder Fund nennt Datei, Zeile und Spalte, und sein Text wird auf höchstens 80 Zeichen gekürzt:
+
+```text
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+    src/components/Header.tsx:12:9  "Welcome back"
+    src/pages/settings.tsx:40:22  "Save changes"
+    suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
+1 problem found (run verbatra doctor again after fixing them)
+```
+
+Was als Fund zählt:
+
+- JSX-Text wie `<p>Welcome back</p>` in `.tsx`-, `.jsx`- und `.js`-Dateien.
+- Der Wert eines für Nutzer sichtbaren JSX-Attributs: `alt`, `title`, `placeholder`, `label`, `aria-label` und die anderen Text tragenden `aria-*`-Attribute.
+- Ein String an jeder anderen Stelle, der sich wie Fließtext liest, also aus zwei oder mehr Wörtern besteht. Ein einzelnes Wort außerhalb von JSX, etwa ein Event-Name oder ein Optionswert, wird nicht gemeldet.
+
+Was nie gemeldet wird: ein String, der an einen erkannten Übersetzungsaufruf (`t(...)`, `$t(...)`, `i18n.t(...)`) übergeben oder in `<Trans>` gerendert wird, ein Objekt-Key, ein Import-Specifier, ein Klassenname oder CSS-Wert, eine Test-ID oder ein `data-*`-Attribut, eine URL, ein Literal an einer Typposition, eine Log- oder Fehlermeldung, ein Vergleichsoperand, ein Template-Literal mit Ausdruck, ein String ohne Buchstaben (Satzzeichen, Leerraum, eine Zahl, ein Emoji, ein Symbol) und alles in Test-, Story-, Deklarations- und Konfigurationsdateien.
+
+Um ein einzelnes Literal zurückzuhalten, setz `// verbatra-ignore-next-line` in die Zeile darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner eigenen Zeile. Für einen String, der überall in Ordnung ist, etwa einen Markennamen, trag ihn unter `extract.literals.ignore` in [der Konfigurationsdatei](/docs/config-file#extract) ein. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt aufgeführt, mit Grund; nichts verschwindet stillschweigend.
+
+Die Prüfung schlägt fehl, wenn sie ein Literal findet, und auch dann, wenn eine Datei nicht gescannt werden konnte. Eine Datei, die der Scanner nicht parsen oder lesen kann oder die zu groß ist, wird als nicht gescannt aufgeführt, und der restliche Scan läuft weiter, aber der Lauf wird nie als sauber gemeldet. Ein Projekt ohne `extract`-Block lässt die Prüfung mit einer Meldung scheitern, die den Block nennt. Mit `--json` steht der Scan im Envelope unter `result.literals`, aufgeteilt in `findings`, `suppressed` und `diagnostics`.
 
 ## Beispiele
 
@@ -54,6 +85,9 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 
 # machine-readable report for a CI preflight step
 verbatra doctor --json
+
+# list hardcoded user-facing strings in your source, with no key set
+verbatra doctor --literals
 ```
 
 Ein Lauf mit zwei Problemen sieht so aus:
@@ -73,7 +107,7 @@ verbatra doctor
 | Code | Bedeutung |
 | --- | --- |
 | `0` | jede Prüfung ist bestanden |
-| `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben) |
+| `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben); mit `--literals`: ein Literal wurde gefunden oder eine Datei konnte nicht gescannt werden |
 | `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 
 Exit `1` heißt "es lief, und es wurden Probleme gefunden". Exit `2` ist dafür reserviert, dass `doctor` überhaupt nicht laufen kann. Deshalb ist eine per Suche nicht gefundene Konfigurationsdatei eine fehlgeschlagene Prüfung und Exit `1`, während ein `--config`-Pfad ins Leere Exit `2` ergibt.

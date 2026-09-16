@@ -56,7 +56,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
 | `budgetBehavior` | `"warn"` o `"stop"` | `"warn"` | Qué pasa una vez alcanzado `maxTokens`. |
 | `rates` | objeto | ninguno | Tarifas de proveedor fechadas, para que `translate --estimate` pueda dar una cifra en moneda. |
-| `extract` | objeto | ninguno | Ajustes del análisis de código para [`verbatra extract`](/docs/cli/extract): el framework y las raíces de código. |
+| `extract` | objeto | ninguno | Ajustes del análisis de código para [`verbatra extract`](/docs/cli/extract) y `verbatra doctor --literals`: el framework, las raíces de código y la lista de literales ignorados. |
 | `$schema` | string | ninguno | Un puntero al documento JSON Schema, solo para editores. Se ignora en tiempo de ejecución. |
 
 Las claves de nivel superior desconocidas se rechazan, con `$schema` como única excepción. Por eso mismo una clave de API no puede vivir en la configuración: las claves vienen del entorno, no del archivo.
@@ -192,13 +192,14 @@ El bloque no cambia nada de una ejecución real: ni lo que se envía, ni lo que 
 
 <AvailableFrom version="0.11.0" />
 
-Opcional, y solo lo usa [`verbatra extract`](/docs/cli/extract). Todos los demás comandos lo ignoran.
+Opcional, y solo lo usan [`verbatra extract`](/docs/cli/extract) y [`verbatra doctor --literals`](/docs/cli/doctor). Todos los demás comandos lo ignoran.
 
 ```ts
 extract: {
   framework: "i18next",
   roots: ["src", "app"],
   exclude: ["generated"],
+  literals: { ignore: ["Acme Inc."] },
 }
 ```
 
@@ -207,6 +208,8 @@ extract: {
 `roots` lista los directorios que se recorren, resueltos respecto al directorio de trabajo. Hace falta al menos uno, y nunca se lee nada fuera de ellos.
 
 `exclude` añade nombres de directorio al conjunto que siempre se omite, que ya cubre `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` y `coverage`. Nombres, no rutas: una entrada coincide con un directorio con ese nombre en cualquier punto bajo una raíz.
+
+`literals.ignore` lista textos exactos que [`verbatra doctor --literals`](/docs/cli/doctor) retiene en todas partes, como un nombre de marca. Una entrada coincide con un literal cuyo texto completo es igual una vez agrupados los espacios. Un literal retenido se sigue informando como suprimido, nunca se descarta.
 
 Las claves desconocidas dentro del bloque se rechazan, igual que en el nivel superior.
 
