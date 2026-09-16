@@ -218,8 +218,8 @@ Eingabe: `{ config, cwd?, locales? }`. Gibt eine `DiffSummary` zurück.
 
 ### keyIntegrity
 
-Meldet für die geänderten Keys jedes Locales, ob der aktuelle Zielwert noch zu den Platzhaltern
-der Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
+Meldet für die geänderten Keys jedes Locales, ob der aktuelle Zielwert noch zu den Platzhaltern der
+Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
 Eintrag trägt `key`, `hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und
 `extra`-Platzhalter-Tokens, `icuValid`, `markupMatches` sowie `markupDetails` mit den Tags hinter
 einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Dass Markup hier
@@ -284,10 +284,10 @@ des Schreib-Locks des Locales aktualisiert. Ruft nie einen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, value }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`, wobei nichts
-geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert für eine
-Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze dafür also
-das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
+wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
+für eine Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze
+dafür also das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
 `INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
 daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzlich `details`, die
 betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
@@ -302,8 +302,8 @@ Key.
 
 Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Anders als
-bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
+Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`.
 
 ## Massenhafte Inhalts-Reads

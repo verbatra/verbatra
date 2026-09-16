@@ -70,44 +70,70 @@ and reported, instead of being sent to the provider in a broken state.
 <AvailableFrom version="0.11.0" />
 
 Rich text reaches a translatable string as inline markup: a `<b>` around part of an i18next `Trans`
-block, an escaped `&lt;b&gt;` inside an Android `<string>`, an `<a href>` in a gettext catalog.
-None of that is a placeholder, so before this nothing compared it.
+block, an escaped `&lt;b&gt;` inside an Android `<string>`, an `<a href>` in a gettext catalog. None
+of that is a placeholder, so before this nothing compared it.
 
 Tags are compared as a multiset of tag names plus attribute names, which is what decides whether
 something is a finding:
 
-- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names,
-  markup that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes
-  back nested inside another of the same name when the source had them as siblings, which is how
-  two links silently become one.
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names, markup
+  that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back
+  nested inside another of the same name when the source had them as siblings, which is how two
+  links silently become one.
 - Accepted: the same tags in a different order, because translating a sentence moves its markup
-  around, a changed attribute value, because a translated `title` or a localized `href` is a
-  correct translation rather than a broken one, and either spelling of a void element, so `<br>`
-  and `<br/>` are one tag.
+  around, a changed attribute value, because a translated `title` or a localized `href` is a correct
+  translation rather than a broken one, and either spelling of a void element, so `<br>` and `<br/>`
+  are one tag.
 - Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
   `<b>a b</b>`) is refused, because the comparison cannot tell a cosmetic merge from two links
   collapsing into one.
-- Compared exactly, so a case change is a finding, and only the lowercase spellings of the HTML
-  void elements are treated as needing no closing tag.
+- Compared exactly, so a case change is a finding. The HTML void elements (`<br>`, `<img>`, `<hr>`
+  and the rest) need no closing tag in any letter case, so `<BR>` is recognised as one just like
+  `<br>`.
 - Refused when an attribute name is added or removed, which includes adding a `dir` attribute for a
   right-to-left target. Attribute values are free; the set of names is not.
 
-The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly
-as one, so `5 < 10`, `x <= y`, `<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary
-text. It stands down entirely unless the source's own markup is well formed, so a string that only
-mentions `<Enter>` is never held to a structure it never had, and likewise when a tag in the source
-does not parse at all, such as one whose attribute value contains a `>`. Both cases fail open: the
-check goes quiet for that value rather than guessing.
+A source with no markup at all is still protected against markup invented into it. The candidate is
+refused for any tag pair, void element or self-closing tag it adds, for a closing tag with no
+opening tag (`Hallo</div>`), and for an unclosed opening tag whose name, in any letter case, is a
+standard HTML element (`Hallo <script>`). An unclosed bracketed word that is not an HTML element
+name, such as `<Enter>` in `Druecke <Enter>`, is read as prose and accepted.
 
-One format-shaped limit follows from comparing whole values: for a format that packs several plural
+Comments, CDATA sections, declarations and processing instructions are not tags. A complete comment
+and a CDATA section are translatable text and are not compared. An unterminated `<!--` hides the
+rest of the rendered value, so a candidate that carries one the source does not is refused.
+Declarations and processing instructions, such as `<!DOCTYPE html>` or `<?php ?>`, are compared as a
+multiset of their exact text, so one the candidate invents or drops is refused.
+
+The check is deliberately quiet. An angle-bracket run counts as a tag only when it parses cleanly as
+one: a name, then only well-formed attributes, then `>`. So `5 < 10`, `x <= y`,
+`<support@example.com>` and an escaped `&lt;b&gt;` stay ordinary text, and a run that does not
+parse, such as a tag whose attribute value contains a `>`, is text too. The tag comparison stands
+down for a value whose source tags are malformed. After setting aside the tags the format reports as
+placeholders, a source counts as malformed when it has an opening tag that is never closed (void
+elements excepted), a closing tag with no opening tag, or tags closed in the wrong order. Prose can
+trip this by accident: in `a<b and c>d`, the run `<b and c>` parses as an opening `b` tag with the
+attributes `and` and `c` that is never closed, so the source counts as malformed. A tag that does
+not parse often leaves its closing tag unmatched, which has the same effect. In both cases the check
+goes quiet for that value rather than guessing. It also stands down entirely when the source carries
+more than 256 tags, while a candidate that alone exceeds that limit is refused with the detail
+`+more than 256 inline tags`.
+
+Two format-shaped limits follow from comparing whole values. For a format that packs several plural
 arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language
-needs repeats the source's markup and is refused. The value is withheld and the previous
-translation stays, so nothing is lost, but the arms have to be added without also multiplying the
-markup. And it stands down per tag: a tag the
-format already reports as a placeholder (an XLIFF inline element, a next-intl or ARB ICU rich-text
-tag) is left to the placeholder check and never reported twice, while every other tag in the same
-value is still compared. A refusal names the tags behind it, each prefixed with `-` for one the
-source had and the candidate dropped or `+` for one the candidate invented.
+needs repeats the source's markup and is refused. The same happens for an ICU-style plural
+(`{count, plural, one {...} other {...}}`) in a format that stores it as plain text rather than
+parsing it as ICU (i18next, ngx-translate and YAML): a translation with a different number of arms
+than the source repeats or drops the markup inside them and is refused. In both cases the value is
+withheld and the previous translation stays, so nothing is lost, but the arms have to be added
+without also multiplying the markup.
+
+The check also stands down per tag. A tag the format already reports as a placeholder (an XLIFF
+inline element, a next-intl or ARB ICU rich-text tag) is left to the placeholder check, together
+with as many closing tags as it has openings, and is never reported twice. Every other tag in the
+same value is still compared, including a surplus closing tag such as a second `</g>`. A refusal
+names the tags behind it, each prefixed with `-` for one the source had and the candidate dropped or
+`+` for one the candidate invented.
 
 ## Review flags
 

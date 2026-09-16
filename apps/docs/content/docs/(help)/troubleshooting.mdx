@@ -217,28 +217,31 @@ exists to measure.
 ## A translation is withheld for inline markup (integrity mismatch)
 
 **Symptom**: a key appears under `integrityMismatches` in the run summary and keeps its previous
-translation, or `verbatra check` and Studio's per-key indicator report an inline markup mismatch
-for a translation that is already on disk. In Studio, a retranslate or an edit comes back as `Rejected: inline markup mismatch`,
-followed by the tags at fault: `-<a href>` for one the source had and the candidate dropped, `+<i>`
-for one the candidate invented.
+translation, or the per-key integrity report flags an inline markup mismatch for a translation that
+is already on disk. That report is `markupMatches: false` from the SDK's `keyIntegrity`, the MCP
+server's `key.integrity` tool, and Studio's per-key indicator (`Inline markup mismatch`);
+`verbatra check` does not report markup. In Studio, a retranslate or an edit comes back as
+`Rejected: inline markup mismatch`, followed by the tags at fault: `-<a href>` for one the source
+had and the candidate dropped, `+<i>` for one the candidate invented.
 
 **Cause**: the candidate does not carry the source's inline HTML or XML tags, or carries them
 unbalanced or mis-nested. A model that drops an `<a href>`, renames `<b>` to `<strong>`, or closes
 `<b>` with `</i>` produces a string that renders wrong, so the gate refuses it the same way it
-refuses a dropped placeholder. See
-[markup parity](/docs/translation-safety#inline-markup-parity) for exactly what is compared.
+refuses a dropped placeholder. See [markup parity](/docs/translation-safety#inline-markup-parity)
+for exactly what is compared.
 
 **Fix**: run the key again, or fix the value by hand in Studio or in an imported workbook: the same
 gate judges both, so a hand-typed value with matching, well-formed tags is accepted. Word order,
 attribute values, and the two spellings of a void element (`<br>` and `<br/>`) are never the cause,
 since none of them is compared. A refusal with no tags named is a structural one: the markup came
-back mis-nested, or a tag the source had beside another of the same name came back nested inside
-it. Three further cases are refusals by design rather than bugs: merging two adjacent pairs into
-one, changing a tag's letter case, and adding or removing an attribute name, including a `dir`
-attribute for a right-to-left target. Keep the tags as the source has them and put the change
-somewhere the check does not look, such as an attribute value. If the source value is the one with the broken markup, fix it there: the check stands down when
-the source's own markup is not well formed, which means a broken source silently disables it for
-that key.
+back mis-nested, or a tag the source had beside another of the same name came back nested inside it.
+A refusal naming `+more than 256 inline tags` means the candidate carries more tags than the check
+reads while its source does not. Three further cases are refusals by design rather than bugs:
+merging two adjacent pairs into one, changing a tag's letter case, and adding or removing an
+attribute name, including a `dir` attribute for a right-to-left target. Keep the tags as the source
+has them and put the change somewhere the check does not look, such as an attribute value. If the
+source value is the one with the broken markup, fix it there: the check stands down when the
+source's own tags are malformed, which means a broken source silently disables it for that key.
 
 ## Studio: the port is already in use
 

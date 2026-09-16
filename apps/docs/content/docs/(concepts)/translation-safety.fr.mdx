@@ -98,30 +98,60 @@ ce qui décide si quelque chose est un constat :
 - Comptées, pas seulement remarquées : deux paires adjacentes fusionnées en une seule
   (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusé, parce que la comparaison ne peut pas
   distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
-- Comparées exactement : un changement de casse est un constat, et seules les graphies en
-  minuscules des éléments vides HTML sont traitées comme n'ayant pas besoin de balise fermante.
+- Comparées exactement : un changement de casse est un constat. Les éléments vides HTML (`<br>`,
+  `<img>`, `<hr>` et les autres) n'ont besoin d'aucune balise fermante, quelle que soit leur casse,
+  donc `<BR>` est reconnu comme élément vide au même titre que `<br>`.
 - Refusées quand un nom d'attribut est ajouté ou retiré, ce qui inclut l'ajout d'un attribut `dir`
-  pour une cible écrite de droite à gauche. Les valeurs d'attribut sont libres ; l'ensemble des
-  noms ne l'est pas.
+  pour une cible écrite de droite à gauche. Les valeurs d'attribut sont libres ; l'ensemble des noms
+  ne l'est pas.
+
+Une source sans aucun balisage reste protégée contre le balisage qu'on y invente. La candidate est
+refusée pour toute paire de balises, tout élément vide ou toute balise auto-fermante qu'elle ajoute,
+pour une balise fermante sans balise ouvrante (`Hallo</div>`) et pour une balise ouvrante jamais
+fermée dont le nom, quelle que soit sa casse, est un élément HTML standard (`Hallo <script>`). Un
+mot entre chevrons jamais fermé qui n'est pas un nom d'élément HTML, comme `<Enter>` dans
+`Druecke <Enter>`, est lu comme du texte et accepté.
+
+Les commentaires, les sections CDATA, les déclarations et les instructions de traitement ne sont pas
+des balises. Un commentaire complet et une section CDATA sont du texte traduisible et ne sont pas
+comparés. Un `<!--` non terminé masque le reste de la valeur affichée, donc une candidate qui en
+porte un que la source n'a pas est refusée. Les déclarations et les instructions de traitement,
+comme `<!DOCTYPE html>` ou `<?php ?>`, sont comparées comme un multiensemble de leur texte exact,
+donc une que la candidate invente ou perd est refusée.
 
 La vérification est volontairement discrète. Une suite de chevrons ne compte comme balise que
-lorsqu'elle se lit proprement comme telle : `5 < 10`, `x <= y`, `<support@example.com>` et un
-`&lt;b&gt;` échappé restent du texte ordinaire. Elle se retire complètement tant que le balisage de
-la source n'est pas lui-même bien formé, donc une chaîne qui mentionne seulement `<Enter>` n'est
-jamais tenue à une structure qu'elle n'a jamais eue, et de même quand une balise de la source ne
-s'analyse pas du tout, par exemple une dont la valeur d'attribut contient un `>`. Les deux cas
-échouent du côté ouvert : la vérification se tait pour cette valeur plutôt que de deviner.
+lorsqu'elle se lit proprement comme telle : un nom, puis uniquement des attributs bien formés, puis
+`>`. Ainsi `5 < 10`, `x <= y`, `<support@example.com>` et un `&lt;b&gt;` échappé restent du texte
+ordinaire, et une suite qui ne se lit pas ainsi, comme une balise dont la valeur d'attribut contient
+un `>`, est aussi du texte. La comparaison des balises se retire pour une valeur dont les balises
+source sont malformées. Une fois mises de côté les balises que le format signale comme placeholders,
+une source compte comme malformée quand elle a une balise ouvrante jamais fermée (hors éléments
+vides), une balise fermante sans balise ouvrante, ou des balises fermées dans le mauvais ordre. Du
+texte ordinaire peut le provoquer par accident : dans `a<b and c>d`, la suite `<b and c>` se lit
+comme une balise ouvrante `b` avec les attributs `and` et `c` jamais fermée, donc la source compte
+comme malformée. Une balise qui ne se lit pas laisse souvent sa balise fermante sans partenaire,
+avec le même effet. Dans les deux cas, la vérification se tait pour cette valeur plutôt que de
+deviner. Elle se retire aussi complètement quand la source porte plus de 256 balises, tandis qu'une
+candidate qui est seule à dépasser cette limite est refusée avec le détail
+`+more than 256 inline tags`.
 
-Comparer des valeurs entières entraîne une limite propre au format : pour un format qui range
+Comparer des valeurs entières entraîne deux limites propres au format. Pour un format qui range
 plusieurs formes plurielles dans une même valeur séparées par une barre verticale (Vue I18n), une
 traduction qui ajoute les formes dont sa langue a besoin répète le balisage de la source et est
-refusée. La valeur est retenue et la traduction précédente reste en place, donc rien n'est perdu,
-mais les formes doivent être ajoutées sans multiplier aussi le balisage. Et elle se retire balise par balise : une
-balise que le format signale déjà comme placeholder (un élément en ligne XLIFF, une balise de texte
-enrichi ICU next-intl ou ARB) est laissée à la vérification des placeholders et n'est jamais
-signalée deux fois, tandis que toute autre balise de la même valeur reste comparée. Un refus nomme
-les balises en cause, chacune préfixée de `-` pour une que la source avait et que la candidate a
-perdue, ou de `+` pour une que la candidate a inventée.
+refusée. Il en va de même pour un pluriel de style ICU (`{count, plural, one {...} other {...}}`)
+dans un format qui le stocke comme texte brut au lieu de l'analyser comme ICU (i18next,
+ngx-translate et YAML) : une traduction avec un nombre de formes différent de celui de la source
+répète ou perd le balisage qu'elles contiennent et est refusée. Dans les deux cas, la valeur est
+retenue et la traduction précédente reste en place, donc rien n'est perdu, mais les formes doivent
+être ajoutées sans multiplier aussi le balisage.
+
+La vérification se retire aussi balise par balise. Une balise que le format signale déjà comme
+placeholder (un élément en ligne XLIFF, une balise de texte enrichi ICU next-intl ou ARB) est
+laissée à la vérification des placeholders, avec autant de balises fermantes qu'elle a d'ouvertures,
+et n'est jamais signalée deux fois. Toute autre balise de la même valeur reste comparée, y compris
+une balise fermante en trop comme un second `</g>`. Un refus nomme les balises en cause, chacune
+préfixée de `-` pour une que la source avait et que la candidate a perdue, ou de `+` pour une que la
+candidate a inventée.
 
 ## Signalements de révision
 

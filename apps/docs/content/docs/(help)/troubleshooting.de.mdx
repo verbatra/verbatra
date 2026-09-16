@@ -239,32 +239,34 @@ meldet `supported: false` und löst nie aus, weil kein Token-Verbrauch zum Messe
 ## Eine Übersetzung wird wegen Inline-Markup zurückgehalten (Integritätsabweichung)
 
 **Symptom**: Ein Key taucht in der Laufzusammenfassung unter `integrityMismatches` auf und behält
-seine bisherige Übersetzung, oder `verbatra check` und die Key-Anzeige in Studio melden eine
-Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. In Studio kommt ein Retranslate oder eine Bearbeitung als
-`Rejected: inline markup mismatch` zurück, gefolgt von den betroffenen Tags: `-<a href>` für eines,
-das die Quelle hatte und der Kandidat weggelassen hat, `+<i>` für eines, das der Kandidat erfunden
-hat.
+seine bisherige Übersetzung, oder der Integritätsbericht pro Key meldet eine
+Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. Dieser Bericht ist
+`markupMatches: false` aus `keyIntegrity` im SDK, aus dem Tool `key.integrity` des MCP-Servers und
+aus der Key-Anzeige in Studio (`Inline markup mismatch`); `verbatra check` meldet kein Markup. In
+Studio kommt ein Retranslate oder eine Bearbeitung als `Rejected: inline markup mismatch` zurück,
+gefolgt von den betroffenen Tags: `-<a href>` für eines, das die Quelle hatte und der Kandidat
+weggelassen hat, `+<i>` für eines, das der Kandidat erfunden hat.
 
 **Ursache**: Der Kandidat trägt nicht das Inline-HTML bzw. -XML der Quelle oder trägt es
 unausgeglichen oder falsch verschachtelt. Ein Modell, das ein `<a href>` weglässt, `<b>` in
 `<strong>` umbenennt oder `<b>` mit `</i>` schließt, erzeugt einen String, der falsch dargestellt
 wird, deshalb lehnt die Prüfung ihn genauso ab wie einen weggelassenen Platzhalter. Was genau
-verglichen wird, steht unter
-[Markup-Parität](/docs/translation-safety#inline-markup-parität).
+verglichen wird, steht unter [Markup-Parität](/docs/translation-safety#inline-markup-parität).
 
 **Lösung**: Lass den Key erneut laufen oder korrigiere den Wert von Hand in Studio oder in einer
 importierten Arbeitsmappe: Dieselbe Prüfung beurteilt beides, ein handgetippter Wert mit passenden,
-wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die beiden
-Schreibweisen eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon
-wird verglichen. Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch
-verschachtelt zurück, oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin
-verschachtelt zurück. Drei weitere Fälle sind gewollte Ablehnungen und keine Fehler: zwei
-benachbarte Paare zu einem verschmelzen, die Groß- und Kleinschreibung eines Tags ändern und einen
-Attributnamen ergänzen oder entfernen, einschließlich eines `dir`-Attributs für ein rechtsläufiges
-Ziel. Lass die Tags so, wie die Quelle sie hat, und bring die Änderung dort unter, wo die Prüfung
-nicht hinsieht, etwa in einem Attributwert. Liegt das kaputte Markup im Quellwert, korrigiere es dort: Die Prüfung tritt
-zurück, wenn das Markup der Quelle nicht wohlgeformt ist, eine kaputte Quelle schaltet sie für
-diesen Key also stillschweigend ab.
+wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die beiden Schreibweisen
+eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon wird verglichen.
+Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch verschachtelt zurück,
+oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin verschachtelt zurück.
+Eine Ablehnung mit `+more than 256 inline tags` bedeutet, dass der Kandidat mehr Tags trägt, als die
+Prüfung liest, seine Quelle aber nicht. Drei weitere Fälle sind gewollte Ablehnungen und keine
+Fehler: zwei benachbarte Paare zu einem verschmelzen, die Groß- und Kleinschreibung eines Tags
+ändern und einen Attributnamen ergänzen oder entfernen, einschließlich eines `dir`-Attributs für ein
+rechtsläufiges Ziel. Lass die Tags so, wie die Quelle sie hat, und bring die Änderung dort unter, wo
+die Prüfung nicht hinsieht, etwa in einem Attributwert. Liegt das kaputte Markup im Quellwert,
+korrigiere es dort: Die Prüfung tritt zurück, wenn die Tags der Quelle fehlerhaft sind, eine kaputte
+Quelle schaltet sie für diesen Key also stillschweigend ab.
 
 ## Studio: Der Port ist schon belegt
 
