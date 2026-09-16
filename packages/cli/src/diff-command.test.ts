@@ -336,6 +336,52 @@ describe("run diff --unused: the unused-key report", () => {
     expect((await runUnused(summary)).code).toBe(1);
   });
 
+  it("neutralizes control, bidi, and separator characters in the keys and paths it echoes back", async () => {
+    const hostile = "\u001b[31mred\u009b2J\u202eflip\u2028line";
+    const { out } = await runUnused(
+      inSyncWith(
+        unusedScan({
+          status: "unreliable",
+          unreliableBecause: [
+            {
+              reason: "incomplete-scan",
+              count: 1,
+              sites: [{ file: `src/${hostile}.ts`, line: 1, detail: hostile }],
+            },
+          ],
+          unused: keys(`unused.${hostile}`),
+          possiblyDynamic: [
+            { key: `nav.${hostile}`, catalogKey: `nav.${hostile}`, prefix: `nav.${hostile}` },
+          ],
+          ignored: keys(`ignored.${hostile}`),
+        }),
+      ),
+    );
+    const shown = " [31mred 2J flip line";
+
+    expect(out).toContain(`    unused.${shown}`);
+    expect(out).toContain(`    nav.${shown}  (prefix nav.${shown})`);
+    expect(out).toContain(`    ignored.${shown}`);
+    expect(out).toContain(`      src/${shown}.ts:1  ${shown}`);
+    for (const character of ["\u001b", "\u009b", "\u202e", "\u2028"]) {
+      expect(out).not.toContain(character);
+    }
+  });
+
+  it("neutralizes control characters in the message of a scan that could not run", async () => {
+    const { out } = await runUnused(
+      inSyncWith({
+        status: "not-run",
+        reason: "NO_SOURCE_FILES",
+        message: "nothing under src/\u001b[2J\u202e",
+      }),
+    );
+
+    expect(out).toContain("unused source keys: not run [NO_SOURCE_FILES] nothing under src/ [2J ");
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u202e");
+  });
+
   it("--json carries the whole report inside the same diff envelope", async () => {
     const summary = inSyncWith(
       unusedScan({

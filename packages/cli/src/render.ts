@@ -377,8 +377,11 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
 }
 
 function renderUnusedSite(site: UnusedKeysSite): string {
-  const location = site.line === undefined ? site.file : `${site.file}:${site.line}`;
-  return site.detail === undefined ? location : `${location}  ${site.detail}`;
+  const file = neutralizeControlCharacters(site.file);
+  const location = site.line === undefined ? file : `${file}:${site.line}`;
+  return site.detail === undefined
+    ? location
+    : `${location}  ${neutralizeControlCharacters(site.detail)}`;
 }
 
 function renderUnreliability(entry: UnusedKeysUnreliability): readonly string[] {
@@ -409,17 +412,20 @@ function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
     ...verdict,
     ...renderExtractList(
       "unused",
-      report.unused.map((entry) => entry.key),
+      report.unused.map((entry) => neutralizeControlCharacters(entry.key)),
       unlimited,
     ),
     ...renderExtractList(
       "possibly dynamic",
-      report.possiblyDynamic.map((entry) => `${entry.key}  (prefix ${entry.prefix})`),
+      report.possiblyDynamic.map(
+        (entry) =>
+          `${neutralizeControlCharacters(entry.key)}  (prefix ${neutralizeControlCharacters(entry.prefix)})`,
+      ),
       unlimited,
     ),
     ...renderExtractList(
       "ignored",
-      report.ignored.map((entry) => entry.key),
+      report.ignored.map((entry) => neutralizeControlCharacters(entry.key)),
       unlimited,
     ),
   ];
@@ -430,7 +436,9 @@ function renderUnusedReport(report: UnusedKeysReport | undefined): readonly stri
     return [];
   }
   if (report.status === "not-run") {
-    return [`  unused source keys: not run [${report.reason}] ${report.message}`];
+    return [
+      `  unused source keys: not run [${report.reason}] ${neutralizeControlCharacters(report.message)}`,
+    ];
   }
   return renderUnusedScan(report);
 }
