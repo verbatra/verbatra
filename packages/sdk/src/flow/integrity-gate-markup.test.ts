@@ -303,53 +303,90 @@ describe("the markup gate on a value whose format tokenises only part of its mar
 });
 
 describe("the markup gate on a plural message", () => {
-  const PLURAL_SOURCE = "<b>one</b> apple | <b>many</b> apples";
-
-  function vueAdapter(): FormatAdapter {
-    const resolution = createDefaultRegistry().resolve("", { format: "vue-i18n-json" });
+  function adapterFor(format: SupportedFormat): FormatAdapter {
+    const resolution = createDefaultRegistry().resolve("", { format });
     if (resolution.status !== "resolved") {
-      throw new Error("vue-i18n adapter did not resolve");
+      throw new Error(`no adapter resolved for ${format}`);
     }
     return resolution.adapter;
   }
 
-  function pluralSource(adapter: FormatAdapter): TranslationEntry {
+  function pluralEntry(adapter: FormatAdapter, key: string, value: string): TranslationEntry {
     return {
-      key: "apples",
+      key,
       namespace: "en",
-      value: PLURAL_SOURCE,
-      placeholders: adapter.extractPlaceholders(PLURAL_SOURCE),
+      value,
+      placeholders: adapter.extractPlaceholders(value),
       isPlural: true,
     };
   }
 
-  it("accepts a target language that needs more plural arms than the source declares", () => {
-    const adapter = vueAdapter();
-    const candidate =
-      "<b>jedno</b> jablko | <b>kilka</b> jablka | <b>duzo</b> jablek | <b>inne</b> jablka";
-    expect(gateCandidateValue(pluralSource(adapter), candidate, adapter).accepted).toBe(true);
-  });
-
-  it("still refuses a plural message that drops the tag from every arm", () => {
-    const adapter = vueAdapter();
-    expect(
-      gateCandidateValue(
-        pluralSource(adapter),
-        "jedno jablko | kilka jablka | duzo jablek",
+  it.each(["next-intl-json", "arb"] as const)(
+    "%s accepts a target language that needs more ICU plural arms, because the tag is a placeholder",
+    (format) => {
+      const adapter = adapterFor(format);
+      const source = pluralEntry(
         adapter,
-      ),
-    ).toEqual({ accepted: false, reason: "markup", details: ["-</b>", "-<b>"] });
-  });
+        "apples",
+        "{count, plural, one {<b>one</b> apple} other {<b>#</b> apples}}",
+      );
+      const candidate =
+        "{count, plural, one {<b>jedno</b> jablko} few {<b>#</b> jablka} many {<b>#</b> jablek} other {<b>#</b> jablka}}";
+      expect(gateCandidateValue(source, candidate, adapter).accepted).toBe(true);
+    },
+  );
 
-  it("keeps counting occurrences for a value the format does not report as plural", () => {
-    const adapter = i18nextAdapter();
-    const source = entryFor(adapter, "<b>a</b> and <b>b</b>");
-    expect(source.isPlural).toBe(false);
+  it.each(["next-intl-json", "arb"] as const)(
+    "%s still refuses an ICU plural arm that dropped a tag the format does not tokenise",
+    (format) => {
+      const adapter = adapterFor(format);
+      const source = pluralEntry(adapter, "apples", "{count, plural, other {<b>#</b><br/>apples}}");
+      expect(
+        gateCandidateValue(source, "{count, plural, other {<b>#</b> jablka}}", adapter),
+      ).toEqual({ accepted: false, reason: "markup", details: ["-<br>"] });
+    },
+  );
+
+  it("does not relax counting for a key that merely ends in a plural suffix", () => {
+    const adapter = adapterFor("i18next-json");
+    const source = pluralEntry(adapter, "items_other", "<b>a</b> and <b>b</b>");
+    expect(source.isPlural).toBe(true);
     expect(gateCandidateValue(source, "<b>a</b> und b", adapter)).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
     });
+  });
+
+  it("judges a plural-suffixed key exactly as it judges an ordinary one", () => {
+    const adapter = adapterFor("i18next-json");
+    const value = "<b>a</b> and <b>b</b>";
+    const candidate = "<b>a</b> und b";
+    expect(
+      gateCandidateValue(pluralEntry(adapter, "items_other", value), candidate, adapter),
+    ).toEqual(gateCandidateValue(entryFor(adapter, value), candidate, adapter));
+  });
+
+  it("refuses an arm-separated value whose markup was rewrapped around the separator", () => {
+    const adapter = adapterFor("vue-i18n-json");
+    const source = pluralEntry(adapter, "apples", "<b>one</b> apple | <b>{count}</b> apples");
+    expect(gateCandidateValue(source, "<b>ein Apfel | {count} Aepfel</b>", adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</b>", "-<b>"],
+    });
+  });
+
+  it("refuses an arm-separated value that grew an arm, the documented limit of this format", () => {
+    const adapter = adapterFor("vue-i18n-json");
+    const source = pluralEntry(adapter, "apples", "<b>one</b> apple | <b>many</b> apples");
+    expect(
+      gateCandidateValue(
+        source,
+        "<b>jedno</b> jablko | <b>kilka</b> jablka | <b>duzo</b> jablek",
+        adapter,
+      ),
+    ).toEqual({ accepted: false, reason: "markup", details: ["+</b>", "+<b>"] });
   });
 });
 
@@ -421,5 +458,43 @@ describe("the tags behind a refusal reach the single-key write paths", () => {
       value: "Hallo",
     });
     expect(result).toEqual({ accepted: false, reason: "placeholder", value: "Hallo" });
+  });
+});
+
+describe("the markup gate on a second spelling of a tag the format reports", () => {
+  it.each(["next-intl-json", "arb"] as const)(
+    "%s refuses a self-closing tag deleted beside the paired one it does report",
+    (format) => {
+      const resolution = createDefaultRegistry().resolve("", { format });
+      if (resolution.status !== "resolved") {
+        throw new Error(`no adapter resolved for ${format}`);
+      }
+      const adapter = resolution.adapter;
+      const source = entryFor(adapter, "Read <b>the docs</b> and <b/>");
+      expect(source.placeholders).toEqual(["<b>"]);
+      expect(gateCandidateValue(source, "Lies <b>die Doku</b>", adapter)).toEqual({
+        accepted: false,
+        reason: "markup",
+        details: ["-<b/>"],
+      });
+    },
+  );
+
+  it("accepts the same value when the second spelling survives", () => {
+    const resolution = createDefaultRegistry().resolve("", { format: "next-intl-json" });
+    if (resolution.status !== "resolved") {
+      throw new Error("next-intl adapter did not resolve");
+    }
+    const adapter = resolution.adapter;
+    const source = entryFor(adapter, "Read <b>the docs</b> and <b/>");
+    expect(gateCandidateValue(source, "Lies <b>die Doku</b> und <b/>", adapter).accepted).toBe(
+      true,
+    );
+  });
+
+  it("still ignores the closing tag that pairs with the reported opening one", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
+    expect(gateCandidateValue(source, 'Lies <g id="1">die Doku</g>', adapter).accepted).toBe(true);
   });
 });
