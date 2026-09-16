@@ -340,3 +340,41 @@ describe("retranslateEntry: provider request shape", () => {
     expect(stub.calls[0]?.request.comparePlaceholders).toBeDefined();
   });
 });
+
+describe("retranslateEntry: the token budget does not reach this path", () => {
+  it("sends the request even under a ceiling of one token in stop behavior", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider();
+
+    const result = await retranslateEntry(
+      {
+        config: cfg({ maxTokens: 1, budgetBehavior: "stop" }),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls).toHaveLength(1);
+    expect(result).toMatchObject({ accepted: true });
+  });
+
+  it("reports no budget of its own, so a caller cannot mistake it for counted spend", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({ usage: { inputTokens: 900, outputTokens: 900 } });
+
+    const result = await retranslateEntry(
+      {
+        config: cfg({ maxTokens: 10, budgetBehavior: "stop" }),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(result).not.toHaveProperty("budget");
+    expect(stub.calls).toHaveLength(1);
+  });
+});
