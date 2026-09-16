@@ -91,29 +91,42 @@ t("app.title", { name: "Ada" }); // error: this message takes no argument
 
 ## Was behauptet wird und was nicht
 
-Die Keys und die Platzhalter-Tokens sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin schon erzeugt hat, in Dokumentreihenfolge. Nichts wird neu geparst und nichts geraten, und genau deshalb erzeugt derselbe Katalog immer dieselben Bytes.
+Die Keys sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin schon erzeugt hat, in Dokumentreihenfolge, und genau deshalb erzeugt derselbe Katalog immer dieselben Bytes. Bei den meisten Formaten stammen die Argumente aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Bei den beiden ICU-Nachrichtenformaten, `next-intl-json` und `arb`, wird jede Nachricht mit demselben ICU-Parser gelesen, den der Adapter verwendet. Ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden, wird deshalb trotzdem deklariert, und jedes Argument bekommt seinen Typ danach, wie die Nachricht es formatiert. Geraten wird nichts.
 
 | Deine Nachricht | Was deklariert wird |
 | --- | --- |
 | keine Platzhalter | `VerbatraNoArguments`, jedes übergebene Argument ist also ein Typfehler |
 | benannte Platzhalter (`{{name}}`, `{name}`, `%(name)s`) | eine Objektform mit genau diesen Namen |
 | nummerierte oder anonyme Platzhalter (`{0}`, `%@`, `%1$d`) | ein `readonly`-Tupel, eine Position pro Argument |
-| ein Platzhalter, den das Format als numerisch annotiert (`{count,number}`, `%d`) | `number` |
-| ein Platzhalter, den das Format untypisiert lässt | `VerbatraArgument`, ein Alias für `string \| number` |
+| ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden (`next-intl-json`, `arb`) | ein optionales Mitglied, `name?:`; eines, das jeder Zweig verwendet, bleibt Pflicht |
+| ein ICU-Argument vom Typ `number`, `plural` oder `selectordinal` (`{count, number}`, `{count, plural, ...}`) in `next-intl-json` oder `arb` | `number` |
+| ein ICU-Argument vom Typ `date` oder `time` (`{d, date, short}`) in `next-intl-json` oder `arb` | `Date \| number` |
+| ein ICU-Argument vom Typ `select` (`{gender, select, ...}`) in `next-intl-json` oder `arb` | `string` |
+| ein i18next-Formatter `number` (`{{count, number}}`) in `i18next-json`, `ngx-translate-json` oder `yaml` | `number` |
+| ein i18next-Formatter `datetime` (`{{d, datetime}}`) in denselben drei Formaten | `Date \| number` |
+| eine unescapte i18next-Interpolation (`{{- name}}`) | der Name hinter dem Präfix, `name` |
+| ein MessageFormat-Argument vom Typ `number`, `plural` oder `choice` (`{0,number}`) in `properties` | `number` |
+| eine numerische printf-Konvertierung (`%d`, `%1$d`) | `number` |
+| eine printf-String-Konvertierung (`%s`, `%(name)s`) | `string` |
+| jeder andere Platzhalter, auch ein schlichtes ICU-Argument (`{name}`) | `VerbatraArgument`, ein Alias für `string \| number` |
 | ungültige Nachrichtensyntax, die nur `next-intl-json` und `arb` prüfen | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 | eine Nachricht, die ihre Argumente zugleich benennt und nummeriert | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 
-Argumentnamen stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Ein Format, dessen Platzhalter gar keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt deshalb ein Tupel statt erfundener Namen. Argumenttypen stammen ausschließlich daraus, was dein Katalog tatsächlich festhält. Die meisten Formate benennen ein Argument, ohne zu sagen, was dafür übergeben werden darf, und dafür deklariert verbatra `string | number`, statt einen Typ zu behaupten, den der Katalog nie getragen hat. Nichts wird je als `any` deklariert.
+Argumentnamen stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Ein Format, dessen Platzhalter gar keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt deshalb ein Tupel statt erfundener Namen. Argumenttypen stammen ausschließlich daraus, was dein Katalog tatsächlich festhält: wie eine ICU-Nachricht ein Argument formatiert, oder welchen Formatter oder welche Konvertierung ein Platzhalter nennt. Wo ein Format ein Argument benennt, ohne zu sagen, was dafür übergeben werden darf, deklariert verbatra `string | number`, statt einen Typ zu behaupten, den der Katalog nie getragen hat. Ein Name, der zweimal mit widersprüchlichen Typen vorkommt, wird ebenfalls auf `string | number` erweitert. Nichts wird je als `any` deklariert.
 
 Keys werden immer als Zeichenketten-Literale in Anführungszeichen ausgegeben. Ein Key mit einem Punkt, ein reserviertes Wort, eine führende Ziffer, ein Anführungszeichen oder ein leerer Key wird also wortwörtlich deklariert, statt verworfen oder neu aufgeteilt zu werden. Ein Key, den der Adapter als von der Übersetzung ausgeschlossen gemeldet hat (ein verirrtes Blatt, das kein String ist, eine Android-Ressource mit `translatable="false"`), wird nie deklariert und in der Ausgabe genannt, damit du siehst, was weggelassen wurde.
 
 ### Ein Key, dessen eigener Name einen Punkt enthält
 
-Der ist einen Blick wert, denn der Adapter escapet ihn, bevor verbatra ihn überhaupt sieht. Ein JSON-Katalog mit `{"a.b": "..."}` trägt einen Key, der `a\.b` geschrieben wird, bewusst verschieden vom verschachtelten Pfad `a.b`. Genau diese escapete Schreibweise deklariert die Datei, und genau sie muss dein Aufrufort schreiben:
+Der deklarierte Key wird so geschrieben, wie verbatra selbst den Key schreibt, in derselben Form wie in `verbatra.lock.json`. Das ist keine Lookup-Syntax, die deine i18n-Bibliothek versteht. Ein JSON-Katalog mit `{"a.b": "..."}` trägt einen Key, der `a\.b` geschrieben wird, bewusst verschieden vom verschachtelten Pfad `a.b`, und genau diese escapete Schreibweise deklariert die Datei:
 
 ```ts
-t("a\\.b", {});
+export interface VerbatraMessages {
+  "a\\.b": VerbatraNoArguments;
+}
 ```
+
+Erwarte nicht, dass eine Laufzeitbibliothek diese Schreibweise auflöst. i18next zum Beispiel kennt kein Escape für sein Key-Trennzeichen, `t("a\\.b")` ist also nicht der Weg, auf dem es einen Key mit wörtlichem Punkt nachschlägt. Trägt dein Katalog solche Keys, konfiguriere die Laufzeit so, dass der Punkt kein Trennzeichen ist (bei i18next setzt du `keySeparator` auf ein anderes Zeichen, oder bei einem flachen Katalog auf `false`), und bilde den deklarierten Key in deinem eigenen typisierten Wrapper auf den Key ab, den deine Laufzeit nachschlägt.
 
 ### Der eine Fall, in dem die Deklaration falsch statt nur still ist
 
@@ -127,11 +140,20 @@ Nichts wird zusammengefasst. i18next trägt den Plural als Key-Suffix, deshalb w
 
 Standardmäßig landet sie als `verbatra-types.d.ts` im Projektwurzelverzeichnis. **Committe sie.** Sie ist ein eingecheckter Artefakt, kein lokaler Zwischenstand, und zwar aus zwei Gründen: Eine Kollegin oder ein CI-Job typprüft dagegen, ohne vorher verbatra laufen lassen zu müssen, und `--check` braucht eine committete Datei zum Vergleichen. Nichts trägt sie in `.gitignore` ein.
 
-Mit `--out` legst du sie dorthin, wo deine App ohnehin schon importiert, zum Beispiel `--out src/generated/messages.d.ts`. Fehlende Verzeichnisse werden angelegt. Drei Pfade werden mit `TYPES_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird:
+Mit `--out` legst du sie dorthin, wo deine App ohnehin schon importiert, zum Beispiel `--out src/generated/messages.d.ts`. Fehlende Verzeichnisse werden angelegt. Ein Ausgabepfad wird mit `TYPES_OUTPUT_CONFLICT` zurückgewiesen, wenn er:
 
-- ein absoluter Pfad,
-- einer, der mit `..` aus dem Arbeitsverzeichnis herausklettert,
-- einer, der eine konfigurierte Locale-Datei benennt, damit die Generierung nie einen Katalog überschreibt.
+- keine Datei benennt,
+- absolut ist,
+- mit `..` aus dem Arbeitsverzeichnis herausklettert,
+- keine TypeScript-Datei ist, sein Name also nicht auf `.ts`, `.mts` oder `.cts` endet,
+- eine konfigurierte Locale-Datei benennt, Quelle oder Ziel, damit die Generierung nie einen Katalog überschreibt,
+- die Lock-Datei `verbatra.lock.json` ist,
+- der Translation-Memory-Cache `verbatra.cache.json` ist,
+- eine Datei ist, in der verbatra nach seiner Konfiguration sucht: `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` oder `verbatra.config.ts`,
+- die Config-Datei ist, die der Lauf tatsächlich geladen hat, auch eine, die du mit `--config` angegeben hast,
+- eine bestehende Datei ist, die nicht mit der Kopfzeile `// Generated by verbatra from` beginnt, die verbatra an den Anfang jeder Deklaration schreibt.
+
+Dateinamen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen, `Verbatra.Config.ts` wird also ebenfalls zurückgewiesen. Alle Fälle außer dem letzten werden zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird. Den letzten prüft nur ein Lauf, der schreiben würde, und deine Datei bleibt dabei unangetastet: Wähle ein anderes `--out`, oder lösche die Datei, wenn sie wirklich eine alte Deklaration ist. `--check` weist eine bestehende Datei nie zurück, es vergleicht nur.
 
 ## Ehrlich bleiben in der CI
 

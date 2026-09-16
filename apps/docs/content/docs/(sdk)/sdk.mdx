@@ -166,31 +166,44 @@ It spends nothing: no provider is constructed, no API key environment variable i
 network request is made.
 
 It reads one file (the source locale catalog) and writes one file (the declaration); a target locale
-file is never touched. Nothing is re-parsed either: the keys and the placeholder tokens are exactly
-what the format adapter already produced, in document order, so two runs over an unchanged catalog
-write byte-identical bytes. Every key is emitted as a quoted string literal, so one carrying a dot,
-a reserved word, a leading digit, a quote, or nothing at all is declared verbatim rather than
-dropped or re-split, and a key the adapter reported in `excludedLeafPaths` is never declared at all.
+file is never touched. The keys are exactly what the format adapter already produced, in document
+order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
+placeholder tokens the adapter extracted, except in the ICU message formats (`next-intl-json` and
+`arb`), where each message is read with the same ICU parser the adapter uses. Every key is emitted
+as a quoted string literal, so one carrying a dot, a reserved word, a leading digit, a quote, or
+nothing at all is declared verbatim rather than dropped or re-split, and a key the adapter reported
+in `excludedLeafPaths` is never declared at all.
 
 What it declines to claim matters as much as what it declares. A message with no placeholders gets a
 shape that makes passing any argument a type error; one whose placeholders name their arguments gets
-an object shape; one whose placeholders are numbered or anonymous gets a readonly tuple. Argument
-types come only from what the catalog records, `number` where the format annotated one and a
-`string | number` alias everywhere else, never a permissive `any`. A message the adapter reported as
-invalid, and one that appears to both name and number its arguments, are declared with their
-arguments reported in `unresolved` rather than silently declared as taking none. Plural siblings are
-never collapsed: each is declared on its own, and the ones the adapter marked plural are listed.
+an object shape; one whose placeholders are numbered or anonymous gets a readonly tuple. An ICU
+argument only some `select` or `plural` branches use is declared as an optional member. Argument
+types come only from what the catalog records: `number` for an ICU `number`, `plural` or
+`selectordinal` argument and for a numeric formatter or conversion, `Date | number` for an ICU
+`date` or `time` argument and an i18next `datetime` formatter, `string` for an ICU `select` argument
+and a printf string conversion, and a `string | number` alias everywhere else, never a permissive
+`any`. An i18next unescaped interpolation (`{{- name}}`) is declared by the name behind its prefix.
+A message the adapter reported as invalid, one that appears to both name and number its arguments,
+and one whose placeholder index is out of range are declared with their arguments reported in
+`unresolved` rather than silently declared as taking none. Plural siblings are never collapsed: each
+is declared on its own, and the ones the adapter marked plural are listed.
 
-Input: `{ config, cwd?, out?, check? }`. `out` defaults to `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`) and must name a file inside `cwd`: an absolute path, one that climbs out
-with `..`, and any configured locale file are refused with `TYPES_OUTPUT_CONFLICT` before anything
-is read or written. With `check` set nothing is written at all and the run only reports whether the
-committed file still matches, which is the shape a CI gate wants.
+Input: `{ config, cwd?, out?, configPath?, check? }`. `out` defaults to `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`). Before anything is read or written, `TYPES_OUTPUT_CONFLICT` refuses an
+`out` that names no file, is absolute, climbs out of `cwd` with `..`, or does not end in `.ts`,
+`.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory
+cache, a file verbatra searches for its configuration, or `configPath`, the configuration file
+`config` was loaded from; names are compared case-insensitively. A generating run also refuses, with
+the same code, to replace an existing file that does not begin with the header line verbatra writes,
+and leaves that file untouched. The full list is on the [`verbatra types`](/docs/cli/types) page.
+With `check` set nothing is written at all, nothing is refused for its content, and the run only
+reports whether the committed file still matches, which is the shape a CI gate wants.
 
 Returns a `GenerateTypesResult`: the absolute `path`, the `sourcePath` it was built from, how many
-`keys` were declared and how many of those take arguments (`withArguments`), the `unresolved` keys
-and the `excluded` and `plural` ones, whether anything was `written`, whether the file on disk was
-`stale` when the run started, and whether this was a `check` run.
+`keys` were declared and how many of those take at least one argument verbatra could determine
+(`withArguments`, which never counts an `unresolved` key), the `unresolved` keys and the `excluded`
+and `plural` ones, whether anything was `written`, whether the file on disk was `stale` when the run
+started, and whether this was a `check` run.
 
 ## Inspect state without writing
 

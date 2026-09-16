@@ -91,29 +91,42 @@ t("app.title", { name: "Ada" }); // error: this message takes no argument
 
 ## Qué afirma y qué no
 
-Las claves y los tokens de marcadores de posición son exactamente lo que el adaptador de formato ya produjo al leer el catálogo, en orden del documento. No se vuelve a parsear nada ni se adivina nada, y por eso el mismo catálogo produce siempre los mismos bytes.
+Las claves son exactamente lo que el adaptador de formato ya produjo al leer el catálogo, en orden del documento, y por eso el mismo catálogo produce siempre los mismos bytes. En la mayoría de los formatos, los argumentos vienen de los tokens de marcadores que el adaptador extrajo. En los dos formatos de mensajes ICU, `next-intl-json` y `arb`, cada mensaje se lee con el mismo parser ICU que usa el adaptador, así que un argumento que solo usan algunas ramas `select` o `plural` se declara igualmente, y cada argumento recibe su tipo según cómo lo formatea el mensaje. No se adivina nada.
 
 | Tu mensaje | Qué se declara |
 | --- | --- |
 | sin marcadores de posición | `VerbatraNoArguments`, así que pasar cualquier cosa es un error de tipo |
 | marcadores con nombre (`{{name}}`, `{name}`, `%(name)s`) | una forma de objeto con esos nombres |
 | marcadores numerados o anónimos (`{0}`, `%@`, `%1$d`) | una tupla `readonly`, una posición por argumento |
-| un marcador que el formato anota como numérico (`{count,number}`, `%d`) | `number` |
-| un marcador que el formato deja sin tipar | `VerbatraArgument`, un alias de `string \| number` |
+| un argumento que solo usan algunas ramas `select` o `plural` (`next-intl-json`, `arb`) | un miembro opcional, `name?:`; uno que usan todas las ramas sigue siendo obligatorio |
+| un argumento ICU `number`, `plural` o `selectordinal` (`{count, number}`, `{count, plural, ...}`) en `next-intl-json` o `arb` | `number` |
+| un argumento ICU `date` o `time` (`{d, date, short}`) en `next-intl-json` o `arb` | `Date \| number` |
+| un argumento ICU `select` (`{gender, select, ...}`) en `next-intl-json` o `arb` | `string` |
+| un formateador `number` de i18next (`{{count, number}}`) en `i18next-json`, `ngx-translate-json` o `yaml` | `number` |
+| un formateador `datetime` de i18next (`{{d, datetime}}`) en esos mismos tres formatos | `Date \| number` |
+| una interpolación sin escapar de i18next (`{{- name}}`) | el nombre detrás del prefijo, `name` |
+| un argumento MessageFormat `number`, `plural` o `choice` (`{0,number}`) en `properties` | `number` |
+| una conversión printf numérica (`%d`, `%1$d`) | `number` |
+| una conversión printf de cadena (`%s`, `%(name)s`) | `string` |
+| cualquier otro marcador, incluido un argumento ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
 | sintaxis de mensaje inválida, que solo comprueban `next-intl-json` y `arb` | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
 | un mensaje que a la vez nombra y numera sus argumentos | `VerbatraUnknownArguments`, y la clave se nombra en la salida |
 
-Los nombres de argumento vienen de los tokens de marcadores que el adaptador extrajo, así que un formato cuyos marcadores no llevan nombre (Apple `.strings`, Android `strings.xml`, conversiones posicionales de gettext) recibe una tupla en lugar de nombres inventados. Los tipos de argumento vienen solo de lo que tu catálogo registra de verdad. La mayoría de los formatos nombran un argumento sin decir qué puede pasarse para él, y para esos verbatra declara `string | number` en vez de afirmar un tipo que el catálogo nunca llevó. Nada se declara jamás como `any`.
+Los nombres de argumento vienen de los tokens de marcadores que el adaptador extrajo, así que un formato cuyos marcadores no llevan nombre (Apple `.strings`, Android `strings.xml`, conversiones posicionales de gettext) recibe una tupla en lugar de nombres inventados. Los tipos de argumento vienen solo de lo que tu catálogo registra de verdad: cómo formatea un mensaje ICU un argumento, o el formateador o la conversión que nombra un marcador. Cuando un formato nombra un argumento sin decir qué puede pasarse para él, verbatra declara `string | number` en vez de afirmar un tipo que el catálogo nunca llevó. Un nombre que aparece dos veces con tipos que no coinciden también se amplía a `string | number`. Nada se declara jamás como `any`.
 
 Las claves se emiten siempre como literales de cadena entrecomillados, así que una clave con un punto, una palabra reservada, un dígito inicial, una comilla, o incluso la clave vacía, se declara tal cual en lugar de descartarse o volver a partirse. Una clave que el adaptador reportó como excluida de la traducción (una hoja suelta que no es una cadena, un recurso de Android con `translatable="false"`) no se declara nunca, y se nombra en la salida para que veas qué quedó fuera.
 
 ### Una clave cuyo propio nombre contiene un punto
 
-Ese caso merece atención, porque el adaptador lo escapa antes de que verbatra llegue a verlo. Un catálogo JSON con `{"a.b": "..."}` lleva una clave escrita `a\.b`, deliberadamente distinta de la ruta anidada `a.b`, y esa grafía escapada es la que declara el archivo y la que tiene que escribir tu sitio de llamada:
+La clave declarada se escribe como verbatra escribe la clave, en la misma forma que usa en `verbatra.lock.json`, y no es una sintaxis de búsqueda que entienda tu biblioteca de i18n. Un catálogo JSON con `{"a.b": "..."}` lleva una clave escrita `a\.b`, deliberadamente distinta de la ruta anidada `a.b`, y esa grafía escapada es la que declara el archivo:
 
 ```ts
-t("a\\.b", {});
+export interface VerbatraMessages {
+  "a\\.b": VerbatraNoArguments;
+}
 ```
+
+No esperes que un runtime resuelva esa grafía. i18next, por ejemplo, no tiene escape para su separador de claves, así que `t("a\\.b")` no es la forma en que busca una clave con un punto literal. Si tu catálogo lleva claves así, configura el runtime para que el punto no sea un separador (en i18next, pon `keySeparator` en otro carácter, o en `false` para un catálogo plano) y traduce la clave declarada a la clave que busca tu runtime en tu propio wrapper tipado.
 
 ### El único caso en que la declaración se equivoca en lugar de solo callar
 
@@ -127,11 +140,20 @@ No se agrupa nada. i18next lleva el plural como sufijo de clave, así que `cart.
 
 Por defecto acaba en `verbatra-types.d.ts` en la raíz de tu proyecto. **Súbela al control de versiones.** Es un artefacto versionado, no un borrador local, por dos razones: un compañero o un job de CI comprueba tipos contra ella sin tener que ejecutar verbatra antes, y `--check` necesita un archivo versionado con el que comparar. Nada la añade a `.gitignore`.
 
-Pasa `--out` para dejarla donde tu aplicación ya importa, por ejemplo `--out src/generated/messages.d.ts`. Los directorios que falten se crean. Tres rutas se rechazan con `TYPES_OUTPUT_CONFLICT`, antes de leer o escribir nada:
+Pasa `--out` para dejarla donde tu aplicación ya importa, por ejemplo `--out src/generated/messages.d.ts`. Los directorios que falten se crean. Una ruta de salida se rechaza con `TYPES_OUTPUT_CONFLICT` cuando:
 
-- una ruta absoluta,
-- una que se sale del directorio de trabajo con `..`,
-- una que nombra un archivo de locale configurado, para que la generación nunca sobrescriba un catálogo.
+- no nombra ningún archivo,
+- es absoluta,
+- se sale del directorio de trabajo con `..`,
+- no es un archivo TypeScript, es decir, su nombre no termina en `.ts`, `.mts` o `.cts`,
+- nombra un archivo de locale configurado, de origen o de destino, para que la generación nunca sobrescriba un catálogo,
+- es el archivo de bloqueo, `verbatra.lock.json`,
+- es la caché local de memoria de traducción, `verbatra.cache.json`,
+- es un archivo donde verbatra busca su configuración: `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` o `verbatra.config.ts`,
+- es el archivo de configuración que la ejecución cargó de verdad, incluido uno que indicaste con `--config`,
+- es un archivo existente que no empieza con la línea de cabecera `// Generated by verbatra from` que verbatra escribe al principio de cada declaración.
+
+Los nombres de archivo se comparan sin distinguir mayúsculas de minúsculas, así que `Verbatra.Config.ts` también se rechaza. Todos los casos menos el último se rechazan antes de leer o escribir nada. El último solo lo comprueba una ejecución que fuera a escribir, y deja tu archivo intacto: elige otro `--out`, o borra el archivo si de verdad es una declaración antigua. `--check` nunca rechaza un archivo existente; solo compara.
 
 ## Mantenerlo honesto en CI
 
