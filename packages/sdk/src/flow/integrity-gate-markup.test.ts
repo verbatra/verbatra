@@ -535,6 +535,30 @@ describe("the markup gate on a plural message", () => {
   });
 });
 
+describe("the markup gate on an ICU-style plural in a format that does not parse ICU", () => {
+  it.each(["i18next-json", "ngx-translate-json", "yaml"] as const)(
+    "%s refuses a translation that adds plural arms, the documented limit of this format",
+    (format) => {
+      const resolution = createDefaultRegistry().resolve("", { format });
+      if (resolution.status !== "resolved") {
+        throw new Error(`no adapter resolved for ${format}`);
+      }
+      const adapter = resolution.adapter;
+      const source = entryFor(
+        adapter,
+        "{count, plural, one {<b>one</b> apple} other {<b>many</b> apples}}",
+      );
+      const candidate =
+        "{count, plural, one {<b>jedno</b> jablko} few {<b>kilka</b> jablka} other {<b>duzo</b> jablek}}";
+      expect(gateCandidateValue(source, candidate, adapter)).toEqual({
+        accepted: false,
+        reason: "markup",
+        details: ["+</b>", "+<b>"],
+      });
+    },
+  );
+});
+
 describe("the markup gate on a reorder that nests a tag inside another of the same name", () => {
   it("refuses two sibling anchors that come back nested, with no single tag to name", () => {
     const adapter = i18nextAdapter();
