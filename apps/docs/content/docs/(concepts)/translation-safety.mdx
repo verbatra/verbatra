@@ -137,6 +137,16 @@ may not be raw text at all. For the same reason, a CDATA section or an `image` t
 the source or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the
 source unchanged.
 
+The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
+`plaintext` element runs or styles the page instead of being shown, so it is never translated: each
+such element in the candidate must carry exactly the content of the element in the same position
+among those of its name in the source, or the candidate is refused with a detail such as
+`+<script> content`. `title` and `textarea` content is shown as text and may be translated. This
+makes prose that literally contains one of those tags untranslatable, because in
+`Add a <script> tag` everything after `<script>` is its content: `Füge ein <script> Tag` is refused.
+Escape the tag in the source instead, as `Add a &lt;script&gt; tag`, which is text in every format
+and translates like any other word.
+
 The check is deliberately quiet, but it reads tags the way an HTML parser does. A tag starts at `<`
 or `</` followed by a letter or, for a numeric rich-text tag such as `<0>`, by digits. Its name runs
 to whitespace, `/` or `>`, and a quoted attribute value may contain `>`. So `5 < 10`, `x <= y` and

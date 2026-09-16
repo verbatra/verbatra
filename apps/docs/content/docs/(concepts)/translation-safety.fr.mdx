@@ -155,6 +155,17 @@ balise `svg`, `math` ou `select`, où ce n'est peut-être pas du texte brut du t
 raison, une section CDATA ou une balise `image` dans une valeur où la source ou la candidate ouvre
 `svg`, `math` ou `select` est refusée sauf si la candidate est la source inchangée.
 
+Le contenu d'un élément `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` ou
+`plaintext` s'exécute ou met en forme la page au lieu d'être affiché, donc il n'est jamais traduit :
+chaque élément de ce type dans la candidate doit porter exactement le contenu de l'élément à la même
+position parmi ceux de son nom dans la source, sinon la candidate est refusée avec un détail comme
+`+<script> content`. Le contenu de `title` et `textarea` s'affiche comme du texte et peut être
+traduit. Un texte ordinaire qui contient littéralement l'une de ces balises devient ainsi
+intraduisible, car dans `Add a <script> tag` tout ce qui suit `<script>` est son contenu :
+`Füge ein <script> Tag` est refusé. Échappe plutôt la balise dans la source, sous la forme
+`Add a &lt;script&gt; tag`, qui est du texte dans tous les formats et se traduit comme n'importe
+quel autre mot.
+
 La vérification est volontairement discrète, mais elle lit les balises comme le fait un analyseur
 HTML. Une balise commence à `<` ou `</` suivi d'une lettre ou, pour une balise numérique de texte
 enrichi comme `<0>`, de chiffres. Son nom va jusqu'à un espace, `/` ou `>`, et une valeur d'attribut

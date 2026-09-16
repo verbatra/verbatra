@@ -158,6 +158,16 @@ demselben Grund wird ein CDATA-Abschnitt oder ein `image`-Tag in einem Wert, in 
 der Kandidat `svg`, `math` oder `select` öffnet, abgelehnt, es sei denn, der Kandidat ist die
 unveränderte Quelle.
 
+Der Inhalt eines `script`-, `style`-, `iframe`-, `noembed`-, `noframes`-, `noscript`-, `xmp`- oder
+`plaintext`-Elements wird ausgeführt oder gestaltet die Seite, statt angezeigt zu werden, und wird
+deshalb nie übersetzt: Jedes solche Element im Kandidaten muss genau den Inhalt des Elements an
+derselben Position unter denen seines Namens in der Quelle tragen, sonst wird der Kandidat mit einem
+Detail wie `+<script> content` abgelehnt. Der Inhalt von `title` und `textarea` wird als Text
+angezeigt und darf übersetzt werden. Damit ist normaler Text, der eines dieser Tags wörtlich
+enthält, nicht übersetzbar, denn in `Add a <script> tag` ist alles nach `<script>` sein Inhalt:
+`Füge ein <script> Tag` wird abgelehnt. Maskiere das Tag stattdessen in der Quelle, als
+`Add a &lt;script&gt; tag`, das ist in jedem Format Text und wird wie jedes andere Wort übersetzt.
+
 Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
 beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
 wie `<0>`, von Ziffern. Sein Name reicht bis zu Leerraum, `/` oder `>`, und ein Attributwert in

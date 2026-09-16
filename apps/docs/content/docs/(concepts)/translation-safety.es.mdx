@@ -157,6 +157,17 @@ después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera s
 Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
 candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
 
+El contenido de un elemento `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` o
+`plaintext` se ejecuta o da estilo a la página en lugar de mostrarse, así que nunca se traduce: cada
+elemento así en la candidata tiene que llevar exactamente el contenido del elemento en la misma
+posición entre los de su nombre en el origen, o la candidata se rechaza con un detalle como
+`+<script> content`. El contenido de `title` y `textarea` se muestra como texto y se puede traducir.
+Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
+traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
+`Füge ein <script> Tag` se rechaza. En su lugar, escapa la etiqueta en el origen, como
+`Add a &lt;script&gt; tag`, que es texto en cualquier formato y se traduce como cualquier otra
+palabra.
+
 La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
 HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
 enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
