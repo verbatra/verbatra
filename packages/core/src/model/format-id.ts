@@ -38,13 +38,6 @@ export function isCustomFormatId(format: string): format is CustomFormatId {
   return CUSTOM_FORMAT_ID_PATTERN.test(format);
 }
 
-/**
- * Zod schema accepting a third-party format identifier and nothing else. Use
- * {@link formatIdSchema} to accept a built-in format as well.
- *
- * Expressed as a template literal rather than a refinement, so the shape survives into the JSON
- * Schema document verbatra ships for editors instead of becoming an invisible custom check.
- */
 export const customFormatIdSchema = z.templateLiteral(
   [CUSTOM_FORMAT_PREFIX, z.string().regex(customFormatNameFragment())],
   {
@@ -63,5 +56,4 @@ export const customFormatIdSchema = z.templateLiteral(
  */
 export type FormatId = SupportedFormat | CustomFormatId;
 
-/** Zod schema accepting either a built-in format name or a third-party format identifier. */
 export const formatIdSchema = z.union([supportedFormatSchema, customFormatIdSchema]);
