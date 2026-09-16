@@ -22,6 +22,12 @@ export {
   pluralBaseKey,
   pluralCategoryOf,
 } from "./i18next/plural.js";
+export {
+  type IcuArgumentKind,
+  type IcuMessageArgument,
+  type IcuMessageArguments,
+  icuMessageArguments,
+} from "./icu/arguments.js";
 export { createIniAdapter } from "./ini/ini-adapter.js";
 export type { DeriveEntry, KeyMode } from "./json/flatten.js";
 export type { JsonLeaf, JsonRecord, JsonTree } from "./json/json-tree.js";

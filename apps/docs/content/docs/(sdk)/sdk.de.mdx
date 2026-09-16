@@ -179,36 +179,51 @@ ein Compile-Fehler statt eines Lookup-Fehlers zur Laufzeit. Es kostet nichts: Es
 konstruiert, keine API-Key-Umgebungsvariable gelesen und keine Netzwerkanfrage gestellt.
 
 Gelesen wird eine Datei (der Quell-Locale-Katalog), geschrieben eine Datei (die Deklaration); eine
-Ziel-Locale-Datei wird nie angefasst. Auch neu geparst wird nichts: Die Keys und die
-Platzhalter-Tokens sind genau das, was der Format-Adapter ohnehin schon erzeugt hat, in
-Dokumentreihenfolge, zwei Läufe über einen unveränderten Katalog schreiben also byteidentische
-Bytes. Jeder Key wird als Zeichenketten-Literal in Anführungszeichen ausgegeben, ein Key mit einem
-Punkt, ein reserviertes Wort, eine führende Ziffer, ein Anführungszeichen oder ein leerer Key wird
-also wortwörtlich deklariert, statt verworfen oder neu aufgeteilt zu werden, und ein Key, den der
-Adapter in `excludedLeafPaths` gemeldet hat, wird überhaupt nicht deklariert.
+Ziel-Locale-Datei wird nie angefasst. Die Keys sind genau das, was der Format-Adapter ohnehin schon
+erzeugt hat, in Dokumentreihenfolge, zwei Läufe über einen unveränderten Katalog schreiben also
+byteidentische Bytes. Die Argumente stammen aus den Platzhalter-Tokens, die der Adapter extrahiert
+hat, außer in den ICU-Nachrichtenformaten (`next-intl-json` und `arb`): Dort wird jede Nachricht mit
+demselben ICU-Parser gelesen, den der Adapter verwendet. Jeder Key wird als Zeichenketten-Literal in
+Anführungszeichen ausgegeben, ein Key mit einem Punkt, ein reserviertes Wort, eine führende Ziffer,
+ein Anführungszeichen oder ein leerer Key wird also wortwörtlich deklariert, statt verworfen oder
+neu aufgeteilt zu werden, und ein Key, den der Adapter in `excludedLeafPaths` gemeldet hat, wird
+überhaupt nicht deklariert.
 
 Was nicht behauptet wird, zählt ebenso viel wie das, was deklariert wird. Eine Nachricht ohne
 Platzhalter bekommt eine Form, bei der jedes übergebene Argument ein Typfehler ist; eine, deren
 Platzhalter ihre Argumente benennen, bekommt eine Objektform; eine mit nummerierten oder anonymen
-Platzhaltern bekommt ein readonly-Tupel. Argumenttypen stammen ausschließlich aus dem, was der
-Katalog festhält: `number`, wo das Format es annotiert hat, und sonst ein Alias auf
-`string | number`, nie ein großzügiges `any`. Eine Nachricht, die der Adapter als ungültig gemeldet
-hat, und eine, die ihre Argumente zugleich zu benennen und zu nummerieren scheint, werden mit ihren
-Argumenten in `unresolved` deklariert, statt still als argumentlos zu gelten. Plural-Geschwister
-werden nie zusammengefasst: Jedes wird für sich deklariert, und die vom Adapter als Plural
-markierten werden aufgelistet.
+Platzhaltern bekommt ein readonly-Tupel. Ein ICU-Argument, das nur einige `select`- oder
+`plural`-Zweige verwenden, wird als optionales Mitglied deklariert. Argumenttypen stammen
+ausschließlich aus dem, was der Katalog festhält: `number` für ein ICU-Argument vom Typ `number`,
+`plural` oder `selectordinal` und für einen numerischen Formatter oder eine numerische
+Konvertierung, `Date | number` für ein ICU-Argument vom Typ `date` oder `time` und einen
+i18next-Formatter `datetime`, `string` für ein ICU-Argument vom Typ `select` und eine
+printf-String-Konvertierung, und sonst ein Alias auf `string | number`, nie ein großzügiges `any`.
+Eine unescapte i18next-Interpolation (`{{- name}}`) wird unter dem Namen hinter ihrem Präfix
+deklariert. Eine Nachricht, die der Adapter als ungültig gemeldet hat, eine, die ihre Argumente
+zugleich zu benennen und zu nummerieren scheint, und eine mit einem Platzhalter-Index außerhalb des
+Bereichs werden mit ihren Argumenten in `unresolved` deklariert, statt still als argumentlos zu
+gelten. Plural-Geschwister werden nie zusammengefasst: Jedes wird für sich deklariert, und die vom
+Adapter als Plural markierten werden aufgelistet.
 
-Eingabe: `{ config, cwd?, out?, check? }`. `out` fällt auf `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`) zurück und muss eine Datei innerhalb von `cwd` benennen: ein absoluter Pfad,
-einer, der mit `..` herausklettert, und jede konfigurierte Locale-Datei werden mit
-`TYPES_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird. Mit
-gesetztem `check` wird überhaupt nichts geschrieben, und der Lauf meldet nur, ob die committete
-Datei noch passt, und genau das braucht ein CI-Gate.
+Eingabe: `{ config, cwd?, out?, configPath?, check? }`. `out` fällt auf `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben wird, weist
+`TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt, absolut ist, mit `..` aus `cwd`
+herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte
+Locale-Datei, die Lock-Datei, den Translation-Memory-Cache, eine Datei, in der verbatra nach seiner
+Konfiguration sucht, oder `configPath` benennt, die Konfigurationsdatei, aus der `config` geladen
+wurde; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen. Ein generierender Lauf
+weist mit demselben Code außerdem zurück, eine bestehende Datei zu ersetzen, die nicht mit der
+Kopfzeile beginnt, die verbatra schreibt, und lässt diese Datei unangetastet. Die vollständige Liste
+steht auf der Seite zu [`verbatra types`](/docs/cli/types). Mit gesetztem `check` wird überhaupt
+nichts geschrieben, nichts wegen seines Inhalts zurückgewiesen, und der Lauf meldet nur, ob die
+committete Datei noch passt, und genau das braucht ein CI-Gate.
 
 Gibt ein `GenerateTypesResult` zurück: den absoluten `path`, den `sourcePath`, aus dem es gebaut
-wurde, wie viele `keys` deklariert wurden und wie viele davon Argumente nehmen (`withArguments`),
-die `unresolved` Keys sowie die `excluded` und `plural` Keys, ob etwas `written` wurde, ob die Datei
-auf der Platte beim Start `stale` war und ob dies ein `check`-Lauf war.
+wurde, wie viele `keys` deklariert wurden und wie viele davon mindestens ein Argument nehmen, das
+verbatra bestimmen konnte (`withArguments`, das einen Key aus `unresolved` nie mitzählt), die
+`unresolved` Keys sowie die `excluded` und `plural` Keys, ob etwas `written` wurde, ob die Datei auf
+der Platte beim Start `stale` war und ob dies ein `check`-Lauf war.
 
 ## Zustand inspizieren, ohne zu schreiben
 

@@ -176,35 +176,47 @@ construye ningún proveedor, no se lee ninguna variable de entorno con una clave
 ninguna petición de red.
 
 Lee un archivo (el catálogo de la locale de origen) y escribe un archivo (la declaración); nunca
-toca un archivo de locale de destino. Tampoco vuelve a parsear nada: las claves y los tokens de
-marcadores de posición son exactamente lo que el adaptador de formato ya produjo, en orden del
-documento, así que dos ejecuciones sobre un catálogo sin cambios escriben bytes idénticos. Cada
-clave se emite como un literal de cadena entrecomillado, así que una con un punto, una palabra
-reservada, un dígito inicial, una comilla, o incluso la clave vacía, se declara tal cual en lugar de
-descartarse o volver a partirse, y una clave que el adaptador reportó en `excludedLeafPaths` no se
-declara en absoluto.
+toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya
+produjo, en orden del documento, así que dos ejecuciones sobre un catálogo sin cambios escriben
+bytes idénticos. Los argumentos vienen de los tokens de marcadores que el adaptador extrajo, salvo
+en los formatos de mensajes ICU (`next-intl-json` y `arb`), donde cada mensaje se lee con el mismo
+parser ICU que usa el adaptador. Cada clave se emite como un literal de cadena entrecomillado, así
+que una con un punto, una palabra reservada, un dígito inicial, una comilla, o incluso la clave
+vacía, se declara tal cual en lugar de descartarse o volver a partirse, y una clave que el adaptador
+reportó en `excludedLeafPaths` no se declara en absoluto.
 
 Lo que se niega a afirmar importa tanto como lo que declara. Un mensaje sin marcadores recibe una
 forma que convierte en error de tipo pasar cualquier argumento; uno cuyos marcadores nombran sus
 argumentos recibe una forma de objeto; uno con marcadores numerados o anónimos recibe una tupla
-readonly. Los tipos de argumento vienen solo de lo que el catálogo registra: `number` donde el
-formato lo anotó y un alias de `string | number` en los demás casos, nunca un `any` permisivo. Un
-mensaje que el adaptador reportó como inválido, y uno que parece nombrar y numerar sus argumentos a
-la vez, se declaran con sus argumentos reportados en `unresolved` en lugar de declararse en silencio
-como si no tomaran ninguno. Los hermanos de plural nunca se agrupan: cada uno se declara por su
-cuenta, y los que el adaptador marcó como plurales se listan.
+readonly. Un argumento ICU que solo usan algunas ramas `select` o `plural` se declara como miembro
+opcional. Los tipos de argumento vienen solo de lo que el catálogo registra: `number` para un
+argumento ICU `number`, `plural` o `selectordinal` y para un formateador o una conversión numéricos,
+`Date | number` para un argumento ICU `date` o `time` y un formateador `datetime` de i18next,
+`string` para un argumento ICU `select` y una conversión printf de cadena, y un alias de `string |
+number` en los demás casos, nunca un `any` permisivo. Una interpolación sin escapar de i18next (`{{-
+name}}`) se declara con el nombre detrás de su prefijo. Un mensaje que el adaptador reportó como
+inválido, uno que parece nombrar y numerar sus argumentos a la vez, y uno con un índice de marcador
+fuera de rango se declaran con sus argumentos reportados en `unresolved` en lugar de declararse en
+silencio como si no tomaran ninguno. Los hermanos de plural nunca se agrupan: cada uno se declara
+por su cuenta, y los que el adaptador marcó como plurales se listan.
 
-Entrada: `{ config, cwd?, out?, check? }`. `out` toma por defecto `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`) y debe nombrar un archivo dentro de `cwd`: una ruta absoluta, una que se
-salga con `..`, y cualquier archivo de locale configurado se rechazan con `TYPES_OUTPUT_CONFLICT`
-antes de leer o escribir nada. Con `check` activado no se escribe nada en absoluto y la ejecución
-solo informa de si el archivo versionado sigue coincidiendo, que es justo lo que quiere un gate de
-CI.
+Entrada: `{ config, cwd?, out?, configPath?, check? }`. `out` toma por defecto `DEFAULT_TYPES_PATH`
+(`verbatra-types.d.ts`). Antes de leer o escribir nada, `TYPES_OUTPUT_CONFLICT` rechaza un `out` que
+no nombra ningún archivo, es absoluto, se sale de `cwd` con `..` o no termina en `.ts`, `.mts` o
+`.cts`, y uno que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de
+memoria de traducción, un archivo donde verbatra busca su configuración, o `configPath`, el archivo
+de configuración desde el que se cargó `config`; los nombres se comparan sin distinguir mayúsculas
+de minúsculas. Una ejecución que genera también se niega, con el mismo código, a reemplazar un
+archivo existente que no empieza con la línea de cabecera que escribe verbatra, y deja ese archivo
+intacto. La lista completa está en la página de [`verbatra types`](/docs/cli/types). Con `check`
+activado no se escribe nada en absoluto, no se rechaza nada por su contenido, y la ejecución solo
+informa de si el archivo versionado sigue coincidiendo, que es justo lo que quiere un gate de CI.
 
 Devuelve un `GenerateTypesResult`: el `path` absoluto, el `sourcePath` del que se construyó, cuántas
-`keys` se declararon y cuántas de ellas toman argumentos (`withArguments`), las claves `unresolved`
-y las `excluded` y `plural`, si se escribió algo (`written`), si el archivo en disco estaba `stale`
-al arrancar la ejecución, y si esta fue una ejecución de `check`.
+`keys` se declararon y cuántas de ellas toman al menos un argumento que verbatra pudo determinar
+(`withArguments`, que nunca cuenta una clave de `unresolved`), las claves `unresolved` y las
+`excluded` y `plural`, si se escribió algo (`written`), si el archivo en disco estaba `stale` al
+arrancar la ejecución, y si esta fue una ejecución de `check`.
 
 ## Inspecciona el estado sin escribir
 

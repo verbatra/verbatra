@@ -2,7 +2,13 @@ import { SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run } from "./run.js";
-import { captureStreams, makeTypesResult, parseEnvelope, recordingDeps } from "./test-support.js";
+import {
+  captureStreams,
+  makeLoadedConfig,
+  makeTypesResult,
+  parseEnvelope,
+  recordingDeps,
+} from "./test-support.js";
 
 describe("run types: SDK delegation and flags", () => {
   it("delegates to generateTypes with the resolved cwd and exits 0", async () => {
@@ -63,7 +69,65 @@ describe("run types: SDK delegation and flags", () => {
 
     await run(["types", "--config", "custom/verbatra.config.ts"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toMatchObject({ configPath: "custom/verbatra.config.ts" });
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({ configPath: "custom/verbatra.config.ts" });
+  });
+
+  it("hands the SDK the config file it actually loaded, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({
+          source: { kind: "explicit", filepath: "/proj/custom/settings.ts" },
+        }),
+    });
+    const cap = captureStreams();
+
+    const code = await run(
+      ["types", "--cwd", "/proj", "--config", "custom/settings.ts"],
+      deps,
+      cap.streams,
+    );
+
+    expect(code).toBe(0);
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({
+      cwd: "/proj",
+      configPath: "custom/settings.ts",
+    });
+    expect(calls.generateTypes[0]).toMatchObject({ configPath: "/proj/custom/settings.ts" });
+  });
+
+  it("hands the SDK the config file a search found", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["types"], deps, cap.streams);
+
+    expect(calls.generateTypes[0]).toMatchObject({ configPath: "/proj/verbatra.config.ts" });
+  });
+
+  it("names no config file when the config came from no file", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["types"], deps, cap.streams);
+
+    expect(calls.generateTypes[0]).not.toHaveProperty("configPath");
+  });
+
+  it("reports a config that fails to load as a structured boundary error", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => {
+        throw new SdkError("CONFIG_NOT_FOUND", "No verbatra configuration file.");
+      },
+    });
+    const cap = captureStreams();
+
+    const code = await run(["types"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(calls.generateTypes).toHaveLength(0);
+    expect(cap.err()).toContain("CONFIG_NOT_FOUND");
   });
 
   it("never calls a provider-facing dependency", async () => {

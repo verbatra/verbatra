@@ -91,29 +91,44 @@ t("app.title", { name: "Ada" }); // error: this message takes no argument
 
 ## What it will and will not claim
 
-The keys and the placeholder tokens are exactly what the format adapter already produced when it read the catalog, in document order. Nothing is re-parsed and nothing is guessed at, which is why the same catalog always produces the same bytes.
+The keys are exactly what the format adapter already produced when it read the catalog, in document order, which is why the same catalog always produces the same bytes. For most formats the arguments come from the placeholder tokens the adapter extracted. For the two ICU message formats, `next-intl-json` and `arb`, each message is read with the same ICU parser the adapter uses, so an argument only some `select` or `plural` branches use is still declared, and each argument is typed by how the message formats it. Nothing is guessed at.
 
 | Your message | What is declared |
 | --- | --- |
 | no placeholders | `VerbatraNoArguments`, so passing anything is a type error |
 | named placeholders (`{{name}}`, `{name}`, `%(name)s`) | an object shape with those names |
 | numbered or anonymous placeholders (`{0}`, `%@`, `%1$d`) | a `readonly` tuple, one position per argument |
-| a placeholder the format annotated as numeric (`{count,number}`, `%d`) | `number` |
-| a placeholder the format left untyped | `VerbatraArgument`, an alias for `string \| number` |
+| an argument only some `select` or `plural` branches use (`next-intl-json`, `arb`) | an optional member, `name?:`, or for a numbered argument an optional tuple position (`[number, VerbatraArgument?]`); one every branch uses stays required |
+| an ICU `number`, `plural` or `selectordinal` argument (`{count, number}`, `{count, plural, ...}`) in `next-intl-json` or `arb` | `number` |
+| an ICU `date` or `time` argument (`{d, date, short}`) in `next-intl-json` or `arb` | `Date \| number` |
+| an ICU `select` argument (`{gender, select, ...}`) in `next-intl-json` or `arb` | `string` |
+| an i18next `number` formatter (`{{count, number}}`) in `i18next-json`, `ngx-translate-json` or `yaml` | `number` |
+| an i18next `datetime` formatter (`{{d, datetime}}`) in the same three formats | `Date \| number` |
+| an i18next unescaped interpolation (`{{- name}}`) | the name behind the prefix, `name` |
+| a MessageFormat `number`, `plural` or `choice` argument (`{0,number}`) in `properties` | `number` |
+| a numeric printf conversion (`%d`, `%1$d`) | `number` |
+| a printf string conversion (`%s`, `%(name)s`) | `string` |
+| any other placeholder, including a plain ICU argument (`{name}`) | `VerbatraArgument`, an alias for `string \| number` |
 | invalid message syntax, which only `next-intl-json` and `arb` check for | `VerbatraUnknownArguments`, and the key is named in the output |
 | a message that both names and numbers its arguments | `VerbatraUnknownArguments`, and the key is named in the output |
 
-Argument names come from the placeholder tokens the adapter extracted, so a format whose placeholders carry no name (Apple `.strings`, Android `strings.xml`, positional gettext conversions) gets a tuple rather than invented names. Argument types come only from what your catalog actually records. Most formats name an argument without saying what may be passed for it, and for those verbatra declares `string | number` rather than asserting a type the catalog never carried. Nothing is ever declared as `any`.
+A tuple can only leave out positions at its end, so a numbered argument only some branches use is declared optional only when every position after it is optional too. In `{0, select, a {{1}} other {x}} {2}`, position `1` stays required, because the required position `2` follows it.
+
+Argument names come from the placeholder tokens the adapter extracted, so a format whose placeholders carry no name (Apple `.strings`, Android `strings.xml`, positional gettext conversions) gets a tuple rather than invented names. Argument types come only from what your catalog actually records: how an ICU message formats an argument, or the formatter or conversion a placeholder names. Where a format names an argument without saying what may be passed for it, verbatra declares `string | number` rather than asserting a type the catalog never carried. A name used more than once with different types is declared as the union of everything each use accepts: `{d, date, short}` next to a plain `{d}` becomes `Date | number | string`, and `{n, plural, ...}` next to a plain `{n}` becomes `string | number`. Nothing is ever declared as `any`.
 
 Keys are always emitted as quoted string literals, so a key carrying a dot, a reserved word, a leading digit, a quote, or nothing at all is declared verbatim rather than dropped or re-split. A key the adapter reported as excluded from translation (a stray non-string leaf, an Android `translatable="false"` resource) is never declared, and is named in the output so you can see what was left out.
 
 ### A key whose own name contains a dot
 
-That one is worth knowing about, because the adapter escapes it before verbatra ever sees it. A JSON catalog holding `{"a.b": "..."}` carries one key spelled `a\.b`, deliberately distinct from the nested path `a.b`, and the escaped spelling is what the declaration declares and what your call site has to write:
+The declared key is spelled the way verbatra itself spells the key, the same form it uses in `verbatra.lock.json`, and not a lookup syntax your i18n library understands. A JSON catalog holding `{"a.b": "..."}` carries one key spelled `a\.b`, deliberately distinct from the nested path `a.b`, so that escaped spelling is what the declaration declares:
 
 ```ts
-t("a\\.b", {});
+export interface VerbatraMessages {
+  "a\\.b": VerbatraNoArguments;
+}
 ```
+
+Do not expect a runtime to resolve that spelling. i18next, for example, has no escape for its key separator, so `t("a\\.b")` is not how it looks up a key with a literal dot. If your catalog carries such keys, configure the runtime so the dot is not a separator (for i18next, set `keySeparator` to a different character, or to `false` for a flat catalog), and map the declared key to the key your runtime looks up in your own typed wrapper.
 
 ### The one case where the declaration is wrong rather than merely silent
 
@@ -127,11 +142,20 @@ Nothing is collapsed. i18next carries plural as a key suffix, so `cart.item_one`
 
 By default it lands at `verbatra-types.d.ts` in your project root. **Commit it.** It is a checked-in artifact, not local scratch, for two reasons: a teammate or a CI job type-checks against it without having to run verbatra first, and `--check` needs a committed file to compare against. Nothing adds it to `.gitignore`.
 
-Pass `--out` to put it where your app already imports from, for example `--out src/generated/messages.d.ts`. Missing directories are created. Three paths are refused with `TYPES_OUTPUT_CONFLICT`, before anything is read or written:
+Pass `--out` to put it where your app already imports from, for example `--out src/generated/messages.d.ts`. Missing directories are created. An output path is refused with `TYPES_OUTPUT_CONFLICT` when it:
 
-- an absolute path,
-- one that climbs out of the working directory with `..`,
-- one that names a configured locale file, so generation can never overwrite a catalog.
+- names no file,
+- is absolute,
+- climbs out of the working directory with `..`,
+- is not a TypeScript file, meaning its name does not end in `.ts`, `.mts` or `.cts`,
+- names a configured locale file, source or target, so generation can never overwrite a catalog,
+- is the lock file, `verbatra.lock.json`,
+- is the translation-memory cache, `verbatra.cache.json`,
+- is a file verbatra searches for its configuration: `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` or `verbatra.config.ts`,
+- is the config file the run actually loaded, including one you named with `--config`,
+- is an existing file that does not begin with the `// Generated by verbatra from` header line verbatra writes at the top of every declaration (a leading byte order mark and blank lines are ignored), or is too large to verify.
+
+File names are compared regardless of case, so `Verbatra.Config.ts` is refused as well. All but the last are refused before anything is read or written. The last is checked only by a run that would write, and it leaves your file untouched: pick another `--out`, or delete the file if it really is an old declaration. `--check` never refuses an existing file; it only compares.
 
 ## Keeping it honest in CI
 

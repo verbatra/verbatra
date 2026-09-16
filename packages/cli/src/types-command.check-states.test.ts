@@ -108,16 +108,33 @@ describe("verbatra types --check exit codes over real files", () => {
     expect(cap.err()).toContain("SOURCE_UNREADABLE");
   });
 
-  it("a plain run after any of those states leaves the file current again", async () => {
+  it("a plain run after any state that keeps the header leaves the file current again", async () => {
     const dir = await project();
     const current = await generate(dir);
 
-    for (const damaged of ["", "nonsense\n", `${current} `, current.replace(/\n/g, "\r\n")]) {
+    for (const damaged of [`${current} `, current.replace(/\n/g, "\r\n")]) {
       await write(dir, damaged);
       await generate(dir);
 
       expect(await readFile(join(dir, TYPES_FILE), "utf8")).toBe(current);
       expect(await checkExit(dir)).toBe(0);
+    }
+  });
+
+  it("a plain run over a state that lost the header exits 2 and leaves the file untouched", async () => {
+    const dir = await project();
+    await generate(dir);
+
+    for (const damaged of ["", "nonsense\n"]) {
+      await write(dir, damaged);
+      const { deps } = realDeps();
+      const cap = captureStreams();
+
+      const code = await run(["types", "--cwd", dir], deps, cap.streams);
+
+      expect(code).toBe(2);
+      expect(cap.err()).toContain("TYPES_OUTPUT_CONFLICT");
+      expect(await readFile(join(dir, TYPES_FILE), "utf8")).toBe(damaged);
     }
   });
 });

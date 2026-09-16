@@ -4,6 +4,8 @@ import {
   DEFAULT_TYPES_PATH,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type GenerateTypesInput,
+  type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
   resolveDryRun,
@@ -282,6 +284,21 @@ function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?:
   };
 }
 
+async function withLoadedRunErrors<Loaded>(
+  context: CommandContext,
+  load: () => Promise<Loaded>,
+  body: (loaded: Loaded) => Promise<number>,
+  beforeLoad?: () => void,
+): Promise<number> {
+  try {
+    beforeLoad?.();
+    const loaded = await load();
+    return await body(loaded);
+  } catch (error) {
+    return renderFailureExit2(error, context);
+  }
+}
+
 async function withWholeRunErrors(
   deps: CliDeps,
   context: CommandContext,
@@ -289,13 +306,7 @@ async function withWholeRunErrors(
   body: (config: Awaited<ReturnType<CliDeps["loadConfig"]>>) => Promise<number>,
   beforeLoad?: () => void,
 ): Promise<number> {
-  try {
-    beforeLoad?.();
-    const config = await deps.loadConfig(loadOpts);
-    return await body(config);
-  } catch (error) {
-    return renderFailureExit2(error, context);
-  }
+  return withLoadedRunErrors(context, () => deps.loadConfig(loadOpts), body, beforeLoad);
 }
 
 const MAX_DEBOUNCE_MS = 60_000;
@@ -765,6 +776,20 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
   );
 }
 
+function typesInput(
+  loaded: LoadedConfig,
+  cwd: string,
+  opts: z.infer<typeof typesOptsSchema>,
+): GenerateTypesInput {
+  return {
+    config: loaded.config,
+    cwd,
+    ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
+    ...(opts.out !== undefined ? { out: opts.out } : {}),
+    ...(opts.check === true ? { check: true } : {}),
+  };
+}
+
 async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("types", rawOpts, streams);
   return withParsedOpts(
@@ -772,17 +797,14 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      return withWholeRunErrors(
-        deps,
+      return withLoadedRunErrors(
         context,
-        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
-          const result = await deps.generateTypes({
-            config,
-            cwd,
-            ...(opts.out !== undefined ? { out: opts.out } : {}),
-            ...(opts.check === true ? { check: true } : {}),
-          });
+        () =>
+          deps.loadConfigWithMeta(
+            loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          ),
+        async (loaded) => {
+          const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
           streams.out(
             context.json
               ? `${renderSuccessEnvelope("types", result)}\n`

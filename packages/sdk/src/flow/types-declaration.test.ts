@@ -146,6 +146,30 @@ describe("renderTypesDeclaration: argument shapes", () => {
     expect(declaredMembers(declaration)).toEqual(['  "who": { readonly "who": string };']);
   });
 
+  it("types a date argument as a Date or a timestamp", () => {
+    const declaration = render([
+      message({
+        key: "due",
+        arguments: { style: "named", named: [{ name: "d", type: "date" }] },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual(['  "due": { readonly "d": Date | number };']);
+  });
+
+  it("types an argument used as a date and as plain text as the union of both", () => {
+    const declaration = render([
+      message({
+        key: "due",
+        arguments: { style: "named", named: [{ name: "d", type: "date-or-string" }] },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "due": { readonly "d": Date | number | string };',
+    ]);
+  });
+
   it("keeps several named arguments in the order they were described", () => {
     const declaration = render([
       message({
@@ -165,6 +189,25 @@ describe("renderTypesDeclaration: argument shapes", () => {
     ]);
   });
 
+  it("marks an argument only some branches use as an optional member", () => {
+    const declaration = render([
+      message({
+        key: "invite",
+        arguments: {
+          style: "named",
+          named: [
+            { name: "gender", type: "unknown" },
+            { name: "name", type: "unknown", optional: true },
+          ],
+        },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "invite": { readonly "gender": VerbatraArgument; readonly "name"?: VerbatraArgument };',
+    ]);
+  });
+
   it("emits a readonly tuple for a message whose arguments are positional", () => {
     const declaration = render([
       message({
@@ -175,6 +218,23 @@ describe("renderTypesDeclaration: argument shapes", () => {
 
     expect(declaredMembers(declaration)).toEqual([
       '  "legacy": readonly [VerbatraArgument, number];',
+    ]);
+  });
+
+  it("marks the trailing positions from the first optional one as optional tuple slots", () => {
+    const declaration = render([
+      message({
+        key: "pick",
+        arguments: {
+          style: "positional",
+          positional: ["number", "unknown", "string"],
+          optionalFrom: 1,
+        },
+      }),
+    ]);
+
+    expect(declaredMembers(declaration)).toEqual([
+      '  "pick": readonly [number, VerbatraArgument?, string?];',
     ]);
   });
 
