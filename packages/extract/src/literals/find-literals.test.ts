@@ -63,6 +63,28 @@ describe("findLiterals: a literal passed to a recognised translation call", () =
   });
 });
 
+describe("findLiterals: a renamed translation function", () => {
+  it("does not report a literal passed to t renamed out of useTranslation", () => {
+    onlyControl('const { t: translate } = useTranslation("common");\ntranslate("Hello world");');
+    onlyControl('const { t: tr, i18n: { language } } = useTranslation();\ntr("Hello world");');
+    onlyControl(
+      'const { i18n, t: tr, ready } = useTranslation();\nconst a = <p title={tr("Hello world")}>{tr("Hello world")}</p>;',
+    );
+  });
+
+  it("still reports a literal passed to a name renamed out of something else", () => {
+    expect(
+      texts('const { t: translate } = useSomethingElse();\ntranslate("Hello world");', false),
+    ).toEqual(["Hello world"]);
+    expect(
+      texts('const { x: translate } = useTranslation();\ntranslate("Hello world");', false),
+    ).toEqual(["Hello world"]);
+    expect(
+      texts('const o = { t: translate };\ntranslate("Hello world");\nf({ t: g', false),
+    ).toEqual(["Hello world"]);
+  });
+});
+
 describe("findLiterals: non-user-facing literals are not reported", () => {
   it("skips a literal used as an object key", () => {
     onlyControl('const a = { "Hello there friend": 1, b: 2 };\nobj["Hello there friend"];');

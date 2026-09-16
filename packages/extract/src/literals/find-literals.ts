@@ -3,6 +3,7 @@ import { type PositionedToken, type SourceComment, scanSource } from "../scan/to
 import { isUntranslatedLiteral, type TranslationRecognition } from "./literal-audience.js";
 import { type LiteralFrame, updateFrames } from "./literal-frames.js";
 import { normalizeLiteralText } from "./literal-text.js";
+import { withTranslationAliases } from "./translation-aliases.js";
 
 export interface LiteralRules extends TranslationRecognition {
   readonly extensions: readonly string[];
@@ -47,6 +48,7 @@ export function findLiterals(
   markup: boolean,
 ): FileLiterals {
   const scan = scanSource(content, markup ? { markup: readMarkup } : {});
+  const recognition = withTranslationAliases(scan.tokens, rules);
   const skipLines = suppressedLines(scan.comments);
   const frames: LiteralFrame[] = [];
   const found: FoundLiteral[] = [];
@@ -54,7 +56,7 @@ export function findLiterals(
   scan.tokens.forEach((token, index) => {
     if (
       (token.kind === "string" || token.kind === "markup-text") &&
-      isUntranslatedLiteral(scan.tokens, index, frames, rules)
+      isUntranslatedLiteral(scan.tokens, index, frames, recognition)
     ) {
       (skipLines.has(token.line) ? suppressed : found).push(toFound(token));
     }

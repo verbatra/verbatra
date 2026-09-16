@@ -11,6 +11,7 @@ import { hasLetters, isDirective, isProseLike, isUrlLike } from "./literal-text.
 export interface TranslationRecognition {
   readonly calleeNames: ReadonlySet<string>;
   readonly translationElements: ReadonlySet<string>;
+  readonly translationHooks: ReadonlySet<string>;
 }
 
 const USER_FACING_ATTRIBUTES = new Set([
