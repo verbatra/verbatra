@@ -379,6 +379,37 @@ describe("createI18nextExtractor on explicit type arguments", () => {
   });
 });
 
+describe("createI18nextExtractor on key sites it does not read as calls", () => {
+  function indirect(content: string) {
+    return extractor.extract({ path: "app.tsx", content }).indirect;
+  }
+
+  it("reports a keyPrefix option, since every call it scopes names a different key", () => {
+    expect(indirect('const { t } = useTranslation("ns", {\n  keyPrefix: "nav",\n});')).toEqual([
+      { line: 2 },
+    ]);
+  });
+
+  it("reports a Trans component and its i18nKey attribute", () => {
+    expect(indirect('<Trans i18nKey="nav.home">Home</Trans>')).toEqual([
+      { line: 1 },
+      { line: 1 },
+      { line: 1 },
+    ]);
+  });
+
+  it("leaves the field absent when the file has none", () => {
+    expect(extractor.extract({ path: "app.ts", content: 't("nav.home")' })).toEqual({
+      calls: [{ key: "nav.home", line: 1 }],
+      dynamic: [],
+    });
+  });
+
+  it("ignores the same words inside a string or a comment", () => {
+    expect(indirect('// keyPrefix Trans\nconst label = "i18nKey";')).toBeUndefined();
+  });
+});
+
 describe("createI18nextExtractor on JSX prose", () => {
   it("does not lose a call that follows an apostrophe in JSX text", () => {
     const content = [

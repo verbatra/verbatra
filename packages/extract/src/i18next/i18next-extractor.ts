@@ -8,6 +8,7 @@ const I18NEXT_RULES: CallSiteRules = {
   defaultValueKeys: new Set(["defaultValue"]),
   namespaceSeparator: ":",
   keySeparator: ".",
+  indirectNames: new Set(["keyPrefix", "Trans", "i18nKey"]),
 };
 
 export function createI18nextExtractor(): SourceExtractor {

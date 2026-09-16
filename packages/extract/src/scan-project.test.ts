@@ -105,6 +105,31 @@ describe("scanProject", () => {
     expect(result.dynamic).toEqual([{ file: "src/a.ts", line: 2 }]);
   });
 
+  it("reports indirect key sites with their locations", async () => {
+    const result = await scan({
+      [join(root, "a.tsx")]: 'const { t } = useTranslation("common", { keyPrefix: "nav" });',
+      [join(root, "b.ts")]: 't("nav.home");',
+    });
+
+    expect(result.indirect).toEqual([{ file: "src/a.tsx", line: 1 }]);
+  });
+
+  it("reports no indirect key site for an extractor that declares none", async () => {
+    const plain = {
+      framework: "i18next" as const,
+      extensions: [".ts"],
+      extract: () => ({ calls: [{ key: "nav.home", line: 1 }], dynamic: [] }),
+    };
+
+    const result = await scanProject(
+      { cwd, roots: [root], extractor: plain },
+      fakeFs({ [join(root, "a.ts")]: "x" }),
+    );
+
+    expect(result.indirect).toEqual([]);
+    expect(result.keys.map((entry) => entry.key)).toEqual(["nav.home"]);
+  });
+
   it("reports an oversized file as a diagnostic and carries on with the rest", async () => {
     const result = await scan(
       {

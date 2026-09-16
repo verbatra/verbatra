@@ -6,6 +6,7 @@ export interface CallSiteRules {
   readonly defaultValueKeys: ReadonlySet<string>;
   readonly namespaceSeparator?: string;
   readonly keySeparator?: string;
+  readonly indirectNames: ReadonlySet<string>;
 }
 
 const ARGUMENT_TERMINATORS = new Set([",", ")"]);
@@ -105,6 +106,17 @@ function isSignature(tokens: readonly SourceToken[], index: number, openIndex: n
   return follower?.kind === "punct" && SIGNATURE_FOLLOWERS.has(follower.value);
 }
 
+function indirectSiteAt(
+  tokens: readonly SourceToken[],
+  index: number,
+  rules: CallSiteRules,
+): DynamicCallSite | undefined {
+  const token = tokenAt(tokens, index);
+  return token?.kind === "ident" && rules.indirectNames.has(token.value)
+    ? { line: token.line }
+    : undefined;
+}
+
 function isCallee(tokens: readonly SourceToken[], index: number, rules: CallSiteRules): boolean {
   const token = tokenAt(tokens, index);
   return token?.kind === "ident" && rules.calleeNames.has(token.value);
@@ -201,7 +213,12 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
   const { tokens, truncated } = tokenizeSource(content);
   const calls: ExtractedCallSite[] = [];
   const dynamic: DynamicCallSite[] = [];
+  const indirect: DynamicCallSite[] = [];
   for (let index = 0; index < tokens.length; index += 1) {
+    const indirectSite = indirectSiteAt(tokens, index, rules);
+    if (indirectSite !== undefined) {
+      indirect.push(indirectSite);
+    }
     if (!isCallee(tokens, index, rules)) {
       continue;
     }
@@ -215,5 +232,10 @@ export function findCallSites(content: string, rules: CallSiteRules): FileExtrac
       dynamic.push(site);
     }
   }
-  return { calls, dynamic, ...(truncated ? { truncated } : {}) };
+  return {
+    calls,
+    dynamic,
+    ...(indirect.length > 0 ? { indirect } : {}),
+    ...(truncated ? { truncated } : {}),
+  };
 }

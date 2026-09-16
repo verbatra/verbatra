@@ -35,6 +35,13 @@ export interface FileExtraction {
   /** Call sites whose key could not be resolved statically. */
   readonly dynamic: readonly DynamicCallSite[];
   /**
+   * Places that name or scope a key through a construct this extractor does not read as a call
+   * site, such as an i18next `keyPrefix` option, a `Trans` component, or an `i18nKey` attribute.
+   * The keys they reach are unknown, so a scan that meets one cannot rule a catalog key unused.
+   * Absent when there were none.
+   */
+  readonly indirect?: readonly DynamicCallSite[];
+  /**
    * Whether the file could not be read to its end, so everything above it is partial. An
    * unterminated block comment or template literal abandons the rest of the file. The scan records
    * it as an `unparseable` diagnostic and carries on, rather than reporting a short result as if

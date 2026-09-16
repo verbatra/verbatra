@@ -51,6 +51,7 @@ export interface ProjectScan {
   readonly scannedFiles: number;
   readonly keys: readonly ExtractedKey[];
   readonly dynamic: readonly SourceLocation[];
+  readonly indirect: readonly SourceLocation[];
   readonly conflicts: readonly KeyConflict[];
   readonly diagnostics: readonly ScanDiagnostic[];
 }
@@ -71,12 +72,13 @@ interface KeyRecord {
 interface ScanState {
   readonly keys: Map<string, KeyRecord>;
   readonly dynamic: SourceLocation[];
+  readonly indirect: SourceLocation[];
   readonly diagnostics: ScanDiagnostic[];
   scannedFiles: number;
 }
 
 function createScanState(): ScanState {
-  return { keys: new Map(), dynamic: [], diagnostics: [], scannedFiles: 0 };
+  return { keys: new Map(), dynamic: [], indirect: [], diagnostics: [], scannedFiles: 0 };
 }
 
 function recordCall(
@@ -146,6 +148,9 @@ async function scanFile(
   for (const site of extraction.dynamic) {
     state.dynamic.push({ file, line: site.line });
   }
+  for (const site of extraction.indirect ?? []) {
+    state.indirect.push({ file, line: site.line });
+  }
 }
 
 export async function scanProject(
@@ -176,6 +181,7 @@ export async function scanProject(
       .map(([key, record]) => toExtractedKey(key, record))
       .filter((entry): entry is ExtractedKey => entry !== undefined),
     dynamic: state.dynamic,
+    indirect: state.indirect,
     conflicts: entries
       .map(([key, record]) => toConflict(key, record))
       .filter((conflict): conflict is KeyConflict => conflict !== undefined),
