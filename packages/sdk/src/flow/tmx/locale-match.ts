@@ -15,8 +15,21 @@ function isSubtagPrefix(shorter: readonly string[], longer: readonly string[]): 
   );
 }
 
-function extendsOrIsExtendedBy(left: readonly string[], right: readonly string[]): boolean {
-  return isSubtagPrefix(left, right) || isSubtagPrefix(right, left);
+const REGION_SUBTAG = /^(?:[a-z]{2}|\d{3})$/;
+
+const VARIANT_SUBTAG = /^(?:[a-z\d]{5,8}|\d[a-z\d]{3})$/;
+
+function narrowsOnlyByRegionOrVariant(tag: readonly string[], locale: readonly string[]): boolean {
+  return (
+    isSubtagPrefix(tag, locale) &&
+    locale
+      .slice(tag.length)
+      .every((subtag) => REGION_SUBTAG.test(subtag) || VARIANT_SUBTAG.test(subtag))
+  );
+}
+
+function reachable(tag: readonly string[], locale: readonly string[]): boolean {
+  return isSubtagPrefix(locale, tag) || narrowsOnlyByRegionOrVariant(tag, locale);
 }
 
 interface Candidate {
@@ -61,7 +74,7 @@ export function matchLanguageTag(tag: string, locales: readonly string[]): Langu
   const subtags = wanted.split("-");
   const candidates = locales
     .map((locale) => ({ locale, subtags: canonical(locale).split("-") }))
-    .filter((candidate) => extendsOrIsExtendedBy(subtags, candidate.subtags));
+    .filter((candidate) => reachable(subtags, candidate.subtags));
   if (candidates.length === 0) {
     return { kind: "unmatched" };
   }

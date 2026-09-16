@@ -58,6 +58,40 @@ describe("matchLanguageTag falls back only along a subtag prefix, and only when 
     });
   });
 
+  it("widens a bare tag onto a configured locale that only adds a region or a variant", () => {
+    expect(matchLanguageTag("de", ["de-DE"])).toEqual({
+      kind: "matched",
+      locale: "de-DE",
+      exact: false,
+    });
+    expect(matchLanguageTag("es", ["es-419"])).toMatchObject({ kind: "matched", locale: "es-419" });
+    expect(matchLanguageTag("de", ["de-1996"])).toMatchObject({
+      kind: "matched",
+      locale: "de-1996",
+    });
+    expect(matchLanguageTag("sl", ["sl-rozaj"])).toMatchObject({
+      kind: "matched",
+      locale: "sl-rozaj",
+    });
+  });
+
+  it("never widens a tag onto a configured locale that adds a script", () => {
+    expect(matchLanguageTag("zh", ["zh-Hant-TW"])).toEqual({ kind: "unmatched" });
+    expect(matchLanguageTag("sr", ["sr-Latn"])).toEqual({ kind: "unmatched" });
+    expect(matchLanguageTag("zh-TW", ["zh-TW-Hant"])).toEqual({ kind: "unmatched" });
+  });
+
+  it("never widens a tag onto a configured locale that adds an extension subtag", () => {
+    expect(matchLanguageTag("de", ["de-u-co-phonebk"])).toEqual({ kind: "unmatched" });
+  });
+
+  it("leaves a script-adding locale out of the candidates a bare tag could claim", () => {
+    expect(matchLanguageTag("zh", ["zh-Hans", "zh-CN"])).toMatchObject({
+      kind: "matched",
+      locale: "zh-CN",
+    });
+  });
+
   it("never matches one region onto another", () => {
     expect(matchLanguageTag("en-GB", ["en-US"])).toEqual({ kind: "unmatched" });
     expect(matchLanguageTag("de-AT", ["de-CH"])).toEqual({ kind: "unmatched" });

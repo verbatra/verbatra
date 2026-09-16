@@ -135,7 +135,7 @@ describe("locale resolution never attributes a translation to the wrong source t
     expect(await storedFor(dir, config, "zh-CN")).toEqual([["Save", "保存"]]);
   });
 
-  it("reports a bare tag two configured locales could claim rather than picking one", async () => {
+  it("widens a bare tag onto the region target, never onto the script-subtag source", async () => {
     const config = cfg({ sourceLocale: "zh-Hans", targetLocales: ["zh-CN"] });
     const dir = await project(
       [
@@ -149,9 +149,24 @@ describe("locale resolution never attributes a translation to the wrong source t
 
     const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
 
-    expect(result.ambiguousLanguages).toEqual([{ language: "zh", units: 1 }]);
-    expect(result.locales[0]?.added).toBe(0);
-    expect(await storedFor(dir, config, "zh-CN")).toEqual([]);
+    expect(result.ambiguousLanguages).toEqual([]);
+    expect(result.locales[0]?.added).toBe(1);
+    expect(await storedFor(dir, config, "zh-CN")).toEqual([["Save", "储存"]]);
+  });
+
+  it("does not widen a bare tag onto a configured locale that adds a script", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["sr-Latn"] });
+    const dir = await project([
+      tu([
+        ["en", "Save"],
+        ["sr", "Sačuvaj"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.unmatchedLanguages).toEqual([{ language: "sr", units: 1 }]);
+    expect(await storedFor(dir, config, "sr-Latn")).toEqual([]);
   });
 
   it("never resolves a tag onto a configured locale it is not a subtag prefix of", async () => {
