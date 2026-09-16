@@ -337,3 +337,93 @@ describe("scanSource positions and comments", () => {
     expect(tokens.some((token) => token.kind.startsWith("markup"))).toBe(false);
   });
 });
+
+describe("tokenizeSource on a regular expression inside a template substitution", () => {
+  function firstSpan(text: string): number | undefined {
+    const [first] = tokenizeSource(text).tokens;
+    return first?.kind === "dynamic" ? first.span : undefined;
+  }
+
+  it.each([
+    ["a double quote", '`"${v.replace(/"/g, \'""\')}"`', 8, ['""']],
+    ["a single quote", "`${v.replace(/'/g, \"''\")}`", 8, ["''"]],
+    ["a backtick", '`${v.replace(/`/g, "\'")}`', 8, ["'"]],
+    ["a line comment opener in a class", "`${v.split(/[//]/)}`", 5, []],
+    ["a block comment opener in a class", "`${v.split(/[/*]/)}` + `${v.split(/[*/]/)}`", 5, []],
+    ["an unbalanced opening brace in a class", "`${v.split(/[{]/)}`", 5, []],
+    ["an unbalanced closing brace in a class", "`${v.split(/[}]/)}`", 5, []],
+    ["a slash and a quote in a class", '`${v.split(/[/"]/)}`', 5, []],
+    ["an escaped slash", "`${v.replace(/\\//g, '\\\\/')}`", 8, ["\\/"]],
+    [
+      "an alternation of a quote and a backslash",
+      '`${v.replaceAll(/"|\\\\/g, "\\\\$&")}`',
+      8,
+      ["\\$&"],
+    ],
+    ["flags after the closing slash", '`${v.replace(/"/giu, "")}`', 8, [""]],
+    [
+      "braces and slashes across escapes and classes",
+      "`${v.match(/\\/:[^/{}]+(?:\\{\\[\\^\\/]\\+})?(?=[/{]|$)/g)}`",
+      6,
+      [],
+    ],
+  ] as const)("reads %s without losing the code around it", (_name, construct, span, inner) => {
+    const content = `${construct};\nt("kept");\n${construct};`;
+
+    expect(firstSpan(construct)).toBe(span);
+    expect(strings(content)).toEqual([...inner, "kept", ...inner]);
+    expect(truncated(content)).toBe(false);
+  });
+
+  it.each([
+    [
+      "a chain of divisions",
+      "`${a / b / c}`",
+      ["dynamic", "ident", "punct", "ident", "punct", "ident"],
+    ],
+    [
+      "slashes in the template text between substitutions",
+      "`${x}/${y}/g`",
+      ["dynamic", "ident", "ident"],
+    ],
+    [
+      "a regular expression in each ternary branch",
+      "`${ok ? /\"/ : /'/}`",
+      ["dynamic", "ident", "punct", "punct"],
+    ],
+    [
+      "a division after a closing parenthesis",
+      '`${(a) / "b" / c}`',
+      ["dynamic", "punct", "ident", "punct", "punct", "string", "punct", "ident"],
+    ],
+  ] as const)("tells division from a regular expression for %s", (_name, construct, expected) => {
+    expect(kinds(construct)).toEqual(expected);
+    expect(strings(`${construct};\nt("kept");\n${construct};`)).toContain("kept");
+  });
+
+  it("gives tokens after a regular expression in a substitution their real positions", () => {
+    const { tokens } = scanSource('`${v.replace(/"/g, "")}` + t("k")');
+
+    expect(tokens.filter((token) => token.kind === "string")).toEqual([
+      { kind: "string", value: "", line: 1, column: 20 },
+      { kind: "string", value: "k", line: 1, column: 30 },
+    ]);
+  });
+
+  it("reads templates nested ten thousand deep without exhausting the stack", () => {
+    const depth = 10_000;
+    const content = `${"`${".repeat(depth)}x${"}`".repeat(depth)}`;
+
+    const scan = tokenizeSource(content);
+
+    expect(scan.truncated).toBe(false);
+    expect(scan.tokens).toHaveLength(depth + 1);
+    expect(scan.tokens[depth]).toEqual({ kind: "ident", value: "x", line: 1 });
+  });
+
+  it("reads an unterminated substitution to the end of the file as truncated", () => {
+    expect(kinds('`${ t("a")')).toEqual(["dynamic", "ident", "punct", "string", "punct"]);
+    expect(truncated('`${ t("a")')).toBe(true);
+    expect(truncated("`${ `${ a }")).toBe(true);
+  });
+});

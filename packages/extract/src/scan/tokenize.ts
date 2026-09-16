@@ -242,153 +242,149 @@ function readStringToken(cursor: Cursor, quote: string): PositionedToken {
   return { kind: "punct", value: quote, line, column };
 }
 
-function skipStringRaw(cursor: Cursor, quote: string): void {
-  cursor.index += 1;
-  while (!atEnd(cursor)) {
-    const char = advance(cursor);
-    if (char === "\\") {
-      advance(cursor);
-    } else if (char === quote || char === "\n") {
-      return;
-    }
-  }
+interface Substitution {
+  readonly floor: number;
+  depth: number;
 }
 
-function skipTemplateRaw(cursor: Cursor): void {
-  cursor.index += 1;
-  while (!atEnd(cursor)) {
-    const char = charAt(cursor, 0);
-    if (char === "\\") {
-      cursor.index += 2;
-    } else if (char === "`") {
-      cursor.index += 1;
-      return;
-    } else if (char === "$" && charAt(cursor, 1) === "{") {
-      cursor.index += 2;
-      skipBalancedExpression(cursor);
-    } else {
-      advance(cursor);
-    }
-  }
-}
-
-function skipExpressionChar(cursor: Cursor, depth: number): number {
-  const char = charAt(cursor, 0);
-  if (char === '"' || char === "'") {
-    skipStringRaw(cursor, char);
-    return depth;
-  }
-  if (char === "`") {
-    skipTemplateRaw(cursor);
-    return depth;
-  }
-  if (char === "/" && charAt(cursor, 1) === "/") {
-    skipLineComment(cursor);
-    return depth;
-  }
-  if (char === "/" && charAt(cursor, 1) === "*") {
-    skipBlockComment(cursor);
-    return depth;
-  }
-  advance(cursor);
-  if (char === "{") {
-    return depth + 1;
-  }
-  return char === "}" ? depth - 1 : depth;
-}
-
-function skipBalancedExpression(cursor: Cursor): void {
-  let depth = 1;
-  while (!atEnd(cursor) && depth > 0) {
-    depth = skipExpressionChar(cursor, depth);
-  }
-}
-
-interface TemplateExpression {
-  readonly text: string;
+interface OpenTemplate {
+  readonly at: number;
   readonly line: number;
   readonly column: number;
+  staticValue: string;
+  head: string | undefined;
+  dynamic: boolean;
+  substitution: Substitution | undefined;
 }
 
-interface TemplateParts {
-  readonly line: number;
-  readonly column: number;
-  readonly head: string;
-  readonly staticValue: string;
-  readonly expressions: readonly TemplateExpression[];
-  readonly dynamic: boolean;
-}
+type TemplateStep = "closed" | "substitution" | "end" | "nested" | "resumed" | "token";
 
-function readTemplateParts(cursor: Cursor): TemplateParts {
+function openTemplate(cursor: Cursor, out: PositionedToken[]): OpenTemplate {
   const line = cursor.line;
   const column = columnOf(cursor);
+  const template: OpenTemplate = {
+    at: out.length,
+    line,
+    column,
+    staticValue: "",
+    head: undefined,
+    dynamic: false,
+    substitution: undefined,
+  };
+  out.push({ kind: "string", value: "", line, column });
   cursor.index += 1;
-  let staticValue = "";
-  let head: string | undefined;
-  let dynamic = false;
-  const expressions: TemplateExpression[] = [];
+  return template;
+}
+
+function closeTemplate(out: PositionedToken[], template: OpenTemplate): void {
+  const position = { line: template.line, column: template.column };
+  out[template.at] = template.dynamic
+    ? {
+        kind: "dynamic",
+        ...position,
+        head: template.head ?? template.staticValue,
+        span: out.length - template.at - 1,
+      }
+    : { kind: "string", value: template.staticValue, ...position };
+}
+
+function readTemplateText(cursor: Cursor, template: OpenTemplate): TemplateStep {
   while (!atEnd(cursor)) {
     const char = charAt(cursor, 0);
     if (char === "\\") {
-      staticValue += readEscape(cursor);
+      template.staticValue += readEscape(cursor);
     } else if (char === "`") {
       cursor.index += 1;
-      return { line, column, head: head ?? staticValue, staticValue, expressions, dynamic };
+      return "closed";
     } else if (char === "$" && charAt(cursor, 1) === "{") {
-      head ??= staticValue;
-      dynamic = true;
+      template.head ??= template.staticValue;
+      template.dynamic = true;
       cursor.index += 2;
-      const start = cursor.index;
-      const startLine = cursor.line;
-      const startColumn = columnOf(cursor);
-      skipBalancedExpression(cursor);
-      expressions.push({
-        text: cursor.text.slice(start, cursor.index - 1),
-        line: startLine,
-        column: startColumn,
-      });
+      return "substitution";
     } else {
-      staticValue += advance(cursor);
+      template.staticValue += advance(cursor);
     }
   }
-  cursor.truncated = true;
-  return { line, column, head: head ?? staticValue, staticValue, expressions, dynamic: true };
+  return "end";
 }
 
-function shiftPosition(token: PositionedToken, expression: TemplateExpression): PositionedToken {
-  const column = token.line === 1 ? token.column + expression.column - 1 : token.column;
-  return { ...token, line: token.line + expression.line - 1, column };
+function braceDelta(char: string): number {
+  if (char === "{") {
+    return 1;
+  }
+  return char === "}" ? -1 : 0;
 }
 
-function readExpressionTokens(
+function readSubstitution(
   cursor: Cursor,
-  expression: TemplateExpression,
-): readonly PositionedToken[] {
-  const scan = scanSource(expression.text, cursor.options);
-  if (scan.truncated) {
-    cursor.truncated = true;
+  out: PositionedToken[],
+  substitution: Substitution,
+): TemplateStep {
+  skipTrivia(cursor);
+  if (atEnd(cursor)) {
+    return "end";
   }
-  if (scan.unreadableMarkup) {
-    cursor.unreadableMarkup = true;
+  const char = charAt(cursor, 0);
+  if (char === "`") {
+    return "nested";
   }
-  for (const comment of scan.comments) {
-    cursor.comments.push({
-      text: comment.text,
-      line: comment.line + expression.line - 1,
-      endLine: comment.endLine + expression.line - 1,
-    });
+  if (char === "}" && substitution.depth === 0) {
+    cursor.index += 1;
+    return "resumed";
   }
-  return scan.tokens.map((token) => shiftPosition(token, expression));
+  substitution.depth += braceDelta(char);
+  const previous = out.length > substitution.floor ? out[out.length - 1] : undefined;
+  emitTokens(cursor, previous, out);
+  return "token";
 }
 
-function readTemplateTokens(cursor: Cursor): readonly PositionedToken[] {
-  const parts = readTemplateParts(cursor);
-  const position = { line: parts.line, column: parts.column };
-  if (!parts.dynamic) {
-    return [{ kind: "string", value: parts.staticValue, ...position }];
+function abandonTemplates(cursor: Cursor, out: PositionedToken[], open: OpenTemplate[]): void {
+  cursor.truncated = true;
+  for (const template of open) {
+    template.dynamic = true;
+    closeTemplate(out, template);
   }
-  const inner = parts.expressions.flatMap((expression) => readExpressionTokens(cursor, expression));
-  return [{ kind: "dynamic", ...position, head: parts.head, span: inner.length }, ...inner];
+  open.length = 0;
+}
+
+function applyTemplateStep(
+  cursor: Cursor,
+  out: PositionedToken[],
+  open: OpenTemplate[],
+  current: OpenTemplate,
+  step: TemplateStep,
+): void {
+  switch (step) {
+    case "closed":
+      closeTemplate(out, current);
+      open.pop();
+      return;
+    case "substitution":
+      current.substitution = { floor: out.length, depth: 0 };
+      return;
+    case "resumed":
+      current.substitution = undefined;
+      return;
+    case "nested":
+      open.push(openTemplate(cursor, out));
+      return;
+    case "end":
+      abandonTemplates(cursor, out, open);
+      return;
+    default:
+      return;
+  }
+}
+
+function emitTemplate(cursor: Cursor, out: PositionedToken[]): void {
+  const open = [openTemplate(cursor, out)];
+  for (let current = open[0]; current !== undefined; current = open[open.length - 1]) {
+    const step =
+      current.substitution === undefined
+        ? readTemplateText(cursor, current)
+        : readSubstitution(cursor, out, current.substitution);
+    applyTemplateStep(cursor, out, open, current, step);
+  }
 }
 
 function readAtomToken(cursor: Cursor): PositionedToken {
@@ -454,19 +450,23 @@ function readMarkupTokens(
   return reader === undefined ? undefined : reader(cursor, previous);
 }
 
-export function nextTokens(
+function emitTokens(
   cursor: Cursor,
   previous: PositionedToken | undefined,
-): readonly PositionedToken[] {
+  out: PositionedToken[],
+): void {
   const char = charAt(cursor, 0);
   if (char === '"' || char === "'") {
-    return [readStringToken(cursor, char)];
+    out.push(readStringToken(cursor, char));
+    return;
   }
   if (char === "`") {
-    return readTemplateTokens(cursor);
+    emitTemplate(cursor, out);
+    return;
   }
   if (isAtomChar(char)) {
-    return [readAtomToken(cursor)];
+    out.push(readAtomToken(cursor));
+    return;
   }
   if (
     char === "/" &&
@@ -474,16 +474,28 @@ export function nextTokens(
     regexCanStart(previous) &&
     trySkipRegex(cursor)
   ) {
-    return [];
+    return;
   }
   const markup = char === "<" ? readMarkupTokens(cursor, previous) : undefined;
   if (markup !== undefined) {
-    return markup;
+    for (const token of markup) {
+      out.push(token);
+    }
+    return;
   }
   const line = cursor.line;
   const column = columnOf(cursor);
   advance(cursor);
-  return [{ kind: "punct", value: char, line, column }];
+  out.push({ kind: "punct", value: char, line, column });
+}
+
+export function nextTokens(
+  cursor: Cursor,
+  previous: PositionedToken | undefined,
+): readonly PositionedToken[] {
+  const out: PositionedToken[] = [];
+  emitTokens(cursor, previous, out);
+  return out;
 }
 
 export function scanSource(text: string, options: ScanOptions = {}): PositionedScan {
@@ -508,8 +520,7 @@ export function scanSource(text: string, options: ScanOptions = {}): PositionedS
         unreadableMarkup: cursor.unreadableMarkup,
       };
     }
-    const produced = nextTokens(cursor, tokens[tokens.length - 1]);
-    tokens.push(...produced);
+    emitTokens(cursor, tokens[tokens.length - 1], tokens);
   }
 }
 

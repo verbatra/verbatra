@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -125,6 +126,41 @@ describe("doctor with literals: a project with findings", () => {
       "Scanned 1 source file: 0 untranslated literals found (2 suppressed).",
     );
   });
+});
+
+describe("doctor with literals: a regular expression inside a template substitution", () => {
+  it.each([".ts", ".mts", ".cts", ".mjs", ".cjs", ".tsx", ".jsx", ".js"])(
+    "still reports a literal between two such substitutions in a %s file",
+    async (extension) => {
+      await writeConfig(EXTRACT);
+      await writeProjectFile(
+        `src/csv${extension}`,
+        [
+          "export function csv(v) {",
+          '  return `"${v.replace(/"/g, \'""\')}"`;',
+          "}",
+          'export const b = "Welcome back";',
+          "export function csv2(v) {",
+          '  return `"${v.replace(/"/g, \'""\')}"`;',
+          "}",
+          "",
+        ].join("\n"),
+      );
+
+      const result = await doctor({ cwd: projectDir, literals: true });
+
+      expect(result.literals?.diagnostics).toEqual([]);
+      expect(result.literals?.findings).toEqual([
+        {
+          file: `src/csv${extension}`,
+          line: 4,
+          column: 18,
+          text: "Welcome back",
+          truncated: false,
+        },
+      ]);
+    },
+  );
 });
 
 describe("doctor with literals: which source it reads", () => {

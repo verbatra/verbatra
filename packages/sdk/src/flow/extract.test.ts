@@ -537,3 +537,29 @@ describe("extract on a source file it cannot read to the end", () => {
     expect(result.added.map((entry) => entry.key)).toEqual(["nav.home"]);
   });
 });
+
+describe("extract on a regular expression inside a template substitution", () => {
+  it.each([".ts", ".mts", ".cts", ".mjs", ".cjs", ".tsx", ".jsx", ".js"])(
+    "adds the keys called around two such substitutions in a %s file",
+    async (extension) => {
+      const cwd = await project({
+        [`src/csv${extension}`]: [
+          "export function csv(v) {",
+          '  return `"${v.replace(/"/g, \'""\')}"`;',
+          "}",
+          'export const label = () => t("home");',
+          "export function csv2(v) {",
+          '  return `"${v.replace(/"/g, \'""\')}"`;',
+          "}",
+          'export const other = () => t("zzz");',
+          "",
+        ].join("\n"),
+      });
+
+      const result = await extract({ config: config(), cwd, dryRun: true });
+
+      expect(result.diagnostics).toEqual([]);
+      expect(result.added.map((entry) => entry.key)).toEqual(["home", "zzz"]);
+    },
+  );
+});

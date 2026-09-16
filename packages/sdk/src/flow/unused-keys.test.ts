@@ -562,6 +562,33 @@ describe("findUnusedKeys reads markup and regular expressions without losing a c
   });
 });
 
+const REGEX_IN_SUBSTITUTION = [
+  "export function csv(v) {",
+  '  return `"${v.replace(/"/g, \'""\')}"`;',
+  "}",
+  "export function label() {",
+  '  return t("home");',
+  "}",
+  "export function csv2(v) {",
+  '  return `"${v.replace(/"/g, \'""\')}"`;',
+  "}",
+  "",
+].join("\n");
+
+describe("findUnusedKeys reads a regular expression inside a template substitution", () => {
+  it.each([".ts", ".mts", ".cts", ".mjs", ".cjs", ".tsx", ".jsx", ".js"])(
+    "stays complete, referencing a key called between two such substitutions in a %s file",
+    async (extension) => {
+      const report = await unusedIn(
+        { home: "H", zzz: "Z" },
+        { [`src/csv${extension}`]: REGEX_IN_SUBSTITUTION, "src/other.ts": 't("zzz");' },
+      );
+
+      expect(report).toMatchObject({ status: "complete", unused: [] });
+    },
+  );
+});
+
 describe("findUnusedKeys reads JSX text and attribute values as markup", () => {
   it("reports t escaping on the same line as a contraction in JSX text", async () => {
     const report = await unusedIn(
