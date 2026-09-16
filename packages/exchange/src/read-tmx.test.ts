@@ -233,6 +233,41 @@ describe("readTmx refuses a hostile or unusable document", () => {
     expect(error.message).toContain("entity");
   });
 
+  it("refuses an entity declaration hiding after a legitimate external doctype", () => {
+    const layered = [
+      '<!DOCTYPE tmx SYSTEM "tmx14.dtd">',
+      '<!ENTITY xxe SYSTEM "file:///etc/passwd">',
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(expectTmxInvalid(() => readTmx(layered)).message).toContain("entity");
+  });
+
+  it("refuses a second DOCTYPE that carries an internal subset", () => {
+    const two = [
+      '<!DOCTYPE tmx SYSTEM "tmx14.dtd">',
+      "<!DOCTYPE tmx [<!ELEMENT seg (#PCDATA)>]>",
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(expectTmxInvalid(() => readTmx(two)).message).toContain("internal DTD subset");
+  });
+
+  it("does not mistake a greater-than inside a system identifier for the end of the doctype", () => {
+    const quoted = [
+      '<!DOCTYPE tmx SYSTEM "a>b.dtd">',
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(readTmx(quoted).units[0]?.segments).toEqual([{ language: "en", text: "Hello" }]);
+  });
+
   it("refuses an internal subset even when it declares no entity", () => {
     const withSubset = [
       "<!DOCTYPE tmx [<!ELEMENT seg (#PCDATA)>]>",
@@ -324,5 +359,114 @@ describe("readTmx refuses a hostile or unusable document", () => {
     )}b</seg></tuv></tu></body></tmx>`;
 
     expectTmxInvalid(() => readTmx(control));
+  });
+});
+
+describe("readTmx bounds the prolog itself", () => {
+  it("skips a comment and a processing instruction before the root element", () => {
+    const decorated = [
+      '<?xml version="1.0"?>',
+      "<!-- exported nightly, do not edit -->",
+      '<?xml-stylesheet href="tmx.xsl"?>',
+      '<!DOCTYPE tmx SYSTEM "tmx14.dtd">',
+      "<!-- second comment -->",
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(readTmx(decorated).units[0]?.segments).toEqual([{ language: "en", text: "Hello" }]);
+  });
+
+  it("refuses a comment that is never closed", () => {
+    expect(expectTmxInvalid(() => readTmx("<!-- never closed <tmx/>")).message).toContain("-->");
+  });
+
+  it("refuses a processing instruction that is never closed", () => {
+    expect(expectTmxInvalid(() => readTmx('<?xml version="1.0"')).message).toContain("?>");
+  });
+
+  it("refuses text sitting before the root element", () => {
+    expect(expectTmxInvalid(() => readTmx('stray text<tmx version="1.4"/>')).message).toContain(
+      "before the root element",
+    );
+  });
+
+  it("refuses a document with no root element at all", () => {
+    expect(expectTmxInvalid(() => readTmx("<!-- only a comment -->")).message).toContain(
+      "no root element",
+    );
+  });
+
+  it("refuses a tmx root element in a foreign namespace", () => {
+    const foreign =
+      '<tmx xmlns="http://example.invalid/not-tmx" version="1.4"><header srclang="en"/><body/></tmx>';
+
+    expect(expectTmxInvalid(() => readTmx(foreign)).message).toContain("namespace");
+  });
+
+  it("accepts the TMX 1.4 namespace when a writer declares it", () => {
+    const namespaced =
+      '<tmx xmlns="http://www.lisa.org/tmx14" version="1.4"><header srclang="en"/><body>' +
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu></body></tmx>';
+
+    expect(readTmx(namespaced).units[0]?.segments).toEqual([{ language: "en", text: "Hello" }]);
+  });
+
+  it("refuses a well-formedness error the parser reports without calling it fatal", () => {
+    const undeclared =
+      '<tmx version="1.4"><header srclang="en"/><body>' +
+      '<tu><tuv xml:lang="en"><seg>fifty &percnt; off</seg></tuv></tu></body></tmx>';
+
+    expect(expectTmxInvalid(() => readTmx(undeclared)).message).toContain("not valid XML");
+  });
+});
+
+describe("readTmx refuses an entity declaration the prolog scan walks past", () => {
+  it("catches one hidden inside a prolog comment", () => {
+    const hidden = [
+      '<!-- a stray <!ENTITY xxe SYSTEM "file:///etc/passwd"> left in a comment -->',
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Hello</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(expectTmxInvalid(() => readTmx(hidden)).message).toContain("entity");
+  });
+
+  it("leaves a raw entity declaration inside a data section alone, because it is payload", () => {
+    const inCdata = [
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg><![CDATA[Declare it with <!ENTITY name "value"> in the DTD]]></seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(readTmx(inCdata).units[0]?.segments[0]?.text).toBe(
+      'Declare it with <!ENTITY name "value"> in the DTD',
+    );
+  });
+
+  it("keeps a raw doctype inside a data section byte for byte", () => {
+    const inCdata = [
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg><![CDATA[Write <!DOCTYPE html> at the top, then <body> follows]]></seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(readTmx(inCdata).units[0]?.segments[0]?.text).toBe(
+      "Write <!DOCTYPE html> at the top, then <body> follows",
+    );
+  });
+
+  it("leaves the same words alone when they sit in a segment rather than the prolog", () => {
+    const inData = [
+      '<tmx version="1.4"><header srclang="en"/><body>',
+      '<tu><tuv xml:lang="en"><seg>Declare it with &lt;!ENTITY name "value"&gt; in the DTD</seg></tuv></tu>',
+      "</body></tmx>",
+    ].join("\n");
+
+    expect(readTmx(inData).units[0]?.segments[0]?.text).toBe(
+      'Declare it with <!ENTITY name "value"> in the DTD',
+    );
   });
 });

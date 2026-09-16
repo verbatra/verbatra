@@ -1,14 +1,19 @@
-import { DOMParser, type Element, type Node } from "@xmldom/xmldom";
+import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
 import { ExchangeError } from "./errors.js";
 import { DEFAULT_TMX_LIMITS, type TmxLimits } from "./tmx-limits.js";
 import { hasIllegalXmlCharacter } from "./xml-character.js";
+import { removeSpans, scanProlog } from "./xml-prolog.js";
 
 export interface TmxSegment {
   readonly language: string;
   readonly text: string;
 }
 
-export type TmxSkipReason = "no-segment" | "language-missing" | "duplicate-language";
+export type TmxSkipReason =
+  | "no-segment"
+  | "language-missing"
+  | "duplicate-language"
+  | "multiple-segments";
 
 export interface TmxSkippedUnit {
   readonly ordinal: number;
@@ -25,6 +30,11 @@ export interface TmxDocument {
   readonly sourceLanguage: string | undefined;
   readonly units: readonly TmxUnit[];
   readonly skipped: readonly TmxSkippedUnit[];
+  /**
+   * `tu` elements the walk never reached, because they sit outside the first `body` element. TMX
+   * allows exactly one `body`, so this is always zero for a conformant file.
+   */
+  readonly unreachableUnits: number;
 }
 
 export interface ReadTmxOptions {
@@ -35,9 +45,9 @@ const ELEMENT_NODE = 1;
 
 const ENTITY_DECLARATION = /<!ENTITY/i;
 
-const DOCTYPE_DECLARATION = /<!DOCTYPE/i;
-
 const UTF8_BOM = "﻿";
+
+const TMX_NAMESPACES: ReadonlySet<string> = new Set(["http://www.lisa.org/tmx14"]);
 
 function invalid(message: string): ExchangeError {
   return new ExchangeError("TMX_INVALID", message);
@@ -49,44 +59,57 @@ function assertInputBytes(text: string, limits: TmxLimits): void {
   }
 }
 
-function withoutDoctype(text: string): string {
-  if (ENTITY_DECLARATION.test(text)) {
+function withoutProlog(text: string): string {
+  const { rootStart, doctypeSpans } = scanProlog(text);
+  if (ENTITY_DECLARATION.test(text.slice(0, rootStart))) {
     throw invalid(
       "The TMX file declares an XML entity. Entity declarations are refused, because they can expand without bound or name a file on this machine.",
     );
   }
-  const start = text.search(DOCTYPE_DECLARATION);
-  if (start === -1) {
-    return text;
-  }
-  const end = text.indexOf(">", start);
-  if (end === -1) {
-    throw invalid("The TMX file is not valid XML: its DOCTYPE declaration is never closed.");
-  }
-  if (text.slice(start, end).includes("[")) {
-    throw invalid(
-      "The TMX file declares an internal DTD subset, which is refused because it can declare an entity.",
-    );
-  }
-  return `${text.slice(0, start)}${text.slice(end + 1)}`;
+  return removeSpans(text, doctypeSpans);
 }
 
-function onFatal(level: "warning" | "error" | "fatalError"): void {
-  if (level === "fatalError") {
+function onWellFormednessProblem(level: "warning" | "error" | "fatalError"): void {
+  if (level !== "warning") {
     throw new Error("malformed XML");
   }
 }
 
-function parseDocumentElement(text: string): Element {
-  let root: Element | null;
-  try {
-    root = new DOMParser({ onError: onFatal }).parseFromString(text, "text/xml").documentElement;
-  } catch {
-    throw invalid("The TMX file is not valid XML.");
+function assertNoDoctype(document: Document): void {
+  const doctype = document.doctype;
+  /* v8 ignore next 6 -- backstop: scanProlog already refuses an internal subset before the parser runs, so this fires only if that scan and the parser ever disagree. */
+  if (doctype !== null && doctype.internalSubset != null && doctype.internalSubset !== "") {
+    throw invalid(
+      "The TMX file declares an internal DTD subset, which is refused because it can declare an entity.",
+    );
   }
+}
+
+function assertTmxRoot(root: Element | null): asserts root is Element {
   if (root === null || root.localName !== "tmx") {
     throw invalid("The file is not a TMX document: its root element is not <tmx>.");
   }
+  const namespace = root.namespaceURI;
+  if (namespace !== null && !TMX_NAMESPACES.has(namespace)) {
+    throw invalid(
+      `The file is not a TMX document: its root element is in the namespace "${namespace}".`,
+    );
+  }
+}
+
+function parseDocumentElement(text: string): Element {
+  let document: Document;
+  try {
+    document = new DOMParser({ onError: onWellFormednessProblem }).parseFromString(
+      text,
+      "text/xml",
+    );
+  } catch {
+    throw invalid("The TMX file is not valid XML.");
+  }
+  assertNoDoctype(document);
+  const root = document.documentElement;
+  assertTmxRoot(root);
   return root;
 }
 
@@ -107,8 +130,7 @@ function firstChildNamed(parent: Element, name: string): Element | undefined {
 }
 
 function headerSourceLanguage(root: Element): string | undefined {
-  const header = firstChildNamed(root, "header");
-  const declared = header?.getAttribute("srclang") ?? undefined;
+  const declared = firstChildNamed(root, "header")?.getAttribute("srclang") ?? undefined;
   return declared === undefined || declared === "" ? undefined : declared;
 }
 
@@ -139,10 +161,6 @@ function assertSegmentCharacters(text: string): void {
   }
 }
 
-type UnitScan =
-  | { readonly kind: "unit"; readonly segments: TmxSegment[]; readonly markupStripped: boolean }
-  | { readonly kind: "skip"; readonly reason: TmxSkipReason };
-
 function assertLanguageCount(count: number, limits: TmxLimits): void {
   if (count > limits.maxLanguagesPerUnit) {
     throw invalid(
@@ -150,6 +168,16 @@ function assertLanguageCount(count: number, limits: TmxLimits): void {
     );
   }
 }
+
+function assertUnitCount(count: number, limits: TmxLimits): void {
+  if (count > limits.maxUnitCount) {
+    throw invalid(`The TMX file has more than the maximum of ${limits.maxUnitCount} units.`);
+  }
+}
+
+type UnitScan =
+  | { readonly kind: "unit"; readonly segments: TmxSegment[]; readonly markupStripped: boolean }
+  | { readonly kind: "skip"; readonly reason: TmxSkipReason };
 
 function scanUnit(tu: Element, limits: TmxLimits): UnitScan {
   const segments: TmxSegment[] = [];
@@ -163,9 +191,13 @@ function scanUnit(tu: Element, limits: TmxLimits): UnitScan {
     if (seen.has(language)) {
       return { kind: "skip", reason: "duplicate-language" };
     }
-    const seg = firstChildNamed(tuv, "seg");
+    const segs = childrenNamed(tuv, "seg");
+    const seg = segs[0];
     if (seg === undefined) {
       return { kind: "skip", reason: "no-segment" };
+    }
+    if (segs.length > 1) {
+      return { kind: "skip", reason: "multiple-segments" };
     }
     const text = seg.textContent ?? "";
     assertSegmentLength(text, limits);
@@ -180,17 +212,15 @@ function scanUnit(tu: Element, limits: TmxLimits): UnitScan {
     : { kind: "unit", segments, markupStripped };
 }
 
-function assertUnitCount(count: number, limits: TmxLimits): void {
-  if (count > limits.maxUnitCount) {
-    throw invalid(`The TMX file has more than the maximum of ${limits.maxUnitCount} units.`);
-  }
+function unreachableUnitCount(root: Element, walked: number): number {
+  return Math.max(0, Array.from(root.getElementsByTagName("tu")).length - walked);
 }
 
 export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument {
   const limits = options.limits ?? DEFAULT_TMX_LIMITS;
   assertInputBytes(text, limits);
   const withoutBom = text.startsWith(UTF8_BOM) ? text.slice(UTF8_BOM.length) : text;
-  const root = parseDocumentElement(withoutDoctype(withoutBom));
+  const root = parseDocumentElement(withoutProlog(withoutBom));
   const units: TmxUnit[] = [];
   const skipped: TmxSkippedUnit[] = [];
   let ordinal = 0;
@@ -204,5 +234,10 @@ export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument
     }
     units.push({ ordinal, markupStripped: scan.markupStripped, segments: scan.segments });
   }
-  return { sourceLanguage: headerSourceLanguage(root), units, skipped };
+  return {
+    sourceLanguage: headerSourceLanguage(root),
+    units,
+    skipped,
+    unreachableUnits: unreachableUnitCount(root, ordinal),
+  };
 }

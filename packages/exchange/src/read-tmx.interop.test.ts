@@ -88,3 +88,53 @@ describe("a TMX file using the bare lang attribute, inline markup and CDATA", ()
     expect(document.skipped).toEqual([]);
   });
 });
+
+describe("a TMX file with placeholders in inline markup, a wildcard source language and sentence segmentation", () => {
+  const document = readTmx(fixture("placeholders-and-wildcard.tmx"));
+
+  it("reports the TMX all-languages wildcard verbatim rather than inventing a language", () => {
+    expect(document.sourceLanguage).toBe("*all*");
+  });
+
+  it("keeps a placeholder that was wrapped in inline markup, and says the unit lost markup", () => {
+    expect(document.units[0]?.segments).toEqual([
+      { language: "en", text: "Welcome back, {{name}}" },
+      { language: "de", text: "Willkommen zurück, {{name}}" },
+    ]);
+    expect(document.units[0]?.markupStripped).toBe(true);
+  });
+
+  it("flattens nested inline markup including a sub element", () => {
+    expect(document.units[1]?.segments).toEqual([
+      { language: "en", text: 'Click <a href="/x">heretooltip text</a> now' },
+      { language: "de", text: 'Klicke <a href="/x">hierTooltip-Text</a> jetzt' },
+    ]);
+    expect(document.units[1]?.markupStripped).toBe(true);
+  });
+
+  it("refuses a sentence-segmented unit rather than silently keeping only its first segment", () => {
+    expect(document.units).toHaveLength(2);
+    expect(document.skipped).toEqual([{ ordinal: 3, reason: "multiple-segments" }]);
+  });
+
+  it("leaves nothing unreachable", () => {
+    expect(document.unreachableUnits).toBe(0);
+  });
+});
+
+describe("a TMX file with units outside its first body", () => {
+  it("counts them rather than dropping them silently", () => {
+    const twoBodies = [
+      '<tmx version="1.4">',
+      '  <header srclang="en"/>',
+      '  <body><tu><tuv xml:lang="en"><seg>In the first body</seg></tuv></tu></body>',
+      '  <body><tu><tuv xml:lang="en"><seg>In the second body</seg></tuv></tu></body>',
+      "</tmx>",
+    ].join("\n");
+
+    const document = readTmx(twoBodies);
+
+    expect(document.units).toHaveLength(1);
+    expect(document.unreachableUnits).toBe(1);
+  });
+});
