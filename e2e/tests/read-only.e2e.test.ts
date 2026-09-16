@@ -21,7 +21,7 @@ import {
 
 interface CheckSummaryJson {
   inSync: boolean;
-  locales: { locale: string; missing: number }[];
+  locales: { locale: string; missing: number; inconsistencies?: unknown }[];
 }
 
 function expectSingleJsonDocument(stdout: string): void {
@@ -119,6 +119,27 @@ describe("check (read-only, no provider)", () => {
     });
     const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
     expect(result.exitCode).toBe(0);
+  });
+
+  it("reports a source string translated two ways with --consistency and still exits 0", async () => {
+    const dir = await seedProject("check-consistency", i18nextConfig, {
+      "locales/en.json": { actions: { save: "Save" }, toolbar: { save: "Save" } },
+      "locales/de.json": { actions: { save: "Speichern" }, toolbar: { save: "Sichern" } },
+    });
+    const result = await runVerbatra(consumer, ["check", "--consistency", "--json", "--cwd", dir]);
+    expect(result.exitCode).toBe(0);
+    const summary = expectSuccessPayload<CheckSummaryJson>(result.stdout, "check");
+    expect(summary.inSync).toBe(true);
+    expect(summary.locales.find((entry) => entry.locale === "de")?.inconsistencies).toEqual([
+      {
+        source: "Save",
+        isPlural: false,
+        translations: [
+          { value: "Sichern", keys: ["toolbar.save"] },
+          { value: "Speichern", keys: ["actions.save"] },
+        ],
+      },
+    ]);
   });
 });
 

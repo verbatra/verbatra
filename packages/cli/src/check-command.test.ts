@@ -135,3 +135,79 @@ describe("run check: SDK delegation, rendering, and exit codes", () => {
     expect(cap.out()).toBe("");
   });
 });
+
+describe("run check --consistency: report only", () => {
+  const inconsistent = makeCheckSummary({
+    inSync: true,
+    locales: [
+      {
+        locale: "de",
+        missing: 0,
+        stale: 0,
+        upToDate: 2,
+        inSync: true,
+        inconsistencies: [
+          {
+            source: "Save",
+            isPlural: false,
+            translations: [
+              { value: "Sichern", keys: ["toolbar.save"] },
+              { value: "Speichern", keys: ["actions.save"] },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  it("asks the SDK for the report only when the flag is given", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["check"], deps, cap.streams);
+    await run(["check", "--consistency"], deps, cap.streams);
+
+    expect(calls.check[0]).not.toHaveProperty("consistency");
+    expect(calls.check[1]).toMatchObject({ consistency: true });
+  });
+
+  it("prints the findings and still exits 0 for an in-sync project", async () => {
+    const { deps } = recordingDeps({ check: async () => inconsistent });
+    const cap = captureStreams();
+
+    const code = await run(["check", "--consistency"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.out()).toContain('"Save" is translated 2 ways:');
+    expect(cap.out()).toContain('"Speichern": actions.save');
+  });
+
+  it("keeps exit 1 driven by drift alone", async () => {
+    const { deps } = recordingDeps({
+      check: async () => ({
+        inSync: false,
+        locales: [
+          { locale: "de", missing: 1, stale: 0, upToDate: 1, inSync: false, inconsistencies: [] },
+        ],
+      }),
+    });
+    const cap = captureStreams();
+
+    expect(await run(["check", "--consistency"], deps, cap.streams)).toBe(1);
+  });
+
+  it("carries the groups inside the JSON envelope's result", async () => {
+    const { deps } = recordingDeps({ check: async () => inconsistent });
+    const cap = captureStreams();
+
+    const code = await run(["check", "--consistency", "--json"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(parseEnvelope(cap.out())).toEqual({
+      ok: true,
+      version: JSON_ENVELOPE_VERSION,
+      command: "check",
+      result: inconsistent,
+    });
+  });
+});

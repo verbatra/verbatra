@@ -7,6 +7,8 @@ import type {
   ExportWorkbookResult,
   ExtractResult,
   FuzzyCacheHit,
+  InconsistencyGroup,
+  LocaleCheckSummary,
   LocaleDiff,
   LocaleSummary,
   LockWaitEvent,
@@ -140,8 +142,12 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
 
 const FUZZY_SOURCE_PREVIEW = 40;
 
+function neutralizeControlCharacters(text: string): string {
+  return text.replace(/[\p{Cc}\p{Cf}]/gu, " ");
+}
+
 function previewSource(source: string): string {
-  const characters = Array.from(source.replace(/[\p{Cc}\p{Cf}]/gu, " "));
+  const characters = Array.from(neutralizeControlCharacters(source));
   return characters.length <= FUZZY_SOURCE_PREVIEW
     ? characters.join("")
     : `${characters.slice(0, FUZZY_SOURCE_PREVIEW).join("")}...`;
@@ -230,7 +236,61 @@ export function renderCheckHuman(summary: CheckSummary): string {
   const overall = summary.inSync
     ? "all locales in sync"
     : "out of sync (run verbatra translate to update)";
-  return ["verbatra check", ...localeLines, overall].join("\n");
+  return ["verbatra check", ...localeLines, overall, ...renderConsistencyReport(summary)].join(
+    "\n",
+  );
+}
+
+function quoted(text: string): string {
+  return `"${neutralizeControlCharacters(text)}"`;
+}
+
+function renderGroupQualifiers(group: InconsistencyGroup): string {
+  const qualifiers = [
+    group.context !== undefined ? `context ${quoted(group.context)}` : undefined,
+    group.description !== undefined ? `description ${quoted(group.description)}` : undefined,
+    group.meaning !== undefined ? `meaning ${quoted(group.meaning)}` : undefined,
+    group.isPlural ? "plural" : undefined,
+  ].filter((qualifier) => qualifier !== undefined);
+  return qualifiers.length === 0 ? "" : ` (${qualifiers.join(", ")})`;
+}
+
+function renderInconsistencyGroup(group: InconsistencyGroup): readonly string[] {
+  return [
+    `    ${quoted(group.source)}${renderGroupQualifiers(group)} is translated ${group.translations.length} ways:`,
+    ...group.translations.map(
+      (translation) =>
+        `      ${quoted(translation.value)}: ${translation.keys.map(neutralizeControlCharacters).join(", ")}`,
+    ),
+  ];
+}
+
+function renderLocaleConsistency(
+  locale: string,
+  groups: readonly InconsistencyGroup[],
+): readonly string[] {
+  if (groups.length === 0) {
+    return [`  ${locale}: consistent`];
+  }
+  const noun = groups.length === 1 ? "source string" : "source strings";
+  return [
+    `  ${locale}: ${groups.length} ${noun} translated more than one way`,
+    ...groups.flatMap(renderInconsistencyGroup),
+  ];
+}
+
+function renderConsistencyReport(summary: CheckSummary): readonly string[] {
+  const reported = summary.locales.filter(
+    (locale): locale is LocaleCheckSummary & { inconsistencies: readonly InconsistencyGroup[] } =>
+      locale.inconsistencies !== undefined,
+  );
+  if (reported.length === 0) {
+    return [];
+  }
+  return [
+    "consistency (report only, never changes the exit code)",
+    ...reported.flatMap((locale) => renderLocaleConsistency(locale.locale, locale.inconsistencies)),
+  ];
 }
 
 const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
