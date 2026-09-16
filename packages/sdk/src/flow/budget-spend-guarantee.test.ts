@@ -397,6 +397,44 @@ describe("spend guarantee: deep truncation recursion stops where the ceiling is 
   });
 });
 
+describe("spend guarantee: a re-split half that crosses the ceiling", () => {
+  it("reports the ceiling as reached before the second half, not as a refused projection", async () => {
+    const calibration = await project(keyedSource(2), { de: undefined });
+    await translate(
+      {
+        config: cfg({ maxBatchSize: 2, maxTokens: 10_000_000, budgetBehavior: "warn" }),
+        cwd: calibration,
+      },
+      { createProvider: () => makeRecordingProvider(() => TRUNCATED()) },
+    );
+    const [whole = 0, firstHalf = 0] = reserves().map((reserve) => reserve.projected ?? 0);
+    const ceiling = whole + firstHalf + 10;
+    probe.log.length = 0;
+    const dir = await project(keyedSource(2), { de: undefined });
+    const firstHalfOvershoots: Behave = (request, call) =>
+      call === 1 ? TRUNCATED() : respond(request, { inputTokens: 4000, outputTokens: 1000 });
+
+    const summary = await translate(
+      { config: cfg({ maxBatchSize: 2, maxTokens: ceiling, budgetBehavior: "stop" }), cwd: dir },
+      { createProvider: () => makeRecordingProvider(firstHalfOvershoots) },
+    );
+
+    const counted = whole + 5000;
+    const locale = summary.locales[0];
+    expect(calls().map((call) => call.batchSize)).toEqual([2, 1]);
+    expect(locale?.budgetWithheld).toEqual(["k1"]);
+    expect(summary.budget?.tokensUsed).toBe(counted);
+    expect(
+      locale?.notices
+        .filter((notice) => notice.code === "BUDGET_TOKENS_EXCEEDED")
+        .map((notice) => notice.message),
+    ).toEqual([
+      `The run's cumulative token usage (${counted}) reached the configured budget of ${ceiling} ` +
+        "tokens (behavior: stop).",
+    ]);
+  });
+});
+
 describe("spend guarantee: a locale that fails part-way, then a later locale", () => {
   it("keeps every later request reserved and under the ceiling", async () => {
     const dir = await project(keyedSource(6), { de: undefined, fr: undefined });
