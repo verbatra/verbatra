@@ -33,14 +33,18 @@ kept readable, without the nested `Error: ` prefix or a space before the closing
 mismatched closing tag in the second unit and a truncated file are reported as two distinct, located
 refusals.
 
-Nothing lands in the memory unchecked. Every candidate translation passes the same placeholder, ICU,
-degeneracy and emptiness gate that provider output and a filled translator handoff already face,
+Nothing lands in the memory unchecked. Every candidate translation passes the same placeholder,
+inline markup, ICU, degeneracy and emptiness gate that provider output and a filled translator
+handoff already face,
 enforced where the record enters the store rather than left to the run that later reads it, so a
 record that was never validated can never be served as a reuse. A unit whose source segment is blank
 identifies no string and is refused. Inline markup is flattened to its text, which the placeholder
 check then catches if the markup carried anything that mattered; the text of a `sub` element, a
 sub-flow such as a tooltip embedded in that markup, is not part of the segment's string and is left
-out. Every refusal, skip, flattening and left-out sub-flow is counted and reported.
+out. Every refusal, skip, flattening and left-out sub-flow is counted and reported. A unit refused
+for inline markup is counted under `rejected.markup` and `verbatra tmx import` prints a line for
+those refusals, so a translation memory from another tool cannot slip a tag its source never had
+(such as an injected `<img onerror>`) into the memory.
 
 A language tag resolves against the source locale and every configured target locale at once, by an
 explicit rule. After lowercasing and folding underscores to hyphens, an exact match wins, so

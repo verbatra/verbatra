@@ -15,9 +15,10 @@ The integrity gate now compares inline markup as well, under a new `markup` reas
 candidate behaves exactly like a refused placeholder: it is never written, never lock-recorded, and
 its key is reported as an integrity mismatch, on every path that reaches the gate (a provider
 translation, a cache or duplicate-content reuse, a generated plural form, a pseudolocalized value, a
-workbook import row, a Studio edit, and a single-key retranslate). The refusal names the tags behind
-it in `details`, each prefixed with `-` for one the source had and the candidate dropped or `+` for
-one the candidate invented, so a rejection says which tag rather than only that something was wrong.
+workbook import row, a TMX import unit, a Studio edit, and a single-key retranslate). The refusal
+names the tags behind it in `details`, each prefixed with `-` for one the source had and the
+candidate dropped or `+` for one the candidate invented, so a rejection says which tag rather than
+only that something was wrong.
 
 Tags are read the way an HTML parser reads them and compared as a multiset of tag names plus
 attribute names. A tag starts at `<` or `</` followed by a letter (or digits, for a numeric

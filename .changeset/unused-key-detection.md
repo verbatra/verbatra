@@ -34,9 +34,12 @@ The report is `complete` only when the scan can bound every key the source reach
 - The scan only trusts translate functions it sees being created in a recognised shape: a local
   `const { t } = useTranslation(...)` with static arguments, a local `getFixedT(...)` with static
   arguments (a named language such as `i18n.language` may come first), a direct `i18n.t(...)` call
-  or local `i18n.t` alias, a `Translation` render prop, `withTranslation("ns")(Component)`, or
-  `import { t } from "i18next"`. Any other use of those sources (a wrapper hook, options passed by
-  name, an exported `getFixedT` result) is reported as `unrecognised-translate-source`, and a
+  or local `i18n.t` alias, a `t` destructured from the instance in a local, non-exported
+  declaration (`const { t } = i18next`, `const { t: tr } = i18n`), a `Translation` render prop,
+  `withTranslation("ns")(Component)`, or `import { t } from "i18next"`. Any other use of those
+  sources (a wrapper hook, options passed by name, an exported `getFixedT` result, `t` destructured
+  from a member of the instance, with a default value, or in an exported declaration) is reported
+  as `unrecognised-translate-source`, and a
   translate function used anywhere but a direct call, its own binding, a local alias, the `t={t}`
   attribute of `Trans` or `Translation`, or a React hook dependency array (for example passed as an
   argument, exported, or used in a ternary) is reported as `translate-function-escapes`. Every
@@ -58,8 +61,17 @@ key. Possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` repor
 `1` on their own. `--json` carries the whole report inside the usual `diff` envelope. Without
 `--unused`, `diff` scans nothing and behaves exactly as before.
 
-The source scan behind `verbatra extract` and the unused-key report now reads a regular expression
+The source scan behind `verbatra extract` and the unused-key report reads a regular expression
 after a `<` operator correctly while keeping a JSX closing tag as markup.
+
+A `${...}` substitution inside a template literal is read by the same token scanner as the rest of
+the file, so a regular expression inside it (as in `` `"${v.replace(/"/g, '""')}"` ``) is
+recognised by the same rule, including its character classes, escapes, and flags, and a quote, a
+backtick, `//`, `/*`, or a brace inside that regular expression never starts a string, template,
+comment, or block. Templates nested inside substitutions are read without recursion and in time
+proportional to the nesting depth, so deeply nested templates cannot exhaust the stack, and a line
+continuation (a backslash at the end of a line) in a template nested inside another template's
+substitution does not shift the line reported for any call site after it.
 
 In a `.tsx`, `.jsx`, or `.js` file, the same scan now reads JSX text and quoted attribute values as
 markup rather than as code, so an apostrophe in them (`<p>Don't worry</p>`) never hides a call,
