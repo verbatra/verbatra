@@ -325,6 +325,41 @@ describe("createI18nextExtractor on a file it cannot read to the end", () => {
     expect(extractor.extract({ path: "app.ts", content: "const a = `open;" }).truncated).toBe(true);
   });
 
+  it.each([".tsx", ".jsx", ".js"])(
+    "marks a %s file whose JSX element never closes as truncated",
+    (extension) => {
+      const content = 'export const A = () => <div><p>Mid edit\nt("a");';
+
+      expect(extractor.extract({ path: `app${extension}`, content }).truncated).toBe(true);
+    },
+  );
+
+  it("marks a markup file whose quoted string in code runs into the end of its line as truncated", () => {
+    const content = 'const s = \'unterminated;\nt("a");';
+
+    expect(extractor.extract({ path: "app.tsx", content }).truncated).toBe(true);
+  });
+
+  it.each([
+    ["an unterminated block comment", 't("a"); /* never closed'],
+    ["an unterminated template literal", "const a = `open;"],
+  ])("marks a markup file with %s as truncated", (_name, content) => {
+    expect(extractor.extract({ path: "app.tsx", content }).truncated).toBe(true);
+  });
+
+  it("leaves a markup file whole when its JSX text and attribute values hold apostrophes", () => {
+    const content = '<p title="it\'s">We\'re glad</p>;\n<p>Don\'t worry</p>;\nt("a");';
+
+    expect(extractor.extract({ path: "app.tsx", content }).truncated).toBeUndefined();
+  });
+
+  it("reads an angle-bracket type assertion in a .ts file as code, never as an open element", () => {
+    const content = 'const cast = <Foo>value;\nt("a");';
+
+    expect(extractor.extract({ path: "app.ts", content }).truncated).toBeUndefined();
+    expect(extractor.extract({ path: "app.tsx", content }).truncated).toBe(true);
+  });
+
   it("leaves truncated unset for a file it read whole", () => {
     expect(
       extractor.extract({ path: "app.ts", content: 't("nav.home")' }).truncated,

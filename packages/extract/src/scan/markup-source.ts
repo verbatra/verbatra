@@ -1,5 +1,5 @@
 import { readMarkup } from "./markup.js";
-import { isPunct } from "./token-query.js";
+import { isPunct, isPunctIn } from "./token-query.js";
 import { type PositionedToken, type SourceScan, type SourceToken, scanSource } from "./tokenize.js";
 
 type OpenTagToken = Extract<PositionedToken, { readonly kind: "markup-open" }>;
@@ -21,6 +21,8 @@ interface OpenTagEnd {
 }
 
 const SPREAD_ATTRIBUTE = "...";
+
+const QUOTES = new Set(["'", '"']);
 
 function lineStartsOf(text: string): readonly number[] {
   const starts = [0];
@@ -169,5 +171,9 @@ export function tokenizeMarkupSource(text: string): SourceScan {
     out: [],
   };
   projectRange(projection, 0, scan.tokens.length);
-  return { tokens: projection.out, truncated: scan.truncated };
+  const unterminatedString = projection.out.some((token) => isPunctIn(token, QUOTES));
+  return {
+    tokens: projection.out,
+    truncated: scan.truncated || scan.unreadableMarkup || unterminatedString,
+  };
 }

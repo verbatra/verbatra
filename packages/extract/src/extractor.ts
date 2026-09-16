@@ -104,9 +104,11 @@ export interface FileExtraction {
   readonly usage?: KeyUsage;
   /**
    * Whether the file could not be read to its end, so everything above it is partial. An
-   * unterminated block comment or template literal abandons the rest of the file. The scan records
-   * it as an `unparseable` diagnostic and carries on, rather than reporting a short result as if
-   * it were the whole file.
+   * unterminated block comment or template literal abandons the rest of the file. In a file read as
+   * markup (`.tsx`, `.jsx`, `.js`), so does a JSX element that never closes or is closed by an
+   * enclosing element's tag, and a quoted string in code that runs into the end of its line. The
+   * scan records it as an `unparseable` diagnostic and carries on, rather than reporting a short
+   * result as if it were the whole file.
    */
   readonly truncated?: boolean;
 }
