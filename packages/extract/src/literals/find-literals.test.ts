@@ -1,0 +1,228 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
+import { describe, expect, it } from "vitest";
+import { createI18nextLiteralRules } from "../i18next/i18next-literal-rules.js";
+import { findLiterals } from "./find-literals.js";
+
+const rules = createI18nextLiteralRules();
+
+const CONTROL = '\nconst shown = "Visible prose text";';
+
+function texts(source: string, markup = true): readonly string[] {
+  return findLiterals(source, rules, markup).found.map((literal) => literal.text);
+}
+
+function onlyControl(source: string, markup = true): void {
+  expect(texts(`${source}${CONTROL}`, markup)).toEqual(["Visible prose text"]);
+}
+
+describe("findLiterals: where a finding points", () => {
+  it("reports a code literal at the line and column of its opening quote", () => {
+    expect(findLiterals('\n  const a = "Welcome back, friend";', rules, false).found).toEqual([
+      { text: "Welcome back, friend", line: 2, column: 13 },
+    ]);
+  });
+
+  it("reports JSX text at the line and column of its first character", () => {
+    expect(
+      findLiterals("const a = (\n  <p>\n    Hello world\n  </p>\n);", rules, true).found,
+    ).toEqual([{ text: "Hello world", line: 3, column: 5 }]);
+  });
+
+  it("reports a JSX attribute value at its opening quote", () => {
+    expect(findLiterals('(<img alt="Company logo" />)', rules, true).found).toEqual([
+      { text: "Company logo", line: 1, column: 11 },
+    ]);
+  });
+
+  it("reports a literal inside a template expression at its real position", () => {
+    expect(findLiterals('x = `a ${f("Hello there friend")}`', rules, false).found).toEqual([
+      { text: "Hello there friend", line: 1, column: 12 },
+    ]);
+  });
+
+  it("collapses whitespace inside the reported text", () => {
+    expect(texts("(<p>Hello\n      world</p>)")).toEqual(["Hello world"]);
+  });
+});
+
+describe("findLiterals: a literal passed to a recognised translation call", () => {
+  it.each([
+    ["a bare t call", 't("Hello there friend")'],
+    ["a default value argument", 'i18n.t("greeting", "Hello there friend")'],
+    ["an options default value", 't("greeting", { defaultValue: "Hello there friend" })'],
+    ["an optional call", 't?.("Hello there friend")'],
+    ["a type-argument call", 't<string>("Hello there friend")'],
+    ["the $t spelling", '$t("Hello there friend")'],
+    ["a call inside JSX", '(<p title={t("Hello there friend")}>{t("Hello there friend")}</p>)'],
+    [
+      "the Trans component",
+      '(<Trans i18nKey="x" defaults="Hello there">Hello there friend</Trans>)',
+    ],
+  ])("is never reported: %s", (_label, source) => {
+    onlyControl(source);
+  });
+});
+
+describe("findLiterals: non-user-facing literals are not reported", () => {
+  it("skips a literal used as an object key", () => {
+    onlyControl('const a = { "Hello there friend": 1, b: 2 };\nobj["Hello there friend"];');
+    onlyControl('if ("Hello there friend" in obj) {}');
+  });
+
+  it("skips an import specifier", () => {
+    onlyControl('import a from "some module name";\nimport "side effect module";');
+    onlyControl('export * from "some module name";\nconst b = require("some module name");');
+    onlyControl('const c = await import("some module name");');
+  });
+
+  it("skips a className value", () => {
+    onlyControl('(<div className="Primary action button">{x}</div>)');
+    onlyControl('const a = { className: "Hero title large" };');
+    onlyControl('(<div className={cn("Hero title", ok && "Large text")}>{x}</div>)');
+  });
+
+  it("skips a CSS value", () => {
+    onlyControl('(<p style={{ fontFamily: "Open Sans" }}>{x}</p>)');
+    onlyControl('const a = "flex items-center gap-2";');
+    onlyControl('const b = { style: { font: "Open Sans" } };');
+  });
+
+  it("skips a test id or data attribute", () => {
+    onlyControl('(<button data-testid="submit form button">{x}</button>)');
+    onlyControl('(<span data-tooltip="Hover for more">{x}</span>)');
+    onlyControl('screen.getByTestId("submit form button");');
+  });
+
+  it("skips a URL", () => {
+    onlyControl('(<a title="https://example.com/help">https://example.com/help</a>)');
+    onlyControl('const a = { title: "mailto:help@example.com" };');
+  });
+
+  it("skips a literal in a type position", () => {
+    onlyControl('type Variant = "primary button" | "secondary button";', false);
+    onlyControl('interface Props { title: "Hello there"; }', false);
+    onlyControl('function f(a: "Hello there", b?: "Bye for now"): "All done" {}', false);
+    onlyControl('const a = b as "Hello there";\nconst c: "Hello there" = d;', false);
+    onlyControl('const e = useState<"Hello there">();', false);
+  });
+
+  it("skips logging, errors, comparisons, case labels, tagged templates, and directives", () => {
+    onlyControl('console.log("Starting the app now");\nlogger.info("Server is up");');
+    onlyControl('throw new Error("Something went wrong");');
+    onlyControl('if (a === "Hello there" || "Bye now" !== b) {}');
+    onlyControl('switch (a) { case "Hello there": break; }');
+    onlyControl("const q = sql`select all rows`;");
+    onlyControl('"use client";');
+  });
+
+  it("skips a single word outside JSX and a template carrying an expression", () => {
+    onlyControl('const a = "Save";\nconst b = `Hello ${name} there`;');
+  });
+
+  it("skips text inside script, style, and code elements", () => {
+    onlyControl("(<div><code>npm install things</code><style>body a {}</style></div>)");
+  });
+});
+
+describe("findLiterals: a literal with no letters", () => {
+  it.each([
+    ["punctuation", '"...!?"'],
+    ["whitespace", '"   "'],
+    ["a number", '"42 000"'],
+    ["an emoji", '"\u{1F600} \u{1F389}"'],
+    ["a single symbol", '"→"'],
+  ])("is not reported: %s", (_label, literal) => {
+    onlyControl(`(<p title=${literal}>{${literal}}</p>);\nconst a = ${literal};`);
+  });
+
+  it("is not reported for JSX text made of numbers, symbols, or entities", () => {
+    onlyControl("(<p>42 % | &nbsp; &#8594;</p>)");
+  });
+});
+
+describe("findLiterals: what is reported", () => {
+  it("reports a single word of JSX text and a user-facing attribute", () => {
+    expect(texts('(<button title="Close">Save</button>)')).toEqual(["Close", "Save"]);
+  });
+
+  it("reports a string rendered directly as a JSX child", () => {
+    expect(texts('(<p>{ok ? "Saved" : "Failed"}</p>)')).toEqual(["Saved", "Failed"]);
+  });
+
+  it("reports prose passed to another attribute but not a single-word option", () => {
+    expect(texts('(<Card heading="Welcome back" variant="primary" kind="compact" />)')).toEqual([
+      "Welcome back",
+    ]);
+  });
+
+  it("reports prose in an object value, a return, and a ternary alternate", () => {
+    expect(
+      texts(
+        'const a = { title: "Welcome back" };\nfunction f() { return "All done now"; }\nconst b = cond ? d : "Not yet ready";',
+        false,
+      ),
+    ).toEqual(["Welcome back", "All done now", "Not yet ready"]);
+  });
+
+  it("reports JSX text inside a mapped child element", () => {
+    expect(texts("(<ul>{items.map((item) => <li key={item}>Remove item</li>)}</ul>)")).toEqual([
+      "Remove item",
+    ]);
+  });
+
+  it("does not read a type assertion as markup when markup is off", () => {
+    expect(texts('const a = <string>b;\nconst c = "Visible prose text";', false)).toEqual([
+      "Visible prose text",
+    ]);
+  });
+});
+
+describe("findLiterals: inline suppression", () => {
+  it("suppresses the next line with a line comment and keeps it accounted for", () => {
+    const result = findLiterals(
+      '// verbatra-ignore-next-line\nconst a = "Hidden prose text";\nconst b = "Visible prose text";',
+      rules,
+      false,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Visible prose text"]);
+    expect(result.suppressed).toEqual([{ text: "Hidden prose text", line: 2, column: 11 }]);
+  });
+
+  it("suppresses JSX text with a block comment in a JSX expression", () => {
+    const result = findLiterals(
+      "(<div>\n  {/* verbatra-ignore-next-line */}\n  <p>Hidden</p>\n  <p>Shown</p>\n</div>)",
+      rules,
+      true,
+    );
+
+    expect(result.found.map((literal) => literal.text)).toEqual(["Shown"]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden"]);
+  });
+
+  it("suppresses the same line with a trailing comment", () => {
+    const result = findLiterals(
+      'const a = "Hidden prose text"; // verbatra-ignore-line',
+      rules,
+      false,
+    );
+
+    expect(result.found).toEqual([]);
+    expect(result.suppressed.map((literal) => literal.text)).toEqual(["Hidden prose text"]);
+  });
+
+  it("does not treat a longer directive name as a suppression", () => {
+    expect(
+      texts('// verbatra-ignore-next-line-please\nconst a = "Visible prose text";', false),
+    ).toEqual(["Visible prose text"]);
+  });
+});
+
+describe("findLiterals: a file it cannot read to the end", () => {
+  it("reports the file as truncated and keeps what it found before the break", () => {
+    const result = findLiterals('const a = "Visible prose text";\n(<p>Never closed', rules, true);
+
+    expect(result.truncated).toBe(true);
+    expect(result.found.map((literal) => literal.text)).toEqual(["Visible prose text"]);
+  });
+});
