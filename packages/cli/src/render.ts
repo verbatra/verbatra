@@ -51,14 +51,12 @@ function renderTokens(usage: UsageSummary): string {
 }
 
 function renderBudgetLine(budget: RunBudget): string {
-  if (!budget.supported) {
-    return (
-      `  budget: ${budget.maxTokens} tokens configured (${budget.behavior}), ` +
-      "not supported by this provider (no usage reported)"
-    );
-  }
   const status = budget.exceeded ? "exceeded" : "within budget";
-  return `  budget: ${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior}), ${status}`;
+  const counted = `${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior})`;
+  const line = `  budget: ${counted}, ${status}`;
+  return budget.supported || budget.tokensUsed === 0
+    ? line
+    : `${line}, estimated (not every request reported usage)`;
 }
 
 const COST_DECIMALS = 4;
