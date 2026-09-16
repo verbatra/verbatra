@@ -5,7 +5,7 @@ import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
 import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
-import { defaultFs, type SdkFs } from "../fs.js";
+import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
@@ -16,7 +16,11 @@ import {
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
 import { readSourceResource } from "./source.js";
-import { type DeclaredMessage, renderTypesDeclaration } from "./types-declaration.js";
+import {
+  type DeclaredMessage,
+  GENERATED_HEADER,
+  renderTypesDeclaration,
+} from "./types-declaration.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
@@ -41,12 +45,20 @@ export interface GenerateTypesInput {
   /** Directory the `files.pattern` and the output path are resolved against. Defaults to the process working directory. */
   readonly cwd?: string;
   /**
-   * Where to write the declaration, relative to `cwd`. Defaults to {@link DEFAULT_TYPES_PATH}. It
-   * must name a file inside `cwd`: an absolute path, one that climbs out with `..`, and any
-   * configured locale file are all refused, so generation can never overwrite a catalog or land
-   * outside the project.
+   * Where to write the declaration, relative to `cwd`. Defaults to {@link DEFAULT_TYPES_PATH}.
+   * Refused with `TYPES_OUTPUT_CONFLICT`, before anything is read or written, when it names no
+   * file, is absolute, climbs out of `cwd`, does not end in `.ts`, `.mts` or `.cts`, or names a
+   * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
+   * for its configuration, or the {@link GenerateTypesInput.configPath} file. Names are compared
+   * case-insensitively. A generating run also refuses to replace an existing file there unless
+   * that file begins with the header line verbatra writes.
    */
   readonly out?: string;
+  /**
+   * The configuration file `config` was loaded from, absolute or relative to `cwd`. It is refused
+   * as the output path even when its name is not one verbatra searches for.
+   */
+  readonly configPath?: string;
   /**
    * Compare instead of writing. The run reports whether the file on disk matches what a fresh
    * generation would produce and leaves every file untouched.
@@ -104,9 +116,10 @@ const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
 
 function reservedPaths(
   cwd: string,
-  config: VerbatraConfig,
+  input: GenerateTypesInput,
   resolver: LocalePathResolver,
 ): Map<string, string> {
+  const { config } = input;
   const reserved = new Map<string, string>();
   const claim = (path: string, what: string): void => {
     reserved.set(path.toLowerCase(), what);
@@ -118,6 +131,9 @@ function reservedPaths(
   claim(resolve(cwd, CACHE_FILE_NAME), "the translation-memory cache");
   for (const place of CONFIG_SEARCH_PLACES) {
     claim(resolve(cwd, place), "a file verbatra loads its configuration from");
+  }
+  if (input.configPath !== undefined) {
+    claim(resolve(cwd, input.configPath), "the configuration file this run loaded");
   }
   return reserved;
 }
@@ -177,11 +193,6 @@ function toPosix(path: string): string {
   return path.split(sep).join("/");
 }
 
-async function matchesOnDisk(fs: SdkFs, path: string, declaration: string): Promise<boolean> {
-  const read = await fs.readFileBounded(path, Buffer.byteLength(declaration, "utf8"));
-  return read.kind === "ok" && read.content === declaration;
-}
-
 function unresolvedMessages(messages: readonly DeclaredMessage[]): readonly UnresolvedMessage[] {
   const unresolved: UnresolvedMessage[] = [];
   for (const message of messages) {
@@ -190,6 +201,40 @@ function unresolvedMessages(messages: readonly DeclaredMessage[]): readonly Unre
     }
   }
   return unresolved;
+}
+
+const MIN_EXISTING_OUTPUT_BOUND = 16 * 1024 * 1024;
+
+async function readExistingOutput(
+  fs: SdkFs,
+  path: string,
+  compared: BoundedFileRead,
+  declarationBytes: number,
+): Promise<BoundedFileRead> {
+  if (compared.kind !== "too-large") {
+    return compared;
+  }
+  return fs.readFileBounded(path, Math.max(MIN_EXISTING_OUTPUT_BOUND, declarationBytes * 2));
+}
+
+async function refuseForeignOutput(
+  fs: SdkFs,
+  path: string,
+  requested: string,
+  compared: BoundedFileRead,
+  declarationBytes: number,
+): Promise<void> {
+  const existing = await readExistingOutput(fs, path, compared, declarationBytes);
+  if (existing.kind === "missing") {
+    return;
+  }
+  if (existing.kind === "ok" && existing.content.startsWith(GENERATED_HEADER)) {
+    return;
+  }
+  throw new SdkError(
+    "TYPES_OUTPUT_CONFLICT",
+    `The output path "${requested}" already holds a file that was not generated by verbatra: it does not begin with the "${GENERATED_HEADER.trim()}" header. It was left untouched. Pass a different --out path, or delete the file if it really is an old declaration.`,
+  );
 }
 
 async function writeDeclaration(fs: SdkFs, path: string, declaration: string): Promise<void> {
@@ -244,8 +289,9 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * console.log(`${result.keys} keys declared in ${result.path}`);
  * ```
  *
- * @throws {@link SdkError} `TYPES_OUTPUT_CONFLICT`: the output path is absolute, climbs out of the
- * working directory, names no file, or is a configured locale file.
+ * @throws {@link SdkError} `TYPES_OUTPUT_CONFLICT`: the output path is refused (see
+ * {@link GenerateTypesInput.out} for the full set), or a generating run found a file there that
+ * does not begin with the header verbatra writes.
  * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -263,7 +309,7 @@ export async function generateTypes(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = resolveOutputPath(cwd, input.out, reservedPaths(cwd, config, resolver));
+  const outputPath = resolveOutputPath(cwd, input.out, reservedPaths(cwd, input, resolver));
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);
@@ -273,9 +319,13 @@ export async function generateTypes(
   const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
   const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });
 
-  const stale = !(await matchesOnDisk(fs, outputPath, declaration));
+  const declarationBytes = Buffer.byteLength(declaration, "utf8");
+  const onDisk = await fs.readFileBounded(outputPath, declarationBytes);
+  const stale = !(onDisk.kind === "ok" && onDisk.content === declaration);
   const check = input.check === true;
   if (stale && !check) {
+    const requested = input.out ?? DEFAULT_TYPES_PATH;
+    await refuseForeignOutput(fs, outputPath, requested, onDisk, declarationBytes);
     await writeDeclaration(fs, outputPath, declaration);
   }
   return {

@@ -142,13 +142,24 @@ describe("check mode across the read bound's edges", () => {
     const dir = await seed({ title: "Verbatra", greeting: "Hello {{name}}" });
     const declaration = await fresh(dir);
 
-    for (const damaged of ["", `${declaration} `, declaration.slice(0, -1)]) {
+    for (const damaged of [`${declaration} `, declaration.slice(0, -1)]) {
       await writeFile(join(dir, DEFAULT_TYPES_PATH), damaged, "utf8");
       const result = await generateTypes({ config: baseConfig(), cwd: dir });
 
       expect(result.written).toBe(true);
       expect(await readTextFile(join(dir, DEFAULT_TYPES_PATH))).toBe(declaration);
     }
+  });
+
+  it("refuses to write over an empty file, which carries no generated header", async () => {
+    const dir = await seed({ title: "Verbatra", greeting: "Hello {{name}}" });
+    await fresh(dir);
+    await writeFile(join(dir, DEFAULT_TYPES_PATH), "", "utf8");
+
+    await expect(generateTypes({ config: baseConfig(), cwd: dir })).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+    });
+    expect(await readTextFile(join(dir, DEFAULT_TYPES_PATH))).toBe("");
   });
 });
 

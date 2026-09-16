@@ -96,16 +96,30 @@ describe("check mode over every state the committed file can be in", () => {
     expect(await staleWith(dir, current.replace(/\n$/, ""))).toBe(true);
   });
 
-  it("a generating run over each of those states restores the exact bytes", async () => {
+  it("a generating run over each state that still carries the header restores the exact bytes", async () => {
     const dir = await seed();
     const current = await generated(dir);
 
-    for (const damaged of ["", "nonsense", `${current}  `, current.replace(/\n/g, "\r\n")]) {
+    for (const damaged of [`${current}  `, current.replace(/\n/g, "\r\n")]) {
       await writeFile(join(dir, DEFAULT_TYPES_PATH), damaged, "utf8");
       const result = await generateTypes({ config: baseConfig(), cwd: dir });
 
       expect(result.written).toBe(true);
       expect(await readFile(join(dir, DEFAULT_TYPES_PATH), "utf8")).toBe(current);
+    }
+  });
+
+  it("a generating run over a state that lost the header refuses and leaves it untouched", async () => {
+    const dir = await seed();
+    await generated(dir);
+
+    for (const damaged of ["", "nonsense"]) {
+      await writeFile(join(dir, DEFAULT_TYPES_PATH), damaged, "utf8");
+
+      await expect(generateTypes({ config: baseConfig(), cwd: dir })).rejects.toMatchObject({
+        code: "TYPES_OUTPUT_CONFLICT",
+      });
+      expect(await readFile(join(dir, DEFAULT_TYPES_PATH), "utf8")).toBe(damaged);
     }
   });
 });

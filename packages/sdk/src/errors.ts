@@ -88,10 +88,13 @@
  *   `readDirectory`, so no source file can be discovered. The member is optional on {@link SdkFs}
  *   precisely so an implementation written before extraction existed keeps compiling; this is the
  *   error it gets if it is then handed to {@link extract}.
- * - `TYPES_OUTPUT_CONFLICT`: {@link generateTypes} was asked to write its declaration to an
- *   absolute path, to one that climbs out of the working directory, to no path at all, or onto a
- *   configured locale file. Refused before anything is read or written, so generating types can
- *   never overwrite a catalog or land outside the project.
+ * - `TYPES_OUTPUT_CONFLICT`: {@link generateTypes} refused its output path. Before anything is
+ *   read or written, it refuses a path that names no file, is absolute, climbs out of the working
+ *   directory, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale
+ *   file, the lock file, the translation-memory cache, a file verbatra searches for its
+ *   configuration, or the configuration file the run loaded, compared case-insensitively. A
+ *   generating run, never a `check` run, also refuses to replace an existing file there that does
+ *   not begin with the header line verbatra writes, and leaves that file untouched.
  * - `TYPES_UNWRITABLE`: the declaration file {@link generateTypes} produces could not be written,
  *   because its directory is not writable, does not exist, or the disk is out of space.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
