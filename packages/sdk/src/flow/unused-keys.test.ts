@@ -548,13 +548,17 @@ describe("findUnusedKeys reads markup and regular expressions without losing a c
     },
   );
 
-  it("reports a file whose quoted string runs into the end of a line as an incomplete scan", async () => {
+  it("stays complete with a key referenced after JSX text holding apostrophes", async () => {
     const report = await unusedIn(
-      { a: "A", b: "B" },
-      { "src/a.ts": 'const s = "unterminated\nt("a");', "src/b.ts": 't("b");' },
+      { a: "A", stale: "S" },
+      {
+        "src/welcome.tsx":
+          "export const Welcome = () => (\n  <div>\n    <p>We're glad you're here</p>\n    <p>Don't worry</p>\n  </div>\n);\nt(\"a\");\n",
+      },
     );
 
-    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual(["incomplete-scan"]);
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
   });
 });
 

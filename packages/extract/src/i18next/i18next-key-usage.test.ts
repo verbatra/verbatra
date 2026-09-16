@@ -437,6 +437,7 @@ describe("i18next key usage: where a translate identifier may appear", () => {
     ["a shadowing declaration", "for (const t of items) {}"],
     ["a property key", "const o = { t: 1 };"],
     ["a type annotation", "function f(t: TFunction) {}"],
+    ["the tail of a contraction in JSX text", "<p>Don't worry</p>;"],
     [
       "a typed arrow parameter with a return type",
       'const label = (t: TFunction): string => t("a");',

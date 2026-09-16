@@ -59,7 +59,7 @@ The report carries a `status`:
 | `translate-function-escapes` | `unreliable` | a translate function from a recognised source used anywhere but the allowed positions listed below, such as `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other`, or `export default t` |
 | `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, a member `t`, or a `t` import used in a shape not listed below, such as a wrapper hook that returns `useTranslation(...)`, hook options passed by name or built with a spread, or an exported `getFixedT` result |
 | `template-files-not-scanned` | `unreliable` | `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid`, or `.mdx` files under the roots (the first 20 are listed, all are counted) |
-| `incomplete-scan` | `unreliable` | a file that is too large, unreadable, or not readable to its end, a quoted string that runs into the end of its line (such as an apostrophe in JSX text), or a directory that cannot be listed |
+| `incomplete-scan` | `unreliable` | a file that is too large, unreadable, or not readable to its end, or a directory that cannot be listed |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | no `extract` block |
 | `EXTRACT_FS_UNSUPPORTED` | `not-run` | an SDK caller's file system cannot list directories |
 | `FRAMEWORK_NOT_MODELED` | `not-run` | the format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json`, whose runtimes the scan does not model |

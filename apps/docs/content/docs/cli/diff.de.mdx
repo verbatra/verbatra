@@ -59,7 +59,7 @@ Der Bericht trägt einen `status`:
 | `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle steht an einer anderen als den unten erlaubten Stellen, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
 | `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, ein Member `t` oder ein `t`-Import in einer Form, die unten nicht aufgeführt ist, etwa ein Wrapper-Hook, der `useTranslation(...)` zurückgibt, Hook-Optionen über einen Namen oder mit Spread, oder ein exportiertes `getFixedT`-Ergebnis |
 | `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
-| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, ein String in Anführungszeichen, der bis ans Zeilenende läuft (etwa ein Apostroph in JSX-Text), oder ein Verzeichnis, das sich nicht auflisten lässt |
+| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
 | `EXTRACT_FS_UNSUPPORTED` | `not-run` | das Dateisystem eines SDK-Aufrufers kann keine Verzeichnisse auflisten |
 | `FRAMEWORK_NOT_MODELED` | `not-run` | das Format ist `next-intl-json`, `vue-i18n-json` oder `ngx-translate-json`, deren Laufzeiten der Scan nicht nachbildet |

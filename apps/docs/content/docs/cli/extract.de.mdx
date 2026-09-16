@@ -87,7 +87,7 @@ Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, damit eine ei
 | `dynamic` | das Key-Argument ist kein einzelner vollständiger statischer String oder benennt einen Pfad, den verbatra nicht adressieren kann: eine Variable, ein Member-Ausdruck, ein Template-Literal mit einem Ausdruck darin, eine Verkettung, ein Key mit Namespace oder ein Key mit leerem Pfadsegment. Es wird nie mit einem geratenen, abgeschnittenen oder nicht adressierbaren Key geschrieben. |
 | `conflicts` | ein Key wird an zwei Aufrufstellen gefunden, die sich über seinen Standardwert uneinig sind. Kein Wert wird geschrieben, denn eine Auswahl würde deinen Katalog von der Reihenfolge des Verzeichnisdurchlaufs abhängig machen. |
 | `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil seine Aufrufstelle keinen Standardwert liefert. Fülle ihn, dann übersetze. |
-| `diagnostics` | eine Datei oder ein Verzeichnis war nicht vollständig lesbar: verschwunden, über der Größengrenze, der Scan ist daran gescheitert, ein nicht geschlossener Blockkommentar beziehungsweise ein nicht geschlossenes Template-Literal hat den Rest abgeschnitten, oder ein String in Anführungszeichen lief bis ans Zeilenende. Was davor gelesen wurde, wird trotzdem gemeldet. |
+| `diagnostics` | eine Datei oder ein Verzeichnis war nicht vollständig lesbar: verschwunden, über der Größengrenze, der Scan ist daran gescheitert, oder ein nicht geschlossener Blockkommentar beziehungsweise ein nicht geschlossenes Template-Literal hat den Rest abgeschnitten. Was davor gelesen wurde, wird trotzdem gemeldet. |
 
 Nichts davon ändert den Exit-Code. Das sind Befunde, keine Fehler.
 

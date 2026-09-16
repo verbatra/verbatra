@@ -58,6 +58,5 @@ key. Possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` repor
 `1` on their own. `--json` carries the whole report inside the usual `diff` envelope. Without
 `--unused`, `diff` scans nothing and behaves exactly as before.
 
-`verbatra extract` and the unused-key scan now also report a file whose quoted string runs into the
-end of its line as an `unparseable` diagnostic, since the reading around such a string may be
-wrong, and a JSX closing tag after `<` is no longer read as a regular expression.
+The source scan behind `verbatra extract` and the unused-key report now reads a regular expression
+after a `<` operator correctly while keeping a JSX closing tag as markup.

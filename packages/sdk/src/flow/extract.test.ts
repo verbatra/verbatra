@@ -175,6 +175,20 @@ describe("extract reporting", () => {
   });
 });
 
+describe("extract on JSX text with apostrophes", () => {
+  it("reads the call after JSX text holding apostrophes without an unparseable diagnostic", async () => {
+    const cwd = await project({
+      "src/welcome.tsx":
+        "export const Welcome = () => (\n  <div>\n    <p>We're glad you're here</p>\n    <p>Don't worry</p>\n  </div>\n);\nt(\"a\");\n",
+    });
+
+    const result = await extract({ config: config(), cwd, dryRun: true });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.added.map((entry) => entry.key)).toEqual(["a"]);
+  });
+});
+
 describe("extract dry run", () => {
   it("reports what would be added and writes nothing", async () => {
     const cwd = await project({ "src/nav.ts": 't("nav.home", "Home");' });
@@ -430,7 +444,7 @@ describe("extract on a file of call shapes it cannot resolve whole", () => {
       { file: "src/nav.ts", line: 9 },
     ]);
     expect(result.conflicts).toEqual([]);
-    expect(result.diagnostics).toEqual([{ file: "src/nav.ts", reason: "unparseable" }]);
+    expect(result.diagnostics).toEqual([]);
   });
 
   it("writes no catalog at all when every call site is unresolvable", async () => {

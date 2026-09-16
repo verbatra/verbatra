@@ -59,6 +59,13 @@ const PATTERN_CLOSERS = new Set(["}", "]"]);
 
 const PROPS_NAME = "props";
 
+const STRAY_QUOTES = new Set(["'", '"']);
+
+function followsStrayQuote(tokens: readonly SourceToken[], index: number): boolean {
+  const previous = tokenAt(tokens, index - 1);
+  return isPunctIn(previous, STRAY_QUOTES) && previous?.line === tokenAt(tokens, index)?.line;
+}
+
 function isPropertyKey(tokens: readonly SourceToken[], index: number): boolean {
   const next = tokenAt(tokens, index + 1);
   const isKeyFollower =
@@ -245,6 +252,7 @@ export function collectEscapes(
     const isCandidate =
       isIdentNamed(tokenAt(tokens, index), state.identifiers) &&
       !isPunct(tokenAt(tokens, index - 1), ".") &&
+      !followsStrayQuote(tokens, index) &&
       !state.allowed.has(index) &&
       !state.imports.has(index);
     if (isCandidate && !isAllowedOccurrence(tokens, index, rules)) {
@@ -317,6 +325,7 @@ export function collectUnrecognisedBindings(
     const isCandidate =
       isIdentNamed(tokenAt(tokens, index), rules.calleeNames) &&
       !isPunct(tokenAt(tokens, index - 1), ".") &&
+      !followsStrayQuote(tokens, index) &&
       !state.allowed.has(index) &&
       !state.imports.has(index);
     if (isCandidate && isUnrecognisedBinding(tokens, index)) {

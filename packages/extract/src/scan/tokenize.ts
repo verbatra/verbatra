@@ -186,7 +186,6 @@ function readStringToken(cursor: Cursor, quote: string): SourceToken {
   }
   cursor.index = start + 1;
   cursor.line = line;
-  cursor.truncated = true;
   return { kind: "punct", value: quote, line };
 }
 
