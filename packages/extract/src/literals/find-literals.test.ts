@@ -191,15 +191,52 @@ describe("findLiterals: noisy non-user-facing positions are not reported", () =>
 
   it.each([
     ["a zod describe call", 'z.string().describe("The user email address");'],
-    ["a query call", 'db.query("select all users");'],
+    ["a query call", 'db.query("SELECT id, name FROM users");'],
     ["an execute call", 'db.execute("delete from users");'],
     ["a prepare call", 'db.prepare("select one user");'],
-    ["a format call", 'format(date, "do MMMM yyyy");'],
+    ["a format call", 'format(d, "MMM d, yyyy");'],
     ["a parse call", 'parse(value, "dd MM yyyy", new Date());'],
+    ["a z.enum call", 'const Theme = z.enum(["draft", "in review"]);'],
+  ])("skips a direct string argument of %s", (_label, source) => {
+    onlyControl(source, false);
+  });
+
+  it.each([
+    [
+      "a callback passed to query",
+      'publicProcedure.query(async () => ({ message: "Your plan was upgraded" }));',
+      "Your plan was upgraded",
+    ],
+    ["JSX returned to execute", "execute(() => <p>Saved your changes</p>);", "Saved your changes"],
+    [
+      "a callback in an object passed to parse",
+      'parse(input, { onError: () => toast("Could not read the file") });',
+      "Could not read the file",
+    ],
+    [
+      "an array nested in a z.enum argument",
+      'z.enum(pick([["Light mode", "Dark mode"]]));',
+      "Light mode",
+    ],
+    [
+      "a string after an operator in a describe argument",
+      'z.string().describe(prefix + "The user email address");',
+      "The user email address",
+    ],
+  ])("still reports a literal nested in %s", (_label, source, text) => {
+    expect(texts(source)).toContain(text);
+  });
+
+  it("still reports the values of an object passed to format", () => {
+    expect(
+      texts('intl.format({ one: "One item left", other: "Many items left" });', false),
+    ).toEqual(["One item left", "Many items left"]);
+  });
+
+  it.each([
     ["a setItem call", 'localStorage.setItem("user settings", "dark mode on");'],
     ["a getItem call", 'sessionStorage.getItem("user settings");'],
     ["a removeItem call", 'localStorage.removeItem("user settings");'],
-    ["a z.enum call", 'const Theme = z.enum(["Light mode", "Dark mode"]);'],
   ])("skips every string argument of %s", (_label, source) => {
     onlyControl(source, false);
   });

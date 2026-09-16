@@ -18,9 +18,11 @@ id or `data-*` attribute, an attribute that holds ids or a keyword (`aria-descri
 in a type position (including one after `as` or `satisfies`), a logging message, the message
 of a constructed error (`new ValidationError(...)`), a comparison operand, a literal with no
 letters, and test, story, declaration and config files are never reported, and a single word outside
-JSX is not reported either. Every string argument of `describe`, `query`, `execute`, `prepare`,
-`format`, `parse`, `setItem`, `getItem`, `removeItem`, and `z.enum`, and the first argument of `on`,
-`off`, `once`, `emit`, `addEventListener`, and a member `get` or `set` call, are skipped too. A
+JSX is not reported either. The direct string arguments of `describe`, `query`, `execute`,
+`prepare`, `format`, and `parse`, the string elements of the array passed directly to `z.enum`, every
+string argument of `setItem`, `getItem`, and `removeItem`, and the first argument of `on`, `off`,
+`once`, `emit`, `addEventListener`, and a member `get` or `set` call, are skipped too. A string nested
+deeper inside one of those calls, such as in a callback, an object, or JSX, is still checked. A
 function that only ends in `Error`, such as `setError`, is still checked.
 
 A `// verbatra-ignore-next-line` or `// verbatra-ignore-line` comment (also as `{/* ... */}` in JSX)

@@ -98,12 +98,8 @@ const NON_USER_FACING_CALLEES = new Set([
   "cva",
   "cx",
   "debug",
-  "describe",
-  "enum",
-  "execute",
   "findAllByTestId",
   "findByTestId",
-  "format",
   "getAllByTestId",
   "getAttribute",
   "getByTestId",
@@ -114,9 +110,6 @@ const NON_USER_FACING_CALLEES = new Set([
   "keyframes",
   "matches",
   "matchMedia",
-  "parse",
-  "prepare",
-  "query",
   "queryAllByTestId",
   "queryByTestId",
   "querySelector",
@@ -131,6 +124,17 @@ const NON_USER_FACING_CALLEES = new Set([
   "twJoin",
   "twMerge",
 ]);
+
+const DIRECT_ARGUMENT_CALLEES = new Set([
+  "describe",
+  "execute",
+  "format",
+  "parse",
+  "prepare",
+  "query",
+]);
+
+const ARRAY_ARGUMENT_CALLEES = new Set(["enum"]);
 
 const FIRST_ARGUMENT_CALLEES = new Set(["addEventListener", "emit", "off", "on", "once"]);
 
@@ -174,17 +178,54 @@ function isExcludedFrame(frame: LiteralFrame, rules: TranslationRecognition): bo
   }
 }
 
-function isNonUserFacingFirstArgument(
+function isFirstArgumentCallee(frame: LiteralFrame & { kind: "call" }): boolean {
+  return (
+    FIRST_ARGUMENT_CALLEES.has(frame.callee) ||
+    (frame.member && FIRST_ARGUMENT_MEMBERS.has(frame.callee))
+  );
+}
+
+function isNonUserFacingCallArgument(
+  tokens: readonly PositionedToken[],
+  index: number,
+  frame: LiteralFrame & { kind: "call" },
+): boolean {
+  const previous = tokens[index - 1];
+  if (isPunct(previous, "(") && isFirstArgumentCallee(frame)) {
+    return true;
+  }
+  return (
+    (isPunct(previous, "(") || isPunct(previous, ",")) && DIRECT_ARGUMENT_CALLEES.has(frame.callee)
+  );
+}
+
+function isNonUserFacingArrayElement(
+  tokens: readonly PositionedToken[],
+  index: number,
+  frames: readonly LiteralFrame[],
+): boolean {
+  const parent = frames[frames.length - 2];
+  const previous = tokens[index - 1];
+  return (
+    parent?.kind === "call" &&
+    ARRAY_ARGUMENT_CALLEES.has(parent.callee) &&
+    (isPunct(previous, "[") || isPunct(previous, ","))
+  );
+}
+
+function isNonUserFacingArgument(
   tokens: readonly PositionedToken[],
   index: number,
   frames: readonly LiteralFrame[],
 ): boolean {
   const top = frames[frames.length - 1];
-  if (top?.kind !== "call" || !isPunct(tokens[index - 1], "(")) {
-    return false;
+  if (top?.kind === "call") {
+    return isNonUserFacingCallArgument(tokens, index, top);
   }
   return (
-    FIRST_ARGUMENT_CALLEES.has(top.callee) || (top.member && FIRST_ARGUMENT_MEMBERS.has(top.callee))
+    top?.kind === "group" &&
+    top.bracket === "[" &&
+    isNonUserFacingArrayElement(tokens, index, frames)
   );
 }
 
@@ -255,7 +296,7 @@ function isExcludedPosition(
     isKeyPosition(tokens, index) ||
     isTypePosition(tokens, index, frames) ||
     isComparisonOperand(tokens, index) ||
-    isNonUserFacingFirstArgument(tokens, index, frames) ||
+    isNonUserFacingArgument(tokens, index, frames) ||
     isNonUserFacingPropertyValue(tokens, index)
   );
 }
