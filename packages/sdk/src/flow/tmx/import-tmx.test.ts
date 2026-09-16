@@ -301,7 +301,7 @@ describe("importTmx matches language tags by an explicit rule", () => {
     const dir = await project([
       tu([
         ["en", "Hello"],
-        ["pt-PT", "Olá"],
+        ["pt", "Olá"],
       ]),
     ]);
 
@@ -311,7 +311,7 @@ describe("importTmx matches language tags by an explicit rule", () => {
       cwd: dir,
     });
 
-    expect(result.ambiguousLanguages).toEqual([{ language: "pt-PT", units: 1 }]);
+    expect(result.ambiguousLanguages).toEqual([{ language: "pt", units: 1 }]);
     expect(result.locales.every((locale) => locale.added === 0)).toBe(true);
   });
 

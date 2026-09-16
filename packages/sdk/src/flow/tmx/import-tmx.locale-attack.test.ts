@@ -154,7 +154,7 @@ describe("locale resolution never attributes a translation to the wrong source t
     expect(await storedFor(dir, config, "zh-CN")).toEqual([]);
   });
 
-  it("resolves a three-subtag tag onto the only configured locale sharing its language", async () => {
+  it("never resolves a tag onto a configured locale it is not a subtag prefix of", async () => {
     const config = cfg({ sourceLocale: "en", targetLocales: ["zh-TW"] });
     const dir = await project([
       tu([
@@ -165,9 +165,40 @@ describe("locale resolution never attributes a translation to the wrong source t
 
     const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
 
-    expect(result.unmatchedLanguages).toEqual([]);
+    expect(result.unmatchedLanguages).toEqual([{ language: "zh-Hant-TW", units: 1 }]);
     expect(result.ambiguousLanguages).toEqual([]);
-    expect(await storedFor(dir, config, "zh-TW")).toEqual([["Save", "儲存"]]);
+    expect(await storedFor(dir, config, "zh-TW")).toEqual([]);
+  });
+
+  it("does not store a simplified Chinese segment as traditional Chinese", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["zh-TW"] });
+    const dir = await project([
+      tu([
+        ["en", "Save"],
+        ["zh-CN", "保存"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.unmatchedLanguages).toEqual([{ language: "zh-CN", units: 1 }]);
+    expect(result.locales).toEqual([expect.objectContaining({ locale: "zh-TW", added: 0 })]);
+    expect(await storedFor(dir, config, "zh-TW")).toEqual([]);
+  });
+
+  it("does not store a Latin-script Serbian segment as Cyrillic Serbian", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["sr-Cyrl"] });
+    const dir = await project([
+      tu([
+        ["en", "Save"],
+        ["sr-Latn", "Sačuvaj"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.unmatchedLanguages).toEqual([{ language: "sr-Latn", units: 1 }]);
+    expect(await storedFor(dir, config, "sr-Cyrl")).toEqual([]);
   });
 
   it("matches a hyphen-spelled tag onto an underscore-spelled configured locale", async () => {
@@ -211,8 +242,8 @@ describe("locale resolution never attributes a translation to the wrong source t
 
     const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
 
-    expect(result.ambiguousLanguages).toEqual([{ language: "de-CH-u-co-phonebk", units: 1 }]);
-    expect(await storedFor(dir, config, "de")).toEqual([]);
+    expect(result.ambiguousLanguages).toEqual([]);
+    expect(await storedFor(dir, config, "de")).toEqual([["Save", "Spiichere"]]);
     expect(await storedFor(dir, config, "de-AT")).toEqual([]);
   });
 

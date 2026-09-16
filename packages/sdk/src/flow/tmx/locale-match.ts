@@ -1,7 +1,7 @@
 import { SdkError } from "../../errors.js";
 
 export type LanguageTagMatch =
-  | { readonly kind: "matched"; readonly locale: string }
+  | { readonly kind: "matched"; readonly locale: string; readonly exact: boolean }
   | { readonly kind: "ambiguous"; readonly candidates: readonly string[] }
   | { readonly kind: "unmatched" };
 
@@ -9,8 +9,14 @@ function canonical(tag: string): string {
   return tag.trim().toLowerCase().replaceAll("_", "-");
 }
 
-function primarySubtag(tag: string): string {
-  return canonical(tag).split("-")[0] ?? "";
+function isSubtagPrefix(shorter: readonly string[], longer: readonly string[]): boolean {
+  return (
+    shorter.length < longer.length && shorter.every((subtag, index) => subtag === longer[index])
+  );
+}
+
+function extendsOrIsExtendedBy(left: readonly string[], right: readonly string[]): boolean {
+  return isSubtagPrefix(left, right) || isSubtagPrefix(right, left);
 }
 
 export function sameTag(left: string, right: string): boolean {
@@ -24,12 +30,14 @@ export function matchLanguageTag(tag: string, locales: readonly string[]): Langu
   }
   const exact = locales.find((locale) => canonical(locale) === wanted);
   if (exact !== undefined) {
-    return { kind: "matched", locale: exact };
+    return { kind: "matched", locale: exact, exact: true };
   }
-  const language = primarySubtag(tag);
-  const candidates = locales.filter((locale) => primarySubtag(locale) === language);
+  const subtags = wanted.split("-");
+  const candidates = locales.filter((locale) =>
+    extendsOrIsExtendedBy(subtags, canonical(locale).split("-")),
+  );
   if (candidates.length === 1 && candidates[0] !== undefined) {
-    return { kind: "matched", locale: candidates[0] };
+    return { kind: "matched", locale: candidates[0], exact: false };
   }
   return candidates.length === 0 ? { kind: "unmatched" } : { kind: "ambiguous", candidates };
 }
