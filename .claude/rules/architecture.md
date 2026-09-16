@@ -15,11 +15,13 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
 - `@verbatra/core` (`packages/core/package.json`) depends only on `zod`. Nothing below it.
 - `@verbatra/format-adapters` depends on `@verbatra/core` (`packages/format-adapters/package.json`).
 - `@verbatra/ai-providers` depends on `@verbatra/core` (`packages/ai-providers/package.json`).
-- `@verbatra/exchange` (`packages/exchange/package.json`) has no *runtime* workspace dependency
-  (`dependencies` lists only `exceljs`/`jszip`/`zod`); its one workspace dependency is
-  `@verbatra/config` as a `devDependency`, for shared build/lint/test config only. It does not
-  depend on `core`, so it does not sit on the `core <- format-adapters / ai-providers` line; it
-  feeds into the sdk independently, parallel to that line.
+- `@verbatra/exchange` (`packages/exchange/package.json`) builds and reads Excel workbooks and
+  delimited files, and reads and writes TMX translation memory (`build-tmx.ts`, `read-tmx.ts`). It
+  has no *runtime* workspace dependency (`dependencies` lists only
+  `@xmldom/xmldom`/`exceljs`/`jszip`/`zod`); its one workspace dependency is `@verbatra/config` as
+  a `devDependency`, for shared build/lint/test config only. It does not depend on `core`, so it
+  does not sit on the `core <- format-adapters / ai-providers` line; it feeds into the sdk
+  independently, parallel to that line.
 - `@verbatra/extract` (`packages/extract/package.json`) takes the same position as `exchange`: its
   `dependencies` list only `zod`, its one workspace dependency is `@verbatra/config` as a
   `devDependency`, and it joins the graph at the sdk. It is a distinct capability class from
@@ -60,10 +62,11 @@ surface.
 Business logic lives in `@verbatra/sdk` and below. `@verbatra/cli`
 (`packages/cli/src/run.ts`, the `Command` registrations for `translate`, `watch`, `export`,
 `import`, `tmx`, `check`, `diff`, `pseudo`, `types`, `doctor`, `studio`, `mcp`, `init`, `extract`)
-is a thin wrapper: it parses args with zod schemas, calls into the sdk, and renders the result. `@verbatra/studio` is the local dashboard;
-its provider-spending actions (retranslate, translate pending) are gated behind `--allow-spend`
-(`packages/cli/src/studio-command.ts`, `packages/studio/src/app/panels/SettingsPanel.tsx`), but
-the underlying translate/retranslate logic itself lives in the sdk, not in the studio server or UI.
+is a thin wrapper: it parses args with zod schemas, calls into the sdk, and renders the result.
+`@verbatra/studio` is the local dashboard; its provider-spending actions (retranslate, translate
+pending) are gated behind `--allow-spend` (`packages/cli/src/studio-command.ts`,
+`packages/studio/src/app/panels/SettingsPanel.tsx`), but the underlying translate/retranslate logic
+itself lives in the sdk, not in the studio server or UI.
 
 ## Format adapters: build on the two shared factories
 

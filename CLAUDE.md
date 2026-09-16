@@ -55,7 +55,7 @@ Hard rules a linter cannot enforce:
 
 Packages on `main`: `@verbatra/core` (private, pure domain model, no I/O), `@verbatra/format-adapters`
 (private, file to neutral-IR adapters), `@verbatra/ai-providers` (private, translation
-provider strategies), `@verbatra/exchange` (private, Excel workbook interchange),
+provider strategies), `@verbatra/exchange` (private, Excel workbook and TMX interchange),
 `@verbatra/extract` (private, source-code extraction of translation call sites),
 `@verbatra/config` (private, shared build/TS/lint config), `@verbatra/sdk` (public,
 central orchestration API), `@verbatra/cli` (public, the `verbatra` binary),
