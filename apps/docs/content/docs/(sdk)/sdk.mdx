@@ -273,7 +273,19 @@ The detailed sibling of `check`: the same computation, but it returns the key li
 (`missing`, `changed`, `orphaned`) instead of counts. Orphaned keys are report-only and never flip
 `hasPendingChanges`, since a default run does not prune.
 
-Input: `{ config, cwd?, locales? }`. Returns a `DiffSummary`.
+With `unused: true` it also scans the roots of the config's `extract` block and adds an `unused`
+report, separate from every `orphaned` list: the source-locale keys no static reference names, in
+catalog order. It is read-only and keyless, and it models the i18next runtime (`t` calls and their
+aliases, static `keyPrefix` and `getFixedT` prefixes, `Trans` keys, namespace-qualified keys, and
+plural and context variants), comparing keys in the catalog format's encoding. Each listed key
+carries its decoded `key` and its `catalogKey`. Keys matched by `extract.unused.ignore` land in
+`ignored`, and keys a template literal with a static head could reach land in `possiblyDynamic`. Its
+`status` is `complete`, `unreliable` (with `unreliableBecause` naming each reason with its sites),
+or `not-run` (with a `reason` and no key list). See [Unused source
+keys](/docs/cli/diff#unused-source-keys) for every reason. The report never flips
+`hasPendingChanges`.
+
+Input: `{ config, cwd?, locales?, unused? }`. Returns a `DiffSummary`.
 
 ### keyIntegrity
 

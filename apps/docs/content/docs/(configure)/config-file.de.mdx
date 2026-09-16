@@ -56,7 +56,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
 | `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
-| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract) und `verbatra doctor --literals`: das Framework, die Quellverzeichnisse und die Ignorierliste für Literale. |
+| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` und `verbatra diff --unused`: das Framework, die Quellverzeichnisse und die Ignorierlisten für Literale und ungenutzte Keys. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
 Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
@@ -198,7 +198,7 @@ Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, 
 
 <AvailableFrom version="0.11.0" />
 
-Optional und nur von [`verbatra extract`](/docs/cli/extract) und [`verbatra doctor --literals`](/docs/cli/doctor) genutzt. Jeder andere Befehl ignoriert es.
+Optional und nur von [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor) und [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) genutzt. Jeder andere Befehl ignoriert es.
 
 ```ts
 extract: {
@@ -206,6 +206,7 @@ extract: {
   roots: ["src", "app"],
   exclude: ["generated"],
   literals: { ignore: ["Acme Inc."] },
+  unused: { ignore: ["emails.*"] },
 }
 ```
 
@@ -216,6 +217,8 @@ extract: {
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
 
 `literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen wie `&amp;` gleich ist, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
+
+`unused.ignore` listet die Keys, die `diff --unused` nicht als ungenutzt melden darf, für einen Key, der nur von außerhalb des gescannten Quellcodes referenziert wird, etwa aus einem Server-Template, einem CMS oder einer Test-Fixture. Jeder Eintrag ist ein exakter Key oder ein Muster, in dem `*` für eine beliebige Zeichenfolge steht, etwa `emails.*`. Er trifft den dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`, nicht das maskierte `Welcome\. Enjoy`). Ein getroffener Key wird als ignoriert gemeldet, statt wegzufallen. `unused` akzeptiert kein weiteres Feld.
 
 Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der obersten Ebene.
 

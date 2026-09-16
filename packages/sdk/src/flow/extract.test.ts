@@ -13,7 +13,8 @@ import {
   readTextFile,
   writeJsonFile,
 } from "../test-support.js";
-import { EXTRACT_NOT_CONFIGURED_MESSAGE, extract } from "./extract.js";
+import { extract } from "./extract.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE } from "./source-scan.js";
 
 const EXTRACT_CONFIG = { framework: "i18next", roots: ["src"] } satisfies ExtractionConfig;
 
@@ -172,6 +173,20 @@ describe("extract reporting", () => {
     const result = await extract({ config: config(), cwd });
 
     expect(result.sourcePath).toBe("locales/en.json");
+  });
+});
+
+describe("extract on JSX text with apostrophes", () => {
+  it("reads the call after JSX text holding apostrophes without an unparseable diagnostic", async () => {
+    const cwd = await project({
+      "src/welcome.tsx":
+        "export const Welcome = () => (\n  <div>\n    <p>We're glad you're here</p>\n    <p>Don't worry</p>\n  </div>\n);\nt(\"a\");\n",
+    });
+
+    const result = await extract({ config: config(), cwd, dryRun: true });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.added.map((entry) => entry.key)).toEqual(["a"]);
   });
 });
 

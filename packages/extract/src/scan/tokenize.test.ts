@@ -234,6 +234,47 @@ describe("tokenizeSource on a file it cannot read to the end", () => {
   it("reports an unterminated string as whole, since the line is recovered", () => {
     expect(truncated('t("unterminated\nt("kept")')).toBe(false);
   });
+
+  it("reads a JSX closing tag as markup rather than as the start of a regular expression", () => {
+    expect(kinds('<p>{t("a")}</p>}</Translation>')).toEqual([
+      "punct",
+      "ident",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+      "string",
+      "punct",
+      "punct",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+      "punct",
+      "punct",
+      "punct",
+      "ident",
+      "punct",
+    ]);
+  });
+
+  it("reads a regular expression after a less-than operator, so its quote hides no call", () => {
+    const content = 'if (n < /"/.test(s)) { t("a"); }';
+
+    expect(strings(content)).toEqual(["a"]);
+    expect(truncated(content)).toBe(false);
+    expect(strings('const ok = a < /re/.test(s);\nt("b");')).toEqual(["b"]);
+  });
+
+  it.each([
+    ["a member tag", '<Foo.Bar>{t("a")}</Foo.Bar>;\nt("b");'],
+    ["a custom element", '<my-el>{t("a")}</my-el>;\nt("b");'],
+    ["a namespaced tag", '<svg:g>{t("a")}</svg:g>;\nt("b");'],
+    ["a fragment", '<>{t("a")}</>;\nt("b");'],
+    ["a tag with space before the bracket", '<p>{t("a")}</p >;\nt("b");'],
+  ])("reads the closing tag of %s as markup", (_name, content) => {
+    expect(strings(content)).toEqual(["a", "b"]);
+  });
 });
 
 describe("scanSource positions and comments", () => {

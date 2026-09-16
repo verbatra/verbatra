@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are source text under test, not templates
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createI18nextExtractor } from "./i18next/i18next-extractor.js";
@@ -103,6 +104,78 @@ describe("scanProject", () => {
     const result = await scan({ [join(root, "a.ts")]: "\nt(key)" });
 
     expect(result.dynamic).toEqual([{ file: "src/a.ts", line: 2 }]);
+  });
+
+  it("aggregates key usage across files with file-relative locations", async () => {
+    const result = await scan({
+      [join(root, "a.tsx")]:
+        'const { t } = useTranslation("common", { keyPrefix: "nav" });\nt("home");\nt(`item.${id}`);',
+      [join(root, "b.ts")]: 't("nav.home");\nt(key);\nthis.tr = t;\n<Trans />',
+    });
+
+    expect(result.usage).toEqual({
+      referencedKeys: ["home", "nav.home"],
+      dynamic: [{ file: "src/b.ts", line: 2 }],
+      prefixes: [
+        { prefix: "item.", file: "src/a.tsx", line: 3 },
+        { prefix: "nav.item.", file: "src/a.tsx", line: 3 },
+      ],
+      unresolved: [
+        { reason: "aliased-translate-function", file: "src/b.ts", line: 3 },
+        { reason: "translate-function-escapes", file: "src/b.ts", line: 3 },
+        { reason: "trans-without-key", file: "src/b.ts", line: 4 },
+      ],
+      templateFiles: [],
+    });
+  });
+
+  it("falls back to the calls and dynamic sites of an extractor that reports no usage", async () => {
+    const plain = {
+      framework: "i18next" as const,
+      extensions: [".ts"],
+      extract: () => ({ calls: [{ key: "nav.home", line: 1 }], dynamic: [{ line: 2 }] }),
+    };
+
+    const result = await scanProject(
+      { cwd, roots: [root], extractor: plain },
+      fakeFs({ [join(root, "a.ts")]: "x" }),
+    );
+
+    expect(result.usage).toEqual({
+      referencedKeys: ["nav.home"],
+      dynamic: [{ file: "src/a.ts", line: 2 }],
+      prefixes: [],
+      unresolved: [],
+      templateFiles: [],
+    });
+    expect(result.keys.map((entry) => entry.key)).toEqual(["nav.home"]);
+  });
+
+  it("lists template files the extractor cannot read, sorted, without reading them", async () => {
+    const result = await scan({
+      [join(root, "App.vue")]: '{{ $t("a") }}',
+      [join(root, "page.mdx")]: "x",
+      [join(root, "a.ts")]: 't("b")',
+      [join(root, "notes.md")]: "x",
+    });
+
+    expect(result.usage.templateFiles).toEqual(["src/App.vue", "src/page.mdx"]);
+    expect(result.scannedFiles).toBe(1);
+  });
+
+  it("does not list a template extension the extractor itself reads", async () => {
+    const vue = {
+      framework: "i18next" as const,
+      extensions: [".vue"],
+      extract: () => ({ calls: [], dynamic: [] }),
+    };
+
+    const result = await scanProject(
+      { cwd, roots: [root], extractor: vue },
+      fakeFs({ [join(root, "App.vue")]: "x", [join(root, "index.html")]: "x" }),
+    );
+
+    expect(result.usage.templateFiles).toEqual(["src/index.html"]);
   });
 
   it("reports an oversized file as a diagnostic and carries on with the rest", async () => {

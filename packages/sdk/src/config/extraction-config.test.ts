@@ -23,6 +23,40 @@ describe("extractionConfigSchema", () => {
     expect(parsed.exclude).toEqual(["generated"]);
   });
 
+  it("accepts an unused.ignore list of keys and wildcard patterns", () => {
+    const parsed = extractionConfigSchema.parse({
+      framework: "i18next",
+      roots: ["src"],
+      unused: { ignore: ["emails.*", "cms.banner"] },
+    });
+
+    expect(parsed.unused?.ignore).toEqual(["emails.*", "cms.banner"]);
+  });
+
+  it("rejects an empty unused.ignore entry, which could only ever match an empty key", () => {
+    expect(
+      extractionConfigSchema.safeParse({
+        framework: "i18next",
+        roots: ["src"],
+        unused: { ignore: [""] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects the old top-level ignoreUnused spelling and an unknown unused field", () => {
+    expect(
+      extractionConfigSchema.safeParse({ framework: "i18next", roots: ["src"], ignoreUnused: [] })
+        .success,
+    ).toBe(false);
+    expect(
+      extractionConfigSchema.safeParse({
+        framework: "i18next",
+        roots: ["src"],
+        unused: { skip: [] },
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects an empty roots list, because a scan with no root can only find nothing", () => {
     expect(extractionConfigSchema.safeParse({ framework: "i18next", roots: [] }).success).toBe(
       false,

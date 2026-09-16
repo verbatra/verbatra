@@ -1,6 +1,6 @@
 export type { FormatAdapter, ReadResult } from "./adapter.js";
 export { createAndroidXmlAdapter } from "./android-xml/android-xml-adapter.js";
-export { androidPluralCategoryOf } from "./android-xml/plural.js";
+export { androidPluralBaseKey, androidPluralCategoryOf } from "./android-xml/plural.js";
 export { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 export { createArbAdapter } from "./arb/arb-adapter.js";
 export { createDefaultRegistry } from "./default-registry.js";
@@ -13,7 +13,11 @@ export {
 } from "./flat/flat-file-adapter.js";
 export { type AdapterFs, type BoundedReadOutcome, nodeAdapterFs } from "./fs-port.js";
 export { createGettextAdapter } from "./gettext/gettext-adapter.js";
-export { gettextKeyContext, gettextKeyPluralIndex } from "./gettext/key-encoding.js";
+export {
+  decomposeKey as decomposeGettextKey,
+  gettextKeyContext,
+  gettextKeyPluralIndex,
+} from "./gettext/key-encoding.js";
 export { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 export {
   type I18nextPluralCategory,
@@ -31,6 +35,7 @@ export {
 export { createIniAdapter } from "./ini/ini-adapter.js";
 export type { DeriveEntry, KeyMode } from "./json/flatten.js";
 export type { JsonLeaf, JsonRecord, JsonTree } from "./json/json-tree.js";
+export { decodePathKey } from "./json/key-encoding.js";
 export type { OrderedRecord, OrderedValue } from "./json/ordered-json.js";
 export {
   type BuildWriteTree,

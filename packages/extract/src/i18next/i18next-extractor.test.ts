@@ -379,6 +379,30 @@ describe("createI18nextExtractor on explicit type arguments", () => {
   });
 });
 
+describe("createI18nextExtractor alongside its key usage", () => {
+  it("keeps the extracted calls and dynamic sites exactly as the call scan reads them", () => {
+    expect(extractor.extract({ path: "app.ts", content: 't("nav.home")' })).toEqual({
+      calls: [{ key: "nav.home", line: 1 }],
+      dynamic: [],
+      usage: {
+        references: [{ key: "nav.home", line: 1 }],
+        dynamic: [],
+        prefixes: [],
+        unresolved: [],
+      },
+    });
+  });
+
+  it("ignores the words it looks for inside a string or a comment", () => {
+    expect(
+      extractor.extract({
+        path: "app.tsx",
+        content: '// keyPrefix <Trans>\nconst label = "i18nKey";',
+      }).usage?.unresolved,
+    ).toEqual([]);
+  });
+});
+
 describe("createI18nextExtractor on JSX prose", () => {
   it("does not lose a call that follows an apostrophe in JSX text", () => {
     const content = [

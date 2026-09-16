@@ -1,7 +1,12 @@
 export type SourceToken =
   | { readonly kind: "ident"; readonly value: string; readonly line: number }
   | { readonly kind: "string"; readonly value: string; readonly line: number }
-  | { readonly kind: "dynamic"; readonly line: number }
+  | {
+      readonly kind: "dynamic";
+      readonly line: number;
+      readonly head?: string;
+      readonly span?: number;
+    }
   | { readonly kind: "punct"; readonly value: string; readonly line: number };
 
 export type MarkupToken =
@@ -78,6 +83,10 @@ const REGEX_FOLLOWING_KEYWORDS = new Set([
 ]);
 
 const VALUE_CLOSING_PUNCT = new Set([")", "]", "}"]);
+
+const CLOSING_TAG = /^\/[A-Za-z0-9\-.:]*\s*>/;
+
+const CLOSING_TAG_LOOKAHEAD = 256;
 
 export function charAt(cursor: Cursor, offset: number): string {
   return cursor.text[cursor.index + offset] ?? "";
@@ -304,6 +313,7 @@ interface TemplateExpression {
 interface TemplateParts {
   readonly line: number;
   readonly column: number;
+  readonly head: string;
   readonly staticValue: string;
   readonly expressions: readonly TemplateExpression[];
   readonly dynamic: boolean;
@@ -314,6 +324,7 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
   const column = columnOf(cursor);
   cursor.index += 1;
   let staticValue = "";
+  let head: string | undefined;
   let dynamic = false;
   const expressions: TemplateExpression[] = [];
   while (!atEnd(cursor)) {
@@ -322,8 +333,9 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
       staticValue += readEscape(cursor);
     } else if (char === "`") {
       cursor.index += 1;
-      return { line, column, staticValue, expressions, dynamic };
+      return { line, column, head: head ?? staticValue, staticValue, expressions, dynamic };
     } else if (char === "$" && charAt(cursor, 1) === "{") {
+      head ??= staticValue;
       dynamic = true;
       cursor.index += 2;
       const start = cursor.index;
@@ -340,7 +352,7 @@ function readTemplateParts(cursor: Cursor): TemplateParts {
     }
   }
   cursor.truncated = true;
-  return { line, column, staticValue, expressions, dynamic: true };
+  return { line, column, head: head ?? staticValue, staticValue, expressions, dynamic: true };
 }
 
 function shiftPosition(token: PositionedToken, expression: TemplateExpression): PositionedToken {
@@ -376,7 +388,7 @@ function readTemplateTokens(cursor: Cursor): readonly PositionedToken[] {
     return [{ kind: "string", value: parts.staticValue, ...position }];
   }
   const inner = parts.expressions.flatMap((expression) => readExpressionTokens(cursor, expression));
-  return [{ kind: "dynamic", ...position }, ...inner];
+  return [{ kind: "dynamic", ...position, head: parts.head, span: inner.length }, ...inner];
 }
 
 function readAtomToken(cursor: Cursor): PositionedToken {
@@ -425,6 +437,15 @@ function trySkipRegex(cursor: Cursor): boolean {
   return false;
 }
 
+function isClosingTag(cursor: Cursor, previous: PositionedToken | undefined): boolean {
+  const opensTag =
+    cursor.options.markup === undefined && previous?.kind === "punct" && previous.value === "<";
+  return (
+    opensTag &&
+    CLOSING_TAG.test(cursor.text.slice(cursor.index, cursor.index + CLOSING_TAG_LOOKAHEAD))
+  );
+}
+
 function readMarkupTokens(
   cursor: Cursor,
   previous: PositionedToken | undefined,
@@ -447,7 +468,12 @@ export function nextTokens(
   if (isAtomChar(char)) {
     return [readAtomToken(cursor)];
   }
-  if (char === "/" && regexCanStart(previous) && trySkipRegex(cursor)) {
+  if (
+    char === "/" &&
+    !isClosingTag(cursor, previous) &&
+    regexCanStart(previous) &&
+    trySkipRegex(cursor)
+  ) {
     return [];
   }
   const markup = char === "<" ? readMarkupTokens(cursor, previous) : undefined;
@@ -496,7 +522,14 @@ function toSourceToken(token: PositionedToken): readonly SourceToken[] {
     case "punct":
       return [{ kind: "punct", value: token.value, line: token.line }];
     case "dynamic":
-      return [{ kind: "dynamic", line: token.line }];
+      return [
+        {
+          kind: "dynamic",
+          line: token.line,
+          ...(token.head !== undefined ? { head: token.head } : {}),
+          ...(token.span !== undefined ? { span: token.span } : {}),
+        },
+      ];
     default:
       return [];
   }

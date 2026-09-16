@@ -1,8 +1,10 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
+import type { ExtractionConfig } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { defaultFs } from "../fs.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -192,5 +194,123 @@ describe("diff", () => {
     await expect(diff({ config: cfg({ targetLocales: ["de"] }), cwd: dir })).rejects.toMatchObject({
       code: "LOCK_FILE_INVALID",
     });
+  });
+});
+
+describe("diff with the unused-key report", () => {
+  const extract: ExtractionConfig = { framework: "i18next", roots: ["src"] };
+
+  async function withSource(dir: string, files: Readonly<Record<string, string>>): Promise<void> {
+    for (const [relativePath, content] of Object.entries(files)) {
+      await mkdir(join(dir, relativePath, ".."), { recursive: true });
+      await writeFile(join(dir, relativePath), content, "utf8");
+    }
+  }
+
+  it("leaves the report out, and scans nothing, unless it is asked for", async () => {
+    const dir = await project({ a: "A" }, { de: { a: "Aa" } });
+    const fs = makeFakeFs({
+      ...realDiskReads(),
+      readDirectory: async () => {
+        throw new Error("the source must not be scanned");
+      },
+    });
+
+    const summary = await diff(
+      { config: cfg({ targetLocales: ["de"], extract }), cwd: dir },
+      { fs },
+    );
+
+    expect("unused" in summary).toBe(false);
+  });
+
+  it("keeps unused source keys and orphaned target keys as two separate lists", async () => {
+    const dir = await project(
+      { used: "Used", unusedKey: "Unused" },
+      { de: { used: "Benutzt", unusedKey: "Unbenutzt", gone: "Weg" } },
+    );
+    await withSource(dir, { "src/app.ts": 't("used");' });
+
+    const summary = await diff({
+      config: cfg({ targetLocales: ["de"], extract }),
+      cwd: dir,
+      unused: true,
+    });
+
+    expect(summary.locales[0]?.orphaned).toEqual(["gone"]);
+    expect(summary.unused).toMatchObject({
+      status: "complete",
+      unused: [{ key: "unusedKey", catalogKey: "unusedKey" }],
+    });
+    expect(summary.hasPendingChanges).toBe(false);
+  });
+
+  it("reports not-run inside a successful diff when no extract block is configured", async () => {
+    const dir = await project({ a: "A" }, { de: { a: "Aa" } });
+
+    const summary = await diff({ config: cfg({ targetLocales: ["de"] }), cwd: dir, unused: true });
+
+    expect(summary.unused).toMatchObject({ status: "not-run", reason: "EXTRACT_NOT_CONFIGURED" });
+    expect(summary.locales).toHaveLength(1);
+  });
+
+  it("scans relative to process.cwd() when cwd is omitted", async () => {
+    const dir = await project({ a: "A", b: "B" }, { de: { a: "Aa", b: "Ba" } });
+    await withSource(dir, { "src/app.ts": 't("a");' });
+    const previous = process.cwd();
+    try {
+      process.chdir(dir);
+      const summary = await diff({ config: cfg({ targetLocales: ["de"], extract }), unused: true });
+      expect(summary.unused).toMatchObject({
+        status: "complete",
+        unused: [{ key: "b", catalogKey: "b" }],
+      });
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
+  it("passes the extractor factory through to the scan", async () => {
+    const dir = await project({ a: "A", b: "B" }, { de: { a: "Aa", b: "Ba" } });
+    await withSource(dir, { "src/app.ts": "anything" });
+
+    const summary = await diff(
+      { config: cfg({ targetLocales: ["de"], extract }), cwd: dir, unused: true },
+      {
+        createExtractor: (framework) => ({
+          framework,
+          extensions: [".ts"],
+          extract: () => ({ calls: [{ key: "b", line: 1 }], dynamic: [] }),
+        }),
+      },
+    );
+
+    expect(summary.unused).toMatchObject({
+      status: "complete",
+      unused: [{ key: "a", catalogKey: "a" }],
+    });
+  });
+
+  it("reads the source catalog once for both the locale diff and the unused-key report", async () => {
+    const dir = await project({ a: "A", b: "B" }, { de: { a: "Aa", b: "Ba" } });
+    await withSource(dir, { "src/app.ts": 't("a");' });
+    const sourceReads: string[] = [];
+    const fs = {
+      ...defaultFs,
+      readFileBounded: (path: string, maxBytes: number) => {
+        if (path.endsWith(join("locales", "en.json"))) {
+          sourceReads.push(path);
+        }
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    };
+
+    const summary = await diff(
+      { config: cfg({ targetLocales: ["de"], extract }), cwd: dir, unused: true },
+      { fs },
+    );
+
+    expect(summary.unused).toMatchObject({ unused: [{ key: "b" }] });
+    expect(sourceReads).toHaveLength(1);
   });
 });

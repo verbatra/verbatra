@@ -1,12 +1,21 @@
+export { TEMPLATE_FILE_EXTENSIONS } from "./discovery.js";
 export type {
   DynamicCallSite,
   ExtractedCallSite,
   FileExtraction,
+  KeyPrefixSite,
+  KeyUsage,
+  ReferencedKeySite,
   SourceExtractor,
   SourceFile,
+  UnresolvedKeySite,
+  UnresolvedKeySiteReason,
 } from "./extractor.js";
 export { SOURCE_FRAMEWORKS, type SourceFramework, sourceFrameworkSchema } from "./framework.js";
-export { createI18nextExtractor } from "./i18next/i18next-extractor.js";
+export {
+  createI18nextExtractor,
+  I18NEXT_TRANSLATION_ELEMENTS,
+} from "./i18next/i18next-extractor.js";
 export { createI18nextLiteralRules } from "./i18next/i18next-literal-rules.js";
 export type { LiteralRules } from "./literals/find-literals.js";
 export {
@@ -21,12 +30,15 @@ export { toReportedPath } from "./reported-path.js";
 export {
   type ExtractedKey,
   type KeyConflict,
+  type KeyPrefixLocation,
+  type ProjectKeyUsage,
   type ProjectScan,
   type ScanDiagnostic,
   type ScanDiagnosticReason,
   type ScanProjectInput,
   type SourceLocation,
   scanProject,
+  type UnresolvedKeyLocation,
 } from "./scan-project.js";
 export {
   type BoundedSourceRead,

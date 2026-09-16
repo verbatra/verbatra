@@ -56,7 +56,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
 | `budgetBehavior` | `"warn"` or `"stop"` | `"warn"` | What happens once `maxTokens` is reached. |
 | `rates` | object | none | Dated provider rates, so `translate --estimate` can report a currency figure. |
-| `extract` | object | none | Source-scanning settings for [`verbatra extract`](/docs/cli/extract) and `verbatra doctor --literals`: the framework, the source roots, and the literal ignore list. |
+| `extract` | object | none | Source-scanning settings for [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals`, and `verbatra diff --unused`: the framework, the source roots, and the literal and unused-key ignore lists. |
 | `$schema` | string | none | A pointer to the JSON Schema document, for editors only. Ignored at runtime. |
 
 Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
@@ -198,7 +198,7 @@ The block changes nothing about a live run: not what is sent, not what is billed
 
 <AvailableFrom version="0.11.0" />
 
-Optional, and used only by [`verbatra extract`](/docs/cli/extract) and [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals). Every other command ignores it.
+Optional, and used only by [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals), and [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys). Every other command ignores it.
 
 ```ts
 extract: {
@@ -206,6 +206,7 @@ extract: {
   roots: ["src", "app"],
   exclude: ["generated"],
   literals: { ignore: ["Acme Inc."] },
+  unused: { ignore: ["emails.*"] },
 }
 ```
 
@@ -216,6 +217,8 @@ extract: {
 `exclude` adds directory names to the always-skipped set, which already covers `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build`, and `coverage`. Names, not paths: an entry matches a directory of that name anywhere under a root.
 
 `literals.ignore` lists exact texts that [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) holds back everywhere, such as a brand name. An entry matches a literal whose whole text is the same once whitespace is collapsed and character references such as `&amp;` are decoded, so write `Tom & Jerry`, not `Tom &amp; Jerry`. A held-back literal is still reported as suppressed, never dropped.
+
+`unused.ignore` lists the keys `diff --unused` must not report as unused, for a key referenced only from outside the scanned source, such as a server template, a CMS, or a test fixture. Each entry is an exact key, or a pattern in which `*` matches any run of characters, such as `emails.*`. It matches the decoded key the report shows (`Welcome. Enjoy`, not the escaped `Welcome\. Enjoy`). A matched key is reported as ignored rather than left out. `unused` accepts no other field.
 
 Unknown keys inside the block are rejected, exactly as they are at the top level.
 

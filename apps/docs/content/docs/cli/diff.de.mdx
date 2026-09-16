@@ -17,9 +17,69 @@ verbatra diff [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die verglichen wird |
+| `--unused` | keins | aus | zusätzlich die Roots des [`extract`-Blocks](/docs/config-file#extract) scannen und die Keys der Quell-Locale auflisten, die keine Aufrufstelle nennt (siehe [Ungenutzte Quell-Keys](#ungenutzte-quell-keys)) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Diff-Zusammenfassung unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 Ein Locale hat ausstehende Änderungen, wenn es mindestens einen Key zum Hinzufügen oder Neuübersetzen hat. Verwaiste Keys werden gemeldet, zählen aber nie als ausstehend, weil ein Standardlauf sie nicht entfernt (das tut nur [`verbatra translate --prune`](/docs/cli/translate)). Ein leerer oder unbekannter `--locales`-Wert wird mit Exit `2` abgelehnt, statt stillschweigend nichts zu vergleichen. Während [`verbatra check`](/docs/cli/check) die Frage "wie viel hat gedriftet" mit Zählern beantwortet, beantwortet `diff` die Frage "welche Keys" mit den Listen selbst.
+
+## Ungenutzte Quell-Keys
+
+<AvailableFrom version="0.11.0" />
+
+`orphaned` beantwortet "welche Ziel-Keys sind aus der Quelle verschwunden". `--unused` beantwortet eine andere Frage: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nirgends mehr? Es scannt die `roots` des [`extract`-Blocks](/docs/config-file#extract) mit demselben Leser, den [`verbatra extract`](/docs/cli/extract) nutzt, und listet jeden Key der Quell-Locale auf, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt: Ein Key kann in `de` verwaist und unabhängig davon in der Quelle ungenutzt sein.
+
+Es bleibt rein lesend. Nichts wird entfernt, umgeschrieben oder umsortiert, kein Provider wird erzeugt und kein API-Key gelesen. Ob du einen Key löschst, entscheidest du, also prüf die Liste vorher.
+
+Der Scan bildet die i18next-Laufzeit nach. Folgendes zählt als Referenz auf einen Key:
+
+- Ein Aufruf `t(...)`, `$t(...)` oder `<object>.t(...)` irgendwo unter den Roots, auch in einer Datei, die keine Route importiert, und ein Aufruf über einen Alias von `t`: `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` oder `i18n.getFixedT(...)`.
+- Ein statischer `keyPrefix` (als Option, Objekt-Property oder JSX-Attribut) oder ein statisches drittes Argument von `getFixedT`. Jeder statische Key in dieser Datei deckt dann auch den Key mit Präfix ab, `t("home")` unter `keyPrefix: "nav"` deckt also `nav.home` ab (und weiterhin `home`).
+- Ein statischer `i18nKey` an einem `Trans`-Element oder in einem Objekt.
+- Ein Key mit Namespace wie `common:nav.home` (er deckt `common:nav.home` und `nav.home` ab), ein Key in natürlicher Sprache wie `Loading...` oder `Error: failed` und jeder Key eines statischen Key-Arrays wie `t(["a", "b"])`.
+- Eine Plural- oder Kontext-Variante eines referenzierten Keys: `t("items", { count })` deckt `items_one` und `items_other` ab, und `t("friend", { context })` deckt `friend_male`, `place_ordinal_one` und Ähnliches ab. Das entspricht dem, wie `translate` generierte Pluralformen aus der Orphan-Liste heraushält. Auch jeder Key unter einem referenzierten Eltern-Key zählt, `t("nav", { returnObjects: true })` deckt also `nav.home` ab.
+
+Keys werden in der eigenen Kodierung des Katalogformats verglichen, sodass ein flacher JSON-Key mit Punkt (`{ "a.b": "..." }`), ein gettext-Plural (`msgstr[0]`, `msgstr[1]`) oder `msgctxt`-Eintrag (`t("Open", { context: "menu" })`) und ein Android-`<plurals>`-Eintrag alle zu dem Key passen, den dein Code nennt.
+
+Ein Template-Literal-Key mit statischem Anfang wie `` t(`nav.${page}`) `` macht den Bericht nicht unzuverlässig: Die Keys unter `nav.` erscheinen getrennt von `unused` als `possiblyDynamic` und lassen den Lauf nie fehlschlagen.
+
+Der Bericht trägt einen `status`:
+
+| `status` | Bedeutung |
+| --- | --- |
+| `complete` | der Scan konnte jeden Key eingrenzen, den die nachgebildeten Konstrukte erreichen, `unused` listet also Keys, die keine statische Referenz nennt |
+| `unreliable` | der Scan ist auf etwas gestoßen, das er nicht eingrenzen kann, ein gelisteter Key kann also noch genutzt werden. `unreliableBecause` nennt jeden Grund mit Anzahl und Fundstellen (Datei und Zeile) |
+| `not-run` | es gibt nichts Verlässliches, woran sich urteilen ließe, und es wird gar kein Key aufgelistet. `reason` sagt, warum |
+
+| Grund | `status` | Wann |
+| --- | --- | --- |
+| `dynamic-keys` | `unreliable` | ein Key ohne statischen Teil: `t(key)`, ein Template-Literal ohne statischen Anfang oder eine Verkettung |
+| `dynamic-key-prefix` | `unreliable` | ein `keyPrefix` oder `getFixedT`-Präfix, der kein statischer String ist |
+| `trans-without-key` | `unreliable` | ein `Trans`-Element ohne statischen `i18nKey` |
+| `aliased-translate-function` | `unreliable` | `t` wird etwas anderem als einer einfachen Variable zugewiesen, etwa `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle steht an einer anderen als den unten erlaubten Stellen, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
+| `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, ein Member `t` oder ein `t`-Import in einer Form, die unten nicht aufgeführt ist, etwa ein Wrapper-Hook, der `useTranslation(...)` zurückgibt, Hook-Optionen über einen Namen oder mit Spread, oder ein exportiertes `getFixedT`-Ergebnis |
+| `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
+| `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
+| `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | das Dateisystem eines SDK-Aufrufers kann keine Verzeichnisse auflisten |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | das Format ist `next-intl-json`, `vue-i18n-json` oder `ngx-translate-json`, deren Laufzeiten der Scan nicht nachbildet |
+| `NO_SOURCE_FILES` | `not-run` | unter den Roots liegt keine Quelldatei |
+| `NO_REFERENCES_FOUND` | `not-run` | die gescannten Dateien nennen keinen Key und enthalten keine dynamische Key-Stelle, während der Katalog nicht leer ist, was meist heißt, dass die Roots deinen Code verfehlen |
+
+Der Scan vertraut nur Übersetzungsfunktionen, deren Entstehung er sieht. Jede Verwendung einer Übersetzungsquelle muss eine dieser Formen haben, sonst ist der Bericht `unreliable` mit `unrecognised-translate-source`:
+
+- `const { t } = useTranslation(...)` (auch `{ t: alias }`, `i18n`, `ready` oder ein Array `[t, i18n]`), nicht exportiert, aufgerufen ohne Argumente, mit einem statischen Namespace oder Namespace-Array und optional einem Objekt-Literal, dessen `keyPrefix`, falls vorhanden, ein statischer String ist und das keinen Spread und keinen berechneten Key enthält.
+- `const f = i18n.getFixedT(...)`, nicht exportiert, mit einer statischen, `null`- oder benannten Sprache zuerst (etwa `i18n.language`) und danach nur statischen Strings, String-Arrays, `null` oder `undefined`.
+- Ein direkter Aufruf eines Members `t`, etwa `i18n.t("key")` oder `this.props.t("key")`, und ein lokales, nicht exportiertes `const tr = i18n.t` oder `const tr = i18n.t.bind(i18n)`.
+- `<Translation>{(t) => ...}</Translation>` oder `<Translation>{t => ...}</Translation>`.
+- `withTranslation("ns")(Component)`, dessen Komponente `props.t(...)` aufruft.
+- `import { t } from "i18next"` (auch `t as alias`) sowie einfache Imports von `useTranslation`, `withTranslation`, `getFixedT` und `Translation`.
+
+Jede Bindung namens `t` oder `$t` wird geprüft, egal woher sie stammt, ebenso jede oben gebundene Übersetzungsfunktion und jeder lokale Alias `const tr = t`. Sie dürfen nur als direkter Aufruf, als eigene Bindung, als lokaler Alias, als `t={t}`-Attribut von `Trans` oder `Translation` oder als Eintrag im Abhängigkeits-Array von `useEffect`, `useLayoutEffect`, `useMemo` oder `useCallback` vorkommen. Überall sonst (als Argument, Prop, Objekt-Property, Rückgabewert, Operand eines ternären Ausdrucks oder Export) ist der Bericht `unreliable` mit `translate-function-escapes`. Ein `t` oder `$t`, das aus etwas anderem als einer erkannten Quelle, einem lokalen Alias, einem Funktionsparameter oder `this.props` deklariert oder destrukturiert wird, ergibt `unrecognised-translate-source`; ein Funktionsparameter namens `t` ist in Ordnung, solange er nur aufgerufen wird. Eine unabhängige Variable oder ein Member namens `t`, etwa `frame.t + 1`, wird genauso beurteilt und kann einen Bericht daher unzuverlässig machen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert.
+
+Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
+
+Ein Key, der nur von außerhalb des gescannten Quellcodes referenziert wird (ein Server-Template, ein CMS, eine Test-Fixture), gehört in [`extract.unused.ignore`](/docs/config-file#extract). Ein Muster trifft den dekodierten Key. Ein getroffener Key erscheint unter `ignored`, nie unter `unused` oder `possiblyDynamic`, und fällt nie still weg.
 
 ## Beispiele
 
@@ -29,18 +89,22 @@ verbatra diff
 
 # machine-readable key lists for tooling or a PR comment
 verbatra diff --json
+
+# also list the source keys your code no longer names (exit 1 if a complete scan finds any)
+verbatra diff --unused
 ```
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | keine ausstehenden Änderungen: kein Locale hat einen Key zum Hinzufügen oder Neuübersetzen |
-| `1` | ausstehende Änderungen: mindestens ein Locale hat einen fehlenden oder geänderten Key (verwaiste Keys allein erzeugen nie `1`) |
+| `0` | keine ausstehenden Änderungen: kein Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und mit `--unused` hat kein vollständiger Scan einen ungenutzten Key gefunden |
+| `1` | ausstehende Änderungen: mindestens ein Locale hat einen fehlenden oder geänderten Key, oder mit `--unused` hat ein `complete`-Scan mindestens einen ungenutzten Key gefunden (verwaiste Keys, möglicherweise dynamische Keys, ignorierte Keys und ein `unreliable`- oder `not-run`-Bericht erzeugen nie allein eine `1`) |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts) |
 
 ## Siehe auch
 
 - [`verbatra check`](/docs/cli/check) liefert die Zähler pro Locale hinter diesen Listen.
+- [Die Konfigurationsdatei](/docs/config-file#extract) dokumentiert den `extract`-Block, den `--unused` scannt, einschließlich `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) wendet die ausstehenden Änderungen an; `--prune` entfernt die verwaisten Keys.
 - [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt diff in einer Pipeline.

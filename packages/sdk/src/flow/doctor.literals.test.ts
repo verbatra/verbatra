@@ -5,7 +5,7 @@ import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { doctor } from "./doctor.js";
-import { EXTRACT_NOT_CONFIGURED_MESSAGE } from "./extract.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE } from "./source-scan.js";
 
 const { providerFactoryCalls } = vi.hoisted(() => ({ providerFactoryCalls: [] as string[] }));
 

@@ -23,6 +23,11 @@ export const extractionConfigSchema = z.strictObject({
       ignore: z.array(z.string().min(1)).optional(),
     })
     .optional(),
+  unused: z
+    .strictObject({
+      ignore: z.array(z.string().min(1)).optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -38,6 +43,12 @@ export const extractionConfigSchema = z.strictObject({
  * whitespace collapsed and, in JSX text or a quoted JSX attribute value, character references such
  * as `&amp;` decoded, so an entry is written `Tom & Jerry`, not `Tom &amp; Jerry`. A held-back
  * literal is still reported, under `suppressed`, so nothing vanishes silently.
+ *
+ * `unused.ignore` names catalog keys the unused-key report must not count as unused, for a key
+ * referenced only from outside the scanned source (a server template, a CMS, a test fixture). Each
+ * entry is an exact key, or a pattern in which `*` matches any run of characters, such as
+ * `emails.*`. It matches the decoded key as the report shows it (`Welcome. Enjoy`, not the escaped
+ * catalog spelling). A matched key is reported as ignored, never dropped from the report.
  */
 export type ExtractionConfig = z.infer<typeof extractionConfigSchema>;
 

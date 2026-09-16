@@ -277,7 +277,19 @@ El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de 
 (`missing`, `changed`, `orphaned`) en lugar de contadores. Las claves huérfanas son solo informativas y
 nunca activan `hasPendingChanges`, porque una ejecución por defecto no elimina claves.
 
-Entrada: `{ config, cwd?, locales? }`. Devuelve un `DiffSummary`.
+Con `unused: true` también analiza las raíces del bloque `extract` de la configuración y añade un
+informe `unused`, separado de cada lista `orphaned`: las claves del locale de origen que ninguna
+referencia estática nombra, en el orden del catálogo. Es de solo lectura, no necesita clave y modela
+el runtime de i18next (llamadas `t` y sus alias, prefijos estáticos de `keyPrefix` y `getFixedT`,
+claves de `Trans`, claves con namespace y variantes de plural y de contexto), comparando las claves
+en la codificación del formato del catálogo. Cada clave listada lleva su `key` decodificada y su
+`catalogKey`. Las claves que coinciden con `extract.unused.ignore` van a `ignored`, y las que podría
+alcanzar un template literal con cabecera estática, a `possiblyDynamic`. Su `status` es `complete`,
+`unreliable` (con `unreliableBecause` nombrando cada motivo con sus ubicaciones) o `not-run` (con un
+`reason` y sin lista de claves). Consulta todos los motivos en [Claves de origen sin
+uso](/docs/cli/diff#claves-de-origen-sin-uso). El informe nunca activa `hasPendingChanges`.
+
+Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
 
 ### keyIntegrity
 

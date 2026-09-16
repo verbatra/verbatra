@@ -4,7 +4,7 @@ import { buildLiteralRules } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { EXTRACT_NOT_CONFIGURED_MESSAGE, toSourceFs } from "./extract.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE, toSourceFs } from "./source-scan.js";
 
 export type LiteralLintOutcome =
   | { readonly kind: "scanned"; readonly scan: LiteralScan }

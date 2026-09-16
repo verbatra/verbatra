@@ -25,6 +25,10 @@ import {
   type RunSummary,
   type TmxLanguageReport,
   type TmxRejectionReason,
+  type UnusedKeysReport,
+  type UnusedKeysScan,
+  type UnusedKeysSite,
+  type UnusedKeysUnreliability,
   type UsageSummary,
   type WatchRunResult,
 } from "@verbatra/sdk";
@@ -372,13 +376,74 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   return [header, ...groups];
 }
 
+function renderUnusedSite(site: UnusedKeysSite): string {
+  const location = site.line === undefined ? site.file : `${site.file}:${site.line}`;
+  return site.detail === undefined ? location : `${location}  ${site.detail}`;
+}
+
+function renderUnreliability(entry: UnusedKeysUnreliability): readonly string[] {
+  const shown = entry.sites.slice(0, EXTRACT_LIST_LIMIT);
+  const rest = entry.count - shown.length;
+  return [
+    `    ${entry.reason} (${entry.count}):`,
+    ...shown.map((site) => `      ${renderUnusedSite(site)}`),
+    ...(rest > 0 ? [`      and ${rest} more`] : []),
+  ];
+}
+
+function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
+  const header =
+    `  unused source keys: ${report.status}, ${report.unused.length} unused, ` +
+    `${report.possiblyDynamic.length} possibly dynamic, ${report.ignored.length} ignored, ` +
+    `${report.scannedFiles} files scanned`;
+  const verdict =
+    report.status === "complete"
+      ? []
+      : [
+          "  unreliable: a key listed as unused may still be in use",
+          ...report.unreliableBecause.flatMap(renderUnreliability),
+        ];
+  const unlimited = Number.POSITIVE_INFINITY;
+  return [
+    header,
+    ...verdict,
+    ...renderExtractList(
+      "unused",
+      report.unused.map((entry) => entry.key),
+      unlimited,
+    ),
+    ...renderExtractList(
+      "possibly dynamic",
+      report.possiblyDynamic.map((entry) => `${entry.key}  (prefix ${entry.prefix})`),
+      unlimited,
+    ),
+    ...renderExtractList(
+      "ignored",
+      report.ignored.map((entry) => entry.key),
+      unlimited,
+    ),
+  ];
+}
+
+function renderUnusedReport(report: UnusedKeysReport | undefined): readonly string[] {
+  if (report === undefined) {
+    return [];
+  }
+  if (report.status === "not-run") {
+    return [`  unused source keys: not run [${report.reason}] ${report.message}`];
+  }
+  return renderUnusedScan(report);
+}
+
 export function renderDiffHuman(summary: DiffSummary): string {
   const localeLines = summary.locales.flatMap(renderDiffLocale);
   const count = summary.locales.length;
   const trailer = `${count} ${count === 1 ? "locale" : "locales"}, ${
     summary.hasPendingChanges ? "pending changes" : "no pending changes"
   }`;
-  return ["verbatra diff", ...localeLines, trailer].join("\n");
+  return ["verbatra diff", ...localeLines, ...renderUnusedReport(summary.unused), trailer].join(
+    "\n",
+  );
 }
 
 function renderLockHolder(event: LockWaitEvent): string {
@@ -446,11 +511,15 @@ export function renderPseudoHuman(result: PseudolocalizeResult): string {
 
 const EXTRACT_LIST_LIMIT = 10;
 
-function renderExtractList(label: string, lines: readonly string[]): readonly string[] {
+function renderExtractList(
+  label: string,
+  lines: readonly string[],
+  limit = EXTRACT_LIST_LIMIT,
+): readonly string[] {
   if (lines.length === 0) {
     return [];
   }
-  const shown = lines.slice(0, EXTRACT_LIST_LIMIT);
+  const shown = lines.slice(0, limit);
   const rest = lines.length - shown.length;
   const trailer = rest > 0 ? [`    and ${rest} more`] : [];
   return [`  ${label} (${lines.length}):`, ...shown.map((line) => `    ${line}`), ...trailer];
