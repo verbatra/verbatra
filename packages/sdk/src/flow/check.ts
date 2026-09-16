@@ -4,7 +4,13 @@ import {
   type InconsistencyGroup,
   type InconsistentTranslationsOptions,
 } from "@verbatra/core";
-import { type AdapterRegistry, gettextKeyContext } from "@verbatra/format-adapters";
+import {
+  type AdapterRegistry,
+  androidPluralCategoryOf,
+  gettextKeyContext,
+  gettextKeyPluralIndex,
+  pluralCategoryOf,
+} from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { diffLocales, type LocaleDiffResult } from "./diff-locales.js";
@@ -60,8 +66,24 @@ export interface CheckDeps {
   readonly fs?: SdkFs;
 }
 
+const suffixPluralForms: InconsistentTranslationsOptions = { pluralFormOf: pluralCategoryOf };
+
+const CONSISTENCY_OPTIONS: ReadonlyMap<FormatId, InconsistentTranslationsOptions> = new Map([
+  ["i18next-json", suffixPluralForms],
+  ["apple-strings", suffixPluralForms],
+  ["apple-xcstrings", suffixPluralForms],
+  ["android-xml", { pluralFormOf: androidPluralCategoryOf }],
+  [
+    "gettext-po",
+    {
+      contextOf: gettextKeyContext,
+      pluralFormOf: (key: string) => gettextKeyPluralIndex(key)?.toString(),
+    },
+  ],
+]);
+
 function consistencyOptions(format: FormatId): InconsistentTranslationsOptions {
-  return format === "gettext-po" ? { contextOf: gettextKeyContext } : {};
+  return CONSISTENCY_OPTIONS.get(format) ?? {};
 }
 
 function toCheckSummary(
@@ -104,8 +126,10 @@ function toCheckSummary(
  * translation belongs to an older source text. Values are compared after Unicode NFC normalization,
  * folding line endings, and trimming leading and trailing whitespace; internal whitespace and letter
  * case count. Keys whose description, meaning, plural flag, or gettext `msgctxt` differ are never
- * grouped. The report never affects `inSync`, a count, or any file, and a translation identical to
- * its own source is not a finding here.
+ * grouped, and neither are the different plural forms of one key: a format that stores each form
+ * under its own key (i18next, Apple `.stringsdict` and `.xcstrings`, Android, gettext) is compared
+ * per plural category or gettext `msgstr` index. The report never affects `inSync`, a count, or any
+ * file, and a translation identical to its own source is not a finding here.
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending
