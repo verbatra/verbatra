@@ -124,10 +124,10 @@ describe("the config JSON Schema document: shape cross-check", () => {
 });
 
 describe("the config JSON Schema document: the extract block", () => {
-  it("carries the ignoreUnused list, so an editor validates and completes it", () => {
-    const extract = propertyOf(document, "extract");
+  it("carries the unused.ignore list, so an editor validates and completes it", () => {
+    const unused = propertyOf(propertyOf(document, "extract"), "unused");
 
-    expect(propertyOf(extract, "ignoreUnused")).toEqual({
+    expect(propertyOf(unused, "ignore")).toEqual({
       type: "array",
       items: { type: "string", minLength: 1 },
     });

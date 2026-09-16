@@ -41,10 +41,15 @@ export async function readTarget(
   });
 }
 
-export async function diffLocales(
+export interface LocaleDiffsWithSource {
+  readonly source: LocaleResource;
+  readonly results: readonly LocaleDiffResult[];
+}
+
+export async function diffLocalesWithSource(
   input: DiffLocalesInput,
   deps: DiffLocalesDeps = {},
-): Promise<readonly LocaleDiffResult[]> {
+): Promise<LocaleDiffsWithSource> {
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
@@ -54,7 +59,7 @@ export async function diffLocales(
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readLockFile(lockFilePath(cwd), fs);
 
-  return Promise.all(
+  const results = await Promise.all(
     selectLocales(config, input.locales).map(async (locale) => {
       const target = await readTargetResource({
         resolver,
@@ -67,4 +72,12 @@ export async function diffLocales(
       return { locale, diff };
     }),
   );
+  return { source: source.resource, results };
+}
+
+export async function diffLocales(
+  input: DiffLocalesInput,
+  deps: DiffLocalesDeps = {},
+): Promise<readonly LocaleDiffResult[]> {
+  return (await diffLocalesWithSource(input, deps)).results;
 }

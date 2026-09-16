@@ -4,6 +4,7 @@ import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ExtractionConfig } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { defaultFs } from "../fs.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -237,7 +238,10 @@ describe("diff with the unused-key report", () => {
     });
 
     expect(summary.locales[0]?.orphaned).toEqual(["gone"]);
-    expect(summary.unused).toMatchObject({ status: "complete", unused: ["unusedKey"] });
+    expect(summary.unused).toMatchObject({
+      status: "complete",
+      unused: [{ key: "unusedKey", catalogKey: "unusedKey" }],
+    });
     expect(summary.hasPendingChanges).toBe(false);
   });
 
@@ -257,7 +261,10 @@ describe("diff with the unused-key report", () => {
     try {
       process.chdir(dir);
       const summary = await diff({ config: cfg({ targetLocales: ["de"], extract }), unused: true });
-      expect(summary.unused).toMatchObject({ status: "complete", unused: ["b"] });
+      expect(summary.unused).toMatchObject({
+        status: "complete",
+        unused: [{ key: "b", catalogKey: "b" }],
+      });
     } finally {
       process.chdir(previous);
     }
@@ -278,6 +285,32 @@ describe("diff with the unused-key report", () => {
       },
     );
 
-    expect(summary.unused).toMatchObject({ status: "complete", unused: ["a"] });
+    expect(summary.unused).toMatchObject({
+      status: "complete",
+      unused: [{ key: "a", catalogKey: "a" }],
+    });
+  });
+
+  it("reads the source catalog once for both the locale diff and the unused-key report", async () => {
+    const dir = await project({ a: "A", b: "B" }, { de: { a: "Aa", b: "Ba" } });
+    await withSource(dir, { "src/app.ts": 't("a");' });
+    const sourceReads: string[] = [];
+    const fs = {
+      ...defaultFs,
+      readFileBounded: (path: string, maxBytes: number) => {
+        if (path.endsWith(join("locales", "en.json"))) {
+          sourceReads.push(path);
+        }
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    };
+
+    const summary = await diff(
+      { config: cfg({ targetLocales: ["de"], extract }), cwd: dir, unused: true },
+      { fs },
+    );
+
+    expect(summary.unused).toMatchObject({ unused: [{ key: "b" }] });
+    expect(sourceReads).toHaveLength(1);
   });
 });

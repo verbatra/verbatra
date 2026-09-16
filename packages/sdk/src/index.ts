@@ -206,10 +206,15 @@ export {
   translate,
 } from "./flow/translate-project.js";
 export type {
+  PossiblyDynamicKey,
+  UnusedKey,
   UnusedKeysNotRun,
   UnusedKeysNotRunReason,
+  UnusedKeysPrefixSite,
   UnusedKeysReport,
   UnusedKeysScan,
+  UnusedKeysSite,
+  UnusedKeysUnreliability,
   UnusedKeysUnreliableReason,
 } from "./flow/unused-keys.js";
 export {
