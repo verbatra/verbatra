@@ -56,6 +56,7 @@ Der Bericht trägt einen `status`:
 | `dynamic-key-prefix` | `unreliable` | ein `keyPrefix` oder `getFixedT`-Präfix, der kein statischer String ist |
 | `trans-without-key` | `unreliable` | ein `Trans`-Element ohne statischen `i18nKey` |
 | `aliased-translate-function` | `unreliable` | `t` wird etwas anderem als einer einfachen Variable zugewiesen, etwa `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | `t` (oder ein Alias davon) wird als Wert weitergereicht: als Funktionsargument (`renderRow(t)`), als JSX-Attribut (`<Child t={t} />`), als Objekt-Property (`{ t }`, `{ translate: t }`), als Array-Element oder als Rückgabewert |
 | `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
 | `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
@@ -64,7 +65,7 @@ Der Bericht trägt einen `status`:
 | `NO_SOURCE_FILES` | `not-run` | unter den Roots liegt keine Quelldatei |
 | `NO_REFERENCES_FOUND` | `not-run` | die gescannten Dateien nennen keinen Key und enthalten keine dynamische Key-Stelle, während der Katalog nicht leer ist, was meist heißt, dass die Roots deinen Code verfehlen |
 
-Kenn die Grenzen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert. Wird `t` als Funktionsargument oder Komponenten-Prop weitergereicht, verfolgt der Scan das nicht, ein nur über einen solchen Aufruf genannter Key kann also auch in einem `complete`-Bericht als ungenutzt erscheinen.
+Kenn die Grenzen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert. Wo immer `t` den Blick der Datei verlässt (als Argument, Prop, Property oder Rückgabewert weitergereicht), kann der Scan dem empfangenden Code nicht folgen, der Bericht ist dann `unreliable` mit `translate-function-escapes` statt `complete`. `t` aus `useTranslation()` zu destrukturieren und die oben genannten Aliase lassen einen Bericht `complete`.
 
 Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
 

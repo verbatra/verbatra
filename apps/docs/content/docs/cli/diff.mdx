@@ -56,6 +56,7 @@ The report carries a `status`:
 | `dynamic-key-prefix` | `unreliable` | a `keyPrefix` or `getFixedT` prefix that is not a static string |
 | `trans-without-key` | `unreliable` | a `Trans` element without a static `i18nKey` |
 | `aliased-translate-function` | `unreliable` | `t` assigned to anything but a plain variable, such as `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | `t` (or an alias of it) passed on as a value: a call argument (`renderRow(t)`), a JSX attribute (`<Child t={t} />`), an object property (`{ t }`, `{ translate: t }`), an array element, or a return value |
 | `template-files-not-scanned` | `unreliable` | `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid`, or `.mdx` files under the roots (the first 20 are listed, all are counted) |
 | `incomplete-scan` | `unreliable` | a file that is too large, unreadable, or not readable to its end, or a directory that cannot be listed |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | no `extract` block |
@@ -64,7 +65,7 @@ The report carries a `status`:
 | `NO_SOURCE_FILES` | `not-run` | there is no source file under the roots |
 | `NO_REFERENCES_FOUND` | `not-run` | the scanned files name no key and hold no dynamic key site while the catalog is not empty, which usually means the roots miss your code |
 
-Know the limits. A key prefix applies to every key in the file that declares it. Passing `t` on as a function argument or a component prop is not followed, so a key named only through such a call can still show up as unused in a `complete` report.
+Know the limits. A key prefix applies to every key in the file that declares it. Wherever `t` leaves the file's view (passed on as an argument, a prop, a property, or a return value), the scan cannot follow the code that receives it, so the report is `unreliable` with `translate-function-escapes` instead of `complete`. Destructuring `t` from `useTranslation()` and the aliases listed above keep a report `complete`.
 
 Each listed key shows its decoded spelling (`Welcome. Enjoy`, and a gettext `msgctxt` entry as `menu|Open`); `--json` also carries the `catalogKey` as the adapter spells it (`Welcome\. Enjoy`).
 

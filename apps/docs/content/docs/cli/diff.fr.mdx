@@ -56,6 +56,7 @@ Le rapport porte un `status` :
 | `dynamic-key-prefix` | `unreliable` | un préfixe `keyPrefix` ou `getFixedT` qui n'est pas une chaîne statique |
 | `trans-without-key` | `unreliable` | un élément `Trans` sans `i18nKey` statique |
 | `aliased-translate-function` | `unreliable` | `t` affectée à autre chose qu'une simple variable, comme `this.tr = t` |
+| `translate-function-escapes` | `unreliable` | `t` (ou un alias) transmise comme valeur : argument d'appel (`renderRow(t)`), attribut JSX (`<Child t={t} />`), propriété d'objet (`{ t }`, `{ translate: t }`), élément de tableau ou valeur de retour |
 | `template-files-not-scanned` | `unreliable` | des fichiers `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` ou `.mdx` sous les racines (les 20 premiers sont listés, tous sont comptés) |
 | `incomplete-scan` | `unreliable` | un fichier trop volumineux, illisible ou impossible à lire jusqu'au bout, ou un dossier impossible à lister |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | aucun bloc `extract` |
@@ -64,7 +65,7 @@ Le rapport porte un `status` :
 | `NO_SOURCE_FILES` | `not-run` | aucun fichier source sous les racines |
 | `NO_REFERENCES_FOUND` | `not-run` | les fichiers analysés ne nomment aucune clé et ne contiennent aucun appel à clé dynamique alors que le catalogue n'est pas vide, ce qui signifie en général que les racines ne couvrent pas ton code |
 
-Connais les limites. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare. Passer `t` en argument de fonction ou en prop de composant n'est pas suivi, donc une clé nommée uniquement via un tel appel peut apparaître comme inutilisée même dans un rapport `complete`.
+Connais les limites. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare. Dès que `t` quitte la vue du fichier (transmise en argument, en prop, en propriété ou en valeur de retour), l'analyse ne peut pas suivre le code qui la reçoit, donc le rapport est `unreliable` avec `translate-function-escapes` au lieu de `complete`. Déstructurer `t` depuis `useTranslation()` et les alias listés plus haut gardent un rapport `complete`.
 
 Chaque clé listée affiche sa forme décodée (`Welcome. Enjoy`, et une entrée gettext avec `msgctxt` sous la forme `menu|Open`) ; `--json` porte aussi le `catalogKey` tel que l'adaptateur l'écrit (`Welcome\. Enjoy`).
 
