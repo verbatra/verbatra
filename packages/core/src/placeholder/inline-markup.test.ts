@@ -242,7 +242,7 @@ describe("compareInlineMarkup: numeric rich-text tags", () => {
 });
 
 describe("compareInlineMarkup: a source whose own markup is not well formed", () => {
-  it("stays silent, because the source is not treating its brackets as markup", () => {
+  it("stays silent for an unclosed bracketed word, which is set aside rather than compared", () => {
     expect(compareInlineMarkup("<b>Bold", "Fett")).toEqual({
       matches: true,
       missing: [],
@@ -251,12 +251,12 @@ describe("compareInlineMarkup: a source whose own markup is not well formed", ()
     });
   });
 
-  it("stays silent for prose whose comparison reads as an unclosed tag with attributes", () => {
-    expect(compareInlineMarkup("a<b and c>d", "voellig anders").matches).toBe(true);
+  it("refuses dropping prose that an HTML parser reads as an unclosed tag with attributes", () => {
+    expect(compareInlineMarkup("a<b and c>d", "voellig anders").matches).toBe(false);
   });
 
-  it("stays silent for a mis-nested source", () => {
-    expect(compareInlineMarkup("<b>a<i>b</b></i>", "voellig anders").matches).toBe(true);
+  it("refuses dropping the tags of a mis-nested source", () => {
+    expect(compareInlineMarkup("<b>a<i>b</b></i>", "voellig anders").matches).toBe(false);
   });
 });
 

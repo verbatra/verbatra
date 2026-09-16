@@ -169,17 +169,17 @@ function tokensOf(tags: readonly InlineTag[]): readonly string[] {
   return tags.map((tag) => tag.token);
 }
 
-function compareScanned(
-  source: SplitTags,
-  translated: SplitTags,
-  sourceStructure: TagStructure,
-): InlineMarkupComparison {
+function compareScanned(source: SplitTags, translated: SplitTags): InlineMarkupComparison {
   const sourceCounts = countTokens(tokensOf([...source.tags, ...source.words]));
   const translatedCounts = countTokens(tokensOf([...translated.tags, ...translated.words]));
   const missing = multisetExcess(sourceCounts, translatedCounts);
   const extra = multisetExcess(translatedCounts, sourceCounts);
   if (missing.length > 0 || extra.length > 0) {
     return { matches: false, missing, extra, malformed: false };
+  }
+  const sourceStructure = structureOf(source.tags);
+  if (!sourceStructure.wellFormed) {
+    return MATCHED;
   }
   const translatedStructure = structureOf(translated.tags);
   if (!translatedStructure.wellFormed) {
@@ -276,11 +276,7 @@ function compareTags(source: WithoutIgnored, translated: WithoutIgnored): Inline
   if (sourceSplit.tags.length === 0) {
     return compareAgainstUnmarkedSource(translatedSplit, sourceSplit.words);
   }
-  const sourceStructure = structureOf(sourceSplit.tags);
-  if (!sourceStructure.wellFormed) {
-    return MATCHED;
-  }
-  return compareScanned(sourceSplit, translatedSplit, sourceStructure);
+  return compareScanned(sourceSplit, translatedSplit);
 }
 
 function multisetDifference(
