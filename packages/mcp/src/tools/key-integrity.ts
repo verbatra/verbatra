@@ -71,8 +71,8 @@ async function checkKeyIntegrity(
 export const keyIntegrityTool = defineTool({
   name: "key.integrity",
   description:
-    "Report one key's placeholder and ICU drift against the lock-file baseline, per target " +
-    "locale. This only checks keys whose source text has changed since the baseline was last " +
+    "Report one key's placeholder, inline markup, and ICU drift against the lock-file baseline, " +
+    "per target locale. This only checks keys whose source text has changed since the baseline was last " +
     "recorded for them; it is not a general correctness check. A row is returned for every " +
     "locale in scope, but its entries array is empty when the key has no baseline entry yet or " +
     "its source text already matches the baseline: an empty entries array means the locale was " +
