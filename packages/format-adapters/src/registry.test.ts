@@ -104,7 +104,7 @@ describe("AdapterRegistry and third-party formats", () => {
 
     const result = registry.resolve("de.toml");
 
-    expect(result).toEqual({ status: "resolved", adapter: expect.anything() });
+    expect(result.status === "resolved" && result.adapter.format).toBe("custom:toml");
   });
 
   it("lists a third-party format among the ones it tried", () => {
@@ -271,5 +271,147 @@ describe("AdapterRegistry rejects a malformed third-party identifier", () => {
     const registry = new AdapterRegistry();
 
     expect(() => registry.register(fakeAdapter("i18next-json", true))).not.toThrow();
+  });
+});
+
+describe("AdapterRegistry refuses every shape of malformed third-party identifier", () => {
+  const malformed: ReadonlyArray<readonly [string, `custom:${string}`]> = [
+    ["an uppercase name", "custom:TOML"],
+    ["a mixed-case name", "custom:Toml"],
+    ["an uppercase letter mid-name", "custom:myToml"],
+    ["an interior space", "custom:my toml"],
+    ["a leading space", "custom: toml"],
+    ["a trailing space", "custom:toml "],
+    ["a name that is only a space", "custom: "],
+    ["an empty name", "custom:"],
+    ["a trailing hyphen", "custom:toml-"],
+    ["a leading hyphen", "custom:-toml"],
+    ["a doubled hyphen", "custom:to--ml"],
+    ["a trailing colon", "custom:toml:"],
+    ["a doubled prefix", "custom:custom:toml"],
+    ["a doubled prefix with an empty tail", "custom:custom:"],
+    ["an underscore", "custom:my_toml"],
+    ["a dot", "custom:my.toml"],
+    ["a slash", "custom:my/toml"],
+    ["a scoped npm name", "custom:@acme/toml"],
+    ["a newline", "custom:toml\n"],
+    ["a tab", "custom:toml\t"],
+    ["a non-ascii letter", "custom:tomlé"],
+  ];
+
+  it.each(malformed)("refuses %s", (_label, format) => {
+    expect(() => new AdapterRegistry().register(customAdapter(format, true))).toThrow(AdapterError);
+  });
+
+  it.each(malformed)(
+    "refuses %s with INVALID_FORMAT_ID naming the identifier",
+    (_label, format) => {
+      try {
+        new AdapterRegistry().register(customAdapter(format, true));
+        expect.unreachable("the malformed identifier should have been refused");
+      } catch (error) {
+        expect((error as AdapterError).code).toBe("INVALID_FORMAT_ID");
+        expect((error as AdapterError).message).toContain(format);
+      }
+    },
+  );
+
+  it.each(malformed)(
+    "registers nothing for %s, so detection never reaches it",
+    (_label, format) => {
+      const registry = new AdapterRegistry();
+
+      expect(() => registry.register(customAdapter(format, true))).toThrow(AdapterError);
+
+      expect(registry.resolve("de.toml")).toEqual({
+        status: "no-match",
+        filePath: "de.toml",
+        triedFormats: [],
+      });
+    },
+  );
+
+  it.each(malformed)(
+    "never registers %s unwrapped, so nothing can bypass attribution",
+    (_label, format) => {
+      const registry = new AdapterRegistry();
+
+      expect(() => registry.register(raisingAdapter(format))).toThrow(AdapterError);
+
+      expect(registry.resolve("de.toml", { format }).status).toBe("no-match");
+    },
+  );
+});
+
+describe("AdapterRegistry accepts the well-formed identifiers the pattern allows", () => {
+  const wellFormed: ReadonlyArray<`custom:${string}`> = [
+    "custom:toml",
+    "custom:my-toml",
+    "custom:a-b-c",
+    "custom:toml2",
+    "custom:123",
+    "custom:a",
+    "custom:custom",
+  ];
+
+  it.each(wellFormed)("registers %s", (format) => {
+    const registry = new AdapterRegistry();
+
+    expect(() => registry.register(customAdapter(format, true))).not.toThrow();
+    expect(registry.resolve("de.toml", { format }).status).toBe("resolved");
+  });
+
+  it.each(wellFormed)("wraps %s, so its failures are attributed", (format) => {
+    const registry = new AdapterRegistry().register(raisingAdapter(format));
+    const result = registry.resolve("de.toml", { format });
+
+    expect(result.status).toBe("resolved");
+    if (result.status !== "resolved") {
+      return;
+    }
+    try {
+      result.adapter.extractPlaceholders("hi");
+      expect.unreachable("the third-party adapter should have failed");
+    } catch (error) {
+      expect((error as AdapterError).code).toBe("ADAPTER_FAILED");
+      expect((error as AdapterError).message).toContain(format);
+    }
+  });
+});
+
+describe("AdapterRegistry and a valid identifier that collides", () => {
+  it("refuses a second, differently-built adapter claiming the same custom identifier", () => {
+    const registry = new AdapterRegistry().register(customAdapter("custom:toml", false));
+
+    expect(() => registry.register(raisingAdapter("custom:toml"))).toThrow(AdapterError);
+  });
+
+  it("keeps the first adapter's behaviour after the collision is refused", () => {
+    const registry = new AdapterRegistry().register(customAdapter("custom:toml", false));
+
+    expect(() => registry.register(raisingAdapter("custom:toml"))).toThrow(AdapterError);
+    const result = registry.resolve("de.toml", { format: "custom:toml" });
+
+    expect(result.status === "resolved" && result.adapter.extractPlaceholders("hi")).toEqual([]);
+  });
+
+  it("does not grow the tried-format list when a collision is refused", () => {
+    const registry = new AdapterRegistry().register(customAdapter("custom:toml", false));
+
+    expect(() => registry.register(customAdapter("custom:toml", false))).toThrow(AdapterError);
+
+    expect(registry.resolve("de.toml")).toEqual({
+      status: "no-match",
+      filePath: "de.toml",
+      triedFormats: ["custom:toml"],
+    });
+  });
+
+  it("refuses a collision that arrives only after other registrations", () => {
+    const registry = new AdapterRegistry()
+      .register(customAdapter("custom:toml", false))
+      .register(customAdapter("custom:hcl", false));
+
+    expect(() => registry.register(customAdapter("custom:toml", false))).toThrow(AdapterError);
   });
 });
