@@ -12,6 +12,7 @@ export {
 } from "./flat/flat-file-adapter.js";
 export { type AdapterFs, type BoundedReadOutcome, nodeAdapterFs } from "./fs-port.js";
 export { createGettextAdapter } from "./gettext/gettext-adapter.js";
+export { gettextKeyContext } from "./gettext/key-encoding.js";
 export { createI18nextJsonAdapter } from "./i18next/i18next-adapter.js";
 export {
   type I18nextPluralCategory,

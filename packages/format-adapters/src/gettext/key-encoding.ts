@@ -97,3 +97,7 @@ export function decomposeKey(key: string): DecomposedKey {
     pluralIndex,
   };
 }
+
+export function gettextKeyContext(key: string): string | undefined {
+  return decomposeKey(key).msgctxt;
+}

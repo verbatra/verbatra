@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
-import { composeKey, decomposeKey } from "./key-encoding.js";
+import { composeKey, decomposeKey, gettextKeyContext } from "./key-encoding.js";
 
 describe("decomposeKey: malformed input", () => {
   it("rejects a key whose unescaped bracket suffix is not a plain digit index", () => {
@@ -79,5 +79,16 @@ describe("composeKey and decomposeKey round-trip", () => {
 
   it("rejects a msgctxt containing the reserved private-use separator", () => {
     expect(() => composeKey("badctx", "value")).toThrow(AdapterError);
+  });
+});
+
+describe("gettextKeyContext", () => {
+  it("returns the msgctxt a key carries, including on a plural form", () => {
+    expect(gettextKeyContext(composeKey("menu", "Open"))).toBe("menu");
+    expect(gettextKeyContext(composeKey("door", "item", 1))).toBe("door");
+  });
+
+  it("returns undefined for a key without a msgctxt", () => {
+    expect(gettextKeyContext(composeKey(undefined, "Open"))).toBeUndefined();
   });
 });
