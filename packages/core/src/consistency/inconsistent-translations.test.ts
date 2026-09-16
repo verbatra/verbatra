@@ -384,17 +384,26 @@ describe("findInconsistentTranslations", () => {
     expect(groups[0]).not.toHaveProperty("pluralForm");
   });
 
-  it("reads each entry and context once", () => {
+  it("reads each entry, context, and plural form once", () => {
     const measure = (size: number) => {
       const sourceEntries = new CountingMap<string, TranslationEntry>();
       const targetEntries = new CountingMap<string, TranslationEntry>();
+      const pluralKeys: string[] = [];
       for (let index = 0; index < size; index += 1) {
         const key = `key.${index}`;
+        const pluralKey = `items.${index}_other`;
+        pluralKeys.push(pluralKey);
         sourceEntries.set(key, entry({ key, value: "Save" }));
         targetEntries.set(key, entry({ key, value: index % 2 === 0 ? "Speichern" : "Sichern" }));
+        sourceEntries.set(pluralKey, entry({ key: pluralKey, value: "Items", isPlural: true }));
+        targetEntries.set(
+          pluralKey,
+          entry({ key: pluralKey, value: index % 2 === 0 ? "Elemente" : "Einträge" }),
+        );
       }
       let contextCalls = 0;
-      const [group] = findInconsistentTranslations(
+      const pluralFormAsked: string[] = [];
+      const groups = findInconsistentTranslations(
         { ...resource("en", []), entries: sourceEntries },
         { ...resource("de", []), entries: targetEntries },
         [...sourceEntries.keys()],
@@ -403,15 +412,30 @@ describe("findInconsistentTranslations", () => {
             contextCalls += 1;
             return undefined;
           },
+          pluralFormOf: (key) => {
+            pluralFormAsked.push(key);
+            return suffixPluralForm(key);
+          },
         },
       );
-      expect(group?.translations.map((translation) => translation.keys.length)).toEqual([
-        size / 2,
-        size / 2,
+      expect(
+        groups.map((group) => ({
+          source: group.source,
+          pluralForm: group.pluralForm,
+          sizes: group.translations.map((translation) => translation.keys.length),
+        })),
+      ).toEqual([
+        { source: "Items", pluralForm: "other", sizes: [size / 2, size / 2] },
+        { source: "Save", pluralForm: undefined, sizes: [size / 2, size / 2] },
       ]);
-      return { reads: sourceEntries.reads + targetEntries.reads, contextCalls };
+      expect(pluralFormAsked).toEqual(pluralKeys);
+      return {
+        reads: sourceEntries.reads + targetEntries.reads,
+        contextCalls,
+        pluralFormCalls: pluralFormAsked.length,
+      };
     };
-    expect(measure(1_000)).toEqual({ reads: 2_000, contextCalls: 1_000 });
-    expect(measure(4_000)).toEqual({ reads: 8_000, contextCalls: 4_000 });
+    expect(measure(1_000)).toEqual({ reads: 4_000, contextCalls: 2_000, pluralFormCalls: 1_000 });
+    expect(measure(4_000)).toEqual({ reads: 16_000, contextCalls: 8_000, pluralFormCalls: 4_000 });
   });
 });
