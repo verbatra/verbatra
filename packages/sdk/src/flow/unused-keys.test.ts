@@ -149,7 +149,7 @@ describe("findUnusedKeys on i18next key prefixes", () => {
     expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
   });
 
-  it("references a key through a keyPrefix property on any object literal", async () => {
+  it("references a key through a keyPrefix in an options object, but distrusts options passed by name", async () => {
     const report = await unusedIn(
       { nav: { home: "Home" }, stale: "Stale" },
       {
@@ -158,7 +158,7 @@ describe("findUnusedKeys on i18next key prefixes", () => {
       },
     );
 
-    expect(report.status).toBe("complete");
+    expect(report.status).toBe("unreliable");
     expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
   });
 
@@ -174,6 +174,11 @@ describe("findUnusedKeys on i18next key prefixes", () => {
     expect(report.status).toBe("unreliable");
     expect(report.unreliableBecause).toEqual([
       { reason: "dynamic-key-prefix", count: 1, sites: [{ file: "src/nav.tsx", line: 1 }] },
+      {
+        reason: "unrecognised-translate-source",
+        count: 1,
+        sites: [{ file: "src/nav.tsx", line: 1 }],
+      },
     ]);
   });
 
@@ -224,30 +229,275 @@ describe("findUnusedKeys on aliases of the translate function", () => {
   });
 });
 
-describe("findUnusedKeys when the translate function escapes the scan", () => {
+describe("findUnusedKeys only trusts translate sources it recognises", () => {
   it.each([
-    ["a JSX attribute", "src/a.tsx", 'export const A = () => <Child t={t} />;\nt("b");'],
-    ["a call argument", "src/a.ts", 'renderRow(t);\nt("b");'],
-    ["a returned object", "src/a.ts", 'export function api() {\n  t("b");\n  return { t };\n}'],
-    ["an object property value", "src/a.ts", 'const api = { translate: t };\nt("b");'],
-  ])("marks the result unreliable when t is passed on as %s", async (_name, file, content) => {
-    const report = await unusedIn({ a: "A", b: "B" }, { [file]: content });
-
-    expect(report.status).toBe("unreliable");
-    expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([
+    [
+      "P02",
+      "a wrapper hook returning useTranslation",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/use-nav.ts":
+          'export function useNav() {\n  return useTranslation("c", { keyPrefix: "nav" });\n}',
+        "src/page.tsx": 'const { t } = useNav();\nt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "P03",
+      "export default of a fixed t",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/nav-t.ts": 'const t = i18n.getFixedT(null, "c", "nav");\nexport default t;',
+        "src/page.ts": 'import tr from "./nav-t";\ntr("home");\nt("other");',
+      },
       "translate-function-escapes",
-    ]);
-    expect(report.unreliableBecause[0]?.sites[0]?.file).toBe(file);
+    ],
+    [
+      "P41",
+      "export { t as default } of a fixed t",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/nav-t.ts": 'const t = i18n.getFixedT(null, "c", "nav");\nexport { t as default };',
+        "src/page.ts": 'import tr from "./nav-t";\ntr("home");\nt("other");',
+      },
+      "translate-function-escapes",
+    ],
+    [
+      "P04",
+      "an exported getFixedT const",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/nav-t.ts": 'export const t = i18n.getFixedT(null, "c", "nav");',
+        "src/page.ts": 'import { t } from "./nav-t";\nt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q03",
+      "an exported getFixedT const imported under another name",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/nav-t.ts": 'export const nt = i18n.getFixedT(null, "c", "nav");',
+        "src/page.ts": 'import { nt } from "./nav-t";\nnt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "P30",
+      "an exported hook returning useTranslation().t",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/use-nav-t.ts":
+          'export const useNavT = () => useTranslation("c", { keyPrefix: "nav" }).t;',
+        "src/page.tsx": 'const nt = useNavT();\nnt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q14",
+      "a getFixedT result inside an exported object",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/tt.ts": 'export const tt = { nav: i18n.getFixedT(null, null, "nav") };',
+        "src/page.ts": 'import { tt } from "./tt";\ntt.nav("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "P21",
+      "useTranslation options passed as an identifier",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/opts.ts": 'export const opts = { keyPrefix: "nav" };',
+        "src/page.tsx":
+          'import { opts } from "./opts";\nconst { t } = useTranslation("c", opts);\nt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q10",
+      "useTranslation options built from a spread",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/opts.ts": 'export const base = { keyPrefix: "nav" };',
+        "src/page.tsx":
+          'import { base } from "./opts";\nconst { t } = useTranslation("c", { ...base });\nt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q11",
+      "useTranslation options returned by a call",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/opts.ts": 'export const makeOpts = () => ({ keyPrefix: "nav" });',
+        "src/page.tsx":
+          'import { makeOpts } from "./opts";\nconst { t } = useTranslation("c", makeOpts());\nt("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q01",
+      "a t member read on the useTranslation result",
+      { nav: { home: "H" }, other: "O" },
+      {
+        "src/page.tsx":
+          'const t2 = useTranslation("c", { keyPrefix: "nav" }).t;\nt2("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+    [
+      "Q02",
+      "t as a ternary operand",
+      { home: "H", other: "O" },
+      {
+        "src/page.tsx":
+          'const { t } = useTranslation();\nconst tr = cond ? t : other;\ntr("home");\nt("other");',
+      },
+      "translate-function-escapes",
+    ],
+    [
+      "Q04",
+      "an exported bound i18next.t",
+      { home: "H", other: "O" },
+      {
+        "src/tr.ts": "export default i18next.t.bind(i18next);",
+        "src/page.ts": 'import tr from "./tr";\ntr("home");\nt("other");',
+      },
+      "unrecognised-translate-source",
+    ],
+  ] as const)(
+    "%s: marks the report unreliable for %s",
+    async (_id, _name, catalog, files, reason) => {
+      const report = await unusedIn(catalog, files);
+
+      expect(report.status).toBe("unreliable");
+      expect(report.unreliableBecause.map((entry) => entry.reason)).toEqual([reason]);
+    },
+  );
+
+  it("Q05: follows t imported from i18next under another name, staying complete", async () => {
+    const report = await unusedIn(
+      { home: "H", other: "O" },
+      {
+        "src/page.ts": 'import { t as translate } from "i18next";\ntranslate("home");\nt("other");',
+      },
+    );
+
+    expect(report).toMatchObject({ status: "complete", unused: [] });
   });
 
   it.each([
-    ["a direct call", 't("a");\nt("b");'],
-    ["a destructured hook result", 'const { t } = useTranslation();\nt("a");\nt("b");'],
-    ["a renamed hook result", 'const { t: tr } = useTranslation();\ntr("a");\ntr("b");'],
-  ])("stays complete for %s", async (_name, content) => {
-    const report = await unusedIn({ a: "A", b: "B" }, { "src/a.tsx": content });
+    [
+      "P01",
+      "a destructured useTranslation t",
+      { home: "H", stale: "S" },
+      {
+        "src/page.tsx":
+          'import { useTranslation } from "react-i18next";\nexport function Page() {\n  const { t } = useTranslation();\n  return t("home");\n}',
+      },
+    ],
+    [
+      "P06",
+      "a local getFixedT const with a static prefix",
+      { nav: { home: "H" }, stale: "S" },
+      { "src/page.ts": 'const nt = i18n.getFixedT("en", "c", "nav");\nnt("home");' },
+    ],
+    [
+      "P07",
+      "a static keyPrefix option",
+      { nav: { home: "H" }, stale: "S" },
+      { "src/page.tsx": 'const { t } = useTranslation("c", { keyPrefix: "nav" });\nt("home");' },
+    ],
+    [
+      "P09",
+      "withTranslation with props.t and this.props.t",
+      { home: "H", away: "A", stale: "S" },
+      {
+        "src/page.tsx":
+          'import { withTranslation } from "react-i18next";\nfunction Page(props) {\n  return props.t("home");\n}\nclass Other extends Component {\n  render() {\n    return this.props.t("away");\n  }\n}\nexport default withTranslation("c")(Page);',
+      },
+    ],
+    [
+      "P10",
+      "a Translation render prop",
+      { nav: { home: "H" }, stale: "S" },
+      {
+        "src/page.tsx":
+          'import { Translation } from "react-i18next";\nexport const A = () => <Translation keyPrefix="nav">{(t) => <p>{t("home")}</p>}</Translation>;',
+      },
+    ],
+    [
+      "P11",
+      "renamed t and a local bound i18n.t",
+      { home: "H", away: "A", stale: "S" },
+      {
+        "src/page.tsx":
+          'const { t: tr, i18n } = useTranslation();\ntr("home");\nconst bound = i18n.t.bind(i18n);\nbound("away");',
+      },
+    ],
+    [
+      "P14",
+      "t handed to Trans through its t attribute",
+      { nav: { home: "H" }, stale: "S" },
+      {
+        "src/page.tsx":
+          'const { t } = useTranslation();\nexport const A = () => <Trans t={t} i18nKey="nav.home" />;',
+      },
+    ],
+    [
+      "P26",
+      "a namespace-qualified i18next.t call",
+      { nav: { home: "H" }, stale: "S" },
+      { "src/page.ts": 'i18next.t("common:nav.home");' },
+    ],
+    [
+      "P28",
+      "natural-language i18n.t calls",
+      { "Loading...": "L", "Error: failed": "E", stale: "S" },
+      { "src/page.ts": 'i18n.t("Loading...");\ni18n.t("Error: failed");' },
+    ],
+    [
+      "Q09",
+      "t imported from i18next",
+      { home: "H", stale: "S" },
+      { "src/page.ts": 'import { t } from "i18next";\nt("home");' },
+    ],
+    [
+      "Q12",
+      "an array-destructured useTranslation",
+      { home: "H", stale: "S" },
+      { "src/page.tsx": 'const [translate] = useTranslation();\ntranslate("home");' },
+    ],
+    [
+      "Q13",
+      "a static namespace array",
+      { home: "H", stale: "S" },
+      { "src/page.tsx": 'const { t } = useTranslation(["a", "b"]);\nt("home");' },
+    ],
+  ] as const)("%s: stays complete for %s", async (_id, _name, catalog, files) => {
+    const report = await unusedIn(catalog, files);
 
-    expect(report).toMatchObject({ status: "complete", unused: [] });
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
+  });
+
+  it("marks the report unreliable when a bound t escapes, listing the site", async () => {
+    const report = await unusedIn(
+      { a: "A", b: "B" },
+      { "src/a.tsx": 'const { t } = useTranslation();\nt("a");\nrenderRow(t);\nt("b");' },
+    );
+
+    expect(report.unreliableBecause).toEqual([
+      { reason: "translate-function-escapes", count: 1, sites: [{ file: "src/a.tsx", line: 3 }] },
+    ]);
+  });
+
+  it("references every element of a static key array", async () => {
+    const report = await unusedIn({ a: "A", b: "B", stale: "S" }, { "src/a.ts": 't(["a", "b"]);' });
+
+    expect(report.status).toBe("complete");
+    expect(report.unused.map((entry) => entry.key)).toEqual(["stale"]);
   });
 });
 

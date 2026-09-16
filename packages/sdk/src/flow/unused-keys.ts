@@ -40,9 +40,12 @@ export type UnusedKeysNotRunReason =
  * - `trans-without-key`: a `Trans` element carries no static `i18nKey`.
  * - `aliased-translate-function`: the translate function is assigned somewhere its calls cannot be
  *   followed, such as an object property.
- * - `translate-function-escapes`: the translate function is passed on as a value (a call argument,
- *   a JSX attribute, an object property, an array element, or a return value), so code the scan
- *   cannot follow may call it with any key.
+ * - `translate-function-escapes`: a translate function bound from a recognised source appears
+ *   somewhere other than a direct call, its own binding, a local alias, or the `t` attribute of a
+ *   `Trans` or `Translation` element, so code the scan cannot follow may call it with any key.
+ * - `unrecognised-translate-source`: `useTranslation`, `withTranslation`, `getFixedT`, a
+ *   `Translation` render prop, a member `t`, or a `t` import is used in a shape the scan does not
+ *   recognise, so the prefix and keys of the function it yields are unknown.
  * - `template-files-not-scanned`: the roots hold template files (`.vue`, `.svelte`, `.html`, and
  *   similar) the scan does not read.
  * - `incomplete-scan`: a file or directory could not be read to its end.
@@ -53,6 +56,7 @@ export type UnusedKeysUnreliableReason =
   | "trans-without-key"
   | "aliased-translate-function"
   | "translate-function-escapes"
+  | "unrecognised-translate-source"
   | "template-files-not-scanned"
   | "incomplete-scan";
 
@@ -321,6 +325,7 @@ function unreliableBecause(scan: ProjectScan): readonly UnusedKeysUnreliability[
     ...unresolvedOf(scan, "trans-without-key"),
     ...unresolvedOf(scan, "aliased-translate-function"),
     ...unresolvedOf(scan, "translate-function-escapes"),
+    ...unresolvedOf(scan, "unrecognised-translate-source"),
     ...unreliability(
       "template-files-not-scanned",
       scan.usage.templateFiles.map((file) => ({ file })),

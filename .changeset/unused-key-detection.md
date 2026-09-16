@@ -19,19 +19,27 @@ The scan models the i18next runtime. A key counts as referenced when a `t` call 
 a call through a `t` alias (`const { t: translate } = useTranslation()`, `const tr = i18n.t`), a
 `Trans` element's static `i18nKey`, a namespace-qualified key (`common:nav.home`) or a
 natural-language key (`Loading...`), a key under a static `keyPrefix` option or `getFixedT` prefix,
-and a plural or context variant of any of those. Keys are compared in the catalog format's own
-encoding, so a flat dotted JSON key, a gettext plural or `msgctxt` entry, and an Android plural all
-match the key your code names.
+every key of a static key array (`t(["a", "b"])`), and a plural or context variant of any of those.
+Keys are compared in the catalog format's own encoding, so a flat dotted JSON key, a gettext plural
+or `msgctxt` entry, and an Android plural all match the key your code names.
 
 The report is `complete` only when the scan can bound every key the source reaches:
 
 - A template-literal key with a static head (`` t(`nav.${page}`) ``) lists the keys under that head
   as `possiblyDynamic`, apart from `unused`.
 - A fully dynamic key, a non-literal key prefix, a `Trans` element without a static `i18nKey`, `t`
-  assigned to something other than a plain variable, `t` passed on as a value (a call argument, a
-  JSX attribute, an object property, an array element, or a return value), template files the scan
-  does not read (`.vue`, `.svelte`, `.html`, and similar), or a file it could not read make the
-  report `unreliable`, with each reason and its sites.
+  assigned to something other than a plain variable, template files the scan does not read
+  (`.vue`, `.svelte`, `.html`, and similar), or a file it could not read make the report
+  `unreliable`, with each reason and its sites.
+- The scan only trusts translate functions it sees being created in a recognised shape: a local
+  `const { t } = useTranslation(...)` with static arguments, a local `getFixedT(...)` with static
+  arguments, a direct `i18n.t(...)` call or local `i18n.t` alias, a `Translation` render prop,
+  `withTranslation("ns")(Component)`, or `import { t } from "i18next"`. Any other use of those
+  sources (a wrapper hook, options passed by name, an exported `getFixedT` result) is reported as
+  `unrecognised-translate-source`, and a translate function used anywhere but a direct call, its
+  own binding, a local alias, the `t={t}` attribute of `Trans` or `Translation`, or a React hook
+  dependency array (for example passed as an argument, exported, or used in a ternary) is reported
+  as `translate-function-escapes`. Both make the report `unreliable`.
 - The report is `not-run`, with a reason code and no key list, when there is no `extract` block, the
   format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json` (runtimes the scan does not
   model), there is no source file under the roots, or the scanned files reference no key at all.
