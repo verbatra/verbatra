@@ -393,19 +393,19 @@ Nada del archivo se da por bueno. El XML se analiza con el endurecimiento del pa
 intercambio, de modo que una declaración de entidad, un subconjunto DTD interno, un archivo
 demasiado grande o uno mal formado se rechaza con un error estructurado `SOURCE_INVALID` en lugar de
 analizarse. Cuando el problema tiene un lugar en el archivo, el mensaje indica la línea, la columna
-y, dentro de una unidad de traducción, su ordinal contando desde 1, y el `cause` del error lleva el
-mismo lugar como `location` estructurada (del tipo `TmxErrorLocation`). Una etiqueta de idioma se
-resuelve a un locale configurado por una regla explícita: coincidencia exacta tras pasar a
-minúsculas y convertir guiones bajos en guiones; si no, el único locale configurado que la etiqueta
-amplía o que la amplía, subetiqueta a subetiqueta, de modo que dos etiquetas con subetiquetas de
-escritura o de región distintas (`zh-CN` y `zh-TW`) nunca coinciden; y una etiqueta que varios
-locales podrían reclamar se informa en vez de adivinarse. Dos segmentos de destino de una unidad que
-resuelven al mismo locale nunca dejan ganar al último: una etiqueta exacta supera a una coincidencia
-por prefijo, y dos segmentos del mismo rango con valores distintos no guardan nada para ese locale y
-se cuentan como `conflicting`. Cada traducción candidata pasa después por la misma puerta de
-marcadores, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro
-rellenada, comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la
-lee.
+y, dentro de una unidad de traducción, su ordinal contando desde 1, y `tmxErrorLocation(error)`
+devuelve el mismo lugar como `TmxErrorLocation`, o `undefined` para cualquier otro error, así que
+nunca tienes que hacer cast del error ni de su `cause`. Una etiqueta de idioma se resuelve a un
+locale configurado por una regla explícita: coincidencia exacta tras pasar a minúsculas y convertir
+guiones bajos en guiones; si no, el único locale configurado que la etiqueta amplía o que la amplía,
+subetiqueta a subetiqueta, de modo que dos etiquetas con subetiquetas de escritura o de región
+distintas (`zh-CN` y `zh-TW`) nunca coinciden; y una etiqueta que varios locales podrían reclamar se
+informa en vez de adivinarse. Dos segmentos de destino de una unidad que resuelven al mismo locale
+nunca dejan ganar al último: una etiqueta exacta supera a una coincidencia por prefijo, y dos
+segmentos del mismo rango con valores distintos no guardan nada para ese locale y se cuentan como
+`conflicting`. Cada traducción candidata pasa después por la misma puerta de marcadores, ICU,
+desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro rellenada,
+comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la lee.
 
 Cuando una unidad importada contradice una traducción que la memoria ya tiene, gana la memoria salvo
 que se pase `overwrite`. Las unidades se guardan bajo la huella de configuración actual, la misma

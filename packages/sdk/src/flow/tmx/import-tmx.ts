@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
 import {
   DEFAULT_TMX_LIMITS,
+  ExchangeError,
   type ExchangeErrorLocation,
   readTmx,
   type TmxUnit,
@@ -34,11 +35,36 @@ export type TmxRejectionReason = IntegrityGateReason | "sourceBlank";
 
 /**
  * Where in a TMX file a `SOURCE_INVALID` refusal from {@link importTmx} happened: the 1-based `line`
- * and `column`, and the 1-based `unit` ordinal when the problem sits inside a translation unit. It is
- * the `location` of the error carried as the thrown {@link SdkError}'s `cause`, and the same place is
- * named in the message.
+ * and `column`, and the 1-based `unit` ordinal when the problem sits inside a translation unit. Read
+ * it from a caught error with {@link tmxErrorLocation}; the same place is named in the message.
  */
 export type TmxErrorLocation = ExchangeErrorLocation;
+
+/**
+ * Reads where in a TMX file a refusal from {@link importTmx} happened, without casting the error or
+ * its `cause`.
+ *
+ * @param error - Whatever was caught from `importTmx`.
+ * @returns The {@link TmxErrorLocation} when `error` is an {@link SdkError} wrapping a TMX parse
+ * failure that has a place in the file; `undefined` for any other error, including a refusal with
+ * no place in the file such as a missing or oversized file.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await importTmx({ config, file: "legacy.tmx" });
+ * } catch (error) {
+ *   const at = tmxErrorLocation(error);
+ *   if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+ * }
+ * ```
+ */
+export function tmxErrorLocation(error: unknown): TmxErrorLocation | undefined {
+  if (!(error instanceof SdkError) || !(error.cause instanceof ExchangeError)) {
+    return undefined;
+  }
+  return error.cause.location;
+}
 
 /** How many units were refused, by reason. See {@link TmxRejectionReason}. */
 export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;

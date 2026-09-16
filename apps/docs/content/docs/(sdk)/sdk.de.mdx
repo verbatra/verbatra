@@ -404,18 +404,19 @@ Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung
 Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
 oder eine fehlerhafte Datei mit einem strukturierten `SOURCE_INVALID`-Fehler abgelehnt statt geparst
 wird. Hat das Problem einen Ort in der Datei, nennt die Meldung Zeile, Spalte und, innerhalb einer
-Übersetzungseinheit, deren Ordnungszahl ab 1, und der `cause` des Fehlers trägt denselben Ort als
-strukturierte `location` (Typ `TmxErrorLocation`). Ein Sprach-Tag wird nach einer ausdrücklichen
-Regel einer konfigurierten Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung
-von Unterstrichen zu Bindestrichen; sonst die einzige konfigurierte Locale, die das Tag Subtag für
-Subtag erweitert oder von ihm erweitert wird, sodass zwei Tags mit unterschiedlichen Schrift- oder
-Regions-Subtags (`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag, das mehrere Locales
-beanspruchen könnten, wird gemeldet statt geraten. Zwei Zielsegmente einer Einheit, die auf dieselbe
-Locale auflösen, lassen nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und
-zwei gleichrangige Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und
-werden als `conflicting` gezählt. Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter,
-ICU, Ausartung und Leere, dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon
-unterliegen, geprüft beim Eintritt in den Memory statt überlassen an den Lauf, der sie später liest.
+Übersetzungseinheit, deren Ordnungszahl ab 1, und `tmxErrorLocation(error)` liefert denselben Ort
+als `TmxErrorLocation`, bei jedem anderen Fehler `undefined`, sodass du weder den Fehler noch seinen
+`cause` casten musst. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten
+Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu
+Bindestrichen; sonst die einzige konfigurierte Locale, die das Tag Subtag für Subtag erweitert oder
+von ihm erweitert wird, sodass zwei Tags mit unterschiedlichen Schrift- oder Regions-Subtags
+(`zh-CN` und `zh-TW`) nie zusammenpassen; und ein Tag, das mehrere Locales beanspruchen könnten,
+wird gemeldet statt geraten. Zwei Zielsegmente einer Einheit, die auf dieselbe Locale auflösen,
+lassen nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
+Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und werden als `conflicting`
+gezählt. Jede Übersetzung durchläuft dann dasselbe Gate für Platzhalter, ICU, Ausartung und Leere,
+dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon unterliegen, geprüft beim
+Eintritt in den Memory statt überlassen an den Lauf, der sie später liest.
 
 Widerspricht eine importierte Einheit einer Übersetzung, die der Memory schon hat, gewinnt der
 Memory, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem aktuellen

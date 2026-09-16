@@ -217,6 +217,7 @@ export {
   type TmxLanguageReport,
   type TmxRejectionCounts,
   type TmxRejectionReason,
+  tmxErrorLocation,
 } from "./flow/tmx/import-tmx.js";
 export {
   resolveDryRun,

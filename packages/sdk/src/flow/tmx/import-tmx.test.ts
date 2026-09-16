@@ -16,7 +16,7 @@ import {
   readJsonFile,
   writeJsonFile,
 } from "../../test-support.js";
-import { importTmx } from "./import-tmx.js";
+import { importTmx, tmxErrorLocation } from "./import-tmx.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({
@@ -1113,5 +1113,66 @@ describe("importTmx reports an unusable file as a structured error", () => {
     expect(bucket(await memoryOf(dir), config, "de")[entryHash('Open <a title="">it')]).toBe(
       'Oeffne <a title="">es',
     );
+  });
+});
+
+describe("tmxErrorLocation reads where a refused TMX file went wrong", () => {
+  it("reads the line, column and unit from the error importTmx throws", async () => {
+    const dir = await project([]);
+    await writeFile(
+      join(dir, "memory.tmx"),
+      tmxDocument([
+        tu([
+          ["en", "Save"],
+          ["de", "Speichern"],
+        ]),
+        '    <tu>\n      <tuv xml:lang="en"><seg>Cancel</tuv>\n    </tu>',
+      ]),
+      "utf8",
+    );
+
+    const error = await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir }).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(tmxErrorLocation(error)).toEqual({ line: 10, column: 31, unit: 2 });
+  });
+
+  it("returns undefined for a refusal that has no place in the file", async () => {
+    const dir = await project([]);
+
+    const error = await importTmx({ config: cfg(), file: "absent.tmx", cwd: dir }).catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect(tmxErrorLocation(error)).toBeUndefined();
+  });
+
+  it("returns undefined when the wrapped interchange error carries no location", () => {
+    const error = new SdkError("SOURCE_INVALID", "refused", {
+      cause: new ExchangeError("TMX_INVALID", "too large"),
+    });
+
+    expect(tmxErrorLocation(error)).toBeUndefined();
+  });
+
+  it("does not read a location off an error that is not an SdkError", () => {
+    const location = { line: 1, column: 2, unit: 3 };
+    const lookalike = Object.assign(new Error("refused"), {
+      cause: new ExchangeError("TMX_INVALID", "bad", location),
+    });
+
+    expect(tmxErrorLocation(lookalike)).toBeUndefined();
+    expect(tmxErrorLocation({ cause: { location } })).toBeUndefined();
+    expect(tmxErrorLocation(undefined)).toBeUndefined();
+  });
+
+  it("does not read a location off a cause that is not an interchange error", () => {
+    const error = new SdkError("SOURCE_INVALID", "refused", {
+      cause: { location: { line: 1, column: 2 } },
+    });
+
+    expect(tmxErrorLocation(error)).toBeUndefined();
   });
 });

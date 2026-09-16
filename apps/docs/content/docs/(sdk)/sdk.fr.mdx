@@ -262,20 +262,20 @@ Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement
 si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
 formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analysé. Quand le problème a
 un emplacement dans le fichier, le message indique la ligne, la colonne et, à l'intérieur d'une
-unité de traduction, son rang en comptant à partir de 1, et le `cause` de l'erreur porte le même
-emplacement sous forme de `location` structurée (de type `TmxErrorLocation`). Une étiquette de
-langue est résolue vers une locale configurée par une règle explicite : écriture exacte après mise
-en minuscules et conversion des tirets bas en traits d'union ; à défaut, la seule locale configurée
-que l'étiquette prolonge ou qui la prolonge, sous-étiquette par sous-étiquette, si bien que deux
-étiquettes aux sous-étiquettes d'écriture ou de région différentes (`zh-CN` et `zh-TW`) ne
-correspondent jamais ; et une étiquette que plusieurs locales pourraient revendiquer est signalée
-plutôt que devinée. Deux segments cibles d'une unité qui se résolvent vers la même locale ne
-laissent jamais le dernier l'emporter : une étiquette exacte l'emporte sur une correspondance par
-préfixe, et deux segments de même rang aux valeurs différentes ne stockent rien pour cette locale et
-sont comptés comme `conflicting`. Chaque traduction candidate passe ensuite la même barrière de
-variables, d'ICU, de dégénérescence et de vacuité que subissent déjà la sortie du fournisseur et une
-ligne de classeur remplie, vérifiée à l'entrée de l'enregistrement dans la mémoire plutôt que
-laissée à l'exécution qui la lira plus tard.
+unité de traduction, son rang en comptant à partir de 1, et `tmxErrorLocation(error)` renvoie le
+même emplacement sous forme de `TmxErrorLocation`, ou `undefined` pour toute autre erreur, si bien
+que tu n'as jamais à caster l'erreur ni son `cause`. Une étiquette de langue est résolue vers une
+locale configurée par une règle explicite : écriture exacte après mise en minuscules et conversion
+des tirets bas en traits d'union ; à défaut, la seule locale configurée que l'étiquette prolonge ou
+qui la prolonge, sous-étiquette par sous-étiquette, si bien que deux étiquettes aux sous-étiquettes
+d'écriture ou de région différentes (`zh-CN` et `zh-TW`) ne correspondent jamais ; et une étiquette
+que plusieurs locales pourraient revendiquer est signalée plutôt que devinée. Deux segments cibles
+d'une unité qui se résolvent vers la même locale ne laissent jamais le dernier l'emporter : une
+étiquette exacte l'emporte sur une correspondance par préfixe, et deux segments de même rang aux
+valeurs différentes ne stockent rien pour cette locale et sont comptés comme `conflicting`. Chaque
+traduction candidate passe ensuite la même barrière de variables, d'ICU, de dégénérescence et de
+vacuité que subissent déjà la sortie du fournisseur et une ligne de classeur remplie, vérifiée à
+l'entrée de l'enregistrement dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard.
 
 Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
 sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,

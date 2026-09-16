@@ -385,18 +385,18 @@ Reads a TMX file into the project's memory. Input:
 Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
 entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
 structured `SOURCE_INVALID` error rather than parsed. When the problem has a place in the file, the
-message names its line, column and, inside a translation unit, the unit's 1-based ordinal, and the
-error's `cause` carries the same place as a structured `location` (typed as `TmxErrorLocation`). A
-language tag is resolved to a configured locale by an explicit rule: exact spelling after
-lowercasing and folding underscores to hyphens; failing that, the single configured locale the tag
-extends or is extended by, subtag by subtag, so two tags whose script or region subtags differ
-(`zh-CN` and `zh-TW`) never match; and a tag several locales could claim is reported rather than
-guessed at. Two target segments of one unit that resolve to the same locale never let the last one
-win: an exact tag outranks a prefix match, and two equal-ranked segments with different values store
-nothing for that locale and are counted as `conflicting`. Every candidate translation then passes
-the same placeholder, ICU, degeneracy, and emptiness gate that provider output and a filled workbook
-row already face, checked as the record enters the memory rather than left to the run that later
-reads it.
+message names its line, column and, inside a translation unit, the unit's 1-based ordinal, and
+`tmxErrorLocation(error)` returns the same place as a `TmxErrorLocation`, or `undefined` for any
+other error, so you never cast the error or its `cause`. A language tag is resolved to a configured
+locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens;
+failing that, the single configured locale the tag extends or is extended by, subtag by subtag, so
+two tags whose script or region subtags differ (`zh-CN` and `zh-TW`) never match; and a tag several
+locales could claim is reported rather than guessed at. Two target segments of one unit that resolve
+to the same locale never let the last one win: an exact tag outranks a prefix match, and two
+equal-ranked segments with different values store nothing for that locale and are counted as
+`conflicting`. Every candidate translation then passes the same placeholder, ICU, degeneracy, and
+emptiness gate that provider output and a filled workbook row already face, checked as the record
+enters the memory rather than left to the run that later reads it.
 
 Where an imported unit disagrees with a translation the memory already holds, the memory wins unless
 `overwrite` is set. Units are stored under the current configuration fingerprint, the same key a real
