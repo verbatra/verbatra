@@ -105,6 +105,15 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     ).toBe(true);
   });
 
+  it("refuses html markup that now crosses the XLIFF inline element it was nested in", () => {
+    const adapter = createXliffAdapter();
+    const source = entryFor(adapter, 'Read <g id="1">the <b>docs</b></g>');
+    expect(gateCandidateValue(source, 'Lies <g id="1">die <b>Doku</g></b>', adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+    });
+  });
+
   it("names a value that drops both its tokenised and its untokenised markup once", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');

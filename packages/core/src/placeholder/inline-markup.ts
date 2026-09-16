@@ -37,6 +37,11 @@ interface SplitTags {
   readonly words: readonly InlineTag[];
 }
 
+interface MarkupSide {
+  readonly all: readonly InlineTag[];
+  readonly split: SplitTags;
+}
+
 interface TagStructure {
   readonly wellFormed: boolean;
   readonly depths: ReadonlyMap<string, number>;
@@ -172,7 +177,24 @@ function tokensOf(tags: readonly InlineTag[]): readonly string[] {
   return tags.map((tag) => tag.token);
 }
 
-function compareScanned(source: SplitTags, translated: SplitTags): InlineMarkupComparison {
+function withoutWords(side: MarkupSide): readonly InlineTag[] {
+  const words = new Set(side.split.words);
+  return side.all.filter((tag) => !words.has(tag));
+}
+
+function nestsLikeSource(source: MarkupSide, translated: MarkupSide): boolean {
+  return (
+    !structureOf(withoutWords(source)).wellFormed ||
+    structureOf(withoutWords(translated)).wellFormed
+  );
+}
+
+function compareScanned(
+  sourceSide: MarkupSide,
+  translatedSide: MarkupSide,
+): InlineMarkupComparison {
+  const source = sourceSide.split;
+  const translated = translatedSide.split;
   const sourceCounts = countTokens(tokensOf([...source.tags, ...source.words]));
   const translatedCounts = countTokens(tokensOf([...translated.tags, ...translated.words]));
   const missing = multisetExcess(sourceCounts, translatedCounts);
@@ -188,7 +210,8 @@ function compareScanned(source: SplitTags, translated: SplitTags): InlineMarkupC
   if (!translatedStructure.wellFormed) {
     return MALFORMED;
   }
-  return sameDepths(sourceStructure.depths, translatedStructure.depths) ? MATCHED : MALFORMED;
+  const sameShape = sameDepths(sourceStructure.depths, translatedStructure.depths);
+  return sameShape && nestsLikeSource(sourceSide, translatedSide) ? MATCHED : MALFORMED;
 }
 
 function pushOpener(open: OpenTags, tag: InlineTag): void {
@@ -285,13 +308,21 @@ function withFindings(
   };
 }
 
-function compareTags(source: WithoutIgnored, translated: WithoutIgnored): InlineMarkupComparison {
-  const sourceSplit = splitBracketedWords(source.tags);
-  const translatedSplit = splitBracketedWords(translated.tags);
+function compareTags(
+  source: ScannedMarkup,
+  translated: ScannedMarkup,
+  sourceKept: WithoutIgnored,
+  translatedKept: WithoutIgnored,
+): InlineMarkupComparison {
+  const sourceSplit = splitBracketedWords(sourceKept.tags);
+  const translatedSplit = splitBracketedWords(translatedKept.tags);
   if (sourceSplit.tags.length === 0) {
     return compareAgainstUnmarkedSource(translatedSplit, sourceSplit.words);
   }
-  return compareScanned(sourceSplit, translatedSplit);
+  return compareScanned(
+    { all: source.tags, split: sourceSplit },
+    { all: translated.tags, split: translatedSplit },
+  );
 }
 
 function multisetDifference(
@@ -316,7 +347,7 @@ function compareScannedMarkup(
   const constructs = multisetDifference(source.constructs, translated.constructs);
   const closingTags = multisetDifference(translatedKept.unclosed, sourceKept.unclosed);
   return withFindings(
-    compareTags(sourceKept, translatedKept),
+    compareTags(source, translated, sourceKept, translatedKept),
     [...constructs.missing, ...closingTags.missing],
     [...constructs.extra, ...closingTags.extra],
   );
