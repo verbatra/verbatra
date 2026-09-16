@@ -44,6 +44,8 @@ Groups are sorted by source string, translations by value, and keys by name, so 
 
 - i18next context variants are reported. i18next encodes a context as a key suffix (`invite_male`, `invite_female`), which cannot be told apart from an ordinary snake_case key, so two context variants that share a source text but are translated differently show up as a finding. Where your format supports it, give them a differing description or meaning so they are never grouped; otherwise ignore the finding.
 - gettext entries marked `#, fuzzy` count as translations. The gettext adapter does not keep the fuzzy flag, so a fuzzy `msgstr` is compared like a reviewed one and can show up in a finding. Review or clear fuzzy entries before you rely on the report.
+- Plural-style keys in a format without a plural concept count as ordinary keys. The `yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini`, and `resx` adapters have no notion of plural forms, so `item_one` and `item_other` are two unrelated keys to them. When two such forms of one key share a source text but are translated differently, they show up as a finding. Where your format supports it, give them a differing description or meaning so they are never grouped; otherwise ignore the finding.
+- `custom:` formats get no plural-form resolver. verbatra only knows how its built-in adapters name plural forms, so when a third-party adapter stores each form under its own key, the forms of one key are compared as one group and can show up as a finding when they share a source text. Give the forms a differing description or meaning, or ignore the finding.
 
 ## Examples
 
