@@ -15,7 +15,7 @@ import {
 import { extractResxPlaceholders } from "./placeholders.js";
 import { createResxDocument, parseResxXml } from "./xml.js";
 
-const TRAILING_NEWLINES = /(?:\r\n|\r|\n)+$/;
+const TRAILING_NEWLINES = /(?:\r\n|[\r\n])+$/;
 const DESIGNER_NAME = /^(?:>>|\$)/;
 const SURROUNDING_WHITESPACE = /^\s|\s$/;
 
