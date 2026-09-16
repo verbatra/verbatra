@@ -35,7 +35,7 @@ L'analyse modélise le runtime i18next. Voici ce qui compte comme référence à
 - Un appel `t(...)`, `$t(...)` ou `<object>.t(...)` n'importe où sous les racines, y compris dans un fichier qu'aucune route n'importe, et un appel via un alias de `t` : `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` ou `i18n.getFixedT(...)`.
 - Un `keyPrefix` statique (en option, en propriété d'objet ou en attribut JSX) ou un troisième argument statique de `getFixedT`. Chaque clé statique de ce fichier couvre alors aussi la clé préfixée, donc `t("home")` sous `keyPrefix: "nav"` couvre `nav.home` (et toujours `home`).
 - Un `i18nKey` statique sur un élément `Trans` ou dans un objet.
-- Une clé avec namespace comme `common:nav.home` (elle couvre `common:nav.home` et `nav.home`) et une clé en langage naturel comme `Loading...` ou `Error: failed`.
+- Une clé avec namespace comme `common:nav.home` (elle couvre `common:nav.home` et `nav.home`), une clé en langage naturel comme `Loading...` ou `Error: failed`, et chaque clé d'un tableau statique de clés comme `t(["a", "b"])`.
 - Une variante de pluriel ou de contexte d'une clé référencée : `t("items", { count })` couvre `items_one` et `items_other`, et `t("friend", { context })` couvre `friend_male`, `place_ordinal_one` et similaires. Cela correspond à la façon dont `translate` garde les formes plurielles générées hors de la liste des orphelines. Chaque clé sous un parent référencé compte aussi, donc `t("nav", { returnObjects: true })` couvre `nav.home`.
 
 Les clés sont comparées dans l'encodage propre au format du catalogue, donc une clé JSON plate avec un point (`{ "a.b": "..." }`), un pluriel gettext (`msgstr[0]`, `msgstr[1]`) ou une entrée `msgctxt` (`t("Open", { context: "menu" })`) et une entrée Android `<plurals>` correspondent toutes à la clé que ton code nomme.
@@ -56,7 +56,8 @@ Le rapport porte un `status` :
 | `dynamic-key-prefix` | `unreliable` | un préfixe `keyPrefix` ou `getFixedT` qui n'est pas une chaîne statique |
 | `trans-without-key` | `unreliable` | un élément `Trans` sans `i18nKey` statique |
 | `aliased-translate-function` | `unreliable` | `t` affectée à autre chose qu'une simple variable, comme `this.tr = t` |
-| `translate-function-escapes` | `unreliable` | `t` (ou un alias) transmise comme valeur : argument d'appel (`renderRow(t)`), attribut JSX (`<Child t={t} />`), propriété d'objet (`{ t }`, `{ translate: t }`), élément de tableau ou valeur de retour |
+| `translate-function-escapes` | `unreliable` | une fonction de traduction issue d'une source reconnue apparaît ailleurs qu'aux positions autorisées listées plus bas, comme `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` ou `export default t` |
+| `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, un membre `t` ou un import de `t` utilisé sous une forme absente de la liste plus bas, comme un hook enveloppe qui renvoie `useTranslation(...)`, des options du hook passées par nom ou construites avec un spread, ou un résultat de `getFixedT` exporté |
 | `template-files-not-scanned` | `unreliable` | des fichiers `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` ou `.mdx` sous les racines (les 20 premiers sont listés, tous sont comptés) |
 | `incomplete-scan` | `unreliable` | un fichier trop volumineux, illisible ou impossible à lire jusqu'au bout, ou un dossier impossible à lister |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | aucun bloc `extract` |
@@ -65,7 +66,16 @@ Le rapport porte un `status` :
 | `NO_SOURCE_FILES` | `not-run` | aucun fichier source sous les racines |
 | `NO_REFERENCES_FOUND` | `not-run` | les fichiers analysés ne nomment aucune clé et ne contiennent aucun appel à clé dynamique alors que le catalogue n'est pas vide, ce qui signifie en général que les racines ne couvrent pas ton code |
 
-Connais les limites. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare. Dès que `t` quitte la vue du fichier (transmise en argument, en prop, en propriété ou en valeur de retour), l'analyse ne peut pas suivre le code qui la reçoit, donc le rapport est `unreliable` avec `translate-function-escapes` au lieu de `complete`. Déstructurer `t` depuis `useTranslation()` et les alias listés plus haut gardent un rapport `complete`.
+L'analyse ne fait confiance qu'aux fonctions de traduction dont elle voit la création. Chaque usage d'une source de traduction doit avoir l'une de ces formes, sinon le rapport est `unreliable` avec `unrecognised-translate-source` :
+
+- `const { t } = useTranslation(...)` (aussi `{ t: alias }`, `i18n`, `ready` ou un tableau `[t, i18n]`), non exporté, appelé sans argument, avec un namespace statique ou un tableau de namespaces et, en option, un objet littéral dont le `keyPrefix`, s'il existe, est une chaîne statique et qui n'a ni spread ni clé calculée.
+- `const f = i18n.getFixedT(...)`, non exporté, avec uniquement des chaînes statiques, des tableaux de chaînes, `null` ou `undefined` comme arguments.
+- Un appel direct sur un membre `t`, comme `i18n.t("key")` ou `this.props.t("key")`, et un `const tr = i18n.t` ou `const tr = i18n.t.bind(i18n)` local et non exporté.
+- `<Translation>{(t) => ...}</Translation>`.
+- `withTranslation("ns")(Component)`, dont le composant appelle `props.t(...)`.
+- `import { t } from "i18next"` (aussi `t as alias`), et les imports simples de `useTranslation`, `withTranslation`, `getFixedT` et `Translation`.
+
+Une fonction de traduction obtenue ainsi, et tout alias local `const tr = t`, ne peut apparaître que comme appel direct, comme sa propre déclaration, comme alias local, comme attribut `t={t}` de `Trans` ou `Translation`, ou comme élément du tableau de dépendances de `useEffect`, `useLayoutEffect`, `useMemo` ou `useCallback`. Partout ailleurs (un argument, une prop, une propriété d'objet, une valeur de retour, un opérande de ternaire, un export), le rapport est `unreliable` avec `translate-function-escapes`. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare.
 
 Chaque clé listée affiche sa forme décodée (`Welcome. Enjoy`, et une entrée gettext avec `msgctxt` sous la forme `menu|Open`) ; `--json` porte aussi le `catalogKey` tel que l'adaptateur l'écrit (`Welcome\. Enjoy`).
 

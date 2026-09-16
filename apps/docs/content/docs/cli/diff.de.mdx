@@ -35,7 +35,7 @@ Der Scan bildet die i18next-Laufzeit nach. Folgendes zählt als Referenz auf ein
 - Ein Aufruf `t(...)`, `$t(...)` oder `<object>.t(...)` irgendwo unter den Roots, auch in einer Datei, die keine Route importiert, und ein Aufruf über einen Alias von `t`: `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` oder `i18n.getFixedT(...)`.
 - Ein statischer `keyPrefix` (als Option, Objekt-Property oder JSX-Attribut) oder ein statisches drittes Argument von `getFixedT`. Jeder statische Key in dieser Datei deckt dann auch den Key mit Präfix ab, `t("home")` unter `keyPrefix: "nav"` deckt also `nav.home` ab (und weiterhin `home`).
 - Ein statischer `i18nKey` an einem `Trans`-Element oder in einem Objekt.
-- Ein Key mit Namespace wie `common:nav.home` (er deckt `common:nav.home` und `nav.home` ab) und ein Key in natürlicher Sprache wie `Loading...` oder `Error: failed`.
+- Ein Key mit Namespace wie `common:nav.home` (er deckt `common:nav.home` und `nav.home` ab), ein Key in natürlicher Sprache wie `Loading...` oder `Error: failed` und jeder Key eines statischen Key-Arrays wie `t(["a", "b"])`.
 - Eine Plural- oder Kontext-Variante eines referenzierten Keys: `t("items", { count })` deckt `items_one` und `items_other` ab, und `t("friend", { context })` deckt `friend_male`, `place_ordinal_one` und Ähnliches ab. Das entspricht dem, wie `translate` generierte Pluralformen aus der Orphan-Liste heraushält. Auch jeder Key unter einem referenzierten Eltern-Key zählt, `t("nav", { returnObjects: true })` deckt also `nav.home` ab.
 
 Keys werden in der eigenen Kodierung des Katalogformats verglichen, sodass ein flacher JSON-Key mit Punkt (`{ "a.b": "..." }`), ein gettext-Plural (`msgstr[0]`, `msgstr[1]`) oder `msgctxt`-Eintrag (`t("Open", { context: "menu" })`) und ein Android-`<plurals>`-Eintrag alle zu dem Key passen, den dein Code nennt.
@@ -56,7 +56,8 @@ Der Bericht trägt einen `status`:
 | `dynamic-key-prefix` | `unreliable` | ein `keyPrefix` oder `getFixedT`-Präfix, der kein statischer String ist |
 | `trans-without-key` | `unreliable` | ein `Trans`-Element ohne statischen `i18nKey` |
 | `aliased-translate-function` | `unreliable` | `t` wird etwas anderem als einer einfachen Variable zugewiesen, etwa `this.tr = t` |
-| `translate-function-escapes` | `unreliable` | `t` (oder ein Alias davon) wird als Wert weitergereicht: als Funktionsargument (`renderRow(t)`), als JSX-Attribut (`<Child t={t} />`), als Objekt-Property (`{ t }`, `{ translate: t }`), als Array-Element oder als Rückgabewert |
+| `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle steht an einer anderen als den unten erlaubten Stellen, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
+| `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, ein Member `t` oder ein `t`-Import in einer Form, die unten nicht aufgeführt ist, etwa ein Wrapper-Hook, der `useTranslation(...)` zurückgibt, Hook-Optionen über einen Namen oder mit Spread, oder ein exportiertes `getFixedT`-Ergebnis |
 | `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
 | `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist, oder ein Verzeichnis, das sich nicht auflisten lässt |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | kein `extract`-Block |
@@ -65,7 +66,16 @@ Der Bericht trägt einen `status`:
 | `NO_SOURCE_FILES` | `not-run` | unter den Roots liegt keine Quelldatei |
 | `NO_REFERENCES_FOUND` | `not-run` | die gescannten Dateien nennen keinen Key und enthalten keine dynamische Key-Stelle, während der Katalog nicht leer ist, was meist heißt, dass die Roots deinen Code verfehlen |
 
-Kenn die Grenzen. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert. Wo immer `t` den Blick der Datei verlässt (als Argument, Prop, Property oder Rückgabewert weitergereicht), kann der Scan dem empfangenden Code nicht folgen, der Bericht ist dann `unreliable` mit `translate-function-escapes` statt `complete`. `t` aus `useTranslation()` zu destrukturieren und die oben genannten Aliase lassen einen Bericht `complete`.
+Der Scan vertraut nur Übersetzungsfunktionen, deren Entstehung er sieht. Jede Verwendung einer Übersetzungsquelle muss eine dieser Formen haben, sonst ist der Bericht `unreliable` mit `unrecognised-translate-source`:
+
+- `const { t } = useTranslation(...)` (auch `{ t: alias }`, `i18n`, `ready` oder ein Array `[t, i18n]`), nicht exportiert, aufgerufen ohne Argumente, mit einem statischen Namespace oder Namespace-Array und optional einem Objekt-Literal, dessen `keyPrefix`, falls vorhanden, ein statischer String ist und das keinen Spread und keinen berechneten Key enthält.
+- `const f = i18n.getFixedT(...)`, nicht exportiert, nur mit statischen Strings, String-Arrays, `null` oder `undefined` als Argumente.
+- Ein direkter Aufruf eines Members `t`, etwa `i18n.t("key")` oder `this.props.t("key")`, und ein lokales, nicht exportiertes `const tr = i18n.t` oder `const tr = i18n.t.bind(i18n)`.
+- `<Translation>{(t) => ...}</Translation>`.
+- `withTranslation("ns")(Component)`, dessen Komponente `props.t(...)` aufruft.
+- `import { t } from "i18next"` (auch `t as alias`) sowie einfache Imports von `useTranslation`, `withTranslation`, `getFixedT` und `Translation`.
+
+Eine so gebundene Übersetzungsfunktion und jeder lokale Alias `const tr = t` davon darf nur als direkter Aufruf, als eigene Bindung, als lokaler Alias, als `t={t}`-Attribut von `Trans` oder `Translation` oder als Eintrag im Abhängigkeits-Array von `useEffect`, `useLayoutEffect`, `useMemo` oder `useCallback` vorkommen. Überall sonst (als Argument, Prop, Objekt-Property, Rückgabewert, Operand eines ternären Ausdrucks oder Export) ist der Bericht `unreliable` mit `translate-function-escapes`. Ein Key-Präfix gilt für jeden Key in der Datei, die ihn deklariert.
 
 Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
 
