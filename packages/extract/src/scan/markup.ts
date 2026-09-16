@@ -33,6 +33,12 @@ const GENERIC_PARAMETER_FOLLOWERS = new Set(["extends", ","]);
 
 const TYPE_ARGUMENTS_LIMIT = 128;
 
+const VALUE_POSITION_LOOKBEHIND = 64;
+
+const VALUE_POSITION = /(?:(?<![\w$])return|=>|&&|\|\||(?<![=!<>])=|[(?:,?])\s*$/;
+
+const TYPE_PARAMETER_LIST = /<[A-Za-z_$][\w$]*(?:\s+[A-Za-z_$][\w$]*)*\s*>\s*\(/y;
+
 interface Position {
   readonly line: number;
   readonly column: number;
@@ -148,7 +154,7 @@ function readAttributeValue(cursor: Cursor, out: PositionedToken[]): ElementOutc
   if (char === "{") {
     return readBracedTokens(cursor, out) ? "closed" : END_OF_FILE;
   }
-  return NOT_MARKUP;
+  return char === "<" ? readElement(cursor, out) : NOT_MARKUP;
 }
 
 function readAttribute(cursor: Cursor, out: PositionedToken[]): ElementOutcome {
@@ -357,6 +363,18 @@ function startsElement(cursor: Cursor, previous: PositionedToken | undefined): b
   return regexCanStart(previous) && (next === ">" || TAG_START.test(next));
 }
 
+function makesFileUnreadable(cursor: Cursor, failure: Failure): boolean {
+  if (failure.kind !== "end-of-file" && failure.kind !== "mismatched-close") {
+    return false;
+  }
+  const lookbehind = Math.max(0, cursor.index - VALUE_POSITION_LOOKBEHIND);
+  TYPE_PARAMETER_LIST.lastIndex = cursor.index;
+  return (
+    VALUE_POSITION.test(cursor.text.slice(lookbehind, cursor.index)) &&
+    !TYPE_PARAMETER_LIST.test(cursor.text)
+  );
+}
+
 export function readMarkup(
   cursor: Cursor,
   previous: PositionedToken | undefined,
@@ -371,5 +389,8 @@ export function readMarkup(
     return out;
   }
   restore(cursor, saved);
+  if (makesFileUnreadable(cursor, outcome)) {
+    cursor.unreadableMarkup = true;
+  }
   return undefined;
 }

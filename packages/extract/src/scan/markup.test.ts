@@ -115,6 +115,21 @@ describe("readMarkup", () => {
     expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
   });
 
+  it("reads an element used as an attribute value", () => {
+    expect(shape('x = <Foo icon=<Bar /> label="x">Inner copy</Foo>')).toEqual([
+      "ident:x",
+      "punct:=",
+      "<Foo>",
+      "@icon",
+      "<Bar>",
+      "</Bar>",
+      "@label",
+      "string:x",
+      "text:Inner copy",
+      "</Foo>",
+    ]);
+  });
+
   it("does not read a tag with a stray character as markup", () => {
     expect(scan("x = <a %>").tokens.some((token) => token.kind === "markup-open")).toBe(false);
   });
@@ -159,6 +174,58 @@ describe("readMarkup on markup it cannot read to the end", () => {
     const result = scan("x = <List<Item");
 
     expect(result.truncated).toBe(false);
+    expect(result.unreadableMarkup).toBe(false);
     expect(result.tokens.some((token) => token.kind === "markup-open")).toBe(false);
+  });
+});
+
+describe("readMarkup on markup that makes the file unreadable", () => {
+  it.each([
+    ["return", "function f() { return <p>Never closed"],
+    ["an arrow", "const f = () => <p>Never closed"],
+    ["an opening parenthesis", "render(<p>Never closed"],
+    ["an assignment", "const a = <p>Never closed"],
+    ["a ternary question mark", "const a = ok ? <p>Never closed"],
+    ["a ternary colon", "const a = ok ? null : <p>Never closed"],
+    ["a logical and", "const a = ok && <p>Never closed"],
+    ["a logical or", "const a = ok || <p>Never closed"],
+    ["a comma", "render(a, <p>Never closed"],
+    ["an assignment, in an unclosed tag", "const a = <p title"],
+    ["an assignment, in an unclosed attribute", 'const a = <p title="Half typed'],
+    ["an assignment, in an unclosed braced child", "const a = <p>{value"],
+    ["an assignment, in an unclosed closing tag", "const a = <p>Text</p"],
+    ["an assignment, for a nested element", "const a = <div><p>Never closed</p>"],
+    ["an assignment, for a fragment", "const a = <>Never closed"],
+  ])("flags an element after %s that reaches the end of the file", (_label, text) => {
+    const result = scan(text);
+
+    expect(result.unreadableMarkup).toBe(true);
+    expect(result.truncated).toBe(false);
+    expect(result.tokens).toContainEqual(expect.objectContaining({ kind: "punct", value: "<" }));
+  });
+
+  it("flags a closing tag that names an enclosing element mid-file", () => {
+    const result = scan('const a = <div><span>Mid edit copy</div>;\nconst later = "kept";');
+
+    expect(result.unreadableMarkup).toBe(true);
+    expect(result.tokens).toContainEqual({ kind: "string", value: "kept", line: 2, column: 15 });
+  });
+
+  it.each([
+    ["an element after another token", "const a = [<p>Never closed"],
+    ["a closing tag for an element that is not open", "const a = (<p>x</b>);"],
+    ["a malformed closing tag", "const a = (<p>x</p x);"],
+    ["a tag with a stray character", "const a = <a %>"],
+    ["a generic function type", "type Fn = <T>(x: T) => T;"],
+    ["a generic function type with a modifier", "type Fn = <const T>(x: T) => T;"],
+    ["a generic arrow function", "const f = <T,>(x: T) => x;"],
+  ])("does not flag %s", (_label, text) => {
+    expect(scan(text).unreadableMarkup).toBe(false);
+  });
+
+  it("still flags broken markup that follows a generic function type", () => {
+    expect(
+      scan("type Fn = <T>(x: T) => T;\nconst a = <div><span>Mid edit copy</div>;").unreadableMarkup,
+    ).toBe(true);
   });
 });

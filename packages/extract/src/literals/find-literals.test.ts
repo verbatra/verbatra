@@ -413,6 +413,7 @@ describe("findLiterals: a generic function type in a markup file", () => {
     ["a variable annotation", "const g: <T>(x: T) => T = (x) => x;"],
     ["a constructor type", "type Ctor = new <T>(x: T) => T;"],
     ["a parenthesized union member", "type U = string | (<T>(x: T) => T);"],
+    ["a const type parameter", "type Fn = <const T>(x: T) => T;"],
   ])("keeps reading markup after %s", (_label, construct) => {
     const result = findLiterals(
       `const a = <p>Before the type</p>;\n${construct}\nconst b = <p>After the type</p>;`,
@@ -545,6 +546,7 @@ describe("findLiterals: inline suppression", () => {
         "    <p",
         '      title="Hover text"',
         '      aria-label={open ? "Close the dialog" : "Open the dialog"}',
+        '      placeholder=<Hint label="Type here please" />',
         "    >",
         "      Shown body text",
         "    </p>",
@@ -560,6 +562,7 @@ describe("findLiterals: inline suppression", () => {
       "Hover text",
       "Close the dialog",
       "Open the dialog",
+      "Type here please",
     ]);
   });
 
@@ -611,6 +614,31 @@ describe("findLiterals: inline suppression", () => {
     expect(
       texts('// verbatra-ignore-next-line-please\nconst a = "Visible prose text";', false),
     ).toEqual(["Visible prose text"]);
+  });
+});
+
+describe("findLiterals: an element used as an attribute value", () => {
+  it("reads the element and keeps reading the children after it", () => {
+    const result = findLiterals('<Foo icon=<Bar /> label="Close">Inner copy</Foo>;', rules, true);
+
+    expect(result.truncated).toBe(false);
+    expect(result.found.map((literal) => literal.text)).toEqual(["Close", "Inner copy"]);
+  });
+});
+
+describe("findLiterals: markup that never closes", () => {
+  it("reports the file as unreadable and still reports what comes after the break", () => {
+    const result = findLiterals(
+      'const a = "Visible prose text";\nexport function Page() {\n  return <div><span>Mid edit copy</div>;\n}\nconst b = "Shown after the break";',
+      rules,
+      true,
+    );
+
+    expect(result.truncated).toBe(true);
+    expect(result.found.map((literal) => literal.text)).toEqual([
+      "Visible prose text",
+      "Shown after the break",
+    ]);
   });
 });
 

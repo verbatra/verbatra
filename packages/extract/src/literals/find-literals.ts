@@ -56,5 +56,5 @@ export function findLiterals(
     }
     updateFrames(scan.tokens, index, frames);
   });
-  return { found, suppressed, truncated: scan.truncated };
+  return { found, suppressed, truncated: scan.truncated || scan.unreadableMarkup };
 }

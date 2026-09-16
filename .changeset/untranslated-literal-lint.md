@@ -40,7 +40,8 @@ The lint reads source and never writes it, constructs no provider, reads no API 
 variable, and loads no `.env` file, so it passes with no key set. In this mode `doctor` runs the
 config check and the literal check only. It exits `0` when nothing was found, `1` when a literal was
 found or a file could not be scanned (a file the scanner cannot read to the end, such as one with an
-unterminated comment or template literal, is a diagnostic, never a silent pass; a generic function
+unterminated comment or template literal, or with a JSX element that never closes or is closed
+by an enclosing element's tag, is a diagnostic, never a silent pass; a generic function
 type such as `<T>(x: T) => T` in a `.tsx` file is read as code and never fails the file), and `2`
 when it cannot run. `--json` prints the usual envelope with the scan under `result.literals`.
 `doctor({ literals: true })` is the SDK entry point, and `DoctorResult.literals` carries the same

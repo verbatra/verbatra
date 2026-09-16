@@ -47,5 +47,6 @@ describe("readMarkup: nesting depth", () => {
     const result = scanSource(`const a = ${unit.repeat(count)}`, { markup: readMarkup });
 
     expect(result.truncated).toBe(false);
+    expect(result.unreadableMarkup).toBe(unit === "<a>");
   });
 });

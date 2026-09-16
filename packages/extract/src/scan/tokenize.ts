@@ -35,6 +35,7 @@ export interface Cursor {
   line: number;
   lineStart: number;
   truncated: boolean;
+  unreadableMarkup: boolean;
 }
 
 export interface SourceScan {
@@ -46,6 +47,7 @@ export interface PositionedScan {
   readonly tokens: readonly PositionedToken[];
   readonly comments: readonly SourceComment[];
   readonly truncated: boolean;
+  readonly unreadableMarkup: boolean;
 }
 
 const SIMPLE_ESCAPES: Readonly<Record<string, string>> = {
@@ -354,6 +356,9 @@ function readExpressionTokens(
   if (scan.truncated) {
     cursor.truncated = true;
   }
+  if (scan.unreadableMarkup) {
+    cursor.unreadableMarkup = true;
+  }
   for (const comment of scan.comments) {
     cursor.comments.push({
       text: comment.text,
@@ -464,12 +469,18 @@ export function scanSource(text: string, options: ScanOptions = {}): PositionedS
     line: 1,
     lineStart: 0,
     truncated: false,
+    unreadableMarkup: false,
   };
   const tokens: PositionedToken[] = [];
   while (true) {
     skipTrivia(cursor);
     if (atEnd(cursor)) {
-      return { tokens, comments: cursor.comments, truncated: cursor.truncated };
+      return {
+        tokens,
+        comments: cursor.comments,
+        truncated: cursor.truncated,
+        unreadableMarkup: cursor.unreadableMarkup,
+      };
     }
     const produced = nextTokens(cursor, tokens[tokens.length - 1]);
     tokens.push(...produced);
