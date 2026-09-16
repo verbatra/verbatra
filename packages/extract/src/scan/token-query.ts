@@ -1,11 +1,17 @@
-import type { SourceToken } from "./tokenize.js";
+import type { MarkupToken, SourceToken } from "./tokenize.js";
+
+type QueriedToken = SourceToken | MarkupToken;
 
 export function tokenAt(tokens: readonly SourceToken[], index: number): SourceToken | undefined {
   return tokens[index];
 }
 
-export function isPunct(token: SourceToken | undefined, value: string): boolean {
+export function isPunct(token: QueriedToken | undefined, value: string): boolean {
   return token?.kind === "punct" && token.value === value;
+}
+
+export function identValue(token: QueriedToken | undefined): string | undefined {
+  return token?.kind === "ident" ? token.value : undefined;
 }
 
 export function isPunctIn(token: SourceToken | undefined, values: ReadonlySet<string>): boolean {

@@ -1,6 +1,6 @@
+import { identValue, isPunct } from "../scan/token-query.js";
 import type { PositionedToken } from "../scan/tokenize.js";
 import type { TranslationRecognition } from "./literal-audience.js";
-import { identValue, isPunct } from "./literal-frames.js";
 
 const DESTRUCTURING_LIMIT = 50;
 

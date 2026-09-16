@@ -1,3 +1,4 @@
+import { identValue, isPunct } from "../scan/token-query.js";
 import type { PositionedToken } from "../scan/tokenize.js";
 
 export type LiteralFrame =
@@ -24,14 +25,6 @@ const TERNARY_STOPPERS = new Set([";", ","]);
 const OPENERS = new Set(["(", "[", "{"]);
 
 const CLOSERS = new Set([")", "]", "}"]);
-
-export function isPunct(token: PositionedToken | undefined, value: string): boolean {
-  return token?.kind === "punct" && token.value === value;
-}
-
-export function identValue(token: PositionedToken | undefined): string | undefined {
-  return token?.kind === "ident" ? token.value : undefined;
-}
 
 function isTernaryQuestion(tokens: readonly PositionedToken[], index: number): boolean {
   return (

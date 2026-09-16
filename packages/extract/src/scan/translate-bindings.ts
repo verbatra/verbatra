@@ -1,5 +1,12 @@
 import { boundEnd, isAssignmentAt, isIdentNamed, type KeyUsageRules } from "./key-usage.js";
-import { closeIndex, isPunct, listItems, matchingOpen, tokenAt } from "./token-query.js";
+import {
+  closeIndex,
+  identValue,
+  isPunct,
+  listItems,
+  matchingOpen,
+  tokenAt,
+} from "./token-query.js";
 import type { SourceToken } from "./tokenize.js";
 import {
   callArguments,
@@ -10,7 +17,7 @@ import {
   isStaticOptions,
   referenceStart,
 } from "./translate-arguments.js";
-import { type Binding, identValue } from "./translate-state.js";
+import type { Binding } from "./translate-state.js";
 
 export const DECLARATION_KEYWORDS = new Set(["const", "let", "var"]);
 

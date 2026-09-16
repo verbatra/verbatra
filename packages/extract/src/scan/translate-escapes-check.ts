@@ -1,6 +1,7 @@
 import { isAssignmentAt, isAttributeName, isIdentNamed, type KeyUsageRules } from "./key-usage.js";
 import {
   callOpenIndex,
+  identValue,
   isPunct,
   isPunctIn,
   matchingClose,
@@ -10,7 +11,7 @@ import {
 import type { SourceToken } from "./tokenize.js";
 import { isStatementEnd } from "./translate-arguments.js";
 import { DECLARATION_KEYWORDS, TRANSLATE_PATTERN_NAME } from "./translate-bindings.js";
-import { identValue, lineAt, type SourceState } from "./translate-state.js";
+import { lineAt, type SourceState } from "./translate-state.js";
 
 const PROPERTY_PRECEDERS = new Set(["{", ",", "("]);
 

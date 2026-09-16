@@ -1,7 +1,7 @@
 import type { KeyUsageRules } from "./key-usage.js";
-import { isPunct, listItems, matchingClose, tokenAt } from "./token-query.js";
+import { identValue, isPunct, listItems, matchingClose, tokenAt } from "./token-query.js";
 import type { SourceToken } from "./tokenize.js";
-import { identValue, lineAt, recordBinding, type SourceState } from "./translate-state.js";
+import { lineAt, recordBinding, type SourceState } from "./translate-state.js";
 
 interface ImportSpecifier {
   readonly name: number;

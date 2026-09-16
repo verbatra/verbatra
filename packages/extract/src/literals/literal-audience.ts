@@ -1,11 +1,6 @@
+import { identValue, isPunct } from "../scan/token-query.js";
 import type { PositionedToken } from "../scan/tokenize.js";
-import {
-  identValue,
-  isPunct,
-  isTernaryAlternate,
-  isTypeAnnotationColon,
-  type LiteralFrame,
-} from "./literal-frames.js";
+import { isTernaryAlternate, isTypeAnnotationColon, type LiteralFrame } from "./literal-frames.js";
 import { hasLetters, isDirective, isProseLike, isUrlLike } from "./literal-text.js";
 
 export interface TranslationRecognition {

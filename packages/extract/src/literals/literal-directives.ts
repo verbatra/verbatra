@@ -1,5 +1,5 @@
+import { isPunct } from "../scan/token-query.js";
 import type { PositionedScan, PositionedToken } from "../scan/tokenize.js";
-import { isPunct } from "./literal-frames.js";
 
 const IGNORE_NEXT_LINE = /verbatra-ignore-next-line(?![\w-])/;
 
