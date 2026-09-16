@@ -622,10 +622,10 @@ describe("compareInlineMarkup: comments and bogus comments end where an HTML par
 });
 
 describe("compareInlineMarkup: adversarial input", () => {
-  it("stays silent rather than guessing once a value carries more tags than it can reason about", () => {
+  it("keeps comparing a value that carries more than 256 tags", () => {
     const source = "<b>x</b>".repeat(400);
     const translated = "<b>x</b>".repeat(399);
-    expect(compareInlineMarkup(source, translated).matches).toBe(true);
+    expect(compareInlineMarkup(source, translated).matches).toBe(false);
   });
 
   it("returns promptly for a long run of angle brackets that are not tags", () => {
@@ -1043,7 +1043,7 @@ describe("compareInlineMarkup: both spellings of one name accounted for", () => 
   });
 });
 
-describe("compareInlineMarkup: the tag-count ceiling stands down only for the source", () => {
+describe("compareInlineMarkup: the tag-count ceiling bounds only the candidate", () => {
   const FLOOD = "<i>x</i>".repeat(150);
 
   it("refuses a candidate that carries more tags than the scanner will read, naming the limit", () => {
@@ -1066,9 +1066,9 @@ describe("compareInlineMarkup: the tag-count ceiling stands down only for the so
     expect(compareInlineMarkup("Save", `Speichern${"<i></i>".repeat(200)}`).matches).toBe(false);
   });
 
-  it("stands down when both the source and the candidate exceed the ceiling", () => {
-    expect(compareInlineMarkup("<b>x</b>".repeat(400), "nichts").matches).toBe(true);
-    expect(compareInlineMarkup("<b>x</b>".repeat(400), "<i>y</i>".repeat(400)).matches).toBe(true);
+  it("keeps comparing when both the source and the candidate exceed 256 tags", () => {
+    expect(compareInlineMarkup("<b>x</b>".repeat(400), "nichts").matches).toBe(false);
+    expect(compareInlineMarkup("<b>x</b>".repeat(400), "<i>y</i>".repeat(400)).matches).toBe(false);
   });
 
   it("accepts a candidate that sits exactly at the ceiling when the source does too", () => {
@@ -1082,7 +1082,9 @@ describe("compareInlineMarkup: the tag-count ceiling stands down only for the so
     expect(result.missing).toEqual(["</b>", "<b>"]);
   });
 
-  it("goes quiet for a source that carries more tags than the scanner will read", () => {
-    expect(compareInlineMarkup(`${"<b>a</b>".repeat(130)}<em>k</em>`, "nichts").matches).toBe(true);
+  it("refuses a total markup loss from a source that carries more than 256 tags", () => {
+    expect(compareInlineMarkup(`${"<b>a</b>".repeat(130)}<em>k</em>`, "nichts").matches).toBe(
+      false,
+    );
   });
 });

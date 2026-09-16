@@ -57,13 +57,7 @@ const MALFORMED: InlineMarkupComparison = {
   malformed: true,
 };
 
-const TAG_LIMIT_EXCEEDED: InlineMarkupComparison = {
-  matches: false,
-  missing: [],
-  extra: [],
-  malformed: false,
-  tagLimitExceeded: MAX_MARKUP_ITEMS,
-};
+type OpenTags = Map<string, InlineTag[]>;
 
 function collectIgnoredTags(tokens: readonly string[]): IgnoredTags {
   const ignoredTokens = new Set<string>();
@@ -132,8 +126,15 @@ function recordDepth(depths: Map<string, number>, name: string, depth: number): 
   }
 }
 
+function adjustCount(counts: Map<string, number>, name: string, delta: number): number {
+  const count = (counts.get(name) ?? 0) + delta;
+  counts.set(name, count);
+  return count;
+}
+
 function structureOf(tags: readonly InlineTag[]): TagStructure {
   const open: string[] = [];
+  const openCounts = new Map<string, number>();
   const depths = new Map<string, number>();
   for (const tag of tags) {
     if (tag.kind === "self" || isVoidElement(tag.name)) {
@@ -141,12 +142,13 @@ function structureOf(tags: readonly InlineTag[]): TagStructure {
     }
     if (tag.kind === "open") {
       open.push(tag.name);
-      recordDepth(depths, tag.name, open.filter((name) => name === tag.name).length);
+      recordDepth(depths, tag.name, adjustCount(openCounts, tag.name, 1));
       continue;
     }
     if (open.pop() !== tag.name) {
       return { wellFormed: false, depths };
     }
+    adjustCount(openCounts, tag.name, -1);
   }
   return { wellFormed: open.length === 0, depths };
 }
@@ -188,9 +190,21 @@ function compareScanned(source: SplitTags, translated: SplitTags): InlineMarkupC
   return sameDepths(sourceStructure.depths, translatedStructure.depths) ? MATCHED : MALFORMED;
 }
 
-function takeOpener(open: InlineTag[], name: string): InlineTag | undefined {
-  const index = open.map((opener) => opener.name).lastIndexOf(name);
-  return index === -1 ? undefined : open.splice(index, 1)[0];
+function pushOpener(open: OpenTags, tag: InlineTag): void {
+  const stack = open.get(tag.name);
+  if (stack === undefined) {
+    open.set(tag.name, [tag]);
+  } else {
+    stack.push(tag);
+  }
+}
+
+function takeOpener(open: OpenTags, name: string): InlineTag | undefined {
+  return open.get(name)?.pop();
+}
+
+function remainingOpeners(open: OpenTags): readonly InlineTag[] {
+  return [...open.values()].flat();
 }
 
 function isBracketedWord(tag: InlineTag): boolean {
@@ -202,15 +216,15 @@ function isProseWord(tag: InlineTag): boolean {
 }
 
 function splitBracketedWords(tags: readonly InlineTag[]): SplitTags {
-  const open: InlineTag[] = [];
+  const open: OpenTags = new Map();
   for (const tag of tags) {
     if (tag.kind === "close") {
       takeOpener(open, tag.name);
     } else if (tag.kind === "open" && !isVoidElement(tag.name)) {
-      open.push(tag);
+      pushOpener(open, tag);
     }
   }
-  const words = new Set(open.filter(isBracketedWord));
+  const words = new Set(remainingOpeners(open).filter(isBracketedWord));
   return {
     tags: tags.filter((tag) => !words.has(tag)),
     words: tags.filter((tag) => words.has(tag)),
@@ -219,12 +233,12 @@ function splitBracketedWords(tags: readonly InlineTag[]): SplitTags {
 
 function inventedTags(translatedTags: readonly InlineTag[]): string[] {
   const invented: string[] = [];
-  const open: InlineTag[] = [];
+  const open: OpenTags = new Map();
   for (const tag of translatedTags) {
     if (tag.kind === "self" || isVoidElement(tag.name)) {
       invented.push(tag.token);
     } else if (tag.kind === "open") {
-      open.push(tag);
+      pushOpener(open, tag);
     } else {
       invented.push(tag.token);
       const opener = takeOpener(open, tag.name);
@@ -233,7 +247,7 @@ function inventedTags(translatedTags: readonly InlineTag[]): string[] {
       }
     }
   }
-  invented.push(...tokensOf(open));
+  invented.push(...tokensOf(remainingOpeners(open)));
   return invented;
 }
 
@@ -353,12 +367,10 @@ export function compareInlineMarkup(
     return MATCHED;
   }
   const source = scanMarkup(sourceValue);
-  if (countScannedItems(source) > MAX_MARKUP_ITEMS) {
-    return MATCHED;
-  }
   const translated = scanMarkup(translatedValue);
-  if (countScannedItems(translated) > MAX_MARKUP_ITEMS) {
-    return TAG_LIMIT_EXCEEDED;
+  const limit = Math.max(MAX_MARKUP_ITEMS, 2 * countScannedItems(source));
+  if (countScannedItems(translated) > limit) {
+    return { matches: false, missing: [], extra: [], malformed: false, tagLimitExceeded: limit };
   }
   const ignored = collectIgnoredTags(options.ignoreTags ?? []);
   const reading = readingFindings(sourceValue === translatedValue, source, translated);
