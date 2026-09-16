@@ -23,6 +23,7 @@ export interface TmxSkippedUnit {
 export interface TmxUnit {
   readonly ordinal: number;
   readonly markupStripped: boolean;
+  readonly subflowDropped: boolean;
   readonly segments: readonly TmxSegment[];
 }
 
@@ -42,6 +43,12 @@ export interface ReadTmxOptions {
 }
 
 const ELEMENT_NODE = 1;
+
+const TEXT_NODE = 3;
+
+const CDATA_SECTION_NODE = 4;
+
+const SUBFLOW_ELEMENT = "sub";
 
 const ENTITY_DECLARATION = /<!ENTITY/i;
 
@@ -258,14 +265,52 @@ function assertUnitCount(count: number, limits: TmxLimits, tu: Element): void {
   }
 }
 
+interface SegmentText {
+  readonly text: string;
+  readonly subflowDropped: boolean;
+}
+
+function pushChildrenInOrder(pending: Node[], parent: Node): void {
+  const children = parent.childNodes;
+  for (let index = children.length - 1; index >= 0; index -= 1) {
+    const child = children.item(index);
+    if (child !== null) {
+      pending.push(child);
+    }
+  }
+}
+
+function segmentText(seg: Element): SegmentText {
+  const parts: string[] = [];
+  let subflowDropped = false;
+  const pending: Node[] = [];
+  pushChildrenInOrder(pending, seg);
+  for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
+    if (node.nodeType === TEXT_NODE || node.nodeType === CDATA_SECTION_NODE) {
+      parts.push(node.nodeValue ?? "");
+    } else if (isElement(node) && node.localName === SUBFLOW_ELEMENT) {
+      subflowDropped = true;
+    } else if (isElement(node)) {
+      pushChildrenInOrder(pending, node);
+    }
+  }
+  return { text: parts.join(""), subflowDropped };
+}
+
 type UnitScan =
-  | { readonly kind: "unit"; readonly segments: TmxSegment[]; readonly markupStripped: boolean }
+  | {
+      readonly kind: "unit";
+      readonly segments: TmxSegment[];
+      readonly markupStripped: boolean;
+      readonly subflowDropped: boolean;
+    }
   | { readonly kind: "skip"; readonly reason: TmxSkipReason };
 
 function scanUnit(tu: Element, ordinal: number, limits: TmxLimits): UnitScan {
   const segments: TmxSegment[] = [];
   const seen = new Set<string>();
   let markupStripped = false;
+  let subflowDropped = false;
   for (const tuv of childrenNamed(tu, "tuv")) {
     const language = segmentLanguage(tuv);
     if (language === undefined) {
@@ -282,17 +327,18 @@ function scanUnit(tu: Element, ordinal: number, limits: TmxLimits): UnitScan {
     if (segs.length > 1) {
       return { kind: "skip", reason: "multiple-segments" };
     }
-    const text = seg.textContent ?? "";
+    const { text, subflowDropped: dropped } = segmentText(seg);
     assertSegmentLength(text, limits, elementLocation(seg, ordinal));
     assertSegmentCharacters(text, elementLocation(seg, ordinal));
     markupStripped = markupStripped || elementChildren(seg).length > 0;
+    subflowDropped = subflowDropped || dropped;
     seen.add(language);
     segments.push({ language, text });
     assertLanguageCount(segments.length, limits, elementLocation(tuv, ordinal));
   }
   return segments.length === 0
     ? { kind: "skip", reason: "no-segment" }
-    : { kind: "unit", segments, markupStripped };
+    : { kind: "unit", segments, markupStripped, subflowDropped };
 }
 
 function unreachableUnitCount(root: Element, walked: number): number {
@@ -315,7 +361,12 @@ export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument
       skipped.push({ ordinal, reason: scan.reason });
       continue;
     }
-    units.push({ ordinal, markupStripped: scan.markupStripped, segments: scan.segments });
+    units.push({
+      ordinal,
+      markupStripped: scan.markupStripped,
+      subflowDropped: scan.subflowDropped,
+      segments: scan.segments,
+    });
   }
   return {
     sourceLanguage: headerSourceLanguage(root),

@@ -58,6 +58,7 @@ describe("readTmx reads plain-text translation units", () => {
       {
         ordinal: 1,
         markupStripped: false,
+        subflowDropped: false,
         segments: [
           { language: "en", text: "Hello" },
           { language: "de", text: "Hallo" },
@@ -66,6 +67,7 @@ describe("readTmx reads plain-text translation units", () => {
       {
         ordinal: 2,
         markupStripped: false,
+        subflowDropped: false,
         segments: [
           { language: "en", text: "Goodbye" },
           { language: "de", text: "Auf Wiedersehen" },
@@ -136,6 +138,40 @@ describe("readTmx reads plain-text translation units", () => {
 
     expect(document.units[0]?.segments[0]?.text).toBe("Hello <b>world</b>");
     expect(document.units[0]?.markupStripped).toBe(true);
+  });
+
+  it("leaves a sub element's text out of the segment and flags the unit", () => {
+    const document = readTmx(
+      tmx(
+        '  <tu>\n    <tuv xml:lang="en"><seg>Open <ph>&lt;a title="<sub>A tooltip</sub>"&gt;</ph>the link</seg></tuv>\n  </tu>',
+      ),
+    );
+
+    expect(document.units[0]?.segments[0]?.text).toBe('Open <a title="">the link');
+    expect(document.units[0]?.markupStripped).toBe(true);
+    expect(document.units[0]?.subflowDropped).toBe(true);
+  });
+
+  it("leaves out every level of a sub element nested inside another's markup", () => {
+    const document = readTmx(
+      tmx(
+        '  <tu>\n    <tuv xml:lang="en"><seg>a<bpt i="1">[<sub>b<ph>c<sub>d</sub></ph>e</sub>]</bpt>f</seg></tuv>\n  </tu>',
+      ),
+    );
+
+    expect(document.units[0]?.segments[0]?.text).toBe("a[]f");
+    expect(document.units[0]?.subflowDropped).toBe(true);
+  });
+
+  it("does not flag a unit whose markup carries no sub element", () => {
+    const document = readTmx(
+      tmx(
+        '  <tu>\n    <tuv xml:lang="en"><seg>Hello <ph><![CDATA[<br/>]]></ph>world<!-- note --></seg></tuv>\n  </tu>',
+      ),
+    );
+
+    expect(document.units[0]?.segments[0]?.text).toBe("Hello <br/>world");
+    expect(document.units[0]?.subflowDropped).toBe(false);
   });
 
   it("skips and counts a unit whose tuv carries no seg", () => {

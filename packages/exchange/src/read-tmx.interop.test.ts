@@ -104,12 +104,14 @@ describe("a TMX file with placeholders in inline markup, a wildcard source langu
     expect(document.units[0]?.markupStripped).toBe(true);
   });
 
-  it("flattens nested inline markup including a sub element", () => {
+  it("flattens nested inline markup but leaves a sub element's text out, and flags it", () => {
     expect(document.units[1]?.segments).toEqual([
-      { language: "en", text: 'Click <a href="/x">heretooltip text</a> now' },
-      { language: "de", text: 'Klicke <a href="/x">hierTooltip-Text</a> jetzt' },
+      { language: "en", text: 'Click <a href="/x">here</a> now' },
+      { language: "de", text: 'Klicke <a href="/x">hier</a> jetzt' },
     ]);
     expect(document.units[1]?.markupStripped).toBe(true);
+    expect(document.units[1]?.subflowDropped).toBe(true);
+    expect(document.units[0]?.subflowDropped).toBe(false);
   });
 
   it("refuses a sentence-segmented unit rather than silently keeping only its first segment", () => {
