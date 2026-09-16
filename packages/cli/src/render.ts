@@ -1,22 +1,24 @@
-import type {
-  CheckSummary,
-  DiffSummary,
-  DoctorCheckStatus,
-  DoctorResult,
-  EstimateCaveatCode,
-  ExportWorkbookResult,
-  ExtractResult,
-  FuzzyCacheHit,
-  LocaleDiff,
-  LocaleSummary,
-  LockWaitEvent,
-  ProgressEvent,
-  PseudolocalizeResult,
-  RunBudget,
-  RunEstimate,
-  RunSummary,
-  UsageSummary,
-  WatchRunResult,
+import {
+  type BudgetStanding,
+  budgetStanding,
+  type CheckSummary,
+  type DiffSummary,
+  type DoctorCheckStatus,
+  type DoctorResult,
+  type EstimateCaveatCode,
+  type ExportWorkbookResult,
+  type ExtractResult,
+  type FuzzyCacheHit,
+  type LocaleDiff,
+  type LocaleSummary,
+  type LockWaitEvent,
+  type ProgressEvent,
+  type PseudolocalizeResult,
+  type RunBudget,
+  type RunEstimate,
+  type RunSummary,
+  type UsageSummary,
+  type WatchRunResult,
 } from "@verbatra/sdk";
 
 export interface RenderableError {
@@ -50,17 +52,14 @@ function renderTokens(usage: UsageSummary): string {
   return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
 }
 
-function budgetStatus(budget: RunBudget): string {
-  if (!budget.exceeded) {
-    return "within budget";
-  }
-  return budget.behavior === "stop" && budget.tokensUsed < budget.maxTokens
-    ? "stopped before the ceiling"
-    : "exceeded";
-}
+const BUDGET_STATUS: Record<BudgetStanding, string> = {
+  within: "within budget",
+  "stopped-before-ceiling": "stopped before the ceiling",
+  reached: "exceeded",
+};
 
 function renderBudgetLine(budget: RunBudget): string {
-  const status = budgetStatus(budget);
+  const status = BUDGET_STATUS[budgetStanding(budget)];
   const counted = `${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior})`;
   const line = `  budget: ${counted}, ${status}`;
   return budget.supported || budget.tokensUsed === 0
