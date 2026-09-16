@@ -210,6 +210,26 @@ describe("generateTypes: an ICU message whose branches use different arguments",
   });
 });
 
+describe("generateTypes: counting the keys that take arguments", () => {
+  it("counts only keys with a determined argument, and reports undetermined ones apart", async () => {
+    const dir = await seed({
+      plain: "Verbatra",
+      good: "Hello {name}",
+      broken: "Hello {name",
+      boom: "Value {3000000} here",
+    });
+
+    const result = await generateTypes({
+      config: baseConfig({ format: "next-intl-json" }),
+      cwd: dir,
+    });
+
+    expect(result.keys).toBe(4);
+    expect(result.withArguments).toBe(1);
+    expect(result.unresolved.map((entry) => entry.key)).toEqual(["broken", "boom"]);
+  });
+});
+
 describe("generateTypes: a catalog value that tries to size the output", () => {
   const vueConfig = { format: "vue-i18n-json" } as const;
 

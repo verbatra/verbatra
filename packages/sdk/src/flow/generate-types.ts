@@ -70,7 +70,10 @@ export interface GenerateTypesResult {
   readonly sourcePath: string;
   /** How many keys the declaration carries. */
   readonly keys: number;
-  /** How many of those keys take at least one argument. */
+  /**
+   * How many of those keys take at least one argument verbatra could determine. A key listed in
+   * {@link GenerateTypesResult.unresolved} is not counted here.
+   */
   readonly withArguments: number;
   /** Keys that are declared but whose arguments could not be determined, and why. */
   readonly unresolved: readonly UnresolvedMessage[];
@@ -164,6 +167,10 @@ function declareMessage(
     ? ({ style: "unresolved", reason: "invalid-message-syntax" } as const)
     : argumentsOf(entry, format);
   return { key, arguments: argumentsTaken, isPlural: entry.isPlural };
+}
+
+function takesKnownArguments(message: DeclaredMessage): boolean {
+  return message.arguments.style === "named" || message.arguments.style === "positional";
 }
 
 function toPosix(path: string): string {
@@ -275,7 +282,7 @@ export async function generateTypes(
     path: outputPath,
     sourcePath,
     keys: messages.length,
-    withArguments: messages.filter((message) => message.arguments.style !== "none").length,
+    withArguments: messages.filter(takesKnownArguments).length,
     unresolved: unresolvedMessages(messages),
     excluded: read.excludedLeafPaths,
     plural: messages.filter((message) => message.isPlural).map((message) => message.key),
