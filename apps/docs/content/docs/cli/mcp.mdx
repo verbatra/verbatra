@@ -76,7 +76,7 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 | `lock.state` | the lock file's version and per-locale baseline size | yes | no |
 | `key.integrity` | one key's placeholder, inline markup, and ICU drift against the lock baseline, per locale (only checks keys whose source changed since the baseline; an empty `entries` array means checked and unchanged) | yes | no |
 | `key.value` | one key's current source and target text | yes | no |
-| `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder and ICU integrity | no | no |
+| `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder, inline markup, and ICU integrity | no | no |
 | `translation.retranslateEntry` | ask the configured provider to retranslate one key in one locale | no | yes |
 | `translation.translatePending` | translate every missing or stale key across every target locale | no | yes |
 | `review.queue` | keys the last run flagged for human review, and why | yes | no |
