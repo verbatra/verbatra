@@ -45,6 +45,10 @@ keys can match without being byte-identical. That is exactly why the gate is re-
   fabrication under any interpolation convention, which is what makes it safe to refuse without
   knowing the project's delimiters. The check runs in that one direction only, so a candidate that
   drops or changes the surrounding literal text is left alone.
+- Inline markup parity: the translated value must carry the same inline HTML or XML tags as its
+  source, and must carry them well formed. A dropped, invented, renamed, or unbalanced tag breaks
+  the rendering of a string the way a dropped placeholder breaks its interpolation, so it is
+  refused the same way. See [Inline markup parity](#inline-markup-parity) below.
 - Degeneracy: the value must not be structurally degenerate, such as a repetition loop or a length
   that has run away from the source. This catches a model that collapsed into repeating a fragment
   even when every placeholder survived.
@@ -60,6 +64,137 @@ provider failure, not an integrity mismatch. Both retry the same way.
 
 On the source side, a source key whose own value is invalid ICU is set aside before translation
 and reported, instead of being sent to the provider in a broken state.
+
+### Inline markup parity
+
+<AvailableFrom version="0.11.0" />
+
+Rich text reaches a translatable string as inline markup: a `<b>` around part of an i18next `Trans`
+block, an escaped `&lt;b&gt;` inside an Android `<string>`, an `<a href>` in a gettext catalog. None
+of that is a placeholder, so before this nothing compared it.
+
+Tags are compared as a multiset of tag names plus attribute names, which is what decides whether
+something is a finding:
+
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names, markup
+  that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back
+  nested inside another of the same name when the source had them as siblings, which is how two
+  links silently become one.
+- Accepted: the same tags in a different order, because translating a sentence moves its markup
+  around, a changed attribute value, because a translated `title` or a localized `href` is a correct
+  translation rather than a broken one (within the limits on URL, `srcdoc` and event handler values
+  described below), and either spelling of a void element, so `<br>` and `<br/>` are one tag.
+- Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
+  `<b>a b</b>`) is refused, because the comparison cannot tell a cosmetic merge from two links
+  collapsing into one.
+- Compared exactly, so a case change is a finding. The HTML void elements (`<br>`, `<img>`, `<hr>`
+  and the rest) need no closing tag in any letter case, so `<BR>` is recognised as one just like
+  `<br>`.
+- Refused when an attribute name is added or removed, which includes adding a `dir` attribute for a
+  right-to-left target. Attribute values are free apart from those limits; the set of names is not.
+
+A source with no markup at all is still protected against markup invented into it. The candidate is
+refused for any tag pair, void element or self-closing tag it adds, for a closing tag with no
+opening tag (`Hallo</div>`), and for an unclosed opening tag that carries anything beyond its name,
+such as `<Enter onfocus=...>` or `<x-key onmouseover=...>`.
+
+An unclosed `<Word>` with nothing but its name, where the name is only letters, digits, hyphens and
+underscores, is a bracketed word, such as `<Enter>` in `Druecke <Enter>`. Bracketed words are set
+aside on both sides before the source is judged, so a source that carries one is still compared: a
+candidate that drops a `<b>` pair beside `<Enter>`, or invents a `<script>` pair beside it, is
+refused. Once the source carries tags, bracketed words are counted like tags. Where it carries none,
+a bracketed word the candidate adds is read as prose and accepted, unless its name, in any letter
+case, is a standard HTML element (`Hallo <script>`), is `image`, which a parser turns into an
+`<img>`, or contains a hyphen, which makes it a custom element (`Hallo <my-widget>`).
+
+That name test is deliberately cautious, so an ordinary word that happens to be an element name,
+such as `<Del>`, `<Option>`, `<Select>`, `<Input>` or `<Menu>`, is refused when a translation adds
+it to a source that does not have it. The workaround is to keep the bracketed word in your source
+string too: a translation that carries the same bracketed words as its source is accepted.
+
+Comments, CDATA sections, declarations and processing instructions are not tags, and they are read
+the way an HTML parser reads them, because that is where the values end up. `<!-->` and `<!--->` are
+complete empty comments, a comment ends at the first `-->` or `--!>`, and a comment with no end
+hides the rest of the value. `<![CDATA[`, `<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</`
+followed by anything but a letter, such as `</1 x>`, all end at the first `>`, while an empty `</>`
+is dropped, as a parser drops it, and a numeric closing tag such as `</0>` is compared as a tag.
+Each such construct is compared as a multiset of its text with runs of whitespace collapsed, so one
+the candidate adds, drops or rewrites is refused, including a comment whose text was translated.
+Tags after a construct's end are compared as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>`
+is refused for both the construct and the `<img>`.
+
+The content of a raw text element is text too, because that is how a parser reads it. After an
+opening `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes`
+tag, everything up to its closing tag, in any letter case and followed by whitespace, `/` or `>`, is
+text, and everything after `<plaintext>` is text to the end of the value. A tag written inside such
+an element is not compared, and a quoted attribute value cannot reach across the closing tag to hide
+what follows: `Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`.
+Where a parser can read that content two ways, the candidate is refused unless it is the source
+unchanged, with a detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`,
+a `noscript` whose content holds a `<`, since whether scripting is enabled decides how it is read,
+and any raw text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it
+may not be raw text at all. For the same reason, a CDATA section or an `image` tag in a value where
+the source or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the
+source unchanged.
+
+The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
+`plaintext` element runs or styles the page instead of being shown, so it is never translated: each
+such element in the candidate must carry exactly the content of the element in the same position
+among those of its name in the source, or the candidate is refused with a detail such as
+`+<script> content`. `title` and `textarea` content is shown as text and may be translated. This
+makes prose that literally contains one of those tags untranslatable, because in
+`Add a <script> tag` everything after `<script>` is its content: `Füge ein <script> Tag` is refused.
+Escape the tag in the source instead, as `Add a &lt;script&gt; tag`, which is text in every format
+and translates like any other word.
+
+The check is deliberately quiet, but it reads tags the way an HTML parser does. A tag starts at `<`
+or `</` followed by a letter or, for a numeric rich-text tag such as `<0>`, by digits. Its name runs
+to whitespace, `/` or `>`, and a quoted attribute value may contain `>`. So `5 < 10`, `x <= y` and
+an escaped `&lt;b&gt;` stay ordinary text, while `<support@example.com>` and `<abbr title="a > b">`
+are tags, and a `<` that never reaches its `>` renders nothing and is not a tag. A candidate that
+leaves a tag unfinished that way is still refused when its source finishes every tag, with a detail
+naming the unfinished start, such as `+<a`. A source whose own tags are malformed is compared all
+the same. After setting aside the tags the format reports as placeholders and any bracketed words, a
+source counts as malformed when it has an opening tag that is never closed (void elements excepted),
+a closing tag with no opening tag, or tags closed in the wrong order. Prose can trip this by
+accident: in `a<b and c>d`, the run `<b and c>` is an opening `b` tag with the attributes `and` and
+`c` that is never closed, so the source counts as malformed. For such a source only the nesting
+check is skipped: its tags are compared as a multiset like any other, so a translation that keeps
+`a<b and c>d` exactly is accepted, one that adds an `<img>` beside it is refused, and so is one that
+translates the words inside the run (`a<b und c>d`), because a parser reads `und` as a new
+attribute. No source is too large to compare either. A candidate is refused only once it carries
+more than twice as many tags and constructs as its source, or more than 256 for a smaller source,
+with the detail `+more than N inline tags` naming that limit.
+
+Attribute values are free with three exceptions, which exist because a translated value ends up in a
+page. The value of a URL attribute (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
+`data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive`, and
+the SVG animation attributes `to`, `from`, `values` and `by`) is read after decoding numeric
+character references and `&colon;`, `&Tab;` and `&NewLine;` and ignoring tabs, line breaks and
+leading control characters, and a `javascript:`, `vbscript:` or `data:` scheme in it is refused
+unless the source carries that exact value on the same tag and attribute, with a detail such as
+`+<a href="javascript:...">`. A `srcdoc` value and an event handler value such as `onclick` that the
+source carries must come back byte for byte. A localized `href="/de/docs"` is accepted as before.
+
+Two format-shaped limits follow from comparing whole values. For a format that packs several plural
+arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language
+needs repeats the source's markup and is refused. The same happens for an ICU-style plural
+(`{count, plural, one {...} other {...}}`) in a format that stores it as plain text rather than
+parsing it as ICU (i18next, ngx-translate and YAML): a translation with a different number of arms
+than the source repeats or drops the markup inside them and is refused. In both cases the value is
+withheld and the previous translation stays, so nothing is lost, but the arms have to be added
+without also multiplying the markup.
+
+The check also stands down per tag. A tag the format already reports as a placeholder (an XLIFF
+inline element, a next-intl or ARB ICU rich-text tag) is left to the placeholder check, together
+with as many closing tags as it has openings, and is never reported twice. An opening tag of that
+kind that the candidate leaves unclosed is still refused, named by the closing tag it is missing,
+such as `-</g>`. So is one whose nesting with the other tags no longer matches the source, such as a
+`<b>` that comes back crossing the `<g>` it sat inside, and one the source carries only as text,
+inside a comment or a raw text element, because moving it out would create the element. Every other
+tag in the same value is still compared, including a surplus closing tag such as a second `</g>`. A
+refusal names the tags behind it, each prefixed with `-` for one the source had and the candidate
+dropped or `+` for one the candidate invented.
 
 ## Review flags
 

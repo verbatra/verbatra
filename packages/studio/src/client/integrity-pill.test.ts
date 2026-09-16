@@ -9,6 +9,8 @@ function entry(overrides: Partial<KeyIntegrityLocaleEntry> = {}): KeyIntegrityLo
     missing: [],
     extra: [],
     icuValid: true,
+    markupMatches: true,
+    markupDetails: [],
     ...overrides,
   };
 }
@@ -123,5 +125,32 @@ describe("deriveIntegrityPillView", () => {
       label: "Placeholders match",
       detail: null,
     });
+  });
+});
+
+describe("deriveIntegrityPillView: inline markup already on disk", () => {
+  it("renders danger with the tags behind the mismatch", () => {
+    expect(
+      deriveIntegrityPillView(
+        [entry({ markupMatches: false, markupDetails: ["-</b>", "-<b>"] })],
+        "de",
+      ),
+    ).toEqual({ tone: "danger", label: "Inline markup mismatch", detail: "-</b> -<b>" });
+  });
+
+  it("renders danger with no detail when no single tag is at fault", () => {
+    expect(deriveIntegrityPillView([entry({ markupMatches: false })], "de")).toEqual({
+      tone: "danger",
+      label: "Inline markup mismatch",
+      detail: null,
+    });
+  });
+
+  it("keeps reporting a placeholder mismatch ahead of a markup one", () => {
+    const view = deriveIntegrityPillView(
+      [entry({ matches: false, missing: ["{{name}}"], markupMatches: false })],
+      "de",
+    );
+    expect(view?.label).toBe("Placeholder mismatch");
   });
 });

@@ -14,6 +14,8 @@ const keyIntegrityEntrySchema = z.strictObject({
   missing: z.array(z.string()).readonly(),
   extra: z.array(z.string()).readonly(),
   icuValid: z.boolean(),
+  markupMatches: z.boolean(),
+  markupDetails: z.array(z.string()).readonly(),
 });
 
 const keyIntegrityLocaleSchema = z.strictObject({
@@ -34,6 +36,8 @@ function toKeyIntegrityEntry(entry: KeyIntegrityEntry): z.infer<typeof keyIntegr
     missing: entry.missing,
     extra: entry.extra,
     icuValid: entry.icuValid,
+    markupMatches: entry.markupMatches,
+    markupDetails: entry.markupDetails,
   };
 }
 
@@ -67,13 +71,13 @@ async function checkKeyIntegrity(
 export const keyIntegrityTool = defineTool({
   name: "key.integrity",
   description:
-    "Report one key's placeholder and ICU drift against the lock-file baseline, per target " +
-    "locale. This only checks keys whose source text has changed since the baseline was last " +
-    "recorded for them; it is not a general correctness check. A row is returned for every " +
-    "locale in scope, but its entries array is empty when the key has no baseline entry yet or " +
-    "its source text already matches the baseline: an empty entries array means the locale was " +
-    "checked and found unchanged, not that the translation was verified as correct. Pass " +
-    "locales to narrow the check to a subset of configured target locales; omit it to check " +
+    "Report one key's placeholder, inline markup, and ICU drift against the lock-file baseline, " +
+    "per target locale. This only checks keys whose source text has changed since the baseline " +
+    "was last recorded for them; it is not a general correctness check. A row is returned for " +
+    "every locale in scope, but its entries array is empty when the key has no baseline entry " +
+    "yet or its source text already matches the baseline: an empty entries array means the " +
+    "locale was checked and found unchanged, not that the translation was verified as correct. " +
+    "Pass locales to narrow the check to a subset of configured target locales; omit it to check " +
     "every configured target locale. Read-only, calls no provider.",
   paramsSchema,
   outputSchema: keyIntegrityResultSchema,

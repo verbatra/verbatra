@@ -240,6 +240,42 @@ projection, cet écart arrive après coup. Plus rien n'est envoyé ensuite. Et l
 exécution : `watch` démarre un budget neuf par exécution, et retraduire une seule entrée depuis
 Studio ou depuis les outils d'agent n'est pas couvert du tout.
 
+## Une traduction est retenue à cause du balisage en ligne (discordance d'intégrité)
+
+**Symptôme** : une clé apparaît sous `integrityMismatches` dans le résumé d'exécution et conserve sa
+traduction précédente, ou le rapport d'intégrité par clé signale une discordance de balisage en
+ligne pour une traduction déjà présente sur le disque. Ce rapport est `markupMatches: false` de
+`keyIntegrity` dans le SDK, de l'outil `key.integrity` du serveur MCP et de l'indicateur par clé de
+Studio (`Inline markup mismatch`) ; `verbatra check` ne signale pas le balisage. Dans Studio, un
+retranslate ou une modification revient en `Rejected: inline markup mismatch`, suivi des balises en
+cause : `-<a href>` pour une que la source avait et que la candidate a perdue, `+<i>` pour une que
+la candidate a inventée.
+
+**Cause** : la candidate ne porte pas le HTML ou XML en ligne de la source, ou le porte déséquilibré
+ou mal imbriqué. Un modèle qui perd un `<a href>`, renomme `<b>` en `<strong>` ou ferme `<b>` avec
+`</i>` produit une chaîne qui s'affiche mal, donc la porte la refuse comme elle refuse un
+placeholder perdu. Voir [parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne)
+pour savoir exactement ce qui est comparé.
+
+**Solution** : relance la clé, ou corrige la valeur à la main dans Studio ou dans un classeur
+importé : la même porte juge les deux, donc une valeur saisie à la main avec des balises
+correspondantes et bien formées est acceptée. L'ordre des mots, les valeurs d'attribut et les deux
+graphies d'un élément vide (`<br>` et `<br/>`) ne sont jamais en cause, puisque rien de tout cela
+n'est comparé. Un refus qui ne nomme aucune balise est structurel : le balisage est revenu mal
+imbriqué, ou une balise que la source avait à côté d'une autre du même nom est revenue imbriquée
+dedans. Un refus qui nomme `+more than N inline tags` signifie que la candidate porte plus de deux
+fois plus de balises et de constructions que sa source, ou plus de 256 pour une source plus petite.
+Un détail comme `+<a href="javascript:...">` nomme un attribut d'URL qui a gagné un schéma exécutant
+du script, `+<noscript>...</noscript>` nomme du texte brut qu'un analyseur peut lire de deux façons
+et qu'une traduction doit garder exactement tel que la source l'a, et un détail sans chevron
+fermant, comme `+<a`, nomme une balise que la candidate n'a jamais achevée. Trois autres cas sont
+des refus voulus et non des bugs : fusionner deux paires adjacentes en une seule, changer la casse
+d'une balise, et ajouter ou retirer un nom d'attribut, y compris un attribut `dir` pour une cible
+écrite de droite à gauche. Laisse les balises telles que la source les a et place le changement là
+où la vérification ne regarde pas, par exemple dans une valeur d'attribut. Si c'est la valeur source
+qui porte le balisage cassé, corrige-la là : une source dont les propres balises sont malformées
+reste comparée balise par balise, donc chaque traduction doit répéter les mêmes balises cassées.
+
 ## Studio : le port est déjà utilisé
 
 **Symptôme** : `port 5849 is already in use` (ou ta valeur de `--port`).

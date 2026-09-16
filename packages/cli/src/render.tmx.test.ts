@@ -1,3 +1,4 @@
+import { INTEGRITY_GATE_REASONS } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { renderTmxExportHuman, renderTmxImportHuman } from "./render.js";
 import { makeExportTmxResult, makeImportTmxResult } from "./test-support.js";
@@ -93,7 +94,14 @@ describe("render: tmx import summary", () => {
             kept: 0,
             duplicates: 0,
             conflicting: 0,
-            rejected: { placeholder: 1, icu: 2, degenerate: 3, empty: 4, sourceBlank: 5 },
+            rejected: {
+              placeholder: 1,
+              markup: 6,
+              icu: 2,
+              degenerate: 3,
+              empty: 4,
+              sourceBlank: 5,
+            },
           },
         ],
       }),
@@ -104,6 +112,29 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("3 runaway output rather than a translation");
     expect(text).toContain("4 blank translation of a source that has text");
     expect(text).toContain("5 blank source segment");
+    expect(text).toContain("6 inline markup does not match the source");
+  });
+
+  it.each(INTEGRITY_GATE_REASONS)("prints a line for a %s rejection", (reason) => {
+    const none = { placeholder: 0, markup: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 };
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "de",
+            added: 0,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 0,
+            rejected: { ...none, [reason]: 7 },
+          },
+        ],
+      }),
+    );
+
+    expect(text).toMatch(/^ {6}7 \S/m);
   });
 
   it("names the units whose segments disagreed for a locale", () => {
@@ -118,7 +149,14 @@ describe("render: tmx import summary", () => {
             kept: 0,
             duplicates: 0,
             conflicting: 2,
-            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+            rejected: {
+              placeholder: 0,
+              markup: 0,
+              icu: 0,
+              degenerate: 0,
+              empty: 0,
+              sourceBlank: 0,
+            },
           },
         ],
       }),
@@ -141,7 +179,14 @@ describe("render: tmx import summary", () => {
             kept: 0,
             duplicates: 0,
             conflicting: 0,
-            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+            rejected: {
+              placeholder: 0,
+              markup: 0,
+              icu: 0,
+              degenerate: 0,
+              empty: 0,
+              sourceBlank: 0,
+            },
           },
         ],
       }),
@@ -162,7 +207,14 @@ describe("render: tmx import summary", () => {
             kept: 0,
             duplicates: 0,
             conflicting: 0,
-            rejected: { placeholder: 0, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+            rejected: {
+              placeholder: 0,
+              markup: 0,
+              icu: 0,
+              degenerate: 0,
+              empty: 0,
+              sourceBlank: 0,
+            },
           },
         ],
       }),

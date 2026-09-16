@@ -25,7 +25,7 @@ import { selectLocales } from "../select-locales.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
 /**
- * Why one translation unit in an imported TMX file was refused. The first four are the shared
+ * Why one translation unit in an imported TMX file was refused. The first five are the shared
  * integrity gate's own reasons, so an imported unit is held to exactly the standard a provider's
  * output and a filled translator handoff already face. `sourceBlank` is the one reason particular
  * to interchange: a unit whose source segment is blank identifies no string, so it could never be
@@ -189,6 +189,7 @@ export interface ImportTmxDeps {
 
 const NO_REJECTIONS: TmxRejectionCounts = {
   placeholder: 0,
+  markup: 0,
   icu: 0,
   degenerate: 0,
   empty: 0,
@@ -497,9 +498,10 @@ function additionsByLocale(
  * Nothing from the file is trusted. The XML is parsed under the interchange package's hardening
  * (entity declarations refused, size and unit bounds enforced), a language tag is resolved to a
  * configured locale by an explicit rule rather than guessed at, and every candidate translation
- * must pass the same placeholder, ICU, degeneracy and emptiness gate that a provider's output and a
- * filled translator handoff already face before it is stored. A unit that fails is counted, never
- * written, so it can never later be served as a cache hit that was never validated.
+ * must pass the same placeholder, inline markup, ICU, degeneracy and emptiness gate that a
+ * provider's output and a filled translator handoff already face before it is stored. A unit that
+ * fails is counted, never written, so it can never later be served as a cache hit that was never
+ * validated.
  *
  * Units are stored under the project's current configuration fingerprint, the same key a real run
  * writes. That is deliberate: an imported memory is reused exactly when the configuration that

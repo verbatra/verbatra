@@ -217,6 +217,34 @@ The fourteen formats above are the ones verbatra ships. A format it does not shi
 
 This is a programmatic path through `@verbatra/sdk`, not a command-line one: the `verbatra` binary loads no plugin of its own. An adapter you install is fully trusted code, at the trust level of any other dependency, and verbatra does not sandbox it. See [Custom format adapters](/docs/custom-format-adapters) for how to build one and for what you are trusting when you install one.
 
+## Inline markup in values
+
+<AvailableFrom version="0.11.0" />
+
+A value may carry inline HTML or XML of its own: `<b>` in an i18next `Trans` block or a gettext
+catalog, `<a href>` in a Vue I18n or ngx-translate message, an escaped `&lt;b&gt;` inside an
+Android `<string>`. This markup is not a placeholder in any of these formats, so the
+[markup parity check](/docs/translation-safety#inline-markup-parity) compares it separately and
+refuses a translation that drops, invents, renames or unbalances a tag.
+
+It applies to every format, and it stands down per tag rather than per value: a tag the adapter
+already reports as a placeholder is left to the placeholder check, while every other tag in the
+same value is still compared.
+
+- `xliff` extracts its inline placeholder elements (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
+  itself, so those are guarded by the placeholder check and never counted twice. Plain HTML that
+  XLIFF does not tokenise, such as a `<b>` pair, is still compared as markup, including when it
+  sits in the same value as an inline element.
+- `next-intl-json` and `arb` parse ICU rich-text tags, so a paired `<b>...</b>` is already a
+  placeholder for them, while a self-closing `<br/>` in the same value is not and is compared as
+  markup. An attribute-bearing tag is not valid ICU at all and these formats refuse it as invalid
+  message syntax, independently of markup parity.
+- `android-xml` values reach the check with their escaping decoded, so `&lt;b&gt;` on disk is
+  compared as `<b>`. A `<string>` holding live inline elements is read-through and never
+  translated at all, as described above.
+- Every other format has no markup concept of its own, so markup parity is the only check that
+  sees it.
+
 ## Why the format matters
 
 The format tells verbatra two things it needs for a safe run. First, the placeholder syntax, so the [placeholder integrity check](/docs/translation-safety) knows what to compare before and after translation. Second, for the ICU formats, which values to validate, so an invalid ICU source key is skipped rather than sent in a broken state. The wrong format compares the wrong tokens, so match it to your i18n library: `i18next-json` for i18next, `vue-i18n-json` for vue-i18n, `next-intl-json` for next-intl, `ngx-translate-json` for ngx-translate, `xliff` for XLIFF files, `yaml` for YAML-based i18n, `arb` for Flutter, `properties` for Java or Spring `.properties` files, `apple-strings` for Apple `.strings` files, `apple-xcstrings` for Xcode String Catalog `.xcstrings` files, `android-xml` for Android `strings.xml`, `gettext-po` for gettext `.po`/`.pot` catalogs, `ini` for INI configuration files, and `resx` for .NET resource files.

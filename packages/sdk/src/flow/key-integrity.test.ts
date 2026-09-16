@@ -68,6 +68,8 @@ describe("keyIntegrity", () => {
             missing: [],
             extra: [],
             icuValid: true,
+            markupMatches: true,
+            markupDetails: [],
           },
         ],
       },
@@ -89,6 +91,8 @@ describe("keyIntegrity", () => {
         missing: ["{{name}}"],
         extra: [],
         icuValid: true,
+        markupMatches: true,
+        markupDetails: [],
       },
     ]);
   });
@@ -108,6 +112,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: ["{{name}}"],
         icuValid: true,
+        markupMatches: true,
+        markupDetails: [],
       },
     ]);
   });
@@ -127,6 +133,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: [],
         icuValid: true,
+        markupMatches: true,
+        markupDetails: [],
       },
     ]);
   });
@@ -193,6 +201,8 @@ describe("keyIntegrity", () => {
         missing: [],
         extra: [],
         icuValid: false,
+        markupMatches: true,
+        markupDetails: [],
       },
     ]);
   });
@@ -288,6 +298,8 @@ describe("keyIntegrity", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          markupMatches: true,
+          markupDetails: [],
         },
       ]);
     } finally {
@@ -325,5 +337,70 @@ describe("keyIntegrity", () => {
     await expect(keyIntegrity({ config: cfg(), cwd: dir })).rejects.toMatchObject({
       code: "LOCK_FILE_INVALID",
     });
+  });
+});
+
+describe("keyIntegrity: inline markup already on disk", () => {
+  async function markupProject(
+    sourceValue: string,
+    targetValue: string,
+    key = "docs",
+  ): Promise<string> {
+    const dir = await project({ [key]: sourceValue }, { de: { [key]: targetValue } });
+    await withBaseline(dir, "de", { [key]: `${sourceValue} (earlier)` });
+    return dir;
+  }
+
+  it("reports a translation that dropped a tag pair, naming the tags", async () => {
+    const dir = await markupProject('Read <a href="/docs">the docs</a>', "Lies die Doku");
+
+    const [locale] = await keyIntegrity({ config: cfg(), cwd: dir });
+
+    expect(locale?.entries[0]).toMatchObject({
+      key: "docs",
+      matches: true,
+      icuValid: true,
+      markupMatches: false,
+      markupDetails: ["-</a>", "-<a href>"],
+    });
+  });
+
+  it("reports a translation whose markup came back mis-nested, with no tag to name", async () => {
+    const dir = await markupProject("<b>a</b><i>b</i>", "<b>a<i>b</b></i>", "rich");
+
+    const [locale] = await keyIntegrity({ config: cfg(), cwd: dir });
+
+    expect(locale?.entries[0]).toMatchObject({ markupMatches: false, markupDetails: [] });
+  });
+
+  it("reports a faithful translation as matching", async () => {
+    const dir = await markupProject(
+      'Read <a href="/docs">the docs</a>',
+      '<a href="/de/doku">Lies die Doku</a>',
+    );
+
+    const [locale] = await keyIntegrity({ config: cfg(), cwd: dir });
+
+    expect(locale?.entries[0]).toMatchObject({ markupMatches: true, markupDetails: [] });
+  });
+
+  it("leaves a tag the format reports as a placeholder to the placeholder verdict", async () => {
+    const dir = await markupProject("Read <b>the docs</b>", "Lies die Doku", "rich");
+
+    const [locale] = await keyIntegrity({ config: cfg({ format: "next-intl-json" }), cwd: dir });
+
+    expect(locale?.entries[0]).toMatchObject({
+      matches: false,
+      missing: ["<b>"],
+      markupMatches: true,
+    });
+  });
+
+  it("does not flag prose that merely contains a less-than sign", async () => {
+    const dir = await markupProject("Wait < 5 minutes", "Warte < 5 Minuten", "wait");
+
+    const [locale] = await keyIntegrity({ config: cfg(), cwd: dir });
+
+    expect(locale?.entries[0]).toMatchObject({ markupMatches: true });
   });
 });

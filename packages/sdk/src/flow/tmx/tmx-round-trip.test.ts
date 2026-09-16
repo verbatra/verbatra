@@ -64,6 +64,7 @@ describe("a memory survives being exported to TMX and imported back", () => {
 
     expect(result.locales[0]?.rejected).toEqual({
       placeholder: 0,
+      markup: 0,
       icu: 0,
       degenerate: 0,
       empty: 0,

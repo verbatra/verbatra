@@ -1,4 +1,4 @@
-import { editEntry } from "@verbatra/sdk";
+import { editEntry, INTEGRITY_GATE_REASONS } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -9,12 +9,13 @@ const paramsSchema = z.strictObject({
   value: z.string().max(20_000),
 });
 
-const integrityGateReasonSchema = z.enum(["placeholder", "icu", "degenerate", "empty"]);
+const integrityGateReasonSchema = z.enum(INTEGRITY_GATE_REASONS);
 
 const editEntryResultSchema = z.object({
   accepted: z.boolean(),
   value: z.string(),
   reason: integrityGateReasonSchema.optional(),
+  details: z.array(z.string()).readonly().optional(),
 });
 
 type EditEntryResult = z.infer<typeof editEntryResultSchema>;

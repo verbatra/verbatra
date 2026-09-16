@@ -248,6 +248,43 @@ nichts weiter gesendet. Und die Obergrenze begrenzt einen Lauf: `watch` startet 
 frisches Budget, und das Neuübersetzen eines einzelnen Eintrags aus Studio oder den Agent-Tools
 fällt gar nicht darunter.
 
+## Eine Übersetzung wird wegen Inline-Markup zurückgehalten (Integritätsabweichung)
+
+**Symptom**: Ein Key taucht in der Laufzusammenfassung unter `integrityMismatches` auf und behält
+seine bisherige Übersetzung, oder der Integritätsbericht pro Key meldet eine
+Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. Dieser Bericht ist
+`markupMatches: false` aus `keyIntegrity` im SDK, aus dem Tool `key.integrity` des MCP-Servers und
+aus der Key-Anzeige in Studio (`Inline markup mismatch`); `verbatra check` meldet kein Markup. In
+Studio kommt ein Retranslate oder eine Bearbeitung als `Rejected: inline markup mismatch` zurück,
+gefolgt von den betroffenen Tags: `-<a href>` für eines, das die Quelle hatte und der Kandidat
+weggelassen hat, `+<i>` für eines, das der Kandidat erfunden hat.
+
+**Ursache**: Der Kandidat trägt nicht das Inline-HTML bzw. -XML der Quelle oder trägt es
+unausgeglichen oder falsch verschachtelt. Ein Modell, das ein `<a href>` weglässt, `<b>` in
+`<strong>` umbenennt oder `<b>` mit `</i>` schließt, erzeugt einen String, der falsch dargestellt
+wird, deshalb lehnt die Prüfung ihn genauso ab wie einen weggelassenen Platzhalter. Was genau
+verglichen wird, steht unter [Markup-Parität](/docs/translation-safety#inline-markup-parität).
+
+**Lösung**: Lass den Key erneut laufen oder korrigiere den Wert von Hand in Studio oder in einer
+importierten Arbeitsmappe: Dieselbe Prüfung beurteilt beides, ein handgetippter Wert mit passenden,
+wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die beiden Schreibweisen
+eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon wird verglichen.
+Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch verschachtelt zurück,
+oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin verschachtelt zurück.
+Eine Ablehnung mit `+more than N inline tags` bedeutet, dass der Kandidat mehr als doppelt so viele
+Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256. Ein Detail wie
+`+<a href="javascript:...">` nennt ein URL-Attribut, das ein skriptausführendes Schema bekommen hat,
+`+<noscript>...</noscript>` nennt Raw Text, den ein Parser auf zwei Arten lesen kann und den eine
+Übersetzung genau so beibehalten muss, wie die Quelle ihn hat, und ein Detail ohne schließende
+Klammer, etwa `+<a`, nennt ein Tag, das der Kandidat nie vollendet hat. Drei weitere Fälle sind
+gewollte Ablehnungen und keine Fehler: zwei benachbarte Paare zu einem verschmelzen, die Groß- und
+Kleinschreibung eines Tags ändern und einen Attributnamen ergänzen oder entfernen, einschließlich
+eines `dir`-Attributs für ein rechtsläufiges Ziel. Lass die Tags so, wie die Quelle sie hat, und
+bring die Änderung dort unter, wo die Prüfung nicht hinsieht, etwa in einem Attributwert. Liegt das
+kaputte Markup im Quellwert, korrigiere es dort: Eine Quelle, deren eigene Tags fehlerhaft sind,
+wird trotzdem Tag für Tag verglichen, jede Übersetzung muss also dieselben kaputten Tags
+wiederholen.
+
 ## Studio: Der Port ist schon belegt
 
 **Symptom**: `port 5849 is already in use` (oder dein `--port`-Wert).

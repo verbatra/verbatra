@@ -293,11 +293,15 @@ Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
 
 ### keyIntegrity
 
-Informa, para las claves modificadas de cada locale, de si el valor de destino actual sigue coincidiendo
-con los marcadores de posición del origen y de si es ICU válido. Cada entrada lleva `key`,
-`hasPlaceholders`, `matches`, los tokens de marcador `missing` y `extra` en una discrepancia, e
-`icuValid`. Las entradas nunca llevan un valor de cadena de origen o destino. Este es el informe de
-integridad por clave que muestra Studio.
+Informa, para las claves modificadas de cada locale, de si el valor de destino actual sigue
+coincidiendo con los marcadores de posición del origen, de si sigue llevando el marcado en línea del
+origen y de si es ICU válido. Cada entrada lleva `key`, `hasPlaceholders`, `matches`, los tokens de
+marcador `missing` y `extra` en una discrepancia, `icuValid`, `markupMatches` y `markupDetails` con
+las etiquetas causantes de una discordancia de marcado. Las entradas nunca llevan un valor de cadena
+de origen o destino. Informar del marcado aquí es lo que hace visible la deriva anterior a la puerta
+de escritura: una traducción escrita antes de que existiera la comprobación, editada fuera de
+verbatra o producida por una ruta que nunca pasó por la puerta se juzga aquí con la misma regla.
+Este es el informe de integridad por clave que muestra Studio.
 
 Entrada: `{ config, cwd?, locales?, keys? }`. `keys` acota la comprobación; solo se comprueban las
 claves que están "modificadas" para un locale. Devuelve un `LocaleKeyIntegrity` por locale comprobado.
@@ -362,10 +366,13 @@ del bloqueo de escritura del locale. Nunca llama a un proveedor.
 
 Entrada: `{ config, cwd?, locale, key, value }`. Devuelve un resultado de dos ramas:
 `{ accepted: true, value }`, o
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }` sin escribir
-nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto: una
-edición no puede expresar el vaciado de una clave, así que usa para eso el centinela `[[CLEAR]]` del
-libro.
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
+escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto:
+una edición no puede expresar el vaciado de una clave, así que usa para eso el centinela `[[CLEAR]]`
+del libro. El conjunto de motivos se publica como la tupla `INTEGRITY_GATE_REASONS`, así que
+construye cualquier esquema en tiempo de ejecución o tabla exhaustiva a partir de ella en lugar de
+reescribir sus miembros. Un rechazo `markup` lleva además `details`, las etiquetas causantes, cada
+una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
 
 ### retranslateEntry
 
@@ -375,9 +382,9 @@ integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo s
 
 Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
 códigos de motivo de revisión, si los hay, que aplican al nuevo valor) o
-`{ accepted: false, reason: "placeholder" | "icu" | "degenerate" | "empty", value }`. A diferencia de
-`translate`, aquí un fallo del proveedor lanza: un `ProviderError` de `@verbatra/ai-providers` con un
-código estable como `RATE_LIMITED` o `AUTH_FAILED`.
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
+diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de
+`@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`.
 
 ## Lecturas de contenido en bloque
 

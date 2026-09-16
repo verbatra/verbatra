@@ -778,6 +778,46 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     expect(result.locales[0]?.rejected.degenerate).toBe(1);
   });
 
+  it("refuses a translation that injects markup into a plain source, and counts it", async () => {
+    const config = cfg();
+    const dir = await project([
+      tu([
+        ["en", "Hello"],
+        ["de", "Hallo &lt;img src=x onerror=alert(1)&gt;"],
+        ["fr", "Bonjour"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(
+      expect.objectContaining({
+        locale: "de",
+        added: 0,
+        rejected: { placeholder: 0, markup: 1, icu: 0, degenerate: 0, empty: 0, sourceBlank: 0 },
+      }),
+    );
+    expect(result.locales[1]).toEqual(expect.objectContaining({ locale: "fr", added: 1 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({});
+  });
+
+  it("stores a translation whose inline markup matches the source", async () => {
+    const config = cfg();
+    const dir = await project([
+      tu([
+        ["en", "Save &lt;b&gt;now&lt;/b&gt;"],
+        ["de", "Jetzt &lt;b&gt;speichern&lt;/b&gt;"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]?.rejected.markup).toBe(0);
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({
+      [entryHash("Save <b>now</b>")]: "Jetzt <b>speichern</b>",
+    });
+  });
+
   it("refuses a unit whose source segment is blank, because it identifies no string", async () => {
     const config = cfg();
     const dir = await project([

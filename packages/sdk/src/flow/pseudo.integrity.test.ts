@@ -142,3 +142,44 @@ describe("a pseudolocalized value clears the integrity gate for every registered
     expect(pseudolocalizeValue(value)).toContain("{{name}}");
   });
 });
+
+describe("pseudolocalization survives the markup gate for every format", () => {
+  const MARKUP_VALUES = [
+    "One<br/>two",
+    "<b>Save</b> then <i>close</i>",
+    "Wait < 5 minutes",
+    '<a href="/docs">the docs</a>',
+  ] as const;
+
+  function markupRefusals(format: SupportedFormat): readonly string[] {
+    const adapter = adapterFor(format);
+    return MARKUP_VALUES.filter((value) => {
+      const result = gateCandidateValue(
+        sourceEntry(value, adapter),
+        pseudolocalizeValue(value),
+        adapter,
+      );
+      return !result.accepted && result.reason === "markup";
+    });
+  }
+
+  it.each(SUPPORTED_FORMATS)("%s never refuses a pseudolocalized value for markup", (format) => {
+    expect(markupRefusals(format)).toEqual([]);
+  });
+
+  it("would report a format whose pseudolocalization rewrote a tag", () => {
+    const adapter = adapterFor("i18next-json");
+    const mangled = pseudolocalizeValue("<b>Save</b>").replace("</b>", "</i>");
+    expect(gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter)).toEqual({
+      accepted: false,
+      reason: "markup",
+      details: ["-</b>", "+</i>"],
+    });
+  });
+
+  it("leaves the markup the pseudolocalizer wraps in its own brackets alone", () => {
+    const pseudo = pseudolocalizeValue('<a href="/docs">the docs</a>');
+    expect(pseudo).toContain('<a href="/docs">');
+    expect(pseudo).toContain("</a>");
+  });
+});

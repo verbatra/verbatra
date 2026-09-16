@@ -238,6 +238,43 @@ Después de eso no se envía nada más. Y el techo acota una ejecución: `watch`
 nuevo por ejecución, y retraducir una sola entrada desde Studio o desde las herramientas de agente
 no queda cubierto por él.
 
+## Una traducción se retiene por el marcado en línea (discordancia de integridad)
+
+**Síntoma**: una clave aparece bajo `integrityMismatches` en el resumen de la ejecución y conserva
+su traducción anterior, o el informe de integridad por clave señala una discordancia de marcado en
+línea para una traducción que ya está en disco. Ese informe es `markupMatches: false` de
+`keyIntegrity` en el SDK, de la herramienta `key.integrity` del servidor MCP y del indicador por
+clave de Studio (`Inline markup mismatch`); `verbatra check` no informa del marcado. En Studio, un
+retranslate o una edición vuelve como `Rejected: inline markup mismatch`, seguido de las etiquetas
+causantes: `-<a href>` para una que el origen tenía y la candidata perdió, `+<i>` para una que la
+candidata inventó.
+
+**Causa**: la candidata no lleva el HTML o XML en línea del origen, o lo lleva sin equilibrar o mal
+anidado. Un modelo que pierde un `<a href>`, renombra `<b>` a `<strong>` o cierra `<b>` con `</i>`
+produce una cadena que se representa mal, así que la puerta la rechaza igual que rechaza un marcador
+de posición perdido. Mira [paridad del
+marcado](/docs/translation-safety#paridad-del-marcado-en-línea) para saber exactamente qué se
+compara.
+
+**Solución**: vuelve a ejecutar la clave, o corrige el valor a mano en Studio o en un libro
+importado: la misma puerta juzga ambos, así que un valor escrito a mano con etiquetas coincidentes y
+bien formadas se acepta. El orden de las palabras, los valores de los atributos y las dos grafías de
+un elemento vacío (`<br>` y `<br/>`) nunca son la causa, porque ninguno se compara. Un rechazo que
+no nombra etiquetas es estructural: el marcado volvió mal anidado, o una etiqueta que el origen
+tenía junto a otra del mismo nombre volvió anidada dentro de ella. Un rechazo que nombra
+`+more than N inline tags` significa que la candidata lleva más del doble de etiquetas y
+construcciones que su origen, o más de 256 para un origen más pequeño. Un detalle como
+`+<a href="javascript:...">` nombra un atributo de URL que ganó un esquema que ejecuta scripts,
+`+<noscript>...</noscript>` nombra texto sin formato que un analizador puede leer de dos maneras y
+que una traducción tiene que conservar exactamente como lo tiene el origen, y un detalle sin
+corchete de cierre, como `+<a`, nombra una etiqueta que la candidata nunca terminó. Otros tres casos
+son rechazos por diseño y no fallos: fusionar dos pares adyacentes en uno, cambiar las mayúsculas de
+una etiqueta y añadir o quitar un nombre de atributo, incluido un atributo `dir` para un destino de
+derecha a izquierda. Deja las etiquetas como las tiene el origen y pon el cambio donde la
+comprobación no mira, por ejemplo en un valor de atributo. Si el marcado roto está en el valor de
+origen, corrígelo ahí: un origen cuyas propias etiquetas están mal formadas se sigue comparando
+etiqueta por etiqueta, así que cada traducción tiene que repetir las mismas etiquetas rotas.
+
 ## Studio: el puerto ya está en uso
 
 **Síntoma**: `port 5849 is already in use` (o el valor de tu `--port`).

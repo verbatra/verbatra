@@ -82,7 +82,7 @@ when the operator granted spend.
 | `glossary.get` | always | Read every configured term and its translation, and where the glossary comes from. |
 | `glossary.write` | always | Add, replace, or remove one term. Pass a non-empty string to set it, `null` to remove it. |
 | `lock.state` | always | Read the lock file version and the per-locale counts it implies. Reports `exists: false` before the first successful run. |
-| `key.integrity` | always | Report one key's placeholder and ICU drift against the lock baseline, per locale. |
+| `key.integrity` | always | Report one key's placeholder, inline markup, and ICU drift against the lock baseline, per locale. |
 | `key.value` | always | Read one key's current source text and its current text in one target locale. |
 | `translation.editEntry` | always | Write a manual translation for one key in one locale. No provider call. |
 | `translation.retranslateEntry` | spend gated | Ask the provider for a fresh translation of one key in one locale. |

@@ -133,7 +133,10 @@ export {
   generateTypes,
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
-export type { IntegrityGateReason } from "./flow/integrity-gate.js";
+export {
+  INTEGRITY_GATE_REASONS,
+  type IntegrityGateReason,
+} from "./flow/integrity-gate.js";
 export {
   type KeyIntegrityDeps,
   type KeyIntegrityEntry,

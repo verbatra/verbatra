@@ -12,6 +12,7 @@ import {
   type FuzzyCacheHit,
   type GenerateTypesResult,
   type ImportTmxResult,
+  INTEGRITY_GATE_REASONS,
   type InconsistencyGroup,
   type LiteralScan,
   type LocaleCheckSummary,
@@ -605,15 +606,13 @@ export function renderTypesHuman(result: GenerateTypesResult): string {
 const LANGUAGE_TAG_PREVIEW = 20;
 
 const TMX_REJECTION_REASONS: readonly TmxRejectionReason[] = [
-  "placeholder",
-  "icu",
-  "degenerate",
-  "empty",
+  ...INTEGRITY_GATE_REASONS,
   "sourceBlank",
 ];
 
 const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
   placeholder: "placeholders do not match the source",
+  markup: "inline markup does not match the source",
   icu: "not a valid ICU message",
   degenerate: "runaway output rather than a translation",
   empty: "blank translation of a source that has text",
