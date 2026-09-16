@@ -55,21 +55,24 @@ A file from another tool is untrusted input, and a unit that reaches the memory 
 - it must not have collapsed into runaway output rather than a translation,
 - it must not be blank where the source has text.
 
-On top of that, a unit whose source segment is blank identifies no string at all, so it is refused too. Inline markup (`bpt`, `ept`, `ph`, `it`) is flattened to its text, which the placeholder check then catches if the markup was carrying something that mattered.
+On top of that, a unit whose source segment is blank identifies no string at all, so it is refused too. Inline markup (`bpt`, `ept`, `ph`, `it`) is flattened to its text, which the placeholder check then catches if the markup was carrying something that mattered. A `sub` element inside that markup is a separate flow of text, such as a tooltip or alternative text, not part of the segment's own string, so its text is left out rather than flattened in.
 
-Nothing is dropped quietly. Every refusal is counted by reason, and so is every unit the reader could not use, every unit with no segment in your source locale, and every unit whose markup was flattened.
+Nothing is dropped quietly. Every refusal is counted by reason, and so is every unit the reader could not use, every unit with no segment in your source locale, every unit whose markup was flattened, and every unit whose `sub` text was left out.
 
 ## Matching language tags
 
 A TMX file spells its languages however its author's tool spelled them, which is rarely how your config spells them. The rule is explicit, and it never guesses:
 
 1. Both sides are lowercased and underscores are folded to hyphens, so `pt_BR`, `pt-br` and `pt-BR` are one locale. An exact match at that point wins.
-2. Otherwise, if exactly one configured locale shares the tag's primary subtag, the unit lands there. A file written in `en-US` therefore lands in a project configured for `en`, and a file written in `pt` lands in a project configured only for `pt-BR`.
-3. If two configured locales could equally claim the tag, nothing is chosen. `pt-PT` in a project configured for `pt-BR` and `pt-AO` is reported as ambiguous, not assigned to whichever came first.
+2. Otherwise, the tag can only reach a configured locale that it extends or that extends it, subtag by subtag. A file written in `en-US` therefore lands in a project configured for `en`, and a file written in `pt` lands in a project configured only for `pt-BR`, as long as exactly one configured locale qualifies.
+3. Two tags whose script or region subtags differ never match. `zh-CN` is never stored as `zh-TW`, `sr-Latn` never as `sr-Cyrl`, and `de-AT` never as `de-CH`: such a tag is reported as matching no configured locale, not guessed at.
+4. If two configured locales could equally claim the tag, nothing is chosen. `pt` in a project configured for `pt-BR` and `pt-AO` is reported as ambiguous, not assigned to whichever came first.
 
-Every segment is resolved against the source locale and all of your configured target locales in one pass, not against the source first and the targets afterwards. That is what stops a regional target being taken for the bare source tag it shares a primary subtag with: in a project whose source is `pt` and whose targets include `pt-BR`, the `pt-BR` segment is that target, never a second reading of the source. It still holds when you narrow a run with `--locales`, because the resolution sees every configured locale either way.
+Every segment is resolved against the source locale and all of your configured target locales in one pass, not against the source first and the targets afterwards. That is what stops a regional target being taken for the bare source tag it extends: in a project whose source is `pt` and whose targets include `pt-BR`, the `pt-BR` segment is that target, never a second reading of the source. It still holds when you narrow a run with `--locales`, because the resolution sees every configured locale either way.
 
 A unit carrying two segments that both resolve to your source locale, such as `en` and `en-US` in a project configured for `en`, is refused and counted rather than attributed to whichever came last. A config whose source locale and one of its target locales are the same tag once case and separators are normalized is refused outright, because no segment could be attributed to either.
+
+Two target segments that resolve to the same configured locale never let the last one silently win. An exact tag always outranks a segment that only reaches the locale by subtag prefix, so in a project configured for `de`, a unit carrying `de` "Straße" and `de-CH` "Strasse" stores "Straße". If two segments of equal standing carry different values, such as `de-CH` "Strasse" and `de-AT` "Straße", nothing is stored for that locale from that unit, and the unit is counted as conflicting for that locale in the summary and in the `--json` result. The unit's other locales still land, and two segments carrying the same value are not a conflict.
 
 Units the reader could not use, units with no source segment, units whose markup was flattened, and `tu` elements sitting outside the file's first `body` are all counted too. If the header declares a `srclang` that is not your source locale, that is reported rather than ignored.
 
@@ -101,6 +104,10 @@ A fuzzy reuse is still held to the integrity gate against your real entry, and i
 
 One `tu` element per distinct source string, carrying the source segment and one target segment per exported locale, under a TMX 1.4b header naming `srclang`, `creationtool`, `creationtoolversion`, `segtype`, and `o-tmf`. Only entries stored under the current configuration fingerprint are written, which is the same set a run would reuse.
 
+Language tags are written in BCP 47 form, however your config spells them: underscores become hyphens, the language is lowercase, a script is title case, and a region is uppercase. A project configured for `en_US` and `pt_BR` writes `srclang="en-US"` and `xml:lang="pt-BR"`, which another tool accepts and which imports back into the same project unchanged. How verbatra keys its own memory does not change.
+
+A character XML 1.0 cannot represent at all, such as a control character or a lone surrogate, is removed from the segment text so the file stays readable by a conformant parser. How many were removed is reported in the summary and in the `--json` result.
+
 An empty memory produces a valid, empty TMX file rather than an error.
 
 An entry the memory holds no source text for cannot be written, because TMX has no unit without a source segment. That happens only for entries carried forward from a cache written before the memory stored source text; they are left out and counted, and they fill in as later runs touch those strings again.
@@ -112,7 +119,7 @@ An entry the memory holds no source text for cannot be written, because TMX has 
 | `0` | the file was read or written |
 | `2` | could not run: a config error, a missing or unreadable file, a file that is not valid TMX, or a usage error |
 
-A file that is oversized, malformed, not a TMX document, or that declares an XML entity is refused with a structured error naming what failed. Entity declarations and internal DTD subsets are refused outright, so neither an external entity reference nor an unbounded expansion is ever reached, and the plain external doctype that real writers emit is discarded rather than fetched.
+A file that is oversized, malformed, not a TMX document, or that declares an XML entity is refused with a structured error naming what failed. When the problem has a place in the file, the message also names its line and column and, inside a translation unit, which unit it was (counting from 1), so `line 9, column 29, unit 2` points you at the second `tu`. With `--json` the same message is in the error envelope, and an SDK caller finds the same place as structured data on the error's `cause`. Entity declarations and internal DTD subsets are refused outright, so neither an external entity reference nor an unbounded expansion is ever reached, and the plain external doctype that real writers emit is discarded rather than fetched.
 
 Units that were skipped or refused do not fail the run. They are reported, because a real-world memory almost always carries some of both.
 

@@ -260,14 +260,22 @@ Lit un fichier TMX dans la mémoire du projet. Entrée :
 
 Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement du paquet d'échange,
 si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
-formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analysé. Une étiquette de
-langue est résolue vers une locale configurée par une règle explicite : écriture exacte après mise en
-minuscules et conversion des tirets bas en traits d'union, à défaut la seule locale configurée
-partageant la sous-étiquette primaire, et une étiquette que deux locales pourraient revendiquer est
-signalée plutôt que devinée. Chaque traduction candidate passe ensuite la même barrière de variables,
-d'ICU, de dégénérescence et de vacuité que subissent déjà la sortie du fournisseur et une ligne de
-classeur remplie, vérifiée à l'entrée de l'enregistrement dans la mémoire plutôt que laissée à
-l'exécution qui la lira plus tard.
+formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analysé. Quand le problème a
+un emplacement dans le fichier, le message indique la ligne, la colonne et, à l'intérieur d'une
+unité de traduction, son rang en comptant à partir de 1, et le `cause` de l'erreur porte le même
+emplacement sous forme de `location` structurée (de type `TmxErrorLocation`). Une étiquette de
+langue est résolue vers une locale configurée par une règle explicite : écriture exacte après mise
+en minuscules et conversion des tirets bas en traits d'union ; à défaut, la seule locale configurée
+que l'étiquette prolonge ou qui la prolonge, sous-étiquette par sous-étiquette, si bien que deux
+étiquettes aux sous-étiquettes d'écriture ou de région différentes (`zh-CN` et `zh-TW`) ne
+correspondent jamais ; et une étiquette que plusieurs locales pourraient revendiquer est signalée
+plutôt que devinée. Deux segments cibles d'une unité qui se résolvent vers la même locale ne
+laissent jamais le dernier l'emporter : une étiquette exacte l'emporte sur une correspondance par
+préfixe, et deux segments de même rang aux valeurs différentes ne stockent rien pour cette locale et
+sont comptés comme `conflicting`. Chaque traduction candidate passe ensuite la même barrière de
+variables, d'ICU, de dégénérescence et de vacuité que subissent déjà la sortie du fournisseur et une
+ligne de classeur remplie, vérifiée à l'entrée de l'enregistrement dans la mémoire plutôt que
+laissée à l'exécution qui la lira plus tard.
 
 Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
 sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,
@@ -276,20 +284,24 @@ modèle, le ton ou le glossaire changent. Importer deux fois le même fichier ne
 fois.
 
 Face à des données abîmées, renvoie un rapport au lieu de lever : combien d'unités ont été lues, un
-décompte par locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates` et `rejected` par
-motif, plus les unités ignorées, sans segment source ou ayant perdu leur balisage en ligne, et les
-étiquettes de langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut `false`
-quand le fichier de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact.
+décompte par locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` et
+`rejected` par motif, plus les unités ignorées, sans segment source, ayant perdu leur balisage en
+ligne ou dont le texte `sub` a été laissé de côté (`subflowDroppedUnits`), et les étiquettes de
+langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut `false` quand le
+fichier de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact.
 
 ### exportTmx
 
-Écrit la mémoire en TMX 1.4b. Entrée : `{ config, out?, cwd?, locales?, toolVersion? }`, où `out` vaut
-par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme constante. Seules les entrées
-sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une exécution
-réutiliserait. Une mémoire vide produit un fichier valide et vide, pas une erreur. Renvoie
-`{ path, units, locales, withoutSource }` ; `withoutSource` compte les entrées laissées de côté parce
-que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache
-écrit avant que la mémoire ne stocke le texte source.
+Écrit la mémoire en TMX 1.4b. Entrée : `{ config, out?, cwd?, locales?, toolVersion? }`, où `out`
+vaut par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme constante. Seules les
+entrées sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une
+exécution réutiliserait. Les étiquettes de langue sont écrites sous forme BCP 47 (`en_US` devient
+`en-US`), ce qui ne change pas l'indexation de la mémoire. Une mémoire vide produit un fichier
+valide et vide, pas une erreur. Renvoie `{ path, units, locales, withoutSource,
+illegalCharactersRemoved }` ; `withoutSource` compte les entrées laissées de côté parce que la
+mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit
+avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères
+que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 
 ## Config
 ### loadConfig

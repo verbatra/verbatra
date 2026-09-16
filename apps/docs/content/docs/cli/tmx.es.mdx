@@ -55,21 +55,24 @@ Un archivo de otra herramienta es entrada no confiable, y una unidad que llega a
 - no puede haberse desbocado hasta dejar de ser una traducción,
 - no puede estar vacía donde el origen tiene texto.
 
-Además, una unidad con el segmento de origen en blanco no identifica ninguna cadena, así que también se rechaza. El marcado en línea (`bpt`, `ept`, `ph`, `it`) se aplana a su texto, y la comprobación de marcadores lo detecta si ese marcado llevaba algo que importaba.
+Además, una unidad con el segmento de origen en blanco no identifica ninguna cadena, así que también se rechaza. El marcado en línea (`bpt`, `ept`, `ph`, `it`) se aplana a su texto, y la comprobación de marcadores lo detecta si ese marcado llevaba algo que importaba. Un elemento `sub` dentro de ese marcado es un flujo de texto aparte, como un tooltip o un texto alternativo, y no forma parte de la cadena del segmento, así que su texto se deja fuera en vez de aplanarse.
 
-Nada desaparece en silencio. Cada rechazo se cuenta por motivo, igual que cada unidad que el lector no pudo aprovechar, cada unidad sin segmento en tu locale de origen y cada unidad cuyo marcado se aplanó.
+Nada desaparece en silencio. Cada rechazo se cuenta por motivo, igual que cada unidad que el lector no pudo aprovechar, cada unidad sin segmento en tu locale de origen, cada unidad cuyo marcado se aplanó y cada unidad cuyo texto `sub` se dejó fuera.
 
 ## Emparejar etiquetas de idioma
 
 Un archivo TMX escribe sus idiomas como los escribió la herramienta de su autora, y eso rara vez coincide con cómo los escribe tu configuración. La regla es explícita y nunca adivina:
 
 1. Ambos lados se pasan a minúsculas y los guiones bajos se convierten en guiones, de modo que `pt_BR`, `pt-br` y `pt-BR` son un mismo locale. Una coincidencia exacta en ese punto gana.
-2. Si no, la unidad va al único locale configurado que comparte la subetiqueta primaria. Un archivo escrito en `en-US` aterriza así en un proyecto configurado con `en`, y un archivo escrito en `pt` aterriza en un proyecto configurado solo con `pt-BR`.
-3. Si dos locales configurados pudieran reclamar la etiqueta por igual, no se elige ninguno. `pt-PT` en un proyecto con `pt-BR` y `pt-AO` se informa como ambiguo, no se adjudica al que llegó primero.
+2. Si no, la etiqueta solo puede llegar a un locale configurado que ella amplía o que la amplía a ella, subetiqueta a subetiqueta. Un archivo escrito en `en-US` aterriza así en un proyecto configurado con `en`, y un archivo escrito en `pt` aterriza en un proyecto configurado solo con `pt-BR`, siempre que haya exactamente un locale configurado que encaje.
+3. Dos etiquetas cuyas subetiquetas de escritura o de región difieren nunca coinciden. `zh-CN` nunca se guarda como `zh-TW`, `sr-Latn` nunca como `sr-Cyrl` y `de-AT` nunca como `de-CH`: esa etiqueta se informa como sin coincidencia con ningún locale configurado, no se adivina.
+4. Si dos locales configurados pudieran reclamar la etiqueta por igual, no se elige ninguno. `pt` en un proyecto con `pt-BR` y `pt-AO` se informa como ambiguo, no se adjudica al que llegó primero.
 
-Cada segmento se resuelve en una sola pasada contra el locale de origen y todos tus locales de destino configurados, no primero contra el origen y luego contra los destinos. Eso es lo que impide que un destino regional se tome por la etiqueta de origen simple con la que comparte subetiqueta primaria: en un proyecto cuyo origen es `pt` y cuyos destinos incluyen `pt-BR`, el segmento `pt-BR` es ese destino y nunca una segunda lectura del origen. Sigue valiendo cuando acotas una ejecución con `--locales`, porque la resolución ve todos los locales configurados igualmente.
+Cada segmento se resuelve en una sola pasada contra el locale de origen y todos tus locales de destino configurados, no primero contra el origen y luego contra los destinos. Eso es lo que impide que un destino regional se tome por la etiqueta de origen simple que amplía: en un proyecto cuyo origen es `pt` y cuyos destinos incluyen `pt-BR`, el segmento `pt-BR` es ese destino y nunca una segunda lectura del origen. Sigue valiendo cuando acotas una ejecución con `--locales`, porque la resolución ve todos los locales configurados igualmente.
 
 Una unidad con dos segmentos que resuelven ambos a tu locale de origen, como `en` y `en-US` en un proyecto configurado con `en`, se rechaza y se cuenta en lugar de adjudicarse al que llegó último. Una configuración cuyo locale de origen y uno de sus locales de destino son la misma etiqueta una vez normalizadas mayúsculas y separadores se rechaza de plano, porque ningún segmento podría atribuirse a ninguno de los dos.
+
+Dos segmentos de destino que resuelven al mismo locale configurado nunca dejan que el último gane en silencio. Una etiqueta exacta siempre supera a un segmento que solo llega al locale por prefijo de subetiqueta, así que en un proyecto configurado con `de`, una unidad con `de` "Straße" y `de-CH` "Strasse" guarda "Straße". Si dos segmentos del mismo rango llevan valores distintos, como `de-CH` "Strasse" y `de-AT` "Straße", no se guarda nada para ese locale desde esa unidad, y la unidad se cuenta como conflicto para ese locale en el resumen y en el resultado de `--json`. Los demás locales de la unidad se guardan igualmente, y dos segmentos con el mismo valor no son un conflicto.
 
 También se cuentan las unidades que el lector no pudo aprovechar, las que no tienen segmento de origen, aquellas cuyo marcado se aplanó y los elementos `tu` que quedan fuera del primer `body` del archivo. Si la cabecera declara un `srclang` que no es tu locale de origen, se informa en vez de pasarse por alto.
 
@@ -101,6 +104,10 @@ Esa reutilización sigue pasando por la puerta de integridad contra tu entrada r
 
 Un elemento `tu` por cada cadena de origen distinta, con el segmento de origen y un segmento de destino por cada locale exportado, bajo una cabecera TMX 1.4b que nombra `srclang`, `creationtool`, `creationtoolversion`, `segtype` y `o-tmf`. Solo se escriben las entradas guardadas bajo la huella de configuración actual, que es el mismo conjunto que reutilizaría una ejecución.
 
+Las etiquetas de idioma se escriben en forma BCP 47, las escriba como las escriba tu configuración: los guiones bajos pasan a guiones, el idioma va en minúsculas, la escritura con mayúscula inicial y la región en mayúsculas. Un proyecto configurado con `en_US` y `pt_BR` escribe `srclang="en-US"` y `xml:lang="pt-BR"`, algo que otras herramientas aceptan y que vuelve a importarse sin cambios en el mismo proyecto. La forma en que verbatra indexa su propia memoria no cambia.
+
+Un carácter que XML 1.0 no puede representar en absoluto, como un carácter de control o un sustituto suelto, se elimina del texto del segmento para que un parser conforme pueda leer el archivo. Cuántos se eliminaron se indica en el resumen y en el resultado de `--json`.
+
 Una memoria vacía produce un archivo TMX válido y vacío, no un error.
 
 Una entrada de la que la memoria no tiene texto de origen no se puede escribir, porque TMX no admite una unidad sin segmento de origen. Eso solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen; se dejan fuera y se cuentan, y se van rellenando a medida que ejecuciones posteriores vuelven a tocar esas cadenas.
@@ -112,7 +119,7 @@ Una entrada de la que la memoria no tiene texto de origen no se puede escribir, 
 | `0` | el archivo se leyó o se escribió |
 | `2` | no se pudo ejecutar: un error de configuración, un archivo ausente o ilegible, un archivo que no es TMX válido, o un error de uso |
 
-Un archivo demasiado grande, mal formado, que no sea un documento TMX o que declare una entidad XML se rechaza con un error estructurado que nombra qué falló. Las declaraciones de entidad y los subconjuntos DTD internos se rechazan de plano, así que nunca se llega ni a una referencia de entidad externa ni a una expansión sin límite, y la simple línea doctype externa que escriben las herramientas reales se descarta en vez de cargarse.
+Un archivo demasiado grande, mal formado, que no sea un documento TMX o que declare una entidad XML se rechaza con un error estructurado que nombra qué falló. Cuando el problema tiene un lugar en el archivo, el mensaje también indica la línea y la columna y, dentro de una unidad de traducción, de qué unidad se trata (contando desde 1), así que `line 9, column 29, unit 2` te lleva al segundo `tu`. Con `--json` el mismo mensaje va en el sobre de error, y quien llama al SDK encuentra el mismo lugar como datos estructurados en el `cause` del error. Las declaraciones de entidad y los subconjuntos DTD internos se rechazan de plano, así que nunca se llega ni a una referencia de entidad externa ni a una expansión sin límite, y la simple línea doctype externa que escriben las herramientas reales se descarta en vez de cargarse.
 
 Las unidades omitidas o rechazadas no hacen fallar la ejecución. Se informan, porque una memoria real casi siempre trae algo de ambas.
 

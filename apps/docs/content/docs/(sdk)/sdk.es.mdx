@@ -392,11 +392,18 @@ Lee un archivo TMX hacia la memoria del proyecto. Entrada:
 Nada del archivo se da por bueno. El XML se analiza con el endurecimiento del paquete de
 intercambio, de modo que una declaración de entidad, un subconjunto DTD interno, un archivo
 demasiado grande o uno mal formado se rechaza con un error estructurado `SOURCE_INVALID` en lugar de
-analizarse. Una etiqueta de idioma se resuelve a un locale configurado por una regla explícita:
-coincidencia exacta tras pasar a minúsculas y convertir guiones bajos en guiones, si no el único
-locale configurado que comparte la subetiqueta primaria, y una etiqueta que dos locales podrían
-reclamar se informa en vez de adivinarse. Cada traducción candidata pasa después por la misma puerta
-de marcadores, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro
+analizarse. Cuando el problema tiene un lugar en el archivo, el mensaje indica la línea, la columna
+y, dentro de una unidad de traducción, su ordinal contando desde 1, y el `cause` del error lleva el
+mismo lugar como `location` estructurada (del tipo `TmxErrorLocation`). Una etiqueta de idioma se
+resuelve a un locale configurado por una regla explícita: coincidencia exacta tras pasar a
+minúsculas y convertir guiones bajos en guiones; si no, el único locale configurado que la etiqueta
+amplía o que la amplía, subetiqueta a subetiqueta, de modo que dos etiquetas con subetiquetas de
+escritura o de región distintas (`zh-CN` y `zh-TW`) nunca coinciden; y una etiqueta que varios
+locales podrían reclamar se informa en vez de adivinarse. Dos segmentos de destino de una unidad que
+resuelven al mismo locale nunca dejan ganar al último: una etiqueta exacta supera a una coincidencia
+por prefijo, y dos segmentos del mismo rango con valores distintos no guardan nada para ese locale y
+se cuentan como `conflicting`. Cada traducción candidata pasa después por la misma puerta de
+marcadores, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro
 rellenada, comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la
 lee.
 
@@ -406,20 +413,24 @@ clave que escribe una ejecución real, así que dejan de coincidir cuando cambia
 modelo, el tono o el glosario. Importar el mismo archivo dos veces no cambia nada la segunda vez.
 
 Ante datos dañados devuelve un informe en lugar de lanzar: cuántas unidades se leyeron, una cuenta
-por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates` y `rejected` por motivo, más
-las unidades omitidas, sin segmento de origen o que perdieron marcado en línea, y las etiquetas de
-idioma que no coincidieron o coincidieron de forma ambigua. `memoryWritable` es `false` cuando el
-archivo de memoria lo escribió un verbatra más nuevo, en cuyo caso se deja intacto.
+por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` y `rejected`
+por motivo, más las unidades omitidas, sin segmento de origen, que perdieron marcado en línea o cuyo
+texto `sub` se dejó fuera (`subflowDroppedUnits`), y las etiquetas de idioma que no coincidieron o
+coincidieron de forma ambigua. `memoryWritable` es `false` cuando el archivo de memoria lo escribió
+un verbatra más nuevo, en cuyo caso se deja intacto.
 
 ### exportTmx
 
 Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, locales?, toolVersion? }`, donde
 `out` por defecto es `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado como constante. Solo se
 escriben las entradas bajo la huella de configuración actual, que es el mismo conjunto que
-reutilizaría una ejecución. Una memoria vacía produce un archivo válido y vacío, no un error. Devuelve
-`{ path, units, locales, withoutSource }`; `withoutSource` cuenta las entradas dejadas fuera porque la
-memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché
-escrita antes de que la memoria guardase el texto de origen.
+reutilizaría una ejecución. Las etiquetas de idioma se escriben en forma BCP 47 (`en_US` pasa a
+`en-US`), lo que no cambia cómo se indexa la memoria. Una memoria vacía produce un archivo válido y
+vacío, no un error. Devuelve `{ path, units, locales, withoutSource, illegalCharactersRemoved }`;
+`withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para
+ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria
+guardase el texto de origen, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede
+representar y que se eliminaron del texto de los segmentos.
 
 ## Configuración
 ### loadConfig

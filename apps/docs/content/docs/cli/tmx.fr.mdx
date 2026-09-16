@@ -55,21 +55,24 @@ Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui a
 - elle ne doit pas avoir dégénéré en sortie incontrôlée plutôt qu'en traduction,
 - elle ne doit pas être vide là où la source a du texte.
 
-S'y ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que la vérification des variables rattrape si ce balisage portait quelque chose d'important.
+S'y ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que la vérification des variables rattrape si ce balisage portait quelque chose d'important. Un élément `sub` dans ce balisage est un flux de texte à part, comme une infobulle ou un texte alternatif, et ne fait pas partie de la chaîne du segment : son texte est donc laissé de côté plutôt qu'aplati.
 
-Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source et chaque unité dont le balisage a été aplati.
+Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source, chaque unité dont le balisage a été aplati et chaque unité dont le texte `sub` a été laissé de côté.
 
 ## Faire correspondre les étiquettes de langue
 
 Un fichier TMX écrit ses langues comme l'outil de son autrice les a écrites, ce qui correspond rarement à l'écriture de ta configuration. La règle est explicite et ne devine jamais :
 
 1. Les deux côtés sont mis en minuscules et les tirets bas deviennent des traits d'union, si bien que `pt_BR`, `pt-br` et `pt-BR` sont une seule locale. Une correspondance exacte à ce stade l'emporte.
-2. Sinon, l'unité rejoint la seule locale configurée qui partage la sous-étiquette primaire. Un fichier écrit en `en-US` atterrit ainsi dans un projet configuré en `en`, et un fichier écrit en `pt` atterrit dans un projet configuré uniquement en `pt-BR`.
-3. Si deux locales configurées pouvaient revendiquer l'étiquette à égalité, aucune n'est choisie. `pt-PT` dans un projet avec `pt-BR` et `pt-AO` est signalé comme ambigu, et non attribué à celle qui venait en premier.
+2. Sinon, l'étiquette ne peut atteindre qu'une locale configurée qu'elle prolonge ou qui la prolonge, sous-étiquette par sous-étiquette. Un fichier écrit en `en-US` atterrit ainsi dans un projet configuré en `en`, et un fichier écrit en `pt` atterrit dans un projet configuré uniquement en `pt-BR`, tant qu'une seule locale configurée convient.
+3. Deux étiquettes dont les sous-étiquettes d'écriture ou de région diffèrent ne correspondent jamais. `zh-CN` n'est jamais stocké comme `zh-TW`, `sr-Latn` jamais comme `sr-Cyrl` et `de-AT` jamais comme `de-CH` : une telle étiquette est signalée comme ne correspondant à aucune locale configurée, pas devinée.
+4. Si deux locales configurées pouvaient revendiquer l'étiquette à égalité, aucune n'est choisie. `pt` dans un projet avec `pt-BR` et `pt-AO` est signalé comme ambigu, et non attribué à celle qui venait en premier.
 
-Chaque segment est résolu en une seule passe contre la locale source et toutes tes locales cibles configurées, et non contre la source d'abord puis les cibles ensuite. C'est ce qui empêche une cible régionale d'être prise pour l'étiquette source simple avec laquelle elle partage la sous-étiquette primaire : dans un projet dont la source est `pt` et dont les cibles incluent `pt-BR`, le segment `pt-BR` est cette cible, jamais une seconde lecture de la source. Cela vaut encore quand tu restreins une exécution avec `--locales`, car la résolution voit de toute façon toutes les locales configurées.
+Chaque segment est résolu en une seule passe contre la locale source et toutes tes locales cibles configurées, et non contre la source d'abord puis les cibles ensuite. C'est ce qui empêche une cible régionale d'être prise pour l'étiquette source simple qu'elle prolonge : dans un projet dont la source est `pt` et dont les cibles incluent `pt-BR`, le segment `pt-BR` est cette cible, jamais une seconde lecture de la source. Cela vaut encore quand tu restreins une exécution avec `--locales`, car la résolution voit de toute façon toutes les locales configurées.
 
 Une unité portant deux segments qui se résolvent tous deux vers ta locale source, par exemple `en` et `en-US` dans un projet configuré en `en`, est refusée et comptée plutôt qu'attribuée à celle qui venait en dernier. Une configuration dont la locale source et l'une de ses locales cibles sont la même étiquette une fois la casse et les séparateurs normalisés est refusée d'emblée, car aucun segment ne pourrait être attribué à l'une ou à l'autre.
+
+Deux segments cibles qui se résolvent vers la même locale configurée ne laissent jamais le dernier l'emporter en silence. Une étiquette exacte l'emporte toujours sur un segment qui n'atteint la locale que par préfixe de sous-étiquette : dans un projet configuré en `de`, une unité portant `de` "Straße" et `de-CH` "Strasse" stocke donc "Straße". Si deux segments de même rang portent des valeurs différentes, comme `de-CH` "Strasse" et `de-AT` "Straße", rien n'est stocké pour cette locale depuis cette unité, et l'unité est comptée comme conflit pour cette locale dans le résumé et dans le résultat `--json`. Les autres locales de l'unité sont tout de même stockées, et deux segments portant la même valeur ne sont pas un conflit.
 
 Sont également comptées les unités que le lecteur n'a pas pu exploiter, celles sans segment source, celles dont le balisage a été aplati, et les éléments `tu` situés hors du premier `body` du fichier. Si l'en-tête déclare un `srclang` qui n'est pas ta locale source, cela est signalé plutôt qu'ignoré.
 
@@ -101,6 +104,10 @@ Une telle réutilisation reste soumise à la barrière d'intégrité face à ton
 
 Un élément `tu` par chaîne source distincte, portant le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b nommant `srclang`, `creationtool`, `creationtoolversion`, `segtype` et `o-tmf`. Seules les entrées stockées sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait.
 
+Les étiquettes de langue sont écrites sous forme BCP 47, quelle que soit l'écriture de ta configuration : les tirets bas deviennent des traits d'union, la langue est en minuscules, une écriture avec une majuscule initiale et une région en majuscules. Un projet configuré en `en_US` et `pt_BR` écrit `srclang="en-US"` et `xml:lang="pt-BR"`, ce que les autres outils acceptent et qui se réimporte sans changement dans le même projet. La façon dont verbatra indexe sa propre mémoire ne change pas.
+
+Un caractère que XML 1.0 ne peut pas représenter du tout, comme un caractère de contrôle ou un demi-codet isolé, est retiré du texte du segment pour qu'un analyseur conforme puisse lire le fichier. Le nombre de caractères retirés figure dans le résumé et dans le résultat `--json`.
+
 Une mémoire vide produit un fichier TMX valide et vide, pas une erreur.
 
 Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, car TMX n'admet pas d'unité sans segment source. Cela n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source ; elles sont laissées de côté et comptées, et se remplissent à mesure que des exécutions ultérieures retouchent ces chaînes.
@@ -112,7 +119,7 @@ Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, 
 | `0` | le fichier a été lu ou écrit |
 | `2` | exécution impossible : une erreur de configuration, un fichier absent ou illisible, un fichier qui n'est pas du TMX valide, ou une erreur d'utilisation |
 
-Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé par une erreur structurée nommant ce qui a échoué. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et la simple ligne doctype externe qu'écrivent les outils réels est écartée plutôt que chargée.
+Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé par une erreur structurée nommant ce qui a échoué. Quand le problème a un emplacement dans le fichier, le message indique aussi la ligne et la colonne et, à l'intérieur d'une unité de traduction, de quelle unité il s'agit (en comptant à partir de 1), si bien que `line 9, column 29, unit 2` te mène au deuxième `tu`. Avec `--json`, le même message figure dans l'enveloppe d'erreur, et qui appelle le SDK trouve le même emplacement sous forme de données structurées dans le `cause` de l'erreur. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et la simple ligne doctype externe qu'écrivent les outils réels est écartée plutôt que chargée.
 
 Les unités ignorées ou refusées ne font pas échouer l'exécution. Elles sont signalées, car une mémoire du monde réel en porte presque toujours un peu des deux.
 
