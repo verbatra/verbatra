@@ -441,6 +441,162 @@ describe("importTmx never lets one segment stand in for two locales", () => {
   });
 });
 
+describe("importTmx never lets the last of two target segments silently win", () => {
+  it("prefers the exact tag over a segment that only reaches the locale by prefix", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de", "Straße"],
+        ["de-CH", "Strasse"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ added: 1, conflicting: 0 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({ [entryHash("Street")]: "Straße" });
+  });
+
+  it("prefers the exact tag even when the prefix segment comes first", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de", "Straße"],
+      ]),
+    ]);
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({ [entryHash("Street")]: "Straße" });
+  });
+
+  it("stores nothing and counts a conflict when two prefix segments disagree", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de-AT", "Straße"],
+      ]),
+      tu([
+        ["en", "Save"],
+        ["de", "Speichern"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ added: 1, conflicting: 1 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({
+      [entryHash("Save")]: "Speichern",
+    });
+  });
+
+  it("stores nothing and counts a conflict when two exact segments disagree", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de", "Straße"],
+        ["DE", "Strasse"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ added: 0, conflicting: 1 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({});
+  });
+
+  it("lets an exact segment settle a conflict between two prefix segments", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de-AT", "Gasse"],
+        ["de", "Straße"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ added: 1, conflicting: 0 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({ [entryHash("Street")]: "Straße" });
+  });
+
+  it("does not treat two segments carrying the same value as a conflict", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de-LI", "Strasse"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ added: 1, conflicting: 0 }));
+    expect(bucket(await memoryOf(dir), config, "de")).toEqual({ [entryHash("Street")]: "Strasse" });
+  });
+
+  it("keeps the conflict to its own locale and stores the other locales of the unit", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de", "fr"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de-AT", "Straße"],
+        ["fr", "Rue"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales.map((each) => [each.locale, each.added, each.conflicting])).toEqual([
+      ["de", 0, 1],
+      ["fr", 1, 0],
+    ]);
+  });
+
+  it("counts a conflicted locale the run filtered out as not imported", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de", "fr"] });
+    const dir = await project([
+      tu([
+        ["en", "Street"],
+        ["de-CH", "Strasse"],
+        ["de-AT", "Straße"],
+        ["fr", "Rue"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir, locales: ["fr"] });
+
+    expect(result.notImported).toEqual([{ language: "de", units: 1 }]);
+    expect(result.locales).toEqual([expect.objectContaining({ locale: "fr", conflicting: 0 })]);
+  });
+
+  it("refuses a conflicted locale on a blank-source unit as a blank source", async () => {
+    const config = cfg({ sourceLocale: "en", targetLocales: ["de"] });
+    const dir = await project([
+      tu([
+        ["en", " "],
+        ["de-CH", "Strasse"],
+        ["de-AT", "Straße"],
+      ]),
+    ]);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(result.locales[0]).toEqual(expect.objectContaining({ conflicting: 0 }));
+    expect(result.locales[0]?.rejected.sourceBlank).toBe(1);
+  });
+});
+
 describe("importTmx feeds the fuzzy corpus, which no import-time gate can police", () => {
   it("stores the imported source text into the block fuzzy matching scores against", async () => {
     const config = cfg();

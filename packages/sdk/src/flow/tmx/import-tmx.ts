@@ -44,6 +44,13 @@ export interface ImportTmxLocaleResult {
   readonly kept: number;
   /** Later units in the same file repeating a source the file had already translated. */
   readonly duplicates: number;
+  /**
+   * Units carrying two segments of equal standing for this locale with different values, such as
+   * `de-CH` and `de-AT` in a project configured for `de`. Which one is right cannot be known, so
+   * neither is stored. An exact tag always outranks one that only reaches the locale by subtag
+   * prefix, and two segments carrying the same value are not a conflict.
+   */
+  readonly conflicting: number;
   /** Units refused before they could be stored, by reason. */
   readonly rejected: TmxRejectionCounts;
 }
@@ -147,6 +154,7 @@ interface LocaleTally {
   overwritten: number;
   kept: number;
   duplicates: number;
+  conflicting: number;
   rejected: Record<TmxRejectionReason, number>;
   additions: Record<string, CacheAddition>;
   seenHashes: Set<string>;
@@ -159,6 +167,7 @@ function emptyTally(): LocaleTally {
     overwritten: 0,
     kept: 0,
     duplicates: 0,
+    conflicting: 0,
     rejected: { ...NO_REJECTIONS },
     additions: {},
     seenHashes: new Set<string>(),
@@ -215,14 +224,30 @@ class LanguageCensus {
   }
 }
 
+interface TargetPick {
+  readonly text: string;
+  readonly exact: boolean;
+  readonly conflicted: boolean;
+}
+
+function pickTarget(current: TargetPick | undefined, text: string, exact: boolean): TargetPick {
+  if (current === undefined || (exact && !current.exact)) {
+    return { text, exact, conflicted: false };
+  }
+  if (current.exact && !exact) {
+    return current;
+  }
+  return current.text === text ? current : { ...current, conflicted: true };
+}
+
 type UnitPlan =
   | {
       readonly kind: "ok";
       readonly sourceText: string;
-      readonly translations: ReadonlyMap<string, string>;
+      readonly targets: ReadonlyMap<string, TargetPick>;
     }
   | { readonly kind: "no-source" }
-  | { readonly kind: "conflicting-source"; readonly translations: ReadonlyMap<string, string> };
+  | { readonly kind: "conflicting-source"; readonly targets: ReadonlyMap<string, TargetPick> };
 
 function planUnit(
   unit: TmxUnit,
@@ -231,7 +256,7 @@ function planUnit(
   census: LanguageCensus,
 ): UnitPlan {
   const universe = [sourceLocale, ...configuredTargets];
-  const translations = new Map<string, string>();
+  const targets = new Map<string, TargetPick>();
   let sourceText: string | undefined;
   let sourceSegments = 0;
   for (const segment of unit.segments) {
@@ -245,14 +270,12 @@ function planUnit(
       sourceText = segment.text;
       continue;
     }
-    translations.set(match.locale, segment.text);
+    targets.set(match.locale, pickTarget(targets.get(match.locale), segment.text, match.exact));
   }
   if (sourceSegments > 1) {
-    return { kind: "conflicting-source", translations };
+    return { kind: "conflicting-source", targets };
   }
-  return sourceText === undefined
-    ? { kind: "no-source" }
-    : { kind: "ok", sourceText, translations };
+  return sourceText === undefined ? { kind: "no-source" } : { kind: "ok", sourceText, targets };
 }
 
 type Decision = "duplicates" | "unchanged" | "kept" | "added" | "overwritten";
@@ -313,21 +336,6 @@ interface ScanTotals {
   readonly markupStrippedUnits: number;
 }
 
-function rejectBlankSource(
-  translations: ReadonlyMap<string, string>,
-  tallies: ReadonlyMap<string, LocaleTally>,
-  census: LanguageCensus,
-): void {
-  for (const locale of translations.keys()) {
-    const tally = tallies.get(locale);
-    if (tally === undefined) {
-      census.record(locale, "filtered");
-      continue;
-    }
-    tally.rejected.sourceBlank += 1;
-  }
-}
-
 function importUnit(
   ctx: ApplyContext,
   plan: UnitPlan,
@@ -337,36 +345,23 @@ function importUnit(
   if (plan.kind === "no-source") {
     return plan.kind;
   }
-  if (plan.kind === "conflicting-source") {
-    countFiltered(plan.translations, tallies, census);
-    return plan.kind;
-  }
-  if (plan.sourceText.trim() === "") {
-    rejectBlankSource(plan.translations, tallies, census);
-    return "ok";
-  }
-  const sourceEntry = sourceEntryFor(plan.sourceText, ctx.adapter);
-  for (const [locale, candidate] of plan.translations) {
+  const refused = plan.kind === "conflicting-source";
+  const blankSource = plan.kind === "ok" && plan.sourceText.trim() === "";
+  const sourceEntry =
+    plan.kind === "ok" && !blankSource ? sourceEntryFor(plan.sourceText, ctx.adapter) : undefined;
+  for (const [locale, pick] of plan.targets) {
     const tally = tallies.get(locale);
     if (tally === undefined) {
       census.record(locale, "filtered");
-      continue;
-    }
-    applyTranslation(ctx, tally, locale, sourceEntry, candidate);
-  }
-  return "ok";
-}
-
-function countFiltered(
-  translations: ReadonlyMap<string, string>,
-  tallies: ReadonlyMap<string, LocaleTally>,
-  census: LanguageCensus,
-): void {
-  for (const locale of translations.keys()) {
-    if (!tallies.has(locale)) {
-      census.record(locale, "filtered");
+    } else if (blankSource) {
+      tally.rejected.sourceBlank += 1;
+    } else if (!refused && pick.conflicted) {
+      tally.conflicting += 1;
+    } else if (sourceEntry !== undefined) {
+      applyTranslation(ctx, tally, locale, sourceEntry, pick.text);
     }
   }
+  return plan.kind;
 }
 
 function scanUnits(
@@ -422,6 +417,7 @@ function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResu
     overwritten: tally.overwritten,
     kept: tally.kept,
     duplicates: tally.duplicates,
+    conflicting: tally.conflicting,
     rejected: { ...tally.rejected },
   };
 }
