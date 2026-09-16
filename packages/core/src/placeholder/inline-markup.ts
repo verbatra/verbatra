@@ -22,6 +22,7 @@ interface InlineTag {
   readonly token: string;
   readonly name: string;
   readonly kind: "open" | "close" | "self";
+  readonly bare: boolean;
 }
 
 interface ScannedMarkup {
@@ -62,6 +63,8 @@ const TAG = /<(\/?)([A-Za-z_][A-Za-z0-9_.:-]*|[0-9]+)([^<>]*)>/g;
 const ATTRIBUTE = /\s+([^\s"'=<>`/]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/y;
 
 const NUMERIC_NAME = /^[0-9]+$/;
+
+const WORD_NAME = /^[\p{L}\p{N}_-]+$/u;
 
 const MATCHED: InlineMarkupComparison = {
   matches: true,
@@ -114,7 +117,9 @@ function openTagToken(name: string, names: readonly string[], selfClosing: boole
 
 function readTag(slash: string, name: string, chunk: string): InlineTag | undefined {
   if (slash === "/") {
-    return chunk.trim() === "" ? { token: `</${name}>`, name, kind: "close" } : undefined;
+    return chunk.trim() === ""
+      ? { token: `</${name}>`, name, kind: "close", bare: chunk === "" }
+      : undefined;
   }
   const selfClosing = chunk.endsWith("/");
   const names = attributeNames(selfClosing ? chunk.slice(0, -1) : chunk);
@@ -128,6 +133,7 @@ function readTag(slash: string, name: string, chunk: string): InlineTag | undefi
     token: openTagToken(name, names, selfClosing),
     name,
     kind: selfClosing ? "self" : "open",
+    bare: chunk === "",
   };
 }
 
@@ -283,6 +289,10 @@ function closeInventedTag(tag: InlineTag, open: InlineTag[], invented: string[])
   }
 }
 
+function isProseWord(tag: InlineTag): boolean {
+  return tag.bare && WORD_NAME.test(tag.name) && !HTML_ELEMENT_NAMES.has(tag.name.toLowerCase());
+}
+
 function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
   const invented: string[] = [];
   const open: InlineTag[] = [];
@@ -296,7 +306,7 @@ function inventedTags(translatedTags: readonly InlineTag[]): readonly string[] {
     }
   }
   for (const tag of open) {
-    if (HTML_ELEMENT_NAMES.has(tag.name.toLowerCase())) {
+    if (!isProseWord(tag)) {
       invented.push(tag.token);
     }
   }

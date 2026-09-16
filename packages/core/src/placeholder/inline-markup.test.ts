@@ -328,6 +328,49 @@ describe("compareInlineMarkup: markup invented where the source had none", () =>
   });
 });
 
+describe("compareInlineMarkup: only an attribute-free bracketed word is read as prose", () => {
+  it("refuses an unclosed bracketed word that carries attributes", () => {
+    expect(
+      compareInlineMarkup("Press Enter", "Drücke <Enter tabindex=1 autofocus onfocus=alert(1)>"),
+    ).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<Enter autofocus onfocus tabindex>"],
+      malformed: false,
+    });
+  });
+
+  it("refuses an unclosed custom element that carries an event handler", () => {
+    expect(compareInlineMarkup("Press Enter", "Drücke <x-key onmouseover=alert(1)>Enter")).toEqual({
+      matches: false,
+      missing: [],
+      extra: ["<x-key onmouseover>"],
+      malformed: false,
+    });
+  });
+
+  it("accepts an unclosed bracketed word with nothing but its name", () => {
+    expect(compareInlineMarkup("Press Enter", "Drücke <Enter>")).toEqual({
+      matches: true,
+      missing: [],
+      extra: [],
+      malformed: false,
+    });
+  });
+
+  it("refuses an unclosed bracketed word written with whitespace before its bracket", () => {
+    const result = compareInlineMarkup("Press Enter", "Drücke <Enter >");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<Enter>"]);
+  });
+
+  it("refuses an unclosed tag whose name is more than letters, digits, hyphens and underscores", () => {
+    const result = compareInlineMarkup("Press Enter", "Drücke <x.key>");
+    expect(result.matches).toBe(false);
+    expect(result.extra).toEqual(["<x.key>"]);
+  });
+});
+
 describe("compareInlineMarkup: constructs that are not inline tags", () => {
   it.each([
     ["<!-- a comment -->", "<!-- ein Kommentar -->"],
