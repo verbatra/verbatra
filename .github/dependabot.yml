@@ -105,6 +105,9 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-minor-patch:
         update-types:

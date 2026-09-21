@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 
-# Base image is pinned by digest to a specific Node 22 LTS patch release. The digest is the
+# Base image is pinned by digest to a specific Node 24 LTS patch release. The digest is the
 # OCI image index (manifest list) for the tag, not a single-architecture image manifest, so
-# the daemon still resolves the entry matching the build platform: amd64, arm/v7, arm64/v8,
-# ppc64le, and s390x all remain available, and the build/runtime arch still matches (sharp's
-# native binary is traced into the bundle). The tag is kept alongside the digest for
+# the daemon still resolves the entry matching the build platform: amd64, arm64/v8, and
+# ppc64le are the platforms this index carries, and the build/runtime arch still matches
+# (sharp's native binary is traced into the bundle). The tag is kept alongside the digest for
 # readability; the digest is what actually resolves. Update both together.
 
 # ---- Builder ----
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS builder
+FROM node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS builder
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN pnpm install --frozen-lockfile --filter @verbatra/docs...
 RUN pnpm --filter @verbatra/docs... build
 
 # ---- Runner ----
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS runner
+FROM node:24.21.0-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS runner
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 USER node
