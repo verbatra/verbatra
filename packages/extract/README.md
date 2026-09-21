@@ -16,8 +16,9 @@ Strategy family and its own file-system port.
   `createI18nextExtractor` (`src/i18next/`) is the shipped implementation, covering the framework
   names listed in `SOURCE_FRAMEWORKS`.
 - **Scan a project.** `scanProject` (`src/scan-project.ts`) walks the discovered source files and
-  reports extracted keys, key prefixes, unresolved and dynamic call sites, key conflicts, and
-  diagnostics, each with a `SourceLocation`.
+  reports extracted keys, key prefixes, and unresolved and dynamic call sites, each carrying a
+  `SourceLocation`. A key conflict carries one `SourceLocation` per disagreeing default value, and
+  a diagnostic is a `file` and a `reason` for something the scan could not read, with no line.
 - **Find untranslated literals.** `scanLiterals` (`src/literals/`) reports hardcoded user-facing
   strings and the reasons a candidate was suppressed, which is what `verbatra doctor --literals`
   renders.
