@@ -382,4 +382,4 @@ describe("StatusGrid", () => {
     expect(view.get("tbody td:nth-child(2)").getAttribute("dir")).toBe("rtl");
     expect(view.get("tbody td:nth-child(3)").getAttribute("dir")).toBeNull();
   });
-}, 60_000);
+});
