@@ -11,6 +11,7 @@ const LANDING_NAMESPACES = [
   "nav",
   "footer",
   "finalClose",
+  "gate",
 ] as const;
 
 type MessageTree = { [key: string]: string | MessageTree };
@@ -47,6 +48,7 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.nav.skipToContent");
     expect(source).toContain("landing.terminal.caption");
     expect(source).toContain("landing.terminal.sessionLabel");
+    expect(source).toContain("landing.gate.reasonGloss");
   });
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {

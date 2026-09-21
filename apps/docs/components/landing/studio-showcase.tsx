@@ -10,7 +10,7 @@ export async function StudioShowcase(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
 
   return (
-    <Section id="studio">
+    <Section id="studio" rhythm="lg">
       <SectionHead title={t("heading")} lead={t("lead")} />
       <div className="mt-10">
         <StudioScreenshot shot="translations" alt={t("alt")} caption={t("caption")} />
