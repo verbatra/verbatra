@@ -278,10 +278,10 @@ The provider key for step 4 comes from the environment, the way it always does. 
 
 ## The skills pack
 
-The recipes on this page are the reference. If you would rather hand an agent the operating knowledge up front, the verbatra repository ships three skill documents that do exactly that, installable with the [skills.sh](https://www.skills.sh/docs) CLI:
+The recipes on this page are the reference. If you would rather hand an agent the operating knowledge up front, [verbatra/skills](https://github.com/verbatra/skills) holds three skill documents that do exactly that, installable with the [skills.sh](https://www.skills.sh/docs) CLI:
 
 ```bash
-npx skills@latest add verbatra/verbatra --skill verbatra-cli -y
+npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 ```
 
 | Skill | Use it when |

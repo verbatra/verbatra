@@ -3,7 +3,7 @@ name: verbatra-cli
 description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key exists in the source locale but is missing in de/es/fr, a translation needs re-running after the source text changed, translation drift has to gate a pull request, strings have to be handed to a human translator and imported back, or a project needs verbatra set up. Also use when deciding whether a command costs money before running it, when branching on a verbatra exit code, or when reading verbatra.lock.json. Covers translate, watch, check, diff, doctor, export, import, tmx, extract, pseudo, types, init, and the JSON envelope.
 license: MIT
 metadata:
-  source: 'https://github.com/verbatra/verbatra'
+  source: 'https://github.com/verbatra/skills'
   homepage: 'https://verbatra.kreitz-webdev.de'
 ---
 
