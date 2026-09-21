@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
+import { CommandCoverage } from "@/components/landing/command-coverage";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
@@ -69,6 +70,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <GateDemo />
       <HowItWorks />
       <Pillars />
+      <CommandCoverage />
       <FrameworksCloud />
       <ProvidersCloud />
       <StudioShowcase />

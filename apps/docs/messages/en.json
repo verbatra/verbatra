@@ -163,6 +163,34 @@
         "body": "Keep every locale in sync as you work: verbatra watch translates on change, CI-friendly exit codes and --json output slot into any pipeline, and a GitHub Action runs it in your workflow."
       }
     },
+    "commands": {
+      "heading": "Every command the binary ships.",
+      "lead": "One install, grouped by the job it does. A test holds this list against the command table in the CLI source, so it cannot quietly fall behind.",
+      "helpNote": "Run verbatra <command> --help for the flags each one takes.",
+      "groups": {
+        "run": "Translate",
+        "verify": "Verify without writing",
+        "author": "Author and check your source",
+        "handoff": "Hand off to people",
+        "open": "Set up and open"
+      },
+      "items": {
+        "translate": "Translate every target locale once, then exit.",
+        "watch": "Re-translate on every source change until interrupted.",
+        "check": "Report which keys are missing or stale per locale without writing files.",
+        "diff": "Show the keys that would be added, re-translated, or orphaned per locale.",
+        "doctor": "Validate the project setup without calling a provider or reading an API key.",
+        "extract": "Scan your source for translation call sites and add new keys to the source locale.",
+        "types": "Generate TypeScript declarations for your catalog keys and message arguments.",
+        "pseudo": "Generate a pseudolocale from the source strings without calling a provider.",
+        "export": "Export untranslated strings into a translator handoff: Excel workbook, CSV, or TSV.",
+        "import": "Import a filled handoff back into the locale files, running the same safety checks.",
+        "tmx": "Import a TMX translation memory from another tool, or export this project's memory as TMX.",
+        "studio": "Start Verbatra Studio, the local translation dashboard.",
+        "mcp": "Start a stdio MCP server exposing verbatra's tools to an MCP client.",
+        "init": "Create a verbatra config and .env example for this project."
+      }
+    },
     "compat": {
       "heading": "One tool, every framework.",
       "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. It fills them through the provider you choose, no new format to adopt.",

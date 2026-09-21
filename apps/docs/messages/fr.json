@@ -135,6 +135,34 @@
         "body": "Garde chaque locale synchronisée pendant que tu travailles : verbatra watch traduit à chaque changement, des codes de sortie compatibles CI et la sortie --json s'intègrent à n'importe quel pipeline, et une GitHub Action l'exécute dans ton workflow."
       }
     },
+    "commands": {
+      "heading": "Toutes les commandes livrées avec le binaire.",
+      "lead": "Une seule installation, regroupée par tâche. Un test confronte cette liste à la table de commandes du code de la CLI, elle ne peut donc pas prendre du retard en silence.",
+      "helpNote": "Lance verbatra <command> --help pour voir les options de chacune.",
+      "groups": {
+        "run": "Traduire",
+        "verify": "Vérifier sans écrire",
+        "author": "Tenir et contrôler ta source",
+        "handoff": "Confier à des humains",
+        "open": "Installer et ouvrir"
+      },
+      "items": {
+        "translate": "Traduit chaque langue cible une fois, puis s'arrête.",
+        "watch": "Retraduit à chaque changement de la source jusqu'à ce que tu interrompes.",
+        "check": "Indique par langue les clés manquantes ou périmées, sans écrire de fichier.",
+        "diff": "Montre par langue les clés qui seraient ajoutées, retraduites ou devenues orphelines.",
+        "doctor": "Valide la configuration du projet sans appeler de fournisseur ni lire de clé d'API.",
+        "extract": "Parcourt ton code à la recherche d'appels de traduction et ajoute les nouvelles clés à la langue source.",
+        "types": "Génère des déclarations TypeScript pour les clés de ton catalogue et les arguments de chaque message.",
+        "pseudo": "Génère une pseudo-langue à partir des textes source, sans appeler de fournisseur.",
+        "export": "Exporte les textes non traduits dans un lot de relais : classeur Excel, CSV ou TSV.",
+        "import": "Réintègre un lot de relais rempli dans tes fichiers de langue, avec les mêmes contrôles de sûreté.",
+        "tmx": "Importe une mémoire de traduction TMX venue d'un autre outil, ou exporte celle de ce projet en TMX.",
+        "studio": "Démarre Verbatra Studio, le tableau de bord de traduction local.",
+        "mcp": "Démarre un serveur MCP en stdio qui expose les outils de verbatra à un client MCP.",
+        "init": "Crée une configuration verbatra et un exemple de .env pour ce projet."
+      }
+    },
     "compat": {
       "heading": "Un seul outil, tous les frameworks.",
       "body": "verbatra lit les fichiers de locale que ta pile utilise déjà : JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les catalogues de chaînes Xcode, Android strings.xml, gettext .po/.pot, INI et .NET .resx. Il les remplit via le fournisseur que tu choisis, sans nouveau format à adopter.",
