@@ -180,6 +180,28 @@
       "caption": "Studio gibt es hell und dunkel. Wechsle den Screenshot, um zu vergleichen.",
       "cta": "Übersetzungen in Studio prüfen"
     },
+    "agents": {
+      "heading": "Gib es deinem Agenten in die Hand.",
+      "lead": "Dieselbe Engine, erreichbar aus einem Assistenten statt aus einer Shell.",
+      "items": {
+        "mcp": {
+          "title": "MCP-Server",
+          "body": "verbatra mcp startet einen stdio-MCP-Server, der Übersetzungsstand, Glossar und das Bearbeiten einzelner Einträge jedem MCP-Client bereitstellt.",
+          "cta": "Mit KI starten"
+        },
+        "skills": {
+          "title": "Agent Skills",
+          "body": "Die installierbaren SKILL.md-Dokumente liegen in einem eigenen Repository: eines für die CLI, eines für die MCP-Tools, eines für die Agent-Tools in Studio.",
+          "cta": "verbatra/skills"
+        },
+        "llms": {
+          "title": "llms.txt",
+          "body": "Jede Dokumentationsseite als reiner Text: ein Index unter /llms.txt und die ganze Seite unter /llms-full.txt.",
+          "cta": "llms.txt öffnen"
+        }
+      },
+      "installLabel": "Eines installieren"
+    },
     "why": {
       "heading": "Gebaut für Teams, die in vielen Sprachen ausliefern.",
       "lead": "Jede Entscheidung begünstigt Vorhersehbarkeit: kleine Diffs, explizite Konfiguration und nichts, was nicht zuerst geprüft wurde, wird geschrieben.",

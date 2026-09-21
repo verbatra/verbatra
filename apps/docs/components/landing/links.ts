@@ -8,3 +8,4 @@ export const NPM_MCP = "https://www.npmjs.com/package/@verbatra/mcp";
 export const CONTRIBUTING_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
+export const SKILLS_REPO_URL = "https://github.com/verbatra/skills";

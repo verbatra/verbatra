@@ -208,6 +208,28 @@
       "caption": "Studio ships in light and dark. Switch the screenshot to compare.",
       "cta": "Review translations in Studio"
     },
+    "agents": {
+      "heading": "Hand it to your agent.",
+      "lead": "The same engine, reachable from an assistant instead of a shell.",
+      "items": {
+        "mcp": {
+          "title": "MCP server",
+          "body": "verbatra mcp starts a stdio MCP server that exposes translation status, the glossary, and entry editing to any MCP client.",
+          "cta": "Start with AI"
+        },
+        "skills": {
+          "title": "Agent skills",
+          "body": "Installable SKILL.md documents live in their own repository: one for the CLI, one for the MCP tools, one for the Studio agent tools.",
+          "cta": "verbatra/skills"
+        },
+        "llms": {
+          "title": "llms.txt",
+          "body": "Every documentation page as plain text: an index at /llms.txt and the whole site at /llms-full.txt.",
+          "cta": "Open llms.txt"
+        }
+      },
+      "installLabel": "Install one"
+    },
     "why": {
       "heading": "Built for teams that ship in many languages.",
       "lead": "Every choice favors predictability: small diffs, explicit config, and nothing written that was not verified first.",

@@ -180,6 +180,28 @@
       "caption": "Studio viene en claro y oscuro. Cambia la captura para compararlos.",
       "cta": "Revisa traducciones en Studio"
     },
+    "agents": {
+      "heading": "Ponlo en manos de tu agente.",
+      "lead": "El mismo motor, accesible desde un asistente en lugar de una terminal.",
+      "items": {
+        "mcp": {
+          "title": "Servidor MCP",
+          "body": "verbatra mcp inicia un servidor MCP por stdio que expone el estado de la traducción, el glosario y la edición de entradas a cualquier cliente MCP.",
+          "cta": "Empezar con IA"
+        },
+        "skills": {
+          "title": "Skills para agentes",
+          "body": "Los documentos SKILL.md instalables viven en su propio repositorio: uno para la CLI, uno para las herramientas MCP y uno para las herramientas de agente de Studio.",
+          "cta": "verbatra/skills"
+        },
+        "llms": {
+          "title": "llms.txt",
+          "body": "Cada página de la documentación en texto plano: un índice en /llms.txt y el sitio entero en /llms-full.txt.",
+          "cta": "Abrir llms.txt"
+        }
+      },
+      "installLabel": "Instala uno"
+    },
     "why": {
       "heading": "Creado para equipos que publican en muchos idiomas.",
       "lead": "Cada decisión favorece la previsibilidad: diffs pequeños, configuración explícita y nada escrito que no se haya verificado primero.",
