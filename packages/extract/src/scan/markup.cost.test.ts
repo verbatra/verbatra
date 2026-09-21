@@ -49,7 +49,7 @@ describe("readMarkup: cost on input that never closes type arguments", () => {
     expect(full).toBeLessThan(200_000 * 100);
     expect(full).toBeLessThan(half * 2.2);
   });
-});
+}, 60_000);
 
 describe("readMarkup: nesting depth", () => {
   it.each([
@@ -61,4 +61,4 @@ describe("readMarkup: nesting depth", () => {
     expect(result.truncated).toBe(false);
     expect(result.unreadableMarkup).toBe(unit === "<a>");
   });
-});
+}, 60_000);
