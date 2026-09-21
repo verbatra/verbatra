@@ -38,6 +38,14 @@ describe("createVitestConfig", () => {
     ]);
   });
 
+  it("defaults testTimeout well above the vitest 5 second default, which CI under coverage overruns", () => {
+    expect(createVitestConfig().test?.testTimeout).toBe(60_000);
+  });
+
+  it("lets a package raise or lower the shared testTimeout", () => {
+    expect(createVitestConfig({ testTimeout: 120_000 }).test?.testTimeout).toBe(120_000);
+  });
+
   it("locks the provider, the reporters, and the four 90 percent thresholds", () => {
     const config = createVitestConfig();
     const { coverage } = config.test ?? {};
