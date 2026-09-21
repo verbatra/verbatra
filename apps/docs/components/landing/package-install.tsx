@@ -1,12 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { HighlightedCommand } from "@/components/ui/command-line";
 import { TabList } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { trackUmamiEvent } from "@/lib/umami";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
@@ -24,12 +25,11 @@ type ActiveTab = (typeof MANAGERS)[number]["id"] | typeof AI_TAB_ID;
 
 const CLI_TOKEN = "@verbatra/cli";
 const WINDOW_DOTS = ["#ff5f56", "#ffbd2e", "#27c93f"] as const;
-const TAB_CLASS =
-  "rounded px-3 py-1.5 font-mono text-xs lowercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";
+const TAB_CLASS = "rounded px-3 py-1.5 font-mono text-xs lowercase transition-colors";
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 const HINT_LINK_CLASS =
-  "underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";
+  "inline-flex min-h-6 items-center underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]";
 
 type BubbleVariant = "desktop" | "mobile";
 
@@ -71,7 +71,7 @@ function HintBubble({
               />
             ) : null}
             <div
-              className="rounded-xl border border-fd-border px-3 py-2.5 text-xs leading-relaxed text-fd-muted-foreground"
+              className="rounded-xl border border-fd-border px-3 py-2.5 text-[13px] leading-relaxed text-fd-muted-foreground"
               style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
             >
               {hint}
@@ -88,7 +88,7 @@ export function PackageInstall(): ReactNode {
   const locale = useLocale() as Locale;
   const [active, setActive] = useState<ActiveTab>("npm");
   const [copied, copy] = useCopyToClipboard();
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotionPreference();
   const isAiTab = active === AI_TAB_ID;
   const manager = MANAGERS.find((m) => m.id === active) ?? MANAGERS[0];
   const commandText = isAiTab ? AI_SETUP_PROMPT : manager.command;
@@ -111,10 +111,10 @@ export function PackageInstall(): ReactNode {
     ) : null;
 
   return (
-    <div className="not-prose w-full max-w-[28rem]">
+    <div className="vk-w-install not-prose w-full">
       <div className="relative">
         <div
-          className="overflow-hidden rounded-2xl border border-fd-border"
+          className="overflow-hidden rounded-xl border border-fd-border"
           style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
         >
           <div className="flex items-center gap-3 border-b border-fd-border px-4 py-2.5">
@@ -184,7 +184,7 @@ export function PackageInstall(): ReactNode {
                 }
               }}
               aria-label={isAiTab ? t("copyPromptAria") : t("copyAria")}
-              className="ms-auto rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+              className="ms-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground sm:min-h-6 sm:min-w-0"
             >
               {copied ? t("copied") : t("copy")}
             </button>

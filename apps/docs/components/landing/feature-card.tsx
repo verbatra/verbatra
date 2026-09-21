@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { useReducedMotionPreference } from "@/lib/reduced-motion";
 
 const SPARKLES = [
   { left: "22%", top: "28%", delay: 0, duration: 3.8 },
@@ -20,15 +21,11 @@ export function FeatureCard({
   body: string;
   visual: ReactNode;
 }): ReactNode {
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotionPreference();
   return (
     <div
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-fd-border"
-      style={{
-        background: "color-mix(in srgb, var(--surface-card) 82%, transparent)",
-        boxShadow:
-          "inset 0 1px 0 color-mix(in srgb, #ffffff 6%, transparent), 0 14px 36px -24px color-mix(in srgb, var(--v-purple) 55%, transparent)",
-      }}
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-fd-border"
+      style={{ background: "color-mix(in srgb, var(--surface-card) 82%, transparent)" }}
     >
       <div
         aria-hidden="true"
@@ -81,8 +78,8 @@ export function FeatureCard({
       </div>
       <div className="flex flex-1 flex-col gap-2 p-6">
         <h3
-          className="text-[1.18rem] font-semibold text-fd-foreground"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="font-semibold text-fd-foreground"
+          style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-h3)" }}
         >
           {title}
         </h3>

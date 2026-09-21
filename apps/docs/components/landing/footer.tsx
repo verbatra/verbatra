@@ -116,7 +116,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 ];
 
 const LINK_CLASS =
-  "underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
+  "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
 
 function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): ReactNode {
   if (link.external) {
@@ -165,15 +165,14 @@ function ContributorsRow({
               href={contributor.profileUrl}
               target="_blank"
               rel="noreferrer noopener"
-              aria-label={ariaFor(contributor.login)}
-              className="block rounded-full transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+              className="block rounded-full transition-[filter] hover:brightness-110"
               data-umami-event="outbound-link"
               data-umami-event-target="contributor"
             >
               {/* biome-ignore lint/performance/noImgElement: contributor avatar URLs come from the GitHub API at build/ISR time and are not known to next/image's static remotePatterns allowlist. */}
               <img
                 src={contributor.avatarUrl}
-                alt=""
+                alt={ariaFor(contributor.login)}
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full"
@@ -228,14 +227,13 @@ export async function FullFooter(): Promise<ReactNode> {
           style={{
             fontFamily: "var(--font-display)",
             fontSize: "clamp(4rem, 24vw, 15rem)",
-            lineHeight: 0.82,
+            lineHeight: 1,
             letterSpacing: "-0.04em",
             background: "var(--gradient-headline)",
             WebkitBackgroundClip: "text",
             backgroundClip: "text",
             color: "transparent",
             opacity: 0.08,
-            transform: "translateY(0.12em)",
             WebkitMaskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
             maskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
           }}
@@ -244,7 +242,7 @@ export async function FullFooter(): Promise<ReactNode> {
         </span>
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6 py-16">
+      <div className="vk-gutter vk-w-wide relative z-10 mx-auto py-16">
         <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div>
             <span className="inline-flex items-center gap-2.5">
@@ -265,7 +263,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
-                className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
                 data-umami-event="outbound-link"
                 data-umami-event-target="github"
               >
@@ -277,11 +275,17 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
-                className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
                 data-umami-event="outbound-link"
                 data-umami-event-target="npm"
               >
-                <SiNpm size={16} color="currentColor" aria-hidden="true" className="shrink-0" />
+                <SiNpm
+                  size={16}
+                  title=""
+                  color="currentColor"
+                  aria-hidden="true"
+                  className="shrink-0"
+                />
                 <span>npm</span>
               </a>
             </div>

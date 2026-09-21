@@ -20,7 +20,7 @@ const PILLARS: ReadonlyArray<Pillar> = [
 export async function Pillars(): Promise<ReactNode> {
   const t = await getTranslations("landing.pillars");
   return (
-    <Section width="lg">
+    <Section width="wide">
       <SectionHead align="center" maxWidth="620px" title={t("heading")} lead={t("lead")} />
       <div className="mt-12 grid gap-4 md:grid-cols-3">
         {PILLARS.map((pillar) => (

@@ -11,6 +11,7 @@ export type TerminalProps = {
   commands: ReadonlyArray<string>;
   outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
   title?: string;
+  sessionLabel: string;
   typingSpeed?: number;
   delayBetweenCommands?: number;
   initialDelay?: number;
@@ -140,6 +141,7 @@ export function Terminal({
   commands,
   outputs,
   title,
+  sessionLabel,
   typingSpeed = 45,
   delayBetweenCommands = 900,
   initialDelay = 500,
@@ -192,7 +194,7 @@ export function Terminal({
   return (
     <div
       ref={rootRef}
-      className={cn("not-prose overflow-hidden rounded-2xl border border-fd-border", className)}
+      className={cn("not-prose overflow-hidden rounded-xl border border-fd-border", className)}
       style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
     >
       <div className="flex items-center gap-2 border-b border-fd-border px-4 py-3">
@@ -207,7 +209,7 @@ export function Terminal({
       </div>
 
       <div className="sr-only">
-        <p>An example verbatra command-line session.</p>
+        <p>{sessionLabel}</p>
         <ol>
           {commands.map((cmd, i) => (
             <li key={cmd}>

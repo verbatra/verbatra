@@ -7,7 +7,7 @@ export type CardProps = {
   className?: string;
 };
 
-const BASE = "not-prose rounded-2xl border border-fd-border bg-fd-card text-fd-foreground";
+const BASE = "not-prose rounded-xl border border-fd-border bg-fd-card text-fd-foreground";
 
 export default function Card({
   signature = false,

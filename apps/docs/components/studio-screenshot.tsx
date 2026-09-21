@@ -12,8 +12,7 @@ const SHOTS = {
 
 const THEMES = ["dark", "light"] as const;
 
-const TAB_CLASS =
-  "rounded px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";
+const TAB_CLASS = "rounded px-2.5 py-1 text-xs transition-colors";
 
 export type StudioShot = keyof typeof SHOTS;
 
@@ -37,7 +36,7 @@ export function StudioScreenshot({
   return (
     <figure className="not-prose my-8">
       <div
-        className="overflow-hidden rounded-2xl border border-fd-border"
+        className="overflow-hidden rounded-xl border border-fd-border"
         style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
       >
         <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">

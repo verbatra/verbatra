@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { GRID_PATTERN_STYLE } from "@/components/landing/fx/grid-pattern";
@@ -81,6 +82,7 @@ export function DocsHomeHero({
   secondary: { label: string; href: string };
   locale: Locale;
 }): ReactNode {
+  const t = useTranslations("landing.terminal");
   return (
     <section className="not-prose relative w-full overflow-hidden border-b border-fd-border px-6 pt-14 pb-16 md:px-10 xl:pt-20">
       <StaticBackdrop />
@@ -137,6 +139,7 @@ export function DocsHomeHero({
               commands={HERO_COMMANDS}
               outputs={HERO_OUTPUTS}
               title="~/acme-shop"
+              sessionLabel={t("sessionLabel")}
               loop={false}
             />
           </div>

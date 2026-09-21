@@ -14,29 +14,44 @@
       "ctaQuickstart": "Lis le guide de démarrage",
       "ctaGithub": "Ajoute une étoile sur GitHub"
     },
-    "pillars": {
-      "heading": "Un seul outil pour toute la boucle de traduction.",
-      "lead": "verbatra est plus que de la traduction par IA. Il couvre la traduction automatique que tu contrôles, un transfert Excel propre pour les traducteurs humains, et l'automatisation pour garder chaque locale synchronisée.",
-      "ai": {
-        "title": "Traduction par IA",
-        "body": "Traduis uniquement ce qui a changé via le fournisseur de ton choix : Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou tout serveur compatible OpenAI que tu gères toi-même. Un fichier de verrouillage validé maintient chaque exécution incrémentielle, et l'intégrité des placeholders et de l'ICU est vérifiée avant toute écriture."
-      },
-      "excel": {
-        "title": "Transfert Excel",
-        "body": "Lance verbatra export pour produire un classeur .xlsx stylisé, confie-le à une agence de traduction ou à des traducteurs internes, puis verbatra import relit leurs modifications dans tes fichiers de locale. Combine la traduction automatique avec le travail humain professionnel."
-      },
-      "automation": {
-        "title": "Automatisation",
-        "body": "Garde chaque locale synchronisée pendant que tu travailles : verbatra watch traduit à chaque changement, des codes de sortie compatibles CI et la sortie --json s'intègrent à n'importe quel pipeline, et une GitHub Action l'exécute dans ton workflow."
+    "terminal": {
+      "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
+      "caption": "Transcription enregistrée avec @verbatra/cli {version}.",
+      "transcript": {
+        "init": {
+          "l1": "✓ verbatra.config.ts créé",
+          "l2": "source en · cibles de, es, fr",
+          "l3": "fournisseur gemini · clé depuis GEMINI_API_KEY"
+        },
+        "translate": {
+          "l1": "diff en.json · 12 nouvelles · 0 modifiée · 108 inchangées",
+          "l2": "de  12 traduites · 108 inchangées · 0 retenues",
+          "l3": "es  12 traduites · 108 inchangées · 0 retenues",
+          "l4": "fr  12 traduites · 108 inchangées · 0 retenues",
+          "l5": "✓ 36 clés traduites en 5,4 s · 0 ignorée · verrou mis à jour"
+        },
+        "diff": {
+          "l1": "en.json · 120 clés · source de vérité",
+          "l2": "de  2 nouvelles · 1 modifiée · 117 à jour",
+          "l3": "es  0 nouvelle · 0 modifiée · 120 à jour",
+          "l4": "fr  5 nouvelles · 0 modifiée · 115 à jour",
+          "l5": "8 clés seraient envoyées · lance verbatra translate pour appliquer"
+        },
+        "watch": {
+          "l1": "surveille en.json",
+          "l2": "en.json a changé · 1 nouvelle clé",
+          "l3": "de  1 traduite · 0 retenue",
+          "l4": "es  1 traduite · 0 retenue",
+          "l5": "fr  1 traduite · 0 retenue",
+          "l6": "✓ 3 clés traduites · en attente de changements"
+        }
       }
     },
     "status": {
-      "label": "Statut de build, couverture, versions des paquets, téléchargements et licence",
+      "label": "Statut de build, couverture des tests, version du paquet et licence",
       "cliVersionAlt": "Dernière version publiée de @verbatra/cli sur npm",
-      "sdkVersionAlt": "Dernière version publiée de @verbatra/sdk sur npm",
       "buildAlt": "Statut du build d'intégration continue",
       "coverageAlt": "Couverture des tests rapportée sur Codecov",
-      "downloadsAlt": "Téléchargements mensuels sur npm",
       "licenseAlt": "Publié sous la licence MIT"
     },
     "install": {
@@ -51,15 +66,36 @@
       "aiCaption": "Ceci est un aperçu tronqué. Lis le prompt complet et le guide de configuration sur",
       "aiCaptionLink": "le guide de configuration"
     },
-    "compat": {
-      "heading": "Un seul outil, tous les frameworks.",
-      "body": "verbatra lit les fichiers de locale que ta pile utilise déjà : JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les catalogues de chaînes Xcode, Android strings.xml, gettext .po/.pot, INI et .NET .resx. Il les remplit via le fournisseur que tu choisis, sans nouveau format à adopter.",
-      "labelFrameworks": "Frameworks et formats"
-    },
-    "providers": {
-      "heading": "Traduis via le modèle en qui tu as confiance.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou tout serveur compatible OpenAI que tu héberges toi-même. Choisis-en un en une seule ligne de configuration et change de fournisseur sans toucher à tes fichiers de locale.",
-      "marqueeLabel": "Fournisseurs de traduction"
+    "gate": {
+      "heading": "Une traduction qui casse un espace réservé n'atteint jamais tes fichiers.",
+      "lead": "Une exécution sur deux clés modifiées. verbatra en a écrit une et refusé l'autre, et l'allemand que tes utilisateurs avaient déjà est resté exactement en place.",
+      "panels": {
+        "source": {
+          "badge": "source",
+          "note": "Les deux clés ont été modifiées en anglais, donc les deux partent vers le fournisseur."
+        },
+        "written": {
+          "badge": "écrit",
+          "note": "de.json après l'exécution. Une ligne est nouvelle, l'autre est la valeur laissée par l'exécution précédente."
+        },
+        "refused": {
+          "badge": "refusé",
+          "note": "La proposition pour inbox.count n'a jamais touché le fichier, et le lock a gardé son ancien hash, donc la prochaine exécution réessaie."
+        }
+      },
+      "rows": {
+        "key": "clé",
+        "candidate": "proposition",
+        "missing": "manquant",
+        "reason": "motif",
+        "kept": "conservé"
+      },
+      "annotations": {
+        "new": "nouveau",
+        "kept": "conservé"
+      },
+      "reasonGloss": "placeholder : la proposition ne porte pas les mêmes espaces réservés que la source, l'interpolation casserait donc à l'exécution.",
+      "outputLabel": "L'exécution le rapporte ainsi :"
     },
     "how": {
       "heading": "Une exécution est un pipeline court et prévisible.",
@@ -83,33 +119,126 @@
         }
       }
     },
-    "why": {
-      "heading": "Conçu pour les équipes qui livrent en plusieurs langues.",
-      "lead": "Chaque choix privilégie la prévisibilité : des diffs réduits, une config explicite et rien d'écrit qui n'ait d'abord été vérifié.",
-      "reasons": {
-        "incremental": {
-          "title": "Incrémental par défaut",
-          "body": "Un fichier de verrouillage validé enregistre ce qui a été traduit. Chaque exécution compare la source et appelle le fournisseur seulement pour les clés qui ont changé."
+    "pillars": {
+      "heading": "Un seul outil pour toute la boucle de traduction.",
+      "lead": "verbatra est plus que de la traduction par IA. Il couvre la traduction automatique que tu contrôles, un transfert Excel propre pour les traducteurs humains, et l'automatisation pour garder chaque locale synchronisée.",
+      "ai": {
+        "title": "Traduction par IA",
+        "body": "Traduis uniquement ce qui a changé via le fournisseur de ton choix : Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou tout serveur compatible OpenAI que tu gères toi-même. Un fichier de verrouillage validé maintient chaque exécution incrémentielle, et l'intégrité des placeholders et de l'ICU est vérifiée avant toute écriture."
+      },
+      "excel": {
+        "title": "Transfert Excel",
+        "body": "Lance verbatra export pour produire un classeur .xlsx stylisé, confie-le à une agence de traduction ou à des traducteurs internes, puis verbatra import relit leurs modifications dans tes fichiers de locale. Combine la traduction automatique avec le travail humain professionnel."
+      },
+      "automation": {
+        "title": "Automatisation",
+        "body": "Garde chaque locale synchronisée pendant que tu travailles : verbatra watch traduit à chaque changement, des codes de sortie compatibles CI et la sortie --json s'intègrent à n'importe quel pipeline, et une GitHub Action l'exécute dans ton workflow."
+      }
+    },
+    "commands": {
+      "heading": "Toutes les commandes livrées avec le binaire.",
+      "lead": "Une seule installation, regroupée par tâche. Un test confronte cette liste à la table de commandes du code de la CLI, elle ne peut donc pas prendre du retard en silence.",
+      "helpNote": "Lance verbatra <command> --help pour voir les options de chacune.",
+      "groups": {
+        "run": "Traduire",
+        "verify": "Vérifier sans écrire",
+        "author": "Tenir et contrôler ta source",
+        "handoff": "Confier à des humains",
+        "open": "Installer et ouvrir"
+      },
+      "items": {
+        "translate": "Traduit chaque langue cible une fois, puis s'arrête.",
+        "watch": "Retraduit à chaque changement de la source jusqu'à ce que tu interrompes.",
+        "check": "Indique par langue les clés manquantes ou périmées, sans écrire de fichier.",
+        "diff": "Montre par langue les clés qui seraient ajoutées, retraduites ou devenues orphelines.",
+        "doctor": "Valide la configuration du projet sans appeler de fournisseur ni lire de clé d'API.",
+        "extract": "Parcourt ton code à la recherche d'appels de traduction et ajoute les nouvelles clés à la langue source.",
+        "types": "Génère des déclarations TypeScript pour les clés de ton catalogue et les arguments de chaque message.",
+        "pseudo": "Génère une pseudo-langue à partir des textes source, sans appeler de fournisseur.",
+        "export": "Exporte les textes non traduits dans un lot de relais : classeur Excel, CSV ou TSV.",
+        "import": "Réintègre un lot de relais rempli dans tes fichiers de langue, avec les mêmes contrôles de sûreté.",
+        "tmx": "Importe une mémoire de traduction TMX venue d'un autre outil, ou exporte celle de ce projet en TMX.",
+        "studio": "Démarre Verbatra Studio, le tableau de bord de traduction local.",
+        "mcp": "Démarre un serveur MCP en stdio qui expose les outils de verbatra à un client MCP.",
+        "init": "Crée une configuration verbatra et un exemple de .env pour ce projet."
+      }
+    },
+    "stack": {
+      "heading": "Les fichiers que tu as déjà, les modèles que tu choisis.",
+      "lead": "verbatra lit le format de langue que ta stack utilise déjà et le remplit via le fournisseur que tu nommes en une ligne de configuration. Rien de nouveau à adopter d'un côté comme de l'autre.",
+      "formats": {
+        "title": "Formats et frameworks",
+        "note": "Tous les formats livrés par le registre d'adaptateurs, du JSON i18next aux String Catalogs d'Apple et au .resx de .NET.",
+        "marqueeLabel": "Frameworks et formats"
+      },
+      "providers": {
+        "title": "Fournisseurs de traduction",
+        "note": "Des LLM et de la traduction automatique derrière une seule interface, plus tout serveur compatible OpenAI que tu héberges toi-même.",
+        "marqueeLabel": "Fournisseurs de traduction"
+      }
+    },
+    "studio": {
+      "heading": "Garde tout l'état de la traduction sous les yeux, en local.",
+      "lead": "Verbatra Studio est un tableau de bord local au-dessus de ton projet. Il montre en direct la couverture de chaque locale, liste les traductions qu'une exécution a signalées comme méritant un second regard, et te laisse les corriger sur place. L'édition ne demande aucune clé d'API et n'appelle jamais de fournisseur.",
+      "alt": "La page Traductions de Verbatra Studio : quatre tuiles de synthèse pour les clés à traiter, la couverture moyenne, les locales synchronisées et la consommation de tokens de la dernière exécution, puis une grille marquant chaque clé comme manquante ou synchronisée par locale, et un tableau de couverture par locale.",
+      "caption": "Studio existe en clair et en sombre. Change la capture pour comparer.",
+      "cta": "Réviser les traductions dans Studio"
+    },
+    "agents": {
+      "heading": "Confie-le à ton agent.",
+      "lead": "Le même moteur, accessible depuis un assistant plutôt que depuis un terminal.",
+      "items": {
+        "mcp": {
+          "title": "Serveur MCP",
+          "body": "verbatra mcp démarre un serveur MCP en stdio qui expose l'état de la traduction, le glossaire et l'édition des entrées à n'importe quel client MCP.",
+          "cta": "Démarrer avec l'IA"
         },
-        "provider": {
-          "title": "Le fournisseur de ton choix",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, ou un modèle local compatible OpenAI, choisi en une seule ligne de configuration. Change de fournisseur sans toucher à tes fichiers de locale."
+        "skills": {
+          "title": "Skills pour agents",
+          "body": "Les documents SKILL.md installables vivent dans leur propre dépôt : un pour la CLI, un pour les outils MCP, un pour les outils d'agent de Studio.",
+          "cta": "verbatra/skills"
         },
-        "safety": {
-          "title": "Sûr par conception",
-          "body": "L'intégrité des placeholders et de l'ICU est vérifiée après chaque traduction. Un résultat qui casse un placeholder est retenu, jamais écrit."
+        "llms": {
+          "title": "llms.txt",
+          "body": "Chaque page de documentation en texte brut : un index sur /llms.txt et le site entier sur /llms-full.txt.",
+          "cta": "Ouvrir llms.txt"
+        }
+      },
+      "installLabel": "Installes-en un"
+    },
+    "trust": {
+      "heading": "Ce que tu adoptes vraiment.",
+      "lead": "Cinq points à vérifier avant qu'une dépendance n'entre dans ton dépôt. Chaque ligne renvoie au fichier qui le prouve.",
+      "rows": {
+        "license": {
+          "label": "Licence",
+          "value": "MIT",
+          "detail": "Une licence permissive pour tout le dépôt, sans double licence et sans accord de contribution à signer.",
+          "cta": "Lire LICENSE"
         },
-        "environment": {
-          "title": "Les clés restent dans ton environnement",
-          "body": "Les clés d'API des fournisseurs sont lues depuis les variables d'environnement, jamais depuis le fichier de config, jamais depuis les arguments du CLI, et jamais journalisées."
+        "local": {
+          "label": "Où ça tourne",
+          "value": "Ta machine, ta CI",
+          "detail": "Il n'y a aucun service verbatra auquel s'inscrire. Les clés d'API du fournisseur sont lues uniquement dans les variables d'environnement, jamais dans le fichier de configuration ni dans un argument de la CLI.",
+          "cta": "Lire env.ts"
         },
-        "oneEngine": {
-          "title": "CLI et SDK, un seul moteur",
-          "body": "La commande verbatra et @verbatra/sdk partagent un même cœur d'orchestration, donc les scripts, la CI et tes propres outils se comportent à l'identique."
+        "provenance": {
+          "label": "Publication",
+          "value": "npm Trusted Publishing",
+          "detail": "Les versions sont publiées via OIDC, sans jeton npm de longue durée dans le workflow, et chaque archive est construite avec la provenance activée.",
+          "cta": "Lire release.yml"
         },
-        "dryRun": {
-          "title": "Exécutions à blanc et mode watch",
-          "body": "Prévisualise exactement ce qu'une exécution changerait sans rien écrire, ou garde un watch actif qui traduit au fur et à mesure que ta locale source évolue."
+        "coverage": {
+          "label": "Couverture",
+          "value": "Couverture de tests sur Codecov",
+          "detail": "La barrière de fusion tient chaque paquet à 90 pour cent sur les lignes, les fonctions, les instructions et les branches.",
+          "cta": "Ouvrir Codecov"
+        },
+        "cost": {
+          "label": "Coût",
+          "value": "Aucune offre payante",
+          "detail": "Open source, entièrement : pas de plan hébergé, pas de décompte de sièges, aucune fonction retenue. La seule dépense est l'usage de ton fournisseur, avec une clé que tu détiens.",
+          "cta": "Parcourir le code"
         }
       }
     },
@@ -206,14 +335,8 @@
         "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
       },
       "contact": "Contact",
-      "npm": "verbatra sur npm"
-    },
-    "studio": {
-      "heading": "Garde tout l'état de la traduction sous les yeux, en local.",
-      "lead": "Verbatra Studio est un tableau de bord local au-dessus de ton projet. Il montre en direct la couverture de chaque locale, liste les traductions qu'une exécution a signalées comme méritant un second regard, et te laisse les corriger sur place. L'édition ne demande aucune clé d'API et n'appelle jamais de fournisseur.",
-      "alt": "La page Traductions de Verbatra Studio : quatre tuiles de synthèse pour les clés à traiter, la couverture moyenne, les locales synchronisées et la consommation de tokens de la dernière exécution, puis une grille marquant chaque clé comme manquante ou synchronisée par locale, et un tableau de couverture par locale.",
-      "caption": "Studio existe en clair et en sombre. Change la capture pour comparer.",
-      "cta": "Réviser les traductions dans Studio"
+      "npm": "verbatra sur npm",
+      "skipToContent": "Aller au contenu"
     }
   },
   "legal": {
