@@ -89,7 +89,7 @@ function FaqRow({
 export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
   const locale = useLocale() as Locale;
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState(-1);
   const reduced = useReducedMotionPreference();
 
   return (
