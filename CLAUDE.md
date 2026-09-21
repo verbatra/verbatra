@@ -131,7 +131,16 @@ edit code. Dispatch it after implementation work, before merge.
 unit, integration, and CLI e2e; it is also the agent to dispatch for building out
 Studio's still-missing Playwright e2e suite.
 
-Skills are installed via the `skills.sh` mechanism (`npx skills@latest add <owner/repo>
---skill <name> -a claude-code -y`, tracked in `skills-lock.json`). See
-`.claude/skills/` for the current list rather than assuming one here; it grows over
-time.
+verbatra's own agent skills (`verbatra-cli`, `verbatra-mcp-tools`,
+`verbatra-studio-agent-tools`) live in https://github.com/verbatra/skills, not in
+this repository. That repository's CI asserts their command, format, provider and
+tool tables against this repository's registries, nightly and on every change, so
+adding a command, format, provider or agent tool here also means opening a pull
+request there.
+
+`.claude/skills/` holds the skills vendored into this repository: the third-party
+ones this project consumes, plus verbatra's own three installed back from
+`verbatra/skills`. All of them arrive through the `skills.sh` mechanism
+(`npx skills@latest add <owner/repo> --skill <name> -a claude-code -y`) and are
+tracked in `skills-lock.json`. See `.claude/skills/` for the current list rather
+than assuming one here; it grows over time.
