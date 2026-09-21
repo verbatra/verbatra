@@ -48,7 +48,7 @@ function Panel({
       <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-3">
         <span className={`${MONO} text-fd-foreground`}>{file}</span>
         <span
-          className="rounded-full border px-2 py-0.5 text-xs font-medium"
+          className="rounded-full border px-2 py-0.5 text-[13px] font-medium"
           style={{ color: badgeColor, borderColor: badgeBorder }}
         >
           {badge}
@@ -78,7 +78,7 @@ function CodeLines({
           </code>
           {line.annotation ? (
             <span
-              className="shrink-0 text-xs"
+              className="shrink-0 text-[13px]"
               style={{
                 color: line.annotation === "new" ? "var(--accent)" : "var(--text-faint)",
                 fontFamily: "var(--font-display)",
