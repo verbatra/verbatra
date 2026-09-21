@@ -80,7 +80,7 @@
         },
         "refused": {
           "badge": "verweigert",
-          "note": "Der Kandidat für inbox.unread hat die Datei nie berührt, und die Lock-Datei hat ihren alten Hash behalten, also versucht es der nächste Lauf erneut."
+          "note": "Der Kandidat für inbox.count hat die Datei nie berührt, und die Lock-Datei hat ihren alten Hash behalten, also versucht es der nächste Lauf erneut."
         }
       },
       "rows": {

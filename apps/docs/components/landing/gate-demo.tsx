@@ -73,7 +73,7 @@ function CodeLines({
     <div className={MONO}>
       {lines.map((line) => (
         <div key={line.text} className="flex items-start gap-3">
-          <code className="min-w-0 flex-1 overflow-x-auto whitespace-pre text-fd-muted-foreground">
+          <code className="min-w-0 flex-1 whitespace-pre-wrap break-words text-fd-muted-foreground">
             {line.text}
           </code>
           {line.annotation ? (
@@ -97,7 +97,7 @@ function RefusalRow({ label, value }: { label: string; value: string }): ReactNo
   return (
     <div className="grid grid-cols-[84px_1fr] gap-3">
       <dt className="text-[13px] text-[color:var(--text-faint)]">{label}</dt>
-      <dd className={`${MONO} min-w-0 overflow-x-auto whitespace-pre text-fd-foreground`}>
+      <dd className={`${MONO} min-w-0 whitespace-pre-wrap break-words text-fd-foreground`}>
         {value}
       </dd>
     </div>
@@ -156,7 +156,7 @@ export async function GateDemo(): Promise<ReactNode> {
         <p className="border-b border-fd-border px-4 py-3 text-[13px] text-fd-muted-foreground">
           {t("outputLabel")}
         </p>
-        <pre className={`${MONO} overflow-x-auto px-4 py-4 text-fd-foreground`}>
+        <pre className={`${MONO} whitespace-pre-wrap break-words px-4 py-4 text-fd-foreground`}>
           <code>{`$ ${GATE_CLI_COMMAND}\n${GATE_CLI_LINE}`}</code>
         </pre>
       </div>

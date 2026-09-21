@@ -80,7 +80,7 @@
         },
         "refused": {
           "badge": "rechazado",
-          "note": "La propuesta para inbox.unread nunca tocó el archivo, y el lock conservó su hash anterior, así que la siguiente ejecución lo vuelve a intentar."
+          "note": "La propuesta para inbox.count nunca tocó el archivo, y el lock conservó su hash anterior, así que la siguiente ejecución lo vuelve a intentar."
         }
       },
       "rows": {

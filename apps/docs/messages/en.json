@@ -108,7 +108,7 @@
         },
         "refused": {
           "badge": "refused",
-          "note": "The candidate for inbox.unread never touched the file, and the lock kept its old hash, so the next run tries again."
+          "note": "The candidate for inbox.count never touched the file, and the lock kept its old hash, so the next run tries again."
         }
       },
       "rows": {

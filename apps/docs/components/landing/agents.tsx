@@ -70,7 +70,7 @@ export async function Agents(): Promise<ReactNode> {
         <span className="shrink-0 text-[13px] text-[color:var(--text-faint)]">
           {t("installLabel")}
         </span>
-        <code className="min-w-0 overflow-x-auto whitespace-pre font-mono text-[13px] text-fd-foreground">
+        <code className="min-w-0 whitespace-pre-wrap break-words font-mono text-[13px] text-fd-foreground">
           {SKILL_INSTALL}
         </code>
       </div>
