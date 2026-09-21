@@ -9,15 +9,15 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@verbatra/sdk"><img src="https://img.shields.io/npm/v/@verbatra/sdk?label=%40verbatra%2Fsdk" alt="@verbatra/sdk npm version" /></a>
-  <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://github.com/verbatra/verbatra/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
-  <a href="https://codecov.io/gh/verbatra/verbatra"><img src="https://codecov.io/gh/verbatra/verbatra/graph/badge.svg" alt="Coverage" /></a>
-  <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://www.npmjs.com/package/@verbatra/sdk"><img src="https://img.shields.io/npm/v/%40verbatra%2Fsdk?label=%40verbatra%2Fsdk&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/sdk npm version" /></a>
+  <a href="https://www.npmjs.com/package/@verbatra/sdk"><img src="https://img.shields.io/npm/types/%40verbatra%2Fsdk?color=7b1fa2&amp;labelColor=0b0b12" alt="Ships TypeScript types" /></a>
+  <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/verbatra/verbatra/ci.yml?branch=main&amp;label=CI&amp;labelColor=0b0b12" alt="CI status on main" /></a>
+  <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?color=7b1fa2&amp;labelColor=0b0b12" alt="License: MIT" /></a>
 </p>
 
 ## Description
 
-`@verbatra/sdk` is the engine behind verbatra: load and validate a config, run the one-shot translate flow over every target locale, watch the source and re-translate on each change, check or diff your locales without writing, validate the whole project setup before you spend anything, or export and import a translator handoff for manual translation. The [`@verbatra/cli`](https://github.com/verbatra/verbatra/tree/main/packages/cli) command is a thin wrapper over this package.
+`@verbatra/sdk` is the engine behind verbatra: load and validate a config, translate every target locale once, watch the source and re-translate on each change, check or diff your locales without writing, validate the whole project setup before you spend anything, extract keys from your application source, or hand strings off to a human translator and read them back. Each run diffs your source against the lock file and sends only what changed, and every candidate value, whatever produced it, passes one integrity gate before it is written. [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli) is a thin wrapper over this package.
 
 ## Requirements
 
@@ -73,167 +73,97 @@ export default defineConfig({
 });
 ```
 
-`files.pattern` must contain the `{locale}` token, `targetLocales` must not include `sourceLocale`, and `targetLocales` must not list the same locale twice, compared case-insensitively (two such entries would collide as one Excel worksheet on export); all three are enforced when the config is validated. The supported `format` values are `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini`, and `resx`. JSON-family, YAML, and ARB files round-trip in exact document key order: integer-like keys keep their position, new keys append in source-document order, and a YAML composite key (a map or sequence used as a mapping key) fails with a structured error; a `.properties` write preserves the destination file's existing line endings. The optional `glossary` (a term map, inline or a path to a JSON file of the same shape) and `tone` (`"formal"`, `"informal"`, or `"neutral"`) refine the output. The optional `prune` boolean (off by default) opts in to removing orphaned keys (present in a target file but absent from the source) from the written target files and the lock; the `translate --prune` flag overrides it per run. The optional `generatePlurals` boolean (off by default) opts in to synthesizing the CLDR plural forms a richer target language requires but the source lacks (i18next-JSON projects translated by an LLM provider only; DeepL, non-i18next formats, and unknown languages fall back to the per-locale plural warning and never fail); a per-run `generatePlurals` override on `translate` takes precedence, and generated keys are reported separately from translated keys on the summary. The optional `maxBatchSize` (a positive integer, 50 when absent) caps how many entries go into a single provider request, so a large locale is split into sequential sub-batches and one oversized request cannot sink the whole locale. The optional `maxLength` maps a translation key to the longest translated value it may hold, counted in grapheme clusters; a key over its budget is flagged `MAX_LENGTH_EXCEEDED` for review and is still written and still locked, and a key absent from the map is never measured. It is checked whenever a run produces a value for that key (a fresh translation, a cache hit, or a value fanned out to a key sharing its source text), not as a sweep over the catalog, so a key already translated and still in step with its source is not measured until it next changes; `exportWorkbook` with `includeUnchanged: true` recomputes its review columns for every row it writes and is how you sweep a catalog that is already translated (without it the export carries only the missing and stale rows). The optional `maxTokens` sets a whole-run ceiling on input plus output tokens across every provider call, and `budgetBehavior` decides what happens once it is reached: `"warn"` (the default) counts the spend, flags the overrun, and lets the run continue, while `"stop"` projects each request before sending it and refuses to send one that would take the run past the ceiling, withholding it and every not-yet-attempted key for the rest of the run so they retry next time. Both are config-only and have no CLI flag. Every request the run sends is checked this way, each half of a request re-split after a truncated response included. What a reservation cannot bound is what happens inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. The count reconciles to the usage a provider reports, so an admitted request costing more than its projection leaves the final total above the ceiling by that difference and no more, while a request that fails or comes back truncated keeps its whole projection charged; a provider that reports no usage of its own, such as DeepL, is counted from the projection instead of going unmeasured, and `budget.supported` on the summary says whether the figure is entirely the provider's. The ceiling bounds one `translate` call: `watch` starts a fresh budget per run, and `retranslateEntry` is not covered by it at all.
+`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list one locale twice. Beyond the required keys, the config carries optional `glossary` and `tone`, opt-in `prune` and `generatePlurals`, per-key `maxLength` review budgets, and the `maxTokens`/`budgetBehavior` run budget. Every key, every default, and every provider's option shape is documented on the [Configuration page](https://verbatra.kreitz-webdev.de/docs/config-file); the providers and their key variables are on the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers).
 
-Anthropic takes `{ model, maxTokens }`; OpenAI and Gemini take `{ model, maxOutputTokens }`; `openai-compatible` takes the same pair plus a `baseUrl` (for a local or self-hosted server such as LM Studio, Ollama, or vLLM) and an optional `apiKeyEnvVar`; DeepL takes `{}` (with an optional `glossaryId`); Google Cloud Translation (Basic, v2) also takes `{}`, with no glossary or model. Every provider additionally accepts an optional `requestTimeoutMs`, a positive-integer per-request timeout in milliseconds that bounds each outbound call. API keys are never part of the config. Each provider reads its own environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`; `openai-compatible` resolves its key from `apiKeyEnvVar`, then `OPENAI_COMPATIBLE_API_KEY`, then falls back to a keyless placeholder).
+API keys are never part of the config. Each provider reads its own environment variable, and the SDK never accepts one as an argument.
 
 ## API reference
 
-### `defineConfig(config)`
+Every flow takes an `input` object and an optional `deps` object for injecting the file system, the provider factory, or an adapter registry of your own; the two config helpers below take neither. The signatures below are the ones the package publishes in `dist/index.d.ts`.
 
-Returns the config unchanged. It exists purely for type inference and editor autocomplete when authoring a code-defined config. For Anthropic, OpenAI, and Gemini the `model` field is restricted to that provider's known model IDs (sourced from its own SDK), so a model from another provider is a type error at authoring time; the runtime still validates `model` only as a non-empty string, so an unlisted model runs even though the editor flags it. DeepL has no `model` field, and `openai-compatible`'s model is whatever the local server exposes, so neither is restricted.
+### `defineConfig(config): VerbatraConfigInput`
+
+Identity helper that types a config literal against the provider you name in `provider.id`. See [Configuration](https://verbatra.kreitz-webdev.de/docs/config-file).
 
 ### `loadConfig(options?): Promise<VerbatraConfig>`
 
-Discovers and validates the configuration. With no arguments it searches upward from the current working directory; `options` accepts `cwd`, an explicit `configPath`, an in-memory `configOverride`, and an `fs` seam. Precedence is `configOverride`, then `configPath`, then the search. Resolves to the validated `VerbatraConfig`, and throws an `SdkError` if no config is found (`CONFIG_NOT_FOUND`) or it fails validation (`CONFIG_INVALID`). A `glossary` given as a file path is read and validated here, so every downstream call receives a plain term map.
+Discover, load, and validate the project config, searching upward from the working directory. Throws an `SdkError` when no config is found or validation fails.
 
-### `translate(input): Promise<RunSummary>`
+### `translate(input, deps?): Promise<RunSummary>`
 
-Runs the one-shot read, diff, translate, write flow over every target locale. `input` is a `TranslateInput`: `{ config, cwd?, locales?, dryRun?, prune?, generatePlurals?, cache?, concurrency?, lockAcquireTimeoutMs?, onProgress?, onLockWait? }`. With `dryRun: true` it reads, diffs, and reports without calling the provider or writing anything. `locales` narrows the run to a subset of the configured target locales, exactly as it does on `check` and `diff`, and a locale that is not configured raises `UNKNOWN_LOCALE` before anything is read or spent. `prune` and `generatePlurals` each override the matching config option for this run.
+Translate every configured target locale once. The summary splits locales into succeeded, partial, and failed, and carries the run's notices, review flags, token usage, and budget standing. See [`verbatra translate`](https://verbatra.kreitz-webdev.de/docs/cli/translate).
 
-`cache` (on by default, and ignored on a dry run) toggles the local content-addressed translation-memory cache in `verbatra.cache.json`: a key whose source content is unchanged, including under a renamed key or shared with another key, is served from the cache instead of being re-sent to the provider. A cached value is re-checked against that key's own current source first, and one that fails the gate falls through to the provider rather than being written. `concurrency` (defaults to 1, strictly serial) is how many target locales may run at once; it must be an integer of at least 1, and on a live run a value above 1 is refused when the config sets `maxTokens`, because the ceiling would still hold but which locale loses its remaining work would depend on the order the locales interleave, so the run would not be reproducible. `lockAcquireTimeoutMs` overrides how long a locale's write lock keeps retrying before it fails. `onProgress` receives a structured event once per locale before and after it runs, once per provider sub-batch, and once when the locale loop ends; `onLockWait` fires while a locale's write lock is blocked on another process holding it. The SDK writes to no stream, so these callbacks are the only progress signal.
+### `watch(input, deps?): Promise<WatchController>`
 
-Resolves to a `RunSummary`: `dryRun`, `locales`, `succeeded`, `partial`, `failed`, plus `usage` when any provider call reported tokens and `budget` when `maxTokens` is configured. A locale's `status` is `"succeeded"` when nothing was withheld (a no-op with no candidate keys included), `"partial"` when it accepted at least one key and withheld at least one, and `"failed"` when it withheld keys and accepted none, or threw. Each `LocaleSummary` carries `locale`, `status`, `translated`, `unchanged`, `orphaned`, `pruned`, `invalidIcuSource`, `cacheHits`, `fuzzyHits`, `integrityMismatches`, `providerFailures`, `budgetWithheld`, `generated`, `notices`, `needsReview`, `unfilled`, `malformedRows`, `duplicateKeys`, an optional `usage`, and an optional `error` on a locale that threw. `cacheHits` are keys served from the translation-memory cache rather than the provider on an exact content match. `fuzzyHits` are keys that reused a translation for a source string that had changed, reported apart from `cacheHits` and carrying the score and the earlier source behind each reuse; the bucket is empty unless `fuzzyCache` is enabled in the config, and every key in it also carries the `FUZZY_CACHE_REUSE` review reason, because a reuse for edited source is never written as a confirmed translation. A reused key is written but not locked, so it stays changed and reappears on every later run until a real translation lands. `integrityMismatches` is a translation that came back and was withheld by verbatra's integrity gate, whose rejection reasons are the exported `IntegrityGateReason` union. `providerFailures` is a key withheld because nothing was translated for it (the provider call failed, or the response was still missing that key), with any secret-free failure code and message reported in `notices`. `budgetWithheld` is a candidate never sent because a `maxTokens` budget in `"stop"` mode had already tripped. `needsReview` flags accepted keys the review heuristics want a human to look at, and never withholds anything. `unfilled`, `malformedRows`, and `duplicateKeys` are populated only by `importWorkbook`, which returns this same shape. Every withheld key keeps its prior lock hash and is retried next run.
+Watch the source locale file and re-translate on every change until the returned controller is stopped. Each run gets a fresh budget. See [`verbatra watch`](https://verbatra.kreitz-webdev.de/docs/cli/watch).
 
-Whole-run failures throw an `SdkError`: an unknown format, a `locales` entry that is not a configured target, provider construction (including a missing API key), an unreadable or invalid source file, a corrupt lock file, an invalid `concurrency`, or the concurrency-and-budget conflict above. A per-locale failure never throws; it is isolated on that locale's summary. On a non-dry run the flow also writes `.verbatra-local/run-status.json` (best-effort, read back through `runStatus`).
+### `check(input, deps?): Promise<CheckSummary>`
 
-```ts
-const preview = await translate({ config, dryRun: true });
-```
+Count missing, stale, and up-to-date keys per locale. Calls no provider and writes nothing. See [`verbatra check`](https://verbatra.kreitz-webdev.de/docs/cli/check).
 
-### `watch(input): Promise<WatchController>`
+### `diff(input, deps?): Promise<DiffSummary>`
 
-Watches the source file and re-runs the translate flow on each debounced change. `input` is `{ config, cwd?, locales?, debounceMs?, onRun, cache?, concurrency?, lockAcquireTimeoutMs?, onLockWait?, onProgress? }`; `debounceMs` defaults to 300, `locales` narrows every run of the session to a subset of the configured target locales and is validated once at startup rather than per cycle, and the last five are passed straight through to every run. One run starts immediately at startup, before any change arrives. Runs are serialized, so changes during a run collapse into a single follow-up.
+Name the keys that would be added, re-translated, or orphaned per locale. Calls no provider and writes nothing. See [`verbatra diff`](https://verbatra.kreitz-webdev.de/docs/cli/diff).
 
-`onRun` receives a `WatchRunResult` per run: `{ status: "succeeded", summary }` or `{ status: "failed", error }` with a secret-free `{ code, message }`, so a failing run is reported and watching continues. `watch` itself throws only at startup: `UNKNOWN_LOCALE` for a `locales` entry that is not a configured target, `CONCURRENCY_INVALID` or `CONCURRENCY_BUDGET_CONFLICT` for a `concurrency` no cycle could honor (resolved once, before the watcher exists, rather than failing every cycle), and `SOURCE_UNREADABLE` when the source locale file is absent. Resolves to a `WatchController` whose `stop()` closes the watcher and awaits the in-flight run.
+### `doctor(input?, deps?): Promise<DoctorResult>`
 
-```ts
-import { loadConfig, watch } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const controller = await watch({
-  config,
-  onRun: (result) => console.log(result.status),
-});
-
-// Stop cleanly on Ctrl-C.
-process.on("SIGINT", () => void controller.stop());
-```
-
-### `check(input): Promise<CheckSummary>`
-
-Reports per-locale drift without calling a provider, writing any file, or touching the lock. `input` is `{ config, cwd?, locales? }`, where `locales` narrows the check to a subset of target locales (defaults to all configured). Resolves to a `CheckSummary` whose `locales` lists one `LocaleCheckSummary` each (counts only: `missing`, `stale`, `upToDate`, and a per-locale `inSync`); the top-level `inSync` is true only when every checked locale is in sync. Pass `consistency: true` to also get, on each `LocaleCheckSummary`, an `inconsistencies` list of every source string that locale translates more than one way under different keys (the source, each distinct translation with its keys, and any shared context, description, meaning, plural flag, and plural form). It compares only up-to-date keys, trims surrounding whitespace before comparing, never groups keys whose description, meaning, plural flag, or gettext `msgctxt` differ, compares plural forms stored under their own keys per form, and is a report only: it never changes `inSync` or any count.
-
-```ts
-import { check, loadConfig } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await check({ config });
-
-if (!summary.inSync) {
-  console.log("Locales are out of sync; run verbatra translate.");
-}
-```
-
-### `diff(input): Promise<DiffSummary>`
-
-Lists the keys a run would touch, without writing anything. `input` is the same `{ config, cwd?, locales? }` shape as `check`. Resolves to a `DiffSummary` whose `locales` lists one `LocaleDiff` each, with the key arrays `missing` (would be added), `changed` (would be re-translated), and `orphaned` (present in the target but absent from the source), plus a per-locale `hasPendingChanges` driven by `missing` and `changed` only, since a default run does not prune. The top-level `hasPendingChanges` is true when any checked locale has some.
-
-With `unused: true` it also scans the roots of the config's `extract` block and adds `summary.unused`, a report of the source-locale keys no static reference names, kept apart from every `orphaned` list. It is read-only and keyless, models the i18next runtime (`t` calls and their aliases, static `keyPrefix` and `getFixedT` prefixes, `Trans` keys, namespace-qualified keys, plural and context variants), and compares keys in the catalog format's encoding. Each listed key carries its decoded `key` and its `catalogKey`; keys matched by `extract.unused.ignore` go under `ignored` and keys a template literal with a static head could reach under `possiblyDynamic`. Its `status` is `"complete"`, `"unreliable"` (with `unreliableBecause` naming each reason and its sites), or `"not-run"` (with a `reason` and no key list). It never flips `hasPendingChanges`.
-
-```ts
-import { diff, loadConfig } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await diff({ config });
-```
-
-### `doctor(input?): Promise<DoctorResult>`
-
-Validates the project setup and spends nothing: no provider is constructed, no network request is made, no file is written, and no API key value is ever read. `input` is `{ cwd?, configPath? }`, and it is optional as a whole because `doctor` loads the config itself, so a project with no config at all still gets a report rather than a thrown error. Five checks run, one per `DoctorCheckId`: `"config"` (a config was found and validates), `"format-adapter"` (the configured `format` resolves to an adapter), `"provider"` (the configured `provider.id` resolves to a factory), `"api-key"` (the environment variable that provider reads its key from is set), and `"source-file"` (the source locale file exists at its resolved path). Every check runs even when an earlier one failed, so one call reports every independent problem; when the config itself cannot be loaded, the four checks that depend on it report `"skipped"` instead of a verdict they could not reach. Resolves to a `DoctorResult` whose `ok` is true only when no check failed, and whose `checks` carry an `id`, a stable `title`, a `status` of `"pass"`, `"fail"`, or `"skipped"`, and a `detail` naming the variable or path behind the verdict but never a key value. Throws `CONFIG_NOT_FOUND` only for an explicit `configPath` that does not exist; a config that is merely absent from the search is a failed check instead.
-
-```ts
-import { doctor } from "@verbatra/sdk";
-
-const report = await doctor();
-
-for (const entry of report.checks) {
-  console.log(`${entry.status}: ${entry.title} - ${entry.detail}`);
-}
-
-process.exitCode = report.ok ? 0 : 1;
-```
+Validate the config, the format adapter, the provider, its key variable, and the source locale file in one pass, reporting every problem at once. Reads no key value. See [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor).
 
 ### `extract(input, deps?): Promise<ExtractResult>`
 
-Scans the application source for translation call sites and merges what it finds into the source locale catalog, which is what makes verbatra usable on a project that has no catalog yet. `input` is `{ config, cwd?, dryRun? }`, and `config.extract` must name the framework (`"i18next"` today) and at least one source root; a config without that block throws `EXTRACT_NOT_CONFIGURED`. It spends nothing: no provider is constructed, no API key environment variable is read, and no network request is made. Only the source locale file is written, and only genuinely new keys are added, so a value already in the catalog is never overwritten and a catalog key no call site mentions is left alone; a run that adds nothing writes nothing at all. Everything the scan cannot resolve comes back as data: a non-static key argument in `dynamic`, a key found with two different defaults in `conflicts` (neither value is written), a key added with no source text in `withoutDefault`, and an unreadable file or directory in `diagnostics`. The result carries keys, values, and file and line locations only, never a source file's contents. Source discovery goes through the optional `readDirectory` member of `SdkFs`; a `deps.fs` that does not implement it throws `EXTRACT_FS_UNSUPPORTED`.
+Scan your application source for translation call sites and add the new keys to the source locale file. See [`verbatra extract`](https://verbatra.kreitz-webdev.de/docs/cli/extract).
 
-```ts
-import { extract, loadConfig } from "@verbatra/sdk";
+### `generateTypes(input, deps?): Promise<GenerateTypesResult>`
 
-const config = await loadConfig();
-const result = await extract({ config, dryRun: true });
-console.log(`${result.added.length} new keys, ${result.dynamic.length} dynamic call sites`);
-```
+Generate a TypeScript declaration of every source catalog key and the arguments its message interpolates. See [`verbatra types`](https://verbatra.kreitz-webdev.de/docs/cli/types).
 
-### `exportWorkbook(input): Promise<ExportWorkbookResult>`
+### `pseudolocalize(input, deps?): Promise<PseudolocalizeResult>`
 
-Exports the strings that need translating into a handoff for a human translator. `input` is `{ config, cwd?, out?, locales?, includeUnchanged?, format? }`. By default it writes the missing and changed strings for every target locale; `locales` narrows which target locales are exported, and `includeUnchanged: true` also exports already up-to-date strings. No provider is called and no lock file is written.
+Build a pseudolocale from the source strings, accented, expanded, and bracketed, without calling a provider. See [`verbatra pseudo`](https://verbatra.kreitz-webdev.de/docs/cli/pseudo).
 
-`format` is an `ExchangeFormat`, one of the exported `EXCHANGE_FORMATS` and defaulting to `DEFAULT_EXCHANGE_FORMAT` (`"xlsx"`). With `"xlsx"` it writes one styled workbook with a sheet per locale to `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`). With `"csv"` or `"tsv"` it writes one plain `<locale>.csv` or `<locale>.tsv` per exported locale into a directory, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`) by default, creating it if it is missing, and it also leaves a hidden manifest there naming the locales it wrote, which is what lets a later import reject a file left over from a wider export. `out` overrides the default: a file path for `"xlsx"`, a directory for the delimited formats. Resolves to an `ExportWorkbookResult` with the absolute `path` written (the shared directory when one file per locale was written) and a per-locale row count.
+### `exportWorkbook(input, deps?): Promise<ExportWorkbookResult>`
 
-### `importWorkbook(input): Promise<RunSummary>`
+Write the strings that need translating to a translator handoff: a styled Excel workbook, or one CSV or TSV file per locale. See [Manual translation](https://verbatra.kreitz-webdev.de/docs/manual-translation).
 
-Imports a filled handoff back into the locale files, gating every row through the same integrity gate as `translate` on top of a fresh source-drift check. `input` is `{ config, workbook, cwd?, dryRun?, format? }`. With `dryRun: true` it validates and reports without writing locale files or updating the lock.
+### `importWorkbook(input, deps?): Promise<RunSummary>`
 
-`format` takes the same `ExchangeFormat` values as `exportWorkbook` and must match how the handoff was written. For `"xlsx"`, `workbook` is the workbook file and the locale comes from the sheet name. For `"csv"` and `"tsv"` the locale comes from the file name instead, and `workbook` is tried as a single `<locale>.csv` file first, so one locale can be imported on its own; if no file exists there it is read as the directory the per-locale files were written into. A file in that directory that the most recent export's manifest does not list is refused as a leftover rather than applied, and reported as that locale's failure with `HANDOFF_FILE_STALE`; a directory with no readable manifest is read as it always was, with every file present imported. Resolves to a `RunSummary`, the same shape `translate` returns: a row the translator left blank whose key still needs a translation is reported in that locale's `unfilled` (nothing is written and the prior lock baseline is kept), an unreadable row in `malformedRows`, a repeated key in `duplicateKeys` (the first occurrence wins), and a configured target locale whose sheet or delimited file is missing from the handoff is reported as that locale's failed summary rather than silently dropped. `unfilled`, `malformedRows`, and `duplicateKeys` do not feed a locale's `status`, so a partly filled sheet still imports the rows it has. A key is cleared by filling its Translation cell with the `[[CLEAR]]` sentinel; an ordinary blank never clears a value.
+Read a filled handoff back into the locale files, through the same integrity gate a translate run applies, returning the same `RunSummary` shape.
 
-```ts
-import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+### `exportTmx(input, deps?)` and `importTmx(input, deps?)`
 
-const config = await loadConfig();
-
-// Export the strings that need translating to an Excel workbook.
-const { path } = await exportWorkbook({ config });
-
-// ...a human fills the Translation column, then import the file back.
-const summary = await importWorkbook({ config, workbook: path });
-```
-
-See [Manual translation](https://verbatra.kreitz-webdev.de/docs/manual-translation) for the full round-trip and the workbook layout.
+Move the whole translation memory out as a TMX file any other translation tool can read, or read one in. See [`verbatra tmx`](https://verbatra.kreitz-webdev.de/docs/cli/tmx).
 
 ### More entry points
 
-Beyond the flows above, the SDK exports the building blocks Verbatra Studio and other tooling sit on. Most are a one-call read or a locked single-key write:
+The remaining exports are the building blocks Verbatra Studio, the MCP server, and other tooling sit on. Most are a one-call read or a locked single-key write.
 
-- `keyIntegrity` reports, per changed key, whether its placeholders still match the source (with the missing and extra tokens on a mismatch) and whether the current target value is still valid ICU.
-- `lockState` reports the lock file's existence, version, and per-locale drift; `loadLockFile` reads the lock file itself.
-- `runStatus` reads the persisted review-flag and token-usage snapshot the last non-dry `translate` or `watch` run left behind; it never throws, and a missing, corrupt, or unrecognized file simply reports as unavailable.
-- `keyValue` reads one key's current source and target values.
-- `editEntry` saves a manually edited translation for one key, and `retranslateEntry` re-runs the provider for one key; both run the candidate through the same integrity gate as a full run (a rejection names an `IntegrityGateReason` and writes nothing) and hold the same per-locale write lock.
-- `readLocaleFileSnapshot` and `diffLocaleSnapshots` snapshot one locale file as per-key content hashes and compare two snapshots, the primitives behind live-refresh watching.
-- `loadConfigWithMeta` is `loadConfig` plus config-source and glossary provenance.
-- `readGlossaryFile` reads a file-backed glossary fresh from disk, under the same validation `loadConfig` applies, for a long-running tool that has to show the glossary as it is now rather than as it was when the config was loaded. `updateGlossaryTerm` adds, replaces, or removes exactly one term (`translation: null` removes it) and returns the glossary as it now stands, keeping the file's existing key order and indentation. Both take the `GlossaryProvenance` from `loadConfigWithMeta` rather than a path, so the file they touch is always the one the config names. A write runs under a project-wide glossary lock and replaces the file atomically. Only a file-backed glossary can be read or changed this way: a glossary written inline in the config module is refused with `GLOSSARY_NOT_FILE_BACKED` rather than rewritten, and a failed write is `GLOSSARY_UNWRITABLE`.
-
-The rest are the values a tool needs to agree with verbatra rather than restate it:
-
-- `createLocalePathResolver` builds the two-way locale-to-path mapping from the `sourceLocale`, `targetLocales`, and `files` slice of a config: `pathFor(locale)` gives a locale's absolute file path and `localeFor(path)` gives the configured locale owning a path, which is how a file watcher decides whether a change concerns verbatra at all.
-- `EXCHANGE_FORMATS`, `DEFAULT_EXCHANGE_FORMAT`, `DEFAULT_WORKBOOK_PATH`, and `DEFAULT_DELIMITED_PATH` are the handoff formats and their default output paths, so a `--format` argument can be validated and offered without restating the list. `EXCHANGE_FORMATS` is derived from the `ExchangeFormat` type itself, so it can never drift behind a format the SDK accepts.
-- `CACHE_FILE_NAME` and `LOCK_FILE_NAME` are the names of the two files a run maintains in the project (`verbatra.cache.json` and `verbatra.lock.json`), for tooling that has to find, gitignore, or clear them.
-- `verbatraConfigSchema` is the zod schema `loadConfig` validates against, for validating a config object you assembled yourself. The same schema is published as a JSON Schema document at `@verbatra/sdk/config-schema.json`, generated at build time, so an editor can complete and validate a `.verbatrarc.json` or YAML config; the config accepts an optional top-level `$schema` key to point at it, which is ignored at runtime. `scaffoldingMetadata` carries the facts a project generator needs to write a first config (each provider's key environment variable, a starting model, the token-limit option name it takes, and the supported formats), which is what `verbatra init` renders from. Neither holds an API key value.
-- `SdkFs` is the file-system port every file the SDK touches goes through, so supplying your own as the `deps.fs` option redirects all of it and an entire run can be held in memory: the run-status file, the lock file, the config glossary, the workbook and delimited I/O, and the locale files themselves, which the format adapters read and write through a port built from this one. Reads are size-bounded by contract and writes are expected to be atomic. The single exception is a caller-supplied `deps.adapterRegistry`: those adapters were constructed by you, so `deps.fs` cannot reach them and passing both means you own that wiring.
+| Export | What it does |
+| --- | --- |
+| `editEntry`, `retranslateEntry` | Save a manual translation for one key, or re-run the provider for one key. Both run the candidate through the same integrity gate as a full run and hold the same per-locale write lock; a rejection names an `IntegrityGateReason` and writes nothing |
+| `keyValue`, `localeValues` | Read one key's current source and target values, or a whole locale's key/value pairs |
+| `keyIntegrity` | Report, per changed key, whether its placeholders, inline markup, and ICU still match the locked baseline |
+| `lockState`, `loadLockFile` | Read the lock file's existence, version, and per-locale drift, or the lock file itself |
+| `runStatus`, `budgetStanding` | Read the review-flag and token-usage snapshot the last non-dry run left behind, and turn a `RunBudget` into a standing |
+| `readLocaleFileSnapshot`, `diffLocaleSnapshots` | Snapshot one locale file as per-key content hashes and compare two snapshots: the primitives behind live-refresh watching |
+| `loadConfigWithMeta`, `readGlossaryFile`, `updateGlossaryTerm` | `loadConfig` plus config-source and glossary provenance, and the file-backed glossary read and single-term write that take that provenance rather than a path |
+| `createLocalePathResolver` | Build the two-way locale-to-path mapping from a config, so a watcher can decide whether a changed file concerns verbatra at all |
+| `createDefaultRegistry`, `createTreeFileAdapter`, `createFlatFileAdapter`, `AdapterRegistry`, `nodeAdapterFs` | The format-adapter construction surface: build an adapter for a format verbatra does not ship and hand the registry to a flow as `deps.adapterRegistry` |
+| `verbatraConfigSchema`, `scaffoldingMetadata` | The zod schema `loadConfig` validates against (also published as `@verbatra/sdk/config-schema.json`), and the facts a project generator needs to write a first config |
+| `LOCK_FILE_NAME`, `CACHE_FILE_NAME`, `EXCHANGE_FORMATS`, `DEFAULT_EXCHANGE_FORMAT`, `DEFAULT_WORKBOOK_PATH`, `DEFAULT_DELIMITED_PATH`, `DEFAULT_TMX_PATH`, `DEFAULT_TYPES_PATH` | The file names and handoff formats a run uses, so tooling can find, offer, or gitignore them without restating the list |
+| `SdkFs`, `redact`, `resolveDryRun`, `isCustomFormatId`, `tmxErrorLocation` | The file-system port every file the SDK touches goes through, the secret-redaction pass, and small helpers for agreeing with verbatra rather than restating it |
 
 ## Errors and results
 
-`SdkError` is the SDK's own structured error type, thrown for whole-run failures such as a missing or invalid config or an unreadable source file. It carries a stable `code` from the exported `SdkErrorCode` union and never contains an API key. It is not the only error a caller can see: `retranslateEntry` propagates the provider's own `ProviderError` when the provider call fails or returns nothing for the key, and a target locale file that exists but is malformed rejects with the adapter's own error.
+`SdkError` is the SDK's own structured error type, thrown for whole-run failures such as a missing or invalid config or an unreadable source file. It carries a stable `code` from the exported `SdkErrorCode` union and never contains an API key. It is not the only error a caller can see: `retranslateEntry` propagates the provider's own `ProviderError`, and a target locale file that exists but is malformed rejects with the adapter's own `AdapterError`.
 
-Per-locale failures do not throw: they are recorded on the `RunSummary` so one failing locale never aborts the others, and that includes a locale whose write lock could not be acquired. A locale's `error.code` is a preserved string from the underlying provider or adapter failure (`"LOCALE_FAILED"` is only the fallback), deliberately wider than `SdkErrorCode`, so do not treat it as a closed set.
+Per-locale failures do not throw. They are recorded on the `RunSummary` so one failing locale never aborts the others, including a locale whose write lock could not be acquired. A locale's `error.code` is a preserved string from the underlying provider or adapter failure (`"LOCALE_FAILED"` is only the fallback), deliberately wider than `SdkErrorCode`, so do not treat it as a closed set.
 
 ## Documentation
 
 - [Documentation site](https://verbatra.kreitz-webdev.de)
-- [Project README](https://github.com/verbatra/verbatra)
-- [`@verbatra/cli`](https://github.com/verbatra/verbatra/tree/main/packages/cli) for the command-line tool
+- [SDK reference](https://verbatra.kreitz-webdev.de/docs/sdk)
+- [Configuration](https://verbatra.kreitz-webdev.de/docs/config-file)
+- [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli) for the command-line tool
 
 ## License
 

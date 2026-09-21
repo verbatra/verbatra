@@ -99,6 +99,10 @@ one.
 A maintainer will review your pull request. Please be responsive to feedback, and
 hold to the standards in the [Code of Conduct](CODE_OF_CONDUCT.md).
 
+For what each workflow does, which composite actions exist, and the SHA-pin
+convention every third-party action follows, see
+[`.github/WORKFLOWS.md`](.github/WORKFLOWS.md).
+
 ## Adding a provider or a format adapter
 
 These are the two extension seams the codebase is designed around. Both are
