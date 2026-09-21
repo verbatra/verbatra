@@ -4,15 +4,14 @@ import { JsonLd } from "@/components/json-ld";
 import { Agents } from "@/components/landing/agents";
 import { CommandCoverage } from "@/components/landing/command-coverage";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
-import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FullFooter } from "@/components/landing/footer";
-import { FrameworksCloud } from "@/components/landing/frameworks-cloud";
 import { GateDemo } from "@/components/landing/gate-demo";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Pillars } from "@/components/landing/pillars";
-import { ProvidersCloud } from "@/components/landing/providers-cloud";
+import { StackCloud } from "@/components/landing/stack-cloud";
 import { StudioShowcase } from "@/components/landing/studio-showcase";
+import { Trust } from "@/components/landing/trust";
 import { LandingHero } from "@/components/landing-hero";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
@@ -72,11 +71,10 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <HowItWorks />
       <Pillars />
       <CommandCoverage />
-      <FrameworksCloud />
-      <ProvidersCloud />
+      <StackCloud />
       <StudioShowcase />
       <Agents />
-      <Features />
+      <Trust />
       <Faq items={faqItems} />
       <FinalCta />
       <FullFooter />

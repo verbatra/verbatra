@@ -163,15 +163,19 @@
         "init": "Crea una configuración de verbatra y un ejemplo de .env para este proyecto."
       }
     },
-    "compat": {
-      "heading": "Una herramienta, todos los frameworks.",
-      "body": "verbatra lee los archivos de localización que tu stack ya usa: JSON para i18next, vue-i18n, next-intl y ngx-translate, además de archivos XLIFF, YAML, Flutter ARB, .properties de Java/Spring, .strings de Apple y catálogos de strings de Xcode, strings.xml de Android, archivos .po/.pot de gettext, INI y .resx de .NET. Los completa a través del proveedor que elijas, sin un nuevo formato que adoptar.",
-      "labelFrameworks": "Frameworks y formatos"
-    },
-    "providers": {
-      "heading": "Traduce con el modelo en el que confías.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, o cualquier servidor compatible con OpenAI que alojes tú mismo. Elige uno en una sola línea de configuración y cambia de proveedor sin tocar tus archivos de localización.",
-      "marqueeLabel": "Proveedores de traducción"
+    "stack": {
+      "heading": "Los archivos que ya tienes y los modelos que eliges.",
+      "lead": "verbatra lee el formato de idioma que tu stack ya usa y lo rellena con el proveedor que nombras en una línea de configuración. No hay nada nuevo que adoptar por ninguno de los dos lados.",
+      "formats": {
+        "title": "Formatos y frameworks",
+        "note": "Todos los formatos que trae el registro de adaptadores, desde JSON de i18next hasta los String Catalogs de Apple y .resx de .NET.",
+        "marqueeLabel": "Frameworks y formatos"
+      },
+      "providers": {
+        "title": "Proveedores de traducción",
+        "note": "LLMs y traducción automática tras una única interfaz, más cualquier servidor compatible con OpenAI que alojes tú.",
+        "marqueeLabel": "Proveedores de traducción"
+      }
     },
     "studio": {
       "heading": "Observa todo el estado de la traducción, en local.",
@@ -202,33 +206,39 @@
       },
       "installLabel": "Instala uno"
     },
-    "why": {
-      "heading": "Creado para equipos que publican en muchos idiomas.",
-      "lead": "Cada decisión favorece la previsibilidad: diffs pequeños, configuración explícita y nada escrito que no se haya verificado primero.",
-      "reasons": {
-        "incremental": {
-          "title": "Incremental por defecto",
-          "body": "Un archivo de bloqueo confirmado registra lo que se tradujo. Cada ejecución compara el origen y llama al proveedor solo para las claves que cambiaron."
+    "trust": {
+      "heading": "Lo que estás adoptando de verdad.",
+      "lead": "Cinco cosas que conviene comprobar antes de meter una dependencia en tu repositorio. Cada fila enlaza el archivo que lo demuestra.",
+      "rows": {
+        "license": {
+          "label": "Licencia",
+          "value": "MIT",
+          "detail": "Una licencia permisiva para todo el repositorio, sin licencia doble y sin acuerdo de contribución que firmar.",
+          "cta": "Leer LICENSE"
         },
-        "provider": {
-          "title": "El proveedor que tú elijas",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, o un modelo local compatible con OpenAI, elegido en una línea de configuración. Cambia de proveedor sin tocar tus archivos de localización."
+        "local": {
+          "label": "Dónde se ejecuta",
+          "value": "Tu máquina, tu CI",
+          "detail": "No hay ningún servicio de verbatra en el que registrarse. Las claves de API del proveedor se leen solo de variables de entorno, nunca del archivo de configuración ni de un argumento de la CLI.",
+          "cta": "Leer env.ts"
         },
-        "safety": {
-          "title": "Seguro por construcción",
-          "body": "La integridad de los marcadores de posición y de ICU se comprueba después de cada traducción. Un resultado que rompe un marcador de posición se retiene, nunca se escribe."
+        "provenance": {
+          "label": "Publicación",
+          "value": "npm Trusted Publishing",
+          "detail": "Las versiones se publican por OIDC, sin ningún token de npm de larga duración en el workflow, y cada tarball se construye con la procedencia activada.",
+          "cta": "Leer release.yml"
         },
-        "environment": {
-          "title": "Las claves se quedan en tu entorno",
-          "body": "Las claves de API del proveedor se leen desde variables de entorno, nunca desde el archivo de configuración, nunca desde argumentos de la CLI y nunca se registran."
+        "coverage": {
+          "label": "Cobertura",
+          "value": "Cobertura de pruebas en Codecov",
+          "detail": "La puerta de fusión mantiene cada paquete al 90 por ciento en líneas, funciones, sentencias y ramas.",
+          "cta": "Abrir Codecov"
         },
-        "oneEngine": {
-          "title": "CLI y SDK, un solo motor",
-          "body": "El comando verbatra y @verbatra/sdk comparten un único núcleo de orquestación, así que los scripts, la CI y tus propias herramientas se comportan de forma idéntica."
-        },
-        "dryRun": {
-          "title": "Ejecuciones en seco y modo de observación",
-          "body": "Previsualiza exactamente lo que una ejecución cambiaría sin escribir nada, o mantén una observación en marcha que traduce a medida que tu locale de origen evoluciona."
+        "cost": {
+          "label": "Coste",
+          "value": "Sin plan de pago",
+          "detail": "Código abierto, todo: sin plan alojado, sin recuento de asientos, sin funciones reservadas. Lo único que pagas es el uso de tu proveedor, con una clave que tienes tú.",
+          "cta": "Ver el código"
         }
       }
     },

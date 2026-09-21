@@ -163,15 +163,19 @@
         "init": "Legt eine verbatra-Konfiguration und eine .env-Vorlage für dieses Projekt an."
       }
     },
-    "compat": {
-      "heading": "Ein Werkzeug, jedes Framework.",
-      "body": "verbatra liest die Lokalisierungsdateien, die dein Stack bereits verwendet: JSON für i18next, vue-i18n, next-intl und ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml, gettext .po/.pot Dateien, INI und .NET .resx. Es füllt sie über den von dir gewählten Anbieter, kein neues Format muss übernommen werden.",
-      "labelFrameworks": "Frameworks und Formate"
-    },
-    "providers": {
-      "heading": "Übersetze über das Modell, dem du vertraust.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder ein beliebiger OpenAI-kompatibler Server, den du selbst hostest. Wähle einen in einer einzigen Zeile deiner Konfiguration und wechsle den Anbieter, ohne deine Lokalisierungsdateien zu berühren.",
-      "marqueeLabel": "Übersetzungsanbieter"
+    "stack": {
+      "heading": "Die Dateien, die du schon hast, und die Modelle, die du wählst.",
+      "lead": "verbatra liest das Locale-Format, das dein Stack ohnehin nutzt, und füllt es über den Provider, den du in einer Zeile Konfiguration nennst. Auf keiner Seite musst du etwas Neues übernehmen.",
+      "formats": {
+        "title": "Formate und Frameworks",
+        "note": "Jedes Format, das die Adapter-Registry mitbringt, von i18next-JSON bis zu Apple String Catalogs und .NET .resx.",
+        "marqueeLabel": "Frameworks und Formate"
+      },
+      "providers": {
+        "title": "Übersetzungs-Provider",
+        "note": "LLMs und maschinelle Übersetzung hinter einer Schnittstelle, dazu jeder OpenAI-kompatible Server, den du selbst betreibst.",
+        "marqueeLabel": "Übersetzungs-Provider"
+      }
     },
     "studio": {
       "heading": "Behalte den gesamten Übersetzungsstand im Blick, lokal.",
@@ -202,33 +206,39 @@
       },
       "installLabel": "Eines installieren"
     },
-    "why": {
-      "heading": "Gebaut für Teams, die in vielen Sprachen ausliefern.",
-      "lead": "Jede Entscheidung begünstigt Vorhersehbarkeit: kleine Diffs, explizite Konfiguration und nichts, was nicht zuerst geprüft wurde, wird geschrieben.",
-      "reasons": {
-        "incremental": {
-          "title": "Standardmäßig inkrementell",
-          "body": "Eine eingecheckte Lock-Datei hält fest, was übersetzt wurde. Jeder Lauf vergleicht die Quelle und ruft den Anbieter nur für die Schlüssel auf, die sich geändert haben."
+    "trust": {
+      "heading": "Was du dir wirklich ins Projekt holst.",
+      "lead": "Fünf Dinge, die du prüfen solltest, bevor eine Abhängigkeit in dein Repository wandert. Jede Zeile verlinkt die Datei, die es belegt.",
+      "rows": {
+        "license": {
+          "label": "Lizenz",
+          "value": "MIT",
+          "detail": "Eine freizügige Lizenz für das ganze Repository, ohne Doppellizenzierung und ohne Contributor-Vereinbarung, die du unterschreiben musst.",
+          "cta": "LICENSE lesen"
         },
-        "provider": {
-          "title": "Der Anbieter deiner Wahl",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder ein lokales OpenAI-kompatibles Modell, ausgewählt in einer Zeile deiner Konfiguration. Wechsle den Anbieter, ohne deine Lokalisierungsdateien zu berühren."
+        "local": {
+          "label": "Wo es läuft",
+          "value": "Dein Rechner, deine CI",
+          "detail": "Es gibt keinen verbatra-Dienst, bei dem du dich anmelden müsstest. Provider-API-Keys werden ausschließlich aus Umgebungsvariablen gelesen, nie aus der Konfigurationsdatei und nie aus einem CLI-Argument.",
+          "cta": "env.ts lesen"
         },
-        "safety": {
-          "title": "Sicher durch Konstruktion",
-          "body": "Die Integrität von Platzhaltern und ICU wird nach jeder Übersetzung geprüft. Ein Ergebnis, das einen Platzhalter kaputtmacht, wird zurückgehalten und nie geschrieben."
+        "provenance": {
+          "label": "Veröffentlichung",
+          "value": "npm Trusted Publishing",
+          "detail": "Releases werden über OIDC veröffentlicht, ohne langlebigen npm-Token im Workflow, und jedes Tarball wird mit eingeschalteter Provenance gebaut.",
+          "cta": "release.yml lesen"
         },
-        "environment": {
-          "title": "Schlüssel bleiben in deiner Umgebung",
-          "body": "API-Schlüssel des Anbieters werden aus Umgebungsvariablen gelesen, nie aus der Konfigurationsdatei, nie aus CLI-Argumenten und nie protokolliert."
+        "coverage": {
+          "label": "Testabdeckung",
+          "value": "Testabdeckung auf Codecov",
+          "detail": "Das Merge-Gate hält jedes Paket bei 90 Prozent auf Zeilen, Funktionen, Statements und Branches.",
+          "cta": "Codecov öffnen"
         },
-        "oneEngine": {
-          "title": "CLI und SDK, eine Engine",
-          "body": "Der Befehl verbatra und @verbatra/sdk teilen sich einen einzigen Orchestrierungskern, sodass Skripte, CI und dein eigenes Werkzeug sich identisch verhalten."
-        },
-        "dryRun": {
-          "title": "Probeläufe und Watch-Modus",
-          "body": "Sieh dir genau an, was ein Lauf ändern würde, ohne etwas zu schreiben, oder halte einen Watch-Modus am Laufen, der übersetzt, während sich deine Quell-Locale weiterentwickelt."
+        "cost": {
+          "label": "Kosten",
+          "value": "Keine Bezahlstufe",
+          "detail": "Open Source, komplett: kein gehosteter Plan, keine Platzzahl, keine zurückgehaltene Funktion. Bezahlt wird nur die Nutzung deines Providers, über einen Key, den du selbst hältst.",
+          "cta": "Quellcode ansehen"
         }
       }
     },

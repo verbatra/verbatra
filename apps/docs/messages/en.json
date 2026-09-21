@@ -191,15 +191,19 @@
         "init": "Create a verbatra config and .env example for this project."
       }
     },
-    "compat": {
-      "heading": "One tool, every framework.",
-      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. It fills them through the provider you choose, no new format to adopt.",
-      "labelFrameworks": "Frameworks and formats"
-    },
-    "providers": {
-      "heading": "Translate through the model you trust.",
-      "lead": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you host yourself. Pick one in a single line of config and switch providers without touching your locale files.",
-      "marqueeLabel": "Translation providers"
+    "stack": {
+      "heading": "The files you already have, the models you pick.",
+      "lead": "verbatra reads the locale format your stack already uses and fills it through the provider you name in one line of config. Nothing new to adopt on either side.",
+      "formats": {
+        "title": "Formats and frameworks",
+        "note": "Every format the adapter registry ships, from i18next JSON to Apple String Catalogs and .NET .resx.",
+        "marqueeLabel": "Frameworks and formats"
+      },
+      "providers": {
+        "title": "Translation providers",
+        "note": "LLMs and machine translation behind one interface, plus any OpenAI-compatible server you host yourself.",
+        "marqueeLabel": "Translation providers"
+      }
     },
     "studio": {
       "heading": "Watch the whole translation state, locally.",
@@ -230,33 +234,39 @@
       },
       "installLabel": "Install one"
     },
-    "why": {
-      "heading": "Built for teams that ship in many languages.",
-      "lead": "Every choice favors predictability: small diffs, explicit config, and nothing written that was not verified first.",
-      "reasons": {
-        "incremental": {
-          "title": "Incremental by default",
-          "body": "A committed lock file records what was translated. Each run diffs the source and calls the provider only for the keys that changed."
+    "trust": {
+      "heading": "What you are actually adopting.",
+      "lead": "Five things worth checking before a dependency goes into your repository. Each row links to the file that proves it.",
+      "rows": {
+        "license": {
+          "label": "License",
+          "value": "MIT",
+          "detail": "One permissive license for the whole repository, with no dual licensing and no contributor agreement to sign.",
+          "cta": "Read LICENSE"
         },
-        "provider": {
-          "title": "Your choice of provider",
-          "body": "Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or a local OpenAI-compatible model, chosen in one line of config. Switch providers without touching your locale files."
+        "local": {
+          "label": "Where it runs",
+          "value": "Your machine, your CI",
+          "detail": "There is no verbatra service to sign up for. Provider API keys are read from environment variables only, never from the config file and never from a CLI argument.",
+          "cta": "Read env.ts"
         },
-        "safety": {
-          "title": "Safe by construction",
-          "body": "Placeholder and ICU integrity are checked after every translation. A result that breaks a placeholder is withheld, never written."
+        "provenance": {
+          "label": "Publishing",
+          "value": "npm Trusted Publishing",
+          "detail": "Releases publish over OIDC with no long-lived npm token in the workflow, and every tarball is built with provenance turned on.",
+          "cta": "Read release.yml"
         },
-        "environment": {
-          "title": "Keys stay in your environment",
-          "body": "Provider API keys are read from environment variables, never from the config file, never from CLI arguments, and never logged."
+        "coverage": {
+          "label": "Coverage",
+          "value": "Test coverage on Codecov",
+          "detail": "The merge gate holds every package at 90 percent of lines, functions, statements and branches.",
+          "cta": "Open Codecov"
         },
-        "oneEngine": {
-          "title": "CLI and SDK, one engine",
-          "body": "The verbatra command and @verbatra/sdk share a single orchestration core, so scripts, CI, and your own tooling behave identically."
-        },
-        "dryRun": {
-          "title": "Dry runs and watch mode",
-          "body": "Preview exactly what a run would change without writing anything, or keep a watch running that translates as your source locale evolves."
+        "cost": {
+          "label": "Cost",
+          "value": "No paid tier",
+          "detail": "Open source, all of it: no hosted plan, no seat count, no feature held back. The only spend is your provider's own usage, on a key you hold.",
+          "cta": "Browse the source"
         }
       }
     },

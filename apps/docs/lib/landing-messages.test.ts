@@ -13,7 +13,9 @@ const LANDING_NAMESPACES = [
   "finalClose",
   "gate",
   "commands",
+  "stack",
   "agents",
+  "trust",
 ] as const;
 
 type MessageTree = { [key: string]: string | MessageTree };
@@ -52,7 +54,9 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.terminal.sessionLabel");
     expect(source).toContain("landing.gate.reasonGloss");
     expect(source).toContain("landing.commands.items.translate");
+    expect(source).toContain("landing.stack.providers.marqueeLabel");
     expect(source).toContain("landing.agents.items.mcp.body");
+    expect(source).toContain("landing.trust.rows.provenance.detail");
   });
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {
