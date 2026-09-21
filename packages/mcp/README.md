@@ -5,19 +5,20 @@
 <h1 align="center">@verbatra/mcp</h1>
 
 <p align="center">
-  Stdio MCP server exposing verbatra's translation status, glossary, and editing tools to any MCP client, without a browser.
+  Stdio MCP server exposing verbatra's translation status, glossary, and editing capabilities as tools for any MCP client, without a browser.
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@verbatra/mcp"><img src="https://img.shields.io/npm/v/@verbatra/mcp?label=%40verbatra%2Fmcp" alt="@verbatra/mcp npm version" /></a>
-  <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://github.com/verbatra/verbatra/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
-  <a href="https://codecov.io/gh/verbatra/verbatra"><img src="https://codecov.io/gh/verbatra/verbatra/graph/badge.svg" alt="Coverage" /></a>
-  <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://www.npmjs.com/package/@verbatra/mcp"><img src="https://img.shields.io/npm/v/%40verbatra%2Fmcp?label=%40verbatra%2Fmcp&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/mcp npm version" /></a>
+  <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/verbatra/verbatra/ci.yml?branch=main&amp;label=CI&amp;labelColor=0b0b12" alt="CI status on main" /></a>
+  <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?color=7b1fa2&amp;labelColor=0b0b12" alt="License: MIT" /></a>
 </p>
 
 ## Description
 
-`@verbatra/mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the standard local-process transport MCP clients such as Claude Desktop, Claude Code, and Cursor use to launch and talk to a tool server. It gives a terminal-hosted or headless agent the same translation-status, glossary, and editing capabilities Verbatra Studio's browser agent tools expose, without a browser, a port, or a served single-page app. It is a thin, SDK-backed surface over [`@verbatra/sdk`](https://github.com/verbatra/verbatra/tree/main/packages/sdk), the same way [`@verbatra/cli`](https://github.com/verbatra/verbatra/tree/main/packages/cli) is.
+`@verbatra/mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the standard local-process transport an MCP client uses to launch and talk to a tool server. It gives a terminal-hosted or headless agent the same translation-status, glossary, and editing capabilities Verbatra Studio exposes in the browser, without a browser, a port, or a served single-page app. It is a thin, SDK-backed surface over [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk), the same way [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli) is.
+
+Because the transport is stdio, nothing but a valid MCP protocol message is ever written to stdout. Every log and diagnostic line goes to stderr instead, including anything a failed startup reports before a client has sent its first message.
 
 ## Requirements
 
@@ -33,27 +34,11 @@ pnpm add -D @verbatra/mcp
 yarn add -D @verbatra/mcp
 ```
 
-Most MCP clients spawn the server for you and never need a local install at all: point the client at `npx -y @verbatra/mcp` (shown below) and npx fetches it on demand.
-
-`@verbatra/mcp` is also reachable through the CLI's `verbatra mcp` subcommand once both `@verbatra/cli` and `@verbatra/mcp` are installed, resolved through a dynamic import so the rest of the CLI keeps working without it.
-
-## The `verbatra-mcp` binary
-
-```bash
-verbatra-mcp [flags]
-```
-
-| Flag | Argument | Default | Effect |
-| --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
-| `--config` | `<path>` | search for one | load this config file instead of searching for one |
-| `--allow-spend` | none | off | advertise the two tools that call a translation provider |
-
-When `--allow-spend` is absent, the server reads the `VERBATRA_MCP_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on, and the CLI flag always wins over the environment variable. The MCP stdio transport uses stdout exclusively for protocol messages, so nothing is ever printed there; every log and diagnostic line goes to stderr instead, and nothing is printed at all until an MCP client sends the first message.
+Most MCP clients spawn the server for you and need no local install at all: point the client at `npx -y @verbatra/mcp` and npx fetches it on demand. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
 
 ## Configuring an MCP client
 
-Point your MCP client at the `verbatra-mcp` binary. For Claude Desktop, add this to your `claude_desktop_config.json`:
+Point your client at the `verbatra-mcp` binary. The shape below is the one most clients use; for an editor or desktop client, put it in that client's MCP server configuration file.
 
 ```json
 {
@@ -61,21 +46,37 @@ Point your MCP client at the `verbatra-mcp` binary. For Claude Desktop, add this
     "verbatra": {
       "command": "npx",
       "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-api-key-here"
-      }
+      "env": {}
     }
   }
 }
 ```
 
-Omit the `env` block, and `--allow-spend`, entirely for a read-only and local-editing-only server: the project snapshot, the status and glossary tools, and manual entry editing never call a provider or need a key. Add `--allow-spend` to `args` once you also want the provider-calling tools available, and set the environment variable your configured provider reads its key from (see the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers)).
+That configuration is read-only plus local editing: no provider is called and no API key is needed. Add `--allow-spend` to `args`, and the environment variable your configured provider reads its key from, once you also want the two provider-calling tools. `--config <path>` loads a specific config file instead of searching for one, and `VERBATRA_MCP_ALLOW_SPEND` is the environment equivalent of the flag, which the flag always wins over.
 
 ## Tools
 
-Thirteen tools are exposed in total, covering project status, the glossary, key-level integrity and values, translation editing, the review queue, and usage summaries. Two of them, retranslating a single key and translating every pending change, call a translation provider and spend budget; they are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, an MCP client that lists tools never sees them, and calling one by name fails as an unknown tool: this is a per-process guarantee, not a per-call check, so a spend-gated tool is structurally uncallable rather than merely refused at call time. Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against.
+Thirteen tools, listed here in the order the server advertises them.
 
-Every tool result and log line passes through the same secret-redaction pass Studio uses: a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it ever reaches the client or stderr.
+| Tool | What it does |
+| --- | --- |
+| `project.snapshot` | Read the resolved project configuration: locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
+| `status.check` | Per target locale, how many keys are missing, stale, or up to date, and whether the locale is in sync |
+| `status.diff` | Per target locale, the exact keys the next translate run would add, re-translate, or orphan |
+| `glossary.get` | Every configured term and its translation, plus where the glossary comes from |
+| `glossary.write` | Add, replace, or remove one glossary term, and return the glossary afterward |
+| `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
+| `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
+| `key.value` | One key's current source text and, if translated, its current text in one target locale |
+| `translation.editEntry` | Write a manual translation for one key in one locale, accepted only if it passes the integrity gate |
+| `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |
+| `translation.translatePending` | Translate every missing or stale key across every configured target locale in one run |
+| `review.queue` | The keys the last run flagged for human review, with the reason for each |
+| `usage.summary` | Token usage and budget status left behind by the last run |
+
+`translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time.
+
+Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. Every result and log line passes through a secret-redaction pass first, so a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it reaches the client or stderr.
 
 See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.
 
@@ -83,8 +84,7 @@ See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) fo
 
 - [Documentation site](https://verbatra.kreitz-webdev.de)
 - [`verbatra mcp` reference](https://verbatra.kreitz-webdev.de/docs/cli/mcp)
-- [Project README](https://github.com/verbatra/verbatra)
-- [`@verbatra/sdk`](https://github.com/verbatra/verbatra/tree/main/packages/sdk) for the programmatic API
+- [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk) for the programmatic API
 
 ## License
 
