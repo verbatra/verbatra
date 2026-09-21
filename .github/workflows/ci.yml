@@ -179,9 +179,59 @@ jobs:
         working-directory: e2e
         run: npm run test:nokey
 
+  docs-image:
+    name: Build the docs Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Decide whether the docs image is in scope for this event
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "Not a pull request; docs-deploy.yml builds this image on main."
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- \
+            apps/docs packages pnpm-lock.yaml .github/workflows/ci.yml)
+          if [ -z "$changed" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "No change under apps/docs, packages, pnpm-lock.yaml or this workflow."
+            exit 0
+          fi
+          echo "build=true" >> "$GITHUB_OUTPUT"
+          echo "In-scope changes:"
+          printf '%s\n' "$changed"
+
+      - name: Set up Docker Buildx
+        if: steps.scope.outputs.build == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the docs image
+        if: steps.scope.outputs.build == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/docs/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   gate:
     name: Build and test gate
-    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload]
+    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload, docs-image]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -193,12 +243,14 @@ jobs:
           E2E: ${{ needs.e2e.result }}
           DEPENDENCY_DISCLOSURE: ${{ needs.dependency-disclosure.result }}
           CODECOV_UPLOAD: ${{ needs.codecov-upload.result }}
+          DOCS_IMAGE: ${{ needs.docs-image.result }}
         run: |
           failed=0
           for entry in "build-and-test:$BUILD_AND_TEST" \
                        "e2e:$E2E" \
                        "dependency-disclosure:$DEPENDENCY_DISCLOSURE" \
-                       "codecov-upload:$CODECOV_UPLOAD"; do
+                       "codecov-upload:$CODECOV_UPLOAD" \
+                       "docs-image:$DOCS_IMAGE"; do
             job="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != "success" ]; then
