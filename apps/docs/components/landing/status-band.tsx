@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { GITHUB_URL, NPM_CLI, NPM_SDK } from "./links";
+import { GITHUB_URL, NPM_CLI } from "./links";
 
 type StatusBadge = {
   key: string;
@@ -10,51 +10,36 @@ type StatusBadge = {
   width: number;
 };
 
-const SHIELDS_BASE = "style=flat&labelColor=1b1b2b";
-const SHIELDS_NPM = `${SHIELDS_BASE}&logo=npm&logoColor=white&color=9c27b0`;
+const SHIELDS_PARAMS = "style=flat&labelColor=1b1b2b&color=9c27b0";
 
 const STATUS_BADGES: ReadonlyArray<StatusBadge> = [
   {
     key: "cli",
-    src: `https://img.shields.io/npm/v/@verbatra/cli?label=%40verbatra%2Fcli&${SHIELDS_NPM}`,
+    src: `https://img.shields.io/npm/v/%40verbatra%2Fcli?label=%40verbatra%2Fcli&logo=npm&logoColor=white&${SHIELDS_PARAMS}`,
     href: NPM_CLI,
     altKey: "cliVersionAlt",
     width: 147,
   },
   {
-    key: "sdk",
-    src: `https://img.shields.io/npm/v/@verbatra/sdk?label=%40verbatra%2Fsdk&${SHIELDS_NPM}`,
-    href: NPM_SDK,
-    altKey: "sdkVersionAlt",
-    width: 153,
-  },
-  {
     key: "build",
-    src: `${GITHUB_URL}/actions/workflows/ci.yml/badge.svg?branch=main`,
+    src: `https://img.shields.io/github/actions/workflow/status/verbatra/verbatra/ci.yml?branch=main&label=CI&${SHIELDS_PARAMS}`,
     href: `${GITHUB_URL}/actions/workflows/ci.yml`,
     altKey: "buildAlt",
-    width: 90,
+    width: 82,
   },
   {
     key: "coverage",
-    src: "https://codecov.io/gh/verbatra/verbatra/graph/badge.svg",
+    src: `https://img.shields.io/codecov/c/github/verbatra/verbatra?label=coverage&${SHIELDS_PARAMS}`,
     href: "https://codecov.io/gh/verbatra/verbatra",
     altKey: "coverageAlt",
     width: 112,
   },
   {
-    key: "downloads",
-    src: `https://img.shields.io/npm/dm/@verbatra/cli?label=downloads%2Fmonth&${SHIELDS_NPM}`,
-    href: NPM_CLI,
-    altKey: "downloadsAlt",
-    width: 201,
-  },
-  {
     key: "license",
-    src: `https://img.shields.io/badge/license-MIT-9c27b0?${SHIELDS_BASE}`,
+    src: `https://img.shields.io/badge/license-MIT-blue?${SHIELDS_PARAMS}`,
     href: `${GITHUB_URL}/blob/main/LICENSE`,
     altKey: "licenseAlt",
-    width: 78,
+    width: 88,
   },
 ];
 
@@ -68,7 +53,7 @@ export async function StatusBand({
   return (
     <section
       aria-label={t("label")}
-      className={inline ? "mx-auto w-full" : "mx-auto max-w-6xl px-6"}
+      className={inline ? "mx-auto w-full" : "vk-gutter vk-w-wide mx-auto"}
     >
       <ul
         className={
@@ -83,7 +68,7 @@ export async function StatusBand({
               href={badge.href}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex rounded transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-fd-background"
+              className="inline-flex min-h-6 items-center rounded transition-[filter] hover:brightness-110"
             >
               {/* biome-ignore lint/performance/noImgElement: external SVG badge endpoints are not optimizable by next/image. */}
               <img

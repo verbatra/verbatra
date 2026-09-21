@@ -12,7 +12,40 @@
       "headline": "Übersetze nur, was sich geändert hat.",
       "lead": "verbatra ist ein CLI und SDK, das deine i18n-Locale-Dateien synchron hält. Du pflegst die Quell-Locale; es füllt jede weitere Locale über den KI-Anbieter, den du wählst.",
       "ctaQuickstart": "Zum Schnellstart",
-      "ctaGithub": "Gib uns einen Stern auf GitHub"
+      "ctaGithub": "Stern auf GitHub"
+    },
+    "terminal": {
+      "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
+      "caption": "Mitschnitt aufgezeichnet mit @verbatra/cli {version}.",
+      "transcript": {
+        "init": {
+          "l1": "✓ verbatra.config.ts erstellt",
+          "l2": "Quelle en · Ziele de, es, fr",
+          "l3": "Anbieter gemini · Schlüssel aus GEMINI_API_KEY"
+        },
+        "translate": {
+          "l1": "diff en.json · 12 neu · 0 geändert · 108 unverändert",
+          "l2": "de  12 übersetzt · 108 unverändert · 0 zurückgehalten",
+          "l3": "es  12 übersetzt · 108 unverändert · 0 zurückgehalten",
+          "l4": "fr  12 übersetzt · 108 unverändert · 0 zurückgehalten",
+          "l5": "✓ 36 Schlüssel in 5,4 s übersetzt · 0 übersprungen · Lock aktualisiert"
+        },
+        "diff": {
+          "l1": "en.json · 120 Schlüssel · Quelle der Wahrheit",
+          "l2": "de  2 neu · 1 geändert · 117 aktuell",
+          "l3": "es  0 neu · 0 geändert · 120 aktuell",
+          "l4": "fr  5 neu · 0 geändert · 115 aktuell",
+          "l5": "8 Schlüssel würden gesendet · führe verbatra translate aus"
+        },
+        "watch": {
+          "l1": "beobachte en.json auf Änderungen",
+          "l2": "en.json geändert · 1 neuer Schlüssel",
+          "l3": "de  1 übersetzt · 0 zurückgehalten",
+          "l4": "es  1 übersetzt · 0 zurückgehalten",
+          "l5": "fr  1 übersetzt · 0 zurückgehalten",
+          "l6": "✓ 3 Schlüssel übersetzt · warte auf Änderungen"
+        }
+      }
     },
     "pillars": {
       "heading": "Ein Tool für den gesamten Übersetzungsablauf.",
@@ -31,12 +64,10 @@
       }
     },
     "status": {
-      "label": "Build-Status, Testabdeckung, Paketversionen, Downloads und Lizenz",
+      "label": "Build-Status, Testabdeckung, Paketversion und Lizenz",
       "cliVersionAlt": "Neueste veröffentlichte @verbatra/cli-Version auf npm",
-      "sdkVersionAlt": "Neueste veröffentlichte @verbatra/sdk-Version auf npm",
       "buildAlt": "Build-Status der Continuous Integration",
       "coverageAlt": "Auf Codecov gemeldete Testabdeckung",
-      "downloadsAlt": "Monatliche npm-Downloads",
       "licenseAlt": "Veröffentlicht unter der MIT-Lizenz"
     },
     "install": {
@@ -206,7 +237,8 @@
         "machineTranslatedDescription": "Die Oberfläche und die Dokumentationsseiten für diese Sprache werden mit KI übersetzt."
       },
       "contact": "Kontakt",
-      "npm": "verbatra auf npm"
+      "npm": "verbatra auf npm",
+      "skipToContent": "Zum Inhalt springen"
     },
     "studio": {
       "heading": "Behalte den gesamten Übersetzungsstand im Blick, lokal.",

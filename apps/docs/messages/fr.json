@@ -14,6 +14,39 @@
       "ctaQuickstart": "Lis le guide de démarrage",
       "ctaGithub": "Ajoute une étoile sur GitHub"
     },
+    "terminal": {
+      "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
+      "caption": "Transcription enregistrée avec @verbatra/cli {version}.",
+      "transcript": {
+        "init": {
+          "l1": "✓ verbatra.config.ts créé",
+          "l2": "source en · cibles de, es, fr",
+          "l3": "fournisseur gemini · clé depuis GEMINI_API_KEY"
+        },
+        "translate": {
+          "l1": "diff en.json · 12 nouvelles · 0 modifiée · 108 inchangées",
+          "l2": "de  12 traduites · 108 inchangées · 0 retenues",
+          "l3": "es  12 traduites · 108 inchangées · 0 retenues",
+          "l4": "fr  12 traduites · 108 inchangées · 0 retenues",
+          "l5": "✓ 36 clés traduites en 5,4 s · 0 ignorée · verrou mis à jour"
+        },
+        "diff": {
+          "l1": "en.json · 120 clés · source de vérité",
+          "l2": "de  2 nouvelles · 1 modifiée · 117 à jour",
+          "l3": "es  0 nouvelle · 0 modifiée · 120 à jour",
+          "l4": "fr  5 nouvelles · 0 modifiée · 115 à jour",
+          "l5": "8 clés seraient envoyées · lance verbatra translate pour appliquer"
+        },
+        "watch": {
+          "l1": "surveille en.json",
+          "l2": "en.json a changé · 1 nouvelle clé",
+          "l3": "de  1 traduite · 0 retenue",
+          "l4": "es  1 traduite · 0 retenue",
+          "l5": "fr  1 traduite · 0 retenue",
+          "l6": "✓ 3 clés traduites · en attente de changements"
+        }
+      }
+    },
     "pillars": {
       "heading": "Un seul outil pour toute la boucle de traduction.",
       "lead": "verbatra est plus que de la traduction par IA. Il couvre la traduction automatique que tu contrôles, un transfert Excel propre pour les traducteurs humains, et l'automatisation pour garder chaque locale synchronisée.",
@@ -31,12 +64,10 @@
       }
     },
     "status": {
-      "label": "Statut de build, couverture, versions des paquets, téléchargements et licence",
+      "label": "Statut de build, couverture des tests, version du paquet et licence",
       "cliVersionAlt": "Dernière version publiée de @verbatra/cli sur npm",
-      "sdkVersionAlt": "Dernière version publiée de @verbatra/sdk sur npm",
       "buildAlt": "Statut du build d'intégration continue",
       "coverageAlt": "Couverture des tests rapportée sur Codecov",
-      "downloadsAlt": "Téléchargements mensuels sur npm",
       "licenseAlt": "Publié sous la licence MIT"
     },
     "install": {
@@ -206,7 +237,8 @@
         "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
       },
       "contact": "Contact",
-      "npm": "verbatra sur npm"
+      "npm": "verbatra sur npm",
+      "skipToContent": "Aller au contenu"
     },
     "studio": {
       "heading": "Garde tout l'état de la traduction sous les yeux, en local.",

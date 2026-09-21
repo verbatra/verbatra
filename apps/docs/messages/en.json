@@ -42,6 +42,39 @@
       "ctaQuickstart": "Read the quickstart",
       "ctaGithub": "Star on GitHub"
     },
+    "terminal": {
+      "sessionLabel": "An example verbatra command-line session.",
+      "caption": "Transcript recorded with @verbatra/cli {version}.",
+      "transcript": {
+        "init": {
+          "l1": "✓ created verbatra.config.ts",
+          "l2": "source en · targets de, es, fr",
+          "l3": "provider gemini · key from GEMINI_API_KEY"
+        },
+        "translate": {
+          "l1": "diff en.json · 12 new · 0 changed · 108 unchanged",
+          "l2": "de  12 translated · 108 unchanged · 0 withheld",
+          "l3": "es  12 translated · 108 unchanged · 0 withheld",
+          "l4": "fr  12 translated · 108 unchanged · 0 withheld",
+          "l5": "✓ 36 keys translated in 5.4s · 0 skipped · lock updated"
+        },
+        "diff": {
+          "l1": "en.json · 120 keys · source of truth",
+          "l2": "de  2 new · 1 changed · 117 up to date",
+          "l3": "es  0 new · 0 changed · 120 up to date",
+          "l4": "fr  5 new · 0 changed · 115 up to date",
+          "l5": "8 keys would be sent · run verbatra translate to apply"
+        },
+        "watch": {
+          "l1": "watching en.json for changes",
+          "l2": "en.json changed · 1 new key",
+          "l3": "de  1 translated · 0 withheld",
+          "l4": "es  1 translated · 0 withheld",
+          "l5": "fr  1 translated · 0 withheld",
+          "l6": "✓ 3 keys translated · waiting for changes"
+        }
+      }
+    },
     "pillars": {
       "heading": "One tool for the whole translation loop.",
       "lead": "verbatra is more than AI translation. It covers machine translation you control, a clean Excel handoff for human translators, and the automation to keep every locale in sync.",
@@ -59,12 +92,10 @@
       }
     },
     "status": {
-      "label": "Build status, coverage, package versions, downloads, and license",
+      "label": "Build status, test coverage, package version, and license",
       "cliVersionAlt": "Latest published @verbatra/cli version on npm",
-      "sdkVersionAlt": "Latest published @verbatra/sdk version on npm",
       "buildAlt": "Continuous integration build status",
       "coverageAlt": "Test coverage reported on Codecov",
-      "downloadsAlt": "Monthly npm downloads",
       "licenseAlt": "Released under the MIT license"
     },
     "install": {
@@ -241,7 +272,8 @@
         "triggerAriaSuffix": "choose a language",
         "machineTranslatedLabel": "Machine-translated",
         "machineTranslatedDescription": "Interface and documentation pages for this language are translated with AI."
-      }
+      },
+      "skipToContent": "Skip to content"
     }
   },
   "legal": {
