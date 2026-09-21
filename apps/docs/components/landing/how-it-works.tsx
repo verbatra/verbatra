@@ -9,7 +9,7 @@ export async function HowItWorks(): Promise<ReactNode> {
   const t = await getTranslations("landing.how");
   const steps = Object.values(t.raw("steps") as Record<string, Step>);
   return (
-    <Section width="md">
+    <Section width="content">
       <SectionHead title={t("heading")} lead={t("lead")} />
       <ol className="relative mt-12 list-none">
         <span
@@ -36,8 +36,8 @@ export async function HowItWorks(): Promise<ReactNode> {
             </span>
             <div className="pt-1.5">
               <h3
-                className="mb-2 text-[1.2rem] font-semibold text-fd-foreground"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="mb-2 font-semibold text-fd-foreground"
+                style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-h3)" }}
               >
                 {step.title}
               </h3>

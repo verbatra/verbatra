@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 
@@ -22,7 +23,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
-        className="rounded underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+        className="inline-flex min-h-6 items-center rounded underline decoration-fd-border underline-offset-4 align-middle transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]"
       >
         {link.token}
       </a>
@@ -37,10 +38,11 @@ export type CommandLineProps = {
 };
 
 export default function CommandLine({ command, link }: CommandLineProps): ReactNode {
+  const t = useTranslations("landing.install");
   const [copied, copy] = useCopyToClipboard();
 
   return (
-    <div className="not-prose flex max-w-xl items-center gap-3 rounded-lg border border-fd-border bg-fd-card px-4 py-2.5 font-mono text-sm">
+    <div className="not-prose flex max-w-xl items-center gap-3 rounded-xl border border-fd-border bg-fd-card px-4 py-2.5 font-mono text-sm">
       <span className="text-fd-muted-foreground" aria-hidden="true">
         $
       </span>
@@ -50,10 +52,10 @@ export default function CommandLine({ command, link }: CommandLineProps): ReactN
       <button
         type="button"
         onClick={() => copy(command)}
-        aria-label="Copy install command"
-        className="ms-auto rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+        aria-label={t("copyAria")}
+        className="ms-auto inline-flex min-h-6 items-center rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
       >
-        {copied ? "copied" : "copy"}
+        {copied ? t("copied") : t("copy")}
       </button>
     </div>
   );

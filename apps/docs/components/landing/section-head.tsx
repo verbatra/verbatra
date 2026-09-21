@@ -26,8 +26,8 @@ export function SectionHead({
         style={{
           fontFamily: "var(--font-display)",
           letterSpacing: "var(--tracking-tight)",
-          fontSize: "clamp(1.9rem, 3.4vw, 2.6rem)",
-          lineHeight: 1.08,
+          fontSize: "var(--text-h2)",
+          lineHeight: 1.15,
         }}
       >
         {title}

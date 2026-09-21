@@ -1,7 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useInView } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { cn } from "@/lib/utils";
 
 export type SwapLogo = { key: string; name: string; icon: ReactNode };
@@ -21,7 +22,7 @@ export function SwapLogoCloud({
   gridClassName: string;
   intervalMs?: number;
 }): ReactNode {
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotionPreference();
   const rootRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
   const inView = useInView(rootRef, { amount: 0.2 });
@@ -38,9 +39,13 @@ export function SwapLogoCloud({
   if (logos.length === 0) return null;
 
   const slots: SwapLogo[] = [];
-  for (let i = 0; i < visibleCount; i += 1) {
-    const item = logos[(offset + i) % logos.length];
-    if (item) slots.push(item);
+  if (reduced) {
+    slots.push(...logos);
+  } else {
+    for (let i = 0; i < visibleCount; i += 1) {
+      const item = logos[(offset + i) % logos.length];
+      if (item) slots.push(item);
+    }
   }
 
   return (

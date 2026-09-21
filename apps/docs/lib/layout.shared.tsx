@@ -55,7 +55,7 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         type: "icon",
         label: t("npm"),
         text: t("npm"),
-        icon: <SiNpm size={18} aria-hidden="true" className="shrink-0" />,
+        icon: <SiNpm size={18} title="" aria-hidden="true" className="shrink-0" />,
         url: NPM_CLI,
         external: true,
       },

@@ -78,6 +78,7 @@ export async function generateMetadata(props: {
 
 export const viewport: Viewport = {
   themeColor: "#0B0B12",
+  colorScheme: "dark",
 };
 
 export default async function Layout({

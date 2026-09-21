@@ -2,23 +2,31 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const WIDTHS = {
-  md: "max-w-3xl",
-  lg: "max-w-6xl",
+  content: "vk-w-content",
+  wide: "vk-w-wide",
+} as const;
+
+const RHYTHM = {
+  lg: "vk-rhythm-lg",
+  md: "vk-rhythm-md",
+  sm: "vk-rhythm-sm",
 } as const;
 
 export function Section({
   children,
-  width = "lg",
+  width = "wide",
+  rhythm = "md",
   className,
   id,
 }: {
   children: ReactNode;
   width?: keyof typeof WIDTHS;
+  rhythm?: keyof typeof RHYTHM;
   className?: string;
   id?: string;
 }): ReactNode {
   return (
-    <section id={id} className={cn("mx-auto mt-24 px-6", WIDTHS[width], className)}>
+    <section id={id} className={cn("vk-gutter mx-auto", WIDTHS[width], RHYTHM[rhythm], className)}>
       {children}
     </section>
   );

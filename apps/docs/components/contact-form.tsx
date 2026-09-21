@@ -17,7 +17,7 @@ type ContactResponseBody =
   | { status: "error" };
 
 const INPUT_CLASS =
-  "rounded-[10px] border border-fd-border bg-fd-background px-3 py-2 text-sm text-fd-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] aria-invalid:border-[color:var(--border-danger)]";
+  "rounded-[10px] border border-fd-border bg-fd-background px-3 py-2 text-sm text-fd-foreground transition-colors aria-invalid:border-[color:var(--border-danger)]";
 
 async function submitContactForm(formData: FormData): Promise<ContactResponseBody> {
   const response = await fetch("/api/contact", {

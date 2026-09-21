@@ -10,14 +10,14 @@ export async function StudioShowcase(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
 
   return (
-    <Section id="studio">
+    <Section id="studio" rhythm="lg">
       <SectionHead title={t("heading")} lead={t("lead")} />
       <div className="mt-10">
         <StudioScreenshot shot="translations" alt={t("alt")} caption={t("caption")} />
       </div>
       <a
         href={localizedPath(locale, "/docs/review-in-studio")}
-        className="inline-flex items-center gap-2 text-sm text-fd-muted-foreground underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+        className="mt-6 inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]"
       >
         {t("cta")}
         <span aria-hidden="true">→</span>
