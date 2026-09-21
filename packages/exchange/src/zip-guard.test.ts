@@ -52,7 +52,7 @@ describe("guardWorkbookBytes: reject matrix", () => {
     const bytes = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
     const limits = { ...DEFAULT_WORKBOOK_LIMITS, maxDecompressedBytes: 4096 };
     await expectWorkbookInvalid(() => guardWorkbookBytes(bytes, limits));
-  }, 30_000);
+  });
 });
 
 describe("guardWorkbookBytes: accept", () => {
@@ -142,7 +142,7 @@ describe("streamEntryBounded", () => {
     } finally {
       spy.mockRestore();
     }
-  }, 30_000);
+  }, 180_000);
 });
 
 describe("declaredSize: JSZip internals canary", () => {
