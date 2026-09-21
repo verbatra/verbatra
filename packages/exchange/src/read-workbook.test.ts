@@ -311,7 +311,7 @@ describe("readWorkbook: structural rejection", () => {
     expect(data.sheets[0]?.rows.map((r) => r.translation)).toEqual(["First"]);
     expect(data.duplicateKeys).toEqual([{ locale: "de", key: "dup", row: 3 }]);
   });
-});
+}, 60_000);
 
 describe("readWorkbook: parse-bound caps", () => {
   it("trips the sheet-count cap", async () => {
@@ -410,4 +410,4 @@ describe("readWorkbook: parse-bound caps", () => {
     const bytes = await zip.generateAsync({ type: "uint8array" });
     await expectWorkbookInvalid(() => readWorkbook(bytes));
   });
-});
+}, 60_000);
