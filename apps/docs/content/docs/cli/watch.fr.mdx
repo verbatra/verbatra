@@ -29,7 +29,7 @@ Avec `--json`, chaque exécution émet un enregistrement [enveloppe](/docs/ci-an
 
 `--lock-timeout` s'applique à chaque cycle : il règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que cette exécution n'échoue avec `LOCK_CONTENDED`. Une exécution échouée n'est qu'un enregistrement sur le flux, donc la surveillance continue dans tous les cas.
 
-`--concurrency` s'applique à l'exécution de chaque cycle. Comme le budget de tokens de chaque exécution est neuf, un `--concurrency` supérieur à `1` ne peut pas être respecté quand la config fixe un budget `maxTokens` : `watch` refuse cette combinaison au démarrage et sort avec le code `2` avant l'exécution initiale, au lieu de démarrer une session qui échoue à chaque cycle. `--no-cache` contourne le [cache de mémoire de traduction](/docs/the-cache) à chaque cycle.
+`--concurrency` s'applique à l'exécution de chaque cycle. Chaque exécution reçoit un budget de tokens neuf, et un `--concurrency` supérieur à `1` reste refusé quand la config fixe un budget `maxTokens`, car quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent : `watch` refuse cette combinaison au démarrage et sort avec le code `2` avant l'exécution initiale, au lieu de démarrer une session qui échoue à chaque cycle. `--no-cache` contourne le [cache de mémoire de traduction](/docs/the-cache) à chaque cycle.
 
 ## Arrêt
 

@@ -92,6 +92,7 @@ async function translate(
       data.sourceLocale,
       data.targetLocale,
       request.glossary,
+      data.maxLength,
     ),
     notices,
     [...values.keys()],

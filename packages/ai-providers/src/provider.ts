@@ -53,6 +53,13 @@ export interface TranslateRequest {
   readonly glossary?: Readonly<Record<string, string>>;
   /** Optional target {@link Tone}; machine-translation providers map it to formality. */
   readonly tone?: Tone;
+  /**
+   * Optional per-key maximum length budget, measured in grapheme clusters. A key present in the map
+   * whose translation comes back longer than its budget is flagged `MAX_LENGTH_EXCEEDED`; a key
+   * absent from the map is never flagged. Advisory only: it never changes what is sent to the
+   * provider and never withholds a value.
+   */
+  readonly maxLength?: ReadonlyMap<string, number>;
   /** Mandatory placeholder extractor; the output integrity check runs against it. */
   readonly extractPlaceholders: PlaceholderExtractor;
   /**
@@ -110,29 +117,74 @@ export interface ProviderNotice {
 
 /**
  * Stable codes for a derived, per-key "needs review" signal. This is verbatra's own computed
- * assessment, never a raw model self-score: four are recomputable from plain source and translated
- * values, and `PROVIDER_DEGRADED` is layered on afterwards from the batch's notices.
+ * assessment, never a raw model self-score: five are recomputable from plain source and translated
+ * values, and `FUZZY_CACHE_REUSE` and `PROVIDER_DEGRADED` are layered on afterwards, the first by
+ * the SDK from where the value came, the second from the batch's notices.
  *
  * - `LENGTH_RATIO_OUTLIER`: the translated value's length is far shorter or longer than the source's.
- *   Only considered once the trimmed source is long enough for the ratio to mean anything.
+ *   Only considered once the trimmed source is long enough for the ratio to mean anything. Relative
+ *   to the source, and measured in UTF-16 code units; contrast `MAX_LENGTH_EXCEEDED`.
+ * - `MAX_LENGTH_EXCEEDED`: the translated value is longer than the absolute budget configured for
+ *   its key. Measured in grapheme clusters (user-perceived characters), on the value exactly as
+ *   written with no trimming, and the comparison is inclusive, so a value of exactly the budget is
+ *   not flagged. A key with no configured budget is never flagged. Advisory only: an over-budget
+ *   value is still written to the locale file and still recorded in the lock file, because a
+ *   correct translation that overruns a layout budget is more useful than no translation at all.
  * - `EQUALS_SOURCE`: the translated value equals the source value once both are trimmed, so a
  *   difference in leading or trailing whitespace alone still counts as equal. Also requires that
  *   the locales differ and that the value contains at least one letter (so a bare symbol or number
  *   is not flagged).
  * - `GLOSSARY_TERM_MISSED`: a configured glossary source term appeared in the source but its target
- *   term did not appear in the translation.
+ *   term did not appear in the translation. Matching is case-insensitive, and the two sides are
+ *   held to deliberately different standards. The source side requires a whole-word occurrence, so
+ *   the term "AI" is not found inside "Airport" and cannot raise an expectation the translator was
+ *   never given; a source term whose edge character belongs to a script written without word
+ *   separators (Han, kana, Thai and similar) has no boundary to anchor to and falls back to
+ *   containment. The target side requires containment only, because a translated term legitimately
+ *   fuses with the text around it: German compounds ("Benutzerkonto"), Korean particles ("계정을")
+ *   and Japanese loanwords all carry the term with no boundary around it, and demanding one there
+ *   would flag correct translations in most languages a glossary is used for.
  * - `INTEGRITY_REORDERED`: the placeholder set matched but landed in a different order.
  * - `PROVIDER_DEGRADED`: the batch this key came from carried a `FORMALITY_DOWNGRADED` or
  *   `GLOSSARY_IGNORED` notice, either of which can silently change wording. A
  *   `PLACEHOLDER_UNSUPPORTED` notice does not raise it, since the affected entries are withheld
  *   rather than degraded.
+ * - `FUZZY_CACHE_REUSE`: the value was not translated for this source text at all. It was reused
+ *   from the translation memory for an earlier, near-identical source that has since been edited,
+ *   so it is a translation of text that is no longer the source text. Similarity is measured in
+ *   characters and meaning is not a function of character distance: a dropped negation, an
+ *   inverted modal or a swapped proper noun are all small edits with large consequences, and no
+ *   threshold separates them from a typo fix. Every such reuse therefore carries this reason, on
+ *   every run, regardless of score.
+ *
+ * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
+ * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
+ * members; a hand-copied list silently falls behind the next addition.
+ *
+ * @example
+ * ```ts
+ * import { REVIEW_REASON_CODES } from "@verbatra/sdk";
+ * import { z } from "zod";
+ *
+ * const reasonSchema = z.enum(REVIEW_REASON_CODES);
+ * ```
  */
-export type ReviewReasonCode =
-  | "LENGTH_RATIO_OUTLIER"
-  | "EQUALS_SOURCE"
-  | "GLOSSARY_TERM_MISSED"
-  | "INTEGRITY_REORDERED"
-  | "PROVIDER_DEGRADED";
+export const REVIEW_REASON_CODES = [
+  "LENGTH_RATIO_OUTLIER",
+  "MAX_LENGTH_EXCEEDED",
+  "EQUALS_SOURCE",
+  "GLOSSARY_TERM_MISSED",
+  "INTEGRITY_REORDERED",
+  "PROVIDER_DEGRADED",
+  "FUZZY_CACHE_REUSE",
+] as const;
+
+/**
+ * One of {@link REVIEW_REASON_CODES}. The union is derived from that tuple rather than written out
+ * again, so a code can only be added in one place and every consumer that builds a runtime schema
+ * or an exhaustive map from the tuple stays in step automatically.
+ */
+export type ReviewReasonCode = (typeof REVIEW_REASON_CODES)[number];
 
 /** A key flagged for human review, carrying every reason code that applies. */
 export interface ReviewFlag {
@@ -209,6 +261,7 @@ const requestDataSchema = z.object({
   entries: z.array(translationEntrySchema).min(1),
   glossary: z.record(z.string(), z.string()).optional(),
   tone: z.enum(["formal", "informal", "neutral"]).optional(),
+  maxLength: z.map(z.string().min(1), z.number().int().nonnegative()).optional(),
 });
 
 export type ValidatedRequestData = z.infer<typeof requestDataSchema>;

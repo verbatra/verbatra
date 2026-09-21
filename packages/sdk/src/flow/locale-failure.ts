@@ -1,5 +1,5 @@
 import { describeError } from "../errors.js";
-import type { LocaleSummary } from "./summary.js";
+import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 export function failureSummary(locale: string, error: unknown): LocaleSummary {
   return {
@@ -11,6 +11,7 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     pruned: [],
     invalidIcuSource: [],
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
@@ -27,6 +28,7 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
 export interface LocaleStatusParts {
   readonly translated: readonly string[];
   readonly cacheHits: readonly string[];
+  readonly fuzzyHits: readonly FuzzyCacheHit[];
   readonly generated: readonly string[];
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
@@ -42,7 +44,10 @@ export function deriveLocaleStatus(parts: LocaleStatusParts): LocaleSummary["sta
     return "succeeded";
   }
   const accepted =
-    parts.translated.length > 0 || parts.cacheHits.length > 0 || parts.generated.length > 0;
+    parts.translated.length > 0 ||
+    parts.cacheHits.length > 0 ||
+    parts.fuzzyHits.length > 0 ||
+    parts.generated.length > 0;
   return accepted ? "partial" : "failed";
 }
 

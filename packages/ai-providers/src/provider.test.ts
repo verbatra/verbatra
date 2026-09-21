@@ -32,6 +32,23 @@ describe("validateRequest", () => {
     }
   });
 
+  it("carries a per-key maximum length budget through to the parsed data", () => {
+    const data = validateRequest(baseRequest({ maxLength: new Map([["greeting", 12]]) }));
+    expect(data.maxLength?.get("greeting")).toBe(12);
+  });
+
+  it("rejects a fractional maximum length budget", () => {
+    expect(() => validateRequest(baseRequest({ maxLength: new Map([["greeting", 1.5]]) }))).toThrow(
+      ProviderError,
+    );
+  });
+
+  it("rejects a negative maximum length budget", () => {
+    expect(() => validateRequest(baseRequest({ maxLength: new Map([["greeting", -1]]) }))).toThrow(
+      ProviderError,
+    );
+  });
+
   it("rejects an empty batch", () => {
     expect(() => validateRequest(baseRequest({ entries: [] }))).toThrow(ProviderError);
   });

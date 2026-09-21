@@ -53,6 +53,10 @@ pour cela que la barrière est rejouée par clé.
   qui rend son refus sûr sans connaître les délimiteurs de ton projet. Le contrôle ne va que dans ce
   sens, donc une candidate qui laisse tomber un tel jeton ou modifie le texte littéral qui l'entoure
   passe sans encombre.
+- Parité du balisage en ligne : la valeur traduite doit porter le même HTML ou XML en ligne que sa
+  source, et le porter bien formé. Une balise perdue, inventée, renommée ou déséquilibrée casse le
+  rendu d'une chaîne comme un placeholder perdu casse son interpolation, elle est donc refusée de
+  la même façon. Voir [Parité du balisage en ligne](#parité-du-balisage-en-ligne) plus bas.
 - Dégénérescence : la valeur ne doit pas être structurellement dégénérée, comme une boucle de
   répétition ou une longueur qui s'est emballée par rapport à la source. Cela attrape un modèle qui
   s'est effondré en répétant un fragment même si chaque placeholder a survécu.
@@ -71,6 +75,172 @@ un échec fournisseur, pas comme un défaut d'intégrité. Les deux se retentent
 Côté source, une clé source dont la propre valeur est de l'ICU invalide est mise de côté avant la
 traduction et rapportée, au lieu d'être envoyée au fournisseur dans un état cassé.
 
+### Parité du balisage en ligne
+
+<AvailableFrom version="0.11.0" />
+
+Le texte enrichi arrive dans une chaîne traduisible sous forme de balisage en ligne : un `<b>`
+autour d'une partie d'un bloc `Trans` d'i18next, un `&lt;b&gt;` échappé dans un `<string>` Android,
+un `<a href>` dans un catalogue gettext. Rien de tout cela n'est un placeholder, donc rien ne le
+comparait jusqu'ici.
+
+Les balises sont comparées comme un multiensemble de noms de balise plus noms d'attribut, et c'est
+ce qui décide si quelque chose est un constat :
+
+- Refusé : une balise perdue, une balise inventée, une balise renommée, un ensemble de noms
+  d'attribut différent, un balisage qui revient déséquilibré ou mal imbriqué, comme
+  `<b>a<i>b</b></i>`, et une balise qui revient imbriquée dans une autre du même nom alors que la
+  source les avait côte à côte, ce qui transforme silencieusement deux liens en un seul.
+- Accepté : les mêmes balises dans un autre ordre, parce que traduire une phrase déplace son
+  balisage, une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé est
+  une traduction correcte et non une traduction cassée (dans les limites décrites plus bas pour les
+  valeurs d'attribut), et l'une ou l'autre graphie d'un élément vide, `<br>` et `<br/>` étant la
+  même balise.
+- Comptées, pas seulement remarquées : deux paires adjacentes fusionnées en une seule
+  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusé, parce que la comparaison ne peut pas
+  distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
+- Comparées exactement : un changement de casse est un constat. Les éléments vides HTML (`<br>`,
+  `<img>`, `<hr>` et les autres) n'ont besoin d'aucune balise fermante, quelle que soit leur casse,
+  donc `<BR>` est reconnu comme élément vide au même titre que `<br>`.
+- Refusées quand un nom d'attribut est ajouté ou retiré, ce qui inclut l'ajout d'un attribut `dir`
+  pour une cible écrite de droite à gauche. Les valeurs d'attribut sont libres, hormis ces limites ;
+  l'ensemble des noms ne l'est pas.
+
+Une source sans aucun balisage reste protégée contre le balisage qu'on y invente. La candidate est
+refusée pour toute paire de balises, tout élément vide ou toute balise auto-fermante qu'elle ajoute,
+pour une balise fermante sans balise ouvrante (`Hallo</div>`) et pour une balise ouvrante jamais
+fermée qui porte autre chose que son nom, comme `<Enter onfocus=...>` ou `<x-key onmouseover=...>`.
+
+Un `<Word>` jamais fermé qui ne porte que son nom, et dont le nom ne contient que des lettres, des
+chiffres, des tirets et des tirets bas, est un mot entre chevrons, comme `<Enter>` dans
+`Druecke <Enter>`. Ces mots sont mis de côté des deux côtés avant que la source soit jugée, donc une
+source qui en porte un reste comparée : une candidate qui perd une paire `<b>` à côté de `<Enter>`,
+ou qui invente une paire `<script>` à côté, est refusée. Dès que la source porte des balises, les
+mots entre chevrons sont comptés comme des balises. Si elle n'en porte aucune, un mot entre chevrons
+ajouté par la candidate est lu comme du texte et accepté, sauf si son nom, quelle que soit sa casse,
+est un élément HTML standard (`Hallo <script>`), est `image`, dont un analyseur fait un `<img>`, ou
+contient un tiret, ce qui en fait un élément personnalisé (`Hallo <my-widget>`).
+
+Ce test du nom est volontairement prudent : un mot ordinaire qui se trouve être un nom d'élément,
+comme `<Del>`, `<Option>`, `<Select>`, `<Input>` ou `<Menu>`, est refusé quand une traduction
+l'ajoute à une source qui ne l'a pas. Pour contourner cela, garde aussi le mot entre chevrons dans
+ton texte source : une traduction qui porte les mêmes mots entre chevrons que sa source est
+acceptée.
+
+Les commentaires, les sections CDATA, les déclarations et les instructions de traitement ne sont pas
+des balises, et ils sont lus comme un analyseur HTML les lit, puisque c'est là que finissent les
+valeurs. `<!-->` et `<!--->` sont des commentaires vides complets, un commentaire se termine au
+premier `-->` ou `--!>`, et un commentaire sans fin masque le reste de la valeur. `<![CDATA[`,
+`<!DOCTYPE html>`, tout autre `<!...`, `<?...` et un `</` suivi d'autre chose qu'une lettre, comme
+`</1 x>`, se terminent tous au premier `>`, tandis qu'un `</>` vide est écarté, comme un analyseur
+l'écarte, et qu'une balise fermante numérique comme `</0>` est comparée comme une balise. Chacune de
+ces constructions est comparée comme un multiensemble de son texte, les suites d'espaces étant
+réduites à une seule, donc une construction que la candidate ajoute, perd ou réécrit est refusée, y
+compris un commentaire dont le texte a été traduit. Les balises qui suivent la fin d'une
+construction sont comparées normalement, donc `Hallo <![CDATA[><img src=x onerror=...>]]>` est
+refusé à la fois pour la construction et pour le `<img>`.
+
+Le contenu d'un élément de texte brut est lui aussi du texte, car c'est ainsi qu'un analyseur le
+lit. Après une balise ouvrante `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
+`noembed` ou `noframes`, tout ce qui précède sa balise fermante, quelle que soit sa casse et suivie
+d'un espace, de `/` ou de `>`, est du texte, et tout ce qui suit `<plaintext>` est du texte jusqu'à
+la fin de la valeur. Une balise écrite dans un tel élément n'est pas comparée, et une valeur
+d'attribut entre guillemets ne peut pas s'étendre au-delà de la balise fermante pour masquer ce qui
+suit : `Füge ein <script><b x="</script><img src=x onerror=...>` est refusé pour le `<img>`. Là où
+un analyseur peut lire ce contenu de deux façons, la candidate est refusée sauf si elle est la
+source inchangée, avec un détail comme `+<noscript>...</noscript>` : un `script` dont le contenu
+ouvre `<!--`, un `noscript` dont le contenu contient un `<`, puisque sa lecture dépend alors de
+l'activation des scripts, et tout élément de texte brut dont le contenu contient un `<` après une
+balise `svg`, `math` ou `select`, où ce n'est peut-être pas du texte brut du tout. Pour la même
+raison, une section CDATA ou une balise `image` dans une valeur où la source ou la candidate ouvre
+`svg`, `math` ou `select` est refusée sauf si la candidate est la source inchangée.
+
+Le contenu d'un élément `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` ou
+`plaintext` s'exécute ou met en forme la page au lieu d'être affiché, donc il n'est jamais traduit :
+chaque élément de ce type dans la candidate doit porter exactement le contenu de l'élément à la même
+position parmi ceux de son nom dans la source, sinon la candidate est refusée avec un détail comme
+`+<script> content`. Le contenu de `title` et `textarea` s'affiche comme du texte et peut être
+traduit. Un texte ordinaire qui contient littéralement l'une de ces balises devient ainsi
+intraduisible, car dans `Add a <script> tag` tout ce qui suit `<script>` est son contenu :
+`Füge ein <script> Tag` est refusé. Échappe plutôt la balise dans la source, sous la forme
+`Add a &lt;script&gt; tag`, qui est du texte dans tous les formats et se traduit comme n'importe
+quel autre mot.
+
+La vérification est volontairement discrète, mais elle lit les balises comme le fait un analyseur
+HTML. Une balise commence à `<` ou `</` suivi d'une lettre ou, pour une balise numérique de texte
+enrichi comme `<0>`, de chiffres. Son nom va jusqu'à un espace, `/` ou `>`, et une valeur d'attribut
+entre guillemets peut contenir `>`. Ainsi `5 < 10`, `x <= y` et un `&lt;b&gt;` échappé restent du
+texte ordinaire, tandis que `<support@example.com>` et `<abbr title="a > b">` sont des balises, et
+un `<` qui n'atteint jamais son `>` n'affiche rien et n'est pas une balise. Une candidate qui laisse
+ainsi une balise inachevée est quand même refusée quand sa source achève toutes ses balises, avec un
+détail qui nomme le début inachevé, comme `+<a`. Une source dont les propres balises sont malformées
+est comparée malgré tout. Une fois mis de côté les balises que le format signale comme placeholders
+et les mots entre chevrons, une source compte comme malformée quand elle a une balise ouvrante
+jamais fermée (hors éléments vides), une balise fermante sans balise ouvrante, ou des balises
+fermées dans le mauvais ordre. Du texte ordinaire peut le provoquer par accident : dans
+`a<b and c>d`, `<b and c>` est une balise ouvrante `b` avec les attributs `and` et `c` jamais
+fermée, donc la source compte comme malformée. Pour une telle source, seule la vérification de
+l'imbrication est omise : ses balises sont comparées comme un multiensemble comme toutes les autres,
+donc une traduction qui garde `a<b and c>d` à l'identique est acceptée, une qui ajoute un `<img>` à
+côté est refusée, et de même une qui traduit les mots à l'intérieur de la séquence (`a<b und c>d`),
+parce qu'un analyseur lit `und` comme un nouvel attribut. Aucune source n'est non plus trop grande
+pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus de deux fois plus de
+balises et de constructions que sa source, ou plus de 256 pour une source plus petite, avec le
+détail `+more than N inline tags` qui nomme cette limite.
+
+Les valeurs d'attribut sont libres, à quelques exceptions près, qui existent parce qu'une valeur
+traduite finit dans une page. La valeur d'un attribut d'URL (`href`, `src`, `action`, `formaction`,
+`xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`,
+`codebase`, `archive`, ainsi que les attributs d'animation SVG `to`, `from`, `values` et `by`) est
+lue après décodage des références numériques de caractères et de `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de ligne et les caractères de contrôle
+qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:` y est refusé sauf si la source
+porte exactement cette valeur sur la même balise et le même attribut, avec un détail comme
+`+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris chaque URL d'une liste
+`srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une autorité (hôte et port, ou
+l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la même balise et du même
+attribut possède, et une URL relative doit rester relative. Ainsi `/docs` peut devenir `/de/docs` et
+`https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais `/docs` ne peut pas devenir
+`https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu localisé doit garder le même
+hôte ; le détail nomme la nouvelle origine, comme `+<a href="https://evil.example...">`, ou
+`+<a href="./...">` pour un lien absolu rendu relatif. Le chemin, la requête et le fragment peuvent
+changer librement. Une URL modifiée sans schéma explicite `http`, `https`, `ws`, `wss`, `ftp` ou
+`file` est aussi refusée quand une barre oblique inversée (`\` ou `%5C`) se trouve dans ses barres
+obliques initiales ou dans son hôte, car une page sur un autre schéma lit
+`//verbatra.dev\@evil.example/` comme un lien vers evil.example.
+
+Certaines valeurs d'attribut doivent revenir exactement telles que la source les a, comparées après
+décodage des références de caractères, avec un détail comme `+<meta content="...">` : `http-equiv`
+et `content` sur `meta` ; `type`, `nomodule`, `integrity` et `crossorigin` sur `script` ; `rel`,
+`as`, `integrity`, `crossorigin` et `type` sur `link` ; `target` sur `base` ; `attributeName` et
+`attributeType` sur `set`, `animate`, `animateTransform` et `animateMotion` ; `sandbox`, `allow` et
+`allowfullscreen` sur `iframe` ; `method`, `enctype` et `target` sur `form` ; et `style`, `srcdoc`
+et tout gestionnaire d'événements comme `onclick` sur n'importe quel élément. Un attribut
+traduisible comme `title` ou `alt` reste libre.
+
+Comparer des valeurs entières entraîne deux limites propres au format. Pour un format qui range
+plusieurs formes plurielles dans une même valeur séparées par une barre verticale (Vue I18n), une
+traduction qui ajoute les formes dont sa langue a besoin répète le balisage de la source et est
+refusée. Il en va de même pour un pluriel de style ICU (`{count, plural, one {...} other {...}}`)
+dans un format qui le stocke comme texte brut au lieu de l'analyser comme ICU (i18next,
+ngx-translate et YAML) : une traduction avec un nombre de formes différent de celui de la source
+répète ou perd le balisage qu'elles contiennent et est refusée. Dans les deux cas, la valeur est
+retenue et la traduction précédente reste en place, donc rien n'est perdu, mais les formes doivent
+être ajoutées sans multiplier aussi le balisage.
+
+La vérification se retire aussi balise par balise. Une balise que le format signale déjà comme
+placeholder (un élément en ligne XLIFF, une balise de texte enrichi ICU next-intl ou ARB) est
+laissée à la vérification des placeholders, avec autant de balises fermantes qu'elle a d'ouvertures,
+et n'est jamais signalée deux fois. Une balise ouvrante de ce type que la candidate laisse non
+fermée est quand même refusée, nommée par la balise fermante qui lui manque, comme `-</g>`. De même
+pour une balise dont l'imbrication avec les autres balises ne correspond plus à la source, comme un
+`<b>` qui revient en croisant le `<g>` dans lequel il se trouvait, et pour une balise que la source
+ne porte que comme texte, dans un commentaire ou un élément de texte brut, parce que l'en sortir
+créerait l'élément. Toute autre balise de la même valeur reste comparée, y compris une balise
+fermante en trop comme un second `</g>`. Un refus nomme les balises en cause, chacune préfixée de
+`-` pour une que la source avait et que la candidate a perdue, ou de `+` pour une que la candidate a
+inventée.
+
 ## Signalements de révision
 
 Passer la barrière prouve qu'une traduction est structurellement sûre, pas qu'elle est bonne, donc
@@ -80,16 +250,42 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `LENGTH_RATIO_OUTLIER` : la traduction est bien plus courte ou plus longue que sa source (en
   dessous de 0.35x ou au-dessus de 3.0x en longueur après retrait des espaces ; les sources très courtes sont
   ignorées). Une invitation à regarder, pas un verdict.
+- `MAX_LENGTH_EXCEEDED` : la traduction est plus longue que le budget absolu configuré pour sa clé
+  sous [`maxLength`](/docs/config-file). Comptée en groupes de graphèmes, sur la valeur telle
+  qu'elle est écrite, et la limite est inclusive : une valeur égale au budget n'est pas signalée.
+  Une clé sans budget configuré n'est jamais mesurée. Comme chaque raison de cette liste, elle
+  signale au lieu de bloquer : une traduction au-dessus du budget est tout de même écrite et tout
+  de même verrouillée, car une traduction correcte qui dépasse un budget de mise en page vaut mieux
+  que pas de traduction du tout.
 - `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source dans une locale cible
   différente, et la source avait réellement du texte traduisible.
 - `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme
-  cible associé est absent de la traduction.
+  cible associé est absent de la traduction. La correspondance ignore la casse, et les deux côtés
+  sont tenus à des exigences différentes, volontairement. Le côté source exige un mot entier, donc
+  le terme `AI` ne compte pas comme présent à l'intérieur de `Airport` et ne peut pas créer une
+  attente que personne n'a formulée. Le côté cible demande seulement que le terme apparaisse quelque
+  part dans la traduction, car un terme traduit se fond légitimement dans ce qui l'entoure : mots
+  composés allemands (`Benutzerkonto`), particules coréennes (`계정을`), emprunts japonais. Exiger
+  une frontière à cet endroit signalerait des traductions correctes dans la plupart des langues pour
+  lesquelles tu tiens un glossaire. Un terme source écrit sans séparateur de mots (han, kana, thaï
+  et similaires) n'a pas non plus de frontière, il retombe donc sur la même règle de sous-chaîne.
 - `INTEGRITY_REORDERED` : l'ensemble des placeholders correspondait exactement mais est arrivé dans
   un ordre différent de la source. Ne se déclenche que sur une traduction que la barrière a déjà
   acceptée.
 - `PROVIDER_DEGRADED` : le lot dont cette clé provient a été dégradé en douceur par le fournisseur
   (un abaissement de formalité ou un glossaire ignoré ; dans l'ensemble actuel de fournisseurs,
   DeepL uniquement).
+- `FUZZY_CACHE_REUSE` : la valeur n'a jamais été traduite pour ce texte source. Elle vient
+  [du cache](/docs/the-cache), en réutilisation approximative d'une source antérieure quasi
+  identique qui a depuis été modifiée. La similarité se mesure en caractères, et le sens n'est pas
+  une fonction de la distance entre caractères : supprimer une négation, inverser un modal ou
+  changer un nom propre sont de petites modifications qui renversent une phrase, et aucun seuil ne
+  les sépare d'une correction de coquille. Chaque réutilisation approximative porte donc cette
+  raison à chaque exécution, quel que soit son score. N'apparaît que si `fuzzyCache` est activé.
+
+Une valeur réutilisée depuis [le cache](/docs/the-cache), et une valeur propagée vers une clé qui
+partage son texte source, passent par les mêmes heuristiques de révision qu'une valeur fraîchement
+traduite.
 
 Les clés signalées apparaissent par locale comme `needsReview` sur le résumé d'exécution, et elles
 alimentent la file de révision : la CLI affiche le compte, le classeur Excel porte le même signal
@@ -100,20 +296,40 @@ signalement est de corriger la traduction sous-jacente.
 ## Le budget de tokens
 
 La dépense fournisseur devrait avoir un plafond que tu fixes, pas un que tu découvres sur la
-facture. Avec `maxTokens` configuré, verbatra suit l'usage cumulé de tokens sur toute l'exécution
-et le vérifie après chaque sous-lot terminé. Ce qui se passe au plafond est `budgetBehavior` :
+facture. Avec `maxTokens` configuré, verbatra compte ce que l'exécution dépense sur chaque appel
+fournisseur et chaque locale cible. Ce qui se passe au plafond est `budgetBehavior` :
 
-- `warn` (le défaut) : l'exécution continue et le résumé signale que le budget a été dépassé.
-- `stop` : plus aucun appel fournisseur n'est fait ; chaque candidate restante est retenue comme
-  `budgetWithheld`, garde son hash de verrouillage précédent, et est retentée à l'exécution
-  suivante.
+- `warn` (le défaut) : l'exécution continue et le résumé signale que le budget a été dépassé. Rien
+  n'est retenu.
+- `stop` : chaque requête est projetée avant d'être envoyée, et celle qui ferait passer l'exécution
+  au-dessus du plafond n'est pas envoyée du tout. Ses clés, et chaque candidate restante après
+  elle, sont retenues comme `budgetWithheld`, gardent leur hash de verrouillage précédent, et sont
+  retentées à l'exécution suivante.
 
-Le sous-lot qui franchit le plafond n'est jamais annulé. Sous `warn`, le budget ne change jamais le
-code de sortie de la commande. Sous `stop`, il le peut : une locale dont des clés ont été retenues
-est rapportée comme `partial` quand certaines clés sont quand même arrivées et `failed` quand
-aucune n'est arrivée, et les deux sortent avec `1`. Avec un fournisseur qui ne rapporte pas d'usage de tokens (DeepL), le
-garde-fou est honnêtement inerte : le résumé le marque comme non pris en charge au lieu de
-fabriquer un compte.
+Le travail déjà fait n'est jamais annulé, et rien n'est laissé à moitié : ce qui a été traduit
+avant le plafond reste écrit et verrouillé, et une clé retenue garde la baseline qu'elle avait,
+donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de
+verrouillage revendiquant du travail retenu. La vérification couvre chaque requête que l'exécution
+envoie, y compris chaque moitié d'une requête redécoupée après une réponse tronquée : une cascade
+de retries ne peut donc pas dépasser une réservation. La seule chose qu'une projection ne peut pas
+promettre est la requête déjà partie : elle peut rapporter plus que sa projection, donc le compte
+final peut finir au-dessus de `maxTokens` de l'écart de cette seule requête, et pas davantage. Plus
+rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite.
+
+Deux limites méritent d'être dites clairement. Le plafond borne une exécution, pas une session :
+`watch` démarre un budget neuf pour chaque exécution qu'il déclenche, donc une session watch peut
+dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source. Et il couvre
+`translate` et rien d'autre : retraduire une seule entrée depuis [le tableau de bord
+Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin avec son propre
+fournisseur, et aucun budget ne borne cette dépense.
+
+Sous `warn`, le budget ne change jamais le code de sortie de la commande. Sous `stop`, il le peut :
+une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont
+quand même arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. Un
+fournisseur qui ne rapporte pas son propre usage de tokens (DeepL, Google Cloud Translation) est
+compté à partir de la projection au lieu de rester non mesuré, donc le garde-fou mord là aussi ;
+`supported` sur le budget du résumé indique que le chiffre est le décompte de verbatra et non celui
+du fournisseur.
 
 ## Les erreurs ne fuient jamais
 

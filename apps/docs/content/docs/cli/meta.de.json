@@ -3,13 +3,17 @@
   "pages": [
     "index",
     "init",
+    "extract",
     "translate",
     "watch",
     "check",
     "diff",
     "doctor",
+    "pseudo",
+    "types",
     "export",
     "import",
+    "tmx",
     "studio",
     "mcp"
   ]

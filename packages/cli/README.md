@@ -59,17 +59,21 @@ Plural-category generation is opt-in too, but config/SDK only: set `generatePlur
 
 ## Commands
 
-verbatra ships ten commands: `init` (scaffold a config), `translate` (translate every target locale once), `watch` (re-translate on every source change), `check` (report per-locale missing, stale, and up-to-date counts without writing), `diff` (list the keys that would be added, re-translated, or are orphaned per locale, without writing), `doctor` (validate the project setup and report every problem at once), `export` (write untranslated strings to a translator handoff), `import` (read the filled handoff back, with the same safety checks as `translate`), `studio` (start the local Verbatra Studio dashboard), and `mcp` (start a stdio MCP server exposing verbatra's tools to an MCP client). `check`, `diff`, and `doctor` are read-only: they call no provider and write no file, so they suit CI gates. `export` and `import` are the manual-translation workflow, for the strings you want a human to translate. Both take `--format`, which picks the handoff shape: `xlsx` (the default) writes one styled Excel workbook with a sheet per locale, while `csv` and `tsv` write one plain `<locale>.csv` or `<locale>.tsv` per locale into a directory, which is easier to diff and review. The full reference - every flag, examples, and the exit-code contract - lives on the documentation site:
+verbatra ships fourteen commands: `init` (scaffold a config), `extract` (scan your application source for translation call sites and add the new keys to the source locale file), `translate` (translate every target locale once), `watch` (re-translate on every source change), `check` (report per-locale missing, stale, and up-to-date counts without writing), `diff` (list the keys that would be added, re-translated, or are orphaned per locale, without writing), `doctor` (validate the project setup and report every problem at once), `pseudo` (generate a pseudolocale from the source strings, without calling a provider), `types` (generate a TypeScript declaration of every source catalog key and the arguments its message interpolates, without calling a provider), `export` (write untranslated strings to a translator handoff), `import` (read the filled handoff back, with the same safety checks as `translate`), `tmx` (import a TMX translation memory another tool produced, or export this project's memory as TMX), `studio` (start the local Verbatra Studio dashboard), and `mcp` (start a stdio MCP server exposing verbatra's tools to an MCP client). `check`, `diff`, and `doctor` are read-only: they call no provider and write no file, so they suit CI gates. `pseudo` writes only its own generated locale, outside your real locale files, and calls no provider either. `export` and `import` are the manual-translation workflow, for the strings you want a human to translate. Both take `--format`, which picks the handoff shape: `xlsx` (the default) writes one styled Excel workbook with a sheet per locale, while `csv` and `tsv` write one plain `<locale>.csv` or `<locale>.tsv` per locale into a directory, which is easier to diff and review. The full reference - every flag, examples, and the exit-code contract - lives on the documentation site:
 
 - [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli)
 - [`verbatra init`](https://verbatra.kreitz-webdev.de/docs/cli/init)
+- [`verbatra extract`](https://verbatra.kreitz-webdev.de/docs/cli/extract)
 - [`verbatra translate`](https://verbatra.kreitz-webdev.de/docs/cli/translate)
 - [`verbatra watch`](https://verbatra.kreitz-webdev.de/docs/cli/watch)
 - [`verbatra check`](https://verbatra.kreitz-webdev.de/docs/cli/check)
 - [`verbatra diff`](https://verbatra.kreitz-webdev.de/docs/cli/diff)
 - [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor)
+- [`verbatra pseudo`](https://verbatra.kreitz-webdev.de/docs/cli/pseudo)
+- [`verbatra types`](https://verbatra.kreitz-webdev.de/docs/cli/types)
 - [`verbatra export`](https://verbatra.kreitz-webdev.de/docs/cli/export)
 - [`verbatra import`](https://verbatra.kreitz-webdev.de/docs/cli/import)
+- [`verbatra tmx`](https://verbatra.kreitz-webdev.de/docs/cli/tmx)
 - [`verbatra studio`](https://verbatra.kreitz-webdev.de/docs/cli/studio)
 - [`verbatra mcp`](https://verbatra.kreitz-webdev.de/docs/cli/mcp)
 - [Manual translation workflow](https://verbatra.kreitz-webdev.de/docs/manual-translation)
@@ -92,9 +96,9 @@ The CLI returns codes you can branch on in CI and scripts:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` and `--version`); for `check` and `diff`, every locale is in sync, and for `doctor`, every check passed. |
-| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync; for `doctor`, at least one check failed. |
+| `1` | `translate` or `import` finished, but at least one locale failed or came out partial (a partial locale is one whose file was written with some keys still missing); for `check` and `diff`, at least one locale is out of sync, or `diff --unused` found an unused source key in a complete scan; for `doctor`, at least one check failed, including an untranslated literal found by `doctor --literals`; for `types --check`, the committed declaration is out of date. |
 | `2` | Could not run: a whole-run error or a usage error. |
-| `130` | `watch` or `studio` was force-stopped by a second interrupt. A single interrupt stops gracefully and exits `0`; if the shutdown itself fails, `watch` exits `2` and `studio` exits `1`. |
+| `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt. A single interrupt stops gracefully and exits `0`; if the shutdown itself fails, `watch` exits `2` and `studio` exits `1`. |
 
 A `watch` per-run failure is reported as an output record, not an exit code. `doctor` reads a broken config the other way around from the row for `2`: a config it cannot find by search, or one that fails validation, is a failed check and exit `1`, and it exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist.
 
@@ -112,7 +116,7 @@ Keys are read only from the environment, never from the config. Each provider re
 
 `openai-compatible` is not in this table: most local servers need no key at all, and when one is required it comes from `OPENAI_COMPATIBLE_API_KEY` or from whichever variable the provider's `apiKeyEnvVar` option names. See the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers) for its key resolution.
 
-`verbatra init` writes a `.env.example` and makes sure your `.gitignore` covers the paths a verbatra project keeps out of version control: `.env` and `.env.local` for your keys, plus `.verbatra-local/` and `verbatra.cache.json` for the local, regenerable state a run produces. `translate`, `watch`, and `import` silently top up an existing `.gitignore` with any of those entries it is missing, so a project scaffolded before an entry existed still gets it; none of them creates a `.gitignore` that is not already there, and a failure to write one never fails the run. `translate`, `watch`, `studio`, and `doctor` load `.env.local` and then `.env` from the working directory before running; a variable already set in the real environment always wins.
+`verbatra init` writes a `.env.example` and makes sure your `.gitignore` covers the paths a verbatra project keeps out of version control: `.env` and `.env.local` for your keys, plus `.verbatra-local/` and `verbatra.cache.json` for the local, regenerable state a run produces. `translate`, `watch`, `import`, `tmx import`, and `pseudo` silently top up an existing `.gitignore` with any of those entries it is missing, so a project scaffolded before an entry existed still gets it; none of them creates a `.gitignore` that is not already there, and a failure to write one never fails the run. `translate`, `watch`, `studio`, `mcp`, and `doctor` load `.env.local` and then `.env` from the working directory before running (`doctor --literals` loads neither); a variable already set in the real environment always wins.
 
 ## Configuration
 

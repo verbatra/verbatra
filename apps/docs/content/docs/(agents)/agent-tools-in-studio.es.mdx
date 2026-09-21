@@ -41,9 +41,9 @@ Después abre en tu navegador compatible con WebMCP la URL de loopback que se im
 
 ## El catálogo de herramientas
 
-Con la opción activada, Studio registra catorce herramientas, una por acción del panel. Sin `--allow-spend` registra doce: las dos herramientas de gasto se omiten por completo. Los nombres de herramienta llevan prefijo y usan guiones bajos (por ejemplo `verbatra_project_snapshot`).
+Con la opción activada, Studio registra quince herramientas, una por acción del panel. Sin `--allow-spend` registra trece: las dos herramientas de gasto se omiten por completo. Los nombres de herramienta llevan prefijo y usan guiones bajos (por ejemplo `verbatra_project_snapshot`).
 
-### Herramientas de lectura (diez)
+### Herramientas de lectura (once)
 
 Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de solo lectura.
 
@@ -59,6 +59,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_review_queue` | la cola de revisión |
 | `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
 | `verbatra_key_value` | los valores de origen y destino para una clave y un locale |
+| `verbatra_locale_values` | los valores de origen y destino de cada clave en cada locale de destino |
 
 ### Herramientas de escritura (dos)
 
@@ -83,7 +84,7 @@ El registro tiene tres desenlaces posibles, y solo uno de ellos es un problema.
 
 **Nada intentado, nada reportado.** Cuando falta `document.modelContext` (un navegador sin WebMCP, o Chrome sin el flag) o cuando no activaste la exposición, Studio no intenta ningún registro. El panel queda igual y la consola permanece en silencio. Ese es el no-op previsto, no un fallo.
 
-**Doce herramientas y ningún aviso.** Sin `--allow-spend`, Studio intenta doce registros en lugar de catorce: las dos herramientas de gasto se omiten antes de intentarse siquiera. Doce herramientas es la cuenta sana de una sesión sin gasto, así que su ausencia es el estado esperado y nunca levanta un aviso.
+**Trece herramientas y ningún aviso.** Sin `--allow-spend`, Studio intenta trece registros en lugar de quince: las dos herramientas de gasto se omiten antes de intentarse siquiera. Trece herramientas es la cuenta sana de una sesión sin gasto, así que su ausencia es el estado esperado y nunca levanta un aviso.
 
 **El aviso.** Si Studio intentó un registro y el navegador lo rechazó, el panel muestra una advertencia en la parte superior del área de contenido, en todas las vistas:
 
@@ -100,10 +101,10 @@ Una herramienta que falla nunca cancela las siguientes, así que toda herramient
 Studio escribe una única línea agregada a nivel de error, no una línea por herramienta, porque una causa compartida hace fallar a todas de forma idéntica:
 
 ```text
-Verbatra agent tools: 2 of 14 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La primera frase dice cuántos de los registros intentados fallaron, y sobre cuántos intentos: aquí catorce, porque esta sesión se inició con `--allow-spend`, y doce en una sesión sin ese flag. Después cada herramienta fallida aparece como `name (ErrorName: message)`, separadas por punto y coma. El nombre del error identifica la causa: es el `name` del valor con el que el navegador rechazó, normalmente una `DOMException` como `SecurityError` o `InvalidStateError`.
+La primera frase dice cuántos de los registros intentados fallaron, y sobre cuántos intentos: aquí quince, porque esta sesión se inició con `--allow-spend`, y trece en una sesión sin ese flag. Después cada herramienta fallida aparece como `name (ErrorName: message)`, separadas por punto y coma. El nombre del error identifica la causa: es el `name` del valor con el que el navegador rechazó, normalmente una `DOMException` como `SecurityError` o `InvalidStateError`.
 
 Una pasada que nunca llegó al bucle por herramienta reporta una línea distinta y no levanta el aviso:
 

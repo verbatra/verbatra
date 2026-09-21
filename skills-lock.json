@@ -56,16 +56,22 @@
       "computedHash": "6d117c3f8797e0c770c6b00a646a07028f3440b5d8042e8f841e88ed1116788f"
     },
     "frontend-design": {
-      "source": "anthropics/claude-code",
+      "source": "anthropics/skills",
       "sourceType": "github",
-      "skillPath": "plugins/frontend-design/skills/frontend-design/SKILL.md",
-      "computedHash": "3e0be122a3db8206b6d0d6b07cca898b5c75fb9b7b2101abe143fb2851734d2e"
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576"
     },
     "github-actions-hardening": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "skillPath": "skills/github-actions-hardening/SKILL.md",
       "computedHash": "10e35ff70fcf42e09295ffad0ac3203e4d6b6f74557cc3fa1654112b89e0eea2"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "2449db6ab1ded9581f69fcc56c1f64818112d05e271fd4c5da23c6523f9d3d9d"
     },
     "mcp-builder": {
       "source": "anthropics/skills",
@@ -107,7 +113,13 @@
       "source": "microsoft/playwright-cli",
       "sourceType": "github",
       "skillPath": "skills/playwright-cli/SKILL.md",
-      "computedHash": "f602822b51bcb6d033749c60731b8f1e80f308222fcb2e4af551905a817c6e08"
+      "computedHash": "9fb3a1b16a431aa5e27ef05dda32e39215c8a8553b7093cdc737367d4a0c61f0"
+    },
+    "translation": {
+      "source": "kostja94/marketing-skills",
+      "sourceType": "github",
+      "skillPath": "skills/content/translation/SKILL.md",
+      "computedHash": "8416425bae614dd3bbf72713f9a60dc3c2a6d90a47952aa698166744a13458ea"
     },
     "turborepo": {
       "source": "vercel/turborepo",

@@ -12,7 +12,7 @@ import { type VerbatraConfig, type VerbatraConfigInput, verbatraConfigSchema } f
 
 const MODULE_NAME = "verbatra";
 
-const SEARCH_PLACES = [
+export const CONFIG_SEARCH_PLACES = [
   "package.json",
   `.${MODULE_NAME}rc`,
   `.${MODULE_NAME}rc.json`,
@@ -231,7 +231,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
   const stopDir = findSearchStopDir(cwd);
 
   const explorer = cosmiconfig(MODULE_NAME, {
-    searchPlaces: SEARCH_PLACES,
+    searchPlaces: CONFIG_SEARCH_PLACES,
     loaders: { ".ts": TypeScriptLoader({ alias: resolveSelfPackageAliases() }) },
     searchStrategy: "global",
     stopDir,

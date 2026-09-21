@@ -6,10 +6,11 @@ is grounded in a specific file; check that file before assuming a rule has drift
 ## Barrel exports are package-root-only
 
 Every package has exactly one barrel: `packages/<name>/src/index.ts`. Confirmed with
-`find packages -name "index.ts"`, which returns exactly eight files, one per package
-(`ai-providers`, `cli`, `core`, `exchange`, `format-adapters`, `mcp`, `sdk`, `studio`), all at the
-package's `src` root. No subfolder anywhere in the repo (`format-adapters/src/xliff/`,
-`ai-providers/src/deepl/`, `mcp/src/tools/`, and so on) has its own internal `index.ts`.
+`find packages -name "index.ts"`, which returns exactly nine files, one per package
+(`ai-providers`, `cli`, `core`, `exchange`, `extract`, `format-adapters`, `mcp`, `sdk`, `studio`),
+all at the package's `src` root. No subfolder anywhere in the repo (`format-adapters/src/xliff/`,
+`ai-providers/src/deepl/`, `extract/src/i18next/`, `mcp/src/tools/`, and so on) has its own
+internal `index.ts`.
 
 Do not add one. An internal barrel re-exporting a subfolder's files is a known ecosystem
 anti-pattern: it hurts tree-shaking, risks circular-import cycles between sibling modules, and

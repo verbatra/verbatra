@@ -97,6 +97,12 @@ Qué cambia frente al libro:
 - **Una reexportación más estrecha retira los locales que deja fuera.** Cada exportación anota los locales que escribió en un manifiesto oculto dentro del directorio de salida. Los archivos de una selección anterior más amplia siguen en disco, pero al importar se rechazan (`HANDOFF_FILE_STALE`) en lugar de aplicarse como si fueran recientes. Nunca se borra nada, así que un archivo ajeno en ese directorio está a salvo.
 - **Todo lo demás es idéntico.** El mismo diff elige las filas y cada fila devuelta pasa por la misma puerta de integridad, así que una entrega delimitada y un libro producen el mismo resultado para los mismos valores.
 
+## TMX es otro camino
+
+<AvailableFrom version="0.11.0" />
+
+Una entrega lleva a una persona que traduce un recorte por locale del delta pendiente; [`verbatra tmx`](/docs/cli/tmx) lleva toda la memoria de traducción como un único archivo multilingüe, para moverla entre herramientas y no para que alguien traduzca cadenas. TMX no es un valor de `--format`: `xlsx`, `csv` y `tsv` son las formas de entrega, así que usa `verbatra tmx export` y `verbatra tmx import` en lugar de `verbatra export --format tmx`.
+
 ## Seleccionar qué exportar
 
 Por defecto, la exportación incluye solo las cadenas faltantes y modificadas, el trabajo que de verdad hay que hacer:
@@ -119,11 +125,12 @@ Recurre a `--include-unchanged` cuando un traductor quiera el contexto completo 
 `Review status` y `Review reasons` son una capa no bloqueante encima de las comprobaciones de arriba: las heurísticas de verbatra para detectar una traducción estructuralmente correcta pero que merece una segunda mirada. Nunca retienen una fila y la importación nunca las lee; la única forma de limpiar una señal es corregir la traducción. Ambas columnas se recalculan al exportar a partir del origen y de los valores de destino actuales:
 
 - `length-ratio-outlier`: la traducción es mucho más corta o más larga que su origen.
+- `max-length-exceeded`: la traducción es más larga que el presupuesto configurado para su clave.
 - `equals-source`: la traducción es idéntica al origen.
 - `glossary-term-missed`: un término del glosario configurado no llegó a la traducción.
 - `integrity-reordered`: los marcadores de posición coinciden pero quedaron en un orden distinto al del origen.
 
-Un quinto motivo, `provider-degraded`, existe solo al traducir (un aviso de degradación de DeepL sobre el lote del que vino una clave); como la exportación nunca llama a un proveedor, nunca aparece en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
+Un sexto motivo, `provider-degraded`, existe solo al traducir (un aviso de degradación de DeepL sobre el lote del que vino una clave); como la exportación nunca llama a un proveedor, nunca aparece en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
 
 ## Desde el SDK
 

@@ -1,0 +1,142 @@
+---
+title: verbatra extract
+description: Scan your application source for translation call sites and add the new keys to the source locale file.
+status: new
+---
+<AvailableFrom version="0.11.0" />
+
+Every other command starts from a locale file that already exists. `extract` is the one that starts from your code: it walks the source roots you configure, finds the translation call sites in them, and adds any key that is not in the source locale file yet. That is what makes verbatra usable on a project that has not been internationalized, where the catalog is exactly what you do not have.
+
+It spends nothing. No provider is constructed, no API key environment variable is read, and no network request is made, so a run with no key set works.
+
+## Synopsis
+
+```bash
+verbatra extract [flags]
+```
+
+## Configuration
+
+`extract` is driven by the [`extract` block](/docs/config-file#extract) in your config. A run without one fails with `EXTRACT_NOT_CONFIGURED` and exit `2`.
+
+```ts
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de", "fr"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+  extract: {
+    framework: "i18next",
+    roots: ["src"],
+  },
+});
+```
+
+## Flags
+
+| Flag | Argument | Default | Effect |
+| --- | --- | --- | --- |
+| `--cwd` | `<path>` | current directory | resolve config, source roots, and locale files from this directory |
+| `--config` | `<path>` | search for one | load this config file instead of searching for one |
+| `--dry-run` | none | off | report what would be added and write nothing |
+| `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the result under `result` |
+
+## What it finds
+
+The `i18next` framework reads the `t(...)`, `$t(...)`, and `<object>.t(...)` call shapes across `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, and `.cts` files, each also through an optional call and an explicit type-argument list. The key is the first argument. A default value is either the second argument or a `defaultValue` field on the options object:
+
+```ts
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
+```
+
+Comments, strings, and regular expressions are understood, so a call site written inside a comment is not picked up and a quoted `t(` inside a string does not become a key.
+
+A key and a default both have to be a complete literal. `t("user." + id)` is reported as dynamic rather than written as the key `user.`, and `t("nav.home", { defaultValue: "Home" + suffix })` adds the key with no default rather than with a truncated one.
+
+A key also has to spell a path that can be addressed. `t("user.")`, `t(".lead")` and `t("a..b")` are whole literals, but each carries an empty segment, and the tree formats split a key on `.`, so the key would land under an unnamed child your application never reads. Those are reported as dynamic too.
+
+### Namespaces are not resolved yet
+
+A namespace-qualified key, the `t("common:nav.home")` form, is reported as dynamic and never written. One verbatra config addresses one catalog file, so there is nowhere for `common:nav.home` to go that means what your i18next setup means by it.
+
+Know what that costs before you run it: if your project names a namespace at every call site, every call site is dynamic and the run adds nothing. That is deliberate for this first version. `extract` is useful today on a project that keeps one namespace and writes its keys without the prefix; lifting the limit is the first thing planned after the second framework.
+
+## What it writes
+
+Only the source locale file, and only keys that are genuinely new:
+
+- A key already in the catalog keeps its existing value exactly as it stands. A default left at a call site never overwrites a value you or a translator edited.
+- A key in the catalog that no call site mentions is left alone. `extract` adds and reports; it never deletes. [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys) lists those keys.
+- A run that finds nothing new writes nothing at all, so the file stays byte-identical and its modification time does not change.
+- A target locale file is never written. Run [`verbatra translate`](/docs/cli/translate) after `extract` to fill the new keys in.
+
+Two formats are not created from nothing, here or anywhere else in verbatra: `xliff` needs an existing destination file, and `apple-xcstrings` needs a catalog created in Xcode. For those two, create the source catalog first; `extract` then appends to it.
+
+## What it reports instead of guessing
+
+Everything the scan cannot resolve comes back as data, so one awkward file never aborts a run:
+
+| Reported as | When |
+| --- | --- |
+| `dynamic` | the key argument is not one complete static string, or it spells a path verbatra cannot address: a variable, a member expression, a template literal carrying an expression, a concatenation, a namespace-qualified key, or a key with an empty path segment. It is never written with a guessed, truncated, or unaddressable key. |
+| `conflicts` | one key is found at two call sites that disagree on its default value. Neither value is written, because picking one would make your catalog depend on directory traversal order. |
+| `withoutDefault` | a key was added with an empty value, because its call site supplied no default. Fill it in, then translate. |
+| `diagnostics` | a file or directory could not be read all the way: it vanished, it is above the size limit, the scan threw on it, an unterminated block comment or template literal abandoned the rest of it, or, in a `.tsx`, `.jsx`, or `.js` file, a JSX element never closes or a quoted string in code runs into the end of its line. Whatever was read before that point is still reported. |
+
+None of these change the exit code. They are findings, not failures.
+
+## Scan boundaries
+
+Nothing outside the configured `roots` is ever read. `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build`, and `coverage` are always skipped, and `extract.exclude` adds your own directory names to that set. Symbolic links are not followed, so a link cannot walk the scan out of a root.
+
+The result carries keys, values, and file and line locations only. A source file's contents never travel in it.
+
+## Examples
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
+A run looks like this:
+
+```text
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+  dynamic keys (1):
+    src/routes/product.tsx:88
+```
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | the scan ran, whatever it found |
+| `2` | could not run: a usage error, no `extract` block, an unresolvable format, an unparseable source catalog, or a source catalog that could not be written |
+
+There is no exit `1`. Dynamic call sites and conflicting defaults are reported, not treated as a failed run, so `extract` in CI fails only when it genuinely could not do its job.
+
+## Related
+
+- [The config file](/docs/config-file#extract) documents the `extract` block.
+- [`verbatra translate`](/docs/cli/translate) fills in the target locales once the new keys exist.
+- [`verbatra check`](/docs/cli/check) reports the drift the new keys create.
+- [The SDK](/docs/sdk#extract) exposes the same capability as `extract()`.

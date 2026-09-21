@@ -5,6 +5,7 @@ const WORKSPACE_INTERNALS = [
   "@verbatra/format-adapters",
   "@verbatra/ai-providers",
   "@verbatra/exchange",
+  "@verbatra/extract",
 ];
 
 export default createTsupConfig({

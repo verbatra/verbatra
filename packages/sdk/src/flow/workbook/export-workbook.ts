@@ -12,6 +12,7 @@ import {
   type WorkbookSheet,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { toMaxLengthMap } from "../../config/max-length.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
@@ -101,6 +102,7 @@ function computeRowReview(
   sourceLocale: string,
   targetLocale: string,
   glossary: Readonly<Record<string, string>> | undefined,
+  maxLength: number | undefined,
 ): { reviewStatus: ReviewStatus; reviewReasons: string } {
   if (currentTarget === "") {
     return { reviewStatus: "ok", reviewReasons: "" };
@@ -118,6 +120,7 @@ function computeRowReview(
     targetLocale,
     integrity,
     glossary,
+    maxLength,
   });
   return reviewColumns(flag);
 }
@@ -129,6 +132,7 @@ function buildRows(
   includeUnchanged: boolean,
   adapter: FormatAdapter,
   glossary: Readonly<Record<string, string>> | undefined,
+  maxLength: ReadonlyMap<string, number> | undefined,
 ): readonly WorkbookRow[] {
   const diff = diffResources(source, target, { baseline });
   const rows: WorkbookRow[] = [];
@@ -154,6 +158,7 @@ function buildRows(
           source.locale,
           target.locale,
           glossary,
+          maxLength?.get(key),
         ),
       });
     }
@@ -237,6 +242,7 @@ export async function exportWorkbook(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
+  const maxLengthBudgets = toMaxLengthMap(config.maxLength);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readLockFile(lockFilePath(cwd), fs);
@@ -258,6 +264,7 @@ export async function exportWorkbook(
         input.includeUnchanged ?? false,
         adapter,
         config.glossary,
+        maxLengthBudgets,
       );
       return { locale, rows };
     }),

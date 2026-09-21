@@ -1,17 +1,37 @@
-import type {
-  CheckSummary,
-  DiffSummary,
-  DoctorCheckStatus,
-  DoctorResult,
-  ExportWorkbookResult,
-  LocaleDiff,
-  LocaleSummary,
-  LockWaitEvent,
-  ProgressEvent,
-  RunBudget,
-  RunSummary,
-  UsageSummary,
-  WatchRunResult,
+import {
+  type BudgetStanding,
+  budgetStanding,
+  type CheckSummary,
+  type DiffSummary,
+  type DoctorCheckStatus,
+  type DoctorResult,
+  type EstimateCaveatCode,
+  type ExportTmxResult,
+  type ExportWorkbookResult,
+  type ExtractResult,
+  type FuzzyCacheHit,
+  type GenerateTypesResult,
+  type ImportTmxResult,
+  INTEGRITY_GATE_REASONS,
+  type InconsistencyGroup,
+  type LiteralScan,
+  type LocaleCheckSummary,
+  type LocaleDiff,
+  type LocaleSummary,
+  type LockWaitEvent,
+  type ProgressEvent,
+  type PseudolocalizeResult,
+  type RunBudget,
+  type RunEstimate,
+  type RunSummary,
+  type TmxLanguageReport,
+  type TmxRejectionReason,
+  type UnusedKeysReport,
+  type UnusedKeysScan,
+  type UnusedKeysSite,
+  type UnusedKeysUnreliability,
+  type UsageSummary,
+  type WatchRunResult,
 } from "@verbatra/sdk";
 
 export interface RenderableError {
@@ -35,22 +55,97 @@ export function renderHuman(summary: RunSummary, command = "translate"): string 
   }`;
   const usageLine = summary.usage !== undefined ? [`  total: ${renderTokens(summary.usage)}`] : [];
   const budgetLine = summary.budget !== undefined ? [renderBudgetLine(summary.budget)] : [];
-  return [header, ...localeLines, ...usageLine, ...budgetLine, aggregate].join("\n");
+  const estimateLines = summary.estimate !== undefined ? renderEstimateLines(summary.estimate) : [];
+  return [header, ...localeLines, ...usageLine, ...budgetLine, ...estimateLines, aggregate].join(
+    "\n",
+  );
 }
 
 function renderTokens(usage: UsageSummary): string {
   return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
 }
 
+const BUDGET_STATUS: Record<BudgetStanding, string> = {
+  within: "within budget",
+  "stopped-before-ceiling": "stopped before the ceiling",
+  reached: "exceeded",
+};
+
 function renderBudgetLine(budget: RunBudget): string {
-  if (!budget.supported) {
-    return (
-      `  budget: ${budget.maxTokens} tokens configured (${budget.behavior}), ` +
-      "not supported by this provider (no usage reported)"
-    );
+  const status = BUDGET_STATUS[budgetStanding(budget)];
+  const counted = `${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior})`;
+  const line = `  budget: ${counted}, ${status}`;
+  return budget.supported || budget.tokensUsed === 0
+    ? line
+    : `${line}, estimated (not every request reported usage)`;
+}
+
+const COST_DECIMALS = 4;
+const SMALLEST_PRINTABLE_COST = 0.00005;
+const SMALLEST_PRINTED_COST = "0.0001";
+
+function renderCostFigure(cost: number, currency: string): string {
+  return cost > 0 && cost < SMALLEST_PRINTABLE_COST
+    ? `less than ${SMALLEST_PRINTED_COST} ${currency}`
+    : `${cost.toFixed(COST_DECIMALS)} ${currency}`;
+}
+
+const CAVEAT_PHRASES: Record<EstimateCaveatCode, string> = {
+  CACHE_NOT_CONSULTED: "cache hits",
+  SOURCE_DUPLICATES_NOT_DEDUPLICATED: "duplicate source strings",
+  TRANSPORT_RETRIES_NOT_COUNTED: "provider-side retries",
+  TRANSLATION_LENGTH_IS_ESTIMATED: "translation length",
+  TOKEN_COUNT_IS_HEURISTIC: "tokenizer differences",
+  REPAIR_REQUESTS_NOT_COUNTED: "repair requests",
+};
+
+function renderEstimateScale(estimate: RunEstimate): string {
+  switch (estimate.unit) {
+    case "tokens":
+      return `~${estimate.inputTokens} input + ~${estimate.outputTokens} output tokens`;
+    case "characters":
+      return `~${estimate.sourceCharacters} source characters`;
   }
-  const status = budget.exceeded ? "exceeded" : "within budget";
-  return `  budget: ${budget.tokensUsed}/${budget.maxTokens} tokens (${budget.behavior}), ${status}`;
+}
+
+function renderEstimateQuantity(estimate: RunEstimate): string {
+  const scale = renderEstimateScale(estimate);
+  return `  estimate: ${estimate.keys} keys in ${estimate.requests} requests, ${scale}`;
+}
+
+function renderEstimateCost(estimate: RunEstimate): string {
+  switch (estimate.pricing) {
+    case "priced":
+      return (
+        `  estimated spend: ${renderCostFigure(estimate.cost, estimate.currency)} ` +
+        `at rates as of ${estimate.asOf} (a planning estimate, not a quotation)`
+      );
+    case "no-rate-on-file":
+      return (
+        `  estimated spend: no rate on file for ${estimate.rateKey}; ` +
+        `add rates.table["${estimate.rateKey}"] to your config to see a currency figure`
+      );
+    case "rate-unit-mismatch":
+      return (
+        `  estimated spend: the rate on file for ${estimate.rateKey} is not priced in ` +
+        `${estimate.unit}; correct rates.table["${estimate.rateKey}"] in your config`
+      );
+    case "not-billed":
+      return `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
+  }
+}
+
+function renderEstimateCaveats(estimate: RunEstimate): string {
+  const phrases = estimate.caveats.map((code) => CAVEAT_PHRASES[code]);
+  return `  estimate excludes: ${phrases.join(", ")}`;
+}
+
+function renderEstimateLines(estimate: RunEstimate): readonly string[] {
+  return [
+    renderEstimateQuantity(estimate),
+    renderEstimateCost(estimate),
+    renderEstimateCaveats(estimate),
+  ];
 }
 
 const DETAIL_GROUP_WIDTH = 17;
@@ -62,12 +157,33 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
   return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH)}${values.join(", ")}`;
 }
 
+const FUZZY_SOURCE_PREVIEW = 40;
+
+function neutralizeControlCharacters(text: string): string {
+  return text.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, " ");
+}
+
+function preview(text: string, cap: number): string {
+  const characters = Array.from(neutralizeControlCharacters(text));
+  return characters.length <= cap ? characters.join("") : `${characters.slice(0, cap).join("")}...`;
+}
+
+function previewSource(source: string): string {
+  return preview(source, FUZZY_SOURCE_PREVIEW);
+}
+
+function renderFuzzyHit(hit: FuzzyCacheHit): string {
+  const percent = Math.round(hit.similarity * 100);
+  return `${hit.key} (${percent}% like "${previewSource(hit.previousSource)}")`;
+}
+
 function renderPosition(at: { readonly row: number; readonly line?: number }): string {
   return at.line === undefined ? `row ${at.row}` : `row ${at.row}, line ${at.line}`;
 }
 
 function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
   return [
+    renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
     renderDetailGroup(
       "notices",
@@ -93,6 +209,7 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
   const counts: ReadonlyArray<readonly [number, string, boolean]> = [
     [locale.translated.length, "translated", true],
     [locale.cacheHits.length, "from cache", false],
+    [locale.fuzzyHits.length, "fuzzy-reused", false],
     [locale.unchanged.length, "unchanged", true],
     [locale.generated.length, "generated", false],
     [locale.orphaned.length, "orphaned", false],
@@ -138,7 +255,68 @@ export function renderCheckHuman(summary: CheckSummary): string {
   const overall = summary.inSync
     ? "all locales in sync"
     : "out of sync (run verbatra translate to update)";
-  return ["verbatra check", ...localeLines, overall].join("\n");
+  return ["verbatra check", ...localeLines, overall, ...renderConsistencyReport(summary)].join(
+    "\n",
+  );
+}
+
+function quoted(text: string): string {
+  return `"${neutralizeControlCharacters(text)}"`;
+}
+
+function renderPluralQualifier(group: InconsistencyGroup): string | undefined {
+  if (!group.isPlural) {
+    return undefined;
+  }
+  return group.pluralForm === undefined ? "plural" : `plural form ${quoted(group.pluralForm)}`;
+}
+
+function renderGroupQualifiers(group: InconsistencyGroup): string {
+  const qualifiers = [
+    group.context !== undefined ? `context ${quoted(group.context)}` : undefined,
+    group.description !== undefined ? `description ${quoted(group.description)}` : undefined,
+    group.meaning !== undefined ? `meaning ${quoted(group.meaning)}` : undefined,
+    renderPluralQualifier(group),
+  ].filter((qualifier) => qualifier !== undefined);
+  return qualifiers.length === 0 ? "" : ` (${qualifiers.join(", ")})`;
+}
+
+function renderInconsistencyGroup(group: InconsistencyGroup): readonly string[] {
+  return [
+    `    ${quoted(group.source)}${renderGroupQualifiers(group)} is translated ${group.translations.length} ways:`,
+    ...group.translations.map(
+      (translation) =>
+        `      ${quoted(translation.value)}: ${translation.keys.map(neutralizeControlCharacters).join(", ")}`,
+    ),
+  ];
+}
+
+function renderLocaleConsistency(
+  locale: string,
+  groups: readonly InconsistencyGroup[],
+): readonly string[] {
+  if (groups.length === 0) {
+    return [`  ${locale}: consistent`];
+  }
+  const noun = groups.length === 1 ? "source string" : "source strings";
+  return [
+    `  ${locale}: ${groups.length} ${noun} translated more than one way`,
+    ...groups.flatMap(renderInconsistencyGroup),
+  ];
+}
+
+function renderConsistencyReport(summary: CheckSummary): readonly string[] {
+  const reported = summary.locales.filter(
+    (locale): locale is LocaleCheckSummary & { inconsistencies: readonly InconsistencyGroup[] } =>
+      locale.inconsistencies !== undefined,
+  );
+  if (reported.length === 0) {
+    return [];
+  }
+  return [
+    "consistency (report only, never changes the exit code)",
+    ...reported.flatMap((locale) => renderLocaleConsistency(locale.locale, locale.inconsistencies)),
+  ];
 }
 
 const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
@@ -146,6 +324,24 @@ const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
   fail: "fail",
   skipped: "skip",
 };
+
+function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
+  if (scan === undefined) {
+    return [];
+  }
+  return [
+    ...scan.findings.map(
+      (finding) => `    ${finding.file}:${finding.line}:${finding.column}  ${quoted(finding.text)}`,
+    ),
+    ...scan.suppressed.map(
+      (entry) =>
+        `    suppressed (${entry.reason}) ${entry.file}:${entry.line}:${entry.column}  ${quoted(entry.text)}`,
+    ),
+    ...scan.diagnostics.map(
+      (diagnostic) => `    not scanned (${diagnostic.reason}) ${diagnostic.file}`,
+    ),
+  ];
+}
 
 export function renderDoctorHuman(result: DoctorResult): string {
   const lines = result.checks.map(
@@ -155,7 +351,7 @@ export function renderDoctorHuman(result: DoctorResult): string {
   const trailer = result.ok
     ? "no problems found"
     : `${failed} ${failed === 1 ? "problem" : "problems"} found (run verbatra doctor again after fixing them)`;
-  return ["verbatra doctor", ...lines, trailer].join("\n");
+  return ["verbatra doctor", ...lines, ...renderLiteralLines(result.literals), trailer].join("\n");
 }
 
 const DIFF_GROUP_WIDTH = 14;
@@ -181,13 +377,82 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   return [header, ...groups];
 }
 
+function renderUnusedSite(site: UnusedKeysSite): string {
+  const file = neutralizeControlCharacters(site.file);
+  const location = site.line === undefined ? file : `${file}:${site.line}`;
+  return site.detail === undefined
+    ? location
+    : `${location}  ${neutralizeControlCharacters(site.detail)}`;
+}
+
+function renderUnreliability(entry: UnusedKeysUnreliability): readonly string[] {
+  const shown = entry.sites.slice(0, EXTRACT_LIST_LIMIT);
+  const rest = entry.count - shown.length;
+  return [
+    `    ${entry.reason} (${entry.count}):`,
+    ...shown.map((site) => `      ${renderUnusedSite(site)}`),
+    ...(rest > 0 ? [`      and ${rest} more`] : []),
+  ];
+}
+
+function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
+  const header =
+    `  unused source keys: ${report.status}, ${report.unused.length} unused, ` +
+    `${report.possiblyDynamic.length} possibly dynamic, ${report.ignored.length} ignored, ` +
+    `${report.scannedFiles} files scanned`;
+  const verdict =
+    report.status === "complete"
+      ? []
+      : [
+          "  unreliable: a key listed as unused may still be in use",
+          ...report.unreliableBecause.flatMap(renderUnreliability),
+        ];
+  const unlimited = Number.POSITIVE_INFINITY;
+  return [
+    header,
+    ...verdict,
+    ...renderExtractList(
+      "unused",
+      report.unused.map((entry) => neutralizeControlCharacters(entry.key)),
+      unlimited,
+    ),
+    ...renderExtractList(
+      "possibly dynamic",
+      report.possiblyDynamic.map(
+        (entry) =>
+          `${neutralizeControlCharacters(entry.key)}  (prefix ${neutralizeControlCharacters(entry.prefix)})`,
+      ),
+      unlimited,
+    ),
+    ...renderExtractList(
+      "ignored",
+      report.ignored.map((entry) => neutralizeControlCharacters(entry.key)),
+      unlimited,
+    ),
+  ];
+}
+
+function renderUnusedReport(report: UnusedKeysReport | undefined): readonly string[] {
+  if (report === undefined) {
+    return [];
+  }
+  if (report.status === "not-run") {
+    return [
+      `  unused source keys: not run [${report.reason}] ${neutralizeControlCharacters(report.message)}`,
+    ];
+  }
+  return renderUnusedScan(report);
+}
+
 export function renderDiffHuman(summary: DiffSummary): string {
   const localeLines = summary.locales.flatMap(renderDiffLocale);
   const count = summary.locales.length;
   const trailer = `${count} ${count === 1 ? "locale" : "locales"}, ${
     summary.hasPendingChanges ? "pending changes" : "no pending changes"
   }`;
-  return ["verbatra diff", ...localeLines, trailer].join("\n");
+  return ["verbatra diff", ...localeLines, ...renderUnusedReport(summary.unused), trailer].join(
+    "\n",
+  );
 }
 
 function renderLockHolder(event: LockWaitEvent): string {
@@ -239,4 +504,239 @@ export function renderProgress(event: ProgressEvent, json: boolean): string {
 
 export function renderError(error: RenderableError): string {
   return `verbatra: error [${error.code}] ${error.message}`;
+}
+
+export function renderPseudoHuman(result: PseudolocalizeResult): string {
+  const lines = [
+    "verbatra pseudo",
+    `  ${result.locale}: ${result.transformed} of ${result.entries} entries pseudolocalized`,
+  ];
+  if (result.copied.length > 0) {
+    lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
+  }
+  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${result.path}`);
+  return lines.join("\n");
+}
+
+const EXTRACT_LIST_LIMIT = 10;
+
+function renderExtractList(
+  label: string,
+  lines: readonly string[],
+  limit = EXTRACT_LIST_LIMIT,
+): readonly string[] {
+  if (lines.length === 0) {
+    return [];
+  }
+  const shown = lines.slice(0, limit);
+  const rest = lines.length - shown.length;
+  const trailer = rest > 0 ? [`    and ${rest} more`] : [];
+  return [`  ${label} (${lines.length}):`, ...shown.map((line) => `    ${line}`), ...trailer];
+}
+
+function renderExtractOutcome(result: ExtractResult): string {
+  if (result.added.length === 0) {
+    return `  no new keys found in ${result.sourcePath}`;
+  }
+  const verb = result.dryRun ? "would add" : "added";
+  return `  ${verb} ${result.added.length} ${result.added.length === 1 ? "key" : "keys"} to ${result.sourcePath}`;
+}
+
+export function renderExtractHuman(result: ExtractResult): string {
+  const header = `  ${result.scannedFiles} files scanned, ${result.existingKeys} keys already present`;
+  const lines = [
+    header,
+    renderExtractOutcome(result),
+    ...renderExtractList(
+      "new keys",
+      result.added.map((entry) => `${entry.key}  ${entry.file}:${entry.line}`),
+    ),
+    ...renderExtractList("written with an empty value", result.withoutDefault),
+    ...renderExtractList(
+      "dynamic keys",
+      result.dynamic.map((site) => `${site.file}:${site.line}`),
+    ),
+    ...renderExtractList(
+      "conflicting defaults",
+      result.conflicts.map(
+        (conflict) =>
+          `${conflict.key}  ${conflict.locations.map((site) => `${site.file}:${site.line}`).join(", ")}`,
+      ),
+    ),
+    ...renderExtractList(
+      "skipped",
+      result.diagnostics.map((entry) => `${entry.file}  ${entry.reason}`),
+    ),
+  ];
+  const trailer = result.dryRun ? "dry run, nothing written" : undefined;
+  return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
+}
+
+function renderTypesOutcome(result: GenerateTypesResult): string {
+  if (result.check) {
+    return result.stale
+      ? `  ${result.path} is out of date, re-run verbatra types`
+      : `  ${result.path} is up to date`;
+  }
+  return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
+}
+
+function renderTypesKeyList(label: string, keys: readonly string[]): readonly string[] {
+  return keys.length === 0 ? [] : [`  ${label} (${keys.length}): ${keys.join(", ")}`];
+}
+
+export function renderTypesHuman(result: GenerateTypesResult): string {
+  const unresolved =
+    result.unresolved.length === 0
+      ? []
+      : [
+          `  arguments not determined (${result.unresolved.length}):`,
+          ...result.unresolved.map((entry) => `    ${entry.key}  ${entry.reason}`),
+        ];
+  return [
+    "verbatra types",
+    `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
+    ...unresolved,
+    ...renderTypesKeyList("excluded by the adapter", result.excluded),
+    ...renderTypesKeyList("plural keys", result.plural),
+    renderTypesOutcome(result),
+  ].join("\n");
+}
+
+const LANGUAGE_TAG_PREVIEW = 20;
+
+const TMX_REJECTION_REASONS: readonly TmxRejectionReason[] = [
+  ...INTEGRITY_GATE_REASONS,
+  "sourceBlank",
+];
+
+const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
+  placeholder: "placeholders do not match the source",
+  markup: "inline markup does not match the source",
+  icu: "not a valid ICU message",
+  degenerate: "runaway output rather than a translation",
+  empty: "blank translation of a source that has text",
+  sourceBlank: "blank source segment",
+};
+
+function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
+  return TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
+    (reason) => `      ${result.rejected[reason]} ${TMX_REJECTION_LABELS[reason]}`,
+  );
+}
+
+function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {
+  const counts = [
+    `${locale.added} added`,
+    `${locale.unchanged} unchanged`,
+    `${locale.kept} kept`,
+    `${locale.overwritten} overwritten`,
+    `${locale.duplicates} repeated in the file`,
+  ].join(", ");
+  const conflicts =
+    locale.conflicting > 0
+      ? [
+          `      ${locale.conflicting} units carried differing segments for this locale, so none of them was stored`,
+        ]
+      : [];
+  return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale), ...conflicts];
+}
+
+function renderTmxLanguages(
+  label: string,
+  reports: readonly TmxLanguageReport[],
+): readonly string[] {
+  if (reports.length === 0) {
+    return [];
+  }
+  const listed = reports
+    .map((report) => `${preview(report.language, LANGUAGE_TAG_PREVIEW)} (${report.units})`)
+    .join(", ");
+  return [`  ${label}: ${listed}`];
+}
+
+function renderTmxNotes(result: ImportTmxResult): readonly string[] {
+  const notes: string[] = [];
+  if (result.skippedUnits > 0) {
+    notes.push(`  ${result.skippedUnits} units could not be read and were skipped`);
+  }
+  if (result.unmatchedSourceUnits > 0) {
+    notes.push(`  ${result.unmatchedSourceUnits} units carried no segment in the source locale`);
+  }
+  if (result.conflictingSourceUnits > 0) {
+    notes.push(
+      `  ${result.conflictingSourceUnits} units carried source-locale segments of equal standing with different values, and were refused`,
+    );
+  }
+  if (result.unreachableUnits > 0) {
+    notes.push(
+      `  ${result.unreachableUnits} units sit outside the file's first body and were not read`,
+    );
+  }
+  if (result.sourceLanguageMismatch !== undefined) {
+    notes.push(
+      `  the file declares source language ${preview(result.sourceLanguageMismatch, LANGUAGE_TAG_PREVIEW)}, which is not the configured source locale`,
+    );
+  }
+  if (result.markupStrippedUnits > 0) {
+    notes.push(
+      `  ${result.markupStrippedUnits} units carried inline markup, which was flattened to its text`,
+    );
+  }
+  if (result.subflowDroppedUnits > 0) {
+    notes.push(
+      `  ${result.subflowDroppedUnits} units carried sub-flow text inside inline markup, which was left out`,
+    );
+  }
+  notes.push(
+    ...renderTmxLanguages("languages matching no configured locale", result.unmatchedLanguages),
+  );
+  notes.push(
+    ...renderTmxLanguages(
+      "languages two configured locales could claim",
+      result.ambiguousLanguages,
+    ),
+  );
+  notes.push(...renderTmxLanguages("configured locales this run left out", result.notImported));
+  if (!result.memoryWritable) {
+    notes.push("  the translation memory was written by a newer verbatra and was left untouched");
+  }
+  if (result.dryRun) {
+    notes.push("  dry run: nothing written");
+  }
+  return notes;
+}
+
+export function renderTmxImportHuman(result: ImportTmxResult): string {
+  const language =
+    result.sourceLanguage === undefined
+      ? "no source language declared"
+      : `source language ${preview(result.sourceLanguage, LANGUAGE_TAG_PREVIEW)}`;
+  return [
+    `verbatra tmx import <- ${result.file}`,
+    `  ${result.units} units read (${language})`,
+    ...result.locales.flatMap(renderTmxLocale),
+    ...renderTmxNotes(result),
+  ].join("\n");
+}
+
+export function renderTmxExportHuman(result: ExportTmxResult): string {
+  const localeLines = result.locales.map((locale) => `  ${locale.locale}: ${locale.units} units`);
+  const withoutSource =
+    result.withoutSource > 0
+      ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
+      : [];
+  const removed =
+    result.illegalCharactersRemoved > 0
+      ? [
+          `  ${result.illegalCharactersRemoved} characters XML 1.0 does not allow were removed from segment text`,
+        ]
+      : [];
+  return [
+    `verbatra tmx export -> ${result.path}`,
+    ...localeLines,
+    `${result.units} units across ${result.locales.length} locales`,
+    ...withoutSource,
+    ...removed,
+  ].join("\n");
 }

@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs, tempFileName } from "./fs.js";
@@ -97,5 +97,29 @@ describe("defaultFs.mkdir", () => {
     const dir = await makeTempDir();
     await defaultFs.mkdir?.(dir);
     await expect(defaultFs.mkdir?.(dir)).resolves.toBeUndefined();
+  });
+});
+
+describe("defaultFs.readDirectory", () => {
+  it("reports a file, a directory, and a symlink by kind", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, "a.ts"), "");
+    await mkdir(join(dir, "nested"));
+    await symlink(join(dir, "a.ts"), join(dir, "link.ts"));
+
+    const listed = (await defaultFs.readDirectory?.(dir)) ?? [];
+    const entries = [...listed].sort((left, right) => left.name.localeCompare(right.name));
+
+    expect(entries).toEqual([
+      { name: "a.ts", kind: "file" },
+      { name: "link.ts", kind: "other" },
+      { name: "nested", kind: "directory" },
+    ]);
+  });
+
+  it("rejects for a directory that does not exist", async () => {
+    const dir = await makeTempDir();
+
+    await expect(defaultFs.readDirectory?.(join(dir, "absent"))).rejects.toThrow();
   });
 });

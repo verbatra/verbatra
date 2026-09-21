@@ -6,12 +6,22 @@ import type {
   DiffSummary,
   DoctorInput,
   DoctorResult,
+  ExportTmxInput,
+  ExportTmxResult,
   ExportWorkbookInput,
   ExportWorkbookResult,
+  ExtractInput,
+  ExtractResult,
+  GenerateTypesInput,
+  GenerateTypesResult,
+  ImportTmxInput,
+  ImportTmxResult,
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
   LocaleSummary,
+  PseudolocalizeInput,
+  PseudolocalizeResult,
   RunSummary,
   TranslateInput,
   VerbatraConfig,
@@ -42,6 +52,7 @@ export function makeLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummar
     pruned: [],
     invalidIcuSource: [],
     cacheHits: [],
+    fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
@@ -84,6 +95,85 @@ export function makeDoctorResult(overrides: Partial<DoctorResult> = {}): DoctorR
         detail: "Loaded /proj/verbatra.config.ts.",
       },
     ],
+    ...overrides,
+  };
+}
+
+export function makePseudoResult(
+  overrides: Partial<PseudolocalizeResult> = {},
+): PseudolocalizeResult {
+  return {
+    locale: "en-XA",
+    path: "/proj/.verbatra-local/pseudo/locales/en-XA.json",
+    entries: 1,
+    transformed: 1,
+    copied: [],
+    written: true,
+    ...overrides,
+  };
+}
+
+export function makeExtractResult(overrides: Partial<ExtractResult> = {}): ExtractResult {
+  return {
+    sourcePath: "locales/en.json",
+    scannedFiles: 0,
+    added: [],
+    existingKeys: 0,
+    withoutDefault: [],
+    dynamic: [],
+    conflicts: [],
+    diagnostics: [],
+    written: false,
+    dryRun: false,
+    ...overrides,
+  };
+}
+
+export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): GenerateTypesResult {
+  return {
+    path: "/proj/verbatra-types.d.ts",
+    sourcePath: "locales/en.json",
+    keys: 1,
+    withArguments: 0,
+    unresolved: [],
+    excluded: [],
+    plural: [],
+    written: true,
+    stale: true,
+    check: false,
+    ...overrides,
+  };
+}
+
+export function makeImportTmxResult(overrides: Partial<ImportTmxResult> = {}): ImportTmxResult {
+  return {
+    dryRun: false,
+    file: "/proj/memory.tmx",
+    sourceLanguage: "en",
+    units: 0,
+    locales: [],
+    sourceLanguageMismatch: undefined,
+    skippedUnits: 0,
+    unreachableUnits: 0,
+    unmatchedSourceUnits: 0,
+    conflictingSourceUnits: 0,
+    markupStrippedUnits: 0,
+    subflowDroppedUnits: 0,
+    unmatchedLanguages: [],
+    ambiguousLanguages: [],
+    notImported: [],
+    memoryWritable: true,
+    ...overrides,
+  };
+}
+
+export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): ExportTmxResult {
+  return {
+    path: "/proj/verbatra-memory.tmx",
+    units: 0,
+    locales: [],
+    withoutSource: 0,
+    illegalCharactersRemoved: 0,
     ...overrides,
   };
 }
@@ -155,8 +245,13 @@ export interface DepCalls {
   diff: DiffInput[];
   doctor: DoctorInput[];
   loadConfigWithMeta: LoadConfigOptions[];
+  pseudolocalize: PseudolocalizeInput[];
   importStudio: undefined[];
   importMcp: undefined[];
+  extract: ExtractInput[];
+  generateTypes: GenerateTypesInput[];
+  importTmx: ImportTmxInput[];
+  exportTmx: ExportTmxInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -170,8 +265,13 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     diff: [],
     doctor: [],
     loadConfigWithMeta: [],
+    pseudolocalize: [],
     importStudio: [],
     importMcp: [],
+    extract: [],
+    generateTypes: [],
+    importTmx: [],
+    exportTmx: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -210,6 +310,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
       calls.loadConfigWithMeta.push(options);
       return impl.loadConfigWithMeta ? impl.loadConfigWithMeta(options) : makeLoadedConfig();
     },
+    pseudolocalize: async (input) => {
+      calls.pseudolocalize.push(input);
+      return impl.pseudolocalize ? impl.pseudolocalize(input) : makePseudoResult();
+    },
     importStudio: async () => {
       calls.importStudio.push(undefined);
       return impl.importStudio ? impl.importStudio() : makeStudioModule();
@@ -217,6 +321,22 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     importMcp: async () => {
       calls.importMcp.push(undefined);
       return impl.importMcp ? impl.importMcp() : makeMcpModule();
+    },
+    extract: async (input) => {
+      calls.extract.push(input);
+      return impl.extract ? impl.extract(input) : makeExtractResult();
+    },
+    generateTypes: async (input) => {
+      calls.generateTypes.push(input);
+      return impl.generateTypes ? impl.generateTypes(input) : makeTypesResult();
+    },
+    importTmx: async (input) => {
+      calls.importTmx.push(input);
+      return impl.importTmx ? impl.importTmx(input) : makeImportTmxResult();
+    },
+    exportTmx: async (input) => {
+      calls.exportTmx.push(input);
+      return impl.exportTmx ? impl.exportTmx(input) : makeExportTmxResult();
     },
   };
   return { deps, calls };

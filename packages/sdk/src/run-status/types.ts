@@ -1,4 +1,4 @@
-import type { NeedsReviewEntry, RunBudget, UsageSummary } from "../flow/summary.js";
+import type { FuzzyCacheHit, NeedsReviewEntry, RunBudget, UsageSummary } from "../flow/summary.js";
 
 /**
  * One locale's entry in a persisted {@link RunStatusFile}. It is a deliberately narrow projection
@@ -12,6 +12,14 @@ export interface RunStatusLocale {
   readonly status: "succeeded" | "partial" | "failed";
   /** Keys the run flagged as worth a human look. */
   readonly needsReview: readonly NeedsReviewEntry[];
+  /**
+   * Translations reused for a source string that had changed, with the score and the earlier
+   * source behind each one. Every key listed here also carries `FUZZY_CACHE_REUSE` in
+   * {@link needsReview}; this is the evidence a reviewer needs to judge the reuse without
+   * re-running. Absent for a locale that reused nothing, and for a file written before the field
+   * existed.
+   */
+  readonly fuzzyHits?: readonly FuzzyCacheHit[];
   /** Token usage for this locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
 }
@@ -31,7 +39,11 @@ export interface RunStatusFile {
   readonly generatedAt: string;
   /** Token usage summed across every locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
-  /** The token budget in force during the run, present only when one was configured. */
+  /**
+   * The token budget in force during the run, present only when one was configured. A snapshot
+   * written before the budget was enforced, when `supported: false` meant nothing was counted at
+   * all, has such a budget left out rather than read as a count of zero.
+   */
   readonly budget?: RunBudget;
   /** Per-locale outcomes from the recorded run. */
   readonly locales: readonly RunStatusLocale[];

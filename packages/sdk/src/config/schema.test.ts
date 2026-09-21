@@ -149,3 +149,143 @@ describe("verbatraConfigSchema: files.localeStyle", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("verbatraConfigSchema: rates", () => {
+  const rates = {
+    asOf: "2026-01-15",
+    currency: "USD",
+    table: {
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+    },
+  };
+
+  it("is optional, so a project that never estimates in currency needs no rates block", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("accepts a dated rate card", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ rates }));
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an undated rate card, because an undated price cannot be judged stale", () => {
+    const { asOf: _asOf, ...undated } = rates;
+    const config: unknown = { ...baseConfig({}), rates: undated };
+    expect(verbatraConfigSchema.safeParse(config).success).toBe(false);
+  });
+
+  it("rejects an unknown key inside the rates block", () => {
+    const config: unknown = { ...baseConfig({}), rates: { ...rates, source: "vendor page" } };
+    expect(verbatraConfigSchema.safeParse(config).success).toBe(false);
+  });
+});
+
+describe("the optional extract block", () => {
+  it("is accepted with a framework and roots", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ extract: { framework: "i18next", roots: ["src"] } }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("stays optional, so a config without it is still valid", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("rejects an unrecognized field inside it", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({
+        extract: { framework: "i18next", roots: ["src"], glob: "**/*" } as unknown as never,
+      }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("the optional maxLength block", () => {
+  it("accepts a per-key budget map", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLength: { "nav.title": 24, "cta.submit": 12 } }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("stays optional, so a config without it is still valid", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({})).success).toBe(true);
+  });
+
+  it("rejects a fractional budget", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": 24.5 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a negative budget", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": -1 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a budget of zero, which would flag every non-empty translation", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "nav.title": 0 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a non-numeric budget", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLength: { "nav.title": "24" } as unknown as never }),
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty key, so a budget always names a translation key", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ maxLength: { "": 24 } }));
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a misspelled top-level key rather than silently ignoring the budgets", () => {
+    const result = verbatraConfigSchema.safeParse(
+      baseConfig({ maxLengths: { "nav.title": 24 } } as unknown as never),
+    );
+
+    expect(result.success).toBe(false);
+  });
+});
+
+function withFormat(format: string): unknown {
+  return { ...baseConfig(), format };
+}
+
+describe("verbatraConfigSchema: format identity", () => {
+  it("accepts a built-in format", () => {
+    expect(verbatraConfigSchema.safeParse(baseConfig({ format: "yaml" })).success).toBe(true);
+  });
+
+  it("accepts a third-party format identifier", () => {
+    const result = verbatraConfigSchema.safeParse(baseConfig({ format: "custom:toml" }));
+
+    expect(result.success).toBe(true);
+    expect(result.data?.format).toBe("custom:toml");
+  });
+
+  it("rejects an unknown bare format name", () => {
+    const result = verbatraConfigSchema.safeParse(withFormat("toml"));
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.some((issue) => issue.path.join(".") === "format")).toBe(true);
+  });
+
+  it("rejects a malformed third-party format identifier", () => {
+    expect(verbatraConfigSchema.safeParse(withFormat("custom:TOML")).success).toBe(false);
+  });
+
+  it("rejects the bare third-party prefix", () => {
+    expect(verbatraConfigSchema.safeParse(withFormat("custom:")).success).toBe(false);
+  });
+});

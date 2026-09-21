@@ -124,6 +124,16 @@ export function makeIntegrityProvider(
   };
 }
 
+export function declaredMembers(declaration: string): readonly string[] {
+  const body = /export interface VerbatraMessages \{\n([\s\S]*?)\n\}/.exec(declaration);
+  if (body?.[1] === undefined) {
+    throw new Error(
+      "the declaration carries no multi-member VerbatraMessages interface to read members from",
+    );
+  }
+  return body[1].split("\n");
+}
+
 export function baseConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
   return {
     sourceLocale: "en",

@@ -3,6 +3,7 @@ import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -63,6 +64,14 @@ export type RetranslateEntryResult =
       readonly accepted: false;
       /** Which integrity rule the provider's value broke. */
       readonly reason: IntegrityGateReason;
+      /**
+       * The specific tags behind a `markup` refusal, each prefixed with `-` for one the source had
+       * and the candidate dropped or `+` for one the candidate invented. A candidate carrying more
+       * than twice its source's inline tags and constructs is named as `+more than N inline tags`
+       * instead, where N is at least 256. Absent when no single tag is at fault, such as markup
+       * that came back mis-nested, and absent for every other reason.
+       */
+      readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */
       readonly value: string;
     };
@@ -91,6 +100,11 @@ export type RetranslateEntryResult =
  * place, and that error is re-thrown unchanged so its own code survives for a caller that maps
  * adapter codes to its own copy. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file on either path.
+ *
+ * It spends outside the token budget. `maxTokens` and `budgetBehavior` bound a {@link translate}
+ * run, and this is its own single-key path with its own provider, so a configured ceiling neither
+ * withholds this call nor counts it. A caller that exposes retranslation to users, as the Studio
+ * dashboard and the agent tools do, has to bound that spend itself.
  *
  * @param input - The config, locale, and key to retranslate.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
@@ -156,6 +170,7 @@ export async function retranslateEntry(
           targetLocale: locale,
           adapter,
           glossary: config.glossary,
+          maxLength: toMaxLengthMap(config.maxLength),
           tone: config.tone,
         },
         [sourceEntry],
@@ -171,7 +186,12 @@ export async function retranslateEntry(
 
     const gate = gateCandidateValue(sourceEntry, value, adapter);
     if (!gate.accepted) {
-      return { accepted: false, reason: gate.reason, value };
+      return {
+        accepted: false,
+        reason: gate.reason,
+        ...(gate.details !== undefined ? { details: gate.details } : {}),
+        value,
+      };
     }
 
     const merged = new Map(target.entries);
@@ -193,7 +213,18 @@ export async function retranslateEntry(
       cwd,
       fs,
       computeFingerprint(config),
-      new Map([[locale, { [contentHash(sourceEntry)]: value }]]),
+      new Map([
+        [
+          locale,
+          {
+            [contentHash(sourceEntry)]: {
+              contentHash: contentHash(sourceEntry),
+              value,
+              source: sourceEntry.value,
+            },
+          },
+        ],
+      ]),
     );
 
     const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];

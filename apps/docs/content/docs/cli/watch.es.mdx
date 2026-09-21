@@ -29,7 +29,7 @@ Con `--json`, cada ejecución emite un registro [envoltorio](/docs/ci-and-exit-c
 
 `--lock-timeout` se aplica a cada ciclo: ajusta cuánto espera un locale por un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que esa ejecución falle con `LOCK_CONTENDED`. Una ejecución fallida es solo un registro en el flujo, así que el watcher sigue de todas formas.
 
-`--concurrency` se aplica a la ejecución de cada ciclo. Como el presupuesto de tokens de cada ejecución es nuevo, un `--concurrency` mayor que `1` no se puede respetar cuando la configuración fija un presupuesto `maxTokens`: `watch` rechaza esa combinación al arrancar y sale con `2` antes de la ejecución inicial, en lugar de arrancar una sesión que falla en cada ciclo. `--no-cache` omite la [caché de memoria de traducción](/docs/the-cache) en cada ciclo.
+`--concurrency` se aplica a la ejecución de cada ciclo. Cada ejecución recibe un presupuesto de tokens nuevo, y un `--concurrency` mayor que `1` se sigue rechazando cuando la configuración fija un presupuesto `maxTokens`, porque qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen: `watch` rechaza esa combinación al arrancar y sale con `2` antes de la ejecución inicial, en lugar de arrancar una sesión que falla en cada ciclo. `--no-cache` omite la [caché de memoria de traducción](/docs/the-cache) en cada ciclo.
 
 ## Detener
 

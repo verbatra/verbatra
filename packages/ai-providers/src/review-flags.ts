@@ -7,6 +7,15 @@ const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
 
 const UNICODE_LETTER = /\p{L}/u;
 
+const SCRIPTS_WITHOUT_WORD_SEPARATORS =
+  "\\p{scx=Han}\\p{scx=Hiragana}\\p{scx=Katakana}\\p{scx=Thai}\\p{scx=Lao}\\p{scx=Khmer}\\p{scx=Myanmar}\\p{scx=Tibetan}";
+const WORD_JOINING = `[[\\p{L}\\p{M}\\p{N}_]--[${SCRIPTS_WITHOUT_WORD_SEPARATORS}]]`;
+const WORD_JOINING_AT_START = new RegExp(`^${WORD_JOINING}`, "v");
+const WORD_JOINING_AT_END = new RegExp(`${WORD_JOINING}$`, "v");
+const MAX_CODE_UNITS_PER_CODE_POINT = 2;
+
+const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
 const DEGRADATION_NOTICE_CODES: ReadonlySet<ProviderNotice["code"]> = new Set([
   "FORMALITY_DOWNGRADED",
   "GLOSSARY_IGNORED",
@@ -19,6 +28,19 @@ export interface ReviewFlagInput {
   readonly targetLocale: string;
   readonly integrity: PlaceholderIntegrityResult;
   readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly maxLength?: number | undefined;
+}
+
+function graphemeLength(value: string): number {
+  let count = 0;
+  for (const _segment of GRAPHEME_SEGMENTER.segment(value)) {
+    count += 1;
+  }
+  return count;
+}
+
+function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
+  return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
 function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
@@ -40,6 +62,31 @@ function isEqualsSource(input: ReviewFlagInput): boolean {
   );
 }
 
+function isPrecededByWordCharacter(text: string, index: number): boolean {
+  const start = Math.max(0, index - MAX_CODE_UNITS_PER_CODE_POINT);
+  return WORD_JOINING_AT_END.test(text.slice(start, index));
+}
+
+function isFollowedByWordCharacter(text: string, index: number): boolean {
+  return WORD_JOINING_AT_START.test(text.slice(index, index + MAX_CODE_UNITS_PER_CODE_POINT));
+}
+
+function occursAsWholeTerm(text: string, term: string): boolean {
+  if (term === "") {
+    return false;
+  }
+  const guardStart = WORD_JOINING_AT_START.test(term);
+  const guardEnd = WORD_JOINING_AT_END.test(term);
+  for (let index = text.indexOf(term); index !== -1; index = text.indexOf(term, index + 1)) {
+    const blockedStart = guardStart && isPrecededByWordCharacter(text, index);
+    const blockedEnd = guardEnd && isFollowedByWordCharacter(text, index + term.length);
+    if (!blockedStart && !blockedEnd) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   const glossary = input.glossary;
   if (glossary === undefined || Object.keys(glossary).length === 0) {
@@ -48,7 +95,10 @@ function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   const sourceLower = input.sourceValue.toLowerCase();
   const translatedLower = input.translatedValue.toLowerCase();
   for (const [sourceTerm, targetTerm] of Object.entries(glossary)) {
-    const sourceHit = sourceLower.includes(sourceTerm.toLowerCase());
+    if (targetTerm === "") {
+      continue;
+    }
+    const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
     const targetHit = translatedLower.includes(targetTerm.toLowerCase());
     if (sourceHit && !targetHit) {
       return true;
@@ -65,6 +115,9 @@ export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefin
   const reasons: ReviewReasonCode[] = [];
   if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
     reasons.push("LENGTH_RATIO_OUTLIER");
+  }
+  if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
+    reasons.push("MAX_LENGTH_EXCEEDED");
   }
   if (isEqualsSource(input)) {
     reasons.push("EQUALS_SOURCE");
@@ -85,6 +138,7 @@ export function buildEntryReviewFlags(
   sourceLocale: string,
   targetLocale: string,
   glossary: Readonly<Record<string, string>> | undefined,
+  maxLength: ReadonlyMap<string, number> | undefined,
 ): Map<string, ReviewFlag> {
   const reviewFlags = new Map<string, ReviewFlag>();
   for (const entry of entries) {
@@ -100,6 +154,7 @@ export function buildEntryReviewFlags(
       targetLocale,
       integrity: entryIntegrity,
       glossary,
+      maxLength: maxLength?.get(entry.key),
     });
     if (flag !== undefined) {
       reviewFlags.set(entry.key, flag);

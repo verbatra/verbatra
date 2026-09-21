@@ -1,5 +1,7 @@
 import {
+  computeReviewFlags,
   ProviderError,
+  type ProviderKind,
   type ReviewFlag,
   type Tone,
   type TranslateResult,
@@ -8,12 +10,14 @@ import {
 import {
   contentHash,
   diffResources,
+  type FormatId,
   type LocaleResource,
-  type SupportedFormat,
+  type PlaceholderIntegrityResult,
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { lookupMemory } from "../cache/translation-memory.js";
+import { type FuzzyCacheMatch, findFuzzyMatch } from "../cache/fuzzy-lookup.js";
+import { lookupMemory, lookupSource } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
@@ -22,10 +26,14 @@ import type { ProgressListener } from "../progress/types.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import {
   type BudgetTracker,
+  budgetAlreadyStoppedNotice,
   budgetExceededNotice,
+  budgetWithheldNotice,
   checkBudgetTrip,
-  foldTrackerUsage,
+  reconcileBudget,
+  reserveBudget,
 } from "./budget.js";
+import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { deriveLocaleStatus } from "./locale-failure.js";
 import { readNotices } from "./notices.js";
@@ -40,11 +48,18 @@ import {
   type GeneratedForm,
   generatePluralForms,
   type PluralGenerationResult,
+  pendingPluralForms,
 } from "./plural-generation.js";
 import { readTargetResource } from "./read-target.js";
-import type { LocaleNotice, LocaleSummary, NeedsReviewEntry, UsageSummary } from "./summary.js";
+import type {
+  FuzzyCacheHit,
+  LocaleNotice,
+  LocaleSummary,
+  NeedsReviewEntry,
+  UsageSummary,
+} from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
-import { combineUsage, createUsageAccumulator, foldUsage } from "./usage.js";
+import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
 
 export interface LocaleRunParams {
@@ -53,18 +68,24 @@ export interface LocaleRunParams {
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
+  readonly providerKind: ProviderKind;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
   readonly targetLocale: string;
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly prune: boolean;
   readonly generatePlurals: boolean;
   readonly maxBatchSize: number;
   readonly fs: SdkFs;
-  readonly cache?: { readonly snapshot: TranslationMemory; readonly fingerprint: string };
+  readonly cache?: {
+    readonly snapshot: TranslationMemory;
+    readonly fingerprint: string;
+    readonly fuzzy?: { readonly threshold: number };
+  };
   readonly budget: BudgetTracker;
   readonly onProgress?: ProgressListener;
 }
@@ -82,7 +103,90 @@ interface Accepted {
 
 interface CachePartition {
   readonly hits: ReadonlyMap<string, Accepted>;
+  readonly fuzzy: ReadonlyMap<string, FuzzyCacheHit>;
   readonly misses: readonly string[];
+  readonly reviewFlags: ReadonlyMap<string, ReviewFlag>;
+}
+
+type RunCache = NonNullable<LocaleRunParams["cache"]>;
+
+interface CacheHit {
+  readonly value: string;
+  readonly integrity: PlaceholderIntegrityResult;
+  readonly match?: FuzzyCacheMatch;
+}
+
+function reviewCandidateValue(
+  params: LocaleRunParams,
+  source: TranslationEntry,
+  candidate: string,
+  integrity: PlaceholderIntegrityResult,
+): ReviewFlag | undefined {
+  return computeReviewFlags({
+    sourceValue: source.value,
+    translatedValue: candidate,
+    sourceLocale: params.sourceLocale,
+    targetLocale: params.targetLocale,
+    integrity,
+    glossary: params.glossary,
+    maxLength: params.maxLength?.get(source.key),
+  });
+}
+
+function reviewCachedValue(
+  params: LocaleRunParams,
+  source: TranslationEntry,
+  hit: CacheHit,
+): ReviewFlag | undefined {
+  const computed = reviewCandidateValue(params, source, hit.value, hit.integrity);
+  if (hit.match === undefined) {
+    return computed;
+  }
+  return {
+    status: "review",
+    reasons: ["FUZZY_CACHE_REUSE", ...(computed?.reasons ?? [])],
+  };
+}
+
+function acceptFuzzyFromCache(
+  params: LocaleRunParams,
+  cache: RunCache,
+  source: TranslationEntry,
+): CacheHit | undefined {
+  const fuzzy = cache.fuzzy;
+  if (fuzzy === undefined) {
+    return undefined;
+  }
+  const match = findFuzzyMatch(
+    cache.snapshot,
+    cache.fingerprint,
+    params.targetLocale,
+    source.value,
+    { threshold: fuzzy.threshold },
+  );
+  if (match === undefined) {
+    return undefined;
+  }
+  const gate = gateCandidateValue(source, match.value, params.adapter);
+  return gate.accepted ? { value: match.value, integrity: gate.integrity, match } : undefined;
+}
+
+function acceptFromCache(
+  params: LocaleRunParams,
+  cache: RunCache,
+  source: TranslationEntry,
+): CacheHit | undefined {
+  const cached = lookupMemory(
+    cache.snapshot,
+    cache.fingerprint,
+    params.targetLocale,
+    contentHash(source),
+  );
+  if (cached === undefined) {
+    return acceptFuzzyFromCache(params, cache, source);
+  }
+  const gate = gateCandidateValue(source, cached, params.adapter);
+  return gate.accepted ? { value: cached, integrity: gate.integrity } : undefined;
 }
 
 function partitionCacheHits(
@@ -91,8 +195,10 @@ function partitionCacheHits(
 ): CachePartition {
   const cache = params.cache;
   const hits = new Map<string, Accepted>();
+  const fuzzy = new Map<string, FuzzyCacheHit>();
+  const reviewFlags = new Map<string, ReviewFlag>();
   if (cache === undefined) {
-    return { hits, misses: toTranslate };
+    return { hits, fuzzy, misses: toTranslate, reviewFlags };
   }
   const misses: string[] = [];
   for (const key of toTranslate) {
@@ -101,33 +207,46 @@ function partitionCacheHits(
     if (source === undefined) {
       continue;
     }
-    const cached = lookupMemory(
-      cache.snapshot,
-      cache.fingerprint,
-      params.targetLocale,
-      contentHash(source),
-    );
-    if (cached !== undefined && gateCandidateValue(source, cached, params.adapter).accepted) {
-      hits.set(key, { value: cached, source });
-    } else {
+    const hit = acceptFromCache(params, cache, source);
+    if (hit === undefined) {
       misses.push(key);
+      continue;
+    }
+    hits.set(key, { value: hit.value, source });
+    if (hit.match !== undefined) {
+      fuzzy.set(key, {
+        key,
+        previousSource: hit.match.previousSource,
+        similarity: hit.match.similarity,
+      });
+    }
+    const flag = reviewCachedValue(params, source, hit);
+    if (flag !== undefined) {
+      reviewFlags.set(key, flag);
     }
   }
-  return { hits, misses };
+  return { hits, fuzzy, misses, reviewFlags };
 }
 
 function collectCacheAdditions(
   params: LocaleRunParams,
   accepted: ReadonlyMap<string, Accepted>,
   cacheHitKeys: ReadonlySet<string>,
+  fuzzyKeys: ReadonlySet<string>,
 ): CacheAddition[] {
-  if (params.cache === undefined) {
+  const cache = params.cache;
+  if (cache === undefined) {
     return [];
   }
   const additions: CacheAddition[] = [];
   for (const [key, entry] of accepted) {
-    if (!cacheHitKeys.has(key)) {
-      additions.push({ contentHash: contentHash(entry.source), value: entry.value });
+    if (fuzzyKeys.has(key)) {
+      continue;
+    }
+    const hash = contentHash(entry.source);
+    const known = cacheHitKeys.has(key) && lookupSource(cache.snapshot, hash) !== undefined;
+    if (!known) {
+      additions.push({ contentHash: hash, value: entry.value, source: entry.source.value });
     }
   }
   return additions;
@@ -158,6 +277,8 @@ function groupMissesByContent(
   }
   return [...byHash.values()];
 }
+
+const BATCH_LEVEL_REASON = "PROVIDER_DEGRADED" as const;
 
 interface TranslationOutcome {
   readonly accepted: Map<string, Accepted>;
@@ -192,24 +313,49 @@ function applyGroupOutcome(
   withheldBucketFor(group.representative, outcome).push(...group.duplicates);
 }
 
+function duplicateReviewFlag(
+  params: LocaleRunParams,
+  representativeFlag: ReviewFlag | undefined,
+  source: TranslationEntry,
+  value: string,
+  integrity: PlaceholderIntegrityResult,
+): ReviewFlag | undefined {
+  const recomputed = reviewCandidateValue(params, source, value, integrity);
+  if (representativeFlag?.reasons.includes(BATCH_LEVEL_REASON) !== true) {
+    return recomputed;
+  }
+  return {
+    status: "review",
+    reasons: [...(recomputed?.reasons ?? []), BATCH_LEVEL_REASON],
+  };
+}
+
 function fanOutAccepted(
   params: LocaleRunParams,
   group: MissGroup,
   acceptedRepresentative: Accepted,
   outcome: TranslationOutcome,
 ): void {
-  const flag = outcome.reviewFlags.get(group.representative);
+  const representativeFlag = outcome.reviewFlags.get(group.representative);
   for (const key of group.duplicates) {
     const source = params.source.entries.get(key);
     /* v8 ignore next 3 -- duplicates come from the same source-driven diff as their representative. */
     if (source === undefined) {
       continue;
     }
-    if (!gateCandidateValue(source, acceptedRepresentative.value, params.adapter).accepted) {
+    const gate = gateCandidateValue(source, acceptedRepresentative.value, params.adapter);
+    if (!gate.accepted) {
       outcome.integrityMismatches.push(key);
       continue;
     }
     outcome.accepted.set(key, { value: acceptedRepresentative.value, source });
+    const flag = duplicateReviewFlag(
+      params,
+      representativeFlag,
+      source,
+      acceptedRepresentative.value,
+      gate.integrity,
+    );
     if (flag !== undefined) {
       outcome.reviewFlags.set(key, flag);
     }
@@ -268,6 +414,10 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
 
   const provider = params.provider;
   if (provider === undefined) {
+    const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
+    const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
+      (key) => !pruned.includes(key),
+    );
     return {
       summary: baseSummary({
         locale: params.targetLocale,
@@ -276,12 +426,13 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         invalidIcuSource,
         translated: toTranslate,
         cacheHits: [],
-        generated: [],
+        fuzzyHits: [],
+        generated: planned,
         integrityMismatches: [],
         providerFailures: [],
         budgetWithheld: [],
         pruned,
-        notices: sdkNotices,
+        notices: generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices,
       }),
       lockEntries: {},
       cacheAdditions: [],
@@ -290,6 +441,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
 
   const partition = partitionCacheHits(params, toTranslate);
   const cacheHitKeys = new Set(partition.hits.keys());
+  const fuzzyKeys = new Set(partition.fuzzy.keys());
   const missGroups = groupMissesByContent(params, partition.misses);
   const entries = missGroups
     .map((group) => params.source.entries.get(group.representative))
@@ -300,7 +452,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const integrityMismatches: string[] = [];
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
-  const reviewFlags = new Map<string, ReviewFlag>();
+  const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
   const translation = await translateAndCheck(
     provider,
     params,
@@ -355,12 +507,14 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     );
   }
 
-  const pluralNotices = params.generatePlurals ? pluralNoticeFor(params, merged) : sdkNotices;
+  const pluralNotices = params.generatePlurals
+    ? pluralNoticeFor(params, merged.keys())
+    : sdkNotices;
   const notices: readonly LocaleNotice[] = [
     ...pluralNotices,
     ...translation.notices,
     ...generation.notices,
-    ...budgetLocaleNotices(params.budget, startedStopped, translation.tripped, generation.tripped),
+    ...budgetLocaleNotices(params.budget, startedStopped, translation, generation),
   ];
 
   const withheld = new Set([
@@ -370,6 +524,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...generation.withheld,
     ...generation.providerFailures,
     ...budgetWithheld,
+    ...fuzzyKeys,
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {
@@ -379,7 +534,10 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       orphaned,
       invalidIcuSource,
       translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
-      cacheHits: [...cacheHitKeys].sort(),
+      cacheHits: [...cacheHitKeys].filter((key) => !fuzzyKeys.has(key)).sort(),
+      fuzzyHits: [...partition.fuzzy.values()].sort((left, right) =>
+        left.key.localeCompare(right.key),
+      ),
       generated: generation.accepted.map((form) => form.targetKey).sort(),
       integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
       providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
@@ -390,7 +548,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
     lockEntries: computeLockEntries(params, merged, withheld, generation.accepted),
-    cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys),
+    cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys),
   };
 }
 
@@ -401,15 +559,39 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
   budgetWithheld: [],
   notices: [],
   usage: undefined,
-  tripped: false,
+  withheldByBudget: false,
+  refusedProjection: undefined,
+  counted: false,
 };
+
+function generationEnabled(params: LocaleRunParams): boolean {
+  return params.generatePlurals && params.providerKind === "llm";
+}
+
+function plannedGenerationKeys(
+  params: LocaleRunParams,
+  targetKeys: ReadonlySet<string>,
+): readonly string[] {
+  if (!generationEnabled(params)) {
+    return [];
+  }
+  return pendingPluralForms({
+    source: params.source,
+    targetLocale: params.targetLocale,
+    format: params.format,
+    baseline: params.baseline,
+    targetKeys,
+  })
+    .map((item) => item.targetKey)
+    .sort();
+}
 
 async function runGeneration(
   params: LocaleRunParams,
   provider: TranslationProvider,
   targetKeys: ReadonlySet<string>,
 ): Promise<PluralGenerationResult> {
-  if (!params.generatePlurals || provider.kind !== "llm") {
+  if (!generationEnabled(params)) {
     return NO_GENERATION_RESULT;
   }
   return generatePluralForms({
@@ -420,6 +602,7 @@ async function runGeneration(
     adapter: params.adapter,
     provider,
     glossary: params.glossary,
+    maxLength: params.maxLength,
     tone: params.tone,
     baseline: params.baseline,
     targetKeys,
@@ -428,23 +611,35 @@ async function runGeneration(
   });
 }
 
+interface BudgetLocaleOutcome {
+  readonly withheldByBudget: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
+}
+
 function budgetLocaleNotices(
   budget: BudgetTracker,
   startedStopped: boolean,
-  mainTripped: boolean,
-  generationTripped: boolean,
+  main: BudgetLocaleOutcome,
+  generation: BudgetLocaleOutcome,
 ): readonly LocaleNotice[] {
-  return startedStopped || mainTripped || generationTripped ? [budgetExceededNotice(budget)] : [];
+  const refused = main.refusedProjection ?? generation.refusedProjection;
+  if (refused !== undefined) {
+    return [budgetWithheldNotice(budget, refused)];
+  }
+  if (main.counted || generation.counted) {
+    return [budgetExceededNotice(budget)];
+  }
+  return startedStopped || main.withheldByBudget || generation.withheldByBudget
+    ? [budgetAlreadyStoppedNotice(budget)]
+    : [];
 }
 
-function pluralNoticeFor(
-  params: LocaleRunParams,
-  merged: ReadonlyMap<string, TranslationEntry>,
-): readonly LocaleNotice[] {
+function pluralNoticeFor(params: LocaleRunParams, keys: Iterable<string>): readonly LocaleNotice[] {
   if (params.format !== "i18next-json") {
     return [];
   }
-  if (!targetPluralSetIncomplete(merged.keys(), params.targetLocale)) {
+  if (!targetPluralSetIncomplete(keys, params.targetLocale)) {
     return [];
   }
   return [pluralIncompleteNotice(params.targetLocale)];
@@ -457,6 +652,7 @@ interface SummaryParts {
   readonly invalidIcuSource: readonly string[];
   readonly translated: readonly string[];
   readonly cacheHits: readonly string[];
+  readonly fuzzyHits: readonly FuzzyCacheHit[];
   readonly generated: readonly string[];
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
@@ -477,6 +673,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     pruned: parts.pruned,
     invalidIcuSource: parts.invalidIcuSource,
     cacheHits: parts.cacheHits,
+    fuzzyHits: parts.fuzzyHits,
     integrityMismatches: parts.integrityMismatches,
     providerFailures: parts.providerFailures,
     budgetWithheld: parts.budgetWithheld,
@@ -506,7 +703,9 @@ function needsReviewFor(
 
 interface TranslateAndCheckResult {
   readonly notices: readonly LocaleNotice[];
-  readonly tripped: boolean;
+  readonly withheldByBudget: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
   readonly usage: UsageSummary | undefined;
 }
 
@@ -522,7 +721,9 @@ async function translateAndCheck(
 ): Promise<TranslateAndCheckResult> {
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
-  let tripped = false;
+  let withheld = false;
+  let refusedProjection: number | undefined;
+  let counted = false;
   const outcome: TranslationOutcome = {
     accepted,
     integrityMismatches,
@@ -531,6 +732,7 @@ async function translateAndCheck(
     reviewFlags,
   };
   const batches = chunk(entries, params.maxBatchSize);
+  const payload = payloadContextOf(params);
   let batchIndex = 0;
   for (const batch of batches) {
     batchIndex += 1;
@@ -540,40 +742,59 @@ async function translateAndCheck(
       batchIndex,
       totalBatches: batches.length,
     });
-    if (params.budget.stopped) {
-      for (const entry of batch) {
-        budgetWithheld.push(entry.key);
-      }
-      continue;
-    }
-    const subResult = await runSubBatch(provider, params, batch, outcome);
+    const subResult = await runSubBatch(provider, params, payload, batch, outcome);
     notices.push(...subResult.notices);
     foldUsage(usage, subResult.usage);
-    foldTrackerUsage(params.budget, subResult.usage);
-    if (checkBudgetTrip(params.budget)) {
-      tripped = true;
-    }
+    withheld = withheld || subResult.withheld;
+    refusedProjection = refusedProjection ?? subResult.refusedProjection;
+    counted = counted || subResult.counted;
   }
-  return { notices, tripped, usage: usage.total };
+  return { notices, withheldByBudget: withheld, refusedProjection, counted, usage: usage.total };
+}
+
+function withholdBatch(batch: readonly TranslationEntry[], budgetWithheld: string[]): void {
+  for (const entry of batch) {
+    budgetWithheld.push(entry.key);
+  }
 }
 
 interface SubBatchResult {
   readonly notices: readonly LocaleNotice[];
-  readonly usage: TranslateResult["usage"];
+  readonly usage: UsageSummary | undefined;
+  readonly withheld: boolean;
+  readonly refusedProjection: number | undefined;
+  readonly counted: boolean;
 }
 
 async function runSubBatch(
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
+  const decision = reserveBudget(params.budget, batch, payload);
+  if (decision.reservation === undefined) {
+    withholdBatch(batch, outcome.budgetWithheld);
+    return {
+      notices: [],
+      usage: undefined,
+      withheld: true,
+      refusedProjection: decision.refusedProjection,
+      counted: false,
+    };
+  }
   let result: TranslateResult;
   try {
     result = await provider.translateBatch(buildTranslateRequest(params, batch));
   } catch (error) {
-    return handleSubBatchFailure(error, provider, params, batch, outcome);
+    reconcileBudget(params.budget, decision.reservation, undefined);
+    const tripped = checkBudgetTrip(params.budget);
+    const failure = await handleSubBatchFailure(error, provider, params, payload, batch, outcome);
+    return { ...failure, counted: tripped || failure.counted };
   }
+  reconcileBudget(params.budget, decision.reservation, result.usage);
+  const tripped = checkBudgetTrip(params.budget);
   for (const entry of batch) {
     foldEntryResult(
       entry,
@@ -589,7 +810,13 @@ async function runSubBatch(
       outcome.reviewFlags.set(key, flag);
     }
   }
-  return { notices: readNotices(result), usage: result.usage };
+  return {
+    notices: readNotices(result),
+    usage: result.usage === undefined ? undefined : countableUsage(result.usage),
+    withheld: false,
+    refusedProjection: undefined,
+    counted: tripped,
+  };
 }
 
 function isOutputTruncated(error: unknown): boolean {
@@ -600,32 +827,46 @@ async function handleSubBatchFailure(
   error: unknown,
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   if (isOutputTruncated(error) && batch.length > 1) {
-    return retryTruncatedSplit(provider, params, batch, outcome);
+    return retryTruncatedSplit(provider, params, payload, batch, outcome);
   }
   for (const entry of batch) {
     outcome.providerFailures.push(entry.key);
   }
-  return { notices: [subBatchFailedNotice(batch.length, error)], usage: undefined };
+  return {
+    notices: [subBatchFailedNotice(batch.length, error)],
+    usage: undefined,
+    withheld: false,
+    refusedProjection: undefined,
+    counted: false,
+  };
 }
 
 async function retryTruncatedSplit(
   provider: TranslationProvider,
   params: LocaleRunParams,
+  payload: PayloadContext,
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   const notices: LocaleNotice[] = [];
-  let usage: TranslateResult["usage"];
+  let usage: UsageSummary | undefined;
+  let withheld = false;
+  let refusedProjection: number | undefined;
+  let counted = false;
   for (const half of chunk(batch, Math.ceil(batch.length / 2))) {
-    const sub = await runSubBatch(provider, params, half, outcome);
+    const sub = await runSubBatch(provider, params, payload, half, outcome);
     notices.push(...sub.notices);
     usage = combineUsage(usage, sub.usage);
+    withheld = withheld || sub.withheld;
+    refusedProjection = refusedProjection ?? sub.refusedProjection;
+    counted = counted || sub.counted;
   }
-  return { notices, usage };
+  return { notices, usage, withheld, refusedProjection, counted };
 }
 
 function foldEntryResult(

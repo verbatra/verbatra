@@ -55,7 +55,8 @@ Hard rules a linter cannot enforce:
 
 Packages on `main`: `@verbatra/core` (private, pure domain model, no I/O), `@verbatra/format-adapters`
 (private, file to neutral-IR adapters), `@verbatra/ai-providers` (private, translation
-provider strategies), `@verbatra/exchange` (private, Excel workbook interchange),
+provider strategies), `@verbatra/exchange` (private, Excel workbook and TMX interchange),
+`@verbatra/extract` (private, source-code extraction of translation call sites),
 `@verbatra/config` (private, shared build/TS/lint config), `@verbatra/sdk` (public,
 central orchestration API), `@verbatra/cli` (public, the `verbatra` binary),
 `@verbatra/studio` (public, local dashboard), `@verbatra/mcp` (public, stdio MCP
@@ -68,7 +69,7 @@ Binding dependency-direction and extension-pattern rules, with exact file pointe
 live in `.claude/rules/architecture.md`. Read it before adding a package, a provider,
 or a format adapter. In short: business logic lives in the SDK and below, `cli` stays
 thin, dependencies flow one way (config -> core -> format-adapters / ai-providers /
-exchange -> sdk -> cli), and new providers or formats extend the existing factory
+exchange / extract -> sdk -> cli), and new providers or formats extend the existing factory
 tables rather than reimplementing plumbing.
 
 For reusable design patterns already established in this codebase (Strategy,

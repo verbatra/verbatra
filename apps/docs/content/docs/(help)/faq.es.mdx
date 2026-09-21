@@ -73,10 +73,12 @@ produce un diff limpio contra su versión anterior. Consulta [Formatos](/docs/fo
 ## ¿Por qué una traducción quedó marcada para revisión?
 
 Las traducciones aceptadas pasan por heurísticas de revisión que marcan resultados sospechosos sin
-retenerlos: una longitud muy desproporcionada respecto al origen (`LENGTH_RATIO_OUTLIER`), una
+retenerlos: una longitud muy desproporcionada respecto al origen (`LENGTH_RATIO_OUTLIER`), un valor
+más largo que el presupuesto configurado para su clave (`MAX_LENGTH_EXCEEDED`), una
 traducción idéntica al origen (`EQUALS_SOURCE`), un término del glosario que se perdió
-(`GLOSSARY_TERM_MISSED`), marcadores de posición reordenados (`INTEGRITY_REORDERED`) o una ruta de
-proveedor degradada (`PROVIDER_DEGRADED`). Las señales aterrizan en la lista `needsReview` del
+(`GLOSSARY_TERM_MISSED`), marcadores de posición reordenados (`INTEGRITY_REORDERED`), una ruta de
+proveedor degradada (`PROVIDER_DEGRADED`) o un valor reutilizado de la caché para una cadena de
+origen que desde entonces se ha editado (`FUZZY_CACHE_REUSE`). Las señales aterrizan en la lista `needsReview` del
 resumen de la ejecución y en la cola de revisión de Studio. Consulta
 [Seguridad de la traducción](/docs/translation-safety).
 

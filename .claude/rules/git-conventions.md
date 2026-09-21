@@ -58,23 +58,25 @@ commit message for commitlint.
   `.source/`, `node_modules/`, or `.verbatra/` (all already in `.gitignore`).
 - Never commit secrets or `.env*` files. API keys are read from environment variables only (see the
   Security section of the root `CLAUDE.md`); one never belongs in a diff.
-- A `src` change to a publishable package (`@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`)
-  needs an accompanying changeset. `.changeset/config.json` fixes `@verbatra/sdk` and
-  `@verbatra/cli` to the same version; `@verbatra/studio` versions independently. The mechanics of
-  adding one (`pnpm changeset`, bump level, wording) are covered by the `changesets` skill at
-  `.claude/skills/changesets/`; this file only states that the commit needs one, not how to write
-  it.
+- A `src` change to a publishable package (`@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
+  `@verbatra/mcp`) needs an accompanying changeset. `.changeset/config.json` fixes `@verbatra/sdk`
+  and `@verbatra/cli` to the same version; `@verbatra/studio` and `@verbatra/mcp` version
+  independently. The mechanics of adding one (`pnpm changeset`, bump level, wording) are covered
+  by the `changesets` skill at `.claude/skills/changesets/`; this file only states that the commit
+  needs one, not how to write it.
 - A `src` change to a private package that `@verbatra/sdk` bundles (`@verbatra/core`,
-  `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`) needs a changeset
-  too, naming `@verbatra/sdk` itself, not the private package. tsup inlines that source straight
-  into `packages/sdk/dist`, and the sdk build always runs from the current checkout
-  (`.github/workflows/release.yml`, the "Rebuild here rather than transfer an artifact" step), so
-  the change ships inside sdk's published bytes either way. Changesets does not chain a version
-  bump from a devDependency to its dependent (`packages/sdk/package.json` lists these as
-  `devDependencies`; confirmed with a probe changeset naming only `@verbatra/core` and running
-  `pnpm changeset status --verbose`, which bumped `core` and its other dependents but never listed
-  `sdk`), so an unaccompanied bundled-source change ships with no version bump and no changelog
-  entry. `check:dependency-changeset` (`scripts/check-dependency-changeset.mjs`, run in `ci.yml`)
+  `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
+  `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
+  package. tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
+  `packages/sdk/tsup.config.ts`, passed to both `noExternal` and `dts.resolve`), and the sdk
+  build always runs from the current checkout (`.github/workflows/release.yml`: the
+  `Version or publish` job runs its own `Build` step rather than transferring an artifact from the
+  `Verify build` job), so the change ships inside sdk's published bytes either way. Changesets
+  does not chain a version bump from a devDependency to its dependent (`packages/sdk/package.json`
+  lists these as `devDependencies`; confirmed with a probe changeset naming only `@verbatra/core`
+  and running `pnpm changeset status --verbose`, which bumped `core` and its other dependents but
+  never listed `sdk`), so an unaccompanied bundled-source change ships with no version bump and no
+  changelog entry. `check:dependency-changeset` (`scripts/check-dependency-changeset.mjs`, run in `ci.yml`)
   does not catch this case either: it only diffs the `dependencies` field of already-published
   manifests, not devDependency source edits, so this rule is the only guard.
 

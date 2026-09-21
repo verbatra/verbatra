@@ -1,4 +1,4 @@
-import { runStatus } from "@verbatra/sdk";
+import { budgetStanding, runStatus } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -16,6 +16,7 @@ const budgetSchema = z.strictObject({
   supported: z.boolean(),
   tokensUsed: z.number(),
   exceeded: z.boolean(),
+  standing: z.enum(["within", "stopped-before-ceiling", "reached"]),
 });
 
 const usageSummaryResultSchema = z.object({
@@ -42,7 +43,9 @@ async function usageSummary(
     available: true,
     generatedAt: result.generatedAt,
     ...(result.usage !== undefined ? { usage: result.usage } : {}),
-    ...(result.budget !== undefined ? { budget: result.budget } : {}),
+    ...(result.budget !== undefined
+      ? { budget: { ...result.budget, standing: budgetStanding(result.budget) } }
+      : {}),
   };
 }
 
@@ -51,9 +54,17 @@ export const usageSummaryTool = defineTool({
   description:
     "Read the token usage and budget status left behind by the last translate or " +
     "translation.translatePending run: input and output tokens consumed, and, when a token " +
-    "budget is configured, its ceiling, behavior, and whether it was exceeded. Reports " +
-    "available: false when no non-dry-run has completed in this project yet. Read-only, calls no " +
-    "provider.",
+    "budget is configured, its ceiling, behavior, how much of it was counted, and whether it " +
+    "was exceeded. budget.standing says where the run ended against its ceiling: within when it " +
+    "never reached it; stopped-before-ceiling when a stop budget withheld a request that would " +
+    "have crossed it while the counted total was still below it; reached when the counted total " +
+    "reached or passed it. budget.supported says where budget.tokensUsed came from: true when " +
+    "every request reported its own usage, false when at least one did not and the figure is " +
+    "partly verbatra's own estimate, which is the case for DeepL and Google Cloud Translation " +
+    "and for any request that failed. It is also false with tokensUsed 0 when the run sent no " +
+    "request at all, which is no estimate. The budget is enforced either way, and it covers one " +
+    "translate run: it does not cap a single-entry retranslation. Reports available: false when " +
+    "no non-dry-run has completed in this project yet. Read-only, calls no provider.",
   paramsSchema,
   outputSchema: usageSummaryResultSchema,
   annotations: {

@@ -300,7 +300,11 @@ describe("translate: plural generation fallbacks (never a hard failure)", () => 
     const dir = await project(PLURAL_SOURCE, { pl: {} });
 
     const summary = await translate(
-      { config: cfg(), cwd: dir, generatePlurals: true },
+      {
+        config: cfg({ provider: { id: "deepl", options: {} } }),
+        cwd: dir,
+        generatePlurals: true,
+      },
       {
         createProvider: () =>
           makeStubProvider({ id: "deepl", kind: "machine-translation" }).provider,
@@ -728,7 +732,7 @@ describe("translate: plural generation and the token budget", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxTokens: 50, budgetBehavior: "stop" }),
+        config: cfg({ maxTokens: 450, budgetBehavior: "stop" }),
         cwd: dir,
         generatePlurals: true,
       },
@@ -746,6 +750,29 @@ describe("translate: plural generation and the token budget", () => {
     expect(pl.items_many).toBeUndefined();
   });
 
+  it("tells a later locale the run had already stopped, even with generation enabled", async () => {
+    const dir = await project(PLURAL_SOURCE, { pl: {}, ar: {} });
+    const stub = makeStubProvider({ usage: { inputTokens: 60, outputTokens: 40 } });
+
+    const summary = await translate(
+      {
+        config: cfg({ targetLocales: ["pl", "ar"], maxTokens: 450, budgetBehavior: "stop" }),
+        cwd: dir,
+        generatePlurals: true,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    const noticeFor = (locale: string): string | undefined =>
+      summary.locales
+        .find((l) => l.locale === locale)
+        ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED")?.message;
+
+    expect(noticeFor("pl")).toContain("projected at");
+    expect(noticeFor("ar")).toContain("had already reached");
+    expect(noticeFor("ar")).not.toContain("projected at");
+  });
+
   it("trips the budget during generation's own sub-batches, withholding the remaining generation batch", async () => {
     const dir = await project(PLURAL_SOURCE, {
       ar: { items_one: "seeded one", items_other: "seeded other" },
@@ -757,7 +784,7 @@ describe("translate: plural generation and the token budget", () => {
         config: cfg({
           targetLocales: ["ar"],
           maxBatchSize: 2,
-          maxTokens: 100,
+          maxTokens: 450,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -887,6 +914,7 @@ describe("generatePluralForms: comparePlaceholders wiring (the second buildReque
       adapter,
       provider,
       glossary: undefined,
+      maxLength: undefined,
       tone: undefined,
       baseline: new Map(),
       targetKeys: new Set(),
@@ -917,6 +945,28 @@ describe("generatePluralForms: comparePlaceholders wiring (the second buildReque
 
     expect(requests).toHaveLength(1);
     expect(requests[0]).not.toHaveProperty("comparePlaceholders");
+  });
+
+  it("passes the configured length budgets through to the generation request", async () => {
+    const { provider, requests } = capturingProvider();
+    const budgets = new Map([["items_other", 12]]);
+
+    await generatePluralForms({
+      ...context(fakeAdapter(undefined), provider),
+      maxLength: budgets,
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.maxLength?.get("items_other")).toBe(12);
+  });
+
+  it("omits the length budgets from the generation request when none are configured", async () => {
+    const { provider, requests } = capturingProvider();
+
+    await generatePluralForms(context(fakeAdapter(undefined), provider));
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).not.toHaveProperty("maxLength");
   });
 });
 
@@ -980,6 +1030,7 @@ describe("generatePluralForms: accept/withhold is recomputed via gateCandidateVa
       adapter,
       provider,
       glossary: undefined,
+      maxLength: undefined,
       tone: undefined,
       baseline: new Map(),
       targetKeys: new Set(),

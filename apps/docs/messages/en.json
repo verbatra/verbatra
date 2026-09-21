@@ -81,7 +81,7 @@
     },
     "compat": {
       "heading": "One tool, every framework.",
-      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. It fills them through the provider you choose, no new format to adopt.",
+      "body": "verbatra reads the locale files your stack already uses: JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. It fills them through the provider you choose, no new format to adopt.",
       "labelFrameworks": "Frameworks and formats"
     },
     "providers": {
@@ -156,7 +156,7 @@
       "items": {
         "formats": {
           "question": "Which formats and frameworks does verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, and gettext .po/.pot files. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
+          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
         },
         "incremental": {
           "question": "How does verbatra avoid re-translating everything on every run?",

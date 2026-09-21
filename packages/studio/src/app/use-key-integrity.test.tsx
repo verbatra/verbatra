@@ -14,6 +14,8 @@ const MATCHING: KeyIntegrityLocaleEntry = {
   missing: [],
   extra: [],
   icuValid: true,
+  markupMatches: true,
+  markupDetails: [],
 };
 
 const MISMATCHED: KeyIntegrityLocaleEntry = {
@@ -23,6 +25,8 @@ const MISMATCHED: KeyIntegrityLocaleEntry = {
   missing: ["{{name}}"],
   extra: ["{{nom}}"],
   icuValid: true,
+  markupMatches: true,
+  markupDetails: [],
 };
 
 function integrityAnswer(locales: readonly KeyIntegrityLocaleEntry[]): {

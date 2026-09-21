@@ -19,10 +19,14 @@ import {
 } from "../test-support.js";
 import { createBudgetTracker } from "./budget.js";
 import { editEntry } from "./edit-entry.js";
-import { gateCandidateValue } from "./integrity-gate.js";
+import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
 import { runLocale } from "./locale-run.js";
 import { retranslateEntry } from "./retranslate-entry.js";
 import { importLocale } from "./workbook/import-locale.js";
+
+type GateDecision =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly reason: IntegrityGateReason };
 
 interface Case {
   readonly name: string;
@@ -30,7 +34,7 @@ interface Case {
   readonly format: VerbatraConfig["format"];
   readonly sourceValue: string;
   readonly candidateValue: string;
-  readonly expected: ReturnType<typeof gateCandidateValue>;
+  readonly expected: GateDecision;
 }
 
 function i18nextAdapter(): FormatAdapter {
@@ -93,6 +97,54 @@ const cases: readonly Case[] = [
     expected: { accepted: false, reason: "placeholder" },
   },
   {
+    name: "rejected: an inline tag pair is dropped",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: "Read <b>the docs</b>",
+    candidateValue: "Lies die Doku",
+    expected: { accepted: false, reason: "markup" },
+  },
+  {
+    name: "rejected: the same tags come back mis-nested",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: "<b>Save</b><i>Close</i>",
+    candidateValue: "<b>Speichern<i>Schliessen</b></i>",
+    expected: { accepted: false, reason: "markup" },
+  },
+  {
+    name: "rejected: a tag is invented where the source carried none",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: "Save changes",
+    candidateValue: "<b>Anderungen speichern</b>",
+    expected: { accepted: false, reason: "markup" },
+  },
+  {
+    name: "accepted: the same tags in a different word order",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: "<b>Save</b> then <i>close</i>",
+    candidateValue: "<i>Schliessen</i> nach <b>Speichern</b>",
+    expected: { accepted: true },
+  },
+  {
+    name: "accepted: prose that merely contains a less-than sign",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: "Wait < 5 minutes",
+    candidateValue: "Warte < 5 Minuten",
+    expected: { accepted: true },
+  },
+  {
+    name: "accepted: a translated attribute value",
+    adapter: i18nextAdapter(),
+    format: "i18next-json",
+    sourceValue: '<a href="/pricing">Pricing</a>',
+    candidateValue: '<a href="/de/preise">Preise</a>',
+    expected: { accepted: true },
+  },
+  {
     name: "accepted: a single-brace token dropped from the source is not judged",
     adapter: i18nextAdapter(),
     format: "i18next-json",
@@ -111,9 +163,9 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       placeholders: testCase.adapter.extractPlaceholders(testCase.sourceValue),
       isPlural: false,
     };
-    expect(gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter)).toEqual(
-      testCase.expected,
-    );
+    expect(
+      gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter),
+    ).toMatchObject(testCase.expected);
   });
 
   it("runLocale (the provider-translation path) agrees", async () => {
@@ -127,7 +179,9 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
     const { summary, lockEntries } = await runLocale({
       source: sourceResource,
       sourceInvalidIcuKeys: [],
+      providerKind: "llm",
       baseline: new Map(),
+      maxLength: undefined,
       adapter: testCase.adapter,
       provider,
       cwd: dir,

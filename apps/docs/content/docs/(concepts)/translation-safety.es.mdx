@@ -52,6 +52,11 @@ nuevo por clave.
   rechazarlo sin conocer los delimitadores de tu proyecto. La comprobación corre solo en esa
   dirección, así que una candidata que elimina uno de esos tokens o cambia el texto literal que lo
   rodea se deja pasar.
+- Paridad del marcado en línea: el valor traducido debe llevar las mismas etiquetas HTML o XML en
+  línea que su origen, y llevarlas bien formadas. Una etiqueta perdida, inventada, renombrada o sin
+  equilibrar rompe la representación de una cadena igual que un marcador de posición perdido rompe
+  su interpolación, así que se rechaza de la misma manera. Mira
+  [Paridad del marcado en línea](#paridad-del-marcado-en-línea) más abajo.
 - Degeneración: el valor no debe ser estructuralmente degenerado, como un bucle de repetición o una
   longitud que se ha disparado respecto al origen. Esto atrapa a un modelo que se derrumbó
   repitiendo un fragmento aunque todos los marcadores de posición sobrevivieran.
@@ -71,6 +76,171 @@ la misma manera.
 Del lado del origen, una clave de origen cuyo propio valor es ICU inválido se aparta antes de la
 traducción y se informa, en lugar de enviarse al proveedor en un estado roto.
 
+### Paridad del marcado en línea
+
+<AvailableFrom version="0.11.0" />
+
+El texto enriquecido llega a una cadena traducible como marcado en línea: un `<b>` alrededor de
+parte de un bloque `Trans` de i18next, un `&lt;b&gt;` escapado dentro de un `<string>` de Android,
+un `<a href>` en un catálogo de gettext. Nada de eso es un marcador de posición, así que hasta ahora
+nada lo comparaba.
+
+Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
+eso es lo que decide si algo es un hallazgo:
+
+- Rechazado: una etiqueta perdida, una etiqueta inventada, una etiqueta renombrada, un conjunto
+  distinto de nombres de atributo, marcado que vuelve sin equilibrar o mal anidado, como
+  `<b>a<i>b</b></i>`, y una etiqueta que vuelve anidada dentro de otra del mismo nombre cuando el
+  origen las tenía como hermanas, que es como dos enlaces se convierten en uno en silencio.
+- Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de sitio,
+  un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
+  traducción correcta y no una rota (dentro de los límites para los valores de atributo que se
+  describen más abajo), y cualquiera de las dos grafías de un elemento vacío, así que `<br>` y
+  `<br/>` son la misma etiqueta.
+- Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa a
+  ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
+  dos enlaces que se convierten en uno.
+- Comparado de forma exacta, así que un cambio de mayúsculas es un hallazgo. Los elementos vacíos de
+  HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
+  que `<BR>` se reconoce como elemento vacío igual que `<br>`.
+- Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
+  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres salvo por
+  esos límites; el conjunto de nombres no lo es.
+
+Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
+candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
+añada, por una etiqueta de cierre sin apertura (`Hallo</div>`) y por una etiqueta de apertura sin
+cerrar que lleve algo más que su nombre, como `<Enter onfocus=...>` o `<x-key onmouseover=...>`.
+
+Un `<Word>` sin cerrar que no lleva más que su nombre, y cuyo nombre solo tiene letras, dígitos,
+guiones y guiones bajos, es una palabra entre corchetes angulares, como `<Enter>` en
+`Druecke <Enter>`. Estas palabras se apartan en ambos lados antes de juzgar el origen, así que un
+origen que lleve una se sigue comparando: una candidata que pierda un par `<b>` junto a `<Enter>`, o
+que invente un par `<script>` junto a ella, se rechaza. En cuanto el origen lleva etiquetas, las
+palabras entre corchetes angulares se cuentan como etiquetas. Si no lleva ninguna, una palabra entre
+corchetes angulares que añada la candidata se lee como texto y se acepta, salvo que su nombre, se
+escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`), sea `image`, que un
+analizador convierte en un `<img>`, o contenga un guion, lo que lo convierte en un elemento
+personalizado (`Hallo <my-widget>`).
+
+Esa comprobación del nombre es deliberadamente prudente, así que una palabra corriente que resulte
+ser un nombre de elemento, como `<Del>`, `<Option>`, `<Select>`, `<Input>` o `<Menu>`, se rechaza
+cuando una traducción la añade a un origen que no la tiene. Como solución, mantén la palabra entre
+corchetes angulares también en tu texto de origen: una traducción que lleve las mismas palabras
+entre corchetes angulares que su origen se acepta.
+
+Los comentarios, las secciones CDATA, las declaraciones y las instrucciones de procesamiento no son
+etiquetas, y se leen como las lee un analizador de HTML, porque ahí es donde acaban los valores.
+`<!-->` y `<!--->` son comentarios vacíos completos, un comentario termina en el primer `-->` o
+`--!>`, y un comentario sin final oculta el resto del valor. `<![CDATA[`, `<!DOCTYPE html>`,
+cualquier otro `<!...`, `<?...` y un `</` seguido de algo que no sea una letra, como `</1 x>`,
+terminan todos en el primer `>`, mientras que un `</>` vacío se descarta, igual que lo descarta un
+analizador, y una etiqueta de cierre numérica como `</0>` se compara como etiqueta. Cada una de
+estas construcciones se compara como un multiconjunto de su texto, con las secuencias de espacios
+reducidas a uno, así que una que la candidata añada, pierda o reescriba se rechaza, incluido un
+comentario cuyo texto se tradujo. Las etiquetas que siguen al final de una construcción se comparan
+como siempre, así que `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la
+construcción como por el `<img>`.
+
+El contenido de un elemento de texto sin formato también es texto, porque así lo lee un analizador.
+Tras una etiqueta de apertura `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
+`noembed` o `noframes`, todo hasta su etiqueta de cierre, escrita como se escriba y seguida de un
+espacio, `/` o `>`, es texto, y todo lo que sigue a `<plaintext>` es texto hasta el final del valor.
+Una etiqueta escrita dentro de un elemento así no se compara, y un valor de atributo entre comillas
+no puede extenderse más allá de la etiqueta de cierre para ocultar lo que sigue:
+`Füge ein <script><b x="</script><img src=x onerror=...>` se rechaza por el `<img>`. Cuando un
+analizador puede leer ese contenido de dos maneras, la candidata se rechaza salvo que sea el origen
+sin cambios, con un detalle como `+<noscript>...</noscript>`: un `script` cuyo contenido abre
+`<!--`, un `noscript` cuyo contenido lleva un `<`, porque entonces cómo se lee depende de si los
+scripts están activados, y cualquier elemento de texto sin formato cuyo contenido lleva un `<`
+después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera sea texto sin formato.
+Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
+candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
+
+El contenido de un elemento `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` o
+`plaintext` se ejecuta o da estilo a la página en lugar de mostrarse, así que nunca se traduce: cada
+elemento así en la candidata tiene que llevar exactamente el contenido del elemento en la misma
+posición entre los de su nombre en el origen, o la candidata se rechaza con un detalle como
+`+<script> content`. El contenido de `title` y `textarea` se muestra como texto y se puede traducir.
+Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
+traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
+`Füge ein <script> Tag` se rechaza. En su lugar, escapa la etiqueta en el origen, como
+`Add a &lt;script&gt; tag`, que es texto en cualquier formato y se traduce como cualquier otra
+palabra.
+
+La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
+HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
+enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
+atributo entre comillas puede contener `>`. Así que `5 < 10`, `x <= y` y un `&lt;b&gt;` escapado
+siguen siendo texto corriente, mientras que `<support@example.com>` y `<abbr title="a > b">` son
+etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Una candidata
+que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
+etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
+etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
+informa como marcadores de posición y las palabras entre corchetes angulares, un origen cuenta como
+mal formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos),
+una etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
+puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es una etiqueta de apertura `b` con los
+atributos `and` y `c` que nunca se cierra, así que el origen cuenta como mal formado. Para un origen
+así solo se omite la comprobación del anidamiento: sus etiquetas se comparan como un multiconjunto
+igual que cualquier otro, así que una traducción que conserva `a<b and c>d` tal cual se acepta, una
+que añade un `<img>` a su lado se rechaza, y también una que traduce las palabras dentro de la
+secuencia (`a<b und c>d`), porque un analizador lee `und` como un atributo nuevo. Tampoco hay origen
+demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva más del doble de
+etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
+`+more than N inline tags` que nombra ese límite.
+
+Los valores de los atributos son libres con excepciones, que existen porque un valor traducido acaba
+en una página. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`, `xlink:href`,
+`poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`,
+`archive`, y los atributos de animación SVG `to`, `from`, `values` y `by`) se lee tras decodificar
+las referencias numéricas de caracteres y `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` y `&bsol;` e
+ignorar tabuladores, saltos de línea y caracteres de control alrededor. Un esquema `javascript:`,
+`vbscript:` o `data:` en él se rechaza salvo que el origen lleve exactamente ese valor en la misma
+etiqueta y el mismo atributo, con un detalle como `+<a href="javascript:...">`. Además, cada URL del
+valor, incluida cada URL de una lista `srcset`, `ping`, `archive` o `values`, tiene que conservar un
+esquema y una autoridad (host y puerto, o el host de una URL relativa al esquema `//host`) que tenga
+un valor de origen de la misma etiqueta y el mismo atributo, y una URL relativa tiene que seguir
+siendo relativa. Así, `/docs` puede pasar a `/de/docs` y `https://verbatra.dev/en` a
+`https://verbatra.dev/de`, pero `/docs` no puede pasar a `https://evil.example/docs` ni a
+`//evil.example/docs`, y un enlace absoluto localizado tiene que conservar el mismo host; el detalle
+nombra el nuevo origen, como `+<a href="https://evil.example...">`, o `+<a href="./...">` para un
+enlace absoluto que se volvió relativo. La ruta, la consulta y el fragmento pueden cambiar
+libremente. Una URL cambiada sin un esquema explícito `http`, `https`, `ws`, `wss`, `ftp` o `file`
+también se rechaza cuando lleva una barra invertida (`\` o `%5C`) en sus barras iniciales o en su
+host, porque una página con otro esquema lee `//verbatra.dev\@evil.example/` como un enlace a
+evil.example.
+
+Algunos valores de atributo tienen que volver exactamente como los tiene el origen, comparados tras
+decodificar las referencias de caracteres, con un detalle como `+<meta content="...">`: `http-equiv`
+y `content` en `meta`; `type`, `nomodule`, `integrity` y `crossorigin` en `script`; `rel`, `as`,
+`integrity`, `crossorigin` y `type` en `link`; `target` en `base`; `attributeName` y `attributeType`
+en `set`, `animate`, `animateTransform` y `animateMotion`; `sandbox`, `allow` y `allowfullscreen` en
+`iframe`; `method`, `enctype` y `target` en `form`; y `style`, `srcdoc` y cualquier manejador de
+eventos como `onclick` en cualquier elemento. Un atributo traducible como `title` o `alt` sigue
+siendo libre.
+
+De comparar valores enteros se siguen dos límites propios del formato. En un formato que mete varias
+formas plurales en un mismo valor separadas por una barra vertical (Vue I18n), una traducción que
+añade las formas que su idioma necesita repite el marcado del origen y se rechaza. Lo mismo pasa con
+un plural de estilo ICU (`{count, plural, one {...} other {...}}`) en un formato que lo guarda como
+texto plano en lugar de analizarlo como ICU (i18next, ngx-translate y YAML): una traducción con un
+número de formas distinto al del origen repite o pierde el marcado que contienen y se rechaza. En
+ambos casos el valor se retiene y la traducción anterior se conserva, así que no se pierde nada,
+pero las formas hay que añadirlas sin multiplicar también el marcado.
+
+La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya informa como
+marcador de posición (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de
+next-intl o ARB) queda para la comprobación de marcadores de posición, junto con tantas etiquetas de
+cierre como aperturas tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que
+la candidata deja sin cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta,
+como `-</g>`. Lo mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el
+origen, como un `<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen
+solo lleva como texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla
+de ahí crearía el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una
+etiqueta de cierre sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron,
+cada una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+
 ## Señales de revisión
 
 Pasar la puerta demuestra que una traducción es estructuralmente segura, no que sea buena, así que
@@ -80,15 +250,42 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 - `LENGTH_RATIO_OUTLIER`: la traducción es mucho más corta o larga que su origen (por debajo de
   0.35x o por encima de 3.0x de longitud recortada; los orígenes muy cortos se omiten). Un aviso
   para mirar, no un veredicto.
+- `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para
+  su clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor
+  tal cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se
+  marca. Una clave sin presupuesto configurado nunca se mide. Como cada motivo de esta lista,
+  marca en vez de bloquear: una traducción por encima del presupuesto se sigue escribiendo y se
+  sigue bloqueando, porque una traducción correcta que se pasa de un presupuesto de maquetación
+  vale más que ninguna traducción.
 - `EQUALS_SOURCE`: la traducción es idéntica al origen en un locale de destino distinto, y el
   origen sí tenía texto traducible.
 - `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término
-  de destino asignado está ausente de la traducción.
+  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y
+  cada lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa,
+  así que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una
+  expectativa que nadie dio. El lado de destino solo exige que el término aparezca en algún punto
+  de la traducción, porque un término traducido se funde con su entorno con toda legitimidad:
+  compuestos alemanes (`Benutzerkonto`), partículas coreanas (`계정을`), préstamos japoneses. Exigir
+  un límite ahí marcaría traducciones correctas en la mayoría de los idiomas para los que
+  mantendrías un glosario. Un término de origen escrito sin separadores de palabra (han, kana,
+  tailandés y similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de
+  subcadena.
 - `INTEGRITY_REORDERED`: el conjunto de marcadores de posición coincidió exactamente pero quedó en
   un orden distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.
 - `PROVIDER_DEGRADED`: el lote del que salió esta clave fue degradado con elegancia por el
   proveedor (una rebaja de formalidad o un glosario ignorado; en el conjunto actual de proveedores,
   solo DeepL).
+- `FUZZY_CACHE_REUSE`: el valor nunca se tradujo para este texto de origen. Vino de
+  [la caché](/docs/the-cache) como reutilización difusa de un origen anterior casi idéntico que
+  desde entonces se ha editado. La similitud se mide en caracteres, y el significado no es función
+  de la distancia entre caracteres: quitar una negación, invertir un modal o cambiar un nombre
+  propio son ediciones pequeñas que invierten una frase, y ningún umbral las separa de una
+  corrección de errata. Por eso toda reutilización difusa lleva esta razón en cada ejecución, sea
+  cual sea su puntuación. Solo aparece cuando `fuzzyCache` está activado.
+
+Un valor reutilizado desde [la caché](/docs/the-cache), y un valor propagado a una clave que
+comparte su texto de origen, pasan por las mismas heurísticas de revisión que uno recién
+traducido.
 
 Las claves marcadas afloran por locale como `needsReview` en el resumen de la ejecución, y
 alimentan la cola de revisión: la CLI imprime el recuento, el libro de Excel lleva la misma señal
@@ -99,21 +296,38 @@ señal es corregir la traducción subyacente.
 ## El presupuesto de tokens
 
 El gasto de proveedor debería tener un techo que fijas tú, no uno que descubres en la factura. Con
-`maxTokens` configurado, verbatra rastrea el uso acumulado de tokens a lo largo de toda la
-ejecución y lo comprueba después de cada sublote completado. Lo que pasa al llegar al techo es
-`budgetBehavior`:
+`maxTokens` configurado, verbatra cuenta lo que gasta la ejecución a través de cada llamada al
+proveedor y cada locale de destino. Lo que pasa al llegar al techo es `budgetBehavior`:
 
 - `warn` (el valor por defecto): la ejecución continúa y el resumen señala que el presupuesto se
-  superó.
-- `stop`: no se hacen más llamadas al proveedor; cada candidata restante se retiene como
-  `budgetWithheld`, conserva su hash anterior en el bloqueo y se reintenta en la siguiente
+  superó. No se retiene nada.
+- `stop`: cada petición se proyecta antes de enviarse, y una que llevaría la ejecución por encima
+  del techo no se envía en absoluto. Sus claves, y cada candidata restante tras ella, se retienen
+  como `budgetWithheld`, conservan su hash anterior en el bloqueo y se reintentan en la siguiente
   ejecución.
 
-El sublote que cruza el techo nunca se deshace. Con `warn` el presupuesto nunca cambia el código de
-salida del comando. Con `stop` sí puede: un locale al que se le retuvieron claves se informa como
-`partial` cuando algunas claves sí llegaron a escribirse y como `failed` cuando no llegó ninguna, y
-ambos salen con `1`. Con un proveedor que no informa del uso de tokens (DeepL), la salvaguarda es
-honestamente inerte: el resumen la marca como no soportada en lugar de fingir un recuento.
+Lo ya hecho nunca se deshace, y no queda nada a medias: lo que se tradujo antes del techo queda
+escrito y bloqueado, y una clave retenida conserva la baseline que tenía, así que una ejecución
+detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que
+reclame trabajo retenido. La comprobación cubre cada petición que envía la ejecución, incluida cada
+mitad de una petición vuelta a partir tras una respuesta truncada, así que una cascada de
+reintentos no puede adelantar a una reserva. Lo único que una proyección no puede prometer es la
+petición ya en vuelo: puede informar más de lo proyectado, así que el recuento final puede terminar
+por encima de `maxTokens` por la diferencia de esa única petición, y no más. Después de eso no se
+envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más.
+
+Conviene decir dos límites con claridad. El techo acota una ejecución, no una sesión: `watch`
+arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede
+gastar hasta `maxTokens` otra vez con cada edición del origen. Y cubre `translate` y nada más:
+retraducir una sola entrada desde [el panel de Studio](/docs/studio) o desde las herramientas de
+agente corre por su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
+
+Con `warn` el presupuesto nunca cambia el código de salida del comando. Con `stop` sí puede: un
+locale al que se le retuvieron claves se informa como `partial` cuando algunas claves sí llegaron a
+escribirse y como `failed` cuando no llegó ninguna, y ambos salen con `1`. Un proveedor que no
+informa de su propio uso de tokens (DeepL, Google Cloud Translation) se cuenta a partir de la
+proyección en lugar de quedar sin medir, así que la salvaguarda también muerde ahí; `supported` en
+el presupuesto del resumen dice que la cifra es la cuenta de verbatra y no la del proveedor.
 
 ## Los errores nunca filtran nada
 

@@ -52,7 +52,8 @@ describe("toUsageTickerDisplayState", () => {
         maxTokens: 1000,
         behavior: "warn",
         tokensUsed: 460,
-        exceeded: false,
+        standing: "within",
+        counting: "reported",
       },
     });
   });
@@ -78,7 +79,53 @@ describe("toUsageTickerDisplayState", () => {
     }
   });
 
-  it("maps a budget with supported: false to the not-tracked budget state, never implying 0 usage", () => {
+  it("keeps an estimated budget tracked, carrying the consumption and where the run stopped", () => {
+    const data: UsageTickerData = {
+      available: true,
+      generatedAt: "2026-07-16T00:00:00.000Z",
+      budget: {
+        maxTokens: 500,
+        behavior: "stop",
+        supported: false,
+        tokensUsed: 494,
+        exceeded: true,
+      },
+    };
+
+    const state = toUsageTickerDisplayState(data);
+
+    expect(state.kind).toBe("available");
+    if (state.kind === "available") {
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "stop",
+        tokensUsed: 494,
+        standing: "stopped-before-ceiling",
+        counting: "estimated",
+      });
+    }
+  });
+
+  it("tells a stop run refused under its ceiling apart from one that reached it", () => {
+    const standingOf = (tokensUsed: number, behavior: "warn" | "stop"): unknown => {
+      const state = toUsageTickerDisplayState({
+        available: true,
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        budget: { maxTokens: 10000, behavior, supported: true, tokensUsed, exceeded: true },
+      });
+      return state.kind === "available" && state.budget.kind === "tracked"
+        ? state.budget.standing
+        : undefined;
+    };
+
+    expect(standingOf(6000, "stop")).toBe("stopped-before-ceiling");
+    expect(standingOf(10000, "stop")).toBe("reached");
+    expect(standingOf(12000, "stop")).toBe("reached");
+    expect(standingOf(12000, "warn")).toBe("reached");
+  });
+
+  it("does not call a budget estimated when the run counted nothing at all", () => {
     const data: UsageTickerData = {
       available: true,
       generatedAt: "2026-07-16T00:00:00.000Z",
@@ -95,7 +142,42 @@ describe("toUsageTickerDisplayState", () => {
 
     expect(state.kind).toBe("available");
     if (state.kind === "available") {
-      expect(state.budget).toEqual({ kind: "not-tracked", maxTokens: 500, behavior: "warn" });
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "warn",
+        tokensUsed: 0,
+        standing: "within",
+        counting: "reported",
+      });
+    }
+  });
+
+  it("marks a provider-reported budget as reported rather than estimated", () => {
+    const data: UsageTickerData = {
+      available: true,
+      generatedAt: "2026-07-16T00:00:00.000Z",
+      budget: {
+        maxTokens: 500,
+        behavior: "warn",
+        supported: true,
+        tokensUsed: 120,
+        exceeded: false,
+      },
+    };
+
+    const state = toUsageTickerDisplayState(data);
+
+    expect(state.kind).toBe("available");
+    if (state.kind === "available") {
+      expect(state.budget).toEqual({
+        kind: "tracked",
+        maxTokens: 500,
+        behavior: "warn",
+        tokensUsed: 120,
+        standing: "within",
+        counting: "reported",
+      });
     }
   });
 

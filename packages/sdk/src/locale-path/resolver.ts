@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { SupportedFormat } from "@verbatra/core";
+import type { FormatId } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import { expandPattern, LOCALE_TOKEN, tokenOccupiesWholeSegments } from "./pattern.js";
 import { isSharedCatalogueFormat } from "./shared-catalogue-format.js";
@@ -21,7 +21,7 @@ export interface LocalePathResolverConfig {
    * shared-catalogue format (one holding every locale in a single file, such as `apple-xcstrings`),
    * which maps every locale to the same path.
    */
-  readonly format: SupportedFormat;
+  readonly format: FormatId;
   /** The file layout. */
   readonly files: {
     /** The path pattern, which must contain the `{locale}` token. */

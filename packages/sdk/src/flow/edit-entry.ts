@@ -54,6 +54,14 @@ export type EditEntryResult =
       readonly accepted: false;
       /** Which integrity rule the value broke. */
       readonly reason: IntegrityGateReason;
+      /**
+       * The specific tags behind a `markup` refusal, each prefixed with `-` for one the source had
+       * and the candidate dropped or `+` for one the candidate invented. A candidate carrying more
+       * than twice its source's inline tags and constructs is named as `+more than N inline tags`
+       * instead, where N is at least 256. Absent when no single tag is at fault, such as markup
+       * that came back mis-nested, and absent for every other reason.
+       */
+      readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */
       readonly value: string;
     };
@@ -135,7 +143,12 @@ export async function editEntry(
 
     const gate = gateCandidateValue(sourceEntry, input.value, adapter);
     if (!gate.accepted) {
-      return { accepted: false, reason: gate.reason, value: input.value };
+      return {
+        accepted: false,
+        reason: gate.reason,
+        ...(gate.details !== undefined ? { details: gate.details } : {}),
+        value: input.value,
+      };
     }
 
     const merged = new Map(target.entries);
@@ -157,7 +170,18 @@ export async function editEntry(
       cwd,
       fs,
       computeFingerprint(config),
-      new Map([[locale, { [contentHash(sourceEntry)]: input.value }]]),
+      new Map([
+        [
+          locale,
+          {
+            [contentHash(sourceEntry)]: {
+              contentHash: contentHash(sourceEntry),
+              value: input.value,
+              source: sourceEntry.value,
+            },
+          },
+        ],
+      ]),
     );
 
     return { accepted: true, value: input.value };

@@ -73,11 +73,15 @@ que un secreto no pueda esconderse en un archivo confirmado.
 
 **Síntoma**: `No adapter is registered for format "..."` seguido de la lista soportada.
 
-**Causa**: el `format` de la configuración no es uno de los doce ids de formato registrados. Esto
-se comprueba antes de leer ningún archivo.
+**Causa**: el `format` de la configuración no es uno de los catorce ids de formato registrados. Esto
+se comprueba antes de leer ningún archivo. Con un identificador `custom:` el mensaje nombra en su
+lugar el formato de terceros: la registry que recibió la ejecución no tiene ningún adaptador para él.
+La línea de comandos `verbatra` no carga ningún plugin, así que ahí un formato `custom:` no
+puede ejecutarse.
 
 **Solución**: usa uno de los ids de [Formatos](/docs/formats), por ejemplo `i18next-json` o
-`xliff`.
+`xliff`. Para un formato `custom:`, trabaja con `@verbatra/sdk` y pasa una registry que contenga su
+adaptador: consulta [Adaptadores de formato propios](/docs/custom-format-adapters).
 
 ## El locale solicitado no está configurado (UNKNOWN_LOCALE)
 
@@ -213,19 +217,67 @@ Consulta [Formatos](/docs/formats) para las reglas de claves de cada formato.
 
 ## La ejecución se quedó corta con algunas claves (presupuesto de tokens)
 
-**Síntoma**: un aviso `BUDGET_TOKENS_EXCEEDED`: `The run's cumulative token usage (N) reached the
-configured budget of M tokens (behavior: ...)`; con `budgetBehavior: "stop"`, las claves también
-aparecen bajo `budgetWithheld`.
+**Síntoma**: un aviso `BUDGET_TOKENS_EXCEEDED`. Con `"warn"` dice `The run's cumulative token
+usage (N) reached the configured budget of M tokens (behavior: warn)`. Con
+`budgetBehavior: "stop"` dice `The run's next provider request was projected at P tokens on top of
+the N already counted, which would have crossed the configured budget of M tokens, so it was
+withheld rather than sent`, y las claves también aparecen bajo `budgetWithheld`.
 
-**Causa**: se cruzó el techo de `maxTokens` configurado. Con `"warn"` (el valor por defecto) la
-ejecución continúa sin cambios y no cambia el código de salida; con `"stop"` cada clave aún no
-intentada se retiene durante el resto de la ejecución, lo que deja ese locale `partial` (algunas
-claves llegaron) o `failed` (ninguna lo hizo), y ambos salen con `1`.
+**Causa**: la ejecución alcanzó el techo de `maxTokens` configurado. Con `"warn"` (el valor por
+defecto) la ejecución continúa sin cambios y no cambia el código de salida; con `"stop"` la
+petición que habría cruzado el techo no se envía en absoluto, cada clave aún no intentada se
+retiene durante el resto de la ejecución, y eso deja ese locale `partial` (algunas claves llegaron)
+o `failed` (ninguna lo hizo), y ambos salen con `1`.
 
-**Solución**: esto es la salvaguarda funcionando. Las claves retenidas conservan sus líneas base y
-se traducen en la siguiente ejecución; sube `maxTokens` o cambia a `"warn"` si quieres completarlo
-en una sola ejecución. Un presupuesto contra DeepL o una ejecución en seco informa
-`supported: false` y nunca salta, porque no existe uso de tokens que medir.
+**Solución**: esto es la salvaguarda funcionando. No queda nada a medio escribir: las claves
+traducidas antes del techo están en disco y bloqueadas, y las claves retenidas conservan sus líneas
+base y se traducen en la siguiente ejecución. Sube `maxTokens` o cambia a `"warn"` si quieres
+completarlo en una sola ejecución. Dos detalles que conviene saber: una ejecución en seco nunca
+salta, porque no construye proveedor ni envía nada; y un presupuesto contra DeepL o Google Cloud
+Translation sí salta, contado a partir de la proyección propia de verbatra, con `supported: false`
+en el resumen diciendo que la cifra es estimada y no informada. Una ejecución también puede
+terminar algo por encima de `maxTokens`: la última petición admitida se reconcilia con lo que el
+proveedor facturó de verdad, y si informa más de lo proyectado esa diferencia llega a posteriori.
+Después de eso no se envía nada más. Y el techo acota una ejecución: `watch` arranca un presupuesto
+nuevo por ejecución, y retraducir una sola entrada desde Studio o desde las herramientas de agente
+no queda cubierto por él.
+
+## Una traducción se retiene por el marcado en línea (discordancia de integridad)
+
+**Síntoma**: una clave aparece bajo `integrityMismatches` en el resumen de la ejecución y conserva
+su traducción anterior, o el informe de integridad por clave señala una discordancia de marcado en
+línea para una traducción que ya está en disco. Ese informe es `markupMatches: false` de
+`keyIntegrity` en el SDK, de la herramienta `key.integrity` del servidor MCP y del indicador por
+clave de Studio (`Inline markup mismatch`); `verbatra check` no informa del marcado. En Studio, un
+retranslate o una edición vuelve como `Rejected: inline markup mismatch`, seguido de las etiquetas
+causantes: `-<a href>` para una que el origen tenía y la candidata perdió, `+<i>` para una que la
+candidata inventó.
+
+**Causa**: la candidata no lleva el HTML o XML en línea del origen, o lo lleva sin equilibrar o mal
+anidado. Un modelo que pierde un `<a href>`, renombra `<b>` a `<strong>` o cierra `<b>` con `</i>`
+produce una cadena que se representa mal, así que la puerta la rechaza igual que rechaza un marcador
+de posición perdido. Mira [paridad del
+marcado](/docs/translation-safety#paridad-del-marcado-en-línea) para saber exactamente qué se
+compara.
+
+**Solución**: vuelve a ejecutar la clave, o corrige el valor a mano en Studio o en un libro
+importado: la misma puerta juzga ambos, así que un valor escrito a mano con etiquetas coincidentes y
+bien formadas se acepta. El orden de las palabras, los valores de los atributos y las dos grafías de
+un elemento vacío (`<br>` y `<br/>`) nunca son la causa, porque ninguno se compara. Un rechazo que
+no nombra etiquetas es estructural: el marcado volvió mal anidado, o una etiqueta que el origen
+tenía junto a otra del mismo nombre volvió anidada dentro de ella. Un rechazo que nombra
+`+more than N inline tags` significa que la candidata lleva más del doble de etiquetas y
+construcciones que su origen, o más de 256 para un origen más pequeño. Un detalle como
+`+<a href="javascript:...">` nombra un atributo de URL que ganó un esquema que ejecuta scripts,
+`+<noscript>...</noscript>` nombra texto sin formato que un analizador puede leer de dos maneras y
+que una traducción tiene que conservar exactamente como lo tiene el origen, y un detalle sin
+corchete de cierre, como `+<a`, nombra una etiqueta que la candidata nunca terminó. Otros tres casos
+son rechazos por diseño y no fallos: fusionar dos pares adyacentes en uno, cambiar las mayúsculas de
+una etiqueta y añadir o quitar un nombre de atributo, incluido un atributo `dir` para un destino de
+derecha a izquierda. Deja las etiquetas como las tiene el origen y pon el cambio donde la
+comprobación no mira, por ejemplo en un valor de atributo. Si el marcado roto está en el valor de
+origen, corrígelo ahí: un origen cuyas propias etiquetas están mal formadas se sigue comparando
+etiqueta por etiqueta, así que cada traducción tiene que repetir las mismas etiquetas rotas.
 
 ## Studio: el puerto ya está en uso
 

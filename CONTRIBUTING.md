@@ -147,8 +147,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
      no prompt. Set `kind: "machine-translation"` and implement `translateBatch`
-     directly. DeepL is the only such provider today; see
-     `deepl/deepl-provider.ts`.
+     directly. DeepL and Google Cloud Translation are the two such providers
+     today; see `deepl/deepl-provider.ts` and
+     `google-translate/google-translate-provider.ts`.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.
@@ -158,7 +159,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 3. **`packages/ai-providers/src/env.ts`** - key handling. Add the entry to
    `PROVIDER_ENV` (around `:3`) and a `require<Name>Key()` helper next to the
-   existing four (around `:18-32`), both delegating to `readRequiredEnv`.
+   existing five (around `:19-37`), both delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
@@ -201,32 +202,62 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    registered, and is never reached. `providerFactories` is the table that
    matters.
 
-8. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
+8. **`packages/sdk/src/config/provider-billing.ts`** - add the entry to
+   `PROVIDER_BILLING`: whether the provider bills by `tokens` or by `characters`,
+   and whether a hosted API bills for it at all. The table is a mapped type over
+   `ProviderId`, so a missing entry is a compile error, and
+   `provider-billing.test.ts` fails it a second time by iterating `PROVIDER_IDS`.
+   If the provider takes a model, add its case to `modelOf` in the same file so a
+   rate can be filed under `provider/model`; the switch is exhaustive and will not
+   compile without it. This is what `translate --estimate` reads.
+
+9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` (around `:12`) requires an env entry for every
    provider except `openai-compatible`, and
    `_tokenLimitKeysCoverAllModelProviders` (around `:17`) requires a token-limit
-   key for every one of those except DeepL. Both are unused declarations that
-   exist only to fail the build.
+   key for every one of those except `deepl` and `google-translate`, the two that
+   take no model. Both are unused declarations that exist only to fail the
+   build.
 
-9. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
-   missing-key error, and upstream failures mapped to `ProviderError` codes.
+10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
+    missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-10. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
+11. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
     published and version-locked together, so a change here ships in a release.
 
-11. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
+12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
-    `.fr.mdx` sibling of each in the same change.
+    `.fr.mdx` sibling of each in the same change. If `verbatra init` offers the
+    provider, add it to the `--provider` list in `apps/docs/lib/ai-setup-prompt.ts`
+    too; `ai-setup-prompt.test.ts` only checks that constant against the fenced
+    block in the four `start-with-ai` pages, so it catches a stale page but never
+    a provider you forgot to add to both.
+
+13. **`skills/verbatra-cli/SKILL.md`** - add the row to the Providers table,
+    naming the environment variable from step 3.
+    `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+    `providerFactories` and `PROVIDER_ENV`, so a missing row fails
+    `pnpm test:scripts` rather than shipping a skill that tells an agent the
+    provider does not exist.
 
 ### Adding a format adapter
+
+This section is about adding a format *to this repository*, so that it ships
+with verbatra under its own built-in name. If you only need verbatra to handle a
+format in your own project, you do not need a pull request at all: build the
+adapter in your own package, name it with a `custom:` identifier, and hand
+verbatra a registry holding it. See `docs/decisions/0001-third-party-format-adapters.md`
+for why that path exists and what it deliberately does not promise, and
+`apps/docs/content/docs/(guides)/custom-format-adapters.mdx` for how to use it.
 
 Work outward from `packages/core`, then `packages/format-adapters`. Replace
 `<format>` with the format id and `<Format>` with its PascalCase name.
 
 1. **`packages/core/src/model/supported-format.ts`** - add the member to
-   `SUPPORTED_FORMATS` (around `:3`). The set is closed by design: a format
-   outside it cannot be represented at all. The doc comment on
+   `SUPPORTED_FORMATS` (around `:3`). The set of built-in formats is closed by
+   design; a format supplied from outside verbatra never joins it and is named
+   by a `custom:` identifier instead. The doc comment on
    `supportedFormatSchema` states the rule and lists what each member means, so
    extend that list too.
 
@@ -279,6 +310,122 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
 
+   `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
+   detection list, the mapping from file shape to format id, the two warnings
+   about what `verbatra init` cannot auto-detect, and a caveat paragraph where the
+   format needs one. Nothing compares that constant to `SUPPORTED_FORMATS`, so
+   nothing fails if you skip it. Do it here, and grep the file for a neighbouring
+   format id rather than trusting one edit to have covered every mention.
+
+8. **`skills/verbatra-cli/SKILL.md`** - add the row to the Formats table.
+   `scripts/verify-skills-tool-parity.test.mjs` asserts that table against
+   `SUPPORTED_FORMATS`, so a missing row fails `pnpm test:scripts` rather than
+   shipping a skill that tells an agent the format is unsupported.
+
+### Formats assessed against the factories
+
+A format that looks close to one already shipped does not always fit a shared
+factory. The record below is what assessing four candidates against the current
+code concluded, so the same ground is not re-walked every time one of them is
+proposed again. `apple-xcstrings` remains the only adapter that implements
+`FormatAdapter` by hand, and it stays an exception rather than a pattern.
+
+| Format | Factory fit | Verdict | Reason |
+| --- | --- | --- | --- |
+| .NET `.resx` | `createFlatFileAdapter` | shipped | Flat `<data name>`/`<value>` elements under one root, the same shape XLIFF and Android `strings.xml` already ride on. |
+| INI | `createFlatFileAdapter` | shipped | One section level, one line per key, every value a string. `properties` is the template for the file shape, `vue-i18n` for the placeholder syntax. |
+| TOML | `createTreeFileAdapter` | deferred | Needs a third-party parser as a new runtime dependency, and an order-preserving one; neither was settled here. |
+| Fluent `.ftl` | neither | deferred | Not key/value. Needs a syntax tree and a unit-of-translation decision first. |
+
+**`.resx`** is flat XML: `<data name="Key"><value>text</value></data>` under a
+`<root>` that also carries an XSD schema preamble and several `<resheader>`
+elements. None of that is an obstacle, because `serializeEntries` receives
+`(entries, filePath, fs)` and can re-read the destination document and patch
+only the values it has entries for, leaving every other byte alone. That is the
+same write path `serializeXliffEntries` uses. It claims `.resx` only, never
+`.xml`, so the Android adapter's claim on `.xml` stays unambiguous. Placeholders
+are .NET composite formatting (`{0}`, `{0,-10}`, `{1:C}`, with `{{` and `}}` as
+literals), which needs its own extractor: neither the single-brace extractor nor
+the MessageFormat one recognizes an alignment or format specifier as part of the
+token. The format has no plural construct, so no plural path is involved. One
+file per locale (`Resources.resx`, `Resources.de.resx`), which is what both
+factories assume. No new dependency: `@xmldom/xmldom` is already here.
+
+**INI** is one section level, one line per key, every value a string, no typed
+scalars and no nesting beyond the section. Sections collapse into dotted keys on
+read through the same segment encoding `flattenTree` uses, and are rebuilt on
+write. It has no plural construct and no canonical placeholder syntax at all, so
+the adapter guards single-brace tokens (`{name}`, `{0}`), the most common
+convention in the files that do interpolate; that is `vue-i18n`'s extractor, not
+`properties`' MessageFormat one, so `properties` is the template for the file
+shape only. One file per locale. No new dependency: the parser is a few dozen
+lines, like `properties`.
+
+**TOML** would ride `createTreeFileAdapter`, not `createFlatFileAdapter`: it has
+nested tables, arrays of tables and typed scalars (integers, floats, booleans,
+offset date-times), none of which the flat factory models. `yaml-adapter.ts` is
+the shape it would take. Two things block it rather than the factory choice.
+First, it needs a third-party TOML parser and serializer as a runtime dependency
+of a package tsup inlines straight into the published SDK, which is a
+supply-chain decision worth taking on its own. Second, the tree factory needs a
+parser that preserves declaration order for quoted integer-like keys, so that
+`"10"` before `"2"` survives a round trip; YAML gets that from the `yaml`
+package's `mapAsMap` option, and a parser that returns plain objects cannot
+provide it. Neither question was answered here, so TOML is not shipped.
+
+**Fluent** (`.ftl`) fits neither factory, and not because of file layout. It is
+not key/value: one message can carry both a value and named attributes
+(`login.title = X` with an indented `.placeholder = Y`), terms (`-brand-name`)
+are a separate namespace that is referenced but never translated as a standalone
+unit, and select expressions with variants are plural and gender branching
+inline in a single message body. Placeables (`{ $var }`, `{ -term }`,
+`{ NUMBER($n) }`) are not flat tokens a regex can lift out the way every shipped
+`extractPlaceholders` does. Round-tripping it needs a real syntax tree and, more
+importantly, a decision about what one `TranslationEntry` corresponds to before
+any code is written. Per the rule above, raise that first.
+
+### Adding an agent tool or a Studio RPC method
+
+The two agent surfaces are enumerated in the skills pack the same way commands,
+formats and providers are, and `scripts/verify-skills-tool-parity.test.mjs`
+asserts both tables just as strictly. A new tool with no matching row turns
+`pnpm test:scripts` red.
+
+1. **`skills/verbatra-mcp-tools/SKILL.md`** - for a new stdio tool, add the row to
+   the Tools table. The Availability cell is `always`, or `spend gated` when the
+   tool is in `SPEND_TOOL_NAMES` (`packages/mcp/src/tools/registry.ts`). The
+   surrounding prose names the registered and default-advertised counts, and the
+   test asserts those against the registry too, so both move together.
+
+2. **`skills/verbatra-studio-agent-tools/SKILL.md`** - for a new RPC method, add
+   the row to the Tools table. The first cell is the tool name exactly as
+   `toToolName` derives it (`verbatra_` plus the method with dots replaced by
+   underscores), the second is the method, and the third is `spend gated` when the
+   descriptor in `packages/studio/src/webmcp/register-tools.ts` sets
+   `spendGated: true`. The prose counts for both surfaces are asserted here as
+   well.
+
+To try an edited skill before it is merged, point the installer at your checkout
+rather than at the repository. This is the form to use locally, since the
+published `verbatra/verbatra` source only ever serves the default branch:
+
+```bash
+npx skills@latest add /path/to/your/verbatra --skill verbatra-mcp-tools -y
+```
+
+`--skill` matches the directory name under `skills/`. Repeat the flag for more
+than one; a comma-separated list is not accepted, and `--skill '*'` would also
+pull in the third-party skills this repository installs for its own use.
+
+A method that exists on one surface and not the other is normal: the test also
+asserts which methods are Studio-only, so adding one to both without meaning to
+fails just as loudly as adding it to neither.
+
+The one thing neither the test nor the type system can catch: a tool that calls a
+provider but was never added to `SPEND_TOOL_NAMES` or given `spendGated: true`.
+Source and skill would agree, and both would be wrong. Decide that flag when you
+write the tool, not when you document it.
+
 ### The guards are the guide
 
 Every step above that can be enforced at compile time already is, which is why
@@ -293,8 +440,11 @@ this list can be trusted even after the line numbers drift:
   expressible,
 - `FORMAT_LABELS` is a total record over `SupportedFormat`, so a new format
   cannot ship without a label,
-- and `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
-  anywhere in the adapter package.
+- `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
+  anywhere in the adapter package,
+- and `verify-skills-tool-parity.test.mjs` fails when the skills pack's command,
+  format, provider, tool or method tables, or the counts in its prose, drift from
+  the sources above.
 
 If you find yourself wanting a new lint rule or checklist item, check first
 whether one of these already covers it.

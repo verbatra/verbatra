@@ -24,6 +24,7 @@ function runSummary(): RunSummary {
         pruned: [],
         invalidIcuSource: [],
         cacheHits: [],
+        fuzzyHits: [],
         integrityMismatches: [],
         providerFailures: [],
         generated: [],

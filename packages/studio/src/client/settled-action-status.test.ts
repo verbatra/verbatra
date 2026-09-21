@@ -1,3 +1,4 @@
+import { INTEGRITY_GATE_REASONS } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { settledActionStatusLabel } from "./settled-action-status.js";
 
@@ -41,5 +42,39 @@ describe("settledActionStatusLabel", () => {
     expect(
       settledActionStatusLabel({ kind: "error", message: "The key was not found." }, "Saved"),
     ).toBe("Failed: The key was not found.");
+  });
+});
+
+describe("settledActionStatusLabel: the rejection labels stay in step with the gate", () => {
+  it("reports the markup rejection reason distinctly from placeholder", () => {
+    expect(settledActionStatusLabel({ kind: "rejected", reason: "markup" }, "Saved")).toBe(
+      "Rejected: inline markup mismatch",
+    );
+  });
+
+  it.each(INTEGRITY_GATE_REASONS)("labels the %s reason with its own wording", (reason) => {
+    const labels = INTEGRITY_GATE_REASONS.map((code) =>
+      settledActionStatusLabel({ kind: "rejected", reason: code }, "Saved"),
+    );
+    const label = settledActionStatusLabel({ kind: "rejected", reason }, "Saved");
+    expect(label.startsWith("Rejected: ")).toBe(true);
+    expect(labels.filter((candidate) => candidate === label)).toHaveLength(1);
+  });
+});
+
+describe("settledActionStatusLabel: the tags behind a markup refusal", () => {
+  it("names the dropped and invented tags after the reason", () => {
+    expect(
+      settledActionStatusLabel(
+        { kind: "rejected", reason: "markup", details: ["-<b>", "+<i>"] },
+        "Saved",
+      ),
+    ).toBe("Rejected: inline markup mismatch (-<b> +<i>)");
+  });
+
+  it("falls back to the bare reason when no single tag is at fault", () => {
+    expect(
+      settledActionStatusLabel({ kind: "rejected", reason: "markup", details: [] }, "Saved"),
+    ).toBe("Rejected: inline markup mismatch");
   });
 });

@@ -48,6 +48,8 @@ function integrityEntry(
     missing: [],
     extra: [],
     icuValid: true,
+    markupMatches: true,
+    markupDetails: [],
     ...overrides,
   };
 }

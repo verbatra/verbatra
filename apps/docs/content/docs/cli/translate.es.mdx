@@ -23,16 +23,21 @@ verbatra translate [flags]
 | `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez; debe ser un entero positivo |
 | `--no-cache` | ninguno | desactivado (caché activada) | omite la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`) para esta ejecución |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la ejecución bajo `result` (la [forma `RunSummary`](/docs/sdk)), o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
+| `--estimate` | ninguno | desactivado | estima lo que la ejecución enviaría y lo que costaría, y luego termina sin llamar a ningún proveedor; implica `--dry-run`, así que no hace falta clave API |
 
 Por defecto una ejecución no borra nada: las claves huérfanas se informan y se dejan en su sitio. `--prune` elimina exactamente esas claves y nada más, y anula la opción `prune` de la configuración para esta ejecución. Antes de ejecutarse, `translate` carga `.env.local` y luego `.env` desde el directorio de trabajo; una variable ya definida en el entorno real gana.
 
 `--dry-run` no construye ningún proveedor, así que no necesita clave API y no puede gastar nada: lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea de estado de la ejecución), no lee ni escribe la caché, y no toma ningún bloqueo de escritura por locale, así que nunca espera a una ejecución ya en curso. La carga de `.env` de arriba sigue ocurriendo en una ejecución en seco; simplemente no hay ninguna clave que leer. Eso la convierte en una forma completa de probar verbatra en un proyecto real antes de crear una cuenta de proveedor.
 
+`--estimate` añade a esa ejecución en seco una estimación de coste previa: cuántas claves se enviarían, en cuántas peticiones al proveedor se repartirían y qué cantidad factura realmente el proveedor configurado (tokens estimados de prompt y de respuesta en un LLM, caracteres de origen estimados en DeepL o Google Cloud Translation, y ningún coste en un endpoint `openai-compatible` autoalojado). Implica `--dry-run`, así que no gasta nada y no escribe nada. Una cifra en moneda solo aparece cuando la configuración lleva un bloque `rates` que cubre el proveedor y el modelo configurados; sin él se informa igualmente del recuento y se nombra la clave de tarifa que falta, en lugar de inventar un coste de `0.00`. Toda cifra se imprime junto a la fecha en que se leyeron esas tarifas y junto a una línea que nombra lo que la estimación deja fuera. Consulta [Estimar el coste](/docs/estimating-cost).
+
+<AvailableFrom version="0.11.0" />
+
 `--locales de,fr` reduce la ejecución a un subconjunto de los destinos configurados. Los locales que quedan fuera no se tocan: sus archivos, sus entradas del bloqueo y sus entradas de caché se quedan como estaban. Es el flag al que recurrir en un nivel gratuito con límite de tasa, donde traducir un locale cada vez es la única forma de avanzar, y también es la manera más rápida de volver a ejecutar un solo locale que quedó parcial. La instantánea de estado de la ejecución describe siempre solo la ejecución más reciente, así que una ejecución sobre un subconjunto la reduce a ese subconjunto.
 
 `--lock-timeout` ajusta cuánto espera un locale por un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que la ejecución falle con `LOCK_CONTENDED`: súbelo cuando otra ejecución retiene el bloqueo legítimamente un rato, bájalo para fallar rápido en CI.
 
-`--concurrency` traduce varios locales de destino en paralelo para terminar antes un proyecto grande. Se rechaza con salida `2` cuando la configuración fija un presupuesto `maxTokens`, porque los locales concurrentes no pueden respetar un tope de tokens de forma determinista (un dry-run queda exento). Si un error de toda la ejecución (en la práctica, un archivo de bloqueo corrupto) aflora cuando ya hay locales en marcha, no se arranca ningún locale más, y los que están en vuelo terminan y liberan sus bloqueos de escritura antes de que el comando salga con `2`, así que la ejecución no deja atrás ningún bloqueo que la siguiente tenga que esperar. A medida que avanza una ejecución, el progreso se imprime en stderr (una línea por inicio de locale, sub-lote del proveedor y fin de locale), así que el stdout de una ejecución con `--json` sigue siendo un único resumen limpio. `--no-cache` se salta la [caché de memoria de traducción](/docs/the-cache) para la ejecución, haciendo exactamente las llamadas al proveedor que haría sin caché presente.
+`--concurrency` traduce varios locales de destino en paralelo para terminar antes un proyecto grande. Se rechaza con salida `2` cuando la configuración fija un presupuesto `maxTokens`, porque el techo seguiría sosteniéndose, pero qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen, así que el mismo proyecto no produciría dos veces la misma ejecución (un dry-run queda exento). Si un error de toda la ejecución (en la práctica, un archivo de bloqueo corrupto) aflora cuando ya hay locales en marcha, no se arranca ningún locale más, y los que están en vuelo terminan y liberan sus bloqueos de escritura antes de que el comando salga con `2`, así que la ejecución no deja atrás ningún bloqueo que la siguiente tenga que esperar. A medida que avanza una ejecución, el progreso se imprime en stderr (una línea por inicio de locale, sub-lote del proveedor y fin de locale), así que el stdout de una ejecución con `--json` sigue siendo un único resumen limpio. `--no-cache` se salta la [caché de memoria de traducción](/docs/the-cache) para la ejecución, haciendo exactamente las llamadas al proveedor que haría sin caché presente.
 
 ## Ejemplos
 
@@ -45,6 +50,9 @@ verbatra translate --prune --dry-run
 
 # one locale at a time, which is what a rate-limited free tier needs
 verbatra translate --locales de
+
+# dimensiona y tarifa la ejecución sin gastar nada
+verbatra translate --estimate
 ```
 
 ## Códigos de salida
