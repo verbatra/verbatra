@@ -294,7 +294,8 @@ h6 {
   border-bottom-color: transparent;
 }
 
-#nd-nav:has([data-state="open"]) {
+#nd-nav:has([data-state="open"]),
+#nd-nav:has([data-state="open"]) > div {
   background-color: var(--color-fd-background);
 }
 
