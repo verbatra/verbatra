@@ -73,13 +73,13 @@ export function DiffPanel({
     <figure
       ref={ref}
       aria-label="A diff showing only the changed translation key being re-translated"
-      className="not-prose relative my-8 rounded-2xl border border-fd-border bg-fd-card p-5 font-mono text-sm sm:p-7 sm:text-[15px]"
+      className="not-prose relative my-8 rounded-xl border border-fd-border bg-fd-card p-5 font-mono text-sm sm:p-7"
       style={{
         borderInlineStart: "2px solid var(--v-glow)",
         boxShadow: "0 24px 60px -30px color-mix(in srgb, var(--v-purple) 35%, transparent)",
       }}
     >
-      <span className="absolute -top-2.5 left-5 rounded-md border border-fd-border bg-fd-background px-2 py-0.5 text-[10.5px] uppercase tracking-wider text-fd-muted-foreground">
+      <span className="absolute -top-2.5 left-5 rounded-md border border-fd-border bg-fd-background px-2 py-0.5 text-xs uppercase tracking-wider text-fd-muted-foreground">
         {tag}
       </span>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">

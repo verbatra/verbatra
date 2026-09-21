@@ -12,17 +12,14 @@ export async function FinalCta(): Promise<ReactNode> {
   const tHero = await getTranslations("landing.hero");
   const locale = (await getLocale()) as Locale;
   return (
-    <section
-      className="relative mt-24 overflow-hidden border-t border-fd-border"
-      style={{ paddingBlock: "6rem" }}
-    >
+    <section className="vk-rhythm-lg vk-pad-lg relative overflow-hidden border-t border-fd-border">
       <Backdrop
         gridFade="radial-gradient(ellipse 60% 90% at 50% 50%, #000 30%, transparent 75%)"
         beams={false}
         spotlightFill="var(--v-purple)"
         sparkleDensity={0.00012}
       />
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
+      <div className="vk-gutter vk-w-hero relative mx-auto text-center">
         <SectionHead align="center" maxWidth="640px" title={t("heading")} lead={t("lead")} />
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button

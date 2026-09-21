@@ -11,7 +11,7 @@ export type ButtonProps = {
 } & ComponentPropsWithoutRef<"button">;
 
 const BASE =
-  "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-50 disabled:pointer-events-none";
+  "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:pointer-events-none";
 
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary: "text-[color:var(--accent-fill-fg)] hover:brightness-[1.08]",

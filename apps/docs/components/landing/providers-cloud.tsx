@@ -29,7 +29,7 @@ const PROVIDERS: ReadonlyArray<SwapLogo> = [
 export async function ProvidersCloud(): Promise<ReactNode> {
   const t = await getTranslations("landing.providers");
   return (
-    <section className="mx-auto mt-24 max-w-6xl px-6">
+    <section className="vk-gutter vk-w-wide vk-rhythm-sm mx-auto">
       <SectionHead align="center" maxWidth="620px" title={t("heading")} lead={t("lead")} />
       <div className="mt-12">
         <SwapLogoCloud

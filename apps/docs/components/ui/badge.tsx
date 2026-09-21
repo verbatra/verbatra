@@ -6,7 +6,7 @@ export type BadgeProps = {
 };
 
 const BASE =
-  "not-prose inline-flex items-center font-mono uppercase rounded-[6px] border px-[7px] py-[3px] text-[length:var(--text-2xs)] tracking-[0.08em]";
+  "not-prose inline-flex items-center font-mono uppercase rounded-[6px] border px-[7px] py-[3px] text-xs tracking-[0.08em]";
 
 const NEUTRAL = "text-fd-muted-foreground border-fd-border";
 
