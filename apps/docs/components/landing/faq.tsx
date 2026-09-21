@@ -1,10 +1,11 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import type { FaqItem } from "@/lib/structured-data";
 import { GITHUB_ISSUES_URL, RELEASES_URL } from "./links";
 import { SectionHead } from "./section-head";
@@ -19,7 +20,7 @@ const answerTags = {
       href={RELEASES_URL}
       target="_blank"
       rel="noreferrer noopener"
-      className="underline underline-offset-4 transition-colors hover:text-[color:var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+      className="underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]"
     >
       {chunks}
     </a>
@@ -89,10 +90,10 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
   const locale = useLocale() as Locale;
   const [open, setOpen] = useState(0);
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useReducedMotionPreference();
 
   return (
-    <section className="mx-auto mt-24 max-w-6xl px-6">
+    <section className="vk-gutter vk-w-wide vk-rhythm-md mx-auto">
       <div className="grid gap-10 md:grid-cols-5 md:gap-12">
         <div className="md:col-span-2 md:sticky md:top-24 md:self-start">
           <SectionHead title={t("heading")} lead={t("supporting")} />
@@ -108,7 +109,7 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
               href={GITHUB_ISSUES_URL}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1.5 text-sm text-fd-muted-foreground underline-offset-4 transition-colors hover:text-[color:var(--accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+              className="inline-flex min-h-6 items-center gap-1.5 text-sm text-fd-muted-foreground underline-offset-4 transition-colors hover:text-[color:var(--accent)] hover:underline"
             >
               {t("ctaIssue")}
               <span aria-hidden="true">→</span>
