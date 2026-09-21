@@ -64,7 +64,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 | [`@verbatra/mcp`](https://www.npmjs.com/package/@verbatra/mcp) | <img src="https://img.shields.io/npm/v/%40verbatra%2Fmcp?label=%20&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/mcp version" /> | A stdio MCP server exposing verbatra's tools to an MCP client. [Docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) |
 | [`verbatra/action`](https://github.com/verbatra/action) | <img src="https://img.shields.io/github/v/release/verbatra/action?sort=semver&amp;label=%20&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="verbatra/action release" /> | A composite GitHub Action; consumed with `uses:`, not installed from npm. [Docs](https://verbatra.kreitz-webdev.de/docs/github-action) |
 
-Three agent skill documents in [`skills/`](./skills) teach a coding agent which of these surfaces to reach for; install one with `npx skills@latest add verbatra/verbatra --skill verbatra-cli -y`.
+Three agent skill documents in [verbatra/skills](https://github.com/verbatra/skills) teach a coding agent which of these surfaces to reach for; install one with `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`. That repository verifies each document against this repository's command, format, provider and tool registries.
 
 ## Formats and providers
 
