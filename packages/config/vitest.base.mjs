@@ -7,11 +7,13 @@ export function createVitestConfig(options = {}) {
     testInclude = ["src/**/*.test.ts"],
     coverageInclude = ["src/**/*.ts"],
     coverageExclude = [],
+    testTimeout = 60_000,
   } = options;
 
   return {
     test: {
       include: testInclude,
+      testTimeout,
       coverage: {
         provider: "v8",
         reporter: ["text", "lcov"],

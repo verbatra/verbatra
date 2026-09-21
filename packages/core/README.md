@@ -6,7 +6,8 @@
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 
 Pure domain core for verbatra: model, diffing, validation. It is the bottom of the dependency
-graph, and every other package reaches its concepts through this one.
+graph: `format-adapters`, `ai-providers`, and the sdk reach their shared concepts through this
+one. `exchange` and `extract` do not depend on it and join the graph at the sdk instead.
 
 ## Responsibilities
 

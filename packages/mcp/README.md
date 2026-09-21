@@ -18,7 +18,7 @@
 
 `@verbatra/mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the standard local-process transport an MCP client uses to launch and talk to a tool server. It gives a terminal-hosted or headless agent the same translation-status, glossary, and editing capabilities Verbatra Studio exposes in the browser, without a browser, a port, or a served single-page app. It is a thin, SDK-backed surface over [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk), the same way [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli) is.
 
-Because the transport is stdio, stdout carries protocol messages exclusively: every log and diagnostic line goes to stderr instead, and nothing is written at all until a client sends the first message.
+Because the transport is stdio, nothing but a valid MCP protocol message is ever written to stdout. Every log and diagnostic line goes to stderr instead, including anything a failed startup reports before a client has sent its first message.
 
 ## Requirements
 

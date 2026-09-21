@@ -79,7 +79,7 @@ API keys are never part of the config. Each provider reads its own environment v
 
 ## API reference
 
-Every flow takes an `input` object and an optional `deps` object for injecting the file system, the provider factory, or an adapter registry of your own. The signatures below are the ones the package publishes in `dist/index.d.ts`.
+Every flow takes an `input` object and an optional `deps` object for injecting the file system, the provider factory, or an adapter registry of your own; the two config helpers below take neither. The signatures below are the ones the package publishes in `dist/index.d.ts`.
 
 ### `defineConfig(config): VerbatraConfigInput`
 
