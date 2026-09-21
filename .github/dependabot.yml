@@ -46,7 +46,14 @@ updates:
           - "major"
           - "minor"
           - "patch"
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       npm-minor-patch:
+        exclude-patterns:
+          - "vitest"
+          - "@vitest/*"
         update-types:
           - "minor"
           - "patch"
