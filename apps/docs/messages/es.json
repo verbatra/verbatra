@@ -11,7 +11,6 @@
     "hero": {
       "headline": "Traduce solo lo que cambió.",
       "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas, y deja todas las demás claves intactas.",
-      "ctaQuickstart": "Lee la guía de inicio rápido",
       "ctaGithub": "Danos una estrella en GitHub",
       "ctaStart": "Empezar"
     },
@@ -119,7 +118,7 @@
     "commands": {
       "heading": "Todos los comandos que trae el binario.",
       "lead": "Una sola instalación, agrupada por la tarea que resuelve. Una prueba compara esta lista con la tabla de comandos del código de la CLI, así que no puede quedarse atrás en silencio.",
-      "helpNote": "Ejecuta verbatra <command> --help para ver las opciones de cada uno.",
+      "helpNote": "Ejecuta verbatra '<command>' --help para ver los indicadores que toma cada uno.",
       "groups": {
         "run": "Traducir",
         "verify": "Comprobar sin escribir",
@@ -145,18 +144,15 @@
       }
     },
     "stack": {
-      "heading": "Los archivos que ya tienes y los modelos que eliges.",
-      "lead": "verbatra lee el formato de idioma que tu stack ya usa y lo rellena con el proveedor que nombras en una línea de configuración. No hay nada nuevo que adoptar por ninguno de los dos lados.",
       "formats": {
-        "title": "Formatos y frameworks",
-        "note": "Todos los formatos que trae el registro de adaptadores, desde JSON de i18next hasta los String Catalogs de Apple y .resx de .NET.",
-        "marqueeLabel": "Frameworks y formatos"
+        "marqueeLabel": "Frameworks y formatos",
+        "label": "funciona con"
       },
       "providers": {
-        "title": "Proveedores de traducción",
-        "note": "LLMs y traducción automática tras una única interfaz, más cualquier servidor compatible con OpenAI que alojes tú.",
-        "marqueeLabel": "Proveedores de traducción"
-      }
+        "marqueeLabel": "Proveedores de traducción",
+        "label": "traduce a través de"
+      },
+      "label": "Frameworks, formatos y proveedores de traducción"
     },
     "studio": {
       "heading": "Observa todo el estado de la traducción, en local.",

@@ -11,7 +11,6 @@
     "hero": {
       "headline": "Übersetze nur, was sich geändert hat.",
       "lead": "verbatra vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei, sendet nur die neuen und geänderten Schlüssel an den von dir gewählten Anbieter und lässt jeden anderen Schlüssel unberührt.",
-      "ctaQuickstart": "Zum Schnellstart",
       "ctaGithub": "Stern auf GitHub",
       "ctaStart": "Leg los"
     },
@@ -119,7 +118,7 @@
     "commands": {
       "heading": "Jeder Befehl, den die Binary mitbringt.",
       "lead": "Eine Installation, gruppiert nach der Aufgabe. Ein Test hält diese Liste gegen die Befehlstabelle im CLI-Quellcode, sie kann also nicht still zurückfallen.",
-      "helpNote": "Führe verbatra <command> --help aus, um die Flags eines Befehls zu sehen.",
+      "helpNote": "Führe verbatra '<command>' --help aus, um die jeweiligen Flags zu sehen.",
       "groups": {
         "run": "Übersetzen",
         "verify": "Prüfen, ohne zu schreiben",
@@ -145,18 +144,15 @@
       }
     },
     "stack": {
-      "heading": "Die Dateien, die du schon hast, und die Modelle, die du wählst.",
-      "lead": "verbatra liest das Locale-Format, das dein Stack ohnehin nutzt, und füllt es über den Provider, den du in einer Zeile Konfiguration nennst. Auf keiner Seite musst du etwas Neues übernehmen.",
       "formats": {
-        "title": "Formate und Frameworks",
-        "note": "Jedes Format, das die Adapter-Registry mitbringt, von i18next-JSON bis zu Apple String Catalogs und .NET .resx.",
-        "marqueeLabel": "Frameworks und Formate"
+        "marqueeLabel": "Frameworks und Formate",
+        "label": "funktioniert mit"
       },
       "providers": {
-        "title": "Übersetzungs-Provider",
-        "note": "LLMs und maschinelle Übersetzung hinter einer Schnittstelle, dazu jeder OpenAI-kompatible Server, den du selbst betreibst.",
-        "marqueeLabel": "Übersetzungs-Provider"
-      }
+        "marqueeLabel": "Übersetzungs-Provider",
+        "label": "übersetzt über"
+      },
+      "label": "Frameworks, Formate und Übersetzungsanbieter"
     },
     "studio": {
       "heading": "Behalte den gesamten Übersetzungsstand im Blick, lokal.",

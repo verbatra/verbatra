@@ -9,7 +9,7 @@ import { FullFooter } from "@/components/landing/footer";
 import { GateDemo } from "@/components/landing/gate-demo";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Pillars } from "@/components/landing/pillars";
-import { StackCloud } from "@/components/landing/stack-cloud";
+import { StackStrip } from "@/components/landing/stack-strip";
 import { StudioShowcase } from "@/components/landing/studio-showcase";
 import { Trust } from "@/components/landing/trust";
 import { LandingHero } from "@/components/landing-hero";
@@ -67,11 +67,11 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
 
       <LandingHero />
+      <StackStrip />
       <GateDemo />
       <HowItWorks />
       <Pillars />
       <CommandCoverage />
-      <StackCloud />
       <StudioShowcase />
       <Agents />
       <Trust />

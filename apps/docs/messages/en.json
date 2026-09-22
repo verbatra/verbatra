@@ -39,7 +39,6 @@
     "hero": {
       "headline": "Translate only what changed.",
       "lead": "verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you choose, and leaves every other key untouched.",
-      "ctaQuickstart": "Read the quickstart",
       "ctaGithub": "Star on GitHub",
       "ctaStart": "Get started"
     },
@@ -147,7 +146,7 @@
     "commands": {
       "heading": "Every command the binary ships.",
       "lead": "One install, grouped by the job it does. A test holds this list against the command table in the CLI source, so it cannot quietly fall behind.",
-      "helpNote": "Run verbatra <command> --help for the flags each one takes.",
+      "helpNote": "Run verbatra '<command>' --help for the flags each one takes.",
       "groups": {
         "run": "Translate",
         "verify": "Verify without writing",
@@ -173,16 +172,13 @@
       }
     },
     "stack": {
-      "heading": "The files you already have, the models you pick.",
-      "lead": "verbatra reads the locale format your stack already uses and fills it through the provider you name in one line of config. Nothing new to adopt on either side.",
+      "label": "Frameworks, formats and translation providers",
       "formats": {
-        "title": "Formats and frameworks",
-        "note": "Every format the adapter registry ships, from i18next JSON to Apple String Catalogs and .NET .resx.",
+        "label": "works with",
         "marqueeLabel": "Frameworks and formats"
       },
       "providers": {
-        "title": "Translation providers",
-        "note": "LLMs and machine translation behind one interface, plus any OpenAI-compatible server you host yourself.",
+        "label": "translates through",
         "marqueeLabel": "Translation providers"
       }
     },

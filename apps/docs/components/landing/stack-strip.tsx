@@ -15,13 +15,12 @@ import {
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { OpenAiIcon } from "./openai-icon";
-import { Section } from "./section";
-import { SectionHead } from "./section-head";
-import { type SwapLogo, SwapLogoCloud } from "./swap-logo-cloud";
 
-const ICON_SIZE = 28;
+const ICON_SIZE = 18;
 
-const FRAMEWORKS: ReadonlyArray<SwapLogo> = [
+type Logo = { key: string; name: string; icon: ReactNode };
+
+const FRAMEWORKS: ReadonlyArray<Logo> = [
   {
     key: "react",
     name: "React",
@@ -74,7 +73,7 @@ const FRAMEWORKS: ReadonlyArray<SwapLogo> = [
   },
 ];
 
-const PROVIDERS: ReadonlyArray<SwapLogo> = [
+const PROVIDERS: ReadonlyArray<Logo> = [
   {
     key: "anthropic",
     name: "Anthropic",
@@ -93,51 +92,52 @@ const PROVIDERS: ReadonlyArray<SwapLogo> = [
   },
 ];
 
-function RowHead({ title, note }: { title: string; note: string }): ReactNode {
+function LogoRow({
+  label,
+  listLabel,
+  logos,
+}: {
+  label: string;
+  listLabel: string;
+  logos: ReadonlyArray<Logo>;
+}): ReactNode {
   return (
-    <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between md:gap-8">
-      <h3
-        className="font-semibold text-fd-foreground"
-        style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-h3)" }}
-      >
-        {title}
-      </h3>
-      <p className="max-w-[56ch] text-sm leading-relaxed text-fd-muted-foreground">{note}</p>
+    <div className="grid gap-x-6 gap-y-3 sm:grid-cols-[10.5rem_1fr] sm:items-center">
+      <span className="font-mono text-xs lowercase tracking-[0.12em] text-[color:var(--text-faint)]">
+        {label}
+      </span>
+      <ul aria-label={listLabel} className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        {logos.map((logo) => (
+          <li
+            key={logo.key}
+            className="inline-flex items-center gap-2 text-[13px] font-medium text-fd-muted-foreground"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            <span className="text-[color:var(--accent)]">{logo.icon}</span>
+            {logo.name}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-export async function StackCloud(): Promise<ReactNode> {
+export async function StackStrip(): Promise<ReactNode> {
   const t = await getTranslations("landing.stack");
-
   return (
-    <Section width="wide" rhythm="md">
-      <SectionHead title={t("heading")} lead={t("lead")} />
-
-      <div className="mt-10 border-t border-fd-border pt-8">
-        <RowHead title={t("formats.title")} note={t("formats.note")} />
-        <div className="mt-8">
-          <SwapLogoCloud
-            logos={FRAMEWORKS}
-            visibleCount={5}
-            intervalMs={3000}
-            label={t("formats.marqueeLabel")}
-            gridClassName="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-          />
-        </div>
+    <section aria-label={t("label")} className="border-b border-fd-border">
+      <div className="vk-gutter vk-w-wide mx-auto grid gap-5 py-6">
+        <LogoRow
+          label={t("formats.label")}
+          listLabel={t("formats.marqueeLabel")}
+          logos={FRAMEWORKS}
+        />
+        <LogoRow
+          label={t("providers.label")}
+          listLabel={t("providers.marqueeLabel")}
+          logos={PROVIDERS}
+        />
       </div>
-
-      <div className="mt-10 border-t border-fd-border pt-8">
-        <RowHead title={t("providers.title")} note={t("providers.note")} />
-        <div className="mt-8">
-          <SwapLogoCloud
-            logos={PROVIDERS}
-            visibleCount={4}
-            label={t("providers.marqueeLabel")}
-            gridClassName="grid-cols-2 sm:grid-cols-4"
-          />
-        </div>
-      </div>
-    </Section>
+    </section>
   );
 }
