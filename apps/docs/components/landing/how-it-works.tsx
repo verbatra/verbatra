@@ -9,9 +9,9 @@ export async function HowItWorks(): Promise<ReactNode> {
   const t = await getTranslations("landing.how");
   const steps = Object.values(t.raw("steps") as Record<string, Step>);
   return (
-    <Section width="content">
+    <Section width="wide">
       <SectionHead title={t("heading")} lead={t("lead")} />
-      <ol className="relative mt-12 list-none">
+      <ol className="vk-w-content relative mt-12 list-none">
         <span
           aria-hidden="true"
           className="absolute top-2 bottom-8 w-px"

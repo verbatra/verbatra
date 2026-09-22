@@ -22,12 +22,12 @@ export function SectionHead({
     >
       <h2
         id={id}
-        className="font-semibold text-fd-foreground"
+        className={cn("font-semibold text-fd-foreground", !centered && "max-w-[24ch]")}
         style={{
           fontFamily: "var(--font-display)",
           letterSpacing: "var(--tracking-tight)",
           fontSize: "var(--text-h2)",
-          lineHeight: 1.15,
+          lineHeight: 1.12,
         }}
       >
         {title}
