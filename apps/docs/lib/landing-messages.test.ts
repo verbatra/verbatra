@@ -13,10 +13,10 @@ const LANDING_NAMESPACES = [
   "gate",
   "proof",
   "how",
-  "commands",
-  "stack",
-  "agents",
-  "trust",
+  "marquee",
+  "providers",
+  "loop",
+  "gains",
 ] as const;
 
 type MessageTree = { [key: string]: string | MessageTree };
@@ -54,10 +54,10 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.proof.lock.title");
     expect(source).toContain("landing.terminal.sessionLabel");
     expect(source).toContain("landing.gate.rows.reason");
-    expect(source).toContain("landing.commands.items.translate");
-    expect(source).toContain("landing.stack.providers.marqueeLabel");
-    expect(source).toContain("landing.agents.items.mcp.body");
-    expect(source).toContain("landing.trust.rows.provenance.detail");
+    expect(source).toContain("landing.loop.rows.ci.title");
+    expect(source).toContain("landing.marquee.frameworks.react");
+    expect(source).toContain("landing.providers.kinds.gemini");
+    expect(source).toContain("landing.gains.items.gate.title");
   });
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {

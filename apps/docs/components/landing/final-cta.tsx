@@ -2,38 +2,50 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import CommandLine from "@/components/ui/command-line";
 import { type Locale, localizedPath } from "@/lib/i18n";
-import { Backdrop } from "./fx/backdrop";
 import { NPM_CLI } from "./links";
-import { SectionHead } from "./section-head";
+import { Reveal } from "./reveal";
 
 const INSTALL_COMMAND = "npm i -D @verbatra/cli";
 const CLI_TOKEN = "@verbatra/cli";
 
+const CLOSE_BACKGROUND = [
+  "radial-gradient(ellipse 62% 72% at 50% 104%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
+  "var(--surface-bg)",
+].join(", ");
+
+const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
+
 export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.finalClose");
-  const tFaq = await getTranslations("landing.faq");
   const locale = (await getLocale()) as Locale;
   return (
-    <section className="vk-rhythm-lg vk-pad-lg relative overflow-hidden border-t border-fd-border">
-      <Backdrop
-        gridFade="radial-gradient(ellipse 60% 90% at 50% 50%, #000 30%, transparent 75%)"
-        beams={false}
-        spotlightFill="var(--v-purple)"
-        sparkleDensity={0.00012}
-      />
-      <div className="vk-gutter vk-w-hero relative mx-auto text-center">
-        <SectionHead align="center" maxWidth="640px" title={t("heading")} lead={t("lead")} />
-        <div className="mt-8 flex justify-center">
+    <section className="vk-pad-top-lg px-2 pb-3 md:px-3">
+      <Reveal
+        className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
+        style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
+      >
+        <h2
+          className="max-w-[15ch] font-semibold text-fd-foreground"
+          style={{
+            fontFamily: "var(--font-display)",
+            letterSpacing: "-0.03em",
+            fontSize: "var(--text-h2)",
+            lineHeight: 1,
+            textWrap: "balance",
+          }}
+        >
+          {t("heading")}
+        </h2>
+        <div className="mt-8 flex w-full justify-center">
           <CommandLine command={INSTALL_COMMAND} link={{ token: CLI_TOKEN, href: NPM_CLI }} />
         </div>
         <a
           href={localizedPath(locale, "/docs")}
-          className="mt-6 inline-flex min-h-11 items-center gap-2 font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]"
+          className="mt-6 inline-flex min-h-11 items-center font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]"
         >
-          {tFaq("ctaDocs")}
-          <span aria-hidden="true">→</span>
+          {t("docs")}
         </a>
-      </div>
+      </Reveal>
     </section>
   );
 }

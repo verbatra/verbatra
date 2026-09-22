@@ -106,131 +106,8 @@
         }
       }
     },
-    "pillars": {
-      "heading": "One tool for the whole translation loop.",
-      "lead": "verbatra is more than AI translation. It covers machine translation you control, a clean Excel handoff for human translators, and the automation to keep every locale in sync.",
-      "ai": {
-        "title": "AI translation",
-        "body": "Translate only what changed through your choice of provider: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, or any OpenAI-compatible server you run yourself. A committed lock file keeps every run incremental, and placeholder and ICU integrity is checked before anything is written."
-      },
-      "excel": {
-        "title": "Excel handoff",
-        "body": "Run verbatra export to produce a styled .xlsx workbook, hand it to a translation office or in-house translators, then verbatra import reads their edits back into your locale files. Mix machine translation with professional human work."
-      },
-      "automation": {
-        "title": "Automation",
-        "body": "Keep every locale in sync as you work: verbatra watch translates on change, CI-friendly exit codes and --json output slot into any pipeline, and a GitHub Action runs it in your workflow."
-      }
-    },
-    "commands": {
-      "heading": "Every command the binary ships.",
-      "lead": "One install, grouped by the job it does. A test holds this list against the command table in the CLI source, so it cannot quietly fall behind.",
-      "helpNote": "Run verbatra '<command>' --help for the flags each one takes.",
-      "groups": {
-        "run": "Translate",
-        "verify": "Verify without writing",
-        "author": "Author and check your source",
-        "handoff": "Hand off to people",
-        "open": "Set up and open"
-      },
-      "items": {
-        "translate": "Translate every target locale once, then exit.",
-        "watch": "Re-translate on every source change until interrupted.",
-        "check": "Report which keys are missing or stale per locale without writing files.",
-        "diff": "Show the keys that would be added, re-translated, or orphaned per locale.",
-        "doctor": "Validate the project setup without calling a provider or reading an API key.",
-        "extract": "Scan your source for translation call sites and add new keys to the source locale.",
-        "types": "Generate TypeScript declarations for your catalog keys and message arguments.",
-        "pseudo": "Generate a pseudolocale from the source strings without calling a provider.",
-        "export": "Export untranslated strings into a translator handoff: Excel workbook, CSV, or TSV.",
-        "import": "Import a filled handoff back into the locale files, running the same safety checks.",
-        "tmx": "Import a TMX translation memory from another tool, or export this project's memory as TMX.",
-        "studio": "Start Verbatra Studio, the local translation dashboard.",
-        "mcp": "Start a stdio MCP server exposing verbatra's tools to an MCP client.",
-        "init": "Create a verbatra config and .env example for this project."
-      }
-    },
-    "stack": {
-      "label": "Frameworks, formats and translation providers",
-      "formats": {
-        "label": "works with",
-        "marqueeLabel": "Frameworks and formats"
-      },
-      "providers": {
-        "label": "translates through",
-        "marqueeLabel": "Translation providers"
-      }
-    },
-    "studio": {
-      "heading": "Watch the whole translation state, locally.",
-      "lead": "Verbatra Studio is a local dashboard over your project. It shows every locale's coverage live, lists the translations a run flagged as worth a second look, and lets you fix them in place. Editing needs no API key and never calls a provider.",
-      "alt": "The Verbatra Studio Translations page: four summary tiles for keys needing attention, average coverage, locales in sync and last-run token usage, above a grid marking each key as missing or in sync per locale, and a per-locale coverage table.",
-      "caption": "Studio ships in light and dark. Switch the screenshot to compare.",
-      "cta": "Review translations in Studio"
-    },
-    "agents": {
-      "heading": "Hand it to your agent.",
-      "lead": "The same engine, reachable from an assistant instead of a shell.",
-      "items": {
-        "mcp": {
-          "title": "MCP server",
-          "body": "verbatra mcp starts a stdio MCP server that exposes translation status, the glossary, and entry editing to any MCP client.",
-          "cta": "Start with AI"
-        },
-        "skills": {
-          "title": "Agent skills",
-          "body": "Installable SKILL.md documents live in their own repository: one for the CLI, one for the MCP tools, one for the Studio agent tools.",
-          "cta": "verbatra/skills"
-        },
-        "llms": {
-          "title": "llms.txt",
-          "body": "Every documentation page as plain text: an index at /llms.txt and the whole site at /llms-full.txt.",
-          "cta": "Open llms.txt"
-        }
-      },
-      "installLabel": "Install one"
-    },
-    "trust": {
-      "heading": "What you are actually adopting.",
-      "lead": "Five things worth checking before a dependency goes into your repository. Each row links to the file that proves it.",
-      "rows": {
-        "license": {
-          "label": "License",
-          "value": "MIT",
-          "detail": "One permissive license for the whole repository, with no dual licensing and no contributor agreement to sign.",
-          "cta": "Read LICENSE"
-        },
-        "local": {
-          "label": "Where it runs",
-          "value": "Your machine, your CI",
-          "detail": "There is no verbatra service to sign up for. Provider API keys are read from environment variables only, never from the config file and never from a CLI argument.",
-          "cta": "Read env.ts"
-        },
-        "provenance": {
-          "label": "Publishing",
-          "value": "npm Trusted Publishing",
-          "detail": "Releases publish over OIDC with no long-lived npm token in the workflow, and every tarball is built with provenance turned on.",
-          "cta": "Read release.yml"
-        },
-        "coverage": {
-          "label": "Coverage",
-          "value": "Test coverage on Codecov",
-          "detail": "The merge gate holds every package at 90 percent of lines, functions, statements and branches.",
-          "cta": "Open Codecov"
-        },
-        "cost": {
-          "label": "Cost",
-          "value": "No paid tier",
-          "detail": "Open source, all of it: no hosted plan, no seat count, no feature held back. The only spend is your provider's own usage, on a key you hold.",
-          "cta": "Browse the source"
-        }
-      }
-    },
     "faq": {
       "heading": "Frequently asked questions",
-      "supporting": "Short, direct answers to the questions teams ask before adopting verbatra.",
-      "ctaDocs": "Read the docs",
-      "ctaIssue": "open an issue",
       "items": {
         "formats": {
           "question": "Which formats and frameworks does verbatra support?",
@@ -256,7 +133,7 @@
     },
     "finalClose": {
       "heading": "Stop hand-syncing locale files.",
-      "lead": "Add verbatra, commit the lock file, and let every run touch only what changed."
+      "docs": "Read the docs"
     },
     "footer": {
       "tagline": "Translate only what changed. An open-source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
@@ -335,6 +212,114 @@
       "refused": {
         "title": "Refused before it reaches the file",
         "body": "Withheld, never written, sent again next run."
+      }
+    },
+    "marquee": {
+      "label": "Supported frameworks and formats",
+      "intro": "Works with the locale files you already have.",
+      "frameworksLabel": "Frameworks verbatra works with",
+      "formatsLabel": "File formats verbatra reads and writes",
+      "formatTip": "format: \"{id}\"",
+      "frameworks": {
+        "react": "i18next JSON",
+        "next": "next-intl JSON",
+        "vue": "vue-i18n JSON",
+        "nuxt": "vue-i18n JSON",
+        "angular": "ngx-translate JSON or XLIFF",
+        "node": "i18next JSON",
+        "svelte": "i18next JSON or YAML",
+        "astro": "i18next JSON or YAML",
+        "reactNative": "i18next JSON",
+        "flutter": "Flutter ARB",
+        "spring": "Java .properties",
+        "apple": ".strings and .xcstrings",
+        "android": "strings.xml",
+        "dotnet": ".resx"
+      }
+    },
+    "providers": {
+      "heading": "Six providers, one interface.",
+      "lead": "Switch by changing one line of config.",
+      "hint": "Hover or tab through the cards.",
+      "kinds": {
+        "anthropic": "Claude models",
+        "openai": "GPT models",
+        "gemini": "free tier available",
+        "deepl": "machine translation",
+        "googleTranslate": "machine translation",
+        "openaiCompatible": "Ollama, vLLM, LM Studio"
+      }
+    },
+    "loop": {
+      "heading": "The rest of the translation loop, in the same tool.",
+      "rows": {
+        "excel": {
+          "title": "Hand a workbook to translators, import it back.",
+          "body": "Export, get it back filled in, import through the same gate.",
+          "cta": "Read about the Excel handoff"
+        },
+        "studio": {
+          "title": "See every locale's state in Verbatra Studio.",
+          "body": "Coverage, flagged entries, in-place edits. No provider call.",
+          "cta": "Review translations in Studio",
+          "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
+        },
+        "ci": {
+          "title": "Run it on save, in CI, or from a GitHub Action.",
+          "body": "<code>watch</code> translates on change. <code>check</code> fails the pull request when a locale drifts.",
+          "cta": "Wire up CI"
+        },
+        "agent": {
+          "title": "Or hand it to your agent.",
+          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
+          "cta": "Start with AI"
+        }
+      },
+      "links": {
+        "llms": "llms.txt",
+        "llmsFull": "llms-full.txt",
+        "mcpDocs": "MCP server docs"
+      },
+      "table": {
+        "key": "key",
+        "source": "source",
+        "target": "target"
+      }
+    },
+    "gains": {
+      "heading": "What you actually get.",
+      "lead": "This page's German, Spanish and French come from it.",
+      "items": {
+        "cost": {
+          "title": "You pay for the keys you changed.",
+          "body": "Only new and changed keys go to the provider, and every run prints its token count per locale.",
+          "note": "a run on this site's messages"
+        },
+        "gate": {
+          "title": "A broken placeholder never reaches production.",
+          "body": "A candidate that drops a placeholder, breaks ICU or unbalances markup is withheld, never written, and sent again next run.",
+          "note": "the same gate guards Studio edits and imports"
+        },
+        "ci": {
+          "title": "Locale drift fails the pull request.",
+          "body": "<code>verbatra check</code> exits 1 when any locale is missing or stale, with <code>--json</code> for CI.",
+          "note": "this site runs it on every pull request"
+        },
+        "config": {
+          "title": "Your terms and register stay fixed.",
+          "body": "A glossary binds how listed terms are translated; <code>tone</code> sets formal, informal or neutral address.",
+          "note": "this site's verbatra.config.ts"
+        },
+        "git": {
+          "title": "Every translation is a git diff.",
+          "body": "Locale files and the lock are plain text in your repo, and nothing is removed without <code>--prune</code>.",
+          "note": "one hash per key per target locale"
+        },
+        "handoff": {
+          "title": "People and other tools can take over.",
+          "body": "Excel export and import for translators, TMX for translation memory, generated TypeScript types for your keys.",
+          "note": "four of the fourteen commands"
+        }
       }
     }
   },
