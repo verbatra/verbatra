@@ -7,12 +7,16 @@ import {
   classifyLicense,
   classifyManifest,
   isLatestTagViolation,
+  isNotYetOnRegistry,
   isPrereleaseVersion,
   normalizeLicenseText,
   notYetOnRegistry,
   PROPAGATION,
   parsePublishedPackages,
+  ranToCompletion,
+  registryCommandError,
   verifyPackages,
+  worstCasePackageRuntimeMs,
 } from "./verify-npm-publish.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -50,18 +54,37 @@ function tarballNotThereYet(pkg) {
 function stubVerify(observe, overrides = {}) {
   const logs = [];
   const waits = [];
+  const clock = { ms: 0 };
   const deps = {
     observe,
     wait: (ms) => {
       waits.push(ms);
+      clock.ms += ms;
       return Promise.resolve();
     },
     log: (line) => logs.push(line),
+    now: () => clock.ms,
+    deadlineMs: 60_000,
+    commandTimeoutMs: PROPAGATION.commandTimeoutMs,
     delays: [2000, 2000, 2000],
     ...overrides,
   };
-  return { deps, logs, waits };
+  return { deps, logs, waits, clock };
 }
+
+const SPAWN_FAILURE = Object.assign(new Error("spawn npm ENOENT"), {
+  code: "ENOENT",
+  syscall: "spawn npm",
+});
+
+function npmCommandFailure(stderr) {
+  return Object.assign(new Error("Command failed: npm view"), { code: 1, stderr, stdout: "" });
+}
+
+const PROPAGATION_SUBJECTS = {
+  pending: "the published tarball for @verbatra/sdk@0.11.0 is not downloadable yet",
+  fatal: "npm pack failed for @verbatra/sdk@0.11.0 in a way that waiting cannot resolve",
+};
 
 describe("parsePublishedPackages", () => {
   it("parses a valid publishedPackages payload", () => {
@@ -429,5 +452,156 @@ describe("verifyPackages fail-fast conditions", () => {
 
     await expect(verifyPackages([SDK], ROOT_LICENSE, deps)).rejects.toThrow("npm is not installed");
     expect(attempts).toBe(1);
+  });
+});
+
+describe("registryCommandError", () => {
+  it("treats a registry 404 as propagation and keeps it retryable", () => {
+    const error = registryCommandError(
+      npmCommandFailure("npm error code E404\nnpm error 404 Not Found"),
+      PROPAGATION_SUBJECTS,
+    );
+
+    expect(isNotYetOnRegistry(error)).toBe(true);
+    expect(error.message).toBe(`${PROPAGATION_SUBJECTS.pending} (npm E404)`);
+  });
+
+  it("treats an unrecognised transient network failure as propagation", () => {
+    const error = registryCommandError(
+      npmCommandFailure("npm error code ECONNRESET\nnpm error network socket hang up"),
+      PROPAGATION_SUBJECTS,
+    );
+
+    expect(isNotYetOnRegistry(error)).toBe(true);
+    expect(error.message).toContain("npm ECONNRESET");
+  });
+
+  it("fails fast when the npm binary cannot be spawned at all", () => {
+    const error = registryCommandError(SPAWN_FAILURE, PROPAGATION_SUBJECTS);
+
+    expect(isNotYetOnRegistry(error)).toBe(false);
+    expect(error.message).toBe(`${PROPAGATION_SUBJECTS.fatal} (spawn npm ENOENT)`);
+  });
+
+  it("fails fast on an authentication failure rather than waiting out the deadline", () => {
+    for (const code of ["E401", "E403", "ENEEDAUTH", "EOTP", "EAUTHIP", "EAUTHUNKNOWN", "EPERM"]) {
+      const error = registryCommandError(
+        npmCommandFailure(`npm error code ${code}\nnpm error need auth`),
+        PROPAGATION_SUBJECTS,
+      );
+
+      expect(isNotYetOnRegistry(error)).toBe(false);
+      expect(error.message).toBe(`${PROPAGATION_SUBJECTS.fatal} (npm ${code})`);
+    }
+  });
+
+  it("keeps a killed-by-timeout command retryable, since the deadline stops the loop", () => {
+    const killed = Object.assign(new Error("Command failed: npm pack"), {
+      code: null,
+      killed: true,
+      signal: "SIGTERM",
+      stderr: "",
+      stdout: "",
+    });
+
+    expect(isNotYetOnRegistry(registryCommandError(killed, PROPAGATION_SUBJECTS))).toBe(true);
+  });
+});
+
+describe("verifyPackages wall-clock deadline", () => {
+  it("hands every command a positive timeout, so no npm call can hang unbounded", async () => {
+    const timeouts = [];
+    const { deps } = stubVerify((pkg, options) => {
+      timeouts.push(options?.commandTimeoutMs);
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(timeouts).toHaveLength(4);
+    for (const timeout of timeouts) {
+      expect(timeout).toBe(45_000);
+    }
+  });
+
+  it("stops retrying once the wall clock is spent, even with retries left in the schedule", async () => {
+    let attempts = 0;
+    const { deps, waits, clock } = stubVerify((pkg) => {
+      attempts += 1;
+      clock.ms += 25_000;
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(3);
+    expect(waits).toEqual([2000, 2000]);
+    expect(waits.length).toBeLessThan(deps.delays.length);
+    expect(result.unavailable).toContain("after 3 attempt(s) over 79s");
+  });
+
+  it("counts time burnt inside a command against the deadline, not only the sleeps", async () => {
+    const { deps, waits, clock } = stubVerify((pkg) => {
+      clock.ms += 59_000;
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(waits).toEqual([]);
+    expect(result.unavailable).toContain("after 1 attempt(s) over 59s");
+  });
+
+  it("still spends the full retry schedule when commands return instantly", async () => {
+    const delays = backoffDelays(PROPAGATION);
+    const { deps, waits } = stubVerify((pkg) => Promise.reject(tarballNotThereYet(pkg)), {
+      deadlineMs: PROPAGATION.deadlineMs,
+      delays,
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(waits).toEqual(delays);
+    expect(waits.reduce((total, delay) => total + delay, 0)).toBe(PROPAGATION.deadlineMs);
+    expect(result.unavailable).toContain(`after ${delays.length + 1} attempt(s)`);
+  });
+
+  it("keeps the worst case, commands included, inside the release job timeout", () => {
+    const timeoutMinutes = Number(
+      /verify-publish:[\s\S]*?timeout-minutes: (\d+)/.exec(RELEASE_WORKFLOW)?.[1],
+    );
+
+    expect(worstCasePackageRuntimeMs(PROPAGATION)).toBeGreaterThan(PROPAGATION.deadlineMs);
+    expect(worstCasePackageRuntimeMs(PROPAGATION)).toBeLessThan(timeoutMinutes * 60_000 * 0.75);
+  });
+});
+
+describe("ranToCompletion", () => {
+  it("treats a plain non-zero exit as the command having answered", () => {
+    expect(
+      ranToCompletion(
+        Object.assign(new Error("Command failed: tar"), {
+          code: 1,
+          killed: false,
+          stderr: "tar: package/LICENSE: Not found in archive\n",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not treat a command that never started as an answer", () => {
+    expect(ranToCompletion(SPAWN_FAILURE)).toBe(false);
+  });
+
+  it("does not treat a command killed by its timeout as an answer", () => {
+    expect(
+      ranToCompletion(
+        Object.assign(new Error("Command failed: tar"), {
+          code: null,
+          killed: true,
+          signal: "SIGTERM",
+        }),
+      ),
+    ).toBe(false);
   });
 });

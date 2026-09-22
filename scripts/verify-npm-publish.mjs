@@ -26,7 +26,22 @@ const PROPAGATION = {
   deadlineMs: 480_000,
   initialDelayMs: 2_000,
   maxDelayMs: 30_000,
+  commandTimeoutMs: 45_000,
 };
+
+const COMMANDS_PER_ATTEMPT = 3;
+
+const FATAL_SPAWN_CODES = new Set(["ENOENT", "EACCES"]);
+
+const FATAL_NPM_ERROR_CODES = new Set([
+  "E401",
+  "E403",
+  "EAUTHIP",
+  "EAUTHUNKNOWN",
+  "ENEEDAUTH",
+  "EOTP",
+  "EPERM",
+]);
 
 const run = promisify(execFile);
 
@@ -92,18 +107,39 @@ function isNotYetOnRegistry(error) {
   return error instanceof Error && error.notYetOnRegistry === true;
 }
 
-function summarizeCommandFailure(error) {
+function npmErrorCode(error) {
   const streams = `${error?.stderr ?? ""}\n${error?.stdout ?? ""}`;
-  const code = /npm error code (\S+)/.exec(streams);
-  if (code?.[1] !== undefined) {
-    return `npm ${code[1]}`;
+  return /npm error code (\S+)/.exec(streams)?.[1] ?? null;
+}
+
+function summarizeCommandFailure(error) {
+  const code = npmErrorCode(error);
+  if (code !== null) {
+    return `npm ${code}`;
   }
+  const streams = `${error?.stderr ?? ""}\n${error?.stdout ?? ""}`;
   const firstLine = streams
     .split(/\r?\n/)
     .map((line) => line.trim())
     .find((line) => line !== "");
   const fallback = error instanceof Error ? error.message : String(error);
   return (firstLine ?? fallback).replace(/\s+/g, " ").trim();
+}
+
+function isDeterministicCommandFailure(error) {
+  if (typeof error?.code === "string" && FATAL_SPAWN_CODES.has(error.code)) {
+    return true;
+  }
+  const code = npmErrorCode(error);
+  return code !== null && FATAL_NPM_ERROR_CODES.has(code);
+}
+
+function registryCommandError(error, { pending, fatal }) {
+  const summary = summarizeCommandFailure(error);
+  if (isDeterministicCommandFailure(error)) {
+    return new Error(`${fatal} (${summary})`);
+  }
+  return notYetOnRegistry(`${pending} (${summary})`);
 }
 
 function backoffDelays({ deadlineMs, initialDelayMs, maxDelayMs }) {
@@ -124,17 +160,24 @@ function sleep(ms) {
   });
 }
 
-async function readLatestDistTag(name) {
+function commandOptions(commandTimeoutMs) {
+  return { encoding: "utf8", timeout: commandTimeoutMs };
+}
+
+async function readLatestDistTag(name, commandTimeoutMs) {
   let output;
   try {
-    const result = await run("npm", ["view", name, "dist-tags.latest", "--json"], {
-      encoding: "utf8",
-    });
+    const result = await run(
+      "npm",
+      ["view", name, "dist-tags.latest", "--json"],
+      commandOptions(commandTimeoutMs),
+    );
     output = result.stdout.trim();
   } catch (error) {
-    throw notYetOnRegistry(
-      `the registry does not serve dist-tags for ${name} yet (${summarizeCommandFailure(error)})`,
-    );
+    throw registryCommandError(error, {
+      pending: `the registry does not serve dist-tags for ${name} yet`,
+      fatal: `npm view failed for ${name} in a way that waiting cannot resolve`,
+    });
   }
   if (output === "") {
     return null;
@@ -143,27 +186,39 @@ async function readLatestDistTag(name) {
   return typeof latest === "string" ? latest : null;
 }
 
-async function readTarballMember(tarball, member) {
+function ranToCompletion(error) {
+  return typeof error?.code === "number" && error.killed !== true;
+}
+
+async function readTarballMember(tarball, member, commandTimeoutMs) {
   try {
-    const result = await run("tar", ["-xzOf", tarball, member], { encoding: "utf8" });
+    const result = await run("tar", ["-xzOf", tarball, member], commandOptions(commandTimeoutMs));
     return result.stdout;
-  } catch {
-    return null;
+  } catch (error) {
+    if (ranToCompletion(error)) {
+      return null;
+    }
+    throw new Error(
+      `tar could not be run to read ${member} from ${tarball}, so the tarball cannot be ` +
+        `judged either way (${summarizeCommandFailure(error)})`,
+    );
   }
 }
 
-async function downloadTarballMembers(spec) {
+async function downloadTarballMembers(spec, commandTimeoutMs) {
   const workDir = mkdtempSync(join(tmpdir(), "verbatra-license-"));
   try {
     try {
-      await run("npm", ["pack", spec, "--pack-destination", workDir, "--loglevel=error"], {
-        encoding: "utf8",
-      });
-    } catch (error) {
-      throw notYetOnRegistry(
-        `the published tarball for ${spec} is not downloadable yet ` +
-          `(${summarizeCommandFailure(error)})`,
+      await run(
+        "npm",
+        ["pack", spec, "--pack-destination", workDir, "--loglevel=error"],
+        commandOptions(commandTimeoutMs),
       );
+    } catch (error) {
+      throw registryCommandError(error, {
+        pending: `the published tarball for ${spec} is not downloadable yet`,
+        fatal: `npm pack failed for ${spec} in a way that waiting cannot resolve`,
+      });
     }
     const tarball = readdirSync(workDir)[0];
     if (tarball === undefined) {
@@ -171,43 +226,55 @@ async function downloadTarballMembers(spec) {
     }
     const tarballPath = join(workDir, tarball);
     return {
-      license: await readTarballMember(tarballPath, TARBALL_LICENSE_MEMBER),
-      manifest: await readTarballMember(tarballPath, TARBALL_MANIFEST_MEMBER),
+      license: await readTarballMember(tarballPath, TARBALL_LICENSE_MEMBER, commandTimeoutMs),
+      manifest: await readTarballMember(tarballPath, TARBALL_MANIFEST_MEMBER, commandTimeoutMs),
     };
   } finally {
     rmSync(workDir, { force: true, recursive: true });
   }
 }
 
-async function observePackage(pkg) {
-  const latest = isPrereleaseVersion(pkg.version) ? await readLatestDistTag(pkg.name) : null;
-  const members = await downloadTarballMembers(`${pkg.name}@${pkg.version}`);
+async function observePackage(pkg, { commandTimeoutMs }) {
+  const latest = isPrereleaseVersion(pkg.version)
+    ? await readLatestDistTag(pkg.name, commandTimeoutMs)
+    : null;
+  const members = await downloadTarballMembers(`${pkg.name}@${pkg.version}`, commandTimeoutMs);
   return { latest, license: members.license, manifest: members.manifest };
 }
 
-async function observeWithPropagation(pkg, { observe, delays, wait, log }) {
-  let waitedMs = 0;
+function worstCasePackageRuntimeMs({ deadlineMs, commandTimeoutMs }) {
+  return deadlineMs + COMMANDS_PER_ATTEMPT * commandTimeoutMs;
+}
+
+function unavailableReport(pkg, attempts, elapsedMs, error) {
+  return (
+    `${pkg.name}@${pkg.version} is still not on npm after ${attempts} attempt(s) over ` +
+    `${Math.round(elapsedMs / 1000)}s: ${error.message}`
+  );
+}
+
+async function observeWithPropagation(
+  pkg,
+  { observe, delays, wait, log, now, deadlineMs, commandTimeoutMs },
+) {
+  const startedAt = now();
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return { observation: await observe(pkg) };
+      return { observation: await observe(pkg, { commandTimeoutMs }) };
     } catch (error) {
       if (!isNotYetOnRegistry(error)) {
         throw error;
       }
+      const elapsedMs = now() - startedAt;
       const delay = delays[attempt - 1];
-      if (delay === undefined) {
-        return {
-          unavailable:
-            `${pkg.name}@${pkg.version} is still not on npm after ${attempt} attempt(s) over ` +
-            `${Math.round(waitedMs / 1000)}s: ${error.message}`,
-        };
+      if (delay === undefined || elapsedMs + delay > deadlineMs) {
+        return { unavailable: unavailableReport(pkg, attempt, elapsedMs, error) };
       }
       log(
         `verify-npm-publish: waiting for ${pkg.name}@${pkg.version} (attempt ${attempt} of ` +
           `${delays.length + 1}, ${error.message}); retrying in ${Math.round(delay / 1000)}s.`,
       );
       await wait(delay);
-      waitedMs += delay;
     }
   }
 }
@@ -268,6 +335,9 @@ function verifyPackages(packages, rootLicense, overrides = {}) {
     observe: observePackage,
     wait: sleep,
     log: console.log,
+    now: Date.now,
+    deadlineMs: PROPAGATION.deadlineMs,
+    commandTimeoutMs: PROPAGATION.commandTimeoutMs,
     delays: backoffDelays(PROPAGATION),
     ...overrides,
   };
@@ -423,10 +493,14 @@ export {
   classifyLicense,
   classifyManifest,
   isLatestTagViolation,
+  isNotYetOnRegistry,
   isPrereleaseVersion,
   normalizeLicenseText,
   notYetOnRegistry,
   PROPAGATION,
   parsePublishedPackages,
+  ranToCompletion,
+  registryCommandError,
   verifyPackages,
+  worstCasePackageRuntimeMs,
 };
