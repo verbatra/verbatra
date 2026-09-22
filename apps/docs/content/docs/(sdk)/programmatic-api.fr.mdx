@@ -1,6 +1,6 @@
 ---
 title: Recettes SDK
-description: Des patrons complets et exécutables pour piloter verbatra depuis tes propres scripts, jobs CI et outillage.
+description: Des exemples complets et exécutables pour piloter verbatra depuis tes propres scripts, jobs CI et outillage.
 ---
 La [référence SDK](/docs/sdk) catalogue chaque point d'entrée. Cette page est le compagnon pratique : des recettes de bout en bout à copier dans un script et à lancer. Une chose à préparer d'abord : le SDK ne charge pas les fichiers `.env` (c'est la CLI qui fait ça), donc assure-toi que la variable d'environnement du fournisseur est définie avant que ton script tourne, par exemple :
 
@@ -41,19 +41,19 @@ if (summary.failed.length > 0 || summary.partial.length > 0) {
 }
 ```
 
-Une locale `partial` est une locale dont le fichier a été écrit alors que des clés manquent encore. Ce n'est pas un succès : la CLI sort avec `1` dessus, et ton propre script devrait la traiter pareil, d'où le test de `partial` à côté de `failed` ci-dessus.
+Une locale `partial` est une locale dont le fichier a été écrit alors que des clés manquent encore. Ce n'est pas un succès : la CLI se termine avec le code `1` dans ce cas, et ton propre script devrait la traiter de la même façon, d'où le test de `partial` à côté de `failed` ci-dessus.
 
-Passe `dryRun: true` pour prévisualiser sans appeler de fournisseur ni rien écrire, et `prune: true` ou `generatePlurals: true` pour surcharger ces options de config le temps d'une exécution. Passe `locales: ["de"]` pour restreindre l'exécution à un sous-ensemble des cibles configurées, ce qui te permet de traiter un fournisseur à débit limité une langue à la fois ; une locale non configurée lève `UNKNOWN_LOCALE` avant que quoi que ce soit ne soit lu ou dépensé. Mets `concurrency` au-dessus de 1 pour traduire les locales en parallèle (non autorisé avec un budget `maxTokens` sur une exécution réelle) et `cache: false` pour contourner le [cache de mémoire de traduction](/docs/the-cache).
+Passe `dryRun: true` pour prévisualiser sans appeler de fournisseur ni rien écrire, et `prune: true` ou `generatePlurals: true` pour surcharger ces options de config le temps d'une exécution. Passe `locales: ["de"]` pour restreindre l'exécution à un sous-ensemble des cibles configurées, ce qui te permet d'avancer une langue à la fois avec un fournisseur soumis à une limite de débit ; une locale non configurée lève `UNKNOWN_LOCALE` avant que quoi que ce soit ne soit lu ou dépensé. Mets `concurrency` au-dessus de 1 pour traduire les locales en parallèle (non autorisé avec un budget `maxTokens` sur une exécution réelle) et `cache: false` pour contourner le [cache de mémoire de traduction](/docs/the-cache).
 
 ## Estimer une exécution avant de dépenser
 
 <AvailableFrom version="0.11.0" />
 
 `estimate: true` implique `dryRun` : l'exécution ne construit aucun fournisseur, ne lit aucune clé
-d'API et n'écrit rien. Le chiffre arrive sur `RunSummary.estimate`. Branche sur `unit` pour la
-dimension facturée et sur `pricing` pour savoir si un chiffre en devise était disponible : verbatra
-ne livre aucun tarif, donc un coût n'apparaît que si la configuration porte un bloc `rates` pour ce
-fournisseur et ce modèle.
+d'API et n'écrit rien. Le chiffre arrive sur `RunSummary.estimate`. Base ton branchement sur `unit`
+pour la dimension facturée et sur `pricing` pour savoir si un chiffre en devise était disponible :
+verbatra ne livre aucun tarif qui lui soit propre, donc un coût n'apparaît que si la configuration
+porte un bloc `rates` pour ce fournisseur et ce modèle.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -92,7 +92,7 @@ appelle-le plutôt que de la reformuler. Pour la méthode derrière les chiffres
 
 ## Vérifier en CI sans écrire
 
-`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. Ça en fait le contrôle CI naturel.
+`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. Cela en fait le garde-fou de CI naturel.
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -146,7 +146,7 @@ Un échec d'exécution après le démarrage ne lève jamais ; il arrive comme `{
 `extract` est le seul point d'entrée qui lit du code applicatif plutôt qu'un fichier de locale. Il
 n'écrit que le catalogue source, et seulement les clés vraiment nouvelles : une clé déjà présente
 garde sa valeur, et une clé qu'aucun site d'appel ne mentionne est laissée telle quelle. Tout ce
-que l'analyse ne peut pas résoudre revient sous forme de données, donc un dry-run fait un bon
+que l'analyse ne peut pas résoudre revient sous forme de données, donc un dry run fait un bon
 garde-fou avant l'exécution qui écrit.
 
 ```ts
@@ -175,7 +175,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 }
 ```
 
-`config.extract` doit nommer le framework et les racines de code, sinon l'appel lève
+`config.extract` doit nommer le framework et les racines de sources, sinon l'appel lève
 `EXTRACT_NOT_CONFIGURED`. La découverte passe par le membre optionnel `readDirectory` de `SdkFs` :
 un `deps.fs` personnalisé qui ne l'implémente pas est refusé avec `EXTRACT_FS_UNSUPPORTED`, et un
 catalogue source qui ne peut pas être écrit lève `SOURCE_UNWRITABLE`.
@@ -186,7 +186,7 @@ catalogue source qui ne peut pas être écrit lève `SOURCE_UNWRITABLE`.
 
 `generateTypes` déclare le catalogue source en TypeScript : une union de toutes les clés, plus les
 arguments que chaque message interpole. Il lit un fichier et écrit un fichier, et deux exécutions
-sur un catalogue inchangé écrivent des octets identiques, ce qui fait du mode `check` un contrôle
+sur un catalogue inchangé écrivent des octets identiques, ce qui fait du mode `check` un garde-fou
 de CI exploitable.
 
 ```ts
@@ -217,7 +217,7 @@ if (gate.stale) {
 
 Passe `configPath` pour que le fichier de configuration chargé par l'exécution soit refusé comme
 chemin de sortie. Une exécution avec `check` n'écrit rien, ne refuse rien pour son contenu et ne
-signale que `stale`. Tout ce qu'une exécution qui écrit refuse, avec `TYPES_OUTPUT_CONFLICT`, est
+signale que `stale`. Tout ce qu'une exécution qui génère refuse, avec `TYPES_OUTPUT_CONFLICT`, est
 listé sur la page [`verbatra types`](/docs/cli/types) ; une déclaration qui ne peut pas être écrite
 lève `TYPES_UNWRITABLE`.
 
@@ -251,7 +251,7 @@ déterministe : une seconde exécution sur une source inchangée ne réécrit ri
 
 ## Modifier et retraduire une seule clé
 
-Ce sont les interfaces que Verbatra Studio pilote ; utilise-les pour construire ton propre flux de révision. Lis les valeurs actuelles avec `keyValue`, enregistre une correction humaine avec `editEntry`, ou relance le fournisseur pour une clé avec `retranslateEntry`. Les deux fonctions d'écriture passent la valeur candidate par les mêmes vérifications d'intégrité qu'une exécution complète et renvoient un résultat à deux branches au lieu de lever sur une valeur rejetée.
+Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre flux de révision. Lis les valeurs actuelles avec `keyValue`, enregistre une correction humaine avec `editEntry`, ou relance le fournisseur pour une clé avec `retranslateEntry`. Les deux fonctions d'écriture passent la valeur candidate par les mêmes contrôles d'intégrité qu'une exécution complète et renvoient un résultat à deux branches au lieu de lever sur une valeur rejetée.
 
 ```ts
 import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
@@ -283,7 +283,7 @@ if (retry.accepted) {
 }
 ```
 
-Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes interfaces derrière une UI.
+Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
 
 ## Lire toutes les valeurs en bloc
 
@@ -317,7 +317,7 @@ verrouillage ni au cache. Omets `locales` pour couvrir toutes les locales cibles
 
 ## L'aller-retour du classeur
 
-Exporte les chaînes à traduire dans un classeur Excel, confie-le à un traducteur, puis réimporte le fichier rempli. `importWorkbook` exécute les mêmes vérifications de dérive et d'intégrité que `translate` et renvoie la même forme `RunSummary`, donc une passation manuelle s'insère exactement dans le reporting que tu utilises pour une exécution automatisée.
+Exporte les chaînes à traduire dans un classeur Excel, confie-le à un traducteur, puis réimporte le fichier rempli. `importWorkbook` exécute les mêmes vérifications de dérive et d'intégrité que `translate` et renvoie la même forme `RunSummary`, donc une remise manuelle s'insère exactement dans les rapports que tu utilises pour une exécution automatisée.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -344,9 +344,9 @@ Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans r
 
 `importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) au
 format TMX, le format d'échange que produisent et lisent les plateformes de traduction courantes.
-Ce n'est pas la paire du classeur dans un autre format : le classeur remet à une personne
-traductrice le delta en attente d'une locale, tandis que cette paire déplace la mémoire entière
-comme un seul fichier multilingue entre outils.
+Ce n'est pas la paire classeur dans un autre format : le classeur remet à un traducteur humain
+le delta en attente d'une locale, tandis que cette paire déplace la mémoire entière comme un seul
+fichier multilingue entre outils.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
@@ -383,7 +383,7 @@ console.log(`${exported.units} units to ${exported.path}`);
 
 Ni l'un ni l'autre ne construit de fournisseur, ne lit de clé d'API ni ne fait d'appel réseau.
 `importTmx` signale les données abîmées au lieu de lever dessus : un fichier refusé lève
-`SOURCE_INVALID`, et `tmxErrorLocation` lit l'endroit dans cette erreur sans la caster ni caster
+`SOURCE_INVALID`, et `tmxErrorLocation` lit cet emplacement dans l'erreur sans avoir à la caster ni à caster
 son `cause`. Seules les entrées sous l'empreinte de configuration actuelle sont exportées, soit
 exactement l'ensemble qu'une exécution réutiliserait.
 

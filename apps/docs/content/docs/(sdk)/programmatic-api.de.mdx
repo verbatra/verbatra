@@ -13,9 +13,9 @@ node --env-file=.env translate.mjs
 
 ## Einmal übersetzen in einem Skript
 
-Lade die Konfiguration, führe den Flow aus, dann lies die Zusammenfassung: die Schlagzeile aus
+Lade die Konfiguration, führe den Flow aus, dann lies die Zusammenfassung: das Gesamtbild aus
 `succeeded` und `failed`, den Token-Verbrauch aus `usage` und die Keys, die einen menschlichen
-Blick verdienen, aus dem `needsReview` jedes Locales. Probleme des gesamten Laufs werfen einen
+Blick verdienen, aus dem `needsReview` jeder Locale. Probleme des gesamten Laufs werfen einen
 `SdkError`; Ergebnisse pro Locale sind Daten auf der Zusammenfassung.
 
 ```ts
@@ -47,25 +47,25 @@ if (summary.failed.length > 0 || summary.partial.length > 0) {
 }
 ```
 
-Ein als `partial` gemeldetes Locale ist eines, dessen Datei mit weiterhin fehlenden Keys
+Eine als `partial` gemeldete Locale ist eine, deren Datei mit weiterhin fehlenden Keys
 geschrieben wurde. Das ist kein Erfolg: Die CLI endet darauf mit `1`, und dein eigenes Skript
 sollte es genauso behandeln, deshalb prüft die Abfrage oben `partial` neben `failed`.
 
 Übergib `dryRun: true`, um ohne Provider-Aufruf und ohne Schreiben eine Vorschau zu bekommen, und
 `prune: true` oder `generatePlurals: true`, um diese Konfigurationsoptionen für einen Lauf zu
-übersteuern. Übergib `locales: ["de"]`, um den Lauf auf eine Teilmenge der konfigurierten Ziele zu
-beschränken; so arbeitest du einen ratenbegrenzten Provider Sprache für Sprache ab. Ein nicht
-konfiguriertes Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas gelesen oder ein
-kostenpflichtiger Provider-Aufruf gemacht wird. Setze `concurrency` über 1, um Locales parallel zu übersetzen (bei einem Live-Lauf
-nicht mit einem `maxTokens`-Budget erlaubt), und `cache: false`, um den
-[Translation-Memory-Cache](/docs/the-cache) zu umgehen.
+überschreiben. Übergib `locales: ["de"]`, um den Lauf auf eine Teilmenge der konfigurierten Ziele
+zu beschränken; so arbeitest du einen ratenbegrenzten Provider Sprache für Sprache ab. Eine nicht
+konfigurierte Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas gelesen oder Geld ausgegeben wird. Setze
+`concurrency` über 1, um Locales parallel zu übersetzen (bei einem Live-Lauf nicht mit einem
+`maxTokens`-Budget erlaubt), und `cache: false`, um den
+[Übersetzungsspeicher-Cache](/docs/the-cache) zu umgehen.
 
 ## Einen Lauf schätzen, bevor du ausgibst
 
 <AvailableFrom version="0.11.0" />
 
-`estimate: true` impliziert `dryRun`, der Lauf erzeugt also keinen Provider, liest keinen
-API-Schlüssel und schreibt nichts. Die Zahl landet auf `RunSummary.estimate`. Verzweige über `unit`
+`estimate: true` impliziert `dryRun`, der Lauf konstruiert also keinen Provider, liest keinen
+API-Key und schreibt nichts. Die Zahl landet auf `RunSummary.estimate`. Verzweige über `unit`
 für die abgerechnete Dimension und über `pricing` dafür, ob eine Währungszahl verfügbar war:
 verbatra liefert keine eigenen Raten mit, ein Preis erscheint also nur, wenn die Konfiguration
 einen `rates`-Block für diesen Provider und dieses Modell trägt.
@@ -103,7 +103,7 @@ Es begrenzt den Plan, nicht die Rechnung: Ein echter Lauf gibt meist weniger aus
 und er kann aus jedem Grund mehr ausgeben, den `caveats` nennt. `resolveDryRun` ist die eine
 Stelle, an der die Regel "`estimate` impliziert `dryRun`" entschieden wird, rufe es also auf,
 statt sie erneut auszuformulieren. Die Methode hinter den Zahlen steht in
-[Kosten schätzen](/docs/estimating-cost).
+[Kosten abschätzen](/docs/estimating-cost).
 
 ## In CI prüfen, ohne zu schreiben
 
@@ -126,7 +126,7 @@ if (!summary.inSync) {
 }
 ```
 
-Du brauchst die Key-Namen statt Zähler? Tausche `diff` ein, das die Key-Listen `missing`,
+Du brauchst die Key-Namen statt der Anzahlen? Tausche `diff` ein, das die Key-Listen `missing`,
 `changed` und `orphaned` pro Locale zurückgibt, mit demselben `hasPendingChanges`-Gate. Du führst
 stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
@@ -165,10 +165,10 @@ Beobachten geht weiter.
 
 <AvailableFrom version="0.11.0" />
 
-`extract` ist der eine Einstiegspunkt, der Anwendungscode statt einer Locale-Datei liest. Es
+`extract` ist der eine Einstiegspunkt, der Anwendungscode statt einer Locale-Datei liest. Er
 schreibt nur den Quellkatalog, und nur wirklich neue Keys: Ein vorhandener Key behält seinen Wert,
 und ein Key, den keine Aufrufstelle nennt, bleibt unangetastet. Alles, was der Scan nicht auflösen
-kann, kommt als Daten zurück, ein Dry-Run ist also ein gutes Gate vor dem schreibenden Lauf.
+kann, kommt als Daten zurück, ein Dry Run ist also ein gutes Gate vor dem schreibenden Lauf.
 
 ```ts
 import { extract, loadConfig } from "@verbatra/sdk";
@@ -207,7 +207,7 @@ abgelehnt, und ein Quellkatalog, der nicht geschrieben werden kann, löst `SOURC
 
 `generateTypes` deklariert den Quellkatalog als TypeScript: eine Union aus jedem Key plus den
 Argumenten, die jede Nachricht interpoliert. Es liest eine Datei und schreibt eine Datei, und zwei
-Läufe über einen unveränderten Katalog schreiben bytegleiche Bytes: genau das macht den
+Läufe über einen unveränderten Katalog schreiben Byte für Byte dasselbe: genau das macht den
 `check`-Modus zu einem brauchbaren CI-Gate.
 
 ```ts
@@ -242,15 +242,15 @@ wird. Ein `check`-Lauf schreibt nichts, lehnt nichts wegen seines Inhalts ab und
 [`verbatra types`](/docs/cli/types); eine Deklaration, die nicht geschrieben werden kann, löst
 `TYPES_UNWRITABLE` aus.
 
-## Ein Pseudolocale bauen
+## Eine Pseudo-Locale bauen
 
 <AvailableFrom version="0.11.0" />
 
-`pseudolocalize` baut allein aus den Quellstrings ein künstliches Locale, sodass abgeschnittene
-Layouts und nie extrahierte Strings auftauchen, bevor es überhaupt einen API-Schlüssel gibt. Es
-erzeugt keinen Provider und macht keine Netzwerkanfrage, und seine Ausgabe landet außerhalb von
-`files.pattern`, `translate` gibt also nie etwas dafür aus, und `check` und `diff` melden es nie
-als abgedriftet.
+`pseudolocalize` baut allein aus den Quellstrings eine künstliche Locale, sodass abgeschnittene
+Layouts und nie extrahierte Strings auftauchen, bevor es überhaupt einen API-Key gibt. Es
+konstruiert keinen Provider und stellt keine Netzwerkanfrage, und seine Ausgabe landet außerhalb
+von `files.pattern`, `translate` gibt also nie Geld dafür aus, und `check` und `diff` melden sie
+nie als abgedriftet.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -264,19 +264,20 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` ist standardmäßig `en-XA` und `out` `.verbatra-local/pseudo`. Ein Pseudolocale, das ein
-konfiguriertes Locale benennt, oder ein `out`, das auf einer konfigurierten Locale-Datei landen
+`locale` ist standardmäßig `en-XA` und `out` `.verbatra-local/pseudo`. Eine Pseudo-Locale, die eine
+konfigurierte Locale benennt, oder ein `out`, das auf einer konfigurierten Locale-Datei landen
 würde, wird mit `PSEUDO_OUTPUT_CONFLICT` abgelehnt, bevor irgendetwas gelesen oder geschrieben
 wird. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quelle schreibt
 also nichts neu und meldet `written` als false.
 
 ## Einen einzelnen Key bearbeiten und neu übersetzen
 
-Das sind die Nahtstellen, die Verbatra Studio antreibt; nutze sie, um deinen eigenen Review-Flow
-zu bauen. Lies die aktuellen Werte mit `keyValue`, speichere eine menschliche Korrektur mit
-`editEntry` oder lass den Provider für einen Key mit `retranslateEntry` neu laufen. Beide
-Schreiber schicken den Kandidatenwert durch dieselben Integritätsprüfungen wie ein
-voller Lauf und geben ein zweiarmiges Ergebnis zurück, statt bei einem abgelehnten Wert zu werfen.
+Das sind die Nahtstellen, an denen Verbatra Studio ansetzt; nutze sie, um deinen eigenen
+Review-Flow zu bauen. Lies die aktuellen Werte mit `keyValue`, speichere eine menschliche Korrektur
+mit `editEntry` oder lass den Provider für einen Key mit `retranslateEntry` neu laufen. Beide
+schreibenden Einstiegspunkte schicken den Kandidatenwert durch dieselben Integritätsprüfungen wie
+ein voller Lauf und geben ein zweiarmiges Ergebnis zurück, statt bei einem abgelehnten Wert zu
+werfen.
 
 ```ts
 import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
@@ -308,7 +309,7 @@ if (retry.accepted) {
 }
 ```
 
-Ein unbekanntes Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, und
+Eine unbekannte Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, und
 `retranslateEntry` wirft den eigenen `ProviderError` des Providers (zum Beispiel `RATE_LIMITED`),
 wenn der Aufruf selbst fehlschlägt. Dieselben Nahtstellen hinter einer Oberfläche zeigt
 [Review in Studio](/docs/review-in-studio).
@@ -317,9 +318,10 @@ wenn der Aufruf selbst fehlschlägt. Dieselben Nahtstellen hinter einer Oberflä
 
 <AvailableFrom version="0.10.0" />
 
-`localeValues` ist das Massen-Gegenstück zu `keyValue`: ein Durchgang über die Dateien, die schon
-auf der Platte liegen, der pro Locale den aktuellen Quell- und Zieltext jedes Keys zurückgibt.
-Greif danach, wenn ein Aufrufer Übersetzungsinhalte statt Key-Namen durchsuchen oder scannen muss.
+`localeValues` ist das Gegenstück zu `keyValue` für große Mengen: ein Durchgang über die Dateien,
+die schon auf der Platte liegen, der pro Locale den aktuellen Quell- und Zieltext jedes Keys
+zurückgibt. Greif darauf zurück, wenn ein Aufrufer Übersetzungsinhalte statt Key-Namen durchsuchen
+oder scannen muss.
 
 ```ts
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -340,7 +342,7 @@ for (const { locale, values } of report) {
 ```
 
 Nur lesend: Es ruft keinen Provider auf, schreibt nichts und berührt weder die Lock-Datei noch den
-Cache. Lass `locales` weg, um jedes konfigurierte Ziel-Locale abzudecken.
+Cache. Lass `locales` weg, um jede konfigurierte Ziel-Locale abzudecken.
 
 ## Der Arbeitsmappen-Roundtrip
 
@@ -375,11 +377,11 @@ in [Menschliche Übersetzung](/docs/manual-translation).
 
 <AvailableFrom version="0.11.0" />
 
-`importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/docs/the-cache) nach TMX hinein und
-heraus, dem Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und lesen. Das ist
-nicht das Arbeitsmappen-Paar in einem anderen Format: Die Arbeitsmappe gibt das ausstehende Delta
-eines Locales an eine menschliche Übersetzerin, dieses Paar bewegt den ganzen Speicher als eine
-mehrsprachige Datei zwischen Werkzeugen.
+`importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/docs/the-cache) in TMX hinein und
+wieder heraus, in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und lesen.
+Das ist nicht das Arbeitsmappen-Paar in einem anderen Format: Die Arbeitsmappe gibt das ausstehende
+Delta einer Locale an eine menschliche Übersetzerin, dieses Paar bewegt den ganzen
+Übersetzungsspeicher als eine mehrsprachige Datei zwischen Werkzeugen.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
@@ -414,16 +416,17 @@ const exported = await exportTmx({ config, out: "out/memory.tmx" });
 console.log(`${exported.units} units to ${exported.path}`);
 ```
 
-Keines von beiden erzeugt einen Provider, liest einen API-Schlüssel oder macht einen
-Netzwerkaufruf. `importTmx` meldet beschädigte Daten, statt an ihnen zu werfen: Eine abgelehnte
+Keines von beiden konstruiert einen Provider, liest einen API-Key oder macht einen
+Netzwerkaufruf. `importTmx` meldet beschädigte Daten, statt bei ihnen zu werfen: Eine abgelehnte
 Datei löst `SOURCE_INVALID` aus, und `tmxErrorLocation` liest die Stelle aus diesem Fehler, ohne
 ihn oder sein `cause` zu casten. Exportiert werden nur Einträge unter dem aktuellen
-Konfigurations-Fingerabdruck, also genau die Menge, die ein Lauf wiederverwenden würde.
+Konfigurations-Fingerprint, also genau die Menge, die ein Lauf wiederverwenden würde.
 
 ## Eine Konfiguration ohne Datei
 
-`loadConfig` akzeptiert ein `configOverride` im Speicher, validiert genau wie eine geladene Datei;
-du kannst verbatra also komplett aus Code heraus fahren, ohne Konfigurationsdatei auf der Platte.
+`loadConfig` akzeptiert ein `configOverride` im Speicher, das genau wie eine geladene Datei
+validiert wird; du kannst verbatra also komplett aus Code heraus steuern, ganz ohne
+Konfigurationsdatei auf der Platte.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";

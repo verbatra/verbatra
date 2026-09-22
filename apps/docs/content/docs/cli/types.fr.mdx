@@ -5,7 +5,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Une clé mal orthographiée, c'est un échec de recherche à l'exécution. Un argument d'interpolation oublié, c'est un marqueur affiché tel quel à l'écran. `types` transforme les deux en erreurs de compilation : la commande lit ton catalogue source via l'[adaptateur de format](/docs/formats) configuré et écrit un fichier de déclarations contenant une union de toutes les clés et, par clé, les arguments que son message prend. Cela ne coûte rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite et aucune clé d'API n'est lue, donc cela marche sur un dépôt fraîchement cloné, avant même qu'une clé existe.
+Une clé mal orthographiée, c'est un échec de recherche à l'exécution. Un argument d'interpolation oublié, c'est un placeholder affiché tel quel à l'écran. `types` transforme les deux en erreurs de compilation : la commande lit ton catalogue source via l'[adaptateur de format](/docs/formats) configuré et écrit un fichier de déclarations contenant une union de toutes les clés et, par clé, les arguments que son message prend. Elle ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite et aucune clé d'API n'est lue, si bien qu'elle fonctionne sur un dépôt fraîchement cloné, avant même qu'une clé existe.
 
 Elle lit un fichier (le catalogue de ta locale source) et écrit un fichier (la déclaration). Elle ne touche jamais à un fichier de locale cible.
 
@@ -17,13 +17,13 @@ verbatra types [flags]
 
 ## Options
 
-| Option | Argument | Valeur par défaut | Effet |
+| Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résoudre la configuration et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | en chercher une | charger ce fichier de configuration au lieu d'en chercher un |
+| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
+| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de celui-ci |
-| `--check` | aucun | désactivé | signaler si la déclaration versionnée est toujours à jour, sans rien écrire |
-| `--json` | aucun | désactivé | afficher une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat sous `result` |
+| `--check` | aucun | désactivé | signale si la déclaration commitée est toujours à jour, sans rien écrire |
+| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat sous `result` |
 
 ## Ce qui est généré
 
@@ -92,13 +92,13 @@ t("app.title", { name: "Ada" }); // error: this message takes no argument
 
 ## Ce qui est affirmé et ce qui ne l'est pas
 
-Les clés sont exactement ce que l'adaptateur de format avait déjà produit en lisant le catalogue, dans l'ordre du document, et c'est pourquoi le même catalogue produit toujours les mêmes octets. Pour la plupart des formats, les arguments viennent des jetons de marqueurs que l'adaptateur a extraits. Pour les deux formats de messages ICU, `next-intl-json` et `arb`, chaque message est lu avec le même parseur ICU que celui de l'adaptateur : un argument que seules certaines branches `select` ou `plural` utilisent est donc quand même déclaré, et chaque argument reçoit son type selon la façon dont le message le formate. Rien n'est deviné.
+Les clés sont exactement ce que l'adaptateur de format avait déjà produit en lisant le catalogue, dans l'ordre du document, et c'est pourquoi le même catalogue produit toujours les mêmes octets. Pour la plupart des formats, les arguments viennent des jetons de placeholders que l'adaptateur a extraits. Pour les deux formats de messages ICU, `next-intl-json` et `arb`, chaque message est lu avec le même analyseur ICU que celui de l'adaptateur : un argument que seules certaines branches `select` ou `plural` utilisent est donc quand même déclaré, et chaque argument reçoit son type selon la façon dont le message le formate. Rien n'est deviné.
 
 | Ton message | Ce qui est déclaré |
 | --- | --- |
-| aucun marqueur | `VerbatraNoArguments`, donc passer quoi que ce soit est une erreur de type |
-| des marqueurs nommés (`{{name}}`, `{name}`, `%(name)s`) | une forme d'objet portant ces noms |
-| des marqueurs numérotés ou anonymes (`{0}`, `%@`, `%1$d`) | un tuple `readonly`, une position par argument |
+| aucun placeholder | `VerbatraNoArguments`, donc passer quoi que ce soit est une erreur de type |
+| des placeholders nommés (`{{name}}`, `{name}`, `%(name)s`) | une forme d'objet portant ces noms |
+| des placeholders numérotés ou anonymes (`{0}`, `%@`, `%1$d`) | un tuple `readonly`, une position par argument |
 | un argument que seules certaines branches `select` ou `plural` utilisent (`next-intl-json`, `arb`) | un membre optionnel, `name?:`, ou pour un argument numéroté une position de tuple optionnelle (`[number, VerbatraArgument?]`) ; un argument utilisé par toutes les branches reste obligatoire |
 | un argument ICU `number`, `plural` ou `selectordinal` (`{count, number}`, `{count, plural, ...}`) dans `next-intl-json` ou `arb` | `number` |
 | un argument ICU `date` ou `time` (`{d, date, short}`) dans `next-intl-json` ou `arb` | `Date \| number` |
@@ -109,13 +109,13 @@ Les clés sont exactement ce que l'adaptateur de format avait déjà produit en 
 | un argument MessageFormat `number`, `plural` ou `choice` (`{0,number}`) dans `properties` | `number` |
 | une conversion printf numérique (`%d`, `%1$d`) | `number` |
 | une conversion printf de chaîne (`%s`, `%(name)s`) | `string` |
-| tout autre marqueur, y compris un argument ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
+| tout autre placeholder, y compris un argument ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
 | une syntaxe de message invalide, que seuls `next-intl-json` et `arb` vérifient | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 | un message qui à la fois nomme et numérote ses arguments | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 
 Un tuple ne peut omettre que des positions à sa fin : un argument numéroté que seules certaines branches utilisent n'est donc déclaré optionnel que si toutes les positions qui le suivent le sont aussi. Dans `{0, select, a {{1}} other {x}} {2}`, la position `1` reste obligatoire, parce que la position obligatoire `2` la suit.
 
-Les noms d'arguments viennent des jetons de marqueurs que l'adaptateur a extraits : un format dont les marqueurs ne portent aucun nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit donc un tuple plutôt que des noms inventés. Les types d'arguments viennent uniquement de ce que ton catalogue enregistre vraiment : la façon dont un message ICU formate un argument, ou le formateur ou la conversion que nomme un marqueur. Quand un format nomme un argument sans dire ce qu'on peut lui passer, verbatra déclare `string | number` au lieu d'affirmer un type que le catalogue n'a jamais porté. Un nom utilisé plusieurs fois avec des types différents est déclaré comme l'union de tout ce qu'accepte chaque utilisation : `{d, date, short}` à côté d'un simple `{d}` devient `Date | number | string`, et `{n, plural, ...}` à côté d'un simple `{n}` devient `string | number`. Rien n'est jamais déclaré en `any`.
+Les noms d'arguments viennent des jetons de placeholders que l'adaptateur a extraits : un format dont les placeholders ne portent aucun nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit donc un tuple plutôt que des noms inventés. Les types d'arguments viennent uniquement de ce que ton catalogue enregistre vraiment : la façon dont un message ICU formate un argument, ou le formateur ou la conversion que nomme un placeholder. Quand un format nomme un argument sans dire ce qu'on peut lui passer, verbatra déclare `string | number` au lieu d'affirmer un type que le catalogue n'a jamais porté. Un nom utilisé plusieurs fois avec des types différents est déclaré comme l'union de tout ce qu'accepte chaque utilisation : `{d, date, short}` à côté d'un simple `{d}` devient `Date | number | string`, et `{n, plural, ...}` à côté d'un simple `{n}` devient `string | number`. Rien n'est jamais déclaré en `any`.
 
 Les clés sont toujours émises comme des littéraux de chaîne entre guillemets : une clé portant un point, un mot réservé, un chiffre en tête, un guillemet, ou même la clé vide, est donc déclarée telle quelle plutôt qu'abandonnée ou redécoupée. Une clé que l'adaptateur a signalée comme exclue de la traduction (une feuille isolée qui n'est pas une chaîne, une ressource Android avec `translatable="false"`) n'est jamais déclarée, et elle est nommée dans la sortie pour que tu voies ce qui a été laissé de côté.
 
@@ -133,7 +133,7 @@ Ne compte pas sur un runtime pour résoudre cette graphie. i18next, par exemple,
 
 ### Le seul cas où la déclaration se trompe au lieu de simplement se taire
 
-Seuls `next-intl-json` et `arb` valident la syntaxe des messages. Pour tout autre format, une valeur cassée et pas seulement ordinaire (`"Hello {name"`, sans l'accolade fermante) ne produit aucun jeton de marqueur : le message est donc déclaré comme ne prenant aucun argument, et passer l'argument qu'il veut vraiment devient une erreur de compilation. Rien ne le signale, parce que rien ne l'a détecté. Ce qu'il faut corriger, c'est le catalogue, pas la déclaration.
+Seuls `next-intl-json` et `arb` valident la syntaxe des messages. Pour tout autre format, une valeur cassée plutôt que simplement ordinaire (`"Hello {name"`, sans l'accolade fermante) ne produit aucun jeton de placeholder : le message est donc déclaré comme ne prenant aucun argument, et passer l'argument qu'il veut vraiment devient une erreur de compilation. Rien ne le signale, parce que rien ne l'a détecté. Ce qu'il faut corriger, c'est le catalogue, pas la déclaration.
 
 ### Clés au pluriel
 
@@ -141,7 +141,7 @@ Rien n'est fusionné. i18next porte le pluriel en suffixe de clé, donc `cart.it
 
 ## Où atterrit la déclaration
 
-Par défaut elle atterrit dans `verbatra-types.d.ts` à la racine de ton projet. **Versionne-la.** C'est un artefact versionné, pas un brouillon local, pour deux raisons : un collègue ou un job de CI vérifie les types dessus sans avoir à lancer verbatra d'abord, et `--check` a besoin d'un fichier versionné auquel se comparer. Rien ne l'ajoute au `.gitignore`.
+Par défaut elle atterrit dans `verbatra-types.d.ts` à la racine de ton projet. **Commite-la.** C'est un artefact commité, pas un brouillon local, pour deux raisons : un collègue ou un job de CI vérifie les types dessus sans avoir à lancer verbatra d'abord, et `--check` a besoin d'un fichier commité auquel se comparer. Rien ne l'ajoute au `.gitignore`.
 
 Passe `--out` pour la mettre là où ton application importe déjà, par exemple `--out src/generated/messages.d.ts`. Les répertoires manquants sont créés. Un chemin de sortie est refusé avec `TYPES_OUTPUT_CONFLICT` quand il :
 
@@ -150,45 +150,45 @@ Passe `--out` pour la mettre là où ton application importe déjà, par exemple
 - sort du répertoire de travail avec `..`,
 - n'est pas un fichier TypeScript, c'est-à-dire que son nom ne se termine pas par `.ts`, `.mts` ou `.cts`,
 - nomme un fichier de locale configuré, source ou cible, pour que la génération n'écrase jamais un catalogue,
-- est le fichier de verrouillage `verbatra.lock.json`,
-- est le cache local de mémoire de traduction `verbatra.cache.json`,
+- est le fichier de verrouillage, `verbatra.lock.json`,
+- est le cache de mémoire de traduction, `verbatra.cache.json`,
 - est un fichier où verbatra cherche sa configuration : `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` ou `verbatra.config.ts`,
 - est le fichier de configuration que l'exécution a réellement chargé, y compris celui que tu as indiqué avec `--config`,
 - est un fichier existant qui ne commence pas par la ligne d'en-tête `// Generated by verbatra from` que verbatra écrit en tête de chaque déclaration (une marque d'ordre des octets et des lignes vides en tête sont ignorées), ou est trop volumineux pour être vérifié.
 
 Les noms de fichiers sont comparés sans tenir compte de la casse : `Verbatra.Config.ts` est donc refusé aussi. Tous les cas sauf le dernier sont refusés avant toute lecture ou écriture. Le dernier n'est vérifié que par une exécution qui écrirait, et il laisse ton fichier intact : choisis un autre `--out`, ou supprime le fichier s'il s'agit vraiment d'une ancienne déclaration. `--check` ne refuse jamais un fichier existant ; il se contente de comparer.
 
-Un chemin qui passe toutes ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire de la déclaration ne peut pas être créé ou que le fichier ne peut pas être écrit, parce que le répertoire n'est pas inscriptible, n'existe plus ou que le disque est plein, l'exécution s'arrête avec `TYPES_UNWRITABLE` et sort en `2`. `--check` n'y arrive jamais, puisqu'il n'écrit rien.
+Un chemin qui passe toutes ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire de la déclaration ne peut pas être créé ou que le fichier ne peut pas être écrit, parce que le répertoire n'est pas inscriptible, n'existe plus ou que le disque est plein, l'exécution s'arrête avec `TYPES_UNWRITABLE` et sort en `2`. `--check` ne l'atteint jamais, puisqu'il n'écrit rien.
 
 ## Rester honnête en CI
 
-`--check` n'écrit rien et sort avec `1` quand la déclaration versionnée ne correspond plus à ce qu'une génération fraîche produirait. La comparaison se fait octet par octet, sans reformatage : elle attrape donc une clé ajoutée au catalogue et jamais régénérée.
+`--check` n'écrit rien et sort avec `1` quand la déclaration commitée ne correspond plus à ce qu'une génération fraîche produirait. La comparaison se fait octet par octet, sans reformatage : elle attrape donc une clé ajoutée au catalogue et jamais régénérée :
 
 ```yaml
 - run: npx verbatra types --check
 ```
 
-Mets une chose en place avant de t'y fier. La déclaration est toujours écrite avec des fins de ligne line feed et `--check` compare des octets exacts : un checkout qui réécrit les fins de ligne la laisse donc périmée en permanence, sans qu'une nouvelle exécution puisse y remédier. Fixe les fins de ligne dans `.gitattributes` :
+Mets une chose en place avant de t'y fier. La déclaration est toujours écrite avec des fins de ligne LF et `--check` compare des octets exacts : un checkout qui réécrit les fins de ligne la laisse donc périmée en permanence, sans qu'une nouvelle exécution puisse y remédier. Fixe les fins de ligne dans `.gitattributes` :
 
 ```text
 verbatra-types.d.ts text eol=lf
 ```
 
-Lance-la à côté de [`verbatra check`](/docs/cli/check) dans le même job. `check` attrape les locales qui prennent du retard sur la source ; `types --check` attrape tes types qui en prennent.
+Lance-la à côté de [`verbatra check`](/docs/cli/check) dans le même job. `check` attrape les locales qui prennent du retard sur la source ; `types --check` attrape tes types qui prennent du retard sur elle.
 
 ## Exemples
 
 ```bash
-# écrire verbatra-types.d.ts à partir du catalogue source
+# write verbatra-types.d.ts from the source catalog
 verbatra types
 
-# l'écrire là où l'application importe déjà
+# write it where the app already imports from
 verbatra types --out src/generated/messages.d.ts
 
-# garde-fou CI : sortie 1 si la déclaration versionnée est périmée
+# CI gate: exit 1 if the committed declaration is stale
 verbatra types --check
 
-# résultat lisible par une machine, pour un script
+# machine-readable result for a script
 verbatra types --json
 ```
 
@@ -225,12 +225,12 @@ verbatra types
 | Code | Signification |
 | --- | --- |
 | `0` | la déclaration a été générée, que le fichier ait changé ou non ; ou `--check` l'a trouvée à jour |
-| `1` | `--check` a trouvé la déclaration versionnée périmée |
+| `1` | `--check` a trouvé la déclaration commitée périmée |
 | `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, un chemin de sortie refusé (`TYPES_OUTPUT_CONFLICT`), ou une déclaration qui n'a pas pu être écrite (`TYPES_UNWRITABLE`) |
 
 ## Voir aussi
 
 - [`verbatra extract`](/docs/cli/extract) est l'autre moitié de la boucle : elle ajoute au catalogue les clés que ton code utilise, et `types` les déclare ensuite.
 - [`verbatra check`](/docs/cli/check) est le garde-fou CI pour la dérive des locales, juste à côté de celui-ci pour la dérive des types.
-- [Formats](/docs/formats) liste la syntaxe de marqueurs de chaque format, d'où viennent les noms d'arguments.
+- [Formats](/docs/formats) liste la syntaxe de placeholders qu'utilise chaque format, d'où viennent les noms d'arguments.
 - [CI et codes de sortie](/docs/ci-and-exit-codes) couvre l'enveloppe JSON et le contrat des codes de sortie.

@@ -2,9 +2,9 @@
 title: Estimer le coût
 description: "Dimensionne une exécution de traduction avant de dépenser : compte les clés avec un dry run, convertis-les en requêtes et en tokens, puis chiffre-les avec les tarifs de ton fournisseur."
 ---
-Avant de pointer un outil d'IA vers un vrai fichier de langue, tu veux un ordre de grandeur de ce qu'il va dépenser. Cette page te donne une méthode plutôt qu'une liste de prix : verbatra ne suit pas les tarifs des fournisseurs, et les tarifs changent. Ce qui dure, c'est donc de savoir quelles unités te sont facturées et comment les compter. Chaque nombre ci-dessous est une hypothèse que tu remplaces par la tienne.
+Avant de pointer un outil d'IA vers un vrai fichier de locale, tu veux un ordre de grandeur de ce qu'il va dépenser. Cette page te donne une méthode plutôt qu'une liste de prix : verbatra ne suit pas les tarifs des fournisseurs, et les tarifs changent. Ce qui dure, c'est donc de savoir quelles unités te sont facturées et comment les compter. Chaque nombre ci-dessous est une hypothèse que tu remplaces par la tienne.
 
-La version courte pour un projet typique : quelques centaines de clés vers quelques langues sur un modèle bon marché coûte des centimes, pas des dollars, et l'exécution suivante ne coûte presque rien parce que verbatra n'envoie que ce qui a changé.
+La version courte pour un projet typique : quelques centaines de clés vers quelques locales sur un modèle bon marché coûtent des centimes, pas des dollars, et l'exécution suivante ne coûte presque rien parce que verbatra n'envoie que ce qui a changé.
 
 ## Étape 1 : dimensionner le travail avec un dry run
 
@@ -22,24 +22,24 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-Lors d'un dry run, le compte `translated` est le nombre de clés qui **seraient** envoyées au fournisseur : les clés absentes du fichier cible, plus les clés dont le texte source a changé depuis la référence du fichier de verrouillage, moins celles ignorées pour cause d'ICU invalide. Ce compte est l'entrée de tout ce qui suit.
+Lors d'un dry run, le décompte `translated` est le nombre de clés qui **seraient** envoyées au fournisseur : les clés absentes du fichier cible, plus les clés dont le texte source a changé depuis la référence du fichier de verrouillage, moins celles ignorées pour cause d'ICU invalide. Ce décompte est l'entrée de tout ce qui suit.
 
-Traite-le comme une **borne supérieure**, pour deux raisons. Un dry run ne lit jamais [le cache](/docs/the-cache) : les clés qu'une exécution réelle servirait depuis la mémoire de traduction sont donc comptées ici. Et un dry run ne déduplique pas : lors d'une exécution réelle, les clés dont le texte source est identique sont regroupées et un seul représentant est envoyé, si bien qu'un fichier avec des chaînes répétées facture moins de clés que ce que montre le dry run.
+Traite-le comme une **borne supérieure**, pour deux raisons. Un dry run ne lit jamais [le cache](/docs/the-cache) : les clés qu'une exécution réelle servirait depuis la mémoire de traduction sont donc comptées ici. Et un dry run ne déduplique pas : lors d'une exécution réelle, les clés dont le texte source est identique sont regroupées et un seul représentant est envoyé, si bien qu'un fichier contenant des chaînes répétées est facturé sur moins de clés que ce que montre le dry run.
 
-Un dry run seul rapporte des comptes, pas des tokens ni de l'argent. `--estimate` fait cette conversion pour toi, et l'étape 5 ci-dessous le montre. Les étapes intermédiaires sont exactement le calcul qu'il effectue, et elles restent la méthode de repli dès qu'un modèle n'a aucun tarif enregistré. Voir [`verbatra translate`](/docs/cli/translate) pour la liste complète des options.
+Un dry run seul rapporte des décomptes, pas des tokens ni de l'argent. `--estimate` fait cette conversion pour toi, et l'étape 5 ci-dessous le montre. Les étapes intermédiaires sont exactement le calcul qu'il effectue, et elles restent la méthode de repli dès qu'un modèle n'a aucun tarif enregistré. Voir [`verbatra translate`](/docs/cli/translate) pour la liste complète des options.
 
 ## Étape 2 : compter les requêtes
 
-verbatra n'envoie pas une requête par clé. Il découpe le travail de chaque langue en sous-lots séquentiels d'au plus `maxBatchSize` clés (`50` par défaut), et chaque sous-lot est une requête au fournisseur :
+verbatra n'envoie pas une requête par clé. Il découpe le travail de chaque locale en sous-lots séquentiels d'au plus `maxBatchSize` clés (`50` par défaut), et chaque sous-lot est une requête au fournisseur :
 
 ```
-requêtes par langue = ceil(clés à traduire / maxBatchSize)
+requêtes par locale = ceil(clés à traduire / maxBatchSize)
 ```
 
 Pour la surcharge fixe, la taille du lot compte davantage que le nombre de clés, car une partie de chaque requête est constante (voir l'étape suivante). Deux ajustements :
 
 - Une réponse incomplète déclenche des requêtes supplémentaires bornées : **au plus un** tour de réparation quand des clés manquent, et une reprise par moitiés quand la sortie a été tronquée. En fonctionnement normal, cela fait zéro requête supplémentaire.
-- Chacune de ces requêtes peut représenter plus d'une tentative HTTP. Aucun des clients de fournisseur de verbatra ne fixe d'option de reprise : c'est donc la valeur par défaut de chaque SDK qui s'applique, deux tentatives supplémentaires pour Anthropic, OpenAI et `openai-compatible`, deux pour la boucle propre de Gemini sur `429` et `5xx`, et cinq pour DeepL. Une tentative qui a atteint le modèle est facturée même si sa réponse n'est jamais arrivée.
+- Chacune de ces requêtes peut représenter plus d'une tentative HTTP. Aucun des clients de fournisseur de verbatra ne fixe d'option de reprise : c'est donc la valeur par défaut de chaque SDK qui s'applique, deux tentatives supplémentaires pour Anthropic, OpenAI et `openai-compatible`, deux pour la boucle propre de Gemini sur `429` et `5xx`, et cinq pour DeepL. Une tentative qui a atteint le modèle est facturée, que sa réponse soit arrivée ou non.
 - `generatePlurals` ajoute ses propres requêtes par lots pour les formes plurielles qu'il complète, comptées de la même façon. Elles sont distinctes des lots de traduction : un projet dont toutes les clés sont à jour mais dont le jeu de pluriels ne l'est pas fait donc encore des requêtes.
 
 ## Étape 3 : compter les tokens d'une requête
@@ -53,7 +53,7 @@ Une requête LLM transporte quatre choses. Une évolue avec ton nombre de clés,
 | Charge utile des items | clés du sous-lot, plus le glossaire et le ton | clé + valeur + ~21 caractères de JSON, par item |
 | Réponse | clés du sous-lot | clé + valeur traduite + ~21 caractères de JSON, par item |
 
-Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la langue source et la langue cible, un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
+Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la locale source et la locale cible, un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
 
 Le glossaire est la partie qu'on oublie. Il est sérialisé en entier dans **chaque** requête, pas une fois par exécution : un glossaire de 200 termes et d'environ 6 000 caractères ajoute donc à peu près 1 500 tokens à chacune d'elles. Sur de petits sous-lots, cela peut peser plus lourd que les clés elles-mêmes, une raison de plus pour laquelle la taille du lot compte.
 
@@ -97,7 +97,7 @@ verbatra translate (dry run)
 
 Il implique `--dry-run` : aucun fournisseur n'est construit, aucune clé d'API n'est lue, aucun appel réseau n'est fait et rien n'est écrit. Un fournisseur de traduction automatique est compté en caractères source plutôt qu'en tokens, et un endpoint `openai-compatible` auto-hébergé est rapporté comme n'ayant aucun coût d'API.
 
-La quantité est gratuite. L'argent ne l'est pas : verbatra ne publie toujours aucun prix, une somme n'apparaît donc qu'une fois que tu as mis dans ta configuration les tarifs relevés à l'étape 4, sous un bloc `rates` qui enregistre la date à laquelle tu les as lus :
+La quantité, tu l'obtiens gratuitement. Le montant, non : verbatra ne publie toujours aucun prix, une somme n'apparaît donc qu'une fois que tu as mis dans ta configuration les tarifs relevés à l'étape 4, sous un bloc `rates` qui enregistre la date à laquelle tu les as lus :
 
 ```ts title="verbatra.config.ts"
 export default defineConfig({
@@ -115,11 +115,11 @@ export default defineConfig({
 
 La clé est `provider/model` pour un fournisseur configuré avec un modèle, et l'identifiant de fournisseur seul pour un fournisseur qui n'en prend pas (`deepl`, `google-translate`). Un modèle facturé aux tokens prend `inputPerMillionTokens` et `outputPerMillionTokens` ; un modèle facturé aux caractères prend `perMillionCharacters`. Chaque chiffre affiché porte la date `asOf` : une table de tarifs que tu n'as plus touchée depuis un an le dit à chaque exécution. Voir [la référence de configuration](/docs/config-file).
 
-Trois choses qu'il ne fera jamais : inventer un tarif qu'il n'a pas, appliquer un tarif écrit dans la mauvaise unité, ou afficher `0.00` pour un modèle qu'il ne sait pas chiffrer. Chacun de ces cas est rapporté comme une ligne explicite, et l'exécution se termine tout de même avec `0`.
+Trois choses qu'il ne fera jamais : inventer un tarif qu'il n'a pas, appliquer un tarif écrit dans la mauvaise unité, ou afficher `0.00` pour un modèle qu'il ne sait pas chiffrer. Chacun de ces cas est rapporté comme une ligne explicite, et l'exécution se termine tout de même avec le code `0`.
 
 `--json` transporte les mêmes chiffres sous forme de champs structurés dans `result.estimate`, par locale et au total : un script peut donc s'y appuyer au lieu d'analyser une ligne de texte.
 
-Le chiffre borne le plan, pas la facture. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels ; le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule, un glossaire ou un ton ne peut donc pas rester non compté ; et la réponse est dimensionnée avec la marge de l'étape 3. Face à ce plan, une exécution réelle dépense le plus souvent moins, pour les deux mêmes raisons qui font du compte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques.
+Le chiffre borne le plan, pas la facture. Chaque requête qu'une exécution réelle ferait est comptée, y compris les lots de génération des pluriels ; le prompt est mesuré en sérialisant la charge utile qui serait réellement envoyée plutôt qu'en reproduisant sa forme dans une formule, un glossaire ou un ton ne peut donc pas échapper au décompte ; et la réponse est dimensionnée avec la marge de l'étape 3. Face à ce plan, une exécution réelle dépense le plus souvent moins, pour les deux mêmes raisons qui font du décompte du dry run une borne supérieure : elle consulte le cache et regroupe les chaînes source identiques.
 
 Elle peut aussi dépenser plus, et la ligne `estimate excludes` nomme toutes les façons dont cela arrive. Un fournisseur facturé aux tokens reçoit six éléments : succès de cache, chaînes source dupliquées, reprises côté fournisseur, longueur de la traduction, différences de tokenizer et requêtes de réparation. Un fournisseur facturé aux caractères reçoit les trois premiers, car il n'a ni tokens à approximer ni tour de réparation à faire, et il facture la source plutôt que la traduction.
 
@@ -133,18 +133,18 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 **Hypothèses**
 
-- 400 clés à traduire par langue (le compte du dry run ci-dessus), 3 langues cibles
+- 400 clés à traduire par locale (le décompte du dry run ci-dessus), 3 locales cibles
 - valeur source moyenne de 40 caractères, nom de clé moyen de 20 caractères
 - pas de `description`, `meaning`, glossaire ni ton
 - `maxBatchSize` à sa valeur par défaut de `50`
 - fournisseur `gemini`, modèle `gemini-2.5-flash`
 - 4 caractères par token
 - valeurs traduites jusqu'à 50 % plus longues que la source, la marge que verbatra applique
-- tarif **illustratif** de `$0.10` par million de tokens d'entrée et `$0.40` par million de tokens de sortie : c'est un espace réservé pour rendre le calcul concret, pas un prix cité. Consulte le vrai.
+- tarif **illustratif** de `$0.10` par million de tokens d'entrée et `$0.40` par million de tokens de sortie : c'est une valeur d'exemple destinée à rendre le calcul concret, pas un prix relevé. Consulte le vrai tarif.
 
 **Requêtes**
 
-`ceil(400 / 50)` = 8 requêtes par langue, 24 requêtes au total.
+`ceil(400 / 50)` = 8 requêtes par locale, 24 requêtes au total.
 
 **Tokens d'entrée par requête**
 
@@ -159,19 +159,19 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 (50 items x (20 caractères de clé + 40 de valeur + ~21 de JSON) + ~20 d'enveloppe + 50 x 20 de marge) / 4 = **~1 280**.
 
-**Totaux sur 3 langues**
+**Totaux sur 3 locales**
 
 - Entrée : 24 x 1 388 = **~33 312 tokens**
 - Sortie : 24 x 1 280 = **~30 720 tokens**
 - Coût : (33 312 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0033 + $0.0123 = **environ 1,6 centime**
 
-Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 350 = 8 400 des 33 312 tokens d'entrée, soit environ un quart. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; la baisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
+Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 350 = 8 400 des 33 312 tokens d'entrée, soit environ un quart. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
 
-## La méthode exacte : calibrer sur une langue
+## La méthode exacte : calibrer sur une locale
 
-Toute estimation ci-dessus n'est que de l'arithmétique sur des hypothèses. Le chiffre précis vient d'une traduction réelle d'une langue et de la lecture des tokens que verbatra rapporte.
+Toute estimation ci-dessus n'est que de l'arithmétique sur des hypothèses. Le chiffre précis vient de la traduction réelle d'une locale et de la lecture des tokens que verbatra rapporte.
 
-`translate` accepte `--locales` : restreins donc l'exécution à une seule langue configurée directement en ligne de commande :
+`translate` accepte `--locales` : restreins donc l'exécution à une seule locale configurée, directement en ligne de commande :
 
 ```bash
 verbatra translate --locales de
@@ -184,26 +184,26 @@ verbatra translate
 1 succeeded, 0 partial, 0 failed
 ```
 
-Multiplie ce chiffre mesuré par le nombre de langues restantes. L'usage de tokens figure aussi dans la sortie `--json` sous `usage.inputTokens` et `usage.outputTokens` : un script peut donc faire la mise à l'échelle. C'est le chiffre à présenter à qui approuve la dépense.
+Multiplie ce chiffre mesuré par le nombre de locales restantes. L'usage de tokens figure aussi dans la sortie `--json` sous `usage.inputTokens` et `usage.outputTokens` : un script peut donc faire la mise à l'échelle. C'est le chiffre à présenter à qui approuve la dépense.
 
-L'exécution de calibrage est une exécution réelle : elle dépense de l'argent réel et écrit de vraies traductions pour cette langue. C'est précisément l'intérêt, et le travail n'est pas perdu, car les langues restantes partent de la même source et la langue calibrée est désormais terminée.
+L'exécution de calibrage est une exécution réelle : elle dépense de l'argent réel et écrit de vraies traductions pour cette locale. C'est précisément l'intérêt, et le travail n'est pas perdu, car les locales restantes partent de la même source et la locale calibrée est désormais terminée.
 
-Pour plafonner une exécution plutôt que la prédire, définis `maxTokens` avec `budgetBehavior: "stop"`, qui projette chaque requête avant de l'envoyer et retient celle qui ferait passer l'exécution au-dessus du plafond, ainsi que toute clé pas encore tentée après elle ; les clés retenues sont automatiquement réessayées à l'exécution suivante. La réservation se fait contre la projection que décrit cette page, une fois par requête réellement envoyée : même une requête redécoupée après une réponse tronquée est vérifiée moitié par moitié. Le compte est réconcilié avec ce que rapporte le fournisseur après chaque requête, donc une exécution peut finir au-dessus du plafond de l'écart de la dernière requête admise, et pas davantage. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le plafond borne une exécution : `watch` démarre un budget neuf pour chaque exécution qu'il déclenche. Voir [la référence de configuration](/docs/config-file).
+Pour plafonner une exécution plutôt que la prédire, définis `maxTokens` avec `budgetBehavior: "stop"`, qui projette chaque requête avant de l'envoyer et retient toute requête qui ferait passer l'exécution au-dessus du plafond, ainsi que toute clé pas encore tentée après elle ; les clés retenues sont automatiquement réessayées à l'exécution suivante. La réservation se fait sur la base de la même projection que décrit cette page, une fois par requête réellement envoyée : même une requête redécoupée après une réponse tronquée est vérifiée moitié par moitié. Le compte est réconcilié avec ce que rapporte le fournisseur après chaque requête, donc une exécution peut finir au-dessus du plafond de l'écart de la dernière requête admise, et pas davantage. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le plafond borne une exécution : `watch` démarre un budget neuf pour chaque exécution qu'il déclenche. Voir [la référence de configuration](/docs/config-file).
 
 ## DeepL est facturé différemment
 
 DeepL est une API de traduction automatique, pas un LLM facturé au token : il ne partage donc pas la formule ci-dessus.
 
-- L'unité facturable, ce sont les **caractères source**. Pour le projet d'exemple, cela fait 400 clés x 40 caractères = 16 000 caractères par langue, 48 000 sur trois.
+- L'unité facturable, ce sont les **caractères source**. Pour le projet d'exemple, cela fait 400 clés x 40 caractères = 16 000 caractères par locale, 48 000 pour les trois.
 - verbatra n'envoie à DeepL que le texte source. Il n'y a ni règles système, ni noms de clés, ni enveloppe JSON dans la charge facturée : il n'y a donc aucune constante par requête à amortir.
-- DeepL retient les chaînes portant des `placeholders` ou de la syntaxe ICU plutôt que de les risquer : les caractères réellement envoyés peuvent donc être inférieurs au total brut.
-- DeepL ne rapporte aucun usage de tokens : un budget `maxTokens` configuré est donc compté à partir de la projection propre à verbatra. Il s'applique quand même, et le résumé d'exécution marque le chiffre comme estimé plutôt que rapporté.
+- DeepL retient les chaînes portant des placeholders ou de la syntaxe ICU plutôt que de les risquer : les caractères réellement envoyés peuvent donc être inférieurs au total brut.
+- DeepL ne rapporte aucun usage de tokens : un budget `maxTokens` configuré est donc compté à partir de la projection propre à verbatra. Il est appliqué quand même, et le résumé d'exécution marque le chiffre comme estimé plutôt que rapporté.
 
 ## Google Cloud Translation est facturé de la même manière
 
 <AvailableFrom version="0.10.0" />
 
-Google Cloud Translation est lui aussi une API de traduction automatique, facturée comme DeepL ci-dessus : l'unité, ce sont les **caractères** source, pas les tokens (voir [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra ne lui envoie que le texte source, retient les chaînes portant des `placeholders` ou de la syntaxe ICU plutôt que de les risquer, et ne rapporte aucun usage de tokens : un budget `maxTokens` configuré est donc compté à partir de la projection propre à verbatra, s'applique quand même, et le résumé d'exécution le marque comme estimé plutôt que rapporté.
+Google Cloud Translation est lui aussi une API de traduction automatique, facturée comme DeepL ci-dessus : l'unité, ce sont les **caractères** source, pas les tokens (voir [Cloud Translation pricing](https://cloud.google.com/translate/pricing)). verbatra ne lui envoie que le texte source, retient les chaînes portant des placeholders ou de la syntaxe ICU plutôt que de les risquer, et ne rapporte aucun usage de tokens : un budget `maxTokens` configuré est donc compté à partir de la projection propre à verbatra, est appliqué quand même, et le résumé d'exécution le marque comme estimé plutôt que rapporté.
 
 ## Pourquoi la deuxième exécution est presque gratuite
 

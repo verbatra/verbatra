@@ -20,7 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--literals` | aucun | désactivé | au lieu de vérifier la configuration, cherche des chaînes visibles par l'utilisateur écrites en dur dans les racines de code du [bloc `extract`](/docs/config-file#extract) (voir plus bas) |
+| `--literals` | aucun | désactivé | au lieu de vérifier la configuration, cherche des chaînes visibles par l'utilisateur écrites en dur dans les racines de code du [bloc `extract`](/docs/config-file#extract) (voir [Littéraux non traduits](#littéraux-non-traduits)) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le rapport sous `result` ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 ## Ce qu'il vérifie
@@ -28,19 +28,19 @@ verbatra doctor [flags]
 | Vérification | Passe quand |
 | --- | --- |
 | Configuration | un fichier de config a été trouvé et passe la validation |
-| Format adapter | le `format` configuré se résout en un adaptateur de fichiers |
+| Format adapter | le `format` configuré se résout en un adaptateur de fichier |
 | Provider | le `provider.id` configuré se résout en une fabrique de fournisseur |
 | API key environment variable | la variable dans laquelle ce fournisseur lit sa clé est définie |
-| Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier régulier et se parse dans le format configuré |
+| Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse correctement avec le format configuré |
 
 Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les quatre vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
 
 Quatre détails comptent :
 
 - La clé d'API est vérifiée **par son nom uniquement**. `doctor` demande si la variable est définie, jamais ce qu'elle contient. La valeur n'est pas lue, pas affichée, et n'est envoyée nulle part. Voir [Fournisseurs](/docs/providers) pour la variable utilisée par chaque fournisseur.
-- Le fournisseur `openai-compatible` fait exception. Il retombe sur une clé de remplacement : une variable absente ne pose donc pas de problème. Il échoue seulement quand ta config nomme sa propre variable via `provider.options.apiKeyEnvVar` et que cette variable n'est pas définie.
+- Le fournisseur `openai-compatible` fait exception. Il retombe sur une clé placeholder : une variable absente ne pose donc pas de problème. Il échoue seulement quand ta config nomme sa propre variable via `provider.options.apiKeyEnvVar` et que cette variable n'est pas définie.
 - Un fichier de locale **cible** manquant n'est pas un problème : [`verbatra translate`](/docs/cli/translate) le crée. Les fichiers cibles ne sont pas vérifiés du tout.
-- Le fichier de locale **source** est lu et parsé, pas seulement sondé. Un répertoire à sa place, un fichier vide et un contenu malformé font tous échouer cette vérification avec le message que [`verbatra check`](/docs/cli/check) donnerait, car ce sont exactement les cas qui font échouer toutes les autres commandes. Quand le `format` configuré ne résout aucun adaptateur, il n'y a rien avec quoi parser, donc la vérification retombe sur la seule existence et le signale.
+- Le fichier de locale **source** est lu et analysé, pas seulement recherché. Un répertoire à sa place, un fichier vide et un contenu malformé font tous échouer cette vérification avec le message que [`verbatra check`](/docs/cli/check) donnerait, car ce sont exactement les cas qui font échouer toutes les autres commandes. Quand le `format` configuré ne résout aucun adaptateur, il n'y a rien pour l'analyser, donc la vérification retombe sur la seule existence et le signale.
 
 Comme [`verbatra translate`](/docs/cli/translate), `doctor` charge `.env.local` puis `.env` depuis le répertoire de travail avant de regarder l'environnement : une clé rangée dans un fichier dotenv compte donc comme définie. Avec `--literals`, il ne charge aucun des deux fichiers.
 
@@ -50,7 +50,7 @@ Comme [`verbatra translate`](/docs/cli/translate), `doctor` charge `.env.local` 
 
 `verbatra doctor --literals` cherche le seul bug i18n qu'aucune autre vérification ne voit : une chaîne visible par l'utilisateur qui n'est jamais arrivée dans un catalogue. Il parcourt les racines de code de ton [bloc `extract`](/docs/config-file#extract) et signale chaque chaîne écrite en dur qui se lit comme un texte destiné à l'utilisateur mais ne passe par aucun appel de traduction. Il lit ton code et ne l'écrit jamais, ne construit aucun fournisseur, ne lit aucune variable de clé d'API et ne charge aucun fichier `.env` : il passe donc dans un job sans secrets. Dans ce mode, seules deux vérifications s'exécutent : la configuration et l'analyse des littéraux.
 
-Chaque résultat indique le fichier, la ligne et la colonne. Dans son texte, les espaces sont regroupés et, en JSX, les références de caractères comme `&amp;` sont décodées, et il est coupé à 80 caractères au plus :
+Chaque constat indique le fichier, la ligne et la colonne. Dans son texte, les espaces sont réduits et, en JSX, les références de caractères comme `&amp;` sont décodées, et il est coupé à 80 caractères au plus :
 
 ```text
 verbatra doctor
@@ -62,7 +62,7 @@ verbatra doctor
 1 problem found (run verbatra doctor again after fixing them)
 ```
 
-Ce qui compte comme un résultat :
+Ce qui compte comme un constat :
 
 - Le texte JSX, comme `<p>Welcome back</p>`, dans les fichiers `.tsx`, `.jsx` et `.js`.
 - La valeur d'un attribut JSX visible par l'utilisateur : `alt`, `title`, `placeholder`, `label`, `aria-label` et les autres attributs `aria-*` porteurs de texte.
@@ -72,9 +72,9 @@ Ce qui n'est jamais signalé : une chaîne passée à un appel de traduction rec
 
 Les appels qui attendent une requête, un format ou un nom plutôt que du texte sont aussi ignorés : une chaîne passée directement en argument à `describe` (zod), `query`, `execute`, `prepare`, `format` ou `parse`, une chaîne du tableau passé directement à `z.enum`, chaque argument chaîne de `setItem`, `getItem` et `removeItem`, ainsi que le premier argument de `on`, `off`, `once`, `emit`, `addEventListener` et d'un appel `get` ou `set` sur un objet, comme `cookies().get(...)`. Seuls les arguments directs sont ignorés : le texte imbriqué plus profondément dans un tel appel, comme dans un callback (`query(() => ({ message: "..." }))`), un objet ou du JSX, reste signalé. Une fonction dont le nom se termine juste par hasard par `Error`, comme `setError` ou `showError`, n'est pas ignorée : le message que tu lui passes reste signalé.
 
-Pour retenir un littéral, mets `// verbatra-ignore-next-line` au-dessus (en JSX, `{/* verbatra-ignore-next-line */}`), ou `// verbatra-ignore-line` à la fin de sa propre ligne. Une directive de ligne suivante vise la prochaine ligne qui contient du code (les lignes vides et celles qui ne contiennent que des commentaires sont sautées) et couvre chaque littéral qui commence sur cette ligne. Quand une balise ouvrante JSX y commence, elle couvre aussi tous ses attributs, même si la balise s'étend sur plusieurs lignes. Le texte et les éléments imbriqués des lignes suivantes ne sont pas couverts : donne à chacun sa propre directive. Pour une chaîne qui convient partout, comme un nom de marque, ajoute-la sous `extract.literals.ignore` dans [le fichier de config](/docs/config-file#extract). Une entrée correspond au texte tel qu'il est signalé, avec les références de caractères décodées : écris donc `Tom & Jerry`, pas `Tom &amp; Jerry`. Un littéral retenu reste listé comme supprimé, avec la raison : rien ne disparaît en silence.
+Pour retenir un littéral, mets `// verbatra-ignore-next-line` au-dessus (en JSX, `{/* verbatra-ignore-next-line */}`), ou `// verbatra-ignore-line` à la fin de sa propre ligne. Une directive de ligne suivante vise la prochaine ligne qui contient du code (les lignes vides et celles qui ne contiennent que des commentaires sont sautées) et couvre chaque littéral qui commence sur cette ligne. Quand une balise ouvrante JSX y commence, elle couvre aussi tous ses attributs, même si la balise s'étend sur plusieurs lignes. Le texte et les éléments imbriqués des lignes suivantes ne sont pas couverts : donne à chacun sa propre directive. Pour une chaîne qui convient partout, comme un nom de marque, ajoute-la sous `extract.literals.ignore` dans [le fichier de config](/docs/config-file#extract). Une entrée correspond au texte tel qu'il est signalé, avec les références de caractères décodées : écris donc `Tom & Jerry`, pas `Tom &amp; Jerry`. Un littéral retenu reste listé sous `suppressed`, avec la raison : rien ne disparaît en silence.
 
-La vérification échoue quand elle trouve un littéral, et aussi quand un fichier n'a pas pu être analysé. Un fichier que l'analyseur ne peut pas lire jusqu'au bout (un commentaire ou un template literal non fermé, ou un élément JSX jamais fermé ou fermé par la balise d'un élément qui l'entoure), ne peut pas lire du tout ou juge trop gros est listé comme non analysé et le reste de l'analyse continue, mais l'exécution n'est jamais signalée comme propre. Un type de fonction générique du genre `type Fn = <T>(x: T) => T` ou une liste de paramètres de type comme `<const T extends object = {}>(x: T) => x` dans un fichier `.tsx` est lu comme du code ordinaire et ne fait donc jamais échouer le fichier, et un élément avec des arguments de type de n'importe quelle longueur, comme `<Table<Row>>`, reste lu comme du JSX. Un projet sans bloc `extract` fait échouer la vérification avec un message qui nomme le bloc. Avec `--json`, l'analyse voyage dans l'enveloppe sous `result.literals`, répartie en `findings`, `suppressed` et `diagnostics`.
+La vérification échoue quand elle trouve un littéral, et aussi quand un fichier n'a pas pu être analysé. Un fichier que l'analyseur ne peut pas lire jusqu'au bout (un commentaire ou un template literal non fermé, ou un élément JSX jamais fermé ou fermé par la balise d'un élément qui l'entoure), qu'il ne peut pas ouvrir du tout ou qu'il juge trop gros est listé comme non analysé et le reste de l'analyse continue, mais l'exécution n'est jamais signalée comme propre. Un type de fonction générique du genre `type Fn = <T>(x: T) => T` ou une liste de paramètres de type comme `<const T extends object = {}>(x: T) => x` dans un fichier `.tsx` est lu comme du code ordinaire et ne fait donc jamais échouer le fichier, et un élément avec des arguments de type de n'importe quelle longueur, comme `<Table<Row>>`, reste lu comme du JSX. Un projet sans bloc `extract` fait échouer la vérification avec un message qui nomme le bloc. Avec `--json`, l'analyse voyage dans l'enveloppe sous `result.literals`, répartie en `findings`, `suppressed` et `diagnostics`.
 
 ## Exemples
 
@@ -112,7 +112,7 @@ verbatra doctor
 | `1` | au moins une vérification a échoué (le rapport complet est quand même affiché) ; avec `--literals`, un littéral a été trouvé ou un fichier n'a pas pu être analysé |
 | `2` | impossible de s'exécuter : une erreur d'utilisation, ou un chemin `--config` explicite qui n'existe pas |
 
-La sortie `1` signifie "il s'est exécuté et a trouvé des problèmes". La sortie `2` est réservée au cas où `doctor` ne peut pas s'exécuter du tout : c'est pourquoi un fichier de config introuvable par la recherche est une vérification en échec et la sortie `1`, alors qu'un chemin `--config` qui pointe dans le vide donne la sortie `2`.
+La sortie `1` signifie "il s'est exécuté et a trouvé des problèmes". La sortie `2` est réservée au cas où `doctor` ne peut pas s'exécuter du tout : c'est pourquoi un fichier de config introuvable par la recherche est une vérification en échec et un code de sortie `1`, alors qu'un chemin `--config` qui pointe dans le vide donne un code de sortie `2`.
 
 ## Voir aussi
 

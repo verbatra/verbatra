@@ -61,8 +61,8 @@ proveedor (una forma que el bloqueo ya registra sí se regenera cuando su origen
 puedes dejar `generatePlurals` activado mientras adoptas un proyecto que lleva formas plurales
 escritas a mano; solo se sintetizan las formas que de verdad faltan en el destino.
 
-Puedes verlo todo antes de gastar nada: `verbatra diff` lista por locale las claves faltantes y
-modificadas exactas, `verbatra check` informa de lo mismo en forma de recuentos y
+Puedes verlo todo antes de gastar nada: `verbatra diff` lista las claves faltantes y modificadas
+exactas de cada locale, `verbatra check` informa de lo mismo en forma de recuentos y
 `verbatra translate --dry-run` te da el resumen completo de la ejecución. Ninguno de los tres llama
 a un proveedor, escribe un archivo de locale ni escribe el bloqueo.
 
@@ -70,8 +70,8 @@ a un proveedor, escribe un archivo de locale ni escribe el bloqueo.
 
 El bloqueo se actualiza por locale, y el cómo depende de qué se ejecutó:
 
-- Una ejecución completa (translate, watch o una importación de libro) reemplaza en bloque las
-  entradas de ese locale con el resultado autoritativo de la ejecución.
+- Una ejecución completa (translate, watch o la importación de un libro de Excel) reemplaza en
+  bloque las entradas de ese locale con el resultado definitivo de la ejecución.
 - Una acción de una sola clave (como una retraducción desde Studio) fusiona solo la entrada de esa
   clave, dejando intacta cada una de las demás claves registradas.
 
@@ -87,28 +87,30 @@ Dos ejecuciones tocando el mismo locale a la vez (una segunda terminal, un job d
 Studio) podrían, si no, hacer diff ambas contra una línea base obsoleta y pagar ambas la misma
 llamada al proveedor. Para evitarlo, cada escritura a un locale y a sus entradas del bloqueo ocurre
 bajo un bloqueo de escritura entre procesos limitado a ese único locale; un segundo escritor del
-mismo locale espera, luego relee el archivo de bloqueo fresco y hace diff contra una línea base que
-ya incluye el resultado del primer escritor. Locales distintos no se bloquean entre sí.
+mismo locale espera, luego vuelve a leer el archivo de bloqueo desde cero y hace diff contra una
+línea base que ya incluye el resultado del primer escritor. Locales distintos no se bloquean
+entre sí.
 
 Cuando una ejecución traduce varios locales a la vez y se topa con un error de toda la ejecución (en
 la práctica, un archivo de bloqueo corrupto), deja de reclamar locales nuevos y espera a que
 terminen los que ya están en marcha, así que cada bloqueo que tomó la ejecución se libera antes de
-que el comando salga. Ningún locale se arranca después de que la ejecución ya haya fallado, y el
+que el comando salga. Ningún locale se inicia después de que la ejecución ya haya fallado, y el
 fallo en sí no deja huérfano ningún bloqueo.
 
 Si un bloqueo no se puede adquirir, la ejecución falla con `LOCK_CONTENDED` y nombra la ruta del
 archivo de bloqueo (bajo el directorio `.verbatra-local/`, ignorado por git). Si no hay ningún
-proceso de verbatra en marcha, ese archivo lo dejó atrás uno que fue matado: bórralo y reintenta.
+proceso de verbatra en marcha, ese archivo lo dejó atrás uno que se terminó a la fuerza: bórralo
+y reinténtalo.
 
 ## Ausente o corrupto
 
 Un archivo de bloqueo ausente no es un error: es una primera ejecución, y sin línea base nada puede
 detectarse como obsoleto. Las claves de origen que el archivo de destino no tiene son faltantes y se
 traducen; las que sí tiene están sin cambios y se dejan intactas, como se describe arriba en la
-adopción. Un archivo de bloqueo presente pero imposible de parsear,
-estructuralmente incorrecto, demasiado grande o con una versión no soportada hace fallar la
-ejecución con `LOCK_FILE_INVALID` en lugar de sobrescribirse en silencio, para que puedas
-inspeccionarlo o restaurarlo en vez de perder la línea base.
+adopción. Un archivo de bloqueo presente pero imposible de parsear, estructuralmente incorrecto,
+demasiado grande o con una versión no soportada hace fallar la ejecución con `LOCK_FILE_INVALID` en
+lugar de sobrescribirse en silencio, para que puedas inspeccionarlo o restaurarlo en vez de perder
+la línea base.
 
 ## Confírmalo
 

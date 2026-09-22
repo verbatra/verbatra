@@ -13,7 +13,7 @@ description: "La commande verbatra : ses quatorze sous-commandes, les options pa
 | [`check`](/docs/cli/check) | signale les clés manquantes ou obsolètes par locale, en lecture seule |
 | [`diff`](/docs/cli/diff) | liste les clés exactes qui seraient ajoutées, retraduites ou orphelines par locale, en lecture seule |
 | [`doctor`](/docs/cli/doctor) | valide la configuration du projet et signale tous les problèmes d'un coup, sans appeler de fournisseur |
-| [`pseudo`](/docs/cli/pseudo) | générer une pseudo-locale à partir des chaînes source, sans appeler de fournisseur |
+| [`pseudo`](/docs/cli/pseudo) | génère une pseudo-locale à partir des chaînes source, sans appeler de fournisseur |
 | [`types`](/docs/cli/types) | génère les déclarations TypeScript pour les clés de ton catalogue et les arguments de leurs messages, sans appeler de fournisseur |
 | [`export`](/docs/cli/export) | exporte les chaînes non traduites pour un traducteur humain, en classeur Excel ou en un fichier CSV ou TSV par locale |
 | [`import`](/docs/cli/import) | réimporte un classeur rempli ou un fichier délimité dans les fichiers de locale |
@@ -48,7 +48,7 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
 
 ## Fichiers d'environnement
 
-`translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. `doctor --literals` fait exception : il ne lit aucune clé d'API, donc il ne charge aucun des deux fichiers. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`), les commandes de passation (`export`, `import`), `extract`, `pseudo`, `types` et `tmx` n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
+`translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. `doctor --literals` fait exception : il ne lit aucune clé d'API, donc il ne charge aucun des deux fichiers. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`), les commandes de remise (`export`, `import`), `extract`, `pseudo`, `types` et `tmx` n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.
 
 ## Codes de sortie
 

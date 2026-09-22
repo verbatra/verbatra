@@ -3,9 +3,9 @@ title: Le fichier de verrouillage
 description: Ce que verbatra.lock.json enregistre, comment la dérive est détectée, comment les exécutions concurrentes sont sérialisées, et pourquoi tu le commites.
 ---
 Le fichier de verrouillage, `verbatra.lock.json`, existe pour qu'une exécution sache ce qui a déjà
-été traduit et le saute : c'est la référence avec laquelle chaque exécution compare, et c'est ce
-qui rend verbatra incrémental. Cette page couvre ce qu'il stocke, comment il change, et ce qui se
-passe quand il est disputé, absent ou corrompu.
+été traduit et le saute : c'est la référence avec laquelle chaque exécution compare la source, et
+c'est ce qui rend verbatra incrémental. Cette page couvre ce qu'il stocke, comment il change, et ce
+qui se passe quand il est en contention, absent ou corrompu.
 
 ## Ce qu'il enregistre
 
@@ -37,9 +37,9 @@ traduction n'a été acceptée, aucune clé supprimée et aucune forme généré
 existant n'est pas réécrit du tout.
 
 L'exécution enregistre quand même le hash source actuel pour chaque clé que la cible contient : la
-première exécution est donc l'étape d'adoption elle-même. Elle établit la référence sans un seul
-appel au fournisseur, et à partir de la deuxième exécution les modifications de la source
-ressortent comme dérive de façon normale.
+première exécution est donc l'étape d'adoption elle-même. Elle établit la référence sans le moindre
+coût fournisseur, et à partir de la deuxième exécution les modifications de la source ressortent
+comme dérive de façon normale.
 
 Qu'une clé soit adoptée se décide par sa présence, jamais par sa valeur, ce qui a deux conséquences
 à connaître avant cette première exécution :
@@ -62,18 +62,19 @@ sa source change). Tu peux donc laisser `generatePlurals` activé pendant que tu
 qui porte des formes plurielles écrites à la main ; seules les formes réellement absentes de la
 cible sont synthétisées.
 
-Tu peux voir tout cela avant de dépenser quoi que ce soit : `verbatra diff` liste par locale les
-clés manquantes et modifiées exactes, `verbatra check` rapporte la même chose sous forme de
+Tu peux voir tout cela avant de dépenser quoi que ce soit : `verbatra diff` liste précisément, par
+locale, les clés manquantes et modifiées, `verbatra check` indique la même chose sous forme de
 compteurs, et `verbatra translate --dry-run` te donne le résumé complet de l'exécution. Aucun des
 trois n'appelle de fournisseur, n'écrit de fichier de locale ni n'écrit le fichier de
 verrouillage.
 
 ## Comment il est mis à jour
 
-Le fichier de verrouillage est mis à jour par locale, et la façon dépend de ce qui a tourné :
+Le fichier de verrouillage est mis à jour par locale, et la façon dont il l'est dépend de ce qui a
+tourné :
 
 - Une exécution complète (translate, watch, ou un import de classeur) remplace en bloc les entrées
-  de cette locale par le résultat autoritaire de l'exécution.
+  de cette locale par le résultat faisant autorité de l'exécution.
 - Une action sur une seule clé (comme une retraduction depuis Studio) fusionne uniquement l'entrée
   de cette clé, en laissant chaque autre clé enregistrée intacte.
 
@@ -81,7 +82,7 @@ Dans les deux cas une exception s'applique : une clé retenue pendant cette exé
 d'intégrité échoué, un appel fournisseur échoué, ou une source ICU invalide) garde son hash
 précédent, pour que l'exécution suivante la voie toujours comme demandant du travail et la retente
 au lieu de l'enregistrer comme faite. Les clés orphelines ne reçoivent aucune entrée. Le fichier
-est sérialisé avec des clés triées, pour que ses diffs restent stables et relisibles.
+est sérialisé avec des clés triées, pour que ses diffs restent stables et faciles à relire.
 
 ## Le verrou d'écriture
 
@@ -89,18 +90,18 @@ Deux exécutions touchant la même locale au même moment (un second terminal, u
 Studio) pourraient sinon comparer toutes deux avec une référence périmée et payer toutes deux le
 même appel fournisseur. Pour l'empêcher, chaque écriture d'une locale et de ses entrées de
 verrouillage se fait sous un verrou d'écriture inter-processus limité à cette seule locale ; un
-second rédacteur pour la même locale attend, puis relit le fichier de verrouillage à frais et
-compare avec une référence qui inclut déjà le résultat du premier rédacteur. Des locales
+second processus en écriture sur la même locale attend, puis relit le fichier de verrouillage
+depuis le disque et compare avec une référence qui inclut déjà le résultat du premier. Des locales
 différentes ne se bloquent pas entre elles.
 
 Quand une exécution traduit plusieurs locales à la fois et rencontre une erreur globale (en
 pratique un fichier de verrouillage corrompu), elle arrête de réclamer de nouvelles locales et
 attend la fin de celles qui tournent déjà, donc chaque verrou pris par l'exécution est libéré avant
-que la commande ne sorte. Aucune locale n'est démarrée après que l'exécution a déjà échoué, et
+que la commande ne se termine. Aucune locale n'est démarrée après que l'exécution a déjà échoué, et
 aucun verrou n'est rendu orphelin par l'échec lui-même.
 
 Si un verrou ne peut pas être acquis, l'exécution échoue avec `LOCK_CONTENDED` et nomme le chemin
-du fichier de verrou (sous le répertoire `.verbatra-local/`, ignoré par git). Si aucun processus
+du fichier de verrouillage (sous le répertoire `.verbatra-local/`, ignoré par git). Si aucun processus
 verbatra ne tourne, ce fichier a été laissé par un processus tué : supprime-le et réessaie.
 
 ## Absent ou corrompu
@@ -108,16 +109,17 @@ verbatra ne tourne, ce fichier a été laissé par un processus tué : supprime-
 Un fichier de verrouillage absent n'est pas une erreur : c'est une première exécution, et sans
 référence rien ne peut être détecté comme périmé. Les clés source que le fichier cible n'a pas sont
 manquantes et se font traduire ; celles qu'il a sont inchangées et restent intactes, comme décrit
-plus haut à propos de l'adoption. Un fichier de verrouillage présent mais inanalysable,
-structurellement faux, trop gros ou à une version non prise en charge fait échouer l'exécution avec
-`LOCK_FILE_INVALID` au lieu d'être écrasé en silence, pour que tu puisses l'inspecter ou le
+plus haut à propos de l'adoption. Un fichier de verrouillage présent mais impossible à analyser,
+structurellement incorrect, trop gros ou à une version non prise en charge fait échouer l'exécution
+avec `LOCK_FILE_INVALID` au lieu d'être écrasé en silence, pour que tu puisses l'inspecter ou le
 restaurer plutôt que de perdre la référence.
 
 ## Commite-le
 
-Commite `verbatra.lock.json` avec tes fichiers de locale. C'est la référence partagée avec laquelle
-tes coéquipiers et ta CI comparent ; le garder sous contrôle de version est ce qui rend les
-exécutions incrémentales reproductibles d'une machine à l'autre. Ne le modifie jamais à la main.
+Commite `verbatra.lock.json` avec tes fichiers de locale. C'est la référence partagée qui sert de
+base de comparaison à tes coéquipiers et à ta CI ; le garder sous contrôle de version est ce qui
+rend les exécutions incrémentales reproductibles d'une machine à l'autre. Ne le modifie jamais à la
+main.
 
 Commiter les deux est aussi ce qui rend un retour en arrière possible. Comme le fichier de
 verrouillage enregistre des hashs de la source et rien sur les valeurs traduites, si tu reviens en

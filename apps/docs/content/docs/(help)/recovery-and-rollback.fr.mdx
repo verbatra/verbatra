@@ -48,19 +48,19 @@ Le fichier de verrouillage enregistre un hash de la valeur **source** qui a prod
 traduction. Il n'enregistre rien sur la valeur traduite elle-même. Restaurer tes fichiers de locale
 ne dit donc rien au fichier de verrouillage, et ne le peut pas.
 
-**Restaurer seulement les fichiers de locale.** Le verrouillage contient toujours le hash de la
-source telle qu'elle est maintenant. À l'exécution suivante, une clé que la restauration a rétablie
-est présente dans le fichier cible, donc elle n'est pas manquante ; et son hash enregistré
+**Restaurer seulement les fichiers de locale.** Le fichier de verrouillage contient toujours le hash
+de la source telle qu'elle est maintenant. À l'exécution suivante, une clé que la restauration a
+rétablie est présente dans le fichier cible, donc elle n'est pas manquante ; et son hash enregistré
 correspond toujours à la source actuelle, donc elle n'est pas modifiée. Elle compte comme inchangée,
 n'est jamais envoyée au fournisseur, et la valeur vers laquelle tu es revenu reste en place
 définitivement. Les clés que l'exécution a créées font exception : la restauration les a retirées du
 fichier, elles reviennent donc comme manquantes et sont traduites à nouveau. Ce qui reste bloqué,
 c'est tout ce que l'exécution a *remplacé*.
 
-Que la panne soit silencieuse découle de la conception, ce n'est pas un accident. `verbatra check`
-et `verbatra diff` comparent à la même référence issue du verrouillage, et signalent donc la locale
-comme propre. Aucune commande ne te dira que ces traductions sont périmées, car du point de vue de
-la référence enregistrée, elles ne le sont pas.
+L'échec est silencieux par conception, pas par accident. `verbatra check` et `verbatra diff`
+comparent à la même référence issue du fichier de verrouillage, et signalent donc la locale comme
+propre. Aucune commande ne te dira que ces traductions sont périmées, car du point de vue de la
+référence enregistrée, elles ne le sont pas.
 
 **Restaurer seulement le fichier de verrouillage.** L'image miroir, et destructrice dans l'autre
 sens. Les hashs restaurés sont plus anciens que la source actuelle, les clés concernées comptent
@@ -74,10 +74,10 @@ exactement comme elle l'aurait fait si la mauvaise exécution n'avait jamais eu 
 
 ## Relancer après un retour en arrière
 
-Revenir en arrière puis relancer `verbatra translate` est une répétition, pas un second avis. Avec
-le même fournisseur, le même modèle, le même ton et le même glossaire, l'empreinte du
-[cache](/docs/the-cache) est inchangée, si bien que l'exécution ressert les mêmes traductions depuis
-`verbatra.cache.json` sans appeler le fournisseur du tout.
+Revenir en arrière puis relancer `verbatra translate`, c'est refaire la même chose, pas demander
+un second avis. Avec le même fournisseur, le même modèle, le même ton et le même glossaire,
+l'empreinte du [cache](/docs/the-cache) est inchangée, si bien que l'exécution ressert les mêmes
+traductions depuis `verbatra.cache.json` sans appeler le fournisseur du tout.
 
 Pour obtenir un résultat différent, change ce qui a rendu le premier mauvais. Modifier le ton ou le
 glossaire, ou changer de modèle, change l'empreinte et retraduit de lui-même. Si tu veux renvoyer la
@@ -92,19 +92,20 @@ comme périmé, donc une exécution après suppression ne traduit rien.
 
 Une exécution interrompue n'a besoin d'aucun retour en arrière. Relance-la, tout simplement.
 
-Chaque locale est validée pour elle-même : son fichier cible est écrit, puis ses entrées de
-verrouillage sont enregistrées. Interrompre la commande laisse donc les locales déjà terminées
+Chaque locale est validée séparément : son fichier cible est écrit, puis ses entrées dans le fichier
+de verrouillage sont enregistrées. Interrompre la commande laisse donc les locales déjà terminées
 entièrement écrites et enregistrées, et celles qu'elle n'avait pas atteintes totalement intactes.
 Une nouvelle exécution reprend les intactes et saute celles qui sont terminées.
 
-Le seul intervalle, entre l'écriture du fichier d'une locale et la mise à jour de son verrouillage,
-se résout de lui-même à l'exécution suivante. Les clés que l'exécution avait ajoutées sont
-maintenant dans le fichier cible sans entrée de verrouillage, elles sont donc reprises telles
-quelles ; les clés dont la source avait dérivé portent toujours leur ancien hash, elles sont donc
-détectées comme modifiées et traduites à nouveau. Dans aucun des deux cas du travail n'est perdu.
+Le seul intervalle, entre l'écriture du fichier d'une locale et la mise à jour du fichier de
+verrouillage, se résout de lui-même à l'exécution suivante. Les clés que l'exécution avait ajoutées
+sont maintenant dans le fichier cible sans entrée dans le fichier de verrouillage, elles sont donc
+reprises telles quelles ; les clés dont la source avait dérivé portent toujours leur ancien hash,
+elles sont donc détectées comme modifiées et traduites à nouveau. Aucun des deux cas ne fait perdre
+de travail.
 
-Les clés retenues pendant une exécution (un contrôle d'intégrité échoué, un échec fournisseur, une
-source ICU invalide, ou un budget de tokens arrêté) conservent leur hash précédent au lieu d'être
+Les clés retenues pendant une exécution (un contrôle d'intégrité échoué, un échec du fournisseur,
+une source ICU invalide, ou un budget de tokens arrêté) conservent leur hash précédent au lieu d'être
 enregistrées comme faites, si bien que l'exécution suivante les réessaie. Voir
 [Dépannage](/docs/troubleshooting) pour ce que signifie chacun de ces cas.
 

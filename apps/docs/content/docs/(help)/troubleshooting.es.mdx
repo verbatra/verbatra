@@ -1,16 +1,16 @@
 ---
 title: Solución de problemas
-description: Síntomas, causas y soluciones para los errores que verbatra levanta de verdad.
+description: Síntomas, causas y soluciones para los errores que verbatra produce de verdad.
 ---
 Cada entrada de abajo corresponde a un código o mensaje de error real. Los fallos de toda la
-ejecución llevan un código estable (`SdkError`); bifurca o busca por el código, no por el texto del
+ejecución llevan un código estable (`SdkError`); decide o busca según el código, no según el texto del
 mensaje. Para saber cómo los fallos se asignan a códigos de salida de la CLI, consulta
 [CI y códigos de salida](/docs/ci-and-exit-codes); para la tabla completa de códigos, consulta la
 [Referencia del SDK](/docs/sdk).
 
 Cuatro de las entradas de abajo (`CONFIG_INVALID`, `UNKNOWN_FORMAT`, `SOURCE_UNREADABLE` y una
 clave de API ausente) son exactamente lo que comprueba [`verbatra doctor`](/docs/cli/doctor).
-Ejecútalo antes de ir entrada por entrada: las reporta todas en una sola pasada, no gasta nada y
+Ejecútalo antes de ir entrada por entrada: informa de todas en una sola pasada, no gasta nada y
 es la única comprobación previa que funciona antes de que exista el archivo de locale de origen.
 
 ## pnpm bloquea los scripts de instalación de una dependencia (ERR_PNPM_IGNORED_BUILDS)
@@ -52,7 +52,7 @@ allowBuilds:
 
 verbatra no necesita esos scripts, y este repositorio rechaza los dos. Con la respuesta puesta,
 `pnpm add -D @verbatra/cli` sale con `0` y los comandos pnpm posteriores funcionan con normalidad.
-Las versiones de los paquetes del mensaje siguen a la release; la solución no cambia.
+Las versiones de los paquetes del mensaje siguen al lanzamiento; la solución no cambia.
 
 ## La configuración es inválida (CONFIG_INVALID)
 
@@ -60,7 +60,7 @@ Las versiones de los paquetes del mensaje siguen a la release; la solución no c
 
 **Causa**: la configuración se encontró pero falla la validación de esquema: un campo obligatorio
 ausente, un `files.pattern` sin el token `{locale}`, un locale de origen listado en
-`targetLocales`, o una clave de nivel superior no reconocida. Una clave no reconocida gana la pista
+`targetLocales`, o una clave de nivel superior no reconocida. Una clave no reconocida recibe la pista
 `API keys are read from the environment, not the config`: el esquema es estricto precisamente para
 que un secreto no pueda esconderse en un archivo confirmado.
 
@@ -94,7 +94,7 @@ a ella.
 **Solución**: añade el locale a `targetLocales` en la configuración, o corrige la errata del
 filtro.
 
-## El archivo de origen falta o no parsea (SOURCE_UNREADABLE, SOURCE_INVALID)
+## El archivo de origen falta o no se puede analizar (SOURCE_UNREADABLE, SOURCE_INVALID)
 
 **Síntoma**: `The source locale file was not found at <path>.` o `The source locale file at
 <path> could not be read: ...`
@@ -124,8 +124,8 @@ de una clave, y las claves nunca se leen de la configuración ni de los argument
 comprueba la variable solo por su nombre, sin leer su valor. `translate`, `watch`, `doctor`,
 `studio` y `mcp` cargan
 `.env` y `.env.local` desde el directorio de trabajo; el SDK no, así que en tu propio script usa
-`node --env-file=.env` o exporta la variable. `openai-compatible` solo levanta esto cuando la configuración nombra un `apiKeyEnvVar`
-que no está definido; sin uno, recurre a un marcador sin clave para servidores locales.
+`node --env-file=.env` o exporta la variable. `openai-compatible` solo lo lanza cuando la configuración nombra un `apiKeyEnvVar`
+que no está definido; sin uno, recurre a un placeholder sin clave para servidores locales.
 
 ## Límites de tasa, tiempos de espera y fallos de autenticación a mitad de ejecución (RATE_LIMITED, TIMEOUT, AUTH_FAILED)
 
@@ -135,7 +135,7 @@ El locale se informa como `partial` cuando algunas claves sí llegaron y como `f
 llegó ninguna, y el comando sale con `1` en ambos casos.
 
 **Causa**: una llamada al proveedor falló después de la construcción: HTTP 429 (`RATE_LIMITED`), un
-tiempo de espera de red o de solicitud (`TIMEOUT`), o HTTP 401/403 (`AUTH_FAILED`, una clave
+tiempo de espera de red o de petición (`TIMEOUT`), o HTTP 401/403 (`AUTH_FAILED`, una clave
 inválida o revocada).
 
 **Solución**: no se pierde nada. Las claves afectadas conservan su línea base anterior en el
@@ -144,10 +144,10 @@ simplemente vuelve a ejecutar más tarde, y usa `--locales <locale>` para ir rec
 de destino de uno en uno cuando el límite es una cuota estricta por minuto o por día.
 `AUTH_FAILED` no se resuelve reintentando: reemplaza la
 clave detrás de la variable de entorno. Un `maxBatchSize` más pequeño también reduce el radio de
-impacto de una sola solicitud fallida. Cuando `TIMEOUT` es la norma y no un tropiezo (un modelo
+impacto de una sola petición fallida. Cuando `TIMEOUT` es la norma y no un tropiezo (un modelo
 local lento, o lotes grandes), sube `requestTimeoutMs` en las opciones del proveedor: acota cada
-solicitud a dos minutos por defecto. Consulta
-[Tiempo de espera de solicitud](/docs/providers#tiempo-de-espera-de-solicitud).
+petición a dos minutos por defecto. Consulta
+[Tiempo de espera de petición](/docs/providers#tiempo-de-espera-de-petición).
 
 ## El archivo de bloqueo está corrupto (LOCK_FILE_INVALID)
 
@@ -160,7 +160,7 @@ incompatible o dañado en un merge.
 
 `translate` e `import` lo tratan como un error de toda la ejecución, no como el fallo de un locale
 suelto, y cualquiera de los dos puede toparse con él a mitad de camino, porque cada locale lee el
-bloqueo bajo su propio bloqueo de escritura. Los locales ya confirmados antes del aborto conservan
+bloqueo bajo su propio bloqueo de escritura. Los locales ya consolidados antes del aborto conservan
 lo que escribieron; el resto queda intacto y no se imprime ningún resumen. Ejecuta después
 `verbatra check` para ver hasta dónde llegó la ejecución.
 
@@ -194,7 +194,7 @@ killed; delete it and retry.`
 
 **Causa**: las escrituras a un locale se serializan a través de un archivo de bloqueo por locale.
 Un `translate`, `watch`, `import` o una escritura de Studio concurrentes lo tienen, o un proceso
-matado dejó atrás el archivo de bloqueo.
+terminado a la fuerza dejó atrás el archivo de bloqueo.
 
 **Solución**: exactamente lo que dice el mensaje: espera a que termine la otra ejecución o, si no
 hay ninguna en marcha, borra el archivo de bloqueo en la ruta impresa y reintenta. Para cambiar
@@ -232,7 +232,7 @@ o `failed` (ninguna lo hizo), y ambos salen con `1`.
 **Solución**: esto es la salvaguarda funcionando. No queda nada a medio escribir: las claves
 traducidas antes del techo están en disco y bloqueadas, y las claves retenidas conservan sus líneas
 base y se traducen en la siguiente ejecución. Sube `maxTokens` o cambia a `"warn"` si quieres
-completarlo en una sola ejecución. Dos detalles que conviene saber: una ejecución en seco nunca
+completarlo en una sola ejecución. Dos detalles que conviene saber: un dry run nunca
 salta, porque no construye proveedor ni envía nada; y un presupuesto contra DeepL o Google Cloud
 Translation sí salta, contado a partir de la proyección propia de verbatra, con `supported: false`
 en el resumen diciendo que la cifra es estimada y no informada. Una ejecución también puede
@@ -255,8 +255,8 @@ candidata inventó.
 
 **Causa**: la candidata no lleva el HTML o XML en línea del origen, o lo lleva sin equilibrar o mal
 anidado. Un modelo que pierde un `<a href>`, renombra `<b>` a `<strong>` o cierra `<b>` con `</i>`
-produce una cadena que se representa mal, así que la puerta la rechaza igual que rechaza un marcador
-de posición perdido. Mira [paridad del
+produce una cadena que se representa mal, así que la puerta la rechaza igual que rechaza un placeholder
+perdido. Mira [paridad del
 marcado](/docs/translation-safety#paridad-del-marcado-en-línea) para saber exactamente qué se
 compara.
 
@@ -283,7 +283,7 @@ etiqueta por etiqueta, así que cada traducción tiene que repetir las mismas et
 
 **Síntoma**: `port 5849 is already in use` (o el valor de tu `--port`).
 
-**Causa**: otro proceso, a menudo una instancia anterior de Studio, está ligado al puerto. Studio
+**Causa**: otro proceso, a menudo una instancia anterior de Studio, está enlazado al puerto. Studio
 usa por defecto el 5849 en 127.0.0.1.
 
 **Solución**: detén el otro proceso, o arranca Studio en otro puerto: `verbatra studio --port 6000`.
@@ -307,7 +307,7 @@ aparecen.
 
 **Causa**: el gasto de proveedor es una capacidad que concedes al arrancar. Sin ella, los métodos
 con puerta de gasto ni siquiera se registran; la edición local de archivos siempre está activa y no
-necesita opción alguna.
+necesita ningún flag.
 
 **Solución**: reinicia Studio con `verbatra studio --allow-spend`, o define
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (también `true`, `yes` u `on`). Las acciones rápidas y repetidas

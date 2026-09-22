@@ -6,7 +6,7 @@ description: Prüfe die Projekteinrichtung, ohne einen Provider aufzurufen oder 
 
 Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable und die Quell-Locale-Datei und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen.
 
-Greif danach bei einem frischen Checkout, direkt nach [`verbatra init`](/docs/cli/init), oder immer dann, wenn ein anderer Befehl fehlgeschlagen ist und du die vollständige Liste statt des ersten Fehlers willst. [`verbatra check`](/docs/cli/check) ist die günstigste Prüfung, sobald ein Projekt schon funktioniert, aber es liest die Locale-Dateien und bricht beim ersten Fehler des gesamten Laufs ab, kann dir also nicht sagen, was an einem Projekt ohne Quelldatei falsch ist.
+Nimm ihn bei einem frischen Checkout, direkt nach [`verbatra init`](/docs/cli/init), oder immer dann, wenn ein anderer Befehl fehlgeschlagen ist und du die vollständige Liste statt des ersten Fehlers willst. [`verbatra check`](/docs/cli/check) ist die günstigste Prüfung, sobald ein Projekt schon funktioniert, aber es liest die Locale-Dateien und bricht beim ersten Fehler des gesamten Laufs ab, kann dir also nicht sagen, was an einem Projekt falsch ist, das noch keine Quelldatei hat.
 
 ## Synopsis
 
@@ -20,7 +20,7 @@ verbatra doctor [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe unten) |
+| `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der den Bericht unter `result` trägt; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Was geprüft wird
@@ -40,7 +40,7 @@ Vier Details sind wichtig:
 - Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
 - Der Provider `openai-compatible` ist die Ausnahme. Er fällt auf einen Platzhalter-Key zurück, eine fehlende Variable ist also in Ordnung. Er schlägt nur fehl, wenn deine Konfiguration über `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist.
 - Eine fehlende **Ziel**-Locale-Datei ist kein Problem: [`verbatra translate`](/docs/cli/translate) legt sie an. Ziel-Dateien werden überhaupt nicht geprüft.
-- Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt lassen diese Prüfung alle mit derselben Meldung scheitern, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
+- Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt scheitern alle an dieser Prüfung, mit derselben Meldung, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
 
 Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor es die Umgebung ansieht; ein Key in einer dotenv-Datei zählt also als gesetzt. Mit `--literals` lädt es keine der beiden Dateien.
 
@@ -50,7 +50,7 @@ Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und 
 
 `verbatra doctor --literals` sucht nach dem einen i18n-Fehler, den keine andere Prüfung sieht: einem für Nutzer sichtbaren String, der nie in einem Katalog gelandet ist. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/docs/config-file#extract) und meldet jeden hartcodierten String, der sich wie Text für Nutzer liest, aber durch keinen Übersetzungsaufruf geht. Es liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keine API-Key-Variable und lädt keine `.env`-Datei; es besteht also auch in einem Job ohne Secrets. In diesem Modus laufen nur zwei Prüfungen: die Konfiguration und der Literal-Scan.
 
-Jeder Fund nennt Datei, Zeile und Spalte. In seinem Text wird Leerraum zusammengefasst und in JSX werden Zeichenreferenzen wie `&amp;` aufgelöst, und er wird auf höchstens 80 Zeichen gekürzt:
+Jeder Fund nennt Datei, Zeile und Spalte. In seinem Text wird Leerraum zusammengefasst, in JSX werden Zeichenreferenzen wie `&amp;` aufgelöst, und er wird auf höchstens 80 Zeichen gekürzt:
 
 ```text
 verbatra doctor
@@ -72,9 +72,9 @@ Was nie gemeldet wird: ein String, der an einen erkannten Übersetzungsaufruf (`
 
 Aufrufe, die eine Abfrage, ein Format oder einen Namen statt Text erwarten, werden ebenfalls übersprungen: ein String, der direkt als Argument an `describe` (zod), `query`, `execute`, `prepare`, `format` oder `parse` übergeben wird, ein String im Array, das direkt an `z.enum` geht, jedes String-Argument von `setItem`, `getItem` und `removeItem` sowie das erste Argument von `on`, `off`, `once`, `emit`, `addEventListener` und einem `get`- oder `set`-Aufruf auf einem Objekt wie `cookies().get(...)`. Nur die direkten Argumente werden übersprungen: Text, der tiefer in so einem Aufruf steckt, etwa in einem Callback (`query(() => ({ message: "..." }))`), einem Objekt oder JSX, wird weiter gemeldet. Eine Funktion, deren Name nur zufällig auf `Error` endet, etwa `setError` oder `showError`, wird nicht übersprungen; die Meldung, die du ihr übergibst, wird also weiter gemeldet.
 
-Um ein einzelnes Literal zurückzuhalten, setz `// verbatra-ignore-next-line` darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner eigenen Zeile. Eine Next-Line-Direktive zielt auf die nächste Zeile mit Code (leere Zeilen und Zeilen nur mit Kommentaren werden übersprungen) und gilt für jedes Literal, das in dieser Zeile beginnt. Beginnt dort ein öffnendes JSX-Tag, gilt sie auch für alle Attribute dieses Tags, selbst wenn das Tag über mehrere Zeilen geht. Text und verschachtelte Elemente in späteren Zeilen deckt sie nicht ab; gib ihnen jeweils eine eigene Direktive. Für einen String, der überall in Ordnung ist, etwa einen Markennamen, trag ihn unter `extract.literals.ignore` in [der Konfigurationsdatei](/docs/config-file#extract) ein. Ein Eintrag trifft den Text so, wie er gemeldet wird, mit aufgelösten Zeichenreferenzen, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt aufgeführt, mit Grund; nichts verschwindet stillschweigend.
+Um ein einzelnes Literal zurückzuhalten, setze `// verbatra-ignore-next-line` darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner eigenen Zeile. Eine Next-Line-Direktive zielt auf die nächste Zeile mit Code (leere Zeilen und Zeilen nur mit Kommentaren werden übersprungen) und gilt für jedes Literal, das in dieser Zeile beginnt. Beginnt dort ein öffnendes JSX-Tag, gilt sie auch für alle Attribute dieses Tags, selbst wenn das Tag über mehrere Zeilen geht. Text und verschachtelte Elemente in späteren Zeilen deckt sie nicht ab; gib ihnen jeweils eine eigene Direktive. Für einen String, der überall in Ordnung ist, etwa einen Markennamen, trage ihn unter `extract.literals.ignore` in [der Konfigurationsdatei](/docs/config-file#extract) ein. Ein Eintrag trifft den Text so, wie er gemeldet wird, mit aufgelösten Zeichenreferenzen, also schreibe `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt aufgeführt, mit Grund; nichts verschwindet stillschweigend.
 
-Die Prüfung schlägt fehl, wenn sie ein Literal findet, und auch dann, wenn eine Datei nicht gescannt werden konnte. Eine Datei, die der Scanner nicht bis zum Ende lesen kann (ein nicht geschlossener Kommentar oder Template-Literal oder ein JSX-Element, das nie geschlossen wird oder vom Tag eines umgebenden Elements geschlossen wird), gar nicht lesen kann oder die zu groß ist, wird als nicht gescannt aufgeführt, und der restliche Scan läuft weiter, aber der Lauf wird nie als sauber gemeldet. Ein generischer Funktionstyp wie `type Fn = <T>(x: T) => T` oder eine Typparameterliste wie `<const T extends object = {}>(x: T) => x` in einer `.tsx`-Datei wird als normaler Code gelesen und lässt die Datei also nie scheitern, und ein Element mit beliebig langen Typargumenten, etwa `<Table<Row>>`, wird weiter als JSX gelesen. Ein Projekt ohne `extract`-Block lässt die Prüfung mit einer Meldung scheitern, die den Block nennt. Mit `--json` steht der Scan im Envelope unter `result.literals`, aufgeteilt in `findings`, `suppressed` und `diagnostics`.
+Die Prüfung schlägt fehl, wenn sie ein Literal findet, und auch dann, wenn eine Datei nicht gescannt werden konnte. Eine Datei, die der Scanner nicht bis zum Ende lesen kann (ein nicht geschlossener Kommentar oder Template-Literal oder ein JSX-Element, das nie geschlossen wird oder vom Tag eines umgebenden Elements geschlossen wird), sie gar nicht erst öffnen kann oder sie als zu groß einstuft, wird als nicht gescannt aufgeführt, und der restliche Scan läuft weiter, aber der Lauf wird nie als sauber gemeldet. Ein generischer Funktionstyp wie `type Fn = <T>(x: T) => T` oder eine Typparameterliste wie `<const T extends object = {}>(x: T) => x` in einer `.tsx`-Datei wird als normaler Code gelesen und lässt die Datei also nie scheitern, und ein Element mit beliebig langen Typargumenten, etwa `<Table<Row>>`, wird weiter als JSX gelesen. Ein Projekt ohne `extract`-Block lässt die Prüfung mit einer Meldung scheitern, die den Block nennt. Mit `--json` steht der Scan im Envelope unter `result.literals`, aufgeteilt in `findings`, `suppressed` und `diagnostics`.
 
 ## Beispiele
 
@@ -108,7 +108,7 @@ verbatra doctor
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | jede Prüfung ist bestanden |
+| `0` | alle Prüfungen bestanden |
 | `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben); mit `--literals`: ein Literal wurde gefunden oder eine Datei konnte nicht gescannt werden |
 | `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 

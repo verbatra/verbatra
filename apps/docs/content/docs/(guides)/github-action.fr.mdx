@@ -12,7 +12,7 @@ Lance plutôt la [CLI directement](/docs/ci-and-exit-codes) quand tu veux autre 
 
 ## Disponibilité
 
-L'action vit dans son propre dépôt, [verbatra/action](https://github.com/verbatra/action), séparé du monorepo verbatra, et elle est publiée sur [GitHub Actions Marketplace](https://github.com/marketplace/actions/verbatra). Il n'y a pas de paquet npm ; l'action se consomme uniquement via `uses:`.
+L'action vit dans son propre dépôt, [verbatra/action](https://github.com/verbatra/action), séparé du monorepo verbatra, et elle est référencée sur le [GitHub Actions Marketplace](https://github.com/marketplace/actions/verbatra). Il n'y a pas de paquet npm ; l'action se consomme uniquement via `uses:`.
 
 Référence-la par dépôt, épinglée à un SHA de commit :
 
@@ -20,9 +20,9 @@ Référence-la par dépôt, épinglée à un SHA de commit :
 uses: verbatra/action@<commit-sha>
 ```
 
-`verbatra/action@v1` est la forme pratique et le choix par défaut recommandé : le tag `v1` est la ligne activement maintenue et mise à jour en continu, elle avance avec chaque version, les correctifs et fonctionnalités t'arrivent donc sans toucher au workflow. Épingler un SHA reste de toute façon le choix soucieux de la sécurité, et c'est ce que font les exemples de cette page.
+`verbatra/action@v1` est la forme pratique : le tag `v1` est la ligne activement maintenue et mise à jour en continu, elle avance avec chaque version, les correctifs et fonctionnalités t'arrivent donc sans toucher au workflow. Épingler un SHA est le choix soucieux de la sécurité, et c'est ce que font les exemples de cette page.
 
-Elle était auparavant livrée depuis le monorepo verbatra et référencée par chemin. Cette forme ancienne ne résout plus, pointe donc tes workflows existants vers le dépôt ci-dessus.
+Elle était auparavant livrée depuis le monorepo verbatra et référencée par chemin. Cette ancienne forme ne se résout plus, pointe donc tes workflows existants vers le dépôt ci-dessus.
 
 ## Utilisation
 
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # épingle la ligne v1 activement maintenue
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
@@ -58,7 +58,7 @@ L'action lance la CLI, et la CLI lit la clé d'API du fournisseur uniquement dep
 | Entrée | Requis | Défaut | Description |
 | --- | --- | --- | --- |
 | `version` | oui | - | la version de `@verbatra/cli` à lancer, par exemple `0.11.0`. Doit être une version semver exacte ; l'étape échoue immédiatement sur un dist-tag comme `latest`, une plage ou un préfixe `^`/`~`. Doit aussi être `0.9.3` ou plus récente ; un épinglage plus ancien fait échouer l'étape |
-| `command` | non | `"translate"` | quelle commande verbatra lancer : `translate` (écrit les traductions), `check` (lecture seule, sort avec `1` quand une locale a des clés manquantes ou obsolètes), ou `diff` (lecture seule, sort avec `1` quand une locale a des changements en attente). Les commandes en lecture seule n'ont besoin d'aucune clé d'API de fournisseur, elles fonctionnent donc comme contrôle CI sur une pull request venant d'un fork. Toute valeur en dehors de cet ensemble fait échouer l'étape |
+| `command` | non | `"translate"` | quelle commande verbatra lancer : `translate` (écrit les traductions), `check` (lecture seule, sort avec le code `1` quand une locale a des clés manquantes ou obsolètes), ou `diff` (lecture seule, sort avec le code `1` quand une locale a des changements en attente). Les commandes en lecture seule n'ont besoin d'aucune clé d'API de fournisseur, elles fonctionnent donc comme contrôle CI sur une pull request venant d'un fork. Toute valeur en dehors de cet ensemble fait échouer l'étape |
 | `config-path` | non | `""` | fichier de config explicite à charger (correspond à `--config`). Le laisser vide exige un fichier de config reconnu directement dans `working-directory` ; l'étape échoue avant d'installer la CLI si aucun n'y est trouvé. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
 | `working-directory` | non | `""` | répertoire depuis lequel résoudre la config et les fichiers de locale (correspond à `--cwd`). La recherche de config est stricte : elle ne regarde que directement dans ce répertoire, jamais dans un répertoire parent ni dans la racine du dépôt. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
 | `dry-run` | non | `"false"` | mets `"true"` pour rapporter ce qui changerait sans appeler de fournisseur ni écrire (correspond à `--dry-run`). S'applique seulement quand `command` vaut `translate` ; le combiner avec `check` ou `diff` fait échouer l'étape, puisque ces commandes sont déjà en lecture seule |
@@ -70,7 +70,7 @@ L'action ne définit aucune sortie. Ses résultats sont les annotations, le rés
 
 Quand `config-path` est laissé vide, l'action exige qu'un fichier de config verbatra reconnu existe directement dans le `working-directory` résolu. Si aucun n'y est trouvé, l'étape échoue avant d'installer la CLI, en nommant le répertoire exact qu'elle a vérifié.
 
-La recherche est stricte : elle ne remonte jamais vers un répertoire parent ni vers la racine du dépôt, même quand un ancêtre contient une config valide. Prends un monorepo où l'app à traduire vit dans `apps/docs` :
+La recherche est stricte : elle ne remonte jamais vers un répertoire parent ni vers la racine du dépôt, même quand un ancêtre contient une config valide. Prenons l'exemple d'un monorepo où l'application à traduire vit dans `apps/docs` :
 
 ```yaml
       with:
@@ -78,22 +78,22 @@ La recherche est stricte : elle ne remonte jamais vers un répertoire parent ni 
         working-directory: apps/docs
 ```
 
-Ici, `apps/docs` est la racine dans laquelle une config doit exister ; un fichier de config reconnu directement dans `apps/docs` est requis. Une config à la racine du dépôt extérieur ne satisfait pas le contrôle, même si elle est un ancêtre de `apps/docs`.
+Ici, `apps/docs` est la racine dans laquelle une config doit exister ; un fichier de config reconnu directement dans `apps/docs` est requis. Une config à la racine du dépôt englobant ne satisfait pas le contrôle, même si elle est un ancêtre de `apps/docs`.
 
-Définis `config-path` pour pointer vers un fichier de config en dehors de cette convention. Un `config-path` relatif continue de se résoudre par rapport à `working-directory` ; un `config-path` absolu est utilisé tel quel. Une fois la config confirmée, l'action la transmet toujours explicitement à la CLI avec `--config <chemin-résolu>`.
+Définis `config-path` pour pointer vers un fichier de config en dehors de cette convention. Un `config-path` relatif continue de se résoudre par rapport à `working-directory` ; un `config-path` absolu est utilisé tel quel. Une fois la config confirmée, l'action la transmet toujours explicitement à la CLI avec `--config <resolved-path>`.
 
 ## Ce qu'une exécution te montre
 
-**Annotations.** Sous la commande par défaut `translate`, quand la CLI sort avec `1` (certaines locales ont échoué ou sont ressorties partielles), chaque locale échouée devient une annotation d'erreur intitulée `verbatra: <locale>`, portant le `[CODE] message` structuré de cette locale. Sous `check`, une locale en dérive est annotée `verbatra check: <locale>` à la place ; sous `diff`, une locale avec des changements en attente est annotée `verbatra diff: <locale>`. Quand toute l'exécution échoue avant de produire un résumé (sortie `2`), une seule annotation `verbatra` porte à la place la ligne d'erreur de la CLI, quelle que soit la commande.
+**Annotations.** Sous la commande par défaut `translate`, quand la CLI sort avec le code `1` (certaines locales ont échoué ou sont ressorties partielles), chaque locale échouée devient une annotation d'erreur intitulée `verbatra: <locale>`, portant le `[CODE] message` structuré de cette locale. Sous `check`, une locale en dérive est annotée `verbatra check: <locale>` à la place ; sous `diff`, une locale avec des changements en attente est annotée `verbatra diff: <locale>`. Quand toute l'exécution échoue avant de produire un résumé (sortie `2`), une seule annotation `verbatra` porte à la place la ligne d'erreur de la CLI, quelle que soit la commande.
 
-**Résumé de job.** Chaque exécution ajoute un résumé Markdown à la page du job, dont la forme dépend de la commande lancée. Sous `translate`, c'est un tableau avec une ligne par locale (statut, traduites, inchangées, orphelines, ICU invalide, retenues pour intégrité, échecs fournisseur, avis), une ligne d'agrégat et une liste des locales échouées avec leurs codes d'erreur ; un dry run est étiqueté comme tel. Sous `check`, il rapporte le nombre de clés manquantes et obsolètes par locale. Sous `diff`, il rapporte les clés manquantes et modifiées par locale, avec les clés orphelines listées à part, puisqu'elles ne font jamais à elles seules échouer l'étape. Un échec global reçoit un court résumé d'échec avec le code de sortie et le détail de l'erreur, quelle que soit la commande.
+**Résumé de job.** Chaque exécution ajoute un résumé Markdown à la page du job, dont la forme dépend de la commande lancée. Sous `translate`, c'est un tableau avec une ligne par locale (statut, traduites, inchangées, orphelines, ICU invalide, retenues par la barrière d'intégrité, échecs du fournisseur, avis), une ligne d'agrégat et une liste des locales échouées avec leurs codes d'erreur ; un dry run est étiqueté comme tel. Sous `check`, il rapporte le nombre de clés manquantes et obsolètes par locale. Sous `diff`, il rapporte les clés manquantes et modifiées par locale, avec les clés orphelines listées à part, puisqu'elles ne font jamais à elles seules échouer l'étape. Un échec global reçoit un court résumé d'échec avec le code de sortie et le détail de l'erreur, quelle que soit la commande.
 
-**Comportement de sortie.** L'action capture le stdout et le code de sortie de la CLI sans s'interrompre prématurément, émet les annotations et le résumé, et sort seulement ensuite avec le code de la CLI. L'étape échoue donc sur `1` ou `2`, mais jamais avant que tu puisses voir pourquoi. La page [CI et codes de sortie](/docs/ci-and-exit-codes) détaille la signification de chaque code. Si le câblage interne du code de sortie casse un jour, l'action échoue avec `2` plutôt que de rapporter un faux succès.
+**Comportement de sortie.** L'action capture le stdout et le code de sortie de la CLI sans s'interrompre prématurément, émet les annotations et le résumé, et sort seulement ensuite avec le code de la CLI. L'étape échoue donc sur `1` ou `2`, mais jamais avant que tu puisses voir pourquoi. La page [CI et codes de sortie](/docs/ci-and-exit-codes) détaille la signification de chaque code. Si le câblage interne du code de sortie casse un jour, l'action échoue avec le code `2` plutôt que de rapporter un faux succès.
 
-## Persister les traductions
+## Conserver les traductions
 
-Sans `dry-run`, la commande par défaut `translate` écrit les fichiers de locale mis à jour dans le checkout du runner, et l'action s'arrête là : elle ne commit pas. Pour garder les changements, ajoute ta propre étape qui commit et pousse ou ouvre une pull request. Quand tu veux seulement que la CI signale les traductions manquantes ou obsolètes sans rien écrire, mets `dry-run: "true"` sous `translate`, ou mets `command: check` (ou `command: diff`) pour lancer à la place un contrôle en lecture seule.
+Sans `dry-run`, la commande par défaut `translate` écrit les fichiers de locale mis à jour dans le checkout du runner, et l'action s'arrête là : elle ne commite pas. Pour garder les changements, ajoute ta propre étape qui commite et pousse, ou qui ouvre une pull request. Quand tu veux seulement que la CI signale les traductions manquantes ou obsolètes sans rien écrire, mets `dry-run: "true"` sous `translate`, ou mets `command: check` (ou `command: diff`) pour lancer à la place un contrôle en lecture seule.
 
 ## Sécurité
 
-Épingle les deux références exactement : la ligne `uses:` à un SHA de commit et l'entrée `version` à une version exacte de `@verbatra/cli`. L'action applique elle-même la seconde en rejetant tout ce qui n'est pas une version semver exacte, donc une exécution ne peut jamais résoudre `latest` en silence. Ne donne au workflow que le privilège dont il a besoin : `contents: read` pour un rapport, plus `contents: write` ou `pull-requests: write` seulement quand une étape ultérieure commit ou ouvre une pull request. Les entrées atteignent la CLI via l'environnement, comme données, et sont développées dans un tableau d'arguments protégé par des guillemets, jamais insérées dans du texte shell : une valeur d'entrée forgée reste un argument et ne devient jamais du code exécutable.
+Épingle les deux références exactement : la ligne `uses:` à un SHA de commit et l'entrée `version` à une version exacte de `@verbatra/cli`. L'action applique elle-même la seconde en rejetant tout ce qui n'est pas une version semver exacte, donc une exécution ne peut jamais résoudre `latest` en silence. Ne donne au workflow que le privilège dont il a besoin : `contents: read` pour un rapport, plus `contents: write` ou `pull-requests: write` seulement quand une étape ultérieure commite ou ouvre une pull request. Les entrées atteignent la CLI via l'environnement, comme données, et sont développées dans un tableau d'arguments protégé par des guillemets, jamais insérées dans du texte shell : une valeur d'entrée forgée reste un argument et ne devient jamais du code exécutable.

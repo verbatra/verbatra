@@ -6,9 +6,9 @@ Ce guide montre comment faire échouer la CI quand les traductions se désynchro
 
 verbatra est une dépendance de développement, donc les commandes que tu lances en local tournent pareil en CI. Le découpage habituel :
 
-- **Contrôle une pull request** avec [`verbatra check`](/docs/cli/check) ou [`verbatra diff`](/docs/cli/diff), soit directement (cette page), soit via la [GitHub Action](/docs/github-action) avec `command: check` ou `command: diff`. Les deux sont en lecture seule : aucun appel de fournisseur, aucune clé d'API requise, sortie `1` en cas de dérive.
+- **Contrôle une pull request** avec [`verbatra check`](/docs/cli/check) ou [`verbatra diff`](/docs/cli/diff), soit directement (cette page), soit via la [GitHub Action](/docs/github-action) avec `command: check` ou `command: diff`. Les deux sont en lecture seule : aucun appel au fournisseur, aucune clé d'API requise, sortie `1` en cas de dérive.
 - **Traduis lors d'un push** avec [`verbatra translate`](/docs/cli/translate), soit directement (cette page), soit via la [GitHub Action](/docs/github-action).
-- **Vérifie le terrain avant les deux** avec [`verbatra doctor`](/docs/cli/doctor). C'est l'étape la moins chère de toutes : il valide la config, le format, le fournisseur, la variable de clé et le fichier source, n'appelle jamais de fournisseur et ne lit jamais une valeur de clé. Il rend aussi un rapport sur un projet dont les fichiers de locale ne sont pas encore en place, là où les autres commandes ne peuvent qu'échouer globalement.
+- **Fais précéder l'un ou l'autre d'une vérification préalable** avec [`verbatra doctor`](/docs/cli/doctor). C'est l'étape la moins chère de toutes : il valide la config, le format, le fournisseur, la variable de clé et le fichier source, n'appelle jamais de fournisseur et ne lit jamais une valeur de clé. Il rend aussi un rapport sur un projet dont les fichiers de locale ne sont pas encore en place, là où les autres commandes ne peuvent qu'échouer globalement.
 
 ## Les codes de sortie
 
@@ -16,9 +16,9 @@ Le code de sortie est le contrat sur lequel ton étape CI se branche :
 
 | Code | Signification |
 | --- | --- |
-| `0` | succès : `translate` ou `import` a terminé chaque locale complète, `check` a trouvé chaque locale synchronisée, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a échafaudé le projet, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
+| `0` | succès : `translate` ou `import` a terminé avec toutes les locales complètes, `check` a trouvé toutes les locales synchronisées, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a généré la structure du projet, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
 | `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée, `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
-| `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` sans fournisseur résoluble ou incapable de composer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
+| `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` sans fournisseur résoluble ou incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
 | `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
 
 Quelques cas limites à connaître :
@@ -30,7 +30,7 @@ Quelques cas limites à connaître :
 - Une interruption unique est un arrêt propre, et les trois commandes de longue durée (`watch`, `studio` et `mcp`) sortent avec `0` dans ce cas. Au-delà, ne suppose pas qu'elles se comportent pareil : si l'arrêt lui-même échoue, `watch` sort avec `2` tandis que `studio` et `mcp` sortent avec `1`.
 - Une exécution échouée pendant `watch` apparaît comme un enregistrement sur le flux de sortie, jamais comme un code de sortie non nul.
 - `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
-- `doctor` lit une config cassée autrement que toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et la sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
+- `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
 - Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des quatre codes.
 
 ## check ou diff : choisir le contrôle
@@ -47,7 +47,7 @@ verbatra diff
 
 Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux les clés exactes derrière la dérive, par exemple pour les poster dans un commentaire de pull request. Les clés orphelines (dans un fichier cible mais disparues de la source) apparaissent dans la sortie de `diff` mais ne déclenchent jamais le code de sortie `1` à elles seules.
 
-Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur à débit limité.
+Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur soumis à des limites de débit.
 
 ## Sortie JSON
 
@@ -59,7 +59,7 @@ type Envelope<TResult> =
   | { ok: false; version: 1; command: string | null; code: string; message: string };
 ```
 
-`version` est la version de cette forme d'enveloppe, pas la version du paquet. C'est un entier, tu le compares donc avec `===` plutôt que d'analyser une plage, et il ne change que lorsqu'un champ existant change de sens ou disparaît. De nouveaux champs peuvent apparaître sans incrément, ignore donc ceux que tu ne reconnais pas.
+`version` est la version de cette forme d'enveloppe, pas la version du paquet. C'est un entier, tu le compares donc avec `===` plutôt que d'analyser une plage, et il ne change que lorsqu'un champ existant change de sens ou disparaît. De nouveaux champs peuvent apparaître sans changement de version, ignore donc ceux que tu ne reconnais pas.
 
 Une exécution qui échoue dans son ensemble écrit exactement un enregistrement `ok: false` sur stdout et sort avec `2`. Son `code` est le même code d'erreur stable que porte la ligne stderr, c'est donc sur lui que tu te branches :
 
@@ -69,7 +69,7 @@ Une exécution qui échoue dans son ensemble écrit exactement un enregistrement
 
 `command` vaut `null` uniquement quand l'échec s'est produit avant qu'une sous-commande soit résolue.
 
-Les erreurs d'une commande déjà résolue vont sur stderr sous forme d'une ligne structurée (`verbatra: error [CODE] message`) dans les deux modes, inchangée, donc un script qui lit le code de sortie et stderr n'a rien à changer. Deux classes d'échec ne suivent pas cette grammaire, car elles surviennent avant qu'une exécution existe pour porter un code : une erreur d'analyse des arguments affiche le `error: unknown option '--nope'` propre à commander, sans préfixe et sans code, et `init` refuse un fournisseur absent avec `verbatra: --provider is required (...)`, préfixé mais sans code. Les deux sortent avec `2`. Teste d'abord le code de sortie et traite le code d'erreur comme optionnel, sinon un analyseur écrit uniquement contre la grammaire structurée ne correspondra à aucun des deux. Sans `--json`, une exécution échouée n'écrit toujours strictement rien sur stdout. Les enregistrements de progression et d'attente de verrouillage vont toujours sur stderr, donc stdout ne porte que des enveloppes.
+Les erreurs d'une commande déjà résolue vont sur stderr sous forme d'une ligne structurée (`verbatra: error [CODE] message`) dans les deux modes, inchangée, donc un script qui lit le code de sortie et stderr n'a rien à changer. Deux classes d'échec ne suivent pas cette grammaire, car elles surviennent avant qu'une exécution existe pour porter un code : une erreur d'analyse des arguments affiche le `error: unknown option '--nope'` propre à commander, sans préfixe et sans code, et `init` refuse un fournisseur absent avec `verbatra: --provider is required (...)`, préfixé mais sans code. Les deux sortent avec `2`. Teste d'abord le code de sortie et traite le code d'erreur comme optionnel, sinon un analyseur écrit uniquement pour la grammaire structurée n'en reconnaîtra silencieusement aucune. Sans `--json`, une exécution échouée n'écrit toujours strictement rien sur stdout. Les enregistrements de progression et d'attente de verrouillage vont toujours sur stderr, donc stdout ne porte que des enveloppes.
 
 Le reste de cette section décrit le `result` que chaque commande place dans une enveloppe de succès.
 
@@ -88,9 +88,9 @@ interface RunSummary {
 }
 ```
 
-L'objet `estimate` porte `keys`, `requests`, la quantité facturable que le fournisseur applique et un code `pricing` qui dit si une somme a pu être dérivée. Il n'est présent que sur une exécution `--estimate`, qui est toujours un dry run ; voir [Estimer le coût](/docs/estimating-cost) pour la signification de chaque champ.
+L'objet `estimate` porte `keys`, `requests`, la quantité facturée par le fournisseur et un code `pricing` qui dit si un montant en devise a pu être calculé. Il n'est présent que sur une exécution `--estimate`, qui est toujours un dry run ; voir [Estimer le coût](/docs/estimating-cost) pour la signification de chaque champ.
 
-Chaque `LocaleSummary` porte les listes de clés par locale (traduites, inchangées, orphelines, retenues, signalées pour révision, et plus) ; voir [la référence SDK](/docs/sdk) pour l'anatomie complète.
+Chaque `LocaleSummary` porte les listes de clés par locale (traduites, inchangées, orphelines, retenues, signalées pour révision, et d'autres encore) ; voir [la référence SDK](/docs/sdk) pour l'anatomie complète.
 
 `verbatra watch --json` affiche une enveloppe par exécution en NDJSON (un objet JSON par ligne), avec `command: "watch"`. Une exécution réussie est un enregistrement `ok: true` portant le `RunSummary` de cette exécution ; une exécution échouée est un enregistrement `ok: false` portant son code et son message. Une exécution échouée n'est qu'un enregistrement sur le flux : elle n'arrête pas la surveillance et ne change pas le code de sortie.
 
@@ -111,7 +111,7 @@ interface LocaleCheckSummary {
 }
 ```
 
-`verbatra diff --json` porte des listes de clés au lieu de comptes. Le `hasPendingChanges` de premier niveau est vrai exactement quand la commande sort avec `1` :
+`verbatra diff --json` porte des listes de clés au lieu de décomptes. Le `hasPendingChanges` de premier niveau est vrai exactement quand la commande sort avec `1` :
 
 ```ts
 interface DiffSummary {
@@ -187,7 +187,7 @@ La [GitHub Action](/docs/github-action) exécute le même contrôle sans aucune 
 
 ```yaml
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # épingle la ligne v1 activement maintenue
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.9.3
           command: check

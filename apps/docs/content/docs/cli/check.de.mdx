@@ -2,7 +2,7 @@
 title: verbatra check
 description: Melde, welche Keys pro Locale fehlen oder veraltet sind, ohne Dateien zu schreiben.
 ---
-Melde pro Ziel-Locale, wie viele Keys fehlen, veraltet oder aktuell sind, und beende dich mit einem Code, auf den ein CI-Schritt verzweigen kann. `check` führt dasselbe Lesen und Diffen aus, das [`verbatra translate`](/docs/cli/translate) direkt vor dem Provider-Aufruf ausführen würde, und hört dann auf: kein Provider-Aufruf, keine geschriebenen Dateien, keine Aktualisierung der [Lock-Datei](/docs/the-lock-file) und kein API-Key nötig.
+Melde pro Ziel-Locale, wie viele Keys fehlen, veraltet oder aktuell sind, und beende den Lauf mit einem Code, auf den ein CI-Schritt verzweigen kann. `check` führt dasselbe Lesen und Diffen aus, das [`verbatra translate`](/docs/cli/translate) direkt vor dem Provider-Aufruf ausführen würde, und hört dann auf: kein Provider-Aufruf, keine geschriebenen Dateien, keine Aktualisierung der [Lock-Datei](/docs/the-lock-file) und kein API-Key nötig.
 
 ## Synopsis
 
@@ -26,11 +26,11 @@ Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht; er ist veraltet, wenn
 
 <AvailableFrom version="0.11.0" />
 
-`--consistency` ergänzt einen zweiten, rein lesenden Bericht: pro Ziel-Locale jeden Quellstring, den zwei oder mehr Keys unterschiedlich übersetzen. Jeder Fund nennt den Quellstring, jede abweichende Übersetzung und die Keys, die sie tragen, damit du dich für eine Formulierung entscheiden und den Rest von Hand angleichen kannst. Nichts wird für dich geändert.
+`--consistency` ergänzt einen zweiten, nur lesenden Bericht: pro Ziel-Locale jeden Quellstring, den zwei oder mehr Keys unterschiedlich übersetzen. Jeder Fund nennt den Quellstring, jede abweichende Übersetzung und die Keys, die sie tragen, damit du dich für eine Formulierung entscheiden und den Rest von Hand angleichen kannst. Nichts wird für dich geändert.
 
 Es ist ein Bericht und sonst nichts. Er ändert nie den Exit-Code, macht kein Locale unsynchron, hält keinen Wert zurück, schreibt keinen um und markiert keinen Key zur Prüfung. Wie der Rest von `check` ruft er keinen Provider auf und braucht keinen API-Key.
 
-Der Vergleich folgt einer Regel, für Quelle und Übersetzung gleichermaßen:
+Der Vergleich folgt einem Satz von Regeln, für Quelle und Übersetzung gleichermaßen:
 
 - Werte werden nach Unicode-NFC-Normalisierung, dem Umwandeln von `\r\n` in `\n` und dem Entfernen von Leerraum am Anfang und Ende verglichen, `"Save "` und `"Save"` gelten also als derselbe String. Leerraum innerhalb des Werts und Groß- und Kleinschreibung zählen.
 - Verglichen werden nur aktuelle Keys. Ein fehlender Key hat noch keine Übersetzung, und die Übersetzung eines veralteten Keys gehört zu einem älteren Quelltext, den `check` ohnehin meldet.
@@ -43,9 +43,9 @@ Gruppen sind nach Quellstring sortiert, Übersetzungen nach Wert und Keys nach N
 ### Bekannte Einschränkungen
 
 - i18next-Kontextvarianten werden gemeldet. i18next kodiert einen Kontext als Key-Suffix (`invite_male`, `invite_female`), das sich nicht von einem gewöhnlichen snake_case-Key unterscheiden lässt. Zwei Kontextvarianten mit gleichem Quelltext, aber unterschiedlicher Übersetzung erscheinen deshalb als Fund. Wenn dein Format es unterstützt, gib ihnen eine abweichende Beschreibung oder Bedeutung, dann werden sie nie gruppiert; andernfalls ignoriere den Fund.
-- gettext-Einträge mit `#, fuzzy` zählen als Übersetzungen. Der gettext-Adapter übernimmt das Fuzzy-Flag nicht, deshalb wird ein unscharfer `msgstr` wie ein geprüfter verglichen und kann in einem Fund auftauchen. Prüfe oder bereinige Fuzzy-Einträge, bevor du dich auf den Bericht verlässt.
+- gettext-Einträge mit `#, fuzzy` zählen als Übersetzungen. Der gettext-Adapter übernimmt das Fuzzy-Flag nicht, deshalb wird ein Fuzzy-`msgstr` wie ein geprüfter verglichen und kann in einem Fund auftauchen. Prüfe oder bereinige Fuzzy-Einträge, bevor du dich auf den Bericht verlässt.
 - Plural-Keys in einem Format ohne Pluralkonzept zählen als gewöhnliche Keys. Die Adapter für `yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini` und `resx` kennen keine Pluralformen, deshalb sind `item_one` und `item_other` für sie zwei unabhängige Keys. Haben zwei solche Formen eines Keys den gleichen Quelltext, aber eine unterschiedliche Übersetzung, erscheinen sie als Fund. Wenn dein Format es unterstützt, gib ihnen eine abweichende Beschreibung oder Bedeutung, dann werden sie nie gruppiert; andernfalls ignoriere den Fund.
-- `custom:`-Formate bekommen keinen Auflöser für Pluralformen. verbatra weiß nur, wie seine eingebauten Adapter Pluralformen benennen. Speichert ein Adapter eines Drittanbieters jede Form unter einem eigenen Key, werden die Formen eines Keys deshalb als eine Gruppe verglichen und können als Fund erscheinen, wenn sie den gleichen Quelltext haben. Gib den Formen eine abweichende Beschreibung oder Bedeutung, oder ignoriere den Fund.
+- `custom:`-Formate bekommen keinen Resolver für Pluralformen. verbatra weiß nur, wie seine eingebauten Adapter Pluralformen benennen. Speichert ein Adapter eines Drittanbieters jede Form unter einem eigenen Key, werden die Formen eines Keys deshalb als eine Gruppe verglichen und können als Fund erscheinen, wenn sie den gleichen Quelltext haben. Gib den Formen eine abweichende Beschreibung oder Bedeutung, oder ignoriere den Fund.
 
 ## Beispiele
 
@@ -76,4 +76,4 @@ Auf einem Projekt, dessen Quell-Locale-Datei noch nicht vorhanden ist, kann `che
 
 - [`verbatra diff`](/docs/cli/diff) listet die genauen Keys hinter diesen Zählern.
 - [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt check als Drift-Gate.
-- [Die Lock-Datei](/docs/the-lock-file) erklärt, wie Veraltung erkannt wird.
+- [Die Lock-Datei](/docs/the-lock-file) erklärt, wie erkannt wird, dass eine Übersetzung veraltet ist.

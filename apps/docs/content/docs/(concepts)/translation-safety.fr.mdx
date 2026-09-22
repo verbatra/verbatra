@@ -14,20 +14,20 @@ verbatra ne laisse jamais une chaîne traduisible agir comme une instruction adr
 chaîne traduisible peut contenir du texte qui ressemble à une instruction (une chaîne d'UI qui
 dit littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une
 entrée non fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
-compilation. Toute entrée variable, les entrées à traduire avec ton glossaire et le ton configuré, voyage
-uniquement dans la charge utile JSON du tour utilisateur, jamais insérée dans le canal
-d'instructions. La sortie du fournisseur est contrainte à un schéma et validée comme des données :
+compilation. Toute entrée variable, les entrées à traduire ainsi que le glossaire et le ton que tu
+as définis, voyage uniquement dans la charge utile JSON du tour utilisateur, jamais insérée dans le
+canal d'instructions. La sortie du fournisseur est contrainte à un schéma et validée comme des données :
 une réponse malformée échoue, et une réponse contenant une clé jamais demandée fait échouer le
 sous-lot entier, parce qu'il n'existe pas d'acceptation partielle sûre autour de contenu inventé.
 
 ## La barrière d'intégrité
 
-Une traduction valide au schéma peut quand même être cassée, donc une barrière recalcule la
-décision d'acceptation ou de rejet directement à partir de la valeur candidate ; le rapport
-d'intégrité du fournisseur lui-même n'est jamais cru. La même barrière tourne sur chaque chemin
+Une traduction conforme au schéma peut quand même être cassée, donc une barrière recalcule la
+décision d'acceptation ou de rejet directement à partir de la valeur candidate ; on ne se fie jamais
+au rapport d'intégrité du fournisseur lui-même. La même barrière tourne sur chaque chemin
 d'écriture : une traduction issue d'un fournisseur, une ligne d'import de classeur, et une
 modification tapée à la main dans Studio. Elle tourne aussi par clé sur une valeur réutilisée.
-Quand une même traduction est servie à plusieurs clés au même contenu source
+Quand une même traduction est servie à plusieurs clés ayant le même contenu source
 (un succès de [cache](/docs/the-cache), ou la copie qui fait qu'un texte identique ne coûte qu'une
 seule requête au fournisseur), chaque clé passe la barrière face à sa propre entrée source, et une
 clé dont la vérification échoue est retenue au lieu d'être écrite. L'égalité est décidée par un hash
@@ -51,8 +51,8 @@ pour cela que la barrière est rejouée par clé.
   reste rejeté : un jeton de la forme `{name}` qui apparaît dans la candidate et n'a jamais figuré
   dans la source est une fabrication sous n'importe quelle convention d'interpolation, et c'est ce
   qui rend son refus sûr sans connaître les délimiteurs de ton projet. Le contrôle ne va que dans ce
-  sens, donc une candidate qui laisse tomber un tel jeton ou modifie le texte littéral qui l'entoure
-  passe sans encombre.
+  sens, donc une candidate qui perd ou modifie le texte littéral qui l'entoure est laissée
+  tranquille.
 - Parité du balisage en ligne : la valeur traduite doit porter le même HTML ou XML en ligne que sa
   source, et le porter bien formé. Une balise perdue, inventée, renommée ou déséquilibrée casse le
   rendu d'une chaîne comme un placeholder perdu casse son interpolation, elle est donc refusée de
@@ -60,20 +60,20 @@ pour cela que la barrière est rejouée par clé.
 - Dégénérescence : la valeur ne doit pas être structurellement dégénérée, comme une boucle de
   répétition ou une longueur qui s'est emballée par rapport à la source. Cela attrape un modèle qui
   s'est effondré en répétant un fragment même si chaque placeholder a survécu.
-- Vacuité : une source non vide ne peut pas être traduite en une valeur vide ou composée seulement
-  d'espaces. Vider une traduction est un acte distinct et délibéré, et la sentinelle `[[CLEAR]]` du
-  classeur est le moyen de le faire ; voir
+- Valeur vide : une source non vide ne peut pas être traduite en une valeur vide ou composée
+  seulement d'espaces. Vider une traduction est un acte distinct et délibéré, et la sentinelle
+  `[[CLEAR]]` du classeur est le moyen de le faire ; voir
   [Traduction manuelle](/docs/manual-translation).
 
-Une candidate rejetée est retenue comme donnée, jamais écrite : elle apparaît sur le résumé
+Une candidate rejetée est retenue comme une donnée, jamais écrite : elle apparaît sur le résumé
 d'exécution comme un défaut d'intégrité, garde son hash précédent dans
 [le fichier de verrouillage](/docs/the-lock-file), et est retentée à l'exécution suivante. Retenue
-reste aussi distinct d'échouée : une clé pour laquelle rien n'a été traduit (l'appel fournisseur a
-levé une erreur, ou la clé manquait encore après le tour de réparation borné) est rapportée comme
+reste aussi distincte d'échouée : une clé pour laquelle rien n'a été traduit (l'appel fournisseur a
+levé une erreur, ou la clé manquait encore après le tour de réparation borné) est signalée comme
 un échec fournisseur, pas comme un défaut d'intégrité. Les deux se retentent de la même façon.
 
 Côté source, une clé source dont la propre valeur est de l'ICU invalide est mise de côté avant la
-traduction et rapportée, au lieu d'être envoyée au fournisseur dans un état cassé.
+traduction et signalée, au lieu d'être envoyée au fournisseur dans un état cassé.
 
 ### Parité du balisage en ligne
 
@@ -96,8 +96,8 @@ ce qui décide si quelque chose est un constat :
   une traduction correcte et non une traduction cassée (dans les limites décrites plus bas pour les
   valeurs d'attribut), et l'une ou l'autre graphie d'un élément vide, `<br>` et `<br/>` étant la
   même balise.
-- Comptées, pas seulement remarquées : deux paires adjacentes fusionnées en une seule
-  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusé, parce que la comparaison ne peut pas
+- Comptées, pas seulement remarquées : la fusion de deux paires adjacentes en une seule
+  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusée, parce que la comparaison ne peut pas
   distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
 - Comparées exactement : un changement de casse est un constat. Les éléments vides HTML (`<br>`,
   `<img>`, `<hr>` et les autres) n'ont besoin d'aucune balise fermante, quelle que soit leur casse,
@@ -184,9 +184,9 @@ l'imbrication est omise : ses balises sont comparées comme un multiensemble com
 donc une traduction qui garde `a<b and c>d` à l'identique est acceptée, une qui ajoute un `<img>` à
 côté est refusée, et de même une qui traduit les mots à l'intérieur de la séquence (`a<b und c>d`),
 parce qu'un analyseur lit `und` comme un nouvel attribut. Aucune source n'est non plus trop grande
-pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus de deux fois plus de
-balises et de constructions que sa source, ou plus de 256 pour une source plus petite, avec le
-détail `+more than N inline tags` qui nomme cette limite.
+pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus du double de balises et
+de constructions que sa source, ou plus de 256 pour une source plus petite, avec le détail
+`+more than N inline tags` qui nomme cette limite.
 
 Les valeurs d'attribut sont libres, à quelques exceptions près, qui existent parce qu'une valeur
 traduite finit dans une page. La valeur d'un attribut d'URL (`href`, `src`, `action`, `formaction`,
@@ -248,8 +248,8 @@ une seconde couche, consultative, signale les résultats suspects à un humain. 
 révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 
 - `LENGTH_RATIO_OUTLIER` : la traduction est bien plus courte ou plus longue que sa source (en
-  dessous de 0.35x ou au-dessus de 3.0x en longueur après retrait des espaces ; les sources très courtes sont
-  ignorées). Une invitation à regarder, pas un verdict.
+  dessous de 0.35x ou au-dessus de 3.0x en longueur après retrait des espaces ; les sources très
+  courtes sont ignorées). Une invitation à regarder, pas un verdict.
 - `MAX_LENGTH_EXCEEDED` : la traduction est plus longue que le budget absolu configuré pour sa clé
   sous [`maxLength`](/docs/config-file). Comptée en groupes de graphèmes, sur la valeur telle
   qu'elle est écrite, et la limite est inclusive : une valeur égale au budget n'est pas signalée.
@@ -257,8 +257,8 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
   signale au lieu de bloquer : une traduction au-dessus du budget est tout de même écrite et tout
   de même verrouillée, car une traduction correcte qui dépasse un budget de mise en page vaut mieux
   que pas de traduction du tout.
-- `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source dans une locale cible
-  différente, et la source avait réellement du texte traduisible.
+- `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source alors que la locale cible
+  diffère de la locale source, et la source avait réellement du texte traduisible.
 - `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme
   cible associé est absent de la traduction. La correspondance ignore la casse, et les deux côtés
   sont tenus à des exigences différentes, volontairement. Le côté source exige un mot entier, donc
@@ -278,7 +278,7 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 - `FUZZY_CACHE_REUSE` : la valeur n'a jamais été traduite pour ce texte source. Elle vient
   [du cache](/docs/the-cache), en réutilisation approximative d'une source antérieure quasi
   identique qui a depuis été modifiée. La similarité se mesure en caractères, et le sens n'est pas
-  une fonction de la distance entre caractères : supprimer une négation, inverser un modal ou
+  une fonction de la distance entre caractères : supprimer une négation, inverser un verbe modal ou
   changer un nom propre sont de petites modifications qui renversent une phrase, et aucun seuil ne
   les sépare d'une correction de coquille. Chaque réutilisation approximative porte donc cette
   raison à chaque exécution, quel que soit son score. N'apparaît que si `fuzzyCache` est activé.
@@ -290,8 +290,8 @@ traduite.
 Les clés signalées apparaissent par locale comme `needsReview` sur le résumé d'exécution, et elles
 alimentent la file de révision : la CLI affiche le compte, le classeur Excel porte le même signal
 dans ses colonnes de révision, et la page Révision de Studio liste les clés signalées pour les
-traiter ; voir [Réviser les traductions dans Studio](/docs/review-in-studio). La seule façon d'effacer un
-signalement est de corriger la traduction sous-jacente.
+traiter ; voir [Réviser les traductions dans Studio](/docs/review-in-studio). La seule façon
+d'effacer un signalement est de corriger la traduction sous-jacente.
 
 ## Le budget de tokens
 
@@ -299,7 +299,7 @@ La dépense fournisseur devrait avoir un plafond que tu fixes, pas un que tu dé
 facture. Avec `maxTokens` configuré, verbatra compte ce que l'exécution dépense sur chaque appel
 fournisseur et chaque locale cible. Ce qui se passe au plafond est `budgetBehavior` :
 
-- `warn` (le défaut) : l'exécution continue et le résumé signale que le budget a été dépassé. Rien
+- `warn` (par défaut) : l'exécution continue et le résumé signale que le budget a été dépassé. Rien
   n'est retenu.
 - `stop` : chaque requête est projetée avant d'être envoyée, et celle qui ferait passer l'exécution
   au-dessus du plafond n'est pas envoyée du tout. Ses clés, et chaque candidate restante après
@@ -307,27 +307,27 @@ fournisseur et chaque locale cible. Ce qui se passe au plafond est `budgetBehavi
   retentées à l'exécution suivante.
 
 Le travail déjà fait n'est jamais annulé, et rien n'est laissé à moitié : ce qui a été traduit
-avant le plafond reste écrit et verrouillé, et une clé retenue garde la baseline qu'elle avait,
+avant le plafond reste écrit et verrouillé, et une clé retenue garde la référence qu'elle avait,
 donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de
 verrouillage revendiquant du travail retenu. La vérification couvre chaque requête que l'exécution
 envoie, y compris chaque moitié d'une requête redécoupée après une réponse tronquée : une cascade
-de retries ne peut donc pas dépasser une réservation. La seule chose qu'une projection ne peut pas
-promettre est la requête déjà partie : elle peut rapporter plus que sa projection, donc le compte
-final peut finir au-dessus de `maxTokens` de l'écart de cette seule requête, et pas davantage. Plus
-rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite.
+de nouvelles tentatives ne peut donc pas dépasser une réservation. La seule chose qu'une projection
+ne peut pas promettre est la requête déjà partie : elle peut remonter plus que ce que sa projection
+prévoyait, donc le compte final peut finir au-dessus de `maxTokens` de l'écart de cette seule
+requête, et pas davantage. Plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite.
 
 Deux limites méritent d'être dites clairement. Le plafond borne une exécution, pas une session :
 `watch` démarre un budget neuf pour chaque exécution qu'il déclenche, donc une session watch peut
 dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source. Et il couvre
-`translate` et rien d'autre : retraduire une seule entrée depuis [le tableau de bord
-Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin avec son propre
-fournisseur, et aucun budget ne borne cette dépense.
+`translate` et rien d'autre : retraduire une seule entrée depuis
+[le tableau de bord Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin
+avec son propre fournisseur, et aucun budget ne borne cette dépense.
 
 Sous `warn`, le budget ne change jamais le code de sortie de la commande. Sous `stop`, il le peut :
-une locale dont des clés ont été retenues est rapportée comme `partial` quand certaines clés sont
-quand même arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec `1`. Un
-fournisseur qui ne rapporte pas son propre usage de tokens (DeepL, Google Cloud Translation) est
-compté à partir de la projection au lieu de rester non mesuré, donc le garde-fou mord là aussi ;
+une locale dont des clés ont été retenues est signalée comme `partial` quand certaines clés sont
+quand même arrivées et `failed` quand aucune n'est arrivée, et les deux sortent avec le code `1`. Un
+fournisseur qui ne remonte pas son propre usage de tokens (DeepL, Google Cloud Translation) est
+compté à partir de la projection au lieu de rester non mesuré, donc le garde-fou joue là aussi ;
 `supported` sur le budget du résumé indique que le chiffre est le décompte de verbatra et non celui
 du fournisseur.
 
@@ -343,8 +343,8 @@ portent des codes et des comptes, pas des secrets.
 
 ## Où tu vois tout ça
 
-Tout ceci est de la donnée sur le résumé d'exécution, par locale : clés traduites, défauts
-d'intégrité, échecs fournisseur, clés retenues par le budget, clés source à l'ICU invalide,
+Tout cela apparaît comme des données dans le résumé d'exécution, par locale : clés traduites,
+défauts d'intégrité, échecs fournisseur, clés retenues par le budget, clés source à l'ICU invalide,
 signalements de révision, et avis. Rien n'est caché, et l'échec d'une locale n'arrête jamais les
 autres. Voir [Comment ça marche](/docs/how-it-works) pour la place de chaque contrôle dans le
 pipeline.

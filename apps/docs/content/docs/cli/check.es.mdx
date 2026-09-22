@@ -1,8 +1,8 @@
 ---
 title: verbatra check
-description: Informa qué claves faltan o están obsoletas por locale sin escribir archivos.
+description: Informa de qué claves faltan o están obsoletas por locale sin escribir archivos.
 ---
-Informa, por locale de destino, cuántas claves faltan, están obsoletas o al día, y sal con un código sobre el que un paso de CI puede ramificar. `check` ejecuta la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) hace justo antes de llamar a un proveedor, y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualización de [el archivo de bloqueo](/docs/the-lock-file) y sin necesidad de clave API.
+Informa, por locale de destino, de cuántas claves faltan, están obsoletas o están al día, y sal con un código sobre el que un paso de CI puede decidir. `check` ejecuta la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) hace justo antes de llamar a un proveedor, y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualizar el [archivo de bloqueo](/docs/the-lock-file) y sin necesidad de clave de API.
 
 ## Sinopsis
 
@@ -28,12 +28,12 @@ Una clave falta cuando el origen la tiene y el destino no; está obsoleta cuando
 
 `--consistency` añade un segundo informe de solo lectura: dentro de cada locale de destino, cada cadena de origen que dos o más claves traducen de forma distinta. Cada hallazgo nombra la cadena de origen, cada traducción distinta y las claves que la contienen, para que elijas una redacción y alinees el resto a mano. No se cambia nada por ti.
 
-Es un informe y nada más. Nunca cambia el código de salida, nunca desincroniza un locale, nunca retiene ni reescribe un valor y nunca marca una clave para revisión. Como el resto de `check`, no llama a ningún proveedor ni necesita clave API.
+Es un informe y nada más. Nunca cambia el código de salida, nunca desincroniza un locale, nunca retiene ni reescribe un valor y nunca marca una clave para revisión. Como el resto de `check`, no llama a ningún proveedor ni necesita clave de API.
 
-La comparación sigue una única regla, aplicada por igual al origen y a la traducción:
+La comparación sigue un único conjunto de reglas, aplicado por igual al origen y a la traducción:
 
 - Los valores se comparan tras la normalización Unicode NFC, convertir `\r\n` en `\n` y recortar los espacios del principio y del final, así que `"Save "` y `"Save"` cuentan como la misma cadena. Los espacios dentro del valor y las mayúsculas sí cuentan.
-- Solo se comparan las claves al día. Una clave que falta aún no tiene traducción, y la traducción de una clave obsoleta pertenece a un texto de origen anterior, que `check` ya informa.
+- Solo se comparan las claves al día. Una clave que falta aún no tiene traducción, y la traducción de una clave obsoleta pertenece a un texto de origen anterior, algo de lo que `check` ya informa.
 - Las claves nunca se agrupan si difieren en descripción, significado, marca de plural o `msgctxt` de gettext, porque esos metadatos existen precisamente para permitir otra traducción.
 - Las formas plurales se comparan forma por forma. Un formato que guarda cada forma bajo su propia clave (i18next, Apple `.stringsdict` y `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`) nunca agrupa entre sí las formas `one` y `other` de una misma clave, aunque su texto de origen sea idéntico; la misma forma bajo claves distintas se sigue comparando.
 - Una traducción idéntica a su propio origen no es un hallazgo aquí; una ejecución de traducción ya la marca para revisión como `EQUALS_SOURCE`.
@@ -43,7 +43,7 @@ Los grupos se ordenan por cadena de origen, las traducciones por valor y las cla
 ### Limitaciones conocidas
 
 - Las variantes de contexto de i18next se informan. i18next codifica un contexto como sufijo de la clave (`invite_male`, `invite_female`), que no se distingue de una clave snake_case normal, así que dos variantes de contexto con el mismo texto de origen pero traducidas de forma distinta aparecen como hallazgo. Si tu formato lo permite, dales una descripción o un significado distintos para que nunca se agrupen; si no, ignora el hallazgo.
-- Las entradas de gettext marcadas con `#, fuzzy` cuentan como traducciones. El adaptador de gettext no conserva la marca fuzzy, así que un `msgstr` aproximado se compara como uno revisado y puede aparecer en un hallazgo. Revisa o limpia las entradas fuzzy antes de fiarte del informe.
+- Las entradas de gettext marcadas con `#, fuzzy` cuentan como traducciones. El adaptador de gettext no conserva la marca fuzzy, así que un `msgstr` fuzzy se compara como uno revisado y puede aparecer en un hallazgo. Revisa o limpia las entradas fuzzy antes de fiarte del informe.
 - Las claves de estilo plural en un formato sin concepto de plural cuentan como claves normales. Los adaptadores de `yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini` y `resx` no conocen las formas plurales, así que para ellos `item_one` e `item_other` son dos claves sin relación. Cuando dos de esas formas de una misma clave comparten el texto de origen pero están traducidas de forma distinta, aparecen como hallazgo. Si tu formato lo permite, dales una descripción o un significado distintos para que nunca se agrupen; si no, ignora el hallazgo.
 - Los formatos `custom:` no tienen un resolvedor de formas plurales. verbatra solo sabe cómo nombran las formas plurales sus adaptadores integrados, así que cuando un adaptador de terceros guarda cada forma bajo su propia clave, las formas de una misma clave se comparan como un solo grupo y pueden aparecer como hallazgo si comparten el texto de origen. Dales a las formas una descripción o un significado distintos, o ignora el hallazgo.
 
@@ -68,9 +68,9 @@ verbatra check --consistency
 | `1` | desincronizado: al menos un locale tiene una clave faltante u obsoleta (el informe se imprime igualmente) |
 | `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido) |
 
-La salida `1` significa "desincronizado", no un fallo: la ejecución en sí tuvo éxito, solo que el resultado no está todo en verde.
+El código de salida `1` significa "desincronizado", no un fallo: la ejecución en sí tuvo éxito, solo que el resultado no está todo en verde.
 
-En un proyecto cuyo archivo de locale fuente todavía no está en su sitio, `check` no puede ejecutarse en absoluto: falla por completo con `SOURCE_UNREADABLE` y sale con `2`. [`verbatra doctor`](/docs/cli/doctor) valida la configuración del proyecto y sí te da un informe en ese caso.
+En un proyecto cuyo archivo del locale de origen todavía no está en su sitio, `check` no puede ejecutarse en absoluto: falla por completo con `SOURCE_UNREADABLE` y sale con `2`. [`verbatra doctor`](/docs/cli/doctor) valida la configuración del proyecto y sí te da un informe en ese caso.
 
 ## Relacionado
 

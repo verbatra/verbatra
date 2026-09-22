@@ -2,7 +2,7 @@
 title: Configure verbatra avec un agent IA
 description: "Un prompt prêt à copier-coller pour Claude Code, Cursor ou n'importe quel agent IA de code, pour ajouter verbatra à un projet qui a déjà une configuration i18n, protégé par une confirmation humaine explicite avant toute dépense."
 ---
-Cette page s'adresse à un projet qui a déjà des fichiers de locale : i18next, vue-i18n, next-intl, ngx-translate, ou des fichiers JSON, YAML, XLIFF, ARB, properties, `.strings` d'Apple, `.xcstrings` de Xcode String Catalog, `strings.xml` d'Android ou `.po`/`.pot` gettext bruts, déjà commités et déjà utilisés. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor, ou tout agent capable de lire ton projet et d'exécuter des commandes shell), et il se charge lui-même d'inspecter ta configuration, d'installer verbatra, de générer une config qui correspond à ce qu'il a trouvé et de prévisualiser une exécution, puis s'arrête et te demande confirmation avant d'appeler un fournisseur pour de vrai.
+Cette page s'adresse à un projet qui a déjà des fichiers de locale : i18next, vue-i18n, next-intl, ngx-translate, ou des fichiers bruts JSON, YAML, XLIFF, ARB, properties, `.strings` d'Apple, `.xcstrings` (Xcode String Catalog), `strings.xml` d'Android ou `.po`/`.pot` gettext, déjà commités et déjà utilisés. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor, ou tout agent capable de lire ton projet et d'exécuter des commandes shell), et il se charge lui-même d'inspecter ta configuration, d'installer verbatra, de générer une config qui correspond à ce qu'il a trouvé et de prévisualiser une exécution, puis s'arrête et te demande confirmation avant d'appeler un fournisseur pour de vrai.
 
 Si tu configures verbatra toi-même plutôt que de le confier à un agent, [Ta première traduction](/docs/your-first-translation) est la version humaine du même parcours.
 
@@ -195,9 +195,9 @@ ignored before committing rather than assuming the scaffold caught every case.
 
 `translate` n'a pas de garde-fou de dépense qui lui soit propre : dès qu'une config valide et une clé API existent, un simple `verbatra translate` appelle le fournisseur immédiatement, sans aucune confirmation. Le prompt ci-dessus place ce garde-fou dans les instructions de l'agent à la place : `doctor`, `check`, `diff` et `translate --dry-run` sont tous gratuits et en lecture seule, donc l'agent peut valider toute la configuration et te montrer exactement ce qui se passerait avant l'étape 8, la seule étape qui dépense quoi que ce soit.
 
-## Suite
+## Ensuite
 
 - [Recettes pour agents et scripts](/docs/agent-recipes) : l'enveloppe `--json` et les codes de sortie sur lesquels s'appuient les commandes de ce prompt, pour construire tes propres boucles d'agent par-dessus.
-- [Piloter Studio avec un agent navigateur](/docs/agent-tools-in-studio) : une surface différente, pour piloter un projet déjà configuré depuis un onglet de navigateur plutôt que depuis un shell.
+- [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) : une surface différente, pour piloter un projet déjà configuré depuis un onglet de navigateur plutôt que depuis un shell.
 - [Ta première traduction](/docs/your-first-translation) : le même parcours de configuration, écrit pour une personne plutôt que pour un agent.
 - [Le fichier de verrouillage](/docs/the-lock-file) : tout le détail derrière le comportement de sécurité d'adoption sur lequel s'appuie ce prompt.

@@ -1,20 +1,20 @@
 ---
 title: Seguridad de la traducción
-description: "El modelo de seguridad: cadenas no de fiar, la puerta de integridad, las señales de revisión, el presupuesto de tokens y errores que nunca filtran nada."
+description: "El modelo de seguridad: cadenas no confiables, la puerta de integridad, las señales de revisión, el presupuesto de tokens y errores que nunca filtran nada."
 ---
 verbatra no se fía de la salida de la máquina, y tampoco se fía de las cadenas que traduce. Cada
 resultado pasa una puerta de integridad antes de poder escribirse, todo lo que la puerta rechaza
 aflora como datos en lugar de hacer fallar la ejecución, y los secretos se mantienen fuera de cada
 ruta de error. Esta página cubre cada capa de ese modelo.
 
-## Cadenas no de fiar y la frontera contra la inyección de prompts
+## Cadenas no confiables y la frontera contra la inyección de prompts
 
 verbatra nunca deja que una cadena traducible actúe como una instrucción para la IA. Una cadena
 traducible puede contener texto que parece una instrucción (una cadena de UI que dice
-literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no de fiar.
+literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable.
 Las reglas de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la
 entrada variable, las entradas a traducir junto con tu glosario y tono, viaja solo en la carga JSON
-de datos del turno de usuario, nunca empalmada en el canal de instrucciones. La salida del
+de datos del turno de usuario, nunca insertada en el canal de instrucciones. La salida del
 proveedor está restringida a un esquema y se valida como datos: una respuesta malformada falla, y
 una respuesta que contiene una clave que nunca se pidió hace fallar el sublote entero, porque no
 hay una aceptación parcial segura alrededor de contenido inventado.
@@ -23,47 +23,45 @@ hay una aceptación parcial segura alrededor de contenido inventado.
 
 Una traducción válida según el esquema todavía puede estar rota, así que una única puerta recalcula
 la decisión de aceptar o rechazar directamente a partir del valor candidato; el informe de
-integridad del propio proveedor nunca se toma por bueno. La misma puerta corre en cada ruta de
-escritura: una traducción venida del proveedor, una fila importada de un libro y una edición
-tecleada por una persona en Studio. También corre por clave sobre un valor reutilizado. Cuando una
-misma traducción se sirve a varias claves con el mismo contenido de origen (un acierto de
-[caché](/docs/the-cache), o la copia que hace que un texto idéntico cueste una sola solicitud al
+integridad del propio proveedor nunca se toma por bueno. La misma puerta se ejecuta en cada ruta de
+escritura: una traducción venida del proveedor, una fila importada de un libro de Excel y una
+edición tecleada por una persona en Studio. También se ejecuta por clave sobre un valor reutilizado.
+Cuando una misma traducción se sirve a varias claves con el mismo contenido de origen (un acierto de
+[caché](/docs/the-cache), o la copia que hace que un texto idéntico cueste una sola petición al
 proveedor), cada clave pasa la puerta contra su propia entrada de origen, y una clave cuya
-comprobación falla se retiene en lugar de escribirse. La igualdad la decide un hash de contenido
-que trata el texto como igual salvo por la normalización Unicode NFC y los finales de línea LF, así
-que dos claves pueden coincidir sin ser idénticas byte a byte. Por eso mismo la puerta se ejecuta de
+comprobación falla se retiene en lugar de escribirse. La igualdad la decide un hash de contenido que
+trata el texto como igual salvo por la normalización Unicode NFC y los finales de línea LF, así que
+dos claves pueden coincidir sin ser idénticas byte a byte. Por eso mismo la puerta se ejecuta de
 nuevo por clave.
 
-- Integridad de los marcadores de posición: el valor traducido debe llevar los mismos marcadores de
-  posición que su origen, comparados como multiconjunto (las cantidades importan, el orden no).
-  Elimina, añade o altera uno y la candidata se rechaza. Qué cuenta como marcador de posición se
-  define por formato; consulta [Formatos](/docs/formats).
+- Integridad de los placeholders: el valor traducido debe llevar los mismos placeholders que su
+  origen, comparados como multiconjunto (las cantidades importan, el orden no). Elimina, añade o
+  altera uno y la candidata se rechaza. Qué cuenta como placeholder se define por formato; consulta
+  [Formatos](/docs/formats).
 - Integridad ICU: para los formatos ICU (next-intl y ARB, que usan la sintaxis ICU MessageFormat
   para plurales y sentencias select), el valor traducido debe seguir parseándose como un mensaje
-  válido. Una candidata que conserva todos los marcadores de posición
-  pero rompe la estructura de plural o de select también se rechaza. Para estos formatos la
-  comparación de marcadores de posición además distingue ramas: un marcador de posición fabricado
-  dentro de una rama de plural se detecta aunque exista legítimamente en otra.
+  válido. Una candidata que conserva todos los placeholders pero rompe la estructura de plural o de
+  select también se rechaza. Para estos formatos la comparación de placeholders además distingue
+  ramas: un placeholder fabricado dentro de una rama de plural se detecta aunque exista
+  legítimamente en otra.
 - Tokens de llave simple fabricados: en los formatos de doble llave (i18next, ngx-translate y YAML),
   un token con forma `{name}` es texto literal corriente y no interpolación, así que no se extrae
-  como marcador de posición ni tiene que sobrevivir a una traducción. Inventar uno se sigue
-  rechazando: un token con forma `{name}` que aparece en la candidata y nunca apareció en el origen
-  es una fabricación bajo cualquier convención de interpolación, y eso es lo que hace seguro
-  rechazarlo sin conocer los delimitadores de tu proyecto. La comprobación corre solo en esa
-  dirección, así que una candidata que elimina uno de esos tokens o cambia el texto literal que lo
-  rodea se deja pasar.
+  como placeholder ni tiene que sobrevivir a una traducción. Inventar uno se sigue rechazando: un
+  token con forma `{name}` que aparece en la candidata y nunca apareció en el origen es una
+  fabricación bajo cualquier convención de interpolación, y eso es lo que hace seguro rechazarlo sin
+  conocer los delimitadores de tu proyecto. La comprobación se ejecuta solo en esa dirección, así
+  que una candidata que elimina o cambia el texto literal que lo rodea se deja pasar.
 - Paridad del marcado en línea: el valor traducido debe llevar las mismas etiquetas HTML o XML en
   línea que su origen, y llevarlas bien formadas. Una etiqueta perdida, inventada, renombrada o sin
-  equilibrar rompe la representación de una cadena igual que un marcador de posición perdido rompe
-  su interpolación, así que se rechaza de la misma manera. Mira
+  equilibrar rompe la representación de una cadena igual que un placeholder perdido rompe su
+  interpolación, así que se rechaza de la misma manera. Consulta
   [Paridad del marcado en línea](#paridad-del-marcado-en-línea) más abajo.
 - Degeneración: el valor no debe ser estructuralmente degenerado, como un bucle de repetición o una
-  longitud que se ha disparado respecto al origen. Esto atrapa a un modelo que se derrumbó
-  repitiendo un fragmento aunque todos los marcadores de posición sobrevivieran.
+  longitud que se ha disparado respecto al origen. Esto detecta un modelo que colapsó repitiendo un
+  fragmento aunque todos los placeholders sobrevivieran.
 - Vacío: un origen no vacío no puede traducirse a un valor vacío ni compuesto solo de espacios.
   Vaciar una traducción es un acto aparte y deliberado, y el centinela `[[CLEAR]]` del libro de
-  trabajo es la forma de hacerlo; consulta
-  [Traducción manual](/docs/manual-translation).
+  Excel es la forma de hacerlo; consulta [Traducción manual](/docs/manual-translation).
 
 Una candidata rechazada se retiene como datos, nunca se escribe: aparece en el resumen de la
 ejecución como una discordancia de integridad, conserva su hash anterior en
@@ -74,7 +72,7 @@ informa como un fallo de proveedor, no como una discordancia de integridad. Amba
 la misma manera.
 
 Del lado del origen, una clave de origen cuyo propio valor es ICU inválido se aparta antes de la
-traducción y se informa, en lugar de enviarse al proveedor en un estado roto.
+traducción y se notifica, en lugar de enviarse al proveedor en un estado roto.
 
 ### Paridad del marcado en línea
 
@@ -82,8 +80,8 @@ traducción y se informa, en lugar de enviarse al proveedor en un estado roto.
 
 El texto enriquecido llega a una cadena traducible como marcado en línea: un `<b>` alrededor de
 parte de un bloque `Trans` de i18next, un `&lt;b&gt;` escapado dentro de un `<string>` de Android,
-un `<a href>` en un catálogo de gettext. Nada de eso es un marcador de posición, así que hasta ahora
-nada lo comparaba.
+un `<a href>` en un catálogo de gettext. Nada de eso es un placeholder, así que hasta ahora nada lo
+comparaba.
 
 Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
 eso es lo que decide si algo es un hallazgo:
@@ -177,9 +175,9 @@ etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiq
 que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
 etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
 etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
-informa como marcadores de posición y las palabras entre corchetes angulares, un origen cuenta como
-mal formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos),
-una etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
+declara como placeholders y las palabras entre corchetes angulares, un origen cuenta como mal
+formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos), una
+etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
 puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es una etiqueta de apertura `b` con los
 atributos `and` y `c` que nunca se cierra, así que el origen cuenta como mal formado. Para un origen
 así solo se omite la comprobación del anidamiento: sus etiquetas se comparan como un multiconjunto
@@ -229,52 +227,51 @@ número de formas distinto al del origen repite o pierde el marcado que contiene
 ambos casos el valor se retiene y la traducción anterior se conserva, así que no se pierde nada,
 pero las formas hay que añadirlas sin multiplicar también el marcado.
 
-La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya informa como
-marcador de posición (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de
-next-intl o ARB) queda para la comprobación de marcadores de posición, junto con tantas etiquetas de
-cierre como aperturas tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que
-la candidata deja sin cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta,
-como `-</g>`. Lo mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el
-origen, como un `<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen
-solo lleva como texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla
-de ahí crearía el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una
-etiqueta de cierre sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron,
-cada una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya declara
+como placeholder (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de next-intl
+o ARB) queda para la comprobación de placeholders, junto con tantas etiquetas de cierre como aperturas
+tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que la candidata deja sin
+cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta, como `-</g>`. Lo
+mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el origen, como un
+`<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen solo lleva como
+texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla de ahí crearía
+el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una etiqueta de cierre
+sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron, cada una con `-`
+si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
 
 ## Señales de revisión
 
 Pasar la puerta demuestra que una traducción es estructuralmente segura, no que sea buena, así que
-una segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal de
+una segunda capa, orientativa, marca los resultados sospechosos para una persona. Una señal de
 revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 
 - `LENGTH_RATIO_OUTLIER`: la traducción es mucho más corta o larga que su origen (por debajo de
-  0.35x o por encima de 3.0x de longitud recortada; los orígenes muy cortos se omiten). Un aviso
+  0.35x o por encima de 3.0x de la longitud recortada; los orígenes muy cortos se omiten). Un aviso
   para mirar, no un veredicto.
-- `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para
-  su clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor
-  tal cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se
-  marca. Una clave sin presupuesto configurado nunca se mide. Como cada motivo de esta lista,
-  marca en vez de bloquear: una traducción por encima del presupuesto se sigue escribiendo y se
-  sigue bloqueando, porque una traducción correcta que se pasa de un presupuesto de maquetación
-  vale más que ninguna traducción.
-- `EQUALS_SOURCE`: la traducción es idéntica al origen en un locale de destino distinto, y el
-  origen sí tenía texto traducible.
+- `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para su
+  clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor tal
+  cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se marca.
+  Una clave sin presupuesto configurado nunca se mide. Como cada motivo de esta lista, marca en vez
+  de bloquear: una traducción por encima del presupuesto se sigue escribiendo y se sigue bloqueando,
+  porque una traducción correcta que se pasa de un presupuesto de maquetación vale más que ninguna
+  traducción.
+- `EQUALS_SOURCE`: la traducción es literalmente idéntica al origen aunque el locale de destino
+  difiere del locale de origen, y el origen sí tenía texto traducible.
 - `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término
-  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y
-  cada lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa,
-  así que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una
-  expectativa que nadie dio. El lado de destino solo exige que el término aparezca en algún punto
-  de la traducción, porque un término traducido se funde con su entorno con toda legitimidad:
-  compuestos alemanes (`Benutzerkonto`), partículas coreanas (`계정을`), préstamos japoneses. Exigir
-  un límite ahí marcaría traducciones correctas en la mayoría de los idiomas para los que
-  mantendrías un glosario. Un término de origen escrito sin separadores de palabra (han, kana,
-  tailandés y similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de
-  subcadena.
-- `INTEGRITY_REORDERED`: el conjunto de marcadores de posición coincidió exactamente pero quedó en
-  un orden distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.
-- `PROVIDER_DEGRADED`: el lote del que salió esta clave fue degradado con elegancia por el
-  proveedor (una rebaja de formalidad o un glosario ignorado; en el conjunto actual de proveedores,
-  solo DeepL).
+  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y cada
+  lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa, así
+  que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una expectativa
+  que nadie dio. El lado de destino solo exige que el término aparezca en algún punto de la
+  traducción, porque un término traducido se funde con su entorno con toda legitimidad: compuestos
+  alemanes (`Benutzerkonto`), partículas coreanas (`계정을`), préstamos japoneses. Exigir un límite ahí
+  marcaría traducciones correctas en la mayoría de los idiomas para los que mantendrías un glosario.
+  Un término de origen escrito en una escritura sin separadores de palabra (han, kana, tailandés y
+  similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de subcadena.
+- `INTEGRITY_REORDERED`: el conjunto de placeholders coincidió exactamente pero quedó en un orden
+  distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.
+- `PROVIDER_DEGRADED`: el lote del que salió esta clave sufrió una degradación controlada por parte
+  del proveedor (una rebaja de formalidad o un glosario ignorado; en el conjunto actual de
+  proveedores, solo DeepL).
 - `FUZZY_CACHE_REUSE`: el valor nunca se tradujo para este texto de origen. Vino de
   [la caché](/docs/the-cache) como reutilización difusa de un origen anterior casi idéntico que
   desde entonces se ha editado. La similitud se mide en caracteres, y el significado no es función
@@ -307,33 +304,33 @@ proveedor y cada locale de destino. Lo que pasa al llegar al techo es `budgetBeh
   ejecución.
 
 Lo ya hecho nunca se deshace, y no queda nada a medias: lo que se tradujo antes del techo queda
-escrito y bloqueado, y una clave retenida conserva la baseline que tenía, así que una ejecución
+escrito y bloqueado, y una clave retenida conserva la línea base que tenía, así que una ejecución
 detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que
 reclame trabajo retenido. La comprobación cubre cada petición que envía la ejecución, incluida cada
-mitad de una petición vuelta a partir tras una respuesta truncada, así que una cascada de
+mitad de una petición que se vuelve a dividir tras una respuesta truncada, así que una cascada de
 reintentos no puede adelantar a una reserva. Lo único que una proyección no puede prometer es la
-petición ya en vuelo: puede informar más de lo proyectado, así que el recuento final puede terminar
-por encima de `maxTokens` por la diferencia de esa única petición, y no más. Después de eso no se
-envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más.
+petición ya en vuelo: puede informar de un consumo mayor que el proyectado, así que el recuento
+final puede terminar por encima de `maxTokens` por la diferencia de esa única petición, y no más.
+Después de eso no se envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más.
 
 Conviene decir dos límites con claridad. El techo acota una ejecución, no una sesión: `watch`
 arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede
 gastar hasta `maxTokens` otra vez con cada edición del origen. Y cubre `translate` y nada más:
 retraducir una sola entrada desde [el panel de Studio](/docs/studio) o desde las herramientas de
-agente corre por su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
+agente sigue su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
 
 Con `warn` el presupuesto nunca cambia el código de salida del comando. Con `stop` sí puede: un
 locale al que se le retuvieron claves se informa como `partial` cuando algunas claves sí llegaron a
 escribirse y como `failed` cuando no llegó ninguna, y ambos salen con `1`. Un proveedor que no
 informa de su propio uso de tokens (DeepL, Google Cloud Translation) se cuenta a partir de la
-proyección en lugar de quedar sin medir, así que la salvaguarda también muerde ahí; `supported` en
+proyección en lugar de quedar sin medir, así que la salvaguarda también actúa ahí; `supported` en
 el presupuesto del resumen dice que la cifra es la cuenta de verbatra y no la del proveedor.
 
 ## Los errores nunca filtran nada
 
 Las claves de API vienen solo de variables de entorno, nunca de la configuración ni de argumentos,
 así que no hay ninguna clave en ningún valor que verbatra maneje. Cuando una llamada al SDK de un
-proveedor falla, el error crudo (que puede llevar cabeceras de la solicitud o credenciales) se
+proveedor falla, el error en bruto (que puede llevar cabeceras de la petición o credenciales) se
 descarta, nunca se guarda, registra ni relanza; en su lugar verbatra levanta un error estructurado
 con un código estable (como `RATE_LIMITED`, `TIMEOUT` o `AUTH_FAILED`) y un mensaje estático y sin
 secretos. La misma regla rige toda la ejecución: los avisos y los resúmenes llevan códigos y

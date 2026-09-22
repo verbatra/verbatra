@@ -16,7 +16,7 @@ fonctionne avant même que le fichier de locale source existe.
 
 ## pnpm bloque les scripts d'installation d'une dépendance (ERR_PNPM_IGNORED_BUILDS)
 
-**Symptôme** : `pnpm add -D @verbatra/cli` affiche son résumé d'installation puis sort en `1` :
+**Symptôme** : `pnpm add -D @verbatra/cli` affiche son résumé d'installation puis sort avec `1` :
 
 ```
 [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: @google/genai@2.15.0, protobufjs@7.6.5
@@ -51,7 +51,7 @@ allowBuilds:
 ```
 
 verbatra n'a pas besoin de ces scripts, et ce dépôt les refuse tous les deux. Une fois la réponse
-en place, `pnpm add -D @verbatra/cli` sort en `0` et les commandes pnpm suivantes s'exécutent
+en place, `pnpm add -D @verbatra/cli` sort avec `0` et les commandes pnpm suivantes s'exécutent
 normalement. Les versions de paquets du message suivent la release ; la solution ne change pas.
 
 ## La configuration est invalide (CONFIG_INVALID)
@@ -75,13 +75,13 @@ qu'un secret ne puisse pas se cacher dans un fichier commité.
 
 **Cause** : le `format` de la configuration n'est pas l'un des quatorze identifiants de format
 enregistrés. C'est vérifié avant toute lecture de fichier. Avec un identifiant `custom:`, le message
-nomme plutôt le format tiers : la registry transmise à l'exécution ne contient aucun adaptateur pour
+nomme plutôt le format tiers : le registre transmis à l'exécution ne contient aucun adaptateur pour
 lui. La ligne de commande `verbatra` ne charge aucun plugin, donc un format `custom:` ne peut
 pas s'y exécuter.
 
 **Solution** : utilise l'un des identifiants de [Formats](/docs/formats), par exemple
-`i18next-json` ou `xliff`. Pour un format `custom:`, passe par `@verbatra/sdk` et fournis une
-registry qui contient son adaptateur : voir
+`i18next-json` ou `xliff`. Pour un format `custom:`, passe par `@verbatra/sdk` et fournis un
+registre qui contient son adaptateur : voir
 [Adaptateurs de format personnalisés](/docs/custom-format-adapters).
 
 ## La locale demandée n'est pas configurée (UNKNOWN_LOCALE)
@@ -95,7 +95,7 @@ n'y ajoutent jamais rien.
 **Solution** : ajoute la locale à `targetLocales` dans la configuration, ou corrige la faute de
 frappe dans le filtre.
 
-## Le fichier source est absent ou inanalysable (SOURCE_UNREADABLE, SOURCE_INVALID)
+## Le fichier source est absent ou impossible à analyser (SOURCE_UNREADABLE, SOURCE_INVALID)
 
 **Symptôme** : `The source locale file was not found at <path>.` ou `The source locale file at
 <path> could not be read: ...`
@@ -127,7 +127,7 @@ qui vérifie la variable par son nom seulement, sans lire sa valeur. `translate`
 `doctor`, `studio` et `mcp` chargent
 `.env` et `.env.local` depuis le répertoire de travail ; le SDK non, donc dans ton propre script
 utilise `node --env-file=.env` ou exporte la variable. `openai-compatible` ne lève ceci que quand la
-configuration nomme un `apiKeyEnvVar` qui est absent ; sans lui, il se replie sur un placeholder
+configuration nomme un `apiKeyEnvVar` qui n'est pas défini ; sans lui, il se replie sur un placeholder
 sans clé pour les serveurs locaux.
 
 ## Limites de débit, délais et échecs d'authentification en cours d'exécution (RATE_LIMITED, TIMEOUT, AUTH_FAILED)
@@ -161,8 +161,8 @@ allowed size ...`
 incompatible, ou abîmé dans une fusion.
 
 `translate` et `import` traitent cela comme une erreur de toute l'exécution, pas comme l'échec
-d'une seule langue, et les deux peuvent la rencontrer en cours de route, car chaque langue lit le
-verrou sous son propre verrou d'écriture. Les langues déjà validées avant l'abandon gardent ce
+d'une seule locale, et les deux peuvent la rencontrer en cours de route, car chaque locale lit le
+verrou sous son propre verrou d'écriture. Les locales déjà validées avant l'abandon gardent ce
 qu'elles ont écrit ; les autres restent intactes et aucun résumé n'est affiché. Lance ensuite
 `verbatra check` pour voir jusqu'où l'exécution est allée.
 
@@ -194,12 +194,12 @@ précédents, donc rien n'est écrit à moitié.
 verbatra process is currently running, this lock file was likely left behind by one that was
 killed; delete it and retry.`
 
-**Cause** : les écritures d'une locale sont sérialisées via un fichier de verrou par locale. Un
+**Cause** : les écritures d'une locale sont sérialisées via un fichier de verrouillage par locale. Un
 `translate`, `watch`, `import` ou une écriture Studio concurrente le détient, ou un processus tué
-a laissé le fichier de verrou derrière lui.
+a laissé le fichier de verrouillage derrière lui.
 
 **Solution** : exactement ce que dit le message : attends que l'autre exécution finisse, ou, si
-aucune ne tourne, supprime le fichier de verrou au chemin affiché et réessaie. Pour changer combien
+aucune ne tourne, supprime le fichier de verrouillage au chemin affiché et réessaie. Pour changer combien
 de temps une exécution attend avant d'abandonner, passe `--lock-timeout <seconds>` à
 [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) ; la valeur par défaut est `600`
 secondes.
@@ -258,12 +258,12 @@ la candidate a inventée.
 
 **Cause** : la candidate ne porte pas le HTML ou XML en ligne de la source, ou le porte déséquilibré
 ou mal imbriqué. Un modèle qui perd un `<a href>`, renomme `<b>` en `<strong>` ou ferme `<b>` avec
-`</i>` produit une chaîne qui s'affiche mal, donc la porte la refuse comme elle refuse un
+`</i>` produit une chaîne qui s'affiche mal, donc la barrière la refuse comme elle refuse un
 placeholder perdu. Voir [parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne)
 pour savoir exactement ce qui est comparé.
 
 **Solution** : relance la clé, ou corrige la valeur à la main dans Studio ou dans un classeur
-importé : la même porte juge les deux, donc une valeur saisie à la main avec des balises
+importé : la même barrière juge les deux, donc une valeur saisie à la main avec des balises
 correspondantes et bien formées est acceptée. L'ordre des mots, les valeurs d'attribut et les deux
 graphies d'un élément vide (`<br>` et `<br/>`) ne sont jamais en cause, puisque rien de tout cela
 n'est comparé. Un refus qui ne nomme aucune balise est structurel : le balisage est revenu mal
@@ -314,7 +314,7 @@ fichiers est toujours active et n'a besoin d'aucune option.
 
 **Solution** : redémarre Studio avec `verbatra studio --allow-spend`, ou définis
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (aussi `true`, `yes` ou `on`). Des actions rapides et répétées
-peuvent aussi atteindre le propre régulateur de Studio, `METHOD_RATE_LIMITED: Too many calls to
+peuvent aussi atteindre le limiteur de débit propre à Studio, `METHOD_RATE_LIMITED: Too many calls to
 this method; wait before retrying.` ; cela se dissipe tout seul. Voir
 [Réviser les traductions dans Studio](/docs/review-in-studio).
 
@@ -338,7 +338,7 @@ outils, et les appeler par leur nom échoue comme un outil inconnu.
 
 **Cause** : la dépense fournisseur est une capacité que tu accordes au démarrage, et l'ensemble
 d'outils exposé par le serveur MCP ne doit pas varier selon la connexion, donc les deux outils
-conditionnés à la dépense sont absents de la liste entièrement. Ils ne sont jamais annoncés puis
+conditionnés à la dépense sont entièrement absents de la liste. Ils ne sont jamais annoncés puis
 refusés : si la dépense n'est pas autorisée, ils n'apparaissent tout simplement pas.
 
 **Solution** : redémarre le serveur avec `verbatra mcp --allow-spend` (ou `verbatra-mcp

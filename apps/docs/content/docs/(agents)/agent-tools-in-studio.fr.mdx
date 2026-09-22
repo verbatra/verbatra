@@ -18,7 +18,7 @@ WebMCP permet à une page d'enregistrer sur `document.modelContext` des outils q
 
 - Un navigateur compatible WebMCP. Aujourd'hui cela veut dire Chrome 149 ou plus récent avec `chrome://flags/#enable-webmcp-testing` activé, ou un navigateur ultérieur avec une prise en charge native.
 - `document.modelContext` doit être présent. Quand il est absent, Studio n'enregistre rien et le tableau de bord reste inchangé.
-- Un vrai contexte de navigation. Cela ne marche pas en headless ; l'agent pilote l'onglet ouvert et vivant.
+- Un vrai contexte de navigation. Cela ne marche pas en headless ; l'agent pilote l'onglet ouvert et actif.
 - Aucun changement de configuration ni de CSP du côté de Studio. La Permissions-Policy `tools` de WebMCP vaut `self` par défaut, ce qui correspond exactement au cas de même origine de Studio, donc il n'y a rien à accorder.
 
 ## L'activer
@@ -29,7 +29,7 @@ Les outils pour agents sont désactivés par défaut. Active-les avec l'option s
 verbatra studio --expose-agent-tools
 ```
 
-Ou définis la solution de repli par l'environnement :
+Ou définis la variable d'environnement de repli :
 
 ```bash
 VERBATRA_STUDIO_AGENT_TOOLS=1 verbatra studio
@@ -63,7 +63,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 
 ### Outils d'écriture (deux)
 
-`verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par le même contrôle d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
+`verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par la même barrière d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -76,7 +76,7 @@ Ceux-ci appellent un fournisseur de traduction et ne sont enregistrés que si St
 - `verbatra_translation_retranslateEntry` : retraduit une clé et une locale.
 - `verbatra_translation_translatePending` : traduit tout ce qui est en attente à cet instant.
 
-Tous deux font passer leurs résultats par le contrôle d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). `verbatra_translation_retranslateEntry` porte en plus le même garde par entrée que la modification : un second appel concurrent pour la même locale et la même clé est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
+Tous deux font passer leurs résultats par la barrière d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). `verbatra_translation_retranslateEntry` porte en plus le même garde par entrée que la modification : un second appel concurrent pour la même locale et la même clé est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
 
 ## L'avis de mode dégradé
 
@@ -84,13 +84,13 @@ L'enregistrement a trois issues possibles, et une seule est un problème.
 
 **Rien de tenté, rien de signalé.** Quand `document.modelContext` est absent (un navigateur sans WebMCP, ou Chrome sans le flag) ou quand tu n'as pas activé l'exposition, Studio ne tente aucun enregistrement. Le tableau de bord reste inchangé et la console reste muette. C'est le no-op prévu, pas un échec.
 
-**Treize outils et aucun avis.** Sans `--allow-spend`, Studio tente treize enregistrements plutôt que quinze : les deux outils de dépense sont écartés avant même d'être tentés. Treize outils est le compte sain d'une session sans dépense, leur absence est donc l'état attendu et ne déclenche jamais d'avis.
+**Treize outils et aucun avis.** Sans `--allow-spend`, Studio tente treize enregistrements plutôt que quinze : les deux outils de dépense sont écartés avant même d'être tentés. Treize outils, c'est le compte sain d'une session sans dépense : leur absence est donc l'état attendu et ne déclenche jamais d'avis.
 
 **L'avis.** Si Studio a tenté un enregistrement et que le navigateur l'a rejeté, le tableau de bord affiche un avertissement en haut de la zone de contenu, sur toutes les vues :
 
 > Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
 
-Le décompte et le nom d'erreur sont les vrais, ceux de cette passe. L'avis n'a pas de commande de fermeture et reste affiché tant que vit la page. Recharger l'onglet lance une nouvelle passe d'enregistrement, puisque l'état n'est gardé qu'en mémoire.
+Le décompte et le nom d'erreur sont les vrais, ceux de cette passe. L'avis n'a pas de commande de fermeture et reste affiché pendant toute la vie de la page. Recharger l'onglet lance une nouvelle passe d'enregistrement, puisque l'état n'est gardé qu'en mémoire.
 
 ### Ce qui fonctionne encore en mode dégradé
 
@@ -104,7 +104,7 @@ Studio écrit une seule ligne agrégée au niveau erreur, et non une ligne par o
 Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : quinze ici, parce que cette session a été lancée avec `--allow-spend`, et treize dans une session sans ce flag. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
+La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : quinze ici, parce que cette session a été lancée avec `--allow-spend`, et treize dans une session sans cette option. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté l'enregistrement, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
 
 Une passe qui n'a jamais atteint la boucle par outil signale une ligne différente et ne déclenche pas l'avis :
 
@@ -138,9 +138,9 @@ Disons-le franchement : avec `--allow-spend` et `--expose-agent-tools` activés 
 
 Active la dépense pilotée par un agent en connaissance de cause. Si tu veux seulement qu'un agent inspecte l'état et corrige des entrées à la main, lance Studio sans `--allow-spend` : les outils pour agents fonctionnent pleinement dans ce mode lecture et modification, et aucun outil ne peut atteindre un fournisseur.
 
-## Et ensuite
+## Ensuite
 
 - [Réviser les traductions dans Studio](/docs/review-in-studio) : le même flux de travail, mené par une personne.
 - [`verbatra studio`](/docs/cli/studio) : toutes les options et le contrat de démarrage.
-- [Sûreté de la traduction](/docs/translation-safety) : le contrôle d'intégrité par lequel passe chaque modification et chaque retraduction.
+- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité par laquelle passent chaque modification et chaque retraduction.
 - [Configure verbatra avec un agent IA](/docs/start-with-ai) : pour un projet qui n'a pas encore exécuté verbatra, un prompt qui l'amène jusqu'ici en premier lieu.

@@ -16,24 +16,24 @@ verbatra watch [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge beobachten und übersetzen; ein nicht konfiguriertes Locale wird beim Start mit `UNKNOWN_LOCALE` abgelehnt, bevor die Beobachtung überhaupt beginnt, und eine leere Liste ist ein Verwendungsfehler, Exit `2` |
-| `--debounce` | `<ms>` | `300` | so viele Millisekunden nach der letzten Änderung warten, bevor übersetzt wird; muss eine nackte positive Ganzzahl sein (ein Wert wie `250ms`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre eines Locales gewartet wird, bevor der Lauf scheitert; muss eine nackte positive Ganzzahl von Sekunden sein (ein Wert wie `60s`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
+| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge beobachten und übersetzen; eine nicht konfigurierte Locale wird beim Start mit `UNKNOWN_LOCALE` abgelehnt, bevor die Beobachtung überhaupt beginnt, und eine leere Liste ist ein Verwendungsfehler, Exit `2` |
+| `--debounce` | `<ms>` | `300` | so viele Millisekunden nach der letzten Änderung warten, bevor übersetzt wird; muss eine positive Ganzzahl ohne Einheit sein (ein Wert wie `250ms`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
+| `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit sein (ein Wert wie `60s`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
 | `--concurrency` | `<n>` | `1` | pro Lauf bis zu `n` Ziel-Locales gleichzeitig übersetzen; muss eine positive Ganzzahl sein |
-| `--no-cache` | keins | aus (Cache an) | bei jedem Lauf den lokalen [Translation-Memory-Cache](/docs/the-cache) (`verbatra.cache.json`) umgehen |
+| `--no-cache` | keins | aus (Cache an) | bei jedem Lauf den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) umgehen |
 | `--json` | keins | aus | jeden Lauf als einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, im NDJSON-Stil (ein Objekt pro Zeile) |
 
 Mit `--json` erzeugt jeder Lauf einen [Envelope](/docs/ci-and-exit-codes#json-ausgabe)-Datensatz mit `command: "watch"`: einen `ok: true`-Datensatz, der das [`RunSummary`](/docs/sdk) dieses Laufs unter `result` trägt, oder einen `ok: false`-Datensatz mit Fehlercode und Meldung. Die Startzeile, der Stopp-Hinweis und der Fortschritt jedes Laufs gehen auf stderr, der stdout-Strom bleibt also sauberes NDJSON. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: er stoppt weder den Watcher noch ändert er den Exit-Code.
 
 `--locales de,fr` grenzt jeden Zyklus der Sitzung auf eine Teilmenge der konfigurierten Ziele ein, was eine Entwicklungsschleife günstig hält, wenn dich nur eine Sprache interessiert. Die Teilmenge wird einmal beim Start validiert, nicht bei jedem Lauf.
 
-`--lock-timeout` gilt für jeden Zyklus: Es stellt ein, wie lange ein Locale auf eine umkämpfte [Schreibsperre](/docs/the-lock-file) wartet, bevor dieser Lauf mit `LOCK_CONTENDED` scheitert. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom, der Watcher läuft also so oder so weiter.
+`--lock-timeout` gilt für jeden Zyklus: Es stellt ein, wie lange eine Locale auf eine umkämpfte [Schreibsperre](/docs/the-lock-file) wartet, bevor dieser Lauf mit `LOCK_CONTENDED` scheitert. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom, der Watcher läuft also so oder so weiter.
 
-`--concurrency` gilt für den Lauf jedes Zyklus. Jeder Lauf bekommt ein frisches Token-Budget, und ein `--concurrency` über `1` wird weiterhin abgelehnt, wenn die Konfiguration ein `maxTokens`-Budget setzt, denn welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales verschränken: `watch` lehnt diese Kombination beim Start ab und beendet sich vor dem initialen Lauf mit Exit `2`, statt eine Sitzung zu starten, die in jedem Zyklus fehlschlägt. `--no-cache` umgeht den [Translation-Memory-Cache](/docs/the-cache) bei jedem Zyklus.
+`--concurrency` gilt für den Lauf jedes Zyklus. Jeder Lauf bekommt ein frisches Token-Budget, und ein `--concurrency` über `1` wird weiterhin abgelehnt, wenn die Konfiguration ein `maxTokens`-Budget setzt, denn welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales verschränken: `watch` lehnt diese Kombination beim Start ab und beendet sich vor dem initialen Lauf mit Exit `2`, statt eine Sitzung zu starten, die in jedem Zyklus fehlschlägt. `--no-cache` umgeht den [Übersetzungsspeicher-Cache](/docs/the-cache) bei jedem Zyklus.
 
 ## Stoppen
 
-Der erste Interrupt (Ctrl-C oder SIGTERM) lässt den laufenden Lauf zu Ende gehen, stoppt den Watcher sauber und endet mit `0`. Ein zweiter Interrupt, während dieses Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`.
+Der erste Interrupt (Ctrl-C oder SIGTERM) lässt den aktuellen Lauf zu Ende gehen, stoppt den Watcher sauber und endet mit `0`. Ein zweiter Interrupt, während dieses Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`.
 
 ## Beispiele
 

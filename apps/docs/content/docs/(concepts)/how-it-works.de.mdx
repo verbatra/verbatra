@@ -9,9 +9,9 @@ festhalten. Diese Seite geht die Pipeline durch, damit du genau weißt, was bei
 
 <DiffPanel />
 
-Ein Lauf startet mit deiner validierten Konfiguration; siehe [Konfigurationsdatei](/docs/config-file)
-dafür, wo sie gefunden wird und was sie enthält. Alles Folgende ist gleich, egal ob der Lauf aus
-der CLI, dem SDK oder `watch` kam.
+Ein Lauf startet mit deiner validierten Konfiguration; wo sie gefunden wird und was sie enthält,
+steht unter [Konfigurationsdatei](/docs/config-file). Alles Folgende ist gleich, egal ob der Lauf
+aus der CLI, dem SDK oder `watch` kam.
 
 ## Die Quell-Locale lesen
 
@@ -45,26 +45,25 @@ entfernt, und nichts anderes.
 Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache
 (`verbatra.cache.json`) nachgeschlagen. Eine gespeicherte Übersetzung für denselben Quelltext,
 unter demselben Fingerabdruck aus Provider, Modell, Tonfall und Glossar, wird unverändert
-wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Siehe
-[Der Cache](/docs/the-cache) dafür, unter welchem Schlüssel Einträge abgelegt werden und wann sie
-nicht mehr passen.
+wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Wie Einträge
+ihren Key bilden und wann sie nicht mehr passen, steht unter [Der Cache](/docs/the-cache).
 
 Von den Kandidaten, die den Provider erreichen, werden zuerst die mit demselben Quellinhalt
 gruppiert, damit dieser Text eine Anfrage pro Locale kostet statt eine pro Key; der zurückkommende
 Wert wird auf die anderen Keys seiner Gruppe kopiert und im Integritätsschritt weiter unten gegen
 die jeweils eigene Quelle erneut geprüft. Die Gruppen gehen in sequenziellen Sub-Batches von
 höchstens `maxBatchSize` Einträgen (Default 50) an deinen konfigurierten Provider, damit eine
-überdimensionierte Anfrage nicht eine ganze Locale mitreißt. Jeder Sub-Batch trägt die Einträge
-plus dein optionales `glossary` und `tone`. Schlägt ein Sub-Batch-Aufruf fehl (ein Rate-Limit, ein Timeout, ein widerrufener Schlüssel), werden seine
-Keys für diesen Lauf zurückgehalten und beim nächsten Lauf wieder aufgegriffen, während die
-anderen Sub-Batches weiter Fortschritt machen. Siehe [Provider](/docs/providers) dafür, wie jeder
-Provider die Eingaben anwendet.
+überdimensionierte Anfrage nicht eine ganze Locale zu Fall bringt. Jeder Sub-Batch trägt die
+Einträge plus dein optionales `glossary` und `tone`. Schlägt ein Sub-Batch-Aufruf fehl (ein
+Rate-Limit, ein Timeout, ein widerrufener Key), werden seine Keys für diesen Lauf zurückgehalten
+und beim nächsten Lauf wieder aufgegriffen, während die anderen Sub-Batches weiter vorankommen.
+Wie jeder Provider die Eingaben anwendet, steht unter [Provider](/docs/providers).
 
 ## Die Antwort validieren
 
-verbatra behandelt die Antwort des Providers nie als vertrauenswürdigen Freitext. Bei den LLM-Providern (Anthropic, OpenAI,
-Gemini und openai-compatible) muss die Antwort einem festen Schema entsprechen, geprüft, bevor
-irgendetwas anderes passiert:
+Die Ausgabe eines Providers gilt nie als vertrauenswürdiger Freitext. Bei den LLM-Providern
+(Anthropic, OpenAI, Gemini und openai-compatible) muss die Antwort einem festen Schema
+entsprechen, und das wird geprüft, bevor irgendetwas anderes passiert:
 
 - Eine Antwort, die fehlerhaft ist oder einen Key enthält, der nie angefragt wurde, lässt den
   ganzen Sub-Batch fehlschlagen.
@@ -73,16 +72,17 @@ irgendetwas anderes passiert:
   beim nächsten Lauf erneut versucht.
 
 DeepL und Google Cloud Translation sind Maschinenübersetzungs-APIs ohne diese Antwortschicht, aber
-ihre Ergebnisse durchlaufen dieselben Integritätsprüfungen unten.
+ihre Ergebnisse durchlaufen dieselben Integritätsprüfungen weiter unten.
 
 ## Das Integritäts-Gate ausführen
 
 Eine Übersetzung, die die Schemavalidierung bestanden hat, kann trotzdem kaputt sein, deshalb
-berechnet verbatra die Entscheidung über Annehmen oder Ablehnen selbst aus dem Kandidatenwert: Es
-vertraut nie dem Bericht des Providers. Jeder akzeptierte Kandidat muss jede Prüfung des Gates
-bestehen; siehe [Übersetzungssicherheit](/docs/translation-safety) dafür, welche das sind. Ein
-Kandidat, der eine davon nicht besteht, wird zurückgehalten statt geschrieben,
-taucht in der Lauf-Zusammenfassung auf und wird beim nächsten Lauf erneut versucht. Siehe
+berechnet verbatra die Entscheidung über Annehmen oder Ablehnen selbst aus dem Kandidatenwert
+neu: Es vertraut nie dem Bericht des Providers. Jeder akzeptierte Kandidat muss jede Prüfung des
+Gates bestehen; welche das sind, steht unter
+[Übersetzungssicherheit](/docs/translation-safety). Ein Kandidat, der eine davon nicht besteht,
+wird zurückgehalten statt geschrieben, taucht in der Lauf-Zusammenfassung auf und wird beim
+nächsten Lauf erneut versucht. Siehe
 [Übersetzungssicherheit](/docs/translation-safety) für das vollständige Sicherheitsmodell.
 
 ## Über den Adapter schreiben
@@ -97,7 +97,7 @@ minimale Diffs.
 
 Nachdem eine Locale geschrieben wurde, werden ihre Lock-Einträge mit den aktuellen Quell-Hashes
 aufgefrischt, mit einer bewussten Ausnahme: Ein in diesem Lauf zurückgehaltener Key behält seinen
-vorherigen Hash, damit der nächste Lauf ihn weiterhin als arbeitsbedürftig sieht. Der
+vorherigen Hash, damit der nächste Lauf ihn weiterhin als offen ansieht. Der
 Schreibvorgang jeder Locale passiert unter einer prozessübergreifenden Schreibsperre, damit zwei
 überlappende Läufe nie mit einer veralteten Baseline vergleichen oder denselben Provider-Aufruf
 doppelt bezahlen. Die Details stehen in [Die Lock-Datei](/docs/the-lock-file).
@@ -106,6 +106,6 @@ doppelt bezahlen. Die Details stehen in [Die Lock-Datei](/docs/the-lock-file).
 
 Jede Ziel-Locale läuft für sich: Scheitert eine Locale, stoppt das die anderen nicht. Der Lauf
 gibt eine Zusammenfassung pro Locale zurück (übersetzt, unverändert, verwaist, zurückgehalten,
-zum Review markiert, Hinweise), und ein Dry-Run (`--dry-run`) erzeugt dieselbe
-Zusammenfassungsform nach dem Vergleichsschritt, ohne einen Provider zu konstruieren oder
-irgendetwas zu schreiben.
+zum Review markiert, Hinweise), und ein Dry Run (`--dry-run`) erzeugt nach dem Vergleichsschritt
+dieselbe Form von Zusammenfassung, ohne einen Provider zu konstruieren oder irgendetwas zu
+schreiben.

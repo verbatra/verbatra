@@ -12,7 +12,7 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 
 <DocsHomeBody>
 
-<DocsHomeSection title="A dónde ir ahora" lead="Cuatro puntos de partida, según dónde estés.">
+<DocsHomeSection title="Adónde ir después" lead="Cuatro puntos de partida, según dónde estés.">
 
 <DocsHomePaths
   cards={[
@@ -48,11 +48,11 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 
 <DocsHomeSection title="Cada ejecución es un diff, no una reescritura." lead="Qué pasa cuando ejecutas verbatra translate.">
 
-Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un marcador de posición roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
+Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un placeholder roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
 
 <DocsHomeSteps />
 
-verbatra lee y escribe catorce formatos y traduce a través de seis proveedores detrás de una sola interfaz, y un formato que no incluye se puede añadir como [adaptador personalizado](/docs/custom-format-adapters). Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+verbatra lee y escribe catorce formatos y traduce a través de seis proveedores detrás de una sola interfaz, y un formato que no trae de serie se puede añadir como [adaptador personalizado](/docs/custom-format-adapters). Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
 
 </DocsHomeSection>
 
@@ -69,13 +69,13 @@ verbatra lee y escribe catorce formatos y traduce a través de seis proveedores 
     {
       title: "@verbatra/sdk",
       pkg: "sdk",
-      body: "El motor que hay debajo: translate, watch, check, diff, doctor, extract, pseudolocalización, generación de tipos y los viajes de ida y vuelta con Excel y TMX, todo desde código.",
+      body: "El motor que hay debajo: translate, watch, check, diff, doctor, extract, pseudolocalización, generación de tipos y los ciclos de ida y vuelta con Excel y TMX, todo desde código.",
       href: "/docs/sdk",
     },
     {
       title: "@verbatra/studio",
       pkg: "studio",
-      body: "Un panel local con edición en el sitio, una cola de revisión, actividad de ejecuciones y herramientas para agentes de navegador. El gasto de proveedor permanece desactivado hasta que lo actives.",
+      body: "Un panel local con edición in situ, una cola de revisión, actividad de ejecuciones y herramientas para agentes de navegador. El gasto de proveedor permanece desactivado hasta que lo actives.",
       href: "/docs/review-in-studio",
     },
     {

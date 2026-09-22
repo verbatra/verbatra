@@ -28,7 +28,7 @@ Cette comparaison existe pour qu'une exécution soit incrémentale : le fourniss
 pour les chaînes qui demandent vraiment du travail. verbatra lit le fichier de la locale cible
 existant (un fichier absent compte comme vide) et compare la source avec lui, en utilisant
 [le fichier de verrouillage](/docs/the-lock-file) comme référence de ce qui a déjà été traduit.
-Chaque clé source atterrit dans l'un de quatre paniers :
+Chaque clé source atterrit dans l'une des quatre catégories :
 
 - manquante : la cible n'a pas encore la clé.
 - modifiée : la valeur source ne correspond plus au hash enregistré dans le fichier de verrouillage.
@@ -36,28 +36,29 @@ Chaque clé source atterrit dans l'un de quatre paniers :
 - orpheline : la clé est dans la cible mais plus dans la source.
 
 Seules les clés manquantes et modifiées deviennent des candidates à la traduction. Les clés
-inchangées sont laissées tranquilles. Les clés orphelines sont rapportées et, par défaut, laissées
-en place ; avec `--prune` (ou `prune: true` dans la configuration) exactement ces clés sont
-supprimées du fichier cible et du fichier de verrouillage, et rien d'autre.
+inchangées sont laissées telles quelles. Les clés orphelines sont signalées et, par défaut,
+laissées en place ; avec `--prune` (ou `prune: true` dans la configuration), ce sont exactement
+ces clés qui sont supprimées du fichier cible et du fichier de verrouillage, et rien d'autre.
 
 ## Envoyer par lots au fournisseur
 
-Avant tout envoi, chaque candidate est cherchée dans le cache local de mémoire de traduction
+Avant tout envoi, chaque candidate est recherchée dans le cache local de mémoire de traduction
 (`verbatra.cache.json`). Une traduction stockée pour le même texte source, sous la même empreinte
 de fournisseur, modèle, ton et glossaire, est réutilisée telle quelle et n'atteint jamais le
-fournisseur ; seules les absences continuent. Voir [Le cache](/docs/the-cache) pour savoir comment
-les entrées sont indexées et quand elles cessent de correspondre.
+fournisseur ; seules celles qui n'y figurent pas poursuivent leur chemin. Voir
+[Le cache](/docs/the-cache) pour savoir comment les entrées sont indexées et quand elles cessent
+de correspondre.
 
 Parmi les candidates qui atteignent le fournisseur, celles qui partagent le même contenu source
-sont d'abord regroupées, pour que ce texte coûte une requête par locale plutôt
-qu'une par clé ; la valeur renvoyée est copiée sur les autres clés de son groupe et revérifiée face
-à la source propre à chacune, à l'étape d'intégrité ci-dessous. Les groupes partent vers ton
+sont d'abord regroupées, pour que ce texte coûte une requête par locale plutôt qu'une par clé ; la
+valeur renvoyée est copiée sur les autres clés de son groupe et revérifiée face à la source propre
+à chacune, à l'étape d'intégrité ci-dessous. Les groupes partent vers ton
 fournisseur configuré en sous-lots séquentiels d'au plus `maxBatchSize` entrées (50 par défaut),
 pour qu'une requête trop grosse ne puisse pas emporter toute une locale. Chaque sous-lot transporte
 les entrées plus tes `glossary` et `tone` optionnels. Si l'appel d'un sous-lot échoue (une limite
 de débit, un délai dépassé, une clé révoquée), ses clés sont retenues pour cette exécution et
 reprises à la suivante, pendant que les autres sous-lots continuent d'avancer. Voir
-[Fournisseurs](/docs/providers) pour la façon dont chaque fournisseur applique ces entrées.
+[Fournisseurs](/docs/providers) pour la façon dont chaque fournisseur applique ces paramètres.
 
 ## Valider la réponse
 
@@ -67,8 +68,8 @@ vérifié avant toute autre chose :
 
 - Une réponse malformée, ou qui contient une clé jamais demandée, fait échouer le sous-lot entier.
 - Une clé demandée qui revient manquante ou dupliquée est redemandée une fois.
-- Si elle reste non résolue après ça, la clé compte comme non traduite pour cette exécution et est
-  retentée à la suivante.
+- Si elle reste non résolue après cela, la clé compte comme non traduite pour cette exécution et
+  est retentée à la suivante.
 
 DeepL et Google Cloud Translation sont des API de traduction automatique sans cette couche de
 réponse, mais leurs résultats passent par les mêmes contrôles d'intégrité ci-dessous.
@@ -77,10 +78,11 @@ réponse, mais leurs résultats passent par les mêmes contrôles d'intégrité 
 
 Une traduction qui a passé la validation de schéma peut quand même être cassée, donc verbatra
 recalcule sa propre décision d'acceptation ou de rejet à partir de la valeur candidate elle-même :
-il ne fait jamais confiance au rapport du fournisseur. Chaque candidate acceptée doit passer chaque vérification de la
-barrière ; voir [Sûreté de la traduction](/docs/translation-safety) pour savoir lesquelles. Une
-candidate qui échoue à l'une d'elles est retenue au lieu d'être écrite, apparaît sur le résumé d'exécution, et est retentée
-à l'exécution suivante. Voir
+il ne fait jamais confiance au rapport du fournisseur. Chaque candidate acceptée doit passer
+chacune des vérifications de la barrière ; voir
+[Sûreté de la traduction](/docs/translation-safety) pour savoir lesquelles. Une candidate qui
+échoue à l'une d'elles est retenue au lieu d'être écrite, apparaît dans le résumé d'exécution et
+est retentée à l'exécution suivante. Voir
 [Sûreté de la traduction](/docs/translation-safety) pour le modèle de sûreté complet.
 
 ## Écrire via l'adaptateur
@@ -102,7 +104,7 @@ fournisseur. Les détails sont dans [Le fichier de verrouillage](/docs/the-lock-
 
 ## Une locale à la fois, les échecs comme des données
 
-Chaque locale cible s'exécute pour elle-même : une locale qui échoue n'arrête pas les autres.
+Chaque locale cible s'exécute indépendamment : une locale qui échoue n'arrête pas les autres.
 L'exécution renvoie un résumé par locale (traduites, inchangées, orphelines, retenues, signalées
 pour révision, avis), et un dry run (`--dry-run`) produit la même forme de résumé après l'étape de
 comparaison, sans construire de fournisseur ni rien écrire.

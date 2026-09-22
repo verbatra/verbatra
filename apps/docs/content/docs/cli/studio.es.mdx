@@ -2,7 +2,7 @@
 title: verbatra studio
 description: Arranca Verbatra Studio, el panel local de traducción.
 ---
-Arranca Verbatra Studio, un panel web local sobre tu proyecto de verbatra: estado de las traducciones, la cola de revisión, la actividad de las ejecuciones y tus ajustes resueltos, todo en vivo sobre los archivos en disco. Editar tus propios archivos de locale funciona de serie, igual que editar un glosario respaldado por archivo desde la página Ajustes; solo el gasto en proveedor es opcional, detrás de `--allow-spend`. Antes de arrancar, `studio` carga `.env.local` y luego `.env` desde el directorio de trabajo y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor.
+Arranca Verbatra Studio, un panel web local sobre tu proyecto de verbatra: estado de las traducciones, la cola de revisión, la actividad de las ejecuciones y tus ajustes resueltos, todo en vivo sobre los archivos en disco. Editar tus propios archivos de locale funciona de serie, igual que editar un glosario respaldado por archivo desde la página Settings; solo el gasto en el proveedor requiere activación explícita, detrás de `--allow-spend`. Antes de arrancar, `studio` carga `.env.local` y luego `.env` desde el directorio de trabajo y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -18,7 +18,7 @@ verbatra studio [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--port` | `<n>` | `5849` | escucha en este puerto; debe ser un entero entre 1 y 65535 |
+| `--port` | `<n>` | `5849` | escucha en este puerto; debe ser un entero de 1 a 65535 |
 | `--allow-spend` | ninguno | desactivado | permite a Studio llamar a un proveedor de traducción (retraducir una clave, traducir los cambios pendientes) |
 | `--expose-agent-tools` | ninguno | desactivado | registra las acciones de revisión de Studio como herramientas WebMCP para que un agente de IA del navegador pueda operarlas |
 
@@ -38,13 +38,13 @@ Abre esa URL exacta: el token de la cadena de consulta inicia tu sesión de nave
 
 ## Instalación
 
-`@verbatra/studio` es su propio paquete, alcanzado mediante un import dinámico para que el resto de la CLI funcione sin él. Si no está instalado, `verbatra studio` sale con `2` con:
+`@verbatra/studio` es un paquete aparte, al que se llega mediante un import dinámico para que el resto de la CLI funcione sin él. Si no está instalado, `verbatra studio` sale con `2` con:
 
 ```
 Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
 ```
 
-Ese comando de pnpm instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`, y deja un `pnpm-workspace.yaml` sin responder con el que los comandos pnpm posteriores fallan igual; la solución de una sola vez está en la [Solución de problemas](/docs/troubleshooting). npm y yarn instalan el paquete sin eso.
+Ese comando de pnpm instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`, y deja atrás un `pnpm-workspace.yaml` sin resolver que hace que los comandos pnpm posteriores fallen igual; la solución de una sola vez está en la [Solución de problemas](/docs/troubleshooting). npm y yarn instalan el paquete sin ese problema.
 
 Studio se ejecuta a través de la CLI, así que instálalo junto con `@verbatra/cli`: `npm install --save-dev @verbatra/cli @verbatra/studio`, luego `npx verbatra studio`. Consulta [Instala e invoca](/docs/cli).
 
@@ -69,6 +69,6 @@ verbatra studio --allow-spend --port 6000
 
 ## Relacionado
 
-- [Revisión en Studio](/docs/review-in-studio) recorre la página Traducciones, la cola de revisión y la retraducción con `--allow-spend`.
+- [Revisión en Studio](/docs/review-in-studio) recorre la página Translations, la cola de revisión y la retraducción con `--allow-spend`.
 - [Opera Studio con un agente del navegador](/docs/agent-tools-in-studio) cubre `--expose-agent-tools` y la superficie de herramientas WebMCP.
 - [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) son los mismos cálculos que Studio muestra en vivo.

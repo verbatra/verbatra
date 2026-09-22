@@ -2,7 +2,7 @@
 title: verbatra import
 description: Importa una entrega rellenada (libro, CSV o TSV) de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de seguridad.
 ---
-Lee un libro que un traductor rellenó de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que pasan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza; los valores que fallan se retienen y se informan en lugar de escribirse, así que una celda mala nunca acaba en un archivo de locale.
+Lee de vuelta en tus archivos de locale un libro que un traductor ha rellenado. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que pasan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza; los valores que fallan se retienen y se informan en lugar de escribirse, así que una celda mala nunca acaba en un archivo de locale.
 
 ## Sinopsis
 
@@ -10,7 +10,7 @@ Lee un libro que un traductor rellenó de vuelta a tus archivos de locale. Cada 
 verbatra import <workbook> [flags]
 ```
 
-`<workbook>` es la ruta a la entrega producida por [`verbatra export`](/docs/cli/export) y rellenada por el traductor: el archivo del libro con `xlsx`, y con `csv` y `tsv` un solo archivo `<locale>.csv` o el directorio que contiene un archivo por locale.
+`<workbook>` es la ruta a la entrega producida por [`verbatra export`](/docs/cli/export) y rellenada por el traductor: el archivo del libro para `xlsx`, y para `csv` y `tsv` un solo archivo `<locale>.csv` o el directorio que contiene un archivo por locale.
 
 ## Flags
 
@@ -35,9 +35,9 @@ verbatra import verbatra-translations.xlsx --dry-run
 verbatra import handoff --format csv
 ```
 
-Con `csv` o `tsv` la locale viene del nombre del archivo, no del nombre de una hoja, así que mantén cada archivo con el nombre exacto con el que se exportó. Una locale de destino configurada sin archivo se informa como fallo de esa locale, nunca se omite en silencio.
+Con `csv` o `tsv` el locale viene del nombre del archivo, no del nombre de una hoja, así que mantén cada archivo con el nombre exacto con el que se exportó. Un locale de destino configurado sin archivo se informa como fallo de ese locale, nunca se omite en silencio.
 
-Un archivo que quedó de una exportación anterior con una selección `--locales` más amplia nunca se aplica. La importación coteja el directorio con el manifiesto que escribió allí la exportación más reciente e informa esa locale como fallida con `HANDOFF_FILE_STALE`, de modo que una traducción desactualizada no puede colarse sin que nadie lo note. Vuelve a exportar esa locale para refrescar su archivo, o borra el archivo. Un directorio sin manifiesto legible (montado a mano, o que perdió el archivo oculto al pasar por un archivo comprimido) se lee como siempre, se importa todo archivo presente. Nombrar un único archivo directamente también se toma al pie de la letra.
+Un archivo que quedó de una exportación anterior con una selección `--locales` más amplia nunca se aplica. La importación coteja el directorio con el manifiesto que escribió allí la exportación más reciente e informa ese locale como fallido con `HANDOFF_FILE_STALE`, de modo que una traducción desactualizada no puede colarse sin que nadie lo note. Vuelve a exportar ese locale para refrescar su archivo, o borra el archivo. Un directorio sin manifiesto legible (montado a mano, o que perdió el archivo oculto al pasar por un archivo comprimido) se lee como siempre: se importa todo archivo presente. Nombrar un único archivo directamente también se toma al pie de la letra.
 
 ## Códigos de salida
 
@@ -49,7 +49,7 @@ Un archivo que quedó de una exportación anterior con una selección `--locales
 
 <AvailableFrom version="0.9.0" />
 
-El contrato coincide con el de [`verbatra translate`](/docs/cli/translate), así que una entrega manual ramifica igual en CI. Eso incluye los locales parciales: un locale escrito con claves aún faltantes sale con `1`, no con `0`. También incluye el archivo de bloqueo: un archivo de bloqueo corrupto, o que se corrompe mientras el import está en marcha, detiene toda la ejecución con `2` en lugar de informar de un único locale fallido, así que los locales que quedaban por procesar no se tocan. Los locales aplicados antes del corte siguen escritos: repara el archivo de bloqueo y vuelve a importar.
+El contrato coincide con el de [`verbatra translate`](/docs/cli/translate), así que una entrega manual se bifurca igual en CI. Eso incluye los locales parciales: un locale escrito con claves aún faltantes sale con `1`, no con `0`. También incluye el archivo de bloqueo: un archivo de bloqueo corrupto, o que se corrompe mientras el import está en marcha, detiene toda la ejecución con `2` en lugar de informar de un único locale fallido, así que los locales que quedaban por procesar no se tocan. Los locales aplicados antes del corte siguen escritos: repara el archivo de bloqueo y vuelve a importar.
 
 Una celda `Translation` vacía nunca hace fallar un locale: la fila se omite, se conserva su línea base anterior del bloqueo, y la clave se informa como `unfilled` siempre que todavía necesite traducción, tanto si la fila se exportó como `new` como si se exportó como `changed`. Importar un libro que nadie ha rellenado todavía tiene por tanto éxito y devuelve el inventario completo de claves pendientes.
 

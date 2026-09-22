@@ -3,15 +3,15 @@
     "meta": {
       "title": "verbatra: traducción incremental de i18n para archivos de locale",
       "ogTitle": "verbatra: sincronización i18n incremental",
-      "description": "Mantén tus archivos de locale i18n sincronizados. verbatra traduce solo las claves que cambiaron, a través del proveedor de IA o de traducción automática que elijas. Empieza ahora.",
+      "description": "Mantén sincronizados tus archivos de locale i18n. verbatra traduce solo las claves que cambiaron, a través del proveedor de IA o de traducción automática que elijas. Empieza ahora.",
       "ogDescription": "Mantén sincronizados tus archivos de locale i18n. Traduce solo las claves cambiadas.",
       "ogImageAlt": "verbatra mantiene tus archivos de locale i18n sincronizados y traduce solo las claves que cambiaron.",
-      "definition": "verbatra es una CLI y un SDK que mantiene tus archivos de locale i18n sincronizados, traduciendo solo las claves que cambiaron a través del proveedor de IA o de traducción automática que elijas."
+      "definition": "verbatra es una CLI y un SDK que mantiene sincronizados tus archivos de locale i18n y traduce solo las claves que cambiaron, a través del proveedor de IA o de traducción automática que elijas."
     },
     "hero": {
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas, y deja todas las demás claves intactas.",
-      "ctaGithub": "Danos una estrella en GitHub",
+      "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas y deja intactas todas las demás.",
+      "ctaGithub": "Dale una estrella en GitHub",
       "ctaStart": "Empezar",
       "facts": {
         "release": "Última versión",
@@ -28,7 +28,7 @@
           "l2": "de  3 traducidas · 117 sin tocar · 0 retenidas",
           "l3": "es  3 traducidas · 117 sin tocar · 0 retenidas",
           "l4": "fr  3 traducidas · 117 sin tocar · 0 retenidas",
-          "l5": "✓ 9 claves traducidas en 1.8s · 351 sin tocar · bloqueo actualizado"
+          "l5": "✓ 9 claves traducidas en 1,8 s · 351 sin tocar · bloqueo actualizado"
         }
       }
     },
@@ -37,25 +37,25 @@
       "copy": "Copiar",
       "copied": "Copiado",
       "copyAria": "Copiar el comando de instalación",
-      "pnpmNote": "pnpm instala bien, pero sale con el código 1 y ERR_PNPM_IGNORED_BUILDS, porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la",
+      "pnpmNote": "pnpm instala correctamente, pero termina con código 1 y ERR_PNPM_IGNORED_BUILDS porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la página de",
       "pnpmNoteLink": "Solución de problemas",
-      "copyPromptAria": "Copia el prompt de configuración del agente de IA",
+      "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
       "aiTabLabel": "IA",
-      "aiCaption": "Esta es una previsualización truncada. Lee la guía completa de configuración en",
+      "aiCaption": "Esta es una vista previa recortada. El prompt completo y los pasos de configuración están en",
       "aiCaptionLink": "la guía de configuración",
       "copyCommand": "Copiar {command}"
     },
     "gate": {
       "rows": {
         "key": "clave",
-        "candidate": "propuesta",
+        "candidate": "candidata",
         "missing": "falta",
         "reason": "motivo",
-        "kept": "conservado"
+        "kept": "conservada"
       },
       "annotations": {
-        "new": "nuevo",
-        "kept": "conservado"
+        "new": "nueva",
+        "kept": "conservada"
       }
     },
     "how": {
@@ -74,7 +74,7 @@
           "body": "Solo salen las claves nuevas y cambiadas."
         },
         "verifyWrite": {
-          "title": "Verificar y escribir",
+          "title": "Verifica y escribe",
           "body": "Los resultados rotos se retienen, el resto se escribe."
         }
       }
@@ -84,23 +84,23 @@
       "items": {
         "incremental": {
           "question": "¿Cómo evita verbatra volver a traducir todo en cada ejecución?",
-          "answer": "Mantiene un archivo de bloqueo confirmado que registra lo que ya se tradujo. Cada ejecución compara tu locale de origen con ese bloqueo y envía solo las claves nuevas o cambiadas a tu proveedor. Las claves sin cambios nunca se tocan, así que una ejecución típica cuesta un puñado de cadenas, no todo tu catálogo."
+          "answer": "Mantiene un archivo de bloqueo confirmado que registra lo que ya se tradujo. Cada ejecución compara tu locale de origen con ese archivo de bloqueo y envía solo las claves nuevas o modificadas a tu proveedor. Las claves sin cambios no se tocan nunca, así que una ejecución típica cuesta un puñado de cadenas, no todo tu catálogo."
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "Seis, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLMs), DeepL y Google Cloud Translation (traducción automática), y openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM. Eliges uno por su ID en tu configuración y puedes cambiar más tarde editando esa única línea. Gemini tiene una capa gratuita real, y un modelo local no cuesta nada por llamada."
+          "answer": "Seis, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), y openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada."
         },
         "formats": {
           "question": "¿Qué formatos y frameworks soporta verbatra?",
-          "answer": "JSON para i18next, vue-i18n, next-intl y ngx-translate, además de archivos XLIFF, YAML, Flutter ARB, .properties de Java/Spring, .strings de Apple y catálogos de strings de Xcode, strings.xml de Android, archivos .po/.pot de gettext, INI y .resx de .NET. Eso cubre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android y cualquier stack basado en gettext. verbatra lee los archivos que ya tienes; no hay un formato específico de verbatra al que migrar."
+          "answer": "JSON para i18next, vue-i18n, next-intl y ngx-translate, además de XLIFF, YAML, Flutter ARB, .properties de Java/Spring, .strings de Apple y los String Catalogs de Xcode, strings.xml de Android, archivos .po/.pot de gettext, INI y .resx de .NET. Eso cubre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android y cualquier stack basado en gettext. verbatra lee los archivos que ya tienes; no hay ningún formato propio de verbatra al que migrar."
         },
         "safety": {
           "question": "¿Qué impide que una mala traducción rompa mi app?",
-          "answer": "Cada resultado pasa una comprobación de integridad de marcadores de posición e ICU antes de escribirse. Una traducción que omite, inventa o reordena un marcador de posición, o produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale. La misma comprobación se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
+          "answer": "Cada resultado pasa unas comprobaciones de integridad de placeholders e ICU antes de escribirse. Una traducción que omite, inventa o reordena un placeholder, o que produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale. La misma puerta de integridad se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
         },
         "cost": {
           "question": "¿Cuánto cuesta verbatra?",
-          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, que tú controlas: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI."
+          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI."
         }
       }
     },
@@ -109,7 +109,7 @@
       "docs": "Leer la documentación"
     },
     "footer": {
-      "tagline": "Traduce solo lo que cambió. Una CLI y un SDK de código abierto que mantiene tus archivos de locale i18n sincronizados a través del proveedor que elijas.",
+      "tagline": "Traduce solo lo que cambió. Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale i18n a través del proveedor que elijas.",
       "cols": {
         "product": {
           "title": "Producto",
@@ -121,7 +121,7 @@
           "githubAction": "GitHub Action"
         },
         "learn": {
-          "title": "Aprende",
+          "title": "Aprender",
           "howItWorks": "Cómo funciona",
           "providers": "Proveedores",
           "formats": "Formatos",
@@ -157,11 +157,11 @@
       "vmarkAlt": "verbatra"
     },
     "nav": {
-      "docs": "Documentación",
+      "docs": "Docs",
       "providers": "Proveedores",
       "formats": "Formatos",
       "contributing": "Contribuir",
-      "startWithAi": "Empieza con IA",
+      "startWithAi": "Empezar con IA",
       "languageSwitcher": {
         "chooseLanguage": "Elige un idioma",
         "triggerAriaSuffix": "elegir idioma",
@@ -190,14 +190,14 @@
       "heading": "Lo que realmente obtienes.",
       "items": {
         "ci": {
-          "body": "<code>verbatra check</code> sale con código 1 cuando falta alguna locale o está desactualizada, con <code>--json</code> para CI.",
+          "body": "<code>verbatra check</code> sale con código 1 cuando falta algún locale o está desactualizado, con <code>--json</code> para CI.",
           "note": "este sitio lo ejecuta en cada pull request",
-          "title": "La desviación de locales hace fallar el pull request."
+          "title": "La deriva de un locale hace fallar el pull request."
         },
         "config": {
-          "body": "Un glosario fija cómo se traducen los términos listados; <code>tone</code> define el trato formal, informal o neutro.",
+          "body": "Un glosario fija cómo se traducen los términos listados; <code>tone</code> define un tono formal, informal o neutro.",
           "note": "el verbatra.config.ts de este sitio",
-          "title": "Tus términos y tu registro se mantienen fijos."
+          "title": "Tus términos y tu tono se mantienen fijos."
         },
         "cost": {
           "body": "Solo las claves nuevas y cambiadas van al proveedor, y cada ejecución imprime su recuento de tokens por locale.",
@@ -205,8 +205,8 @@
           "title": "Pagas por las claves que has cambiado."
         },
         "gate": {
-          "body": "Una propuesta que pierde un placeholder, rompe ICU o desequilibra el marcado se retiene, nunca se escribe y se envía de nuevo en la siguiente ejecución.",
-          "note": "la misma verificación protege las ediciones en Studio y las importaciones",
+          "body": "Una traducción candidata que pierde un placeholder, rompe ICU o desequilibra el marcado se retiene, nunca se escribe y se envía de nuevo en la siguiente ejecución.",
+          "note": "la misma puerta de integridad protege las ediciones en Studio y las importaciones",
           "title": "Un placeholder roto nunca llega a producción."
         },
         "git": {
@@ -215,7 +215,7 @@
           "title": "Cada traducción es un diff de git."
         },
         "handoff": {
-          "body": "Exportación e importación de Excel para traductores, TMX para memoria de traducción, tipos de TypeScript generados para tus claves.",
+          "body": "Exportación e importación de Excel para traductores, TMX para la memoria de traducción y tipos de TypeScript generados para tus claves.",
           "note": "cuatro de los catorce comandos",
           "title": "Personas y otras herramientas pueden tomar el relevo."
         }
@@ -236,18 +236,18 @@
           "title": "O déjaselo a tu agente."
         },
         "ci": {
-          "body": "<code>watch</code> traduce con cada cambio. <code>check</code> hace fallar el pull request cuando una locale se desvía.",
+          "body": "<code>watch</code> traduce con cada cambio. <code>check</code> hace fallar el pull request cuando un locale se desvía.",
           "cta": "Configurar CI",
           "title": "Ejecútalo al guardar, en CI o desde una GitHub Action."
         },
         "excel": {
-          "body": "Exporta, recíbelo relleno, impórtalo por la misma verificación.",
+          "body": "Exporta, recíbelo relleno e impórtalo por la misma puerta de integridad.",
           "cta": "Leer sobre la entrega en Excel",
-          "title": "Entrega un libro de trabajo a los traductores e impórtalo de vuelta."
+          "title": "Entrega un libro a los traductores e impórtalo de vuelta."
         },
         "studio": {
-          "alt": "La página Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr, donde cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject.",
-          "body": "Cobertura, entradas marcadas, ediciones en el sitio. Sin llamadas al proveedor.",
+          "alt": "La página de Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject.",
+          "body": "Cobertura, entradas marcadas, ediciones in situ. Sin llamadas al proveedor.",
           "cta": "Revisar traducciones en Studio",
           "title": "Consulta el estado de cada locale en Verbatra Studio."
         }
@@ -326,7 +326,7 @@
       },
       "s6": {
         "heading": "6. Fuentes y recursos",
-        "body": "Las fuentes están autoalojadas: se empaquetan en el momento de la compilación, por lo que no se realizan solicitudes a Google Fonts ni a ningún otro tercero cuando cargas una página. La única excepción son las insignias de estado: la página de inicio y la página de pruebas incrustan imágenes de insignias en vivo de GitHub, Codecov y shields.io que muestran la compilación actual, la cobertura, la versión y la licencia. La carga de estas imágenes transmite tu dirección IP a esos proveedores, que actúan como responsables del tratamiento independientes bajo sus propias políticas de privacidad. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en mostrar un estado preciso del proyecto). Aparte de estas insignias y el script autoalojado de Umami descrito anteriormente, no se cargan scripts o incrustaciones de terceros en tiempo de ejecución."
+        "body": "Las fuentes están autoalojadas: se empaquetan en el momento de la compilación, por lo que no se hace ninguna solicitud a Google Fonts ni a ningún otro tercero cuando cargas una página. La única excepción son las insignias de estado: la página de inicio y la página de pruebas incrustan imágenes de insignias en vivo de GitHub, Codecov y shields.io que muestran la compilación actual, la cobertura, la versión y la licencia. Cargar estas imágenes transmite tu dirección IP a esos proveedores, que actúan como responsables del tratamiento independientes bajo sus propias políticas de privacidad. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en mostrar un estado preciso del proyecto). Aparte de estas insignias y del script autoalojado de Umami descrito arriba, no se carga ningún script ni elemento incrustado de terceros en tiempo de ejecución."
       },
       "s7": {
         "heading": "7. GitHub y npm",
@@ -346,7 +346,7 @@
       },
       "s11": {
         "heading": "11. Formulario de contacto",
-        "body": "Cuando usas el <contact>formulario de contacto</contact>, procesamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo electrónico de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo electrónico de terceros participa en su entrega, y su entrega no implica ninguna transferencia de datos fuera de la UE. El único procesador externo involucrado bajo el Art. 28 GDPR es Arcjet, que procesa la dirección IP y los encabezados de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario contra bots y abusos; estos datos se retienen durante un período establecido por nuestro plan Arcjet, actualmente hasta una hora en la capa gratuita. La base legal es el Art. 6(1)(f) GDPR (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo electrónico de notificación resultante se retienen solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún lugar más allá de la bandeja de entrada del operador."
+        "body": "Cuando usas el <contact>formulario de contacto</contact>, tratamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo externo participa en su entrega, y esa entrega no implica ninguna transferencia de datos fuera de la UE. El único encargado del tratamiento externo en el sentido del art. 28 del RGPD es Arcjet, que trata la dirección IP y las cabeceras de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario frente a bots y abusos; esos datos se conservan durante el periodo que fija nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo de notificación resultante se conservan solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún sitio más allá de la bandeja de entrada del operador."
       },
       "s12": {
         "heading": "12. Traducción asistida por IA",
@@ -373,7 +373,7 @@
         "nameLabel": "Nombre",
         "namePlaceholder": "Tu nombre",
         "emailLabel": "Correo electrónico",
-        "emailPlaceholder": "tucorreo@ejemplo.com",
+        "emailPlaceholder": "tu@example.com",
         "messageLabel": "Mensaje",
         "messagePlaceholder": "Tu mensaje",
         "submit": "Enviar mensaje",
@@ -395,9 +395,9 @@
   },
   "docs": {
     "machineTranslated": {
-      "text": "Esta página fue traducida automáticamente, así que puede contener errores o sonar un poco raro. La versión en inglés es la fuente de la verdad.",
+      "text": "Esta página se tradujo automáticamente, así que puede contener errores o sonar un poco rara. La versión en inglés es la fuente de la verdad.",
       "title": "Página traducida automáticamente",
-      "viewOriginal": "Lee el original en inglés"
+      "viewOriginal": "Leer el original en inglés"
     },
     "notTranslated": {
       "text": "Esta página todavía no está traducida, así que se muestra en inglés.",
@@ -410,9 +410,9 @@
     },
     "availableFrom": {
       "title": "Disponible a partir de {version}",
-      "text": "Esto necesita verbatra {version} o más reciente. Las versiones anteriores no lo tienen, así que verifica tu versión instalada con verbatra --version y actualiza si es más antigua.",
+      "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con verbatra --version y actualiza si es más antigua.",
       "packageTitle": "Disponible a partir de {version}",
-      "packageText": "Esto necesita {version} o más reciente. Las versiones anteriores no lo tienen, así que actualiza ese paquete si el tuyo es más antiguo."
+      "packageText": "Esto requiere {version} o posterior. Las versiones anteriores no lo tienen: actualiza ese paquete si el tuyo es más antiguo."
     },
     "screenshot": {
       "label": "Verbatra Studio",

@@ -2,7 +2,7 @@
 title: Eine Sprache hinzufügen
 description: "Füge einem bestehenden verbatra-Projekt eine neue Ziel-Locale hinzu: eine Zeile Konfiguration und ein translate-Lauf, während deine bestehenden Locales unangetastet bleiben."
 ---
-Eine Sprache hinzuzufügen ist eine einzeilige Konfigurationsänderung plus ein Lauf. verbatra sieht die neue Locale als komplett fehlend und füllt sie vollständig; deine bestehenden Locales kosten nichts, weil die Lock-Datei sie weiterhin als aktuell verzeichnet.
+Eine Sprache hinzuzufügen ist eine einzeilige Konfigurationsänderung plus ein Lauf. verbatra behandelt die neue Locale, als fehle ihr alles, und füllt sie vollständig; deine bestehenden Locales kosten nichts, weil die Lock-Datei sie weiterhin als aktuell verzeichnet.
 
 ## Füge die Locale zu deiner Konfiguration hinzu
 
@@ -28,11 +28,11 @@ export default defineConfig({
 });
 ```
 
-Zwei Regeln, beide beim Laden der Konfiguration erzwungen: Eine Ziel-Locale darf nicht die `sourceLocale` sein, und zwei Einträge dürfen nicht case-insensitiv kollidieren (kein `de` und `DE` in derselben Liste).
+Zwei Regeln, beide beim Laden der Konfiguration erzwungen: Eine Ziel-Locale darf nicht die `sourceLocale` sein, und zwei Einträge dürfen sich nicht nur in der Groß- und Kleinschreibung unterscheiden (kein `de` und `DE` in derselben Liste).
 
-## Sieh dir die anstehende Arbeit an
+## Sieh dir die Arbeit vorab an
 
-Bevor du einen Token ausgibst, sieh dir an, was ein Lauf tun würde. `diff` ist schreibgeschützt und listet die ausstehenden Keys pro Locale:
+Bevor du einen Token ausgibst, sieh dir an, was ein Lauf tun würde. `diff` liest nur und listet die ausstehenden Keys pro Locale:
 
 ```bash
 verbatra diff
@@ -46,7 +46,7 @@ Die neue Locale hat noch keine Zieldatei, also behandelt verbatra sie als leer, 
 verbatra translate
 ```
 
-Der Lauf übersetzt jeden Quell-Key in die neue Locale und schreibt die Datei an dein `files.pattern` (hier `locales/fr.json`). Eine große Quelle wird in Sub-Batches von höchstens 50 Keys pro Provider-Anfrage aufgeteilt (konfigurierbar über `maxBatchSize`), damit eine überdimensionierte Anfrage nicht die ganze Locale versenkt.
+Der Lauf übersetzt jeden Quell-Key in die neue Locale und schreibt die Datei an dein `files.pattern` (hier `locales/fr.json`). Eine große Quelle wird in Sub-Batches von höchstens 50 Keys pro Provider-Anfrage aufgeteilt (konfigurierbar über `maxBatchSize`), damit eine übergroße Anfrage nicht die ganze Locale mit sich reißt.
 
 Das ist das inkrementelle Verhalten in Aktion: Nur die neue Locale löst Provider-Aufrufe aus. Für jede bestehende Locale vergleicht verbatra die Quelle mit der Baseline dieser Locale in `verbatra.lock.json`, findet keine fehlenden oder geänderten Keys und sendet nichts. Danach endet `verbatra check` mit `0`: Jede Locale, einschließlich der neuen, ist synchron.
 
@@ -73,4 +73,4 @@ Du pflegst immer nur die Quell-Locale von Hand. Um Strings hinzuzufügen, trage 
 
 - [Die Lock-Datei](/docs/the-lock-file): warum erneute Läufe günstig sind und was du committen solltest.
 - [Konfigurationsdatei](/docs/config-file): das vollständige Konfigurationsschema, einschließlich `glossary` und `tone`.
-- [Provider](/docs/providers): Provider-Optionen und wo du einen Schlüssel bekommst.
+- [Provider](/docs/providers): Provider-Optionen und wo du einen API-Schlüssel bekommst.

@@ -37,21 +37,21 @@ verbatra import handoff --format csv
 
 Avec `csv` ou `tsv`, la locale vient du nom du fichier et non d'un nom de feuille : garde donc chaque fichier nommé exactement comme il a été exporté. Une locale cible configurée sans fichier est rapportée comme l'échec de cette locale, jamais ignorée en silence.
 
-Un fichier laissé par un export antérieur avec une sélection `--locales` plus large n'est jamais appliqué. L'import rapproche le répertoire du manifeste que l'export le plus récent y a écrit et rapporte cette locale en échec avec `HANDOFF_FILE_STALE`, si bien qu'une traduction périmée ne peut pas revenir sans qu'on le voie. Réexporte cette locale pour rafraîchir son fichier, ou supprime le fichier. Un répertoire sans manifeste lisible (assemblé à la main, ou ayant perdu le fichier caché en passant par une archive) est lu comme avant, chaque fichier présent est importé. Un fichier unique nommé directement est de même pris au mot.
+Un fichier laissé par un export antérieur avec une sélection `--locales` plus large n'est jamais appliqué. L'import rapproche le répertoire du manifeste que l'export le plus récent y a écrit et rapporte une telle locale en échec avec `HANDOFF_FILE_STALE`, si bien qu'une traduction périmée ne peut pas se glisser à nouveau sans qu'on la voie. Réexporte cette locale pour rafraîchir son fichier, ou supprime le fichier. Un répertoire sans manifeste lisible (assemblé à la main, ou ayant perdu le fichier caché en passant par une archive) est lu comme il l'a toujours été, chaque fichier présent est importé. De même, un fichier unique nommé directement est pris tel quel.
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
 | `0` | chaque locale cible est ressortie complète |
-| `1` | l'exécution a terminé mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
+| `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, classeur, format ou verrou) ou une erreur d'utilisation |
 
 <AvailableFrom version="0.9.0" />
 
-Le contrat correspond à [`verbatra translate`](/docs/cli/translate), donc une passation manuelle se branche de la même façon en CI. Cela inclut les locales partielles : une locale écrite avec des clés toujours manquantes sort avec `1`, pas `0`. Cela inclut aussi le fichier de verrouillage : un fichier de verrouillage corrompu, ou qui le devient pendant l'import, interrompt toute l'exécution avec `2` au lieu de signaler une seule locale en échec, si bien que les locales restantes ne sont pas touchées. Les locales appliquées avant l'interruption restent écrites : répare le fichier de verrouillage puis relance l'import.
+Le contrat correspond à [`verbatra translate`](/docs/cli/translate), donc une remise manuelle se branche de la même façon en CI. Cela inclut les locales partielles : une locale écrite avec des clés toujours manquantes sort avec `1`, pas `0`. Cela inclut aussi le fichier de verrouillage : un fichier de verrouillage corrompu, ou qui le devient pendant l'import, interrompt toute l'exécution avec `2` au lieu de signaler une seule locale en échec, si bien que les locales encore à venir ne sont pas touchées. Les locales appliquées avant l'interruption restent écrites : répare le fichier de verrouillage puis relance l'import.
 
-Une cellule `Translation` vide ne fait jamais échouer une locale : la ligne est sautée, la ligne de base antérieure de son verrou est conservée, et la clé est rapportée comme `unfilled` dès qu'elle demande toujours une traduction, que la ligne ait été exportée comme `new` ou `changed`. Importer un classeur que personne n'a encore rempli réussit donc et renvoie l'inventaire complet des clés en attente.
+Une cellule `Translation` vide ne fait jamais échouer une locale : la ligne est sautée, la ligne de base antérieure de son verrou est conservée, et la clé est rapportée comme `unfilled` dès lors qu'elle a encore besoin d'une traduction, que la ligne ait été exportée comme `new` ou `changed`. Importer un classeur que personne n'a encore rempli réussit donc et renvoie l'inventaire complet des clés en attente.
 
 ## Voir aussi
 

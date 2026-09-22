@@ -13,7 +13,7 @@ Una ejecución parte de tu configuración validada; consulta [Archivo de configu
 para saber dónde se encuentra y qué contiene. Todo lo de abajo es igual tanto si la ejecución vino
 de la CLI, del SDK o de `watch`.
 
-## Lee el locale de origen
+## Leer el locale de origen
 
 El adaptador de formato lee el archivo del locale de origen y lo convierte en un conjunto neutral de
 entradas con clave, para que el resto de la canalización funcione igual con cualquier formato. Un
@@ -23,12 +23,13 @@ claves de origen cuyos valores son inválidos para la sintaxis de mensajes del f
 inválido): esas claves siguen el viaje pero se apartan en lugar de enviarse al proveedor en un
 estado roto.
 
-## Haz diff contra la línea base del bloqueo
+## Comparar con la línea base del bloqueo
 
-Este diff existe para que una ejecución sea incremental: al proveedor solo se le llama por cadenas
-que de verdad necesitan trabajo. verbatra lee el archivo del locale de destino existente (un archivo
-ausente cuenta como vacío) y hace diff del origen contra él, usando [el archivo de bloqueo](/docs/the-lock-file)
-como línea base de lo que se tradujo antes. Cada clave de origen cae en uno de cuatro grupos:
+Este diff existe para que una ejecución sea incremental: solo se llama al proveedor para las
+cadenas que de verdad necesitan trabajo. verbatra lee el archivo del locale de destino existente
+(un archivo ausente cuenta como vacío) y hace diff del origen contra él, usando
+[el archivo de bloqueo](/docs/the-lock-file) como línea base de lo que se tradujo antes. Cada clave
+de origen cae en uno de cuatro grupos:
 
 - faltante: el destino todavía no tiene la clave.
 - modificada: el valor de origen ya no coincide con el hash registrado en el bloqueo.
@@ -36,32 +37,32 @@ como línea base de lo que se tradujo antes. Cada clave de origen cae en uno de 
 - huérfana: la clave está en el destino pero ya no en el origen.
 
 Solo las claves faltantes y modificadas se convierten en candidatas a traducción. Las claves sin
-cambios se dejan en paz. Las claves huérfanas se informan y, por defecto, se dejan donde están; con
-`--prune` (o `prune: true` en la configuración) se eliminan exactamente esas claves del archivo de
-destino y del bloqueo, y nada más.
+cambios se quedan intactas. Las claves huérfanas se notifican y, por defecto, se dejan donde están;
+con `--prune` (o `prune: true` en la configuración) se eliminan exactamente esas claves del archivo
+de destino y del bloqueo, y nada más.
 
-## Envía lotes al proveedor
+## Enviar lotes al proveedor
 
 Antes de enviar nada, cada candidata se busca en la caché local de memoria de traducción
 (`verbatra.cache.json`). Una traducción guardada para el mismo texto de origen, bajo la misma
 huella de proveedor, modelo, tono y glosario, se reutiliza tal cual y nunca llega al proveedor;
-solo siguen adelante los fallos de caché. Consulta [La caché](/docs/the-cache) para ver cómo se
-indexan las entradas y cuándo dejan de coincidir.
+solo siguen adelante las que no encuentran coincidencia. Consulta [La caché](/docs/the-cache)
+para ver cómo se indexan las entradas y cuándo dejan de coincidir.
 
 De las candidatas que llegan al proveedor, las que comparten el mismo contenido de origen
-se agrupan primero, así que ese texto cuesta una solicitud por locale en lugar de una por clave; el
+se agrupan primero, así que ese texto cuesta una petición por locale en lugar de una por clave; el
 valor que vuelve se copia a las demás claves de su grupo y se vuelve a comprobar contra el origen de
 cada una en el paso de integridad de abajo. Los grupos van a tu proveedor configurado en sublotes
-secuenciales de como mucho `maxBatchSize` (por defecto 50), así que una solicitud sobredimensionada
+secuenciales de como mucho `maxBatchSize` (por defecto 50), así que una petición sobredimensionada
 no puede tumbar un locale entero. Cada sublote lleva las entradas más tus `glossary` y `tone`
 opcionales. Si la llamada de un sublote falla (un límite de tasa, un tiempo de espera agotado, una
 clave revocada), sus claves se retienen en esta ejecución y se recogen de nuevo en la siguiente
 mientras los demás sublotes siguen avanzando. Consulta [Proveedores](/docs/providers) para ver cómo
 aplica cada proveedor estas entradas.
 
-## Valida la respuesta
+## Validar la respuesta
 
-La salida del proveedor nunca se trata como texto libre de confianza. Para los proveedores LLM
+En la salida del proveedor nunca se confía como texto libre. Para los proveedores LLM
 (Anthropic, OpenAI, Gemini y openai-compatible), la respuesta debe ajustarse a un esquema fijo,
 comprobado antes de cualquier otra cosa:
 
@@ -74,17 +75,17 @@ comprobado antes de cualquier otra cosa:
 DeepL y Google Cloud Translation son APIs de traducción automática sin esta capa de respuesta, pero
 sus resultados pasan por las mismas comprobaciones de integridad de abajo.
 
-## Ejecuta la puerta de integridad
+## Ejecutar la puerta de integridad
 
-Una traducción que pasó la validación de esquema todavía puede estar rota, así que verbatra recalcula
-su propia decisión de aceptar o rechazar a partir del propio valor candidato: nunca se fía del
-informe del proveedor. Cada candidata aceptada debe pasar todas las comprobaciones de la puerta;
-consulta [Seguridad de la traducción](/docs/translation-safety) para saber cuáles son. Una
-candidata que falla cualquiera de ellas se retiene en lugar de escribirse, aparece en el resumen de la
-ejecución y se reintenta en la siguiente. Consulta
+Una traducción que pasó la validación de esquema todavía puede estar rota, así que verbatra
+recalcula su propia decisión de aceptar o rechazar a partir del propio valor candidato: nunca se
+fía del informe del proveedor. Cada candidata aceptada debe pasar todas las comprobaciones de la
+puerta; consulta [Seguridad de la traducción](/docs/translation-safety) para saber cuáles son. Una
+candidata que falla cualquiera de ellas se retiene en lugar de escribirse, aparece en el resumen de
+la ejecución y se reintenta en la siguiente. Consulta
 [Seguridad de la traducción](/docs/translation-safety) para el modelo de seguridad completo.
 
-## Escribe a través del adaptador
+## Escribir a través del adaptador
 
 Las traducciones aceptadas se fusionan en el destino y las escribe el adaptador de formato, de forma
 atómica y en el orden de claves del documento: una clave que ya está en el destino conserva su
@@ -92,7 +93,7 @@ posición, y una clave nueva se añade donde la coloca el origen. Una escritura 
 deja un archivo de locale a medias, y un formateador o un revisor de código ve diffs estables y
 mínimos.
 
-## Actualiza el bloqueo
+## Actualizar el bloqueo
 
 Después de escribir un locale, sus entradas del bloqueo se refrescan con los hashes de origen
 actuales, con una excepción deliberada: una clave retenida en esta ejecución conserva su hash
@@ -103,7 +104,7 @@ Los detalles están en [El archivo de bloqueo](/docs/the-lock-file).
 
 ## Un locale cada vez, los fallos como datos
 
-Cada locale de destino corre por su cuenta: que un locale falle no detiene a los demás. La ejecución
-devuelve un resumen por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para
-revisión, avisos), y una ejecución en seco (`--dry-run`) produce la misma forma de resumen después
-del paso de diff, sin construir un proveedor ni escribir nada.
+Cada locale de destino se ejecuta por su cuenta: que un locale falle no detiene a los demás. La
+ejecución devuelve un resumen por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas
+para revisión, avisos), y un dry run (`--dry-run`) produce la misma forma de resumen después del
+paso de diff, sin construir un proveedor ni escribir nada.

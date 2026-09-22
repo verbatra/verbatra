@@ -2,7 +2,7 @@
 title: FAQ
 description: Kurze Antworten auf die Fragen, die beim Einsatz von verbatra am häufigsten aufkommen.
 ---
-Schnelle Antworten, jede darin verankert, wie verbatra sich tatsächlich verhält. Für
+Schnelle Antworten, jede davon aus dem tatsächlichen Verhalten von verbatra abgeleitet. Für
 symptomorientierte Hilfe bei Fehlermeldungen siehe [Fehlerbehebung](/docs/troubleshooting).
 
 ## Wie kontrolliere ich die Kosten?
@@ -26,22 +26,23 @@ Vier Hebel, alle ohne Provider-Aufruf, bis du dich anders entscheidest:
 Ein durchgerechnetes Beispiel, um die Größenordnung greifbar zu machen. Ein Projekt mit 400 zu
 übersetzenden Keys in 3 Locales sendet bei der Standard-`maxBatchSize` von 50 acht Requests pro
 Locale, insgesamt also 24. Bei grob 4 Zeichen pro Token, mit 40 Zeichen langen Quellwerten und 20
-Zeichen langen Key-Namen sind das etwa 32.400 Eingabe-Tokens und 22.800 Ausgabe-Tokens, also rund
-55.000 Tokens für den ganzen Lauf. Auf `gemini-2.5-flash` ergibt das bei einer illustrativen Rate
-von $0.10 pro Million Eingabe-Tokens und $0.40 pro Million Ausgabe-Tokens etwa 1,2 Cent.
+Zeichen langen Key-Namen sind das etwa 33.300 Eingabe-Tokens und 30.700 Ausgabe-Tokens, also rund
+64.000 Tokens für den ganzen Lauf. Auf `gemini-2.5-flash` ergibt das bei einer illustrativen Rate
+von $0.10 pro Million Eingabe-Tokens und $0.40 pro Million Ausgabe-Tokens etwa 1,6 Cent.
 
 Die Annahmen hinter dieser Zahl, damit du sie auf dein eigenes Projekt umrechnen kannst: 400 Keys
 pro Locale und 3 Locales; 40 Zeichen lange Werte und 20 Zeichen lange Key-Namen; kein
-`description`, `meaning`, Glossar oder Tone; `maxBatchSize` auf dem Standardwert; 4 Zeichen pro
-Token; Übersetzungen ungefähr so lang wie ihre Quelle. Die Rate ist ein Platzhalter, der die
-Rechnung konkret macht, kein zitierter Preis: schlage den echten auf der Preisseite deines
-Providers nach, denn verbatra verfolgt keine Provider-Raten, und sie ändern sich.
+`description`, `meaning`, Glossar oder Tonfall; `maxBatchSize` auf dem Standardwert; 4 Zeichen pro
+Token; der Aufschlag von 50 Prozent, den verbatra auf jede Ausgabe-Schätzung anwendet. Die Rate
+ist ein Platzhalter, der die Rechnung konkret macht, kein zitierter Preis: Schlage die echte auf
+der Preisseite deines Providers nach, denn verbatra verfolgt keine Provider-Raten, und sie ändern
+sich.
 
 Zwei Dinge bestimmen die echte Rechnung stärker als die Key-Anzahl. Jeder Request trägt einen
-konstanten Overhead von etwa 350 Tokens (die festen Systemregeln und das Ausgabeschema), eine
+konstanten Overhead von etwa 350 Tokens (die festen Systemregeln und das Ausgabeschema); eine
 größere `maxBatchSize` verteilt diese Konstante also auf mehr Keys, und eine kleinere kostet
-proportional mehr. Und dieser Wert sind nur die Kosten des ersten Laufs: Läufe sind inkrementell,
-im Alltag zahlst du also für die Handvoll geänderter Strings, nicht für die ganze Datei. DeepL
+proportional mehr. Und das sind nur die Kosten des ersten Laufs: Läufe sind inkrementell, im
+Alltag zahlst du also für die Handvoll geänderter Strings, nicht für die ganze Datei. DeepL
 passt gar nicht in diese Formel, weil es Quellzeichen statt Tokens abrechnet.
 
 Siehe [Kosten abschätzen](/docs/estimating-cost) für die Methode, den Fall der maschinellen Übersetzung und das
@@ -61,7 +62,7 @@ Ja. Der `openai-compatible`-Provider richtet verbatra über seine `baseUrl`-Opti
 Server, der die OpenAI-Chat-API spricht, etwa LM Studio, Ollama oder vLLM. Die meisten lokalen
 Server brauchen keinen API-Schlüssel: Wenn weder eine über `apiKeyEnvVar` benannte Variable noch
 `OPENAI_COMPATIBLE_API_KEY` gesetzt ist, sendet verbatra den festen Platzhalter `"local"`. Braucht
-dein Server doch einen Schlüssel, benenne seine Umgebungsvariable mit `apiKeyEnvVar`.
+dein Server doch einen API-Schlüssel, benenne seine Umgebungsvariable mit `apiKeyEnvVar`.
 
 ## Wie behalten Keys ihre Reihenfolge?
 
@@ -84,9 +85,11 @@ Lauf-Zusammenfassung und in Studios Review-Warteschlange. Siehe
 
 ## Funktioniert verbatra in einem Monorepo?
 
-Ja. Die Konfigurationssuche startet im aktuellen Arbeitsverzeichnis und läuft aufwärts, ein Lauf
-aus einem Paketverzeichnis findet also die Konfiguration dieses Pakets. Von überall sonst übergib
-`--cwd <dir>` (jeder Befehl unterstützt es) oder zeige mit `--config <path>` auf eine bestimmte
+Ja. Die Konfigurationssuche startet im aktuellen Arbeitsverzeichnis und läuft aufwärts; ein Lauf
+aus einem Paketverzeichnis findet also die Konfiguration dieses Pakets. Die Suche stoppt beim
+nächstgelegenen übergeordneten `.git`-Verzeichnis; sie findet also eine Konfiguration im Root
+deines Monorepos, ohne in ein unbeteiligtes Projekt darüber hinüberzuwandern. Von überall sonst
+übergib `--cwd <dir>` (jeder Befehl unterstützt es) oder zeige mit `--config <path>` auf eine bestimmte
 Datei. Im SDK heißen dieselben Stellschrauben `cwd` und `configPath` auf `loadConfig`. Das
 `files.pattern` und die Lock-Datei werden gegen das Arbeitsverzeichnis aufgelöst.
 
@@ -101,17 +104,17 @@ vorhandenen `.gitignore`, dem einer davon fehlt. Siehe [Die Lock-Datei](/docs/th
 
 ## Wie übersetze ich alles neu?
 
-Die Lock-Datei zu löschen tut es nicht: Ohne Baseline zählen Keys, die in Quelle und Ziel
-existieren, als aktuell, ein Lauf nach dem Löschen der Lock-Datei übersetzt also nichts. Um eine
+Die Lock-Datei zu löschen, tut es nicht: Ohne Baseline zählen Keys, die in Quelle und Ziel
+existieren, als aktuell; ein Lauf nach dem Löschen der Lock-Datei übersetzt also nichts. Um eine
 Locale von Grund auf neu aufzubauen, lösche die Datei dieser Locale und führe `verbatra translate`
 aus: Jeder Key ist dann fehlend und wird frisch übersetzt. Für einen einzelnen Key nutze Studios
 Retranslate-Aktion oder das `retranslateEntry` des SDK. Um Keys neu zu übersetzen, deren Quelltext
 sich geändert hat, führe einfach `translate` aus: Das ist der normale inkrementelle Weg.
 
-## Heißt die CLI zu benutzen, das SDK zu installieren?
+## Muss ich das SDK installieren, wenn ich die CLI nutze?
 
-`@verbatra/cli` hängt von `@verbatra/sdk` ab, die Installation der CLI bringt das SDK also
-automatisch mit; es gibt nichts extra zu installieren. Umgekehrt gilt es auch: Das SDK
+`@verbatra/cli` hängt von `@verbatra/sdk` ab; die Installation der CLI bringt das SDK also
+automatisch mit, es gibt nichts extra zu installieren. Umgekehrt gilt das auch: Das SDK
 funktioniert eigenständig in deinen eigenen Skripten ohne CLI. Nur `@verbatra/studio` ist eine
 separate, optionale Installation, dynamisch geladen vom `studio`-Befehl.
 
@@ -121,7 +124,7 @@ Nur in Umgebungsvariablen: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KE
 `DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY`, plus die Variable, die du für
 `openai-compatible` benennst. `translate`, `watch`,
 `doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (echte
-Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys genau deshalb ab, damit ein Geheimnis
+Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys genau deshalb ab, damit ein Secret
 nicht in einer committeten Datei landen kann, und Fehlermeldungen nennen die Variable, aber nie
 einen Wert. Siehe [Provider](/docs/providers).
 
@@ -135,30 +138,30 @@ lesen:
 - Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
 - Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
 - Provider: Die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf.
-- API key environment variable: Die Variable, aus der dieser Provider seinen Schlüssel liest, ist
+- API key environment variable: Die Variable, aus der dieser Provider seinen API-Schlüssel liest, ist
   gesetzt (nur dem Namen nach geprüft, nie am Wert).
 - Source locale file: Die Quell-Locale-Datei existiert unter ihrem aufgelösten Pfad, ist eine
   reguläre Datei und lässt sich im konfigurierten Format parsen.
 
-Jeder Check läuft auch dann, wenn ein früherer fehlgeschlagen ist, ein Lauf meldet also jedes
-unabhängige Problem auf einmal; die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
-fehl, werden die vier Checks übersprungen, die sie brauchen.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes
+unabhängige Problem auf einmal. Die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
+fehl, werden die vier Prüfungen übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor
 ```
 
-Greife darauf zurück bei einem frischen Checkout, direkt nach `verbatra init`, oder wann immer ein
-anderer Befehl fehlgeschlagen ist und du die ganze Liste statt nur des ersten Fehlers willst.
-Siehe [`verbatra doctor`](/docs/cli/doctor) für die vollständige Check-Tabelle und die Exit-Codes.
+Nimm ihn bei einem frischen Checkout, direkt nach `verbatra init`, oder wann immer ein anderer
+Befehl fehlgeschlagen ist und du die ganze Liste statt nur des ersten Fehlers willst. Siehe
+[`verbatra doctor`](/docs/cli/doctor) für die vollständige Tabelle der Prüfungen und die Exit-Codes.
 
 ## Kann ein KI-Agent verbatra für mich einrichten oder bedienen?
 
 Vier verschiedene Oberflächen für vier verschiedene Aufgaben. [verbatra mit einem KI-Agenten
-einrichten](/docs/start-with-ai) ist ein copy-pasteable Prompt für Claude Code, Cursor oder jeden
+einrichten](/docs/start-with-ai) ist ein Prompt zum Kopieren und Einfügen für Claude Code, Cursor oder jeden
 Coding-Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann: Er inspiziert ein
 bestehendes i18n-Setup, installiert die CLI, erstellt eine passende Konfiguration, führt `doctor`,
-`check`, `diff` und `translate --dry-run` aus, um die Arbeit zu zeigen, und stoppt dann, um einen
+`check`, `diff` und `translate --dry-run` aus, um die Arbeit vorab zu zeigen, und stoppt dann, um einen
 Menschen um Bestätigung zu bitten, bevor er je wirklich einen Provider aufruft. [Rezepte für
 Agenten und Skripte](/docs/agent-recipes) ist die Referenz, um deine eigene Agenten-Schleife auf
 demselben `--json`-Envelope und denselben Exit-Codes aufzubauen, die diese Befehle nutzen. [Studio
@@ -171,8 +174,8 @@ einen terminal-basierten oder headless MCP-Client (Claude Desktop, Claude Code, 
 dieselben Status-, Glossar- und Bearbeitungs-Tools ganz ohne Browser haben will.
 
 Keine der vier gibt einem Agenten die Möglichkeit, ohne einen Menschen im Loop Geld auszugeben.
-`translate` selbst hat kein eigenes Ausgaben-Gate, jede agentenfähige Oberfläche legt also einen
-Bestätigungsschritt oder ein `--allow-spend`-Flag zwischen den Agenten und einen echten
+`translate` selbst hat kein eigenes Ausgaben-Gate; jede für Agenten gedachte Oberfläche legt also
+einen Bestätigungsschritt oder ein `--allow-spend`-Flag zwischen den Agenten und einen echten
 Provider-Aufruf.
 
 ## Veröffentlicht diese Seite etwas für KI-Agenten und Crawler?
@@ -189,12 +192,12 @@ gerade ansiehst:
   dass dieses Projekt MIT-lizenziert ist und Crawlen, Indexieren und Zitieren dieser Inhalte
   willkommen ist.
 
-Alle drei sind aus der Footer-Spalte für KI-Agenten verlinkt.
+Alle drei sind aus der Footer-Spalte "Für KI-Agenten" verlinkt.
 
 ## Ist der Inhalt dieser Seite KI-übersetzt?
 
 Ja, beide Hälften, auf zwei verschiedenen Wegen. Der UI-Rahmen (Navigationsbeschriftungen, Buttons,
-der Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und ihren `de`-,
+der Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und seinen `de`-,
 `es`- und `fr`-Geschwistern; die werden mit verbatra selbst maschinell übersetzt, gegen das Format
 `next-intl-json`, über den Gemini-Provider, ausgeführt von `pnpm i18n`, automatisch immer dann,
 wenn sich die englische Quelle ändert. Das Projekt nutzt hier sein eigenes Tool (Dogfooding). Die
@@ -207,5 +210,5 @@ Doku-Seite zu übersetzen ist ein eigener, manueller Schritt, sobald sich die en
 
 Wenn dir im Deutschen, Spanischen oder Französischen etwas seltsam vorkommt, eröffne in beiden
 Fällen ein Issue: UI-Texte werden an der englischen Quelle korrigiert und von `pnpm i18n`
-maschinell neu übersetzt; bei Doku-Prosa bearbeite die MDX-Datei direkt und schick einen Pull
+maschinell neu übersetzt; bei Doku-Prosa bearbeite die MDX-Datei direkt und schicke einen Pull
 Request.

@@ -5,7 +5,7 @@ description: Patrones completos y ejecutables para manejar verbatra desde tus pr
 La [referencia del SDK](/docs/sdk) cataloga cada punto de entrada. Esta página es la compañera práctica:
 recetas de principio a fin que puedes copiar en un script y ejecutar. Una cosa que preparar primero: el
 SDK no carga archivos `.env` (eso lo hace la CLI), así que asegúrate de que la variable de entorno del
-proveedor está definida antes de que corra tu script, por ejemplo:
+proveedor está definida antes de que se ejecute tu script, por ejemplo:
 
 ```bash
 node --env-file=.env translate.mjs
@@ -48,11 +48,11 @@ if (summary.failed.length > 0 || summary.partial.length > 0) {
 ```
 
 Un locale `partial` es aquel cuyo archivo se escribió con claves aún faltantes. No es un éxito: la
-CLI sale con `1` ante él, y tu propio script debería tratarlo igual, que es por lo que la
-comprobación de arriba prueba `partial` junto a `failed`.
+CLI sale con `1` ante él, y tu propio script debería tratarlo igual: por eso la comprobación de
+arriba mira `partial` junto a `failed`.
 
 Pasa `dryRun: true` para previsualizar sin llamar a un proveedor ni escribir nada, y `prune: true` o
-`generatePlurals: true` para anular esas opciones de configuración durante una ejecución. Pasa
+`generatePlurals: true` para anular esas opciones de configuración en una sola ejecución. Pasa
 `locales: ["de"]` para restringir la ejecución a un subconjunto de los destinos configurados, que es
 como recorres un proveedor con límite de tasa un idioma cada vez; un locale no configurado lanza
 `UNKNOWN_LOCALE` antes de leer ni gastar nada. Pon
@@ -130,10 +130,10 @@ la CLI en CI en su lugar? Consulta [CI y códigos de salida](/docs/ci-and-exit-c
 
 ## Vigila en un proceso de larga duración
 
-`watch` dispara una ejecución inmediatamente al arrancar, y luego una por cada cambio del origen
-asentado por el anti-rebote, informando de cada una a través de `onRun`. Para un apagado limpio, espera
-`controller.stop()` con await: cierra el watcher y espera a que termine la ejecución en curso antes de
-que salga tu proceso.
+`watch` dispara una ejecución inmediatamente al arrancar, y luego una por cada cambio del origen,
+una vez pasado el anti-rebote, informando de cada una a través de `onRun`. Para un apagado limpio,
+haz `await controller.stop()`: cierra el watcher y espera a que termine la ejecución en curso antes
+de que salga tu proceso.
 
 ```ts
 import { loadConfig, watch } from "@verbatra/sdk";
@@ -166,8 +166,8 @@ vigilancia continúa.
 
 `extract` es el único punto de entrada que lee código de aplicación en lugar de un archivo de
 locale. Solo escribe el catálogo de origen, y solo claves realmente nuevas: una clave ya existente
-conserva su valor, y una clave que ninguna llamada menciona se deja en paz. Todo lo que el escaneo
-no puede resolver vuelve como datos, así que un dry-run es una buena puerta antes de la ejecución
+conserva su valor, y una clave que ninguna llamada menciona se deja intacta. Todo lo que el análisis
+no puede resolver vuelve como datos, así que un dry run es una buena puerta antes de la ejecución
 que escribe.
 
 ```ts
@@ -199,7 +199,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 `config.extract` tiene que nombrar el framework y las raíces de código, o la llamada lanza
 `EXTRACT_NOT_CONFIGURED`. El descubrimiento pasa por el miembro opcional `readDirectory` de
 `SdkFs`, así que un `deps.fs` propio sin él se rechaza con `EXTRACT_FS_UNSUPPORTED`, y un catálogo
-de origen que no se puede escribir levanta `SOURCE_UNWRITABLE`.
+de origen que no se puede escribir lanza `SOURCE_UNWRITABLE`.
 
 ## Genera un catálogo tipado
 
@@ -240,17 +240,17 @@ Pasa `configPath` para que el archivo de configuración que cargó la ejecución
 de salida. Una ejecución con `check` no escribe nada, no rechaza nada por su contenido y solo
 informa de `stale`. Todo lo que rechaza una ejecución que escribe, con `TYPES_OUTPUT_CONFLICT`,
 está listado en la página de [`verbatra types`](/docs/cli/types); una declaración que no se puede
-escribir levanta `TYPES_UNWRITABLE`.
+escribir lanza `TYPES_UNWRITABLE`.
 
-## Construye una pseudolocale
+## Construye un pseudolocale
 
 <AvailableFrom version="0.11.0" />
 
-`pseudolocalize` construye una locale falsa solo a partir de las cadenas de origen, para que los
+`pseudolocalize` construye un locale falso solo a partir de las cadenas de origen, para que los
 recortes de maquetación y las cadenas que nunca se extrajeron salgan a la luz antes de que exista
 ninguna clave de API. No construye ningún proveedor ni hace ninguna petición de red, y su salida
-cae fuera de `files.pattern`, así que `translate` nunca gasta en ella y `check` y `diff` nunca la
-reportan como desfasada.
+cae fuera de `files.pattern`, así que `translate` nunca gasta en él y `check` y `diff` nunca
+informan de él como desfasado.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -264,8 +264,8 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` es `en-XA` por defecto y `out` es `.verbatra-local/pseudo`. Una pseudolocale que nombre
-una locale configurada, o un `out` que caería sobre un archivo de locale configurado, se rechaza
+`locale` es `en-XA` por defecto y `out` es `.verbatra-local/pseudo`. Un pseudolocale que nombre
+un locale configurado, o un `out` que caería sobre un archivo de locale configurado, se rechaza
 con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada. La transformación es determinista, así
 que una segunda ejecución sobre un origen sin cambios no reescribe nada e informa de `written`
 como false.
@@ -317,7 +317,7 @@ una interfaz.
 
 <AvailableFrom version="0.10.0" />
 
-`localeValues` es la contraparte masiva de `keyValue`: una pasada sobre los archivos que ya están
+`localeValues` es la contraparte en bloque de `keyValue`: una pasada sobre los archivos que ya están
 en disco, que devuelve el texto de origen y de destino actual de cada clave por locale. Recurre a
 él cuando quien llama necesita buscar o escanear contenido traducido en lugar de nombres de clave.
 
@@ -340,14 +340,14 @@ for (const { locale, values } of report) {
 ```
 
 Solo lectura: no llama a ningún proveedor, no escribe nada y no toca ni el archivo de bloqueo ni la
-caché. Omite `locales` para cubrir todas las locales de destino configuradas.
+caché. Omite `locales` para cubrir todos los locales de destino configurados.
 
 ## El ciclo de ida y vuelta del libro
 
 Exporta las cadenas que necesitan traducción a un libro de Excel, entrégaselo a un traductor y luego
 importa el archivo rellenado de vuelta. `importWorkbook` ejecuta las mismas comprobaciones de desfase
 e integridad que `translate` y devuelve la misma forma `RunSummary`, así que una entrega
-manual encaja en el mismo informe exacto que usas para una ejecución automática.
+manual encaja exactamente en los mismos informes que usas para una ejecución automática.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -375,9 +375,9 @@ validan las filas.
 <AvailableFrom version="0.11.0" />
 
 `importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
-formato de intercambio que producen y consumen las plataformas de traducción habituales. Esto no es
-el par del libro en otro formato: el libro entrega a una persona traductora el delta pendiente de
-una locale, mientras que este par mueve la memoria entera como un único archivo multilingüe entre
+formato de intercambio que producen y leen las plataformas de traducción más extendidas. Esto no es
+el par del libro en otro formato: el libro entrega a un traductor humano el delta pendiente de un
+solo locale, mientras que este par mueve la memoria entera como un único archivo multilingüe entre
 herramientas.
 
 ```ts
@@ -414,7 +414,7 @@ console.log(`${exported.units} units to ${exported.path}`);
 ```
 
 Ninguno construye un proveedor, lee una clave de API ni hace una llamada de red. `importTmx`
-informa de los datos dañados en lugar de lanzar sobre ellos: un archivo rechazado levanta
+informa de los datos dañados en lugar de lanzar sobre ellos: un archivo rechazado lanza
 `SOURCE_INVALID`, y `tmxErrorLocation` lee el sitio a partir de ese error sin hacer un cast sobre
 él ni sobre su `cause`. Solo se exportan las entradas bajo la huella de configuración actual, que
 es el mismo conjunto que reutilizaría una ejecución.

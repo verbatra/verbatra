@@ -1,8 +1,8 @@
 ---
 title: Rezepte für Agenten und Skripte
-description: "Steuere verbatra aus einer Agenten-Schleife oder einem Shell-Skript: welche Befehle JSON ausgeben, wie die Nutzdaten wirklich aussehen und wie du darauf verzweigst."
+description: "Steuere verbatra aus einer Agenten-Schleife oder einem Shell-Skript: welche Befehle JSON ausgeben, wie die Payloads wirklich aussehen und wie du darauf verzweigst."
 ---
-Ein Agent oder ein Skript braucht drei Dinge von einer CLI: eine stabile Art zu fragen, eine parsebare Antwort und ein eindeutiges Signal, was passiert ist. verbatra gibt dir alle drei über `--json` und den Exit-Code. Diese Seite ist die ausgearbeitete Fassung davon: echte aufgezeichnete Nutzdaten und kurze Rezepte, die ausführen, parsen, entscheiden und handeln.
+Ein Agent oder ein Skript braucht drei Dinge von einer CLI: eine stabile Art zu fragen, eine parsebare Antwort und ein eindeutiges Signal, was passiert ist. verbatra gibt dir alle drei über `--json` und den Exit-Code. Diese Seite ist die ausgearbeitete Fassung davon: echte aufgezeichnete Payloads und kurze Rezepte, die ausführen, parsen, entscheiden und handeln.
 
 Sie wiederholt den Vertrag nicht. Der [`--json`-Envelope und jede `result`-Form](/docs/ci-and-exit-codes#json-ausgabe) sind in der CI-Anleitung dokumentiert, die [CLI-Übersicht](/docs/cli) nennt die Konvention, und jede Befehlsseite trägt ihre eigene Exit-Code-Tabelle. Lies dort, was ein Feld bedeutet; lies hier, was du damit machst.
 
@@ -21,7 +21,7 @@ Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JS
 | [`doctor`](/docs/cli/doctor) | ja | ein `DoctorResult` |
 | [`export`](/docs/cli/export) | ja | den geschriebenen Pfad und die Zeilenzahl pro Locale |
 | [`import`](/docs/cli/import) | ja | ein `RunSummary` |
-| [`tmx`](/docs/cli/tmx) | ja | bei `import` die gelesenen Units und pro Locale die Anzahl der hinzugefügten, behaltenen und abgelehnten Einträge; bei `export` den geschriebenen Pfad und die Anzahl der Units pro Locale |
+| [`tmx`](/docs/cli/tmx) | ja | bei `import` die gelesenen Units und pro Locale die Anzahl der hinzugefügten, behaltenen und abgelehnten Units; bei `export` den geschriebenen Pfad und die Anzahl der Units pro Locale |
 | [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
 | [`types`](/docs/cli/types) | ja | den Pfad der Deklaration, die Anzahl der Keys, wie viele Keys Argumente nehmen, die Keys, deren Argumente nicht bestimmt werden konnten, und ob die Datei geschrieben wurde |
 | [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
@@ -49,9 +49,9 @@ Behalte stderr, wenn du ein Protokoll davon willst, was der Lauf gerade getan ha
 verbatra translate --json 2>run.log | jq .
 ```
 
-## Drei Nutzdaten, aufgezeichnet
+## Drei Payloads, aufgezeichnet
 
-Jede Ausgabe unten stammt echt aus einem kleinen Projekt: Quell-Locale `en`, ein Ziel-Locale `de` und eine `de`-Datei, die `app.title` bereits hat, `app.greeting` aber nicht.
+Jeder Payload unten ist echte Ausgabe aus einem kleinen Projekt: Quell-Locale `en`, eine Ziel-Locale `de` und eine `de`-Datei, die `app.title` bereits hat, `app.greeting` aber nicht.
 
 `verbatra check --json` beantwortet "läuft irgendetwas auseinander", in Zahlen:
 
@@ -63,7 +63,7 @@ verbatra check --json 2>/dev/null
 {"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false}]}}
 ```
 
-Der Befehl endet mit `1`, weil `inSync` false ist. Das ist das günstigste Gate überhaupt: Der Exit-Code allein sagt dir, ob du die Nutzdaten überhaupt lesen musst.
+Der Befehl endet mit `1`, weil `inSync` false ist. Das ist das günstigste Gate überhaupt: Der Exit-Code allein sagt dir, ob du den Payload überhaupt lesen musst.
 
 `verbatra diff --json` beantwortet dieselbe Frage über Key-Namen statt über Zahlen:
 
@@ -125,9 +125,9 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
 }
 ```
 
-Exit `0`. Jede Liste pro Locale ist auch dann vorhanden, wenn sie leer ist, ein Agent kann also darauf zugreifen, ohne vorher zu prüfen. Ein echter Lauf ergänzt pro Locale und in der Zusammenfassung ein `usage`-Objekt, sofern der Provider einen Verbrauch meldet; ein Dry-Run nie, weil er keinen Aufruf macht. Die vollständige Anatomie eines `LocaleSummary` steht in der [SDK-Referenz](/docs/sdk).
+Exit `0`. Jede Liste pro Locale ist auch dann vorhanden, wenn sie leer ist, ein Agent kann also darauf zugreifen, ohne vorher zu prüfen. Ein echter Lauf ergänzt pro Locale und in der Zusammenfassung ein `usage`-Objekt, sofern der Provider einen Verbrauch meldet; ein Dry Run nie, weil er keinen Aufruf macht. Die vollständige Anatomie eines `LocaleSummary` steht in der [SDK-Referenz](/docs/sdk).
 
-Wenn ein Lauf überhaupt nicht stattfinden kann, stehen dort stattdessen Fehlerdaten, und der Befehl endet mit `2`:
+Wenn ein Lauf überhaupt nicht stattfinden kann, ist der Payload stattdessen ein Fehler-Datensatz, und der Befehl endet mit `2`:
 
 ```json
 {"ok":false,"version":1,"command":"check","code":"CONFIG_INVALID","message":"The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined"}
@@ -137,7 +137,7 @@ Wenn ein Lauf überhaupt nicht stattfinden kann, stehen dort stattdessen Fehlerd
 
 ## `ok: true` heißt nicht, dass alles übersetzt wurde
 
-Das ist die Stelle, an der Skripte auflaufen. Ein Locale kann innerhalb eines Laufs scheitern, der selbst durchgekommen ist. Der Envelope bleibt `ok: true`, weil der Befehl lief und eine Zusammenfassung erzeugt hat; der Fehlschlag taucht in `result.failed` und `result.partial` auf, und der Exit-Code ist `1`.
+Das ist die Stelle, an der Skripte auflaufen. Eine Locale kann innerhalb eines Laufs scheitern, der selbst durchgekommen ist. Der Envelope bleibt `ok: true`, weil der Befehl lief und eine Zusammenfassung erzeugt hat; der Fehlschlag taucht in `result.failed` und `result.partial` auf, und der Exit-Code ist `1`.
 
 Hier ist `translate` gegen einen nicht erreichbaren Provider-Endpunkt:
 
@@ -153,7 +153,7 @@ verbatra translate --json 2>/dev/null | jq -c '{ok, succeeded: .result.succeeded
 
 ## Auf den Exit-Code verzweigen
 
-Drei Codes decken jeden einmaligen Befehl ab. Dieses Gate liest `check`, gibt die auseinandergelaufenen Locales aus, wenn es welche gibt, und behandelt einen Fehler des gesamten Laufs als ein Problem anderer Art:
+Drei Codes decken jeden einmalig laufenden Befehl ab. Dieses Gate liest `check`, gibt die auseinandergelaufenen Locales aus, wenn es welche gibt, und behandelt einen Fehler des gesamten Laufs als ein Problem anderer Art:
 
 ```bash
 #!/usr/bin/env bash
@@ -189,7 +189,7 @@ cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.opti
 
 Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur die drei langlaufenden Befehle (`watch`, `studio` und `mcp`) lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
-## `watch` ist ein Strom, keine einzelne Ausgabe
+## `watch` ist ein Strom, kein einzelner Payload
 
 `watch --json` ist von anderer Art als die übrigen zehn. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
 
@@ -215,7 +215,7 @@ Drei Läufe einer Sitzung (Änderung, Änderung, dann eine kaputte Quelldatei):
 {"ok":false,"code":"SOURCE_INVALID","failed":null,"translated":[]}
 ```
 
-Aus dieser letzten Zeile folgen zwei Dinge. Ein fehlgeschlagener Lauf ist ein Datensatz im Strom, nicht das Ende der Sitzung: Der Watcher blieb oben und übersetzte danach weiter. Und er ändert nie den Exit-Code, der allein davon abhängt, wie die Sitzung endet. Ein langlebiger Agent behandelt eine `ok: false`-Zeile deshalb als meldenswertes Ereignis, nicht als Grund, den Prozess neu zu starten.
+Aus dieser letzten Zeile folgen zwei Dinge. Ein fehlgeschlagener Lauf ist ein Datensatz im Strom, nicht das Ende der Sitzung: Der Watcher lief weiter und übersetzte danach weiter. Und er ändert nie den Exit-Code, der allein davon abhängt, wie die Sitzung endet. Ein langlebiger Agent behandelt eine `ok: false`-Zeile deshalb als meldenswertes Ereignis, nicht als Grund, den Prozess neu zu starten.
 
 ## Eine ausgearbeitete Schleife: absichern, entscheiden, übersetzen, melden
 
@@ -272,9 +272,9 @@ failed: de
 nothing pending
 ```
 
-Der erste endet mit `0`, der zweite mit `1` (der Provider-Endpunkt war nicht erreichbar), der dritte mit `0`, ohne etwas auszugeben. Schritt 1 nutzt bewusst `diff` statt `translate --dry-run`: Beide sind schreibgeschützt und brauchen keinen Key, aber `diff` ist die genau dafür gebaute Frage, und sein Exit-Code allein beantwortet schon, ob es Arbeit gibt.
+Der erste endet mit `0`, der zweite mit `1` (der Provider-Endpunkt war nicht erreichbar), der dritte mit `0`, ohne etwas auszugeben. Schritt 1 nutzt bewusst `diff` statt `translate --dry-run`: Beide sind nur lesend und brauchen keinen Key, aber `diff` ist die genau dafür gebaute Frage, und sein Exit-Code allein beantwortet schon, ob es Arbeit gibt.
 
-Der Provider-Key für Schritt 4 kommt aus der Umgebung, wie immer. Lege ihn in deinem CI-Secret-Store oder deiner Shell-Umgebung ab und lass ihn den Prozess erben; die CLI nimmt kein Key-Argument entgegen und liest keinen aus der Konfigurationsdatei. Welche Variable dein Provider liest, steht unter [Provider](/docs/providers).
+Der Provider-Key für Schritt 4 kommt aus der Umgebung, wie immer. Lege ihn in deinem CI-Secret-Store oder deiner Shell-Umgebung ab und lass den Prozess ihn erben; die CLI nimmt kein Key-Argument entgegen und liest keinen aus der Konfigurationsdatei. Welche Variable dein Provider liest, steht unter [Provider](/docs/providers).
 
 ## Das Skills-Paket
 
@@ -286,16 +286,16 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 | Skill | Nimm es, wenn |
 | --- | --- |
-| `verbatra-cli` | der Agent die `verbatra`-Binary aus einer Shell oder aus CI steuert. |
+| `verbatra-cli` | der Agent das `verbatra`-Binary aus einer Shell oder aus CI steuert. |
 | `verbatra-mcp-tools` | ein MCP-Client mit `verbatra mcp` verbunden ist. |
 | `verbatra-studio-agent-tools` | ein Browser-Agent einen offenen Studio-Tab steuert. |
 
 Sie decken ab, was ein Agent ohne Ansage falsch macht: welche Befehle Geld kosten und welche gratis sind, dass ein Dry Run überhaupt keinen Provider erzeugt, was die Lock-Datei sichtbar macht und warum ein Tool, das Provider-Budget ausgibt, absichtlich in einer Tool-Liste fehlen kann. Installiere nur die Oberfläche, die du nutzt; jedes Dokument steht für sich. Tausche den Namen hinter `--skill` aus oder wiederhole den Schalter, um mehrere zu installieren.
 
-## Als Nächstes
+## Weiter
 
 - [CI und Exit-Codes](/docs/ci-and-exit-codes): der Envelope, die Exit-Code-Tabelle und jede `result`-Form vollständig.
-- [CLI-Übersicht](/docs/cli): die gemeinsamen Flags und wie die Binary deine Umgebung liest.
+- [CLI-Übersicht](/docs/cli): die gemeinsamen Flags und wie das Binary deine Umgebung liest.
 - [`verbatra doctor`](/docs/cli/doctor): die günstigste Vorabprüfung vor einem unbeaufsichtigten Lauf.
 - [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): ein Prompt zum Kopieren und Einfügen, der dieselben Befehle nutzt, um verbatra in ein bestehendes Projekt zu übernehmen, abgesichert durch eine menschliche Bestätigung.
 - [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio): dasselbe Projekt, bedient aus einem authentifizierten Dashboard-Tab statt aus einer Shell.

@@ -17,18 +17,18 @@ verbatra diff [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die verglichen wird |
-| `--unused` | keins | aus | zusätzlich die Roots des [`extract`-Blocks](/docs/config-file#extract) scannen und die Keys der Quell-Locale auflisten, die keine Aufrufstelle nennt (siehe [Ungenutzte Quell-Keys](#ungenutzte-quell-keys)) |
+| `--unused` | keins | aus | zusätzlich die Quellcode-Roots des [`extract`-Blocks](/docs/config-file#extract) scannen und die Keys der Quell-Locale auflisten, die keine Aufrufstelle nennt (siehe [Ungenutzte Quell-Keys](#ungenutzte-quell-keys)) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Diff-Zusammenfassung unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
-Ein Locale hat ausstehende Änderungen, wenn es mindestens einen Key zum Hinzufügen oder Neuübersetzen hat. Verwaiste Keys werden gemeldet, zählen aber nie als ausstehend, weil ein Standardlauf sie nicht entfernt (das tut nur [`verbatra translate --prune`](/docs/cli/translate)). Ein leerer oder unbekannter `--locales`-Wert wird mit Exit `2` abgelehnt, statt stillschweigend nichts zu vergleichen. Während [`verbatra check`](/docs/cli/check) die Frage "wie viel hat gedriftet" mit Zählern beantwortet, beantwortet `diff` die Frage "welche Keys" mit den Listen selbst.
+Ein Locale hat ausstehende Änderungen, wenn es mindestens einen Key zum Hinzufügen oder Neuübersetzen hat. Verwaiste Keys werden gemeldet, zählen aber nie als ausstehend, weil ein Standardlauf sie nicht entfernt (das tut nur [`verbatra translate --prune`](/docs/cli/translate)). Ein leerer oder unbekannter `--locales`-Wert wird mit Exit `2` abgelehnt, statt stillschweigend nichts zu vergleichen. Während [`verbatra check`](/docs/cli/check) mit Zählern beantwortet, wie viel abgedriftet ist, beantwortet `diff` mit den Listen, welche Keys es betrifft.
 
 ## Ungenutzte Quell-Keys
 
 <AvailableFrom version="0.11.0" />
 
-`orphaned` beantwortet "welche Ziel-Keys sind aus der Quelle verschwunden". `--unused` beantwortet eine andere Frage: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nirgends mehr? Es scannt die `roots` des [`extract`-Blocks](/docs/config-file#extract) mit demselben Leser, den [`verbatra extract`](/docs/cli/extract) nutzt, und listet jeden Key der Quell-Locale auf, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt: Ein Key kann in `de` verwaist und unabhängig davon in der Quelle ungenutzt sein.
+`orphaned` beantwortet, welche Ziel-Keys aus der Quelle verschwunden sind. `--unused` beantwortet eine andere Frage: Welche Keys in deiner Quell-Locale-Datei nennt deine Anwendung nirgends mehr? Es scannt die `roots` des [`extract`-Blocks](/docs/config-file#extract) mit demselben Leser, den [`verbatra extract`](/docs/cli/extract) nutzt, und listet jeden Key der Quell-Locale auf, den keine statische Referenz nennt. Die beiden Listen werden nie zusammengeführt: Ein Key kann in `de` verwaist und unabhängig davon in der Quelle ungenutzt sein.
 
-Es bleibt rein lesend. Nichts wird entfernt, umgeschrieben oder umsortiert, kein Provider wird erzeugt und kein API-Key gelesen. Ob du einen Key löschst, entscheidest du, also prüf die Liste vorher.
+Es bleibt nur lesend. Nichts wird entfernt, umgeschrieben oder umsortiert, kein Provider wird erzeugt und kein API-Key gelesen. Ob du einen Key löschst, entscheidest du, also prüfe die Liste vorher.
 
 Der Scan bildet die i18next-Laufzeit nach. Folgendes zählt als Referenz auf einen Key:
 
@@ -56,7 +56,7 @@ Der Bericht trägt einen `status`:
 | `dynamic-key-prefix` | `unreliable` | ein `keyPrefix` oder `getFixedT`-Präfix, der kein statischer String ist |
 | `trans-without-key` | `unreliable` | ein `Trans`-Element ohne statischen `i18nKey` |
 | `aliased-translate-function` | `unreliable` | `t` wird etwas anderem als einer einfachen Variable zugewiesen, etwa `this.tr = t` |
-| `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle steht an einer anderen als den unten erlaubten Stellen, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
+| `translate-function-escapes` | `unreliable` | eine Übersetzungsfunktion aus einer erkannten Quelle wird irgendwo außerhalb der unten erlaubten Positionen verwendet, etwa `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` oder `export default t` |
 | `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, ein Member `t` oder ein `t`-Import in einer Form, die unten nicht aufgeführt ist, etwa ein Wrapper-Hook, der `useTranslation(...)` zurückgibt, Hook-Optionen über einen Namen oder mit Spread, oder ein exportiertes `getFixedT`-Ergebnis |
 | `template-files-not-scanned` | `unreliable` | `.vue`-, `.svelte`-, `.html`-, `.htm`-, `.astro`-, `.hbs`-, `.handlebars`-, `.ejs`-, `.pug`-, `.njk`-, `.liquid`- oder `.mdx`-Dateien unter den Roots (die ersten 20 werden aufgelistet, alle gezählt) |
 | `incomplete-scan` | `unreliable` | eine Datei, die zu groß, unlesbar oder nicht bis zum Ende lesbar ist (in einer `.tsx`-, `.jsx`- oder `.js`-Datei auch ein JSX-Element, das nie geschlossen wird, und ein String in Anführungszeichen im Code, der bis ans Zeilenende läuft), oder ein Verzeichnis, das sich nicht auflisten lässt |
@@ -79,7 +79,7 @@ Jede Bindung namens `t` oder `$t` wird geprüft, egal woher sie stammt, ebenso j
 
 Jeder gelistete Key zeigt seine dekodierte Schreibweise (`Welcome. Enjoy`, einen gettext-`msgctxt`-Eintrag als `menu|Open`); `--json` trägt zusätzlich den `catalogKey`, wie der Adapter ihn schreibt (`Welcome\. Enjoy`).
 
-Ein Key, der nur von außerhalb des gescannten Quellcodes referenziert wird (ein Server-Template, ein CMS, eine Test-Fixture), gehört in [`extract.unused.ignore`](/docs/config-file#extract). Ein Muster trifft den dekodierten Key. Ein getroffener Key erscheint unter `ignored`, nie unter `unused` oder `possiblyDynamic`, und fällt nie still weg.
+Ein Key, der nur von außerhalb des gescannten Quellcodes referenziert wird (ein Server-Template, ein CMS, eine Test-Fixture), gehört in [`extract.unused.ignore`](/docs/config-file#extract). Ein Muster trifft den dekodierten Key. Ein getroffener Key erscheint unter `ignored`, nie unter `unused` oder `possiblyDynamic`, und wird nie stillschweigend verworfen.
 
 ## Beispiele
 

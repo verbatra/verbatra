@@ -17,7 +17,7 @@ description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, 
 <DocsHomePaths
   cards={[
     {
-      tag: "Nouveau ici",
+      tag: "Nouveau par ici",
       label: "Ta première traduction",
       body: "Installe la CLI, génère une configuration, prévisualise l'exécution sans clé, puis traduis.",
       href: "/docs/your-first-translation",
@@ -38,7 +38,7 @@ description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, 
     {
       tag: "Avec un agent IA",
       label: "Configurer avec l'IA",
-      body: "Donne à Claude Code, Cursor ou tout agent de codage un prompt prêt à copier-coller.",
+      body: "Donne à Claude Code, Cursor ou tout agent de code un prompt prêt à copier-coller.",
       href: "/docs/start-with-ai",
     },
   ]}
@@ -48,7 +48,7 @@ description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, 
 
 <DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances verbatra translate.">
 
-Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
+Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
 
 <DocsHomeSteps />
 

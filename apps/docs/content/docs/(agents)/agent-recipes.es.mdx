@@ -22,14 +22,14 @@ Las recetas de abajo leen stdout con `jq`, porque es lo más pequeño que lee un
 | [`export`](/docs/cli/export) | sí | la ruta escrita y el número de filas por locale |
 | [`import`](/docs/cli/import) | sí | un `RunSummary` |
 | [`tmx`](/docs/cli/tmx) | sí | en `import`, las unidades leídas y, por locale, los recuentos de entradas añadidas, conservadas y rechazadas; en `export`, la ruta escrita y el número de unidades por locale |
-| [`pseudo`](/docs/cli/pseudo) | sí | la pseudolocale generada, su ruta y los recuentos de entradas |
+| [`pseudo`](/docs/cli/pseudo) | sí | el pseudolocale generado, su ruta y los recuentos de entradas |
 | [`types`](/docs/cli/types) | sí | la ruta de la declaración, el número de claves, cuántas claves aceptan argumentos, las claves cuyos argumentos no se pudieron determinar y si el archivo se escribió |
-| [`extract`](/docs/cli/extract) | sí | las claves añadidas a la locale de origen y lo que el escaneo no pudo resolver |
+| [`extract`](/docs/cli/extract) | sí | las claves añadidas al locale de origen y lo que el escaneo no pudo resolver |
 | [`init`](/docs/cli/init) | no | |
 | [`studio`](/docs/cli/studio) | no | |
 | [`mcp`](/docs/cli/mcp) | no | |
 
-`init` es un andamiaje interactivo, y `studio` y `mcp` son servidores de larga duración, así que ninguno de los tres tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros once.
+`init` es un generador interactivo de andamiaje, y `studio` y `mcp` son servidores de larga duración, así que ninguno de los tres tiene modo legible por máquina. Todo lo demás que un agente necesita de un proyecto se alcanza desde los otros once.
 
 `doctor` se incorporó a esa lista en 0.9.0, y `tmx`, `pseudo`, `types` y `extract` en 0.11.0.
 
@@ -77,7 +77,7 @@ verbatra diff --json 2>/dev/null
 
 También sale con `1`. Usa `diff` cuando el agente tenga que nombrar las claves (para escribir un comentario en un pull request, o para decidir si merece la pena gastar); usa `check` cuando baste un sí o un no.
 
-`verbatra translate --dry-run --json` responde a "¿qué haría una ejecución?", sin llamada al proveedor, sin clave de API y sin escribir nada. Aquí va formateado para leerlo; en el cable es una sola línea como las dos de arriba:
+`verbatra translate --dry-run --json` responde a "¿qué haría una ejecución?", sin llamada al proveedor, sin clave de API y sin escribir nada. Aquí va formateado para leerlo; en la salida real es una sola línea como las dos de arriba:
 
 ```bash
 verbatra translate --dry-run --json 2>/dev/null | jq .
@@ -125,7 +125,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
 }
 ```
 
-Sale con `0`. Cada lista por locale está presente aunque esté vacía, así que un agente puede acceder a ella sin comprobar antes. Una ejecución real añade un objeto `usage` a cada locale y al resumen cuando el proveedor informa de consumo; una ejecución en seco nunca lo hace, porque no hace ninguna llamada. La anatomía completa de un `LocaleSummary` está en la [referencia del SDK](/docs/sdk).
+Sale con `0`. Cada lista por locale está presente aunque esté vacía, así que un agente puede acceder a ella sin comprobar antes. Una ejecución real añade un objeto `usage` a cada locale y al resumen cuando el proveedor informa de consumo; un dry run nunca lo hace, porque no hace ninguna llamada. La anatomía completa de un `LocaleSummary` está en la [referencia del SDK](/docs/sdk).
 
 Cuando una ejecución no puede ni empezar, en su lugar hay un registro de error y el comando sale con `2`:
 
@@ -149,7 +149,7 @@ verbatra translate --json 2>/dev/null | jq -c '{ok, succeeded: .result.succeeded
 {"ok":true,"succeeded":[],"partial":[],"failed":["de"]}
 ```
 
-`ok` responde a "¿se ejecutó el comando?". `succeeded`, `partial` y `failed` responden a "¿llegó el trabajo?". El código de salida ya combina ambas cosas, y por eso un agente que solo lee el código de salida nunca se equivoca, y un agente que solo lee `ok` se equivoca el primer día malo de un proveedor.
+`ok` responde a "¿se ejecutó el comando?". `succeeded`, `partial` y `failed` responden a "¿se aplicó el trabajo?". El código de salida ya combina ambas cosas, y por eso un agente que solo lee el código de salida nunca se equivoca, y un agente que solo lee `ok` se equivoca el primer día malo de un proveedor.
 
 ## Ramificar sobre el código de salida
 
@@ -215,11 +215,11 @@ Tres ejecuciones de una sesión (edición, edición y luego un archivo de origen
 {"ok":false,"code":"SOURCE_INVALID","failed":null,"translated":[]}
 ```
 
-De esa última línea se siguen dos cosas. Una ejecución fallida es un registro en el flujo, no el final de la sesión: el watcher siguió en pie y siguió traduciendo después. Y nunca cambia el código de salida, que lo decide solo la forma en que termina la sesión. Por eso un agente de larga duración trata una línea `ok: false` como un evento del que informar, no como motivo para reiniciar el proceso.
+De esa última línea se siguen dos cosas. Una ejecución fallida es un registro en el flujo, no el final de la sesión: el proceso de `watch` siguió activo y siguió traduciendo después. Y nunca cambia el código de salida, que lo decide solo la forma en que termina la sesión. Por eso un agente de larga duración trata una línea `ok: false` como un evento del que informar, no como motivo para reiniciar el proceso.
 
 ## Un bucle completo: proteger, decidir, traducir, informar
 
-Todo junto. Esto corre desatendido, se niega a gastar en un trabajo demasiado grande para dejárselo a un robot e informa de lo que llegó de verdad, no de lo que se pidió:
+Todo junto. Esto corre desatendido, se niega a gastar en un trabajo demasiado grande para dejárselo a un robot e informa de lo que se aplicó de verdad, no de lo que se pidió:
 
 ```bash
 #!/usr/bin/env bash
@@ -286,11 +286,11 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 | Skill | Úsala cuando |
 | --- | --- |
-| `verbatra-cli` | el agente maneja el binario `verbatra` desde una shell o desde CI. |
-| `verbatra-mcp-tools` | un cliente MCP está conectado a `verbatra mcp`. |
-| `verbatra-studio-agent-tools` | un agente de navegador maneja una pestaña de Studio abierta. |
+| `verbatra-cli` | El agente maneja el binario `verbatra` desde una shell o desde CI. |
+| `verbatra-mcp-tools` | Hay un cliente MCP conectado a `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | Un agente de navegador maneja una pestaña de Studio abierta. |
 
-Cubren lo que un agente hace mal si nadie se lo dice: qué comandos gastan y cuáles son gratis, que una ejecución en seco no construye ningún proveedor, qué hace visible el archivo de bloqueo y por qué una herramienta que gasta puede faltar de una lista a propósito. Instala solo la superficie que uses; cada documento se basta a sí mismo. Cambia el nombre que va detrás de `--skill`, o repite la opción para instalar más de una.
+Cubren lo que un agente hace mal si nadie se lo dice: qué comandos gastan y cuáles son gratis, que un dry run no construye ningún proveedor, qué hace visible el archivo de bloqueo y por qué una herramienta que gasta puede faltar de una lista a propósito. Instala solo la superficie que uses; cada documento se basta a sí mismo. Cambia el nombre que va detrás de `--skill`, o repite la opción para instalar más de una.
 
 ## Siguiente
 

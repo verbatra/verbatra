@@ -19,7 +19,7 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio
     {
       tag: "Neu hier",
       label: "Deine erste Übersetzung",
-      body: "Installiere die CLI, erzeuge eine Konfiguration, prüfe den Lauf ohne Schlüssel und übersetze dann.",
+      body: "Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne Key vorab an und übersetze dann.",
       href: "/docs/your-first-translation",
       primary: true,
     },
@@ -46,9 +46,9 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Jeder Lauf ist ein Diff, kein Rewrite." lead="Was passiert, wenn du verbatra translate ausführst.">
+<DocsHomeSection title="Jeder Lauf ist ein Diff, keine Neuübersetzung." lead="Was passiert, wenn du verbatra translate ausführst.">
 
-Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf ohne etwas Neues macht überhaupt keinen Provider-Aufruf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
+Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf, bei dem es nichts Neues zu übersetzen gibt, ruft den Provider überhaupt nicht auf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
 
 <DocsHomeSteps />
 
@@ -75,7 +75,7 @@ verbatra liest und schreibt vierzehn Formate und übersetzt über sechs Provider
     {
       title: "@verbatra/studio",
       pkg: "studio",
-      body: "Ein lokales Dashboard mit Bearbeiten an Ort und Stelle, Review-Warteschlange, Lauf-Aktivität und Browser-Agent-Tools. Provider-Ausgaben bleiben aus, bis du zustimmst.",
+      body: "Ein lokales Dashboard mit direkter Bearbeitung, Review-Warteschlange, Lauf-Aktivität und Browser-Agent-Tools. Provider-Ausgaben bleiben aus, bis du sie ausdrücklich aktivierst.",
       href: "/docs/review-in-studio",
     },
     {

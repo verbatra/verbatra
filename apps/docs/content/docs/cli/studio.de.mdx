@@ -34,17 +34,17 @@ Studio bindet sich nur an `127.0.0.1`. Sobald es lauscht, gibt es eine Zeile auf
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 ```
 
-Öffne genau diese URL: das Token im Query-String startet deine Browser-Sitzung, und jede Anfrage ohne Token wird abgelehnt. Vor dem erfolgreichen Binden des Ports wird nichts ausgegeben; ein fehlgeschlagener Start leakt also nie eine URL oder ein Token.
+Öffne genau diese URL: das Token im Query-String startet deine Browser-Sitzung, und jede Anfrage ohne Token wird abgelehnt. Vor dem erfolgreichen Binden des Ports wird nichts ausgegeben; ein fehlgeschlagener Start gibt also nie eine URL oder ein Token preis.
 
 ## Installation
 
-`@verbatra/studio` ist ein eigenes Paket, erreicht über einen dynamischen Import, damit der Rest der CLI auch ohne es funktioniert. Ist es nicht installiert, endet `verbatra studio` mit `2` und:
+`@verbatra/studio` ist ein eigenes Paket, das über einen dynamischen Import erreicht wird, damit der Rest der CLI auch ohne es funktioniert. Ist es nicht installiert, endet `verbatra studio` mit `2` und gibt aus:
 
 ```
 Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
 ```
 
-Dieser pnpm-Befehl installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der spätere pnpm-Befehle genauso scheitern; die einmalige Lösung steht in der [Fehlerbehebung](/docs/troubleshooting). npm und yarn installieren das Paket ohne das.
+Dieser pnpm-Befehl installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der spätere pnpm-Befehle genauso scheitern; die einmalige Lösung steht in der [Fehlerbehebung](/docs/troubleshooting). npm und yarn installieren das Paket ohne dieses Problem.
 
 Studio läuft über die CLI, installiere es also zusammen mit `@verbatra/cli`: `npm install --save-dev @verbatra/cli @verbatra/studio`, dann `npx verbatra studio`. Siehe [Installieren und aufrufen](/docs/cli).
 
@@ -70,5 +70,5 @@ verbatra studio --allow-spend --port 6000
 ## Siehe auch
 
 - [Review in Studio](/docs/review-in-studio) führt durch die Seite Übersetzungen, die Review-Warteschlange und das Neuübersetzen mit `--allow-spend`.
-- [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die WebMCP-Tools.
+- [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die Oberfläche der WebMCP-Tools.
 - [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind dieselben Berechnungen, die Studio live zeigt.

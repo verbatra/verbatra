@@ -7,7 +7,7 @@ status: new
 
 TMX est le format d'échange que produisent et lisent les principales plateformes de traduction. `verbatra tmx import` fait entrer dans [la mémoire de traduction de ce projet](/docs/the-cache) une mémoire exportée par l'une d'elles, si bien qu'une exécution ultérieure réutilise ces chaînes au lieu de les repayer. `verbatra tmx export` réécrit la mémoire de ce projet dans ce même format, pour que le travail puisse repartir aussi facilement qu'il est arrivé.
 
-Aucune des deux directions n'appelle un fournisseur, ne lit une clé d'API ni ne fait de requête réseau. Chaque valeur vient du fichier ou de la mémoire déjà présente sur le disque.
+Aucune des deux directions n'appelle de fournisseur, ne lit de clé d'API ni ne fait de requête réseau. Chaque valeur vient du fichier ou de la mémoire déjà présente sur le disque.
 
 ## Synopsis
 
@@ -21,11 +21,11 @@ verbatra tmx <direction> [file] [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résoudre la configuration et la mémoire depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charger ce fichier de configuration au lieu d'en chercher un |
+| `--cwd` | `<path>` | répertoire courant | résout la config et la mémoire depuis ce répertoire |
+| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--locales` | `<list>` | toutes celles configurées | sous-ensemble de locales cibles, séparées par des virgules |
-| `--dry-run` | aucun | désactivé | import uniquement, refusé sur un export : valider et rendre compte sans toucher à la mémoire |
-| `--overwrite` | aucun | désactivé | import uniquement, refusé sur un export : laisser une unité importée remplacer une traduction que la mémoire possède déjà |
+| `--dry-run` | aucun | désactivé | import uniquement, refusé sur un export : valide et rapporte sans modifier la mémoire |
+| `--overwrite` | aucun | désactivé | import uniquement, refusé sur un export : laisse une unité importée remplacer une traduction que la mémoire possède déjà |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 ## Exemples
@@ -49,31 +49,31 @@ verbatra tmx export out/memory.tmx --locales de
 
 ## Ce qu'une unité importée doit satisfaire
 
-Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui atteint la mémoire peut être réutilisée sans que personne ne soit consulté à nouveau. Rien n'est donc stocké avant de l'avoir mérité. Chaque traduction candidate passe par la même barrière d'intégrité que subissent déjà [la sortie du fournisseur et une remise remplie par une traductrice](/docs/translation-safety), vérifiée au moment où l'enregistrement entre dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard :
+Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui atteint la mémoire peut être réutilisée sans que personne ne soit consulté à nouveau. Rien n'est donc stocké avant de l'avoir mérité. Chaque traduction candidate passe par la même barrière d'intégrité que subissent déjà [la sortie du fournisseur et une remise remplie par un traducteur](/docs/translation-safety), vérifiée au moment où l'enregistrement entre dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard :
 
-- ses variables doivent correspondre à celles de son propre segment source,
+- ses placeholders doivent correspondre à ceux de son propre segment source,
 - ses balises HTML ou XML en ligne doivent correspondre à celles de son propre segment source, donc une balise que la source n'a jamais eue (comme un `<img onerror>` injecté) est refusée,
 - elle doit être un message ICU valide selon l'adaptateur du format configuré,
 - elle ne doit pas avoir dégénéré en sortie incontrôlée plutôt qu'en traduction,
 - elle ne doit pas être vide là où la source a du texte.
 
-S'y ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que la vérification des variables rattrape si ce balisage portait quelque chose d'important. Un élément `sub` dans ce balisage est un flux de texte à part, comme une infobulle ou un texte alternatif, et ne fait pas partie de la chaîne du segment : son texte est donc laissé de côté plutôt qu'aplati.
+À cela s'ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que le contrôle des placeholders rattrape ensuite si ce balisage portait quelque chose d'important. Un élément `sub` dans ce balisage est un flux de texte à part, comme une infobulle ou un texte alternatif, et ne fait pas partie de la chaîne du segment : son texte est donc laissé de côté plutôt qu'aplati.
 
 Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source, chaque unité dont le balisage a été aplati et chaque unité dont le texte `sub` a été laissé de côté.
 
 ## Faire correspondre les étiquettes de langue
 
-Un fichier TMX écrit ses langues comme l'outil de son autrice les a écrites, ce qui correspond rarement à l'écriture de ta configuration. La règle est explicite et ne devine jamais :
+Un fichier TMX écrit ses langues comme les a écrites l'outil qui l'a produit, ce qui correspond rarement à la façon dont ta configuration les écrit. La règle est explicite et ne devine jamais :
 
 1. Les deux côtés sont mis en minuscules et les tirets bas deviennent des traits d'union, si bien que `pt_BR`, `pt-br` et `pt-BR` sont une seule locale. Une correspondance exacte à ce stade l'emporte.
 2. Sinon, l'étiquette peut atteindre une locale configurée qui en est un préfixe de sous-étiquettes, si bien qu'un fichier écrit en `en-US` atterrit dans un projet configuré en `en`. Si plusieurs locales configurées sont des préfixes de l'étiquette, la plus longue l'emporte, comme dans la recherche (lookup) de la RFC 4647 : dans un projet configuré en `de` et `de-AT`, un fichier écrit en `de-AT-1996` atterrit sur `de-AT`, et un fichier écrit en `de-CH-1901` atterrit sur `de`.
 3. Une étiquette plus courte peut aussi atteindre une locale configurée qui commence par elle, mais seulement quand chaque sous-étiquette ajoutée par la locale est une région ou une variante, jamais une écriture. Un fichier écrit en `de` atterrit dans un projet configuré uniquement en `de-DE`, et `pt` dans un projet configuré uniquement en `pt-BR`, mais `sr` n'atterrit jamais sur `sr-Latn` ni `zh` sur `zh-Hant-TW`, car une sous-étiquette d'écriture désigne un autre système d'écriture. Une locale configurée qui est un préfixe de l'étiquette a toujours la priorité, et parmi plusieurs locales plus longues, la plus proche l'emporte.
 4. Deux étiquettes dont les sous-étiquettes d'écriture ou de région diffèrent ne correspondent jamais. `zh-CN` n'est jamais stocké comme `zh-TW`, `sr-Latn` jamais comme `sr-Cyrl` et `de-AT` jamais comme `de-CH` : une telle étiquette est signalée comme ne correspondant à aucune locale configurée, pas devinée.
-5. Une étiquette n'est signalée comme ambiguë que lorsque les locales configurées qu'elle pourrait atteindre ne se trouvent pas sur une même chaîne de préfixes. `pt` dans un projet avec `pt-BR` et `pt-AO` est signalé comme ambigu, et non attribué à celle qui venait en premier.
+5. Une étiquette n'est signalée comme ambiguë que lorsque les locales configurées qu'elle pourrait atteindre ne se trouvent pas sur une même chaîne de préfixes. `pt` dans un projet configuré en `pt-BR` et `pt-AO` est signalée comme ambiguë, et non attribuée à la première rencontrée.
 
-Chaque segment est résolu en une seule passe contre la locale source et toutes tes locales cibles configurées, et non contre la source d'abord puis les cibles ensuite. C'est ce qui empêche une cible régionale d'être prise pour l'étiquette source simple qu'elle prolonge : dans un projet dont la source est `pt` et dont les cibles incluent `pt-BR`, le segment `pt-BR` est cette cible, jamais une seconde lecture de la source. Cela vaut encore quand tu restreins une exécution avec `--locales`, car la résolution voit de toute façon toutes les locales configurées.
+Chaque segment est résolu en une seule passe par rapport à la locale source et à toutes tes locales cibles configurées, et non par rapport à la source d'abord puis aux cibles ensuite. C'est ce qui empêche une cible régionale d'être prise pour l'étiquette source simple qu'elle prolonge : dans un projet dont la source est `pt` et dont les cibles incluent `pt-BR`, le segment `pt-BR` est cette cible, jamais une seconde lecture de la source. Cela vaut encore quand tu restreins une exécution avec `--locales`, car la résolution voit de toute façon toutes les locales configurées.
 
-Les segments source d'une unité sont classés comme ses segments cibles, décrits plus bas : une étiquette exacte l'emporte sur un segment qui n'atteint ta locale source que par préfixe de sous-étiquette, et deux segments portant la même valeur concordent, si bien que `en` "Save" à côté de `en-US` "Save" dans un projet configuré en `en` s'importe normalement. Une unité dont les segments source de même rang portent des valeurs différentes, comme `en-US` "Color" et `en-GB` "Colour", est refusée et comptée plutôt qu'attribuée à celle qui venait en dernier. Une configuration dont la locale source et l'une de ses locales cibles sont la même étiquette une fois la casse et les séparateurs normalisés est refusée d'emblée, car aucun segment ne pourrait être attribué à l'une ou à l'autre.
+Les segments source d'une unité sont classés de la même façon que ses segments cibles, décrits plus bas : une étiquette exacte l'emporte sur un segment qui n'atteint ta locale source que par préfixe de sous-étiquette, et deux segments portant la même valeur concordent, si bien que `en` "Save" à côté de `en-US` "Save" dans un projet configuré en `en` s'importe normalement. Une unité dont les segments source de même rang portent des valeurs différentes, comme `en-US` "Color" et `en-GB` "Colour", est refusée et comptée plutôt qu'attribuée au segment venu en dernier. Une configuration dont la locale source et l'une de ses locales cibles sont la même étiquette une fois la casse et les séparateurs normalisés est refusée d'emblée, car aucun segment ne pourrait être attribué à l'une ou à l'autre.
 
 Deux segments cibles qui se résolvent vers la même locale configurée ne laissent jamais le dernier l'emporter en silence. Une étiquette exacte l'emporte toujours sur un segment qui n'atteint la locale que par préfixe de sous-étiquette : dans un projet configuré en `de`, une unité portant `de` "Straße" et `de-CH` "Strasse" stocke donc "Straße". Si deux segments de même rang portent des valeurs différentes, comme `de-CH` "Strasse" et `de-AT` "Straße", rien n'est stocké pour cette locale depuis cette unité, et l'unité est comptée comme conflit pour cette locale dans le résumé et dans le résultat `--json`. Les autres locales de l'unité sont tout de même stockées, et deux segments portant la même valeur ne sont pas un conflit.
 
@@ -83,7 +83,7 @@ Les étiquettes qui ne correspondent à rien de configuré sont comptées par é
 
 ## Quand le fichier et la mémoire se contredisent
 
-La mémoire propre au projet l'emporte. Si la mémoire contient déjà une autre traduction pour la même source et la même locale, l'importée est refusée et comptée comme conservée. Passe `--overwrite` pour inverser cela et laisser le fichier gagner.
+La mémoire propre au projet l'emporte. Si la mémoire contient déjà une autre traduction pour la même source et la même locale, l'importée est refusée et comptée comme conservée. Passe `--overwrite` pour inverser cela et laisser le fichier l'emporter.
 
 Au sein d'un même fichier, la première unité pour une source donnée l'emporte, et les répétitions suivantes sont comptées comme doublons.
 
@@ -93,21 +93,21 @@ Importer deux fois le même fichier ne change donc rien la seconde fois, et n'é
 
 Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet, la même clé qu'écrit une exécution réelle. C'est délibéré : une mémoire importée est réutilisée exactement quand la configuration qui la consommerait correspond, et cesse de correspondre dès que le fournisseur, le modèle, le ton ou le glossaire changent, ce qui est précisément la protection pour laquelle la couche d'empreinte existe. Réimporte le fichier après un tel changement.
 
-Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier auquel la version plus récente devrait ensuite se méfier.
+Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier dont la version plus récente devrait ensuite se méfier.
 
-## Unités importées et réutilisation floue
+## Les unités importées et la réutilisation floue
 
-Une conséquence mérite d'être dite clairement, car aucune vérification au moment de l'import ne peut la surveiller. Le texte source d'une unité acceptée est écrit dans l'index des sources de la mémoire, c'est-à-dire exactement ce contre quoi la [réutilisation floue](/docs/the-cache) évalue une chaîne modifiée. Une source importée qui **diffère** d'une chaîne de ton projet peut donc être servie pour cette chaîne : c'est ce que ressembler veut dire.
+Une conséquence mérite d'être dite clairement, car aucune vérification au moment de l'import ne peut la surveiller. Le texte source d'une unité acceptée est écrit dans l'index des sources de la mémoire, c'est-à-dire exactement ce contre quoi la [réutilisation floue](/docs/the-cache) évalue une chaîne modifiée. Une source importée qui **diffère** d'une chaîne de ton projet peut donc être servie pour cette chaîne : c'est bien ce que veut dire la ressemblance.
 
 Une source importée **identique** à l'une de tes chaînes mais dont l'empreinte diffère n'est pas atteignable du tout. La réutilisation floue écarte tout candidat dont le texte source normalisé est égal à la chaîne recherchée. Si ton entrée porte une description, un sens ou un indicateur de pluriel qu'une unité TMX ne peut pas porter, les empreintes diffèrent, le texte identique disqualifie le candidat flou, et la chaîne part au fournisseur comme d'habitude.
 
-Une telle réutilisation reste soumise à la barrière d'intégrité face à ton entrée réelle, et elle est signalée comme indicateur de relecture `FUZZY_CACHE_REUSE` dans le résumé d'exécution : elle est donc visible, pas silencieuse. Si tu préfères qu'une mémoire importée ne soit pas atteignable par cette voie, laisse `fuzzyCache` hors de ta configuration : sans elle, seule une correspondance exacte d'empreinte de contenu est réutilisée.
+Une telle réutilisation reste soumise à la barrière d'intégrité face à ton entrée réelle, et elle est signalée pour révision avec la raison `FUZZY_CACHE_REUSE` dans le résumé d'exécution : elle est donc visible, pas silencieuse. Si tu préfères qu'une mémoire importée ne soit pas atteignable par cette voie, laisse `fuzzyCache` hors de ta configuration : sans cette option, seule une correspondance exacte d'empreinte de contenu est réutilisée.
 
 ## Ce qu'écrit l'export
 
 Un élément `tu` par chaîne source distincte, portant le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b nommant `srclang`, `creationtool`, `creationtoolversion`, `segtype` et `o-tmf`. Seules les entrées stockées sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait.
 
-Les étiquettes de langue sont écrites sous forme BCP 47, quelle que soit l'écriture de ta configuration : les tirets bas deviennent des traits d'union, la langue est en minuscules, une écriture avec une majuscule initiale et une région en majuscules. Un projet configuré en `en_US` et `pt_BR` écrit `srclang="en-US"` et `xml:lang="pt-BR"`, ce que les autres outils acceptent et qui se réimporte sans changement dans le même projet. La façon dont verbatra indexe sa propre mémoire ne change pas.
+Les étiquettes de langue sont écrites sous forme BCP 47, quelle que soit la façon dont ta configuration les écrit : les tirets bas deviennent des traits d'union, la langue passe en minuscules, une écriture prend une majuscule initiale et une région passe en majuscules. Un projet configuré en `en_US` et `pt_BR` écrit `srclang="en-US"` et `xml:lang="pt-BR"`, ce qu'un autre outil accepte et qui se réimporte sans changement dans le même projet. La façon dont verbatra indexe sa propre mémoire ne change pas.
 
 Un caractère que XML 1.0 ne peut pas représenter du tout, comme un caractère de contrôle ou un demi-codet isolé, est retiré du texte du segment pour qu'un analyseur conforme puisse lire le fichier. Le nombre de caractères retirés figure dans le résumé et dans le résultat `--json`.
 
@@ -122,12 +122,12 @@ Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, 
 | `0` | le fichier a été lu ou écrit |
 | `2` | exécution impossible : une erreur de configuration, un fichier absent ou illisible, un fichier qui n'est pas du TMX valide, ou une erreur d'utilisation |
 
-Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé par une erreur structurée nommant ce qui a échoué. Quand le problème a un emplacement dans le fichier, le message indique aussi la ligne et la colonne et, à l'intérieur d'une unité de traduction, de quelle unité il s'agit (en comptant à partir de 1), si bien que `line 9, column 29, unit 2` te mène au deuxième `tu`. Avec `--json`, le même message figure dans l'enveloppe d'erreur, et qui appelle le SDK obtient le même emplacement sous forme de données structurées avec `tmxErrorLocation(error)`. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et la simple ligne doctype externe qu'écrivent les outils réels est écartée plutôt que chargée.
+Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé avec une erreur structurée nommant ce qui a échoué. Quand le problème a un emplacement dans le fichier, le message indique aussi la ligne et la colonne et, à l'intérieur d'une unité de traduction, de quelle unité il s'agit (en comptant à partir de 1), si bien que `line 9, column 29, unit 2` te mène au deuxième `tu`. Avec `--json`, le même message figure dans l'enveloppe d'erreur, et un appelant du SDK lit le même emplacement sous forme de données structurées avec `tmxErrorLocation(error)`. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et le simple doctype externe qu'écrivent les outils du monde réel est écarté plutôt que récupéré.
 
 Les unités ignorées ou refusées ne font pas échouer l'exécution. Elles sont signalées, car une mémoire du monde réel en porte presque toujours un peu des deux.
 
 ## Voir aussi
 
 - [Le cache](/docs/the-cache) explique ce qu'est la mémoire de traduction et sous quelle clé elle est indexée.
-- [Traduction manuelle](/docs/manual-translation) couvre la remise en xlsx, CSV et TSV, qui est autre chose : une tranche par locale du delta en attente pour une traductrice, pas la mémoire entière.
-- [Sécurité de la traduction](/docs/translation-safety) explique les vérifications qu'une unité importée doit passer.
+- [Traduction humaine](/docs/manual-translation) couvre la remise en xlsx, CSV et TSV, qui est autre chose : une tranche par locale du delta en attente pour un traducteur humain, pas la mémoire entière.
+- [Sûreté de la traduction](/docs/translation-safety) explique les contrôles qu'une unité importée doit passer.

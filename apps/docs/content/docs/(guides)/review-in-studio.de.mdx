@@ -1,10 +1,10 @@
 ---
-title: Review in Studio
+title: Übersetzungen in Studio prüfen
 description: Starte Verbatra Studio, arbeite die Review-Warteschlange ab, korrigiere Einträge direkt und lass markierte Keys aus dem lokalen Dashboard neu übersetzen.
 ---
-Verbatra Studio ist ein lokales Dashboard über deinem verbatra-Projekt: es zeigt den Zustand jedes Locales live, lässt dich Übersetzungen von Hand korrigieren und kann einzelne Keys neu übersetzen, wenn du es erlaubst. Diese Anleitung geht den Review-Workflow von Anfang bis Ende durch.
+Verbatra Studio ist ein lokales Dashboard über deinem verbatra-Projekt: Es zeigt den Zustand jedes Locales live, lässt dich Übersetzungen von Hand korrigieren und kann einzelne Keys neu übersetzen, wenn du es erlaubst. Diese Anleitung geht den Review-Workflow von Anfang bis Ende durch.
 
-Die Haltung, die du dabei im Kopf behalten solltest: **lokales Bearbeiten ist immer an**, abgesichert nur durch dieselben Integritätsprüfungen wie jeder andere Schreibvorgang. **Kostenpflichtige Provider-Aufrufe sind nie standardmäßig an**; die Aktionen zum Neuübersetzen und zum Übersetzen ausstehender Änderungen existieren nur, wenn du Studio mit `--allow-spend` startest.
+Die Haltung, die du dabei im Kopf behalten solltest: **Lokales Bearbeiten ist immer an**, abgesichert nur durch dieselben Integritätsprüfungen wie jeder andere Schreibvorgang. **Kostenpflichtige Provider-Aufrufe sind nie standardmäßig an**; die Aktionen zum Neuübersetzen und zum Übersetzen ausstehender Änderungen existieren nur, wenn du Studio mit `--allow-spend` startest.
 
 ## Starte Studio
 
@@ -21,29 +21,29 @@ Der Befehl gibt eine Zeile aus und läuft weiter:
 Verbatra Studio running at http://127.0.0.1:5849/?token=...
 ```
 
-Öffne genau diese URL, inklusive Token; das Token wird bei jedem Start frisch erzeugt und ist die Art, wie sich der Browser authentifiziert. Der Server bindet sich nur an `127.0.0.1` (nie an dein Netzwerk), nutzt standardmäßig Port `5849` ohne Ausweichport, wenn dieser belegt ist, und nimmt `--port` zum Umziehen. Stoppe ihn mit Ctrl+C; ein zweiter Interrupt erzwingt das Ende mit Exit-Code `130`. Alle Flags stehen unter [`verbatra studio`](/docs/cli/studio).
+Öffne genau diese URL, inklusive Token; das Token wird bei jedem Start frisch erzeugt, und damit authentifiziert sich der Browser. Der Server bindet sich nur an `127.0.0.1` (nie an dein Netzwerk), nutzt standardmäßig Port `5849` und weicht nicht aus, wenn dieser belegt ist, und nimmt `--port` zum Umziehen. Stoppe ihn mit Ctrl+C; ein zweiter Interrupt erzwingt das Ende mit Exit-Code `130`. Alle Flags stehen unter [`verbatra studio`](/docs/cli/studio).
 
-Die Seitenleiste hat vier Seiten: **Übersetzungen**, **Review**, **Aktivität** und **Einstellungen**.
+Die Seitenleiste hat vier Seiten: **Translations**, **Review**, **Activity** und **Settings**.
 
-## Lies die Seite Übersetzungen
+## Lies die Seite Translations
 
-Übersetzungen ist die Arbeitsansicht: alles Ausstehende über deine Ziel-Locales hinweg, und wie weit jedes Locale ist.
+Translations ist die Arbeitsansicht: alles Ausstehende über deine Ziel-Locales hinweg, und wie weit jedes Locale ist.
 
 - **Die Statistikleiste** beantwortet die erste Frage auf einen Blick: wie viele Keys Aufmerksamkeit brauchen, die durchschnittliche Abdeckung, wie viele Locales synchron sind und der Token-Verbrauch des letzten Laufs. Wenn nichts aussteht, ersetzt ein Alles-erledigt-Banner den Key-Explorer.
-- **Der Key-Explorer** listet jeden fehlenden, geänderten und verwaisten Key, als Raster Key mal Locale oder als Listen pro Locale mit einem Filter, der auf den Namen eines Keys oder seinen Übersetzungstext passt.
+- **Der Key-Explorer** listet jeden fehlenden, geänderten und verwaisten Key, als Raster aus Keys und Locales oder als Listen pro Locale mit einem Filter, der auf den Namen eines Keys oder seinen Übersetzungstext passt.
 - **Die Locale-Tabelle** zeigt die Abdeckung pro Locale (fehlend, veraltet, aktuell), zusammengeführt mit dem Zustand der [Lock-Datei](/docs/the-lock-file), damit du siehst, ob der Lock-Eintrag jedes Locales mit seinen Dateien übereinstimmt.
 
-Klicke auf einen beliebigen Key, um seine Detailansicht zu öffnen: die Werte pro Locale, der Sync-Status jedes Locales und ein Integritätshinweis pro Übersetzung (Platzhalter stimmen, Platzhalter-Abweichung mit den fehlenden und überzähligen Tokens beim Namen genannt, oder ungültige Nachrichtensyntax). Von dort öffnet **Edit** den Editor für den Wert eines Locales.
+Klicke auf einen beliebigen Key, um seine Detailansicht zu öffnen: die Werte pro Locale, der Sync-Status jedes Locales und eine Integritätsanzeige pro Übersetzung (Platzhalter stimmen, Platzhalter-Abweichung, wobei die fehlenden und überzähligen Tokens benannt werden, oder ungültige Nachrichtensyntax). Von dort öffnet **Edit** den Editor für den Wert eines Locales.
 
 ### Bearbeiten mit Integritäts-Gate
 
-Der Editor zeigt den Quellstring und ein Textfeld, vorbefüllt mit der aktuellen Übersetzung. Speichern schickt den Wert durch dasselbe Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Integritätsprüfungen nicht besteht, wird mit benanntem Grund abgelehnt, und **nichts wird geschrieben**. Eine Übersetzung zu leeren lässt sich mit einer Bearbeitung nicht ausdrücken, deshalb wird auch ein leerer Wert abgelehnt; der unterstützte Weg, einen Key zu leeren, ist das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine akzeptierte Import-Zeile.
+Der Editor zeigt den Quellstring und ein Textfeld, vorbefüllt mit der aktuellen Übersetzung. Speichern schickt den Wert durch dasselbe Gate wie jeder andere verbatra-Schreibvorgang: Ein Wert, der eine der Integritätsprüfungen nicht besteht, wird mit benanntem Grund abgelehnt, und **nichts wird geschrieben**. Eine Übersetzung zu leeren lässt sich mit einer Bearbeitung nicht ausdrücken, deshalb wird auch ein leerer Wert abgelehnt; der unterstützte Weg, einen Key zu leeren, ist das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine akzeptierte Import-Zeile.
 
 Bearbeiten braucht kein Flag. Es berührt nur deine lokalen Dateien und ruft nie einen Provider auf.
 
 ## Arbeite die Review-Warteschlange ab
 
-Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `translate`- oder `watch`-Lauf markiert haben: eine Zeile pro Locale und Key, mit einem Hinweis pro Grund (Übersetzung deutlich kürzer oder länger als die Quelle, länger als das für den Key konfigurierte Längenbudget, identisch mit der Quelle, ein verpasster Glossarbegriff, umgeordnete Platzhalter, ein degradierter Provider-Batch oder ein aus dem Cache wiederverwendeter Wert, dessen Quelle seitdem bearbeitet wurde). Solange kein Lauf aufgezeichnet wurde, sagt die Seite das und bleibt leer; führe `verbatra translate` oder `verbatra watch` aus, um sie zu füllen.
+Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `translate`- oder `watch`-Lauf markiert haben: eine Zeile pro Locale und Key, mit einer Anzeige pro Grund (Übersetzung deutlich kürzer oder länger als die Quelle, länger als das für den Key konfigurierte Längenbudget, identisch mit der Quelle, ein verpasster Glossarbegriff, umgeordnete Platzhalter, ein degradierter Provider-Batch oder ein aus dem Cache wiederverwendeter Wert, dessen Quelle seitdem bearbeitet wurde). Solange kein Lauf aufgezeichnet wurde, sagt die Seite das und bleibt leer; führe `verbatra translate` oder `verbatra watch` aus, um sie zu füllen.
 
 <StudioScreenshot
   shot="review"
@@ -53,27 +53,27 @@ Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `tr
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filtere nach Locale, oder nach einem Teilstring aus dem Key, dem Quelltext oder dem Zieltext einer Zeile, dann arbeite die Zeilen ab:
+Filtere nach Locale oder nach einem Teilstring aus dem Key, dem Quelltext oder dem Zieltext einer Zeile, dann arbeite die Zeilen ab:
 
-- **Edit** öffnet denselben integritätsgesicherten Editor wie die Seite Übersetzungen. Eine akzeptierte Bearbeitung entfernt die Zeile aus der Warteschlange.
+- **Edit** öffnet denselben integritätsgesicherten Editor wie die Seite Translations. Eine akzeptierte Bearbeitung entfernt die Zeile aus der Warteschlange.
 - **Approve** verwirft die Zeile als "angesehen, passt so".
 - **Reject** verwirft die Zeile ebenfalls; kombiniere es mit einer Bearbeitung oder einer Neuübersetzung, wenn sich der Wert wirklich ändern muss.
 
-Approve und Reject gelten nur für die Sitzung: sie verbergen die Zeile für den Rest dieser Browser-Sitzung (auch über Live-Refreshes hinweg), schreiben aber nichts auf die Platte. Die dauerhaften Wege, ein Flag loszuwerden, sind den Wert zu korrigieren oder eine Übersetzung neu laufen zu lassen.
+Approve und Reject gelten nur für die Sitzung: Sie verbergen die Zeile für den Rest dieser Browser-Sitzung (auch über Live-Refreshes hinweg), schreiben aber nichts auf die Platte. Die dauerhaften Wege, ein Flag loszuwerden, sind den Wert zu korrigieren oder eine Übersetzung neu laufen zu lassen.
 
 Review-Flags sind Hinweise, getrennt vom harten Integritäts-Gate; was jeder Grund bedeutet, steht in [Übersetzungssicherheit](/docs/translation-safety).
 
 ## Übersetze einen markierten Key neu
 
-Starte Studio mit erlaubten Ausgaben:
+Starte Studio mit erlaubten Provider-Ausgaben:
 
 ```bash
 verbatra studio --allow-spend
 ```
 
-(Oder setze `VERBATRA_STUDIO_ALLOW_SPEND=1`; das Flag gewinnt, wenn beides gesetzt ist. Der API-Key des Providers kommt wie immer aus der Umgebung, nie aus Studio.)
+(Oder setze `VERBATRA_STUDIO_ALLOW_SPEND=1`; das Flag gewinnt, wenn beides gesetzt ist. Der API-Schlüssel des Providers kommt wie immer aus der Umgebung, nie aus Studio.)
 
-Jetzt bekommt ein Key, dessen Integritätshinweis einen echten Defekt zeigt (eine Platzhalter-Abweichung oder ungültige Nachrichtensyntax), einen **Retranslate**-Button in seiner Detailansicht auf der Seite Übersetzungen. Er macht einen Provider-Aufruf für genau dieses Locale und diesen Key, schickt das Ergebnis durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und meldet das Ergebnis neben dem Button. Der aktualisierte Wert fließt dann über die Live-Refresh-Schleife in die Oberfläche.
+Jetzt bekommt ein Key, dessen Integritätsanzeige einen echten Defekt zeigt (eine Platzhalter-Abweichung oder ungültige Nachrichtensyntax), einen **Retranslate**-Button in seiner Detailansicht auf der Seite Translations. Er macht einen Provider-Aufruf für genau dieses Locale und diesen Key, schickt das Ergebnis durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und meldet das Ergebnis neben dem Button. Der aktualisierte Wert fließt dann über die Live-Refresh-Schleife in die Oberfläche.
 
 Ohne `--allow-spend` fehlt der Button vollständig, und der Server registriert den Retranslate-Endpunkt gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, lassen sich nicht aus dem Browser einschalten.
 
@@ -85,31 +85,31 @@ Wenn sich die **Quelldatei** ändert und Studio mit `--allow-spend` läuft, biet
 
 Diese Live-Schleife heißt auch, dass Studio gut zu einer Editor-Sitzung passt: ändere einen Quellstring, sieh den Toast erscheinen, übersetze, und sieh zu, wie die Raster grün werden, ohne das Terminal anzufassen.
 
-## Prüfe den Schaden unter Aktivität
+## Prüfe den Schaden unter Activity
 
-Die Seite Aktivität stellt zwei Referenzansichten nebeneinander:
+Die Seite Activity stellt zwei Referenzansichten nebeneinander:
 
 - **Locale-Datei-Historie**: der Git-Commit-Feed für deine Quell- und Ziel-Locale-Dateien (als nicht verfügbar angezeigt, wenn das Projekt keine Git-Historie hat).
 - **Letzter Lauf**: die Eingabe- und Ausgabe-Token-Zahlen des letzten Laufs und, wenn ein Token-Budget konfiguriert ist, die Budgetanzeige und ob die Obergrenze erreicht wurde. Das ist ein Schnappschuss zum Stand des letzten aufgezeichneten Laufs, mit Zeitstempel, nie ein Live-Zähler; ein Provider, der keinen Verbrauch meldet (DeepL), wird als "not reported" gezeigt statt als erfundene Null.
 
-## Halte das Glossar unter Einstellungen aktuell
+## Halte das Glossar unter Settings aktuell
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Einstellungen, die vierte Seite, zeigt die Konfiguration, mit der diese Sitzung gestartet wurde; starte Studio nach einer Änderung der Konfigurationsdatei neu. Das Glossar daneben verhält sich anders: es wird bei jedem Besuch frisch von der Festplatte gelesen und ist bearbeitbar, wenn das Projekt sein Glossar in einer JSON-Datei hält.
+Settings, die vierte Seite, zeigt die Konfiguration, mit der diese Sitzung gestartet wurde; starte Studio nach einer Änderung der Konfigurationsdatei neu. Das Glossar daneben verhält sich anders: Es wird bei jedem Besuch frisch von der Platte gelesen und ist bearbeitbar, wenn das Projekt sein Glossar in einer JSON-Datei hält.
 
-Jeder Begriff trägt dann eine Aktion **Edit** und **Remove**, und unter der Liste steht ein Formular **Add a term**. Eine Änderung wird direkt in diese JSON-Datei geschrieben, immer nur ein Begriff, und das Panel zeigt den neuen Stand, sobald der Schreibvorgang durch ist, ganz ohne Neuladen. Der Rest der Datei bleibt unangetastet: Schlüsselreihenfolge und Einrückung überleben, und das Ergebnis wird an denselben Grenzen gemessen, die `loadConfig` beim Zurücklesen eines Glossars durchsetzt, sodass eine angenommene Änderung immer wieder lesbar ist.
+Jeder Begriff trägt dann eine Aktion **Edit** und **Remove**, und unter der Liste steht ein Formular **Add a term**. Eine Änderung wird direkt in diese JSON-Datei geschrieben, immer nur ein Begriff, und das Panel zeigt den neuen Stand, sobald der Schreibvorgang durch ist, ganz ohne Neuladen. Der Rest der Datei bleibt unangetastet: Die Reihenfolge der Keys und die Einrückung überleben, und das Ergebnis wird an denselben Grenzen gemessen, die `loadConfig` beim Zurücklesen eines Glossars durchsetzt, sodass eine angenommene Änderung immer wieder lesbar ist.
 
-Nichts davon ruft einen Provider auf oder gibt Geld aus, die Aktionen sind also mit und ohne `--allow-spend` vorhanden. Was sie nicht tun: neu übersetzen. Eine Glossaränderung ändert die Terminologie, an die sich der nächste Lauf halten soll, nie einen bereits in eine Locale-Datei geschriebenen Text. Das Glossar, das ein laufendes Studio an einen Provider-Aufruf übergibt, ist weiterhin das beim Start geladene; starte Studio also neu, damit ein frischer Begriff bei einer Neuübersetzung aus dieser Sitzung wirkt.
+Nichts davon ruft einen Provider auf oder gibt Geld aus; die Aktionen sind also mit und ohne `--allow-spend` vorhanden. Was sie nicht tun: neu übersetzen. Eine Glossaränderung ändert die Terminologie, an die sich der nächste Lauf halten soll, nie einen bereits in eine Locale-Datei geschriebenen Text. Das Glossar, das ein laufendes Studio an einen Provider-Aufruf übergibt, ist weiterhin das beim Start geladene; starte Studio also neu, damit ein frischer Begriff bei einer Neuübersetzung aus dieser Sitzung wirkt.
 
-Zwei Fälle bleiben schreibgeschützt, und das Panel sagt dir, in welchem du bist:
+Zwei Fälle bleiben nur lesbar, und das Panel sagt dir, in welchem du bist:
 
 - **Das Glossar steht inline in `verbatra.config.ts`.** Das ist ausführbarer Code, und Studio schreibt ihn nicht um. Verschiebe die Begriffe in eine JSON-Datei und richte `glossary` in der Konfiguration auf diesen Pfad.
 - **Das Projekt hat kein Glossar.** Lege eine JSON-Datei mit Paaren aus Begriff und Übersetzung an und setze `glossary` auf diesen Pfad.
 
-Ein Wert, der wie ein Provider-API-Schlüssel aussieht, wird geschwärzt, bevor er überhaupt den Browser erreicht, und ein solcher Begriff lässt sich hier nicht bearbeiten, nur entfernen: das Panel hält den Platzhalter, nicht den echten Text. Ändere diesen direkt in der Glossardatei.
+Ein Wert, der wie der API-Schlüssel eines Providers aussieht, wird geschwärzt, bevor er überhaupt den Browser erreicht, und ein solcher Begriff lässt sich hier nicht bearbeiten, nur entfernen: Das Panel hält den Platzhalter, nicht den echten Text. Ändere diesen direkt in der Glossardatei.
 
-## Weiter
+## Nächste Schritte
 
 - [`verbatra studio`](/docs/cli/studio): jedes Flag und der Startvertrag.
 - [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio): steuere denselben Ablauf mit `--expose-agent-tools` aus einem KI-Agenten im Browser heraus.

@@ -2,7 +2,7 @@
 title: verbatra export
 description: Exporta las cadenas sin traducir a una entrega para traductores, como libro de Excel con estilos o como un archivo CSV o TSV por locale.
 ---
-Escribe las cadenas que necesitan traducción en un libro de Excel con estilos que un humano puede rellenar y devolver para [`verbatra import`](/docs/cli/import). Por defecto el libro lleva solo las cadenas faltantes y modificadas: las mismas claves que una ejecución automática enviaría a un proveedor. `export` nunca llama a un proveedor y no necesita clave API.
+Escribe las cadenas que necesitan traducción en un libro de Excel con estilos que un humano puede rellenar y devolver para [`verbatra import`](/docs/cli/import). Por defecto el libro lleva solo las cadenas faltantes y modificadas: las mismas claves que una ejecución automática enviaría a un proveedor. `export` nunca llama a un proveedor y no necesita clave de API.
 
 ## Sinopsis
 
@@ -16,9 +16,9 @@ verbatra export [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--out` | `<path>` | `verbatra-translations.xlsx`, o `verbatra-translations` con `csv` y `tsv` | escribe la entrega aquí: una ruta de archivo con `xlsx`, un directorio con `csv` y `tsv` |
+| `--out` | `<path>` | `verbatra-translations.xlsx`, o `verbatra-translations` para `csv` y `tsv` | escribe la entrega aquí: una ruta de archivo para `xlsx`, un directorio para `csv` y `tsv` |
 | `--format` | `<format>` | `xlsx` | escribe un libro de Excel (`xlsx`) o un archivo delimitado por locale (`csv`, `tsv`) |
-| `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino separado por comas a exportar |
+| `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino que exportar, separados por comas |
 | `--include-unchanged` | ninguno | desactivado | exporta también las cadenas que ya están al día |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resultado de la exportación (ruta y número de filas por locale) bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
@@ -39,9 +39,9 @@ verbatra export --format csv --out handoff
 
 ## CSV y TSV
 
-`--format csv` y `--format tsv` escriben texto plano en lugar de un libro: un `<locale>.csv` o `<locale>.tsv` por cada locale exportada, con las mismas columnas y en el mismo orden que una hoja del libro. `--out` nombra entonces el directorio donde se escriben los archivos, y el directorio se crea si falta.
+`--format csv` y `--format tsv` escriben texto plano en lugar de un libro: un `<locale>.csv` o `<locale>.tsv` por cada locale exportado, con las mismas columnas y en el mismo orden que una hoja del libro. `--out` nombra entonces el directorio donde se escriben los archivos, y el directorio se crea si falta.
 
-Un archivo delimitado se puede diffear y se abre en cualquier parte, pero no lleva protección de celdas: todas las columnas son editables y la columna `Source hash` es visible. Un hash editado nunca se da por bueno, la importación lo compara con la fuente actual y retiene la fila.
+Un archivo delimitado se puede comparar con diff y se abre en cualquier parte, pero no lleva protección de celdas: todas las columnas son editables y la columna `Source hash` es visible. Un hash editado nunca se da por bueno: la importación lo compara con la fuente viva y retiene la fila.
 
 Cada exportación delimitada escribe además un manifiesto oculto en el directorio, `.verbatra-export-csv.json` o `.verbatra-export-tsv.json`, que nombra los locales que acaba de escribir. Es lo que permite que una reexportación con una selección `--locales` más estrecha retire los locales que ha dejado fuera: sus archivos siguen en disco, y [`verbatra import`](/docs/cli/import) los rechaza como restos en lugar de aplicar una traducción desactualizada. La exportación no borra nada del directorio de salida, así que un archivo tuyo que esté ahí nunca corre peligro.
 
