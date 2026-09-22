@@ -19,32 +19,12 @@
       "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
       "caption": "Transcription enregistrée avec @verbatra/cli {version}.",
       "transcript": {
-        "init": {
-          "l1": "✓ verbatra.config.ts créé",
-          "l2": "source en · cibles de, es, fr",
-          "l3": "fournisseur gemini · clé depuis GEMINI_API_KEY"
-        },
-        "translate": {
-          "l1": "diff en.json · 12 nouvelles · 0 modifiée · 108 inchangées",
-          "l2": "de  12 traduites · 108 inchangées · 0 retenues",
-          "l3": "es  12 traduites · 108 inchangées · 0 retenues",
-          "l4": "fr  12 traduites · 108 inchangées · 0 retenues",
-          "l5": "✓ 36 clés traduites en 5,4 s · 0 ignorée · verrou mis à jour"
-        },
-        "diff": {
-          "l1": "en.json · 120 clés · source de vérité",
-          "l2": "de  2 nouvelles · 1 modifiée · 117 à jour",
-          "l3": "es  0 nouvelle · 0 modifiée · 120 à jour",
-          "l4": "fr  5 nouvelles · 0 modifiée · 115 à jour",
-          "l5": "8 clés seraient envoyées · lance verbatra translate pour appliquer"
-        },
-        "watch": {
-          "l1": "surveille en.json",
-          "l2": "en.json a changé · 1 nouvelle clé",
-          "l3": "de  1 traduite · 0 retenue",
-          "l4": "es  1 traduite · 0 retenue",
-          "l5": "fr  1 traduite · 0 retenue",
-          "l6": "✓ 3 clés traduites · en attente de changements"
+        "run": {
+          "l1": "diff en.json · 2 nouveaux · 1 modifié · 117 inchangés",
+          "l2": "de  3 traduits · 117 intacts · 0 retenu",
+          "l3": "es  3 traduits · 117 intacts · 0 retenu",
+          "l4": "fr  3 traduits · 117 intacts · 0 retenu",
+          "l5": "✓ 9 clés traduites en 1,8 s · 351 intacts · verrou mis à jour"
         }
       }
     },

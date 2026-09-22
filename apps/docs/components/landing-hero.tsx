@@ -10,24 +10,16 @@ import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { PACKAGE_VERSION } from "@/lib/site";
 
-const CLI_COMMANDS = [
-  "verbatra init",
-  "verbatra translate",
-  "verbatra diff",
-  "verbatra watch",
-] as const;
-
-const TRANSCRIPT_KEYS = ["init", "translate", "diff", "watch"] as const;
+const CLI_COMMANDS = ["verbatra translate"] as const;
 
 export async function LandingHero(): Promise<ReactNode> {
   const t = await getTranslations("landing.hero");
   const tTerminal = await getTranslations("landing.terminal");
   const locale = (await getLocale()) as Locale;
 
-  const transcript = tTerminal.raw("transcript") as Record<string, Record<string, string>>;
-  const outputs: Readonly<Record<number, ReadonlyArray<string>>> = Object.fromEntries(
-    TRANSCRIPT_KEYS.map((key, index) => [index, Object.values(transcript[key] ?? {})]),
-  );
+  const transcript = tTerminal.raw("transcript.run") as Record<string, string>;
+  const runLines = Object.values(transcript);
+  const outputs: Readonly<Record<number, ReadonlyArray<string>>> = { 0: runLines };
 
   return (
     <section className="relative overflow-hidden border-b border-fd-border">
@@ -87,6 +79,10 @@ export async function LandingHero(): Promise<ReactNode> {
                 title="~/acme-shop"
                 sessionLabel={tTerminal("sessionLabel")}
                 loop={false}
+                typingSpeed={32}
+                initialDelay={350}
+                highlight={runLines[0]}
+                fitContent
               />
             </div>
             <p className="mt-3 text-[13px] text-[color:var(--text-faint)]">

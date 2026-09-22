@@ -19,32 +19,12 @@
       "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
       "caption": "Mitschnitt aufgezeichnet mit @verbatra/cli {version}.",
       "transcript": {
-        "init": {
-          "l1": "✓ verbatra.config.ts erstellt",
-          "l2": "Quelle en · Ziele de, es, fr",
-          "l3": "Anbieter gemini · Schlüssel aus GEMINI_API_KEY"
-        },
-        "translate": {
-          "l1": "diff en.json · 12 neu · 0 geändert · 108 unverändert",
-          "l2": "de  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l3": "es  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l4": "fr  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l5": "✓ 36 Schlüssel in 5,4 s übersetzt · 0 übersprungen · Lock aktualisiert"
-        },
-        "diff": {
-          "l1": "en.json · 120 Schlüssel · Quelle der Wahrheit",
-          "l2": "de  2 neu · 1 geändert · 117 aktuell",
-          "l3": "es  0 neu · 0 geändert · 120 aktuell",
-          "l4": "fr  5 neu · 0 geändert · 115 aktuell",
-          "l5": "8 Schlüssel würden gesendet · führe verbatra translate aus"
-        },
-        "watch": {
-          "l1": "beobachte en.json auf Änderungen",
-          "l2": "en.json geändert · 1 neuer Schlüssel",
-          "l3": "de  1 übersetzt · 0 zurückgehalten",
-          "l4": "es  1 übersetzt · 0 zurückgehalten",
-          "l5": "fr  1 übersetzt · 0 zurückgehalten",
-          "l6": "✓ 3 Schlüssel übersetzt · warte auf Änderungen"
+        "run": {
+          "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
+          "l2": "de  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l3": "es  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l4": "fr  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l5": "✓ 9 Schlüssel in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
         }
       }
     },

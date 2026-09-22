@@ -19,32 +19,12 @@
       "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",
       "caption": "Transcripción grabada con @verbatra/cli {version}.",
       "transcript": {
-        "init": {
-          "l1": "✓ verbatra.config.ts creado",
-          "l2": "origen en · destinos de, es, fr",
-          "l3": "proveedor gemini · clave desde GEMINI_API_KEY"
-        },
-        "translate": {
-          "l1": "diff en.json · 12 nuevas · 0 cambiadas · 108 sin cambios",
-          "l2": "de  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l3": "es  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l4": "fr  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l5": "✓ 36 claves traducidas en 5,4 s · 0 omitidas · bloqueo actualizado"
-        },
-        "diff": {
-          "l1": "en.json · 120 claves · fuente de verdad",
-          "l2": "de  2 nuevas · 1 cambiada · 117 al día",
-          "l3": "es  0 nuevas · 0 cambiadas · 120 al día",
-          "l4": "fr  5 nuevas · 0 cambiadas · 115 al día",
-          "l5": "se enviarían 8 claves · ejecuta verbatra translate para aplicarlo"
-        },
-        "watch": {
-          "l1": "vigilando en.json por si cambia",
-          "l2": "en.json cambió · 1 clave nueva",
-          "l3": "de  1 traducida · 0 retenidas",
-          "l4": "es  1 traducida · 0 retenidas",
-          "l5": "fr  1 traducida · 0 retenidas",
-          "l6": "✓ 3 claves traducidas · esperando cambios"
+        "run": {
+          "l1": "diff en.json · 2 nuevas · 1 cambiada · 117 sin cambios",
+          "l2": "de  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l3": "es  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l4": "fr  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l5": "✓ 9 claves traducidas en 1.8s · 351 sin tocar · bloqueo actualizado"
         }
       }
     },
