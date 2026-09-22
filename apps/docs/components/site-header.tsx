@@ -131,7 +131,7 @@ export function SiteHeaderFrame({
   const iconItems = navItems.filter(isIconItem);
   return (
     <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
-      <div className="flex h-14 items-center gap-2 px-4 md:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
         <div className="flex flex-1 items-center">
           {slots.navTitle ? (
             <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
@@ -158,7 +158,7 @@ export function SiteHeaderFrame({
           </div>
           <div className="flex items-center gap-2 max-md:hidden">
             <LanguageSelect slots={slots} />
-            {trailing}
+            {trailing ?? <span aria-hidden="true" className="-me-1.5 size-8" />}
           </div>
         </div>
       </div>

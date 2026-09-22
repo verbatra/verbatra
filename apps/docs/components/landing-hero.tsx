@@ -33,7 +33,7 @@ export async function LandingHero(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
 
   return (
-    <section className="px-2 md:px-3">
+    <section className="mx-auto w-full max-w-(--width-layout) px-2 md:px-3">
       <div
         className="relative overflow-hidden rounded-xl border"
         style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}

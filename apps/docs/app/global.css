@@ -103,6 +103,8 @@ h6 {
 
   --gutter: 24px;
 
+  --width-layout: 97rem;
+  --fd-layout-width: var(--width-layout);
   --width-wide: 1285px;
   --width-content: 896px;
   --width-hero: 704px;

@@ -137,6 +137,12 @@ language select for both. Fumadocs' own `HomeLayout` and notebook headers are ne
 so do not style `#nd-nav` or `#nd-subnav`; style `.vk-header` and `.vk-header-link` instead,
 and change the header in one place.
 
+Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
+default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
+header row, the docs grid, and the landing's hero and closing panels all sit in the same
+centred column on a wide monitor. A landing section that should not bleed edge to edge takes
+`mx-auto w-full max-w-(--width-layout)`; the marquee and the footer bleed on purpose.
+
 ## The docs surface
 
 `app/global.css` carries a docs layer keyed on Fumadocs' DOM ids (`#nd-sidebar` and its

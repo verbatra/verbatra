@@ -23,7 +23,11 @@ export async function LocaleHomeLayout({
       <a className="vk-skip-link" href={`#${MAIN_CONTENT_ID}`}>
         {t("skipToContent")}
       </a>
-      <HomeLayout {...options} slots={{ ...options.slots, header: HomeSiteHeader }}>
+      <HomeLayout
+        {...options}
+        slots={{ ...options.slots, header: HomeSiteHeader }}
+        className="[--fd-layout-width:var(--width-layout)]"
+      >
         <div id={MAIN_CONTENT_ID} tabIndex={-1} className="flex flex-1 flex-col">
           {children}
         </div>
