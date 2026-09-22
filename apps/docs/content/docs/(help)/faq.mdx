@@ -94,7 +94,8 @@ Commit your locale files and `verbatra.lock.json`: the lock records, per key, th
 hash each translation came from, and committing it is what makes runs incremental and drift
 detection work everywhere, including CI. Do not commit `.env`, `.env.local`,
 `.verbatra-local/`, or `verbatra.cache.json`; `verbatra init` adds all four to `.gitignore`, and
-`translate`, `watch`, and `import` top up an existing `.gitignore` that is missing any of them. See
+`translate`, `watch`, `import`, `tmx import`, and `pseudo` top up an existing `.gitignore` that is
+missing any of them. See
 [The lock file](/docs/the-lock-file).
 
 ## How do I re-translate everything?
@@ -118,8 +119,8 @@ dynamically by the `studio` command.
 Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`, plus whatever variable you name for
 `openai-compatible`. `translate`, `watch`,
-`doctor`, and `studio` load `.env` and `.env.local` from the working directory (real environment
-variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
+`doctor`, `studio`, and `mcp` load `.env` and `.env.local` from the working directory (real
+environment variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
 file, and error messages name the variable but never a value. See [Providers](/docs/providers).
 
 ## What does verbatra doctor actually check?

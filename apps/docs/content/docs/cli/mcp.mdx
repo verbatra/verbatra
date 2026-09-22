@@ -84,6 +84,8 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 
 `translation.retranslateEntry` and `translation.translatePending` are advertised only when the server was started with `--allow-spend`. Every tool's input, and every tool's output where the result shape is small and closed, is a JSON Schema derived from the same zod schema the server validates the call against. Calling an unknown tool name is a protocol-level error; calling a known tool with input that fails validation returns a result naming the offending field, so an agent can read the failure and self-correct.
 
+The two entry writers, `translation.editEntry` and `translation.retranslateEntry`, are additionally guarded per locale and key: while one call for a given entry is still running, a second call naming the same `locale` and `key` is refused with `ALREADY_IN_PROGRESS` rather than queued or run alongside it, so two agents (or one agent retrying) cannot race on the same entry. The guard is per entry, not per tool, so calls for different keys or different locales still run concurrently.
+
 ## Secret redaction
 
 Every tool result and every log line passes through the same secret-redaction pass Studio uses: a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it ever reaches the client or stderr. `glossary.get` and `glossary.write` also report which terms were redacted, so you can tell a scrubbed placeholder apart from the real text and never write it back.

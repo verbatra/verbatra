@@ -47,7 +47,7 @@ verbatra diff
 
 Use `check` when the exit code is all you need. Use `diff` when you want the exact keys behind the drift, say, to post them in a pull request comment. Orphaned keys (in a target file but gone from source) appear in `diff` output but never set exit code `1` on their own.
 
-Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid locale is a usage error and exits `2`, so a typo can never turn the gate green. `translate`, `watch` and `export` take the same flag, which is how you translate one locale at a time against a rate-limited provider.
+Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid locale is a usage error and exits `2`, so a typo can never turn the gate green. `translate`, `watch`, `export` and `tmx` take the same flag, which is how you translate one locale at a time against a rate-limited provider.
 
 ## JSON output
 
@@ -146,7 +146,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value

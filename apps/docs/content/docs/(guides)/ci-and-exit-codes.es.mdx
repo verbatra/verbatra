@@ -47,7 +47,7 @@ verbatra diff
 
 Usa `check` cuando el código de salida es todo lo que necesitas. Usa `diff` cuando quieras las claves exactas detrás del desfase, por ejemplo, para publicarlas en un comentario del pull request. Las claves huérfanas (en un archivo de destino pero desaparecidas del origen) aparecen en la salida de `diff` pero nunca provocan por sí solas el código de salida `1`.
 
-Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` sin ningún locale válido es un error de uso y sale con `2`, así que una errata nunca puede poner la puerta en verde. `translate`, `watch` y `export` aceptan el mismo flag, que es como traduces un locale cada vez contra un proveedor con límite de tasa.
+Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` sin ningún locale válido es un error de uso y sale con `2`, así que una errata nunca puede poner la puerta en verde. `translate`, `watch`, `export` y `tmx` aceptan el mismo flag, que es como traduces un locale cada vez contra un proveedor con límite de tasa.
 
 ## Salida JSON
 
@@ -146,7 +146,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value

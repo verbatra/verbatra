@@ -127,7 +127,7 @@ gelesen.
 
 **Lösung**: Setze die Variable, die die Meldung nennt, und bestätige sie mit `verbatra doctor`,
 das die Variable nur dem Namen nach prüft, ohne ihren Wert zu lesen. `translate`, `watch`,
-`doctor` und `studio` laden
+`doctor`, `studio` und `mcp` laden
 `.env` und `.env.local` aus dem Arbeitsverzeichnis; das SDK nicht, verwende in deinem eigenen
 Skript also `node --env-file=.env` oder exportiere die Variable. `openai-compatible` erzeugt diesen Fehler
 nur, wenn die Konfiguration ein `apiKeyEnvVar` nennt, das ungesetzt ist; ohne eines fällt es für

@@ -47,7 +47,7 @@ verbatra diff
 
 Nimm `check`, wenn der Exit-Code alles ist, was du brauchst. Nimm `diff`, wenn du die genauen Keys hinter der Drift willst, etwa um sie als Kommentar in einen Pull Request zu posten. Verwaiste Keys (in einer Zieldatei vorhanden, aber aus der Quelle verschwunden) erscheinen in der `diff`-Ausgabe, setzen aber nie allein Exit-Code `1`.
 
-Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch` und `export` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
+Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch`, `export` und `tmx` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
 
 ## JSON-Ausgabe
 
@@ -146,7 +146,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value

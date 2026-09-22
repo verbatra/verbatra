@@ -459,6 +459,8 @@ a configured target fails that locale with `CONFIG_INVALID` as data on the summa
 
 ## The TMX pair
 
+<AvailableFrom version="0.11.0" />
+
 `importTmx` and `exportTmx` move the [translation memory](/docs/the-cache) in and out of TMX, the
 interchange format the mainstream translation platforms produce and consume. Neither constructs a
 provider, reads an API key, nor makes a network call: every value comes from the file or from the
@@ -599,9 +601,9 @@ provider), `providerTokenLimitKeys` (the option key each LLM provider takes its 
 under), and `supportedFormats` (the closed set of format ids). Read the token-limit key from
 `providerTokenLimitKeys` rather than assuming one: Anthropic calls it `maxTokens` and the others
 `maxOutputTokens`, the schema validates each provider's options strictly, and DeepL has no entry
-because it takes no token limit. The `ScaffoldableProviderId` type
-covers the four hosted providers; `openai-compatible` is excluded because it has no single required
-environment variable.
+because it takes no token limit. The `ScaffoldableProviderId` type is
+`Exclude<ProviderId, "openai-compatible">`, so it covers the five hosted providers;
+`openai-compatible` is excluded because it has no single required environment variable.
 
 ## Format adapters
 
@@ -803,9 +805,12 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `CONCURRENCY_INVALID` | `concurrency` was set but is not an integer of at least 1; raised before any locale runs |
 | `CONCURRENCY_BUDGET_CONFLICT` | a live run set `concurrency` above 1 while `maxTokens` is configured; raised before any provider call (a dry run is exempt) |
 | `TARGET_UNWRITABLE` | a target locale file could not be written (its directory is not writable, does not exist, is read-only, or is out of space); the message names the target file and the file-system code, never the internal temporary file the atomic write uses |
+| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` was asked for a pseudolocale that names a configured locale, or for an output path that would write onto a configured locale file; refused before anything is read or written |
 | `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |
 | `EXTRACT_NOT_CONFIGURED` | `extract` was called with a config that carries no `extract` block |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file, is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run loaded; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
+| `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space) |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own

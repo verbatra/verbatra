@@ -130,7 +130,7 @@ Prends `--include-unchanged` quand un traducteur veut le contexte complet d'une 
 - `glossary-term-missed` : un terme du glossaire configuré n'est pas arrivé dans la traduction.
 - `integrity-reordered` : les placeholders correspondent mais ont atterri dans un ordre différent de la source.
 
-Une sixième raison, `provider-degraded`, n'existe qu'au moment de translate (un avis de dégradation DeepL sur le lot d'où vient une clé) ; comme l'export n'appelle jamais de fournisseur, elle n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les vérifications d'intégrité strictes.
+Deux autres raisons complètent l'ensemble de sept, et toutes deux n'existent qu'au moment de translate : `provider-degraded` (un avis de formalité dégradée ou de glossaire ignoré sur le lot d'où vient une clé) et `fuzzy-cache-reuse` (la valeur a été réutilisée depuis la mémoire de traduction pour une source antérieure presque identique, modifiée depuis). L'export recalcule les colonnes à partir des seules valeurs source et cible, donc ni l'une ni l'autre n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les vérifications d'intégrité strictes.
 
 ## Depuis le SDK
 

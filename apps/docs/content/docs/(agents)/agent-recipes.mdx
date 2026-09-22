@@ -191,7 +191,7 @@ Do not run this under `set -e`: a non-zero exit is the signal you came for, not 
 
 ## `watch` is a stream, not a payload
 
-`watch --json` is different in kind from the other eight. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
+`watch --json` is different in kind from the other ten. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
 
 Raw, two runs of one session (the second after the source file was saved with a syntax error):
 

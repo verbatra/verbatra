@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # fija la línea v1 mantenida activamente
         with:
-          version: 0.9.3 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -57,7 +57,7 @@ La acción ejecuta la CLI, y la CLI lee la clave API del proveedor solo desde el
 
 | Entrada | Obligatoria | Por defecto | Descripción |
 | --- | --- | --- | --- |
-| `version` | sí | - | la versión de `@verbatra/cli` a ejecutar, por ejemplo `0.9.3`. Debe ser una versión semver exacta; el paso falla de inmediato con un dist-tag como `latest`, un rango o un prefijo `^`/`~`. También debe ser `0.9.3` o posterior; un pin más antiguo hace fallar el paso |
+| `version` | sí | - | la versión de `@verbatra/cli` a ejecutar, por ejemplo `0.11.0`. Debe ser una versión semver exacta; el paso falla de inmediato con un dist-tag como `latest`, un rango o un prefijo `^`/`~`. También debe ser `0.9.3` o posterior; un pin más antiguo hace fallar el paso |
 | `command` | no | `"translate"` | qué comando de verbatra ejecutar: `translate` (escribe traducciones), `check` (solo lectura, sale con `1` cuando algún locale tiene claves faltantes u obsoletas), o `diff` (solo lectura, sale con `1` cuando algún locale tiene cambios pendientes). Los comandos de solo lectura no necesitan clave API de proveedor, así que funcionan como puerta de CI en un pull request de un fork. Cualquier valor fuera de este conjunto hace fallar el paso |
 | `config-path` | no | `""` | archivo de configuración explícito a cargar (equivale a `--config`). Dejarlo vacío exige un archivo de configuración reconocido directamente dentro de `working-directory`; el paso falla antes de instalar la CLI si no se encuentra ninguno ahí. Consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración). |
 | `working-directory` | no | `""` | directorio contra el que resolver la configuración y los archivos de locale (equivale a `--cwd`). La búsqueda de configuración es estricta: solo mira directamente dentro de este directorio, nunca en un directorio padre ni en la raíz del repositorio. Consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración). |
@@ -74,7 +74,7 @@ La búsqueda es estricta: nunca sube a un directorio padre ni a la raíz del rep
 
 ```yaml
       with:
-        version: 0.9.3
+        version: 0.11.0
         working-directory: apps/docs
 ```
 

@@ -84,6 +84,8 @@ Si tu invoques déjà tout via la CLI `verbatra`, lance-le plutôt comme sous-co
 
 `translation.retranslateEntry` et `translation.translatePending` ne sont exposés que lorsque le serveur a été démarré avec `--allow-spend`. L'entrée de chaque outil, et la sortie de chaque outil dont la forme de résultat est petite et fermée, est un schéma JSON dérivé du même schéma zod contre lequel le serveur valide l'appel. Appeler un nom d'outil inconnu est une erreur au niveau du protocole ; appeler un outil connu avec une entrée qui échoue à la validation renvoie un résultat qui nomme le champ fautif, pour qu'un agent puisse lire l'échec et se corriger lui-même.
 
+Les deux outils qui écrivent une entrée, `translation.editEntry` et `translation.retranslateEntry`, sont en outre gardés par locale et par clé : pendant qu'un appel pour une entrée est encore en cours, un second appel nommant les mêmes `locale` et `key` est refusé avec `ALREADY_IN_PROGRESS` plutôt que mis en file ou exécuté en parallèle, pour que deux agents (ou un agent qui réessaie) ne se disputent pas la même entrée. Le garde porte sur l'entrée, pas sur l'outil : les appels pour d'autres clés ou d'autres locales continuent de s'exécuter en même temps.
+
 ## Expurgation des secrets
 
 Chaque résultat d'outil et chaque ligne de log passe par la même expurgation des secrets que Studio utilise : une valeur ayant la forme d'une clé API de fournisseur, ou la valeur exacte actuelle d'une variable d'environnement de fournisseur configurée, est remplacée par `[REDACTED]` avant même d'atteindre le client ou stderr. `glossary.get` et `glossary.write` signalent aussi quels termes ont été expurgés, pour que tu puisses distinguer un espace réservé expurgé du vrai texte et ne jamais le réécrire.

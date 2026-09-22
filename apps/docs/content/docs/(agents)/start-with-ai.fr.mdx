@@ -120,8 +120,9 @@ their direction rather than guessing which namespace to wire up.
 
 npx verbatra doctor
 
-`doctor` validates the config, the format, the provider id, and the source file,
-with no network call and no key read. Fix whatever it reports by editing
+`doctor` runs five checks: the config, the format, the provider id, the API-key
+environment variable that provider reads, and the source file. It makes no network
+call and reads no key value, only the variable's name. Fix whatever it reports by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
 or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
 it again. Repeat until it passes with no errors.

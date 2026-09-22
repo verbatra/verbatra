@@ -312,6 +312,8 @@ Entrée : `{ config, workbook, cwd?, dryRun?, format? }`. Avec `csv` ou `tsv`, `
 
 ## La paire TMX
 
+<AvailableFrom version="0.11.0" />
+
 `importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) en TMX,
 le format d'échange que produisent et lisent les principales plateformes de traduction. Aucune des
 deux ne construit un fournisseur, ne lit une clé d'API ni ne fait de requête réseau : chaque valeur
@@ -427,7 +429,7 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 
 ### scaffoldingMetadata
 
-Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` couvre les quatre fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
+Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
 
 ## Adaptateurs de format
 
@@ -572,9 +574,12 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `CONCURRENCY_INVALID` | `concurrency` a été défini mais n'est pas un entier d'au moins 1 ; levé avant l'exécution de toute locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | une exécution réelle a défini `concurrency` au-dessus de 1 alors que `maxTokens` est configuré ; levé avant tout appel au fournisseur (un dry-run est exempté) |
 | `TARGET_UNWRITABLE` | un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique |
+| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` s'est vu demander une pseudo-locale qui nomme une locale configurée, ou un chemin de sortie qui écrirait sur un fichier de locale configuré ; refusé avant toute lecture et toute écriture |
 | `SOURCE_UNWRITABLE` | le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; `xliff` et `apple-xcstrings` l'atteignent quand aucun catalogue n'existe encore, car ni l'un ni l'autre n'est créé à partir de rien |
 | `EXTRACT_NOT_CONFIGURED` | `extract` a été appelé avec une config qui ne porte aucun bloc `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` a reçu un `deps.fs` qui n'implémente pas `readDirectory` : aucun fichier source ne peut donc être découvert |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier, est absolu, sort de `cwd` avec `..` ou ne se termine pas par `.ts`, `.mts` ou `.cts`, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, ou le fichier de configuration chargé par l'exécution ; une exécution qui écrit refuse en plus de remplacer un fichier existant qui ne commence pas par la ligne d'en-tête de verbatra |
+| `TYPES_UNWRITABLE` | le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, ou le disque est plein) |
 | `LOCALE_FAILED` | jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée |
 
 Deux exceptions à la règle de la classe d'erreur unique : `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue, et `runStatus` ne lève jamais. Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [CI et codes de sortie](/docs/ci-and-exit-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).

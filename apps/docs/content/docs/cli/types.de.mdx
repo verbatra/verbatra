@@ -158,6 +158,8 @@ Mit `--out` legst du sie dorthin, wo deine App ohnehin schon importiert, zum Bei
 
 Dateinamen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen, `Verbatra.Config.ts` wird also ebenfalls zurückgewiesen. Alle Fälle außer dem letzten werden zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird. Den letzten prüft nur ein Lauf, der schreiben würde, und deine Datei bleibt dabei unangetastet: Wähle ein anderes `--out`, oder lösche die Datei, wenn sie wirklich eine alte Deklaration ist. `--check` weist eine bestehende Datei nie zurück, es vergleicht nur.
 
+Ein Pfad, der all diese Prüfungen besteht, kann trotzdem im Moment des Schreibens scheitern: Wenn das Verzeichnis der Deklaration nicht angelegt oder die Datei nicht geschrieben werden kann, weil das Verzeichnis nicht schreibbar ist, nicht mehr existiert oder die Platte voll ist, bricht der Lauf mit `TYPES_UNWRITABLE` ab und endet mit `2`. `--check` erreicht das nie, denn es schreibt nichts.
+
 ## Ehrlich bleiben in der CI
 
 `--check` schreibt nichts und endet mit `1`, wenn die committete Deklaration nicht mehr dem entspricht, was eine frische Generierung erzeugen würde. Der Vergleich geht Byte für Byte, ohne Neuformatierung, und fängt damit einen Key ab, der zum Katalog hinzugefügt und nie neu generiert wurde:
@@ -224,7 +226,7 @@ verbatra types
 | --- | --- |
 | `0` | die Deklaration wurde erzeugt, egal ob sich die Datei geändert hat; oder `--check` hat sie als aktuell befunden |
 | `1` | `--check` hat die committete Deklaration als veraltet befunden |
-| `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, oder ein zurückgewiesener Ausgabepfad |
+| `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, ein zurückgewiesener Ausgabepfad (`TYPES_OUTPUT_CONFLICT`) oder eine Deklaration, die nicht geschrieben werden konnte (`TYPES_UNWRITABLE`) |
 
 ## Verwandt
 

@@ -96,8 +96,8 @@ Committe deine Locale-Dateien und `verbatra.lock.json`: Die Lock-Datei hält pro
 Quell-Content-Hash fest, aus dem jede Übersetzung entstanden ist, und sie zu committen ist es, was
 Läufe überall inkrementell macht und die Drift-Erkennung funktionieren lässt, auch in CI. Committe
 nicht `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; `verbatra init` trägt
-alle vier in `.gitignore` ein, und `translate`, `watch` und `import` ergänzen einen vorhandenen
-`.gitignore`, dem einer davon fehlt. Siehe [Die Lock-Datei](/docs/the-lock-file).
+alle vier in `.gitignore` ein, und `translate`, `watch`, `import`, `tmx import` und `pseudo` ergänzen einen
+vorhandenen `.gitignore`, dem einer davon fehlt. Siehe [Die Lock-Datei](/docs/the-lock-file).
 
 ## Wie übersetze ich alles neu?
 
@@ -120,7 +120,7 @@ separate, optionale Installation, dynamisch geladen vom `studio`-Befehl.
 Nur in Umgebungsvariablen: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY`, plus die Variable, die du für
 `openai-compatible` benennst. `translate`, `watch`,
-`doctor` und `studio` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (echte
+`doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (echte
 Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys genau deshalb ab, damit ein Geheimnis
 nicht in einer committeten Datei landen kann, und Fehlermeldungen nennen die Variable, aber nie
 einen Wert. Siehe [Provider](/docs/providers).

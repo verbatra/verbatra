@@ -158,6 +158,8 @@ Passe `--out` pour la mettre là où ton application importe déjà, par exemple
 
 Les noms de fichiers sont comparés sans tenir compte de la casse : `Verbatra.Config.ts` est donc refusé aussi. Tous les cas sauf le dernier sont refusés avant toute lecture ou écriture. Le dernier n'est vérifié que par une exécution qui écrirait, et il laisse ton fichier intact : choisis un autre `--out`, ou supprime le fichier s'il s'agit vraiment d'une ancienne déclaration. `--check` ne refuse jamais un fichier existant ; il se contente de comparer.
 
+Un chemin qui passe toutes ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire de la déclaration ne peut pas être créé ou que le fichier ne peut pas être écrit, parce que le répertoire n'est pas inscriptible, n'existe plus ou que le disque est plein, l'exécution s'arrête avec `TYPES_UNWRITABLE` et sort en `2`. `--check` n'y arrive jamais, puisqu'il n'écrit rien.
+
 ## Rester honnête en CI
 
 `--check` n'écrit rien et sort avec `1` quand la déclaration versionnée ne correspond plus à ce qu'une génération fraîche produirait. La comparaison se fait octet par octet, sans reformatage : elle attrape donc une clé ajoutée au catalogue et jamais régénérée.
@@ -224,7 +226,7 @@ verbatra types
 | --- | --- |
 | `0` | la déclaration a été générée, que le fichier ait changé ou non ; ou `--check` l'a trouvée à jour |
 | `1` | `--check` a trouvé la déclaration versionnée périmée |
-| `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, ou un chemin de sortie refusé |
+| `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, un chemin de sortie refusé (`TYPES_OUTPUT_CONFLICT`), ou une déclaration qui n'a pas pu être écrite (`TYPES_UNWRITABLE`) |
 
 ## Voir aussi
 

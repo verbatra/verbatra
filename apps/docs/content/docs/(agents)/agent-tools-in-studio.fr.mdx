@@ -63,7 +63,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 
 ### Outils d'écriture (deux)
 
-`verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par le même contrôle d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur.
+`verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par le même contrôle d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -76,7 +76,7 @@ Ceux-ci appellent un fournisseur de traduction et ne sont enregistrés que si St
 - `verbatra_translation_retranslateEntry` : retraduit une clé et une locale.
 - `verbatra_translation_translatePending` : traduit tout ce qui est en attente à cet instant.
 
-Tous deux font passer leurs résultats par le contrôle d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
+Tous deux font passer leurs résultats par le contrôle d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). `verbatra_translation_retranslateEntry` porte en plus le même garde par entrée que la modification : un second appel concurrent pour la même locale et la même clé est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
 
 ## L'avis de mode dégradé
 

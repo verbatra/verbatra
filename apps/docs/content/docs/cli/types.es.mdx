@@ -158,6 +158,8 @@ Pasa `--out` para dejarla donde tu aplicación ya importa, por ejemplo `--out sr
 
 Los nombres de archivo se comparan sin distinguir mayúsculas de minúsculas, así que `Verbatra.Config.ts` también se rechaza. Todos los casos menos el último se rechazan antes de leer o escribir nada. El último solo lo comprueba una ejecución que fuera a escribir, y deja tu archivo intacto: elige otro `--out`, o borra el archivo si de verdad es una declaración antigua. `--check` nunca rechaza un archivo existente; solo compara.
 
+Una ruta que supera todas esas comprobaciones todavía puede fallar en el momento de escribir: cuando el directorio de la declaración no se puede crear o el archivo no se puede escribir, porque el directorio no es escribible, ya no existe o el disco se quedó sin espacio, la ejecución se detiene con `TYPES_UNWRITABLE` y sale con `2`. `--check` nunca llega ahí, porque no escribe nada.
+
 ## Mantenerlo honesto en CI
 
 `--check` no escribe nada y sale con `1` cuando la declaración versionada ya no coincide con lo que produciría una generación nueva. La comparación es byte a byte, sin reformatear, así que detecta una clave añadida al catálogo y nunca regenerada:
@@ -224,7 +226,7 @@ verbatra types
 | --- | --- |
 | `0` | la declaración se generó, haya cambiado el archivo o no; o `--check` la encontró vigente |
 | `1` | `--check` encontró obsoleta la declaración versionada |
-| `2` | no pudo ejecutarse: un error de uso, un problema de configuración o de la fuente, o una ruta de salida rechazada |
+| `2` | no pudo ejecutarse: un error de uso, un problema de configuración o de la fuente, una ruta de salida rechazada (`TYPES_OUTPUT_CONFLICT`) o una declaración que no se pudo escribir (`TYPES_UNWRITABLE`) |
 
 ## Relacionado
 

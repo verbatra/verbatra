@@ -83,7 +83,7 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
 
 ### provider
 
-Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl` u `openai-compatible`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers).
+Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` u `openai-compatible`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers).
 
 ### glossary
 
@@ -304,7 +304,7 @@ Esa es la lista completa. Una configuración que el editor muestra limpia todav�
 
 ## El directorio de trabajo y .env
 
-Ejecuta verbatra desde la raíz de tu proyecto, o pasa `--cwd` apuntando a ella. El directorio de trabajo es el ancla única de todo lo que verbatra resuelve: la búsqueda de configuración empieza ahí y sube, `.env.local` y `.env` se cargan desde ahí para `translate`, `watch`, `doctor` y `studio`, y la ruta de cada archivo de locale se resuelve contra él. Mantener las tres cosas en el mismo sitio es lo que hace que un simple `verbatra translate` funcione.
+Ejecuta verbatra desde la raíz de tu proyecto, o pasa `--cwd` apuntando a ella. El directorio de trabajo es el ancla única de todo lo que verbatra resuelve: la búsqueda de configuración empieza ahí y sube, `.env.local` y `.env` se cargan desde ahí para `translate`, `watch`, `doctor`, `studio` y `mcp`, y la ruta de cada archivo de locale se resuelve contra él. Mantener las tres cosas en el mismo sitio es lo que hace que un simple `verbatra translate` funcione.
 
 La precedencia del entorno es, de mayor a menor: una variable ya definida en tu entorno real, luego `.env.local`, luego `.env`. Una variable ya presente nunca se sobrescribe.
 

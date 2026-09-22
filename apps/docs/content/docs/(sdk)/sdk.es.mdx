@@ -472,6 +472,8 @@ excepción.
 
 ## El par TMX
 
+<AvailableFrom version="0.11.0" />
+
 `importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
 formato de intercambio que producen y leen las plataformas de traducción más extendidas. Ninguna de
 las dos construye un proveedor, lee una clave de API ni hace una petición de red: cada valor sale del
@@ -622,8 +624,9 @@ proveedor LLM recibe su límite de tokens de salida) y `supportedFormats` (el co
 formato). Lee la clave del límite de tokens de `providerTokenLimitKeys` en lugar de suponer una:
 Anthropic la llama `maxTokens` y los demás `maxOutputTokens`, el esquema valida estrictamente las
 opciones de cada proveedor, y DeepL no tiene entrada porque no recibe límite de tokens. El
-tipo `ScaffoldableProviderId` cubre los cuatro proveedores alojados; `openai-compatible` queda excluido
-porque no tiene una única variable de entorno obligatoria.
+tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible">`, así que cubre los cinco
+proveedores alojados; `openai-compatible` queda excluido porque no tiene una única variable de
+entorno obligatoria.
 
 ## Adaptadores de formato
 
@@ -831,9 +834,12 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que corra ningún locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 con `maxTokens` configurado; se lanza antes de cualquier llamada al proveedor (un dry-run queda exento) |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
+| `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` una pseudolocale que nombra una locale configurada, o una ruta de salida que escribiría sobre un archivo de locale configurado; se rechaza antes de leer o escribir nada |
 | `SOURCE_UNWRITABLE` | el archivo de la locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
 | `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo, es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, o el archivo de configuración que cargó la ejecución; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
+| `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio) |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`

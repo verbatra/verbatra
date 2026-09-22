@@ -191,7 +191,7 @@ Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal qu
 
 ## `watch` est un flux, pas une sortie unique
 
-`watch --json` est différent par nature des huit autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
+`watch --json` est différent par nature des dix autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
 
 Brut, deux exécutions d'une session (la seconde après que le fichier source a été enregistré avec une erreur de syntaxe) :
 

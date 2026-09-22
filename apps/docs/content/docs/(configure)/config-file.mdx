@@ -83,7 +83,7 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
 ### provider
 
-An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, or `openai-compatible`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers).
+An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, or `openai-compatible`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers).
 
 ### glossary
 
@@ -304,7 +304,7 @@ That is the complete list. A config the editor shows as clean can still fail one
 
 ## The working directory and .env
 
-Run verbatra from your project root, or pass `--cwd` pointing at it. The working directory is the single anchor for everything verbatra resolves: the config search starts there and walks upward, `.env.local` and `.env` are loaded from there by `translate`, `watch`, `doctor`, and `studio`, and each locale file path is resolved against it. Keeping all three in the same place is what makes a plain `verbatra translate` work.
+Run verbatra from your project root, or pass `--cwd` pointing at it. The working directory is the single anchor for everything verbatra resolves: the config search starts there and walks upward, `.env.local` and `.env` are loaded from there by `translate`, `watch`, `doctor`, `studio`, and `mcp`, and each locale file path is resolved against it. Keeping all three in the same place is what makes a plain `verbatra translate` work.
 
 Environment precedence is, highest first: a variable already set in your real environment, then `.env.local`, then `.env`. A variable already present is never overwritten.
 

@@ -97,8 +97,8 @@ Commite tes fichiers de locale et `verbatra.lock.json` : le fichier de verrouill
 par clé, le hash du contenu source dont chaque traduction provient, et le commiter est ce qui rend
 les exécutions incrémentales et la détection de dérive opérantes partout, CI comprise. Ne commite
 pas `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; `verbatra init` ajoute les
-quatre au `.gitignore`, et `translate`, `watch` et `import` complètent un `.gitignore` existant
-auquel il en manque un.
+quatre au `.gitignore`, et `translate`, `watch`, `import`, `tmx import` et `pseudo` complètent un `.gitignore`
+existant auquel il en manque un.
 Voir [Le fichier de verrouillage](/docs/the-lock-file).
 
 ## Comment je retraduis tout ?
@@ -122,7 +122,7 @@ dynamiquement par la commande `studio`.
 
 Uniquement dans des variables d'environnement : `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
 `GEMINI_API_KEY`, `DEEPL_API_KEY` ou `GOOGLE_TRANSLATE_API_KEY`, plus la variable que tu nommes
-pour `openai-compatible`. `translate`, `watch`, `doctor` et `studio` chargent `.env` et
+pour `openai-compatible`. `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env` et
 `.env.local` depuis le répertoire de
 travail (les vraies variables d'environnement gagnent). Le schéma de configuration rejette les clés
 inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les

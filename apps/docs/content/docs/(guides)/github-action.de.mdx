@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # pinnt die aktiv gepflegte v1-Linie
         with:
-          version: 0.9.3 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -57,7 +57,7 @@ Die Action führt die CLI aus, und die CLI liest den API-Key des Providers nur a
 
 | Eingabe | Erforderlich | Standard | Beschreibung |
 | --- | --- | --- | --- |
-| `version` | ja | - | die auszuführende `@verbatra/cli`-Version, zum Beispiel `0.9.3`. Muss eine exakte Semver-Version sein; der Schritt schlägt sofort fehl bei einem Dist-Tag wie `latest`, einem Bereich oder einem `^`/`~`-Präfix. Muss zudem `0.9.3` oder neuer sein; ein älterer Pin lässt den Schritt fehlschlagen |
+| `version` | ja | - | die auszuführende `@verbatra/cli`-Version, zum Beispiel `0.11.0`. Muss eine exakte Semver-Version sein; der Schritt schlägt sofort fehl bei einem Dist-Tag wie `latest`, einem Bereich oder einem `^`/`~`-Präfix. Muss zudem `0.9.3` oder neuer sein; ein älterer Pin lässt den Schritt fehlschlagen |
 | `command` | nein | `"translate"` | welcher verbatra-Befehl ausgeführt wird: `translate` (schreibt Übersetzungen), `check` (schreibgeschützt, endet mit `1`, wenn ein Locale fehlende oder veraltete Keys hat) oder `diff` (schreibgeschützt, endet mit `1`, wenn ein Locale ausstehende Änderungen hat). Die schreibgeschützten Befehle brauchen keinen Provider-API-Key und funktionieren daher als CI-Gate auf einem Fork-Pull-Request. Alles außerhalb dieser Menge lässt den Schritt fehlschlagen |
 | `config-path` | nein | `""` | explizit zu ladende Konfigurationsdatei (entspricht `--config`). Ein leerer Wert erfordert eine erkannte Konfigurationsdatei direkt in `working-directory`; der Schritt schlägt fehl, bevor die CLI installiert wird, wenn dort keine gefunden wird. Siehe [Konfigurationssuche](#konfigurationssuche). |
 | `working-directory` | nein | `""` | Verzeichnis, gegen das Konfiguration und Locale-Dateien aufgelöst werden (entspricht `--cwd`). Die Konfigurationssuche ist strikt: sie sucht nur direkt in diesem Verzeichnis, nie in einem übergeordneten Verzeichnis oder im Repository-Root. Siehe [Konfigurationssuche](#konfigurationssuche). |
@@ -74,7 +74,7 @@ Die Suche ist strikt: sie geht nie in ein übergeordnetes Verzeichnis oder das R
 
 ```yaml
       with:
-        version: 0.9.3
+        version: 0.11.0
         working-directory: apps/docs
 ```
 

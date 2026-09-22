@@ -124,7 +124,7 @@ de la CLI.
 
 **Solution** : définis la variable que le message nomme, puis confirme-la avec `verbatra doctor`,
 qui vérifie la variable par son nom seulement, sans lire sa valeur. `translate`, `watch`,
-`doctor` et `studio` chargent
+`doctor`, `studio` et `mcp` chargent
 `.env` et `.env.local` depuis le répertoire de travail ; le SDK non, donc dans ton propre script
 utilise `node --env-file=.env` ou exporte la variable. `openai-compatible` ne lève ceci que quand la
 configuration nomme un `apiKeyEnvVar` qui est absent ; sans lui, il se replie sur un placeholder

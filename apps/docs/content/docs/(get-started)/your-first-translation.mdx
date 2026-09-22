@@ -24,7 +24,7 @@ npx verbatra init --provider gemini
 
 With a terminal attached, `init` prompts for anything you did not pass as a flag, each with a default:
 
-- the provider: one of `anthropic`, `openai`, `gemini`, or `deepl` (flag `--provider`, the only input without a default)
+- the provider: one of `anthropic`, `openai`, `gemini`, `deepl`, or `google-translate` (flag `--provider`, the only input without a default)
 - the source locale, default `en` (`--source`)
 - the target locales, comma-separated, default `de` (`--targets`)
 - the locale file pattern, default `locales/{locale}.json` (`--path`)
@@ -106,7 +106,7 @@ Keys come from the environment, never from the config file. Each hosted provider
 cp .env.example .env
 ```
 
-Then open `.env` and paste your key after `GEMINI_API_KEY=`. `translate`, `watch`, `doctor`, and `studio` load `.env.local` and then `.env` from the working directory before a run, and a variable already set in your shell always wins. See [Providers](/docs/providers) for every provider's variable.
+Then open `.env` and paste your key after `GEMINI_API_KEY=`. `translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before a run, and a variable already set in your shell always wins. See [Providers](/docs/providers) for every provider's variable.
 
 <Callout title="No key yet? Gemini has a free tier.">
 Gemini's API has a genuinely free tier, which makes it the cheapest way to try verbatra. Grab a key from [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. The free tier has per-minute and per-day request limits, so pace a large first-time translation.

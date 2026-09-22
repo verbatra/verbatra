@@ -97,8 +97,8 @@ Confirma tus archivos de locale y `verbatra.lock.json`: el bloqueo registra, por
 contenido de origen del que salió cada traducción, y confirmarlo es lo que hace que las ejecuciones
 incrementales y la detección de desfase funcionen en todas partes, incluido CI. No confirmes
 `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json`; `verbatra init` añade los cuatro
-a `.gitignore`, y `translate`, `watch` e `import` completan un `.gitignore` existente al que le
-falte alguno. Consulta
+a `.gitignore`, y `translate`, `watch`, `import`, `tmx import` y `pseudo` completan un `.gitignore`
+existente al que le falte alguno. Consulta
 [El archivo de bloqueo](/docs/the-lock-file).
 
 ## ¿Cómo lo retraduzco todo?
@@ -122,8 +122,8 @@ cargada dinámicamente por el comando `studio`.
 Solo en variables de entorno: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY` o `GOOGLE_TRANSLATE_API_KEY`, más la variable que tú nombres para
 `openai-compatible`. `translate`, `watch`,
-`doctor` y `studio` cargan `.env` y `.env.local` desde el directorio de trabajo (las variables del
-entorno real ganan). El esquema de configuración rechaza las claves desconocidas precisamente para que un
+`doctor`, `studio` y `mcp` cargan `.env` y `.env.local` desde el directorio de trabajo (las
+variables del entorno real ganan). El esquema de configuración rechaza las claves desconocidas precisamente para que un
 secreto no pueda acabar en un archivo confirmado, y los mensajes de error nombran la variable pero
 nunca un valor. Consulta [Proveedores](/docs/providers).
 

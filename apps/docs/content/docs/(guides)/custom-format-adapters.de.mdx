@@ -32,6 +32,8 @@ Kein eingebauter Formatname enthält einen Doppelpunkt, ein `custom:`-Bezeichner
 
 Eine Konfiguration, die ein Format nennt, das weder ein eingebauter Name noch ein wohlgeformter `custom:`-Bezeichner ist, wird beim Laden weiterhin abgelehnt. Was sich ändert, ist der Zeitpunkt, zu dem der Adapter selbst geprüft wird: Ein eingebauter Name wird zur Kompilierzeit geprüft, ein `custom:`-Bezeichner nur auf seine Form, weil der Adapter dahinter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit einem strukturierten `UNKNOWN_FORMAT`, das das Format nennt, statt einfach nichts zu tun.
 
+Der Bezeichner wandert unverändert weiter. Studios Projekt-Snapshot und das `project.snapshot`-Tool des MCP-Servers geben beide das `format`-Feld der geladenen Konfiguration wörtlich zurück, ein Projekt mit einem Drittanbieter-Adapter zeigt dort also `custom:toml` statt eines eingebauten Namens oder einer Lücke, und ein Agent, der sich orientiert, kann beides unterscheiden.
+
 ## Den Adapter bauen
 
 Implementiere den Adapter-Vertrag nicht von Hand. Zwei Factories erledigen das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung für dich und lassen dir nur das Parsen deines eigenen Formats.

@@ -32,6 +32,8 @@ No built-in format name contains a colon, so a `custom:` identifier can never sh
 
 A config naming a format that is neither a built-in name nor a well-formed `custom:` identifier is still rejected when it loads. What changes is when the adapter itself is checked: a built-in name is checked at compile time, while a `custom:` identifier is only checked for shape, because the adapter behind it lives in your package. If nothing supplies an adapter for it, the run fails with a structured `UNKNOWN_FORMAT` naming the format rather than doing nothing.
 
+The identifier travels onward unchanged. Studio's project snapshot and the MCP server's `project.snapshot` tool both report the loaded config's `format` field verbatim, so a project on a third-party adapter reads `custom:toml` there rather than a built-in name or a blank, and an agent orienting itself can tell the two apart.
+
 ## Build the adapter
 
 Do not implement the adapter contract by hand. Two factories do the bounded read, the atomic write, extension detection and the structured error handling for you, and leave you only your format's own parsing.

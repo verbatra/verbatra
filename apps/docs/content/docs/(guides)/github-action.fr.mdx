@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # épingle la ligne v1 activement maintenue
         with:
-          version: 0.9.3 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -57,7 +57,7 @@ L'action lance la CLI, et la CLI lit la clé d'API du fournisseur uniquement dep
 
 | Entrée | Requis | Défaut | Description |
 | --- | --- | --- | --- |
-| `version` | oui | - | la version de `@verbatra/cli` à lancer, par exemple `0.9.3`. Doit être une version semver exacte ; l'étape échoue immédiatement sur un dist-tag comme `latest`, une plage ou un préfixe `^`/`~`. Doit aussi être `0.9.3` ou plus récente ; un épinglage plus ancien fait échouer l'étape |
+| `version` | oui | - | la version de `@verbatra/cli` à lancer, par exemple `0.11.0`. Doit être une version semver exacte ; l'étape échoue immédiatement sur un dist-tag comme `latest`, une plage ou un préfixe `^`/`~`. Doit aussi être `0.9.3` ou plus récente ; un épinglage plus ancien fait échouer l'étape |
 | `command` | non | `"translate"` | quelle commande verbatra lancer : `translate` (écrit les traductions), `check` (lecture seule, sort avec `1` quand une locale a des clés manquantes ou obsolètes), ou `diff` (lecture seule, sort avec `1` quand une locale a des changements en attente). Les commandes en lecture seule n'ont besoin d'aucune clé d'API de fournisseur, elles fonctionnent donc comme contrôle CI sur une pull request venant d'un fork. Toute valeur en dehors de cet ensemble fait échouer l'étape |
 | `config-path` | non | `""` | fichier de config explicite à charger (correspond à `--config`). Le laisser vide exige un fichier de config reconnu directement dans `working-directory` ; l'étape échoue avant d'installer la CLI si aucun n'y est trouvé. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
 | `working-directory` | non | `""` | répertoire depuis lequel résoudre la config et les fichiers de locale (correspond à `--cwd`). La recherche de config est stricte : elle ne regarde que directement dans ce répertoire, jamais dans un répertoire parent ni dans la racine du dépôt. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
@@ -74,7 +74,7 @@ La recherche est stricte : elle ne remonte jamais vers un répertoire parent ni 
 
 ```yaml
       with:
-        version: 0.9.3
+        version: 0.11.0
         working-directory: apps/docs
 ```
 

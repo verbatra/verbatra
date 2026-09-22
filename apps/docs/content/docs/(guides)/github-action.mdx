@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # pins the actively maintained v1 line
         with:
-          version: 0.9.3 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -57,7 +57,7 @@ The action runs the CLI, and the CLI reads the provider's API key only from the 
 
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
-| `version` | yes | - | the `@verbatra/cli` version to run, for example `0.9.3`. Must be an exact semver version; the step fails immediately on a dist-tag such as `latest`, a range, or a `^`/`~` prefix. Must also be `0.9.3` or newer; an older pin fails the step |
+| `version` | yes | - | the `@verbatra/cli` version to run, for example `0.11.0`. Must be an exact semver version; the step fails immediately on a dist-tag such as `latest`, a range, or a `^`/`~` prefix. Must also be `0.9.3` or newer; an older pin fails the step |
 | `command` | no | `"translate"` | which verbatra command to run: `translate` (writes translations), `check` (read-only, exits `1` when any locale has missing or stale keys), or `diff` (read-only, exits `1` when any locale has pending changes). The read-only commands need no provider API key, so they work as a CI gate on a fork pull request. Anything outside this set fails the step |
 | `config-path` | no | `""` | explicit config file to load (maps to `--config`). Leaving it empty requires a recognized config file directly inside `working-directory`; the step fails before installing the CLI when none is found there. See [Config discovery](#config-discovery). |
 | `working-directory` | no | `""` | directory to resolve config and locale files against (maps to `--cwd`). Config lookup is strict: it looks only directly inside this directory, never a parent directory or the repository root. See [Config discovery](#config-discovery). |
@@ -74,7 +74,7 @@ The lookup is strict: it never walks up into a parent directory or the repositor
 
 ```yaml
       with:
-        version: 0.9.3
+        version: 0.11.0
         working-directory: apps/docs
 ```
 

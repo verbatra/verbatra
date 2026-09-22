@@ -178,7 +178,7 @@ Most local inference servers need no API key at all, so `openai-compatible` reso
 2. **`OPENAI_COMPATIBLE_API_KEY`**, a convention environment variable, read when `apiKeyEnvVar` is not set. If it is set and non-empty, verbatra uses it; if not, verbatra moves on without an error.
 3. **The placeholder `"local"`**, sent when neither of the above resolves anything. This is a fixed, non-secret string, not a real key, and is exactly what makes a keyless local server work with zero configuration.
 
-`apiKeyEnvVar` can never name `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `DEEPL_API_KEY`: config validation rejects that outright, so a config cannot point this provider at a hosted provider's key by name. The client also never reads `OPENAI_API_KEY` itself and always passes an explicit key value to the underlying SDK, so a hosted key can never reach a custom `baseUrl`.
+`apiKeyEnvVar` can never name `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`: config validation rejects that outright, so a config cannot point this provider at a hosted provider's key by name. The client also never reads `OPENAI_API_KEY` itself and always passes an explicit key value to the underlying SDK, so a hosted key can never reach a custom `baseUrl`.
 
 <Callout type="warn" title="A real key over plaintext http travels in cleartext">
 verbatra allows plaintext `http://` to any host, including a LAN address, with no restriction beyond the http or https scheme. This is intentional and safe in the common keyless case: nothing secret is on the wire.

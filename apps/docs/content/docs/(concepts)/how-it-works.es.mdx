@@ -42,6 +42,12 @@ destino y del bloqueo, y nada más.
 
 ## Envía lotes al proveedor
 
+Antes de enviar nada, cada candidata se busca en la caché local de memoria de traducción
+(`verbatra.cache.json`). Una traducción guardada para el mismo texto de origen, bajo la misma
+huella de proveedor, modelo, tono y glosario, se reutiliza tal cual y nunca llega al proveedor;
+solo siguen adelante los fallos de caché. Consulta [La caché](/docs/the-cache) para ver cómo se
+indexan las entradas y cuándo dejan de coincidir.
+
 De las candidatas que llegan al proveedor, las que comparten el mismo contenido de origen
 se agrupan primero, así que ese texto cuesta una solicitud por locale en lugar de una por clave; el
 valor que vuelve se copia a las demás claves de su grupo y se vuelve a comprobar contra el origen de
@@ -65,8 +71,8 @@ comprobado antes de cualquier otra cosa:
 - Si tras eso sigue sin resolverse, la clave cuenta como no traducida en esta ejecución y se
   reintenta en la siguiente.
 
-DeepL es una API de traducción automática sin esta capa de respuesta, pero sus resultados pasan
-por las mismas comprobaciones de integridad de abajo.
+DeepL y Google Cloud Translation son APIs de traducción automática sin esta capa de respuesta, pero
+sus resultados pasan por las mismas comprobaciones de integridad de abajo.
 
 ## Ejecuta la puerta de integridad
 

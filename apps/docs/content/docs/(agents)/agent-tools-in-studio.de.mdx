@@ -63,7 +63,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only 
 
 ### Schreib-Tools (zwei)
 
-`verbatra_translation_editEntry` bearbeitet den Wert eines Locales an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf.
+`verbatra_translation_editEntry` bearbeitet den Wert eines Locales an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dasselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht um einen Eintrag wetteifern.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -76,7 +76,7 @@ Diese rufen einen Übersetzungs-Provider auf und werden nur registriert, wenn St
 - `verbatra_translation_retranslateEntry`: übersetzt einen Key und ein Locale neu.
 - `verbatra_translation_translatePending`: übersetzt alles derzeit Ausstehende.
 
-Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
+Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). `verbatra_translation_retranslateEntry` trägt zusätzlich dieselbe Sperre pro Eintrag wie das Bearbeiten: ein gleichzeitiger zweiter Aufruf für dasselbe Locale und denselben Key wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt. Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
 
 ## Der Degraded-Mode-Hinweis
 

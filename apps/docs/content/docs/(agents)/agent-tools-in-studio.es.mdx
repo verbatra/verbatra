@@ -63,7 +63,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 
 ### Herramientas de escritura (dos)
 
-`verbatra_translation_editEntry` edita en el sitio el valor de un locale. Pasa por la misma puerta de integridad que cualquier otra escritura de verbatra: un valor que no supera alguna de sus comprobaciones se rechaza y no se escribe nada. Una edición aceptada escribe el archivo de locale y avanza la entrada del bloqueo de esa clave, exactamente como lo hace una edición desde el panel. Editar no necesita ningún flag de gasto; toca solo tus archivos locales y nunca llama a un proveedor.
+`verbatra_translation_editEntry` edita en el sitio el valor de un locale. Pasa por la misma puerta de integridad que cualquier otra escritura de verbatra: un valor que no supera alguna de sus comprobaciones se rechaza y no se escribe nada. Una edición aceptada escribe el archivo de locale y avanza la entrada del bloqueo de esa clave, exactamente como lo hace una edición desde el panel. Editar no necesita ningún flag de gasto; toca solo tus archivos locales y nunca llama a un proveedor, pero no está sin controlar: está limitada a 20 ediciones por minuto deslizante, y una segunda llamada para el mismo locale y la misma clave mientras otra sigue en curso se rechaza con `ALREADY_IN_PROGRESS` (HTTP 409) en lugar de encolarse, así que dos llamadores no pueden competir por una entrada.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -76,7 +76,7 @@ Estas llaman a un proveedor de traducción y se registran solo cuando Studio se 
 - `verbatra_translation_retranslateEntry`: retraduce una clave y un locale.
 - `verbatra_translation_translatePending`: traduce todo lo que esté pendiente ahora mismo.
 
-Ambas pasan sus resultados por la puerta de integridad antes de que nada llegue al disco, y ambas están sujetas a los límites de tasa que Studio ya tiene (retraducción a 20 por minuto deslizante, traducción de lo pendiente a 5 por minuto deslizante más un guardia de concurrencia única). Sin `--allow-spend`, están ausentes del conjunto de herramientas y el servidor ni siquiera registra los endpoints subyacentes, así que un gasto que no concediste al arrancar no se puede alcanzar desde un agente.
+Ambas pasan sus resultados por la puerta de integridad antes de que nada llegue al disco, y ambas están sujetas a los límites de tasa que Studio ya tiene (retraducción a 20 por minuto deslizante, traducción de lo pendiente a 5 por minuto deslizante más un guardia de concurrencia única). `verbatra_translation_retranslateEntry` lleva además el mismo guardia por entrada que la edición: una segunda llamada concurrente para el mismo locale y la misma clave se rechaza con `ALREADY_IN_PROGRESS` (HTTP 409). Sin `--allow-spend`, están ausentes del conjunto de herramientas y el servidor ni siquiera registra los endpoints subyacentes, así que un gasto que no concediste al arrancar no se puede alcanzar desde un agente.
 
 ## El aviso de modo degradado
 

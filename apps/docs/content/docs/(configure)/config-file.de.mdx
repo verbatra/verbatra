@@ -83,7 +83,7 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
 ### provider
 
-Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl` oder `openai-compatible`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert.
+Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` oder `openai-compatible`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert.
 
 ### glossary
 
@@ -304,7 +304,7 @@ Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber a
 
 ## Das Arbeitsverzeichnis und .env
 
-Führe verbatra aus deinem Projektstamm aus, oder lass `--cwd` darauf zeigen. Das Arbeitsverzeichnis ist der eine Anker für alles, was verbatra auflöst: Die Konfigurationssuche startet dort und läuft aufwärts, `.env.local` und `.env` werden von dort für `translate`, `watch`, `doctor` und `studio` geladen, und jeder Locale-Dateipfad wird dagegen aufgelöst. Alle drei am selben Ort zu halten ist es, was ein schlichtes `verbatra translate` funktionieren lässt.
+Führe verbatra aus deinem Projektstamm aus, oder lass `--cwd` darauf zeigen. Das Arbeitsverzeichnis ist der eine Anker für alles, was verbatra auflöst: Die Konfigurationssuche startet dort und läuft aufwärts, `.env.local` und `.env` werden von dort für `translate`, `watch`, `doctor`, `studio` und `mcp` geladen, und jeder Locale-Dateipfad wird dagegen aufgelöst. Alle drei am selben Ort zu halten ist es, was ein schlichtes `verbatra translate` funktionieren lässt.
 
 Die Präzedenz der Umgebung ist, höchste zuerst: eine Variable, die schon in deiner echten Umgebung gesetzt ist, dann `.env.local`, dann `.env`. Eine bereits vorhandene Variable wird nie überschrieben.
 

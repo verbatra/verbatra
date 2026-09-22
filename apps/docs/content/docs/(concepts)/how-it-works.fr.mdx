@@ -42,6 +42,12 @@ supprimées du fichier cible et du fichier de verrouillage, et rien d'autre.
 
 ## Envoyer par lots au fournisseur
 
+Avant tout envoi, chaque candidate est cherchée dans le cache local de mémoire de traduction
+(`verbatra.cache.json`). Une traduction stockée pour le même texte source, sous la même empreinte
+de fournisseur, modèle, ton et glossaire, est réutilisée telle quelle et n'atteint jamais le
+fournisseur ; seules les absences continuent. Voir [Le cache](/docs/the-cache) pour savoir comment
+les entrées sont indexées et quand elles cessent de correspondre.
+
 Parmi les candidates qui atteignent le fournisseur, celles qui partagent le même contenu source
 sont d'abord regroupées, pour que ce texte coûte une requête par locale plutôt
 qu'une par clé ; la valeur renvoyée est copiée sur les autres clés de son groupe et revérifiée face
@@ -64,8 +70,8 @@ vérifié avant toute autre chose :
 - Si elle reste non résolue après ça, la clé compte comme non traduite pour cette exécution et est
   retentée à la suivante.
 
-DeepL est une API de traduction automatique sans cette couche de réponse, mais ses résultats
-passent par les mêmes contrôles d'intégrité ci-dessous.
+DeepL et Google Cloud Translation sont des API de traduction automatique sans cette couche de
+réponse, mais leurs résultats passent par les mêmes contrôles d'intégrité ci-dessous.
 
 ## Exécuter la barrière d'intégrité
 

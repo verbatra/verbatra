@@ -121,8 +121,8 @@ está definida o está vacía. Los mensajes de error nombran la variable pero nu
 de una clave, y las claves nunca se leen de la configuración ni de los argumentos de la CLI.
 
 **Solución**: define la variable que nombra el mensaje y confírmala con `verbatra doctor`, que
-comprueba la variable solo por su nombre, sin leer su valor. `translate`, `watch`, `doctor` y
-`studio` cargan
+comprueba la variable solo por su nombre, sin leer su valor. `translate`, `watch`, `doctor`,
+`studio` y `mcp` cargan
 `.env` y `.env.local` desde el directorio de trabajo; el SDK no, así que en tu propio script usa
 `node --env-file=.env` o exporta la variable. `openai-compatible` solo levanta esto cuando la configuración nombra un `apiKeyEnvVar`
 que no está definido; sin uno, recurre a un marcador sin clave para servidores locales.

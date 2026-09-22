@@ -84,6 +84,8 @@ Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando
 
 `translation.retranslateEntry` y `translation.translatePending` solo se exponen cuando el servidor se inició con `--allow-spend`. El input de cada herramienta, y el output de cada herramienta cuya forma de resultado es pequeña y cerrada, es un JSON Schema derivado del mismo esquema zod contra el que el servidor valida la llamada. Llamar a un nombre de herramienta desconocido es un error a nivel de protocolo; llamar a una herramienta conocida con un input que falla la validación devuelve un resultado que nombra el campo problemático, así un agente puede leer el fallo y autocorregirse.
 
+Los dos escritores de entradas, `translation.editEntry` y `translation.retranslateEntry`, están además protegidos por locale y clave: mientras una llamada para una entrada sigue en curso, una segunda llamada que nombre el mismo `locale` y la misma `key` se rechaza con `ALREADY_IN_PROGRESS` en lugar de encolarse o ejecutarse en paralelo, así dos agentes (o un agente que reintenta) no pueden competir por la misma entrada. El guardia es por entrada, no por herramienta, así que las llamadas para otras claves u otros locales siguen ejecutándose a la vez.
+
 ## Redacción de secretos
 
 Cada resultado de herramienta y cada línea de log pasa por la misma redacción de secretos que usa Studio: un valor con forma de clave API de proveedor, o el valor exacto actual de una variable de entorno de proveedor configurada, se reemplaza por `[REDACTED]` antes de llegar siquiera al cliente o a stderr. `glossary.get` y `glossary.write` también informan qué términos se redactaron, así puedes distinguir un marcador de posición depurado del texto real y nunca reescribirlo.

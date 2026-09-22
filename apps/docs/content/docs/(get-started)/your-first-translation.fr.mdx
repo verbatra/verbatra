@@ -24,7 +24,7 @@ npx verbatra init --provider gemini
 
 Avec un terminal attaché, `init` demande tout ce que tu n'as pas passé en option, chaque question avec une valeur par défaut :
 
-- le fournisseur : `anthropic`, `openai`, `gemini` ou `deepl` (option `--provider`, la seule entrée sans défaut)
+- le fournisseur : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` (option `--provider`, la seule entrée sans défaut)
 - la locale source, par défaut `en` (`--source`)
 - les locales cibles, séparées par des virgules, par défaut `de` (`--targets`)
 - le motif des fichiers de locale, par défaut `locales/{locale}.json` (`--path`)
@@ -106,7 +106,7 @@ Les clés viennent de l'environnement, jamais du fichier de configuration. Chaqu
 cp .env.example .env
 ```
 
-Puis ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. `translate`, `watch`, `doctor` et `studio` chargent `.env.local` puis `.env` depuis le répertoire de travail avant une exécution, et une variable déjà définie dans ton shell gagne toujours. Voir [Fournisseurs](/docs/providers) pour la variable de chaque fournisseur.
+Puis ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant une exécution, et une variable déjà définie dans ton shell gagne toujours. Voir [Fournisseurs](/docs/providers) pour la variable de chaque fournisseur.
 
 <Callout title="Pas encore de clé ? Gemini a une offre gratuite.">
 L'API de Gemini a une offre réellement gratuite, ce qui en fait la façon la moins chère d'essayer verbatra. Récupère une clé sur [Google AI Studio](https://aistudio.google.com/apikey) et définis `GEMINI_API_KEY`. L'offre gratuite a des limites de requêtes par minute et par jour, donc étale une grosse première traduction.

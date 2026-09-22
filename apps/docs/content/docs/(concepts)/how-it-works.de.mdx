@@ -42,6 +42,13 @@ entfernt, und nichts anderes.
 
 ## In Batches an den Provider
 
+Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache
+(`verbatra.cache.json`) nachgeschlagen. Eine gespeicherte Übersetzung für denselben Quelltext,
+unter demselben Fingerabdruck aus Provider, Modell, Tonfall und Glossar, wird unverändert
+wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Siehe
+[Der Cache](/docs/the-cache) dafür, unter welchem Schlüssel Einträge abgelegt werden und wann sie
+nicht mehr passen.
+
 Von den Kandidaten, die den Provider erreichen, werden zuerst die mit demselben Quellinhalt
 gruppiert, damit dieser Text eine Anfrage pro Locale kostet statt eine pro Key; der zurückkommende
 Wert wird auf die anderen Keys seiner Gruppe kopiert und im Integritätsschritt weiter unten gegen
@@ -65,8 +72,8 @@ irgendetwas anderes passiert:
 - Ist er danach immer noch ungeklärt, gilt der Key in diesem Lauf als nicht übersetzt und wird
   beim nächsten Lauf erneut versucht.
 
-DeepL ist eine Maschinenübersetzungs-API ohne diese Antwortschicht, aber seine Ergebnisse
-durchlaufen dieselben Integritätsprüfungen unten.
+DeepL und Google Cloud Translation sind Maschinenübersetzungs-APIs ohne diese Antwortschicht, aber
+ihre Ergebnisse durchlaufen dieselben Integritätsprüfungen unten.
 
 ## Das Integritäts-Gate ausführen
 

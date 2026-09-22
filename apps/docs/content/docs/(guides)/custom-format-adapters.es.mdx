@@ -32,6 +32,8 @@ Ningún nombre de formato integrado contiene dos puntos, así que un identificad
 
 Una configuración que nombre un formato que no es ni un nombre integrado ni un identificador `custom:` bien formado se sigue rechazando al cargar. Lo que cambia es cuándo se comprueba el adaptador en sí: un nombre integrado se comprueba en tiempo de compilación, mientras que de un identificador `custom:` solo se comprueba la forma, porque el adaptador que hay detrás vive en tu paquete. Si nadie aporta un adaptador para él, la ejecución falla con un `UNKNOWN_FORMAT` estructurado que nombra el formato, en lugar de no hacer nada.
 
+El identificador sigue viajando sin cambios. La instantánea de proyecto de Studio y la herramienta `project.snapshot` del servidor MCP devuelven ambas el campo `format` de la configuración cargada tal cual, así que un proyecto con un adaptador de terceros muestra ahí `custom:toml` en lugar de un nombre integrado o un hueco, y un agente que se orienta puede distinguir los dos casos.
+
 ## Construir el adaptador
 
 No implementes el contrato del adaptador a mano. Dos factorías hacen por ti la lectura acotada, la escritura atómica, la detección por extensión y el manejo estructurado de errores, y te dejan solo el parseo propio de tu formato.

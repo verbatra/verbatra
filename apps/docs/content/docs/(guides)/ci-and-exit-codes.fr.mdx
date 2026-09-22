@@ -47,7 +47,7 @@ verbatra diff
 
 Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux les clés exactes derrière la dérive, par exemple pour les poster dans un commentaire de pull request. Les clés orphelines (dans un fichier cible mais disparues de la source) apparaissent dans la sortie de `diff` mais ne déclenchent jamais le code de sortie `1` à elles seules.
 
-Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch` et `export` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur à débit limité.
+Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur à débit limité.
 
 ## Sortie JSON
 
@@ -146,7 +146,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value

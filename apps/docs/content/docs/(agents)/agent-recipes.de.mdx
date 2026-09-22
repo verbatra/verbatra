@@ -191,7 +191,7 @@ Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das S
 
 ## `watch` ist ein Strom, keine einzelne Ausgabe
 
-`watch --json` ist von anderer Art als die übrigen acht. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
+`watch --json` ist von anderer Art als die übrigen zehn. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
 
 Roh, zwei Läufe einer Sitzung (der zweite, nachdem die Quelldatei mit einem Syntaxfehler gespeichert wurde):
 
