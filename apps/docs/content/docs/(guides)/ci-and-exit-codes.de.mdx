@@ -25,7 +25,7 @@ Einige Randfälle, die du kennen solltest:
 
 <AvailableFrom version="0.9.0" />
 
-- Ein **unvollständiges** Locale zählt als Fehlschlag. Das heißt, die Datei wurde geschrieben, aber einige Keys fehlen weiterhin, meist weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat. Es endet mit `1` genau wie ein fehlgeschlagenes Locale, denn ein halb übersetztes Locale auf der Platte ist kein Zustand, den eine Pipeline durchwinken sollte. Um beide auseinanderzuhalten, lies `partial` in der Zusammenfassung.
+- Ein **unvollständiges** Locale zählt als Fehlschlag. Das heißt, die Datei wurde geschrieben, aber einige Keys fehlen weiterhin, meist weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat. Es endet mit `1` genau wie ein fehlgeschlagenes Locale, denn ein halb übersetztes Locale auf der Platte ist kein Zustand, den eine Pipeline durchwinken sollte. Um beide auseinanderzuhalten, lies `partial` in der Zusammenfassung. Ein fehlgeschlagener Sub-Batch hinterlässt am Locale einen Hinweis `SUB_BATCH_FAILED`, der den Fehlercode des Providers nennt, oder `PROVIDER_CALL_FAILED`, wenn der Fehlschlag kein strukturierter Provider-Fehler war.
 - Eine **kaputte Lock-Datei** ist bei `translate` wie bei `import` ein Fehler des gesamten Laufs, nie ein einzelnes fehlgeschlagenes Locale. Sie ist eine einzige gemeinsame Datei, deshalb bricht ein Lauf, dessen Lock-Datei mittendrin kaputtgeht, mit `2` ab, statt die restlichen Locales weiter abzuarbeiten. Was vor dem Abbruch geschrieben wurde, bleibt auf der Platte: Repariere die Lock-Datei und starte den Befehl erneut.
 - Ein einzelner Interrupt ist ein sauberer Stopp, und alle drei langlaufenden Befehle (`watch`, `studio` und `mcp`) enden dabei mit `0`. Gehe darüber hinaus nicht davon aus, dass sie sich gleich verhalten: Scheitert der Stopp selbst, endet `watch` mit `2`, während `studio` und `mcp` mit `1` enden.
 - Ein fehlgeschlagener Lauf während `watch` erscheint als Datensatz im Ausgabestrom, nie als Exit-Code ungleich null.
@@ -69,6 +69,23 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 
 `command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war.
 
+Ein Verwendungsfehler trägt einen dieser Codes:
+
+| Code | Ausgelöst, wenn |
+| --- | --- |
+| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann |
+| `INVALID_LOCALES` | `--locales` angegeben wurde, aber kein Locale auflistet |
+| `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
+| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt |
+| `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
+| `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
+| `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
+| `INVALID_CONCURRENCY` | `--concurrency` keine ganze Zahl zwischen 1 und 100 ist |
+| `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
+
+`CLI_ERROR` ist der Ausweich-Code für einen Fehlschlag, der keinen eigenen Code mitbrachte.
+
 Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Zwei Klassen von Fehlern folgen dieser Grammatik nicht, weil sie auftreten, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und `init` weist einen fehlenden Provider mit `verbatra: --provider is required (...)` ab, mit Präfix, aber ohne Code. Beide enden mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst greift ein Parser, der allein auf die strukturierte Grammatik setzt, stillschweigend bei keinem von beiden. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
 
 Der Rest dieses Abschnitts beschreibt das `result`, das jeder Befehl in einen erfolgreichen Envelope legt.
@@ -92,7 +109,7 @@ Das `estimate`-Objekt trägt `keys`, `requests`, die Abrechnungsmenge, die der P
 
 Jedes `LocaleSummary` trägt die Key-Listen pro Locale (übersetzt, unverändert, verwaist, zurückgehalten, für Review markiert und mehr); die vollständige Anatomie steht in der [SDK-Referenz](/docs/sdk).
 
-`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: Er stoppt weder den Watcher noch ändert er den Exit-Code.
+`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung: dem eigenen Code des Fehlschlags, wo er einen hatte, und sonst `WATCH_RUN_FAILED`. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: Er stoppt weder den Watcher noch ändert er den Exit-Code.
 
 `verbatra check --json` trägt ein Statusdokument. Das oberste `inSync` ist genau dann true, wenn der Befehl mit `0` endet:
 

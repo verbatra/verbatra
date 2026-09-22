@@ -55,7 +55,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_glossary_get` | das aufgelöste Glossar |
 | `verbatra_lock_state` | der Zustand der Lock-Datei |
 | `verbatra_history_list` | jüngste Commit-Historie der Locale-Dateien |
-| `verbatra_key_integrity` | Platzhalter- und ICU-Integrität für einen Key |
+| `verbatra_key_integrity` | Platzhalter-, Inline-Markup- und ICU-Integrität für einen Key |
 | `verbatra_review_queue` | die Review-Warteschlange |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
@@ -77,6 +77,15 @@ Diese rufen einen Übersetzungs-Provider auf und werden nur registriert, wenn St
 - `verbatra_translation_translatePending`: übersetzt alles derzeit Ausstehende.
 
 Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). `verbatra_translation_retranslateEntry` trägt zusätzlich dieselbe Sperre pro Eintrag wie das Bearbeiten: ein gleichzeitiger zweiter Aufruf für dieselbe Locale und denselben Key wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt. Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
+
+### Wenn ein Aufruf fehlschlägt
+
+Jedes Tool liefert den RPC-Envelope des Dashboards selbst als JSON, ein fehlgeschlagener Aufruf lautet also `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Domänen-Codes, die das SDK meldet (eine Ablehnung durch die Integritätsprüfungen, ein unbekanntes Locale oder ein unbekannter Key), `METHOD_RATE_LIMITED` für einen Aufruf über seinem Ratenlimit und der oben beschriebenen Ablehnung mit `ALREADY_IN_PROGRESS` stammen die Codes aus der RPC-Schicht selbst:
+
+- `REQUEST_INVALID`: Der Request-Body war kein JSON-Objekt, das eine Methode nennt, oder die Antwort des Servers war kein Envelope, den der Tab lesen konnte.
+- `METHOD_UNKNOWN`: Die Methode ist keine, die Studio kennt, oder sie ist in dieser Sitzung nicht registriert, wie eine Ausgaben-Methode ohne `--allow-spend`.
+- `PARAMS_INVALID`: Die Parameter haben die Validierung nicht bestanden; der Fehler trägt eine `issues`-Liste, die jedes fehlerhafte Feld nennt.
+- `SESSION_EXPIRED`: Der Server akzeptiert das Sitzungscookie des Tabs nicht mehr, meist weil Studio mit einem neuen Token neu gestartet wurde. Der Tab ruft den Server nicht mehr auf und zeigt den Bildschirm Session expired; öffne die URL, die das laufende Studio ausgegeben hat, um eine neue Sitzung zu starten.
 
 ## Der Degraded-Mode-Hinweis
 

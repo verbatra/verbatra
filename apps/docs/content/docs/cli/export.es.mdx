@@ -54,6 +54,8 @@ Cada exportación delimitada escribe además un manifiesto oculto en el director
 
 `export` no tiene modo de fallo por locale, así que nunca sale con `1`.
 
+Un locale de destino que no puede dar nombre a su hoja o a su archivo detiene la exportación con `WORKBOOK_INVALID`. El nombre de una hoja xlsx debe tener de 1 a 31 caracteres, no debe contener ninguno de `: \ / ? * [ ]` y no debe coincidir con `Instructions` ni con el nombre de hoja de otro locale de destino, sin distinguir mayúsculas. El nombre de un archivo `csv` o `tsv` no debe estar vacío, ni ser `.` o `..`, y no debe contener un separador de ruta, un carácter de control ni ninguno de `: * ? " < > |`. El mismo código cubre un libro que no se pudo serializar.
+
 ## Relacionado
 
 - [Traducción humana](/docs/manual-translation) cubre la disposición del libro, la variante CSV y TSV, las columnas de revisión y el ciclo completo de ida y vuelta.

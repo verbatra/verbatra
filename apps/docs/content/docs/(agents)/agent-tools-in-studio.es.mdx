@@ -55,7 +55,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_glossary_get` | el glosario resuelto |
 | `verbatra_lock_state` | el estado del archivo de bloqueo |
 | `verbatra_history_list` | historial reciente de commits de los archivos de locale |
-| `verbatra_key_integrity` | integridad de placeholders e ICU para una clave |
+| `verbatra_key_integrity` | integridad de placeholders, marcado en línea e ICU para una clave |
 | `verbatra_review_queue` | la cola de revisión |
 | `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
 | `verbatra_key_value` | los valores de origen y destino para una clave y un locale |
@@ -77,6 +77,15 @@ Estas llaman a un proveedor de traducción y se registran solo cuando Studio se 
 - `verbatra_translation_translatePending`: traduce todo lo que esté pendiente ahora mismo.
 
 Ambas pasan sus resultados por la puerta de integridad antes de que nada llegue al disco, y ambas están sujetas a los límites de tasa que Studio ya tiene (retraducción a 20 por minuto deslizante, traducción de lo pendiente a 5 por minuto deslizante más una protección de concurrencia única). `verbatra_translation_retranslateEntry` lleva además la misma protección por entrada que la edición: una segunda llamada concurrente para el mismo locale y la misma clave se rechaza con `ALREADY_IN_PROGRESS` (HTTP 409). Sin `--allow-spend`, están ausentes del conjunto de herramientas y el servidor ni siquiera registra los endpoints subyacentes, así que un gasto que no concediste al arrancar no se puede alcanzar desde un agente.
+
+### Cuando una llamada falla
+
+Cada herramienta devuelve como JSON el propio envoltorio RPC del panel, así que una llamada fallida se lee como `{ "ok": false, "error": { "code": ..., "message": ... } }`. Además de los códigos de dominio que informa el SDK (un rechazo de integridad, un locale o una clave desconocidos), `METHOD_RATE_LIMITED` para una llamada que supera su límite de tasa y el rechazo `ALREADY_IN_PROGRESS` de arriba, los códigos vienen de la propia capa RPC:
+
+- `REQUEST_INVALID`: el cuerpo de la petición no era un objeto JSON que nombrara un método, o la respuesta del servidor no era un envoltorio que la pestaña pudiera leer.
+- `METHOD_UNKNOWN`: el método no es uno que Studio conozca, o no está registrado en esta sesión, como le pasa a un método de gasto sin `--allow-spend`.
+- `PARAMS_INVALID`: los parámetros no superaron la validación; el error lleva una lista `issues` que nombra cada campo que falla.
+- `SESSION_EXPIRED`: el servidor ya no acepta la cookie de sesión de la pestaña, normalmente porque Studio se reinició con un token nuevo. La pestaña deja de llamar al servidor y muestra la pantalla Session expired; abre la URL que imprimió el Studio en ejecución para empezar una sesión nueva.
 
 ## El aviso de modo degradado
 

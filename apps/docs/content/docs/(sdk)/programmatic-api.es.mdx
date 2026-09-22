@@ -104,6 +104,24 @@ gastar más por cada motivo que nombra `caveats`. `resolveDryRun` es el único s
 la regla de que `estimate` implica `dryRun`, así que llámalo en lugar de repetirla. Para el método
 detrás de los números, consulta [Estimar el coste](/docs/estimating-cost).
 
+`caveats` nunca está vacío. Sus códigos (`EstimateCaveatCode`) son:
+
+- `CACHE_NOT_CONSULTED`: no se lee la memoria de traducción, así que las claves que una ejecución
+  real serviría desde la caché se cuentan igualmente. Se aplica a toda estimación.
+- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: una ejecución real envía un representante por cada cadena
+  de origen idéntica; la estimación cuenta cada clave. Se aplica a toda estimación.
+- `TRANSPORT_RETRIES_NOT_COUNTED`: se cuenta una llamada facturable por cada petición planificada,
+  aunque los SDK del proveedor pueden reintentar por debajo una llamada fallida y un intento
+  reintentado puede facturarse igualmente. Se aplica a toda estimación.
+- `TRANSLATION_LENGTH_IS_ESTIMATED`: la respuesta se dimensiona a partir del origen más un margen
+  de expansión fijo, así que un idioma de destino que se alarga más informa de más tokens de
+  completado. Solo proveedores que facturan por tokens.
+- `TOKEN_COUNT_IS_HEURISTIC`: los tokens se derivan del número de caracteres, no del tokenizador
+  propio del proveedor. Solo proveedores que facturan por tokens.
+- `REPAIR_REQUESTS_NOT_COUNTED`: no se cuentan la ronda de reparación para las claves que volvieron
+  faltantes ni el reintento en mitades de una respuesta cortada. Solo proveedores que facturan por
+  tokens.
+
 ## Comprueba en CI sin escribir
 
 `check` lee y compara sin llamar a un proveedor ni tocar ningún archivo, y su indicador `inSync` es true

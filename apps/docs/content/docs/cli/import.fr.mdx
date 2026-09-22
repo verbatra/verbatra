@@ -35,7 +35,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 verbatra import handoff --format csv
 ```
 
-Avec `csv` ou `tsv`, la locale vient du nom du fichier et non d'un nom de feuille : garde donc chaque fichier nommé exactement comme il a été exporté. Une locale cible configurée sans fichier est rapportée comme l'échec de cette locale, jamais ignorée en silence.
+Avec `csv` ou `tsv`, la locale vient du nom du fichier et non d'un nom de feuille : garde donc chaque fichier nommé exactement comme il a été exporté. Une locale cible configurée sans fichier (ou, dans un classeur, sans feuille) est rapportée comme l'échec de cette locale avec `WORKBOOK_SHEET_MISSING`, jamais ignorée en silence.
 
 Un fichier laissé par un export antérieur avec une sélection `--locales` plus large n'est jamais appliqué. L'import rapproche le répertoire du manifeste que l'export le plus récent y a écrit et rapporte une telle locale en échec avec `HANDOFF_FILE_STALE`, si bien qu'une traduction périmée ne peut pas se glisser à nouveau sans qu'on la voie. Réexporte cette locale pour rafraîchir son fichier, ou supprime le fichier. Un répertoire sans manifeste lisible (assemblé à la main, ou ayant perdu le fichier caché en passant par une archive) est lu comme il l'a toujours été, chaque fichier présent est importé. De même, un fichier unique nommé directement est pris tel quel.
 
@@ -46,6 +46,8 @@ Un fichier laissé par un export antérieur avec une sélection `--locales` plus
 | `0` | chaque locale cible est ressortie complète |
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, classeur, format ou verrou) ou une erreur d'utilisation |
+
+Une remise surdimensionnée ou impossible à analyser (par exemple, un fichier qui n'est pas un conteneur xlsx lisible) est une erreur globale `SOURCE_INVALID` dont le message dit ce qui n'allait pas. Une seule ligne illisible, elle, ne l'est pas : elle est rapportée comme une ligne mal formée et le reste de la locale est tout de même importé.
 
 <AvailableFrom version="0.9.0" />
 

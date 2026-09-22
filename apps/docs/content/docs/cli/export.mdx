@@ -54,6 +54,8 @@ Each delimited export also writes a hidden manifest into the directory, `.verbat
 
 `export` has no per-locale failure mode, so it never exits `1`.
 
+A target locale that cannot name its sheet or file stops the export with `WORKBOOK_INVALID`. An xlsx sheet name must be 1 to 31 characters, must not contain any of `: \ / ? * [ ]`, and must not match `Instructions` or another target locale's sheet name, ignoring case. A `csv` or `tsv` file name must not be empty, `.` or `..`, and must not contain a path separator, a control character, or any of `: * ? " < > |`. The same code covers a workbook that could not be serialized.
+
 ## Related
 
 - [Manual translation](/docs/manual-translation) covers the workbook layout, the CSV and TSV variant, the review columns, and the full round-trip.

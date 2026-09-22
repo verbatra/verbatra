@@ -79,7 +79,7 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
 
-`register` devuelve la registry, así que las llamadas se encadenan. Lanza un `AdapterError` con código `DUPLICATE_FORMAT` si la registry ya tiene ese formato, de modo que dos plugins que eligieron el mismo nombre fallan de forma ruidosa al arrancar en lugar de que uno gane en silencio.
+`register` devuelve la registry, así que las llamadas se encadenan. Lanza un `AdapterError` con código `DUPLICATE_FORMAT` si la registry ya tiene ese formato, de modo que dos plugins que eligieron el mismo nombre fallan de forma ruidosa al arrancar en lugar de que uno gane en silencio. Un adaptador cuyo formato empieza por `custom:` pero no es un identificador bien formado (por ejemplo `custom:TOML` o `custom:my_format`) se rechaza con el código `INVALID_FORMAT_ID` en lugar de registrarse.
 
 ## Cómo se informan tus fallos
 

@@ -35,7 +35,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 verbatra import handoff --format csv
 ```
 
-Con `csv` o `tsv` el locale viene del nombre del archivo, no del nombre de una hoja, así que mantén cada archivo con el nombre exacto con el que se exportó. Un locale de destino configurado sin archivo se informa como fallo de ese locale, nunca se omite en silencio.
+Con `csv` o `tsv` el locale viene del nombre del archivo, no del nombre de una hoja, así que mantén cada archivo con el nombre exacto con el que se exportó. Un locale de destino configurado sin archivo (o, en un libro, sin hoja) se informa como fallo de ese locale con `WORKBOOK_SHEET_MISSING`, nunca se omite en silencio.
 
 Un archivo que quedó de una exportación anterior con una selección `--locales` más amplia nunca se aplica. La importación coteja el directorio con el manifiesto que escribió allí la exportación más reciente e informa ese locale como fallido con `HANDOFF_FILE_STALE`, de modo que una traducción desactualizada no puede colarse sin que nadie lo note. Vuelve a exportar ese locale para refrescar su archivo, o borra el archivo. Un directorio sin manifiesto legible (montado a mano, o que perdió el archivo oculto al pasar por un archivo comprimido) se lee como siempre: se importa todo archivo presente. Nombrar un único archivo directamente también se toma al pie de la letra.
 
@@ -46,6 +46,8 @@ Un archivo que quedó de una exportación anterior con una selección `--locales
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, libro, formato o bloqueo) o un error de uso |
+
+Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, un archivo que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba. Una sola fila ilegible no lo es: se informa como fila mal formada y el resto del locale se importa igualmente.
 
 <AvailableFrom version="0.9.0" />
 

@@ -47,7 +47,7 @@ Open the printed URL; the token is required.
 
 - **Translations**: per-locale status, the diff, and lock drift, down to a per-key detail view with the source value and every target's current translation.
 - **Review**: the needs-review queue of flagged translations, with in-place editing.
-- **Activity**: a live feed of locale-file changes, plus the last run's token usage and budget.
+- **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
 Every page refreshes live over a server-sent event stream as your locale files change; only a `verbatra.config.ts` change needs a manual restart. Studio follows its own theme preference, independently of any site you opened it from.
@@ -64,7 +64,7 @@ Actions that spend provider budget, retranslating a key and translating every pe
 
 - The server binds to `127.0.0.1` only; it is never reachable from the network.
 - The `Host` header must be exactly the bound `127.0.0.1:PORT`, and a present `Origin` on a state-changing request must match it.
-- The printed URL's bootstrap token is accepted only on the root `GET`, where it is redeemed once for an HttpOnly, `SameSite=Strict` session cookie that every later request, including `POST /rpc`, authenticates on.
+- The printed URL's bootstrap token is accepted only as `?token=` on the root `GET`, where it sets an HttpOnly, `SameSite=Strict` session cookie and redirects to `/`; every later request, including `POST /rpc`, authenticates on that cookie. The token is not single-use: visiting the URL again sets the cookie again, so keep the URL private while Studio runs.
 - The write and spend RPC methods are additionally rate limited per process.
 - API keys are read only from environment variables, never from the config, and never reach the browser.
 

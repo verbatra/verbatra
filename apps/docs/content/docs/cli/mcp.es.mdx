@@ -19,7 +19,12 @@ verbatra mcp [flags]
 verbatra-mcp [flags]
 ```
 
-Ambas formas aceptan los mismos flags y arrancan el mismo servidor.
+Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo que lo rodea difiere:
+
+- `verbatra mcp` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de arrancar; `verbatra-mcp` no carga ninguno de los dos, así que pasa cualquier clave de API en el entorno con el que lo lanza el cliente MCP.
+- `verbatra mcp` rechaza un flag desconocido como error de uso y sale con `2`; `verbatra-mcp` ignora los flags desconocidos.
+- Un error de arranque o de configuración sale con `2` desde `verbatra mcp` y con `1` desde `verbatra-mcp`.
+- `verbatra mcp` se detiene a la fuerza con el código de salida `130` ante una segunda interrupción durante el apagado; `verbatra-mcp` no tiene esa vía.
 
 ## Flags
 
@@ -68,23 +73,36 @@ Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando
 
 | Herramienta | Qué hace | Solo lectura | Llama a un proveedor |
 | --- | --- | --- | --- |
-| `project.snapshot` | configuración resuelta: locale de origen, locales de destino, formato, id del proveedor, origen de la configuración, indicador de glosario | sí | no |
+| `project.snapshot` | configuración resuelta: locale de origen, locales de destino, formato, patrón de archivos (`files.pattern`), id del proveedor, origen de la configuración, indicador de glosario | sí | no |
 | `status.check` | recuento por locale de claves faltantes, obsoletas y al día | sí | no |
 | `status.diff` | lista por locale de las claves que se añadirían, se retraducirían o quedarían huérfanas | sí | no |
 | `glossary.get` | cada término del glosario y su traducción, con los secretos redactados | sí | no |
 | `glossary.write` | añade, reemplaza o elimina un término del glosario | no | no |
-| `lock.state` | versión del archivo de bloqueo y tamaño de la línea base por locale | sí | no |
+| `lock.state` | versión del archivo de bloqueo y, por locale de destino, su recuento de claves registradas más los recuentos de faltantes, obsoletas y al día | sí | no |
 | `key.integrity` | desfase de placeholders, marcado en línea e ICU de una clave respecto a la línea base del archivo de bloqueo, por locale (solo revisa claves cuyo texto de origen cambió desde la línea base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
 | `key.value` | texto de origen y destino actual de una clave | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, verificada por la puerta de integridad de placeholders, marcado en línea e ICU | no | no |
 | `translation.retranslateEntry` | pide al proveedor configurado que retraduzca una clave en un locale | no | sí |
 | `translation.translatePending` | traduce cada clave faltante u obsoleta en todos los locales de destino | no | sí |
 | `review.queue` | claves que la última ejecución marcó para revisión humana, y por qué | sí | no |
-| `usage.summary` | uso de tokens y estado del presupuesto de la última ejecución | sí | no |
+| `usage.summary` | uso de tokens y estado del presupuesto de la última ejecución, incluidos `budget.standing` y `budget.supported` | sí | no |
 
 `translation.retranslateEntry` y `translation.translatePending` solo se exponen cuando el servidor se inició con `--allow-spend`. La entrada de cada herramienta, y la salida de cada herramienta cuya forma de resultado es pequeña y cerrada, es un JSON Schema derivado del mismo esquema zod contra el que el servidor valida la llamada. Llamar a un nombre de herramienta desconocido es un error a nivel de protocolo; llamar a una herramienta conocida con una entrada que falla la validación devuelve un resultado que nombra el campo problemático, así que un agente puede leer el fallo y autocorregirse.
 
-Los dos escritores de entradas, `translation.editEntry` y `translation.retranslateEntry`, están además protegidos por locale y clave: mientras una llamada para una entrada sigue en curso, una segunda llamada que nombre el mismo `locale` y la misma `key` se rechaza con `ALREADY_IN_PROGRESS` en lugar de encolarse o ejecutarse en paralelo, así que dos agentes (o un agente que reintenta) no pueden competir por la misma entrada. La protección es por entrada, no por herramienta, así que las llamadas para otras claves u otros locales siguen ejecutándose a la vez.
+Los dos escritores de entradas, `translation.editEntry` y `translation.retranslateEntry`, están además protegidos por herramienta, locale y clave: mientras una llamada para una entrada sigue en curso, una segunda llamada a la misma herramienta que nombre el mismo `locale` y la misma `key` no se encola ni se ejecuta en paralelo. Recibe un resultado `isError` cuyo texto indica que ya hay una llamada equivalente en curso, así que dos agentes (o un agente que reintenta) no pueden competir por la misma entrada a través de la misma herramienta. Las llamadas para otras claves u otros locales siguen ejecutándose a la vez. `translation.translatePending` no tiene esa protección.
+
+### Entradas y resultados
+
+- `status.check`, `status.diff` y `key.integrity` aceptan un array `locales` opcional (con al menos una entrada) que limita el resultado a esos locales; `key.integrity` también recibe la `key` que se va a comprobar.
+- `translation.editEntry` recibe `locale`, `key` y `value`, con `value` limitado a 20.000 caracteres.
+- `glossary.write` recibe `{ term, translation }`, con `term` limitado a 200 caracteres y `translation` a 2.000; `translation: null` elimina el término. Necesita un glosario respaldado por archivo (la clave `glossary` de la configuración apuntando a un archivo JSON); un glosario en línea, o no tener ninguno, falla con `GLOSSARY_NOT_FILE_BACKED`.
+- `translation.editEntry` y `translation.retranslateEntry` devuelven `{ accepted, value, reason?, details? }`. Un valor rechazado lleva `reason`, uno de `placeholder`, `markup`, `icu`, `degenerate` o `empty`, y `details` nombrando lo que falló; `translation.retranslateEntry` añade `reviewReasons` a un resultado aceptado: las señales de las heurísticas de revisión para el nuevo valor, vacío cuando no saltó ninguna.
+- `lock.state` devuelve `exists` y, cuando el archivo de bloqueo existe, su `version` y, por locale, los recuentos `keyCount`, `missing`, `stale` y `upToDate`.
+- `usage.summary` devuelve el `usage` de la última ejecución y, cuando se configuró un presupuesto de tokens, un `budget` cuyo `standing` es `within`, `stopped-before-ceiling` o `reached`, y cuyo `supported` indica si la cifra contada es en su totalidad el uso que informó el propio proveedor.
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+Las comprobaciones de marcado en línea en `key.integrity` (`markupMatches`, `markupDetails`) y en `translation.editEntry` (el motivo `markup`), un id de formato `custom:` en `project.snapshot` y `budget.standing` en `usage.summary` llegaron en esta versión.
 
 ## Redacción de secretos
 
@@ -92,7 +110,7 @@ Cada resultado de herramienta y cada línea de log pasa por la misma redacción 
 
 ## stdout es el canal del protocolo
 
-El transporte stdio de MCP usa stdout exclusivamente para mensajes de protocolo. `verbatra mcp` y `verbatra-mcp` nunca imprimen un banner, una línea de log ni nada más en stdout; todo log y diagnóstico va a stderr en su lugar. No se imprime nada hasta que un cliente MCP envía el primer mensaje.
+El transporte stdio de MCP usa stdout exclusivamente para mensajes de protocolo. `verbatra mcp` y `verbatra-mcp` nunca imprimen un banner, una línea de log ni nada más en stdout; todo log y diagnóstico va a stderr en su lugar. El servidor carga la configuración antes de conectar el transporte, así que un error de configuración se escribe en stderr de inmediato y el proceso sale sin llegar a hablar el protocolo. Una vez en marcha, los diagnósticos por llamada (una llamada fallida, una llamada rechazada porque ya hay una equivalente en curso, una herramienta desconocida) también van a stderr.
 
 ## Instalación
 
@@ -118,6 +136,8 @@ verbatra mcp --cwd /path/to/project --config verbatra.config.ts
 ```
 
 ## Códigos de salida
+
+Estos son los códigos de salida de `verbatra mcp`; el `verbatra-mcp` independiente difiere como se describe en la sinopsis de arriba.
 
 | Código | Significado |
 | --- | --- |

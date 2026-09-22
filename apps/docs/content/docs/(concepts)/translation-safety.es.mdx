@@ -280,6 +280,11 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
   corrección de errata. Por eso toda reutilización difusa lleva esta razón en cada ejecución, sea
   cual sea su puntuación. Solo aparece cuando `fuzzyCache` está activado.
 
+<AvailableFrom version="0.11.0" />
+
+`MAX_LENGTH_EXCEEDED` y `FUZZY_CACHE_REUSE` son los dos motivos más recientes; una ejecución con una
+versión anterior nunca los lleva.
+
 Un valor reutilizado desde [la caché](/docs/the-cache), y un valor propagado a una clave que
 comparte su texto de origen, pasan por las mismas heurísticas de revisión que uno recién
 traducido.
@@ -303,6 +308,12 @@ proveedor y cada locale de destino. Lo que pasa al llegar al techo es `budgetBeh
   como `budgetWithheld`, conservan su hash anterior en el bloqueo y se reintentan en la siguiente
   ejecución.
 
+<AvailableFrom version="0.11.0" />
+
+Antes de 0.11.0, `stop` contaba un sublote solo después de haberlo pagado, así que una ejecución podía
+sobrepasar el techo en un sublote, y no contaba nada para DeepL ni para Google Cloud Translation. La
+proyección antes de cada petición es lo que lo convierte en un techo.
+
 Lo ya hecho nunca se deshace, y no queda nada a medias: lo que se tradujo antes del techo queda
 escrito y bloqueado, y una clave retenida conserva la línea base que tenía, así que una ejecución
 detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que
@@ -316,7 +327,7 @@ Después de eso no se envía nada más. Dos cosas quedan fuera de lo que una res
 Conviene decir dos límites con claridad. El techo acota una ejecución, no una sesión: `watch`
 arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede
 gastar hasta `maxTokens` otra vez con cada edición del origen. Y cubre `translate` y nada más:
-retraducir una sola entrada desde [el panel de Studio](/docs/studio) o desde las herramientas de
+retraducir una sola entrada desde [el panel de Studio](/docs/review-in-studio) o desde las herramientas de
 agente sigue su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
 
 Con `warn` el presupuesto nunca cambia el código de salida del comando. Con `stop` sí puede: un

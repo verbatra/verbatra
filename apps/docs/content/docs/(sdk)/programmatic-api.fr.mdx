@@ -90,6 +90,24 @@ identiques, et elle peut dépenser plus pour chacune des raisons que nomme `cave
 appelle-le plutôt que de la reformuler. Pour la méthode derrière les chiffres, voir
 [Estimer le coût](/docs/estimating-cost).
 
+`caveats` n'est jamais vide. Ses codes (`EstimateCaveatCode`) sont :
+
+- `CACHE_NOT_CONSULTED` : la mémoire de traduction n'est pas lue, donc les clés qu'une exécution
+  réelle servirait depuis le cache sont quand même comptées. S'applique à chaque estimation.
+- `SOURCE_DUPLICATES_NOT_DEDUPLICATED` : une exécution réelle envoie un seul représentant par chaîne
+  source identique ; l'estimation compte chaque clé. S'applique à chaque estimation.
+- `TRANSPORT_RETRIES_NOT_COUNTED` : un seul appel facturable est compté par requête prévue, alors que
+  les SDK des fournisseurs peuvent réessayer en dessous un appel échoué et qu'une tentative réessayée
+  peut quand même être facturée. S'applique à chaque estimation.
+- `TRANSLATION_LENGTH_IS_ESTIMATED` : la réponse est dimensionnée à partir de la source plus une marge
+  d'expansion fixe, donc une langue cible plus longue rapporte davantage de tokens de complétion.
+  Fournisseurs facturés au token uniquement.
+- `TOKEN_COUNT_IS_HEURISTIC` : les tokens sont déduits du nombre de caractères, pas du tokenizer du
+  fournisseur lui-même. Fournisseurs facturés au token uniquement.
+- `REPAIR_REQUESTS_NOT_COUNTED` : le tour de réparation pour les clés revenues manquantes, et la
+  nouvelle tentative en deux moitiés pour une réponse tronquée, ne sont pas comptés. Fournisseurs
+  facturés au token uniquement.
+
 ## Vérifier en CI sans écrire
 
 `check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. Cela en fait le garde-fou de CI naturel.

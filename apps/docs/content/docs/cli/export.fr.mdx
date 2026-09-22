@@ -54,6 +54,8 @@ Chaque export délimité écrit en plus un manifeste caché dans le répertoire,
 
 `export` n'a pas de mode d'échec par locale, donc il ne sort jamais avec `1`.
 
+Une locale cible qui ne peut pas nommer sa feuille ou son fichier arrête l'export avec `WORKBOOK_INVALID`. Un nom de feuille xlsx doit faire de 1 à 31 caractères, ne doit contenir aucun de `: \ / ? * [ ]`, et ne doit correspondre ni à `Instructions` ni au nom de feuille d'une autre locale cible, sans tenir compte de la casse. Un nom de fichier `csv` ou `tsv` ne doit pas être vide, `.` ou `..`, et ne doit contenir ni séparateur de chemin, ni caractère de contrôle, ni aucun de `: * ? " < > |`. Le même code couvre un classeur qui n'a pas pu être sérialisé.
+
 ## Voir aussi
 
 - [Traduction humaine](/docs/manual-translation) couvre la disposition du classeur, la variante CSV et TSV, les colonnes de révision et l'aller-retour complet.

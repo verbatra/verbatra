@@ -59,9 +59,9 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `extract` | objeto | ninguno | Ajustes del análisis de código para [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` y `verbatra diff --unused`: el framework, las raíces de código y las listas de literales y de claves sin uso que se ignoran. |
 | `$schema` | string | ninguno | Un puntero al documento JSON Schema, solo para editores. Se ignora en tiempo de ejecución. |
 
-Las claves de nivel superior desconocidas se rechazan, con `$schema` como única excepción. Por eso mismo una clave de API no puede vivir en la configuración: las claves vienen del entorno, no del archivo.
-
 <AvailableFrom version="0.9.0" />
+
+Las claves de nivel superior desconocidas se rechazan, con `$schema` como única excepción. Por eso mismo una clave de API no puede vivir en la configuración: las claves vienen del entorno, no del archivo.
 
 ### Locales y archivos
 
@@ -154,14 +154,16 @@ Un presupuesto debe ser un entero positivo. Superarlo es informativo, nunca bloq
 
 `maxTokens` es un presupuesto de tokens para toda la ejecución: tokens de entrada más de salida, sumados a través de cada llamada al proveedor (traducción principal y generación de plurales por igual) y a través de cada locale de destino. Solo por configuración, sin opción de CLI.
 
-`budgetBehavior` decide qué pasa una vez alcanzado el techo:
+<AvailableFrom version="0.11.0" />
+
+`budgetBehavior` decide qué pasa una vez alcanzado el techo (desde 0.11.0, `"stop"` es un techo que se hace cumplir y se comprueba antes de cada petición, y se aplica también a DeepL y Google Cloud Translation):
 
 - `"warn"` (el valor por defecto) cuenta el gasto, señala el exceso y deja que la ejecución continúe exactamente como si no hubiera presupuesto configurado. No se retiene nada.
 - `"stop"` convierte la cifra en un techo de verdad. Antes de cada petición al proveedor la ejecución proyecta lo que va a costar, con la misma proyección que informa [la estimación previa](/docs/estimating-cost), y se niega a enviar una que llevaría la ejecución por encima de `maxTokens`. Las claves de esa petición se retienen, y también cada clave aún no intentada durante el resto de la ejecución: las candidatas restantes del locale actual, y las candidatas de cada locale de destino posterior por completo (su diff y su informe de huérfanas siguen ejecutándose; solo se salta la llamada al proveedor). Las claves retenidas conservan su hash anterior en el bloqueo y se reintentan automáticamente en la siguiente ejecución, igual que ya lo hace una llamada al proveedor fallida.
 
 Cada petición que envía la ejecución se comprueba así, incluida cada mitad de una petición que verbatra vuelve a dividir tras una respuesta truncada, así que una cascada de reintentos no puede adelantar a una sola reserva. Después de cada petición el total contado se reconcilia con el uso que el proveedor informó de verdad, porque el proveedor es la autoridad sobre lo que se facturó. Una petición que informa de un consumo mayor que el proyectado aporta esa diferencia a posteriori, así que una ejecución puede terminar por encima de `maxTokens` por la diferencia de la última petición admitida, y no más: después de eso no se envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más. Una petición que falla o vuelve truncada conserva su proyección entera como cargo en lugar de devolverse, porque una llamada así casi siempre ya ha facturado su prompt. Lo ya traducido queda escrito y bloqueado, y una clave retenida conserva la línea base que tenía, así que una ejecución detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que reclame trabajo retenido.
 
-El techo acota una ejecución, no una sesión, y cubre `translate` y nada más. `watch` arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede gastar hasta `maxTokens` otra vez con cada edición del origen; úsalo para acotar una ejecución, no una jornada. Retraducir una sola entrada desde [el panel de Studio](/docs/studio) o desde las herramientas de agente sigue su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
+El techo acota una ejecución, no una sesión, y cubre `translate` y nada más. `watch` arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede gastar hasta `maxTokens` otra vez con cada edición del origen; úsalo para acotar una ejecución, no una jornada. Retraducir una sola entrada desde [el panel de Studio](/docs/review-in-studio) o desde las herramientas de agente sigue su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
 
 Definir `maxTokens` también limita cómo se puede paralelizar una ejecución: una ejecución real que lo combine con `--concurrency` por encima de `1` se rechaza con código de salida `2` (`CONCURRENCY_BUDGET_CONFLICT`) antes de cualquier llamada al proveedor. El techo en sí se seguiría respetando, pero qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen, así que el mismo proyecto no produciría dos veces la misma ejecución. Un dry run queda exento. Quita el presupuesto o deja la concurrencia en `1`.
 

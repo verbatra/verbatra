@@ -252,6 +252,11 @@ carries one or more reason codes:
   carries this reason on every run, whatever it scored. Only ever fires when `fuzzyCache` is
   enabled.
 
+<AvailableFrom version="0.11.0" />
+
+`MAX_LENGTH_EXCEEDED` and `FUZZY_CACHE_REUSE` are the two newest reasons; a run on an earlier
+release never carries them.
+
 A value reused from [the cache](/docs/the-cache), and a value fanned out to a key that shares its
 source text, run through the same review heuristics as a freshly translated one.
 
@@ -273,6 +278,12 @@ target locale. What happens at the ceiling is `budgetBehavior`:
   ceiling is not sent at all. Its keys, and every remaining candidate after it, are withheld as
   `budgetWithheld`, keep their prior lock hash, and are retried next run.
 
+<AvailableFrom version="0.11.0" />
+
+Before 0.11.0, `stop` counted a sub-batch only after it had been paid for, so a run could overshoot
+the ceiling by one sub-batch, and it counted nothing for DeepL or Google Cloud Translation. The
+projection before each request is what makes it a ceiling.
+
 Work already done is never undone, and nothing half-finished is left behind: whatever was
 translated before the ceiling stays written and locked, and a withheld key keeps the baseline it
 had, so a stopped run leaves no half-written locale file and no lock entry claiming work that was
@@ -285,7 +296,7 @@ difference, and by no more. Nothing further is sent once it does. Two things sit
 Two limits are worth stating plainly. The ceiling bounds one run, not a session: `watch` starts a
 fresh budget for every run it triggers, so a watch session can spend up to `maxTokens` again on
 each source edit. And it covers `translate` and nothing else: retranslating a single entry from
-[the Studio dashboard](/docs/studio) or the agent tools runs on its own path with its own provider,
+[the Studio dashboard](/docs/review-in-studio) or the agent tools runs on its own path with its own provider,
 and no budget caps that spend.
 
 Under `warn` the budget never changes the command's exit code. Under `stop` it can: a locale that

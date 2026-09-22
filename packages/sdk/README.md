@@ -73,7 +73,7 @@ export default defineConfig({
 });
 ```
 
-`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list one locale twice. Beyond the required keys, the config carries optional `glossary` and `tone`, opt-in `prune` and `generatePlurals`, per-key `maxLength` review budgets, and the `maxTokens`/`budgetBehavior` run budget. Every key, every default, and every provider's option shape is documented on the [Configuration page](https://verbatra.kreitz-webdev.de/docs/config-file); the providers and their key variables are on the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers).
+`files.pattern` must contain the `{locale}` token, and `targetLocales` must neither include `sourceLocale` nor list one locale twice. Beyond the required keys, the config carries optional `glossary` and `tone`, opt-in `prune` and `generatePlurals`, the `files.localeStyle` path layout, opt-in `fuzzyCache` reuse, the `maxBatchSize` request size, per-key `maxLength` review budgets, the `maxTokens`/`budgetBehavior` run budget, dated `rates` for cost estimates, and the `extract` source-scanning settings. Every key, every default, and every provider's option shape is documented on the [Configuration page](https://verbatra.kreitz-webdev.de/docs/config-file); the providers and their key variables are on the [Providers page](https://verbatra.kreitz-webdev.de/docs/providers).
 
 API keys are never part of the config. Each provider reads its own environment variable, and the SDK never accepts one as an argument.
 

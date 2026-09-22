@@ -105,6 +105,24 @@ Stelle, an der die Regel "`estimate` impliziert `dryRun`" entschieden wird, rufe
 statt sie erneut auszuformulieren. Die Methode hinter den Zahlen steht in
 [Kosten abschätzen](/docs/estimating-cost).
 
+`caveats` ist nie leer. Seine Codes (`EstimateCaveatCode`) sind:
+
+- `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf
+  aus dem Cache bedienen würde, werden also trotzdem mitgezählt. Gilt für jede Schätzung.
+- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: Ein echter Lauf sendet einen Vertreter pro identischem
+  Quellstring; die Schätzung zählt jeden Key. Gilt für jede Schätzung.
+- `TRANSPORT_RETRIES_NOT_COUNTED`: Pro geplanter Anfrage wird ein abrechenbarer Aufruf gezählt,
+  obwohl die Provider-SDKs einen fehlgeschlagenen Aufruf darunter wiederholen können und ein
+  wiederholter Versuch trotzdem abgerechnet werden kann. Gilt für jede Schätzung.
+- `TRANSLATION_LENGTH_IS_ESTIMATED`: Die Antwort wird aus der Quelle plus einem festen Zuschlag für
+  Textverlängerung bemessen, eine Zielsprache mit längeren Texten meldet also mehr
+  Completion-Tokens. Nur Provider mit Token-Abrechnung.
+- `TOKEN_COUNT_IS_HEURISTIC`: Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem eigenen
+  Tokenizer des Providers. Nur Provider mit Token-Abrechnung.
+- `REPAIR_REQUESTS_NOT_COUNTED`: Die Reparaturrunde für Keys, die fehlend zurückkamen, und der
+  Retry in Hälften bei einer abgeschnittenen Antwort werden nicht gezählt. Nur Provider mit
+  Token-Abrechnung.
+
 ## In CI prüfen, ohne zu schreiben
 
 `check` liest und vergleicht, ohne einen Provider aufzurufen oder irgendeine Datei anzufassen, und

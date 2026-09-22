@@ -34,7 +34,9 @@ Studio n'écoute que sur `127.0.0.1`. Une fois à l'écoute, il affiche une lign
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 ```
 
-Ouvre exactement cette URL : le token dans la chaîne de requête amorce ta session de navigateur, et toute requête sans lui est rejetée. Rien n'est affiché avant que le port soit lié avec succès, donc un démarrage échoué ne divulgue jamais d'URL ni de token.
+Ouvre exactement cette URL. Le token n'est accepté que sous la forme `?token=` lors de ce premier chargement de page : le serveur le vérifie, pose un cookie de session HttpOnly et redirige vers `/`. Chaque requête suivante est vérifiée par rapport au cookie, et une requête sans cookie valide est rejetée. Le token n'est pas à usage unique : visiter à nouveau l'URL affichée, dans un autre onglet ou un autre navigateur, pose de nouveau le cookie, alors traite l'URL comme un secret tant que Studio tourne. Rien n'est affiché avant que le port soit lié avec succès, donc un démarrage échoué ne divulgue jamais d'URL ni de token.
+
+Une liaison échouée est signalée sur stderr sous la forme `verbatra: error [<code>] <message>` avec l'un de deux codes : `PORT_IN_USE` quand un autre processus occupe déjà le port (choisis-en un autre avec `--port`), ou `BIND_FAILED` quand le socket s'est ouvert sur une autre adresse que `127.0.0.1`, sur laquelle Studio refuse de servir.
 
 ## Installation
 

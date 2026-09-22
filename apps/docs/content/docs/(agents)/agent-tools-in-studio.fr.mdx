@@ -55,7 +55,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_glossary_get` | le glossaire résolu |
 | `verbatra_lock_state` | l'état du fichier de verrouillage |
 | `verbatra_history_list` | l'historique récent des commits des fichiers de locale |
-| `verbatra_key_integrity` | l'intégrité des placeholders et de l'ICU pour une clé |
+| `verbatra_key_integrity` | l'intégrité des placeholders, du balisage en ligne et de l'ICU pour une clé |
 | `verbatra_review_queue` | la file de révision |
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
 | `verbatra_key_value` | les valeurs source et cible pour une clé et une locale |
@@ -77,6 +77,15 @@ Ceux-ci appellent un fournisseur de traduction et ne sont enregistrés que si St
 - `verbatra_translation_translatePending` : traduit tout ce qui est en attente à cet instant.
 
 Tous deux font passer leurs résultats par la barrière d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). `verbatra_translation_retranslateEntry` porte en plus le même garde par entrée que la modification : un second appel concurrent pour la même locale et la même clé est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
+
+### Quand un appel échoue
+
+Chaque outil renvoie en JSON l'enveloppe RPC propre au tableau de bord, donc un appel échoué se lit `{ "ok": false, "error": { "code": ..., "message": ... } }`. En plus des codes métier que rapporte le SDK (un rejet d'intégrité, une locale ou une clé inconnue), de `METHOD_RATE_LIMITED` pour un appel qui dépasse sa limite de débit et du refus `ALREADY_IN_PROGRESS` ci-dessus, les codes viennent de la couche RPC elle-même :
+
+- `REQUEST_INVALID` : le corps de la requête n'était pas un objet JSON nommant une méthode, ou la réponse du serveur n'était pas une enveloppe que l'onglet pouvait lire.
+- `METHOD_UNKNOWN` : la méthode n'est pas une méthode que Studio connaît, ou elle n'est pas enregistrée dans cette session, comme c'est le cas d'une méthode de dépense sans `--allow-spend`.
+- `PARAMS_INVALID` : les paramètres ont échoué à la validation ; l'erreur porte une liste `issues` qui nomme chaque champ fautif.
+- `SESSION_EXPIRED` : le serveur n'accepte plus le cookie de session de l'onglet, en général parce que Studio a été redémarré avec un nouveau token. L'onglet cesse d'appeler le serveur et affiche l'écran Session expired ; ouvre l'URL affichée par le Studio en cours d'exécution pour démarrer une nouvelle session.
 
 ## L'avis de mode dégradé
 

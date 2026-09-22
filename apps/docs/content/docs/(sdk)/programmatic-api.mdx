@@ -101,6 +101,23 @@ spend more for every reason `caveats` names. `resolveDryRun` is the one place th
 `estimate`-implies-`dryRun` rule is decided, so call it rather than restating it. For the method
 behind the numbers, see [Estimating cost](/docs/estimating-cost).
 
+`caveats` is never empty. Its codes (`EstimateCaveatCode`) are:
+
+- `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
+  the cache are still counted. Applies to every estimate.
+- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
+  string; the estimate counts every key. Applies to every estimate.
+- `TRANSPORT_RETRIES_NOT_COUNTED`: one billable call is counted per planned request, although the
+  provider SDKs may retry a failed call underneath it and a retried attempt can still be billed.
+  Applies to every estimate.
+- `TRANSLATION_LENGTH_IS_ESTIMATED`: the response is sized from the source plus a fixed expansion
+  allowance, so a target language that runs longer reports more completion tokens. Token-billed
+  providers only.
+- `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not the provider's own
+  tokenizer. Token-billed providers only.
+- `REPAIR_REQUESTS_NOT_COUNTED`: the repair round for keys that came back missing, and the retry
+  in halves for a cut-off response, are not counted. Token-billed providers only.
+
 ## Check in CI without writing
 
 `check` reads and diffs without calling a provider or touching any file, and its `inSync` flag is

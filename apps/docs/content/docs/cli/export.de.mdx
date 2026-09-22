@@ -54,6 +54,8 @@ Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest in d
 
 `export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`.
 
+Eine Ziel-Locale, die ihr Blatt oder ihre Datei nicht benennen kann, stoppt den Export mit `WORKBOOK_INVALID`. Ein xlsx-Blattname muss 1 bis 31 Zeichen lang sein, darf keines der Zeichen `: \ / ? * [ ]` enthalten und darf, ohne Beachtung der Groß- und Kleinschreibung, weder `Instructions` noch dem Blattnamen einer anderen Ziel-Locale entsprechen. Ein `csv`- oder `tsv`-Dateiname darf nicht leer, `.` oder `..` sein und darf kein Pfadtrennzeichen, kein Steuerzeichen und keines der Zeichen `: * ? " < > |` enthalten. Derselbe Code gilt für eine Arbeitsmappe, die sich nicht serialisieren ließ.
+
 ## Siehe auch
 
 - [Menschliche Übersetzung](/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die CSV- und TSV-Variante, die Review-Spalten und den vollständigen Roundtrip.

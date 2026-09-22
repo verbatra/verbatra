@@ -19,7 +19,12 @@ verbatra mcp [flags]
 verbatra-mcp [flags]
 ```
 
-Beide Formen akzeptieren dieselben Flags und starten denselben Server.
+Beide Formen nehmen dieselben drei Flags und starten denselben Server, aber die Hüllen darum unterscheiden sich:
+
+- `verbatra mcp` lädt vor dem Start `.env.local` und danach `.env` aus dem Arbeitsverzeichnis; `verbatra-mcp` lädt keine der beiden, übergib einen API-Key also in der Umgebung, mit der der MCP-Client es startet.
+- `verbatra mcp` lehnt ein unbekanntes Flag als Verwendungsfehler ab und endet mit `2`; `verbatra-mcp` ignoriert unbekannte Flags.
+- Ein Start- oder Konfigurationsfehler endet bei `verbatra mcp` mit `2` und bei `verbatra-mcp` mit `1`.
+- `verbatra mcp` wird bei einem zweiten Interrupt während des Herunterfahrens mit Exit-Code `130` zwangsbeendet; `verbatra-mcp` hat keinen solchen Pfad.
 
 ## Flags
 
@@ -68,23 +73,36 @@ Rufst du bereits alles über die `verbatra`-CLI auf, starte es stattdessen als U
 
 | Tool | Was es tut | Nur lesend | Ruft einen Provider auf |
 | --- | --- | --- | --- |
-| `project.snapshot` | aufgelöste Konfiguration: Quell-Locale, Ziel-Locales, Format, Provider-ID, Konfigurationsquelle, Glossar-Indikator | ja | nein |
+| `project.snapshot` | aufgelöste Konfiguration: Quell-Locale, Ziel-Locales, Format, Dateimuster (`files.pattern`), Provider-ID, Konfigurationsquelle, Glossar-Indikator | ja | nein |
 | `status.check` | Anzahl fehlender, veralteter und aktueller Keys pro Locale | ja | nein |
 | `status.diff` | Liste der Keys pro Locale, die hinzugefügt, neu übersetzt oder als verwaist gemeldet würden | ja | nein |
 | `glossary.get` | jeder Glossar-Begriff und seine Übersetzung, mit geschwärzten Secrets | ja | nein |
 | `glossary.write` | einen Glossar-Begriff hinzufügen, ersetzen oder entfernen | nein | nein |
-| `lock.state` | Version der Lock-Datei und Baseline-Größe pro Locale | ja | nein |
+| `lock.state` | Version der Lock-Datei und, pro Ziel-Locale, die Anzahl verzeichneter Keys sowie die Zahlen für fehlend, veraltet und aktuell | ja | nein |
 | `key.integrity` | Platzhalter-, Inline-Markup- und ICU-Drift eines Keys gegenüber der Lock-Baseline, pro Locale (prüft nur Keys, deren Quelltext sich seit der Baseline geändert hat; ein leeres `entries`-Array bedeutet: geprüft und unverändert) | ja | nein |
 | `key.value` | aktueller Quell- und Zieltext eines Keys | ja | nein |
 | `translation.editEntry` | eine manuelle Übersetzung für einen Key in einer Locale schreiben, abgesichert durch das Integritäts-Gate für Platzhalter, Inline-Markup und ICU | nein | nein |
 | `translation.retranslateEntry` | den konfigurierten Provider bitten, einen Key in einer Locale neu zu übersetzen | nein | ja |
 | `translation.translatePending` | jeden fehlenden oder veralteten Key über alle Ziel-Locales übersetzen | nein | ja |
 | `review.queue` | Keys, die der letzte Lauf zur menschlichen Prüfung markiert hat, und warum | ja | nein |
-| `usage.summary` | Token-Verbrauch und Budgetstatus des letzten Laufs | ja | nein |
+| `usage.summary` | Token-Verbrauch und Budgetstatus des letzten Laufs, einschließlich `budget.standing` und `budget.supported` | ja | nein |
 
 `translation.retranslateEntry` und `translation.translatePending` werden nur bereitgestellt, wenn der Server mit `--allow-spend` gestartet wurde. Der Input jedes Tools und, wo die Ergebnisform klein und geschlossen ist, auch der Output sind ein JSON-Schema, abgeleitet aus demselben zod-Schema, gegen das der Server den Aufruf validiert. Der Aufruf eines unbekannten Tool-Namens ist ein Fehler auf Protokollebene; der Aufruf eines bekannten Tools mit Input, der die Validierung nicht besteht, liefert ein Ergebnis, das das betroffene Feld nennt, sodass ein Agent den Fehler lesen und selbst korrigieren kann.
 
-Die beiden Eintrags-Schreiber, `translation.editEntry` und `translation.retranslateEntry`, sind zusätzlich pro Locale und Key abgesichert: Während ein Aufruf für einen Eintrag noch läuft, wird ein zweiter Aufruf mit demselben `locale` und `key` mit `ALREADY_IN_PROGRESS` abgelehnt, statt eingereiht oder parallel ausgeführt zu werden, damit zwei Agenten (oder ein Agent, der es erneut versucht) nicht in ein Wettrennen um denselben Eintrag geraten. Die Sperre gilt pro Eintrag, nicht pro Tool; Aufrufe für andere Keys oder andere Locales laufen also weiterhin parallel.
+Die beiden Eintrags-Schreiber, `translation.editEntry` und `translation.retranslateEntry`, sind zusätzlich pro Tool, Locale und Key abgesichert: Während ein Aufruf für einen Eintrag noch läuft, wird ein zweiter Aufruf desselben Tools mit demselben `locale` und `key` weder eingereiht noch parallel ausgeführt. Er bekommt ein `isError`-Ergebnis, dessen Text sagt, dass bereits ein passender Aufruf läuft, damit zwei Agenten (oder ein Agent, der es erneut versucht) nicht über dasselbe Tool in ein Wettrennen um denselben Eintrag geraten. Aufrufe für andere Keys oder andere Locales laufen weiterhin parallel. `translation.translatePending` hat keine solche Sperre.
+
+### Inputs und Ergebnisse
+
+- `status.check`, `status.diff` und `key.integrity` nehmen ein optionales `locales`-Array (mindestens ein Eintrag), das das Ergebnis auf diese Locales eingrenzt; `key.integrity` nimmt außerdem den zu prüfenden `key`.
+- `translation.editEntry` nimmt `locale`, `key` und `value`, wobei `value` auf 20.000 Zeichen begrenzt ist.
+- `glossary.write` nimmt `{ term, translation }`, wobei `term` auf 200 Zeichen und `translation` auf 2.000 begrenzt ist; `translation: null` entfernt den Begriff. Es braucht ein dateibasiertes Glossar (das `glossary` der Konfiguration zeigt auf eine JSON-Datei); ein Inline-Glossar oder gar keines schlägt mit `GLOSSARY_NOT_FILE_BACKED` fehl.
+- `translation.editEntry` und `translation.retranslateEntry` liefern `{ accepted, value, reason?, details? }`. Ein abgelehnter Wert trägt `reason`, einen von `placeholder`, `markup`, `icu`, `degenerate` oder `empty`, und `details`, das benennt, was fehlgeschlagen ist; `translation.retranslateEntry` ergänzt ein akzeptiertes Ergebnis um `reviewReasons`: die Flags der Review-Heuristiken für den neuen Wert, leer, wenn keine angeschlagen hat.
+- `lock.state` liefert `exists` und, wenn die Lock-Datei existiert, ihre `version` sowie pro Locale die Zahlen `keyCount`, `missing`, `stale` und `upToDate`.
+- `usage.summary` liefert die `usage` des letzten Laufs und, wenn ein Token-Budget konfiguriert war, ein `budget`, dessen `standing` `within`, `stopped-before-ceiling` oder `reached` ist und dessen `supported` angibt, ob die gezählte Zahl vollständig aus dem vom Provider selbst gemeldeten Verbrauch stammt.
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+Die Inline-Markup-Prüfungen in `key.integrity` (`markupMatches`, `markupDetails`) und in `translation.editEntry` (der Grund `markup`), eine `custom:`-Format-ID in `project.snapshot` und `budget.standing` in `usage.summary` kamen mit diesem Release.
 
 ## Secrets werden geschwärzt
 
@@ -92,7 +110,7 @@ Jedes Tool-Ergebnis und jede Log-Zeile durchläuft dasselbe Schwärzen von Secre
 
 ## stdout ist der Protokollkanal
 
-Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachrichten. `verbatra mcp` und `verbatra-mcp` geben niemals ein Banner, eine Log-Zeile oder irgendetwas anderes auf stdout aus; jedes Log und jede Diagnose geht stattdessen auf stderr. Es wird überhaupt nichts ausgegeben, bis ein MCP-Client die erste Nachricht sendet.
+Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachrichten. `verbatra mcp` und `verbatra-mcp` geben niemals ein Banner, eine Log-Zeile oder irgendetwas anderes auf stdout aus; jedes Log und jede Diagnose geht stattdessen auf stderr. Der Server lädt die Konfiguration, bevor er den Transport verbindet; ein Konfigurationsfehler wird also sofort auf stderr geschrieben, und der Prozess endet, ohne je das Protokoll zu sprechen. Sobald er läuft, gehen auch die Diagnosen pro Aufruf (ein fehlgeschlagener Aufruf, ein abgelehnter Aufruf, weil bereits ein passender läuft, ein unbekanntes Tool) auf stderr.
 
 ## Installation
 
@@ -118,6 +136,8 @@ verbatra mcp --cwd /path/to/project --config verbatra.config.ts
 ```
 
 ## Exit-Codes
+
+Das sind die Exit-Codes von `verbatra mcp`; das eigenständige `verbatra-mcp` weicht davon ab, wie oben in der Übersicht beschrieben.
 
 | Code | Bedeutung |
 | --- | --- |

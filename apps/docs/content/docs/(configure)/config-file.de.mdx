@@ -59,9 +59,9 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `extract` | Objekt | keines | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` und `verbatra diff --unused`: das Framework, die Quellverzeichnisse und die Ignorierlisten für Literale und ungenutzte Keys. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
-Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Keys kommen aus der Umgebung, nicht aus der Datei.
-
 <AvailableFrom version="0.9.0" />
+
+Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Keys kommen aus der Umgebung, nicht aus der Datei.
 
 ### Locales und Dateien
 
@@ -154,14 +154,16 @@ Ein Budget muss eine positive Ganzzahl sein. Eine Überschreitung ist beratend, 
 
 `maxTokens` ist ein Token-Budget für den ganzen Lauf: Eingabe- plus Ausgabe-Tokens, summiert über jeden Provider-Aufruf (Hauptübersetzung wie Pluralgenerierung) und über jede Ziel-Locale. Nur Konfiguration, kein CLI-Flag.
 
-`budgetBehavior` entscheidet, was passiert, sobald die Obergrenze erreicht ist:
+<AvailableFrom version="0.11.0" />
+
+`budgetBehavior` entscheidet, was passiert, sobald die Obergrenze erreicht ist (ab 0.11.0 ist `"stop"` eine durchgesetzte Obergrenze, die vor jeder Anfrage geprüft wird, und sie gilt auch für DeepL und Google Cloud Translation):
 
 - `"warn"` (der Default) zählt die Ausgaben, vermerkt die Überschreitung und lässt den Lauf genau so weiterlaufen, als wäre kein Budget konfiguriert. Es wird nichts zurückgehalten.
 - `"stop"` macht aus der Zahl eine echte Obergrenze. Vor jeder Provider-Anfrage schätzt der Lauf, was diese Anfrage kosten wird, mit derselben Projektion, die auch [die Vorab-Schätzung](/docs/estimating-cost) meldet, und weigert sich, eine Anfrage zu senden, die den Lauf über `maxTokens` bringen würde. Die Keys dieser Anfrage werden zurückgehalten, und ebenso jeder noch nicht versuchte Key für den Rest des Laufs: die verbleibenden Kandidaten der aktuellen Locale und die Kandidaten jeder späteren Ziel-Locale komplett (deren Vergleich und Verwaisten-Meldung laufen trotzdem; nur der Provider-Aufruf wird übersprungen). Zurückgehaltene Keys behalten ihren vorherigen Lock-Hash und werden beim nächsten Lauf automatisch erneut versucht, genauso wie ein fehlgeschlagener Provider-Aufruf schon heute.
 
 So wird jede Anfrage geprüft, die der Lauf sendet, auch jede Hälfte einer Anfrage, die verbatra nach einer abgeschnittenen Antwort neu aufteilt. Eine Kaskade von Retrys kann eine einzelne Reservierung also nicht überholen. Nach jeder Anfrage wird die gezählte Summe auf den Verbrauch abgeglichen, den der Provider tatsächlich gemeldet hat, denn der Provider ist die Instanz dafür, was abgerechnet wurde. Eine Anfrage, die mehr meldet als projiziert war, bringt diese Differenz erst im Nachhinein ein. Ein Lauf kann also um die Differenz der letzten zugelassenen Anfrage über `maxTokens` enden, und um nicht mehr: danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen. Eine Anfrage, die fehlschlägt oder abgeschnitten zurückkommt, behält ihre volle Projektion als Belastung, statt erstattet zu werden, denn so ein Aufruf hat seinen Prompt meist schon abgerechnet. Bereits Übersetztes bleibt geschrieben und gelockt, und ein zurückgehaltener Key behält seine bisherige Baseline, ein gestoppter Lauf hinterlässt also keine halb geschriebene Locale-Datei und keinen Lock-Eintrag, der zurückgehaltene Arbeit beansprucht.
 
-Die Obergrenze begrenzt einen Lauf, keine Sitzung, und sie gilt für `translate` und sonst nichts. `watch` startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder Quelltext-Änderung erneut bis zu `maxTokens` ausgeben; nutze es, um einen Lauf zu begrenzen, nicht einen Arbeitstag. Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/studio) oder den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese Ausgabe.
+Die Obergrenze begrenzt einen Lauf, keine Sitzung, und sie gilt für `translate` und sonst nichts. `watch` startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder Quelltext-Änderung erneut bis zu `maxTokens` ausgeben; nutze es, um einen Lauf zu begrenzen, nicht einen Arbeitstag. Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/review-in-studio) oder den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese Ausgabe.
 
 `maxTokens` zu setzen, schränkt außerdem ein, wie ein Lauf parallelisiert werden darf: ein echter Lauf, der es mit `--concurrency` über `1` kombiniert, wird vor jedem Provider-Aufruf mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt. Die Obergrenze selbst würde weiterhin halten, aber welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales zufällig verschränken, dasselbe Projekt ergäbe also nicht zweimal denselben Lauf. Ein Dry Run ist ausgenommen. Lass das Budget weg oder belasse die Nebenläufigkeit bei `1`.
 

@@ -283,6 +283,11 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
   les sépare d'une correction de coquille. Chaque réutilisation approximative porte donc cette
   raison à chaque exécution, quel que soit son score. N'apparaît que si `fuzzyCache` est activé.
 
+<AvailableFrom version="0.11.0" />
+
+`MAX_LENGTH_EXCEEDED` et `FUZZY_CACHE_REUSE` sont les deux raisons les plus récentes ; une exécution
+sur une version antérieure ne les porte jamais.
+
 Une valeur réutilisée depuis [le cache](/docs/the-cache), et une valeur propagée vers une clé qui
 partage son texte source, passent par les mêmes heuristiques de révision qu'une valeur fraîchement
 traduite.
@@ -306,6 +311,12 @@ fournisseur et chaque locale cible. Ce qui se passe au plafond est `budgetBehavi
   elle, sont retenues comme `budgetWithheld`, gardent leur hash de verrouillage précédent, et sont
   retentées à l'exécution suivante.
 
+<AvailableFrom version="0.11.0" />
+
+Avant la 0.11.0, `stop` ne comptait un sous-lot qu'une fois celui-ci payé, si bien qu'une exécution
+pouvait dépasser le plafond d'un sous-lot, et il ne comptait rien pour DeepL ni pour Google Cloud
+Translation. C'est la projection avant chaque requête qui en fait un plafond.
+
 Le travail déjà fait n'est jamais annulé, et rien n'est laissé à moitié : ce qui a été traduit
 avant le plafond reste écrit et verrouillé, et une clé retenue garde la référence qu'elle avait,
 donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de
@@ -320,7 +331,7 @@ Deux limites méritent d'être dites clairement. Le plafond borne une exécution
 `watch` démarre un budget neuf pour chaque exécution qu'il déclenche, donc une session watch peut
 dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source. Et il couvre
 `translate` et rien d'autre : retraduire une seule entrée depuis
-[le tableau de bord Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin
+[le tableau de bord Studio](/docs/review-in-studio) ou depuis les outils d'agent passe par son propre chemin
 avec son propre fournisseur, et aucun budget ne borne cette dépense.
 
 Sous `warn`, le budget ne change jamais le code de sortie de la commande. Sous `stop`, il le peut :

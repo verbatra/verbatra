@@ -23,17 +23,27 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=...
 
 Ouvre cette URL, token compris ; le token est généré à neuf à chaque démarrage et c'est ainsi que le navigateur s'authentifie. Le serveur n'écoute que sur `127.0.0.1` (jamais ton réseau), utilise le port `5849` par défaut sans repli s'il est occupé, et accepte `--port` pour en changer. Arrête-le avec Ctrl+C ; une seconde interruption le force à s'arrêter avec le code de sortie `130`. Voir [`verbatra studio`](/docs/cli/studio) pour toutes les options.
 
-La barre latérale a quatre pages : **Translations**, **Review**, **Activity** et **Settings**.
+La barre latérale a quatre pages : **Translations**, **Review**, **Activity** et **Settings**. Un badge sur Review compte les entrées encore dans la file, plafonné à "99+". La barre latérale se replie en icônes (Studio retient ce choix), et dans une fenêtre étroite elle devient un tiroir ouvert depuis la barre du haut ; les deux portent les liens **Documentation** et **Help and issues**.
+
+La barre du haut contient un sélecteur de thème (System, Light, Dark), enregistré dans le localStorage du navigateur, et affiche un badge **Reconnecting** quand la connexion de rafraîchissement en direct est coupée depuis plus d'un instant. Quand le serveur n'accepte plus la session de l'onglet, par exemple après un redémarrage de Studio avec un nouveau token, chaque page cède la place à un écran **Session expired** : ouvre à nouveau l'URL affichée par le Studio en cours d'exécution.
 
 ## Lire la page Translations
 
 Translations est la vue de travail : tout ce qui est en attente sur tes locales cibles, et l'avancement de chaque locale.
 
 - **Le bandeau de statistiques** répond d'un coup d'œil à la première question : combien de clés demandent de l'attention, la couverture moyenne, combien de locales sont synchronisées et la consommation de tokens de la dernière exécution. Quand rien n'est en attente, une bannière indiquant que tout est en ordre remplace l'explorateur de clés.
-- **L'explorateur de clés** liste chaque clé manquante, modifiée et orpheline, sous forme de grille clé par locale ou de listes par locale avec un filtre qui correspond au nom d'une clé ou à son texte de traduction.
-- **Le tableau des locales** montre la couverture par locale (manquant, obsolète, à jour) fusionnée avec l'état du [fichier de verrouillage](/docs/the-lock-file), pour voir si l'entrée de chaque locale dans le fichier de verrouillage concorde avec ses fichiers.
+- **L'explorateur de clés** liste chaque clé manquante, modifiée et orpheline dans l'une de deux vues. **List** regroupe les clés par locale et dispose d'un filtre qui correspond au nom d'une clé ou à son texte de traduction, en affichant au plus 500 correspondances à la fois. **Grid** est une matrice clé par locale sans filtre ; elle affiche au plus 500 clés et, quand il y en a davantage, le signale et te renvoie vers List. Dans Grid, les touches fléchées passent d'une cellule à l'autre et Entrée ou Espace ouvre la clé qui a le focus.
+- **Le tableau des locales** montre la couverture par locale (manquant, obsolète, à jour) fusionnée avec l'état du [fichier de verrouillage](/docs/the-lock-file), pour voir si l'entrée de chaque locale dans le fichier de verrouillage concorde avec ses fichiers. Sa colonne **Lock** indique **In step** quand le fichier de verrouillage n'enregistre aucune clé manquante ou obsolète pour la locale, **Drift** quand il en enregistre, et **Not recorded** quand le fichier de verrouillage n'a pas d'entrée pour cette locale. Un badge **Lock vN** nomme la version du fichier de verrouillage, et un tableau repliable **Lock file details** liste pour chaque locale enregistrée son nombre de clés avec ses décomptes de clés manquantes, obsolètes et à jour.
 
-Clique sur n'importe quelle clé pour ouvrir sa vue détaillée : les valeurs par locale, le statut de synchronisation de chaque locale et un indicateur d'intégrité par traduction (placeholders concordants, discordance de placeholders en nommant les jetons manquants et ceux en trop, ou syntaxe de message invalide). De là, **Edit** ouvre l'éditeur pour la valeur d'une locale.
+**Copy as review report**, dans l'en-tête de la page, copie un rapport Markdown dans le presse-papiers : une section par locale listant ses clés manquantes, modifiées et orphelines, prête à coller dans une pull request ou une issue.
+
+Clique sur n'importe quelle clé pour ouvrir sa vue détaillée : le texte source, les valeurs par locale, le statut de synchronisation de chaque locale et un indicateur d'intégrité par traduction (placeholders concordants, aucun placeholder, discordance de placeholders en nommant les jetons manquants et ceux en trop, ou syntaxe de message invalide). Une section **History** liste les commits git qui ont touché les fichiers de locale du projet ; c'est le même fil que sur Activity, non filtré sur la clé ouverte. De là, **Edit** ouvre l'éditeur pour la valeur d'une locale.
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+L'indicateur d'intégrité a un état de défaut de plus, **Inline markup mismatch** : les balises HTML ou XML de la traduction diffèrent de celles de la source, et l'indicateur nomme les balises en cause, `-` pour une balise que la traduction a perdue et `+` pour une qu'elle a ajoutée.
+
+Les valeurs d'une locale qui s'écrit de droite à gauche (arabe, hébreu, persan, ourdou) s'affichent de droite à gauche dans tout l'explorateur et dans la vue détaillée.
 
 ### Modifier avec la barrière d'intégrité
 
@@ -45,6 +55,10 @@ Modifier n'exige aucune option. Cela ne touche que tes fichiers locaux et n'appe
 
 La page Review liste chaque entrée que les heuristiques de révision ont signalée lors de la dernière exécution `translate` ou `watch` : une ligne par locale et clé, avec un indicateur par raison (traduction bien plus courte ou plus longue que la source, plus longue que le budget de longueur configuré pour la clé, identique à la source, terme de glossaire manqué, placeholders réordonnés, lot dégradé chez le fournisseur, ou valeur réutilisée depuis le cache après modification de sa source). Tant qu'aucune exécution n'a été enregistrée, la page le dit et reste vide ; lance `verbatra translate` ou `verbatra watch` pour la remplir.
 
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+Les raisons liées au budget de longueur et à la réutilisation du cache portent les libellés **Over length budget** et **Reused after source edit**.
+
 <StudioScreenshot
   shot="review"
   alt="La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de révision et les actions Edit, Approve et Reject."
@@ -53,13 +67,13 @@ La page Review liste chaque entrée que les heuristiques de révision ont signal
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filtre par locale, ou par sous-chaîne de la clé, du texte source ou du texte cible d'une ligne, puis traite les lignes :
+Filtre par locale, ou par sous-chaîne de la clé, du texte source ou du texte cible d'une ligne ; la barre de filtre compte les entrées correspondantes au fil de la saisie, et quand rien ne correspond, **Clear filters** réinitialise les deux. Puis traite les lignes :
 
 - **Edit** ouvre le même éditeur protégé par la barrière d'intégrité que la page Translations. Une modification acceptée retire la ligne de la file.
 - **Approve** écarte la ligne comme "vue, très bien telle quelle".
 - **Reject** écarte la ligne aussi ; associe-la à une modification ou une retraduction quand la valeur doit vraiment changer.
 
-Approve et Reject ne valent que pour la session : ils masquent la ligne pour le reste de cette session de navigateur (y compris à travers les rafraîchissements en direct) mais n'écrivent rien sur le disque. Les façons durables d'effacer un signalement sont de corriger la valeur ou de relancer une traduction.
+Approve et Reject ne masquent la ligne que dans la mémoire de l'onglet ouvert et n'écrivent rien sur le disque : la ligne reste masquée à travers les rafraîchissements en direct, mais recharger l'onglet la fait revenir. Les façons durables d'effacer un signalement sont de corriger la valeur ou de relancer une traduction.
 
 Les signalements de révision sont consultatifs, distincts de la barrière d'intégrité stricte ; voir [Sûreté de la traduction](/docs/translation-safety) pour la signification de chaque raison.
 
@@ -73,13 +87,13 @@ verbatra studio --allow-spend
 
 (Ou définis `VERBATRA_STUDIO_ALLOW_SPEND=1` ; l'option l'emporte quand les deux sont donnés. La clé d'API du fournisseur vient de l'environnement comme toujours, jamais de Studio.)
 
-Désormais, une clé dont l'indicateur d'intégrité montre un vrai défaut (une discordance de placeholders ou une syntaxe de message invalide) reçoit un bouton **Retranslate** dans sa vue détaillée sur la page Translations. Il fait un seul appel au fournisseur pour exactement cette locale et cette clé, passe le résultat par la barrière d'intégrité avant que quoi que ce soit n'atteigne le disque, et rapporte le résultat à côté du bouton. La valeur rafraîchie remonte ensuite dans l'interface via la boucle de rafraîchissement en direct.
+Désormais, une clé dont l'indicateur d'intégrité montre un vrai défaut (une discordance de placeholders, une syntaxe de message invalide ou une discordance de balisage en ligne) reçoit un bouton **Retranslate** dans sa vue détaillée sur la page Translations. Il fait un seul appel au fournisseur pour exactement cette locale et cette clé, passe le résultat par la barrière d'intégrité avant que quoi que ce soit n'atteigne le disque, et rapporte le résultat à côté du bouton. La valeur rafraîchie remonte ensuite dans l'interface via la boucle de rafraîchissement en direct.
 
 Sans `--allow-spend`, le bouton est complètement absent, et le serveur n'enregistre même jamais le point de terminaison de retraduction : une dépense que tu n'as pas accordée au démarrage ne peut pas être activée depuis le navigateur.
 
 ## Traduire les changements en attente
 
-Studio surveille ton fichier source, chaque fichier de locale cible et le fichier de verrouillage pendant qu'il tourne. Quand l'un change, chaque page ouverte se rafraîchit et un toast nomme ce qui a changé, avec un delta de clés ajoutées/modifiées/supprimées.
+Studio surveille ton fichier source, chaque fichier de locale cible et le fichier de verrouillage pendant qu'il tourne. Quand l'un change, chaque page ouverte se rafraîchit. Un changement du fichier source ou d'un fichier de locale cible qui ajoute, modifie ou supprime des clés déclenche aussi un toast nommant le fichier, avec un delta de clés ajoutées/modifiées/supprimées ; un changement du fichier de verrouillage, ou un changement de fichier de locale sans clé ajoutée, modifiée ou supprimée, rafraîchit sans toast.
 
 Quand le fichier **source** change et que Studio tourne avec `--allow-spend`, ce toast propose aussi **Translate pending changes across all locales** : une exécution translate complète sur tout ce qui est en attente, le même travail que ferait `verbatra translate`. Le bouton rapporte le succès, les échecs par locale ou l'erreur, sur place.
 
@@ -96,7 +110,7 @@ La page Activity met deux vues de référence côte à côte :
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings, la quatrième page, montre la configuration avec laquelle cette session a démarré ; redémarre Studio après avoir modifié le fichier de config. Le glossaire affiché à côté fonctionne autrement : il est relu depuis le disque à chaque visite, et il est modifiable quand le projet garde son glossaire dans un fichier JSON.
+Settings, la quatrième page, montre la configuration avec laquelle cette session a démarré : la locale source, les locales cibles, le format, le fournisseur, le motif de fichiers, si les actions du fournisseur sont activées (seulement avec `--allow-spend`), `prune`, `generatePlurals`, `maxBatchSize` et `tone` quand la config les définit, ainsi que le chemin du fichier de config à partir duquel elle a été chargée. Redémarre Studio après avoir modifié le fichier de config. Le glossaire affiché à côté fonctionne autrement : il est relu depuis le disque à chaque visite, et il est modifiable quand le projet garde son glossaire dans un fichier JSON.
 
 Chaque terme porte alors une action **Edit** et une action **Remove**, et un formulaire **Add a term** se trouve sous la liste. Une modification est écrite directement dans ce fichier JSON, un terme à la fois, et le panneau affiche le nouvel état dès que l'écriture aboutit, sans rechargement. Le reste du fichier n'est pas touché : l'ordre des clés et l'indentation survivent, et le résultat est soumis aux mêmes limites que celles qu'applique `loadConfig` en relisant un glossaire, si bien qu'une modification acceptée peut toujours être relue.
 

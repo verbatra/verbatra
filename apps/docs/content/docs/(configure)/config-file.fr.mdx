@@ -59,9 +59,9 @@ Quand tu écris la configuration en TypeScript, ton éditeur propose pour `optio
 | `extract` | objet | aucun | Réglages de l'analyse de code pour [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` et `verbatra diff --unused` : le framework, les racines de code et les listes d'exclusion des littéraux et des clés inutilisées. |
 | `$schema` | chaîne | aucun | Un pointeur vers le document JSON Schema, pour les éditeurs seulement. Ignoré à l'exécution. |
 
-Les clés de premier niveau inconnues sont rejetées, à la seule exception de `$schema`. C'est aussi pourquoi une clé d'API ne peut pas se trouver dans la configuration : les clés viennent de l'environnement, pas du fichier.
-
 <AvailableFrom version="0.9.0" />
+
+Les clés de premier niveau inconnues sont rejetées, à la seule exception de `$schema`. C'est aussi pourquoi une clé d'API ne peut pas se trouver dans la configuration : les clés viennent de l'environnement, pas du fichier.
 
 ### Locales et fichiers
 
@@ -154,14 +154,16 @@ Un budget doit être un entier positif. Le dépasser est consultatif, jamais blo
 
 `maxTokens` est un budget de tokens pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction principale et génération de pluriels confondues) et sur chaque locale cible. Configuration uniquement, pas d'option CLI.
 
-`budgetBehavior` décide de ce qui se passe une fois le plafond atteint :
+<AvailableFrom version="0.11.0" />
+
+`budgetBehavior` décide de ce qui se passe une fois le plafond atteint (depuis la 0.11.0, `"stop"` est un plafond appliqué, vérifié avant chaque requête, et il s'applique aussi à DeepL et à Google Cloud Translation) :
 
 - `"warn"` (par défaut) compte la dépense, signale le dépassement et laisse l'exécution continuer exactement comme si aucun budget n'était configuré. Rien n'est retenu.
 - `"stop"` transforme le chiffre en vrai plafond. Avant chaque requête fournisseur, l'exécution projette ce que cette requête va coûter, avec la même projection que rapporte [l'estimation préalable](/docs/estimating-cost), et refuse d'en envoyer une qui ferait passer l'exécution au-dessus de `maxTokens`. Les clés de cette requête sont retenues, ainsi que chaque clé pas encore tentée pour le reste de l'exécution : les candidates restantes de la locale en cours, et entièrement les candidates de chaque locale cible suivante (leur comparaison et leur rapport d'orphelines tournent quand même ; seul l'appel fournisseur est sauté). Les clés retenues gardent leur hash de verrouillage précédent et sont retentées automatiquement à l'exécution suivante, comme un appel fournisseur échoué l'est déjà.
 
 Chaque requête que l'exécution envoie est vérifiée ainsi, y compris chaque moitié d'une requête que verbatra redécoupe après une réponse tronquée : une cascade de nouvelles tentatives ne peut donc pas dépasser une seule réservation. Après chaque requête, le total compté est réconcilié avec l'usage que le fournisseur a réellement remonté, car c'est lui qui fait autorité sur ce qui a été facturé. Une requête qui remonte plus que ce que sa projection prévoyait reporte cet écart après coup : une exécution peut donc finir au-dessus de `maxTokens` de l'écart de la dernière requête admise, et pas davantage, puisque plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Une requête qui échoue ou revient tronquée garde toute sa projection à sa charge au lieu d'être remboursée, car un tel appel a presque toujours déjà facturé son prompt. Ce qui est déjà traduit reste écrit et verrouillé, et une clé retenue garde la référence qu'elle avait, donc une exécution arrêtée ne laisse aucun fichier de locale à moitié écrit ni aucune entrée de verrouillage revendiquant du travail retenu.
 
-Le plafond borne une exécution, pas une session, et il couvre `translate` et rien d'autre. `watch` démarre un budget neuf pour chaque exécution qu'il déclenche : une session watch peut donc dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source ; sers-t'en pour borner une exécution, pas une journée. Retraduire une seule entrée depuis [le tableau de bord Studio](/docs/studio) ou depuis les outils d'agent passe par son propre chemin avec son propre fournisseur, et aucun budget ne borne cette dépense.
+Le plafond borne une exécution, pas une session, et il couvre `translate` et rien d'autre. `watch` démarre un budget neuf pour chaque exécution qu'il déclenche : une session watch peut donc dépenser jusqu'à `maxTokens` de nouveau à chaque modification de la source ; sers-t'en pour borner une exécution, pas une journée. Retraduire une seule entrée depuis [le tableau de bord Studio](/docs/review-in-studio) ou depuis les outils d'agent passe par son propre chemin avec son propre fournisseur, et aucun budget ne borne cette dépense.
 
 Définir `maxTokens` contraint aussi la parallélisation d'une exécution : une exécution réelle qui le combine avec `--concurrency` supérieur à `1` est refusée avec le code de sortie `2` (`CONCURRENCY_BUDGET_CONFLICT`) avant tout appel fournisseur. Le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution. Un dry run est exempté. Retire le budget ou laisse la concurrence à `1`.
 

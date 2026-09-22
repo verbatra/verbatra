@@ -25,7 +25,7 @@ Algunos casos límite que conviene conocer:
 
 <AvailableFrom version="0.9.0" />
 
-- Un locale **parcial** cuenta como fallo. Significa que el archivo se escribió pero todavía faltan algunas claves, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción. Sale con `1` exactamente igual que un locale fallido, porque un locale a medio traducir en disco no es un estado que una canalización deba dejar pasar. Lee `partial` en el resumen para distinguir los dos casos.
+- Un locale **parcial** cuenta como fallo. Significa que el archivo se escribió pero todavía faltan algunas claves, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción. Sale con `1` exactamente igual que un locale fallido, porque un locale a medio traducir en disco no es un estado que una canalización deba dejar pasar. Lee `partial` en el resumen para distinguir los dos casos. Un sublote fallido deja en el locale un aviso `SUB_BATCH_FAILED` que nombra el código de error del proveedor, o `PROVIDER_CALL_FAILED` cuando el fallo no fue un error estructurado del proveedor.
 - Un **archivo de bloqueo corrupto** es un error de toda la ejecución tanto en `translate` como en `import`, nunca un único locale fallido. Es un solo archivo compartido, así que un archivo de bloqueo que se corrompe con la ejecución en marcha la detiene con `2` en vez de seguir con los locales restantes. Lo que se escribió antes del corte permanece en disco: repara el archivo de bloqueo y vuelve a ejecutar el comando.
 - Una sola interrupción es una parada limpia, y los tres comandos de larga duración (`watch`, `studio` y `mcp`) salen con `0` ante ella. Más allá de eso no des por hecho que se comportan igual: si la propia parada falla, `watch` sale con `2` mientras que `studio` y `mcp` salen con `1`.
 - Una ejecución fallida durante `watch` aparece como un registro en el flujo de salida, nunca como un código de salida distinto de cero.
@@ -69,6 +69,23 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 
 `command` es `null` solo cuando el fallo ocurrió antes de resolver un subcomando.
 
+Un error de uso lleva uno de estos códigos:
+
+| Código | Se produce cuando |
+| --- | --- |
+| `USAGE_ERROR` | el analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar |
+| `INVALID_LOCALES` | se dio `--locales` pero no lista ningún locale |
+| `INVALID_LOCALE` | `pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones |
+| `INVALID_FORMAT` | `--format` en `export` o `import` no nombra ningún formato de entrega admitido |
+| `INVALID_DIRECTION` | `tmx` recibió una dirección distinta de `import` o `export`, o `tmx export` recibió un flag exclusivo de la importación (`--dry-run`, `--overwrite`) |
+| `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
+| `INVALID_DEBOUNCE` | `watch --debounce` no es un número entero de milisegundos de 1 a 60000 |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
+| `INVALID_CONCURRENCY` | `--concurrency` no es un número entero de 1 a 100 |
+| `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
+
+`CLI_ERROR` es el código de reserva para un fallo que no traía código propio.
+
 Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Dos clases de fallo no siguen esa gramática, porque ocurren antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, e `init` rechaza un proveedor ausente con `verbatra: --provider is required (...)`, con prefijo pero sin código. Ambos salen con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada no encajará con ninguno de los dos y fallará en silencio. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
 
 El resto de esta sección describe el `result` que cada comando pone dentro de un envoltorio de éxito.
@@ -92,7 +109,7 @@ El objeto `estimate` lleva `keys`, `requests`, la cantidad facturable que cobra 
 
 Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para revisión y más); consulta [la referencia del SDK](/docs/sdk) para la anatomía completa.
 
-`verbatra watch --json` imprime un envoltorio por ejecución como NDJSON (un objeto JSON por línea), con `command: "watch"`. Una ejecución correcta es un registro `ok: true` que lleva el `RunSummary` de esa ejecución; una ejecución fallida es un registro `ok: false` que lleva su código y su mensaje. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
+`verbatra watch --json` imprime un envoltorio por ejecución como NDJSON (un objeto JSON por línea), con `command: "watch"`. Una ejecución correcta es un registro `ok: true` que lleva el `RunSummary` de esa ejecución; una ejecución fallida es un registro `ok: false` que lleva su código y su mensaje: el código propio del fallo cuando lo tenía, y `WATCH_RUN_FAILED` en caso contrario. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
 
 `verbatra check --json` lleva un documento de estado. El `inSync` de nivel superior es true exactamente cuando el comando sale con `0`:
 

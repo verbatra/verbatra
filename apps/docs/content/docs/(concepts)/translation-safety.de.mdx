@@ -285,6 +285,11 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
   Wiederverwendung diesen Grund bei jedem Lauf, ganz gleich wie sie bewertet wurde. Tritt nur auf,
   wenn `fuzzyCache` aktiviert ist.
 
+<AvailableFrom version="0.11.0" />
+
+`MAX_LENGTH_EXCEEDED` und `FUZZY_CACHE_REUSE` sind die beiden neuesten Gründe; ein Lauf auf einem
+früheren Release trägt sie nie.
+
 Ein aus [dem Cache](/docs/the-cache) wiederverwendeter Wert und ein Wert, der an einen Key mit
 gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristiken wie ein frisch
 übersetzter String.
@@ -309,6 +314,12 @@ Provider-Aufruf und jede Ziel-Locale hinweg ausgibt. Was an der Obergrenze passi
   Kandidat werden als `budgetWithheld` zurückgehalten, behalten ihren vorherigen Lock-Hash und
   werden beim nächsten Lauf erneut versucht.
 
+<AvailableFrom version="0.11.0" />
+
+Vor 0.11.0 zählte `stop` einen Teil-Batch erst, nachdem er bezahlt war, ein Lauf konnte die
+Obergrenze also um einen Teil-Batch überschreiten, und für DeepL oder Google Cloud Translation
+zählte es gar nichts. Erst die Projektion vor jeder Anfrage macht daraus eine Obergrenze.
+
 Bereits Geleistetes wird nie rückgängig gemacht, und es bleibt nichts halb Fertiges zurück: Was vor
 der Obergrenze übersetzt wurde, bleibt geschrieben und gelockt, und ein zurückgehaltener Key behält
 seine bisherige Baseline. Ein gestoppter Lauf hinterlässt also keine halb geschriebene
@@ -322,7 +333,7 @@ melden als projiziert war. Die Endsumme kann deshalb um die Differenz dieser ein
 Zwei Grenzen gehören klar gesagt. Die Obergrenze begrenzt einen Lauf, keine Sitzung: `watch`
 startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder
 Quelltext-Änderung erneut bis zu `maxTokens` ausgeben. Und sie gilt für `translate` und sonst
-nichts: Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/studio) oder
+nichts: Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/review-in-studio) oder
 den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese
 Ausgabe.
 
