@@ -1,5 +1,6 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import type { ReactNode } from "react";
+import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
 import { withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
 import { toLocale } from "@/lib/i18n";
@@ -20,7 +21,12 @@ export default async function Layout({
   );
   const { nav, ...base } = await baseOptions(locale);
   return (
-    <DocsLayout {...base} nav={{ ...nav, mode: "top" }} tree={tree}>
+    <DocsLayout
+      {...base}
+      nav={{ ...nav, mode: "top" }}
+      slots={{ ...base.slots, header: DocsSiteHeader }}
+      tree={tree}
+    >
       {children}
     </DocsLayout>
   );

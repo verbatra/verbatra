@@ -248,34 +248,11 @@ h6 {
   transform: translateY(0);
 }
 
-#nd-nav {
-  z-index: 10;
+.vk-header {
   background-color: color-mix(in srgb, var(--color-fd-background) 80%, transparent);
-  backdrop-filter: blur(8px);
-  border-bottom-color: transparent;
 }
 
-#nd-nav > div {
-  background-color: transparent;
-  backdrop-filter: none;
-  border-bottom-color: transparent;
-}
-
-#nd-nav:has([data-state="open"]),
-#nd-nav:has([data-state="open"]) > div {
-  background-color: var(--color-fd-background);
-}
-
-body:has(#nd-nav [data-state="open"])::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9;
-  background: color-mix(in srgb, var(--v-void) 76%, transparent);
-  pointer-events: none;
-}
-
-#nd-nav::after {
+.vk-header::after {
   content: "";
   position: absolute;
   inset-inline: 0;
@@ -290,67 +267,28 @@ body:has(#nd-nav [data-state="open"])::after {
   );
 }
 
-@media (min-width: 1024px) {
-  #nd-nav nav > div:has(> ul) {
-    display: contents;
-  }
-
-  #nd-nav nav > ul {
-    order: 2;
-    margin-inline-start: auto;
-  }
-
-  #nd-nav nav > div:has(> ul) > :first-child {
-    order: 1;
-    width: 100%;
-    max-width: 24rem;
-    margin-inline: auto;
-  }
-
-  #nd-nav nav > div:has(> ul) > ul {
-    order: 3;
-  }
-
-  #nd-nav nav > div:has(> ul) > :nth-last-child(2) {
-    order: 4;
-  }
-}
-
-@media (min-width: 1360px) {
-  #nd-nav nav {
-    position: relative;
-  }
-
-  #nd-nav nav > div:has(> ul) > :first-child {
-    position: absolute;
-    inset-inline-start: 50%;
-    transform: translateX(-50%);
-    margin-inline: 0;
-  }
-}
-
-#nd-nav a[data-active] {
+.vk-header-link {
   position: relative;
 }
 
-#nd-nav a[data-active]::after {
+.vk-header-link::after {
   content: "";
   position: absolute;
-  inset-inline: 0.5rem;
-  bottom: 0.25rem;
+  inset-inline: 0;
+  bottom: -0.35rem;
   height: 1px;
   background: color-mix(in srgb, var(--v-glow) 55%, transparent);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
-#nd-nav a[data-active]:hover::after,
-#nd-nav a[data-active="true"]::after {
+.vk-header-link:hover::after,
+.vk-header-link[data-active="true"]::after {
   opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #nd-nav a[data-active]::after {
+  .vk-header-link::after {
     transition: none;
   }
 }

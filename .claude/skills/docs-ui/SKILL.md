@@ -124,6 +124,19 @@ footer's oversized watermark only; do not clip it onto a heading.
   `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
   `content/docs/index.mdx` and its three locale siblings.
 
+## One header for both surfaces
+
+`components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
+centred search, text links, icon links, language select, phone-width search and menu trigger)
+and two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from
+`useHomeLayout`, plus a `SidebarProvider` drawer so the landing's phone menu is the same drawer
+the docs use) and `DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and
+drawer triggers). They are wired through `slots.header` in `lib/locale-home-layout.tsx` and
+`app/[lang]/docs/layout.tsx`; `lib/layout.shared.tsx` still supplies the links, title and
+language select for both. Fumadocs' own `HomeLayout` and notebook headers are never rendered,
+so do not style `#nd-nav` or `#nd-subnav`; style `.vk-header` and `.vk-header-link` instead,
+and change the header in one place.
+
 ## The docs surface
 
 `app/global.css` carries a docs layer keyed on Fumadocs' DOM ids (`#nd-sidebar` and its
