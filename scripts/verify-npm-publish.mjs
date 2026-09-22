@@ -1,15 +1,34 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..");
 
 const TARBALL_LICENSE_MEMBER = "package/LICENSE";
+const TARBALL_MANIFEST_MEMBER = "package/package.json";
+
+const MANIFEST_DEPENDENCY_FIELDS = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+];
+
+const UNRESOLVED_SPECIFIER_PATTERN = /^(?:workspace|catalog):/;
+
+const PROPAGATION = {
+  deadlineMs: 480_000,
+  initialDelayMs: 2_000,
+  maxDelayMs: 30_000,
+};
+
+const run = promisify(execFile);
 
 function parsePublishedPackages(raw) {
   if (!raw || raw.trim() === "") {
@@ -63,26 +82,134 @@ function isLatestTagViolation(publishedVersion, latestVersion) {
   return isPrereleaseVersion(publishedVersion) && latestVersion === publishedVersion;
 }
 
-function readLatestDistTag(name) {
+function notYetOnRegistry(message) {
+  const error = new Error(message);
+  error.notYetOnRegistry = true;
+  return error;
+}
+
+function isNotYetOnRegistry(error) {
+  return error instanceof Error && error.notYetOnRegistry === true;
+}
+
+function summarizeCommandFailure(error) {
+  const streams = `${error?.stderr ?? ""}\n${error?.stdout ?? ""}`;
+  const code = /npm error code (\S+)/.exec(streams);
+  if (code?.[1] !== undefined) {
+    return `npm ${code[1]}`;
+  }
+  const firstLine = streams
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line !== "");
+  const fallback = error instanceof Error ? error.message : String(error);
+  return (firstLine ?? fallback).replace(/\s+/g, " ").trim();
+}
+
+function backoffDelays({ deadlineMs, initialDelayMs, maxDelayMs }) {
+  const delays = [];
+  let waited = 0;
+  let delay = initialDelayMs;
+  while (waited + delay <= deadlineMs) {
+    delays.push(delay);
+    waited += delay;
+    delay = Math.min(delay * 2, maxDelayMs);
+  }
+  return delays;
+}
+
+function sleep(ms) {
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
+}
+
+async function readLatestDistTag(name) {
+  let output;
   try {
-    const output = execFileSync("npm", ["view", name, "dist-tags.latest", "--json"], {
+    const result = await run("npm", ["view", name, "dist-tags.latest", "--json"], {
       encoding: "utf8",
-    }).trim();
-    if (output === "") {
-      return null;
-    }
-    const latest = JSON.parse(output);
-    return typeof latest === "string" ? latest : null;
+    });
+    output = result.stdout.trim();
+  } catch (error) {
+    throw notYetOnRegistry(
+      `the registry does not serve dist-tags for ${name} yet (${summarizeCommandFailure(error)})`,
+    );
+  }
+  if (output === "") {
+    return null;
+  }
+  const latest = JSON.parse(output);
+  return typeof latest === "string" ? latest : null;
+}
+
+async function readTarballMember(tarball, member) {
+  try {
+    const result = await run("tar", ["-xzOf", tarball, member], { encoding: "utf8" });
+    return result.stdout;
   } catch {
     return null;
   }
 }
 
-function tookOverLatestTag(pkg) {
-  if (!isPrereleaseVersion(pkg.version)) {
-    return false;
+async function downloadTarballMembers(spec) {
+  const workDir = mkdtempSync(join(tmpdir(), "verbatra-license-"));
+  try {
+    try {
+      await run("npm", ["pack", spec, "--pack-destination", workDir, "--loglevel=error"], {
+        encoding: "utf8",
+      });
+    } catch (error) {
+      throw notYetOnRegistry(
+        `the published tarball for ${spec} is not downloadable yet ` +
+          `(${summarizeCommandFailure(error)})`,
+      );
+    }
+    const tarball = readdirSync(workDir)[0];
+    if (tarball === undefined) {
+      throw notYetOnRegistry(`npm pack produced no tarball for ${spec} yet.`);
+    }
+    const tarballPath = join(workDir, tarball);
+    return {
+      license: await readTarballMember(tarballPath, TARBALL_LICENSE_MEMBER),
+      manifest: await readTarballMember(tarballPath, TARBALL_MANIFEST_MEMBER),
+    };
+  } finally {
+    rmSync(workDir, { force: true, recursive: true });
   }
-  return isLatestTagViolation(pkg.version, readLatestDistTag(pkg.name));
+}
+
+async function observePackage(pkg) {
+  const latest = isPrereleaseVersion(pkg.version) ? await readLatestDistTag(pkg.name) : null;
+  const members = await downloadTarballMembers(`${pkg.name}@${pkg.version}`);
+  return { latest, license: members.license, manifest: members.manifest };
+}
+
+async function observeWithPropagation(pkg, { observe, delays, wait, log }) {
+  let waitedMs = 0;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return { observation: await observe(pkg) };
+    } catch (error) {
+      if (!isNotYetOnRegistry(error)) {
+        throw error;
+      }
+      const delay = delays[attempt - 1];
+      if (delay === undefined) {
+        return {
+          unavailable:
+            `${pkg.name}@${pkg.version} is still not on npm after ${attempt} attempt(s) over ` +
+            `${Math.round(waitedMs / 1000)}s: ${error.message}`,
+        };
+      }
+      log(
+        `verify-npm-publish: waiting for ${pkg.name}@${pkg.version} (attempt ${attempt} of ` +
+          `${delays.length + 1}, ${error.message}); retrying in ${Math.round(delay / 1000)}s.`,
+      );
+      await wait(delay);
+      waitedMs += delay;
+    }
+  }
 }
 
 function normalizeLicenseText(text) {
@@ -98,32 +225,68 @@ function classifyLicense(tarballLicense, rootLicense) {
     : "mismatched";
 }
 
-function readPublishedLicense(pkg) {
-  const spec = `${pkg.name}@${pkg.version}`;
-  const workDir = mkdtempSync(join(tmpdir(), "verbatra-license-"));
-  try {
-    try {
-      execFileSync("npm", ["pack", spec, "--pack-destination", workDir, "--silent"], {
-        encoding: "utf8",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`could not download the published tarball for ${spec}: ${message}`);
-    }
-    const tarball = readdirSync(workDir)[0];
-    if (tarball === undefined) {
-      throw new Error(`npm pack produced no tarball for ${spec}.`);
-    }
-    try {
-      return execFileSync("tar", ["-xzOf", join(workDir, tarball), TARBALL_LICENSE_MEMBER], {
-        encoding: "utf8",
-      });
-    } catch {
-      return null;
-    }
-  } finally {
-    rmSync(workDir, { force: true, recursive: true });
+function classifyManifest(manifestText) {
+  if (manifestText === null) {
+    return [`no ${TARBALL_MANIFEST_MEMBER} in the tarball`];
   }
+  let manifest;
+  try {
+    manifest = JSON.parse(manifestText);
+  } catch {
+    return [`${TARBALL_MANIFEST_MEMBER} is not valid JSON`];
+  }
+  const unresolved = [];
+  for (const field of MANIFEST_DEPENDENCY_FIELDS) {
+    const block = manifest[field];
+    if (typeof block !== "object" || block === null) {
+      continue;
+    }
+    for (const [dependency, specifier] of Object.entries(block)) {
+      if (typeof specifier === "string" && UNRESOLVED_SPECIFIER_PATTERN.test(specifier)) {
+        unresolved.push(`${field}.${dependency} is "${specifier}"`);
+      }
+    }
+  }
+  return unresolved;
+}
+
+async function inspectPackage(pkg, rootLicense, deps) {
+  const { observation, unavailable } = await observeWithPropagation(pkg, deps);
+  if (unavailable !== undefined) {
+    return { pkg, unavailable };
+  }
+  return {
+    pkg,
+    latestTagViolation: isLatestTagViolation(pkg.version, observation.latest),
+    licenseProblem: classifyLicense(observation.license, rootLicense),
+    manifestProblems: classifyManifest(observation.manifest),
+  };
+}
+
+function verifyPackages(packages, rootLicense, overrides = {}) {
+  const deps = {
+    observe: observePackage,
+    wait: sleep,
+    log: console.log,
+    delays: backoffDelays(PROPAGATION),
+    ...overrides,
+  };
+  return Promise.all(packages.map((pkg) => inspectPackage(pkg, rootLicense, deps)));
+}
+
+function reportUnavailable(results) {
+  console.error(
+    `verify-npm-publish: ${results.length} package(s) never became available on npm within the ` +
+      "propagation deadline. This is a publish that did not fully land, not a bad artifact:",
+  );
+  for (const result of results) {
+    console.error(`  ${result.unavailable}`);
+  }
+  console.error(
+    "Check npmjs.com for the version and re-run the release job; npm metadata and the tarball " +
+      "itself propagate separately, so a version that resolves but cannot be downloaded is still " +
+      "an incomplete publish.",
+  );
 }
 
 function reportLatestTagViolations(violations) {
@@ -143,8 +306,8 @@ function reportLatestTagViolations(violations) {
 
 function reportLicenseFindings(findings) {
   console.error(
-    `verify-npm-publish: ${findings.length} package(s) published in this run do not carry the ` +
-      "repository-root LICENSE in their registry tarball:",
+    `verify-npm-publish: ${findings.length} package(s) published in this run are present on npm ` +
+      "but invalid: their registry tarball does not carry the repository-root LICENSE:",
   );
   for (const finding of findings) {
     const detail =
@@ -160,56 +323,110 @@ function reportLicenseFindings(findings) {
   );
 }
 
-function main() {
+function reportManifestFindings(findings) {
+  console.error(
+    `verify-npm-publish: ${findings.length} package(s) published in this run are present on npm ` +
+      "but invalid: their published manifest still carries unresolved workspace protocols:",
+  );
+  for (const finding of findings) {
+    console.error(`  ${finding.pkg.name}@${finding.pkg.version} (${finding.problems.join(", ")})`);
+  }
+  console.error(
+    "pnpm rewrites `workspace:` and `catalog:` specifiers to real ranges when it packs, so this " +
+      "means the release ran through a different packer. The published version is uninstallable " +
+      "and can only be fixed by republishing.",
+  );
+}
+
+function collectFindings(results) {
+  const unavailable = results.filter((result) => result.unavailable !== undefined);
+  const latestTagViolations = results
+    .filter((result) => result.latestTagViolation === true)
+    .map((result) => result.pkg);
+  const licenseFindings = results
+    .filter((result) => result.licenseProblem != null)
+    .map((result) => ({ pkg: result.pkg, problem: result.licenseProblem }));
+  const manifestFindings = results
+    .filter((result) => result.manifestProblems !== undefined && result.manifestProblems.length > 0)
+    .map((result) => ({ pkg: result.pkg, problems: result.manifestProblems }));
+  return { unavailable, latestTagViolations, licenseFindings, manifestFindings };
+}
+
+function describeVerdict(result) {
+  if (result.unavailable !== undefined) {
+    return "NOT ON NPM";
+  }
+  const invalid =
+    result.latestTagViolation === true ||
+    result.licenseProblem != null ||
+    result.manifestProblems.length > 0;
+  return invalid ? "PROBLEM" : "ok";
+}
+
+function reportResults(results) {
+  for (const result of results) {
+    console.log(`  ${result.pkg.name}@${result.pkg.version} ... ${describeVerdict(result)}`);
+  }
+  const findings = collectFindings(results);
+  if (findings.unavailable.length > 0) {
+    reportUnavailable(findings.unavailable);
+  }
+  if (findings.latestTagViolations.length > 0) {
+    reportLatestTagViolations(findings.latestTagViolations);
+  }
+  if (findings.licenseFindings.length > 0) {
+    reportLicenseFindings(findings.licenseFindings);
+  }
+  if (findings.manifestFindings.length > 0) {
+    reportManifestFindings(findings.manifestFindings);
+  }
+  const failed =
+    findings.unavailable.length +
+    findings.latestTagViolations.length +
+    findings.licenseFindings.length +
+    findings.manifestFindings.length;
+  if (failed === 0) {
+    console.log(
+      "verify-npm-publish: every published version is downloadable from npm, no prerelease took " +
+        "over the latest dist-tag, every tarball carries the root LICENSE and a manifest with no " +
+        "unresolved workspace protocols.",
+    );
+  }
+  return failed;
+}
+
+async function main() {
   const packages = parsePublishedPackages(process.env.PUBLISHED_PACKAGES_JSON);
   const rootLicense = readFileSync(resolve(REPO_ROOT, "LICENSE"), "utf8");
-  console.log(`verify-npm-publish: checking ${packages.length} published package(s).`);
-
-  const latestTagViolations = [];
-  const licenseFindings = [];
-  for (const pkg of packages) {
-    const tookOverLatest = tookOverLatestTag(pkg);
-    const licenseProblem = classifyLicense(readPublishedLicense(pkg), rootLicense);
-    if (tookOverLatest) {
-      latestTagViolations.push(pkg);
-    }
-    if (licenseProblem !== null) {
-      licenseFindings.push({ pkg, problem: licenseProblem });
-    }
-    const verdict = tookOverLatest || licenseProblem !== null ? "PROBLEM" : "ok";
-    console.log(`  ${pkg.name}@${pkg.version} ... ${verdict}`);
-  }
-
-  if (latestTagViolations.length > 0) {
-    reportLatestTagViolations(latestTagViolations);
+  const delays = backoffDelays(PROPAGATION);
+  console.log(
+    `verify-npm-publish: checking ${packages.length} published package(s), waiting up to ` +
+      `${Math.round(PROPAGATION.deadlineMs / 1000)}s per package over ${delays.length + 1} ` +
+      "attempts for npm propagation.",
+  );
+  const results = await verifyPackages(packages, rootLicense, { delays });
+  if (reportResults(results) > 0) {
     process.exitCode = 1;
-  }
-  if (licenseFindings.length > 0) {
-    reportLicenseFindings(licenseFindings);
-    process.exitCode = 1;
-  }
-  if (latestTagViolations.length === 0 && licenseFindings.length === 0) {
-    console.log(
-      "verify-npm-publish: no prerelease took over the latest dist-tag, every tarball carries the " +
-        "root LICENSE.",
-    );
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    main();
-  } catch (error) {
+  main().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`verify-npm-publish: ${message}`);
     process.exitCode = 1;
-  }
+  });
 }
 
 export {
+  backoffDelays,
   classifyLicense,
+  classifyManifest,
   isLatestTagViolation,
   isPrereleaseVersion,
   normalizeLicenseText,
+  notYetOnRegistry,
+  PROPAGATION,
   parsePublishedPackages,
+  verifyPackages,
 };
