@@ -142,6 +142,15 @@ Two conventions carried by that list, both worth keeping:
   chrome-versus-canvas contrast, not an oversight. Do not "fix" it by mapping the sidebar
   onto the surface tokens.
 
+**Known gap: there is no overlay token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws the
+modal scrim with `bg-foreground/40`. `--v-foreground` is near-black in light theme and
+near-white in dark, so the scrim *brightens* the page behind a dialog in dark theme
+instead of dimming it. This is a real defect, not a convention: do not copy the pattern,
+and if you are touching overlays, add a `--v-overlay` pair to both `:root` blocks and
+point the backdrop at it. A token whose polarity flips between themes is the failure mode
+to watch for here, and it is easier to miss than a stray `dark:` variant because it looks
+token-compliant.
+
 Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 4px, `--radius-md` 6px, `--radius-lg` 8px, `--radius-xl` 12px.
@@ -171,8 +180,9 @@ Rules that follow:
 
 ## Reuse before you build
 
-`src/app/` already holds 38 components, each with a co-located test. Compose these before
-writing anything new.
+`src/app/` holds 39 non-test `.tsx` files at its top level (that count includes `App.tsx`,
+`main.tsx`, `ui.tsx` and `test-support.tsx`; the rest are components, each with a
+co-located test). Compose these before writing anything new.
 
 - **Primitives:** `Button` (`variant: "primary" | "secondary" | "ghost"`,
   `size: "sm" | "md"`, default `secondary`/`sm`), `Card` (`padding: "none" | "sm" | "md"`,
@@ -182,12 +192,16 @@ writing anything new.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
 - **Layout and shared class strings:** `src/app/ui.tsx` exports `Container`, `Section`,
   `PageSection`, `SectionCard`, `DetailList`, `EmptyState`, `DrawerShell`,
-  `OverlayBackdrop`, `DialogCloseButton`, plus the shared strings `tableClasses`,
+  `OverlayBackdrop`, `DialogCloseButton`, `MonoValue`, plus the shared strings `tableClasses`,
   `pillClassName`, `pillDotClassName`, and `microLabelClassName`. A new panel composes
   `PageSection` or `SectionCard`; it does not re-derive page padding or heading rhythm.
   The uppercase tracked micro-label is already a token (`microLabelClassName`) and is
-  reserved for structural labels such as table headers, not decoration above every
-  heading.
+  meant for structural labels such as table headers, not decoration above every heading.
+  Be aware the shipped code does not fully honour that: `PageHeader.tsx` and `Sheet.tsx`
+  apply it to a `kicker`, and on the Review and Translations panels that kicker reads
+  "Workspace", restating the sidebar zone header sitting at the same height a few hundred
+  pixels to the left. `SettingsPanel.tsx` shows the good case, where the kicker adds
+  information. Treat a kicker that repeats its own navigation as the tell it is.
 - **Icons:** `src/app/Icon.tsx` is a closed set of 24 inline SVG paths keyed by
   `IconName`. There is no icon package. A new icon is a new entry in `ICON_PATHS` and a
   new member of the union, drawn on the same 24-unit stroked grid as its neighbours.
@@ -203,14 +217,31 @@ writing anything new.
   `src/client/routes.ts` and to every one of those tables; `App.tsx` throws at module load
   if the two zone arrays do not partition `PAGE_IDS` exactly.
 
-## Spending money is a gated interaction
+## Capabilities are two flags, and the decision is a pure function
 
-Retranslate and translate-pending cost provider tokens. They are gated behind
-`--allow-spend` (`packages/cli/src/studio-command.ts`,
-`src/app/panels/SettingsPanel.tsx`) and surfaced through `use-capabilities.ts`. UI for a
-spending action must read the capability and degrade visibly when it is absent, never
-render an enabled control that fails on click. `RetranslateButton.tsx` and
-`ReviewRowActions.tsx` are the precedents.
+`StudioCapabilities` (`src/shared/rpc/snapshot.ts`) is
+`{ spend: boolean; writeToDisk: boolean }`. Do not conflate them:
+
+- `spend` costs provider tokens and is off unless the server was started with
+  `--allow-spend` (`packages/cli/src/studio-command.ts`). Retranslate and
+  translate-pending need it.
+- `writeToDisk` is local editing. It defaults to true
+  (`src/server/methods/snapshot.ts`), so an edit control is normally live even when
+  `spend` is off.
+
+The eligibility decision lives in `src/client/` as a tested pure function, never inline
+in a component: `canRetranslate` (`src/client/retranslate-eligibility.ts`, requires
+`spend`) and `canTranslatePending` (`src/client/refresh-toast.ts`, requires `spend` and
+`writeToDisk`). The component reads `useCapabilities()` and calls the helper.
+`KeyDetailDrawer.tsx` is the precedent for both shapes: `canRetranslate(capabilities, pill)`
+for the spend-gated action and a direct `capabilities?.writeToDisk === true` check for
+edit. `RefreshToast.tsx` is the precedent for a gated toast action, and
+`SettingsPanel.tsx` is the only place that renders `spend` as visible status.
+
+Note what these precedents are *not*: `RetranslateButton.tsx` and `ReviewRowActions.tsx`
+read no capability at all. They are presentational, take callbacks, and are gated by
+their caller. Keep it that way. A new gated control adds its rule to the pure function in
+`src/client/`, where it can be tested without a DOM, and stays dumb itself.
 
 ## React and Next questions go to Context7
 

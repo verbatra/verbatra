@@ -89,15 +89,31 @@ route.
 
 **Studio.** Studio is served by the CLI over a real project and its URL carries a session
 token, so you cannot guess the address. The proven boot sequence lives in
-`apps/docs/scripts/capture-studio.mjs`; read it before improvising. In short: build the
-CLI, seed `apps/docs/scripts/studio-fixture/.verbatra-local/run-status.json` from
-`run-status.seed.json`, spawn
-`node packages/cli/dist/index.js studio --cwd apps/docs/scripts/studio-fixture --port <free port>`,
-and parse the URL out of the `Verbatra Studio running at <url>` banner on stdout.
-Navigate to exactly that URL. Panels are reached by hash: `#/translations`, `#/review`,
-`#/activity`, `#/settings`.
+`apps/docs/scripts/capture-studio.mjs`; read it before improvising.
 
-Kill anything you started before you finish, and close the browser.
+1. Check `packages/cli/dist/index.js`, `packages/sdk/dist/index.js`, and
+   `packages/studio/dist/app` already exist. Build only what is missing.
+2. Seed the fixture, deleting first: `rm -rf apps/docs/scripts/studio-fixture/.verbatra-local`,
+   then recreate it and copy `run-status.seed.json` to `.verbatra-local/run-status.json`.
+   Skipping the delete leaves stale runtime state from an earlier run.
+3. Spawn
+   `node packages/cli/dist/index.js studio --cwd apps/docs/scripts/studio-fixture --port <free port>`
+   and parse the banner `Verbatra Studio running at <url>` off stdout. Add
+   `--allow-spend` when any spend-gated control is in scope, otherwise `capabilities.spend`
+   is false and you will see the degraded state; note which way you booted in the report,
+   because `spend` and `writeToDisk` are different flags and most edit controls depend on
+   the latter, which defaults to true.
+4. The banner URL is `http://127.0.0.1:<port>/?token=<64 hex>` and has no hash. To land on
+   a panel directly, put the hash after the query: `http://127.0.0.1:<port>/?token=<hex>#/review`.
+   **The app strips the token from the address bar after the first navigation.** That is
+   expected and the session stays valid: every later navigation can use the bare
+   `http://127.0.0.1:<port>/#/<panel>`. Do not re-add the token and do not treat the
+   disappearance as a broken session.
+5. Panels are `#/translations`, `#/review`, `#/activity`, `#/settings`.
+
+Before you finish, close the browser and kill the server you spawned:
+`pkill -f "cli/dist/index.js studio --cwd apps/docs/scripts/studio-fixture"`. Leave the
+working tree clean: write screenshots to your scratchpad directory, never into the repo.
 
 If a surface will not boot, say so plainly and report what you could review statically
 rather than inventing a visual verdict.
