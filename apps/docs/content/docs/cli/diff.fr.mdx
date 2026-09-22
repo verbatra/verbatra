@@ -2,7 +2,7 @@
 title: verbatra diff
 description: Affiche les clés qui seraient ajoutées, retraduites ou orphelines par locale sans écrire de fichiers.
 ---
-Liste, par locale cible, les clés exactement en attente : celles qu'une exécution ajouterait (manquantes dans la cible), celles qu'elle retraduirait (source modifiée depuis la dernière traduction) et celles désormais orphelines (dans la cible mais disparues de la source). `diff` exécute la même lecture et la même comparaison que [`verbatra translate`](/docs/cli/translate) effectue juste avant d'appeler un fournisseur, puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/docs/the-lock-file) et aucune clé d'API requise.
+Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait (manquantes dans la cible), celles qu'elle retraduirait (source modifiée depuis la dernière traduction) et celles désormais orphelines (dans la cible mais disparues de la source). `diff` exécute la même lecture et la même comparaison que [`verbatra translate`](/docs/cli/translate) effectue juste avant d'appeler un fournisseur, puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/docs/the-lock-file) et aucune clé d'API requise.
 
 ## Synopsis
 
@@ -20,7 +20,7 @@ verbatra diff [flags]
 | `--unused` | aucun | désactivé | analyse aussi les racines du [bloc `extract`](/docs/config-file#extract) et liste les clés de la locale source qu'aucun appel ne nomme (voir [Clés source inutilisées](#clés-source-inutilisées)) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de comparaison sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
-Une locale a des changements en attente quand elle a au moins une clé à ajouter ou à retraduire. Les clés orphelines sont signalées mais ne comptent jamais comme en attente, parce qu'une exécution par défaut ne les supprime pas (seul [`verbatra translate --prune`](/docs/cli/translate) le fait). Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien comparer en silence. Là où [`verbatra check`](/docs/cli/check) répond "combien a dérivé" avec des comptes, `diff` répond "quelles clés" avec les listes.
+Une locale a des changements en attente quand elle a au moins une clé à ajouter ou à retraduire. Les clés orphelines sont signalées mais ne comptent jamais comme en attente, parce qu'une exécution par défaut ne les supprime pas (seul [`verbatra translate --prune`](/docs/cli/translate) le fait). Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien comparer en silence. Là où [`verbatra check`](/docs/cli/check) répond "combien a dérivé" avec des décomptes, `diff` répond "quelles clés" avec les listes.
 
 ## Clés source inutilisées
 
@@ -40,7 +40,7 @@ L'analyse modélise le runtime i18next. Voici ce qui compte comme référence à
 
 Les clés sont comparées dans l'encodage propre au format du catalogue, donc une clé JSON plate avec un point (`{ "a.b": "..." }`), un pluriel gettext (`msgstr[0]`, `msgstr[1]`) ou une entrée `msgctxt` (`t("Open", { context: "menu" })`) et une entrée Android `<plurals>` correspondent toutes à la clé que ton code nomme.
 
-Une clé en template literal avec un début statique, comme `` t(`nav.${page}`) ``, ne rend pas le rapport peu fiable : les clés sous `nav.` sont listées comme `possiblyDynamic`, à part de `unused`, et ne font jamais échouer l'exécution.
+Une clé en template literal avec un début statique, comme `` t(`nav.${page}`) ``, ne rend pas le rapport peu fiable : les clés sous `nav.` sont listées comme `possiblyDynamic`, séparément de `unused`, et ne font jamais échouer l'exécution.
 
 Le rapport porte un `status` :
 
@@ -104,7 +104,7 @@ verbatra diff --unused
 
 ## Voir aussi
 
-- [`verbatra check`](/docs/cli/check) donne les comptes par locale derrière ces listes.
+- [`verbatra check`](/docs/cli/check) donne les décomptes par locale derrière ces listes.
 - [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` qu'analyse `--unused`, y compris `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
 - [CI et codes de sortie](/docs/ci-and-exit-codes) montre diff dans un pipeline.

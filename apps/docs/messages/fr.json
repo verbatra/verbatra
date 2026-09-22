@@ -1,17 +1,17 @@
 {
   "landing": {
     "meta": {
-      "title": "verbatra : traduction i18n incrémentielle pour les fichiers de locale",
-      "ogTitle": "verbatra : synchronisation i18n incrémentielle",
-      "description": "Garde tes fichiers de locale i18n synchronisés. verbatra traduit seulement les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix. Commence maintenant.",
-      "ogDescription": "Garde tes fichiers de locale i18n synchronisés. Traduis seulement les clés modifiées.",
-      "ogImageAlt": "verbatra garde tes fichiers de locale i18n synchronisés et traduit seulement les clés qui ont changé.",
-      "definition": "verbatra est un CLI et un SDK qui garde tes fichiers de locale i18n synchronisés, en traduisant seulement les clés qui ont changé via le fournisseur d'IA ou de traduction automatique de ton choix."
+      "title": "verbatra : traduction i18n incrémentale pour les fichiers de locale",
+      "ogTitle": "verbatra : synchronisation i18n incrémentale",
+      "description": "Garde tes fichiers de locale i18n synchronisés. verbatra traduit uniquement les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix. Commence maintenant.",
+      "ogDescription": "Garde tes fichiers de locale i18n synchronisés. Traduis uniquement les clés modifiées.",
+      "ogImageAlt": "verbatra garde tes fichiers de locale i18n synchronisés et traduit uniquement les clés qui ont changé.",
+      "definition": "verbatra est une CLI et un SDK qui gardent tes fichiers de locale i18n synchronisés en ne traduisant que les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix."
     },
     "hero": {
-      "headline": "Traduis seulement ce qui a changé.",
-      "lead": "verbatra compare ta locale source avec un fichier de verrouillage validé, envoie uniquement les clés nouvelles et modifiées au fournisseur que tu choisis, et laisse toutes les autres clés intactes.",
-      "ctaGithub": "Ajoute une étoile sur GitHub",
+      "headline": "Traduis uniquement ce qui a changé.",
+      "lead": "verbatra compare ta locale source à un fichier de verrouillage commité, envoie uniquement les clés nouvelles et modifiées au fournisseur que tu choisis, et laisse toutes les autres clés intactes.",
+      "ctaGithub": "Mets une étoile sur GitHub",
       "ctaStart": "Démarrer",
       "facts": {
         "release": "Dernière version",
@@ -24,11 +24,11 @@
       "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
       "transcript": {
         "run": {
-          "l1": "diff en.json · 2 nouveaux · 1 modifié · 117 inchangés",
-          "l2": "de  3 traduits · 117 intacts · 0 retenu",
-          "l3": "es  3 traduits · 117 intacts · 0 retenu",
-          "l4": "fr  3 traduits · 117 intacts · 0 retenu",
-          "l5": "✓ 9 clés traduites en 1,8 s · 351 intacts · verrou mis à jour"
+          "l1": "diff en.json · 2 nouvelles · 1 modifiée · 117 inchangées",
+          "l2": "de  3 traduites · 117 intactes · 0 retenue",
+          "l3": "es  3 traduites · 117 intactes · 0 retenue",
+          "l4": "fr  3 traduites · 117 intactes · 0 retenue",
+          "l5": "✓ 9 clés traduites en 1,8 s · 351 intactes · verrou mis à jour"
         }
       }
     },
@@ -38,24 +38,24 @@
       "copied": "Copié",
       "copyAria": "Copier la commande d'installation",
       "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
-      "pnpmNote": "pnpm installe correctement mais sort avec le code 1 et ERR_PNPM_IGNORED_BUILDS, car il bloque les scripts d'installation d'une dépendance. Lance pnpm approve-builds une fois, ou consulte le",
+      "pnpmNote": "pnpm installe correctement mais sort avec le code 1 et ERR_PNPM_IGNORED_BUILDS, car il bloque les scripts d'installation d'une dépendance. Lance pnpm approve-builds une fois, ou consulte la page",
       "pnpmNoteLink": "Dépannage",
       "aiTabLabel": "IA",
-      "aiCaption": "Ceci est un aperçu tronqué. Lis le prompt complet et le guide de configuration sur",
+      "aiCaption": "Ceci est un aperçu tronqué. Le prompt complet et la marche à suivre sont dans",
       "aiCaptionLink": "le guide de configuration",
       "copyCommand": "Copier {command}"
     },
     "gate": {
       "rows": {
         "key": "clé",
-        "candidate": "proposition",
+        "candidate": "candidate",
         "missing": "manquant",
         "reason": "motif",
-        "kept": "conservé"
+        "kept": "conservée"
       },
       "annotations": {
-        "new": "nouveau",
-        "kept": "conservé"
+        "new": "nouvelle",
+        "kept": "conservée"
       }
     },
     "how": {
@@ -74,7 +74,7 @@
           "body": "Seules les clés nouvelles et modifiées partent."
         },
         "verifyWrite": {
-          "title": "Vérifier et écrire",
+          "title": "Vérifie et écris",
           "body": "Les résultats cassés sont retenus, le reste est écrit."
         }
       }
@@ -84,23 +84,23 @@
       "items": {
         "incremental": {
           "question": "Comment verbatra évite-t-il de tout re-traduire à chaque exécution ?",
-          "answer": "Il garde un fichier de verrouillage validé qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et envoie seulement les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
+          "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n'envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Six, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son identifiant dans ta configuration et tu peux changer plus tard en modifiant cette seule ligne. Gemini a un vrai niveau gratuit, et un modèle local ne coûte rien par appel."
+          "answer": "Six, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel."
         },
         "formats": {
           "question": "Quels formats et frameworks verbatra prend-il en charge ?",
-          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que les fichiers XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les catalogues de chaînes Xcode, Android strings.xml, gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, et toute pile basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n'y a pas de format spécifique à verbatra vers lequel migrer."
+          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les String Catalogs de Xcode, Android strings.xml, les fichiers gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android et toute stack basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n'y a aucun format propre à verbatra vers lequel migrer."
         },
         "safety": {
           "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
-          "answer": "Chaque résultat passe une vérification d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime, invente ou réordonne un placeholder, ou produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale. La même vérification s'applique aux modifications et aux re-traductions faites dans Verbatra Studio."
+          "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime, invente ou réordonne un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
         },
         "cost": {
           "question": "Combien coûte verbatra ?",
-          "answer": "verbatra lui-même est gratuit et open source sous la licence MIT. Le seul coût est l'usage de ton fournisseur, que tu contrôles : il traduit seulement ce qui a changé, et tu peux le faire tourner gratuitement sur le palier gratuit de Gemini ou sur un modèle local compatible OpenAI."
+          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l'usage de ton fournisseur, et c'est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l'offre gratuite de Gemini ou sur un modèle local compatible OpenAI."
         }
       }
     },
@@ -109,12 +109,12 @@
       "docs": "Lire la documentation"
     },
     "footer": {
-      "tagline": "Traduis seulement ce qui a changé. Un CLI et un SDK open source qui garde tes fichiers de locale i18n synchronisés via le fournisseur que tu choisis.",
+      "tagline": "Traduis uniquement ce qui a changé. Une CLI et un SDK open source qui gardent tes fichiers de locale i18n synchronisés via le fournisseur que tu choisis.",
       "cols": {
         "product": {
           "title": "Produit",
           "documentation": "Documentation",
-          "cliReference": "Référence du CLI",
+          "cliReference": "Référence de la CLI",
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "Serveur MCP",
@@ -174,7 +174,7 @@
     },
     "proof": {
       "lock": {
-        "body": "Un hash par clé et par locale, validé à côté de tes fichiers.",
+        "body": "Un hash par clé et par locale, commité à côté de tes fichiers.",
         "title": "Le fichier de verrouillage"
       },
       "refused": {
@@ -195,9 +195,9 @@
           "title": "Une locale qui dérive fait échouer la pull request."
         },
         "config": {
-          "body": "Un glossaire fixe la traduction des termes listés ; <code>tone</code> définit un registre formel, informel ou neutre.",
+          "body": "Un glossaire fixe la traduction des termes listés ; <code>tone</code> définit un ton formel, informel ou neutre.",
           "note": "le verbatra.config.ts de ce site",
-          "title": "Tes termes et ton registre restent fixes."
+          "title": "Tes termes et ton registre ne bougent pas."
         },
         "cost": {
           "body": "Seules les clés nouvelles et modifiées partent chez le fournisseur, et chaque exécution affiche son nombre de tokens par locale.",
@@ -205,8 +205,8 @@
           "title": "Tu paies pour les clés que tu as modifiées."
         },
         "gate": {
-          "body": "Une proposition qui perd un placeholder, casse l'ICU ou déséquilibre le balisage est retenue, jamais écrite et renvoyée à la prochaine exécution.",
-          "note": "la même vérification protège les modifications dans Studio et les imports",
+          "body": "Une traduction candidate qui perd un placeholder, casse l'ICU ou déséquilibre le balisage est retenue, jamais écrite et renvoyée à la prochaine exécution.",
+          "note": "la même barrière d'intégrité protège les modifications dans Studio et les imports",
           "title": "Un placeholder cassé n'atteint jamais la production."
         },
         "git": {
@@ -232,7 +232,7 @@
       "rows": {
         "agent": {
           "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
-          "cta": "Démarrer avec l'IA",
+          "cta": "Commencer avec l'IA",
           "title": "Ou confie-le à ton agent."
         },
         "ci": {
@@ -241,15 +241,15 @@
           "title": "Lance-le à l'enregistrement, en CI ou depuis une GitHub Action."
         },
         "excel": {
-          "body": "Exporte, récupère-le rempli, importe-le via la même vérification.",
+          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
           "cta": "En savoir plus sur le transfert Excel",
           "title": "Confie un classeur aux traducteurs, puis réimporte-le."
         },
         "studio": {
-          "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de révision et les actions Edit, Approve et Reject.",
+          "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject.",
           "body": "Couverture, entrées signalées, modifications sur place. Aucun appel au fournisseur.",
           "cta": "Réviser les traductions dans Studio",
-          "title": "Vois l'état de chaque locale dans Verbatra Studio."
+          "title": "Consulte l'état de chaque locale dans Verbatra Studio."
         }
       },
       "table": {
@@ -306,7 +306,7 @@
       "disclaimer": "Ceci est une traduction fournie par commodité. En cas de divergence, la version anglaise prévaut.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "La partie responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous contacter par email à <email>info@kreitz-webdev.de</email>."
+        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>."
       },
       "s2": {
         "heading": "2. Aperçu",
@@ -338,7 +338,7 @@
       },
       "s9": {
         "heading": "9. Contact",
-        "body": "Pour toute question ou demande relative à la confidentialité, envoie un email à <email>info@kreitz-webdev.de</email>."
+        "body": "Pour toute question ou demande relative à la confidentialité, envoie un e-mail à <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
         "heading": "10. Modifications de cette politique",
@@ -346,7 +346,7 @@
       },
       "s11": {
         "heading": "11. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse email et le message que tu soumets afin de répondre à ta demande. L'email de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'email tiers n'est impliqué dans sa livraison, et sa livraison n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers impliqué en vertu de l'Art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une période définie par notre plan Arcjet, actuellement jusqu'à une heure sur le niveau gratuit. La base légale est l'Art. 6(1)(f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'email de notification qui en résulte ne sont conservés que le temps nécessaire pour traiter la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers au sens de l'art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une durée fixée par notre offre Arcjet, actuellement jusqu'à une heure sur l'offre gratuite. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont conservés que le temps nécessaire au traitement de la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
       },
       "s12": {
         "heading": "12. Traduction assistée par IA",
@@ -365,7 +365,7 @@
     "contact": {
       "meta": {
         "title": "Contact",
-        "description": "Contacte l'opérateur du site de documentation verbatra."
+        "description": "Contacte l'opérateur du site de documentation de verbatra."
       },
       "title": "Contact",
       "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les mentions légales.",
@@ -373,20 +373,20 @@
         "nameLabel": "Nom",
         "namePlaceholder": "Ton nom",
         "emailLabel": "E-mail",
-        "emailPlaceholder": "toi@exemple.com",
+        "emailPlaceholder": "toi@example.com",
         "messageLabel": "Message",
         "messagePlaceholder": "Ton message",
-        "submit": "Envoie le message",
+        "submit": "Envoyer le message",
         "submitting": "Envoi en cours...",
         "successTitle": "Message envoyé",
         "successBody": "Merci de nous avoir contactés. Nous reviendrons vers toi dès que possible.",
         "errorTitle": "Quelque chose s'est mal passé",
-        "errorBody": "Nous n'avons pas pu envoyer ton message. Merci de réessayer dans un instant.",
-        "rateLimitedBody": "Tu as envoyé trop de messages récemment. Merci de réessayer plus tard.",
-        "validationErrorBody": "Merci de corriger les champs en surbrillance et de réessayer.",
+        "errorBody": "Nous n'avons pas pu envoyer ton message. Réessaie dans un instant.",
+        "rateLimitedBody": "Tu as envoyé trop de messages récemment. Réessaie plus tard.",
+        "validationErrorBody": "Corrige les champs en surbrillance et réessaie.",
         "errors": {
-          "required": "Ce champ est requis.",
-          "invalid_email": "Merci de saisir une adresse e-mail valide.",
+          "required": "Ce champ est obligatoire.",
+          "invalid_email": "Saisis une adresse e-mail valide.",
           "too_short": "Ton message doit contenir au minimum 10 caractères.",
           "too_long": "Ce champ est trop long."
         }
@@ -395,7 +395,7 @@
   },
   "docs": {
     "machineTranslated": {
-      "text": "Cette page a été traduite automatiquement, elle peut donc contenir des erreurs ou sonner un peu bizarrement. La version anglaise est la référence.",
+      "text": "Cette page a été traduite automatiquement, elle peut donc contenir des erreurs ou se lire un peu bizarrement. La version anglaise fait foi.",
       "title": "Page traduite automatiquement",
       "viewOriginal": "Lire l'original en anglais"
     },
@@ -405,14 +405,14 @@
     },
     "llms": {
       "full": "llms-full.txt (texte intégral)",
-      "heading": "Pour les agents d'IA",
+      "heading": "Pour les agents IA",
       "index": "llms.txt (index)"
     },
     "availableFrom": {
       "title": "Disponible à partir de {version}",
-      "text": "Ceci nécessite verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas, alors vérifie ta version installée avec verbatra --version et mets à jour si elle est plus ancienne.",
+      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec verbatra --version et mets à jour si elle est plus ancienne.",
       "packageTitle": "Disponible à partir de {version}",
-      "packageText": "Ceci nécessite {version} ou plus récent. Les versions antérieures ne l'ont pas, alors mets à jour ce paquet si le tien est plus ancien."
+      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
     },
     "screenshot": {
       "label": "Verbatra Studio",

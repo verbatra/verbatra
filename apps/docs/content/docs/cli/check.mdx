@@ -30,7 +30,7 @@ A key is missing when the source has it and the target does not; stale when the 
 
 It is a report and nothing else. It never changes the exit code, never flips a locale out of sync, never withholds or rewrites a value, and never flags a key for review. Like the rest of `check`, it calls no provider and needs no API key.
 
-The comparison follows one rule, applied to source and translation alike:
+The comparison follows one set of rules, applied to source and translation alike:
 
 - Values are compared after Unicode NFC normalization, folding `\r\n` to `\n`, and trimming leading and trailing whitespace, so `"Save "` and `"Save"` count as the same string. Whitespace inside the value and letter case do count.
 - Only up-to-date keys are compared. A missing key has no translation yet, and a stale key's translation belongs to an older source text, which `check` already reports.

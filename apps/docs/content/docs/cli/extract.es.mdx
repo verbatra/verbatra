@@ -1,15 +1,15 @@
 ---
 title: verbatra extract
-description: Analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo de la locale de origen.
+description: Analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen.
 status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Todos los demás comandos parten de un archivo de locale que ya existe. `extract` es el único que parte de tu código: recorre las raíces de código que configures, encuentra las llamadas de traducción que hay en ellas y añade cualquier clave que todavía no esté en el archivo de la locale de origen. Eso es lo que hace que verbatra sirva en un proyecto que aún no está internacionalizado, donde el catálogo es justo lo que no tienes.
+Todos los demás comandos parten de un archivo de locale que ya existe. `extract` es el único que parte de tu código: recorre las raíces de código que configures, encuentra las llamadas de traducción que hay en ellas y añade cualquier clave que todavía no esté en el archivo del locale de origen. Eso es lo que hace que verbatra sirva en un proyecto que aún no está internacionalizado, donde el catálogo es justo lo que no tienes.
 
-No gasta nada. No construye ningún proveedor, no lee ninguna variable de entorno con una API key y no hace ninguna petición de red, así que una ejecución sin clave configurada funciona.
+No gasta nada. No construye ningún proveedor, no lee ninguna variable de entorno de clave de API y no hace ninguna petición de red, así que una ejecución sin clave configurada funciona.
 
-## Sintaxis
+## Sinopsis
 
 ```bash
 verbatra extract [flags]
@@ -17,7 +17,7 @@ verbatra extract [flags]
 
 ## Configuración
 
-`extract` se controla desde el [bloque `extract`](/docs/config-file#extract) de tu config. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y salida `2`.
+`extract` se controla desde el [bloque `extract`](/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y salida `2`.
 
 ```ts
 import { defineConfig } from "@verbatra/sdk";
@@ -39,45 +39,45 @@ export default defineConfig({
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resolver la config, las raíces de código y los archivos de locale desde este directorio |
-| `--config` | `<path>` | buscar uno | cargar este archivo de config en lugar de buscar uno |
-| `--dry-run` | ninguno | desactivado | informar de lo que se añadiría sin escribir nada |
-| `--json` | ninguno | desactivado | imprimir un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout con el resultado bajo `result` |
+| `--cwd` | `<path>` | directorio actual | resuelve la configuración, las raíces de código y los archivos de locale desde este directorio |
+| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
+| `--dry-run` | ninguno | desactivado | informa de lo que se añadiría y no escribe nada |
+| `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout con el resultado bajo `result` |
 
 ## Qué encuentra
 
 El framework `i18next` lee las formas de llamada `t(...)`, `$t(...)` y `<object>.t(...)` en archivos `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` y `.cts`, cada una también como llamada opcional y con lista explícita de argumentos de tipo. La clave es el primer argumento. El valor por defecto es el segundo argumento o un campo `defaultValue` en el objeto de opciones:
 
 ```ts
-t("nav.home");                              // solo clave, se escribe con valor vacío
-t("nav.away", "Away");                      // valor por defecto posicional
-t("nav.help", { defaultValue: "Help" });    // valor por defecto en el objeto de opciones
-t?.("nav.back");                            // llamada opcional
-t<string>("nav.next");                      // argumento de tipo explícito
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
 ```
 
-Los comentarios, las cadenas y las expresiones regulares se entienden, así que una llamada escrita dentro de un comentario no se recoge y un `t(` entrecomillado dentro de una cadena no se convierte en clave.
+Se entienden los comentarios, las cadenas y las expresiones regulares, así que una llamada escrita dentro de un comentario no se recoge y un `t(` entrecomillado dentro de una cadena no se convierte en clave.
 
-La clave y el valor por defecto tienen que ser un literal completo. `t("user." + id)` se reporta como dinámico en lugar de escribirse como la clave `user.`, y `t("nav.home", { defaultValue: "Home" + suffix })` añade la clave sin valor por defecto en lugar de con uno truncado.
+La clave y el valor por defecto tienen que ser un literal completo. `t("user." + id)` se informa como dinámico en lugar de escribirse como la clave `user.`, y `t("nav.home", { defaultValue: "Home" + suffix })` añade la clave sin valor por defecto en lugar de con uno truncado.
 
-La clave también tiene que nombrar una ruta direccionable. `t("user.")`, `t(".lead")` y `t("a..b")` son literales completos, pero cada uno lleva un segmento vacío, y los formatos de árbol parten la clave por el `.`, así que la clave acabaría bajo un hijo sin nombre que tu aplicación nunca lee. Esas también se reportan como dinámicas.
+La clave también tiene que nombrar una ruta direccionable. `t("user.")`, `t(".lead")` y `t("a..b")` son literales completos, pero cada uno lleva un segmento vacío, y los formatos de árbol parten la clave por el `.`, así que la clave acabaría bajo un hijo sin nombre que tu aplicación nunca lee. Esas también se informan como dinámicas.
 
-### Los espacios de nombres todavía no se resuelven
+### Los namespaces todavía no se resuelven
 
-Una clave con espacio de nombres, la forma `t("common:nav.home")`, se reporta como dinámica y nunca se escribe. Una configuración de verbatra se dirige a un único archivo de catálogo, así que no hay ningún sitio para `common:nav.home` que signifique lo que tu configuración de i18next entiende por ello.
+Una clave con namespace, la forma `t("common:nav.home")`, se informa como dinámica y nunca se escribe. Una configuración de verbatra se dirige a un único archivo de catálogo, así que no hay ningún sitio para `common:nav.home` que signifique lo que tu configuración de i18next entiende por ello.
 
-Conviene que sepas lo que cuesta antes de ejecutarlo: si tu proyecto nombra un espacio de nombres en cada llamada, cada llamada es dinámica y la ejecución no añade nada. Es deliberado en esta primera versión. `extract` hoy sirve en un proyecto que se queda con un solo espacio de nombres y escribe sus claves sin el prefijo; levantar el límite es lo siguiente tras el segundo framework.
+Conviene que sepas lo que cuesta antes de ejecutarlo: si tu proyecto nombra un namespace en cada llamada, cada llamada es dinámica y la ejecución no añade nada. Es deliberado en esta primera versión. `extract` hoy sirve en un proyecto que se queda con un solo namespace y escribe sus claves sin el prefijo; levantar el límite es lo siguiente tras el segundo framework.
 
 ## Qué escribe
 
-Solo el archivo de la locale de origen, y solo las claves que son realmente nuevas:
+Solo el archivo del locale de origen, y solo las claves que son realmente nuevas:
 
-- Una clave que ya está en el catálogo conserva su valor tal cual. Un valor por defecto dejado en una llamada nunca sobrescribe un valor que tú o una traductora hayáis editado.
+- Una clave que ya está en el catálogo conserva su valor tal cual. Un valor por defecto dejado en una llamada nunca sobrescribe un valor que hayas editado tú o un traductor.
 - Una clave del catálogo que ninguna llamada menciona se deja intacta. `extract` añade e informa; nunca borra. [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
 - Una ejecución que no encuentra nada nuevo no escribe nada en absoluto, así que el archivo queda idéntico byte a byte y su fecha de modificación no cambia.
 - Nunca se escribe un archivo de locale de destino. Ejecuta [`verbatra translate`](/docs/cli/translate) después de `extract` para rellenar las claves nuevas.
 
-Hay dos formatos que no se crean desde cero, ni aquí ni en ninguna otra parte de verbatra: `xliff` necesita un archivo de destino ya existente y `apple-xcstrings` necesita un catálogo creado en Xcode. Para esos dos, crea antes el catálogo de origen; `extract` entonces añade sobre él.
+Hay dos formatos que no se crean desde cero, ni aquí ni en ninguna otra parte de verbatra: `xliff` necesita un archivo de destino ya existente y `apple-xcstrings` necesita un catálogo creado en Xcode. Para esos dos, crea antes el catálogo de origen; `extract` añade entonces a ese archivo.
 
 ## Qué informa en lugar de adivinar
 
@@ -85,10 +85,10 @@ Todo lo que el análisis no puede resolver vuelve como datos, de modo que un arc
 
 | Se informa como | Cuándo |
 | --- | --- |
-| `dynamic` | el argumento de la clave no es una única cadena estática completa, o nombra una ruta que verbatra no puede direccionar: una variable, un acceso a propiedad, una plantilla con una expresión dentro, una concatenación, una clave con espacio de nombres o una clave con un segmento de ruta vacío. Nunca se escribe con una clave adivinada, truncada ni indireccionable. |
+| `dynamic` | el argumento de la clave no es una única cadena estática completa, o nombra una ruta que verbatra no puede direccionar: una variable, un acceso a propiedad, un literal de plantilla que lleva una expresión, una concatenación, una clave con namespace o una clave con un segmento de ruta vacío. Nunca se escribe con una clave adivinada, truncada o imposible de direccionar. |
 | `conflicts` | una clave aparece en dos llamadas que no coinciden en su valor por defecto. No se escribe ninguno de los dos, porque elegir uno haría que tu catálogo dependiera del orden de recorrido de directorios. |
 | `withoutDefault` | una clave se añadió con valor vacío porque su llamada no aportaba ningún valor por defecto. Rellénalo y luego traduce. |
-| `diagnostics` | un archivo o directorio no se pudo leer entero: desapareció, supera el límite de tamaño, el análisis falló con él, un comentario de bloque o una plantilla sin cerrar abandonó el resto, o, en un archivo `.tsx`, `.jsx` o `.js`, un elemento JSX nunca se cierra o un string entre comillas en el código llega al final de su línea. Lo leído antes de ese punto se sigue reportando. |
+| `diagnostics` | un archivo o directorio no se pudo leer entero: desapareció, supera el límite de tamaño, el análisis falló con él, un comentario de bloque o un literal de plantilla sin cerrar abandonó el resto, o, en un archivo `.tsx`, `.jsx` o `.js`, un elemento JSX nunca se cierra o una cadena entre comillas en el código llega al final de su línea. Se sigue informando de lo leído antes de ese punto. |
 
 Nada de esto cambia el código de salida. Son hallazgos, no fallos.
 
@@ -101,13 +101,13 @@ El resultado lleva únicamente claves, valores y ubicaciones de archivo y línea
 ## Ejemplos
 
 ```bash
-# añadir al archivo de la locale de origen cada clave nueva encontrada en tu código
+# add every new key found in your source to the source locale file
 verbatra extract
 
-# previsualizar las claves que se añadirían, sin escribir nada
+# preview the keys that would be added, write nothing
 verbatra extract --dry-run
 
-# resultado legible por máquina para un paso de CI
+# machine-readable result for a CI step
 verbatra extract --json
 ```
 
@@ -130,13 +130,13 @@ verbatra extract
 | Código | Significado |
 | --- | --- |
 | `0` | el análisis se ejecutó, con independencia de lo que encontrara |
-| `2` | no se pudo ejecutar: un error de uso, la ausencia del bloque `extract`, un formato que no resuelve, un catálogo de origen ilegible o un catálogo de origen que no se pudo escribir |
+| `2` | no se pudo ejecutar: un error de uso, la ausencia del bloque `extract`, un formato que no se puede resolver, un catálogo de origen que no se puede analizar o un catálogo de origen que no se pudo escribir |
 
 No hay salida `1`. Las llamadas dinámicas y los valores por defecto en conflicto se informan, no se tratan como una ejecución fallida, así que `extract` en CI solo falla cuando de verdad no pudo hacer su trabajo.
 
 ## Relacionado
 
 - [El archivo de configuración](/docs/config-file#extract) documenta el bloque `extract`.
-- [`verbatra translate`](/docs/cli/translate) rellena las locales de destino una vez existen las claves nuevas.
-- [`verbatra check`](/docs/cli/check) informa de la desviación que crean las claves nuevas.
+- [`verbatra translate`](/docs/cli/translate) rellena los locales de destino una vez existen las claves nuevas.
+- [`verbatra check`](/docs/cli/check) informa del desfase que crean las claves nuevas.
 - [El SDK](/docs/sdk#extract) expone la misma capacidad como `extract()`.

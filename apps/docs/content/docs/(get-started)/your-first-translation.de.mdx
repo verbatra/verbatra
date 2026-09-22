@@ -1,6 +1,6 @@
 ---
 title: Deine erste Übersetzung
-description: Installiere die CLI, erzeuge mit verbatra init eine Konfiguration, sieh dir den Lauf ohne API-Schlüssel in der Vorschau an, setze dann deinen Schlüssel und starte deinen ersten translate-Lauf. In unter zehn Minuten von null zur übersetzten Locale-Datei.
+description: Installiere die CLI, erzeuge mit verbatra init eine Konfiguration, sieh dir den Lauf ohne API-Schlüssel in der Vorschau an, setze dann deinen API-Schlüssel und starte deinen ersten translate-Lauf. In unter zehn Minuten von null zur übersetzten Locale-Datei.
 ---
 Fünf Schritte führen dich vom leeren Projekt zur übersetzten Locale-Datei. Alles, was du brauchst, ist Node.js `>=22.14.0` und ein API-Schlüssel für einen Provider, sobald du wirklich übersetzen willst. Die ersten drei Schritte kosten nichts und brauchen kein Konto.
 
@@ -24,7 +24,7 @@ npx verbatra init --provider gemini
 
 Mit angeschlossenem Terminal fragt `init` alles ab, was du nicht als Flag übergeben hast, jeweils mit einem Default:
 
-- den Provider: einer von `anthropic`, `openai`, `gemini` oder `deepl` (Flag `--provider`, die einzige Eingabe ohne Default)
+- den Provider: einer von `anthropic`, `openai`, `gemini`, `deepl` oder `google-translate` (Flag `--provider`, die einzige Eingabe ohne Default)
 - die Quell-Locale, Default `en` (`--source`)
 - die Ziel-Locales, kommagetrennt, Default `de` (`--targets`)
 - das Muster der Locale-Dateien, Default `locales/{locale}.json` (`--path`)
@@ -34,8 +34,8 @@ Mit angeschlossenem Terminal fragt `init` alles ab, was du nicht als Flag überg
 `init` schreibt drei Dinge:
 
 - `verbatra.config.ts`: deine Projektkonfiguration, vor dem Schreiben gegen das echte Schema validiert
-- `.env.example`: nennt die Schlüsselvariable des Providers, nie einen Schlüsselwert
-- `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`, angelegt oder ergänzt, damit ein echter Schlüssel, lokaler Zustand oder der regenerierbare Cache nie in einem Commit landet
+- `.env.example`: nennt die Umgebungsvariable für den API-Schlüssel des Providers, nie dessen Wert
+- `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`, angelegt oder ergänzt, damit ein echter API-Schlüssel, lokaler Zustand oder der regenerierbare Cache nie in einem Commit landet
 
 Ein erneutes `init` überspringt Dateien, die schon existieren; `--force` überschreibt sie. Es füllt außerdem `format` anhand deiner Dependencies vor: Ein Projekt mit i18next, vue-i18n, next-intl oder `@ngx-translate/core` bekommt das passende JSON-Format, alles andere fällt auf `i18next-json` mit einem TODO-Kommentar zum Ändern zurück. Für Gemini sieht das Gerüst so aus:
 
@@ -61,13 +61,13 @@ export default defineConfig({
 
 ## 3. Vorschau ohne API-Schlüssel
 
-Fang mit [`verbatra doctor`](/docs/cli/doctor) an, der Vorabprüfung für genau diese Einrichtung:
+Fange mit [`verbatra doctor`](/docs/cli/doctor) an, der Vorabprüfung für genau diese Einrichtung:
 
 ```bash
 npx verbatra doctor
 ```
 
-Es läuft fünf Prüfungen: die Konfiguration lädt und validiert, das Format löst sich zu einem Datei-Adapter auf, die Provider-ID löst sich zu einem Provider auf, die Umgebungsvariable, aus der dieser Provider seinen Schlüssel liest, ist gesetzt, und die Quell-Locale-Datei existiert und lässt sich parsen. Jede Prüfung läuft auch dann, wenn eine frühere fehlschlug, ein Lauf meldet also jedes Problem, statt bei der ersten Fundstelle abzubrechen. Es konstruiert keinen Provider, macht keinen Netzwerkaufruf, schreibt nichts und liest nie einen Schlüsselwert. Es ist außerdem die einzige Prüfung, die schon vor der Quelldatei funktioniert: führe sie also jetzt aus und noch einmal nach Schritt 4.
+Es führt fünf Prüfungen aus: Die Konfiguration lässt sich laden und validieren, das Format wird zu einem Datei-Adapter aufgelöst, die Provider-ID zu einem Provider, die Umgebungsvariable, aus der dieser Provider seinen API-Schlüssel liest, ist gesetzt, und die Quell-Locale-Datei existiert und lässt sich parsen. Jede Prüfung läuft auch dann, wenn eine frühere fehlschlug; ein Lauf meldet also jedes Problem, statt beim ersten abzubrechen. Es konstruiert keinen Provider, macht keine Netzwerkanfrage, schreibt nichts und liest nie den Wert eines API-Schlüssels. Es ist außerdem die einzige Prüfung, die schon funktioniert, bevor die Quelldatei existiert: führe sie also jetzt aus und noch einmal nach Schritt 4.
 
 Wenn du noch keine Quelldatei hast, lege eine unter dem konfigurierten Muster an, zum Beispiel `locales/en.json`:
 
@@ -86,11 +86,11 @@ Sieh dir den Lauf jetzt in der Vorschau an:
 npx verbatra translate --dry-run
 ```
 
-Ein Dry-Run baut überhaupt keinen Provider auf, braucht also keinen API-Schlüssel und kann nichts ausgeben. Er liest deine Dateien, vergleicht sie und gibt dieselbe Zusammenfassung pro Locale aus wie ein echter Lauf, ohne einen einzigen String zu senden oder eine einzige Datei zu schreiben. Nutze ihn, um Format, Dateimuster und Locales zu prüfen, bevor du dich irgendwo anmeldest.
+Ein Dry Run konstruiert überhaupt keinen Provider, braucht also keinen API-Schlüssel und kann keine Kosten verursachen. Er liest deine Dateien, vergleicht sie und gibt dieselbe Zusammenfassung pro Locale aus wie ein echter Lauf, ohne einen einzigen String zu senden oder eine einzige Datei zu schreiben. Nutze ihn, um Format, Dateimuster und Locales zu prüfen, bevor du dich irgendwo anmeldest.
 
-[`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) kommen genauso ohne Provider aus: `check` meldet Zählwerte pro Locale, `diff` listet die genauen Keys. Anders als `doctor` lesen alle drei die Quelldatei, brauchen sie also zuerst.
+[`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) kommen genauso ohne Provider aus: `check` meldet Zahlen pro Locale, `diff` listet die genauen Keys. Anders als `doctor` lesen alle drei die Quelldatei, brauchen sie also zuerst.
 
-Noch etwas funktioniert, bevor du einen Schlüssel hast, und es gibt dir etwas zum Anschauen statt zum Lesen:
+Noch etwas funktioniert, bevor du einen API-Schlüssel hast, und es gibt dir etwas zum Anschauen statt zum Lesen:
 
 ```bash
 npx verbatra pseudo
@@ -100,27 +100,27 @@ npx verbatra pseudo
 
 ## 4. Setze deinen API-Schlüssel
 
-Schlüssel kommen aus der Umgebung, nie aus der Konfigurationsdatei. Jeder gehostete Provider liest genau eine Variable; für Gemini ist das `GEMINI_API_KEY`. Kopiere das erzeugte Beispiel und trage deinen Schlüssel ein:
+API-Schlüssel kommen aus der Umgebung, nie aus der Konfigurationsdatei. Jeder gehostete Provider liest genau eine Variable; für Gemini ist das `GEMINI_API_KEY`. Kopiere das erzeugte Beispiel und trage deinen API-Schlüssel ein:
 
 ```bash
 cp .env.example .env
 ```
 
-Öffne dann `.env` und füge deinen Schlüssel nach `GEMINI_API_KEY=` ein. `translate`, `watch`, `doctor` und `studio` laden vor einem Lauf `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, und eine Variable, die schon in deiner Shell gesetzt ist, gewinnt immer. Siehe [Provider](/docs/providers) für die Variable jedes Providers.
+Öffne dann `.env` und füge deinen API-Schlüssel nach `GEMINI_API_KEY=` ein. `translate`, `watch`, `doctor`, `studio` und `mcp` laden vor einem Lauf `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, und eine Variable, die schon in deiner Shell gesetzt ist, gewinnt immer. Siehe [Provider](/docs/providers) für die Variable jedes Providers.
 
-<Callout title="Noch kein Schlüssel? Gemini hat ein kostenloses Kontingent.">
-Geminis API hat ein wirklich kostenloses Kontingent und ist damit der günstigste Weg, verbatra auszuprobieren. Hol dir einen Schlüssel im [Google AI Studio](https://aistudio.google.com/apikey) und setze `GEMINI_API_KEY`. Das kostenlose Kontingent hat Anfragelimits pro Minute und pro Tag, verteile eine große Erstübersetzung also über die Zeit.
+<Callout title="Noch kein API-Schlüssel? Gemini hat ein kostenloses Kontingent.">
+Geminis API hat ein wirklich kostenloses Kontingent und ist damit der günstigste Weg, verbatra auszuprobieren. Hol dir einen API-Schlüssel im [Google AI Studio](https://aistudio.google.com/apikey) und setze `GEMINI_API_KEY`. Das kostenlose Kontingent hat Anfragelimits pro Minute und pro Tag, verteile eine große Erstübersetzung also über die Zeit.
 </Callout>
 
 ## 5. Übersetze
 
-Mit dem Schlüssel an Ort und Stelle führst du denselben Befehl echt aus:
+Mit gesetztem API-Schlüssel führst du denselben Befehl jetzt echt aus:
 
 ```bash
 npx verbatra translate
 ```
 
-verbatra liest die Quell-Locale, sieht, dass jeder Key in `de` fehlt, sendet sie in Batches an den Provider, lässt jedes Ergebnis durch das Integritäts-Gate laufen und schreibt `locales/de.json`. Der Lauf endet mit einer Zusammenfassung pro Locale: übersetzte Keys, unveränderte Keys, verwaiste Keys und etwaige Hinweise. Der Exit-Code ist `0`, wenn jede Locale vollständig durchkam, und `1`, wenn eine fehlschlug oder `partial` blieb (geschrieben, aber mit weiterhin fehlenden Keys); ergänze `--json` für eine maschinenlesbare Zusammenfassung.
+verbatra liest die Quell-Locale, sieht, dass jeder Key in `de` fehlt, sendet sie in Batches an den Provider, lässt jedes Ergebnis durch das Integritäts-Gate laufen und schreibt `locales/de.json`. Der Lauf endet mit einer Zusammenfassung pro Locale: übersetzte Keys, unveränderte Keys, verwaiste Keys und etwaige Hinweise. Der Exit-Code ist `0`, wenn jede Locale vollständig durchkam, und `1`, wenn eine fehlschlug oder unvollständig blieb (geschrieben, aber mit weiterhin fehlenden Keys); ergänze `--json` für eine maschinenlesbare Zusammenfassung.
 
 ## Was gerade passiert ist
 
@@ -141,7 +141,7 @@ Drei Dinge liegen jetzt auf der Platte:
   }
   ```
 
-- `.verbatra-local/`: prozesslokaler Zustand (der Run-Status-Schnappschuss und die Schreibsperren pro Locale). `init` hat das Verzeichnis in `.gitignore` eingetragen; committe es nie.
+- `.verbatra-local/`: prozesslokaler Zustand (der Schnappschuss des Lauf-Status und die Schreibsperren pro Locale). `init` hat das Verzeichnis in `.gitignore` eingetragen; committe es nie.
 
 Die Lock-Datei ist die Baseline für jeden künftigen Lauf. Führe `verbatra translate` erneut aus, ohne etwas zu bearbeiten, und nichts wird gesendet: Jeder Key ist bereits aktuell. Ändere einen einzigen Quellstring, und nur dieser Key wird neu übersetzt.
 

@@ -19,7 +19,7 @@ verbatra import <workbook> [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--dry-run` | keins | aus | validieren und melden, ohne Locale-Dateien zu schreiben oder das Lock zu aktualisieren |
-| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder Textdateien (`csv`, `tsv`) lesen |
+| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder Dateien mit Trennzeichen (`csv`, `tsv`) lesen |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Lauf-Zusammenfassung unter `result` trägt (dieselbe [`RunSummary`-Form](/docs/sdk) wie bei `translate`), oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Beispiele
@@ -35,7 +35,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 verbatra import handoff --format csv
 ```
 
-Bei `csv` und `tsv` kommt die Locale aus dem Dateinamen, nicht aus einem Blattnamen. Lass also jede Datei genau so heißen, wie sie exportiert wurde. Eine konfigurierte Ziel-Locale ohne Datei wird als Fehler dieser Locale gemeldet, nie stillschweigend übersprungen.
+Bei `csv` und `tsv` kommt die Locale aus dem Dateinamen, nicht aus einem Blattnamen. Lass also jede Datei genau so heißen, wie sie exportiert wurde. Eine konfigurierte Ziel-Locale ohne Datei (oder, in einer Arbeitsmappe, ohne Blatt) wird als Fehler dieser Locale mit `WORKBOOK_SHEET_MISSING` gemeldet, nie stillschweigend übersprungen.
 
 Eine Datei aus einem früheren Export mit einer breiteren `--locales`-Auswahl wird nie angewendet. Der Import gleicht das Verzeichnis mit dem Manifest ab, das der jüngste Export dorthin geschrieben hat, und meldet eine solche Locale als Fehler mit `HANDOFF_FILE_STALE`. So kann sich keine veraltete Übersetzung unbemerkt zurückschleichen. Exportiere die Locale neu, um ihre Datei aufzufrischen, oder lösche die Datei. Ein Verzeichnis ohne lesbares Manifest (von Hand zusammengestellt oder auf dem Weg durch ein Archiv um die versteckte Datei gebracht) wird wie bisher gelesen, jede vorhandene Datei wird importiert. Eine direkt benannte Einzeldatei wird ebenso beim Wort genommen.
 
@@ -43,15 +43,17 @@ Eine Datei aus einem früheren Export mit einer breiteren `--locales`-Auswahl wi
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | jedes Ziel-Locale kam vollständig durch |
-| `1` | der Lauf lief durch, aber ein oder mehrere Locales schlugen fehl oder blieben `partial` |
+| `0` | jede Ziel-Locale kam vollständig durch |
+| `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Arbeitsmappe, Format oder Lock) oder ein Verwendungsfehler |
+
+Eine Übergabe, die zu groß ist oder sich überhaupt nicht parsen lässt (zum Beispiel eine Datei, die kein lesbarer xlsx-Container ist), ist ein `SOURCE_INVALID`-Fehler des gesamten Laufs, dessen Meldung sagt, was mit ihr nicht stimmte. Eine einzelne unlesbare Zeile ist das nicht: Sie wird als fehlerhafte Zeile gemeldet, und der Rest der Locale wird trotzdem importiert.
 
 <AvailableFrom version="0.9.0" />
 
-Der Vertrag entspricht [`verbatra translate`](/docs/cli/translate); eine manuelle Übergabe verzweigt in CI also genauso. Das gilt auch für `partial` gebliebene Locales: Ein Locale, das mit weiterhin fehlenden Keys geschrieben wurde, endet mit `1`, nicht mit `0`. Das gilt auch für die Lock-Datei: Eine Lock-Datei, die kaputt ist oder während des Imports kaputtgeht, bricht den gesamten Lauf mit `2` ab, statt ein einzelnes fehlgeschlagenes Locale zu melden; die noch ausstehenden Locales bleiben damit unberührt. Locales, die vor dem Abbruch angewendet wurden, bleiben geschrieben: Repariere die Lock-Datei und importiere erneut.
+Der Vertrag entspricht [`verbatra translate`](/docs/cli/translate); eine manuelle Übergabe verzweigt in CI also genauso. Das gilt auch für unvollständig gebliebene Locales: Eine Locale, die mit weiterhin fehlenden Keys geschrieben wurde, endet mit `1`, nicht mit `0`. Das gilt auch für die Lock-Datei: Eine Lock-Datei, die kaputt ist oder während des Imports kaputtgeht, bricht den gesamten Lauf mit `2` ab, statt eine einzelne fehlgeschlagene Locale zu melden; die noch ausstehenden Locales bleiben damit unberührt. Locales, die vor dem Abbruch angewendet wurden, bleiben geschrieben: Repariere die Lock-Datei und importiere erneut.
 
-Eine leere `Translation`-Zelle lässt ein Locale nie fehlschlagen: Die Zeile wird übersprungen, ihre bisherige Lock-Baseline bleibt erhalten, und der Key wird als `unfilled` gemeldet, wann immer er weiterhin eine Übersetzung braucht, egal ob die Zeile als `new` oder als `changed` exportiert wurde. Der Import einer Arbeitsmappe, die noch niemand ausgefüllt hat, gelingt also und liefert den vollständigen Bestand ausstehender Keys zurück.
+Eine leere `Translation`-Zelle lässt eine Locale nie fehlschlagen: Die Zeile wird übersprungen, ihre bisherige Lock-Baseline bleibt erhalten, und der Key wird als `unfilled` gemeldet, wann immer er weiterhin eine Übersetzung braucht, egal ob die Zeile als `new` oder als `changed` exportiert wurde. Der Import einer Arbeitsmappe, die noch niemand ausgefüllt hat, gelingt also und liefert den vollständigen Bestand ausstehender Keys zurück.
 
 ## Siehe auch
 

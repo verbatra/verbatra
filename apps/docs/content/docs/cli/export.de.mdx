@@ -16,8 +16,8 @@ verbatra export [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--out` | `<path>` | `verbatra-translations.xlsx`, bei `csv` und `tsv` `verbatra-translations` | die Übergabe hierhin schreiben: ein Dateipfad bei `xlsx`, ein Verzeichnis bei `csv` und `tsv` |
-| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder eine Datei pro Locale (`csv`, `tsv`) schreiben |
+| `--out` | `<path>` | `verbatra-translations.xlsx`, bei `csv` und `tsv` stattdessen `verbatra-translations` | die Übergabe hierhin schreiben: ein Dateipfad bei `xlsx`, ein Verzeichnis bei `csv` und `tsv` |
+| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder je eine Datei mit Trennzeichen pro Locale (`csv`, `tsv`) schreiben |
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die exportiert wird |
 | `--include-unchanged` | keins | aus | auch bereits aktuelle Strings exportieren |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Export-Ergebnis (Pfad und Zeilenzahlen pro Locale) unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
@@ -41,9 +41,9 @@ verbatra export --format csv --out handoff
 
 `--format csv` und `--format tsv` schreiben reinen Text statt einer Arbeitsmappe: eine `<locale>.csv` oder `<locale>.tsv` pro exportierter Locale, mit denselben Spalten in derselben Reihenfolge wie ein Arbeitsmappen-Blatt. `--out` benennt dann das Verzeichnis, in das die Dateien geschrieben werden, und legt es an, falls es fehlt.
 
-Eine Textdatei ist diffbar und lässt sich überall öffnen, hat aber keinen Zellschutz: jede Spalte ist editierbar und die Spalte `Source hash` ist sichtbar. Ein geänderter Hash wird nie vertraut, der Import vergleicht ihn mit der aktuellen Quelle und hält die Zeile zurück.
+Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber keinen Zellschutz: jede Spalte ist bearbeitbar und die Spalte `Source hash` ist sichtbar. Einem geänderten Hash wird nie vertraut: Der Import vergleicht ihn mit der aktuellen Quelle und hält die Zeile zurück.
 
-Jeder Text-Export schreibt zusätzlich ein verstecktes Manifest in das Verzeichnis, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die soeben geschriebenen Locales benennt. Nur dadurch kann ein erneuter Export mit einer engeren `--locales`-Auswahl die weggefallenen Locales außer Dienst stellen: deren Dateien bleiben auf der Platte, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück, statt eine veraltete Übersetzung anzuwenden. Der Export löscht nichts aus dem Ausgabeverzeichnis, eine eigene Datei darin ist also nie in Gefahr.
+Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest in das Verzeichnis, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die soeben geschriebenen Locales benennt. Nur dadurch kann ein erneuter Export mit einer engeren `--locales`-Auswahl die weggefallenen Locales stilllegen: deren Dateien bleiben auf der Platte, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück, statt eine veraltete Übersetzung anzuwenden. Der Export löscht nichts aus dem Ausgabeverzeichnis, eine eigene Datei darin ist also nie in Gefahr.
 
 ## Exit-Codes
 
@@ -53,6 +53,8 @@ Jeder Text-Export schreibt zusätzlich ein verstecktes Manifest in das Verzeichn
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts) |
 
 `export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`.
+
+Eine Ziel-Locale, die ihr Blatt oder ihre Datei nicht benennen kann, stoppt den Export mit `WORKBOOK_INVALID`. Ein xlsx-Blattname muss 1 bis 31 Zeichen lang sein, darf keines der Zeichen `: \ / ? * [ ]` enthalten und darf, ohne Beachtung der Groß- und Kleinschreibung, weder `Instructions` noch dem Blattnamen einer anderen Ziel-Locale entsprechen. Ein `csv`- oder `tsv`-Dateiname darf nicht leer, `.` oder `..` sein und darf kein Pfadtrennzeichen, kein Steuerzeichen und keines der Zeichen `: * ? " < > |` enthalten. Derselbe Code gilt für eine Arbeitsmappe, die sich nicht serialisieren ließ.
 
 ## Siehe auch
 

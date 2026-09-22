@@ -7,34 +7,34 @@ des symptômes et des messages d'erreur, voir [Dépannage](/docs/troubleshooting
 
 ## Comment je contrôle le coût ?
 
-Quatre leviers, tous sans appel fournisseur tant que tu n'en décides pas autrement :
+Quatre leviers, tous sans appel au fournisseur tant que tu n'en décides pas autrement :
 
 - Les exécutions sont incrémentales par défaut : seules les clés manquantes ou dont la source a
   changé depuis la référence du fichier de verrouillage sont envoyées au fournisseur. Un projet
   inchangé ne coûte rien à relancer.
 - `--dry-run` (ou `translate({ config, dryRun: true })`) prévisualise exactement ce qui serait
-  envoyé, sans appel fournisseur et sans écriture.
+  envoyé, sans appel au fournisseur et sans écriture.
 - `maxTokens` dans la configuration fixe un plafond de tokens pour toute l'exécution, avec
   `budgetBehavior` qui décide de ce qui se passe quand il est atteint : `"warn"` (le défaut) le
   signale et continue, `"stop"` retient chaque clé pas encore tentée ; les clés retenues sont
   retentées automatiquement à l'exécution suivante.
-- Gemini a une vraie offre d'API gratuite, et le fournisseur `openai-compatible` tourne contre un
+- Gemini a une vraie offre d'API gratuite, et le fournisseur `openai-compatible` fonctionne avec un
   modèle local à coût d'API nul.
 
 ## Combien coûte réellement une exécution ?
 
 Un exemple chiffré, pour donner un ordre de grandeur. Un projet de 400 clés à traduire vers 3
-langues, avec le `maxBatchSize` par défaut de 50, envoie 8 requêtes par langue, soit 24 au total.
+locales, avec le `maxBatchSize` par défaut de 50, envoie 8 requêtes par locale, soit 24 au total.
 À environ 4 caractères par token, avec des valeurs source de 40 caractères et des noms de clés de
-20, cela fait à peu près 32 400 tokens d'entrée et 22 800 tokens de sortie, donc environ 55 000
+20, cela fait à peu près 33 300 tokens d'entrée et 30 700 tokens de sortie, donc environ 64 000
 tokens pour toute l'exécution. Sur `gemini-2.5-flash`, à un tarif illustratif de $0.10 par million
-de tokens d'entrée et $0.40 par million de tokens de sortie, cela revient à environ 1,2 centime.
+de tokens d'entrée et $0.40 par million de tokens de sortie, cela revient à environ 1,6 centime.
 
 Les hypothèses derrière ce chiffre, pour que tu le remettes à l'échelle de ton projet : 400 clés
-par langue et 3 langues ; des valeurs de 40 caractères et des noms de clés de 20 ; pas de
+par locale et 3 locales ; des valeurs de 40 caractères et des noms de clés de 20 ; pas de
 `description`, `meaning`, glossaire ni ton ; `maxBatchSize` à sa valeur par défaut ; 4 caractères
-par token ; des traductions à peu près aussi longues que leur source. Le tarif est un espace
-réservé qui rend le calcul concret, pas un prix cité : consulte le vrai sur la page tarifaire de
+par token ; la marge d'expansion de 50 % que verbatra applique à chaque estimation de sortie. Le
+tarif est une valeur d'exemple qui rend le calcul concret, pas un prix relevé : consulte le vrai sur la page tarifaire de
 ton fournisseur, car verbatra ne suit pas les tarifs des fournisseurs et ceux-ci changent.
 
 Deux choses pèsent plus sur la facture réelle que le nombre de clés. Chaque requête porte une
@@ -75,20 +75,23 @@ compare proprement avec sa version précédente. Voir [Formats](/docs/formats).
 
 Les traductions acceptées passent par des heuristiques de révision qui signalent les résultats
 suspects sans les retenir : une longueur très disproportionnée par rapport à la source
-(`LENGTH_RATIO_OUTLIER`), une valeur plus longue que le budget configuré pour sa clé (`MAX_LENGTH_EXCEEDED`), une traduction identique à la source (`EQUALS_SOURCE`), un terme de
+(`LENGTH_RATIO_OUTLIER`), une valeur plus longue que le budget configuré pour sa clé
+(`MAX_LENGTH_EXCEEDED`), une traduction identique à la source (`EQUALS_SOURCE`), un terme de
 glossaire manqué (`GLOSSARY_TERM_MISSED`), des placeholders réordonnés (`INTEGRITY_REORDERED`),
-un chemin fournisseur dégradé (`PROVIDER_DEGRADED`), ou une valeur réutilisée depuis le cache pour
-une chaîne source modifiée depuis (`FUZZY_CACHE_REUSE`). Les signalements atterrissent sur la liste
-`needsReview` du résumé d'exécution et dans la file de révision de Studio. Voir
+un chemin dégradé côté fournisseur (`PROVIDER_DEGRADED`), ou une valeur réutilisée depuis le
+cache pour une chaîne source modifiée depuis (`FUZZY_CACHE_REUSE`). Les signalements atterrissent
+sur la liste `needsReview` du résumé d'exécution et dans la file de révision de Studio. Voir
 [Sûreté de la traduction](/docs/translation-safety).
 
 ## verbatra fonctionne-t-il dans un monorepo ?
 
 Oui. La recherche de configuration démarre dans le répertoire de travail courant et remonte, donc
-lancer depuis le répertoire d'un paquet trouve la configuration de ce paquet. Depuis n'importe où
+lancer depuis le répertoire d'un paquet trouve la configuration de ce paquet. La recherche s'arrête
+au répertoire `.git` ancêtre le plus proche : elle trouve donc une configuration à la racine de ton
+monorepo sans déborder sur un projet sans rapport situé au-dessus. Depuis n'importe où
 ailleurs, passe `--cwd <dir>` (chaque commande le prend en charge) ou pointe vers un fichier
 précis avec `--config <path>`. Dans le SDK, les mêmes leviers sont `cwd` et `configPath` sur
-`loadConfig`. Le `files.pattern` et le fichier de verrouillage se résolvent contre le répertoire
+`loadConfig`. Le `files.pattern` et le fichier de verrouillage se résolvent par rapport au répertoire
 de travail.
 
 ## Que dois-je commiter ?
@@ -97,8 +100,8 @@ Commite tes fichiers de locale et `verbatra.lock.json` : le fichier de verrouill
 par clé, le hash du contenu source dont chaque traduction provient, et le commiter est ce qui rend
 les exécutions incrémentales et la détection de dérive opérantes partout, CI comprise. Ne commite
 pas `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; `verbatra init` ajoute les
-quatre au `.gitignore`, et `translate`, `watch` et `import` complètent un `.gitignore` existant
-auquel il en manque un.
+quatre au `.gitignore`, et `translate`, `watch`, `import`, `tmx import` et `pseudo` complètent un `.gitignore`
+existant auquel il en manque un.
 Voir [Le fichier de verrouillage](/docs/the-lock-file).
 
 ## Comment je retraduis tout ?
@@ -122,7 +125,7 @@ dynamiquement par la commande `studio`.
 
 Uniquement dans des variables d'environnement : `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
 `GEMINI_API_KEY`, `DEEPL_API_KEY` ou `GOOGLE_TRANSLATE_API_KEY`, plus la variable que tu nommes
-pour `openai-compatible`. `translate`, `watch`, `doctor` et `studio` chargent `.env` et
+pour `openai-compatible`. `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env` et
 `.env.local` depuis le répertoire de
 travail (les vraies variables d'environnement gagnent). Le schéma de configuration rejette les clés
 inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les
@@ -135,13 +138,13 @@ messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs
 Cinq choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
 clé d'API :
 
-- Configuration : la configuration se charge et passe la validation.
+- Configuration : un fichier de config a été trouvé et passe la validation.
 - Format adapter : le `format` configuré se résout en un adaptateur de fichier.
-- Provider : le `provider.id` configuré se résout en une factory de fournisseur.
-- API key environment variable : la variable d'environnement dont ce fournisseur lit sa clé est
-  définie (vérifiée seulement par son nom, jamais par sa valeur).
-- Source locale file : le fichier de la locale source existe, est un fichier normal et se parse
-  sous le format configuré.
+- Provider : le `provider.id` configuré se résout en une fabrique de fournisseur.
+- API key environment variable : la variable d'environnement dans laquelle ce fournisseur lit sa
+  clé est définie (vérifiée seulement par son nom, jamais par sa valeur).
+- Source locale file : le fichier de la locale source existe à son chemin résolu, est un fichier
+  ordinaire et s'analyse correctement avec le format configuré.
 
 Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
 les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
@@ -162,12 +165,12 @@ Quatre surfaces différentes pour quatre tâches différentes. [Configure verbat
 IA](/docs/start-with-ai) est un prompt prêt à copier-coller pour Claude Code, Cursor ou tout agent
 de code capable de lire ton projet et d'exécuter des commandes shell : il inspecte une
 configuration i18n existante, installe la CLI, génère une configuration adaptée, exécute
-`doctor`, `check`, `diff` et `translate --dry-run` pour montrer le travail, puis s'arrête pour
+`doctor`, `check`, `diff` et `translate --dry-run` pour prévisualiser le travail, puis s'arrête pour
 demander confirmation à un humain avant d'appeler pour de vrai un fournisseur. [Recettes pour
 agents et scripts](/docs/agent-recipes) est la référence pour construire ta propre boucle d'agent
 sur la même enveloppe `--json` et les mêmes codes de sortie qu'utilisent ces commandes. [Piloter
-Studio avec un agent de navigateur](/docs/agent-tools-in-studio) est encore une autre surface : un
-flag optionnel `--expose-agent-tools` sur `verbatra studio` qui enregistre des outils WebMCP pour
+Studio avec un agent de navigateur](/docs/agent-tools-in-studio) est encore une autre surface : une
+option `--expose-agent-tools` à activer explicitement sur `verbatra studio` qui enregistre des outils WebMCP pour
 qu'un agent IA dans le navigateur puisse piloter un projet déjà configuré depuis un onglet ouvert
 et authentifié du tableau de bord ; ce n'est explicitement pas pour la configuration initiale.
 [`verbatra mcp`](/docs/cli/mcp) est la quatrième : un serveur MCP en stdio pour un client MCP
@@ -176,7 +179,7 @@ outils de statut, de glossaire et d'édition sans aucun navigateur.
 
 Aucune des quatre ne donne à un agent le moyen de dépenser sans un humain dans la boucle.
 `translate` lui-même n'a aucune barrière de dépense propre, donc chaque surface orientée agent
-place une étape de confirmation, ou un flag `--allow-spend`, entre l'agent et un véritable appel
+place une étape de confirmation, ou une option `--allow-spend`, entre l'agent et un véritable appel
 au fournisseur.
 
 ## Ce site publie-t-il quelque chose pour les agents IA et les robots d'indexation ?
@@ -200,7 +203,7 @@ Les trois sont accessibles depuis la colonne du pied de page dédiée aux agents
 Oui, les deux moitiés, par deux mécanismes différents. Le texte de l'interface (libellés de
 navigation, boutons, le pied de page, le texte de la landing page, la FAQ de la landing page) vit
 dans `messages/en.json` et ses fichiers frères `de`, `es` et `fr` ; ceux-ci sont traduits
-automatiquement avec verbatra lui-même, contre le format `next-intl-json`, via le fournisseur
+automatiquement avec verbatra lui-même, avec le format `next-intl-json`, via le fournisseur
 Gemini, exécuté par `pnpm i18n` dès que la source anglaise change. C'est le projet qui utilise ici
 son propre outil (dogfooding). La prose de la documentation que tu lis en ce moment, chaque guide
 et chaque page de référence y compris celle-ci, est du MDX à suffixe de locale (`page.mdx`,

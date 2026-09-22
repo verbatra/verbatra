@@ -1,148 +1,87 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { VMark } from "@/components/landing";
-import { GRID_PATTERN_STYLE } from "@/components/landing/fx/grid-pattern";
+import { HERO_BACKGROUND, HERO_BORDER } from "@/components/landing/fx/hero-wash";
+import { HeroFacts } from "@/components/landing/hero-facts";
 import { PackageInstall } from "@/components/landing/package-install";
-import { Terminal } from "@/components/landing/terminal";
+import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
-const HERO_COMMANDS = [
-  "verbatra init",
-  "verbatra translate",
-  "verbatra diff",
-  "verbatra watch",
-] as const;
+const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
-const HERO_OUTPUTS: Readonly<Record<number, ReadonlyArray<string>>> = {
-  0: [
-    "✓ created verbatra.config.ts",
-    "source en · targets de, es, fr",
-    "provider gemini · key from GEMINI_API_KEY",
-  ],
-  1: [
-    "diff en.json · 12 new · 0 changed · 108 unchanged",
-    "de  12 translated · 108 unchanged · 0 withheld",
-    "es  12 translated · 108 unchanged · 0 withheld",
-    "fr  12 translated · 108 unchanged · 0 withheld",
-    "✓ 36 keys translated in 5.4s · 0 skipped · lock updated",
-  ],
-  2: [
-    "en.json · 120 keys · source of truth",
-    "de  2 new · 1 changed · 117 up to date",
-    "es  0 new · 0 changed · 120 up to date",
-    "fr  5 new · 0 changed · 115 up to date",
-    "8 keys would be sent · run verbatra translate to apply",
-  ],
-  3: [
-    "watching en.json for changes",
-    "en.json changed · 1 new key",
-    "de  1 translated · 0 withheld",
-    "✓ 3 keys translated · waiting for changes",
-  ],
+const PANEL = "rounded-xl border border-fd-border";
+
+const PANEL_HOVER =
+  "hover:border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))]";
+
+type PackageKey = "cli" | "sdk" | "studio" | "mcp";
+
+const PACKAGE_VERSIONS: Readonly<Record<PackageKey, string>> = {
+  cli: PACKAGE_VERSION,
+  sdk: PACKAGE_VERSION,
+  studio: STUDIO_VERSION,
+  mcp: MCP_VERSION,
 };
 
-function StaticBackdrop(): ReactNode {
-  const fade = "radial-gradient(ellipse 75% 65% at 50% 0%, #000 35%, transparent 80%)";
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          ...GRID_PATTERN_STYLE,
-          opacity: 0.4,
-          WebkitMaskImage: fade,
-          maskImage: fade,
-        }}
-      />
-      <div
-        className="absolute left-1/2 top-[-30%] h-[720px] w-[min(1100px,120%)] -translate-x-1/2"
-        style={{
-          background:
-            "radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--v-violet) 22%, transparent), transparent 70%)",
-          filter: "blur(30px)",
-        }}
-      />
-    </div>
-  );
-}
+const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
 export function DocsHomeHero({
-  eyebrow,
   headline,
   lead,
   primary,
   secondary,
   locale,
 }: {
-  eyebrow: string;
   headline: string;
   lead: string;
   primary: { label: string; href: string };
   secondary: { label: string; href: string };
   locale: Locale;
 }): ReactNode {
-  const t = useTranslations("landing.terminal");
   return (
-    <section className="not-prose relative w-full overflow-hidden border-b border-fd-border px-6 pt-14 pb-16 md:px-10 xl:pt-20">
-      <StaticBackdrop />
-      <div className="relative mx-auto max-w-4xl text-center">
-        <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-fd-muted-foreground">
-          <VMark size={18} blur={5} decorative />
-          {eyebrow}
-        </div>
-        <h1
-          className="vk-gradient-text mx-auto mt-5 max-w-[18ch] font-semibold"
-          style={{
-            fontFamily: "var(--font-display)",
-            letterSpacing: "var(--tracking-tight)",
-            fontSize: "clamp(2rem, 5vw, 3.25rem)",
-            lineHeight: 1.06,
-            textWrap: "balance",
-          }}
-        >
-          {headline}
-        </h1>
-        <p className="mx-auto mt-5 max-w-[54ch] text-lg leading-relaxed text-fd-muted-foreground">
-          {lead}
-        </p>
-        <div className="mt-7 flex justify-center">
-          <PackageInstall />
-        </div>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href={localizedPath(locale, primary.href)}
-            className="group inline-flex items-center gap-2 rounded-[10px] px-[22px] py-[13px] text-base font-semibold text-[color:var(--accent-fill-fg)] transition-[filter] hover:brightness-[1.08]"
-            style={{ background: "var(--accent-fill)" }}
+    <section className="not-prose px-2 pt-2 md:px-3">
+      <div
+        className="relative overflow-hidden rounded-xl border"
+        style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
+      >
+        <div className="grid justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
+          <h1
+            className="max-w-[16ch] font-semibold text-[color:var(--text-strong)]"
+            style={{
+              ...DISPLAY,
+              letterSpacing: "-0.03em",
+              fontSize: "clamp(2.4rem, 5.6vw, 4.4rem)",
+              lineHeight: 0.98,
+              textWrap: "balance",
+            }}
           >
-            {primary.label}
-            <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </Link>
-          <Link
-            href={localizedPath(locale, secondary.href)}
-            className="inline-flex items-center gap-2 rounded-[10px] border border-fd-border px-[22px] py-[13px] text-base font-semibold text-fd-foreground transition-colors hover:bg-fd-accent"
-          >
-            {secondary.label}
-          </Link>
-        </div>
-
-        <div className="relative mx-auto mt-12 max-w-[44rem]">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: "var(--wash-globe)", filter: "blur(12px)" }}
-          />
-          <div className="relative text-left">
-            <Terminal
-              commands={HERO_COMMANDS}
-              outputs={HERO_OUTPUTS}
-              title="~/acme-shop"
-              sessionLabel={t("sessionLabel")}
-              loop={false}
-            />
+            {headline}
+          </h1>
+          <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-fd-muted-foreground md:text-[19px]">
+            {lead}
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
+            <Button
+              href={localizedPath(locale, primary.href)}
+              variant="primary"
+              size="lg"
+              className="shadow-[0_10px_34px_-12px_color-mix(in_srgb,var(--v-purple)_85%,transparent)]"
+            >
+              {primary.label}
+            </Button>
+            <Link
+              href={localizedPath(locale, secondary.href)}
+              className="inline-flex min-h-11 items-center font-medium text-fd-foreground transition-colors hover:text-[color:var(--accent)]"
+            >
+              {secondary.label}
+            </Link>
           </div>
+          <div className="mt-10 flex w-full justify-center text-left">
+            <PackageInstall />
+          </div>
+          <HeroFacts className="mt-14 w-full" />
         </div>
       </div>
     </section>
@@ -150,7 +89,46 @@ export function DocsHomeHero({
 }
 
 export function DocsHomeBody({ children }: { children: ReactNode }): ReactNode {
-  return <div className="mx-auto w-full max-w-4xl px-6 pt-4 pb-16">{children}</div>;
+  return (
+    <div className="mx-auto grid w-full max-w-[1100px] gap-[72px] px-6 pt-16 pb-20 md:px-10">
+      {children}
+    </div>
+  );
+}
+
+export function DocsHomeSection({
+  title,
+  lead,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  children: ReactNode;
+}): ReactNode {
+  return (
+    <section>
+      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16">
+        <h2
+          className="max-w-[16ch] font-semibold text-fd-foreground"
+          style={{
+            ...DISPLAY,
+            letterSpacing: "-0.03em",
+            fontSize: "clamp(1.75rem, 3.4vw, 2.5rem)",
+            lineHeight: 1,
+            textWrap: "balance",
+          }}
+        >
+          {title}
+        </h2>
+        {lead ? (
+          <p className="max-w-[46ch] text-[17px] leading-relaxed text-fd-muted-foreground lg:justify-self-end lg:pb-1">
+            {lead}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-8">{children}</div>
+    </section>
+  );
 }
 
 type PathCard = {
@@ -169,42 +147,43 @@ export function DocsHomePaths({
   locale: Locale;
 }): ReactNode {
   return (
-    <div className="not-prose my-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
         <Link
           key={card.href}
           href={localizedPath(locale, card.href)}
-          className={
-            card.primary
-              ? "group flex flex-col gap-2 rounded-xl p-5 transition-[filter] hover:brightness-110"
-              : "group flex flex-col gap-2 rounded-xl border border-fd-border bg-fd-card p-5 transition-colors hover:bg-fd-accent"
-          }
+          className={cn(
+            "flex flex-col gap-2 p-5 transition-[filter,border-color]",
+            card.primary ? "rounded-xl hover:brightness-110" : `${PANEL} ${PANEL_HOVER}`,
+          )}
           style={
-            card.primary ? { background: "var(--v-purple)", color: "hsl(290 60% 98%)" } : undefined
+            card.primary
+              ? { background: "var(--accent-fill)", color: "var(--accent-fill-fg)" }
+              : { background: "var(--surface-bg)" }
           }
         >
           <span
-            className="font-mono text-xs tracking-wide"
-            style={{
-              color: card.primary ? "hsl(290 60% 92%)" : "var(--color-fd-muted-foreground)",
-            }}
+            className="vk-label"
+            style={
+              card.primary
+                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 78%, transparent)" }
+                : undefined
+            }
           >
             {card.tag}
           </span>
-          <span className="flex items-center gap-1 font-medium">
+          <span
+            className={cn("font-semibold", !card.primary && "text-fd-foreground")}
+            style={{ ...DISPLAY, fontSize: "1.1rem", letterSpacing: "-0.01em" }}
+          >
             {card.label}
-            <span
-              aria-hidden="true"
-              className="transition-transform group-hover:translate-x-0.5"
-              style={card.primary ? undefined : { color: "var(--v-glow)" }}
-            >
-              →
-            </span>
           </span>
           <span
             className="text-sm leading-relaxed"
             style={{
-              color: card.primary ? "hsl(290 40% 90%)" : "var(--color-fd-muted-foreground)",
+              color: card.primary
+                ? "color-mix(in srgb, var(--accent-fill-fg) 86%, transparent)"
+                : "var(--text-muted)",
             }}
           >
             {card.body}
@@ -215,7 +194,27 @@ export function DocsHomePaths({
   );
 }
 
-type Feature = { title: string; body: string; href?: string };
+export function DocsHomeSteps(): ReactNode {
+  const t = useTranslations("landing.how.steps");
+  return (
+    <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-4">
+      {STEP_KEYS.map((key, index) => (
+        <li key={key} className="border-t border-fd-border pt-[18px]">
+          <h3
+            className="font-semibold text-fd-foreground"
+            style={{ ...DISPLAY, fontSize: "1.05rem" }}
+          >
+            <span style={{ color: "var(--accent)" }}>{index + 1}. </span>
+            {t(`${key}.title`)}
+          </h3>
+          <p className="mt-1.5 text-sm text-fd-muted-foreground">{t(`${key}.body`)}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+type Feature = { title: string; body: string; href?: string; pkg?: PackageKey };
 
 export function DocsHomeFeatures({
   features,
@@ -225,22 +224,38 @@ export function DocsHomeFeatures({
   locale?: Locale;
 }): ReactNode {
   return (
-    <div className="not-prose my-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2">
       {features.map((feature) => {
+        const version = feature.pkg ? PACKAGE_VERSIONS[feature.pkg] : undefined;
         const content = (
           <>
-            <div className="font-medium text-fd-foreground">{feature.title}</div>
-            <p className="mt-1 text-sm leading-relaxed text-fd-muted-foreground">{feature.body}</p>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="font-mono text-[13.5px] text-[color:var(--accent)]">
+                {feature.title}
+              </span>
+              {version ? (
+                <span className="font-mono text-xs text-[color:var(--text-faint)] tabular-nums">
+                  {version}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">{feature.body}</p>
           </>
         );
-        const className =
-          "block rounded-xl border border-fd-border bg-fd-card p-4 transition-colors";
-        const style = { borderInlineStart: "2px solid var(--v-glow)" };
+        const className = cn(
+          PANEL,
+          "block p-5 transition-[border-color]",
+          feature.href && PANEL_HOVER,
+        );
+        const style = {
+          background: "var(--surface-bg)",
+          borderInlineStart: "3px solid var(--v-purple)",
+        };
         return feature.href && locale ? (
           <Link
             key={feature.title}
             href={localizedPath(locale, feature.href)}
-            className={`${className} hover:bg-fd-accent`}
+            className={className}
             style={style}
           >
             {content}

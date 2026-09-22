@@ -34,7 +34,9 @@ Studio binds to `127.0.0.1` only. Once it is listening, it prints one line to st
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 ```
 
-Open that exact URL: the token in the query string bootstraps your browser session, and every request without it is rejected. Nothing is printed before the port is successfully bound, so a failed startup never leaks a URL or a token.
+Open that exact URL. The token is accepted only as `?token=` on that first page load: the server checks it, sets an HttpOnly session cookie, and redirects to `/`. Every later request is checked against the cookie, and one without a valid cookie is rejected. The token is not single-use: visiting the printed URL again, in another tab or another browser, sets the cookie again, so treat the URL as a secret for as long as Studio runs. Nothing is printed before the port is successfully bound, so a failed startup never leaks a URL or a token.
+
+A failed bind is reported on stderr as `verbatra: error [<code>] <message>` with one of two codes: `PORT_IN_USE` when another process already holds the port (pick another with `--port`), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`, which Studio refuses to serve on.
 
 ## Installation
 
@@ -44,7 +46,7 @@ Open that exact URL: the token in the query string bootstraps your browser sessi
 Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
 ```
 
-That pnpm command installs correctly but exits `1` with `ERR_PNPM_IGNORED_BUILDS`, and leaves an unanswered `pnpm-workspace.yaml` behind that makes later pnpm commands fail the same way; see [Troubleshooting](/docs/troubleshooting) for the one-time fix. npm and yarn install the package without it.
+That pnpm command installs correctly but exits `1` with `ERR_PNPM_IGNORED_BUILDS`, and leaves an unanswered `pnpm-workspace.yaml` behind that makes later pnpm commands fail the same way; see [Troubleshooting](/docs/troubleshooting) for the one-time fix. npm and yarn install the package without that problem.
 
 Studio runs through the CLI, so install it alongside `@verbatra/cli`: `npm install --save-dev @verbatra/cli @verbatra/studio`, then `npx verbatra studio`. See [Install and invoke](/docs/cli).
 

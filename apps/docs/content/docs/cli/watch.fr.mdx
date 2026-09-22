@@ -17,8 +17,8 @@ verbatra watch [flags]
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--locales` | `<list>` | toutes les cibles configurées | ne surveille et ne traduit que ce sous-ensemble séparé par des virgules ; une locale non configurée est rejetée au démarrage avec `UNKNOWN_LOCALE` avant que la surveillance ne commence, et une liste vide est une erreur d'utilisation, sortie `2` |
-| `--debounce` | `<ms>` | `300` | attend ce nombre de millisecondes après le dernier changement avant de traduire ; doit être un entier positif nu (une valeur comme `250ms`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif nu, en secondes (une valeur comme `60s`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
+| `--debounce` | `<ms>` | `300` | attend ce nombre de millisecondes après le dernier changement avant de traduire ; doit être un entier positif sans unité (une valeur comme `250ms`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
+| `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité (une valeur comme `60s`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois par exécution ; doit être un entier positif |
 | `--no-cache` | aucun | désactivé (cache activé) | contourne le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`) à chaque exécution |
 | `--json` | aucun | désactivé | affiche chaque exécution comme une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout, façon NDJSON (un objet par ligne) |
@@ -29,7 +29,7 @@ Avec `--json`, chaque exécution émet un enregistrement [enveloppe](/docs/ci-an
 
 `--lock-timeout` s'applique à chaque cycle : il règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que cette exécution n'échoue avec `LOCK_CONTENDED`. Une exécution échouée n'est qu'un enregistrement sur le flux, donc la surveillance continue dans tous les cas.
 
-`--concurrency` s'applique à l'exécution de chaque cycle. Chaque exécution reçoit un budget de tokens neuf, et un `--concurrency` supérieur à `1` reste refusé quand la config fixe un budget `maxTokens`, car quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent : `watch` refuse cette combinaison au démarrage et sort avec le code `2` avant l'exécution initiale, au lieu de démarrer une session qui échoue à chaque cycle. `--no-cache` contourne le [cache de mémoire de traduction](/docs/the-cache) à chaque cycle.
+`--concurrency` s'applique à l'exécution de chaque cycle. Chaque exécution reçoit un nouveau budget de tokens, et un `--concurrency` supérieur à `1` reste refusé quand la config fixe un budget `maxTokens`, car quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent : `watch` refuse cette combinaison au démarrage et sort avec le code `2` avant l'exécution initiale, au lieu de démarrer une session qui échoue à chaque cycle. `--no-cache` contourne le [cache de mémoire de traduction](/docs/the-cache) à chaque cycle.
 
 ## Arrêt
 

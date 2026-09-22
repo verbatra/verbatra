@@ -9,7 +9,22 @@ const NPM_SDK_URL = "https://www.npmjs.com/package/@verbatra/sdk";
 const NPM_STUDIO_URL = "https://www.npmjs.com/package/@verbatra/studio";
 const NPM_MCP_URL = "https://www.npmjs.com/package/@verbatra/mcp";
 
-const SUPPORTED_FRAMEWORKS = ["React", "Vue", "Angular", "Node.js", "Flutter"];
+const SUPPORTED_FRAMEWORKS = [
+  "React",
+  "Next.js",
+  "Vue",
+  "Nuxt",
+  "Angular",
+  "Node.js",
+  "SvelteKit",
+  "Astro",
+  "React Native",
+  "Flutter",
+  "Spring",
+  "iOS and macOS",
+  "Android",
+  ".NET",
+];
 const SUPPORTED_PROVIDERS = [
   "Anthropic",
   "OpenAI",
@@ -106,7 +121,7 @@ export function softwareApplicationLd(args: {
       `Translation providers: ${SUPPORTED_PROVIDERS.join(", ")}`,
       `i18n formats: ${SUPPORTED_FORMATS.join(", ")}`,
       `Frameworks: ${SUPPORTED_FRAMEWORKS.join(", ")}`,
-      "Placeholder and ICU integrity checked after every translation",
+      "Placeholder, ICU, and inline markup integrity checked after every translation",
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
     sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],

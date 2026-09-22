@@ -2,7 +2,7 @@
 title: verbatra init
 description: Crea una configuración de verbatra y un ejemplo de .env para este proyecto.
 ---
-Prepara un proyecto: `init` escribe un `verbatra.config.ts` y un `.env.example` que nombra la variable de la clave API de tu proveedor (nunca el valor de una clave), y se asegura de que `.gitignore` cubra `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`. Cuando stdin es una terminal y `--yes` está ausente, pregunta por todo lo que no pasaste como flag; si no, toma los valores por defecto, así que corre desatendido en CI.
+Prepara un proyecto: `init` escribe un `verbatra.config.ts` y un `.env.example` que nombra la variable de la clave de API de tu proveedor (nunca el valor de una clave), y se asegura de que `.gitignore` cubra `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`. Cuando stdin es una terminal y `--yes` está ausente, pregunta por todo lo que no pasaste como flag; si no, toma los valores por defecto, así que se ejecuta desatendido en CI.
 
 ## Sinopsis
 
@@ -15,7 +15,7 @@ verbatra init [flags]
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | directorio actual | escribe la configuración y los archivos de entorno en este directorio |
-| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl` o `google-translate`; se pregunta cuando se omite en modo interactivo |
+| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl` o `google-translate`; cuando se omite, se pregunta de forma interactiva |
 | `--source` | `<locale>` | `en` | el locale de origen en el que están escritas tus cadenas |
 | `--targets` | `<locales>` | `de` | locales de destino separados por comas a los que traducir |
 | `--path` | `<pattern>` | `locales/{locale}.json` | patrón de los archivos de locale; debe contener el token `{locale}` |
@@ -39,10 +39,10 @@ verbatra init --provider deepl --yes
 | Código | Significado |
 | --- | --- |
 | `0` | archivos escritos, u omitidos con seguridad porque ya existen |
-| `2` | un `--provider` faltante o desconocido, un scaffold inválido o un error de uso |
+| `2` | un `--provider` faltante o desconocido, una configuración generada inválida o un error de uso |
 
 ## Relacionado
 
 - [Tu primera traducción](/docs/your-first-translation) va desde init hasta la primera ejecución.
-- [Archivo de configuración](/docs/config-file) documenta cada clave que define el scaffold.
-- [Proveedores](/docs/providers) cubre las opciones de proveedor y las variables de clave API.
+- [Archivo de configuración](/docs/config-file) documenta cada clave que define la configuración generada.
+- [Proveedores](/docs/providers) cubre las opciones de proveedor y las variables de clave de API.

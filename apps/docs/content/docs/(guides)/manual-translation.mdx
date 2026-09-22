@@ -130,7 +130,7 @@ Reach for `--include-unchanged` when a translator wants the full context of a lo
 - `glossary-term-missed`: a configured glossary term did not make it into the translation.
 - `integrity-reordered`: the placeholders match but landed in a different order than the source.
 
-A sixth reason, `provider-degraded`, exists only at translate time (a DeepL degradation notice on the batch a key came from); since export never calls a provider, it never appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
+Two more reasons round out the set of seven, and both exist only at translate time: `provider-degraded` (a formality-downgraded or glossary-ignored notice on the batch a key came from) and `fuzzy-cache-reuse` (the value was reused from the translation memory for an earlier, near-identical source that has since been edited). Export recomputes the columns from the source and target values alone, so neither one ever appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
 
 ## From the SDK
 

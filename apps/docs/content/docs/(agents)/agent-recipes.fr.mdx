@@ -31,7 +31,7 @@ Les recettes ci-dessous lisent stdout avec `jq`, parce que c'est la plus petite 
 
 `init` est un générateur interactif, et `studio` et `mcp` sont des serveurs de longue durée : aucun des trois n'a de mode lisible par machine. Tout le reste de ce dont un agent a besoin sur un projet passe par les onze autres.
 
-`doctor` est arrivée dans cette liste en 0.9.0, et `tmx`, `pseudo`, `types` et `extract` en 0.11.0.
+`doctor` a rejoint cette liste en 0.9.0, et `tmx`, `pseudo`, `types` et `extract` en 0.11.0.
 
 <AvailableFrom version="0.11.0" />
 
@@ -53,7 +53,7 @@ verbatra translate --json 2>run.log | jq .
 
 Tout ce qui suit est une sortie réelle d'un petit projet : locale source `en`, une locale cible `de`, et un fichier `de` qui a déjà `app.title` mais pas `app.greeting`.
 
-`verbatra check --json` répond à "est-ce que quelque chose a dérivé", en compteurs :
+`verbatra check --json` répond à "y a-t-il quelque chose de désynchronisé", en compteurs :
 
 ```bash
 verbatra check --json 2>/dev/null
@@ -191,7 +191,7 @@ Ne lance pas ça sous `set -e` : une sortie non nulle est justement le signal qu
 
 ## `watch` est un flux, pas une sortie unique
 
-`watch --json` est différent par nature des huit autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
+`watch --json` est différent par nature des dix autres. Il affiche une enveloppe par exécution pendant toute la vie du processus, en NDJSON : un objet JSON par ligne, sans tableau englobant et sans terminateur. Un consommateur le lit ligne par ligne et continue de lire.
 
 Brut, deux exécutions d'une session (la seconde après que le fichier source a été enregistré avec une erreur de syntaxe) :
 
@@ -215,9 +215,9 @@ Trois exécutions d'une session (modification, modification, puis un fichier sou
 {"ok":false,"code":"SOURCE_INVALID","failed":null,"translated":[]}
 ```
 
-Deux choses découlent de cette dernière ligne. Une exécution échouée est un enregistrement sur le flux, pas la fin de la session : le watcher est resté debout et a continué de traduire ensuite. Et elle ne change jamais le code de sortie, décidé uniquement par la façon dont la session s'arrête. Un agent de longue durée traite donc une ligne `ok: false` comme un événement à signaler, pas comme une raison de relancer le processus.
+Deux choses découlent de cette dernière ligne. Une exécution échouée est un enregistrement sur le flux, pas la fin de la session : le watcher est resté actif et a continué de traduire ensuite. Et elle ne change jamais le code de sortie, décidé uniquement par la façon dont la session s'arrête. Un agent de longue durée traite donc une ligne `ok: false` comme un événement à signaler, pas comme une raison de relancer le processus.
 
-## Une boucle complète : protéger, décider, traduire, signaler
+## Une boucle complète : contrôler, décider, traduire, signaler
 
 Le tout assemblé. Ceci tourne sans surveillance, refuse de dépenser pour un travail trop gros pour être confié à un robot, et signale ce qui est réellement arrivé plutôt que ce qui a été demandé :
 
@@ -272,9 +272,9 @@ failed: de
 nothing pending
 ```
 
-La première sort avec `0`, la deuxième avec `1` (le point de terminaison du fournisseur était injoignable), la troisième avec `0` sans rien dépenser. L'étape 1 utilise volontairement `diff` plutôt que `translate --dry-run` : les deux sont en lecture seule et aucun n'a besoin de clé, mais `diff` est la question faite exactement pour ça, et son code de sortie seul répond déjà s'il y a du travail.
+La première sort avec `0`, la deuxième avec `1` (le point de terminaison du fournisseur était injoignable), la troisième avec `0` sans rien dépenser. L'étape 1 utilise volontairement `diff` plutôt que `translate --dry-run` : les deux sont en lecture seule et aucun n'a besoin de clé, mais `diff` est la question faite exactement pour ça, et son code de sortie seul dit déjà s'il y a du travail.
 
-La clé de fournisseur de l'étape 4 vient de l'environnement, comme toujours. Range-la dans le coffre à secrets de ta CI ou dans l'environnement de ton shell et laisse le processus en hériter ; la CLI ne prend aucune clé en argument et n'en lit aucune depuis le fichier de config. Quelle variable lit ton fournisseur est indiqué dans [Fournisseurs](/docs/providers).
+La clé de fournisseur de l'étape 4 vient de l'environnement, comme toujours. Range-la dans le coffre à secrets de ta CI ou dans l'environnement de ton shell et laisse le processus en hériter ; la CLI ne prend aucune clé en argument et n'en lit aucune depuis le fichier de config. Voir [Fournisseurs](/docs/providers) pour savoir quelle variable ton fournisseur lit.
 
 ## Le pack de skills
 
@@ -286,11 +286,11 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 | Skill | À utiliser quand |
 | --- | --- |
-| `verbatra-cli` | l'agent pilote le binaire `verbatra` depuis un shell ou depuis la CI. |
-| `verbatra-mcp-tools` | un client MCP est connecté à `verbatra mcp`. |
-| `verbatra-studio-agent-tools` | un agent de navigateur pilote un onglet Studio ouvert. |
+| `verbatra-cli` | L'agent pilote le binaire `verbatra` depuis un shell ou depuis la CI. |
+| `verbatra-mcp-tools` | Un client MCP est connecté à `verbatra mcp`. |
+| `verbatra-studio-agent-tools` | Un agent de navigateur pilote un onglet Studio ouvert. |
 
-Ils couvrent ce qu'un agent rate quand personne ne le lui dit : quelles commandes dépensent et lesquelles sont gratuites, qu'une exécution à blanc ne construit aucun fournisseur, ce que le fichier de verrou rend visible, et pourquoi un outil qui dépense peut manquer d'une liste à dessein. N'installe que la surface que tu utilises ; chaque document se suffit à lui-même. Change le nom après `--skill`, ou répète l'option pour en installer plusieurs.
+Ils couvrent ce qu'un agent fait de travers tant qu'on ne le lui a pas dit : quelles commandes dépensent et lesquelles sont gratuites, qu'un dry run ne construit aucun fournisseur du tout, ce que le fichier de verrouillage rend visible, et pourquoi un outil qui dépense peut manquer d'une liste à dessein. N'installe que la surface que tu utilises ; chaque document se suffit à lui-même. Change le nom après `--skill`, ou répète l'option pour en installer plusieurs.
 
 ## Ensuite
 

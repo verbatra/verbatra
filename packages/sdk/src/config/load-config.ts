@@ -50,7 +50,9 @@ export type ConfigSource =
   | {
       /**
        * `search` means cosmiconfig found the file by walking up from the working directory, up to
-       * the nearest `.git` directory; `explicit` means the caller named it through `configPath`.
+       * the nearest `.git` directory or, failing that, the home directory or the working directory
+       * itself (see {@link loadConfigWithMeta}); `explicit` means the caller named it through
+       * `configPath`.
        */
       readonly kind: "search" | "explicit";
       /** The absolute path of the config file that was loaded. */
@@ -189,8 +191,8 @@ async function loadExplicitWithMeta(
  * config file is in effect, or to distinguish an inline glossary from a glossary file.
  *
  * Resolution order is: an explicit `configOverride`, then an explicit `configPath`, then a
- * cosmiconfig search upward from `cwd` across `verbatra.config.ts`, the `.verbatrarc` family, and a
- * `verbatra` property in `package.json`. The upward search stops at the nearest ancestor directory
+ * cosmiconfig search upward from `cwd` across `verbatra.config.ts`, `.js` and `.cjs`, the
+ * `.verbatrarc` family, and a `verbatra` property in `package.json`. The upward search stops at the nearest ancestor directory
  * containing a `.git` entry; if none is found, it stops at the user's home directory when that is an
  * ancestor of `cwd`, and otherwise it does not search above `cwd` at all, so a nested workspace
  * package finds a config at its monorepo root without wandering above it, and a project outside the

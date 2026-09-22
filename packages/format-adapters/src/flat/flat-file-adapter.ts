@@ -35,7 +35,10 @@ export type FlatParseOutcome = Map<string, TranslationEntry> | FlatParseResult;
 export interface FlatFileAdapterOptions {
   /** The format this adapter claims: a built-in name, or a `custom:` identifier of your own. */
   readonly format: FormatId;
-  /** The lowercase file extensions this format owns, each including the leading dot. */
+  /**
+   * The file extensions this format owns, each including the leading dot. Matched against a path's
+   * extension case-insensitively.
+   */
   readonly extensions: readonly string[];
   /**
    * Optional content check, consulted when a sample is available, so this adapter does not claim
@@ -103,6 +106,10 @@ async function toEntries(
  * single key with no nesting, such as Java `.properties` or Android `strings.xml`. The factory
  * supplies the bounded read, the atomic write, extension detection and the structured error
  * handling; you supply only the format's own parsing and serialization.
+ *
+ * The returned adapter's `read` refuses a file larger than 16 MiB with `INPUT_TOO_LARGE` and a path
+ * that is not a regular file with `INVALID_STRUCTURE`, strips a leading byte order mark before
+ * parsing, and uses the file's base name without its extension as the namespace.
  *
  * @param options - The format's parsing, serialization and detection behaviour.
  * @returns A complete adapter, ready to register on an `AdapterRegistry`.

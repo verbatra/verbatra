@@ -152,7 +152,10 @@ export interface StudioServerOptions extends StudioServerDeps {
 
 /** A running Verbatra Studio server, returned once it is bound and serving. */
 export interface StudioServer {
-  /** The loopback URL the server is reachable at, including the port actually bound. */
+  /**
+   * The loopback URL the server is reachable at, including the port actually bound. It carries no
+   * bootstrap token; the entry URL written to `output` at startup is this URL plus `?token=`.
+   */
   readonly url: string;
   /** The port actually bound, which is what to read when `port` was omitted or `0`. */
   readonly port: number;

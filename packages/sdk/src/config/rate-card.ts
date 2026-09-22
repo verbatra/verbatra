@@ -13,17 +13,34 @@ const rateAmountSchema = z
       "any real price; a larger one is a typo or a unit mistake, not a rate",
   });
 
+/**
+ * The zod schema for one token-billed rate entry: an input and an output price per million
+ * tokens, each at most `MAX_RATE` currency units.
+ */
 export const tokenRateSchema = z.strictObject({
   inputPerMillionTokens: rateAmountSchema,
   outputPerMillionTokens: rateAmountSchema,
 });
 
+/**
+ * The zod schema for one character-billed rate entry (DeepL, Google Cloud Translation): a
+ * price per million source characters.
+ */
 export const characterRateSchema = z.strictObject({
   perMillionCharacters: rateAmountSchema,
 });
 
+/**
+ * The zod schema for one `rates.table` entry: either {@link tokenRateSchema} or
+ * {@link characterRateSchema}, never a mix of the two shapes.
+ */
 export const modelRateSchema = z.union([tokenRateSchema, characterRateSchema]);
 
+/**
+ * The zod schema for the optional `rates` block: the `asOf` date and `currency` printed beside
+ * every priced estimate, plus a `table` of {@link modelRateSchema} entries keyed by rate key
+ * (`provider/model`, or the bare provider id for a provider without a model).
+ */
 export const rateCardSchema = z.strictObject({
   asOf: z.iso.date({
     error: "rates.asOf must be a date that exists on the calendar, written as YYYY-MM-DD",

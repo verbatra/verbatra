@@ -16,11 +16,10 @@ kümmern muss:
 - die Ziel-Locale-Dateien, eine pro Locale, unter dem Pfad deines `files.pattern`
 - `verbatra.lock.json`, ein Quell-Content-Hash pro übersetztem Key
 
-Alles Weitere, was er schreibt, ist regenerierbarer Zustand in Beidateien, den du nie
-wiederherstellst:
-`verbatra.cache.json` und das Verzeichnis `.verbatra-local/`, beide gitignoriert. Ein Lauf kann
-diese Einträge außerdem einer vorhandenen `.gitignore` hinzufügen, der sie fehlen; das ist einmalige
-Hausarbeit und nicht Teil eines Rollbacks.
+Alles Weitere, was er schreibt, ist regenerierbarer Zustand in Nebendateien, den du nie
+wiederherstellst: `verbatra.cache.json` und das Verzeichnis `.verbatra-local/`, beide gitignoriert.
+Ein Lauf kann diese Einträge außerdem einer vorhandenen `.gitignore` hinzufügen, der sie fehlen; das
+ist einmaliges Aufräumen und nicht Teil eines Rollbacks.
 
 Beide verfolgten Dateien werden atomar geschrieben (eine temporäre Datei, dann ein Rename), sodass
 ein Leser entweder die alte oder die neue Datei sieht, nie eine halb geschriebene Mitte. Es gibt
@@ -46,16 +45,16 @@ nächste Abschnitt erklärt, warum.
 ## Warum beide Dateien oder keine
 
 Die Lock-Datei hält einen Hash des **Quellwerts** fest, aus dem jede Übersetzung entstanden ist. Sie
-hält nichts über den übersetzten Wert selbst fest. Deine Locale-Dateien zurückzusetzen kann der
-Lock-Datei also nichts mitteilen.
+hält nichts über den übersetzten Wert selbst fest. Deine Locale-Dateien zurückzusetzen, teilt der
+Lock-Datei also nichts mit und kann es auch gar nicht.
 
 **Nur die Locale-Dateien zurücksetzen.** Die Lock-Datei enthält weiterhin den Hash der Quelle, wie
-sie jetzt ist. Beim nächsten Lauf ist ein zurückgesetzter Key in der Ziel-Datei vorhanden, also
-nicht fehlend (missing); und sein festgehaltener Hash passt weiterhin zur aktuellen Quelle, also ist
-er nicht geändert (changed). Er gilt als unverändert (unchanged), wird nie an den Provider
-geschickt, und der Wert, auf den du zurückgesetzt hast, bleibt dauerhaft stehen. Die Ausnahme sind
+sie jetzt ist. Beim nächsten Lauf ist ein zurückgesetzter Key in der Zieldatei vorhanden, fehlt
+also nicht; und sein festgehaltener Hash passt weiterhin zur aktuellen Quelle, also ist er nicht
+geändert. Er gilt als unverändert, wird nie an den Provider geschickt, und der Wert, auf den du
+zurückgesetzt hast, bleibt dauerhaft stehen. Die Ausnahme sind
 Keys, die der Lauf neu angelegt hat: Das Zurücksetzen hat sie aus der Datei entfernt, also kommen
-sie als fehlend zurück und werden erneut übersetzt. Stehen bleibt alles, was der Lauf *ersetzt* hat.
+sie als fehlend zurück und werden erneut übersetzt. Alles, was der Lauf *ersetzt* hat, strandet.
 
 Dass dies still geschieht, ist eine Folge des Designs, kein Zufall. `verbatra check` und
 `verbatra diff` vergleichen gegen dieselbe Lock-Baseline und melden die Locale deshalb als sauber.
@@ -74,15 +73,15 @@ genau so, wie er es getan hätte, wenn der schlechte Lauf nie stattgefunden hät
 
 ## Nach einem Rollback erneut laufen lassen
 
-Zurückzusetzen und `verbatra translate` erneut laufen zu lassen ist eine Wiederholung, keine zweite
-Meinung. Bei gleichem Provider, Modell, Ton und Glossar ist der Fingerprint des
+Zurückzusetzen und `verbatra translate` erneut laufen zu lassen, ist eine Wiederholung, keine zweite
+Meinung. Bei gleichem Provider, Modell, Tonfall und Glossar ist der Fingerprint des
 [Caches](/docs/the-cache) unverändert, sodass der Lauf dieselben Übersetzungen aus
 `verbatra.cache.json` zurückliefert, ohne den Provider überhaupt aufzurufen.
 
-Um ein anderes Ergebnis zu bekommen, ändere das, was das erste falsch gemacht hat. Ton oder Glossar
-zu bearbeiten oder das Modell zu wechseln ändert den Fingerprint und übersetzt von sich aus neu.
-Willst du dieselbe Konfiguration erneut an den Provider schicken, übergib `--no-cache` an
-[`translate`](/docs/cli/translate).
+Um ein anderes Ergebnis zu bekommen, ändere die Ursache dafür, dass das erste falsch war. Tonfall
+oder Glossar zu bearbeiten oder das Modell zu wechseln, ändert den Fingerprint und übersetzt von
+sich aus neu. Willst du dieselbe Konfiguration erneut an den Provider schicken, übergib
+`--no-cache` an [`translate`](/docs/cli/translate).
 
 Um eine Locale von Grund auf neu aufzubauen, statt einen Lauf zurückzusetzen, siehe
 [Wie übersetze ich alles neu?](/docs/faq#wie-übersetze-ich-alles-neu) in der FAQ. Beachte: Die
@@ -93,14 +92,14 @@ Lock-Datei zu löschen ist kein Reset. Ohne Baseline kann nichts als veraltet er
 
 Ein abgebrochener Lauf braucht kein Rollback. Lass ihn einfach erneut laufen.
 
-Jede Locale wird für sich festgeschrieben: Ihre Ziel-Datei wird geschrieben, dann werden ihre
-Lock-Einträge festgehalten. Den Befehl abzubrechen hinterlässt also die bereits fertigen Locales
+Jede Locale wird für sich festgeschrieben: Ihre Zieldatei wird geschrieben, dann werden ihre
+Lock-Einträge festgehalten. Den Befehl abzubrechen, hinterlässt also die bereits fertigen Locales
 vollständig geschrieben und festgehalten und die noch nicht erreichten völlig unberührt. Ein
 erneuter Lauf nimmt sich die unberührten vor und überspringt die fertigen.
 
 Die einzige Lücke, zwischen dem Dateischreiben einer Locale und ihrem Lock-Update, löst sich beim
 nächsten Lauf von selbst. Keys, die der Lauf hinzugefügt hatte, stehen jetzt ohne Lock-Eintrag in
-der Ziel-Datei und werden deshalb so übernommen, wie sie sind; Keys, deren Quelle sich verändert
+der Zieldatei und werden deshalb so übernommen, wie sie sind; Keys, deren Quelle sich verändert
 hatte, tragen weiterhin ihren alten Hash, werden also als geändert erkannt und erneut übersetzt. In
 keinem der beiden Fälle geht Arbeit verloren.
 

@@ -76,8 +76,9 @@ export interface DoctorResult {
   readonly checks: readonly DoctorCheck[];
   /**
    * What the untranslated-literal scan found. Present only on a literal run whose scan actually
-   * ran; absent when the config could not be loaded, no `extract` block is configured, or the
-   * file system cannot list directories.
+   * ran; absent when the config could not be loaded, no `extract` block is configured, the file
+   * system cannot list directories, or the scan failed to start, each of which fails the
+   * `untranslated-literals` check instead.
    */
   readonly literals?: LiteralScan;
 }
@@ -103,8 +104,8 @@ export interface DoctorDeps {
   readonly adapterRegistry?: AdapterRegistry;
   /**
    * File-system port. Threaded into the config loader, so it backs the glossary-file read the
-   * `config` check performs, and used to read and parse the source locale file. Defaults to the
-   * real file system.
+   * `config` check performs, and used to read and parse the source locale file. On a literal run it
+   * backs the source scan, which needs its `readDirectory` member. Defaults to the real file system.
    */
   readonly fs?: SdkFs;
   /** Config loader. Defaults to {@link loadConfigWithMeta}. */

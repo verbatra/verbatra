@@ -21,19 +21,29 @@ El comando imprime una línea y sigue en ejecución:
 Verbatra Studio running at http://127.0.0.1:5849/?token=...
 ```
 
-Abre esa URL, token incluido; el token se genera nuevo en cada arranque y es como se autentica el navegador. El servidor solo escucha en `127.0.0.1` (nunca en tu red), usa por defecto el puerto `5849` sin alternativa si está ocupado, y acepta `--port` para moverse. Deténlo con Ctrl+C; una segunda interrupción lo fuerza a bajar con el código de salida `130`. Consulta [`verbatra studio`](/docs/cli/studio) para todos los flags.
+Abre esa URL, token incluido; el token se genera nuevo en cada arranque y es como se autentica el navegador. El servidor solo escucha en `127.0.0.1` (nunca en tu red), usa por defecto el puerto `5849` sin alternativa si está ocupado, y acepta `--port` para cambiarlo. Deténlo con Ctrl+C; una segunda interrupción lo fuerza a bajar con el código de salida `130`. Consulta [`verbatra studio`](/docs/cli/studio) para todos los flags.
 
-La barra lateral tiene cuatro páginas: **Traducciones**, **Revisión**, **Actividad** y **Ajustes**.
+La barra lateral tiene cuatro páginas: **Translations**, **Review**, **Activity** y **Settings**. Una insignia en Review cuenta las entradas que siguen en la cola, con un tope de "99+". La barra lateral se contrae a iconos (Studio recuerda la elección), y en una ventana estrecha se convierte en un cajón que se abre desde la barra superior; ambas llevan los enlaces **Documentation** y **Help and issues**.
 
-## Lee la página Traducciones
+La barra superior contiene un selector de tema (System, Light, Dark), que se guarda en el localStorage del navegador, y muestra una insignia **Reconnecting** cuando la conexión de actualización en vivo lleva caída más de un momento. Cuando el servidor deja de aceptar la sesión de la pestaña, por ejemplo después de que Studio se reiniciara con un token nuevo, cada página da paso a una pantalla **Session expired**: vuelve a abrir la URL que imprimió el Studio en ejecución.
 
-Traducciones es la vista de trabajo: todo lo pendiente en tus locales de destino y cuán avanzado va cada locale.
+## Lee la página Translations
+
+Translations es la vista de trabajo: todo lo pendiente en tus locales de destino y lo avanzado que va cada locale.
 
 - **La franja de estadísticas** responde la primera pregunta de un vistazo: cuántas claves necesitan atención, la cobertura media, cuántos locales están sincronizados y el uso de tokens de la última ejecución. Cuando no hay nada pendiente, un banner de todo en orden reemplaza al explorador de claves.
-- **El explorador de claves** lista cada clave faltante, modificada y huérfana, como una cuadrícula de clave por locale o como listas por locale con un filtro que coincide con el nombre de una clave o con su texto de traducción.
-- **La tabla de locales** muestra la cobertura por locale (faltante, obsoleta, al día) combinada con el estado de [el archivo de bloqueo](/docs/the-lock-file), para que veas si la entrada del bloqueo de cada locale concuerda con sus archivos.
+- **El explorador de claves** lista cada clave faltante, modificada y huérfana en una de dos vistas. **List** agrupa las claves por locale y tiene un filtro que coincide con el nombre de una clave o con su texto de traducción, y muestra como mucho 500 coincidencias a la vez. **Grid** es una matriz de clave por locale sin filtro; muestra como mucho 500 claves y, cuando hay más, lo indica y te remite a List. En Grid, las teclas de flecha mueven entre celdas y Enter o Espacio abre la clave enfocada.
+- **La tabla de locales** muestra la cobertura por locale (faltante, obsoleta, al día) combinada con el estado del [archivo de bloqueo](/docs/the-lock-file), para que veas si la entrada del bloqueo de cada locale concuerda con sus archivos. Su columna **Lock** indica **In step** cuando el archivo de bloqueo no registra ninguna clave faltante u obsoleta para el locale, **Drift** cuando sí la registra, y **Not recorded** cuando el archivo de bloqueo no tiene entrada para ese locale. Una insignia **Lock vN** nombra la versión del archivo de bloqueo, y una tabla plegable **Lock file details** lista el número de claves de cada locale registrado junto con sus recuentos de faltantes, obsoletas y al día.
 
-Haz clic en cualquier clave para abrir su vista de detalle: los valores por locale, el estado de sincronización de cada locale y un indicador de integridad por traducción (los marcadores de posición coinciden, hay una discrepancia de marcadores con los tokens faltantes y sobrantes nombrados, o la sintaxis del mensaje es inválida). Desde ahí, **Edit** abre el editor para el valor de un locale.
+**Copy as review report**, en la cabecera de la página, copia un informe en Markdown al portapapeles: una sección por locale con sus claves faltantes, modificadas y huérfanas, lista para pegar en una pull request o en una issue.
+
+Haz clic en cualquier clave para abrir su vista de detalle: el texto de origen, los valores por locale, el estado de sincronización de cada locale y un indicador de integridad por traducción (los placeholders coinciden, no hay placeholders, hay una discrepancia de placeholders con los tokens faltantes y sobrantes nombrados, o la sintaxis del mensaje es inválida). Una sección **History** lista los commits de git que tocaron los archivos de locale del proyecto; es el mismo flujo que en Activity, sin filtrar por la clave abierta. Desde ahí, **Edit** abre el editor para el valor de un locale.
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+El indicador de integridad tiene un estado de defecto más, **Inline markup mismatch**: las etiquetas HTML o XML de la traducción difieren de las del origen, y el indicador nombra las etiquetas responsables, `-` para una que la traducción perdió y `+` para una que añadió.
+
+Los valores de un locale de derecha a izquierda (árabe, hebreo, persa, urdu) se muestran de derecha a izquierda en todo el explorador y en la vista de detalle.
 
 ### Edita con la puerta de integridad
 
@@ -41,27 +51,31 @@ El editor muestra la cadena de origen y un área de texto prellenada con la trad
 
 Editar no necesita ningún flag. Toca solo tus archivos locales y nunca llama a un proveedor.
 
-## Trabaja la cola de Revisión
+## Trabaja la cola de Review
 
-La página Revisión lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, marcadores de posición reordenados, un lote degradado del proveedor o un valor reutilizado de la caché cuyo origen se editó después). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para poblarla.
+La página Review lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, placeholders reordenados, un lote degradado del proveedor o un valor reutilizado de la caché cuyo origen se editó después). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para llenarla.
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+Los motivos de presupuesto de longitud y de reutilización de la caché llevan las etiquetas **Over length budget** y **Reused after source edit**.
 
 <StudioScreenshot
   shot="review"
-  alt="La página Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr, donde cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
+  alt="La página Review de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr, donde cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
   caption="La cola de revisión después de una ejecución. Studio viene en claro y oscuro; cambia la captura para compararlos."
 />
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filtra por locale, o por una subcadena de la clave, el texto de origen o el texto de destino de una fila, y luego trabaja las filas:
+Filtra por locale, o por una subcadena de la clave, el texto de origen o el texto de destino de una fila; la barra de filtros cuenta las entradas que coinciden mientras escribes, y cuando nada coincide, **Clear filters** restablece ambos. Luego trabaja las filas:
 
-- **Edit** abre el mismo editor con puerta de integridad que la página Traducciones. Una edición aceptada quita la fila de la cola.
+- **Edit** abre el mismo editor con puerta de integridad que la página Translations. Una edición aceptada quita la fila de la cola.
 - **Approve** descarta la fila como "vista, está bien así".
 - **Reject** también descarta la fila; combínalo con una edición o una retraducción cuando el valor de verdad tenga que cambiar.
 
-Approve y Reject son solo de sesión: ocultan la fila durante el resto de esta sesión del navegador (incluso a través de las actualizaciones en vivo) pero no escriben nada en disco. Las formas duraderas de limpiar una señal son corregir el valor o volver a ejecutar una traducción.
+Approve y Reject ocultan la fila solo en la memoria de la pestaña abierta y no escriben nada en disco: la fila sigue oculta a través de las actualizaciones en vivo, pero recargar la pestaña la hace volver. Las formas duraderas de limpiar una señal son corregir el valor o volver a ejecutar una traducción.
 
-Las señales de revisión son consultivas, distintas de la puerta dura de integridad; consulta [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada motivo.
+Las señales de revisión son orientativas, distintas de la puerta dura de integridad; consulta [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada motivo.
 
 ## Retraduce una clave marcada
 
@@ -71,34 +85,34 @@ Arranca Studio con el gasto permitido:
 verbatra studio --allow-spend
 ```
 
-(O define `VERBATRA_STUDIO_ALLOW_SPEND=1`; el flag gana cuando se dan ambos. La clave API del proveedor viene del entorno como siempre, nunca de Studio.)
+(O define `VERBATRA_STUDIO_ALLOW_SPEND=1`; el flag gana cuando se dan ambos. La clave de API del proveedor viene del entorno como siempre, nunca de Studio.)
 
-Ahora una clave cuyo indicador de integridad muestra un defecto real (una discrepancia de marcadores de posición o una sintaxis de mensaje inválida) recibe un botón **Retranslate** en su vista de detalle en la página Traducciones. Hace una sola llamada al proveedor exactamente para ese locale y esa clave, pasa el resultado por la puerta de integridad antes de que nada llegue al disco e informa del resultado junto al botón. El valor actualizado fluye después a la interfaz a través del ciclo de actualización en vivo.
+Ahora una clave cuyo indicador de integridad muestra un defecto real (una discrepancia de placeholders, una sintaxis de mensaje inválida o una discrepancia de marcado en línea) recibe un botón **Retranslate** en su vista de detalle en la página Translations. Hace una sola llamada al proveedor exactamente para ese locale y esa clave, pasa el resultado por la puerta de integridad antes de que nada llegue al disco e informa del resultado junto al botón. El valor actualizado fluye después a la interfaz a través del ciclo de actualización en vivo.
 
 Sin `--allow-spend`, el botón está ausente por completo, y el servidor ni siquiera registra el endpoint de retraducción: un gasto que no concediste al arrancar no se puede activar desde el navegador.
 
 ## Traduce los cambios pendientes
 
-Mientras se ejecuta, Studio vigila tu archivo de origen, cada archivo de locale de destino y el archivo de bloqueo. Cuando uno cambia, cada página abierta se actualiza sola y un aviso emergente nombra lo que cambió, con un delta de claves añadidas/modificadas/eliminadas.
+Mientras se ejecuta, Studio vigila tu archivo de origen, cada archivo de locale de destino y el archivo de bloqueo. Cuando uno cambia, cada página abierta se actualiza sola. Un cambio en el archivo de origen o en un archivo de locale de destino que añade, modifica o elimina claves también lanza un aviso emergente que nombra el archivo, con un delta de claves añadidas/modificadas/eliminadas; un cambio en el archivo de bloqueo, o un cambio en un archivo de locale sin ninguna clave añadida, modificada o eliminada, actualiza sin aviso.
 
 Cuando el archivo de **origen** cambia y Studio se ejecuta con `--allow-spend`, ese aviso también ofrece **Translate pending changes across all locales**: una ejecución completa de traducción sobre todo lo pendiente ahora mismo, el mismo trabajo que haría `verbatra translate`. El botón informa del éxito, de los fallos por locale o del error en línea.
 
 Este ciclo en vivo también hace que Studio combine bien con una sesión de editor: cambia una cadena de origen, mira aparecer el aviso, traduce y observa cómo las cuadrículas se ponen en verde sin tocar la terminal.
 
-## Evalúa los daños en Actividad
+## Evalúa los daños en Activity
 
-La página Actividad pone dos vistas de referencia lado a lado:
+La página Activity pone dos vistas de referencia lado a lado:
 
 - **El historial de archivos de locale**: el flujo de commits de git de tus archivos de locale de origen y destino (se muestra como no disponible cuando el proyecto no tiene historial de git).
 - **La última ejecución**: los contadores de tokens de entrada y salida de la ejecución más reciente y, cuando hay un presupuesto de tokens configurado, el medidor del presupuesto y si se alcanzó el techo. Es una instantánea de la última ejecución registrada, con marca de tiempo, nunca un contador en vivo; un proveedor que no informa de uso (DeepL) se muestra como "no informado" en lugar de un cero inventado.
 
-## Mantén el glosario al día en Ajustes
+## Mantén el glosario al día en Settings
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Ajustes, la cuarta página, muestra la configuración con la que arrancó esta sesión; reinicia Studio después de cambiar el archivo de configuración. El glosario que aparece al lado es distinto: se lee del disco en cada visita y es editable cuando el proyecto guarda su glosario en un archivo JSON.
+Settings, la cuarta página, muestra la configuración con la que arrancó esta sesión: el locale de origen, los locales de destino, el formato, el proveedor, el patrón de archivos, si las acciones del proveedor están activas (solo con `--allow-spend`), `prune`, `generatePlurals`, `maxBatchSize` y `tone` cuando la configuración los define, y la ruta del archivo de configuración desde el que se cargó. Reinicia Studio después de cambiar el archivo de configuración. El glosario que aparece al lado es distinto: se lee del disco en cada visita y es editable cuando el proyecto guarda su glosario en un archivo JSON.
 
-Entonces cada término lleva una acción **Edit** y otra **Remove**, y debajo de la lista hay un formulario **Add a term**. Un cambio se escribe directamente en ese archivo JSON, de término en término, y el panel muestra el nuevo estado en cuanto la escritura termina, sin recargar. El resto del archivo queda intacto: el orden de las claves y la sangría sobreviven, y el resultado se somete a los mismos límites que `loadConfig` aplica al releer un glosario, así que una edición aceptada siempre se puede volver a leer.
+Entonces cada término lleva una acción **Edit** y otra **Remove**, y debajo de la lista hay un formulario **Add a term**. Un cambio se escribe directamente en ese archivo JSON, un término cada vez, y el panel muestra el nuevo estado en cuanto la escritura termina, sin recargar. El resto del archivo queda intacto: el orden de las claves y la sangría sobreviven, y el resultado se somete a los mismos límites que `loadConfig` aplica al releer un glosario, así que una edición aceptada siempre se puede volver a leer.
 
 Nada de esto llama a un proveedor ni gasta nada, de modo que las acciones están presentes con o sin `--allow-spend`. Lo que no hacen es retraducir: una edición del glosario cambia la terminología que se le pide seguir a la próxima ejecución, nunca un texto ya escrito en un archivo de locale. El glosario que un Studio en marcha entrega a una llamada al proveedor sigue siendo el cargado al arrancar, así que reinicia Studio para que un término nuevo surta efecto en una retraducción de esta sesión.
 
@@ -107,9 +121,9 @@ Dos casos siguen siendo de solo lectura, y el panel te dice en cuál estás:
 - **El glosario está escrito en línea en `verbatra.config.ts`.** Eso es código ejecutable, y Studio no lo reescribe. Mueve los términos a un archivo JSON y apunta la clave `glossary` de la configuración a esa ruta.
 - **El proyecto no tiene glosario.** Crea un archivo JSON con pares de término y traducción y pon `glossary` en esa ruta.
 
-Un valor que parece una clave de API de un proveedor se redacta antes de llegar siquiera al navegador, y ese término no se puede editar desde aquí, solo eliminar: lo que el panel tiene es el marcador, no el texto real. Cambia ese en el propio archivo de glosario.
+Un valor que parece una clave de API de un proveedor se enmascara antes de llegar siquiera al navegador, y ese término no se puede editar desde aquí, solo eliminar: lo que el panel tiene es el placeholder, no el texto real. Cambia ese en el propio archivo de glosario.
 
-## Siguientes pasos
+## Siguiente
 
 - [`verbatra studio`](/docs/cli/studio): todos los flags y el contrato de arranque.
 - [Opera Studio con un agente del navegador](/docs/agent-tools-in-studio): dirige este mismo flujo de trabajo desde un agente de IA del navegador con `--expose-agent-tools`.

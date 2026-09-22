@@ -4,9 +4,9 @@ description: Valida la configuración del proyecto sin llamar a un proveedor ni 
 ---
 <AvailableFrom version="0.9.0" />
 
-Responde una pregunta antes de ejecutar cualquier otra cosa: ¿este proyecto está bien configurado? `doctor` valida la configuración, el adaptador de formato, el proveedor, la variable de la clave de API y el archivo de locale fuente, y luego informa de todos los problemas que encontró a la vez. No gasta nada: no construye ningún proveedor, no hace ninguna petición de red, no escribe ningún archivo y nunca lee el valor de una clave de API.
+Responde una pregunta antes de ejecutar cualquier otra cosa: ¿este proyecto está bien configurado? `doctor` valida la configuración, el adaptador de formato, el proveedor, la variable de la clave de API y el archivo del locale de origen, y luego informa de todos los problemas que encontró a la vez. No gasta nada: no construye ningún proveedor, no hace ninguna petición de red, no escribe ningún archivo y nunca lee el valor de una clave de API.
 
-Úsalo en un checkout recién clonado, justo después de [`verbatra init`](/docs/cli/init), o cuando otro comando falle y quieras la lista completa en lugar del primer error. [`verbatra check`](/docs/cli/check) es la validación más barata una vez que el proyecto ya funciona, pero lee los archivos de locale y se detiene en el primer error global, así que no puede decirte qué falla en un proyecto que todavía no tiene archivo fuente.
+Úsalo en un checkout recién hecho, justo después de [`verbatra init`](/docs/cli/init), o cuando otro comando haya fallado y quieras la lista completa en lugar del primer error. [`verbatra check`](/docs/cli/check) es la validación más barata una vez que el proyecto ya funciona, pero lee los archivos de locale y se detiene en el primer error de toda la ejecución, así que no puede decirte qué falla en un proyecto que todavía no tiene archivo de origen.
 
 ## Sinopsis
 
@@ -16,11 +16,11 @@ verbatra doctor [flags]
 
 ## Flags
 
-| Flag | Argumento | Predeterminado | Efecto |
+| Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la config y los archivos de locale desde este directorio |
-| `--config` | `<path>` | se busca uno | carga este archivo de config en lugar de buscar uno |
-| `--literals` | ninguno | desactivado | en lugar de comprobar la configuración, busca strings visibles para el usuario escritos a mano en las raíces de código del [bloque `extract`](/docs/config-file#extract) (ver más abajo) |
+| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
+| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
+| `--literals` | ninguno | desactivado | en lugar de comprobar la configuración, busca cadenas visibles para el usuario incrustadas en el código en las raíces de código del [bloque `extract`](/docs/config-file#extract) (consulta [Literales sin traducir](#literales-sin-traducir)) |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el informe bajo `result`; la línea de error legible por humanos sigue yendo a stderr |
 
 ## Qué comprueba
@@ -28,19 +28,19 @@ verbatra doctor [flags]
 | Comprobación | Pasa cuando |
 | --- | --- |
 | Configuration | se encontró un archivo de config y supera la validación |
-| Format adapter | el `format` configurado resuelve a un adaptador de archivos |
+| Format adapter | el `format` configurado resuelve a un adaptador de archivo |
 | Provider | el `provider.id` configurado resuelve a una fábrica de proveedores |
 | API key environment variable | la variable de la que ese proveedor lee su clave está definida |
-| Source locale file | el archivo de locale fuente existe en su ruta resuelta, es un archivo regular y se parsea con el formato configurado |
+| Source locale file | el archivo del locale de origen existe en su ruta resuelta, es un archivo regular y se analiza con el formato configurado |
 
 Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las cuatro comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
 
-Cuatro detalles importan:
+Cuatro detalles que conviene conocer:
 
 - La clave de API se comprueba **solo por nombre**. `doctor` pregunta si la variable está definida, nunca qué contiene. El valor no se lee, no se imprime y no se envía a ninguna parte. Consulta [Proveedores](/docs/providers) para saber qué variable usa cada proveedor.
-- El proveedor `openai-compatible` es la excepción. Recurre a una clave de marcador de posición, así que una variable ausente no es problema. Solo falla cuando tu config nombra su propia variable con `provider.options.apiKeyEnvVar` y esa variable no está definida.
-- Un archivo de locale **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Los archivos destino no se comprueban en absoluto.
-- El archivo de locale **fuente** se lee y se parsea, no solo se comprueba su existencia. Un directorio en su lugar, un archivo vacío y contenido malformado fallan esta comprobación con el mismo mensaje que daría [`verbatra check`](/docs/cli/check), porque esos son justo los casos que hacen fallar a todos los demás comandos. Cuando el `format` configurado no resuelve a ningún adaptador no hay con qué parsear, así que la comprobación vuelve a la mera existencia y lo indica.
+- El proveedor `openai-compatible` es la excepción. Recurre a una clave placeholder, así que una variable ausente no es problema. Solo falla cuando tu configuración nombra su propia variable con `provider.options.apiKeyEnvVar` y esa variable no está definida.
+- Un archivo de locale de **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Los archivos de destino no se comprueban en absoluto.
+- El archivo del locale de **origen** se lee y se analiza, no solo se comprueba su existencia. Un directorio en su lugar, un archivo vacío y contenido malformado fallan esta comprobación con el mismo mensaje que daría [`verbatra check`](/docs/cli/check), porque esos son justo los casos que hacen fallar a todos los demás comandos. Cuando el `format` configurado no resuelve a ningún adaptador no hay con qué analizarlo, así que la comprobación vuelve a la mera existencia y lo indica.
 
 Igual que [`verbatra translate`](/docs/cli/translate), `doctor` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de mirar el entorno, así que una clave guardada en un archivo dotenv cuenta como definida. Con `--literals` no carga ninguno de los dos archivos.
 
@@ -48,7 +48,7 @@ Igual que [`verbatra translate`](/docs/cli/translate), `doctor` carga `.env.loca
 
 <AvailableFrom version="0.11.0" />
 
-`verbatra doctor --literals` busca el único error de i18n que ninguna otra comprobación ve: un string visible para el usuario que nunca llegó a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/docs/config-file#extract) e informa de cada string escrito a mano que se lee como texto para el usuario pero no pasa por ninguna llamada de traducción. Lee tu código y nunca lo escribe, no construye ningún proveedor, no lee ninguna variable de clave API y no carga ningún archivo `.env`, así que pasa en un job sin secretos. En este modo solo se ejecutan dos comprobaciones: la configuración y el escaneo de literales.
+`verbatra doctor --literals` busca el único error de i18n que ninguna otra comprobación ve: una cadena visible para el usuario que nunca llegó a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/docs/config-file#extract) e informa de cada cadena incrustada en el código que se lee como texto para el usuario pero no pasa por ninguna llamada de traducción. Lee tu código y nunca lo escribe, no construye ningún proveedor, no lee ninguna variable de clave de API y no carga ningún archivo `.env`, así que pasa en un job sin secretos. En este modo solo se ejecutan dos comprobaciones: la configuración y el escaneo de literales.
 
 Cada hallazgo indica archivo, línea y columna. En su texto se compactan los espacios y, en JSX, se decodifican las referencias de caracteres como `&amp;`, y se recorta a 80 caracteres como máximo:
 
@@ -66,15 +66,15 @@ Qué cuenta como hallazgo:
 
 - Texto JSX, como `<p>Welcome back</p>`, en archivos `.tsx`, `.jsx` y `.js`.
 - El valor de un atributo JSX visible para el usuario: `alt`, `title`, `placeholder`, `label`, `aria-label` y los demás atributos `aria-*` que llevan texto.
-- Un string en cualquier otra posición que se lee como prosa, es decir, de dos o más palabras. Una sola palabra fuera de JSX, como un nombre de evento o un valor de opción, no se informa.
+- Una cadena en cualquier otra posición que se lee como prosa, es decir, de dos o más palabras. Una sola palabra fuera de JSX, como un nombre de evento o un valor de opción, no se informa.
 
-Lo que nunca se informa: un string pasado a una llamada de traducción reconocida (`t(...)`, `$t(...)`, `i18n.t(...)`, o un `t` renombrado desde `useTranslation`, como en `const { t: translate } = useTranslation()`, desde esa línea hasta el final del bloque que la contiene) o renderizado dentro de `<Trans>` o `<Translation>`, una clave de objeto, un especificador de import, un nombre de clase o valor CSS, un test id o atributo `data-*`, un atributo que contiene ids o una palabra clave en lugar de texto (como `aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy` o `crossOrigin`), una URL, un literal en posición de tipo (también uno después de `as` o `satisfies`; el valor anterior, como en `"Welcome" as const`, se sigue comprobando), un mensaje de log, el mensaje de un error construido (`new ValidationError(...)`) o de un error integrado llamado sin `new` (`throw Error(...)`), un operando de comparación, un template literal con una expresión, un string sin letras (puntuación, espacios, un número, un emoji, un símbolo) y todo lo que esté en archivos de test, stories, declaraciones o configuración.
+Lo que nunca se informa: una cadena pasada a una llamada de traducción reconocida (`t(...)`, `$t(...)`, `i18n.t(...)`, o un `t` renombrado desde `useTranslation`, como en `const { t: translate } = useTranslation()`, desde esa línea hasta el final del bloque que la contiene) o renderizado dentro de `<Trans>` o `<Translation>`, una clave de objeto, un especificador de import, un nombre de clase o valor CSS, un test id o atributo `data-*`, un atributo que contiene ids o una palabra clave en lugar de texto (como `aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy` o `crossOrigin`), una URL, un literal en posición de tipo (también uno después de `as` o `satisfies`; el valor anterior, como en `"Welcome" as const`, se sigue comprobando), un mensaje de log, el mensaje de un error construido (`new ValidationError(...)`) o de un error integrado llamado sin `new` (`throw Error(...)`), un operando de comparación, un template literal con una expresión, una cadena sin letras (puntuación, espacios, un número, un emoji, un símbolo) y todo lo que esté en archivos de test, stories, declaraciones o configuración.
 
-También se omiten las llamadas que esperan una consulta, un formato o un nombre en lugar de texto: un string pasado directamente como argumento de `describe` (zod), `query`, `execute`, `prepare`, `format` o `parse`, un string del array pasado directamente a `z.enum`, cada argumento string de `setItem`, `getItem` y `removeItem`, y el primer argumento de `on`, `off`, `once`, `emit`, `addEventListener` y de una llamada `get` o `set` sobre un objeto, como `cookies().get(...)`. Solo se omiten los argumentos directos: el texto anidado más adentro de esa llamada, como en un callback (`query(() => ({ message: "..." }))`), un objeto o JSX, se sigue informando. Una función cuyo nombre solo termina en `Error` por casualidad, como `setError` o `showError`, no se omite, así que el mensaje que le pasas se sigue informando.
+También se omiten las llamadas que esperan una consulta, un formato o un nombre en lugar de texto: una cadena pasada directamente como argumento de `describe` (zod), `query`, `execute`, `prepare`, `format` o `parse`, una cadena del array pasado directamente a `z.enum`, cada argumento de tipo cadena de `setItem`, `getItem` y `removeItem`, y el primer argumento de `on`, `off`, `once`, `emit`, `addEventListener` y de una llamada `get` o `set` sobre un objeto, como `cookies().get(...)`. Solo se omiten los argumentos directos: el texto anidado más adentro de esa llamada, como en un callback (`query(() => ({ message: "..." }))`), un objeto o JSX, se sigue informando. Una función cuyo nombre solo termina en `Error` por casualidad, como `setError` o `showError`, no se omite, así que el mensaje que le pasas se sigue informando.
 
-Para retener un literal, pon `// verbatra-ignore-next-line` encima (en JSX, `{/* verbatra-ignore-next-line */}`), o `// verbatra-ignore-line` al final de su propia línea. Una directiva de línea siguiente apunta a la siguiente línea con código (se saltan las líneas vacías y las que solo tienen comentarios) y cubre cada literal que empieza en esa línea. Cuando ahí empieza una etiqueta de apertura JSX, también cubre todos sus atributos, aunque la etiqueta ocupe varias líneas. El texto y los elementos anidados de líneas posteriores no quedan cubiertos, así que dale a cada uno su propia directiva. Para un string que está bien en todas partes, como un nombre de marca, añádelo en `extract.literals.ignore` en [el archivo de config](/docs/config-file#extract). Una entrada coincide con el texto tal como se informa, con las referencias de caracteres decodificadas, así que escribe `Tom & Jerry`, no `Tom &amp; Jerry`. Un literal retenido se sigue listando como suprimido, con el motivo, así que nada desaparece en silencio.
+Para retener un literal, pon `// verbatra-ignore-next-line` encima (en JSX, `{/* verbatra-ignore-next-line */}`), o `// verbatra-ignore-line` al final de su propia línea. Una directiva de línea siguiente apunta a la siguiente línea con código (se saltan las líneas vacías y las que solo tienen comentarios) y cubre cada literal que empieza en esa línea. Cuando ahí empieza una etiqueta de apertura JSX, también cubre todos sus atributos, aunque la etiqueta ocupe varias líneas. El texto y los elementos anidados de líneas posteriores no quedan cubiertos, así que dale a cada uno su propia directiva. Para una cadena que está bien en todas partes, como un nombre de marca, añádelo en `extract.literals.ignore` en [el archivo de configuración](/docs/config-file#extract). Una entrada coincide con el texto tal como se informa, con las referencias de caracteres decodificadas, así que escribe `Tom & Jerry`, no `Tom &amp; Jerry`. Un literal retenido se sigue listando como suprimido, con el motivo, así que nada desaparece en silencio.
 
-La comprobación falla cuando encuentra un literal, y también cuando un archivo no se pudo escanear. Un archivo que el escáner no puede leer hasta el final (un comentario o template literal sin cerrar, o un elemento JSX que nunca se cierra o que cierra la etiqueta de un elemento que lo rodea), no puede leer o considera demasiado grande se lista como no escaneado y el resto del escaneo continúa, pero la ejecución nunca se informa como limpia. Un tipo de función genérico del estilo `type Fn = <T>(x: T) => T` o una lista de parámetros de tipo como `<const T extends object = {}>(x: T) => x` en un archivo `.tsx` se lee como código normal, así que nunca hace fallar el archivo, y un elemento con argumentos de tipo de cualquier longitud, como `<Table<Row>>`, se sigue leyendo como JSX. Un proyecto sin bloque `extract` hace fallar la comprobación con un mensaje que nombra el bloque. Con `--json`, el escaneo viaja en el envoltorio bajo `result.literals`, dividido en `findings`, `suppressed` y `diagnostics`.
+La comprobación falla cuando encuentra un literal, y también cuando un archivo no se pudo escanear. Un archivo que el escáner no puede leer hasta el final (un comentario o template literal sin cerrar, o un elemento JSX que nunca se cierra o que queda cerrado por la etiqueta de un elemento que lo rodea), no puede abrir en absoluto o considera demasiado grande se lista como no escaneado y el resto del escaneo continúa, pero la ejecución nunca se informa como limpia. Un tipo de función genérico del estilo `type Fn = <T>(x: T) => T` o una lista de parámetros de tipo como `<const T extends object = {}>(x: T) => x` en un archivo `.tsx` se lee como código normal, así que nunca hace fallar el archivo, y un elemento con argumentos de tipo de cualquier longitud, como `<Table<Row>>`, se sigue leyendo como JSX. Un proyecto sin bloque `extract` hace fallar la comprobación con un mensaje que nombra el bloque. Con `--json`, el escaneo viaja en el envoltorio bajo `result.literals`, dividido en `findings`, `suppressed` y `diagnostics`.
 
 ## Ejemplos
 
@@ -112,11 +112,11 @@ verbatra doctor
 | `1` | al menos una comprobación falló (el informe completo se imprime igualmente); con `--literals`, se encontró un literal o un archivo no se pudo escanear |
 | `2` | no pudo ejecutarse: un error de uso, o una ruta `--config` explícita que no existe |
 
-La salida `1` significa "se ejecutó y encontró problemas". La salida `2` queda reservada a que `doctor` no pueda ejecutarse en absoluto, por eso un archivo de config que la búsqueda no encuentra es una comprobación fallida y salida `1`, mientras que una ruta `--config` que apunta a la nada es salida `2`.
+El código de salida `1` significa "se ejecutó y encontró problemas". El código `2` queda reservado a que `doctor` no pueda ejecutarse en absoluto, por eso un archivo de configuración que la búsqueda no encuentra es una comprobación fallida y da `1`, mientras que una ruta `--config` que apunta a la nada da `2`.
 
 ## Relacionado
 
-- [`verbatra init`](/docs/cli/init) genera la config y el `.env.example` que `doctor` valida.
-- [`verbatra check`](/docs/cli/check) es el control de deriva que ejecutas una vez que la configuración es correcta.
+- [`verbatra init`](/docs/cli/init) genera la configuración y el `.env.example` que `doctor` valida.
+- [`verbatra check`](/docs/cli/check) es la puerta contra el desfase que ejecutas una vez que la configuración es correcta.
 - [El archivo de configuración](/docs/config-file) documenta todas las claves que `doctor` valida.
 - [Proveedores](/docs/providers) lista la variable de clave de API que lee cada proveedor.

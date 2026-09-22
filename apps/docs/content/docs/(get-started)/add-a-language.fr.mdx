@@ -1,8 +1,8 @@
 ---
 title: Ajouter une langue
-description: Ajoute une nouvelle locale cible à un projet verbatra existant avec un changement de configuration d'une ligne et une exécution de translate, pendant que tes locales existantes restent intactes.
+description: Ajoute une nouvelle locale cible à un projet verbatra existant avec un changement de configuration d'une ligne et une exécution de translate, tandis que tes locales existantes restent intactes.
 ---
-Ajouter une langue, c'est un changement de configuration d'une ligne plus une exécution. verbatra voit la nouvelle locale comme manquant de tout et la remplit complètement ; tes locales existantes ne coûtent rien, parce que le fichier de verrouillage les a toujours enregistrées comme à jour.
+Ajouter une langue, c'est un changement de configuration d'une ligne plus une exécution. verbatra considère que tout manque dans la nouvelle locale et la remplit intégralement ; tes locales existantes ne coûtent rien, parce que le fichier de verrouillage les enregistre toujours comme à jour.
 
 ## Ajoute la locale à ta configuration
 
@@ -28,17 +28,17 @@ export default defineConfig({
 });
 ```
 
-Deux règles, toutes deux imposées au chargement de la configuration : une locale cible ne doit pas être la `sourceLocale`, et deux entrées ne doivent pas entrer en collision sans tenir compte de la casse (pas de `de` et `DE` dans la même liste).
+Deux règles, toutes deux appliquées au chargement de la configuration : une locale cible ne doit pas être la `sourceLocale`, et deux entrées ne doivent pas entrer en collision à la casse près (pas de `de` et `DE` dans la même liste).
 
 ## Prévisualise le travail
 
-Avant de dépenser un token, regarde ce qu'une exécution ferait. `diff` est en lecture seule et liste les clés en attente par locale :
+Avant de dépenser le moindre token, regarde ce qu'une exécution ferait. `diff` est en lecture seule et liste les clés en attente par locale :
 
 ```bash
 verbatra diff
 ```
 
-La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comme vide et chaque clé source apparaît comme manquante ; tes locales existantes ne listent rien, en supposant que leurs chaînes source n'ont pas changé. `diff` sort avec `1` tant que des changements sont en attente, `0` dès qu'il n'y en a plus. `verbatra translate --dry-run` te donne la même prévisualisation sous la forme d'un résumé d'exécution, sans appel fournisseur ni écriture.
+La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comme vide et chaque clé source apparaît comme manquante ; tes locales existantes ne listent rien, en supposant que leurs chaînes source n'ont pas changé. `diff` sort avec le code `1` tant que des changements sont en attente, `0` dès qu'il n'y en a plus. `verbatra translate --dry-run` te donne la même prévisualisation sous la forme d'un résumé d'exécution, sans appel au fournisseur ni écriture.
 
 ## Traduis
 
@@ -46,9 +46,9 @@ La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comm
 verbatra translate
 ```
 
-L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à ton `files.pattern` (ici `locales/fr.json`). Une grosse source est découpée en sous-lots d'au plus 50 clés par requête fournisseur (configurable avec `maxBatchSize`), pour qu'une requête trop grosse ne puisse pas couler toute la locale.
+L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à l'emplacement défini par ton `files.pattern` (ici `locales/fr.json`). Une source volumineuse est découpée en sous-lots d'au plus 50 clés par requête au fournisseur (configurable avec `maxBatchSize`), pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale.
 
-C'est le comportement incrémental à l'œuvre : seule la nouvelle locale déclenche des appels fournisseur. Pour chaque locale existante, verbatra compare la source avec la référence de cette locale dans `verbatra.lock.json`, ne trouve aucune clé manquante ou modifiée, et n'envoie rien. Ensuite, `verbatra check` sort avec `0` : chaque locale, y compris la nouvelle, est synchronisée.
+C'est le comportement incrémental à l'œuvre : seule la nouvelle locale déclenche des appels au fournisseur. Pour chaque locale existante, verbatra compare la source avec la référence de cette locale dans `verbatra.lock.json`, ne trouve aucune clé manquante ou modifiée, et n'envoie rien. Ensuite, `verbatra check` sort avec le code `0` : chaque locale, y compris la nouvelle, est synchronisée.
 
 ## Langues avec plus de catégories de pluriel
 
@@ -63,14 +63,14 @@ export default defineConfig({
 });
 ```
 
-La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL, les autres formats et les langues cibles inconnues retombent sur l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
+La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL et Google Cloud Translation, les autres formats et les langues cibles inconnues se contentent de l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
 
 ## Maintenir la locale source
 
-Tu ne maintiens jamais à la main que la locale source. Pour ajouter des chaînes, mets-les dans le fichier source et relance `translate` : verbatra les remplit dans chaque cible, y compris celle que tu viens d'ajouter.
+La seule locale que tu maintiens à la main, c'est la locale source. Pour ajouter des chaînes, mets-les dans le fichier source et relance `translate` : verbatra les remplit dans chaque cible, y compris celle que tu viens d'ajouter.
 
 ## Ensuite
 
-- [Le fichier de verrouillage](/docs/the-lock-file) : pourquoi relancer ne coûte rien et quoi commiter.
+- [Le fichier de verrouillage](/docs/the-lock-file) : pourquoi les nouvelles exécutions coûtent peu et quoi commiter.
 - [Fichier de configuration](/docs/config-file) : le schéma complet de configuration, y compris `glossary` et `tone`.
 - [Fournisseurs](/docs/providers) : les options des fournisseurs et où obtenir une clé.

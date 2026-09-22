@@ -70,11 +70,14 @@ export interface DirectoryEntry {
  * `deps.fs` option redirects that I/O, which is how the SDK's tests avoid touching disk and how an
  * embedding application can back part of a project with something other than a local disk.
  *
- * The seam carries every file the SDK touches: the run-status file, the lock-file, the config
- * glossary, workbook and interchange I/O, and the locale files themselves, which the adapters read
- * and write through a port built from this one. The single exception is a caller-supplied
- * `deps.adapterRegistry`: those adapters were constructed by the caller, so their file access is
- * whatever the caller wired into them, and supplying both means the caller owns that wiring.
+ * The seam carries every file the SDK touches once a config is loaded: the run-status file, the
+ * lock-file and the write locks, the translation-memory cache, the config glossary, workbook and TMX
+ * I/O, generated declaration and pseudolocale files, the source scan, and the locale files
+ * themselves, which the adapters read and write through a port built from this one. Two exceptions
+ * remain. {@link loadConfig} finds and loads the config file itself directly from disk; only its
+ * glossary goes through the port. And a caller-supplied `deps.adapterRegistry` holds adapters the
+ * caller constructed, so their file access is whatever the caller wired into them, and supplying
+ * both means the caller owns that wiring.
  *
  * Reads are size-bounded by contract so that a hostile or accidentally huge file cannot exhaust
  * memory. Writes are expected to be atomic: the default implementation writes to a temporary file
@@ -83,7 +86,7 @@ export interface DirectoryEntry {
  * directory tree must also implement `mkdir`.
  */
 export interface SdkFs {
-  /** Reports whether a readable file exists at the path. */
+  /** Reports whether a file exists at the path. The default implementation checks existence only. */
   fileExists(path: string): Promise<boolean>;
   /** Reads a file as UTF-8 text, refusing to read more than `maxBytes`. */
   readFileBounded(path: string, maxBytes: number): Promise<BoundedFileRead>;

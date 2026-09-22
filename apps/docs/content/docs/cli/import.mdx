@@ -35,7 +35,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 verbatra import handoff --format csv
 ```
 
-With `csv` or `tsv` the locale comes from the file name, not from a sheet name, so keep every file named exactly as it was exported. A configured target locale with no file is reported as that locale's failure, never silently skipped.
+With `csv` or `tsv` the locale comes from the file name, not from a sheet name, so keep every file named exactly as it was exported. A configured target locale with no file (or, in a workbook, no sheet) is reported as that locale's failure with `WORKBOOK_SHEET_MISSING`, never silently skipped.
 
 A file left over from an earlier export with a wider `--locales` selection is never applied. Import reconciles the directory against the manifest the most recent export wrote there and reports such a locale as failed with `HANDOFF_FILE_STALE`, so an outdated translation cannot slip back in unnoticed. Re-export that locale to refresh its file, or delete the file. A directory with no readable manifest (one assembled by hand, or one that lost the hidden file on its way through an archive) is read as it always was, every present file is imported. Naming a single file directly is likewise taken at face value.
 
@@ -46,6 +46,8 @@ A file left over from an earlier export with a wider `--locales` selection is ne
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, workbook, format, or lock), or a usage error |
+
+A handoff that is oversized or cannot be parsed at all (for example, a file that is not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong with it. A single unreadable row is not: it is reported as a malformed row and the rest of the locale still imports.
 
 <AvailableFrom version="0.9.0" />
 

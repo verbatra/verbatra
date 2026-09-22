@@ -158,6 +158,8 @@ Pass `--out` to put it where your app already imports from, for example `--out s
 
 File names are compared regardless of case, so `Verbatra.Config.ts` is refused as well. All but the last are refused before anything is read or written. The last is checked only by a run that would write, and it leaves your file untouched: pick another `--out`, or delete the file if it really is an old declaration. `--check` never refuses an existing file; it only compares.
 
+A path that passes every one of those checks can still fail at the moment of writing: when the declaration's directory cannot be created or the file cannot be written, because the directory is not writable, no longer exists, or the disk is out of space, the run stops with `TYPES_UNWRITABLE` and exits `2`. `--check` never reaches it, since it writes nothing.
+
 ## Keeping it honest in CI
 
 `--check` writes nothing and exits `1` when the committed declaration no longer matches what a fresh generation would produce. The comparison is byte for byte, with no reformatting, so it catches a key added to the catalog and never regenerated:
@@ -224,7 +226,7 @@ verbatra types
 | --- | --- |
 | `0` | the declaration was generated, whether or not the file changed; or `--check` found it current |
 | `1` | `--check` found the committed declaration out of date |
-| `2` | could not run: a usage error, a config or source problem, or a refused output path |
+| `2` | could not run: a usage error, a config or source problem, a refused output path (`TYPES_OUTPUT_CONFLICT`), or a declaration that could not be written (`TYPES_UNWRITABLE`) |
 
 ## Related
 

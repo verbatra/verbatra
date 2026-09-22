@@ -33,17 +33,31 @@ export interface KeyConflict {
   readonly locations: readonly SourceLocation[];
 }
 
+/**
+ * Why a {@link ScanDiagnostic} was reported.
+ *
+ * - `unreadable`: the file could not be opened, or the path is not a regular file.
+ * - `too-large`: the file is larger than 2,000,000 bytes, so it was skipped without being read.
+ * - `unparseable`: the file was read, but the scan either failed on it outright, in which case
+ *   nothing from it is reported, or could not follow it to its end, in which case what was found
+ *   before that point is still reported.
+ * - `unreadable-directory`: a directory under a scan root could not be listed, so nothing beneath
+ *   it was scanned.
+ */
 export type ScanDiagnosticReason =
   | "unreadable"
   | "too-large"
   | "unparseable"
   | "unreadable-directory";
 
-/** One file or directory the scan could not read, reported as data so one bad file never aborts a run. */
+/**
+ * One file or directory the scan could not read, or could not read to its end, reported as data so
+ * one bad file never aborts a run.
+ */
 export interface ScanDiagnostic {
   /** The file or directory, relative to the run's working directory, with forward slashes. */
   readonly file: string;
-  /** Why it was skipped. */
+  /** Why it was skipped or only partly scanned. */
   readonly reason: ScanDiagnosticReason;
 }
 

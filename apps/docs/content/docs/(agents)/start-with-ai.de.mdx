@@ -2,7 +2,7 @@
 title: verbatra mit einem KI-Agenten einrichten
 description: "Ein Prompt zum Kopieren und Einfügen für Claude Code, Cursor oder einen beliebigen KI-Coding-Agenten, um verbatra in einem Projekt einzurichten, das bereits ein i18n-Setup hat, abgesichert durch eine ausdrückliche menschliche Bestätigung, bevor irgendetwas Geld kostet."
 ---
-Diese Seite ist für ein Projekt gedacht, das bereits Locale-Dateien hat: i18next, vue-i18n, next-intl, ngx-translate oder rohe JSON-, YAML-, XLIFF-, ARB-, Properties-, Apple-`.strings`-, Xcode-String-Catalog-`.xcstrings`-, Android-`strings.xml`- oder gettext-`.po`/`.pot`-Dateien, bereits committet und bereits im Einsatz. Füge den Prompt unten in deinen KI-Coding-Agenten ein (Claude Code, Cursor oder jeden Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann), und er arbeitet sich selbst durch die Prüfung deines Setups, die Installation von verbatra, das Erstellen einer passenden Config und die Vorschau eines Laufs, bevor er stoppt und dich um Bestätigung bittet, bevor er je einen Provider für echt aufruft.
+Diese Seite ist für ein Projekt gedacht, das bereits Locale-Dateien hat: i18next, vue-i18n, next-intl, ngx-translate oder rohe JSON-, YAML-, XLIFF-, ARB-, Properties-, Apple-`.strings`-, Xcode-String-Catalog-`.xcstrings`-, Android-`strings.xml`- oder gettext-`.po`/`.pot`-Dateien, bereits committet und bereits im Einsatz. Füge den Prompt unten in deinen KI-Coding-Agenten ein (Claude Code, Cursor oder jeden Agenten, der dein Projekt lesen und Shell-Befehle ausführen kann), und er arbeitet sich selbst durch die Prüfung deines Setups, die Installation von verbatra, das Erstellen einer Konfiguration, die zu dem passt, was er gefunden hat, und die Vorschau eines Laufs; dann stoppt er und bittet dich um Bestätigung, bevor er je wirklich einen Provider aufruft.
 
 Wenn du verbatra selbst einrichtest, statt es einem Agenten zu überlassen, ist [Deine erste Übersetzung](/docs/your-first-translation) die menschliche Version desselben Wegs.
 
@@ -120,8 +120,9 @@ their direction rather than guessing which namespace to wire up.
 
 npx verbatra doctor
 
-`doctor` validates the config, the format, the provider id, and the source file,
-with no network call and no key read. Fix whatever it reports by editing
+`doctor` runs five checks: the config, the format, the provider id, the API-key
+environment variable that provider reads, and the source file. It makes no network
+call and reads no key value, only the variable's name. Fix whatever it reports by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
 or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
 it again. Repeat until it passes with no errors.
@@ -192,11 +193,11 @@ ignored before committing rather than assuming the scaffold caught every case.
 
 ## Warum diese Form
 
-`translate` hat kein eigenes Ausgaben-Gate: Sobald eine gültige Config und ein API-Schlüssel existieren, ruft ein einfaches `verbatra translate` den Provider sofort auf, ohne Bestätigungsaufforderung. Der Prompt oben legt das Gate stattdessen in die Anweisungen des Agenten: `doctor`, `check`, `diff` und `translate --dry-run` sind alle kostenlos und rein lesend, sodass der Agent das gesamte Setup prüfen und dir genau zeigen kann, was passieren würde, bevor Schritt 8 kommt, der einzige Schritt, der etwas kostet.
+`translate` hat kein eigenes Ausgaben-Gate: Sobald eine gültige Konfiguration und ein API-Schlüssel existieren, ruft ein einfaches `verbatra translate` den Provider sofort auf, ohne Bestätigungsaufforderung. Der Prompt oben legt das Gate stattdessen in die Anweisungen des Agenten: `doctor`, `check`, `diff` und `translate --dry-run` sind alle kostenlos und nur lesend, sodass der Agent das gesamte Setup prüfen und dir genau zeigen kann, was passieren würde, bevor Schritt 8 kommt, der einzige Schritt, der etwas kostet.
 
 ## Weiter
 
 - [Rezepte für Agenten und Skripte](/docs/agent-recipes): der `--json`-Envelope und die Exit-Codes, auf die sich die Befehle dieses Prompts selbst stützen, um darauf eigene Agenten-Loops aufzubauen.
 - [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio): eine andere Oberfläche, um ein bereits eingerichtetes Projekt aus einem Browser-Tab statt aus einer Shell zu steuern.
 - [Deine erste Übersetzung](/docs/your-first-translation): derselbe Einrichtungsweg, geschrieben für einen Menschen statt für einen Agenten.
-- [Die Lock-Datei](/docs/the-lock-file): die volle Detailtiefe hinter dem Adoptions-Sicherheitsverhalten, auf das sich dieser Prompt stützt.
+- [Die Lock-Datei](/docs/the-lock-file): die vollen Details hinter dem Sicherheitsverhalten bei der Übernahme, auf das sich dieser Prompt stützt.

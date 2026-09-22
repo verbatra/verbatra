@@ -20,7 +20,7 @@ Reference it by repository, pinned to a commit SHA:
 uses: verbatra/action@<commit-sha>
 ```
 
-`verbatra/action@v1` is the convenience form and the recommended default: the `v1` tag is the actively maintained, continuously updated line, moving with each release, so fixes and features reach you without a workflow edit. SHA pinning is the security-conscious choice either way, and is what the examples on this page use.
+`verbatra/action@v1` is the convenience form: the `v1` tag is the actively maintained, continuously updated line, moving with each release, so fixes and features reach you without a workflow edit. SHA pinning is the security-conscious choice, and it is what the examples on this page use.
 
 It used to ship from inside the verbatra monorepo and was referenced by path. That older form no longer resolves, so point existing workflows at the repository above.
 
@@ -40,24 +40,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # pins the actively maintained v1 line
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.9.3 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The action fetches and runs `@verbatra/cli` at exactly the version you pin, so the workflow needs no install step for verbatra itself. The pin above is only an example: check the [`@verbatra/cli` package on npm](https://www.npmjs.com/package/@verbatra/cli) for the current release and bump the pin deliberately, rather than tracking a moving tag.
+The action installs `@verbatra/cli` and `@verbatra/sdk`, both at exactly the version you pin, into a scratch directory and runs the CLI from there, so the workflow needs no install step for verbatra itself. The pin above is only an example: check the [`@verbatra/cli` package on npm](https://www.npmjs.com/package/@verbatra/cli) for the current release and bump the pin deliberately, rather than tracking a moving tag.
 
 ### Secret wiring
 
-The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`. The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
+The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or, for an `openai-compatible` server that needs a key, `OPENAI_COMPATIBLE_API_KEY` (or the variable its `apiKeyEnvVar` names). The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
 
 ## Inputs
 
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
-| `version` | yes | - | the `@verbatra/cli` version to run, for example `0.9.3`. Must be an exact semver version; the step fails immediately on a dist-tag such as `latest`, a range, or a `^`/`~` prefix. Must also be `0.9.3` or newer; an older pin fails the step |
+| `version` | yes | - | the `@verbatra/cli` version to run, for example `0.11.0`. Must be an exact semver version; the step fails immediately on a dist-tag such as `latest`, a range, or a `^`/`~` prefix. Must also be `0.9.3` or newer; an older pin fails the step |
 | `command` | no | `"translate"` | which verbatra command to run: `translate` (writes translations), `check` (read-only, exits `1` when any locale has missing or stale keys), or `diff` (read-only, exits `1` when any locale has pending changes). The read-only commands need no provider API key, so they work as a CI gate on a fork pull request. Anything outside this set fails the step |
 | `config-path` | no | `""` | explicit config file to load (maps to `--config`). Leaving it empty requires a recognized config file directly inside `working-directory`; the step fails before installing the CLI when none is found there. See [Config discovery](#config-discovery). |
 | `working-directory` | no | `""` | directory to resolve config and locale files against (maps to `--cwd`). Config lookup is strict: it looks only directly inside this directory, never a parent directory or the repository root. See [Config discovery](#config-discovery). |
@@ -74,7 +74,7 @@ The lookup is strict: it never walks up into a parent directory or the repositor
 
 ```yaml
       with:
-        version: 0.9.3
+        version: 0.11.0
         working-directory: apps/docs
 ```
 
@@ -84,11 +84,11 @@ Set `config-path` to point at a config file outside this convention. A relative 
 
 ## What a run shows you
 
-**Annotations.** Under the default `translate` command, when the CLI exits `1` (some locales failed or came out partial), each failed locale becomes one error annotation titled `verbatra: <locale>`, carrying that locale's structured `[CODE] message`. Under `check`, a drifted locale is annotated `verbatra check: <locale>` instead; under `diff`, a locale with pending changes is annotated `verbatra diff: <locale>`. When the whole run fails before producing a summary (exit `2`), a single `verbatra` annotation carries the CLI's error line instead, whatever the command.
+**Annotations.** Under the default `translate` command, when the CLI exits `1` (some locales failed or came out partial), each locale whose status is `failed` becomes one error annotation titled `verbatra: <locale>`, carrying that locale's structured `[CODE] message`. A `partial` locale gets no annotation, so a run whose only problem is partial locales fails the step without any. Under `check`, a drifted locale is annotated `verbatra check: <locale>` instead; under `diff`, a locale with pending changes is annotated `verbatra diff: <locale>`. When the whole run fails before producing a summary, a single `verbatra` annotation carries the error line instead, whatever the command: the CLI's own error on exit `2`, or the action's own failure before the CLI ever ran (the `working-directory` does not exist, no config was found, or the npm install failed), which exits `1`.
 
-**Job summary.** Every run appends a Markdown summary to the job page, shaped to the command that ran. Under `translate`, it is a table with one row per locale (status, translated, unchanged, orphaned, invalid ICU, integrity withheld, provider failures, notices), an aggregate line, and a list of failed locales with their error codes; a dry run is labeled as such. Under `check`, it reports missing and stale key counts per locale. Under `diff`, it reports missing and changed keys per locale, plus orphaned keys called out separately, since those never fail the step on their own. A whole-run failure gets a short failure summary with the exit code and error detail, whatever the command.
+**Job summary.** Every run appends a Markdown summary to the job page, shaped to the command that ran. Under `translate`, it is a table with one row per locale (status, translated, unchanged, orphaned, invalid ICU, integrity withheld, provider failures, notices), an aggregate line, and a list of failed locales with their error codes; a dry run is labeled as such. The status column shows only `ok` or `failed`, so a partial locale reads `ok` there, and the aggregate line counts succeeded and failed locales without a partial count. Under `check`, it reports missing and stale key counts per locale. Under `diff`, it reports missing and changed keys per locale, plus orphaned keys called out separately, since those never fail the step on their own. A whole-run failure gets a short failure summary with the exit code and error detail, whatever the command.
 
-**Exit behavior.** The action captures the CLI's stdout and exit code without bailing early, emits the annotations and summary, and only then exits with the CLI's own code. So the step fails on `1` or `2`, but never before you can see why. The [exit codes](/docs/ci-and-exit-codes) page spells out what each code means. If the internal exit-code wiring ever breaks, the action fails with `2` rather than reporting a false success.
+**Exit behavior.** The action captures the CLI's stdout and exit code without bailing early, emits the annotations and summary, and only then exits with the CLI's own code. So the step fails on `1` or `2`, but never before you can see why. An invalid `version`, `command`, or `dry-run` input fails the step with exit `1` before anything is installed, as do the pre-CLI failures above. The [exit codes](/docs/ci-and-exit-codes) page spells out what each code means. If the internal exit-code wiring ever breaks, the action fails with `2` rather than reporting a false success.
 
 ## Persisting translations
 

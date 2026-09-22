@@ -15,7 +15,7 @@ import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 
-/** One key's placeholder and ICU verdict in a {@link LocaleKeyIntegrity} report. */
+/** One key's placeholder, ICU, and inline-markup verdict in a {@link LocaleKeyIntegrity} report. */
 export interface KeyIntegrityEntry {
   /** The key this verdict describes. */
   readonly key: string;
@@ -61,7 +61,11 @@ export interface KeyIntegrityInput {
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
-  /** Restrict the report to these keys. Defaults to every key the diff reports as changed. */
+  /**
+   * Restrict the report to these keys. Only keys the diff reports as changed are ever judged, so a
+   * requested key that is missing, orphaned, or up to date is left out rather than reported.
+   * Defaults to every changed key.
+   */
   readonly keys?: readonly string[];
 }
 
@@ -127,15 +131,17 @@ function integrityEntriesFor(
 
 /**
  * Reports, per changed key, whether the existing translation still carries the source's
- * placeholders and still parses as valid ICU. It writes nothing and calls no provider.
+ * placeholders and inline markup and still parses as valid ICU. It writes nothing and calls no
+ * provider.
  *
  * The scope is deliberately the changed keys rather than every key: a key whose source text has not
  * moved was already gated when it was written, so re-reporting it would bury the keys that a source
  * edit may have just invalidated. Only keys present in both the source and the target are judged,
  * since a missing translation has no placeholders to compare.
  *
- * This is the read-only counterpart to the placeholder, ICU and inline-markup checks the gate that
- * {@link editEntry} and {@link retranslateEntry} enforce at write time, and the data behind a
+ * This is the read-only counterpart to the placeholder, ICU and inline-markup checks of the
+ * write-time integrity gate that {@link translate}, {@link editEntry}, {@link retranslateEntry},
+ * and the workbook and TMX imports enforce, and the data behind a
  * review dashboard's per-key integrity indicator. Reporting markup here is what makes drift that
  * predates the gate visible at all: a translation written before the check existed, edited outside
  * verbatra, or produced by a path that never crossed the gate is judged here by the same rule.

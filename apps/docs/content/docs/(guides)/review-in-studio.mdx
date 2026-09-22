@@ -23,17 +23,27 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=...
 
 Open that URL, token included; the token is generated fresh per start and is how the browser authenticates. The server binds only to `127.0.0.1` (never your network), defaults to port `5849` with no fallback if it is busy, and takes `--port` to move. Stop it with Ctrl+C; a second interrupt forces it down with exit code `130`. See [`verbatra studio`](/docs/cli/studio) for every flag.
 
-The sidebar has four pages: **Translations**, **Review**, **Activity**, and **Settings**.
+The sidebar has four pages: **Translations**, **Review**, **Activity**, and **Settings**. A badge on Review counts the entries still in the queue, capped at "99+". The sidebar collapses to icons (Studio remembers the choice), and in a narrow window it becomes a drawer opened from the top bar; both carry **Documentation** and **Help and issues** links.
+
+The top bar holds a theme switcher (System, Light, Dark), saved in the browser's localStorage, and shows a **Reconnecting** badge when the live-refresh connection has been down for more than a moment. When the server stops accepting the tab's session, for example after Studio restarted with a new token, every page gives way to a **Session expired** screen: open the URL the running Studio printed again.
 
 ## Read the Translations page
 
 Translations is the working view: everything pending across your target locales, and how far along each locale is.
 
 - **The stat strip** answers the first question at a glance: how many keys need attention, average coverage, how many locales are in sync, and the last run's token usage. When nothing is pending, an all-clear banner replaces the key explorer.
-- **The key explorer** lists every missing, changed, and orphaned key, as a key-by-locale grid or as per-locale lists with a filter that matches a key's name or its translation text.
-- **The locales table** shows per-locale coverage (missing, stale, up to date) merged with [the lock file](/docs/the-lock-file)'s state, so you can see whether each locale's lock entry agrees with its files.
+- **The key explorer** lists every missing, changed, and orphaned key in one of two views. **List** groups the keys per locale and has a filter that matches a key's name or its translation text, showing at most 500 matches at a time. **Grid** is a key-by-locale matrix with no filter; it renders at most 500 keys and, when there are more, says so and points you to List. In Grid, the arrow keys move between cells and Enter or Space opens the focused key.
+- **The locales table** shows per-locale coverage (missing, stale, up to date) merged with [the lock file](/docs/the-lock-file)'s state, so you can see whether each locale's lock entry agrees with its files. Its **Lock** column reads **In step** when the lock file records no missing or stale key for the locale, **Drift** when it does, and **Not recorded** when the lock file has no entry for that locale. A **Lock vN** badge names the lock file's version, and a collapsible **Lock file details** table lists each recorded locale's key count with its missing, stale, and up-to-date counts.
 
-Click any key to open its detail view: the per-locale values, each locale's sync status, and an integrity indicator per translation (placeholders match, placeholder mismatch with the missing and extra tokens named, or invalid message syntax). From there, **Edit** opens the editor for one locale's value.
+**Copy as review report** in the page header copies a Markdown report to the clipboard: one section per locale listing its missing, changed, and orphaned keys, ready to paste into a pull request or an issue.
+
+Click any key to open its detail view: the source text, the per-locale values, each locale's sync status, and an integrity indicator per translation (placeholders match, no placeholders, placeholder mismatch with the missing and extra tokens named, or invalid message syntax). A **History** section lists the git commits that touched the project's locale files; it is the same feed as on Activity, not filtered to the open key. From there, **Edit** opens the editor for one locale's value.
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+The integrity indicator has one more defect state, **Inline markup mismatch**: the translation's HTML or XML tags differ from the source's, and the indicator names the tags behind it, `-` for one the translation dropped and `+` for one it added.
+
+Values in a right-to-left locale (Arabic, Hebrew, Persian, Urdu) render right to left throughout the explorer and the detail view.
 
 ### Edit with integrity gating
 
@@ -45,6 +55,10 @@ Editing needs no flag. It touches only your local files and never calls a provid
 
 The Review page lists every entry the review heuristics flagged in the most recent `translate` or `watch` run: one row per locale and key, with an indicator per reason (translation far shorter or longer than the source, longer than the key's configured length budget, identical to the source, a missed glossary term, reordered placeholders, a degraded provider batch, or a value reused from the cache after its source was edited). Until a run has been recorded, the page says so and stays empty; run `verbatra translate` or `verbatra watch` to populate it.
 
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+The length budget and cache reuse reasons carry the labels **Over length budget** and **Reused after source edit**.
+
 <StudioScreenshot
   shot="review"
   alt="The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
@@ -53,13 +67,13 @@ The Review page lists every entry the review heuristics flagged in the most rece
 
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filter by locale, or by a substring of a row's key, source text, or target text, then work the rows:
+Filter by locale, or by a substring of a row's key, source text, or target text; the filter bar counts the matching entries as you type, and when nothing matches, **Clear filters** resets both. Then work the rows:
 
 - **Edit** opens the same integrity-gated editor as the Translations page. An accepted edit clears the row from the queue.
 - **Approve** dismisses the row as "looked at, fine as is".
 - **Reject** dismisses the row too; pair it with an edit or a retranslate when the value actually needs to change.
 
-Approve and Reject are session-only: they hide the row for the rest of this browser session (including across live refreshes) but write nothing to disk. The durable ways to clear a flag are fixing the value or re-running a translation.
+Approve and Reject hide the row only in the open tab's memory and write nothing to disk: the row stays hidden across live refreshes, but reloading the tab brings it back. The durable ways to clear a flag are fixing the value or re-running a translation.
 
 Review flags are advisory, distinct from the hard integrity gate; see [Translation safety](/docs/translation-safety) for what each reason means.
 
@@ -73,13 +87,13 @@ verbatra studio --allow-spend
 
 (Or set `VERBATRA_STUDIO_ALLOW_SPEND=1`; the flag wins when both are given. The provider's API key comes from the environment as always, never from Studio.)
 
-Now a key whose integrity indicator shows a real defect (a placeholder mismatch or invalid message syntax) gets a **Retranslate** button in its detail view on the Translations page. It makes one provider call for exactly that locale and key, runs the result through the integrity gate before anything reaches disk, and reports the outcome next to the button. The refreshed value then flows into the UI through the live-refresh loop.
+Now a key whose integrity indicator shows a real defect (a placeholder mismatch, invalid message syntax, or an inline markup mismatch) gets a **Retranslate** button in its detail view on the Translations page. It makes one provider call for exactly that locale and key, runs the result through the integrity gate before anything reaches disk, and reports the outcome next to the button. The refreshed value then flows into the UI through the live-refresh loop.
 
 Without `--allow-spend`, the button is absent entirely, and the server never even registers the retranslate endpoint: spend you did not grant at startup cannot be switched on from the browser.
 
 ## Translate pending changes
 
-Studio watches your source file, every target locale file, and the lock file while it runs. When one changes, every open page refreshes itself and a toast names what changed, with an added/changed/removed key delta.
+Studio watches your source file, every target locale file, and the lock file while it runs. When one changes, every open page refreshes itself. A change to the source or a target locale file that adds, changes, or removes keys also raises a toast naming the file, with an added/changed/removed key delta; a lock-file change, or a locale-file change with no added, changed, or removed key, refreshes without a toast.
 
 When the **source** file changes and Studio runs with `--allow-spend`, that toast also offers **Translate pending changes across all locales**: a full translate run over everything currently pending, the same work `verbatra translate` would do. The button reports success, per-locale failures, or the error inline.
 
@@ -96,7 +110,7 @@ The Activity page puts two reference views side by side:
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Settings, the fourth page, shows the configuration this session was started with; restart Studio after changing the config file. The glossary next to it is different: it is read fresh from disk on every visit, and it is editable when the project keeps its glossary in a JSON file.
+Settings, the fourth page, shows the configuration this session was started with: the source locale, the target locales, the format, the provider, the file pattern, whether provider actions are on (only with `--allow-spend`), `prune`, `generatePlurals`, `maxBatchSize`, and `tone` when the config sets them, and the path of the config file it was loaded from. Restart Studio after changing the config file. The glossary next to it is different: it is read fresh from disk on every visit, and it is editable when the project keeps its glossary in a JSON file.
 
 Each term then carries an **Edit** and a **Remove** action, and an **Add a term** form sits under the list. A change is written straight to that JSON file, one term at a time, and the panel shows the new state as soon as the write lands, with no reload. The rest of the file is left alone: key order and indentation survive, and the result is held to the same limits `loadConfig` enforces when it reads a glossary back, so an accepted edit is always re-readable.
 

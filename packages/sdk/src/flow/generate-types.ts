@@ -95,7 +95,10 @@ export interface GenerateTypesResult {
   readonly excluded: readonly string[];
   /** Keys the adapter marked as carrying plural forms. Each sibling is declared on its own. */
   readonly plural: readonly string[];
-  /** Whether the declaration file was written. Always false in `check` mode. */
+  /**
+   * Whether the declaration file was written. False in `check` mode, and false when the file on
+   * disk already matched, so an unchanged catalog rewrites nothing.
+   */
   readonly written: boolean;
   /** Whether the file on disk differed from the freshly generated declaration when the run started. */
   readonly stale: boolean;
@@ -330,12 +333,14 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * What it will not claim is as important as what it will. A message whose placeholders name their
  * arguments gets an object shape; one whose placeholders are numbered or anonymous gets a readonly
  * tuple; one that takes nothing gets a shape that makes passing an argument a type error. A
- * message whose syntax the adapter reported as invalid, and one that appears to name and number
- * its arguments at once, are declared with {@link GenerateTypesResult.unresolved} recording why,
- * rather than being silently declared as taking nothing. Argument types come only from what the
- * catalog actually records: `number` where the format annotated one, and a `string | number` alias
- * everywhere else, never a permissive `any`. A name used with several types is declared as the
- * union of what each use accepts.
+ * message whose syntax the adapter reported as invalid, one that mixes named, numbered and
+ * anonymous arguments, and one that numbers an argument past the 64th are declared with
+ * {@link GenerateTypesResult.unresolved} recording why, rather than being silently declared as
+ * taking nothing. Argument types come only from what the catalog actually records: `number` for a
+ * numeric annotation, printf conversion or ICU `plural`, `string` for a text conversion or ICU
+ * `select`, `Date | number` for a date or time argument, and a `string | number` alias everywhere
+ * else, never a permissive `any`. A name used with several types is declared as the union of what
+ * each use accepts.
  *
  * With `check` set, nothing is written: the run reports whether the committed file still matches
  * what a fresh generation would produce, which is the shape a CI gate wants.

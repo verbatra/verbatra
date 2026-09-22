@@ -78,7 +78,10 @@ export interface TranslateRequest {
   readonly signal?: AbortSignal;
 }
 
-/** Token usage, when the provider reports it. Absent for providers without tokens (DeepL). */
+/**
+ * Token usage, when the provider reports it. Absent for the providers that do not bill by token
+ * (DeepL and Google Cloud Translation).
+ */
 export interface Usage {
   /** Tokens consumed by the request, summed across the initial call and any repair round. */
   readonly inputTokens: number;
@@ -90,10 +93,10 @@ export interface Usage {
  * Stable codes for a provider's graceful-degradation notices. These are returned DATA on a
  * successful result, NOT thrown:
  *
- * - `FORMALITY_DOWNGRADED`: a requested formality was not applied (DeepL's free tier does not
- *   support it).
+ * - `FORMALITY_DOWNGRADED`: a requested `formal` or `informal` tone was not applied (DeepL's free
+ *   tier does not support formality, and Google Cloud Translation Basic has no formality control).
  * - `GLOSSARY_IGNORED`: a supplied generic glossary term map was not applied (DeepL only applies a
- *   native glossary id, never a term map).
+ *   native glossary id, never a term map, and Google Cloud Translation Basic supports no glossary).
  * - `PLACEHOLDER_UNSUPPORTED`: at least one placeholder- or ICU-bearing entry was left untranslated
  *   because the provider cannot preserve those tokens; such entries are withheld (absent from the
  *   result maps) rather than sent to the provider and mangled.
@@ -208,8 +211,8 @@ export interface TranslateResult {
   readonly usage?: Usage;
   /**
    * Graceful-degradation notices for this batch. Every provider populates this as a present array:
-   * DeepL reports real notices (for example `GLOSSARY_IGNORED`); an LLM provider with nothing to
-   * report returns an empty array rather than omitting the field.
+   * DeepL and Google Cloud Translation report real notices (for example `GLOSSARY_IGNORED`); an LLM
+   * provider with nothing to report returns an empty array rather than omitting the field.
    */
   readonly notices?: readonly ProviderNotice[];
   /**

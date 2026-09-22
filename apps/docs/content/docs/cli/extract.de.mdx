@@ -9,7 +9,7 @@ Jeder andere Befehl setzt bei einer Locale-Datei an, die bereits existiert. `ext
 
 Der Lauf kostet nichts. Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable gelesen und keine Netzwerkanfrage gestellt, ein Lauf ohne gesetzten Key funktioniert also.
 
-## Aufruf
+## Synopsis
 
 ```bash
 verbatra extract [flags]
@@ -17,7 +17,7 @@ verbatra extract [flags]
 
 ## Konfiguration
 
-`extract` wird vom [`extract`-Block](/docs/config-file#extract) in deiner Config gesteuert. Ein Lauf ohne ihn scheitert mit `EXTRACT_NOT_CONFIGURED` und Exit `2`.
+`extract` wird vom [`extract`-Block](/docs/config-file#extract) in deiner Konfiguration gesteuert. Ein Lauf ohne ihn scheitert mit `EXTRACT_NOT_CONFIGURED` und Exit `2`.
 
 ```ts
 import { defineConfig } from "@verbatra/sdk";
@@ -39,45 +39,45 @@ export default defineConfig({
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Config, Quellverzeichnisse und Locale-Dateien aus diesem Verzeichnis auflösen |
-| `--config` | `<path>` | danach suchen | diese Config-Datei laden, statt nach einer zu suchen |
+| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration, Quellverzeichnisse und Locale-Dateien von diesem Verzeichnis aus auflösen |
+| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--dry-run` | keins | aus | melden, was ergänzt würde, und nichts schreiben |
-| `--json` | keins | aus | eine [JSON-Hülle](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, die das Ergebnis unter `result` trägt |
+| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis unter `result` trägt |
 
 ## Was er findet
 
 Das Framework `i18next` liest die Aufrufformen `t(...)`, `$t(...)` und `<object>.t(...)` in Dateien mit `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` und `.cts`, jede davon auch als optionaler Aufruf und mit expliziter Typargumentliste. Der Key ist das erste Argument. Ein Standardwert ist entweder das zweite Argument oder ein `defaultValue`-Feld am Options-Objekt:
 
 ```ts
-t("nav.home");                              // nur Key, wird mit leerem Wert geschrieben
-t("nav.away", "Away");                      // Standardwert als Argument
-t("nav.help", { defaultValue: "Help" });    // Standardwert am Options-Objekt
-t?.("nav.back");                            // optionaler Aufruf
-t<string>("nav.next");                      // explizites Typargument
+t("nav.home");                              // key only, written with an empty value
+t("nav.away", "Away");                      // positional default
+t("nav.help", { defaultValue: "Help" });    // default on the options object
+t?.("nav.back");                            // optional call
+t<string>("nav.next");                      // explicit type argument
 ```
 
 Kommentare, Strings und reguläre Ausdrücke werden verstanden: Ein Aufruf in einem Kommentar wird nicht aufgenommen, und ein `t(` innerhalb eines Strings wird kein Key.
 
-Key und Standardwert müssen beide ein vollständiges Literal sein. `t("user." + id)` wird als dynamisch gemeldet statt als Key `user.` geschrieben, und `t("nav.home", { defaultValue: "Home" + suffix })` fügt den Key ohne Standardwert hinzu statt mit einem abgeschnittenen.
+Key und Standardwert müssen beide ein vollständiges Literal sein. `t("user." + id)` wird als dynamisch gemeldet, statt als Key `user.` geschrieben zu werden, und `t("nav.home", { defaultValue: "Home" + suffix })` fügt den Key ohne Standardwert hinzu statt mit einem abgeschnittenen.
 
-Ein Key muss außerdem einen adressierbaren Pfad benennen. `t("user.")`, `t(".lead")` und `t("a..b")` sind vollständige Literale, tragen aber je ein leeres Segment, und die Baumformate teilen einen Key am `.`: Der Key landete also unter einem namenlosen Kind, das deine Anwendung nie liest. Auch diese werden als dynamisch gemeldet.
+Ein Key muss außerdem einen adressierbaren Pfad benennen. `t("user.")`, `t(".lead")` und `t("a..b")` sind vollständige Literale, tragen aber je ein leeres Segment, und die Baumformate teilen einen Key am `.`: Der Key würde also unter einem namenlosen Kind landen, das deine Anwendung nie liest. Auch diese werden als dynamisch gemeldet.
 
 ### Namespaces werden noch nicht aufgelöst
 
 Ein Key mit Namespace, also die Form `t("common:nav.home")`, wird als dynamisch gemeldet und nie geschrieben. Eine verbatra-Konfiguration adressiert genau eine Katalogdatei, also gibt es keinen Ort für `common:nav.home`, der das bedeutet, was dein i18next-Setup damit meint.
 
-Du solltest wissen, was das kostet, bevor du den Befehl ausführst: Wenn dein Projekt an jeder Aufrufstelle einen Namespace nennt, ist jede Aufrufstelle dynamisch und der Lauf fügt nichts hinzu. Das ist für diese erste Version Absicht. `extract` ist heute in einem Projekt nützlich, das bei einem Namespace bleibt und seine Keys ohne Präfix schreibt; die Einschränkung aufzuheben ist das Nächste nach dem zweiten Framework.
+Du solltest wissen, was das kostet, bevor du den Befehl ausführst: Wenn dein Projekt an jeder Aufrufstelle einen Namespace nennt, ist jede Aufrufstelle dynamisch und der Lauf fügt nichts hinzu. Das ist für diese erste Version Absicht. `extract` ist heute in einem Projekt nützlich, das bei einem Namespace bleibt und seine Keys ohne Präfix schreibt; die Einschränkung aufzuheben, ist das Erste, was nach dem zweiten Framework geplant ist.
 
 ## Was er schreibt
 
 Nur die Quell-Locale-Datei, und nur Keys, die wirklich neu sind:
 
-- Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert. Ein Standardwert an einer Aufrufstelle überschreibt nie einen Wert, den du oder eine Übersetzerin bearbeitet habt.
+- Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert. Ein Standardwert an einer Aufrufstelle überschreibt nie einen Wert, den du oder eine Übersetzerin bearbeitet hat.
 - Ein Key im Katalog, den keine Aufrufstelle nennt, bleibt unangetastet. `extract` ergänzt und meldet, er löscht nie. [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) listet diese Keys auf.
 - Ein Lauf, der nichts Neues findet, schreibt gar nichts: Die Datei bleibt byteidentisch und ihr Änderungszeitpunkt bleibt gleich.
 - Eine Ziel-Locale-Datei wird nie geschrieben. Führe nach `extract` [`verbatra translate`](/docs/cli/translate) aus, um die neuen Keys zu füllen.
 
-Zwei Formate werden nirgends in verbatra aus dem Nichts erzeugt: `xliff` braucht eine bereits vorhandene Zieldatei, und `apple-xcstrings` braucht einen in Xcode angelegten Katalog. Lege für diese beiden den Quellkatalog zuerst an; `extract` hängt dann daran an.
+Zwei Formate werden hier wie überall sonst in verbatra nicht aus dem Nichts erzeugt: `xliff` braucht eine bereits vorhandene Zieldatei, und `apple-xcstrings` braucht einen in Xcode angelegten Katalog. Lege für diese beiden den Quellkatalog zuerst an; `extract` hängt dann daran an.
 
 ## Was er meldet, statt zu raten
 
@@ -86,11 +86,11 @@ Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, damit eine ei
 | Gemeldet als | Wann |
 | --- | --- |
 | `dynamic` | das Key-Argument ist kein einzelner vollständiger statischer String oder benennt einen Pfad, den verbatra nicht adressieren kann: eine Variable, ein Member-Ausdruck, ein Template-Literal mit einem Ausdruck darin, eine Verkettung, ein Key mit Namespace oder ein Key mit leerem Pfadsegment. Es wird nie mit einem geratenen, abgeschnittenen oder nicht adressierbaren Key geschrieben. |
-| `conflicts` | ein Key wird an zwei Aufrufstellen gefunden, die sich über seinen Standardwert uneinig sind. Kein Wert wird geschrieben, denn eine Auswahl würde deinen Katalog von der Reihenfolge des Verzeichnisdurchlaufs abhängig machen. |
-| `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil seine Aufrufstelle keinen Standardwert liefert. Fülle ihn, dann übersetze. |
+| `conflicts` | ein Key wird an zwei Aufrufstellen gefunden, die sich über seinen Standardwert uneinig sind. Kein Wert wird geschrieben, denn einen davon zu wählen, würde deinen Katalog von der Reihenfolge des Verzeichnisdurchlaufs abhängig machen. |
+| `withoutDefault` | ein Key wurde mit leerem Wert ergänzt, weil seine Aufrufstelle keinen Standardwert geliefert hat. Fülle ihn, dann übersetze. |
 | `diagnostics` | eine Datei oder ein Verzeichnis war nicht vollständig lesbar: verschwunden, über der Größengrenze, der Scan ist daran gescheitert, ein nicht geschlossener Blockkommentar beziehungsweise ein nicht geschlossenes Template-Literal hat den Rest abgeschnitten, oder in einer `.tsx`-, `.jsx`- oder `.js`-Datei wird ein JSX-Element nie geschlossen oder ein String in Anführungszeichen im Code läuft bis ans Zeilenende. Was davor gelesen wurde, wird trotzdem gemeldet. |
 
-Nichts davon ändert den Exit-Code. Das sind Befunde, keine Fehler.
+Nichts davon ändert den Exit-Code. Das sind Befunde, keine Fehlschläge.
 
 ## Grenzen des Scans
 
@@ -101,13 +101,13 @@ Das Ergebnis trägt ausschließlich Keys, Werte sowie Datei- und Zeilenangaben. 
 ## Beispiele
 
 ```bash
-# jeden neuen Key aus deinem Code in die Quell-Locale-Datei ergänzen
+# add every new key found in your source to the source locale file
 verbatra extract
 
-# die Keys vorab ansehen, die ergänzt würden, nichts schreiben
+# preview the keys that would be added, write nothing
 verbatra extract --dry-run
 
-# maschinenlesbares Ergebnis für einen CI-Schritt
+# machine-readable result for a CI step
 verbatra extract --json
 ```
 
@@ -130,13 +130,13 @@ verbatra extract
 | Code | Bedeutung |
 | --- | --- |
 | `0` | der Scan lief, unabhängig davon, was er gefunden hat |
-| `2` | nicht ausführbar: ein Aufruffehler, kein `extract`-Block, ein nicht auflösbares Format, ein nicht lesbarer Quellkatalog oder ein Quellkatalog, der nicht geschrieben werden konnte |
+| `2` | konnte nicht laufen: ein Verwendungsfehler, kein `extract`-Block, ein nicht auflösbares Format, ein nicht parsbarer Quellkatalog oder ein Quellkatalog, der nicht geschrieben werden konnte |
 
-Es gibt kein Exit `1`. Dynamische Aufrufstellen und widersprüchliche Standardwerte werden gemeldet, nicht als gescheiterter Lauf behandelt: `extract` in CI scheitert also nur, wenn es seine Arbeit wirklich nicht tun konnte.
+Es gibt keinen Exit `1`. Dynamische Aufrufstellen und widersprüchliche Standardwerte werden gemeldet, nicht als gescheiterter Lauf behandelt: `extract` in CI scheitert also nur, wenn es seine Arbeit wirklich nicht tun konnte.
 
-## Verwandt
+## Siehe auch
 
-- [Die Config-Datei](/docs/config-file#extract) dokumentiert den `extract`-Block.
+- [Konfigurationsdatei](/docs/config-file#extract) dokumentiert den `extract`-Block.
 - [`verbatra translate`](/docs/cli/translate) füllt die Ziel-Locales, sobald die neuen Keys existieren.
-- [`verbatra check`](/docs/cli/check) meldet den Drift, den die neuen Keys erzeugen.
+- [`verbatra check`](/docs/cli/check) meldet die Drift, die die neuen Keys erzeugen.
 - [Das SDK](/docs/sdk#extract) stellt dieselbe Fähigkeit als `extract()` bereit.

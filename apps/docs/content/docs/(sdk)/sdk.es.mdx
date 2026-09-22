@@ -26,8 +26,8 @@ igual. Ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos en
 la [Solución de problemas](/docs/troubleshooting) para la solución no interactiva. Aquí no hay
 atajo con `npx` como en la CLI, porque estás importando una biblioteca, no ejecutando un binario.
 
-<Callout title="Las claves API y el entorno">
-El SDK nunca lee, guarda ni acepta una clave API. El proveedor lee su clave del entorno
+<Callout title="Las claves de API y el entorno">
+El SDK nunca lee, guarda ni acepta una clave de API. El proveedor lee su clave del entorno
 (por ejemplo `ANTHROPIC_API_KEY`) cuando se construye. A diferencia de la CLI, el SDK no carga
 archivos `.env`: en tu propio script, define tú la variable, por ejemplo con
 `node --env-file=.env script.js`.
@@ -56,7 +56,7 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   nada. Omítelo para cubrir todos los locales de destino.
 - `dryRun` lee, compara e informa sin construir ni llamar al proveedor y sin escribir nada.
 - `estimate` añade en `RunSummary.estimate` una estimación de coste previa a la ejecución e implica
-  `dryRun`: no construye ningún proveedor, no lee ninguna clave API y no escribe nada. El recuento
+  `dryRun`: no construye ningún proveedor, no lee ninguna clave de API y no escribe nada. La cantidad
   se informa siempre; una cifra en moneda necesita un bloque `rates` en la configuración que nombre
   el proveedor y el modelo configurados.
 - `prune` elimina del archivo escrito y del bloqueo las claves huérfanas (claves de destino ausentes
@@ -65,8 +65,8 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   de configuración correspondiente para esa ejecución.
 - `concurrency` traduce hasta ese número de locales de destino a la vez (por defecto 1, estrictamente
   en serie). Un valor menor que 1 lanza `CONCURRENCY_INVALID`; en una ejecución real, un valor mayor
-  que 1 con `maxTokens` configurado lanza `CONCURRENCY_BUDGET_CONFLICT` (un dry-run queda exento). Un
-  error de toda la ejecución que se levanta cuando ya hay locales en marcha impide que se arranque
+  que 1 con `maxTokens` configurado lanza `CONCURRENCY_BUDGET_CONFLICT` (un dry run queda exento). Un
+  error de toda la ejecución que surge cuando ya hay locales en marcha impide que se arranque
   ningún locale más, y los locales en vuelo terminan y liberan sus bloqueos de escritura antes de que
   `translate` rechace, así que el rechazo llega después del más lento en vez de al instante.
 - `cache` está activado por defecto y reutiliza la [caché de memoria de traducción](/docs/the-cache)
@@ -88,10 +88,10 @@ de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza
 
 <AvailableFrom version="0.11.0" />
 
-Responde si un conjunto de opciones de ejecución se resuelve como una ejecución en seco. Toma el
+Responde si un conjunto de opciones de ejecución se resuelve como un dry run. Toma el
 `dryRun` y el `estimate` que estás a punto de pasar a `translate` y devuelve si esa ejecución
 construirá un proveedor, escribirá un archivo o gastará algo. Es el único sitio donde se decide
-que `estimate` implica `dryRun`, así que úsala siempre que algo alrededor de una ejecución tenga
+que `estimate` implica `dryRun`, así que recurre a él siempre que algo alrededor de una ejecución tenga
 que saberlo de antemano, en lugar de repetir la implicación y acabar desviándote de ella.
 
 ```ts
@@ -122,8 +122,8 @@ Devuelve un `WatchController` con un solo método, `stop()`, que cierra el watch
 en curso. Tres problemas se rechazan al arrancar, antes de que el watcher exista, así que `watch` mismo
 rechaza en lugar de devolver un controlador: un `concurrency` que no es un entero de al menos 1 lanza
 `CONCURRENCY_INVALID`, un `concurrency` mayor que 1 contra una configuración que fija `maxTokens` lanza
-`CONCURRENCY_BUDGET_CONFLICT` (no hay watch en seco, así que el conflicto de presupuesto siempre
-aplica), y un archivo de origen ausente lanza `SOURCE_UNREADABLE`. Todo fallo posterior al arranque se
+`CONCURRENCY_BUDGET_CONFLICT` (no existe un watch en dry run, así que el conflicto de presupuesto siempre
+se aplica), y un archivo de origen ausente lanza `SOURCE_UNREADABLE`. Todo fallo posterior al arranque se
 comunica a través de `onRun` y la vigilancia continúa.
 
 ## Pseudolocalización
@@ -132,35 +132,35 @@ comunica a través de `onRun` y la vigilancia continúa.
 
 <AvailableFrom version="0.11.0" />
 
-Construye una locale falsa solo con las cadenas de origen, de modo que los recortes de diseño y las
+Construye un locale falso solo con las cadenas de origen, de modo que los recortes de maquetación y las
 cadenas que nunca se extrajeron para traducir aparezcan antes de que exista clave de API alguna.
 Cada valor se acentúa, se expande alrededor de un tercio de su longitud traducible y se envuelve en
-los marcadores de límite `[` y `]`, mientras que los marcadores de posición quedan intactos en
+los marcadores de límite `[` y `]`, mientras que los placeholders quedan intactos en
 todas las sintaxis que reconocen los adaptadores, incluidas las ramas `plural` y `select` de ICU,
 las etiquetas de marcado y las secuencias de escape. No construye ningún proveedor, no lee ninguna
 clave de API y no hace ninguna petición de red.
 
-Cada valor generado pasa por la misma verificación de integridad que debe superar la traducción de
-un proveedor. Uno que no la superaría se copia literalmente de la fuente y se nombra en `copied` en
+Cada valor generado pasa por la misma puerta de integridad que debe superar la traducción de
+un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
 lugar de escribirse roto, así que la entrada sigue presente y sigue renderizándose.
 
 Entrada: `{ config, cwd?, locale?, out? }`. `locale` es `en-XA` por defecto y `out` es
 `.verbatra-local/pseudo`, que `verbatra init` ya añade a `.gitignore`; el `files.pattern`
 configurado se expande dentro, así que el archivo conserva la disposición que espera la aplicación.
-Una pseudolocale que nombre una locale configurada, o que aterrizaría sobre un archivo de locale
+Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un archivo de locale
 configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
 puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
 absoluto o que se salga de `cwd`. Como el archivo vive fuera de
-`files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca lo reportan como
-desincronizado.
+`files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como
+desfasado.
 
-Devuelve un `PseudolocalizeResult`: la `locale`, el `path` absoluto, cuántas `entries` se
+Devuelve un `PseudolocalizeResult`: el `locale`, el `path` absoluto, cuántas `entries` se
 procesaron, cuántas se `transformed`, las claves que se `copied` y si se escribió algo (`written`).
-La transformación es determinista, así que una segunda ejecución sobre una fuente sin cambios no
-reescribe nada y reporta `written` como false. Para `xliff` y `apple-xcstrings`, cuyos escritores
+La transformación es determinista, así que una segunda ejecución sobre un origen sin cambios no
+reescribe nada e informa de `written` como false. Para `xliff` y `apple-xcstrings`, cuyos escritores
 solo parchean un documento que ya existe, la salida se vuelve a copiar desde el origen en cada
-escritura, así que una clave añadida al origen después de la primera ejecución sigue llegando a la
-pseudolocale, y un XLIFF copiado recibe su `target-language` reescrito a la pseudolocale.
+escritura, así que una clave añadida al origen después de la primera ejecución sigue llegando al
+pseudolocale, y a un XLIFF copiado se le reescribe su `target-language` al pseudolocale.
 
 ## Catálogos tipados
 
@@ -175,28 +175,28 @@ error de compilación en lugar de un fallo de búsqueda en tiempo de ejecución.
 construye ningún proveedor, no se lee ninguna variable de entorno con una clave de API y no se hace
 ninguna petición de red.
 
-Lee un archivo (el catálogo de la locale de origen) y escribe un archivo (la declaración); nunca
+Lee un archivo (el catálogo del locale de origen) y escribe un archivo (la declaración); nunca
 toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya
 produjo, en orden del documento, así que dos ejecuciones sobre un catálogo sin cambios escriben
-bytes idénticos. Los argumentos vienen de los tokens de marcadores que el adaptador extrajo, salvo
+bytes idénticos. Los argumentos vienen de los tokens de placeholder que el adaptador extrajo, salvo
 en los formatos de mensajes ICU (`next-intl-json` y `arb`), donde cada mensaje se lee con el mismo
 parser ICU que usa el adaptador. Cada clave se emite como un literal de cadena entrecomillado, así
 que una con un punto, una palabra reservada, un dígito inicial, una comilla, o incluso la clave
 vacía, se declara tal cual en lugar de descartarse o volver a partirse, y una clave que el adaptador
-reportó en `excludedLeafPaths` no se declara en absoluto.
+informó en `excludedLeafPaths` no se declara en absoluto.
 
-Lo que se niega a afirmar importa tanto como lo que declara. Un mensaje sin marcadores recibe una
-forma que convierte en error de tipo pasar cualquier argumento; uno cuyos marcadores nombran sus
-argumentos recibe una forma de objeto; uno con marcadores numerados o anónimos recibe una tupla
+Lo que se niega a afirmar importa tanto como lo que declara. Un mensaje sin placeholders recibe una
+forma que convierte en error de tipo pasar cualquier argumento; uno cuyos placeholders nombran sus
+argumentos recibe una forma de objeto; uno con placeholders numerados o anónimos recibe una tupla
 readonly. Un argumento ICU que solo usan algunas ramas `select` o `plural` se declara como miembro
 opcional. Los tipos de argumento vienen solo de lo que el catálogo registra: `number` para un
 argumento ICU `number`, `plural` o `selectordinal` y para un formateador o una conversión numéricos,
 `Date | number` para un argumento ICU `date` o `time` y un formateador `datetime` de i18next,
 `string` para un argumento ICU `select` y una conversión printf de cadena, y un alias de `string |
 number` en los demás casos, nunca un `any` permisivo. Una interpolación sin escapar de i18next (`{{-
-name}}`) se declara con el nombre detrás de su prefijo. Un mensaje que el adaptador reportó como
-inválido, uno que parece nombrar y numerar sus argumentos a la vez, y uno con un índice de marcador
-fuera de rango se declaran con sus argumentos reportados en `unresolved` en lugar de declararse en
+name}}`) se declara con el nombre detrás de su prefijo. Un mensaje que el adaptador informó como
+inválido, uno que parece nombrar y numerar sus argumentos a la vez, y uno con un índice de placeholder
+fuera de rango se declaran con sus argumentos informados en `unresolved` en lugar de declararse en
 silencio como si no tomaran ninguno. Los hermanos de plural nunca se agrupan: cada uno se declara
 por su cuenta, y los que el adaptador marcó como plurales se listan.
 
@@ -210,7 +210,7 @@ de minúsculas. Una ejecución que genera también se niega, con el mismo códig
 archivo existente que no empieza con la línea de cabecera que escribe verbatra, y deja ese archivo
 intacto. La lista completa está en la página de [`verbatra types`](/docs/cli/types). Con `check`
 activado no se escribe nada en absoluto, no se rechaza nada por su contenido, y la ejecución solo
-informa de si el archivo versionado sigue coincidiendo, que es justo lo que quiere un gate de CI.
+informa de si el archivo confirmado sigue coincidiendo, que es justo lo que quiere una puerta de CI.
 
 Devuelve un `GenerateTypesResult`: el `path` absoluto, el `sourcePath` del que se construyó, cuántas
 `keys` se declararon y cuántas de ellas toman al menos un argumento que verbatra pudo determinar
@@ -228,16 +228,17 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
 ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan cinco comprobaciones,
-cada una con su propio veredicto `pass`, `fail` o `skipped`: la config carga y valida, el formato
-configurado resuelve a un adaptador, el ID de proveedor configurado resuelve a una fábrica, la
-variable de entorno de la que ese proveedor lee su clave está definida, y el archivo de locale
-fuente se puede leer. Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
+cada una con su propio veredicto `pass`, `fail` o `skipped`: la configuración se carga y se valida,
+el formato configurado resuelve a un adaptador, el ID de proveedor configurado resuelve a una
+fábrica, la variable de entorno de la que ese proveedor lee su clave está definida, y el archivo
+del locale de origen se puede leer. Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
 sola llamada informa de cada problema independiente. La clave de API se comprueba solo por nombre.
-La comprobación del archivo fuente lo lee y lo parsea en lugar de solo sondear su existencia, así
+La comprobación del archivo de origen lo lee y lo parsea en lugar de solo sondear su existencia, así
 que un directorio en su lugar, un archivo vacío y contenido malformado se informan todos aquí.
 
-Entrada: `{ cwd?, configPath? }`. No necesita una config ya cargada: `doctor` la carga por sí mismo,
-así que un proyecto sin config alguna sigue obteniendo un informe en lugar de un error lanzado.
+Entrada: `{ cwd?, configPath? }`. No necesita una configuración ya cargada: `doctor` la carga por sí
+mismo, así que un proyecto sin ninguna configuración sigue obteniendo un informe en lugar de un
+error lanzado.
 Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comprobación falló. Lanza
 `CONFIG_NOT_FOUND` solo para un `configPath` explícito que no existe.
 
@@ -245,11 +246,24 @@ Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comproba
 
 <AvailableFrom version="0.11.0" />
 
-Analiza el código de tu aplicación en busca de llamadas de traducción y fusiona lo que encuentra en el catálogo de la locale de origen. Es el único punto de entrada que lee código de aplicación en lugar de un archivo de locale, y eso es lo que hace que verbatra sirva en un proyecto que todavía no tiene catálogo. No gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una API key y no hace ninguna petición de red.
+Analiza el código de tu aplicación en busca de llamadas de traducción y fusiona lo que encuentra en
+el catálogo del locale de origen. Es el único punto de entrada que lee código de aplicación en lugar
+de un archivo de locale, y eso es lo que hace que verbatra sirva en un proyecto que todavía no tiene
+catálogo. No gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una
+clave de API y no hace ninguna petición de red.
 
-Solo se escribe el archivo de la locale de origen, y solo se añaden claves realmente nuevas: una clave que ya está en el catálogo conserva su valor tal cual, y una clave del catálogo que ninguna llamada menciona se deja intacta. Una ejecución que no encuentra nada nuevo no escribe nada en absoluto. Todo lo que el análisis no puede resolver vuelve como datos en lugar de lanzarse: un argumento de clave no estático en `dynamic`, una clave encontrada con dos valores por defecto distintos en `conflicts` (no se escribe ninguno) y un archivo ilegible en `diagnostics`. El resultado lleva únicamente claves, valores y ubicaciones de archivo y línea, nunca el contenido de un archivo de código.
+Solo se escribe el archivo del locale de origen, y solo se añaden claves realmente nuevas: una clave
+que ya está en el catálogo conserva su valor tal cual, y una clave del catálogo que ninguna llamada
+menciona se deja intacta. Una ejecución que no encuentra nada nuevo no escribe nada en absoluto.
+Todo lo que el análisis no puede resolver vuelve como datos en lugar de lanzarse: un argumento de
+clave no estático en `dynamic`, una clave encontrada con dos valores por defecto distintos en
+`conflicts` (no se escribe ninguno) y un archivo ilegible en `diagnostics`. El resultado lleva
+únicamente claves, valores y ubicaciones de archivo y línea, nunca el contenido de un archivo de
+código.
 
-Entrada: `{ config, cwd?, dryRun? }`, donde `config.extract` nombra el framework y las raíces de código. Devuelve un `ExtractResult`. El descubrimiento pasa por el miembro opcional `readDirectory` de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
+Entrada: `{ config, cwd?, dryRun? }`, donde `config.extract` nombra el framework y las raíces de
+código. Devuelve un `ExtractResult`. El descubrimiento pasa por el miembro opcional `readDirectory`
+de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
 
@@ -284,7 +298,7 @@ el runtime de i18next (llamadas `t` y sus alias, prefijos estáticos de `keyPref
 claves de `Trans`, claves con namespace y variantes de plural y de contexto), comparando las claves
 en la codificación del formato del catálogo. Cada clave listada lleva su `key` decodificada y su
 `catalogKey`. Las claves que coinciden con `extract.unused.ignore` van a `ignored`, y las que podría
-alcanzar un template literal con cabecera estática, a `possiblyDynamic`. Su `status` es `complete`,
+alcanzar un literal de plantilla con cabecera estática, a `possiblyDynamic`. Su `status` es `complete`,
 `unreliable` (con `unreliableBecause` nombrando cada motivo con sus ubicaciones) o `not-run` (con un
 `reason` y sin lista de claves). Consulta todos los motivos en [Claves de origen sin
 uso](/docs/cli/diff#claves-de-origen-sin-uso). El informe nunca activa `hasPendingChanges`.
@@ -294,12 +308,12 @@ Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
 ### keyIntegrity
 
 Informa, para las claves modificadas de cada locale, de si el valor de destino actual sigue
-coincidiendo con los marcadores de posición del origen, de si sigue llevando el marcado en línea del
+coincidiendo con los placeholders del origen, de si sigue llevando el marcado en línea del
 origen y de si es ICU válido. Cada entrada lleva `key`, `hasPlaceholders`, `matches`, los tokens de
-marcador `missing` y `extra` en una discrepancia, `icuValid`, `markupMatches` y `markupDetails` con
+placeholder `missing` y `extra` en una discrepancia, `icuValid`, `markupMatches` y `markupDetails` con
 las etiquetas causantes de una discordancia de marcado. Las entradas nunca llevan un valor de cadena
-de origen o destino. Informar del marcado aquí es lo que hace visible la deriva anterior a la puerta
-de escritura: una traducción escrita antes de que existiera la comprobación, editada fuera de
+de origen o destino. Informar del marcado aquí es lo que hace visible el desfase anterior a la puerta
+del momento de escritura: una traducción escrita antes de que existiera la comprobación, editada fuera de
 verbatra o producida por una ruta que nunca pasó por la puerta se juzga aquí con la misma regla.
 Este es el informe de integridad por clave que muestra Studio.
 
@@ -328,7 +342,7 @@ Entrada: `{ cwd? }`. No necesita configuración. Devuelve un `LockFile`.
 ### runStatus
 
 Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de `translate` o
-`watch` (no en seco) persistió en `.verbatra-local/run-status.json`. Nunca lanza: un archivo ausente,
+`watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca lanza: un archivo ausente,
 corrupto o no reconocido degrada a `{ available: false }`. Este archivo es telemetría de mejor esfuerzo,
 no una línea base de corrección.
 
@@ -381,7 +395,7 @@ través de la misma ruta de proveedor que usa `translate`, protegida por las mis
 integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo solo para esa clave.
 
 Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
-códigos de motivo de revisión, si los hay, que aplican al nuevo valor) o
+códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de
 `@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`.
@@ -393,7 +407,7 @@ diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError
 ### localeValues
 
 Lee el texto de origen y de destino actual de cada clave, en cada locale de destino solicitado, en
-un solo paso sobre los archivos que ya están en disco. Es la contraparte en bloque de `keyValue`:
+una sola pasada sobre los archivos que ya están en disco. Es la contraparte en bloque de `keyValue`:
 úsala cuando necesites contenido de traducción en bloque, por ejemplo para buscar o recorrer
 valores en lugar de solo nombres de clave, ya que `keyValue` solo responde para una clave a la vez.
 Solo lectura.
@@ -401,12 +415,12 @@ Solo lectura.
 Entrada: `{ config, cwd?, locales? }`; un `locales` omitido cubre cada locale de destino
 configurado. Devuelve un array de `{ locale, values }`, una entrada por locale, donde `values`
 asigna cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
-se ha traducido en ese locale; una `source` ausente significa que la clave está huérfana, presente
+se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente
 en el locale de destino pero ya no en el origen.
 
 ## Instantáneas de archivos de locale
 
-Los bloques con los que se construye un vigilante de actualización en vivo como el de Studio: captura el
+Los bloques con los que se construye un watcher de actualización en vivo como el de Studio: captura el
 estado de un archivo de locale y luego cuenta qué cambió desde entonces.
 
 ### readLocaleFileSnapshot
@@ -439,7 +453,7 @@ y un estilo que no se pueden combinar, o un locale para el que el estilo no tien
 correcta, lanzan `LOCALE_LAYOUT_INVALID`, y dos locales que resuelven a la misma ruta lanzan
 `LOCALE_PATH_COLLISION`.
 
-## El par de libro
+## El par del libro
 
 La entrega para traductores humanos, como libro de Excel o como texto delimitado; consulta [Traducción humana](/docs/manual-translation).
 
@@ -464,7 +478,7 @@ línea base del bloqueo; una fila en blanco o rechazada se sigue exportando hast
 verdad.
 
 Entrada: `{ config, workbook, cwd?, dryRun?, format? }`. Con `csv` o `tsv`, `workbook` es un solo
-archivo de entrega o el directorio que contiene uno por locale, y la locale viene del nombre del
+archivo de entrega o el directorio que contiene uno por locale, y el locale viene del nombre del
 archivo. Devuelve la misma forma `RunSummary` que `translate`
 (con `needsReview` siempre vacío, ya que no interviene ningún proveedor). Una hoja de un locale que no
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
@@ -472,12 +486,14 @@ excepción.
 
 ## El par TMX
 
+<AvailableFrom version="0.11.0" />
+
 `importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
 formato de intercambio que producen y leen las plataformas de traducción más extendidas. Ninguna de
 las dos construye un proveedor, lee una clave de API ni hace una petición de red: cada valor sale del
-archivo o de la memoria que ya está en disco. No es el par de libro en otro formato. El par de libro
-entrega a una traductora un corte por locale del delta pendiente; este par mueve la memoria entera
-como un único archivo multilingüe entre herramientas.
+archivo o de la memoria que ya está en disco. No es el par del libro en otro formato. El par del libro
+entrega a un traductor humano un corte por locale del delta pendiente; este par mueve la memoria
+entera como un único archivo multilingüe entre herramientas.
 
 ### importTmx
 
@@ -495,15 +511,15 @@ locale configurado por una regla explícita: coincidencia exacta tras pasar a mi
 guiones bajos en guiones; si no, el locale configurado más largo que sea prefijo de subetiquetas de
 la etiqueta (búsqueda de RFC 4647), o en su defecto un locale configurado que amplía la etiqueta
 solo con subetiquetas de región o de variante, nunca con una escritura, de modo que dos etiquetas
-con subetiquetas de escritura o de región distintas (`zh-CN` y `zh-TW`) nunca coinciden; y una
+con subetiquetas de escritura o de región distintas (`sr-Latn` y `sr-Cyrl`, `de-AT` y `de-CH`) nunca coinciden; y una
 etiqueta solo se informa como ambigua cuando los locales a los que podría llegar no están en una
 misma cadena de prefijos. Los segmentos de una unidad que resuelven al mismo locale, incluido el de
 origen, nunca dejan ganar al último: una etiqueta exacta supera a una coincidencia por prefijo, y
 dos segmentos del mismo rango con valores distintos no guardan nada para ese locale y se cuentan
 como `conflicting` (en el locale de origen, la unidad se rechaza y se cuenta en
-`conflictingSourceUnits`). Cada traducción candidata pasa después por la misma puerta de marcadores,
-marcado en línea, ICU, desbocamiento y vacío que ya afrontan la salida del proveedor y una fila de libro rellenada,
-comprobada al entrar el registro en la memoria y no dejada a la ejecución que luego la lee.
+`conflictingSourceUnits`). Cada traducción candidata pasa después por la misma puerta de placeholders,
+marcado en línea, ICU, degeneración y vacío que ya afrontan la salida del proveedor y una fila de libro rellenada,
+y se comprueba cuando el registro entra en la memoria, no se deja para la ejecución que luego lo lee.
 
 Cuando una unidad importada contradice una traducción que la memoria ya tiene, gana la memoria salvo
 que se pase `overwrite`. Las unidades se guardan bajo la huella de configuración actual, la misma
@@ -548,6 +564,7 @@ guardase el texto de origen, e `illegalCharactersRemoved` cuenta los caracteres 
 representar y que se eliminaron del texto de los segmentos.
 
 ## Configuración
+
 ### loadConfig
 
 Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. Opciones:
@@ -558,7 +575,7 @@ memoria) sobre `configPath` (cargar un archivo explícito) sobre la búsqueda. L
 ruta de archivo se lee y valida aquí, así que el código posterior siempre ve un registro plano.
 
 Lanza `CONFIG_NOT_FOUND` cuando no se encuentra nada, `CONFIG_INVALID` cuando se encuentra una
-configuración pero es inválida. Consulta [Archivo de configuración](/docs/config-file) para el esquema.
+configuración pero es inválida. Consulta el [Archivo de configuración](/docs/config-file) para ver el esquema.
 
 ### loadConfigWithMeta
 
@@ -599,7 +616,7 @@ fallida es `GLOSSARY_UNWRITABLE`.
 
 ### defineConfig
 
-Un ayudante identidad para escribir un `verbatra.config.ts` tipado: devuelve su argumento sin cambios y
+Un ayudante de identidad para escribir un `verbatra.config.ts` tipado: devuelve su argumento sin cambios y
 existe puramente para la inferencia de tipos y el autocompletado del editor, incluido el completado de
 los IDs de modelo conocidos del proveedor seleccionado. La restricción de modelos es solo al escribir;
 en tiempo de ejecución cualquier cadena no vacía pasa la validación.
@@ -622,8 +639,9 @@ proveedor LLM recibe su límite de tokens de salida) y `supportedFormats` (el co
 formato). Lee la clave del límite de tokens de `providerTokenLimitKeys` en lugar de suponer una:
 Anthropic la llama `maxTokens` y los demás `maxOutputTokens`, el esquema valida estrictamente las
 opciones de cada proveedor, y DeepL no tiene entrada porque no recibe límite de tokens. El
-tipo `ScaffoldableProviderId` cubre los cuatro proveedores alojados; `openai-compatible` queda excluido
-porque no tiene una única variable de entorno obligatoria.
+tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible">`, así que cubre los cinco
+proveedores alojados; `openai-compatible` queda excluido porque no tiene una única variable de
+entorno obligatoria.
 
 ## Adaptadores de formato
 
@@ -633,7 +651,7 @@ Todo lo necesario para construir un adaptador de un formato que verbatra no trae
 
 ### createDefaultRegistry
 
-Construye una `AdapterRegistry` con todos los adaptadores que verbatra trae, en orden de detección. Empieza aquí en lugar de con una registry vacía, para que tu formato se sume a los integrados en vez de reemplazarlos, y pasa el resultado como `deps.adapterRegistry` a cualquier flujo. `register` devuelve la registry, así que los registros se encadenan, y lanza un `AdapterError` con código `DUPLICATE_FORMAT` si el formato ya está ocupado.
+Construye una `AdapterRegistry` con todos los adaptadores que verbatra trae, en orden de detección. Empieza aquí en lugar de con un registro vacío, para que tu formato se sume a los integrados en vez de reemplazarlos, y pasa el resultado como `deps.adapterRegistry` a cualquier flujo. `register` devuelve el registro, así que las altas se encadenan, y lanza un `AdapterError` con código `DUPLICATE_FORMAT` si el formato ya está ocupado.
 
 ```ts
 import { createDefaultRegistry, translate } from "@verbatra/sdk";
@@ -644,19 +662,19 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la factoría aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
+Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
 
 ### createTreeFileAdapter
 
-Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los marcadores de cada hoja y de si es una forma plural, y se encarga por su cuenta de aplanar y volver a anidar. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` y `keyMode`.
+Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, y se encarga por su cuenta de aplanar y volver a anidar. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` y `keyMode`.
 
 ### nodeAdapterFs
 
-El puerto de sistema de archivos, de tipo `AdapterFs`, que usa cada factoría de adaptadores cuando no se le pasa ninguno: una lectura acotada por tamaño que informa de un archivo ausente o demasiado grande como estado en lugar de lanzar, y una escritura que pasa por un archivo temporal y un renombrado, de modo que una escritura interrumpida nunca deja un archivo de locale a medias. Lee y escribe a través de este puerto en un adaptador propio en lugar de recurrir a `node:fs`. Es una convención, no una frontera, y verbatra no puede imponerla en código que no le pertenece.
+El puerto de sistema de archivos, de tipo `AdapterFs`, que usa cada fábrica de adaptadores cuando no se le pasa ninguno: una lectura acotada por tamaño que informa de un archivo ausente o demasiado grande como estado en lugar de lanzar, y una escritura que pasa por un archivo temporal y un renombrado, de modo que una escritura interrumpida nunca deja un archivo de locale a medias. Lee y escribe a través de este puerto en un adaptador propio en lugar de recurrir a `node:fs`. Es una convención, no una frontera, y verbatra no puede imponerla en código que no le pertenece.
 
 ### isCustomFormatId
 
-Acota un identificador de formato a uno externo: true para un identificador `custom:` bien formado, false para cualquier nombre de formato integrado. Útil cuando tu propio utillaje tiene que distinguirlos, por ejemplo para decidir si hace falta aportar una registry antes de poder ejecutar una configuración.
+Acota un identificador de formato a uno externo: true para un identificador `custom:` bien formado, false para cualquier nombre de formato integrado. Útil cuando tus propias herramientas tienen que distinguirlos, por ejemplo para decidir si hace falta aportar un registro antes de poder ejecutar una configuración.
 
 ## Redacción de secretos
 
@@ -664,12 +682,12 @@ Acota un identificador de formato a uno externo: true para un identificador `cus
 
 ### redact
 
-Elimina de una cadena las formas de clave API de proveedor y el valor exacto actual de cualquier
+Elimina de una cadena las formas de clave de API de proveedor y el valor exacto actual de cualquier
 variable de entorno de proveedor configurada, reemplazando cada coincidencia por `[REDACTED]`.
-`@verbatra/studio` y `@verbatra/mcp` la aplican ambos a cada valor que devuelven a un llamador que
-ellos mismos no generaron, como un término del glosario, una ruta de archivo o un mensaje de error
-de un sistema previo, así una clave ya presente en tu entorno o escrita en un archivo del proyecto
-nunca puede llegar a una pestaña del navegador, un agente ni una línea de log.
+`@verbatra/studio` y `@verbatra/mcp` lo aplican los dos a todo valor que devuelven a quien llama y
+que no han generado ellos mismos, como un término del glosario, una ruta de archivo o un mensaje de
+error de un sistema previo, así que una clave ya presente en tu entorno o escrita en un archivo del
+proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log.
 
 ## El punto de inyección de dependencias
 
@@ -689,8 +707,8 @@ import { translate, type SdkFs } from "@verbatra/sdk";
 const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
 ```
 
-Una implementación debe honrar dos puntos del contrato. Las lecturas están acotadas por tamaño:
-`readFileBounded` y `readBytesBounded` reciben un límite de bytes y reportan `missing` o
+Una implementación tiene que respetar dos puntos del contrato. Las lecturas están acotadas por
+tamaño: `readFileBounded` y `readBytesBounded` reciben un límite de bytes e informan de `missing` o
 `too-large` como estado en lugar de lanzar, que es lo que impide que un archivo hostil o
 accidentalmente enorme agote la memoria. Las escrituras deben ser atómicas, de modo que una caída a
 mitad de escritura nunca deje un archivo a medio escribir, y `createExclusive` debe ser atómica
@@ -755,7 +773,7 @@ Las partes que conviene conocer:
   `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` y `FUZZY_CACHE_REUSE`. El
   conjunto se publica como la tupla `REVIEW_REASON_CODES`, así que construye a partir de ella
   cualquier esquema en tiempo de ejecución o búsqueda exhaustiva, en lugar de reescribir los
-  miembros. Una señal de revisión es consultiva y nunca retiene una
+  miembros. Una señal de revisión es orientativa y nunca retiene una
   clave, así que una clave nunca aparece a la vez en `needsReview` y en `integrityMismatches`. Consulta
   [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada código y
   [Revisión en Studio](/docs/review-in-studio) para trabajar la cola.
@@ -765,21 +783,21 @@ Las partes que conviene conocer:
   `CACHE_VERSION_UNRECOGNIZED`. El aviso de caché es de toda la ejecución (un solo archivo, compartido
   por cada locale), así que se adjunta a cada locale de la ejecución.
 - **usage** es `undefined`, nunca un cero inventado, siempre que nada en ese ámbito informara de uso:
-  una ejecución en seco nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
+  un dry run nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
   es la suma sobre los locales.
 - **budget** aparece solo cuando `maxTokens` está configurado: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` dice si `tokensUsed` es enteramente el uso que informa el
   propio proveedor; es `false` en cuanto una petición vuelve sin una cifra utilizable, y entonces el
-  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Una ejecución
-  en seco lo informa con `tokensUsed: 0`, porque no se envió nada. Con `behavior: "stop"` el techo
+  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Un dry run lo
+  informa con `tokensUsed: 0`, porque no se envió nada. Con `behavior: "stop"` el techo
   se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
   vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
   última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
   total por encima del techo a posteriori. Después de eso no se envía nada más. Dos cosas quedan
   fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa
   de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote
-  admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo
-  que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada
+  admitido puede costar hasta cerca del doble de su proyección, y el recuento no es mejor que lo que
+  informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada
   más. El presupuesto acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y
   `retranslateEntry` no queda cubierto en absoluto.
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
@@ -799,11 +817,11 @@ Las partes que conviene conocer:
 
 <AvailableFrom version="0.11.0" />
 
-Convierte un `RunBudget` en uno de tres valores `BudgetStanding`, la misma clasificación que
+Clasifica un `RunBudget` en uno de tres valores `BudgetStanding`, la misma clasificación que
 informan la línea de presupuesto de la CLI, Studio y la herramienta de agente `usage.summary`:
 `"within"` cuando la ejecución nunca llegó a su techo, `"stopped-before-ceiling"` cuando un
 presupuesto `"stop"` retuvo una petición mientras `tokensUsed` seguía por debajo de `maxTokens`, y
-`"reached"` cuando `tokensUsed` alcanzó o superó `maxTokens`. Úsala en lugar de leer solo
+`"reached"` cuando `tokensUsed` alcanzó o superó `maxTokens`. Úsalo en lugar de leer solo
 `exceeded`, que vale `true` en los dos últimos casos.
 
 ## El modelo de errores
@@ -819,21 +837,24 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `UNKNOWN_FORMAT` | no hay adaptador registrado para el formato configurado; se lanza antes de leer ningún archivo |
 | `UNKNOWN_LOCALE` | un locale solicitado no está entre los locales de destino configurados |
 | `UNKNOWN_KEY` | una clave solicitada no está en el recurso de origen (`keyValue`, `editEntry`, `retranslateEntry`) |
-| `PROVIDER_CONSTRUCTION_FAILED` | el proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave API ausente |
+| `PROVIDER_CONSTRUCTION_FAILED` | el proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente |
 | `SOURCE_UNREADABLE` | el archivo del locale de origen no existe |
 | `SOURCE_INVALID` | el archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador |
-| `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, sobredimensionado o en una versión no admitida |
+| `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida |
 | `LOCK_CONTENDED` | el bloqueo de escritura de un locale no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir (`updateGlossaryTerm`) |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |
 | `LOCALE_PATH_COLLISION` | dos locales configurados resuelven al mismo archivo absoluto |
-| `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que corra ningún locale |
-| `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 con `maxTokens` configurado; se lanza antes de cualquier llamada al proveedor (un dry-run queda exento) |
+| `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
+| `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 con `maxTokens` configurado; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
-| `SOURCE_UNWRITABLE` | el archivo de la locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
+| `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado; se rechaza antes de leer o escribir nada |
+| `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
 | `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo, es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, o el archivo de configuración que cargó la ejecución; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
+| `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio) |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`

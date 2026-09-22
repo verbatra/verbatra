@@ -2,9 +2,9 @@
 title: Traducción humana
 description: Exporta las cadenas sin traducir a un libro de Excel, entrégaselo a un traductor e importa el resultado de vuelta con las mismas comprobaciones de seguridad que una ejecución automática.
 ---
-No toda cadena es para un proveedor. Los textos de marketing, los textos legales y los idiomas que más importan suelen pedir un traductor humano. verbatra lo resuelve con un ciclo de ida y vuelta de un libro: **exporta** las cadenas que necesitan traducción a un archivo de Excel con estilos, entrégalo, y luego **importa** el archivo rellenado de vuelta a tus archivos de locale.
+No toda cadena es para un proveedor. Los textos de marketing, los textos legales y los idiomas que más importan suelen pedir un traductor humano. verbatra lo resuelve con un ciclo de ida y vuelta del libro: **exporta** las cadenas que necesitan traducción a un archivo de Excel con estilos, entrégalo, y luego **importa** el archivo rellenado de vuelta a tus archivos de locale.
 
-El mismo diff impulsa ambas direcciones. La exportación elige exactamente las claves que una ejecución automática traduciría (las nuevas y las modificadas), y la importación ejecuta las mismas comprobaciones de integridad que `translate`, así que un valor escrito a mano que rompe un marcador de posición se retiene y se informa en lugar de escribirse.
+El mismo diff impulsa ambas direcciones. La exportación elige exactamente las claves que una ejecución automática traduciría (las nuevas y las modificadas), y la importación ejecuta las mismas comprobaciones de integridad que `translate`, así que un valor escrito a mano que rompe un placeholder se retiene y se informa en lugar de escribirse.
 
 ## El ciclo de ida y vuelta
 
@@ -18,24 +18,24 @@ verbatra export
 verbatra import verbatra-translations.xlsx
 ```
 
-Por defecto, la exportación escribe `verbatra-translations.xlsx` en el directorio de trabajo. La importación lo lee de vuelta, valida cada fila rellenada, escribe en tus archivos de locale los valores que pasan y avanza la línea base de [el archivo de bloqueo](/docs/the-lock-file) exactamente para las claves que aceptó, igual que lo haría una ejecución de `translate`.
+Por defecto, la exportación escribe `verbatra-translations.xlsx` en el directorio de trabajo. La importación lo lee de vuelta, valida cada fila rellenada, escribe en tus archivos de locale los valores que pasan y avanza la línea base del [archivo de bloqueo](/docs/the-lock-file) exactamente para las claves que aceptó, igual que lo haría una ejecución de `translate`.
 
 ## Qué acaba en el libro
 
-El archivo abre con una hoja **Instructions**, seguida de una hoja de datos por locale de destino, nombrada por su locale (`de`, `fr`, ...). Como el locale hace el viaje de ida y vuelta a través del nombre de la hoja, un locale que no puede ser un nombre de hoja de Excel se rechaza antes de construir el libro: más largo de 31 caracteres, que contenga cualquiera de `: \ / ? * [ ]`, igual a `Instructions` en cualquier combinación de mayúsculas, o igual a otro locale de destino sin distinguir mayúsculas.
+El archivo empieza con una hoja **Instructions**, seguida de una hoja de datos por locale de destino, nombrada por su locale (`de`, `fr`, ...). Como el locale hace el viaje de ida y vuelta a través del nombre de la hoja, un locale que no puede ser un nombre de hoja de Excel se rechaza antes de construir el libro: más largo de 31 caracteres, que contenga cualquiera de `: \ / ? * [ ]`, igual a `Instructions` en cualquier combinación de mayúsculas, o igual a otro locale de destino sin distinguir mayúsculas.
 
 Todas las hojas de datos comparten las mismas columnas, en este orden:
 
 | Columna | Editable | Propósito |
 | --- | --- | --- |
-| `Key` | no | La ruta de clave con puntos. La única identidad que asigna una fila de vuelta a una cadena. |
+| `Key` | no | La ruta de clave con puntos. La única identidad que vincula una fila con su cadena. |
 | `Source` | no | El valor del locale de origen, como referencia. |
 | `Current translation` | no | El valor de destino existente, si lo hay. |
 | `Status` | no | `new` (sin traducción todavía), `changed` (el origen cambió desde la última traducción) o `unchanged` (ya al día, incluido solo con `--include-unchanged`). |
 | `Translation` | **sí** | La única celda que rellena el traductor. |
 | `Source hash` | no | Oculta. El hash del contenido de origen capturado al exportar, usado para detectar un origen que cambió después de la exportación. |
 | `Context` | no | Contexto de desarrollo, cuando el formato de origen lo lleva (el `@key.description` de Flutter ARB, el `<note>` de XLIFF). Solo referencia, nunca se importa. |
-| `Review status` | no | `ok` o `review`: si las heurísticas de revisión de verbatra marcaron la traducción actual para una segunda mirada. Consultivo, nunca bloqueante. |
+| `Review status` | no | `ok` o `review`: si las heurísticas de revisión de verbatra marcaron la traducción actual para una segunda mirada. Orientativo, nunca una puerta. |
 | `Review reasons` | no | Etiquetas de motivo separadas por comas que explican un estado `review` (por ejemplo `length-ratio-outlier, equals-source`). |
 
 Las filas están ordenadas por clave, la fila de encabezado está inmovilizada, la columna `Source hash` está oculta y todas las columnas excepto `Translation` están bloqueadas con protección de hoja y un fondo sombreado. La columna `Translation` usa el formato de texto de Excel, así que un valor como `007` o uno que empieza por `=` se queda como texto literal en lugar de convertirse en un número o una fórmula.
@@ -46,7 +46,7 @@ Lo que un traductor necesita saber cabe en unas pocas líneas (y se repite en la
 
 - Rellena la columna `Translation`, nada más. La protección de hoja lo impone.
 - No renombres, borres ni reordenes las pestañas de idioma. verbatra empareja cada pestaña con un locale por su nombre exacto, así que una pestaña renombrada o ausente se informa y ese locale no se importa.
-- Ordenar y filtrar filas está bien: la importación asigna las filas por `Key`, nunca por posición. Las columnas deben quedarse donde están; la importación las lee por posición y verifica los encabezados `Key` y `Source hash`.
+- Ordenar y filtrar filas está bien: la importación empareja las filas por `Key`, nunca por posición. Las columnas deben quedarse donde están; la importación las lee por posición y verifica los encabezados `Key` y `Source hash`.
 - Una celda `Translation` vacía significa "todavía sin traducir". La importación la omite y nunca escribe una cadena vacía, así que un libro a medio rellenar puede volver ahora y el resto más tarde. Una celda que solo contiene espacios cuenta como vacía. Para vaciar deliberadamente un valor existente (dejarlo vacío), escribe exactamente `[[CLEAR]]` en la celda.
 
 ## Qué acepta la importación
@@ -54,19 +54,19 @@ Lo que un traductor necesita saber cabe en unas pocas líneas (y se repite en la
 La importación no es un pegado a ciegas. Cada fila rellenada se juzga contra el proyecto vivo antes de escribir nada:
 
 - **Desfase del origen**: el `Source hash` oculto se compara con el origen actual. Si la cadena de origen cambió después de la exportación, la fila se retiene, así que nunca sobrescribes un origen actual con la traducción de uno antiguo.
-- **Integridad de marcadores de posición**: la traducción debe llevar exactamente los mismos marcadores de posición que su origen. Elimina `{name}` o inventa `{total}` y la fila se retiene.
+- **Integridad de placeholders**: la traducción debe llevar exactamente los mismos placeholders que su origen. Elimina `{name}` o inventa `{total}` y la fila se retiene.
 - **Validez ICU**: un mensaje ICU debe seguir siendo estructuralmente válido con los mismos nombres de argumento; solo el texto legible puede cambiar.
-- **Valores degenerados o vacíos**: un valor que se derrumbó en un bucle de repetición, cuya longitud se disparó respecto a su origen, o que vuelve vacío para un origen no vacío, se retiene. Usa el centinela `[[CLEAR]]` de arriba para vaciar una traducción deliberadamente.
+- **Valores degenerados o vacíos**: un valor que degeneró en un bucle de repetición, cuya longitud se disparó respecto a su origen, o que volvió vacío para un origen no vacío, se retiene. Usa el centinela `[[CLEAR]]` de arriba para vaciar una traducción deliberadamente.
 - **Claves desconocidas**: una fila rellenada cuya clave no existe ni en el origen actual ni en el archivo de destino actual (por ejemplo, una escrita a mano) hace fallar la hoja entera de ese locale, porque el ciclo de ida y vuelta está roto. Una fila rellenada cuya clave existe solo en el destino (una clave huérfana) se deja sin escribir en silencio.
 - **Context nunca es una fuente de traducción**: la importación ignora la columna `Context` por completo, y un libro exportado antes de que esa columna existiera sigue importándose con normalidad.
 
 Las filas retenidas se informan en el resumen de la ejecución bajo el locale al que pertenecen; las filas aceptadas se escriben y su línea base del bloqueo avanza. Una fila retenida o en blanco conserva su línea base anterior, así que la clave se sigue exportando hasta que se resuelve de verdad. Una fila en blanco cuyo origen se desfasó desde la exportación se señala además con un aviso `BLANK_ROW_BASELINE_RETAINED`, para que el desfase siga visible.
 
-La importación también expone hallazgos estructurales por locale en lugar de abortar por ellos: una fila en blanco cuya clave todavía necesita traducción (informada como unfilled, aún pendiente, tanto si la fila se exportó como `new` como si se exportó como `changed`), una fila del libro que el lector no pudo parsear (informada por fila y columna) y una clave duplicada (la primera aparición gana y se importa, cada una posterior se informa). Ninguno de estos hallazgos hace fallar la hoja por sí solo. La pertenencia a la lista unfilled se decide contra el proyecto tal como está en el momento de la importación, así que una primera entrega que vuelve sin tocar informa de todas las claves pendientes en lugar de ninguna, y una fila exportada como `changed` cuya clave ya no necesita trabajo se queda fuera.
+La importación también expone hallazgos estructurales por locale en lugar de abortar por ellos: una fila en blanco cuya clave todavía necesita traducción (informada como unfilled, aún pendiente, tanto si la fila se exportó como `new` como si se exportó como `changed`), una fila del libro que el lector no pudo analizar (informada por fila y columna) y una clave duplicada (la primera aparición gana y se importa, cada una posterior se informa). Ninguno de estos hallazgos hace fallar la hoja por sí solo. La pertenencia a la lista unfilled se decide contra el proyecto tal como está en el momento de la importación, así que una primera entrega que vuelve sin tocar informa de todas las claves pendientes en lugar de ninguna, y una fila exportada como `changed` cuya clave ya no necesita trabajo se queda fuera.
 
 Cada hoja de datos es un locale en el resumen: un fallo de hoja (una clave inventada, una hoja de un locale que no está en tu configuración, o un locale configurado cuya pestaña falta por completo porque se renombró, se borró o se sacó de su orden) hace fallar ese locale y deja los demás intactos. La importación comparte el contrato de códigos de salida de `translate`: `0` cuando todas las hojas quedan completas, `1` cuando una falla o queda parcial, `2` cuando la ejecución no pudo arrancar, y también cuando un archivo de bloqueo corrupto la aborta a mitad de camino (los locales aplicados antes del corte siguen escritos). Una entrega manual encaja por tanto en las mismas [comprobaciones de CI](/docs/ci-and-exit-codes) que una ejecución automática.
 
-### Primero en seco
+### Primero un dry run
 
 Valida un libro devuelto y previsualiza lo que se escribiría sin tocar un solo archivo:
 
@@ -76,7 +76,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 
 ## CSV y TSV en lugar de un libro
 
-Algunos proveedores y pipelines quieren texto plano en vez de Excel. `--format csv` y `--format tsv` escriben las mismas columnas, en el mismo orden, como un archivo por locale:
+Algunas agencias y pipelines quieren texto plano en vez de Excel. `--format csv` y `--format tsv` escriben las mismas columnas, en el mismo orden, como un archivo por locale:
 
 ```bash
 # write handoff/de.csv and handoff/fr.csv
@@ -86,11 +86,11 @@ verbatra export --format csv --out handoff
 verbatra import handoff --format csv
 ```
 
-La importación también acepta un solo archivo (`verbatra import handoff/de.csv --format csv`) y lee la locale del nombre del archivo, así que mantén los archivos con el nombre con el que se exportaron.
+La importación también acepta un solo archivo (`verbatra import handoff/de.csv --format csv`) y lee el locale del nombre del archivo, así que mantén los archivos con el nombre con el que se exportaron.
 
 Qué cambia frente al libro:
 
-- **Sin protección.** Un libro deja editable solo `Translation` y oculta `Source hash`; un archivo de texto no puede. Todas las columnas son editables y el hash es visible. Un hash editado o vaciado no se da por bueno: la fila se compara con la fuente actual y se retiene como deriva, igual que una fila obsoleta.
+- **Sin protección.** Un libro deja editable solo `Translation` y oculta `Source hash`; un archivo de texto no puede. Todas las columnas son editables y el hash es visible. Un hash editado o vaciado no se da por bueno: la fila se compara con el origen actual y se retiene como desfase, igual que una fila obsoleta.
 - **Sin hoja de instrucciones.** Pasa tú mismo al traductor las reglas de entrega de arriba.
 - **El entrecomillado sigue RFC 4180.** Un valor que contiene el delimitador, unas comillas dobles, un salto de línea o espacios alrededor se entrecomilla, y sus comillas internas se duplican, así que nada dentro de una cadena puede desplazar una columna. Los archivos se escriben con finales de línea LF, y `csv` lleva un BOM UTF-8 para que Excel lo lea como UTF-8.
 - **Una hoja de cálculo puede cambiar lo que abre.** Abrir un `.csv` o `.tsv` en una hoja de cálculo puede convertir valores (`007` pasa a `7`) y puede tratar un valor que empieza por `=`, `+`, `-` o `@` como una fórmula. El entrecomillado no lo evita, porque la hoja de cálculo lo elimina antes de evaluar. verbatra protege el inicio del valor en su lugar: un valor que empieza por `=`, `+`, `-`, `@`, un tabulador o un retorno de carro se exporta con un apóstrofo inicial, la marca con la que una hoja de cálculo trata la celda como texto. La importación vuelve a quitar ese apóstrofo, así que traducciones normales como `-5 Grad` y `+49 30 1234567` se guardan tal y como las escribió el traductor. Un espacio inicial no entra en esto y se queda igual. Trata como entrada no confiable cualquier archivo que devuelva un traductor.
@@ -101,7 +101,7 @@ Qué cambia frente al libro:
 
 <AvailableFrom version="0.11.0" />
 
-Una entrega lleva a una persona que traduce un recorte por locale del delta pendiente; [`verbatra tmx`](/docs/cli/tmx) lleva toda la memoria de traducción como un único archivo multilingüe, para moverla entre herramientas y no para que alguien traduzca cadenas. TMX no es un valor de `--format`: `xlsx`, `csv` y `tsv` son las formas de entrega, así que usa `verbatra tmx export` y `verbatra tmx import` en lugar de `verbatra export --format tmx`.
+Una entrega lleva a un traductor humano un recorte por locale del delta pendiente; [`verbatra tmx`](/docs/cli/tmx) lleva toda la memoria de traducción como un único archivo multilingüe, para moverla entre herramientas y no para que alguien traduzca cadenas. TMX no es un valor de `--format`: `xlsx`, `csv` y `tsv` son las formas de entrega, así que usa `verbatra tmx export` y `verbatra tmx import` en lugar de `verbatra export --format tmx`.
 
 ## Seleccionar qué exportar
 
@@ -128,9 +128,9 @@ Recurre a `--include-unchanged` cuando un traductor quiera el contexto completo 
 - `max-length-exceeded`: la traducción es más larga que el presupuesto configurado para su clave.
 - `equals-source`: la traducción es idéntica al origen.
 - `glossary-term-missed`: un término del glosario configurado no llegó a la traducción.
-- `integrity-reordered`: los marcadores de posición coinciden pero quedaron en un orden distinto al del origen.
+- `integrity-reordered`: los placeholders coinciden pero quedaron en un orden distinto al del origen.
 
-Un sexto motivo, `provider-degraded`, existe solo al traducir (un aviso de degradación de DeepL sobre el lote del que vino una clave); como la exportación nunca llama a un proveedor, nunca aparece en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
+Otros dos motivos completan el conjunto de siete, y ambos existen solo al traducir: `provider-degraded` (un aviso de formalidad degradada o de glosario ignorado sobre el lote del que vino una clave) y `fuzzy-cache-reuse` (el valor se reutilizó de la memoria de traducción para un origen anterior casi idéntico que desde entonces se ha editado). La exportación recalcula las columnas solo a partir de los valores de origen y destino, así que ninguno de los dos aparece nunca en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
 
 ## Desde el SDK
 
@@ -153,7 +153,7 @@ const summary = await importWorkbook({ config, workbook: "verbatra-translations.
 
 Ambas toman la configuración validada de [`loadConfig`](/docs/sdk), e `importWorkbook` devuelve el mismo `RunSummary` que `translate`. El libro en sí lo construye y lo analiza `@verbatra/exchange`, un paquete interno al que solo llegas a través de estas dos funciones.
 
-## Siguientes pasos
+## Siguiente
 
 - [`verbatra export`](/docs/cli/export): todos los flags de exportación y el informe que imprime.
 - [`verbatra import`](/docs/cli/import): todos los flags de importación, el resumen de la ejecución y los códigos de salida.

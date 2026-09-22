@@ -56,7 +56,10 @@ import { combineUsage } from "./usage.js";
 export interface TranslateInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /**
+   * Directory the `files.pattern` is resolved against, and where the lock-file, the translation
+   * memory, and the run-status file live. Defaults to the process working directory.
+   */
   readonly cwd?: string;
   /**
    * Restrict the run to a subset of the configured target locales, which is how you translate one
@@ -97,7 +100,8 @@ export interface TranslateInput {
   readonly prune?: boolean;
   /**
    * Generate the plural categories a target language requires rather than translating each
-   * category separately. Defaults to the config's `generatePlurals`, then to false.
+   * category separately. Defaults to the config's `generatePlurals`, then to false. Takes effect
+   * only with an LLM provider; a machine-translation provider generates nothing.
    */
   readonly generatePlurals?: boolean;
   /**
@@ -107,7 +111,10 @@ export interface TranslateInput {
   readonly onLockWait?: LockWaitListener;
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
-  /** How long to wait for a locale's write lock before failing with `LOCK_CONTENDED`. */
+  /**
+   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
+   * `LOCK_CONTENDED`. Defaults to ten minutes. Not used on a dry run, which takes no lock.
+   */
   readonly lockAcquireTimeoutMs?: number;
   /**
    * How many locales to run at once. Must be an integer of at least 1; defaults to 1. On a live
@@ -117,8 +124,9 @@ export interface TranslateInput {
    */
   readonly concurrency?: number;
   /**
-   * Consult and update the translation memory. Defaults to true. Turning it off forces every key
-   * through the provider, which is what to do when you want to re-pay for a fresh translation.
+   * Consult and update the translation memory, fuzzy reuse included. Defaults to true. Turning it
+   * off forces every key through the provider, which is what to do when you want to re-pay for a
+   * fresh translation. A dry run never reads the memory, whatever this says.
    */
   readonly cache?: boolean;
 }
@@ -460,7 +468,9 @@ export function resolveRunConcurrency(
  * ```
  */
 export function resolveDryRun(input: {
+  /** The caller's {@link TranslateInput.dryRun}. */
   readonly dryRun?: boolean | undefined;
+  /** The caller's {@link TranslateInput.estimate}, which implies a dry run. */
   readonly estimate?: boolean | undefined;
 }): boolean {
   return input.dryRun === true || input.estimate === true;
@@ -477,7 +487,9 @@ function estimateFields(
  * Runs the one-shot translation flow over every configured target locale, or over the subset named
  * by `locales`: read the source, diff
  * each locale against the lock-file baseline, translate what is missing or stale, verify placeholder
- * and ICU integrity, write the locale files, and update the lock-file and translation memory.
+ * and ICU integrity, write the locale files, and update the lock-file and translation memory. A
+ * live run also records its summary in the run-status file that {@link runStatus} reads; a failure
+ * to write that file or the translation memory is swallowed rather than failing the run.
  *
  * Failure handling is the contract worth understanding. Whole-run problems, such as an unreadable
  * source file or a provider that cannot be constructed, throw an {@link SdkError} before any locale

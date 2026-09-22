@@ -53,9 +53,11 @@ export type RetranslateEntryResult =
       /** The newly translated value now stored for the key. */
       readonly value: string;
       /**
-       * Quality signals the provider layer raised for this value, such as a length-ratio outlier or
-       * a value identical to the source. Empty when nothing was flagged. The value is written
-       * either way; these are advisory.
+       * Quality signals the provider layer raised for this value, such as a length-ratio outlier,
+       * a value identical to the source, or `MAX_LENGTH_EXCEEDED` for a value over the key's
+       * configured `maxLength` budget. Never `FUZZY_CACHE_REUSE`, since this path always calls the
+       * provider and never consults the translation memory. Empty when nothing was flagged. The
+       * value is written either way; these are advisory.
        */
       readonly reviewReasons: readonly ReviewReasonCode[];
     }
@@ -82,7 +84,8 @@ export type RetranslateEntryResult =
  * a UI should gate it behind an explicit user action.
  *
  * The returned value goes through the same integrity gate as a full run, so a translation that
- * loses a placeholder or breaks ICU syntax is refused and nothing is written. Provider quality
+ * loses a placeholder, breaks the source's inline markup, breaks ICU syntax, degenerates into
+ * runaway output, or comes back blank is refused and nothing is written. Provider quality
  * signals are surfaced on an accepted result as `reviewReasons` rather than blocking the write.
  *
  * The locale's write lock is taken before the provider is called and held across it, covering the

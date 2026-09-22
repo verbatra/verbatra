@@ -9,8 +9,10 @@ import { judgeEntryMarkup } from "./markup-verdict.js";
 
 /**
  * Every reason a candidate translation can be refused before it is written. The same gate guards
- * {@link editEntry} and {@link retranslateEntry}, so a hand-typed value and a provider-produced one
- * are held to identical standards.
+ * every write path: a provider translation, a cache or duplicate-content reuse, a generated plural
+ * form, a pseudolocalized value, a workbook or TMX import, {@link editEntry}, and
+ * {@link retranslateEntry}, so a hand-typed value and a provider-produced one are held to identical
+ * standards.
  *
  * A rejected value is never written to the locale file and never recorded in the lock-file, so the
  * previous translation stays intact.

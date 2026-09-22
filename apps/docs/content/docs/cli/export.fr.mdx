@@ -22,7 +22,7 @@ verbatra export [flags]
 | `--include-unchanged` | aucun | désactivé | exporte aussi les chaînes déjà à jour |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat d'export (chemin et nombre de lignes par locale) sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
-Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien exporter en silence.
+Une valeur `--locales` vide ou inconnue est rejetée avec le code de sortie `2` plutôt que de ne rien exporter en silence.
 
 ## Exemples
 
@@ -39,11 +39,11 @@ verbatra export --format csv --out handoff
 
 ## CSV et TSV
 
-`--format csv` et `--format tsv` écrivent du texte brut au lieu d'un classeur : un `<locale>.csv` ou `<locale>.tsv` par locale exportée, avec les mêmes colonnes dans le même ordre qu'une feuille du classeur. `--out` désigne alors le répertoire où les fichiers sont écrits, et ce répertoire est créé s'il manque.
+`--format csv` et `--format tsv` écrivent du texte brut au lieu d'un classeur : un `<locale>.csv` ou `<locale>.tsv` par locale exportée, avec les mêmes colonnes dans le même ordre qu'une feuille du classeur. `--out` désigne alors le répertoire où les fichiers sont écrits, et ce répertoire est créé s'il n'existe pas.
 
-Un fichier délimité se diffe et s'ouvre partout, mais il ne porte aucune protection de cellule : chaque colonne est modifiable et la colonne `Source hash` est visible. Un hash modifié n'est jamais cru, l'import le compare à la source actuelle et retient la ligne.
+Un fichier délimité se lit dans un diff et s'ouvre partout, mais il ne porte aucune protection de cellule : chaque colonne est modifiable et la colonne `Source hash` est visible. Un hash modifié n'est jamais considéré comme fiable : l'import le compare à la source réelle et retient la ligne.
 
-Chaque export délimité écrit en plus un manifeste caché dans le répertoire, `.verbatra-export-csv.json` ou `.verbatra-export-tsv.json`, qui nomme les locales qu'il vient d'écrire. C'est ce qui permet à un nouvel export avec une sélection `--locales` plus étroite de mettre hors service les locales abandonnées : leurs fichiers restent sur le disque, et [`verbatra import`](/docs/cli/import) les refuse comme des restes au lieu d'appliquer une traduction périmée. L'export ne supprime rien du répertoire de sortie, un fichier que tu y as placé n'est donc jamais en danger.
+Chaque export délimité écrit en plus un manifeste caché dans le répertoire, `.verbatra-export-csv.json` ou `.verbatra-export-tsv.json`, qui nomme les locales qu'il vient d'écrire. C'est ce qui permet à un nouvel export avec une sélection `--locales` plus étroite de retirer du service les locales qu'il abandonne : leurs fichiers restent sur le disque, et [`verbatra import`](/docs/cli/import) les refuse comme des reliquats au lieu d'appliquer une traduction périmée. L'export ne supprime rien du répertoire de sortie, un fichier que tu y as placé n'est donc jamais en danger.
 
 ## Codes de sortie
 
@@ -53,6 +53,8 @@ Chaque export délimité écrit en plus un manifeste caché dans le répertoire,
 | `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue) |
 
 `export` n'a pas de mode d'échec par locale, donc il ne sort jamais avec `1`.
+
+Une locale cible qui ne peut pas nommer sa feuille ou son fichier arrête l'export avec `WORKBOOK_INVALID`. Un nom de feuille xlsx doit faire de 1 à 31 caractères, ne doit contenir aucun de `: \ / ? * [ ]`, et ne doit correspondre ni à `Instructions` ni au nom de feuille d'une autre locale cible, sans tenir compte de la casse. Un nom de fichier `csv` ou `tsv` ne doit pas être vide, `.` ou `..`, et ne doit contenir ni séparateur de chemin, ni caractère de contrôle, ni aucun de `: * ? " < > |`. Le même code couvre un classeur qui n'a pas pu être sérialisé.
 
 ## Voir aussi
 

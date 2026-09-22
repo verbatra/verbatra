@@ -14,17 +14,20 @@
  *   file could not be resolved or parsed. Thrown by {@link loadConfig} and
  *   {@link loadConfigWithMeta}, by {@link readGlossaryFile}, and by {@link updateGlossaryTerm},
  *   which additionally throws it for a blank term or translation and for an edit whose result would
- *   exceed the glossary file size limit. {@link importWorkbook} does not throw it: when a handoff
- *   sheet or file names a locale that is not a configured target locale, it records this code on
- *   that locale's {@link LocaleSummary} instead.
+ *   exceed the glossary file size limit. {@link importTmx} and {@link exportTmx} throw it when the
+ *   source locale and a target locale are the same language tag once case and separators are
+ *   normalized, since a TMX segment could not be attributed to either. {@link importWorkbook} does
+ *   not throw it: when a handoff sheet or file names a locale that is not a configured target
+ *   locale, it records this code on that locale's {@link LocaleSummary} instead.
  * - `UNKNOWN_FORMAT`: no adapter is registered for the configured format. Thrown by every entry
  *   point that selects an adapter, before any file is read. {@link doctor} is the exception: it
  *   reports an unresolvable format as a failed `format-adapter` check instead, since reporting that
  *   is the command's job.
  * - `UNKNOWN_LOCALE`: a requested locale is not among the configured target locales. Thrown through
  *   the shared locale selection by {@link translate}, {@link watch}, {@link check}, {@link diff},
- *   {@link keyIntegrity}, {@link lockState}, {@link exportWorkbook}, {@link keyValue},
- *   {@link editEntry}, and {@link retranslateEntry}. {@link translate} throws it before anything is
+ *   {@link keyIntegrity}, {@link lockState}, {@link localeValues}, {@link exportWorkbook},
+ *   {@link exportTmx}, {@link importTmx}, {@link keyValue}, {@link editEntry}, and
+ *   {@link retranslateEntry}. {@link translate} throws it before anything is
  *   read or spent, and {@link watch} once at startup, before any watching begins.
  * - `UNKNOWN_KEY`: the requested key is not present in the source resource. Thrown by
  *   {@link keyValue}, {@link editEntry}, and {@link retranslateEntry}.
@@ -33,9 +36,12 @@
  *   {@link translate} and by {@link retranslateEntry}.
  * - `SOURCE_UNREADABLE`: the source locale file is absent. Thrown by every entry point that reads
  *   the source, including {@link importWorkbook}, and by {@link watch} at startup.
- *   {@link importWorkbook} additionally throws it when the handoff file itself is missing.
+ *   {@link importWorkbook} and {@link importTmx} additionally throw it when the handoff or TMX file
+ *   itself is missing.
  * - `SOURCE_INVALID`: the source locale file, or an interchange file, could not be parsed. Wraps
- *   the adapter or reader error.
+ *   the adapter or reader error. {@link pseudolocalize} also throws it when, for a format whose
+ *   writer only patches an existing document, the source file could not be copied to seed the
+ *   output.
  * - `LOCK_FILE_INVALID`: the lock-file exists but is corrupt, oversized, or at an unsupported
  *   version. Thrown wherever the lock-file is read or updated: {@link translate}, {@link check},
  *   {@link diff}, {@link keyIntegrity}, {@link lockState}, {@link loadLockFile},
@@ -73,7 +79,7 @@
  *   writable, does not exist, is read-only, or is out of space. The message names the target file
  *   relative to `cwd` and the underlying file-system code, never the internal temporary file the
  *   atomic write uses. Thrown by {@link editEntry} and {@link retranslateEntry}, which act on one
- *   locale. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
+ *   locale, and by {@link pseudolocalize} for the pseudolocale file. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
  * - `PSEUDO_OUTPUT_CONFLICT`: {@link pseudolocalize} was asked to generate a pseudolocale that
  *   names a configured locale, or to write one onto a configured locale file. Refused before
@@ -147,7 +153,8 @@ export function describeError(
 
 /**
  * The single structured error the SDK throws. Every whole-run failure surfaces as an `SdkError`
- * carrying a stable {@link SdkErrorCode}; per-locale failures, provider notices, and integrity
+ * carrying a stable {@link SdkErrorCode}, except the few a flow's `@throws` names as passed through
+ * unwrapped (a failed workbook write, a watcher factory that throws); per-locale failures, provider notices, and integrity
  * findings are reported as data on the {@link RunSummary} instead of being thrown.
  *
  * An `SdkError` never carries a secret in its message.

@@ -39,6 +39,12 @@ config) exactly those keys are removed from the target file and the lock, and no
 
 ## Batch to the provider
 
+Before anything is sent, every candidate is looked up in the local translation-memory cache
+(`verbatra.cache.json`). A stored translation for the same source text, under the same provider,
+model, tone and glossary fingerprint, is reused as-is and never reaches the provider; only the
+misses go on. See [The cache](/docs/the-cache) for how entries are keyed and when they stop
+matching.
+
 Of the candidates that reach the provider, those sharing the same source content are grouped
 first, so that text costs one request per locale rather than one per key; the value that comes
 back is copied to the other keys in its group and re-checked against each one's own source in the
@@ -61,8 +67,8 @@ happens:
 - If it is still unresolved after that, the key counts as not translated this run and is retried
   next run.
 
-DeepL is a machine-translation API without this response layer, but its results go through the
-same integrity checks below.
+DeepL and Google Cloud Translation are machine-translation APIs without this response layer, but
+their results go through the same integrity checks below.
 
 ## Run the integrity gate
 

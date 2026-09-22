@@ -3,32 +3,32 @@
     "meta": {
       "title": "verbatra: inkrementelle i18n-Übersetzung für Locale-Dateien",
       "ogTitle": "verbatra: inkrementelle i18n-Synchronisierung",
-      "description": "Halte deine i18n-Locale-Dateien synchron. verbatra übersetzt nur die Schlüssel, die sich geändert haben, über den KI- oder maschinellen Übersetzungsanbieter deiner Wahl. Leg jetzt los.",
-      "ogDescription": "Halte deine i18n-Locale-Dateien synchron. Übersetze nur geänderte Schlüssel.",
-      "ogImageAlt": "verbatra hält deine i18n-Locale-Dateien synchron und übersetzt nur die Schlüssel, die sich geändert haben.",
-      "definition": "verbatra ist ein CLI und SDK, das deine i18n-Locale-Dateien synchron hält und nur die Schlüssel übersetzt, die sich geändert haben, über den KI- oder maschinellen Übersetzungsanbieter deiner Wahl."
+      "description": "Halte deine i18n-Locale-Dateien synchron. verbatra übersetzt nur die Keys, die sich geändert haben, über den Provider deiner Wahl (KI oder maschinelle Übersetzung). Leg jetzt los.",
+      "ogDescription": "Halte i18n-Locale-Dateien synchron. Übersetze nur geänderte Keys.",
+      "ogImageAlt": "verbatra hält deine i18n-Locale-Dateien synchron und übersetzt nur die Keys, die sich geändert haben.",
+      "definition": "verbatra ist eine CLI und ein SDK, die deine i18n-Locale-Dateien synchron halten und über den Provider deiner Wahl (KI oder maschinelle Übersetzung) nur die Keys übersetzen, die sich geändert haben."
     },
     "hero": {
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "verbatra vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei, sendet nur die neuen und geänderten Schlüssel an den von dir gewählten Anbieter und lässt jeden anderen Schlüssel unberührt.",
-      "ctaGithub": "Stern auf GitHub",
-      "ctaStart": "Leg los",
+      "lead": "verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, schickt nur die neuen und geänderten Keys an den Provider deiner Wahl und lässt jeden anderen Key unberührt.",
+      "ctaGithub": "Star auf GitHub",
+      "ctaStart": "Loslegen",
       "facts": {
-        "release": "Neueste Version",
+        "release": "Neuestes Release",
         "formats": "Dateiformate",
-        "providers": "Anbieter",
+        "providers": "Provider",
         "license": "Lizenz"
       }
     },
     "terminal": {
-      "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
+      "sessionLabel": "Eine Beispielsitzung mit verbatra auf der Kommandozeile.",
       "transcript": {
         "run": {
           "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
           "l2": "de  3 übersetzt · 117 unberührt · 0 zurückgehalten",
           "l3": "es  3 übersetzt · 117 unberührt · 0 zurückgehalten",
           "l4": "fr  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l5": "✓ 9 Schlüssel in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
+          "l5": "✓ 9 Keys in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
         }
       }
     },
@@ -37,11 +37,11 @@
       "copy": "Kopieren",
       "copied": "Kopiert",
       "copyAria": "Installationsbefehl kopieren",
-      "pnpmNote": "pnpm installiert korrekt, beendet sich aber mit 1 und ERR_PNPM_IGNORED_BUILDS, weil es die Installationsskripte einer Abhängigkeit sperrt. Führe einmal pnpm approve-builds aus, oder siehe",
+      "pnpmNote": "pnpm installiert korrekt, beendet sich aber mit Exit-Code 1 und ERR_PNPM_IGNORED_BUILDS, weil es die Install-Skripte einer Abhängigkeit blockiert. Führ einmal pnpm approve-builds aus, oder lies die Seite",
       "pnpmNoteLink": "Fehlerbehebung",
-      "copyPromptAria": "Kopiere die Einrichtungsaufforderung für den KI-Agenten",
+      "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
       "aiTabLabel": "KI",
-      "aiCaption": "Dies ist eine gekürzte Vorschau. Lies die vollständige Aufforderung und die Einrichtungsanleitung auf",
+      "aiCaption": "Dies ist eine gekürzte Vorschau. Den vollständigen Prompt und die Einrichtung Schritt für Schritt findest du in",
       "aiCaptionLink": "der Einrichtungsanleitung",
       "copyCommand": "{command} kopieren"
     },
@@ -63,7 +63,7 @@
       "steps": {
         "configure": {
           "title": "Konfigurieren",
-          "body": "Quell-Locale, Ziele, ein Anbieter."
+          "body": "Quell-Locale, Ziele, ein Provider."
         },
         "diff": {
           "title": "Vergleichen",
@@ -71,11 +71,11 @@
         },
         "translate": {
           "title": "Übersetzen",
-          "body": "Nur neue und geänderte Schlüssel gehen raus."
+          "body": "Nur neue und geänderte Keys gehen raus."
         },
         "verifyWrite": {
           "title": "Prüfen und schreiben",
-          "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest geschrieben."
+          "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest wird geschrieben."
         }
       }
     },
@@ -84,23 +84,23 @@
       "items": {
         "incremental": {
           "question": "Wie vermeidet verbatra, bei jedem Lauf alles neu zu übersetzen?",
-          "answer": "Es führt eine eingecheckte Lock-Datei, die festhält, was bereits übersetzt wurde. Jeder Lauf vergleicht deine Quell-Locale mit dieser Lock-Datei und sendet nur die neuen oder geänderten Schlüssel an deinen Anbieter. Unveränderte Schlüssel werden nie angefasst, sodass ein typischer Lauf eine Handvoll Strings kostet, nicht deinen ganzen Katalog."
+          "answer": "Es führt eine committete Lock-Datei, die festhält, was bereits übersetzt wurde. Jeder Lauf vergleicht deine Quell-Locale mit dieser Lock-Datei und schickt nur die neuen oder geänderten Keys an deinen Provider. Unveränderte Keys werden nie angefasst, sodass ein typischer Lauf eine Handvoll Strings kostet, nicht deinen ganzen Katalog."
         },
         "providers": {
-          "question": "Welche Übersetzungsanbieter kann ich verwenden?",
-          "answer": "Sechs, hinter einer Oberfläche: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM verweist. Du wählst einen über seine ID in deiner Konfiguration aus und kannst später durch Bearbeiten dieser einen Zeile wechseln. Gemini hat einen echten kostenlosen Tarif, und ein lokales Modell kostet pro Aufruf nichts."
+          "question": "Welche Übersetzungs-Provider kann ich verwenden?",
+          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts."
         },
         "formats": {
           "question": "Welche Formate und Frameworks unterstützt verbatra?",
-          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml, gettext .po/.pot Dateien, INI und .NET .resx. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android und jeden gettext-basierten Stack ab. verbatra liest die Dateien, die du bereits hast; es gibt kein verbatra-spezifisches Format, zu dem migriert werden müsste."
+          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, dazu XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml, gettext .po/.pot-Dateien, INI und .NET .resx. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android und jeden gettext-basierten Stack ab. verbatra liest die Dateien, die du schon hast; es gibt kein verbatra-eigenes Format, zu dem du migrieren müsstest."
         },
         "safety": {
           "question": "Was verhindert, dass eine schlechte Übersetzung meine App kaputtmacht?",
-          "answer": "Jedes Ergebnis durchläuft eine Prüfung der Platzhalter- und ICU-Integrität, bevor es geschrieben wird. Eine Übersetzung, die einen Platzhalter weglässt, erfindet oder umsortiert oder ungültige ICU-Nachrichtensyntax erzeugt, wird zurückgehalten, statt in deine Locale-Datei gespeichert zu werden. Dieselbe Prüfung gilt für Bearbeitungen und Neuübersetzungen in Verbatra Studio."
+          "answer": "Jedes Ergebnis durchläuft vor dem Schreiben eine Platzhalter- und ICU-Integritätsprüfung. Eine Übersetzung, die einen Platzhalter weglässt, erfindet oder umsortiert oder ungültige ICU-Nachrichtensyntax erzeugt, wird zurückgehalten statt in deine Locale-Datei geschrieben. Dasselbe Integritäts-Gate gilt für Bearbeitungen und Neuübersetzungen in Verbatra Studio."
         },
         "cost": {
           "question": "Was kostet verbatra?",
-          "answer": "verbatra selbst ist kostenlos und quelloffen unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Anbieters, die du steuerst: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos auf Geminis kostenlosem Tarif oder einem lokalen OpenAI-kompatiblen Modell betreiben."
+          "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben."
         }
       }
     },
@@ -109,7 +109,7 @@
       "docs": "Zur Dokumentation"
     },
     "footer": {
-      "tagline": "Übersetze nur, was sich geändert hat. Ein quelloffenes CLI und SDK, das deine i18n-Locale-Dateien über den Anbieter deiner Wahl synchron hält.",
+      "tagline": "Übersetze nur, was sich geändert hat. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",
@@ -122,8 +122,8 @@
         },
         "learn": {
           "title": "Lernen",
-          "howItWorks": "So funktioniert es",
-          "providers": "Anbieter",
+          "howItWorks": "Wie es funktioniert",
+          "providers": "Provider",
           "formats": "Formate",
           "lockFile": "Die Lock-Datei",
           "configFile": "Konfigurationsdatei"
@@ -147,7 +147,7 @@
           "aiTxt": "ai.txt (Nutzungsrichtlinie)"
         }
       },
-      "legalLine": "Quelloffen unter der MIT-Lizenz · © 2026 Mario Kreitz",
+      "legalLine": "Open Source unter der MIT-Lizenz · © 2026 Mario Kreitz",
       "githubAria": "verbatra auf GitHub",
       "npmAria": "verbatra auf npm",
       "contributorsTitle": "Mitwirkende",
@@ -158,13 +158,13 @@
     },
     "nav": {
       "docs": "Docs",
-      "providers": "Anbieter",
+      "providers": "Provider",
       "formats": "Formate",
       "contributing": "Mitwirken",
       "startWithAi": "Mit KI starten",
       "languageSwitcher": {
         "chooseLanguage": "Wähle eine Sprache",
-        "triggerAriaSuffix": "Sprache wechseln",
+        "triggerAriaSuffix": "Sprache wählen",
         "machineTranslatedLabel": "Maschinell übersetzt",
         "machineTranslatedDescription": "Die Oberfläche und die Dokumentationsseiten für diese Sprache werden mit KI übersetzt."
       },
@@ -174,7 +174,7 @@
     },
     "proof": {
       "lock": {
-        "body": "Ein Hash pro Schlüssel und Locale, eingecheckt neben deinen Dateien.",
+        "body": "Ein Hash pro Key und Locale, committet neben deinen Dateien.",
         "title": "Die Lock-Datei"
       },
       "refused": {
@@ -195,27 +195,27 @@
           "title": "Abweichende Locales lassen den Pull Request fehlschlagen."
         },
         "config": {
-          "body": "Ein Glossar legt fest, wie aufgeführte Begriffe übersetzt werden; <code>tone</code> setzt formelle, informelle oder neutrale Anrede.",
+          "body": "Ein Glossar legt fest, wie gelistete Begriffe übersetzt werden; <code>tone</code> setzt formelle, informelle oder neutrale Anrede.",
           "note": "die verbatra.config.ts dieser Seite",
-          "title": "Deine Begriffe und deine Anrede bleiben fest."
+          "title": "Deine Begriffe und dein Tonfall bleiben fest."
         },
         "cost": {
-          "body": "Nur neue und geänderte Schlüssel gehen an den Anbieter, und jeder Lauf gibt seine Token-Anzahl pro Locale aus.",
+          "body": "Nur neue und geänderte Keys gehen an den Provider, und jeder Lauf gibt seine Token-Anzahl pro Locale aus.",
           "note": "ein Lauf über die Texte dieser Seite",
-          "title": "Du zahlst für die Schlüssel, die du geändert hast."
+          "title": "Du zahlst für die Keys, die du geändert hast."
         },
         "gate": {
-          "body": "Ein Kandidat, der einen Platzhalter verliert, ICU bricht oder Markup aus dem Gleichgewicht bringt, wird zurückgehalten, nie geschrieben und beim nächsten Lauf erneut gesendet.",
-          "note": "dieselbe Prüfung gilt für Studio-Bearbeitungen und Importe",
+          "body": "Ein Kandidat, der einen Platzhalter verliert, ICU kaputtmacht oder Markup unausgeglichen lässt, wird zurückgehalten, nie geschrieben und beim nächsten Lauf erneut gesendet.",
+          "note": "dasselbe Integritäts-Gate schützt Studio-Bearbeitungen und Importe",
           "title": "Ein kaputter Platzhalter erreicht nie die Produktion."
         },
         "git": {
           "body": "Locale-Dateien und die Lock-Datei sind Klartext in deinem Repo, und ohne <code>--prune</code> wird nichts entfernt.",
-          "note": "ein Hash pro Schlüssel und Ziel-Locale",
+          "note": "ein Hash pro Key und Ziel-Locale",
           "title": "Jede Übersetzung ist ein Git-Diff."
         },
         "handoff": {
-          "body": "Excel-Export und -Import für Übersetzer, TMX für Translation Memory, generierte TypeScript-Typen für deine Schlüssel.",
+          "body": "Excel-Export und -Import für Übersetzer, TMX für den Übersetzungsspeicher, generierte TypeScript-Typen für deine Keys.",
           "note": "vier der vierzehn Befehle",
           "title": "Menschen und andere Tools können übernehmen."
         }
@@ -238,22 +238,22 @@
         "ci": {
           "body": "<code>watch</code> übersetzt bei jeder Änderung. <code>check</code> lässt den Pull Request fehlschlagen, wenn eine Locale abweicht.",
           "cta": "CI einrichten",
-          "title": "Beim Speichern, in CI oder per GitHub Action ausführen."
+          "title": "Führ es beim Speichern aus, in CI oder per GitHub Action."
         },
         "excel": {
-          "body": "Exportieren, ausgefüllt zurückbekommen, durch dieselbe Prüfung importieren.",
+          "body": "Exportieren, ausgefüllt zurückbekommen, durch dasselbe Integritäts-Gate importieren.",
           "cta": "Mehr zur Excel-Übergabe",
           "title": "Gib Übersetzern eine Arbeitsmappe, importiere sie zurück."
         },
         "studio": {
-          "alt": "Die Seite Review in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr, wobei jede Zeile den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject zeigt.",
-          "body": "Abdeckung, markierte Einträge, Bearbeitung direkt vor Ort. Kein Anbieter-Aufruf.",
+          "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject.",
+          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle. Kein Provider-Aufruf.",
           "cta": "Übersetzungen in Studio prüfen",
           "title": "Sieh den Stand jeder Locale in Verbatra Studio."
         }
       },
       "table": {
-        "key": "Schlüssel",
+        "key": "Key",
         "source": "Quelle",
         "target": "Ziel"
       }
@@ -282,8 +282,8 @@
       "label": "Unterstützte Frameworks und Formate"
     },
     "providers": {
-      "heading": "Sechs Anbieter, eine Schnittstelle.",
-      "hint": "Fahre mit der Maus über die Karten oder springe mit Tab durch sie.",
+      "heading": "Sechs Provider, eine Schnittstelle.",
+      "hint": "Fahr mit der Maus über die Karten oder geh sie mit Tab durch.",
       "kinds": {
         "anthropic": "Claude-Modelle",
         "deepl": "maschinelle Übersetzung",
@@ -318,7 +318,7 @@
       },
       "s4": {
         "heading": "4. Analyse",
-        "body": "Wir verwenden Umami, ein datenschutzfreundliches Analysewerkzeug, das wir selbst hosten. Umami ist <strong>cookielos und erhebt keine personenbezogenen Daten und verwendet kein seitenübergreifendes Fingerprinting</strong>. Es erfasst nur aggregierte Kennzahlen wie Seitenaufrufe, Verweisquellen, ungefähres Land sowie Browser, Betriebssystem und Gerätetyp. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>."
+        "body": "Wir verwenden Umami, ein datenschutzfreundliches Analysewerkzeug, das wir selbst hosten. Umami ist <strong>cookiefrei, erhebt keine personenbezogenen Daten und nutzt kein seitenübergreifendes Fingerprinting</strong>. Es erfasst nur aggregierte Kennzahlen wie Seitenaufrufe, Verweisquellen, ungefähres Land sowie Browser, Betriebssystem und Gerätetyp. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>."
       },
       "s5": {
         "heading": "5. Cookies",
@@ -346,7 +346,7 @@
       },
       "s11": {
         "heading": "11. Kontaktformular",
-        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver, der in Deutschland gehostet wird, versendet; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübertragung außerhalb der EU. Der einzige beteiligte Drittverarbeiter gemäß Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, der durch unseren Arcjet-Plan festgelegt ist, derzeit bis zu einer Stunde im kostenlosen Tarif. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange gespeichert, wie es zur Bearbeitung der Anfrage erforderlich ist, und werden nicht außerhalb des Posteingangs des Betreibers gespeichert."
+        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübermittlung außerhalb der EU. Der einzige beteiligte Auftragsverarbeiter nach Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, den unser Arcjet-Tarif festlegt, derzeit bis zu einer Stunde im kostenlosen Tarif. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und an der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange aufbewahrt, wie es zur Bearbeitung der Anfrage nötig ist, und nirgends außerhalb des Postfachs des Betreibers gespeichert."
       },
       "s12": {
         "heading": "12. KI-gestützte Übersetzung",
@@ -365,7 +365,7 @@
     "contact": {
       "meta": {
         "title": "Kontakt",
-        "description": "Nimm Kontakt mit dem Betreiber der verbatra Dokumentationsseite auf."
+        "description": "Nimm Kontakt mit dem Betreiber der verbatra-Dokumentationsseite auf."
       },
       "title": "Kontakt",
       "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im Impressum.",
@@ -388,7 +388,7 @@
           "required": "Dieses Feld ist erforderlich.",
           "invalid_email": "Gib eine gültige E-Mail-Adresse ein.",
           "too_short": "Deine Nachricht muss mindestens 10 Zeichen lang sein.",
-          "too_long": "Das Feld ist zu lang."
+          "too_long": "Dieses Feld ist zu lang."
         }
       }
     }
@@ -410,9 +410,9 @@
     },
     "availableFrom": {
       "title": "Verfügbar ab {version}",
-      "text": "Dafür wird verbatra {version} oder neuer benötigt. Frühere Versionen haben es nicht, überprüfe daher deine installierte Version mit verbatra --version und aktualisiere, falls sie älter ist.",
+      "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit verbatra --version und aktualisiere, falls sie älter ist.",
       "packageTitle": "Verfügbar ab {version}",
-      "packageText": "Dafür wird {version} oder neuer benötigt. Frühere Versionen haben es nicht, aktualisiere dieses Paket also, falls deines älter ist."
+      "packageText": "Dafür brauchst du {version} oder neuer. Frühere Releases haben es nicht: Aktualisiere das Paket, falls deines älter ist."
     },
     "screenshot": {
       "label": "Verbatra Studio",

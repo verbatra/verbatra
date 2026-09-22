@@ -4,8 +4,8 @@ description: Jeder Konfigurations-Key mit Typ, Default und Einschränkungen, daz
 ---
 verbatra liest ein kleines, geheimnisfreies Konfigurationsobjekt und validiert es, bevor es irgendetwas tut. Diese Seite ist die vollständige Referenz: jeder Key, wo die Datei liegen kann und wie eine kaputte Konfiguration fehlschlägt.
 
-<Callout title="Schlüssel kommen aus der Umgebung">
-Kein API-Schlüssel wird je aus dieser Datei gelesen. Jeder Provider liest seinen Schlüssel aus einer Umgebungsvariable, die Konfiguration bleibt also gefahrlos committbar. Siehe [Provider](/docs/providers).
+<Callout title="Keys kommen aus der Umgebung">
+Kein API-Schlüssel wird je aus dieser Datei gelesen. Jeder Provider liest seinen Key aus einer Umgebungsvariable, die Konfiguration bleibt also gefahrlos committbar. Siehe [Provider](/docs/providers).
 </Callout>
 
 ## Eine minimale Konfiguration
@@ -46,31 +46,31 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `files.pattern` | String | erforderlich | Der Pfad zu jeder Locale-Datei, mit einem `{locale}`-Token. |
 | `files.localeStyle` | `"literal"`, `"posix"` oder `"android"` | `"literal"` | Wie das `{locale}`-Token für jede Locale geschrieben wird. |
 | `provider` | Objekt | erforderlich | Der Übersetzungs-Provider, ausgewählt über `id`. |
-| `glossary` | Objekt oder String | keiner | Quellbegriffe zu bevorzugten Zielbegriffen, inline oder als Pfad zu einer JSON-Datei. |
+| `glossary` | Objekt oder String | keines | Quellbegriffe zu bevorzugten Zielbegriffen, inline oder als Pfad zu einer JSON-Datei. |
 | `tone` | `"formal"`, `"informal"` oder `"neutral"` | keiner | Das Register, das Übersetzungen verwenden sollen. |
 | `prune` | Boolean | `false` | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei. |
 | `generatePlurals` | Boolean | `false` | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
 | `fuzzyCache` | Objekt | aus | Verwendet eine Übersetzung für einen nur leicht geänderten Quellstring wieder. |
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
-| `maxLength` | Objekt | keiner | Maximale Längen pro Schlüssel für übersetzte Werte, gezählt in Graphemclustern. |
-| `maxTokens` | positive Ganzzahl | keiner | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
+| `maxLength` | Objekt | keines | Maximale Längen pro Key für übersetzte Werte, gezählt in Graphemclustern. |
+| `maxTokens` | positive Ganzzahl | keines | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
 | `budgetBehavior` | `"warn"` oder `"stop"` | `"warn"` | Was passiert, sobald `maxTokens` erreicht ist. |
-| `rates` | Objekt | keine | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
-| `extract` | Objekt | keins | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` und `verbatra diff --unused`: das Framework, die Quellverzeichnisse und die Ignorierlisten für Literale und ungenutzte Keys. |
+| `rates` | Objekt | keines | Datierte Provider-Raten, damit `translate --estimate` einen Geldbetrag ausgeben kann. |
+| `extract` | Objekt | keines | Einstellungen für den Quell-Scan von [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals` und `verbatra diff --unused`: das Framework, die Quellverzeichnisse und die Ignorierlisten für Literale und ungenutzte Keys. |
 | `$schema` | String | keiner | Ein Zeiger auf das JSON-Schema-Dokument, nur für Editoren. Zur Laufzeit ignoriert. |
 
-Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Schlüssel kommen aus der Umgebung, nicht aus der Datei.
-
 <AvailableFrom version="0.9.0" />
+
+Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme. Genau deshalb kann auch kein API-Schlüssel in der Konfiguration leben: Keys kommen aus der Umgebung, nicht aus der Datei.
 
 ### Locales und Dateien
 
 - **`sourceLocale`** muss ein nicht-leerer String sein.
 - **`targetLocales`** muss mindestens eine Locale enthalten, darf `sourceLocale` nicht einschließen, und keine zwei Einträge dürfen case-insensitiv gleich sein (zum Beispiel wird `["de", "DE"]` abgelehnt), da jede Locale beim Export der Name ihres eigenen Excel-Arbeitsblatts wird.
-- **`format`** ist eines von `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` oder `resx`, oder ein `custom:`-Bezeichner, der ein Format benennt, das ein Adapter von außerhalb verbatra liefert. Siehe [Formate](/docs/formats) und [Eigene Formatadapter](/docs/custom-format-adapters).
+- **`format`** ist eines von `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` oder `resx`, oder ein `custom:`-Bezeichner, der ein Format benennt, das ein Adapter von außerhalb verbatra liefert. Siehe [Formate](/docs/formats) und [Eigene Format-Adapter](/docs/custom-format-adapters).
 - **`files.pattern`** muss das `{locale}`-Token enthalten, das verbatra durch jede Locale ersetzt: `locales/{locale}.json` wird zu `locales/de.json`. Pfade werden gegen das Arbeitsverzeichnis aufgelöst. Das Muster ist ein wörtlicher Pfad, kein Glob, und `{locale}` ist das einzige Token, das es versteht; eine Konfiguration adressiert also genau eine Datei pro Locale. Wenn dein Projekt seine Strings über mehrere Namespace-Dateien pro Locale verteilt, siehe [Namespace-Layouts](/docs/formats#namespace-layouts). Die eine Ausnahme ist `apple-xcstrings`, wo sich alle Locales eine Katalogdatei teilen: Das Token bleibt im Muster erforderlich, löst sich aber unabhängig von der Locale zum selben Pfad auf. Siehe [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
 - **`files.localeStyle`** entscheidet, wozu das Token expandiert:
-  - `literal`, der Standard, verwendet den konfigurierten Tag genau so, wie er geschrieben ist;
+  - `literal`, der Default, verwendet das konfigurierte Tag genau so, wie es geschrieben ist;
     das brauchen die JSON-, YAML-, XLIFF-, ARB-, Properties- und Apple-`.lproj`-Layouts.
   - `posix` ersetzt `-` durch `_`, für gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) und das
     Java-Layout `messages_{locale}.properties`.
@@ -83,7 +83,7 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
 ### provider
 
-Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl` oder `openai-compatible`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert.
+Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` oder `openai-compatible`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert.
 
 ### glossary
 
@@ -103,7 +103,7 @@ Die beiden Formen schließen einander aus; es gibt keinen Merge zwischen ihnen. 
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-Die beiden Formen unterscheiden sich auch darin, wer sie ändern kann. Nur die Dateiform lässt sich aus [Verbatra Studio](/docs/review-in-studio) heraus bearbeiten; Studio schreibt diese JSON-Datei Begriff für Begriff neu und rührt dein Konfigurationsmodul nie an. Ein Inline-Glossar bleibt dort schreibgeschützt, weil es in ausführbarem Code liegt. Nimm die Dateiform, wenn du die Begriffe im Dashboard pflegen willst.
+Die beiden Formen unterscheiden sich auch darin, wer sie ändern kann. Nur die Dateiform lässt sich aus [Verbatra Studio](/docs/review-in-studio) heraus bearbeiten; Studio schreibt diese JSON-Datei Begriff für Begriff neu und rührt dein Konfigurationsmodul nie an. Ein Inline-Glossar bleibt dort nur lesbar, weil es in ausführbarem Code liegt. Nimm die Dateiform, wenn du die Begriffe im Dashboard pflegen willst.
 
 Wie das Glossar angewendet wird, hängt vom Provider ab: Die LLM-Provider erhalten die aufgelöste Zuordnung mit der Anfrage und werden angewiesen, ihre Begriffe als bindend zu behandeln, während DeepL eine Begriffszuordnung ignoriert und stattdessen ein per Id konfiguriertes Glossar anwendet. Siehe [Provider](/docs/providers).
 
@@ -113,7 +113,7 @@ Eines von `"formal"`, `"informal"` oder `"neutral"`. Die LLM-Provider erhalten d
 
 ### prune
 
-Standardmäßig aus. Wenn true, werden Keys, die in einer Zieldatei stehen, aber in der Quelle fehlen (die verwaisten Keys des Vergleichs), aus der geschriebenen Datei und [der Lock-Datei](/docs/the-lock-file) entfernt. Es werden nur verwaiste Keys entfernt, nie andere. Eine `prune`-Option pro Lauf auf `translate` (das CLI-Flag `--prune`) überschreibt den Konfigurationswert.
+Standardmäßig aus. Wenn true, werden Keys, die in einer Zieldatei stehen, aber in der Quelle fehlen (die verwaisten Keys des Vergleichs), aus der geschriebenen Datei und [der Lock-Datei](/docs/the-lock-file) entfernt. Nur verwaiste Keys werden je entfernt. Eine `prune`-Option pro Lauf auf `translate` (das CLI-Flag `--prune`) überschreibt den Konfigurationswert.
 
 ### generatePlurals
 
@@ -123,17 +123,17 @@ Standardmäßig aus. Wenn true, synthetisiert verbatra die CLDR-Pluralformen, di
 
 <AvailableFrom version="0.11.0" />
 
-Aus, solange du es nicht setzt. `fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelltext sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, statt zum Provider zu gehen, sofern beide mindestens `threshold` ähnlich sind. `threshold` ist ein Ähnlichkeitsverhältnis von `0.5` bis `1` und steht standardmäßig auf `0.9`. Eine Wiederverwendung wird getrennt von einem exakten Cache-Treffer ausgewiesen, wird immer mit dem Grund `FUZZY_CACHE_REUSE` zum Review markiert, durchläuft dieselben Integritätsprüfungen wie jeder andere Kandidatenwert und wird nie in den Cache zurückgeschrieben. Ein Eintrag, dessen Zahlzeichen vom aktuellen Quelltext abweichen, wird abgelehnt, ganz gleich wie er bewertet wird. Ein wiederverwendeter Key wird geschrieben, aber nicht gelockt, bleibt also geändert und wird bei jedem späteren Lauf erneut angeboten, bis eine echte Übersetzung landet. `threshold` steuert, wie viel Provider-Ausgaben du vermeidest, nicht wie sicher die Wiederverwendung ist; warum das so ist, steht unter [Der Cache](/docs/the-cache), und schalte das nicht ein, wenn niemand die Review-Warteschlange abarbeitet. Nur Konfiguration: Es gibt kein CLI-Flag, `--no-cache` umgeht es aber zusammen mit dem restlichen Cache.
+Aus, solange du es nicht setzt. `fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelltext sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, statt zum Provider zu gehen, sofern beide mindestens `threshold` ähnlich sind. `threshold` ist ein Ähnlichkeitsverhältnis von `0.5` bis `1` und steht standardmäßig auf `0.9`. Eine Wiederverwendung wird getrennt von einem exakten Cache-Treffer ausgewiesen, wird immer mit dem Grund `FUZZY_CACHE_REUSE` zum Review markiert, durchläuft dieselben Integritätsprüfungen wie jeder andere Kandidatenwert und wird nie in den Cache zurückgeschrieben. Ein Eintrag, dessen Zahlzeichen vom aktuellen Quelltext abweichen, wird abgelehnt, ganz gleich wie er bewertet wird. Ein wiederverwendeter Key wird geschrieben, aber nicht gelockt, bleibt also geändert und wird bei jedem späteren Lauf erneut angeboten, bis eine echte Übersetzung landet. `threshold` steuert, wie viel du beim Provider sparst, nicht wie sicher die Wiederverwendung ist; warum das so ist, steht unter [Der Cache](/docs/the-cache), und schalte das nicht ein, wenn niemand die Review-Warteschlange abarbeitet. Nur Konfiguration: Es gibt kein CLI-Flag, `--no-cache` umgeht es aber zusammen mit dem restlichen Cache.
 
 ### maxBatchSize
 
-Default `50`. Die fehlenden plus geänderten Einträge einer Locale werden in sequenzielle Sub-Batches höchstens dieser Größe aufgeteilt, damit eine überdimensionierte Provider-Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf erneut versucht, während die anderen weiter Fortschritt machen. Muss eine positive Ganzzahl sein; null, negative oder gebrochene Werte werden abgelehnt. Nur Konfiguration: Es gibt kein CLI-Flag und keinen Override pro Lauf.
+Default `50`. Die fehlenden plus geänderten Einträge einer Locale werden in sequenzielle Sub-Batches höchstens dieser Größe aufgeteilt, damit eine überdimensionierte Provider-Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf erneut versucht, während die anderen weiter vorankommen. Muss eine positive Ganzzahl sein; null, negative oder gebrochene Werte werden abgelehnt. Nur Konfiguration: Es gibt kein CLI-Flag und keinen Override pro Lauf.
 
 ### maxLength
 
 <AvailableFrom version="0.11.0" />
 
-Optional. Eine Zuordnung von Übersetzungsschlüssel zum längsten Wert, den dieser Schlüssel enthalten darf, für einen String unter einer Layout-Vorgabe: ein Navigationslabel, ein Button, eine Tabellenüberschrift.
+Optional. Eine Zuordnung von Übersetzungs-Key zum längsten übersetzten Wert, den dieser Key halten darf, für einen String unter einer Layout-Vorgabe: ein Navigationslabel, ein Button, eine Tabellenüberschrift.
 
 ```ts
 maxLength: {
@@ -142,30 +142,32 @@ maxLength: {
 }
 ```
 
-Diese Zuordnung ist die einzige Stelle, aus der ein Budget gelesen wird. verbatra leitet nie eines aus der Beschreibung eines Eintrags oder aus den Längenangaben eines Formats ab, also steht ein Budget genau dort, wo du es geschrieben hast, und nichts überschreibt es still. Schlüssel werden wörtlich verglichen, nicht als Globs oder Präfixe, und ein Schlüssel, der nicht in der Zuordnung steht, hat kein Budget und wird nie gemessen.
+Diese Zuordnung ist die einzige Stelle, aus der ein Budget gelesen wird. verbatra leitet nie eines aus der Beschreibung eines Eintrags oder aus den Längenangaben eines Formats ab, also steht ein Budget genau dort, wo du es geschrieben hast, und nichts überschreibt es still. Keys werden wörtlich verglichen, nicht als Globs oder Präfixe, und ein Key, der nicht in der Zuordnung steht, hat kein Budget und wird nie gemessen.
 
-Die Länge wird in Graphemclustern gezählt: den Zeichen, die eine Leserin wahrnimmt, nicht in UTF-16-Codeeinheiten und nicht in Unicode-Codepunkten. Ein Emoji, das aus mehreren Codepunkten zusammengesetzt ist, zählt als eines, und ein Buchstabe mit folgendem kombinierendem Akzent ebenso. Ein CJK-Zeichen zählt ebenfalls als eines, obwohl die meisten Schriftarten es etwa doppelt so breit wie einen lateinischen Buchstaben darstellen; setze Budgets für diese Locales also mit diesem Wissen. Der Wert wird genau so gemessen, wie er geschrieben ist, inklusive führender und nachgestellter Leerzeichen, und der Vergleich ist einschließend: ein Wert von genau dem Budget besteht, ein Graphem mehr nicht.
+Die Länge wird in Graphemclustern gezählt: den Zeichen, die ein Leser wahrnimmt, nicht in UTF-16-Codeeinheiten und nicht in Unicode-Codepunkten. Ein Emoji, das aus mehreren Codepunkten zusammengesetzt ist, zählt als eines, und ein Buchstabe mit folgendem kombinierendem Akzent ebenso. Ein CJK-Zeichen zählt ebenfalls als eines, obwohl die meisten Schriftarten es etwa doppelt so breit wie einen lateinischen Buchstaben darstellen; behalte das im Kopf, wenn du Budgets für diese Locales setzt. Der Wert wird genau so gemessen, wie er geschrieben ist, inklusive führender und nachgestellter Leerzeichen, und der Vergleich ist inklusiv: ein Wert von genau der Budgethöhe besteht, ein Graphem mehr nicht.
 
-Ein Budget wird geprüft, sobald `translate` einen Wert für diesen Schlüssel erzeugt: eine frische Übersetzung, ein aus dem Cache wiederverwendeter Wert und ein Wert, der an einen Schlüssel mit gleichem Quelltext weitergereicht wird. Es ist kein Durchlauf über den ganzen Katalog. Ein Schlüssel, der bereits übersetzt ist und noch zu seiner Quelle passt, wird nicht neu übersetzt und deshalb auch nicht gemessen; ein Budget, das du einem fertigen Projekt hinzufügst, markiert also nichts, bis sich der Quelltext dieses Schlüssels das nächste Mal ändert. Um jede aktuelle Übersetzung sofort gegen ihr Budget zu messen, führe [`verbatra export --include-unchanged`](/docs/cli/export) aus: der Export berechnet die Review-Spalten für jede geschriebene Zeile neu, und die Option ist das, was die bereits aktuellen Schlüssel überhaupt in die Datei bringt. Ein einfaches `export` schreibt nur die fehlenden und veralteten Zeilen und würde also genau die Schlüssel überspringen, um die es hier geht.
+Ein Budget wird geprüft, sobald `translate` einen Wert für diesen Key erzeugt: eine frische Übersetzung, ein aus dem Cache wiederverwendeter Wert und ein Wert, der an einen Key mit gleichem Quelltext weitergereicht wird. Es ist kein Durchlauf über den ganzen Katalog. Ein Key, der bereits übersetzt ist und noch zu seiner Quelle passt, wird nicht neu übersetzt und deshalb auch nicht gemessen; ein Budget, das du einem fertigen Projekt hinzufügst, markiert also nichts, bis sich der Quelltext dieses Keys das nächste Mal ändert. Um jede aktuelle Übersetzung sofort gegen ihr Budget zu messen, führe [`verbatra export --include-unchanged`](/docs/cli/export) aus: der Export berechnet die Review-Spalten für jede geschriebene Zeile neu, und das Flag ist das, was die bereits aktuellen Keys überhaupt in die Datei bringt. Ein einfaches `export` schreibt nur die fehlenden und veralteten Zeilen und würde also genau die Keys überspringen, um die es hier geht.
 
-Ein Budget muss eine positive Ganzzahl sein. Eine Überschreitung ist beratend, nie blockierend: die Übersetzung wird weiterhin in die Locale-Datei geschrieben und weiterhin in der Lock-Datei erfasst, und der Schlüssel wird als `MAX_LENGTH_EXCEEDED` in der `needsReview`-Liste der Laufzusammenfassung, in der Review-Queue von Studio und in den Review-Spalten der Arbeitsmappe gemeldet. Siehe [Übersetzungssicherheit](/docs/translation-safety).
+Ein Budget muss eine positive Ganzzahl sein. Eine Überschreitung ist beratend, nie blockierend: die Übersetzung wird weiterhin in die Locale-Datei geschrieben und weiterhin in der Lock-Datei erfasst, und der Key wird als `MAX_LENGTH_EXCEEDED` in der `needsReview`-Liste der Lauf-Zusammenfassung, in der Review-Warteschlange von Studio und in den Review-Spalten der Arbeitsmappe gemeldet. Siehe [Übersetzungssicherheit](/docs/translation-safety).
 
 ### maxTokens und budgetBehavior
 
 `maxTokens` ist ein Token-Budget für den ganzen Lauf: Eingabe- plus Ausgabe-Tokens, summiert über jeden Provider-Aufruf (Hauptübersetzung wie Pluralgenerierung) und über jede Ziel-Locale. Nur Konfiguration, kein CLI-Flag.
 
-`budgetBehavior` entscheidet, was passiert, sobald die Obergrenze erreicht ist:
+<AvailableFrom version="0.11.0" />
+
+`budgetBehavior` entscheidet, was passiert, sobald die Obergrenze erreicht ist (ab 0.11.0 ist `"stop"` eine durchgesetzte Obergrenze, die vor jeder Anfrage geprüft wird, und sie gilt auch für DeepL und Google Cloud Translation):
 
 - `"warn"` (der Default) zählt die Ausgaben, vermerkt die Überschreitung und lässt den Lauf genau so weiterlaufen, als wäre kein Budget konfiguriert. Es wird nichts zurückgehalten.
 - `"stop"` macht aus der Zahl eine echte Obergrenze. Vor jeder Provider-Anfrage schätzt der Lauf, was diese Anfrage kosten wird, mit derselben Projektion, die auch [die Vorab-Schätzung](/docs/estimating-cost) meldet, und weigert sich, eine Anfrage zu senden, die den Lauf über `maxTokens` bringen würde. Die Keys dieser Anfrage werden zurückgehalten, und ebenso jeder noch nicht versuchte Key für den Rest des Laufs: die verbleibenden Kandidaten der aktuellen Locale und die Kandidaten jeder späteren Ziel-Locale komplett (deren Vergleich und Verwaisten-Meldung laufen trotzdem; nur der Provider-Aufruf wird übersprungen). Zurückgehaltene Keys behalten ihren vorherigen Lock-Hash und werden beim nächsten Lauf automatisch erneut versucht, genauso wie ein fehlgeschlagener Provider-Aufruf schon heute.
 
 So wird jede Anfrage geprüft, die der Lauf sendet, auch jede Hälfte einer Anfrage, die verbatra nach einer abgeschnittenen Antwort neu aufteilt. Eine Kaskade von Retrys kann eine einzelne Reservierung also nicht überholen. Nach jeder Anfrage wird die gezählte Summe auf den Verbrauch abgeglichen, den der Provider tatsächlich gemeldet hat, denn der Provider ist die Instanz dafür, was abgerechnet wurde. Eine Anfrage, die mehr meldet als projiziert war, bringt diese Differenz erst im Nachhinein ein. Ein Lauf kann also um die Differenz der letzten zugelassenen Anfrage über `maxTokens` enden, und um nicht mehr: danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen. Eine Anfrage, die fehlschlägt oder abgeschnitten zurückkommt, behält ihre volle Projektion als Belastung, statt erstattet zu werden, denn so ein Aufruf hat seinen Prompt meist schon abgerechnet. Bereits Übersetztes bleibt geschrieben und gelockt, und ein zurückgehaltener Key behält seine bisherige Baseline, ein gestoppter Lauf hinterlässt also keine halb geschriebene Locale-Datei und keinen Lock-Eintrag, der zurückgehaltene Arbeit beansprucht.
 
-Die Obergrenze begrenzt einen Lauf, keine Sitzung, und sie gilt für `translate` und sonst nichts. `watch` startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder Quelltext-Änderung erneut bis zu `maxTokens` ausgeben; nutze es, um einen Lauf zu begrenzen, nicht einen Arbeitstag. Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/studio) oder den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese Ausgabe.
+Die Obergrenze begrenzt einen Lauf, keine Sitzung, und sie gilt für `translate` und sonst nichts. `watch` startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder Quelltext-Änderung erneut bis zu `maxTokens` ausgeben; nutze es, um einen Lauf zu begrenzen, nicht einen Arbeitstag. Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/review-in-studio) oder den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese Ausgabe.
 
-`maxTokens` zu setzen schränkt außerdem ein, wie ein Lauf parallelisiert werden darf: ein echter Lauf, der es mit `--concurrency` über `1` kombiniert, wird vor jedem Provider-Aufruf mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt. Die Obergrenze selbst würde weiterhin halten, aber welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales zufällig verschränken, dasselbe Projekt ergäbe also nicht zweimal denselben Lauf. Ein Dry Run ist ausgenommen. Lass das Budget weg oder belasse die Nebenläufigkeit bei `1`.
+`maxTokens` zu setzen, schränkt außerdem ein, wie ein Lauf parallelisiert werden darf: ein echter Lauf, der es mit `--concurrency` über `1` kombiniert, wird vor jedem Provider-Aufruf mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt. Die Obergrenze selbst würde weiterhin halten, aber welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales zufällig verschränken, dasselbe Projekt ergäbe also nicht zweimal denselben Lauf. Ein Dry Run ist ausgenommen. Lass das Budget weg oder belasse die Nebenläufigkeit bei `1`.
 
-Unter `"warn"` ändert ein ausgelöstes Budget nie den Exit-Code des Befehls. Unter `"stop"` kann es das: ein Locale, dessen Keys zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys dennoch ankamen, und als `failed`, wenn keiner ankam, und beide enden mit `1`. `budgetBehavior` ohne `maxTokens` wird akzeptiert und hat keine Wirkung. Ein Provider, der keinen eigenen Token-Verbrauch meldet (DeepL, Google Cloud Translation), wird stattdessen über die Projektion budgetiert, eine Obergrenze gegen einen von beiden hält also Arbeit genauso zurück wie bei jedem anderen; `supported: false` im `budget` der Lauf-Zusammenfassung sagt, dass die Zahl verbatras eigene Zählung ist und nicht die des Providers.
+Unter `"warn"` ändert ein ausgelöstes Budget nie den Exit-Code des Befehls. Unter `"stop"` kann es das: eine Locale, deren Keys zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys dennoch ankamen, und als `failed`, wenn keiner ankam, und beide enden mit Exit `1`. `budgetBehavior` ohne `maxTokens` wird akzeptiert und hat keine Wirkung. Ein Provider, der keinen eigenen Token-Verbrauch meldet (DeepL, Google Cloud Translation), wird stattdessen über die Projektion budgetiert, eine Obergrenze gegen einen von beiden hält also Arbeit genauso zurück wie bei jedem anderen; `supported: false` im `budget` der Lauf-Zusammenfassung sagt, dass die Zahl verbatras eigene Zählung ist und nicht die des Providers.
 
 Die Projektion enthält einen festen Aufschlag für den Prompt, den verbatra an einen LLM-Provider sendet (seine Systemregeln und sein Antwortschema), und dieser Aufschlag wird auch für DeepL und Google Cloud Translation angerechnet, obwohl sie keinen Prompt bekommen. Eine Anfrage wird als ganzer Batch projiziert, unter `"stop"` lehnt ein `maxTokens` unterhalb der Projektion eines Batches diesen Batch also bei jedem Lauf ab, und der Lauf kommt nie darüber hinaus. Der Ablehnungshinweis sagt das, wenn es passiert: Senke `maxBatchSize`, damit jede Anfrage weniger projiziert, oder erhöhe `maxTokens`.
 
@@ -190,15 +192,15 @@ rates: {
 }
 ```
 
-`asOf` ist ein Kalenderdatum in der Form `YYYY-MM-DD`, `currency` ein dreistelliger Großbuchstaben-Code. Beide sind Pflicht, und beide werden neben jeder aus der Tabelle abgeleiteten Zahl ausgegeben, eine veraltete Zahl ist also sichtbar veraltet. `table` ist nach Raten-Key aufgeschlüsselt: `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechneter Eintrag trägt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasierter `perMillionCharacters`. Beide Formen in einem Eintrag zu mischen wird abgelehnt, ebenso eine negative Rate.
+`asOf` ist ein Kalenderdatum in der Form `YYYY-MM-DD`, `currency` ein dreibuchstabiger Code in Großbuchstaben. Beide sind Pflicht, und beide werden neben jeder aus dem Block abgeleiteten Zahl ausgegeben, eine veraltete Zahl ist also sichtbar veraltet. `table` ist nach Raten-Key aufgeschlüsselt: `provider/model` für einen Provider mit konfiguriertem Modell und die blanke Provider-ID für einen ohne (`deepl`, `google-translate`). Ein tokenbasiert abgerechneter Eintrag trägt `inputPerMillionTokens` und `outputPerMillionTokens`, ein zeichenbasierter `perMillionCharacters`. Beide Formen in einem Eintrag zu mischen wird abgelehnt, ebenso eine negative Rate.
 
-Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, was abgerechnet wird, nicht, was geschrieben wird. Ein Raten-Key ohne Eintrag wird als ausdrückliches Fehlen gemeldet statt als Kosten von null, und ein Eintrag in der für seinen Provider falschen Einheit wird abgelehnt statt angewendet. Siehe [Kosten abschätzen](/docs/estimating-cost) dafür, wie die Zahl berechnet wird und was sie bewusst auslässt.
+Der Block ändert nichts an einem echten Lauf: nicht, was gesendet wird, nicht, was abgerechnet wird, nicht, was geschrieben wird. Ein Raten-Key ohne Eintrag wird als ausdrückliches Fehlen gemeldet statt als Kosten von null, und ein Eintrag in der für seinen Provider falschen Einheit wird abgelehnt statt angewendet. Wie die Zahl berechnet wird und was sie bewusst auslässt, steht unter [Kosten abschätzen](/docs/estimating-cost).
 
 ### extract
 
 <AvailableFrom version="0.11.0" />
 
-Optional und nur von [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor) und [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) genutzt. Jeder andere Befehl ignoriert es.
+Optional und nur von [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) und [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) genutzt. Jeder andere Befehl ignoriert es.
 
 ```ts
 extract: {
@@ -216,7 +218,7 @@ extract: {
 
 `exclude` ergänzt die immer übersprungene Menge um Verzeichnisnamen; sie umfasst bereits `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`. Namen, keine Pfade: Ein Eintrag trifft ein Verzeichnis dieses Namens überall unterhalb eines Roots.
 
-`literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen wie `&amp;` gleich ist, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
+`literals.ignore` listet exakte Texte, die [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) überall zurückhält, etwa einen Markennamen. Ein Eintrag trifft ein Literal, dessen ganzer Text nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen wie `&amp;` gleich ist, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt gemeldet, nie verworfen.
 
 `unused.ignore` listet die Keys, die `diff --unused` nicht als ungenutzt melden darf, für einen Key, der nur von außerhalb des gescannten Quellcodes referenziert wird, etwa aus einem Server-Template, einem CMS oder einer Test-Fixture. Jeder Eintrag ist ein exakter Key oder ein Muster, in dem `*` für eine beliebige Zeichenfolge steht, etwa `emails.*`. Er trifft den dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`, nicht das maskierte `Welcome\. Enjoy`). Ein getroffener Key wird als ignoriert gemeldet, statt wegzufallen. `unused` akzeptiert kein weiteres Feld.
 
@@ -224,7 +226,7 @@ Unbekannte Keys innerhalb des Blocks werden abgelehnt, genau wie auf der oberste
 
 ## Suchreihenfolge
 
-verbatra sucht vom Arbeitsverzeichnis aus aufwärts und verwendet die erste Quelle, die es findet. Mehrere vorhandene Quellen sind kein Fehler; der erste Treffer gewinnt. Die Suchreihenfolge ist:
+verbatra sucht vom Arbeitsverzeichnis aus aufwärts und verwendet die erste Quelle, die es findet. Die Suche endet beim nächsten übergeordneten Verzeichnis, das einen `.git`-Eintrag enthält (oder bei deinem Home-Verzeichnis, wenn keiner gefunden wird), sie wandert also nicht über dein Repository hinaus in eine fremde Konfiguration. Mehrere vorhandene Quellen sind kein Fehler; der erste Treffer gewinnt. Die Suchreihenfolge ist:
 
 1. `package.json` (eine `"verbatra"`-Eigenschaft)
 2. `.verbatrarc`
@@ -238,7 +240,7 @@ verbatra sucht vom Arbeitsverzeichnis aus aufwärts und verwendet die erste Quel
 10. `verbatra.config.cjs`
 11. `verbatra.config.ts`
 
-Um stattdessen genau eine Datei zu laden, übergib `--config <path>`; ein relativer Pfad wird gegen das Arbeitsverzeichnis aufgelöst. Im SDK hat ein In-Memory-`configOverride` Vorrang vor einem expliziten `configPath`, das Vorrang vor der Suche hat. Siehe [Programmatische API](/docs/programmatic-api).
+Um stattdessen genau eine Datei zu laden, übergib `--config <path>`; ein relativer Pfad wird gegen das Arbeitsverzeichnis aufgelöst. Im SDK hat ein In-Memory-`configOverride` Vorrang vor einem expliziten `configPath`, das Vorrang vor der Suche hat. Siehe [SDK-Rezepte](/docs/programmatic-api).
 
 ## Validierung im Editor
 
@@ -252,7 +254,7 @@ node_modules/@verbatra/sdk/dist/config-schema.json
 
 Zeigt ein Editor darauf, bekommt eine deklarative Konfiguration Key-Vervollständigung, Typ- und Enum-Prüfung und eine sofortige Warnung bei einem vertippten Key.
 
-Einem Editor muss man sagen, welches Dokument er nehmen soll; von allein validiert nichts. Dafür gibt es zwei Wege.
+Einem Editor musst du sagen, welches Dokument er nehmen soll; von allein validiert nichts. Dafür gibt es zwei Wege.
 
 **Ein `$schema`-Key in der Datei.** `.verbatrarc.json` und `.verbatrarc` akzeptieren einen `$schema`-Key auf oberster Ebene, den verbatra annimmt und ignoriert:
 
@@ -304,9 +306,9 @@ Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber a
 
 ## Das Arbeitsverzeichnis und .env
 
-Führe verbatra aus deinem Projektstamm aus, oder lass `--cwd` darauf zeigen. Das Arbeitsverzeichnis ist der eine Anker für alles, was verbatra auflöst: Die Konfigurationssuche startet dort und läuft aufwärts, `.env.local` und `.env` werden von dort für `translate`, `watch`, `doctor` und `studio` geladen, und jeder Locale-Dateipfad wird dagegen aufgelöst. Alle drei am selben Ort zu halten ist es, was ein schlichtes `verbatra translate` funktionieren lässt.
+Führe verbatra aus deinem Projektstamm aus, oder lass `--cwd` darauf zeigen. Das Arbeitsverzeichnis ist der eine Anker für alles, was verbatra auflöst: Die Konfigurationssuche startet dort und läuft aufwärts, `.env.local` und `.env` werden von dort für `translate`, `watch`, `doctor`, `studio` und `mcp` geladen, und jeder Locale-Dateipfad wird dagegen aufgelöst. Dass alle drei am selben Ort liegen, ist das, was ein schlichtes `verbatra translate` funktionieren lässt.
 
-Die Präzedenz der Umgebung ist, höchste zuerst: eine Variable, die schon in deiner echten Umgebung gesetzt ist, dann `.env.local`, dann `.env`. Eine bereits vorhandene Variable wird nie überschrieben.
+Die Rangfolge in der Umgebung ist, höchste zuerst: eine Variable, die schon in deiner echten Umgebung gesetzt ist, dann `.env.local`, dann `.env`. Eine bereits vorhandene Variable wird nie überschrieben.
 
 ## Wenn das Laden fehlschlägt
 
@@ -315,4 +317,4 @@ Das Laden der Konfiguration schlägt mit einem von zwei strukturierten Fehlercod
 - **`CONFIG_NOT_FOUND`**: Die Suche hat an keinem der Orte oben eine Konfiguration gefunden, oder der explizite `--config`-Pfad existiert nicht.
 - **`CONFIG_INVALID`**: Eine Konfiguration wurde gefunden, konnte aber nicht verwendet werden. Das deckt eine Datei ab, die nicht parst, eine Konfiguration, die die Schemavalidierung nicht besteht, und einen Glossar-Dateipfad, der sich nicht auflösen ließ. Die Meldung listet jedes Validierungsproblem mit seinem Key-Pfad, und ein unbekannter Top-Level-Key bekommt den Hinweis, dass API-Schlüssel aus der Umgebung gelesen werden, nicht aus der Konfiguration. Ein roher Parser- oder Dateisystemfehler dringt nie nach außen.
 
-Die CLI meldet beide Fehlschläge und endet mit Exit-Code `2`, dem Exit-Code für Boundary-Fehler. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Die CLI meldet jeden der beiden Fehlschläge und endet mit Exit-Code `2`, dem Exit-Code für Boundary-Fehler. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).

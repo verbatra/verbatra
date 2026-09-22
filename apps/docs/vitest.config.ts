@@ -8,6 +8,12 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["lib/**/*.test.ts", "components/**/*.test.tsx", "app/**/*.test.ts", "proxy.test.ts"],
+    include: [
+      "lib/**/*.test.ts",
+      "lib/**/*.test.tsx",
+      "components/**/*.test.tsx",
+      "app/**/*.test.ts",
+      "proxy.test.ts",
+    ],
   },
 });

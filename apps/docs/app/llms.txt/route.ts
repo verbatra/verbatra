@@ -55,13 +55,13 @@ export function GET(): Response {
 
 > verbatra is a CLI and SDK that keeps your i18n locale files in sync, translating only the keys that are new or whose source text changed, through your choice of AI or machine-translation provider.
 
-verbatra is open source and MIT licensed. You maintain one source locale; on each run it diffs the source against a committed lock file and sends only the new or changed keys to your provider, leaving current translations untouched. Placeholder and ICU integrity are checked after every translation, and any result that breaks a placeholder is withheld. Written files round-trip in exact document order: existing keys keep their positions and new keys are appended in source order, so translated files diff cleanly. Suspicious results are flagged for review, and the local Studio dashboard (the \`verbatra studio\` command) shows project state, drift, and the review queue.
+verbatra is open source and MIT licensed. You maintain one source locale; on each run it diffs the source against a committed lock file and sends only the new or changed keys to your provider, leaving current translations untouched. Placeholder, ICU, and inline markup integrity are checked after every translation, and any result that breaks a placeholder, its message syntax, or its inline markup is withheld. Written files round-trip in exact document order: existing keys keep their positions and new keys are appended in source order, so translated files diff cleanly. Suspicious results are flagged for review, and the local Studio dashboard (the \`verbatra studio\` command) shows project state, drift, and the review queue.
 
 - Repository: https://github.com/verbatra/verbatra
 - npm packages: @verbatra/cli (the \`verbatra\` command), @verbatra/sdk (programmatic API), @verbatra/studio (local review dashboard, loaded by \`verbatra studio\`), @verbatra/mcp (stdio MCP server, loaded by \`verbatra mcp\`)
 - Translation providers: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation, openai-compatible (local or self-hosted)
 - i18n formats: i18next, vue-i18n, next-intl, ngx-translate, Flutter ARB, YAML, XLIFF, Java/Spring properties, Apple .strings, Xcode String Catalogs, Android strings.xml, gettext .po/.pot, INI, and .NET .resx
-- Frameworks: React, Vue, Angular, Node.js, Flutter
+- Frameworks: React, Next.js, Vue, Nuxt, Angular, Node.js, SvelteKit, Astro, React Native, Flutter, Spring, iOS and macOS, Android, .NET
 - Requires Node.js >= 22.14.0
 
 ${renderSections()}

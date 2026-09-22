@@ -6,13 +6,13 @@ Verbatra Studio ist normalerweise eine Oberfläche für Menschen: du öffnest da
 
 Das ist dafür da, ein bestehendes verbatra-Projekt im Dialog zu bedienen: Zustand und Drift ansehen, die Review-Warteschlange abarbeiten, Einträge bearbeiten und (nur wenn du zusätzlich Ausgaben erlaubst) ausstehende Keys neu übersetzen und übersetzen. Es ist nicht für die Projekteinrichtung und nicht für Fernzugriff gedacht.
 
-<Callout title="Experimentell und durch ein Browser-Flag abgesichert">
+<Callout title="Experimentell und hinter einem Browser-Flag">
 WebMCP ist eine neue, sich noch entwickelnde Browser-Fähigkeit. Heute braucht es dafür einen bestimmten Chrome-Build mit einem experimentellen Flag, und die Schnittstelle kann sich ändern, während der Standard reift. Behandle das als Vorschau-Funktion.
 </Callout>
 
 ## Was WebMCP ist
 
-WebMCP lässt eine Seite Tools an `document.modelContext` registrieren, die ein im Browser ansässiger KI-Agent dann aufrufen kann. Studio nutzt das, um seine Review-Aktionen als benannte Tools anzubieten. Jeder Tool-Aufruf läuft weiterhin über genau denselben authentifizierten RPC wie das Dashboard, über denselben Loopback-Origin, mit derselben Eingabevalidierung und denselben Capability-Gates. Die Tools zu registrieren gibt einem Agenten nichts, was der offene, authentifizierte Tab nicht schon hatte: ein Agent, der das DOM steuert, konnte jede einzelne dieser Aktionen schon erreichen. Die Angriffsfläche deckt sich mit diesem einen offenen Tab und fügt keine neue Netzwerk-Exposition hinzu.
+WebMCP lässt eine Seite Tools an `document.modelContext` registrieren, die ein im Browser ansässiger KI-Agent dann aufrufen kann. Studio nutzt das, um seine Review-Aktionen als benannte Tools anzubieten. Jeder Tool-Aufruf läuft weiterhin über genau denselben authentifizierten RPC wie das Dashboard, über denselben Loopback-Origin, mit derselben Eingabevalidierung und denselben Capability-Gates. Die Tools zu registrieren gibt einem Agenten nichts, was der offene, authentifizierte Tab nicht schon hatte: ein Agent, der das DOM steuert, konnte jede einzelne dieser Aktionen schon erreichen. Die Oberfläche deckt sich mit diesem einen offenen Tab und fügt keine neue Netzwerk-Exposition hinzu.
 
 ### Voraussetzungen im Browser
 
@@ -29,7 +29,7 @@ Agent-Tools sind standardmäßig aus. Schalte sie mit dem Flag am `studio`-Befeh
 verbatra studio --expose-agent-tools
 ```
 
-Oder setze die Variante über die Umgebung:
+Oder setze den Fallback über die Umgebung:
 
 ```bash
 VERBATRA_STUDIO_AGENT_TOOLS=1 verbatra studio
@@ -45,7 +45,7 @@ Mit aktiviertem Opt-in registriert Studio fünfzehn Tools, eines pro Dashboard-A
 
 ### Lese-Tools (elf)
 
-Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only markiert.
+Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend markiert.
 
 | Tool | Was es zurückgibt |
 | --- | --- |
@@ -55,15 +55,15 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only 
 | `verbatra_glossary_get` | das aufgelöste Glossar |
 | `verbatra_lock_state` | der Zustand der Lock-Datei |
 | `verbatra_history_list` | jüngste Commit-Historie der Locale-Dateien |
-| `verbatra_key_integrity` | Platzhalter- und ICU-Integrität für einen Key |
+| `verbatra_key_integrity` | Platzhalter-, Inline-Markup- und ICU-Integrität für einen Key |
 | `verbatra_review_queue` | die Review-Warteschlange |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
-| `verbatra_key_value` | die Quell- und Zielwerte für einen Key und ein Locale |
-| `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jedem Ziel-Locale |
+| `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
+| `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
 
 ### Schreib-Tools (zwei)
 
-`verbatra_translation_editEntry` bearbeitet den Wert eines Locales an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf.
+`verbatra_translation_editEntry` bearbeitet den Wert einer Locale an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dieselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht in einen Wettlauf um einen Eintrag geraten.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -73,16 +73,25 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als read-only 
 
 Diese rufen einen Übersetzungs-Provider auf und werden nur registriert, wenn Studio zusätzlich mit `--allow-spend` läuft:
 
-- `verbatra_translation_retranslateEntry`: übersetzt einen Key und ein Locale neu.
+- `verbatra_translation_retranslateEntry`: übersetzt einen Key und eine Locale neu.
 - `verbatra_translation_translatePending`: übersetzt alles derzeit Ausstehende.
 
-Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
+Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). `verbatra_translation_retranslateEntry` trägt zusätzlich dieselbe Sperre pro Eintrag wie das Bearbeiten: ein gleichzeitiger zweiter Aufruf für dieselbe Locale und denselben Key wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt. Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
+
+### Wenn ein Aufruf fehlschlägt
+
+Jedes Tool liefert den RPC-Envelope des Dashboards selbst als JSON, ein fehlgeschlagener Aufruf lautet also `{ "ok": false, "error": { "code": ..., "message": ... } }`. Neben den Domänen-Codes, die das SDK meldet (eine Ablehnung durch die Integritätsprüfungen, ein unbekanntes Locale oder ein unbekannter Key), `METHOD_RATE_LIMITED` für einen Aufruf über seinem Ratenlimit und der oben beschriebenen Ablehnung mit `ALREADY_IN_PROGRESS` stammen die Codes aus der RPC-Schicht selbst:
+
+- `REQUEST_INVALID`: Der Request-Body war kein JSON-Objekt, das eine Methode nennt, oder die Antwort des Servers war kein Envelope, den der Tab lesen konnte.
+- `METHOD_UNKNOWN`: Die Methode ist keine, die Studio kennt, oder sie ist in dieser Sitzung nicht registriert, wie eine Ausgaben-Methode ohne `--allow-spend`.
+- `PARAMS_INVALID`: Die Parameter haben die Validierung nicht bestanden; der Fehler trägt eine `issues`-Liste, die jedes fehlerhafte Feld nennt.
+- `SESSION_EXPIRED`: Der Server akzeptiert das Sitzungscookie des Tabs nicht mehr, meist weil Studio mit einem neuen Token neu gestartet wurde. Der Tab ruft den Server nicht mehr auf und zeigt den Bildschirm Session expired; öffne die URL, die das laufende Studio ausgegeben hat, um eine neue Sitzung zu starten.
 
 ## Der Degraded-Mode-Hinweis
 
 Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Problem.
 
-**Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du die Freigabe nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
+**Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du das Opt-in nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
 
 **Dreizehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio dreizehn Registrierungen statt fünfzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Dreizehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
 
@@ -94,7 +103,7 @@ Zahl und Fehlername sind die echten aus diesem Durchlauf. Der Hinweis hat kein B
 
 ### Was im Degraded-Modus weiterhin funktioniert
 
-Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool, das sich registriert hat, aufrufbar und die Oberfläche ist meist teilweise nutzbar statt ausgefallen. Das Dashboard bleibt unberührt: die menschliche Oberfläche, die RPCs und jedes Capability-Gate verhalten sich genau so, wie sie es mit ausgeschalteter Freigabe täten, und keine Locale-Datei ist betroffen.
+Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool, das sich registriert hat, aufrufbar und die Oberfläche ist meist teilweise nutzbar statt ausgefallen. Das Dashboard bleibt unberührt: die menschliche Oberfläche, die RPCs und jedes Capability-Gate verhalten sich genau so, wie sie es bei ausgeschalteter Oberfläche täten, und keine Locale-Datei ist betroffen.
 
 ### Die Konsole lesen
 
@@ -112,7 +121,7 @@ Ein Durchlauf, der die Tool-Schleife nie erreicht hat, meldet eine andere Zeile 
 Verbatra agent tools: registration did not start (TypeError: Failed to fetch).
 ```
 
-Das heißt, der Projekt-Snapshot-Aufruf, der über die Freigabe entscheidet, ist beim Laden fehlgeschlagen, sodass kein Tool versucht wurde.
+Das heißt, der Projekt-Snapshot-Aufruf, der entscheidet, ob die Oberfläche freigeschaltet ist, ist beim Laden fehlgeschlagen, sodass kein Tool versucht wurde.
 
 ### Was du dagegen tun kannst
 
@@ -130,11 +139,11 @@ Behalte diese Punkte im Kopf, bevor du Agent-Tools einschaltest.
 - **Standardmäßig aus.** Du schaltest sie ausdrücklich mit `--expose-agent-tools` (oder `VERBATRA_STUDIO_AGENT_TOOLS`) ein.
 - **Ausgaben brauchen beide Flags.** Die beiden Ausgaben-Tools erscheinen nur, wenn du sowohl `--expose-agent-tools` als auch `--allow-spend` übergibst. Keines der Flags impliziert das andere. Lese- und Schreib-Tools geben nichts aus.
 - **Keine neue Netzwerk-Exposition.** Jeder Tool-Aufruf nutzt denselben authentifizierten Loopback-RPC wie das Dashboard. Studio bindet sich weiterhin nur an `127.0.0.1`, und das Browser-Sitzungstoken authentifiziert weiterhin jede Anfrage.
-- **Übersetzbare Strings sind nicht vertrauenswürdig.** Tools, die aus dem Projekt stammenden Text zurückgeben können (Locale-Strings, Key-Namen, Glossarbegriffe, Commit-Betreffs, Platzhalter-Tokens), markieren ihren Inhalt als nicht vertrauenswürdig, damit ein konsumierender Agent diese Werte als Daten behandelt und nicht als Anweisungen.
+- **Übersetzbare Strings sind nicht vertrauenswürdig.** Tools, die aus dem Projekt stammenden Text zurückgeben können (Locale-Strings, Key-Namen, Glossarbegriffe, Commit-Betreffzeilen, Platzhalter-Tokens), markieren ihren Inhalt als nicht vertrauenswürdig, damit ein konsumierender Agent diese Werte als Daten behandelt und nicht als Anweisungen.
 
 ### Das akzeptierte Ausgabenrisiko
 
-Sag es klar: sind `--allow-spend` und `--expose-agent-tools` beide an, kann ein autonomer Agent Provider-Ausgaben auslösen, ohne dass ein Mensch jeden Klick bestätigt. Studio baut keinen Freigabedialog pro Aufruf ein: der Server kann einen vom Agenten ausgelösten Aufruf nicht von einem menschlichen Klick in derselben Sitzung unterscheiden, ein solcher Dialog würde also falsche Sicherheit geben und den Sinn der Funktion zunichtemachen. Die Ratenlimits oben begrenzen die Kosten weiterhin, aber ein Agent kann von sich aus bis an diese Obergrenze laufen.
+Das gehört klar gesagt: Sind `--allow-spend` und `--expose-agent-tools` beide an, kann ein autonomer Agent Provider-Ausgaben auslösen, ohne dass ein Mensch jeden Klick bestätigt. Studio baut keinen Freigabedialog pro Aufruf ein: der Server kann einen vom Agenten ausgelösten Aufruf nicht von einem menschlichen Klick in derselben Sitzung unterscheiden, ein solcher Dialog würde also falsche Sicherheit geben und den Sinn der Funktion zunichtemachen. Die Ratenlimits oben begrenzen die Kosten weiterhin, aber ein Agent kann von sich aus bis an diese Obergrenze laufen.
 
 Schalte agentengesteuerte Ausgaben bewusst frei. Wenn ein Agent nur den Zustand ansehen und Einträge von Hand korrigieren soll, starte Studio ohne `--allow-spend`: Agent-Tools funktionieren in diesem Lese- und Bearbeitungsmodus vollständig, und kein Tool erreicht einen Provider.
 

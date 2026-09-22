@@ -115,8 +115,8 @@ variable is unset or empty. Error messages name the variable but never contain a
 keys are never read from the config or CLI arguments.
 
 **Fix**: set the variable the message names, then confirm it with `verbatra doctor`, which checks
-the variable by name without reading its value. `translate`, `watch`, `doctor`, and `studio` load
-`.env` and `.env.local` from the working directory; the SDK does not, so in your own script use
+the variable by name without reading its value. `translate`, `watch`, `doctor`,
+`studio`, and `mcp` load `.env` and `.env.local` from the working directory; the SDK does not, so in your own script use
 `node --env-file=.env` or export the variable. `openai-compatible` only raises this when the config names an `apiKeyEnvVar` that is
 unset; without one it falls back to a keyless placeholder for local servers.
 

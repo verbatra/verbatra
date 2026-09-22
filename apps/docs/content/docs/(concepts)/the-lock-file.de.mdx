@@ -5,7 +5,7 @@ description: Was verbatra.lock.json festhält, wie Drift erkannt wird, wie paral
 Die Lock-Datei, `verbatra.lock.json`, existiert, damit ein Lauf erkennen kann, was schon übersetzt
 wurde, und es überspringt. Diese Datei ist die Baseline, mit der jeder Lauf vergleicht, und sie
 macht verbatra inkrementell. Diese Seite behandelt, was sie speichert, wie sie sich ändert und was
-passiert, wenn sie umkämpft, fehlend oder beschädigt ist.
+passiert, wenn sie gerade belegt, fehlend oder beschädigt ist.
 
 ## Was sie festhält
 
@@ -39,7 +39,7 @@ Der Lauf hält trotzdem für jeden Key, den das Ziel enthält, den aktuellen Que
 Lauf ist also der Übernahmeschritt selbst: Er legt die Baseline ohne einen einzigen Provider-Aufruf
 an, und ab dem zweiten Lauf tauchen Quelländerungen ganz normal als Drift auf.
 
-Ob ein Key als übernommen gilt, entscheidet allein seine Anwesenheit, nie sein Wert. Daraus folgen
+Ob ein Key als übernommen gilt, entscheidet allein sein Vorhandensein, nie sein Wert. Daraus folgen
 zwei Dinge, die du vor diesem ersten Lauf kennen solltest:
 
 - Ein leerer oder unübersetzter Wert zählt als übersetzt. Ein Zielwert, der ein leerer String ist
@@ -76,8 +76,8 @@ Die Lock-Datei wird pro Locale aktualisiert, und wie, hängt davon ab, was gelau
 
 In beiden Fällen gilt eine Ausnahme: Ein in diesem Lauf zurückgehaltener Key (eine fehlgeschlagene
 Integritätsprüfung, ein fehlgeschlagener Provider-Aufruf oder eine Quelle mit ungültigem ICU)
-behält seinen vorherigen Hash, damit der nächste Lauf ihn weiterhin als arbeitsbedürftig sieht und
-erneut versucht, statt ihn als erledigt zu verbuchen. Verwaiste Keys bekommen keinen Eintrag. Die
+behält seinen vorherigen Hash, damit der nächste Lauf ihn weiterhin als offen ansieht und erneut
+versucht, statt ihn als erledigt zu verbuchen. Verwaiste Keys bekommen keinen Eintrag. Die
 Datei wird mit sortierten Keys serialisiert, damit ihre Diffs stabil und gut zu reviewen bleiben.
 
 ## Die Schreibsperre
@@ -93,7 +93,7 @@ Locales blockieren einander nicht.
 Übersetzt ein Lauf mehrere Locales gleichzeitig und trifft auf einen Fehler des gesamten Laufs (in
 der Praxis eine beschädigte Lock-Datei), beansprucht er keine neuen Locales mehr und wartet, bis
 die bereits laufenden fertig sind; so wird jede Sperre, die der Lauf genommen hat, freigegeben,
-bevor der Befehl endet. Nach dem Fehlschlag des Laufs wird kein Locale mehr gestartet, und der
+bevor der Befehl endet. Nach dem Fehlschlag des Laufs wird keine Locale mehr gestartet, und der
 Fehlschlag selbst lässt keine Sperre verwaist zurück.
 
 Kann eine Sperre nicht erworben werden, schlägt der Lauf mit `LOCK_CONTENDED` fehl und nennt den
@@ -115,7 +115,7 @@ die Baseline zu verlieren.
 
 Committe `verbatra.lock.json` zusammen mit deinen Locale-Dateien. Diese Datei ist die gemeinsame
 Baseline, mit der deine Teamkollegen und deine CI vergleichen; sie in der Versionskontrolle zu
-halten macht inkrementelle Läufe über Maschinen hinweg reproduzierbar. Bearbeite sie nie von Hand.
+halten, macht inkrementelle Läufe über Maschinen hinweg reproduzierbar. Bearbeite sie nie von Hand.
 
 Beide zu committen ist auch das, was ein Rollback möglich macht. Weil die Lock-Datei Quell-Hashes
 festhält und nichts über die übersetzten Werte, behauptet sie nach einem Zurücksetzen deiner

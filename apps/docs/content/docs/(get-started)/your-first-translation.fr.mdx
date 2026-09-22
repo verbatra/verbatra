@@ -2,7 +2,7 @@
 title: Ta première traduction
 description: Installe la CLI, génère une configuration avec verbatra init, prévisualise l'exécution sans clé d'API, puis définis ta clé et lance ta première commande translate. Moins de dix minutes entre rien et un fichier de locale traduit.
 ---
-Cinq étapes te mènent d'un projet vide à un fichier de locale traduit. Il te faut seulement Node.js `>=22.14.0` et une clé d'API pour un fournisseur une fois que tu veux traduire pour de vrai. Les trois premières étapes ne coûtent rien et ne demandent aucun compte.
+Cinq étapes te mènent d'un projet vide à un fichier de locale traduit. Il te faut seulement Node.js `>=22.14.0` et une clé d'API pour un fournisseur une fois que tu es prêt à traduire pour de vrai. Les trois premières étapes ne coûtent rien et ne demandent aucun compte.
 
 ## 1. Installe
 
@@ -14,7 +14,7 @@ npm install --save-dev @verbatra/cli
 
 pnpm et yarn fonctionnent aussi : `pnpm add -D @verbatra/cli` puis `pnpm verbatra ...`, ou `yarn add -D @verbatra/cli` puis `yarn verbatra ...`. Les blocs de code ci-dessous utilisent `npx`, cohérent avec le `npm install` ci-dessus.
 
-pnpm demande une étape de plus. `pnpm add -D @verbatra/cli` installe correctement mais sort en `1` avec `ERR_PNPM_IGNORED_BUILDS`, et laisse un `pnpm-workspace.yaml` sans réponse qui fait échouer de la même façon toutes les commandes pnpm suivantes du projet. Lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées, ou consulte le [Dépannage](/docs/troubleshooting) pour la solution non interactive.
+pnpm demande une étape de plus. `pnpm add -D @verbatra/cli` installe correctement mais sort avec le code `1` et l'erreur `ERR_PNPM_IGNORED_BUILDS`, et laisse derrière lui un `pnpm-workspace.yaml` en attente de réponse qui fait échouer de la même façon toutes les commandes pnpm suivantes du projet. Lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées, ou consulte le [Dépannage](/docs/troubleshooting) pour la solution non interactive.
 
 ## 2. Génère une configuration
 
@@ -24,7 +24,7 @@ npx verbatra init --provider gemini
 
 Avec un terminal attaché, `init` demande tout ce que tu n'as pas passé en option, chaque question avec une valeur par défaut :
 
-- le fournisseur : `anthropic`, `openai`, `gemini` ou `deepl` (option `--provider`, la seule entrée sans défaut)
+- le fournisseur : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` (option `--provider`, la seule entrée sans défaut)
 - la locale source, par défaut `en` (`--source`)
 - les locales cibles, séparées par des virgules, par défaut `de` (`--targets`)
 - le motif des fichiers de locale, par défaut `locales/{locale}.json` (`--path`)
@@ -33,9 +33,9 @@ Passe `--yes` pour sauter les questions et prendre les valeurs par défaut. Sans
 
 `init` écrit trois choses :
 
-- `verbatra.config.ts` : la configuration de ton projet, validée contre le vrai schéma avant d'être écrite
+- `verbatra.config.ts` : la configuration de ton projet, validée avec le vrai schéma avant d'être écrite
 - `.env.example` : nomme la variable de clé du fournisseur, jamais une valeur de clé
-- des entrées `.gitignore` pour `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`, créées ou ajoutées pour qu'une vraie clé, l'état local ou le cache regénérable ne finisse jamais dans un commit
+- des entrées `.gitignore` pour `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`, créées ou ajoutées pour qu'une vraie clé, l'état local ou le cache régénérable ne finisse jamais dans un commit
 
 Relancer `init` saute les fichiers qui existent déjà ; `--force` les écrase. Il pré-remplit aussi `format` en regardant tes dépendances : un projet utilisant i18next, vue-i18n, next-intl ou `@ngx-translate/core` reçoit le format JSON correspondant, tout le reste prend `i18next-json` par défaut avec un commentaire TODO pour le changer. Pour Gemini, le fichier généré ressemble à ceci :
 
@@ -61,15 +61,15 @@ export default defineConfig({
 
 ## 3. Prévisualise sans clé d'API
 
-Commence par [`verbatra doctor`](/docs/cli/doctor), la vérification préalable prévue exactement pour cette installation :
+Commence par [`verbatra doctor`](/docs/cli/doctor), la vérification préalable prévue exactement pour ce cas de figure :
 
 ```bash
 npx verbatra doctor
 ```
 
-Elle lance cinq contrôles : la config se charge et se valide, le format se résout vers un adaptateur de fichier, l'ID du fournisseur se résout vers un fournisseur, la variable d'environnement dans laquelle ce fournisseur lit sa clé est définie, et le fichier de locale source existe et s'analyse. Chaque contrôle s'exécute même si un précédent a échoué : une seule passe signale donc tous les problèmes au lieu de s'arrêter au premier. Elle ne construit aucun fournisseur, ne fait aucun appel réseau, n'écrit rien et ne lit jamais la valeur d'une clé. C'est aussi la seule vérification qui fonctionne avant l'existence du fichier source : lance-la maintenant, puis de nouveau après l'étape 4.
+Elle lance cinq contrôles : la config se charge et se valide, le format se résout vers un adaptateur de fichier, l'ID du fournisseur se résout vers un fournisseur, la variable d'environnement dans laquelle ce fournisseur lit sa clé est définie, et le fichier de locale source existe et s'analyse correctement. Chaque contrôle s'exécute même si un précédent a échoué : une seule passe signale donc tous les problèmes au lieu de s'arrêter au premier. Elle ne construit aucun fournisseur, ne fait aucun appel réseau, n'écrit rien et ne lit jamais la valeur d'une clé. C'est aussi la seule vérification qui fonctionne avant l'existence du fichier source : lance-la maintenant, puis de nouveau après l'étape 4.
 
-Si tu n'as pas encore de fichier source, crée-en un au motif configuré, par exemple `locales/en.json` :
+Si tu n'as pas encore de fichier source, crée-en un selon le motif configuré, par exemple `locales/en.json` :
 
 ```json
 {
@@ -88,9 +88,9 @@ npx verbatra translate --dry-run
 
 Un dry run ne construit aucun fournisseur, il ne demande donc aucune clé d'API et ne peut rien dépenser. Il lit tes fichiers, les compare et affiche le même résumé par locale qu'une vraie exécution, sans envoyer une seule chaîne ni écrire un seul fichier. Utilise-le pour vérifier le format, le motif de fichiers et les locales avant de t'inscrire où que ce soit.
 
-[`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) se passent aussi du fournisseur : `check` signale les compteurs par locale, `diff` liste les clés exactes. Contrairement à `doctor`, tous les trois lisent le fichier source : il doit donc être en place d'abord.
+[`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) se passent aussi du fournisseur : `check` rapporte des décomptes par locale, `diff` liste les clés exactes. Contrairement à `doctor`, tous les trois lisent le fichier source : il doit donc être en place d'abord.
 
-Une dernière chose marche avant que tu aies une clé, et elle te donne quelque chose à regarder plutôt qu'à lire :
+Une dernière chose fonctionne avant même que tu aies une clé, et elle te donne quelque chose à regarder plutôt qu'à lire :
 
 ```bash
 npx verbatra pseudo
@@ -106,10 +106,10 @@ Les clés viennent de l'environnement, jamais du fichier de configuration. Chaqu
 cp .env.example .env
 ```
 
-Puis ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. `translate`, `watch`, `doctor` et `studio` chargent `.env.local` puis `.env` depuis le répertoire de travail avant une exécution, et une variable déjà définie dans ton shell gagne toujours. Voir [Fournisseurs](/docs/providers) pour la variable de chaque fournisseur.
+Puis ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant une exécution, et une variable déjà définie dans ton shell gagne toujours. Voir [Fournisseurs](/docs/providers) pour la variable de chaque fournisseur.
 
 <Callout title="Pas encore de clé ? Gemini a une offre gratuite.">
-L'API de Gemini a une offre réellement gratuite, ce qui en fait la façon la moins chère d'essayer verbatra. Récupère une clé sur [Google AI Studio](https://aistudio.google.com/apikey) et définis `GEMINI_API_KEY`. L'offre gratuite a des limites de requêtes par minute et par jour, donc étale une grosse première traduction.
+L'API de Gemini a une offre réellement gratuite, ce qui en fait le moyen le moins cher d'essayer verbatra. Récupère une clé sur [Google AI Studio](https://aistudio.google.com/apikey) et définis `GEMINI_API_KEY`. L'offre gratuite a des limites de requêtes par minute et par jour, étale donc dans le temps une première traduction volumineuse.
 </Callout>
 
 ## 5. Traduis
@@ -120,13 +120,13 @@ Une fois la clé en place, lance la même commande pour de vrai :
 npx verbatra translate
 ```
 
-verbatra lit la locale source, voit que chaque clé manque dans `de`, les envoie au fournisseur par lots, passe chaque résultat par la barrière d'intégrité, et écrit `locales/de.json`. L'exécution se termine par un résumé par locale : clés traduites, clés inchangées, clés orphelines, et les éventuels avis. Le code de sortie est `0` quand chaque locale est ressortie complète et `1` quand une a échoué ou est ressortie partielle (écrite, mais avec des clés toujours manquantes) ; ajoute `--json` pour un résumé lisible par machine.
+verbatra lit la locale source, voit que chaque clé manque dans `de`, les envoie au fournisseur par lots, passe chaque résultat par la barrière d'intégrité, et écrit `locales/de.json`. L'exécution se termine par un résumé par locale : clés traduites, clés inchangées, clés orphelines, et les éventuels avis. Le code de sortie est `0` quand chaque locale est ressortie complète et `1` quand l'une a échoué ou est ressortie partielle (écrite, mais avec des clés toujours manquantes) ; ajoute `--json` pour un résumé lisible par machine.
 
 ## Ce qui vient de se passer
 
 Trois choses sont maintenant sur le disque :
 
-- `locales/de.json` : le fichier de la locale cible. Il a les mêmes clés que ta source, dans le même ordre de document, et `{{name}}` a survécu intact à la traduction ; un résultat qui l'aurait perdu aurait été retenu, pas écrit.
+- `locales/de.json` : le fichier de la locale cible. Il a les mêmes clés que ta source, dans le même ordre de document, et `{{name}}` a survécu intact à la traduction ; un résultat qui l'aurait perdu aurait été écarté, pas écrit.
 - `verbatra.lock.json` : le fichier de verrouillage. Pour chaque locale cible, il associe chaque clé traduite au hash de la chaîne source dont cette traduction provient :
 
   ```json
@@ -141,7 +141,7 @@ Trois choses sont maintenant sur le disque :
   }
   ```
 
-- `.verbatra-local/` : l'état local au processus (l'instantané de statut d'exécution et les verrous d'écriture par locale). `init` l'a ajouté au `.gitignore` ; ne le commite jamais.
+- `.verbatra-local/` : l'état propre au processus (l'instantané de statut d'exécution et les verrous d'écriture par locale). `init` l'a ajouté au `.gitignore` ; ne le commite jamais.
 
 Le fichier de verrouillage est la référence de chaque exécution future. Relance `verbatra translate` sans rien modifier et rien n'est envoyé : chaque clé est déjà à jour. Modifie une seule chaîne source et seule cette clé est retraduite.
 
@@ -151,7 +151,7 @@ Commite `verbatra.lock.json` avec tes fichiers de locale, pour que chaque machin
 
 ## Ensuite
 
-- [Configure verbatra avec un agent IA](/docs/start-with-ai) : le même parcours, packagé comme un prompt prêt à copier-coller pour un agent IA de code.
-- [Ajouter une langue](/docs/add-a-language) : ajoute une nouvelle locale cible à cette installation.
+- [Configure verbatra avec un agent IA](/docs/start-with-ai) : le même parcours, présenté comme un prompt prêt à copier-coller pour un agent IA de code.
+- [Ajouter une langue](/docs/add-a-language) : ajoute une nouvelle locale cible à cette configuration.
 - [Comment ça marche](/docs/how-it-works) : le pipeline complet derrière une exécution.
 - [Fichier de configuration](/docs/config-file) : tout ce que `verbatra.config.ts` peut contenir.

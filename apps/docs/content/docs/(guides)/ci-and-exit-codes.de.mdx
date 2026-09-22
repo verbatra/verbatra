@@ -6,9 +6,9 @@ Diese Anleitung zeigt, wie du CI fehlschlagen lässt, wenn Übersetzungen ausein
 
 verbatra ist eine Dev-Dependency, die Befehle laufen in CI also genauso wie lokal. Die übliche Aufteilung:
 
-- **Sichere einen Pull Request ab** mit [`verbatra check`](/docs/cli/check) oder [`verbatra diff`](/docs/cli/diff), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action) mit `command: check` oder `command: diff`. Beide sind schreibgeschützt: kein Provider-Aufruf, kein API-Key nötig, Exit `1` bei Drift.
+- **Sichere einen Pull Request ab** mit [`verbatra check`](/docs/cli/check) oder [`verbatra diff`](/docs/cli/diff), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action) mit `command: check` oder `command: diff`. Beide sind nur lesend: kein Provider-Aufruf, kein API-Schlüssel nötig, Exit `1` bei Drift.
 - **Übersetze bei einem Push** mit [`verbatra translate`](/docs/cli/translate), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action).
-- **Prüfe beides vorab** mit [`verbatra doctor`](/docs/cli/doctor). Es ist der günstigste Schritt überhaupt: Es prüft die Konfiguration, das Format, den Provider, die Key-Variable und die Quelldatei, ruft nie einen Provider auf und liest nie einen Key-Wert. Es liefert außerdem auch dann noch einen Bericht, wenn die Locale-Dateien eines Projekts noch nicht vorhanden sind, wo die anderen Befehle nur als Ganzes scheitern können.
+- **Prüfe beides vorab** mit [`verbatra doctor`](/docs/cli/doctor). Es ist der günstigste Schritt überhaupt: Es prüft die Konfiguration, das Format, den Provider, die Variable für den API-Schlüssel und die Quelldatei, ruft nie einen Provider auf und liest nie den Wert eines API-Schlüssels. Es liefert außerdem auch dann noch einen Bericht, wenn die Locale-Dateien eines Projekts noch nicht vorhanden sind; die anderen Befehle können dort nur als Ganzes scheitern.
 
 ## Die Exit-Codes
 
@@ -17,25 +17,25 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
-| `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder `partial` gebliebenen Locale, `check` fand ein Locale nicht synchron, `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` fand die committete Deklaration veraltet, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init` ohne auflösbaren Provider oder wenn es keine gültige Konfiguration anlegen kann, ein gescheiterter Start oder Stopp von `watch`, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
+| `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron, `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init` ohne auflösbaren Provider oder unfähig, eine gültige Konfiguration anzulegen, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
 | `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 
 Einige Randfälle, die du kennen solltest:
 
 <AvailableFrom version="0.9.0" />
 
-- Ein Locale mit dem Status **`partial`** zählt als Fehlschlag. Das heißt, die Datei wurde geschrieben, aber einige Keys fehlen weiterhin, meist weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat. Es endet mit `1` genau wie ein fehlgeschlagenes Locale, denn ein halb übersetztes Locale auf der Platte ist kein Zustand, den eine Pipeline durchwinken sollte. Um beide auseinanderzuhalten, lies `partial` in der Zusammenfassung.
+- Ein **unvollständiges** Locale zählt als Fehlschlag. Das heißt, die Datei wurde geschrieben, aber einige Keys fehlen weiterhin, meist weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat. Es endet mit `1` genau wie ein fehlgeschlagenes Locale, denn ein halb übersetztes Locale auf der Platte ist kein Zustand, den eine Pipeline durchwinken sollte. Um beide auseinanderzuhalten, lies `partial` in der Zusammenfassung. Ein fehlgeschlagener Sub-Batch hinterlässt am Locale einen Hinweis `SUB_BATCH_FAILED`, der den Fehlercode des Providers nennt, oder `PROVIDER_CALL_FAILED`, wenn der Fehlschlag kein strukturierter Provider-Fehler war.
 - Eine **kaputte Lock-Datei** ist bei `translate` wie bei `import` ein Fehler des gesamten Laufs, nie ein einzelnes fehlgeschlagenes Locale. Sie ist eine einzige gemeinsame Datei, deshalb bricht ein Lauf, dessen Lock-Datei mittendrin kaputtgeht, mit `2` ab, statt die restlichen Locales weiter abzuarbeiten. Was vor dem Abbruch geschrieben wurde, bleibt auf der Platte: Repariere die Lock-Datei und starte den Befehl erneut.
-- Ein einzelner Interrupt ist ein sauberer Stopp, und alle drei langlaufenden Befehle (`watch`, `studio` und `mcp`) enden dabei mit `0`. Geh darüber hinaus nicht davon aus, dass sie sich gleich verhalten: scheitert der Stopp selbst, endet `watch` mit `2`, während `studio` und `mcp` mit `1` enden.
+- Ein einzelner Interrupt ist ein sauberer Stopp, und alle drei langlaufenden Befehle (`watch`, `studio` und `mcp`) enden dabei mit `0`. Gehe darüber hinaus nicht davon aus, dass sie sich gleich verhalten: Scheitert der Stopp selbst, endet `watch` mit `2`, während `studio` und `mcp` mit `1` enden.
 - Ein fehlgeschlagener Lauf während `watch` erscheint als Datensatz im Ausgabestrom, nie als Exit-Code ungleich null.
-- `export` hat keinen Fehlermodus pro Locale: der Befehl endet mit `0` oder `2`, nie mit `1`.
+- `export` hat keinen Fehlermodus pro Locale: Der Befehl endet mit `0` oder `2`, nie mit `1`.
 - `doctor` liest eine kaputte Konfiguration anders als jeder andere Befehl: Eine Konfiguration, die die Suche nicht findet, oder eine, die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung und Exit `1`, denn genau das zu melden ist die Aufgabe des Befehls. Exit `2` gibt es nur, wenn er überhaupt nicht laufen kann, etwa bei einem explizit angegebenen `--config`-Pfad, der nicht existiert.
-- Ein Fehlermodus liegt außerhalb des Vertrags: ein Parse-Fehler, der kein Verwendungsfehler ist, wird weitergeworfen, und die Binary fängt ihn nicht ab. Damit greift Nodes Standardverhalten für eine unbehandelte Rejection statt eines der vier Codes.
+- Ein Fehlermodus liegt außerhalb des Vertrags: ein Parse-Fehler, der kein Verwendungsfehler ist, wird weitergeworfen, und das Binary fängt ihn nicht ab. Damit greift Nodes Standardverhalten für eine unbehandelte Rejection statt eines der vier Codes.
 
 ## check oder diff: das Gate wählen
 
-`check` und `diff` führen dieselbe schreibgeschützte Berechnung über deine Quelle, die Zieldateien und die [Lock-Datei](/docs/the-lock-file) aus. Der Unterschied ist, was sie melden:
+`check` und `diff` führen dieselbe nur lesende Berechnung über deine Quelle, die Zieldateien und die [Lock-Datei](/docs/the-lock-file) aus. Der Unterschied ist, was sie melden:
 
 ```bash
 # counts per locale: exit 1 if any locale is missing or stale
@@ -47,7 +47,7 @@ verbatra diff
 
 Nimm `check`, wenn der Exit-Code alles ist, was du brauchst. Nimm `diff`, wenn du die genauen Keys hinter der Drift willst, etwa um sie als Kommentar in einen Pull Request zu posten. Verwaiste Keys (in einer Zieldatei vorhanden, aber aus der Quelle verschwunden) erscheinen in der `diff`-Ausgabe, setzen aber nie allein Exit-Code `1`.
 
-Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch` und `export` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
+Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch`, `export` und `tmx` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
 
 ## JSON-Ausgabe
 
@@ -59,7 +59,7 @@ type Envelope<TResult> =
   | { ok: false; version: 1; command: string | null; code: string; message: string };
 ```
 
-`version` ist die Version dieser Envelope-Form, nicht die Version des Pakets. Es ist eine ganze Zahl, du vergleichst sie also mit `===`, statt einen Bereich zu parsen, und sie ändert sich nur, wenn ein bestehendes Feld seine Bedeutung ändert oder verschwindet. Neue Felder können ohne Erhöhung dazukommen, ignoriere also die, die du nicht kennst.
+`version` ist die Version dieser Envelope-Form, nicht die Version des Pakets. Es ist eine ganze Zahl, du vergleichst sie also mit `===`, statt einen Bereich zu parsen, und sie ändert sich nur, wenn ein bestehendes Feld seine Bedeutung ändert oder verschwindet. Neue Felder können hinzukommen, ohne dass die Version steigt; ignoriere also die, die du nicht kennst.
 
 Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensatz auf stdout und endet mit `2`. Sein `code` ist derselbe stabile Fehlercode, den auch die stderr-Zeile trägt, und damit das, worauf du verzweigst:
 
@@ -69,7 +69,24 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 
 `command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war.
 
-Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Zwei Klassen von Fehlern folgen dieser Grammatik nicht, weil sie auftreten, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und `init` weist einen fehlenden Provider mit `verbatra: --provider is required (...)` ab, mit Präfix, aber ohne Code. Beide enden mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst greift ein Parser, der allein auf die strukturierte Grammatik setzt, bei keinem von beiden. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
+Ein Verwendungsfehler trägt einen dieser Codes:
+
+| Code | Ausgelöst, wenn |
+| --- | --- |
+| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann |
+| `INVALID_LOCALES` | `--locales` angegeben wurde, aber kein Locale auflistet |
+| `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
+| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt |
+| `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
+| `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
+| `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
+| `INVALID_CONCURRENCY` | `--concurrency` keine ganze Zahl zwischen 1 und 100 ist |
+| `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
+
+`CLI_ERROR` ist der Ausweich-Code für einen Fehlschlag, der keinen eigenen Code mitbrachte.
+
+Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Zwei Klassen von Fehlern folgen dieser Grammatik nicht, weil sie auftreten, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und `init` weist einen fehlenden Provider mit `verbatra: --provider is required (...)` ab, mit Präfix, aber ohne Code. Beide enden mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst greift ein Parser, der allein auf die strukturierte Grammatik setzt, stillschweigend bei keinem von beiden. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
 
 Der Rest dieses Abschnitts beschreibt das `result`, das jeder Befehl in einen erfolgreichen Envelope legt.
 
@@ -92,7 +109,7 @@ Das `estimate`-Objekt trägt `keys`, `requests`, die Abrechnungsmenge, die der P
 
 Jedes `LocaleSummary` trägt die Key-Listen pro Locale (übersetzt, unverändert, verwaist, zurückgehalten, für Review markiert und mehr); die vollständige Anatomie steht in der [SDK-Referenz](/docs/sdk).
 
-`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: er stoppt weder den Watcher noch ändert er den Exit-Code.
+`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung: dem eigenen Code des Fehlschlags, wo er einen hatte, und sonst `WATCH_RUN_FAILED`. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: Er stoppt weder den Watcher noch ändert er den Exit-Code.
 
 `verbatra check --json` trägt ein Statusdokument. Das oberste `inSync` ist genau dann true, wenn der Befehl mit `0` endet:
 
@@ -146,7 +163,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
@@ -155,7 +178,7 @@ interface DoctorCheck {
 
 ## Ein GitHub-Actions-Job mit der CLI
 
-Ein Drift-Gate für Pull Requests, das die CLI direkt ausführt. `check` ruft nie einen Provider auf, dieser Job braucht also gar keinen API-Key:
+Ein Drift-Gate für Pull Requests, das die CLI direkt ausführt. `check` ruft nie einen Provider auf, dieser Job braucht also gar keinen API-Schlüssel:
 
 ```yaml
 name: i18n
@@ -177,17 +200,17 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-Die [GitHub Action](/docs/github-action) führt dasselbe Gate ohne Installationsschritt aus: behalte den Checkout und ersetze den Rest durch die Action, mit `command: check` (oder `command: diff`):
+Die [GitHub Action](/docs/github-action) führt dasselbe Gate ohne Installationsschritt aus: Behalte den Checkout und ersetze den Rest durch die Action, mit `command: check` (oder `command: diff`):
 
 ```yaml
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # pinnt die aktiv gepflegte v1-Linie
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.9.3
           command: check
 ```
 
-Um stattdessen in CI zu übersetzen, tausche den letzten Schritt gegen `translate` und übergib den Provider-Key aus deinem Secret-Store als die Umgebungsvariable, die dein Provider erwartet (siehe [Provider](/docs/providers)):
+Um stattdessen in CI zu übersetzen, tausche den letzten Schritt gegen `translate` und übergib den API-Schlüssel aus deinem Secret-Store als die Umgebungsvariable, die dein Provider erwartet (siehe [Provider](/docs/providers)):
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -195,12 +218,12 @@ Um stattdessen in CI zu übersetzen, tausche den letzten Schritt gegen `translat
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Wenn du diese Jobs lieber nicht selbst schreiben willst: die [GitHub Action](/docs/github-action) verpackt `translate`, `check` und `diff` gleichermaßen und ergänzt Annotationen und eine Job-Zusammenfassung.
+Wenn du diese Jobs lieber nicht selbst schreiben willst: Die [GitHub Action](/docs/github-action) verpackt `translate`, `check` und `diff` gleichermaßen und ergänzt Annotationen und eine Job-Zusammenfassung.
 
-## Eingefrorene Installationen und Keys
+## Eingefrorene Installationen und API-Schlüssel
 
 - **Installiere aus dem Lockfile.** `pnpm install --frozen-lockfile` (oder `npm ci`) pinnt genau das `@verbatra/cli`-Release, das dein Lockfile festhält; ein CI-Lauf ist damit reproduzierbar und kann nie stillschweigend ein neueres Release ziehen. Die CLI braucht Node `>=22.14.0`.
-- **Keys sind Umgebungsvariablen, nie Flags.** Die CLI nimmt kein Key-Argument entgegen und liest keinen Key aus der Konfiguration; Provider lesen nur ihre Umgebungsvariable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Lege den Key im Secret-Store deiner CI ab und reiche ihn über `env` durch. Fehlermeldungen nennen die Variable, enthalten aber nie einen Key-Wert.
-- **Schreibgeschützte Gates brauchen keinen Key.** `check`, `diff`, `export`, `import`, `extract` und `tmx` rufen nie einen Provider auf, halte Secrets also komplett aus diesen Jobs heraus. `pseudo` ruft ebenfalls keinen auf und schreibt nur seine eigene erzeugte Locale. `types` ruft ebenfalls keinen auf und schreibt nur seine erzeugte Deklaration. `doctor` ruft ebenfalls nie einen Provider auf und liest nie einen Key-Wert, meldet eine nicht gesetzte Key-Variable aber als fehlgeschlagene Prüfung; reiche den Key also in jeden Job durch, in dem diese Prüfung bestehen soll. `doctor --literals` führt keine der beiden Prüfungen aus und braucht deshalb gar keinen Key.
+- **API-Schlüssel sind Umgebungsvariablen, nie Flags.** Die CLI nimmt kein Argument für einen API-Schlüssel entgegen und liest keinen aus der Konfiguration; Provider lesen nur ihre Umgebungsvariable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Lege den API-Schlüssel im Secret-Store deiner CI ab und reiche ihn über `env` durch. Fehlermeldungen nennen die Variable, enthalten aber nie den Wert eines API-Schlüssels.
+- **Nur lesende Gates brauchen keinen API-Schlüssel.** `check`, `diff`, `export`, `import`, `extract` und `tmx` rufen nie einen Provider auf, halte Secrets also komplett aus diesen Jobs heraus. `pseudo` ruft ebenfalls keinen auf und schreibt nur seine eigene erzeugte Locale. `types` ruft ebenfalls keinen auf und schreibt nur seine erzeugte Deklaration. `doctor` ruft ebenfalls nie einen Provider auf und liest nie den Wert eines API-Schlüssels, meldet eine nicht gesetzte Variable für den API-Schlüssel aber als fehlgeschlagene Prüfung; reiche den API-Schlüssel also in jeden Job durch, in dem diese Prüfung bestehen soll. `doctor --literals` führt keine der beiden Prüfungen aus und braucht deshalb gar keinen API-Schlüssel.
 
 `translate`, `watch`, `studio`, `doctor` und `mcp` laden außerdem `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen (`doctor --literals` lädt keine der beiden), wobei echte Umgebungsvariablen immer gewinnen; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types` und `tmx` laden keine `.env`-Dateien, sodass du dich in CI normalerweise allein auf `env:` verlässt.

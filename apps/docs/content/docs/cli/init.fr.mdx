@@ -15,9 +15,9 @@ verbatra init [flags]
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | répertoire courant | écrit la config et les fichiers d'environnement dans ce répertoire |
-| `--provider` | `<id>` | aucun (requis) | fournisseur à échafauder : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` ; demandé interactivement quand il est omis |
+| `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` ; quand il est omis, demandé interactivement |
 | `--source` | `<locale>` | `en` | la locale source dans laquelle tes chaînes sont écrites |
-| `--targets` | `<locales>` | `de` | locales cibles à traduire, séparées par des virgules |
+| `--targets` | `<locales>` | `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
 | `--path` | `<pattern>` | `locales/{locale}.json` | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
 | `--yes` | aucun | désactivé | saute les questions et accepte les valeurs par défaut |
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` ou un `.env.example` existant |
@@ -39,7 +39,7 @@ verbatra init --provider deepl --yes
 | Code | Signification |
 | --- | --- |
 | `0` | fichiers écrits, ou sautés sans risque parce qu'ils existent déjà |
-| `2` | un `--provider` manquant ou inconnu, un échafaudage invalide, ou une erreur d'utilisation |
+| `2` | un `--provider` manquant ou inconnu, une config générée invalide, ou une erreur d'utilisation |
 
 ## Voir aussi
 

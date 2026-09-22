@@ -15,14 +15,14 @@ verbatra init [flags]
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | die Konfigurations- und Env-Dateien in dieses Verzeichnis schreiben |
-| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl` oder `google-translate`; wird interaktiv abgefragt, wenn er fehlt |
+| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl` oder `google-translate`; fehlt er, wird er interaktiv abgefragt |
 | `--source` | `<locale>` | `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
 | `--targets` | `<locales>` | `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
 | `--path` | `<pattern>` | `locales/{locale}.json` | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
 | `--yes` | keins | aus | Abfragen überspringen und die Standardwerte übernehmen |
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` oder `.env.example` überschreiben |
 
-Das Format ist kein Flag: `init` erkennt es an deinen Dependencies (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`). Ohne einen einzelnen eindeutigen Treffer fällt es auf `i18next-json` zurück und hinterlässt einen TODO-Kommentar mit jedem unterstützten Format. Ohne `--force` wird eine bestehende `verbatra.config.ts` oder `.env.example` übersprungen, nie überschrieben, und der Befehl ist trotzdem erfolgreich.
+Das Format ist kein Flag: `init` erkennt es an deinen Dependencies (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`). Ohne einen einzelnen eindeutigen Treffer fällt es auf `i18next-json` zurück und hinterlässt einen TODO-Kommentar, der jedes unterstützte Format auflistet. Ohne `--force` wird eine bestehende `verbatra.config.ts` oder `.env.example` übersprungen, nie überschrieben, und der Befehl ist trotzdem erfolgreich.
 
 ## Beispiele
 
@@ -38,7 +38,7 @@ verbatra init --provider deepl --yes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | Dateien geschrieben, oder sicher übersprungen, weil sie schon existieren |
+| `0` | Dateien geschrieben oder gefahrlos übersprungen, weil sie schon existieren |
 | `2` | ein fehlender oder unbekannter `--provider`, ein ungültiges Scaffold oder ein Verwendungsfehler |
 
 ## Siehe auch

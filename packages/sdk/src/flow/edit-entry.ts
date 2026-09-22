@@ -71,8 +71,8 @@ export type EditEntryResult =
  * a human corrects one string and it is persisted without re-running the whole project.
  *
  * The edit is held to the same integrity gate as a provider translation, so a value that drops a
- * placeholder, breaks ICU syntax, runs away into a hugely oversized or repetition-dominated value,
- * or blanks a non-empty string is refused. A refusal comes back as `accepted: false` rather than as
+ * placeholder, breaks the source's inline markup, breaks ICU syntax, runs away into a hugely
+ * oversized or repetition-dominated value, or blanks a non-empty string is refused. A refusal comes back as `accepted: false` rather than as
  * a thrown error, and nothing is written.
  *
  * The locale's write lock is taken for the whole read-modify-write, so an edit cannot interleave
@@ -80,7 +80,8 @@ export type EditEntryResult =
  * refused edit takes and releases the lock as well and can therefore fail with `LOCK_CONTENDED`
  * even though it would have written nothing. An accepted edit then updates the lock-file baseline
  * and feeds the translation memory, which means a later run treats the key as up to date and
- * reuses the edited text rather than paying the provider to translate it again.
+ * reuses the edited text rather than paying the provider to translate it again. No review reason
+ * is computed for a hand-edited value, so a configured `maxLength` budget is not checked here.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.

@@ -59,9 +59,9 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `extract` | object | none | Source-scanning settings for [`verbatra extract`](/docs/cli/extract), `verbatra doctor --literals`, and `verbatra diff --unused`: the framework, the source roots, and the literal and unused-key ignore lists. |
 | `$schema` | string | none | A pointer to the JSON Schema document, for editors only. Ignored at runtime. |
 
-Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
-
 <AvailableFrom version="0.9.0" />
+
+Unknown top-level keys are rejected, with `$schema` as the single exception. This is also why an API key cannot live in the config: keys come from the environment, not the file.
 
 ### Locales and files
 
@@ -83,7 +83,7 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
 ### provider
 
-An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, or `openai-compatible`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers).
+An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, or `openai-compatible`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers).
 
 ### glossary
 
@@ -154,14 +154,16 @@ A budget must be a positive integer. Exceeding it is advisory, never blocking: t
 
 `maxTokens` is a whole-run token budget: input plus output tokens, summed across every provider call (main translation and plural generation alike) and across every target locale. Config-only, no CLI flag.
 
-`budgetBehavior` decides what happens once the ceiling is reached:
+<AvailableFrom version="0.11.0" />
+
+`budgetBehavior` decides what happens once the ceiling is reached (from 0.11.0, `"stop"` is an enforced ceiling checked before each request, and it applies to DeepL and Google Cloud Translation too):
 
 - `"warn"` (the default) counts the spend, flags the overrun, and lets the run continue exactly as if no budget were configured. Nothing is withheld.
 - `"stop"` turns the figure into a ceiling. Before each provider request the run projects what that request will cost, using the same projection [the pre-run estimate](/docs/estimating-cost) reports, and refuses to send one that would take the run past `maxTokens`. That request's keys are withheld, and so is every not-yet-attempted key for the rest of the run: the current locale's remaining candidates, and every later target locale's candidates entirely (their diff and orphan reporting still runs; only the provider call is skipped). Withheld keys keep their prior lock hash and are retried automatically next run, the same way a failed provider call already is.
 
 Every request the run sends is checked this way, including each half of a request verbatra re-splits after a truncated response, so a cascade of retries cannot outrun a single reservation. After each request the counted total is reconciled to the usage the provider actually reported, because the provider is the authority on what was billed. A request that reports more than it was projected to cost lands that difference after the fact, so a run can finish above `maxTokens` by the last admitted request's difference, and by no more: nothing further is sent once it does. Two things sit outside what a reservation can bound, because they happen inside a request it already admitted: the provider layer sends one repair call of its own when keys come back missing, so one admitted batch can cost up to about twice its projection, and the count is only as good as what the provider reports. Both land at reconciliation, and nothing further is admitted once they do. A request that fails or comes back truncated keeps its whole projection charged rather than being refunded, because such a call has usually already billed for its prompt. Work already translated stays written and locked, and a withheld key keeps the baseline it had, so a stopped run leaves no half-written locale file and no lock entry claiming work that was withheld.
 
-The ceiling bounds one run, not a session, and it covers `translate` and nothing else. `watch` starts a fresh budget for every run it triggers, so a watch session can spend up to `maxTokens` again on each source edit; use it to bound a run, not a day's work. Retranslating a single entry from [the Studio dashboard](/docs/studio) or the agent tools runs on its own path with its own provider, and no budget caps that spend.
+The ceiling bounds one run, not a session, and it covers `translate` and nothing else. `watch` starts a fresh budget for every run it triggers, so a watch session can spend up to `maxTokens` again on each source edit; use it to bound a run, not a day's work. Retranslating a single entry from [the Studio dashboard](/docs/review-in-studio) or the agent tools runs on its own path with its own provider, and no budget caps that spend.
 
 Setting `maxTokens` also constrains how a run may be parallelized: a live run that combines it with `--concurrency` above `1` is refused with exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) before any provider call. The ceiling itself would still hold, but which locale loses its remaining work would depend on the order the locales happen to interleave, so the same project would not produce the same run twice. A dry run is exempt. Drop the budget or leave concurrency at `1`.
 
@@ -190,7 +192,7 @@ rates: {
 }
 ```
 
-`asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the card, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
+`asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the block, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
 
 The block changes nothing about a live run: not what is sent, not what is billed, not what is written. A rate key with no entry is reported as an explicit absence rather than a cost of zero, and an entry in the wrong unit for its provider is refused rather than applied. See [Estimating cost](/docs/estimating-cost) for how the figure is computed and what it deliberately leaves out.
 
@@ -238,7 +240,7 @@ verbatra searches upward from the working directory and uses the first source it
 10. `verbatra.config.cjs`
 11. `verbatra.config.ts`
 
-To load one explicit file instead of searching, pass `--config <path>`; a relative path resolves against the working directory. In the SDK, an in-memory `configOverride` takes precedence over an explicit `configPath`, which takes precedence over the search. See [Programmatic API](/docs/programmatic-api).
+To load one explicit file instead of searching, pass `--config <path>`; a relative path resolves against the working directory. In the SDK, an in-memory `configOverride` takes precedence over an explicit `configPath`, which takes precedence over the search. See [SDK recipes](/docs/programmatic-api).
 
 ## Editor validation
 
@@ -304,7 +306,7 @@ That is the complete list. A config the editor shows as clean can still fail one
 
 ## The working directory and .env
 
-Run verbatra from your project root, or pass `--cwd` pointing at it. The working directory is the single anchor for everything verbatra resolves: the config search starts there and walks upward, `.env.local` and `.env` are loaded from there by `translate`, `watch`, `doctor`, and `studio`, and each locale file path is resolved against it. Keeping all three in the same place is what makes a plain `verbatra translate` work.
+Run verbatra from your project root, or pass `--cwd` pointing at it. The working directory is the single anchor for everything verbatra resolves: the config search starts there and walks upward, `.env.local` and `.env` are loaded from there by `translate`, `watch`, `doctor`, `studio`, and `mcp`, and each locale file path is resolved against it. Keeping all three in the same place is what makes a plain `verbatra translate` work.
 
 Environment precedence is, highest first: a variable already set in your real environment, then `.env.local`, then `.env`. A variable already present is never overwritten.
 

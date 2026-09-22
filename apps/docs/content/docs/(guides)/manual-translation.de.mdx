@@ -4,7 +4,7 @@ description: Exportiere unübersetzte Strings in eine Excel-Arbeitsmappe, gib si
 ---
 Nicht jeder String gehört zu einem Provider. Marketingtexte, juristische Texte und die wichtigsten Sprachen wollen oft eine menschliche Übersetzerin. verbatra löst das mit einem Arbeitsmappen-Roundtrip: **exportiere** die zu übersetzenden Strings in eine formatierte Excel-Datei, gib sie weiter, dann **importiere** die ausgefüllte Datei zurück in deine Locale-Dateien.
 
-Beide Richtungen treibt derselbe Diff. Export wählt genau die Keys, die ein automatischer Lauf übersetzen würde (die neuen und geänderten), und Import führt dieselben Integritätsprüfungen aus wie `translate`; ein von Hand getippter Wert, der einen Platzhalter bricht, wird also zurückgehalten und gemeldet statt geschrieben.
+Derselbe Diff treibt beide Richtungen. Export wählt genau die Keys, die ein automatischer Lauf übersetzen würde (die neuen und geänderten), und Import führt dieselben Integritätsprüfungen aus wie `translate`; ein von Hand getippter Wert, der einen Platzhalter bricht, wird also zurückgehalten und gemeldet statt geschrieben.
 
 ## Der Roundtrip
 
@@ -22,9 +22,9 @@ Standardmäßig schreibt export `verbatra-translations.xlsx` in das Arbeitsverze
 
 ## Was in der Arbeitsmappe landet
 
-Die Datei beginnt mit einem Blatt **Instructions**, danach folgt ein Datenblatt pro Ziel-Locale, benannt nach dem Locale (`de`, `fr`, ...). Weil das Locale über den Blattnamen zurückreist, wird ein Locale, das kein gültiger Excel-Blattname sein kann, abgelehnt, bevor die Arbeitsmappe gebaut wird: länger als 31 Zeichen, mit einem der Zeichen `: \ / ? * [ ]`, gleich `Instructions` in beliebiger Schreibung, oder ohne Beachtung der Groß- und Kleinschreibung gleich einem anderen Ziel-Locale.
+Die Datei beginnt mit einem Blatt **Instructions**, danach folgt ein Datenblatt pro Ziel-Locale, benannt nach dem Locale (`de`, `fr`, ...). Weil das Locale über den Blattnamen zurückreist, wird ein Locale, das kein gültiger Excel-Blattname sein kann, abgelehnt, bevor die Arbeitsmappe gebaut wird: länger als 31 Zeichen, mit einem der Zeichen `: \ / ? * [ ]`, gleich `Instructions` in beliebiger Schreibung oder ohne Beachtung der Groß- und Kleinschreibung gleich einem anderen Ziel-Locale.
 
-Jedes Datenblatt teilt dieselben Spalten, in dieser Reihenfolge:
+Jedes Datenblatt hat dieselben Spalten, in dieser Reihenfolge:
 
 | Spalte | Bearbeitbar | Zweck |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Die Zeilen sind nach Key sortiert, die Kopfzeile ist fixiert, die Spalte `Source
 Was eine Übersetzerin wissen muss, passt in wenige Zeilen (und steht noch einmal auf dem Instructions-Blatt der Arbeitsmappe):
 
 - Fülle die Spalte `Translation`, sonst nichts. Der Blattschutz erzwingt das.
-- Benenne die Sprach-Tabs nicht um, lösche und ordne sie nicht neu. verbatra ordnet jedes Tab über seinen exakten Namen einem Locale zu, ein umbenanntes oder fehlendes Tab wird also gemeldet und dieses Locale nicht importiert.
+- Benenne die Sprach-Tabs nicht um, lösche sie nicht und ordne sie nicht um. verbatra ordnet jedes Tab über seinen exakten Namen einem Locale zu, ein umbenanntes oder fehlendes Tab wird also gemeldet und dieses Locale nicht importiert.
 - Zeilen sortieren und filtern ist in Ordnung: Import ordnet Zeilen über `Key` zu, nie über die Position. Die Spalten müssen bleiben, wo sie sind; Import liest sie nach Position und verifiziert die Überschriften `Key` und `Source hash`.
 - Eine leere `Translation`-Zelle heißt "noch nicht übersetzt". Import überspringt sie und schreibt nie einen leeren String; eine halb ausgefüllte Arbeitsmappe kann also jetzt zurückkommen und der Rest später. Eine Zelle, die nur Leerzeichen enthält, zählt als leer. Um einen bestehenden Wert bewusst zu leeren (auf leer zu setzen), tippe genau `[[CLEAR]]` in die Zelle.
 
@@ -53,20 +53,20 @@ Was eine Übersetzerin wissen muss, passt in wenige Zeilen (und steht noch einma
 
 Import ist kein blindes Einfügen. Jede ausgefüllte Zeile wird gegen das laufende Projekt geprüft, bevor irgendetwas geschrieben wird:
 
-- **Quelldrift**: der verborgene `Source hash` wird mit der aktuellen Quelle verglichen. Hat sich der Quellstring nach dem Export geändert, wird die Zeile zurückgehalten; du überschreibst also nie eine aktuelle Quelle mit der Übersetzung einer alten.
-- **Platzhalter-Integrität**: die Übersetzung muss exakt dieselben Platzhalter tragen wie ihre Quelle. Lass `{name}` fallen oder erfinde `{total}`, und die Zeile wird zurückgehalten.
-- **ICU-Gültigkeit**: eine ICU-Nachricht muss strukturell gültig bleiben, mit denselben Argumentnamen; nur der menschenlesbare Text darf sich ändern.
-- **Degenerierte oder leere Werte**: ein Wert, der in eine Wiederholungsschleife gekippt ist, dessen Länge der Quelle davongelaufen ist oder der für eine nicht leere Quelle leer zurückkommt, wird zurückgehalten. Nutze das `[[CLEAR]]`-Sentinel oben, um eine Übersetzung bewusst zu leeren.
-- **Unbekannte Keys**: eine ausgefüllte Zeile, deren Key weder in der aktuellen Quelle noch in der aktuellen Zieldatei existiert (etwa ein von Hand eingetippter), lässt das ganze Blatt dieses Locales fehlschlagen, weil der Roundtrip gebrochen ist. Eine ausgefüllte Zeile, deren Key nur im Ziel existiert (ein verwaister Key), wird stillschweigend nicht geschrieben.
+- **Quelldrift**: Der verborgene `Source hash` wird mit der aktuellen Quelle verglichen. Hat sich der Quellstring nach dem Export geändert, wird die Zeile zurückgehalten; du überschreibst also nie eine aktuelle Quelle mit der Übersetzung einer alten.
+- **Platzhalter-Integrität**: Die Übersetzung muss exakt dieselben Platzhalter tragen wie ihre Quelle. Lass `{name}` fallen oder erfinde `{total}`, und die Zeile wird zurückgehalten.
+- **ICU-Gültigkeit**: Eine ICU-Nachricht muss strukturell gültig bleiben, mit denselben Argumentnamen; nur der menschenlesbare Text darf sich ändern.
+- **Degenerierte oder leere Werte**: Ein Wert, der in eine Wiederholungsschleife gekippt ist, dessen Länge der Quelle davongelaufen ist oder der für eine nicht leere Quelle leer zurückkommt, wird zurückgehalten. Nutze das `[[CLEAR]]`-Sentinel oben, um eine Übersetzung bewusst zu leeren.
+- **Unbekannte Keys**: Eine ausgefüllte Zeile, deren Key weder in der aktuellen Quelle noch in der aktuellen Zieldatei existiert (etwa ein von Hand eingetippter), lässt das ganze Blatt dieses Locales fehlschlagen, weil der Roundtrip gebrochen ist. Eine ausgefüllte Zeile, deren Key nur im Ziel existiert (ein verwaister Key), wird stillschweigend nicht geschrieben.
 - **Context ist nie eine Übersetzungsquelle**: Import ignoriert die Spalte `Context` vollständig, und eine Arbeitsmappe, die vor der Einführung dieser Spalte exportiert wurde, importiert weiterhin normal.
 
-Zurückgehaltene Zeilen erscheinen in der Lauf-Zusammenfassung unter dem Locale, zu dem sie gehören; akzeptierte Zeilen werden geschrieben und ihre Lock-Baseline rückt vor. Eine zurückgehaltene oder leere Zeile behält ihre bisherige Baseline, der Key wird also weiter exportiert, bis er wirklich erledigt ist. Eine leere Zeile, deren Quelle seit dem Export gedriftet ist, wird zusätzlich mit einer `BLANK_ROW_BASELINE_RETAINED`-Notice gemeldet, damit die Drift sichtbar bleibt.
+Zurückgehaltene Zeilen erscheinen in der Lauf-Zusammenfassung unter dem Locale, zu dem sie gehören; akzeptierte Zeilen werden geschrieben und ihre Lock-Baseline rückt vor. Eine zurückgehaltene oder leere Zeile behält ihre bisherige Baseline, der Key wird also weiter exportiert, bis er wirklich erledigt ist. Eine leere Zeile, deren Quelle seit dem Export gedriftet ist, wird zusätzlich mit einem `BLANK_ROW_BASELINE_RETAINED`-Hinweis gemeldet, damit die Drift sichtbar bleibt.
 
 Import weist außerdem strukturelle Befunde pro Locale aus, statt an ihnen abzubrechen: eine leere Zeile, deren Key weiterhin eine Übersetzung braucht (als unfilled gemeldet, weiter ausstehend, egal ob die Zeile als `new` oder als `changed` exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte (nach Zeile und Spalte gemeldet), und ein doppelter Key (das erste Vorkommen gewinnt und wird importiert, jedes spätere wird gemeldet). Keiner dieser Befunde lässt das Blatt für sich allein fehlschlagen. Ob ein Key in der unfilled-Liste landet, wird gegen das Projekt entschieden, wie es zum Importzeitpunkt dasteht: Eine erste Übergabe, die unbearbeitet zurückkommt, meldet also jeden ausstehenden Key statt gar keinen, und eine als `changed` exportierte Zeile, deren Key keine Arbeit mehr braucht, bleibt außen vor.
 
-Jedes Datenblatt ist ein Locale in der Zusammenfassung: ein Blattfehler (ein erfundener Key, ein Blatt für ein Locale, das nicht in deiner Konfiguration steht, oder ein konfiguriertes Locale, dessen Tab ganz fehlt, weil es umbenannt, gelöscht oder herausgeschoben wurde) lässt dieses Locale fehlschlagen und lässt die anderen unberührt. Import teilt den Exit-Code-Vertrag von `translate`: `0`, wenn jedes Blatt vollständig durchkommt, `1`, wenn eines fehlschlägt oder `partial` bleibt, `2`, wenn der Lauf nicht starten konnte, und auch dann, wenn eine kaputte Lock-Datei ihn mittendrin abbricht (Locales, die vor dem Abbruch angewendet wurden, bleiben geschrieben). Eine manuelle Übergabe fügt sich damit in dieselben [CI-Prüfungen](/docs/ci-and-exit-codes) ein wie ein automatischer Lauf.
+Jedes Datenblatt ist ein Locale in der Zusammenfassung: ein Blattfehler (ein erfundener Key, ein Blatt für ein Locale, das nicht in deiner Konfiguration steht, oder ein konfiguriertes Locale, dessen Tab ganz fehlt, weil es umbenannt, gelöscht oder durch Umsortieren entfernt wurde) lässt dieses Locale fehlschlagen und lässt die anderen unberührt. Import teilt den Exit-Code-Vertrag von `translate`: `0`, wenn jedes Blatt vollständig durchkommt, `1`, wenn eines fehlschlägt oder unvollständig bleibt, `2`, wenn der Lauf nicht starten konnte, und auch dann, wenn eine kaputte Lock-Datei ihn mittendrin abbricht (Locales, die vor dem Abbruch angewendet wurden, bleiben geschrieben). Eine manuelle Übergabe fügt sich damit in dieselben [CI-Prüfungen](/docs/ci-and-exit-codes) ein wie ein automatischer Lauf.
 
-### Erst der Dry-Run
+### Erst der Dry Run
 
 Validiere eine zurückgekommene Arbeitsmappe und sieh dir an, was geschrieben würde, ohne eine einzige Datei anzufassen:
 
@@ -86,11 +86,11 @@ verbatra export --format csv --out handoff
 verbatra import handoff --format csv
 ```
 
-Der Import nimmt auch eine einzelne Datei (`verbatra import handoff/de.csv --format csv`) und liest die Locale aus dem Dateinamen. Lass die Dateien also so heißen, wie sie exportiert wurden.
+Der Import nimmt auch eine einzelne Datei (`verbatra import handoff/de.csv --format csv`) und liest das Locale aus dem Dateinamen. Lass die Dateien also so heißen, wie sie exportiert wurden.
 
 Was sich gegenüber der Arbeitsmappe unterscheidet:
 
-- **Kein Schutz.** Eine Arbeitsmappe lässt nur `Translation` editierbar und blendet `Source hash` aus; eine Textdatei kann das nicht. Jede Spalte ist editierbar und der Hash ist sichtbar. Ein geänderter oder geleerter Hash wird nicht vertraut: Die Zeile wird mit der aktuellen Quelle verglichen und wie eine veraltete Zeile als Drift zurückgehalten.
+- **Kein Schutz.** Eine Arbeitsmappe lässt nur `Translation` editierbar und blendet `Source hash` aus; eine Textdatei kann das nicht. Jede Spalte ist editierbar und der Hash ist sichtbar. Einem geänderten oder geleerten Hash wird nicht vertraut: Die Zeile wird mit der aktuellen Quelle verglichen und wie eine veraltete Zeile als Drift zurückgehalten.
 - **Kein Instructions-Blatt.** Gib die Übergabe-Regeln von oben selbst an die Übersetzerin weiter.
 - **Quoting nach RFC 4180.** Ein Wert mit dem Trennzeichen, einem Anführungszeichen, einem Zeilenumbruch oder umgebenden Leerzeichen wird in Anführungszeichen gesetzt, und enthaltene Anführungszeichen werden verdoppelt. So kann nichts in einem String eine Spalte verschieben. Dateien werden mit LF-Zeilenenden geschrieben, und `csv` trägt ein UTF-8-BOM, damit Excel es als UTF-8 liest.
 - **Eine Tabellenkalkulation kann trotzdem verändern, was sie öffnet.** Öffnest du eine `.csv` oder `.tsv` in einer Tabellenkalkulation, kann sie Werte umdeuten (aus `007` wird `7`) und einen Wert, der mit `=`, `+`, `-` oder `@` beginnt, als Formel behandeln. Quoting verhindert das nicht, denn die Anführungszeichen werden vor der Auswertung entfernt. verbatra sichert stattdessen den Wertanfang ab: Ein Wert, der mit `=`, `+`, `-`, `@`, einem Tabulator oder einem Wagenrücklauf beginnt, wird mit einem führenden Apostroph exportiert, dem Zeichen, mit dem eine Tabellenkalkulation die Zelle als Text behandelt. Der Import entfernt diesen Apostroph wieder, sodass ganz normale Übersetzungen wie `-5 Grad` und `+49 30 1234567` genau so gespeichert werden, wie die Übersetzerin sie getippt hat. Ein führendes Leerzeichen gehört nicht dazu und bleibt unverändert. Behandle eine Datei, die von einer Übersetzerin zurückkommt, als nicht vertrauenswürdige Eingabe.
@@ -101,7 +101,7 @@ Was sich gegenüber der Arbeitsmappe unterscheidet:
 
 <AvailableFrom version="0.11.0" />
 
-Eine Übergabe trägt einen Ausschnitt des offenen Deltas pro Locale zu einem Menschen, der übersetzt; [`verbatra tmx`](/docs/cli/tmx) trägt das gesamte Translation Memory als eine einzige mehrsprachige Datei, um es zwischen Tools zu bewegen, statt um Strings übersetzen zu lassen. TMX ist kein `--format`-Wert: `xlsx`, `csv` und `tsv` sind die Übergabeformen, greife also zu `verbatra tmx export` und `verbatra tmx import` statt zu `verbatra export --format tmx`.
+Eine Übergabe trägt einen Ausschnitt des offenen Deltas pro Locale an eine menschliche Übersetzerin; [`verbatra tmx`](/docs/cli/tmx) trägt den gesamten Übersetzungsspeicher als eine einzige mehrsprachige Datei, um ihn zwischen Tools zu bewegen, statt um Strings übersetzen zu lassen. TMX ist kein `--format`-Wert: `xlsx`, `csv` und `tsv` sind die Übergabeformen, greife also zu `verbatra tmx export` und `verbatra tmx import` statt zu `verbatra export --format tmx`.
 
 ## Auswählen, was exportiert wird
 
@@ -118,19 +118,19 @@ verbatra export --include-unchanged
 verbatra export --out handoff/round-2.xlsx
 ```
 
-Greif zu `--include-unchanged`, wenn eine Übersetzerin den vollen Kontext eines Locales will, nicht nur das Delta. Alle Flags stehen unter [`verbatra export`](/docs/cli/export).
+Greife zu `--include-unchanged`, wenn eine Übersetzerin den vollen Kontext eines Locales will, nicht nur das Delta. Alle Flags stehen unter [`verbatra export`](/docs/cli/export).
 
 ## Die Review-Spalten
 
 `Review status` und `Review reasons` sind eine nicht blockierende Schicht über den Prüfungen oben: die Heuristiken von verbatra, um eine Übersetzung zu erkennen, die strukturell in Ordnung ist, aber einen zweiten Blick verdient. Diese Spalten halten nie eine Zeile zurück, und Import liest sie nie; ein Flag verschwindet nur, indem du die Übersetzung reparierst. Beide Spalten werden beim Export frisch aus der Quelle und den aktuellen Zielwerten berechnet:
 
-- `length-ratio-outlier`: die Übersetzung ist deutlich kürzer oder länger als ihre Quelle.
-- `max-length-exceeded`: die Übersetzung ist länger als das für ihren Key konfigurierte Budget.
-- `equals-source`: die Übersetzung ist identisch mit der Quelle.
-- `glossary-term-missed`: ein konfigurierter Glossarbegriff hat es nicht in die Übersetzung geschafft.
-- `integrity-reordered`: die Platzhalter stimmen, landeten aber in anderer Reihenfolge als in der Quelle.
+- `length-ratio-outlier`: Die Übersetzung ist deutlich kürzer oder länger als ihre Quelle.
+- `max-length-exceeded`: Die Übersetzung ist länger als das für ihren Key konfigurierte Budget.
+- `equals-source`: Die Übersetzung ist identisch mit der Quelle.
+- `glossary-term-missed`: Ein konfigurierter Glossarbegriff hat es nicht in die Übersetzung geschafft.
+- `integrity-reordered`: Die Platzhalter stimmen, landeten aber in anderer Reihenfolge als in der Quelle.
 
-Ein sechster Grund, `provider-degraded`, existiert nur zur Übersetzungszeit (eine DeepL-Degradations-Notice auf dem Batch, aus dem ein Key kam); da Export nie einen Provider aufruft, erscheint er nie auf einer exportierten Zeile. Eine Zeile ohne bisherige Übersetzung exportiert immer `ok`; es gibt nichts zu reviewen. In [Übersetzungssicherheit](/docs/translation-safety) steht, wie diese Flags mit den harten Integritätsprüfungen zusammenhängen.
+Zwei weitere Gründe vervollständigen die Menge von sieben, und beide existieren nur zur Übersetzungszeit: `provider-degraded` (ein Hinweis auf herabgestufte Formalität oder ein ignoriertes Glossar auf dem Batch, aus dem ein Key kam) und `fuzzy-cache-reuse` (der Wert wurde aus dem Übersetzungsspeicher für eine frühere, fast identische Quelle wiederverwendet, die seitdem bearbeitet wurde). Der Export berechnet die Spalten allein aus Quell- und Zielwerten, also erscheint keiner von beiden je auf einer exportierten Zeile. Eine Zeile ohne bisherige Übersetzung exportiert immer `ok`; es gibt nichts zu prüfen. In [Übersetzungssicherheit](/docs/translation-safety) steht, wie diese Flags mit den harten Integritätsprüfungen zusammenhängen.
 
 ## Aus dem SDK
 
@@ -153,7 +153,7 @@ const summary = await importWorkbook({ config, workbook: "verbatra-translations.
 
 Beide nehmen die validierte Konfiguration aus [`loadConfig`](/docs/sdk), und `importWorkbook` gibt dieselbe `RunSummary` zurück wie `translate`. Die Arbeitsmappe selbst wird von `@verbatra/exchange` gebaut und geparst, einem internen Paket, das du nur über diese beiden Funktionen erreichst.
 
-## Weiter
+## Nächste Schritte
 
 - [`verbatra export`](/docs/cli/export): jedes Export-Flag und der Bericht, den es ausgibt.
 - [`verbatra import`](/docs/cli/import): jedes Import-Flag, die Lauf-Zusammenfassung und die Exit-Codes.

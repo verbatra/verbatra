@@ -2,7 +2,7 @@
 title: Añade un idioma
 description: Añade un nuevo locale de destino a un proyecto verbatra existente con un cambio de una línea en la configuración y una ejecución de translate, mientras tus locales existentes quedan intactos.
 ---
-Añadir un idioma es un cambio de una línea en la configuración más una ejecución. verbatra ve el nuevo locale como si le faltara todo y lo completa entero; tus locales existentes no cuestan nada, porque el archivo de bloqueo todavía los tiene registrados como vigentes.
+Añadir un idioma es un cambio de una línea en la configuración más una ejecución. verbatra ve el nuevo locale como si le faltara todo y lo rellena por completo; tus locales existentes no cuestan nada, porque el archivo de bloqueo todavía los tiene registrados como vigentes.
 
 ## Añade el locale a tu configuración
 
@@ -28,7 +28,7 @@ export default defineConfig({
 });
 ```
 
-Dos reglas, ambas aplicadas al cargar la configuración: un locale de destino no puede ser el `sourceLocale`, y dos entradas no pueden colisionar sin distinguir mayúsculas de minúsculas (nada de `de` y `DE` en la misma lista).
+Dos reglas, ambas aplicadas al cargar la configuración: un locale de destino no puede ser el `sourceLocale`, y dos entradas no pueden coincidir si se ignoran mayúsculas y minúsculas (nada de `de` y `DE` en la misma lista).
 
 ## Previsualiza el trabajo
 
@@ -46,13 +46,13 @@ El nuevo locale aún no tiene archivo de destino, así que verbatra lo trata com
 verbatra translate
 ```
 
-La ejecución traduce cada clave de origen al nuevo locale y escribe el archivo en tu `files.pattern` (aquí `locales/fr.json`). Un origen grande se divide en sublotes de como mucho 50 claves por solicitud al proveedor (configurable con `maxBatchSize`), así que una solicitud sobredimensionada no puede hundir el locale entero.
+La ejecución traduce cada clave de origen al nuevo locale y escribe el archivo en tu `files.pattern` (aquí `locales/fr.json`). Un origen grande se divide en sublotes de como mucho 50 claves por petición al proveedor (configurable con `maxBatchSize`), así que una petición sobredimensionada no puede echar a perder el locale entero.
 
 Este es el comportamiento incremental en acción: solo el nuevo locale dispara llamadas al proveedor. Para cada locale existente, verbatra hace diff del origen contra la línea base de ese locale en `verbatra.lock.json`, no encuentra claves faltantes ni modificadas, y no envía nada. Después, `verbatra check` sale con `0`: todos los locales, incluido el nuevo, están sincronizados.
 
 ## Idiomas con más categorías de plural
 
-Algunos idiomas necesitan más categorías de plural CLDR que tu origen. El inglés tiene dos (`one` y `other`); el polaco, el árabe y el ruso tienen más. Por defecto verbatra traduce las formas plurales que encuentra en el origen y no inventa las extra: la ejecución sigue teniendo éxito y emite un aviso por locale (código `PLURAL_CATEGORIES_INCOMPLETE`) que nombra las categorías que faltan.
+Algunos idiomas necesitan más categorías de plural CLDR que tu origen. El inglés tiene dos (`one` y `other`); el polaco, el árabe y el ruso tienen más. Por defecto verbatra traduce las formas plurales que encuentra en el origen y no inventa las que faltan: la ejecución sigue teniendo éxito y emite un aviso por locale (código `PLURAL_CATEGORIES_INCOMPLETE`) que nombra las categorías que faltan.
 
 Para que verbatra sintetice en su lugar las formas que faltan, define `generatePlurals: true` en tu configuración:
 
@@ -63,11 +63,11 @@ export default defineConfig({
 });
 ```
 
-La generación solo está soportada para proyectos i18next-JSON traducidos por un proveedor LLM; DeepL, los otros formatos y los idiomas de destino desconocidos recurren al aviso y nunca hacen fallar la ejecución. Las formas generadas pasan las comprobaciones de integridad como cualquier traducción y se informan por separado de las claves traducidas en el resumen de la ejecución.
+La generación solo se admite en proyectos i18next-JSON traducidos por un proveedor LLM; DeepL y Google Cloud Translation, los otros formatos y los idiomas de destino desconocidos recurren al aviso y nunca hacen fallar la ejecución. Las formas generadas pasan las comprobaciones de integridad como cualquier traducción y se informan por separado de las claves traducidas en el resumen de la ejecución.
 
-## Mantén el locale de origen
+## Mantener el locale de origen
 
-Solo mantienes a mano el locale de origen. Para añadir cadenas, ponlas en el archivo de origen y ejecuta `translate` de nuevo: verbatra las completa en todos los destinos, incluido el que acabas de añadir.
+El único locale que mantienes a mano es el de origen. Para añadir cadenas, ponlas en el archivo de origen y ejecuta `translate` de nuevo: verbatra las completa en todos los destinos, incluido el que acabas de añadir.
 
 ## Siguiente
 

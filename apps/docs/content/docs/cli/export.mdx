@@ -41,7 +41,7 @@ verbatra export --format csv --out handoff
 
 `--format csv` and `--format tsv` write plain text instead of a workbook: one `<locale>.csv` or `<locale>.tsv` per exported locale, carrying the same columns in the same order as a workbook sheet. `--out` then names the directory the files are written into, and the directory is created if it is missing.
 
-A delimited file is diffable and opens anywhere, but it carries no cell protection: every column is editable and the `Source hash` column is visible. An edited hash is never trusted, import compares it against the live source and withholds the row.
+A delimited file is diffable and opens anywhere, but it carries no cell protection: every column is editable and the `Source hash` column is visible. An edited hash is never trusted: import compares it against the live source and withholds the row.
 
 Each delimited export also writes a hidden manifest into the directory, `.verbatra-export-csv.json` or `.verbatra-export-tsv.json`, naming the locales it just wrote. It is what lets a re-export with a narrower `--locales` selection retire the locales it dropped: their files stay on disk, and [`verbatra import`](/docs/cli/import) refuses them as leftovers rather than applying an outdated translation. The export deletes nothing from the output directory, so a file you put there yourself is never at risk.
 
@@ -53,6 +53,8 @@ Each delimited export also writes a hidden manifest into the directory, `.verbat
 | `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value) |
 
 `export` has no per-locale failure mode, so it never exits `1`.
+
+A target locale that cannot name its sheet or file stops the export with `WORKBOOK_INVALID`. An xlsx sheet name must be 1 to 31 characters, must not contain any of `: \ / ? * [ ]`, and must not match `Instructions` or another target locale's sheet name, ignoring case. A `csv` or `tsv` file name must not be empty, `.` or `..`, and must not contain a path separator, a control character, or any of `: * ? " < > |`. The same code covers a workbook that could not be serialized.
 
 ## Related
 

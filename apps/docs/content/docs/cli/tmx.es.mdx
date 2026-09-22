@@ -21,11 +21,11 @@ verbatra tmx <direction> [file] [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resolver la configuración y la memoria desde este directorio |
-| `--config` | `<path>` | se busca una | cargar este archivo de configuración en lugar de buscar uno |
-| `--locales` | `<list>` | todas las configuradas | subconjunto de locales de destino separado por comas |
-| `--dry-run` | ninguno | desactivado | solo en el import, rechazado en un export: validar e informar sin tocar la memoria |
-| `--overwrite` | ninguno | desactivado | solo en el import, rechazado en un export: dejar que una unidad importada sustituya una traducción que la memoria ya tiene |
+| `--cwd` | `<path>` | directorio actual | resuelve la configuración y la memoria desde este directorio |
+| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
+| `--locales` | `<list>` | todos los configurados | subconjunto de locales de destino, separados por comas |
+| `--dry-run` | ninguno | desactivado | solo en el import, rechazado en un export: valida e informa sin tocar la memoria |
+| `--overwrite` | ninguno | desactivado | solo en el import, rechazado en un export: deja que una unidad importada sustituya una traducción que la memoria ya tiene |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout con el resultado, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 ## Ejemplos
@@ -49,37 +49,37 @@ verbatra tmx export out/memory.tmx --locales de
 
 ## Qué tiene que cumplir una unidad importada
 
-Un archivo de otra herramienta es entrada no confiable, y una unidad que llega a la memoria puede reutilizarse sin volver a preguntar a nadie. Así que no se guarda nada hasta que se lo ha ganado. Cada traducción candidata pasa por la misma puerta de integridad que ya afrontan [la salida del proveedor y una entrega rellenada por una traductora](/docs/translation-safety), comprobada en el momento en que el registro entra en la memoria y no dejada a la ejecución que luego la lee:
+Un archivo de otra herramienta es entrada no confiable, y una unidad que llega a la memoria puede reutilizarse sin volver a preguntar a nadie. Así que no se guarda nada hasta que se lo ha ganado. Cada traducción candidata pasa por la misma puerta de integridad que ya afrontan [la salida del proveedor y una entrega rellenada por un traductor](/docs/translation-safety), y se comprueba cuando el registro entra en la memoria, no se deja para la ejecución que luego lo lee:
 
-- sus marcadores tienen que coincidir con los de su propio segmento de origen,
+- sus placeholders tienen que coincidir con los de su propio segmento de origen,
 - sus etiquetas HTML o XML en línea tienen que coincidir con las de su propio segmento de origen, así que se rechaza una etiqueta que el origen nunca tuvo (como un `<img onerror>` inyectado),
 - tiene que ser un mensaje ICU válido según el adaptador del formato configurado,
-- no puede haberse desbocado hasta dejar de ser una traducción,
+- no puede haber degenerado en una salida desbocada en lugar de una traducción,
 - no puede estar vacía donde el origen tiene texto.
 
-Además, una unidad con el segmento de origen en blanco no identifica ninguna cadena, así que también se rechaza. El marcado en línea (`bpt`, `ept`, `ph`, `it`) se aplana a su texto, y la comprobación de marcadores lo detecta si ese marcado llevaba algo que importaba. Un elemento `sub` dentro de ese marcado es un flujo de texto aparte, como un tooltip o un texto alternativo, y no forma parte de la cadena del segmento, así que su texto se deja fuera en vez de aplanarse.
+Además, una unidad con el segmento de origen en blanco no identifica ninguna cadena, así que también se rechaza. El marcado en línea (`bpt`, `ept`, `ph`, `it`) se aplana a su texto, y la comprobación de placeholders lo detecta si ese marcado llevaba algo que importaba. Un elemento `sub` dentro de ese marcado es un flujo de texto aparte, como un tooltip o un texto alternativo, y no forma parte de la cadena del segmento, así que su texto se deja fuera en vez de aplanarse.
 
 Nada desaparece en silencio. Cada rechazo se cuenta por motivo, igual que cada unidad que el lector no pudo aprovechar, cada unidad sin segmento en tu locale de origen, cada unidad cuyo marcado se aplanó y cada unidad cuyo texto `sub` se dejó fuera.
 
 ## Emparejar etiquetas de idioma
 
-Un archivo TMX escribe sus idiomas como los escribió la herramienta de su autora, y eso rara vez coincide con cómo los escribe tu configuración. La regla es explícita y nunca adivina:
+Un archivo TMX escribe sus idiomas como los escribió la herramienta de su autor, y eso rara vez coincide con cómo los escribe tu configuración. La regla es explícita y nunca adivina:
 
 1. Ambos lados se pasan a minúsculas y los guiones bajos se convierten en guiones, de modo que `pt_BR`, `pt-br` y `pt-BR` son un mismo locale. Una coincidencia exacta en ese punto gana.
 2. Si no, la etiqueta puede llegar a un locale configurado que sea un prefijo de subetiquetas de ella, así que un archivo escrito en `en-US` aterriza en un proyecto configurado con `en`. Si varios locales configurados son prefijos de la etiqueta, gana el más largo, como en la búsqueda (lookup) de RFC 4647: en un proyecto configurado con `de` y `de-AT`, un archivo escrito en `de-AT-1996` aterriza en `de-AT`, y uno escrito en `de-CH-1901` aterriza en `de`.
 3. Una etiqueta más corta también puede llegar a un locale configurado que empieza por ella, pero solo cuando cada subetiqueta que añade el locale es una región o una variante, nunca una escritura. Un archivo escrito en `de` aterriza en un proyecto configurado solo con `de-DE`, y `pt` en uno configurado solo con `pt-BR`, pero `sr` nunca aterriza en `sr-Latn` ni `zh` en `zh-Hant-TW`, porque una subetiqueta de escritura nombra otro sistema de escritura. Un locale configurado que es prefijo de la etiqueta siempre tiene prioridad, y entre varios más largos gana el más cercano.
-4. Dos etiquetas cuyas subetiquetas de escritura o de región difieren nunca coinciden. `zh-CN` nunca se guarda como `zh-TW`, `sr-Latn` nunca como `sr-Cyrl` y `de-AT` nunca como `de-CH`: esa etiqueta se informa como sin coincidencia con ningún locale configurado, no se adivina.
-5. Una etiqueta solo se informa como ambigua cuando los locales configurados a los que podría llegar no están en una misma cadena de prefijos. `pt` en un proyecto con `pt-BR` y `pt-AO` se informa como ambiguo, no se adjudica al que llegó primero.
+4. Dos etiquetas cuyas subetiquetas de escritura o de región difieren nunca coinciden. `zh-CN` nunca se guarda como `zh-TW`, `sr-Latn` nunca como `sr-Cyrl` y `de-AT` nunca como `de-CH`: de esa etiqueta se informa que no coincide con ningún locale configurado, en lugar de adivinarla.
+5. Una etiqueta solo se informa como ambigua cuando los locales configurados a los que podría llegar no están en una misma cadena de prefijos. `pt` en un proyecto con `pt-BR` y `pt-AO` se informa como ambigua, no se adjudica al primer locale que aparezca.
 
-Cada segmento se resuelve en una sola pasada contra el locale de origen y todos tus locales de destino configurados, no primero contra el origen y luego contra los destinos. Eso es lo que impide que un destino regional se tome por la etiqueta de origen simple que amplía: en un proyecto cuyo origen es `pt` y cuyos destinos incluyen `pt-BR`, el segmento `pt-BR` es ese destino y nunca una segunda lectura del origen. Sigue valiendo cuando acotas una ejecución con `--locales`, porque la resolución ve todos los locales configurados igualmente.
+Cada segmento se resuelve en una sola pasada contra el locale de origen y todos tus locales de destino configurados, no primero contra el origen y luego contra los destinos. Eso es lo que impide que un destino regional se tome por la etiqueta de origen simple que amplía: en un proyecto cuyo origen es `pt` y cuyos destinos incluyen `pt-BR`, el segmento `pt-BR` es ese destino y nunca una segunda lectura del origen. Sigue valiendo cuando acotas una ejecución con `--locales`, porque la resolución ve todos los locales configurados en cualquier caso.
 
-Los segmentos de origen de una unidad se ordenan igual que sus segmentos de destino, descritos más abajo: una etiqueta exacta supera a un segmento que solo llega a tu locale de origen por prefijo de subetiqueta, y dos segmentos con el mismo valor coinciden, así que `en` "Save" junto a `en-US` "Save" en un proyecto configurado con `en` se importa con normalidad. Una unidad cuyos segmentos de origen del mismo rango llevan valores distintos, como `en-US` "Color" y `en-GB` "Colour", se rechaza y se cuenta en lugar de adjudicarse al que llegó último. Una configuración cuyo locale de origen y uno de sus locales de destino son la misma etiqueta una vez normalizadas mayúsculas y separadores se rechaza de plano, porque ningún segmento podría atribuirse a ninguno de los dos.
+Los segmentos de origen de una unidad se ordenan igual que sus segmentos de destino, descritos más abajo: una etiqueta exacta supera a un segmento que solo llega a tu locale de origen por prefijo de subetiqueta, y dos segmentos con el mismo valor coinciden, así que `en` "Save" junto a `en-US` "Save" en un proyecto configurado con `en` se importa con normalidad. Una unidad cuyos segmentos de origen del mismo rango llevan valores distintos, como `en-US` "Color" y `en-GB` "Colour", se rechaza y se cuenta en lugar de adjudicarse al que llegó último. Una configuración cuyo locale de origen y uno de sus locales de destino son la misma etiqueta una vez normalizados el uso de mayúsculas y los separadores se rechaza de plano, porque ningún segmento podría atribuirse a ninguno de los dos.
 
-Dos segmentos de destino que resuelven al mismo locale configurado nunca dejan que el último gane en silencio. Una etiqueta exacta siempre supera a un segmento que solo llega al locale por prefijo de subetiqueta, así que en un proyecto configurado con `de`, una unidad con `de` "Straße" y `de-CH` "Strasse" guarda "Straße". Si dos segmentos del mismo rango llevan valores distintos, como `de-CH` "Strasse" y `de-AT` "Straße", no se guarda nada para ese locale desde esa unidad, y la unidad se cuenta como conflicto para ese locale en el resumen y en el resultado de `--json`. Los demás locales de la unidad se guardan igualmente, y dos segmentos con el mismo valor no son un conflicto.
+Dos segmentos de destino que se resuelven al mismo locale configurado nunca dejan que el último gane en silencio. Una etiqueta exacta siempre supera a un segmento que solo llega al locale por prefijo de subetiqueta, así que en un proyecto configurado con `de`, una unidad con `de` "Straße" y `de-CH` "Strasse" guarda "Straße". Si dos segmentos del mismo rango llevan valores distintos, como `de-CH` "Strasse" y `de-AT` "Straße", no se guarda nada para ese locale desde esa unidad, y la unidad se cuenta como conflicto para ese locale en el resumen y en el resultado de `--json`. Los demás locales de la unidad se guardan igualmente, y dos segmentos con el mismo valor no son un conflicto.
 
 También se cuentan las unidades que el lector no pudo aprovechar, las que no tienen segmento de origen, aquellas cuyo marcado se aplanó y los elementos `tu` que quedan fuera del primer `body` del archivo. Si la cabecera declara un `srclang` que no es tu locale de origen, se informa en vez de pasarse por alto.
 
-Las etiquetas que no coinciden con nada configurado se cuentan por etiqueta y se informan, de modo que un archivo lleno de idiomas que no traduces te lo dice, en lugar de parecer un import vacío.
+Las etiquetas que no coinciden con nada configurado se cuentan por etiqueta y se informan, de modo que un archivo lleno de idiomas que no traduces te lo dice, en lugar de parecer una importación vacía.
 
 ## Cuando el archivo y la memoria no coinciden
 
@@ -89,19 +89,19 @@ Dentro de un mismo archivo gana la primera unidad de un origen dado, y las repet
 
 Importar el mismo archivo dos veces, por tanto, no cambia nada la segunda vez, y no escribe ningún archivo.
 
-## Las unidades importadas y tu configuración
+## Unidades importadas y tu configuración
 
 Las unidades importadas se guardan bajo la huella de configuración actual del proyecto, la misma clave que escribe una ejecución real. Es deliberado: una memoria importada se reutiliza exactamente cuando coincide la configuración que la consumiría, y deja de coincidir cuando cambian el proveedor, el modelo, el tono o el glosario, que es justo la protección para la que existe la capa de huella. Vuelve a importar el archivo después de un cambio así.
 
-Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, el import lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar.
+Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, la importación lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar.
 
 ## Unidades importadas y reutilización difusa
 
-Vale la pena decir una consecuencia con claridad, porque ninguna comprobación en el momento del import puede vigilarla. El texto de origen de una unidad aceptada se escribe en el índice de orígenes de la memoria, que es justo contra lo que la [reutilización difusa](/docs/the-cache) puntúa una cadena modificada. Un origen importado que **difiere** de una cadena de tu proyecto puede por tanto servirse para esa cadena, que es lo que significa parecerse.
+Vale la pena decir una consecuencia con claridad, porque ninguna comprobación en el momento de la importación puede vigilarla. El texto de origen de una unidad aceptada se escribe en el índice de orígenes de la memoria, que es justo contra lo que la [reutilización difusa](/docs/the-cache) puntúa una cadena modificada. Un origen importado que **difiere** de una cadena de tu proyecto puede por tanto servirse para esa cadena, que es justo lo que significa el parecido.
 
 Un origen importado **idéntico** a una de tus cadenas pero con otro hash no es alcanzable en absoluto. La reutilización difusa descarta cualquier candidato cuyo texto de origen normalizado sea igual a la cadena buscada, así que si tu entrada lleva una descripción, un significado o una marca de plural que una unidad TMX no puede llevar, los hashes difieren, el texto idéntico descalifica al candidato difuso y la cadena va al proveedor como siempre.
 
-Esa reutilización sigue pasando por la puerta de integridad contra tu entrada real, y se informa como marca de revisión `FUZZY_CACHE_REUSE` en el resumen de la ejecución, así que es visible y no silenciosa. Si prefieres que una memoria importada no sea alcanzable por esa vía, deja `fuzzyCache` fuera de tu configuración: sin ella, solo se reutiliza una coincidencia exacta de hash de contenido.
+Esa reutilización sigue pasando por la puerta de integridad contra tu entrada real, y se informa como señal de revisión `FUZZY_CACHE_REUSE` en el resumen de la ejecución, así que es visible y no silenciosa. Si prefieres que una memoria importada no sea alcanzable por esa vía, deja `fuzzyCache` fuera de tu configuración: sin ella, solo se reutiliza una coincidencia exacta de hash de contenido.
 
 ## Qué escribe el export
 
@@ -109,7 +109,7 @@ Un elemento `tu` por cada cadena de origen distinta, con el segmento de origen y
 
 Las etiquetas de idioma se escriben en forma BCP 47, las escriba como las escriba tu configuración: los guiones bajos pasan a guiones, el idioma va en minúsculas, la escritura con mayúscula inicial y la región en mayúsculas. Un proyecto configurado con `en_US` y `pt_BR` escribe `srclang="en-US"` y `xml:lang="pt-BR"`, algo que otras herramientas aceptan y que vuelve a importarse sin cambios en el mismo proyecto. La forma en que verbatra indexa su propia memoria no cambia.
 
-Un carácter que XML 1.0 no puede representar en absoluto, como un carácter de control o un sustituto suelto, se elimina del texto del segmento para que un parser conforme pueda leer el archivo. Cuántos se eliminaron se indica en el resumen y en el resultado de `--json`.
+Un carácter que XML 1.0 no puede representar en absoluto, como un carácter de control o un sustituto aislado, se elimina del texto del segmento para que un parser conforme pueda leer el archivo. Cuántos se eliminaron se indica en el resumen y en el resultado de `--json`.
 
 Una memoria vacía produce un archivo TMX válido y vacío, no un error.
 
@@ -122,12 +122,12 @@ Una entrada de la que la memoria no tiene texto de origen no se puede escribir, 
 | `0` | el archivo se leyó o se escribió |
 | `2` | no se pudo ejecutar: un error de configuración, un archivo ausente o ilegible, un archivo que no es TMX válido, o un error de uso |
 
-Un archivo demasiado grande, mal formado, que no sea un documento TMX o que declare una entidad XML se rechaza con un error estructurado que nombra qué falló. Cuando el problema tiene un lugar en el archivo, el mensaje también indica la línea y la columna y, dentro de una unidad de traducción, de qué unidad se trata (contando desde 1), así que `line 9, column 29, unit 2` te lleva al segundo `tu`. Con `--json` el mismo mensaje va en el sobre de error, y quien llama al SDK obtiene el mismo lugar como datos estructurados con `tmxErrorLocation(error)`. Las declaraciones de entidad y los subconjuntos DTD internos se rechazan de plano, así que nunca se llega ni a una referencia de entidad externa ni a una expansión sin límite, y la simple línea doctype externa que escriben las herramientas reales se descarta en vez de cargarse.
+Un archivo demasiado grande, mal formado, que no sea un documento TMX o que declare una entidad XML se rechaza con un error estructurado que nombra qué falló. Cuando el problema tiene un lugar en el archivo, el mensaje también indica la línea y la columna y, dentro de una unidad de traducción, de qué unidad se trata (contando desde 1), así que `line 9, column 29, unit 2` te lleva al segundo `tu`. El código del error es `SOURCE_INVALID`; con `--json` el mismo mensaje va en el envoltorio de error, y quien llama al SDK obtiene el mismo lugar como datos estructurados con `tmxErrorLocation(error)`, cuya `cause` subyacente es un error de exchange con el código `TMX_INVALID`. Las declaraciones de entidad y los subconjuntos DTD internos se rechazan de plano, así que nunca se llega ni a una referencia de entidad externa ni a una expansión sin límite, y el doctype externo simple que emiten las herramientas reales se descarta en lugar de descargarse.
 
 Las unidades omitidas o rechazadas no hacen fallar la ejecución. Se informan, porque una memoria real casi siempre trae algo de ambas.
 
 ## Relacionado
 
 - [La caché](/docs/the-cache) explica qué es la memoria de traducción y con qué clave se indexa.
-- [Traducción manual](/docs/manual-translation) cubre la entrega en xlsx, CSV y TSV, que es otra cosa: un corte por locale del delta pendiente para una traductora, no la memoria entera.
+- [Traducción humana](/docs/manual-translation) cubre la entrega en xlsx, CSV y TSV, que es otra cosa: un corte por locale del delta pendiente para un traductor, no la memoria entera.
 - [Seguridad de la traducción](/docs/translation-safety) explica las comprobaciones que tiene que pasar una unidad importada.

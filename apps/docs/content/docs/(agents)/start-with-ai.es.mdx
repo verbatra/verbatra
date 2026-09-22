@@ -1,8 +1,8 @@
 ---
 title: Configura verbatra con un agente de IA
-description: "Un prompt listo para copiar y pegar en Claude Code, Cursor o cualquier agente de IA para programar, para añadir verbatra a un proyecto que ya tiene una configuración de i18n, protegido por una confirmación humana explícita antes de que gaste nada."
+description: "Un prompt listo para copiar y pegar en Claude Code, Cursor o cualquier agente de IA para programar, que añade verbatra a un proyecto que ya tiene una configuración de i18n, protegido por una confirmación humana explícita antes de que gaste nada."
 ---
-Esta página es para un proyecto que ya tiene archivos de locale: i18next, vue-i18n, next-intl, ngx-translate, o archivos JSON, YAML, XLIFF, ARB, properties, `.strings` de Apple, `.xcstrings` de Xcode String Catalog, `strings.xml` de Android o `.po`/`.pot` de gettext en bruto, ya confirmados en el repositorio y ya en uso. Copia el prompt de abajo en tu agente de IA para programar (Claude Code, Cursor o cualquier agente que pueda leer tu proyecto y ejecutar comandos de shell), y él mismo se encarga de inspeccionar tu configuración, instalar verbatra, generar una config que coincida con lo que encontró y previsualizar una ejecución, y luego se detiene y te pide confirmación antes de llamar a un proveedor de verdad.
+Esta página es para un proyecto que ya tiene archivos de locale: i18next, vue-i18n, next-intl, ngx-translate, o archivos en bruto de JSON, YAML, XLIFF, ARB, properties, `.strings` de Apple, `.xcstrings` de Xcode String Catalog, `strings.xml` de Android o `.po`/`.pot` de gettext, ya confirmados en el repositorio y ya en uso. Copia el prompt de abajo en tu agente de IA para programar (Claude Code, Cursor o cualquier agente que pueda leer tu proyecto y ejecutar comandos de shell), y él mismo se encarga de inspeccionar tu configuración, instalar verbatra, generar una config que coincida con lo que encontró y previsualizar una ejecución, y luego se detiene y te pide confirmación antes de llamar a un proveedor de verdad.
 
 Si estás configurando verbatra tú mismo en lugar de dárselo a un agente, [Tu primera traducción](/docs/your-first-translation) es la versión humana del mismo recorrido.
 
@@ -120,8 +120,9 @@ their direction rather than guessing which namespace to wire up.
 
 npx verbatra doctor
 
-`doctor` validates the config, the format, the provider id, and the source file,
-with no network call and no key read. Fix whatever it reports by editing
+`doctor` runs five checks: the config, the format, the provider id, the API-key
+environment variable that provider reads, and the source file. It makes no network
+call and reads no key value, only the variable's name. Fix whatever it reports by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
 or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
 it again. Repeat until it passes with no errors.
@@ -192,11 +193,11 @@ ignored before committing rather than assuming the scaffold caught every case.
 
 ## Por qué esta forma
 
-`translate` no tiene su propia barrera de gasto: en cuanto existen una config válida y una clave de API, un simple `verbatra translate` llama al proveedor de inmediato, sin ninguna confirmación. El prompt de arriba pone esa barrera en las instrucciones del agente: `doctor`, `check`, `diff` y `translate --dry-run` son gratuitos y de solo lectura, así que el agente puede validar toda la configuración y mostrarte exactamente qué pasaría antes del paso 8, el único paso que gasta algo.
+`translate` no tiene su propia barrera de gasto: en cuanto existen una config válida y una clave de API, un simple `verbatra translate` llama al proveedor de inmediato, sin ningún aviso de confirmación. El prompt de arriba pone esa barrera en las instrucciones del agente: `doctor`, `check`, `diff` y `translate --dry-run` son gratuitos y de solo lectura, así que el agente puede validar toda la configuración y mostrarte exactamente qué pasaría antes del paso 8, el único paso que gasta algo.
 
 ## Siguiente
 
-- [Recetas para agentes y scripts](/docs/agent-recipes): el envelope `--json` y los códigos de salida en los que se apoyan los propios comandos de este prompt, para construir tus propios bucles de agente encima.
-- [Opera Studio con un agente de navegador](/docs/agent-tools-in-studio): otra superficie distinta, para manejar un proyecto ya configurado desde una pestaña del navegador en lugar de una shell.
+- [Recetas para agentes y scripts](/docs/agent-recipes): el envoltorio `--json` y los códigos de salida en los que se apoyan los propios comandos de este prompt, para construir encima tus propios bucles de agente.
+- [Opera Studio con un agente del navegador](/docs/agent-tools-in-studio): una superficie distinta, para manejar un proyecto ya configurado desde una pestaña del navegador en lugar de una shell.
 - [Tu primera traducción](/docs/your-first-translation): el mismo recorrido de configuración, escrito para una persona en lugar de un agente.
 - [El archivo de bloqueo](/docs/the-lock-file): todo el detalle detrás del comportamiento de seguridad de adopción en el que se apoya este prompt.

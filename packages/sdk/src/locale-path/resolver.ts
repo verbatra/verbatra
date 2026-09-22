@@ -19,7 +19,8 @@ export interface LocalePathResolverConfig {
   /**
    * The configured format. Every format maps each locale to a distinct path except a
    * shared-catalogue format (one holding every locale in a single file, such as `apple-xcstrings`),
-   * which maps every locale to the same path.
+   * which maps every locale to the same path. A `custom:` format is always treated as one file per
+   * locale.
    */
   readonly format: FormatId;
   /** The file layout. */
@@ -36,12 +37,15 @@ export interface LocalePathResolver {
   /**
    * The absolute path of a locale's file. Accepts any locale string, including ones outside the
    * configured set, so it can be used for exploratory reads.
+   *
+   * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the locale is outside the configured set and
+   * has no valid single-segment spelling under the configured style.
    */
   pathFor(locale: string): string;
   /**
    * The configured locale owning an absolute path, or `undefined` when the path belongs to no
-   * configured locale. The path is normalized before lookup, so a relative or non-canonical path
-   * still resolves.
+   * configured locale. The path is resolved against the resolver's `cwd` and normalized before
+   * lookup, so a relative or non-canonical path still resolves.
    *
    * Always `undefined` for a shared-catalogue format: every configured locale resolves to the same
    * path there, so no single locale owns it.

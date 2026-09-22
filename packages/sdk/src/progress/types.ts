@@ -32,6 +32,10 @@ export interface LocaleStartedEvent {
  * has already stopped the run still emits, and no provider call follows it. That is deliberate, so
  * that `batchIndex` always advances to `totalBatches` and a progress bar reaches its end instead of
  * stalling at the point the budget tripped.
+ *
+ * Only the translation batches emit it. A dry run sends nothing and emits none, and neither do the
+ * plural-generation requests, so `totalBatches` counts translation batches alone. Keys served from
+ * the translation memory are not batched, so a fully cached locale emits none either.
  */
 export interface SubBatchProgressEvent {
   /** Discriminant for {@link ProgressEvent}. */
@@ -50,7 +54,7 @@ export interface LocaleFinishedEvent {
   readonly type: "locale-finished";
   /** The locale that finished. */
   readonly locale: string;
-  /** How many keys were newly translated for this locale. */
+  /** The length of the locale's {@link LocaleSummary.translated} list. */
   readonly translated: number;
   /** This locale's 0-based position among the run's locales. */
   readonly localeIndex: number;
@@ -58,7 +62,10 @@ export interface LocaleFinishedEvent {
   readonly totalLocales: number;
 }
 
-/** Emitted once, after every locale has finished. */
+/**
+ * Emitted once, after every locale has finished. Not emitted when the run rejects part way, as it
+ * does on a corrupt lock-file.
+ */
 export interface RunFinishedEvent {
   /** Discriminant for {@link ProgressEvent}. */
   readonly type: "run-finished";

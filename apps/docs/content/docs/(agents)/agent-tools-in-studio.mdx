@@ -55,7 +55,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_glossary_get` | the resolved glossary |
 | `verbatra_lock_state` | the lock file's state |
 | `verbatra_history_list` | recent locale file commit history |
-| `verbatra_key_integrity` | placeholder and ICU integrity for a key |
+| `verbatra_key_integrity` | placeholder, inline markup, and ICU integrity for a key |
 | `verbatra_review_queue` | the needs-review queue |
 | `verbatra_usage_summary` | the last run's token usage and budget |
 | `verbatra_key_value` | the source and target values for one key and locale |
@@ -63,7 +63,7 @@ Inspect project state without changing anything. These are marked read-only.
 
 ### Write tools (two)
 
-`verbatra_translation_editEntry` edits one locale's value in place. It goes through the same integrity gate as every other verbatra write: a value that fails any of its checks is rejected and nothing is written. An accepted edit writes the locale file and advances the key's lock entry, exactly as a dashboard edit does. Editing needs no spend flag; it touches only your local files and never calls a provider.
+`verbatra_translation_editEntry` edits one locale's value in place. It goes through the same integrity gate as every other verbatra write: a value that fails any of its checks is rejected and nothing is written. An accepted edit writes the locale file and advances the key's lock entry, exactly as a dashboard edit does. Editing needs no spend flag; it touches only your local files and never calls a provider, but it is not ungated: it is rate limited at 20 edits per rolling minute, and a second call for the same locale and key while one is still in flight is rejected with `ALREADY_IN_PROGRESS` (HTTP 409) rather than queued, so two callers cannot race on one entry.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -76,7 +76,16 @@ These call a translation provider and are registered only when Studio also runs 
 - `verbatra_translation_retranslateEntry`: retranslate one key and locale.
 - `verbatra_translation_translatePending`: translate everything currently pending.
 
-Both run their results through the integrity gate before anything reaches disk, and both are subject to Studio's existing rate limits (retranslate at 20 per rolling minute, translate-pending at 5 per rolling minute plus a single-concurrent guard). Without `--allow-spend`, they are absent from the tool set and the server does not register the underlying endpoints at all, so spend you did not grant at startup cannot be reached from an agent.
+Both run their results through the integrity gate before anything reaches disk, and both are subject to Studio's existing rate limits (retranslate at 20 per rolling minute, translate-pending at 5 per rolling minute plus a single-concurrent guard). `verbatra_translation_retranslateEntry` also carries the same per-entry guard as editing: a concurrent second call for the same locale and key is rejected with `ALREADY_IN_PROGRESS` (HTTP 409). Without `--allow-spend`, they are absent from the tool set and the server does not register the underlying endpoints at all, so spend you did not grant at startup cannot be reached from an agent.
+
+### When a call fails
+
+Every tool returns the dashboard's own RPC envelope as JSON, so a failed call reads `{ "ok": false, "error": { "code": ..., "message": ... } }`. Besides the domain codes the SDK reports (an integrity rejection, an unknown locale or key), `METHOD_RATE_LIMITED` for a call over its rate limit, and the `ALREADY_IN_PROGRESS` refusal above, the codes come from the RPC layer itself:
+
+- `REQUEST_INVALID`: the request body was not a JSON object naming a method, or the server's answer was not an envelope the tab could read.
+- `METHOD_UNKNOWN`: the method is not one Studio knows, or it is not registered in this session, as a spend method is without `--allow-spend`.
+- `PARAMS_INVALID`: the parameters failed validation; the error carries an `issues` list naming each failing field.
+- `SESSION_EXPIRED`: the server no longer accepts the tab's session cookie, usually because Studio was restarted with a new token. The tab stops calling the server and shows the Session expired screen; open the URL the running Studio printed to start a new session.
 
 ## The degraded-mode notice
 

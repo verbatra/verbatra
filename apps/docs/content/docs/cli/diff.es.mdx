@@ -2,7 +2,7 @@
 title: verbatra diff
 description: Muestra las claves que se añadirían, se retraducirían o están huérfanas por locale sin escribir archivos.
 ---
-Lista, por locale de destino, las claves pendientes exactas: las que una ejecución añadiría (faltan en el destino), las que retraduciría (el origen cambió desde la última traducción) y las que ahora están huérfanas (en el destino pero desaparecidas del origen). `diff` ejecuta la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) hace justo antes de llamar a un proveedor, y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualización de [el archivo de bloqueo](/docs/the-lock-file) y sin necesidad de clave API.
+Lista, por locale de destino, las claves pendientes exactas: las que una ejecución añadiría (faltan en el destino), las que retraduciría (el origen cambió desde la última traducción) y las que ahora están huérfanas (en el destino pero desaparecidas del origen). `diff` ejecuta la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) hace justo antes de llamar a un proveedor, y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualizar el [archivo de bloqueo](/docs/the-lock-file) y sin necesidad de clave de API.
 
 ## Sinopsis
 
@@ -20,7 +20,7 @@ verbatra diff [flags]
 | `--unused` | ninguno | desactivado | analiza también las raíces del [bloque `extract`](/docs/config-file#extract) y lista las claves del locale de origen que ninguna llamada nombra (consulta [Claves de origen sin uso](#claves-de-origen-sin-uso)) |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen del diff bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
-Un locale tiene cambios pendientes cuando tiene al menos una clave que añadir o retraducir. Las claves huérfanas se informan pero nunca cuentan como pendientes, porque una ejecución por defecto no las elimina (solo lo hace [`verbatra translate --prune`](/docs/cli/translate)). Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comparar nada en silencio. Donde [`verbatra check`](/docs/cli/check) responde "cuánto se ha desfasado" con contadores, `diff` responde "qué claves" con las listas.
+Un locale tiene cambios pendientes cuando tiene al menos una clave que añadir o retraducir. Se informa de las claves huérfanas, pero nunca cuentan como pendientes, porque una ejecución por defecto no las elimina (solo lo hace [`verbatra translate --prune`](/docs/cli/translate)). Un valor `--locales` vacío o desconocido se rechaza con el código de salida `2` en lugar de comparar nada en silencio. Donde [`verbatra check`](/docs/cli/check) responde "cuánto se ha desfasado" con contadores, `diff` responde "qué claves" con las listas.
 
 ## Claves de origen sin uso
 
@@ -36,11 +36,11 @@ El análisis modela el runtime de i18next. Esto cuenta como referencia a una cla
 - Un `keyPrefix` estático (como opción, propiedad de objeto o atributo JSX) o un tercer argumento estático de `getFixedT`. Cada clave estática de ese archivo cubre entonces también la clave con prefijo, así que `t("home")` bajo `keyPrefix: "nav"` cubre `nav.home` (y sigue cubriendo `home`).
 - Un `i18nKey` estático en un elemento `Trans` o en un objeto.
 - Una clave con namespace como `common:nav.home` (cubre `common:nav.home` y `nav.home`), una clave en lenguaje natural como `Loading...` o `Error: failed` y cada clave de un array estático de claves como `t(["a", "b"])`.
-- Una variante de plural o de contexto de una clave referenciada: `t("items", { count })` cubre `items_one` e `items_other`, y `t("friend", { context })` cubre `friend_male`, `place_ordinal_one` y similares. Coincide con cómo `translate` mantiene las formas plurales generadas fuera de la lista de huérfanas. También cuenta cada clave bajo un padre referenciado, así que `t("nav", { returnObjects: true })` cubre `nav.home`.
+- Una variante de plural o de contexto de una clave referenciada: `t("items", { count })` cubre `items_one` e `items_other`, y `t("friend", { context })` cubre `friend_male`, `place_ordinal_one` y similares. Esto coincide con cómo `translate` mantiene las formas plurales generadas fuera de la lista de huérfanas. También cuenta cada clave bajo un padre referenciado, así que `t("nav", { returnObjects: true })` cubre `nav.home`.
 
 Las claves se comparan en la codificación propia del formato del catálogo, así que una clave JSON plana con punto (`{ "a.b": "..." }`), un plural de gettext (`msgstr[0]`, `msgstr[1]`) o una entrada con `msgctxt` (`t("Open", { context: "menu" })`) y una entrada `<plurals>` de Android coinciden con la clave que nombra tu código.
 
-Una clave de template literal con una cabecera estática, como `` t(`nav.${page}`) ``, no vuelve el informe poco fiable: las claves bajo `nav.` se listan como `possiblyDynamic`, aparte de `unused`, y nunca hacen fallar la ejecución.
+Una clave de template literal con un inicio estático, como `` t(`nav.${page}`) ``, no vuelve el informe poco fiable: las claves bajo `nav.` se listan como `possiblyDynamic`, aparte de `unused`, y nunca hacen fallar la ejecución.
 
 El informe lleva un `status`:
 
@@ -52,14 +52,14 @@ El informe lleva un `status`:
 
 | Motivo | `status` | Cuándo |
 | --- | --- | --- |
-| `dynamic-keys` | `unreliable` | una clave sin parte estática: `t(key)`, un template literal sin cabecera estática o una concatenación |
-| `dynamic-key-prefix` | `unreliable` | un prefijo de `keyPrefix` o `getFixedT` que no es un string estático |
+| `dynamic-keys` | `unreliable` | una clave sin parte estática: `t(key)`, un template literal sin inicio estático o una concatenación |
+| `dynamic-key-prefix` | `unreliable` | un prefijo de `keyPrefix` o `getFixedT` que no es una cadena estática |
 | `trans-without-key` | `unreliable` | un elemento `Trans` sin `i18nKey` estático |
 | `aliased-translate-function` | `unreliable` | `t` asignada a algo que no es una variable simple, como `this.tr = t` |
 | `translate-function-escapes` | `unreliable` | una función de traducción de una fuente reconocida aparece fuera de las posiciones permitidas que se listan abajo, como `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` o `export default t` |
 | `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, un miembro `t` o una importación de `t` usados con una forma que no aparece abajo, como un hook envoltorio que devuelve `useTranslation(...)`, opciones del hook pasadas por nombre o creadas con un spread, o un resultado de `getFixedT` exportado |
 | `template-files-not-scanned` | `unreliable` | archivos `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` o `.mdx` bajo las raíces (se listan los 20 primeros y se cuentan todos) |
-| `incomplete-scan` | `unreliable` | un archivo demasiado grande, ilegible o que no se puede leer hasta el final (en un archivo `.tsx`, `.jsx` o `.js` también un elemento JSX que nunca se cierra y un string entre comillas en el código que llega al final de su línea), o un directorio que no se puede listar |
+| `incomplete-scan` | `unreliable` | un archivo demasiado grande, ilegible o que no se puede leer hasta el final (en un archivo `.tsx`, `.jsx` o `.js` también un elemento JSX que nunca se cierra y una cadena entre comillas en el código que llega al final de su línea), o un directorio que no se puede listar |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | no hay bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | `not-run` | el sistema de archivos de quien llama al SDK no puede listar directorios |
 | `FRAMEWORK_NOT_MODELED` | `not-run` | el formato es `next-intl-json`, `vue-i18n-json` o `ngx-translate-json`, cuyos runtimes el análisis no modela |
@@ -68,14 +68,14 @@ El informe lleva un `status`:
 
 El análisis solo confía en las funciones de traducción cuya creación puede ver. Cada uso de una fuente de traducción debe tener una de estas formas; si no, el informe es `unreliable` con `unrecognised-translate-source`:
 
-- `const { t } = useTranslation(...)` (también `{ t: alias }`, `i18n`, `ready` o un array `[t, i18n]`), sin exportar, llamada sin argumentos, con un namespace estático o un array de namespaces y, opcionalmente, un objeto literal cuyo `keyPrefix`, si existe, es un string estático y que no tiene spread ni claves calculadas.
-- `const f = i18n.getFixedT(...)`, sin exportar, con un idioma estático, `null` o con nombre primero (como `i18n.language`) y después solo strings estáticos, arrays de strings, `null` o `undefined`.
+- `const { t } = useTranslation(...)` (también `{ t: alias }`, `i18n`, `ready` o un array `[t, i18n]`), sin exportar, llamada sin argumentos, con un namespace estático o un array de namespaces y, opcionalmente, un objeto literal cuyo `keyPrefix`, si existe, es una cadena estática y que no tiene spread ni claves calculadas.
+- `const f = i18n.getFixedT(...)`, sin exportar, con un idioma estático, `null` o con nombre primero (como `i18n.language`) y después solo cadenas estáticas, arrays de cadenas, `null` o `undefined`.
 - Una llamada directa sobre un miembro `t`, como `i18n.t("key")` o `this.props.t("key")`, un `const tr = i18n.t` o `const tr = i18n.t.bind(i18n)` local y sin exportar, y un `const { t } = i18next` o `const { t: tr } = i18n` local y sin exportar.
 - `<Translation>{(t) => ...}</Translation>` o `<Translation>{t => ...}</Translation>`.
 - `withTranslation("ns")(Component)`, cuyo componente llama a `props.t(...)`.
 - `import { t } from "i18next"` (también `t as alias`) e importaciones simples de `useTranslation`, `withTranslation`, `getFixedT` y `Translation`.
 
-Se comprueba cada declaración llamada `t` o `$t`, venga de donde venga, y también cada función de traducción obtenida como arriba y cualquier alias local `const tr = t`. Solo pueden aparecer como llamada directa, como su propia declaración, como alias local, como atributo `t={t}` de `Trans` o `Translation`, o como elemento del array de dependencias de `useEffect`, `useLayoutEffect`, `useMemo` o `useCallback`. En cualquier otro sitio (un argumento, una prop, una propiedad de objeto, un valor de retorno, un operando de un ternario, una exportación), el informe es `unreliable` con `translate-function-escapes`. Un `t` o `$t` declarado o desestructurado a partir de algo que no sea una fuente reconocida, un alias local, un parámetro de función o `this.props` da `unrecognised-translate-source`; un parámetro de función llamado `t` está bien mientras solo se llame. Una variable o un miembro ajeno llamado `t`, como `frame.t + 1`, se juzga igual, así que puede volver poco fiable un informe. Un prefijo de clave se aplica a cada clave del archivo que lo declara. En un archivo `.tsx`, `.jsx` o `.js`, el texto JSX y los valores de atributo entre comillas se leen como marcado, no como código, así que un apóstrofo o una palabra como `t` dentro de ellos nunca oculta una llamada ni cuenta como un uso de `t`.
+Se comprueba cada declaración llamada `t` o `$t`, venga de donde venga, y también cada función de traducción obtenida como arriba y cualquier alias local `const tr = t`. Solo pueden aparecer como llamada directa, como su propia declaración, como alias local, como atributo `t={t}` de `Trans` o `Translation`, o como elemento del array de dependencias de `useEffect`, `useLayoutEffect`, `useMemo` o `useCallback`. En cualquier otro sitio (un argumento, una prop, una propiedad de objeto, un valor de retorno, un operando de un ternario, una exportación), el informe es `unreliable` con `translate-function-escapes`. Un `t` o `$t` declarado o desestructurado a partir de algo que no sea una fuente reconocida, un alias local, un parámetro de función o `this.props` da `unrecognised-translate-source`; un parámetro de función llamado `t` está bien mientras solo se llame. Una variable o un miembro ajeno llamado `t`, como `frame.t + 1`, se juzga igual, así que puede hacer que un informe sea poco fiable. Un prefijo de clave se aplica a cada clave del archivo que lo declara. En un archivo `.tsx`, `.jsx` o `.js`, el texto JSX y los valores de atributo entre comillas se leen como marcado, no como código, así que un apóstrofo o una palabra como `t` dentro de ellos nunca oculta una llamada ni cuenta como un uso de `t`.
 
 Cada clave listada muestra su forma decodificada (`Welcome. Enjoy`, y una entrada de gettext con `msgctxt` como `menu|Open`); `--json` lleva además el `catalogKey` tal como lo escribe el adaptador (`Welcome\. Enjoy`).
 

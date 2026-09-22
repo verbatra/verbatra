@@ -2,18 +2,18 @@
 title: Vista general
 description: "El comando verbatra: sus catorce subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
 ---
-`@verbatra/cli` incluye el binario `verbatra`, una envoltura fina sobre [`@verbatra/sdk`](/docs/sdk). Catorce comandos hacen el trabajo:
+`@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/docs/sdk). Catorce comandos hacen el trabajo:
 
 | Comando | Qué hace |
 | --- | --- |
 | [`init`](/docs/cli/init) | crea una configuración de verbatra y un `.env.example` para este proyecto |
-| [`extract`](/docs/cli/extract) | analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo de la locale de origen |
+| [`extract`](/docs/cli/extract) | analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen |
 | [`translate`](/docs/cli/translate) | traduce cada locale de destino una vez y luego sale |
 | [`watch`](/docs/cli/watch) | retraduce en cada cambio del origen hasta que lo interrumpas |
-| [`check`](/docs/cli/check) | informa qué claves faltan o están obsoletas por locale, solo lectura |
+| [`check`](/docs/cli/check) | informa de qué claves faltan o están obsoletas por locale, solo lectura |
 | [`diff`](/docs/cli/diff) | lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura |
 | [`doctor`](/docs/cli/doctor) | valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor |
-| [`pseudo`](/docs/cli/pseudo) | generar una pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor |
+| [`pseudo`](/docs/cli/pseudo) | genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor |
 | [`types`](/docs/cli/types) | genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor |
 | [`export`](/docs/cli/export) | exporta las cadenas sin traducir para un traductor humano, como libro de Excel o como un archivo CSV o TSV por locale |
 | [`import`](/docs/cli/import) | importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale |
@@ -40,19 +40,19 @@ Necesitas Node.js `>=22.14.0`.
 
 - `--cwd <path>` resuelve la configuración y los archivos de locale desde ese directorio en lugar del actual. Todos los comandos lo aceptan.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
-- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para encadenar.
-  - Ramifica sobre su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
+- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para usarlo con pipes.
+  - Decide según su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
   - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` y `tmx`; `init`, `studio` y `mcp` no.
   - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Códigos de salida
 
-El código de salida es el contrato sobre el que ramifica un paso de CI o un script:
+El código de salida es el contrato sobre el que un paso de CI o un script toma su decisión:
 
 | Código | Significado |
 | --- | --- |

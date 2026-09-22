@@ -40,3 +40,5 @@ pnpm-debug.log*
 package-lock.json
 !e2e/package-lock.json
 yarn.lock
+
+.playwright-mcp/

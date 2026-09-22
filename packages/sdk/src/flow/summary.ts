@@ -6,17 +6,19 @@ import type { ProviderId } from "../config/provider-config.js";
  * provider raises. Each marks a run that completed but did something a caller may want to know
  * about.
  *
- * - `PLURAL_CATEGORIES_INCOMPLETE`: plural generation could not produce every category the target
- *   language requires, so the entry is written with the categories that were produced.
- * - `SUB_BATCH_FAILED`: one sub-batch of a locale failed while others succeeded. The locale is
- *   reported as `partial` rather than failed.
+ * - `PLURAL_CATEGORIES_INCOMPLETE`: `i18next-json` only. The target language needs CLDR plural
+ *   categories the source does not supply and that plural generation did not produce (it is off,
+ *   the provider is not an LLM, or a generated form was withheld), so the missing forms have to be
+ *   added by hand.
+ * - `SUB_BATCH_FAILED`: one provider sub-batch of a locale failed. Its keys are withheld and retried
+ *   on the next run, while the results of the other sub-batches are kept.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
  *   and its lock-file baseline were kept rather than being erased.
  * - `BUDGET_TOKENS_EXCEEDED`: the configured token budget was reached. Under `warn` the run
  *   continues and the overrun is reported; under `stop` the request that would have crossed the
  *   ceiling is withheld before it is sent, and so is every request after it.
  * - `CACHE_VERSION_UNRECOGNIZED`: the translation memory is at a version this release does not
- *   understand, so it was ignored rather than trusted.
+ *   understand, so the run used no cache and left the file untouched.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
@@ -76,7 +78,8 @@ export interface RunBudget {
    * Whether {@link tokensUsed} is entirely the provider's own reported usage. False as soon as one
    * counted request came back without a usable figure, so the total is partly verbatra's own
    * projection: a machine-translation API reports none at all, and a failed or truncated request
-   * reports none either. The budget is enforced either way.
+   * reports none either. Also false when the run sent no request at all, a dry run included, in
+   * which case nothing was counted. The budget is enforced either way.
    */
   readonly supported: boolean;
   /**
@@ -106,6 +109,7 @@ export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch
 /**
  * What a pre-run estimate deliberately leaves out. Each code names a way the real run can land
  * below the figure, above it, or away from it, so an estimate is never mistaken for an invoice.
+ * The first three apply to every estimate; the last three only to a token-billed provider.
  *
  * - `CACHE_NOT_CONSULTED`: the estimate does not read the translation memory, so keys a live run
  *   would serve from cache are still counted.
@@ -227,6 +231,7 @@ export interface CharacterRunQuantity extends EstimateIdentity {
  */
 export type RunEstimateQuantity = TokenRunQuantity | CharacterRunQuantity;
 
+/** The money half of a {@link PricedRunEstimate}: the figure, its currency, and its date. */
 interface PricedEstimateMoney {
   /** Always `priced`: a rate was found and applied. */
   readonly pricing: "priced";
@@ -243,6 +248,7 @@ interface PricedEstimateMoney {
   readonly cost: number;
 }
 
+/** The money half of an {@link UnpricedRunEstimate}: why there is no figure, and no figure. */
 interface UnpricedEstimateMoney {
   /** Why no currency figure is present. See {@link EstimatePricing}. */
   readonly pricing: Exclude<EstimatePricing, "priced">;
@@ -256,9 +262,13 @@ interface UnpricedEstimateMoney {
   readonly cost?: undefined;
 }
 
+/** A priced estimate for a token-billed provider: prompt and completion tokens, and their cost. */
 interface TokenPricedRunEstimate extends TokenRunQuantity, PricedEstimateMoney {}
+/** A priced estimate for a character-billed provider: source characters, and their cost. */
 interface CharacterPricedRunEstimate extends CharacterRunQuantity, PricedEstimateMoney {}
+/** An unpriced estimate for a token-billed provider: prompt and completion tokens, no cost. */
 interface TokenUnpricedRunEstimate extends TokenRunQuantity, UnpricedEstimateMoney {}
+/** An unpriced estimate for a character-billed provider: source characters, no cost. */
 interface CharacterUnpricedRunEstimate extends CharacterRunQuantity, UnpricedEstimateMoney {}
 
 /**
@@ -315,8 +325,9 @@ export interface SdkNotice {
 export type LocaleNotice = ProviderNotice | SdkNotice;
 
 /**
- * A translated key the provider layer flagged as worth a human look. The translation was still
- * written; these are advisory quality signals, not rejections.
+ * A key written in this run that was flagged as worth a human look, whether by the provider layer's
+ * quality heuristics, a configured `maxLength` budget, or a fuzzy translation-memory reuse. The
+ * value was still written; these are advisory quality signals, not rejections.
  */
 export interface NeedsReviewEntry {
   /** The key that was flagged. */
@@ -345,8 +356,9 @@ export interface FuzzyCacheHit {
   /** The key's source text at the time this translation was produced. */
   readonly previousSource: string;
   /**
-   * How alike {@link previousSource} and the current source are, from `0` to `1`, as measured by
-   * the configured `fuzzyCache.threshold`. Always at or above that threshold.
+   * How alike {@link previousSource} and the current source are, from `0` to `1`: one minus the
+   * character edit distance divided by the longer string's length, after Unicode normalization.
+   * Always at or above the configured `fuzzyCache.threshold`.
    */
   readonly similarity: number;
 }
@@ -389,11 +401,18 @@ export interface LocaleSummary {
   /** The target locale this summary describes. */
   readonly locale: string;
   /**
-   * `succeeded` when everything asked for was done, `partial` when some keys were translated and
-   * others were not, and `failed` when the locale produced no usable result.
+   * `succeeded` when no key was withheld by the integrity gate, a provider failure, or the token
+   * budget; `partial` when some keys were withheld and others landed; `failed` when keys were
+   * withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
+   * handoff rows left blank do not change the status.
    */
   readonly status: "succeeded" | "partial" | "failed";
-  /** Keys newly translated by the provider in this run. */
+  /**
+   * Keys that received a new value in this run: from the provider for {@link translate}, keys
+   * sharing a translated key's source text included, or from the handoff for
+   * {@link importWorkbook}. On a dry run, the keys a live run would send; cache hits are not
+   * separated out, because a dry run does not read the translation memory.
+   */
   readonly translated: readonly string[];
   /** Keys already up to date against the lock-file baseline, so no provider call was made. */
   readonly unchanged: readonly string[];
@@ -440,7 +459,10 @@ export interface LocaleSummary {
   readonly notices: readonly LocaleNotice[];
   /** Translated keys flagged as worth a human look. The translations were still written. */
   readonly needsReview: readonly NeedsReviewEntry[];
-  /** Keys left with no translation after the run, whatever the cause. */
+  /**
+   * Keys an imported handoff left blank while they were missing or out of date in this locale.
+   * Always empty for a {@link translate} run.
+   */
   readonly unfilled: readonly string[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */
   readonly malformedRows: readonly MalformedRowReport[];

@@ -2,7 +2,7 @@
 title: verbatra studio
 description: Démarre Verbatra Studio, le tableau de bord local de traduction.
 ---
-Démarre Verbatra Studio, un tableau de bord web local au-dessus de ton projet verbatra : l'état des traductions, la file de révision, l'activité des exécutions et tes paramètres résolus, le tout en direct sur les fichiers du disque. Modifier tes propres fichiers de locale fonctionne d'emblée, tout comme modifier un glossaire stocké dans un fichier depuis la page Paramètres ; seule la dépense fournisseur est optionnelle, derrière `--allow-spend`. Avant de démarrer, `studio` charge `.env.local` puis `.env` depuis le répertoire de travail et résout ta config une fois ; une erreur de config sort avec `2` avant qu'aucun serveur ne démarre.
+Démarre Verbatra Studio, un tableau de bord web local au-dessus de ton projet verbatra : l'état des traductions, la file de révision, l'activité des exécutions et tes paramètres résolus, le tout en direct sur les fichiers du disque. Modifier tes propres fichiers de locale fonctionne d'emblée, tout comme modifier un glossaire stocké dans un fichier depuis la page Paramètres ; seule la dépense chez un fournisseur demande une activation explicite, derrière `--allow-spend`. Avant de démarrer, `studio` charge `.env.local` puis `.env` depuis le répertoire de travail et résout ta config une fois ; une erreur de config sort avec le code `2` avant qu'un serveur ne démarre.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -24,7 +24,7 @@ verbatra studio [flags]
 
 Quand l'option `--allow-spend` est absente, Studio lit la variable d'environnement `VERBATRA_STUDIO_ALLOW_SPEND` à la place : `1`, `true`, `yes` ou `on` (insensible à la casse) compte comme activé. L'option CLI l'emporte toujours sur la variable d'environnement. Sans l'une ni l'autre, Studio ne contacte jamais de fournisseur ; la modification locale n'a besoin d'aucune option.
 
-`--expose-agent-tools` se résout de la même façon à partir de `VERBATRA_STUDIO_AGENT_TOOLS`, avec le même ensemble de valeurs admises et la même règle : l'option CLI l'emporte sur la variable. Elle est désactivée par défaut. Pour qu'un agent puisse dépenser, il faut à la fois cette option et `--allow-spend` ; aucune des deux options n'implique l'autre. Voir [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) pour le catalogue d'outils et le modèle de sécurité.
+`--expose-agent-tools` se résout de la même façon à partir de `VERBATRA_STUDIO_AGENT_TOOLS`, avec le même ensemble de valeurs admises et la même règle : l'option CLI l'emporte sur la variable. Elle est désactivée par défaut. Pour qu'un agent puisse dépenser, il faut à la fois cette option et `--allow-spend` ; aucune des deux n'implique l'autre. Voir [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) pour le catalogue d'outils et le modèle de sécurité.
 
 ## L'URL affichée
 
@@ -34,17 +34,19 @@ Studio n'écoute que sur `127.0.0.1`. Une fois à l'écoute, il affiche une lign
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 ```
 
-Ouvre exactement cette URL : le token dans la chaîne de requête initialise ta session de navigateur, et toute requête sans lui est rejetée. Rien n'est affiché avant que le port soit lié avec succès, donc un démarrage échoué ne divulgue jamais d'URL ni de token.
+Ouvre exactement cette URL. Le token n'est accepté que sous la forme `?token=` lors de ce premier chargement de page : le serveur le vérifie, pose un cookie de session HttpOnly et redirige vers `/`. Chaque requête suivante est vérifiée par rapport au cookie, et une requête sans cookie valide est rejetée. Le token n'est pas à usage unique : visiter à nouveau l'URL affichée, dans un autre onglet ou un autre navigateur, pose de nouveau le cookie, alors traite l'URL comme un secret tant que Studio tourne. Rien n'est affiché avant que le port soit lié avec succès, donc un démarrage échoué ne divulgue jamais d'URL ni de token.
+
+Une liaison échouée est signalée sur stderr sous la forme `verbatra: error [<code>] <message>` avec l'un de deux codes : `PORT_IN_USE` quand un autre processus occupe déjà le port (choisis-en un autre avec `--port`), ou `BIND_FAILED` quand le socket s'est ouvert sur une autre adresse que `127.0.0.1`, sur laquelle Studio refuse de servir.
 
 ## Installation
 
-`@verbatra/studio` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra studio` sort avec `2` et :
+`@verbatra/studio` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra studio` sort avec le code `2` en affichant :
 
 ```
 Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
 ```
 
-Cette commande pnpm installe correctement mais sort en `1` avec `ERR_PNPM_IGNORED_BUILDS`, et laisse un `pnpm-workspace.yaml` sans réponse qui fait échouer de la même façon les commandes pnpm suivantes ; la correction, à faire une seule fois, est dans le [Dépannage](/docs/troubleshooting). npm et yarn installent le paquet sans cela.
+Cette commande pnpm installe correctement mais sort avec le code `1` et `ERR_PNPM_IGNORED_BUILDS`, et laisse derrière elle un `pnpm-workspace.yaml` resté sans réponse qui fait échouer de la même façon les commandes pnpm suivantes ; la correction, à faire une seule fois, est dans le [Dépannage](/docs/troubleshooting). npm et yarn installent le paquet sans ce problème.
 
 Studio passe par la CLI, installe-le donc avec `@verbatra/cli` : `npm install --save-dev @verbatra/cli @verbatra/studio`, puis `npx verbatra studio`. Voir [Installation et invocation](/docs/cli).
 

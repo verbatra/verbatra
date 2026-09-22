@@ -1,24 +1,24 @@
 ---
 title: Adaptateurs de format personnalisés
-description: "Apporte un format que verbatra ne fournit pas : nomme-le avec un identifiant custom:, construis-le sur l'une des deux fabriques d'adaptateurs et remets la registry à verbatra. Avec ce à quoi tu accordes ta confiance en installant un adaptateur."
+description: "Apporte un format que verbatra ne fournit pas : nomme-le avec un identifiant custom:, construis-le sur l'une des deux fabriques d'adaptateurs et remets le registre à verbatra. Avec ce à quoi tu accordes ta confiance en installant un adaptateur."
 status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-verbatra lit et écrit quatorze formats d'origine. Si le tien n'en fait pas partie, tu n'as pas à attendre qu'il soit ajouté : construis un adaptateur dans ton propre paquet, nomme le format avec un identifiant `custom:` et remets à verbatra une registry qui le contient. Rien n'est publié chez verbatra, rien n'est relu par nous, et aucune release n'est en jeu.
+verbatra lit et écrit quatorze formats nativement. Si le tien n'en fait pas partie, tu n'as pas à attendre qu'il soit ajouté : construis un adaptateur dans ton propre paquet, nomme le format avec un identifiant `custom:` et remets à verbatra un registre qui le contient. Rien n'est publié chez verbatra, rien n'est relu par nous, et aucune release n'entre en jeu.
 
-C'est une API programmatique. La ligne de commande `verbatra` ne charge aucun plugin de lui-même, et c'est délibéré (voir la section "Ce à quoi tu accordes ta confiance" plus bas), donc un projet avec un format personnalisé pilote verbatra via `@verbatra/sdk`.
+C'est une API programmatique. La ligne de commande `verbatra` ne charge aucun plugin de lui-même, et c'est délibéré (voir [Ce à quoi tu accordes ta confiance](#ce-à-quoi-tu-accordes-ta-confiance)), donc un projet avec un format personnalisé pilote verbatra via `@verbatra/sdk`.
 
 ## Nommer le format
 
-Un format venu d'ailleurs que verbatra se nomme `custom:` suivi d'un nom en minuscules séparé par des traits d'union :
+Un format fourni depuis l'extérieur de verbatra se nomme `custom:` suivi d'un nom en minuscules séparé par des traits d'union :
 
 ```
 custom:toml
 custom:my-format
 ```
 
-Aucun nom de format intégré ne contient de deux-points, un identifiant `custom:` ne peut donc jamais en masquer un, et une registry refuse un second adaptateur pour un identifiant qu'elle détient déjà. Mets-le dans ta configuration exactement comme un nom intégré :
+Aucun nom de format intégré ne contient de deux-points, un identifiant `custom:` ne peut donc jamais en masquer un, et un registre refuse un second adaptateur pour un identifiant qu'il détient déjà. Mets-le dans ta configuration exactement comme un nom intégré :
 
 ```json
 {
@@ -30,7 +30,9 @@ Aucun nom de format intégré ne contient de deux-points, un identifiant `custom
 }
 ```
 
-Une configuration nommant un format qui n'est ni un nom intégré ni un identifiant `custom:` bien formé est toujours refusée au chargement. Ce qui change, c'est le moment où l'adaptateur lui-même est vérifié : un nom intégré est vérifié à la compilation, tandis que d'un identifiant `custom:` seule la forme est vérifiée, puisque l'adaptateur derrière vit dans ton paquet. Si personne n'en fournit d'adaptateur, l'exécution échoue avec un `UNKNOWN_FORMAT` structuré qui nomme le format, plutôt que de ne rien faire.
+Une configuration nommant un format qui n'est ni un nom intégré ni un identifiant `custom:` bien formé est toujours refusée au chargement. Ce qui change, c'est le moment où l'adaptateur lui-même est vérifié : un nom intégré est vérifié à la compilation, tandis que d'un identifiant `custom:` seule la forme est vérifiée, puisque l'adaptateur qui se trouve derrière vit dans ton paquet. Si rien ne fournit d'adaptateur pour lui, l'exécution échoue avec un `UNKNOWN_FORMAT` structuré qui nomme le format, plutôt que de ne rien faire.
+
+L'identifiant poursuit son chemin sans changer. L'instantané de projet de Studio et l'outil `project.snapshot` du serveur MCP renvoient tous deux le champ `format` de la configuration chargée tel quel : un projet qui utilise un adaptateur tiers y affiche donc `custom:toml` plutôt qu'un nom intégré ou un champ vide, et un agent qui s'oriente peut distinguer les deux.
 
 ## Construire l'adaptateur
 
@@ -55,17 +57,17 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
-Utilise `createTreeFileAdapter` quand les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les marqueurs de chaque feuille et si elle est une forme plurielle.
+Utilise `createTreeFileAdapter` quand les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et s'il s'agit d'une forme plurielle.
 
-Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le laisser tomber : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
+Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le perdre : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
 
-Les deux fabriques acceptent un `sniff` optionnel, une vérification sur un échantillon de tête du contenu. Donne-lui-en un dès que ton extension est générique : sans lui, ton adaptateur revendique tous les fichiers portant cette extension, et la détection signale une ambiguïté au lieu de choisir.
+Les deux fabriques acceptent un `sniff` optionnel, une vérification sur un échantillon du début du contenu. Fournis-en un dès que ton extension est générique : sans lui, ton adaptateur revendique tous les fichiers portant cette extension, et la détection signale une ambiguïté au lieu de choisir.
 
-Les deux acceptent aussi un port `fs`, de type `AdapterFs`, dont la valeur par défaut est `nodeAdapterFs`. Lis et écris par lui plutôt que d'aller chercher `node:fs` toi-même : c'est la voie prise en charge, elle t'offre la lecture bornée en taille et l'écriture atomique, et c'est elle qui rend ton adaptateur testable sans toucher au disque.
+Les deux acceptent aussi un port `fs`, de type `AdapterFs`, dont la valeur par défaut est `nodeAdapterFs`. Lis et écris à travers lui plutôt que d'aller chercher `node:fs` toi-même : c'est la voie prise en charge, elle t'offre la lecture bornée en taille et l'écriture atomique, et c'est elle qui rend ton adaptateur testable sans toucher au disque.
 
 ## L'enregistrer et lancer
 
-Pars de la registry intégrée pour que ton format rejoigne les quatorze au lieu de les remplacer, puis passe-la comme dépendance `adapterRegistry` que tout flow accepte :
+Pars du registre intégré pour que ton format rejoigne les quatorze au lieu de les remplacer, puis passe-le comme la dépendance `adapterRegistry` qu'accepte n'importe quel flow :
 
 ```ts
 import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
@@ -77,20 +79,20 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
 
-`register` renvoie la registry, les enregistrements s'enchaînent donc. Elle lève une `AdapterError` avec le code `DUPLICATE_FORMAT` si la registry détient déjà ce format, de sorte que deux plugins ayant choisi le même nom échouent bruyamment au démarrage au lieu qu'un seul l'emporte en silence.
+`register` renvoie le registre, les enregistrements s'enchaînent donc. Il lève une `AdapterError` avec le code `DUPLICATE_FORMAT` si le registre détient déjà ce format, de sorte que deux plugins ayant choisi le même nom échouent bruyamment au démarrage au lieu qu'un seul l'emporte en silence. Un adaptateur dont le format commence par `custom:` mais n'est pas un identifiant bien formé (par exemple `custom:TOML` ou `custom:my_format`) est refusé avec le code `INVALID_FORMAT_ID` au lieu d'être enregistré.
 
 ## Comment tes échecs sont rapportés
 
 Un adaptateur portant un identifiant `custom:` est enveloppé à l'enregistrement. Une erreur inattendue venue de `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` ou `comparePlaceholders` apparaît comme une `AdapterError` avec le code `ADAPTER_FAILED`, dont le message nomme ton format, si bien qu'un défaut de ton adaptateur n'est jamais rapporté comme un défaut de verbatra.
 
-Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lèves-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno (`ENOENT`, `EACCES`) garde également le sien, donc un fichier manquant reste rapporté comme un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers. Cette règle errno teste la forme de l'erreur, pas sa provenance : si ton propre code de validation lève une erreur portant `ENOENT`, elle est rapportée comme une condition du système de fichiers, car rien ne permet de les distinguer.
+Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lève-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno (`ENOENT`, `EACCES`) garde également le sien, donc un fichier manquant reste rapporté comme un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur de mauvais usage de Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers. Cette règle errno teste la forme de l'erreur, pas sa provenance : si ton propre code de validation lève une erreur portant `ENOENT`, elle est rapportée comme une condition du système de fichiers, car rien ne permet de les distinguer.
 
 ## Ce à quoi tu accordes ta confiance
 
-**Un adaptateur de format est du code pleinement de confiance, exactement au niveau de confiance de n'importe quel autre paquet que tu installes. verbatra ne le met pas en bac à sable.**
+**Un adaptateur de format est du code pleinement de confiance, exactement au niveau de confiance de n'importe quel autre paquet que tu installes. verbatra ne l'isole pas dans un bac à sable.**
 
 Un adaptateur que tu installes et enregistres peut tout ce que peut n'importe quelle dépendance : lire `process.env`, où vit chaque clé d'API de fournisseur ; lire et écrire tout fichier que le processus peut atteindre, pas seulement ceux que ta configuration désigne ; et ouvrir une connexion réseau. Le port `AdapterFs` est la voie prise en charge et celle que verbatra remet à ton adaptateur, mais c'est une convention, pas une frontière : rien n'empêche du code tiers d'atteindre le système de fichiers autrement.
 
-Une conséquence est propre aux adaptateurs et mérite d'être dite à part. C'est l'adaptateur qui décide de ce qui compte comme marqueur. Un adaptateur qui ne signale aucun marqueur fait passer à vide la [vérification d'intégrité des marqueurs](/docs/translation-safety) pour son format, si bien qu'une traduction ayant perdu ou abîmé une interpolation part en silence. Un adaptateur bogué fait cela aussi facilement qu'un adaptateur hostile.
+Une conséquence est propre aux adaptateurs et mérite d'être dite à part. C'est l'adaptateur qui décide de ce qui compte comme placeholder. Un adaptateur qui ne signale aucun placeholder fait passer à vide le [contrôle d'intégrité des placeholders](/docs/translation-safety) pour son format, si bien qu'une traduction ayant perdu ou abîmé une interpolation est livrée en silence. Un adaptateur bogué fait cela aussi facilement qu'un adaptateur hostile.
 
-Il n'y a ici aucune atténuation honnête à proposer, alors nous n'en inventons pas. Ce que verbatra garantit, c'est que le chargement n'est jamais implicite : il ne découvre aucun plugin de lui-même, ne parcourt aucun répertoire, n'installe rien et ne suit aucune convention de nommage. Un adaptateur ne tourne que parce que ton propre code l'a importé et a remis la registry à verbatra. Traite son installation comme tu traiterais toute dépendance qui lit tes secrets et écrit tes fichiers : lis-la, épingle-la et regarde ce qui change à chaque mise à jour.
+Il n'y a ici aucune atténuation honnête à proposer, alors nous n'en inventons pas. Ce que verbatra garantit, c'est que le chargement n'est jamais implicite : il ne découvre aucun plugin de lui-même, ne parcourt aucun répertoire, n'installe rien et ne suit aucune convention de nommage. Un adaptateur ne tourne que parce que ton propre code l'a importé et a remis le registre à verbatra. Traite son installation comme tu traiterais toute dépendance qui lit tes secrets et écrit tes fichiers : lis-la, épingle-la et regarde ce qui change à chaque mise à jour.

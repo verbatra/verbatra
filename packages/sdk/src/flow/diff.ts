@@ -104,8 +104,8 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * head could reach as `possiblyDynamic`, never as `unused`. The report is `complete` only when the
  * scan can bound every key the source reaches; otherwise it is `unreliable` and names each reason
  * with its sites, or `not-run` with a reason code and no key list at all when there is nothing
- * trustworthy to judge by (no `extract` block, a format whose runtime is not modeled, no source
- * file, or no reference anywhere in the scanned files).
+ * trustworthy to judge by (no `extract` block, a file system with no `readDirectory`, a format
+ * whose runtime is not modeled, no source file, or no reference anywhere in the scanned files).
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending

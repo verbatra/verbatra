@@ -45,7 +45,8 @@ export interface PseudolocalizeInput {
   readonly cwd?: string;
   /**
    * The pseudolocale's BCP-47 code. Defaults to `en-XA`. It must not be the source locale or any
-   * configured target locale, so a pseudolocale can never stand in for a real translation.
+   * configured target locale, compared case-insensitively, so a pseudolocale can never stand in for
+   * a real translation.
    */
   readonly locale?: string;
   /**
@@ -54,9 +55,9 @@ export interface PseudolocalizeInput {
    * `files.pattern` is expanded inside it, so the file keeps the layout the application expects.
    *
    * It must name a directory inside `cwd`: an absolute path, one that climbs out with `..`, and
-   * `cwd` itself are all refused, as is any directory that already holds a configured locale file,
-   * so a generated pseudolocale never lands outside the project or beside the real translations
-   * where nothing ignores it.
+   * `cwd` itself are all refused, as is a directory under which the expanded pattern would place
+   * the pseudolocale file beside a configured locale file, so a generated pseudolocale never lands
+   * outside the project or beside the real translations where nothing ignores it.
    */
   readonly out?: string;
 }
@@ -274,8 +275,8 @@ function sameValues(
  *
  * The output is deliberately kept out of the project's real locale files: it is written under
  * `.verbatra-local/pseudo` by default, which `verbatra init` already adds to `.gitignore`, and the
- * pseudolocale is refused when it names a configured locale, when the output directory already
- * holds a configured locale file, and when it is directed at the project root or outside the
+ * pseudolocale is refused when it names a configured locale, when its file would land in the same
+ * directory as a configured locale file, and when it is directed at the project root or outside the
  * working directory. Because it lives outside `files.pattern`, {@link translate} never spends on it and
  * {@link check} and {@link diff} never report it as drifted.
  *
@@ -296,9 +297,9 @@ function sameValues(
  * console.log(`${result.transformed} of ${result.entries} entries in ${result.path}`);
  * ```
  *
- * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, the
- * output directory already holds a configured locale file, or it is not a relative path naming a
- * directory inside `cwd`.
+ * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, its
+ * file would land in the same directory as a configured locale file, or the output directory is not
+ * a relative path naming a directory inside `cwd`.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.

@@ -25,7 +25,7 @@ Some edge cases worth knowing:
 
 <AvailableFrom version="0.9.0" />
 
-- A **partial** locale counts as failure. It means the file was written but some keys are still missing, usually because a provider sub-batch failed or the integrity gate refused a translation. It exits `1` exactly like a failed locale, because a half-translated locale on disk is not a state a pipeline should wave through. Read `partial` on the summary to tell the two apart.
+- A **partial** locale counts as failure. It means the file was written but some keys are still missing, usually because a provider sub-batch failed or the integrity gate refused a translation. It exits `1` exactly like a failed locale, because a half-translated locale on disk is not a state a pipeline should wave through. Read `partial` on the summary to tell the two apart. A failed sub-batch leaves a `SUB_BATCH_FAILED` notice on the locale naming the provider's error code, or `PROVIDER_CALL_FAILED` when the failure was not a structured provider error.
 - A **corrupt lock file** is a whole-run error in `translate` and `import` alike, never one failed locale. It is a single shared file, so a lock file that turns corrupt while the run is under way stops the run with `2` rather than carrying on through the remaining locales. Whatever was written before the abort stays on disk; fix the lock file and re-run the command.
 - A single interrupt is a clean stop, and all three long-running commands (`watch`, `studio` and `mcp`) exit `0` on it. Do not assume they behave alike beyond that: if the stop itself fails, `watch` exits `2` while `studio` and `mcp` exit `1`.
 - A failed run during `watch` shows up as a record on the output stream, never as a non-zero exit code.
@@ -47,7 +47,7 @@ verbatra diff
 
 Use `check` when the exit code is all you need. Use `diff` when you want the exact keys behind the drift, say, to post them in a pull request comment. Orphaned keys (in a target file but gone from source) appear in `diff` output but never set exit code `1` on their own.
 
-Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid locale is a usage error and exits `2`, so a typo can never turn the gate green. `translate`, `watch` and `export` take the same flag, which is how you translate one locale at a time against a rate-limited provider.
+Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid locale is a usage error and exits `2`, so a typo can never turn the gate green. `translate`, `watch`, `export` and `tmx` take the same flag, which is how you translate one locale at a time against a rate-limited provider.
 
 ## JSON output
 
@@ -68,6 +68,23 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 ```
 
 `command` is `null` only when the failure happened before a subcommand was resolved.
+
+A usage error carries one of these codes:
+
+| Code | Raised when |
+| --- | --- |
+| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept |
+| `INVALID_LOCALES` | `--locales` was given but lists no locale |
+| `INVALID_LOCALE` | `pseudo --locale` is not a language tag made of letters, digits, and hyphens |
+| `INVALID_FORMAT` | `--format` on `export` or `import` names no supported handoff format |
+| `INVALID_DIRECTION` | `tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`) |
+| `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
+| `INVALID_DEBOUNCE` | `watch --debounce` is not a whole number of milliseconds from 1 to 60000 |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
+| `INVALID_CONCURRENCY` | `--concurrency` is not a whole number from 1 to 100 |
+| `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
+
+`CLI_ERROR` is the fallback code for a failure that carried no code of its own.
 
 Errors from a resolved command go to stderr as one structured line (`verbatra: error [CODE] message`) in both modes, unchanged, so a script that reads the exit code and stderr needs no update. Two classes of failure do not follow that grammar, because they happen before a run exists to carry a code: an argument-parsing error prints commander's own `error: unknown option '--nope'` with no prefix and no code, and `init` refuses a missing provider with `verbatra: --provider is required (...)`, prefixed but uncoded. Both exit `2`. Match on the exit code first and treat the code as optional, or a parser written to the structured grammar alone will silently match neither. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
 
@@ -92,7 +109,7 @@ The `estimate` object carries `keys`, `requests`, the billing quantity the provi
 
 Each `LocaleSummary` carries the per-locale key lists (translated, unchanged, orphaned, withheld, flagged for review, and more); see [the SDK reference](/docs/sdk) for the full anatomy.
 
-`verbatra watch --json` prints one envelope per run as NDJSON (one JSON object per line), with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's `RunSummary`; a failed run is an `ok: false` record carrying its code and message. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code.
+`verbatra watch --json` prints one envelope per run as NDJSON (one JSON object per line), with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's `RunSummary`; a failed run is an `ok: false` record carrying its code and message: the failure's own code where it had one, and `WATCH_RUN_FAILED` otherwise. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code.
 
 `verbatra check --json` carries one status document. The top-level `inSync` is true exactly when the command exits `0`:
 
@@ -146,7 +163,13 @@ interface DoctorResult {
 }
 
 interface DoctorCheck {
-  id: "config" | "format-adapter" | "provider" | "api-key" | "source-file";
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "source-file"
+    | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
@@ -181,7 +204,7 @@ The [GitHub Action](/docs/github-action) runs the same gate without an install s
 
 ```yaml
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # pins the actively maintained v1 line
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.9.3
           command: check

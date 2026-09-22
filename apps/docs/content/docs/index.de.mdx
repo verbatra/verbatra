@@ -1,26 +1,25 @@
 ---
 title: Einführung
-description: Was verbatra ist, welches Problem es löst und wie CLI, SDK und Studio zusammenspielen. Übersetze nur die Keys, die sich geändert haben, mit Integritätsprüfungen für jedes Ergebnis.
+description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio und MCP-Server zusammenspielen. Übersetze nur die Keys, die sich geändert haben, mit Integritätsprüfungen für jedes Ergebnis.
 ---
 
 <DocsHomeHero
-  eyebrow="Dokumentation"
-  headline="Halte jede Locale-Datei im Gleichschritt mit deiner Quelle."
-  lead="verbatra übersetzt deine i18n-Locale-Dateien inkrementell: Es sendet nur die neuen und geänderten Strings an den Provider, den du konfigurierst, prüft jedes Ergebnis und schreibt die Dateien direkt zurück."
-  primary={{ label: "Schnellstart", href: "/docs/your-first-translation" }}
+  headline="So übersetzt du nur, was sich geändert hat."
+  lead="verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, sendet nur die neuen und geänderten Keys an den Provider, den du konfigurierst, prüft jedes Ergebnis und schreibt die Dateien direkt zurück. Diese Seiten decken die CLI, das SDK, Studio und den MCP-Server ab."
+  primary={{ label: "Deine erste Übersetzung", href: "/docs/your-first-translation" }}
   secondary={{ label: "CLI-Referenz", href: "/docs/cli" }}
 />
 
 <DocsHomeBody>
 
-## Wohin als Nächstes
+<DocsHomeSection title="Wohin als Nächstes" lead="Vier Einstiege, je nachdem, wo du gerade stehst.">
 
 <DocsHomePaths
   cards={[
     {
       tag: "Neu hier",
       label: "Deine erste Übersetzung",
-      body: "Installiere die CLI, erzeuge eine Konfiguration, hinterlege deinen API-Schlüssel und übersetze.",
+      body: "Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne Key vorab an und übersetze dann.",
       href: "/docs/your-first-translation",
       primary: true,
     },
@@ -31,10 +30,10 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK und Stu
       href: "/docs/add-a-language",
     },
     {
-      tag: "Unter der Haube",
-      label: "Wie es funktioniert",
-      body: "Die Pipeline: Vergleich mit der Lock-Baseline, übersetzen, prüfen, schreiben.",
-      href: "/docs/how-it-works",
+      tag: "Produktion",
+      label: "CI und Exit-Codes",
+      body: "Lass den Pull Request fehlschlagen, wenn eine Locale abdriftet, mit JSON-Ausgabe für Skripte.",
+      href: "/docs/ci-and-exit-codes",
     },
     {
       tag: "Mit einem KI-Agenten",
@@ -45,37 +44,49 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK und Stu
   ]}
 />
 
-## Was verbatra macht
+</DocsHomeSection>
 
-Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf ohne etwas Neues macht überhaupt keinen Provider-Aufruf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
+<DocsHomeSection title="Jeder Lauf ist ein Diff, keine Neuübersetzung." lead="Was passiert, wenn du verbatra translate ausführst.">
 
-verbatra liest und schreibt vierzehn Formate und übersetzt über sechs Provider hinter einer einzigen Schnittstelle. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
+Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf, bei dem es nichts Neues zu übersetzen gibt, ruft den Provider überhaupt nicht auf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
 
-## Die Pakete
+<DocsHomeSteps />
+
+verbatra liest und schreibt vierzehn Formate und übersetzt über sechs Provider hinter einer einzigen Schnittstelle; ein Format, das es nicht mitbringt, lässt sich als [eigener Adapter](/docs/custom-format-adapters) ergänzen. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Die Pakete" lead="Ein Motor, vier Wege, ihn zu fahren.">
 
 <DocsHomeFeatures
   features={[
     {
       title: "@verbatra/cli",
-      body: "Das verbatra-Binary: vierzehn Befehle, ein dünner Wrapper über dem SDK. Starte hier.",
+      pkg: "cli",
+      body: "Das verbatra-Binary: vierzehn Befehle, von init und extract bis translate, check, export und studio, als dünner Wrapper über dem SDK. Starte hier.",
       href: "/docs/cli",
     },
     {
       title: "@verbatra/sdk",
-      body: "Der Motor darunter: translate, watch, check, diff, doctor, dazu der Excel-Roundtrip.",
+      pkg: "sdk",
+      body: "Der Motor darunter: translate, watch, check, diff, doctor, extract, Pseudolokalisierung, Typgenerierung sowie der Excel- und TMX-Roundtrip, alles aus Code.",
       href: "/docs/sdk",
     },
     {
       title: "@verbatra/studio",
-      body: "Ein lokales Dashboard mit eingebautem Bearbeiten und Review-Warteschlange. Provider-Ausgaben bleiben aus, bis du zustimmst.",
+      pkg: "studio",
+      body: "Ein lokales Dashboard mit direkter Bearbeitung, Review-Warteschlange, Lauf-Aktivität und Browser-Agent-Tools. Provider-Ausgaben bleiben aus, bis du sie ausdrücklich aktivierst.",
       href: "/docs/review-in-studio",
     },
     {
       title: "@verbatra/mcp",
-      body: "Ein stdio-MCP-Server, der Übersetzungsstatus, Glossar und Bearbeitungs-Tools für einen MCP-Client bereitstellt.",
+      pkg: "mcp",
+      body: "Ein stdio-MCP-Server, der Übersetzungsstatus, Glossar und Bearbeitungs-Tools für Claude Code, Cursor oder einen beliebigen MCP-Client bereitstellt.",
       href: "/docs/cli/mcp",
     },
   ]}
 />
+
+</DocsHomeSection>
 
 </DocsHomeBody>

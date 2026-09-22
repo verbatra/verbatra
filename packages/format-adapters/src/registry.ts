@@ -73,8 +73,10 @@ export class AdapterRegistry {
    * can silently shadow what is already there.
    *
    * An adapter whose format is a third-party `custom:` identifier is wrapped so that an unexpected
-   * throw from any of its contract methods surfaces as an {@link AdapterError} naming the format.
-   * Built-in adapters are registered as they are.
+   * throw from any of its contract methods surfaces as an {@link AdapterError} with code
+   * `ADAPTER_FAILED` naming the format. An `AdapterError` the adapter raises itself, and a Node.js
+   * system error carrying an errno-style code such as `ENOENT`, pass through unchanged. Built-in
+   * adapters are registered as they are.
    *
    * @param adapter - The adapter to add.
    * @returns This registry, for chaining.

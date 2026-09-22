@@ -19,7 +19,12 @@ verbatra mcp [flags]
 verbatra-mcp [flags]
 ```
 
-Both forms accept the same flags and start the same server.
+Both forms take the same three flags and start the same server, but the wrappers around it differ:
+
+- `verbatra mcp` loads `.env.local` and then `.env` from the working directory before it starts; `verbatra-mcp` loads neither, so pass any API key in the environment the MCP client spawns it with.
+- `verbatra mcp` rejects an unknown flag as a usage error and exits `2`; `verbatra-mcp` ignores unknown flags.
+- A startup or config error exits `2` from `verbatra mcp` and `1` from `verbatra-mcp`.
+- `verbatra mcp` force-stops with exit code `130` on a second interrupt during shutdown; `verbatra-mcp` has no such path.
 
 ## Flags
 
@@ -68,21 +73,36 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 
 | Tool | What it does | Read-only | Calls a provider |
 | --- | --- | --- | --- |
-| `project.snapshot` | resolved config: source locale, target locales, format, provider id, config source, glossary indicator | yes | no |
+| `project.snapshot` | resolved config: source locale, target locales, format, file pattern (`files.pattern`), provider id, config source, glossary indicator | yes | no |
 | `status.check` | per-locale count of missing, stale, and up-to-date keys | yes | no |
 | `status.diff` | per-locale list of keys that would be added, re-translated, or orphaned | yes | no |
 | `glossary.get` | every glossary term and its translation, secret-redacted | yes | no |
 | `glossary.write` | add, replace, or remove one glossary term | no | no |
-| `lock.state` | the lock file's version and per-locale baseline size | yes | no |
+| `lock.state` | the lock file's version and, per target locale, its recorded key count plus missing, stale, and up-to-date counts | yes | no |
 | `key.integrity` | one key's placeholder, inline markup, and ICU drift against the lock baseline, per locale (only checks keys whose source changed since the baseline; an empty `entries` array means checked and unchanged) | yes | no |
 | `key.value` | one key's current source and target text | yes | no |
 | `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder, inline markup, and ICU integrity | no | no |
 | `translation.retranslateEntry` | ask the configured provider to retranslate one key in one locale | no | yes |
 | `translation.translatePending` | translate every missing or stale key across every target locale | no | yes |
 | `review.queue` | keys the last run flagged for human review, and why | yes | no |
-| `usage.summary` | token usage and budget status from the last run | yes | no |
+| `usage.summary` | token usage and budget status from the last run, including `budget.standing` and `budget.supported` | yes | no |
 
 `translation.retranslateEntry` and `translation.translatePending` are advertised only when the server was started with `--allow-spend`. Every tool's input, and every tool's output where the result shape is small and closed, is a JSON Schema derived from the same zod schema the server validates the call against. Calling an unknown tool name is a protocol-level error; calling a known tool with input that fails validation returns a result naming the offending field, so an agent can read the failure and self-correct.
+
+The two entry writers, `translation.editEntry` and `translation.retranslateEntry`, are additionally guarded per tool, locale, and key: while one call for a given entry is still running, a second call to the same tool naming the same `locale` and `key` is not queued or run alongside it. It gets an `isError` result whose text says a matching call is already in progress, so two agents (or one agent retrying) cannot race on the same entry through the same tool. Calls for different keys or different locales still run concurrently. `translation.translatePending` has no such guard.
+
+### Inputs and results
+
+- `status.check`, `status.diff`, and `key.integrity` take an optional `locales` array (at least one entry) that narrows the result to those locales; `key.integrity` also takes the `key` to check.
+- `translation.editEntry` takes `locale`, `key`, and `value`, with `value` limited to 20,000 characters.
+- `glossary.write` takes `{ term, translation }`, with `term` limited to 200 characters and `translation` to 2,000; `translation: null` removes the term. It needs a file-backed glossary (the config's `glossary` pointing at a JSON file); an inline glossary or none fails with `GLOSSARY_NOT_FILE_BACKED`.
+- `translation.editEntry` and `translation.retranslateEntry` return `{ accepted, value, reason?, details? }`. A refused value carries `reason`, one of `placeholder`, `markup`, `icu`, `degenerate`, or `empty`, and `details` naming what failed; `translation.retranslateEntry` adds `reviewReasons` to an accepted result: the review heuristics' flags for the new value, empty when none fired.
+- `lock.state` returns `exists`, and when the lock file exists, its `version` and per-locale `keyCount`, `missing`, `stale`, and `upToDate` counts.
+- `usage.summary` returns the last run's `usage` and, when a token budget was configured, a `budget` whose `standing` is `within`, `stopped-before-ceiling`, or `reached`, and whose `supported` says whether the counted figure is entirely the provider's own reported usage.
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+The inline markup checks in `key.integrity` (`markupMatches`, `markupDetails`) and in `translation.editEntry` (the `markup` reason), a `custom:` format id in `project.snapshot`, and `budget.standing` in `usage.summary` arrived in this release.
 
 ## Secret redaction
 
@@ -90,7 +110,7 @@ Every tool result and every log line passes through the same secret-redaction pa
 
 ## Stdout is the protocol channel
 
-The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. Nothing is printed at all until an MCP client sends the first message.
+The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. The server loads the config before it connects the transport, so a config error is written to stderr immediately and the process exits without ever speaking the protocol. Once it is running, per-call diagnostics (a failed call, a call rejected because a matching one is in progress, an unknown tool) also go to stderr.
 
 ## Installation
 
@@ -116,6 +136,8 @@ verbatra mcp --cwd /path/to/project --config verbatra.config.ts
 ```
 
 ## Exit codes
+
+These are the exit codes of `verbatra mcp`; the standalone `verbatra-mcp` differs as described in the synopsis above.
 
 | Code | Meaning |
 | --- | --- |

@@ -20,7 +20,7 @@ export async function FinalCta(): Promise<ReactNode> {
   const tInstall = await getTranslations("landing.install");
   const locale = (await getLocale()) as Locale;
   return (
-    <section className="vk-pad-top-lg px-2 pb-3 md:px-3">
+    <section className="vk-pad-top-lg mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
       <Reveal
         className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
         style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}

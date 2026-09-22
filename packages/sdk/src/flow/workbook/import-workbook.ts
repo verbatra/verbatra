@@ -404,9 +404,11 @@ async function runSheet(
  * handoff.
  *
  * Imported values are held to the same integrity gate as provider output, so a translator who drops
- * a placeholder or breaks ICU syntax has that row refused rather than written. Each locale takes
- * its write lock, and the lock-file and translation memory are updated exactly as in a
- * {@link translate} run, so an imported translation counts as up to date afterwards.
+ * a placeholder, breaks inline markup or breaks ICU syntax has that row refused rather than
+ * written, and a row whose source text changed since the export is refused the same way. A row
+ * holding exactly `[[CLEAR]]` empties that key's translation. Each locale takes its write lock, and
+ * the lock-file and translation memory are updated exactly as in a {@link translate} run, so an
+ * imported translation counts as up to date afterwards.
  *
  * Damage is contained rather than fatal: a blank row keeps the existing translation and its
  * baseline, an unreadable row is reported as a {@link MalformedRowReport}, and a repeated key is
@@ -414,9 +416,12 @@ async function runSheet(
  * the returned {@link RunSummary} rather than aborting the import. A sheet or file naming a locale
  * that is not configured is contained the same way: that locale fails with `CONFIG_INVALID` on its
  * own {@link LocaleSummary}, so nothing is written to an unmanaged path and the configured locales
- * still import. Once the handoff has been read, every per-locale failure is isolated this way, so
- * callers should inspect {@link RunSummary.failed} and {@link RunSummary.partial} rather than
- * relying on a thrown error. A corrupt lock-file is the one exception, because it is a single
+ * still import. A configured target locale the handoff carries no sheet or file for fails with
+ * `WORKBOOK_SHEET_MISSING`, a delimited file the directory's export manifest does not list fails
+ * with `HANDOFF_FILE_STALE` without being applied, and a row naming a key neither the source nor
+ * the target holds fails its locale. Once the handoff has been read, every per-locale failure is
+ * isolated this way, so callers should inspect {@link RunSummary.failed} and
+ * {@link RunSummary.partial} rather than relying on a thrown error. A corrupt lock-file is the one exception, because it is a single
  * shared file rather than a per-locale one: it aborts the whole run even when it is discovered
  * after a locale has been applied, so the locales still to come are not written at all.
  *

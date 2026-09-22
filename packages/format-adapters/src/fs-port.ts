@@ -2,14 +2,27 @@ import { type FileHandle, mkdir, open, rename, rm, writeFile } from "node:fs/pro
 import { type AtomicWriteOps, atomicWriteFile } from "./json/atomic-write.js";
 
 /**
- * The outcome of a size-bounded read through the {@link AdapterFs} port. A path that is not a file,
- * or a file larger than the caller's limit, is reported as a state rather than thrown, so an adapter
- * can treat "no file yet" and "too large to trust" as ordinary branches.
+ * The outcome of a size-bounded read through the {@link AdapterFs} port. A path that exists but is
+ * not a regular file, or a file larger than the caller's limit, is reported as a state rather than
+ * thrown, so an adapter can treat "not a file" and "too large to trust" as ordinary branches. A
+ * missing path is not one of these states: the port rejects instead (see
+ * {@link AdapterFs.readBounded}).
  */
 export type BoundedReadOutcome =
-  | { readonly kind: "ok"; readonly content: string }
-  | { readonly kind: "not-a-file" }
-  | { readonly kind: "too-large" };
+  | {
+      /** The file was read in full. */
+      readonly kind: "ok";
+      /** The file's content, decoded as UTF-8. */
+      readonly content: string;
+    }
+  | {
+      /** The path exists but is not a regular file, a directory for example, so nothing was read. */
+      readonly kind: "not-a-file";
+    }
+  | {
+      /** The file is larger than the requested byte limit, so nothing was read. */
+      readonly kind: "too-large";
+    };
 
 /**
  * The file-system port every format adapter reads and writes through. An adapter that takes this
@@ -27,6 +40,10 @@ export interface AdapterFs {
    * @param path - The file to read.
    * @param maxBytes - The largest file size to read; a larger file yields `too-large` and is not read.
    * @returns The file's content, or the state that prevented reading it.
+   * @throws An `Error` whose `code` is `"ENOENT"` when nothing exists at `path`, as `node:fs` does.
+   *   Several adapters re-read an existing destination before writing so they can preserve its
+   *   layout, and they rely on exactly that code to mean "no file yet, write a fresh one"; a port
+   *   that reports a missing file any other way fails those writes.
    */
   readBounded(path: string, maxBytes: number): Promise<BoundedReadOutcome>;
   /**
