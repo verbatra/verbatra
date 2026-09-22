@@ -22,7 +22,6 @@
     },
     "terminal": {
       "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",
-      "caption": "Transcripción grabada con @verbatra/cli {version}.",
       "transcript": {
         "run": {
           "l1": "diff en.json · 2 nuevas · 1 cambiada · 117 sin cambios",
@@ -46,22 +45,6 @@
       "aiCaptionLink": "la guía de configuración"
     },
     "gate": {
-      "heading": "Una traducción que rompe un marcador nunca llega a tus archivos.",
-      "lead": "Una ejecución sobre dos claves editadas. verbatra escribió una y rechazó la otra, y el alemán que tus usuarios ya tenían se quedó exactamente donde estaba.",
-      "panels": {
-        "source": {
-          "badge": "origen",
-          "note": "Las dos claves se editaron en inglés, así que las dos salen hacia el proveedor."
-        },
-        "written": {
-          "badge": "escrito",
-          "note": "de.json después de la ejecución. Una línea es nueva y la otra es el valor que dejó la ejecución anterior."
-        },
-        "refused": {
-          "badge": "rechazado",
-          "note": "La propuesta para inbox.count nunca tocó el archivo, y el lock conservó su hash anterior, así que la siguiente ejecución lo vuelve a intentar."
-        }
-      },
       "rows": {
         "key": "clave",
         "candidate": "propuesta",
@@ -72,29 +55,26 @@
       "annotations": {
         "new": "nuevo",
         "kept": "conservado"
-      },
-      "reasonGloss": "placeholder: la propuesta no lleva los mismos marcadores que el origen, así que la interpolación se rompería en tiempo de ejecución.",
-      "outputLabel": "La ejecución lo informa así:"
+      }
     },
     "how": {
-      "heading": "Una ejecución es un pipeline corto y predecible.",
-      "lead": "Sin magia, sin sincronización en segundo plano: una secuencia determinista que puedes leer de arriba abajo.",
+      "heading": "Cada ejecución es un diff, no una reescritura.",
       "steps": {
         "configure": {
           "title": "Configura",
-          "body": "Apunta verbatra a tu locale de origen, indica los idiomas de destino y elige un proveedor. La configuración vive en un solo archivo; las claves de API se quedan en tu entorno."
+          "body": "Locale de origen, destinos, un proveedor."
         },
         "diff": {
           "title": "Compara",
-          "body": "Cada ejecución compara tu locale de origen con el archivo de bloqueo confirmado y clasifica cada clave en nueva, cambiada, sin cambios o huérfana. Las claves huérfanas, las que ya no están en tu origen, se informan y se dejan donde están: no se elimina nada de tus archivos de locale a menos que actives --prune."
+          "body": "Nuevas, cambiadas, sin cambios o huérfanas, frente al archivo de bloqueo."
         },
         "translate": {
           "title": "Traduce",
-          "body": "Solo las claves nuevas y cambiadas se envían a tu proveedor, en lotes, con tu glosario y tono aplicados. Todo lo demás se deja intacto."
+          "body": "Solo salen las claves nuevas y cambiadas."
         },
         "verifyWrite": {
-          "title": "Verifica y escribe",
-          "body": "La integridad de los marcadores de posición y de ICU se comprueba en cada resultado. Cualquier cosa que se rompa se retiene; el resto se escribe en tus archivos de locale y se actualiza el bloqueo."
+          "title": "Verificar y escribir",
+          "body": "Los resultados rotos se retienen, el resto se escribe."
         }
       }
     },
@@ -313,6 +293,21 @@
       "contact": "Contacto",
       "npm": "verbatra en npm",
       "skipToContent": "Saltar al contenido"
+    },
+    "proof": {
+      "copyCommand": "Copiar {command}",
+      "lock": {
+        "body": "Un hash por clave y locale, confirmado junto a tus archivos.",
+        "title": "El archivo de bloqueo"
+      },
+      "refused": {
+        "body": "Retenido, nunca escrito, enviado de nuevo en la siguiente ejecución.",
+        "title": "Rechazado antes de llegar al archivo"
+      },
+      "written": {
+        "body": "de.json después de la ejecución.",
+        "title": "Escrito, y solo eso"
+      }
     }
   },
   "legal": {

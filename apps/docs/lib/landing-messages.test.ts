@@ -11,6 +11,8 @@ const LANDING_NAMESPACES = [
   "footer",
   "finalClose",
   "gate",
+  "proof",
+  "how",
   "commands",
   "stack",
   "agents",
@@ -49,9 +51,9 @@ describe("landing message parity", () => {
   it("covers every namespace the landing chrome reads", () => {
     expect(source.length).toBeGreaterThan(0);
     expect(source).toContain("landing.nav.skipToContent");
-    expect(source).toContain("landing.terminal.caption");
+    expect(source).toContain("landing.proof.lock.title");
     expect(source).toContain("landing.terminal.sessionLabel");
-    expect(source).toContain("landing.gate.reasonGloss");
+    expect(source).toContain("landing.gate.rows.reason");
     expect(source).toContain("landing.commands.items.translate");
     expect(source).toContain("landing.stack.providers.marqueeLabel");
     expect(source).toContain("landing.agents.items.mcp.body");

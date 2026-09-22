@@ -22,7 +22,6 @@
     },
     "terminal": {
       "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
-      "caption": "Mitschnitt aufgezeichnet mit @verbatra/cli {version}.",
       "transcript": {
         "run": {
           "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
@@ -46,22 +45,6 @@
       "aiCaptionLink": "der Einrichtungsanleitung"
     },
     "gate": {
-      "heading": "Eine Übersetzung, die einen Platzhalter zerstört, erreicht deine Dateien nie.",
-      "lead": "Ein Lauf über zwei geänderte Keys. verbatra hat einen geschrieben und den anderen verweigert, und das Deutsch, das deine Nutzer schon hatten, blieb genau so stehen.",
-      "panels": {
-        "source": {
-          "badge": "Quelle",
-          "note": "Beide Keys wurden auf Englisch geändert, also gehen beide an den Provider."
-        },
-        "written": {
-          "badge": "geschrieben",
-          "note": "de.json nach dem Lauf. Eine Zeile ist neu, die andere ist der Wert, den der vorige Lauf hinterlassen hat."
-        },
-        "refused": {
-          "badge": "verweigert",
-          "note": "Der Kandidat für inbox.count hat die Datei nie berührt, und die Lock-Datei hat ihren alten Hash behalten, also versucht es der nächste Lauf erneut."
-        }
-      },
       "rows": {
         "key": "Key",
         "candidate": "Kandidat",
@@ -72,29 +55,26 @@
       "annotations": {
         "new": "neu",
         "kept": "behalten"
-      },
-      "reasonGloss": "placeholder: Der Kandidat trägt nicht dieselben Platzhalter wie die Quelle, die Interpolation würde also zur Laufzeit brechen.",
-      "outputLabel": "Der Lauf meldet es so:"
+      }
     },
     "how": {
-      "heading": "Ein Lauf ist eine kurze, vorhersehbare Pipeline.",
-      "lead": "Keine Magie, keine Hintergrundsynchronisierung: eine deterministische Abfolge, die du von oben nach unten lesen kannst.",
+      "heading": "Jeder Lauf ist ein Diff, keine Neuübersetzung.",
       "steps": {
         "configure": {
           "title": "Konfigurieren",
-          "body": "Richte verbatra auf deine Quell-Locale, liste die Zielsprachen auf und wähle einen Anbieter. Die Konfiguration liegt in einer Datei; API-Schlüssel bleiben in deiner Umgebung."
+          "body": "Quell-Locale, Ziele, ein Anbieter."
         },
         "diff": {
           "title": "Vergleichen",
-          "body": "Jeder Lauf vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei und sortiert jeden Schlüssel in neu, geändert, unverändert oder verwaist ein. Verwaiste Schlüssel, also solche, die nicht mehr in deiner Quelle stehen, werden gemeldet und bleiben erhalten: Aus deinen Locale-Dateien wird nichts entfernt, es sei denn, du aktivierst --prune."
+          "body": "Neu, geändert, unverändert oder verwaist, gegen die Lock-Datei."
         },
         "translate": {
           "title": "Übersetzen",
-          "body": "Nur die neuen und geänderten Schlüssel werden in Stapeln an deinen Anbieter gesendet, mit deinem Glossar und Tonfall. Alles andere bleibt unangetastet."
+          "body": "Nur neue und geänderte Schlüssel gehen raus."
         },
         "verifyWrite": {
           "title": "Prüfen und schreiben",
-          "body": "Die Integrität von Platzhaltern und ICU wird bei jedem Ergebnis geprüft. Alles, was kaputtgeht, wird zurückgehalten; der Rest wird in deine Locale-Dateien geschrieben und die Lock-Datei wird aktualisiert."
+          "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest geschrieben."
         }
       }
     },
@@ -313,6 +293,21 @@
       "contact": "Kontakt",
       "npm": "verbatra auf npm",
       "skipToContent": "Zum Inhalt springen"
+    },
+    "proof": {
+      "copyCommand": "{command} kopieren",
+      "lock": {
+        "body": "Ein Hash pro Schlüssel und Locale, eingecheckt neben deinen Dateien.",
+        "title": "Die Lock-Datei"
+      },
+      "refused": {
+        "body": "Zurückgehalten, nie geschrieben, beim nächsten Lauf erneut gesendet.",
+        "title": "Abgelehnt, bevor es die Datei erreicht"
+      },
+      "written": {
+        "body": "de.json nach dem Lauf.",
+        "title": "Geschrieben, und nur das"
+      }
     }
   },
   "legal": {

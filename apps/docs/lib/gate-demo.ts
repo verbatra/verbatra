@@ -5,17 +5,7 @@ export type GateLine = {
   readonly annotation?: GateAnnotation;
 };
 
-export const GATE_SOURCE_FILE = "en.json";
 export const GATE_TARGET_FILE = "de.json";
-
-export const GATE_SOURCE_LINES: ReadonlyArray<GateLine> = [
-  { text: "{" },
-  { text: '  "inbox": {' },
-  { text: '    "title": "Inbox",' },
-  { text: '    "count": "{count} new messages"' },
-  { text: "  }" },
-  { text: "}" },
-];
 
 export const GATE_TARGET_LINES: ReadonlyArray<GateLine> = [
   { text: "{" },
@@ -24,6 +14,15 @@ export const GATE_TARGET_LINES: ReadonlyArray<GateLine> = [
   { text: '    "count": "{count} neue Nachrichten"', annotation: "kept" },
   { text: "  }" },
   { text: "}" },
+];
+
+export const GATE_LOCK_FILE = "verbatra.lock.json";
+
+export const GATE_LOCK_LINES: ReadonlyArray<string> = [
+  '{ "de": {',
+  '    "inbox.title": "a1b2c3d4e5f6a7b8",',
+  '    "inbox.count": "9f8e7d6c5b4a3210"',
+  "} }",
 ];
 
 export const GATE_MISSING_PLACEHOLDER = "{count}";

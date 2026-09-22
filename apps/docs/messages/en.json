@@ -50,7 +50,6 @@
     },
     "terminal": {
       "sessionLabel": "An example verbatra command-line session.",
-      "caption": "Transcript recorded with @verbatra/cli {version}.",
       "transcript": {
         "run": {
           "l1": "diff en.json · 2 new · 1 changed · 117 unchanged",
@@ -74,22 +73,6 @@
       "aiCaptionLink": "the setup guide"
     },
     "gate": {
-      "heading": "A translation that breaks a placeholder never reaches your files.",
-      "lead": "One run over two edited keys. verbatra wrote one of them and refused the other, and the German your users already had stayed exactly where it was.",
-      "panels": {
-        "source": {
-          "badge": "source",
-          "note": "Both keys were edited in English, so both go out to the provider."
-        },
-        "written": {
-          "badge": "written",
-          "note": "de.json after the run. One line is new, one is the value the previous run left behind."
-        },
-        "refused": {
-          "badge": "refused",
-          "note": "The candidate for inbox.count never touched the file, and the lock kept its old hash, so the next run tries again."
-        }
-      },
       "rows": {
         "key": "key",
         "candidate": "candidate",
@@ -100,29 +83,26 @@
       "annotations": {
         "new": "new",
         "kept": "kept"
-      },
-      "reasonGloss": "placeholder: the candidate does not carry the same placeholders as the source, so interpolation would break at runtime.",
-      "outputLabel": "The run reports it like this:"
+      }
     },
     "how": {
-      "heading": "A run is a short, predictable pipeline.",
-      "lead": "No magic, no background sync: a deterministic sequence you can read top to bottom.",
+      "heading": "Every run is a diff, not a rewrite.",
       "steps": {
         "configure": {
           "title": "Configure",
-          "body": "Point verbatra at your source locale, list the target languages, and pick a provider. Configuration lives in one file; API keys stay in your environment."
+          "body": "Source locale, targets, one provider."
         },
         "diff": {
           "title": "Diff",
-          "body": "Each run compares your source locale against the committed lock file and sorts every key into new, changed, unchanged, or orphaned. Orphaned keys, the ones no longer in your source, are reported and left in place: nothing is removed from your locale files unless you opt in with --prune."
+          "body": "New, changed, unchanged or orphaned, against the lock."
         },
         "translate": {
           "title": "Translate",
-          "body": "Only the new and changed keys are sent to your provider, in batches, with your glossary and tone applied. Everything else is left untouched."
+          "body": "Only new and changed keys go out."
         },
         "verifyWrite": {
-          "title": "Verify & write",
-          "body": "Placeholder and ICU integrity are checked on every result. Anything that breaks is withheld; the rest is written to your locale files and the lock is updated."
+          "title": "Verify and write",
+          "body": "Broken results are withheld, the rest written."
         }
       }
     },
@@ -341,6 +321,21 @@
         "machineTranslatedDescription": "Interface and documentation pages for this language are translated with AI."
       },
       "skipToContent": "Skip to content"
+    },
+    "proof": {
+      "copyCommand": "Copy {command}",
+      "lock": {
+        "title": "The lock file",
+        "body": "One hash per key per locale, committed next to your files."
+      },
+      "written": {
+        "title": "Written, and only that",
+        "body": "de.json after the run."
+      },
+      "refused": {
+        "title": "Refused before it reaches the file",
+        "body": "Withheld, never written, sent again next run."
+      }
     }
   },
   "legal": {

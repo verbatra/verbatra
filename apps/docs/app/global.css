@@ -75,7 +75,7 @@ h6 {
 
 :root {
   --text-hero: clamp(2.9rem, 8.6vw, 6.9rem);
-  --text-h2: clamp(1.75rem, 2.8vw, 2.375rem);
+  --text-h2: clamp(2.3rem, 5.4vw, 4.2rem);
   --text-h3: 1.3125rem;
   --text-lead: 1.125rem;
   --text-base: 1rem;
@@ -101,9 +101,9 @@ h6 {
   --shadow-panel: 0 24px 60px -30px color-mix(in srgb, var(--v-purple) 35%, transparent);
   --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
 
-  --section-lg: 128px;
-  --section-md: 96px;
-  --section-sm: 64px;
+  --section-lg: 104px;
+  --section-md: 80px;
+  --section-sm: 56px;
 
   --gutter: 24px;
 
@@ -162,6 +162,9 @@ h6 {
 @media (min-width: 768px) {
   :root {
     --gutter: 40px;
+    --section-lg: 168px;
+    --section-md: 128px;
+    --section-sm: 80px;
   }
 }
 
@@ -479,5 +482,26 @@ figure.shiki {
 @media (prefers-reduced-motion: reduce) {
   .vk-rise {
     animation: none;
+  }
+}
+
+.vk-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms var(--ease-out),
+    transform 700ms var(--ease-out);
+}
+
+.vk-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (scripting: none), (prefers-reduced-motion: reduce) {
+  .vk-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

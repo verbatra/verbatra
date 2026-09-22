@@ -22,7 +22,6 @@
     },
     "terminal": {
       "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
-      "caption": "Transcription enregistrée avec @verbatra/cli {version}.",
       "transcript": {
         "run": {
           "l1": "diff en.json · 2 nouveaux · 1 modifié · 117 inchangés",
@@ -46,22 +45,6 @@
       "aiCaptionLink": "le guide de configuration"
     },
     "gate": {
-      "heading": "Une traduction qui casse un espace réservé n'atteint jamais tes fichiers.",
-      "lead": "Une exécution sur deux clés modifiées. verbatra en a écrit une et refusé l'autre, et l'allemand que tes utilisateurs avaient déjà est resté exactement en place.",
-      "panels": {
-        "source": {
-          "badge": "source",
-          "note": "Les deux clés ont été modifiées en anglais, donc les deux partent vers le fournisseur."
-        },
-        "written": {
-          "badge": "écrit",
-          "note": "de.json après l'exécution. Une ligne est nouvelle, l'autre est la valeur laissée par l'exécution précédente."
-        },
-        "refused": {
-          "badge": "refusé",
-          "note": "La proposition pour inbox.count n'a jamais touché le fichier, et le lock a gardé son ancien hash, donc la prochaine exécution réessaie."
-        }
-      },
       "rows": {
         "key": "clé",
         "candidate": "proposition",
@@ -72,29 +55,26 @@
       "annotations": {
         "new": "nouveau",
         "kept": "conservé"
-      },
-      "reasonGloss": "placeholder : la proposition ne porte pas les mêmes espaces réservés que la source, l'interpolation casserait donc à l'exécution.",
-      "outputLabel": "L'exécution le rapporte ainsi :"
+      }
     },
     "how": {
-      "heading": "Une exécution est un pipeline court et prévisible.",
-      "lead": "Pas de magie, pas de synchronisation en arrière-plan : une séquence déterministe que tu peux lire de haut en bas.",
+      "heading": "Chaque exécution est un diff, pas une réécriture.",
       "steps": {
         "configure": {
           "title": "Configure",
-          "body": "Pointe verbatra vers ta locale source, liste les langues cibles et choisis un fournisseur. La configuration tient dans un seul fichier ; les clés d'API restent dans ton environnement."
+          "body": "Locale source, cibles, un fournisseur."
         },
         "diff": {
           "title": "Compare",
-          "body": "Chaque exécution compare ta locale source au fichier de verrouillage validé et trie chaque clé en nouvelle, modifiée, inchangée ou orpheline. Les clés orphelines, celles qui ne sont plus dans ta source, sont signalées et laissées en place : rien n'est supprimé de tes fichiers de locale, sauf si tu actives --prune."
+          "body": "Nouvelles, modifiées, inchangées ou orphelines, par rapport au fichier de verrouillage."
         },
         "translate": {
           "title": "Traduis",
-          "body": "Seules les clés nouvelles et modifiées sont envoyées à ton fournisseur, par lots, avec ton glossaire et ta tonalité appliqués. Tout le reste est laissé intact."
+          "body": "Seules les clés nouvelles et modifiées partent."
         },
         "verifyWrite": {
-          "title": "Vérifie et écris",
-          "body": "L'intégrité des placeholders et de l'ICU est vérifiée sur chaque résultat. Tout ce qui casse est retenu ; le reste est écrit dans tes fichiers de locale et le fichier de verrouillage est mis à jour."
+          "title": "Vérifier et écrire",
+          "body": "Les résultats cassés sont retenus, le reste est écrit."
         }
       }
     },
@@ -313,6 +293,21 @@
       "contact": "Contact",
       "npm": "verbatra sur npm",
       "skipToContent": "Aller au contenu"
+    },
+    "proof": {
+      "copyCommand": "Copier {command}",
+      "lock": {
+        "body": "Un hash par clé et par locale, validé à côté de tes fichiers.",
+        "title": "Le fichier de verrouillage"
+      },
+      "refused": {
+        "body": "Retenu, jamais écrit, renvoyé à la prochaine exécution.",
+        "title": "Refusé avant d'atteindre le fichier"
+      },
+      "written": {
+        "body": "de.json après l'exécution.",
+        "title": "Écrit, et rien d'autre"
+      }
     }
   },
   "legal": {

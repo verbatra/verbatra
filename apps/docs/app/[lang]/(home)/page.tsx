@@ -6,9 +6,8 @@ import { CommandCoverage } from "@/components/landing/command-coverage";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FullFooter } from "@/components/landing/footer";
-import { GateDemo } from "@/components/landing/gate-demo";
-import { HowItWorks } from "@/components/landing/how-it-works";
 import { Pillars } from "@/components/landing/pillars";
+import { Proof } from "@/components/landing/proof";
 import { StackStrip } from "@/components/landing/stack-strip";
 import { StudioShowcase } from "@/components/landing/studio-showcase";
 import { Trust } from "@/components/landing/trust";
@@ -68,8 +67,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
 
       <LandingHero />
       <StackStrip />
-      <GateDemo />
-      <HowItWorks />
+      <Proof />
       <Pillars />
       <CommandCoverage />
       <StudioShowcase />

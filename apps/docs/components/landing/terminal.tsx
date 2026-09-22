@@ -18,6 +18,7 @@ export type TerminalProps = {
   loop?: boolean;
   highlight?: string;
   fitContent?: boolean;
+  headerAction?: ReactNode;
   className?: string;
 };
 
@@ -178,6 +179,7 @@ export function Terminal({
   loop = true,
   highlight,
   fitContent = false,
+  headerAction,
   className,
 }: TerminalProps): ReactNode {
   const [rootRef, inView] = useInViewOnce<HTMLDivElement>(0.4);
@@ -226,7 +228,10 @@ export function Terminal({
   return (
     <div
       ref={rootRef}
-      className={cn("not-prose overflow-hidden rounded-xl border border-fd-border", className)}
+      className={cn(
+        "not-prose flex flex-col overflow-hidden rounded-xl border border-fd-border",
+        className,
+      )}
       style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
     >
       <div className="flex items-center gap-2 border-b border-fd-border px-4 py-3">
@@ -238,6 +243,7 @@ export function Terminal({
         {title ? (
           <span className="ms-2 font-mono text-xs text-fd-muted-foreground">{title}</span>
         ) : null}
+        {headerAction ? <span className="ms-auto">{headerAction}</span> : null}
       </div>
 
       <div className="sr-only">
@@ -261,7 +267,7 @@ export function Terminal({
         aria-hidden="true"
         className={cn(
           "px-4 py-4 font-mono text-[13px] leading-relaxed",
-          fitContent ? "grid" : "h-80 overflow-y-auto",
+          fitContent ? "grid flex-1 content-start" : "h-80 overflow-y-auto",
         )}
         style={{ background: "var(--surface-bg)" }}
       >
