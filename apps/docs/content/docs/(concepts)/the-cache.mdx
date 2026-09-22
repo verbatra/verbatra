@@ -26,13 +26,13 @@ export default defineConfig({
 });
 ```
 
-When a key misses, verbatra compares its current source against the source text of every entry in the same locale under the same fingerprint, and scores each one from `0` to `1` as the character edit distance over the length of the longer of the two strings. The closest entry at or above `threshold` is reused; everything below it goes to the provider as an ordinary miss. `threshold` runs from `0.5` to `1` and defaults to `0.9`, which is deliberately strict: on a 70 character sentence it tolerates a handful of edited characters, and on a five character button label it tolerates none at all. Lower it only once you have looked at what it starts letting through.
+When a key misses, verbatra compares its current source against the source text of every entry in the same locale under the same fingerprint, and scores each one from `0` to `1`: one minus the character edit distance divided by the length of the longer of the two strings, so `1` is an exact match. The closest entry at or above `threshold` is reused; everything below it goes to the provider as an ordinary miss. `threshold` runs from `0.5` to `1` and defaults to `0.9`, which is deliberately strict: on a 70 character sentence it tolerates a handful of edited characters, and on a five character button label it tolerates none at all. Lower it only once you have looked at what it starts letting through.
 
 ### The threshold is not a safety setting
 
-Be clear about what the score can and cannot tell you. It measures characters, and meaning is not a function of character distance. Dropping the "not" from a long sentence, turning "cannot" into "can", swapping Google for Apple, or making a noun plural are all small edits that score *above* `0.9` and reverse or redirect what the sentence says. Raising the threshold does not fix this: a single letter changed at the end of an eighty-character string scores `0.987`, past anything the schema will accept.
+Be clear about what the score can and cannot tell you. It measures characters, and meaning is not a function of character distance. Dropping the "not" from a long sentence, turning "cannot" into "can", swapping Google for Apple, or making a noun plural are all small edits that score *above* `0.9` and reverse or redirect what the sentence says. Raising the threshold does not fix this: a single letter changed at the end of an eighty-character string scores `0.987`, past any threshold you could set.
 
-So the threshold decides how much provider spend you avoid, not how safe the reuse is. Safety comes from three things that do not depend on the number:
+So the threshold decides how much provider spend you avoid, not how safe the reuse is. Safety comes from five things that do not depend on the number:
 
 - **The feature is off unless you turn it on.**
 - **Every fuzzy reuse is flagged for review**, on every run, whatever it scored. The key carries the `FUZZY_CACHE_REUSE` reason on the run summary's `needsReview` list and in [Studio's Review queue](/docs/review-in-studio), labelled "Reused after source edit". If you are not going to work that queue, do not turn this on.

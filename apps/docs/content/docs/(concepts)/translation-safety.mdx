@@ -228,8 +228,8 @@ carries one or more reason codes:
   with no configured budget is never measured. Like every reason here it flags rather than blocks:
   an over-budget translation is still written and still locked, because a correct translation that
   overruns a layout budget beats no translation at all.
-- `EQUALS_SOURCE`: the translation equals the source verbatim in a different target locale, and
-  the source actually had translatable text.
+- `EQUALS_SOURCE`: the translation equals the source verbatim although the target locale differs
+  from the source locale, and the source actually had translatable text.
 - `GLOSSARY_TERM_MISSED`: a configured glossary term occurs in the source but its mapped target
   term is absent from the translation. Matching is case-insensitive, and the two sides are held to
   different standards on purpose. The source side requires a whole word, so the term `AI` is not

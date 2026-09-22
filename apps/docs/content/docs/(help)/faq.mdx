@@ -24,14 +24,14 @@ Four levers, all free of a provider call until you decide otherwise:
 A worked example, to put an order of magnitude on it. A project with 400 keys to translate into
 3 locales, at the default `maxBatchSize` of 50, sends 8 requests per locale, so 24 in total. At
 roughly 4 characters per token, with 40-character source values and 20-character key names, that
-is about 32,400 input tokens and 22,800 output tokens, so about 55,000 tokens for the whole run.
+is about 33,300 input tokens and 30,700 output tokens, so about 64,000 tokens for the whole run.
 On `gemini-2.5-flash`, at an illustrative rate of $0.10 per million input tokens and $0.40 per
-million output tokens, that works out to about 1.2 cents.
+million output tokens, that works out to about 1.6 cents.
 
 The assumptions behind that number, so you can rescale it to your own project: 400 keys per
 locale and 3 locales; 40-character values and 20-character key names; no `description`, `meaning`,
-glossary, or tone; `maxBatchSize` at its default; 4 characters per token; translations about as
-long as their source. The rate is a placeholder that makes the arithmetic concrete, not a quoted
+glossary, or tone; `maxBatchSize` at its default; 4 characters per token; the 50 percent expansion allowance
+verbatra applies to every output estimate. The rate is a placeholder that makes the arithmetic concrete, not a quoted
 price: look up the real one on your provider's own pricing page, because verbatra does not track
 provider rates and they change.
 

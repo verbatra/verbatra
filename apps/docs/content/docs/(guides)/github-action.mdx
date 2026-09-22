@@ -20,7 +20,7 @@ Reference it by repository, pinned to a commit SHA:
 uses: verbatra/action@<commit-sha>
 ```
 
-`verbatra/action@v1` is the convenience form and the recommended default: the `v1` tag is the actively maintained, continuously updated line, moving with each release, so fixes and features reach you without a workflow edit. SHA pinning is the security-conscious choice either way, and is what the examples on this page use.
+`verbatra/action@v1` is the convenience form: the `v1` tag is the actively maintained, continuously updated line, moving with each release, so fixes and features reach you without a workflow edit. SHA pinning is the security-conscious choice, and it is what the examples on this page use.
 
 It used to ship from inside the verbatra monorepo and was referenced by path. That older form no longer resolves, so point existing workflows at the repository above.
 
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # pins the actively maintained v1 line
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
           version: 0.11.0 # pin @verbatra/cli to an exact version, 0.9.3 or newer
         env:

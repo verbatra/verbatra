@@ -190,7 +190,7 @@ rates: {
 }
 ```
 
-`asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the card, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
+`asOf` is a calendar date written `YYYY-MM-DD`, and `currency` a three-letter uppercase code. Both are required, and both are printed beside every figure derived from the block, so a stale number is visibly stale. `table` is keyed by rate key: `provider/model` for a provider configured with a model, and the bare provider id for one without (`deepl`, `google-translate`). A token-billed entry carries `inputPerMillionTokens` and `outputPerMillionTokens`; a character-billed one carries `perMillionCharacters`. Mixing the two shapes in a single entry is rejected, as is a negative rate.
 
 The block changes nothing about a live run: not what is sent, not what is billed, not what is written. A rate key with no entry is reported as an explicit absence rather than a cost of zero, and an entry in the wrong unit for its provider is refused rather than applied. See [Estimating cost](/docs/estimating-cost) for how the figure is computed and what it deliberately leaves out.
 
@@ -238,7 +238,7 @@ verbatra searches upward from the working directory and uses the first source it
 10. `verbatra.config.cjs`
 11. `verbatra.config.ts`
 
-To load one explicit file instead of searching, pass `--config <path>`; a relative path resolves against the working directory. In the SDK, an in-memory `configOverride` takes precedence over an explicit `configPath`, which takes precedence over the search. See [Programmatic API](/docs/programmatic-api).
+To load one explicit file instead of searching, pass `--config <path>`; a relative path resolves against the working directory. In the SDK, an in-memory `configOverride` takes precedence over an explicit `configPath`, which takes precedence over the search. See [SDK recipes](/docs/programmatic-api).
 
 ## Editor validation
 

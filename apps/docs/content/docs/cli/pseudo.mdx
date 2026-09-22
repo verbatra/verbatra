@@ -52,7 +52,7 @@ The pseudolocale is written outside your real locale files, under `.verbatra-loc
 
 Your configured `files.pattern` is expanded inside that directory, so the file keeps the layout your app expects: with `locales/{locale}.json`, the default run writes `.verbatra-local/pseudo/locales/en-XA.json`. Point your dev server or your i18n library at that directory to load it. Pass `--out` to write it somewhere your build already serves.
 
-Two rules keep it from ever standing in for a real translation:
+Three rules keep it from ever standing in for a real translation:
 
 - A pseudolocale that names your source locale or one of your target locales is refused with `PSEUDO_OUTPUT_CONFLICT`, before anything is read or written.
 - An `--out` that would place the file on top of a configured locale file is refused the same way.

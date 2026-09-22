@@ -87,7 +87,7 @@ provider: {
 }
 ```
 
-Reads `DEEPL_API_KEY`. DeepL is a machine-translation API, not an LLM: it has no `model` field and no output-token limit. It takes two optional options: `glossaryId`, naming a glossary you have already created in DeepL, and `requestTimeoutMs` (see [Request timeout](#request-timeout)):
+Reads `DEEPL_API_KEY`. DeepL is a machine-translation API, not an LLM: it has no `model` field and no output-token limit. It accepts two options, both optional: `glossaryId`, naming a glossary you have already created in DeepL, and `requestTimeoutMs` (see [Request timeout](#request-timeout)):
 
 ```ts
 provider: {
@@ -118,7 +118,7 @@ provider: {
 }
 ```
 
-Reads `GOOGLE_TRANSLATE_API_KEY`. Like DeepL, Google Cloud Translation is a machine-translation API, not an LLM: it has no `model` field, no output-token limit, and no glossary option in v1. It takes one optional option, `requestTimeoutMs` (see [Request timeout](#request-timeout)).
+Reads `GOOGLE_TRANSLATE_API_KEY`. Like DeepL, Google Cloud Translation is a machine-translation API, not an LLM: it has no `model` field, no output-token limit, and no glossary option in v1. It accepts one option, `requestTimeoutMs`, which is optional (see [Request timeout](#request-timeout)).
 
 This provider targets the Basic (v2) tier of Cloud Translation, authenticated with a plain API key from a Google Cloud project with the Cloud Translation API enabled. It does not use the Advanced (v3) tier, which authenticates with a service account or Application Default Credentials instead of a single environment variable, and so does not fit verbatra's environment-variable-only key rule.
 
@@ -252,7 +252,7 @@ A provider failure never surfaces as a raw SDK error, which could carry request 
 | `RATE_LIMITED` | HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit), since Google's API reuses 403 for both quota and credential failures. Back off and retry later, or raise your project's Cloud Translation quota. |
 | `TIMEOUT` | A network or request timeout; no response arrived in time. Retrying may help, and [`requestTimeoutMs`](#request-timeout) raises the bound. |
 | `AUTH_FAILED` | HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help. |
-| `PROVIDER_UNAVAILABLE` | HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The retry layers below already absorb a transient 5xx, so one that reaches this code is a sustained outage. Wait and retry later. |
+| `PROVIDER_UNAVAILABLE` | HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The retry layers described above already absorb a transient 5xx, so one that reaches this code is a sustained outage. Wait and retry later. |
 | `OUTPUT_TRUNCATED` | The model hit its output-token limit; see below. |
 | `INVALID_RESPONSE` | The output was malformed, incomplete, or failed reconciliation against the request. |
 | `PROVIDER_REFUSED` | The model declined to answer. |

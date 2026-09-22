@@ -482,7 +482,7 @@ other error, so you never cast the error or its `cause`. A language tag is resol
 locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens;
 failing that, the longest configured locale that is a subtag prefix of the tag (RFC 4647 lookup), or
 else a configured locale that extends the tag only by region or variant subtags, never by a script,
-so two tags whose script or region subtags differ (`zh-CN` and `zh-TW`) never match; and a tag is
+so two tags whose script or region subtags differ (`sr-Latn` and `sr-Cyrl`, `de-AT` and `de-CH`) never match; and a tag is
 reported as ambiguous only when the locales it could reach do not lie on one prefix chain. Segments
 of one unit that resolve to the same locale, the source locale included, never let the last one win:
 an exact tag outranks a prefix match, and two equal-ranked segments with different values store
@@ -533,6 +533,7 @@ from a cache written before the memory stored source text, and `illegalCharacter
 characters XML 1.0 cannot represent that were removed from segment text.
 
 ## Config
+
 ### loadConfig
 
 Finds, loads, and validates the project config, returning a `VerbatraConfig`. Options:
