@@ -3,15 +3,88 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  backoffDelays,
   classifyLicense,
+  classifyManifest,
   isLatestTagViolation,
+  isNotYetOnRegistry,
   isPrereleaseVersion,
   normalizeLicenseText,
+  notYetOnRegistry,
+  PROPAGATION,
   parsePublishedPackages,
+  ranToCompletion,
+  registryCommandError,
+  verifyPackages,
+  worstCasePackageRuntimeMs,
 } from "./verify-npm-publish.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT_LICENSE = readFileSync(resolve(REPO_ROOT, "LICENSE"), "utf8");
+
+const RELEASE_WORKFLOW = readFileSync(resolve(REPO_ROOT, ".github/workflows/release.yml"), "utf8");
+
+const SDK = { name: "@verbatra/sdk", version: "0.11.0" };
+const CLI = { name: "@verbatra/cli", version: "0.11.0" };
+
+const CLEAN_MANIFEST = JSON.stringify({
+  name: "@verbatra/sdk",
+  version: "0.11.0",
+  dependencies: { zod: "^4.1.11" },
+  devDependencies: { typescript: "5.9.3" },
+});
+
+const UNRESOLVED_MANIFEST = JSON.stringify({
+  name: "@verbatra/mcp",
+  version: "0.2.0",
+  dependencies: { "@verbatra/sdk": "workspace:*", zod: "catalog:" },
+  devDependencies: { "@types/node": "catalog:", "@verbatra/core": "workspace:*" },
+});
+
+function readyObservation(overrides = {}) {
+  return { latest: null, license: ROOT_LICENSE, manifest: CLEAN_MANIFEST, ...overrides };
+}
+
+function tarballNotThereYet(pkg) {
+  return notYetOnRegistry(
+    `the published tarball for ${pkg.name}@${pkg.version} is not downloadable yet (npm E404)`,
+  );
+}
+
+function stubVerify(observe, overrides = {}) {
+  const logs = [];
+  const waits = [];
+  const clock = { ms: 0 };
+  const deps = {
+    observe,
+    wait: (ms) => {
+      waits.push(ms);
+      clock.ms += ms;
+      return Promise.resolve();
+    },
+    log: (line) => logs.push(line),
+    now: () => clock.ms,
+    deadlineMs: 60_000,
+    commandTimeoutMs: PROPAGATION.commandTimeoutMs,
+    delays: [2000, 2000, 2000],
+    ...overrides,
+  };
+  return { deps, logs, waits, clock };
+}
+
+const SPAWN_FAILURE = Object.assign(new Error("spawn npm ENOENT"), {
+  code: "ENOENT",
+  syscall: "spawn npm",
+});
+
+function npmCommandFailure(stderr) {
+  return Object.assign(new Error("Command failed: npm view"), { code: 1, stderr, stdout: "" });
+}
+
+const PROPAGATION_SUBJECTS = {
+  pending: "the published tarball for @verbatra/sdk@0.11.0 is not downloadable yet",
+  fatal: "npm pack failed for @verbatra/sdk@0.11.0 in a way that waiting cannot resolve",
+};
 
 describe("parsePublishedPackages", () => {
   it("parses a valid publishedPackages payload", () => {
@@ -159,5 +232,376 @@ describe("classifyLicense", () => {
     const repacked = `${ROOT_LICENSE.replace(/\n/g, "\r\n")}\n\n`;
 
     expect(classifyLicense(repacked, ROOT_LICENSE)).toBeNull();
+  });
+});
+
+describe("backoffDelays", () => {
+  it("never schedules a wait that would overrun the deadline", () => {
+    const delays = backoffDelays({ deadlineMs: 60_000, initialDelayMs: 2000, maxDelayMs: 30_000 });
+
+    expect(delays.reduce((total, delay) => total + delay, 0)).toBeLessThanOrEqual(60_000);
+  });
+
+  it("grows exponentially from the initial delay and then holds at the cap", () => {
+    const delays = backoffDelays({ deadlineMs: 200_000, initialDelayMs: 2000, maxDelayMs: 16_000 });
+
+    expect(delays.slice(0, 5)).toEqual([2000, 4000, 8000, 16_000, 16_000]);
+    expect(Math.max(...delays)).toBe(16_000);
+  });
+
+  it("probes quickly at the start, so a sub-second propagation lag costs seconds not minutes", () => {
+    const delays = backoffDelays(PROPAGATION);
+
+    expect(delays[0]).toBe(2000);
+    expect(delays.length).toBeGreaterThan(10);
+  });
+
+  it("keeps the worst-case per-package wait inside the release job timeout", () => {
+    const worstCaseMs = backoffDelays(PROPAGATION).reduce((total, delay) => total + delay, 0);
+    const timeoutMinutes = Number(
+      /verify-publish:[\s\S]*?timeout-minutes: (\d+)/.exec(RELEASE_WORKFLOW)?.[1],
+    );
+
+    expect(worstCaseMs).toBeLessThanOrEqual(PROPAGATION.deadlineMs);
+    expect(timeoutMinutes).toBeGreaterThan(0);
+    expect(worstCaseMs).toBeLessThan(timeoutMinutes * 60_000 * 0.75);
+  });
+});
+
+describe("classifyManifest", () => {
+  it("passes a manifest whose specifiers were rewritten to real ranges", () => {
+    expect(classifyManifest(CLEAN_MANIFEST)).toEqual([]);
+  });
+
+  it("flags workspace: and catalog: specifiers across every dependency field", () => {
+    const problems = classifyManifest(UNRESOLVED_MANIFEST);
+
+    expect(problems).toEqual([
+      'dependencies.@verbatra/sdk is "workspace:*"',
+      'dependencies.zod is "catalog:"',
+      'devDependencies.@types/node is "catalog:"',
+      'devDependencies.@verbatra/core is "workspace:*"',
+    ]);
+  });
+
+  it("flags a tarball that carries no manifest at all", () => {
+    expect(classifyManifest(null)).toEqual(["no package/package.json in the tarball"]);
+  });
+
+  it("flags a manifest that is not valid JSON", () => {
+    expect(classifyManifest("{not json")).toEqual(["package/package.json is not valid JSON"]);
+  });
+});
+
+describe("verifyPackages propagation tolerance", () => {
+  it("passes a package whose tarball only becomes downloadable on the third attempt", async () => {
+    let attempts = 0;
+    const { deps, waits } = stubVerify((pkg) => {
+      attempts += 1;
+      if (attempts < 3) {
+        return Promise.reject(tarballNotThereYet(pkg));
+      }
+      return Promise.resolve(readyObservation());
+    });
+
+    const results = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(3);
+    expect(waits).toEqual([2000, 2000]);
+    expect(results).toEqual([
+      { pkg: SDK, latestTagViolation: false, licenseProblem: null, manifestProblems: [] },
+    ]);
+  });
+
+  it("names the package, version and attempt number on every retry", async () => {
+    let attempts = 0;
+    const { deps, logs } = stubVerify((pkg) => {
+      attempts += 1;
+      return attempts < 3
+        ? Promise.reject(tarballNotThereYet(pkg))
+        : Promise.resolve(readyObservation());
+    });
+
+    await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(logs).toHaveLength(2);
+    expect(logs[0]).toContain("@verbatra/sdk@0.11.0");
+    expect(logs[0]).toContain("attempt 1 of 4");
+    expect(logs[0]).toContain("npm E404");
+    expect(logs[1]).toContain("attempt 2 of 4");
+  });
+
+  it("fails a package that never appears, reporting attempts and elapsed wait", async () => {
+    const { deps } = stubVerify((pkg) => Promise.reject(tarballNotThereYet(pkg)));
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(result.unavailable).toContain("@verbatra/sdk@0.11.0");
+    expect(result.unavailable).toContain("is still not on npm after 4 attempt(s) over 6s");
+    expect(result.licenseProblem).toBeUndefined();
+  });
+
+  it("gives every package its own deadline, so one slow package does not spend another's budget", async () => {
+    const attemptsByPackage = new Map();
+    const { deps } = stubVerify((pkg) => {
+      const attempts = (attemptsByPackage.get(pkg.name) ?? 0) + 1;
+      attemptsByPackage.set(pkg.name, attempts);
+      if (pkg.name === SDK.name) {
+        return Promise.reject(tarballNotThereYet(pkg));
+      }
+      return Promise.resolve(readyObservation());
+    });
+
+    const results = await verifyPackages([SDK, CLI], ROOT_LICENSE, deps);
+
+    expect(attemptsByPackage.get(SDK.name)).toBe(4);
+    expect(attemptsByPackage.get(CLI.name)).toBe(1);
+    expect(results[0]?.unavailable).toContain("@verbatra/sdk@0.11.0");
+    expect(results[1]).toEqual({
+      pkg: CLI,
+      latestTagViolation: false,
+      licenseProblem: null,
+      manifestProblems: [],
+    });
+  });
+});
+
+describe("verifyPackages fail-fast conditions", () => {
+  it("fails a downloadable tarball with no package/LICENSE without retrying it", async () => {
+    let attempts = 0;
+    const { deps, waits } = stubVerify(() => {
+      attempts += 1;
+      return Promise.resolve(readyObservation({ license: null }));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(1);
+    expect(waits).toEqual([]);
+    expect(result.licenseProblem).toBe("missing");
+    expect(result.unavailable).toBeUndefined();
+  });
+
+  it("fails a manifest carrying workspace: or catalog: specifiers without retrying it", async () => {
+    let attempts = 0;
+    const { deps, waits } = stubVerify(() => {
+      attempts += 1;
+      return Promise.resolve(readyObservation({ manifest: UNRESOLVED_MANIFEST }));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(1);
+    expect(waits).toEqual([]);
+    expect(result.manifestProblems).toContain('dependencies.@verbatra/sdk is "workspace:*"');
+  });
+
+  it("fails a prerelease that took over the latest dist-tag without retrying it", async () => {
+    let attempts = 0;
+    const { deps } = stubVerify(() => {
+      attempts += 1;
+      return Promise.resolve(readyObservation({ latest: "0.12.0-next.1" }));
+    });
+
+    const [result] = await verifyPackages(
+      [{ name: "@verbatra/sdk", version: "0.12.0-next.1" }],
+      ROOT_LICENSE,
+      deps,
+    );
+
+    expect(attempts).toBe(1);
+    expect(result.latestTagViolation).toBe(true);
+  });
+
+  it("does not let the retry path mask an artifact that is invalid once it arrives", async () => {
+    let attempts = 0;
+    const { deps } = stubVerify((pkg) => {
+      attempts += 1;
+      return attempts < 3
+        ? Promise.reject(tarballNotThereYet(pkg))
+        : Promise.resolve(readyObservation({ license: null, manifest: UNRESOLVED_MANIFEST }));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(3);
+    expect(result.unavailable).toBeUndefined();
+    expect(result.licenseProblem).toBe("missing");
+    expect(result.manifestProblems.length).toBeGreaterThan(0);
+  });
+
+  it("reports a mismatched LICENSE as invalid rather than waiting it out", async () => {
+    let attempts = 0;
+    const { deps } = stubVerify(() => {
+      attempts += 1;
+      return Promise.resolve(readyObservation({ license: "MIT License\n" }));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(1);
+    expect(result.licenseProblem).toBe("mismatched");
+  });
+
+  it("does not retry an error that is not a propagation delay", async () => {
+    let attempts = 0;
+    const { deps } = stubVerify(() => {
+      attempts += 1;
+      return Promise.reject(new Error("npm is not installed"));
+    });
+
+    await expect(verifyPackages([SDK], ROOT_LICENSE, deps)).rejects.toThrow("npm is not installed");
+    expect(attempts).toBe(1);
+  });
+});
+
+describe("registryCommandError", () => {
+  it("treats a registry 404 as propagation and keeps it retryable", () => {
+    const error = registryCommandError(
+      npmCommandFailure("npm error code E404\nnpm error 404 Not Found"),
+      PROPAGATION_SUBJECTS,
+    );
+
+    expect(isNotYetOnRegistry(error)).toBe(true);
+    expect(error.message).toBe(`${PROPAGATION_SUBJECTS.pending} (npm E404)`);
+  });
+
+  it("treats an unrecognised transient network failure as propagation", () => {
+    const error = registryCommandError(
+      npmCommandFailure("npm error code ECONNRESET\nnpm error network socket hang up"),
+      PROPAGATION_SUBJECTS,
+    );
+
+    expect(isNotYetOnRegistry(error)).toBe(true);
+    expect(error.message).toContain("npm ECONNRESET");
+  });
+
+  it("fails fast when the npm binary cannot be spawned at all", () => {
+    const error = registryCommandError(SPAWN_FAILURE, PROPAGATION_SUBJECTS);
+
+    expect(isNotYetOnRegistry(error)).toBe(false);
+    expect(error.message).toBe(`${PROPAGATION_SUBJECTS.fatal} (spawn npm ENOENT)`);
+  });
+
+  it("fails fast on an authentication failure rather than waiting out the deadline", () => {
+    for (const code of ["E401", "E403", "ENEEDAUTH", "EOTP", "EAUTHIP", "EAUTHUNKNOWN", "EPERM"]) {
+      const error = registryCommandError(
+        npmCommandFailure(`npm error code ${code}\nnpm error need auth`),
+        PROPAGATION_SUBJECTS,
+      );
+
+      expect(isNotYetOnRegistry(error)).toBe(false);
+      expect(error.message).toBe(`${PROPAGATION_SUBJECTS.fatal} (npm ${code})`);
+    }
+  });
+
+  it("keeps a killed-by-timeout command retryable, since the deadline stops the loop", () => {
+    const killed = Object.assign(new Error("Command failed: npm pack"), {
+      code: null,
+      killed: true,
+      signal: "SIGTERM",
+      stderr: "",
+      stdout: "",
+    });
+
+    expect(isNotYetOnRegistry(registryCommandError(killed, PROPAGATION_SUBJECTS))).toBe(true);
+  });
+});
+
+describe("verifyPackages wall-clock deadline", () => {
+  it("hands every command a positive timeout, so no npm call can hang unbounded", async () => {
+    const timeouts = [];
+    const { deps } = stubVerify((pkg, options) => {
+      timeouts.push(options?.commandTimeoutMs);
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(timeouts).toHaveLength(4);
+    for (const timeout of timeouts) {
+      expect(timeout).toBe(45_000);
+    }
+  });
+
+  it("stops retrying once the wall clock is spent, even with retries left in the schedule", async () => {
+    let attempts = 0;
+    const { deps, waits, clock } = stubVerify((pkg) => {
+      attempts += 1;
+      clock.ms += 25_000;
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(attempts).toBe(3);
+    expect(waits).toEqual([2000, 2000]);
+    expect(waits.length).toBeLessThan(deps.delays.length);
+    expect(result.unavailable).toContain("after 3 attempt(s) over 79s");
+  });
+
+  it("counts time burnt inside a command against the deadline, not only the sleeps", async () => {
+    const { deps, waits, clock } = stubVerify((pkg) => {
+      clock.ms += 59_000;
+      return Promise.reject(tarballNotThereYet(pkg));
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(waits).toEqual([]);
+    expect(result.unavailable).toContain("after 1 attempt(s) over 59s");
+  });
+
+  it("still spends the full retry schedule when commands return instantly", async () => {
+    const delays = backoffDelays(PROPAGATION);
+    const { deps, waits } = stubVerify((pkg) => Promise.reject(tarballNotThereYet(pkg)), {
+      deadlineMs: PROPAGATION.deadlineMs,
+      delays,
+    });
+
+    const [result] = await verifyPackages([SDK], ROOT_LICENSE, deps);
+
+    expect(waits).toEqual(delays);
+    expect(waits.reduce((total, delay) => total + delay, 0)).toBe(PROPAGATION.deadlineMs);
+    expect(result.unavailable).toContain(`after ${delays.length + 1} attempt(s)`);
+  });
+
+  it("keeps the worst case, commands included, inside the release job timeout", () => {
+    const timeoutMinutes = Number(
+      /verify-publish:[\s\S]*?timeout-minutes: (\d+)/.exec(RELEASE_WORKFLOW)?.[1],
+    );
+
+    expect(worstCasePackageRuntimeMs(PROPAGATION)).toBeGreaterThan(PROPAGATION.deadlineMs);
+    expect(worstCasePackageRuntimeMs(PROPAGATION)).toBeLessThan(timeoutMinutes * 60_000 * 0.75);
+  });
+});
+
+describe("ranToCompletion", () => {
+  it("treats a plain non-zero exit as the command having answered", () => {
+    expect(
+      ranToCompletion(
+        Object.assign(new Error("Command failed: tar"), {
+          code: 1,
+          killed: false,
+          stderr: "tar: package/LICENSE: Not found in archive\n",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not treat a command that never started as an answer", () => {
+    expect(ranToCompletion(SPAWN_FAILURE)).toBe(false);
+  });
+
+  it("does not treat a command killed by its timeout as an answer", () => {
+    expect(
+      ranToCompletion(
+        Object.assign(new Error("Command failed: tar"), {
+          code: null,
+          killed: true,
+          signal: "SIGTERM",
+        }),
+      ),
+    ).toBe(false);
   });
 });
