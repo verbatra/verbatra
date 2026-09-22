@@ -6,13 +6,15 @@ import {
   DocsPage,
   DocsTitle,
   EditOnGitHub,
+  MarkdownCopyButton,
+  ViewOptionsPopover,
 } from "fumadocs-ui/layouts/notebook/page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
-import { getMDXComponents } from "@/components/mdx";
+import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { ogAlternateLocales, ogLocale } from "@/lib/site";
@@ -75,7 +77,7 @@ async function LocaleNotice({
   if (source.getPage(slug, i18n.defaultLanguage)?.path === page.path) {
     const notTranslated = await getTranslations({ locale: lang, namespace: "docs.notTranslated" });
     return (
-      <Callout type="info" title={notTranslated("title")}>
+      <Callout type="info" className={CALLOUT_CLASS} title={notTranslated("title")}>
         {notTranslated("text")}
       </Callout>
     );
@@ -86,7 +88,7 @@ async function LocaleNotice({
     namespace: "docs.machineTranslated",
   });
   return (
-    <Callout type="info" title={machineTranslated("title")}>
+    <Callout type="info" className={CALLOUT_CLASS} title={machineTranslated("title")}>
       {machineTranslated("text")}{" "}
       <Link href={`/docs/${slug.join("/")}`}>{machineTranslated("viewOriginal")}</Link>.
     </Callout>
@@ -104,8 +106,13 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
   const isHome = !params.slug || params.slug.length === 0;
 
   const editHref = isHome
-    ? null
+    ? undefined
     : `https://github.com/verbatra/verbatra/blob/main/apps/docs/content/docs/${page.path}`;
+
+  const markdownHref = localizedPath(
+    lang,
+    `/docs.mdx${params.slug?.length ? `/${params.slug.join("/")}` : ""}`,
+  );
 
   const jsonLd = await pageJsonLd(page, params.slug, lang);
 
@@ -115,7 +122,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       full={isHome}
       role="main"
       breadcrumb={{ enabled: !isHome, includePage: true }}
-      footer={{ enabled: !isHome }}
+      footer={{ enabled: !isHome, className: "vk-docs-footer" }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
     >
       {jsonLd.map((data) => (
@@ -125,6 +132,10 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         <>
           <DocsTitle>{page.data.title}</DocsTitle>
           <DocsDescription>{page.data.description}</DocsDescription>
+          <div className="not-prose -mt-4 flex flex-wrap items-center gap-2">
+            <MarkdownCopyButton markdownUrl={markdownHref} />
+            <ViewOptionsPopover markdownUrl={markdownHref} githubUrl={editHref} />
+          </div>
         </>
       )}
       <DocsBody>

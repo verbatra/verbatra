@@ -1,26 +1,25 @@
 ---
 title: Introduction
-description: What verbatra is, the problem it solves, and how the CLI, SDK, and Studio fit together. Translate only the keys that changed, with integrity checks on every result.
+description: What verbatra is, the problem it solves, and how the CLI, SDK, Studio, and MCP server fit together. Translate only the keys that changed, with integrity checks on every result.
 ---
 
 <DocsHomeHero
-  eyebrow="Documentation"
-  headline="Keep every locale file in step with your source."
-  lead="verbatra translates your i18n locale files incrementally: it sends only the new and changed strings to the provider you configure, checks every result, and writes the files back in place."
-  primary={{ label: "Quick start", href: "/docs/your-first-translation" }}
+  headline="How to translate only what changed."
+  lead="verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you configure, checks every result, and writes the files back in place. These pages cover the CLI, the SDK, Studio, and the MCP server."
+  primary={{ label: "Your first translation", href: "/docs/your-first-translation" }}
   secondary={{ label: "CLI reference", href: "/docs/cli" }}
 />
 
 <DocsHomeBody>
 
-## Where to go next
+<DocsHomeSection title="Where to go next" lead="Four starting points, depending on where you are.">
 
 <DocsHomePaths
   cards={[
     {
       tag: "New here",
       label: "Your first translation",
-      body: "Install the CLI, scaffold a config, set your key, and translate.",
+      body: "Install the CLI, scaffold a config, preview the run with no key, then translate.",
       href: "/docs/your-first-translation",
       primary: true,
     },
@@ -31,10 +30,10 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, and 
       href: "/docs/add-a-language",
     },
     {
-      tag: "Under the hood",
-      label: "How it works",
-      body: "The pipeline: diff against the lock baseline, translate, verify, write.",
-      href: "/docs/how-it-works",
+      tag: "Production",
+      label: "CI and exit codes",
+      body: "Fail the pull request when a locale drifts, with JSON output for scripts.",
+      href: "/docs/ci-and-exit-codes",
     },
     {
       tag: "With an AI agent",
@@ -45,37 +44,49 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, and 
   ]}
 />
 
-## What verbatra does
+</DocsHomeSection>
+
+<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run verbatra translate.">
 
 Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
 
-verbatra reads and writes fourteen formats and translates through six providers behind one interface. See [Formats](/docs/formats) and [Providers](/docs/providers).
+<DocsHomeSteps />
 
-## The packages
+verbatra reads and writes fourteen formats and translates through six providers behind one interface, and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). See [Formats](/docs/formats) and [Providers](/docs/providers).
+
+</DocsHomeSection>
+
+<DocsHomeSection title="The packages" lead="One engine, four ways to drive it.">
 
 <DocsHomeFeatures
   features={[
     {
       title: "@verbatra/cli",
-      body: "The verbatra binary: fourteen commands, a thin wrapper over the SDK. Start here.",
+      pkg: "cli",
+      body: "The verbatra binary: fourteen commands, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
       href: "/docs/cli",
     },
     {
       title: "@verbatra/sdk",
-      body: "The engine underneath: translate, watch, check, diff, doctor, plus the Excel workbook round-trip.",
+      pkg: "sdk",
+      body: "The engine underneath: translate, watch, check, diff, doctor, extract, pseudolocalization, type generation, and the Excel and TMX round-trips, all from code.",
       href: "/docs/sdk",
     },
     {
       title: "@verbatra/studio",
-      body: "A local dashboard with built-in editing and a review queue. Provider spend stays off unless you opt in.",
+      pkg: "studio",
+      body: "A local dashboard with in-place editing, a review queue, run activity, and browser agent tools. Provider spend stays off unless you opt in.",
       href: "/docs/review-in-studio",
     },
     {
       title: "@verbatra/mcp",
-      body: "A stdio MCP server exposing translation status, glossary, and editing tools to an MCP client.",
+      pkg: "mcp",
+      body: "A stdio MCP server exposing translation status, glossary, and editing tools to Claude Code, Cursor, or any MCP client.",
       href: "/docs/cli/mcp",
     },
   ]}
 />
+
+</DocsHomeSection>
 
 </DocsHomeBody>

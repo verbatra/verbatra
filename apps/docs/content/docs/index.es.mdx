@@ -1,26 +1,25 @@
 ---
 title: Introducción
-description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, el SDK y Studio. Traduce solo las claves que cambiaron, con comprobaciones de integridad en cada resultado.
+description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, el SDK, Studio y el servidor MCP. Traduce solo las claves que cambiaron, con comprobaciones de integridad en cada resultado.
 ---
 
 <DocsHomeHero
-  eyebrow="Documentación"
-  headline="Mantén cada archivo de locale al día con tu origen."
-  lead="verbatra traduce tus archivos de locale de i18n de forma incremental: envía solo las cadenas nuevas y modificadas al proveedor que configures, comprueba cada resultado y escribe los archivos de vuelta en su sitio."
-  primary={{ label: "Inicio rápido", href: "/docs/your-first-translation" }}
+  headline="Cómo traducir solo lo que cambió."
+  lead="verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que configures, comprueba cada resultado y escribe los archivos de vuelta en su sitio. Estas páginas cubren la CLI, el SDK, Studio y el servidor MCP."
+  primary={{ label: "Tu primera traducción", href: "/docs/your-first-translation" }}
   secondary={{ label: "Referencia de la CLI", href: "/docs/cli" }}
 />
 
 <DocsHomeBody>
 
-## A dónde ir ahora
+<DocsHomeSection title="A dónde ir ahora" lead="Cuatro puntos de partida, según dónde estés.">
 
 <DocsHomePaths
   cards={[
     {
       tag: "Nuevo por aquí",
       label: "Tu primera traducción",
-      body: "Instala la CLI, genera una configuración, define tu clave de API y traduce.",
+      body: "Instala la CLI, genera una configuración, previsualiza la ejecución sin clave y luego traduce.",
       href: "/docs/your-first-translation",
       primary: true,
     },
@@ -31,10 +30,10 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
       href: "/docs/add-a-language",
     },
     {
-      tag: "Por dentro",
-      label: "Cómo funciona",
-      body: "La canalización: diff contra la línea base del bloqueo, traducir, verificar, escribir.",
-      href: "/docs/how-it-works",
+      tag: "Producción",
+      label: "CI y códigos de salida",
+      body: "Haz fallar el pull request cuando un locale se desfase, con salida JSON para scripts.",
+      href: "/docs/ci-and-exit-codes",
     },
     {
       tag: "Con un agente de IA",
@@ -45,37 +44,49 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
   ]}
 />
 
-## Qué hace verbatra
+</DocsHomeSection>
+
+<DocsHomeSection title="Cada ejecución es un diff, no una reescritura." lead="Qué pasa cuando ejecutas verbatra translate.">
 
 Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un marcador de posición roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
 
-verbatra lee y escribe catorce formatos y traduce a través de seis proveedores detrás de una sola interfaz. Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+<DocsHomeSteps />
 
-## Los paquetes
+verbatra lee y escribe catorce formatos y traduce a través de seis proveedores detrás de una sola interfaz, y un formato que no incluye se puede añadir como [adaptador personalizado](/docs/custom-format-adapters). Consulta [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Los paquetes" lead="Un motor, cuatro formas de manejarlo.">
 
 <DocsHomeFeatures
   features={[
     {
       title: "@verbatra/cli",
-      body: "El binario verbatra: catorce comandos, una capa fina sobre el SDK. Empieza por aquí.",
+      pkg: "cli",
+      body: "El binario verbatra: catorce comandos, de init y extract a translate, check, export y studio, como una capa fina sobre el SDK. Empieza por aquí.",
       href: "/docs/cli",
     },
     {
       title: "@verbatra/sdk",
-      body: "El motor que hay debajo: translate, watch, check, diff, doctor, y el viaje de ida y vuelta con Excel.",
+      pkg: "sdk",
+      body: "El motor que hay debajo: translate, watch, check, diff, doctor, extract, pseudolocalización, generación de tipos y los viajes de ida y vuelta con Excel y TMX, todo desde código.",
       href: "/docs/sdk",
     },
     {
       title: "@verbatra/studio",
-      body: "Un panel local con edición integrada y una cola de revisión. El gasto de proveedor permanece desactivado hasta que lo actives.",
+      pkg: "studio",
+      body: "Un panel local con edición en el sitio, una cola de revisión, actividad de ejecuciones y herramientas para agentes de navegador. El gasto de proveedor permanece desactivado hasta que lo actives.",
       href: "/docs/review-in-studio",
     },
     {
       title: "@verbatra/mcp",
-      body: "Un servidor MCP por stdio que expone el estado de traducción, el glosario y las herramientas de edición a un cliente MCP.",
+      pkg: "mcp",
+      body: "Un servidor MCP por stdio que expone el estado de traducción, el glosario y las herramientas de edición a Claude Code, Cursor o cualquier cliente MCP.",
       href: "/docs/cli/mcp",
     },
   ]}
 />
+
+</DocsHomeSection>
 
 </DocsHomeBody>
