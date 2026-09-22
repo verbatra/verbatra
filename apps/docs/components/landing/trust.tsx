@@ -31,9 +31,9 @@ export async function Trust(): Promise<ReactNode> {
   const t = await getTranslations("landing.trust");
 
   return (
-    <Section width="content" rhythm="md">
+    <Section width="wide" rhythm="md">
       <SectionHead title={t("heading")} lead={t("lead")} />
-      <dl className="mt-10 border-t border-fd-border">
+      <dl className="vk-w-content mt-10 border-t border-fd-border">
         {TRUST_ROWS.map((row) => (
           <div
             key={row.key}

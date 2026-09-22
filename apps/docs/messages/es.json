@@ -10,40 +10,20 @@
     },
     "hero": {
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra es una CLI y un SDK que mantiene tus archivos de locale i18n sincronizados. Tú mantienes el locale de origen; verbatra rellena todos los demás locales a través del proveedor de IA que elijas.",
-      "ctaQuickstart": "Lee la guía de inicio rápido",
-      "ctaGithub": "Danos una estrella en GitHub"
+      "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas, y deja todas las demás claves intactas.",
+      "ctaGithub": "Danos una estrella en GitHub",
+      "ctaStart": "Empezar"
     },
     "terminal": {
       "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",
       "caption": "Transcripción grabada con @verbatra/cli {version}.",
       "transcript": {
-        "init": {
-          "l1": "✓ verbatra.config.ts creado",
-          "l2": "origen en · destinos de, es, fr",
-          "l3": "proveedor gemini · clave desde GEMINI_API_KEY"
-        },
-        "translate": {
-          "l1": "diff en.json · 12 nuevas · 0 cambiadas · 108 sin cambios",
-          "l2": "de  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l3": "es  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l4": "fr  12 traducidas · 108 sin cambios · 0 retenidas",
-          "l5": "✓ 36 claves traducidas en 5,4 s · 0 omitidas · bloqueo actualizado"
-        },
-        "diff": {
-          "l1": "en.json · 120 claves · fuente de verdad",
-          "l2": "de  2 nuevas · 1 cambiada · 117 al día",
-          "l3": "es  0 nuevas · 0 cambiadas · 120 al día",
-          "l4": "fr  5 nuevas · 0 cambiadas · 115 al día",
-          "l5": "se enviarían 8 claves · ejecuta verbatra translate para aplicarlo"
-        },
-        "watch": {
-          "l1": "vigilando en.json por si cambia",
-          "l2": "en.json cambió · 1 clave nueva",
-          "l3": "de  1 traducida · 0 retenidas",
-          "l4": "es  1 traducida · 0 retenidas",
-          "l5": "fr  1 traducida · 0 retenidas",
-          "l6": "✓ 3 claves traducidas · esperando cambios"
+        "run": {
+          "l1": "diff en.json · 2 nuevas · 1 cambiada · 117 sin cambios",
+          "l2": "de  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l3": "es  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l4": "fr  3 traducidas · 117 sin tocar · 0 retenidas",
+          "l5": "✓ 9 claves traducidas en 1.8s · 351 sin tocar · bloqueo actualizado"
         }
       }
     },
@@ -138,7 +118,7 @@
     "commands": {
       "heading": "Todos los comandos que trae el binario.",
       "lead": "Una sola instalación, agrupada por la tarea que resuelve. Una prueba compara esta lista con la tabla de comandos del código de la CLI, así que no puede quedarse atrás en silencio.",
-      "helpNote": "Ejecuta verbatra <command> --help para ver las opciones de cada uno.",
+      "helpNote": "Ejecuta verbatra '<command>' --help para ver los indicadores que toma cada uno.",
       "groups": {
         "run": "Traducir",
         "verify": "Comprobar sin escribir",
@@ -164,18 +144,15 @@
       }
     },
     "stack": {
-      "heading": "Los archivos que ya tienes y los modelos que eliges.",
-      "lead": "verbatra lee el formato de idioma que tu stack ya usa y lo rellena con el proveedor que nombras en una línea de configuración. No hay nada nuevo que adoptar por ninguno de los dos lados.",
       "formats": {
-        "title": "Formatos y frameworks",
-        "note": "Todos los formatos que trae el registro de adaptadores, desde JSON de i18next hasta los String Catalogs de Apple y .resx de .NET.",
-        "marqueeLabel": "Frameworks y formatos"
+        "marqueeLabel": "Frameworks y formatos",
+        "label": "funciona con"
       },
       "providers": {
-        "title": "Proveedores de traducción",
-        "note": "LLMs y traducción automática tras una única interfaz, más cualquier servidor compatible con OpenAI que alojes tú.",
-        "marqueeLabel": "Proveedores de traducción"
-      }
+        "marqueeLabel": "Proveedores de traducción",
+        "label": "traduce a través de"
+      },
+      "label": "Frameworks, formatos y proveedores de traducción"
     },
     "studio": {
       "heading": "Observa todo el estado de la traducción, en local.",

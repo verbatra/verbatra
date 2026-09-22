@@ -16,6 +16,8 @@ export type TerminalProps = {
   delayBetweenCommands?: number;
   initialDelay?: number;
   loop?: boolean;
+  highlight?: string;
+  fitContent?: boolean;
   className?: string;
 };
 
@@ -121,11 +123,23 @@ function HighlightedText({ text, base }: { text: string; base: string }): ReactN
   );
 }
 
-function LineRow({ line }: { line: Line }): ReactNode {
+const HIGHLIGHT_STYLE = {
+  background: "color-mix(in srgb, var(--v-purple) 22%, transparent)",
+  borderInlineStart: "3px solid var(--v-purple)",
+} as const;
+
+function LineRow({ line, highlighted = false }: { line: Line; highlighted?: boolean }): ReactNode {
   if (line.kind === "command") {
     return (
       <div className="whitespace-pre-wrap">
         <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
+        <HighlightedText text={line.text} base="var(--text-strong)" />
+      </div>
+    );
+  }
+  if (highlighted) {
+    return (
+      <div className="-mx-4 whitespace-pre-wrap ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
@@ -137,6 +151,22 @@ function LineRow({ line }: { line: Line }): ReactNode {
   );
 }
 
+function LineList({
+  lines,
+  highlight,
+}: {
+  lines: ReadonlyArray<Line>;
+  highlight?: string | undefined;
+}): ReactNode {
+  return lines.map((line) => (
+    <LineRow
+      key={`${line.kind}:${line.text}`}
+      line={line}
+      highlighted={line.kind === "output" && line.text === highlight}
+    />
+  ));
+}
+
 export function Terminal({
   commands,
   outputs,
@@ -146,6 +176,8 @@ export function Terminal({
   delayBetweenCommands = 900,
   initialDelay = 500,
   loop = true,
+  highlight,
+  fitContent = false,
   className,
 }: TerminalProps): ReactNode {
   const [rootRef, inView] = useInViewOnce<HTMLDivElement>(0.4);
@@ -227,21 +259,29 @@ export function Terminal({
       <div
         ref={scrollRef}
         aria-hidden="true"
-        className="h-80 overflow-y-auto px-4 py-4 font-mono text-[13px] leading-relaxed"
+        className={cn(
+          "px-4 py-4 font-mono text-[13px] leading-relaxed",
+          fitContent ? "grid" : "h-80 overflow-y-auto",
+        )}
         style={{ background: "var(--surface-bg)" }}
       >
-        {history.map((line) => (
-          <LineRow key={`${line.kind}:${line.text}`} line={line} />
-        ))}
-        {typing !== null ? (
-          <div className="whitespace-pre-wrap">
-            <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
-            <HighlightedText text={typing} base="var(--text-strong)" />
-            <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>
-              &#9613;
-            </span>
+        {fitContent ? (
+          <div className="invisible col-start-1 row-start-1">
+            <LineList lines={buildSettled(commands, outputs)} highlight={highlight} />
           </div>
         ) : null}
+        <div className={cn(fitContent && "col-start-1 row-start-1")}>
+          <LineList lines={history} highlight={highlight} />
+          {typing !== null ? (
+            <div className="whitespace-pre-wrap">
+              <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
+              <HighlightedText text={typing} base="var(--text-strong)" />
+              <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>
+                &#9613;
+              </span>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

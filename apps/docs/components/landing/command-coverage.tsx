@@ -8,30 +8,19 @@ export async function CommandCoverage(): Promise<ReactNode> {
   const t = await getTranslations("landing.commands");
 
   return (
-    <Section width="wide" rhythm="sm">
+    <Section width="wide" rhythm="md">
       <SectionHead title={t("heading")} lead={t("lead")} />
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid gap-x-10 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
         {COMMAND_GROUPS.map((group) => (
-          <div
-            key={group.key}
-            className="rounded-xl border border-fd-border p-5"
-            style={{ background: "var(--surface-card)" }}
-          >
-            <h3
-              className="font-semibold text-fd-foreground"
-              style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-h3)" }}
-            >
+          <div key={group.key}>
+            <h3 className="font-mono text-xs lowercase tracking-[0.12em] text-[color:var(--text-faint)]">
               {t(`groups.${group.key}`)}
             </h3>
-            <dl className="mt-4 grid gap-3">
+            <dl className="mt-3 divide-y divide-fd-border border-y border-fd-border">
               {group.commands.map((command) => (
-                <div key={command}>
-                  <dt className="font-mono text-[13px] text-[color:var(--accent)]">
-                    verbatra {command}
-                  </dt>
-                  <dd className="mt-1 text-[13px] leading-relaxed text-fd-muted-foreground">
-                    {t(`items.${command}`)}
-                  </dd>
+                <div key={command} className="py-2.5 text-[13px] leading-relaxed">
+                  <dt className="me-3 inline font-mono text-[color:var(--accent)]">{command}</dt>
+                  <dd className="inline text-fd-muted-foreground">{t(`items.${command}`)}</dd>
                 </div>
               ))}
             </dl>

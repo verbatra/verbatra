@@ -74,10 +74,10 @@ h6 {
 }
 
 :root {
-  --text-hero: clamp(2rem, 4.2vw, 3.5rem);
-  --text-h2: 1.75rem;
-  --text-h3: 1.125rem;
-  --text-lg: 1.125rem;
+  --text-hero: clamp(2.5rem, 5.2vw, 4.25rem);
+  --text-h2: clamp(1.75rem, 2.8vw, 2.375rem);
+  --text-h3: 1.3125rem;
+  --text-lead: 1.125rem;
   --text-base: 1rem;
   --text-sm: 0.875rem;
   --text-xs: 0.75rem;
@@ -346,6 +346,19 @@ body:has(#nd-nav [data-state="open"])::after {
 
   #nd-nav nav > div:has(> ul) > :nth-last-child(2) {
     order: 4;
+  }
+}
+
+@media (min-width: 1360px) {
+  #nd-nav nav {
+    position: relative;
+  }
+
+  #nd-nav nav > div:has(> ul) > :first-child {
+    position: absolute;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    margin-inline: 0;
   }
 }
 

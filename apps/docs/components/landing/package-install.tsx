@@ -36,7 +36,7 @@ type BubbleVariant = "desktop" | "mobile";
 const BUBBLE_WRAPPER_CLASS: Record<BubbleVariant, string> = {
   desktop:
     "z-20 hidden lg:absolute lg:left-full lg:top-1/2 lg:block lg:w-60 lg:-translate-y-1/2 lg:ml-3",
-  mobile: "absolute inset-x-0 top-full z-20 mt-3 lg:hidden",
+  mobile: "lg:hidden",
 };
 
 function HintBubble({
@@ -57,7 +57,7 @@ function HintBubble({
         {hint ? (
           <motion.div
             key={activeKey}
-            className="relative isolate"
+            className={cn("relative isolate", variant === "mobile" && "mt-3")}
             initial={reduced ? false : { opacity: 0, ...offset }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={reduced ? undefined : { opacity: 0, ...offset }}
@@ -191,9 +191,8 @@ export function PackageInstall(): ReactNode {
           </div>
         </div>
         <HintBubble variant="desktop" activeKey={active} hint={hint} reduced={reduced} />
-        <HintBubble variant="mobile" activeKey={active} hint={hint} reduced={reduced} />
       </div>
-      <div aria-hidden="true" className="h-[6.5rem] lg:hidden" />
+      <HintBubble variant="mobile" activeKey={active} hint={hint} reduced={reduced} />
     </div>
   );
 }
