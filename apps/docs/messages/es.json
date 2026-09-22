@@ -34,15 +34,16 @@
     },
     "install": {
       "tablistLabel": "Gestor de paquetes",
-      "copy": "copiar",
-      "copied": "copiado",
+      "copy": "Copiar",
+      "copied": "Copiado",
       "copyAria": "Copiar el comando de instalación",
       "pnpmNote": "pnpm instala bien, pero sale con el código 1 y ERR_PNPM_IGNORED_BUILDS, porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la",
       "pnpmNoteLink": "Solución de problemas",
       "copyPromptAria": "Copia el prompt de configuración del agente de IA",
       "aiTabLabel": "IA",
       "aiCaption": "Esta es una previsualización truncada. Lee la guía completa de configuración en",
-      "aiCaptionLink": "la guía de configuración"
+      "aiCaptionLink": "la guía de configuración",
+      "copyCommand": "Copiar {command}"
     },
     "gate": {
       "rows": {
@@ -172,7 +173,6 @@
       "skipToContent": "Saltar al contenido"
     },
     "proof": {
-      "copyCommand": "Copiar {command}",
       "lock": {
         "body": "Un hash por clave y locale, confirmado junto a tus archivos.",
         "title": "El archivo de bloqueo"

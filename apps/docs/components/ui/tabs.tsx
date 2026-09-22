@@ -12,6 +12,7 @@ export type TabListProps = {
   ariaLabel?: string;
   className?: string;
   tabClassName?: string;
+  variant?: "underline" | "pill";
 };
 
 export function TabList({
@@ -21,6 +22,7 @@ export function TabList({
   ariaLabel,
   className,
   tabClassName,
+  variant = "underline",
 }: TabListProps): ReactNode {
   return (
     <div role="tablist" aria-label={ariaLabel} className={className}>
@@ -36,8 +38,13 @@ export function TabList({
             className={cn(
               tabClassName,
               selected ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
+              selected && variant === "pill" && "bg-[color:var(--surface-card)]",
             )}
-            style={selected ? { boxShadow: "inset 0 -2px 0 var(--v-glow)" } : undefined}
+            style={
+              selected && variant === "underline"
+                ? { boxShadow: "inset 0 -2px 0 var(--v-glow)" }
+                : undefined
+            }
           >
             {tab.label}
           </button>

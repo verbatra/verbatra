@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import CommandLine from "@/components/ui/command-line";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { CommandBox } from "./command-box";
 import { NPM_CLI } from "./links";
 import { Reveal } from "./reveal";
 
@@ -17,6 +17,7 @@ const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default
 
 export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.finalClose");
+  const tInstall = await getTranslations("landing.install");
   const locale = (await getLocale()) as Locale;
   return (
     <section className="vk-pad-top-lg px-2 pb-3 md:px-3">
@@ -37,7 +38,13 @@ export async function FinalCta(): Promise<ReactNode> {
           {t("heading")}
         </h2>
         <div className="mt-8 flex w-full justify-center">
-          <CommandLine command={INSTALL_COMMAND} link={{ token: CLI_TOKEN, href: NPM_CLI }} />
+          <div className="w-full max-w-[28rem]">
+            <CommandBox
+              command={INSTALL_COMMAND}
+              label={tInstall("copyAria")}
+              link={{ token: CLI_TOKEN, href: NPM_CLI }}
+            />
+          </div>
         </div>
         <a
           href={localizedPath(locale, "/docs")}

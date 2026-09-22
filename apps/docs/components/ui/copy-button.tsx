@@ -10,10 +10,12 @@ export function CopyButton({
   text,
   label,
   className,
+  onCopied,
 }: {
   text: string;
   label: string;
   className?: string;
+  onCopied?: () => void;
 }): ReactNode {
   const t = useTranslations("landing.install");
   const [copied, copy] = useCopyToClipboard();
@@ -22,11 +24,15 @@ export function CopyButton({
       type="button"
       onClick={() => {
         copy(text);
-        trackUmamiEvent("copy-command", { command: text });
+        if (onCopied) {
+          onCopied();
+        } else {
+          trackUmamiEvent("copy-command", { command: text });
+        }
       }}
       aria-label={label}
       className={cn(
-        "inline-flex min-h-8 shrink-0 items-center rounded-md border border-fd-border px-2.5 text-xs transition-colors",
+        "inline-flex min-h-8 shrink-0 items-center rounded-md border border-fd-border px-2.5 font-sans text-[13px] transition-colors",
         copied
           ? "border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))] text-[color:var(--accent)]"
           : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",

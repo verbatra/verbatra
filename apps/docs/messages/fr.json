@@ -34,15 +34,16 @@
     },
     "install": {
       "tablistLabel": "Gestionnaire de paquets",
-      "copy": "copier",
-      "copied": "copié",
+      "copy": "Copier",
+      "copied": "Copié",
       "copyAria": "Copier la commande d'installation",
       "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
       "pnpmNote": "pnpm installe correctement mais sort avec le code 1 et ERR_PNPM_IGNORED_BUILDS, car il bloque les scripts d'installation d'une dépendance. Lance pnpm approve-builds une fois, ou consulte le",
       "pnpmNoteLink": "Dépannage",
       "aiTabLabel": "IA",
       "aiCaption": "Ceci est un aperçu tronqué. Lis le prompt complet et le guide de configuration sur",
-      "aiCaptionLink": "le guide de configuration"
+      "aiCaptionLink": "le guide de configuration",
+      "copyCommand": "Copier {command}"
     },
     "gate": {
       "rows": {
@@ -172,7 +173,6 @@
       "skipToContent": "Aller au contenu"
     },
     "proof": {
-      "copyCommand": "Copier {command}",
       "lock": {
         "body": "Un hash par clé et par locale, validé à côté de tes fichiers.",
         "title": "Le fichier de verrouillage"

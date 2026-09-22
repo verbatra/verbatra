@@ -103,6 +103,7 @@ function WrittenLine({
 
 export async function Proof(): Promise<ReactNode> {
   const t = await getTranslations("landing.proof");
+  const tInstall = await getTranslations("landing.install");
   const tHow = await getTranslations("landing.how");
   const tGate = await getTranslations("landing.gate");
   const tTerminal = await getTranslations("landing.terminal");
@@ -127,7 +128,7 @@ export async function Proof(): Promise<ReactNode> {
           <Terminal
             commands={[GATE_CLI_COMMAND]}
             outputs={{ 0: runLines }}
-            title="~/acme-shop"
+            title={GATE_CLI_COMMAND}
             sessionLabel={tTerminal("sessionLabel")}
             loop={false}
             typingSpeed={32}
@@ -138,7 +139,7 @@ export async function Proof(): Promise<ReactNode> {
             headerAction={
               <CopyButton
                 text={GATE_CLI_COMMAND}
-                label={t("copyCommand", { command: GATE_CLI_COMMAND })}
+                label={tInstall("copyCommand", { command: GATE_CLI_COMMAND })}
               />
             }
           />

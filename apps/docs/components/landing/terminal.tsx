@@ -22,7 +22,6 @@ export type TerminalProps = {
   className?: string;
 };
 
-const TRAFFIC_LIGHTS = ["#ff5f56", "#ffbd2e", "#27c93f"] as const;
 const HOLD_PAUSE_MS = 2600;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -232,18 +231,11 @@ export function Terminal({
         "not-prose flex flex-col overflow-hidden rounded-xl border border-fd-border",
         className,
       )}
-      style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
+      style={{ background: "var(--surface-bg)" }}
     >
-      <div className="flex items-center gap-2 border-b border-fd-border px-4 py-3">
-        <span className="flex gap-1.5" aria-hidden="true">
-          {TRAFFIC_LIGHTS.map((color) => (
-            <span key={color} className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-          ))}
-        </span>
-        {title ? (
-          <span className="ms-2 font-mono text-xs text-fd-muted-foreground">{title}</span>
-        ) : null}
-        {headerAction ? <span className="ms-auto">{headerAction}</span> : null}
+      <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
+        {title ? <span className="font-mono text-xs text-fd-muted-foreground">{title}</span> : null}
+        {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
       </div>
 
       <div className="sr-only">
@@ -269,7 +261,7 @@ export function Terminal({
           "px-4 py-4 font-mono text-[13px] leading-relaxed",
           fitContent ? "grid flex-1 content-start" : "h-80 overflow-y-auto",
         )}
-        style={{ background: "var(--surface-bg)" }}
+        style={{ background: "var(--v-void)" }}
       >
         {fitContent ? (
           <div className="invisible col-start-1 row-start-1">
