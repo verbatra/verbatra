@@ -1,5 +1,12 @@
 # @verbatra/cli
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [[`1ff8ff2`](https://github.com/verbatra/verbatra/commit/1ff8ff2becfc253cbbbbb7387e2086cf3ba527c3)]:
+  - @verbatra/sdk@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
