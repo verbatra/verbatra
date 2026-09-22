@@ -6,7 +6,6 @@ import { i18n } from "@/lib/i18n";
 const LANDING_NAMESPACES = [
   "hero",
   "terminal",
-  "status",
   "install",
   "nav",
   "footer",

@@ -40,7 +40,13 @@
       "headline": "Translate only what changed.",
       "lead": "verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you choose, and leaves every other key untouched.",
       "ctaGithub": "Star on GitHub",
-      "ctaStart": "Get started"
+      "ctaStart": "Get started",
+      "facts": {
+        "release": "Latest release",
+        "formats": "File formats",
+        "providers": "Providers",
+        "license": "License"
+      }
     },
     "terminal": {
       "sessionLabel": "An example verbatra command-line session.",
@@ -54,13 +60,6 @@
           "l5": "✓ 9 keys translated in 1.8s · 351 untouched · lock updated"
         }
       }
-    },
-    "status": {
-      "label": "Build status, test coverage, package version, and license",
-      "cliVersionAlt": "Latest published @verbatra/cli version on npm",
-      "buildAlt": "Continuous integration build status",
-      "coverageAlt": "Test coverage reported on Codecov",
-      "licenseAlt": "Released under the MIT license"
     },
     "install": {
       "tablistLabel": "Package manager",

@@ -12,7 +12,13 @@
       "headline": "Traduis seulement ce qui a changé.",
       "lead": "verbatra compare ta locale source avec un fichier de verrouillage validé, envoie uniquement les clés nouvelles et modifiées au fournisseur que tu choisis, et laisse toutes les autres clés intactes.",
       "ctaGithub": "Ajoute une étoile sur GitHub",
-      "ctaStart": "Démarrer"
+      "ctaStart": "Démarrer",
+      "facts": {
+        "release": "Dernière version",
+        "formats": "Formats de fichier",
+        "providers": "Fournisseurs",
+        "license": "Licence"
+      }
     },
     "terminal": {
       "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
@@ -26,13 +32,6 @@
           "l5": "✓ 9 clés traduites en 1,8 s · 351 intacts · verrou mis à jour"
         }
       }
-    },
-    "status": {
-      "label": "Statut de build, couverture des tests, version du paquet et licence",
-      "cliVersionAlt": "Dernière version publiée de @verbatra/cli sur npm",
-      "buildAlt": "Statut du build d'intégration continue",
-      "coverageAlt": "Couverture des tests rapportée sur Codecov",
-      "licenseAlt": "Publié sous la licence MIT"
     },
     "install": {
       "tablistLabel": "Gestionnaire de paquets",

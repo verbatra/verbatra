@@ -12,7 +12,13 @@
       "headline": "Übersetze nur, was sich geändert hat.",
       "lead": "verbatra vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei, sendet nur die neuen und geänderten Schlüssel an den von dir gewählten Anbieter und lässt jeden anderen Schlüssel unberührt.",
       "ctaGithub": "Stern auf GitHub",
-      "ctaStart": "Leg los"
+      "ctaStart": "Leg los",
+      "facts": {
+        "release": "Neueste Version",
+        "formats": "Dateiformate",
+        "providers": "Anbieter",
+        "license": "Lizenz"
+      }
     },
     "terminal": {
       "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
@@ -26,13 +32,6 @@
           "l5": "✓ 9 Schlüssel in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
         }
       }
-    },
-    "status": {
-      "label": "Build-Status, Testabdeckung, Paketversion und Lizenz",
-      "cliVersionAlt": "Neueste veröffentlichte @verbatra/cli-Version auf npm",
-      "buildAlt": "Build-Status der Continuous Integration",
-      "coverageAlt": "Auf Codecov gemeldete Testabdeckung",
-      "licenseAlt": "Veröffentlicht unter der MIT-Lizenz"
     },
     "install": {
       "tablistLabel": "Paketmanager",

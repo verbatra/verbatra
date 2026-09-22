@@ -12,7 +12,13 @@
       "headline": "Traduce solo lo que cambió.",
       "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas, y deja todas las demás claves intactas.",
       "ctaGithub": "Danos una estrella en GitHub",
-      "ctaStart": "Empezar"
+      "ctaStart": "Empezar",
+      "facts": {
+        "release": "Última versión",
+        "formats": "Formatos de archivo",
+        "providers": "Proveedores",
+        "license": "Licencia"
+      }
     },
     "terminal": {
       "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",
@@ -26,13 +32,6 @@
           "l5": "✓ 9 claves traducidas en 1.8s · 351 sin tocar · bloqueo actualizado"
         }
       }
-    },
-    "status": {
-      "label": "Estado de la compilación, cobertura de pruebas, versión del paquete y licencia",
-      "cliVersionAlt": "Última versión publicada de @verbatra/cli en npm",
-      "buildAlt": "Estado de la compilación de integración continua",
-      "coverageAlt": "Cobertura de pruebas reportada en Codecov",
-      "licenseAlt": "Publicado bajo la licencia MIT"
     },
     "install": {
       "tablistLabel": "Gestor de paquetes",
