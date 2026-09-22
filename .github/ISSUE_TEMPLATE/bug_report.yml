@@ -12,8 +12,8 @@ body:
     id: version
     attributes:
       label: verbatra version
-      description: The `@verbatra/sdk` / `@verbatra/cli` version (and `@verbatra/studio` version if relevant). Run `verbatra --version`.
-      placeholder: "@verbatra/cli 2.4.1"
+      description: The `@verbatra/sdk` / `@verbatra/cli` version (and the `@verbatra/studio` or `@verbatra/mcp` version if relevant). Run `verbatra --version`.
+      placeholder: "@verbatra/cli 0.11.1"
     validations:
       required: true
 
@@ -53,6 +53,13 @@ body:
         - yaml
         - arb
         - properties
+        - apple-strings
+        - apple-xcstrings
+        - android-xml
+        - gettext-po
+        - ini
+        - resx
+        - A custom third-party adapter (custom:...)
     validations:
       required: false
 
@@ -67,6 +74,7 @@ body:
         - openai
         - gemini
         - deepl
+        - google-translate
         - openai-compatible
     validations:
       required: false
