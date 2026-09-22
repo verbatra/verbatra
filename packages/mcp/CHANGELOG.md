@@ -1,5 +1,20 @@
 # @verbatra/mcp
 
+## 0.2.2
+
+### Patch Changes
+
+- [#244](https://github.com/verbatra/verbatra/pull/244) [`1ff8ff2`](https://github.com/verbatra/verbatra/commit/1ff8ff2becfc253cbbbbb7387e2086cf3ba527c3) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Bring the published type documentation in line with the code. Every declaration and every
+  interface member in the built `.d.ts` files now carries a doc comment, and the ones that had
+  fallen behind were corrected: which flows throw which `SdkError` codes, what a dry run skips,
+  how the lock timeout and the fuzzy cache similarity behave, what `LocaleSummary.status`,
+  `translated` and `unfilled` really count, which notice codes DeepL and Google Cloud Translation
+  emit, what the format adapter factories refuse, and what the MCP server's `onLog`, `fs` and
+  handle options do. The `glossary.write` MCP tool description no longer claims it can write an
+  inline glossary; it needs a file-backed one and fails with `GLOSSARY_NOT_FILE_BACKED` otherwise.
+- Updated dependencies [[`1ff8ff2`](https://github.com/verbatra/verbatra/commit/1ff8ff2becfc253cbbbbb7387e2086cf3ba527c3)]:
+  - @verbatra/sdk@0.11.1
+
 ## 0.2.1
 
 ### Patch Changes
