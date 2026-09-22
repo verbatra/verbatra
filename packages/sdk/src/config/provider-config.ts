@@ -43,8 +43,9 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * No variant has a field for an API key. Keys are read from the environment by the provider itself
  * (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or
  * `GOOGLE_TRANSLATE_API_KEY`), which is what keeps them out of config files and out of version
- * control. The `openai-compatible` variant may name a different environment variable through
- * `apiKeyEnvVar`, but still never holds the key itself.
+ * control. The `openai-compatible` variant reads `OPENAI_COMPATIBLE_API_KEY` when it is set and
+ * sends no real key otherwise, since a local server usually needs none; naming a different variable
+ * through `apiKeyEnvVar` makes that variable required. It still never holds the key itself.
  */
 export type ProviderConfig = z.infer<typeof providerConfigSchema>;
 

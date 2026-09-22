@@ -39,14 +39,21 @@ export type DeriveDescriptions = (content: string) => ReadonlyMap<string, string
 export interface TreeFileAdapterOptions {
   /** The format this adapter claims: a built-in name, or a `custom:` identifier of your own. */
   readonly format: FormatId;
-  /** The lowercase file extensions this format owns, each including the leading dot. */
+  /**
+   * The file extensions this format owns, each including the leading dot. Matched against a path's
+   * extension case-insensitively.
+   */
   readonly extensions: readonly string[];
   /**
    * Optional content check, consulted when a sample is available, so this adapter does not claim
    * every file that merely shares one of its extensions.
    */
   readonly sniff?: Sniff;
-  /** Parse one file's text into a nested tree, preserving key order at every level. */
+  /**
+   * Parse one file's text into a nested tree, preserving key order at every level. Throw an
+   * `AdapterError` for content this format cannot represent; anything else thrown is reported as a
+   * structural failure.
+   */
   readonly parse: (content: string) => JsonRecord;
   /** Render a nested tree back to the format's text, preserving key order at every level. */
   readonly serialize: (tree: OrderedRecord) => string;
@@ -113,6 +120,10 @@ function toEntries(
  * nested objects, such as i18next JSON or YAML. The factory supplies the bounded read, the atomic
  * write, tree flattening and unflattening, extension detection and the structured error handling;
  * you supply only the format's own parsing, serialization and per-leaf facts.
+ *
+ * The returned adapter's `read` refuses a file larger than 16 MiB with `INPUT_TOO_LARGE` and a path
+ * that is not a regular file with `INVALID_STRUCTURE`, strips a leading byte order mark before
+ * parsing, and uses the file's base name without its extension as the namespace.
  *
  * @param options - The format's parsing, serialization, detection and per-entry behaviour.
  * @returns A complete adapter, ready to register on an `AdapterRegistry`.

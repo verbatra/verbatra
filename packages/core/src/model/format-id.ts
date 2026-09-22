@@ -13,8 +13,9 @@ const CUSTOM_FORMAT_ID_PATTERN = new RegExp(
 
 /**
  * A format identifier claimed by an adapter that ships outside verbatra: the reserved
- * `custom:` prefix followed by a lowercase, hyphen-separated name, for example
- * `custom:my-format`.
+ * `custom:` prefix followed by a name of lowercase ASCII letters and digits in hyphen-separated
+ * segments, for example `custom:my-format`. The type itself accepts any text after the prefix;
+ * {@link isCustomFormatId} and adapter registration enforce the name's shape at runtime.
  *
  * No built-in format name contains a colon, so a third-party identifier can never shadow a
  * built-in one.
@@ -26,7 +27,9 @@ export type CustomFormatId = `custom:${string}`;
  *
  * @param format - The identifier to classify.
  * @returns True when the identifier is a well-formed `custom:` identifier. A built-in format
- *   name always returns false.
+ *   name always returns false, and so does a `custom:` identifier whose name is empty, holds any
+ *   character other than a lowercase ASCII letter, a digit, or a hyphen, or has a leading,
+ *   trailing, or doubled hyphen.
  *
  * @example
  * ```ts

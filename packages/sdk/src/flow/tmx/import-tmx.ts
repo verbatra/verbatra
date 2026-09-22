@@ -534,6 +534,9 @@ function additionsByLocale(
  * @returns What was read, what was stored, and everything that was skipped or refused.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `CONFIG_INVALID`: the source locale and one of the target locales are the
+ * same language tag once case and separators are normalized, so a segment could not be attributed
+ * to either.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
  * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,

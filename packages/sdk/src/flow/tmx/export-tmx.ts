@@ -130,20 +130,22 @@ function collect(
  * the same set a run would reuse, so the file describes the memory as it is actually being used
  * rather than every translation the project has ever produced. One `tu` element is written per
  * distinct source string, carrying the source segment and one target segment per exported locale.
- * An empty memory produces a valid, empty TMX file rather than an error.
+ * An empty memory, including a missing, unparsable or newer-version cache file, produces a valid,
+ * empty TMX file rather than an error. An existing file at the output path is replaced.
+ *
+ * It reads the memory and writes a file; it never changes the memory, which is why the CLI refuses
+ * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
  * @param input - The config, the output path, the locale subset, and the tool version to stamp.
  * @param deps - Optional file-system override.
  * @returns The path written, the unit count, and what was left out.
- *
- * It reads the memory and writes a file; it never changes the memory, which is why the CLI refuses
- * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `CONFIG_INVALID`: the source locale and one of the target locales are the
  * same language tag once case and separators are normalized. Writing that file would produce two
  * language attributes {@link importTmx} could not tell apart, so the file this project exported
  * would be one it refuses to read back.
+ * @throws The underlying file-system error, unwrapped, when the output file could not be written.
  *
  * @example
  * ```ts

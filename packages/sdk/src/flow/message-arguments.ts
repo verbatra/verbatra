@@ -12,7 +12,16 @@ export interface NamedMessageArgument {
   readonly optional?: boolean;
 }
 
-/** Why verbatra declined to describe a message's arguments rather than guessing at them. */
+/**
+ * Why verbatra declined to describe a message's arguments rather than guessing at them.
+ *
+ * - `invalid-message-syntax`: the message does not parse as ICU under a format that reads its
+ *   arguments that way, or the adapter reports it as invalid.
+ * - `mixed-argument-styles`: the message combines named arguments with numbered or unnumbered
+ *   ones, or numbered with unnumbered ones, so no single call signature fits it.
+ * - `argument-index-out-of-range`: a numbered argument addresses a zero-based position below 0 or
+ *   of 64 or more (such as `%0$s` or `{64}`).
+ */
 export type UnresolvedArgumentReason =
   | "invalid-message-syntax"
   | "mixed-argument-styles"

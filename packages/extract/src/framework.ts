@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/**
+ * Every translation framework a source scan can target, as a tuple; {@link SourceFramework} is
+ * derived from it. It holds `i18next` alone today, the one framework an extractor ships for.
+ */
 export const SOURCE_FRAMEWORKS = ["i18next"] as const;
 
 /**

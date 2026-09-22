@@ -43,6 +43,9 @@ export const scaffoldingMetadata = {
    * one. DeepL and Google Cloud Translation have no entry, since neither takes a token limit.
    */
   providerTokenLimitKeys: SCAFFOLD_TOKEN_LIMIT_KEYS,
-  /** Every i18n file format the SDK can read and write. */
+  /**
+   * Every built-in i18n file format the SDK can read and write. A `custom:` format is never listed,
+   * since its adapter ships outside verbatra.
+   */
   supportedFormats: SUPPORTED_FORMATS,
 } as const;

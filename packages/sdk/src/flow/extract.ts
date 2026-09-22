@@ -22,9 +22,9 @@ export interface AddedKey {
   readonly key: string;
   /** The value written into the catalog: the call site's default, or the empty string when it had none. */
   readonly value: string;
-  /** The source file the key was found in, relative to the run's working directory. */
+  /** The source file of the key's first call site, relative to the run's working directory. */
   readonly file: string;
-  /** The one-based line the key was found on. */
+  /** The one-based line of the key's first call site. */
   readonly line: number;
 }
 

@@ -70,7 +70,10 @@ export interface ExportWorkbookDeps {
 
 /** What {@link exportWorkbook} wrote. */
 export interface ExportWorkbookResult {
-  /** The absolute path written, or the shared base path when one file per locale was written. */
+  /**
+   * The absolute path written: the workbook file for `xlsx`, or the directory the per-locale files
+   * were written into for a delimited format.
+   */
   readonly path: string;
   /** Row counts per exported locale. */
   readonly locales: readonly {
@@ -194,7 +197,10 @@ async function writeDelimitedFiles(
 
 /**
  * Writes the strings awaiting translation to a handoff a human translator can work in: a styled
- * `.xlsx` workbook with one sheet per locale, or one `.csv` or `.tsv` file per locale.
+ * `.xlsx` workbook with one sheet per locale, or one `.csv` or `.tsv` file per locale. A delimited
+ * export also writes a `.verbatra-export-<format>.json` manifest into the output directory naming
+ * the locales it exported, which {@link importWorkbook} uses to tell a leftover file from an earlier
+ * export apart from a current one.
  *
  * By default only missing and stale keys are exported, which is what makes the handoff a work list
  * rather than a dump of the whole project. Each row carries the source text alongside any existing

@@ -178,6 +178,8 @@ async function closeServer(server: Server, sseHub: SseHub, watcher: ProjectWatch
  *   `127.0.0.1`, which would expose the dashboard beyond this machine.
  * @throws Whatever `options.loader` rejects with, unchanged, when the project config cannot be
  *   loaded. The server is not started in that case.
+ * @throws The underlying Node.js error, unwrapped, for any other bind failure, such as `EACCES`
+ *   on a privileged port.
  *
  * @example
  * ```ts

@@ -58,7 +58,10 @@ export type WatchRunResult =
 export interface WatchInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /**
+   * Directory the `files.pattern` is resolved against, and where each run's lock-file, translation
+   * memory, and run-status file live. Defaults to the process working directory.
+   */
   readonly cwd?: string;
   /**
    * Restrict every run of the session to a subset of the configured target locales. Validated once
@@ -77,11 +80,17 @@ export interface WatchInput {
   readonly onLockWait?: LockWaitListener;
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
-  /** How long to wait for a locale's write lock before that run fails. */
+  /**
+   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
+   * `LOCK_CONTENDED` on the run's summary. Defaults to ten minutes.
+   */
   readonly lockAcquireTimeoutMs?: number;
-  /** How many locales to run at once. Validated once when watching starts, and applied to every run. */
+  /**
+   * How many locales to run at once. Defaults to 1. Validated once when watching starts, and
+   * applied to every run.
+   */
   readonly concurrency?: number;
-  /** Consult and update the translation memory. Defaults to true. */
+  /** Consult and update the translation memory, fuzzy reuse included. Defaults to true. */
   readonly cache?: boolean;
 }
 

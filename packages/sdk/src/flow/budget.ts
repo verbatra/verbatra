@@ -118,6 +118,9 @@ export type BudgetStanding = "within" | "stopped-before-ceiling" | "reached";
 /**
  * Classifies a {@link RunBudget} into its {@link BudgetStanding}, so every surface that reports a
  * budget tells a `stop` run halted short of its ceiling apart from one that actually reached it.
+ *
+ * @param budget - The budget from {@link RunSummary.budget} or {@link RunStatusFile.budget}.
+ * @returns The standing. Pure; throws nothing.
  */
 export function budgetStanding(budget: RunBudget): BudgetStanding {
   if (!budget.exceeded) {

@@ -40,6 +40,11 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * optional `$schema` key, accepted so a JSON or YAML config can point an editor at the JSON Schema
  * document the package ships as `@verbatra/sdk/config-schema.json`.
  *
+ * `format` accepts a built-in format name or a `custom:` identifier such as `custom:toml`. A
+ * `custom:` identifier is checked for shape only; the adapter behind it is supplied through a
+ * flow's `adapterRegistry` dependency, and a run whose registry holds none fails with
+ * `UNKNOWN_FORMAT`.
+ *
  * `fuzzyCache` is off unless `enabled` is set. With it on, a source string whose earlier form is in
  * the translation memory close enough to clear `threshold` reuses that translation instead of
  * paying the provider for it. `threshold` is a similarity ratio from `0.5` to `1` and defaults to `0.9`.
