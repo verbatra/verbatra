@@ -17,17 +17,26 @@ export function SectionHead({
   const centered = align === "center";
   return (
     <div
-      className={centered ? "mx-auto text-center" : "text-left"}
+      className={cn(
+        "grid gap-5",
+        centered
+          ? "mx-auto justify-items-center text-center"
+          : "lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16",
+      )}
       style={centered ? { maxWidth } : undefined}
     >
       <h2
         id={id}
-        className="font-semibold text-fd-foreground"
+        className={cn(
+          "font-semibold text-fd-foreground",
+          centered ? "max-w-[18ch]" : "max-w-[15ch]",
+        )}
         style={{
           fontFamily: "var(--font-display)",
-          letterSpacing: "var(--tracking-tight)",
+          letterSpacing: "-0.03em",
           fontSize: "var(--text-h2)",
-          lineHeight: 1.15,
+          lineHeight: 1,
+          textWrap: "balance",
         }}
       >
         {title}
@@ -35,10 +44,9 @@ export function SectionHead({
       {lead ? (
         <p
           className={cn(
-            "mt-4 text-lg leading-relaxed text-fd-muted-foreground",
-            centered && "mx-auto",
+            "max-w-[46ch] text-[17px] leading-relaxed text-fd-muted-foreground",
+            !centered && "lg:justify-self-end lg:pb-2.5",
           )}
-          style={{ maxWidth: centered ? maxWidth : "580px" }}
         >
           {lead}
         </p>

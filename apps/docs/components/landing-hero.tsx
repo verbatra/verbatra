@@ -1,98 +1,124 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import type { ReactNode } from "react";
-import { Backdrop } from "@/components/landing/fx/backdrop";
+import type { CSSProperties, ReactNode } from "react";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { GITHUB_URL } from "@/components/landing/links";
 import { PackageInstall } from "@/components/landing/package-install";
-import { StatusBand } from "@/components/landing/status-band";
-import { Terminal } from "@/components/landing/terminal";
 import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { FORMAT_COUNT, PROVIDER_COUNT } from "@/lib/landing-facts";
 import { PACKAGE_VERSION } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
-const CLI_COMMANDS = [
-  "verbatra init",
-  "verbatra translate",
-  "verbatra diff",
-  "verbatra watch",
-] as const;
+const HERO_BACKGROUND = [
+  "radial-gradient(ellipse 72% 62% at 50% -4%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
+  "radial-gradient(ellipse 46% 40% at 12% 104%, color-mix(in srgb, var(--v-violet) 26%, transparent), transparent 70%)",
+  "var(--surface-bg)",
+].join(", ");
 
-const TRANSCRIPT_KEYS = ["init", "translate", "diff", "watch"] as const;
+const HERO_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
+
+const RISE_STEP_MS = 90;
+
+function Rise({
+  order,
+  className,
+  children,
+}: {
+  order: number;
+  className?: string;
+  children: ReactNode;
+}): ReactNode {
+  const style: CSSProperties = { animationDelay: `${order * RISE_STEP_MS}ms` };
+  return (
+    <div className={cn("vk-rise", className)} style={style}>
+      {children}
+    </div>
+  );
+}
+
+type Fact = { key: "release" | "formats" | "providers" | "license"; value: string };
+
+const FACTS: ReadonlyArray<Fact> = [
+  { key: "release", value: `@verbatra/cli ${PACKAGE_VERSION}` },
+  { key: "formats", value: String(FORMAT_COUNT) },
+  { key: "providers", value: String(PROVIDER_COUNT) },
+  { key: "license", value: "MIT" },
+];
 
 export async function LandingHero(): Promise<ReactNode> {
   const t = await getTranslations("landing.hero");
-  const tTerminal = await getTranslations("landing.terminal");
   const locale = (await getLocale()) as Locale;
 
-  const transcript = tTerminal.raw("transcript") as Record<string, Record<string, string>>;
-  const outputs: Readonly<Record<number, ReadonlyArray<string>>> = Object.fromEntries(
-    TRANSCRIPT_KEYS.map((key, index) => [index, Object.values(transcript[key] ?? {})]),
-  );
-
   return (
-    <section className="relative overflow-hidden border-b border-fd-border">
-      <Backdrop />
-      <div className="vk-gutter vk-w-wide relative mx-auto pt-12 pb-20 md:pt-14">
-        <div className="vk-w-hero mx-auto text-center">
-          <h1
-            className="mx-auto max-w-[16ch] font-semibold"
-            style={{
-              fontFamily: "var(--font-display)",
-              letterSpacing: "var(--tracking-tight)",
-              fontSize: "var(--text-hero)",
-              lineHeight: 1.04,
-              textWrap: "balance",
-              background: "var(--gradient-headline)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-            }}
+    <section className="px-2 md:px-3">
+      <div
+        className="relative overflow-hidden rounded-xl border"
+        style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
+      >
+        <div className="relative grid grid-cols-[minmax(0,1fr)] justify-items-center px-4 pt-[76px] pb-10 text-center md:px-10 md:pt-32 md:pb-11">
+          <Rise order={0}>
+            <h1
+              className="max-w-[10ch] font-semibold text-[color:var(--text-strong)]"
+              style={{
+                fontFamily: "var(--font-display)",
+                letterSpacing: "-0.03em",
+                fontSize: "var(--text-hero)",
+                lineHeight: 0.96,
+                textWrap: "balance",
+              }}
+            >
+              {t("headline")}
+            </h1>
+          </Rise>
+          <Rise order={1}>
+            <p className="mt-6 max-w-[54ch] text-[17px] leading-relaxed text-fd-muted-foreground md:text-[19px]">
+              {t("lead")}
+            </p>
+          </Rise>
+          <Rise
+            order={2}
+            className="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-3"
           >
-            {t("headline")}
-          </h1>
-          <p className="mx-auto mt-4 max-w-[46ch] text-lg leading-relaxed text-fd-muted-foreground">
-            {t("lead")}
-          </p>
-          <div className="mt-6 flex justify-center">
-            <PackageInstall />
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Button
               href={localizedPath(locale, "/docs/your-first-translation")}
               variant="primary"
               size="lg"
-              trailingArrow
+              className="shadow-[0_10px_34px_-12px_color-mix(in_srgb,var(--v-purple)_85%,transparent)]"
             >
-              {t("ctaQuickstart")}
+              {t("ctaStart")}
             </Button>
-            <Button href={GITHUB_URL} variant="secondary" size="lg">
-              <GithubIcon size={18} />
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex min-h-11 items-center gap-2 font-medium text-fd-foreground transition-colors hover:text-[color:var(--accent)]"
+              data-umami-event="outbound-link"
+              data-umami-event-target="github"
+            >
+              <GithubIcon size={16} />
               {t("ctaGithub")}
-            </Button>
-          </div>
-          <div className="mt-5">
-            <StatusBand variant="inline" />
-          </div>
-        </div>
-
-        <div className="vk-w-content relative mx-auto mt-10">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: "var(--wash-globe)", filter: "blur(12px)" }}
-          />
-          <div className="relative">
-            <Terminal
-              commands={CLI_COMMANDS}
-              outputs={outputs}
-              title="~/acme-shop"
-              sessionLabel={tTerminal("sessionLabel")}
-              loop={false}
-            />
-          </div>
-          <p className="mt-3 text-center text-[13px] text-[color:var(--text-faint)]">
-            {tTerminal("caption", { version: PACKAGE_VERSION })}
-          </p>
+            </a>
+          </Rise>
+          <Rise order={3} className="mt-11 flex w-full justify-center text-left">
+            <PackageInstall />
+          </Rise>
+          <Rise order={4} className="w-full">
+            <dl
+              className="mt-[72px] grid grid-cols-2 gap-x-6 gap-y-[18px] pt-[22px] text-left text-sm md:grid-cols-4"
+              style={{
+                borderTop: "1px solid color-mix(in srgb, var(--border-default) 70%, transparent)",
+              }}
+            >
+              {FACTS.map((fact) => (
+                <div key={fact.key}>
+                  <dt className="text-[color:var(--text-faint)]">{t(`facts.${fact.key}`)}</dt>
+                  <dd className="mt-0.5 font-medium text-fd-foreground tabular-nums">
+                    {fact.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Rise>
         </div>
       </div>
     </section>

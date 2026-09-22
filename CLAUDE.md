@@ -131,6 +131,14 @@ edit code. Dispatch it after implementation work, before merge.
 unit, integration, and CLI e2e; it is also the agent to dispatch for building out
 Studio's still-missing Playwright e2e suite.
 
+`.claude/agents/design-reviewer.md` reviews *rendered* UI: it boots `apps/docs` or the
+Studio dashboard in a real browser through the Playwright MCP server, screenshots the
+changed views, and checks them against that surface's pinned design tokens and against
+the generic-AI-design tells in the `frontend-design` skill. Like `code-reviewer` it
+reports and never edits. Dispatch it after a UI change, alongside `code-reviewer`, not
+instead of it: correctness and abstraction stay with `code-reviewer`, specs with
+`test-runner`.
+
 verbatra's own agent skills (`verbatra-cli`, `verbatra-mcp-tools`,
 `verbatra-studio-agent-tools`) live in https://github.com/verbatra/skills, not in
 this repository. That repository's CI asserts their command, format, provider and
@@ -140,7 +148,17 @@ request there.
 
 `.claude/skills/` holds the skills vendored into this repository: the third-party
 ones this project consumes, plus verbatra's own three installed back from
-`verbatra/skills`. All of them arrive through the `skills.sh` mechanism
+`verbatra/skills`. Those arrive through the `skills.sh` mechanism
 (`npx skills@latest add <owner/repo> --skill <name> -a claude-code -y`) and are
 tracked in `skills-lock.json`. See `.claude/skills/` for the current list rather
 than assuming one here; it grows over time.
+
+Two skills there are written in this repository and are deliberately absent from
+`skills-lock.json`, because nothing upstream owns them: `docs-ui` (visual and component
+conventions for `apps/docs`) and `studio-ui` (the same for `packages/studio`). The two
+surfaces do not share a stack, a palette, a radius scale, or a theme model, so load the
+one that matches the surface being changed and do not cross-apply them. Both state the
+file that actually owns each token (`apps/docs/app/global.css`,
+`packages/studio/src/app/styles.css`) and end with the grep to re-verify it: when the
+skill and the stylesheet disagree, the stylesheet wins and the skill is updated in the
+same change.

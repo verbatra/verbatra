@@ -42,18 +42,18 @@ export default function CommandLine({ command, link }: CommandLineProps): ReactN
   const [copied, copy] = useCopyToClipboard();
 
   return (
-    <div className="not-prose flex max-w-xl items-center gap-3 rounded-xl border border-fd-border bg-fd-card px-4 py-2.5 font-mono text-sm">
+    <div className="not-prose flex w-full max-w-xl min-w-0 items-center gap-3 rounded-xl border border-fd-border bg-fd-card px-4 py-2.5 font-mono text-sm">
       <span className="text-fd-muted-foreground" aria-hidden="true">
         $
       </span>
-      <code className="text-fd-foreground">
+      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-left text-fd-foreground">
         <HighlightedCommand command={command} link={link} />
       </code>
       <button
         type="button"
         onClick={() => copy(command)}
         aria-label={t("copyAria")}
-        className="ms-auto inline-flex min-h-6 items-center rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+        className="ms-auto inline-flex min-h-6 shrink-0 items-center rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
       >
         {copied ? t("copied") : t("copy")}
       </button>

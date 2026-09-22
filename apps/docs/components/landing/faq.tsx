@@ -1,13 +1,12 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
-import Button from "@/components/ui/button";
-import { type Locale, localizedPath } from "@/lib/i18n";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import type { FaqItem } from "@/lib/structured-data";
-import { GITHUB_ISSUES_URL, RELEASES_URL } from "./links";
+import { RELEASES_URL } from "./links";
+import { Reveal } from "./reveal";
 import { SectionHead } from "./section-head";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -52,7 +51,7 @@ function FaqRow({
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={onToggle}
-          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-base font-medium transition-colors hover:text-[color:var(--accent)] ${
+          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-[17px] font-semibold transition-colors hover:text-[color:var(--accent)] ${
             isOpen ? "text-[color:var(--accent)]" : "text-fd-foreground"
           }`}
           style={{ fontFamily: "var(--font-display)" }}
@@ -78,7 +77,7 @@ function FaqRow({
         animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
         transition={reduced ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
       >
-        <p className="max-w-[60ch] pb-5 text-sm leading-relaxed text-fd-muted-foreground">
+        <p className="max-w-[68ch] pb-5 text-[15px] leading-relaxed text-fd-muted-foreground">
           {t.rich(`items.${item.id}.answer`, answerTags)}
         </p>
       </motion.section>
@@ -88,48 +87,26 @@ function FaqRow({
 
 export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
-  const locale = useLocale() as Locale;
   const [open, setOpen] = useState(-1);
   const reduced = useReducedMotionPreference();
 
   return (
-    <section className="vk-gutter vk-w-wide vk-rhythm-md mx-auto">
-      <div className="grid gap-10 md:grid-cols-5 md:gap-12">
-        <div className="md:col-span-2 md:sticky md:top-24 md:self-start">
-          <SectionHead title={t("heading")} lead={t("supporting")} />
-          <div className="mt-7 flex flex-col items-start gap-4">
-            <Button
-              href={localizedPath(locale, "/docs/your-first-translation")}
-              variant="secondary"
-              size="md"
-            >
-              {t("ctaDocs")}
-            </Button>
-            <a
-              href={GITHUB_ISSUES_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex min-h-6 items-center gap-1.5 text-sm text-fd-muted-foreground underline-offset-4 transition-colors hover:text-[color:var(--accent)] hover:underline"
-            >
-              {t("ctaIssue")}
-              <span aria-hidden="true">→</span>
-            </a>
-          </div>
-        </div>
-
-        <div className="border-t border-fd-border md:col-span-3">
-          {items.map((item, i) => (
-            <FaqRow
-              key={item.id}
-              item={item}
-              index={i}
-              isOpen={open === i}
-              onToggle={() => setOpen((current) => (current === i ? -1 : i))}
-              reduced={reduced}
-            />
-          ))}
-        </div>
-      </div>
+    <section className="vk-gutter vk-w-wide vk-rhythm-lg mx-auto" id="faq">
+      <Reveal>
+        <SectionHead title={t("heading")} />
+      </Reveal>
+      <Reveal order={1} className="mt-11 max-w-[880px] border-t border-fd-border">
+        {items.map((item, i) => (
+          <FaqRow
+            key={item.id}
+            item={item}
+            index={i}
+            isOpen={open === i}
+            onToggle={() => setOpen((current) => (current === i ? -1 : i))}
+            reduced={reduced}
+          />
+        ))}
+      </Reveal>
     </section>
   );
 }

@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
-import { Agents } from "@/components/landing/agents";
-import { CommandCoverage } from "@/components/landing/command-coverage";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FullFooter } from "@/components/landing/footer";
-import { GateDemo } from "@/components/landing/gate-demo";
-import { HowItWorks } from "@/components/landing/how-it-works";
-import { Pillars } from "@/components/landing/pillars";
-import { StackCloud } from "@/components/landing/stack-cloud";
-import { StudioShowcase } from "@/components/landing/studio-showcase";
-import { Trust } from "@/components/landing/trust";
+import { Gains } from "@/components/landing/gains";
+import { Loop } from "@/components/landing/loop";
+import { Marquee } from "@/components/landing/marquee";
+import { Proof } from "@/components/landing/proof";
+import { Providers } from "@/components/landing/providers";
 import { LandingHero } from "@/components/landing-hero";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
@@ -67,14 +64,11 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
 
       <LandingHero />
-      <GateDemo />
-      <HowItWorks />
-      <Pillars />
-      <CommandCoverage />
-      <StackCloud />
-      <StudioShowcase />
-      <Agents />
-      <Trust />
+      <Marquee />
+      <Proof />
+      <Providers />
+      <Loop />
+      <Gains />
       <Faq items={faqItems} />
       <FinalCta />
       <FullFooter />

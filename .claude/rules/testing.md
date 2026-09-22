@@ -83,3 +83,14 @@ map of the gap and the constraint that blocks it in CI, not a scaffold: designin
 actual suite (deciding what to boot the dashboard against, whether to reuse the docs' `capture-studio.mjs`
 fixture/harness pattern for booting the CLI + Studio, and how CI installs the browser binary) is
 separate, larger work.
+
+**The `design-reviewer` agent does not close this gap.** `.claude/agents/design-reviewer.md`
+drives a real browser over `apps/docs` and Studio through the Playwright MCP server to review
+rendered UI against the `docs-ui` and `studio-ui` token skills. That is an interactive,
+agent-dispatched review producing findings and screenshots; it asserts nothing, it is not a
+suite, it does not run in CI, and it gates no merge. It also uses the MCP server's own browser,
+so it sidesteps the `allowBuilds` constraint above rather than resolving it. A committed
+Playwright suite for `@verbatra/studio` is still missing, and the two constraints on building
+one (no `playwright.config.ts`, `playwright: false` in `allowBuilds`) are unchanged. Dispatch
+`design-reviewer` for a visual verdict on a UI change; dispatch `test-runner` when the job is
+building the suite that is still absent.

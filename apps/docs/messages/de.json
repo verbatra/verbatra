@@ -10,49 +10,27 @@
     },
     "hero": {
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "verbatra ist ein CLI und SDK, das deine i18n-Locale-Dateien synchron hält. Du pflegst die Quell-Locale; es füllt jede weitere Locale über den KI-Anbieter, den du wählst.",
-      "ctaQuickstart": "Zum Schnellstart",
-      "ctaGithub": "Stern auf GitHub"
+      "lead": "verbatra vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei, sendet nur die neuen und geänderten Schlüssel an den von dir gewählten Anbieter und lässt jeden anderen Schlüssel unberührt.",
+      "ctaGithub": "Stern auf GitHub",
+      "ctaStart": "Leg los",
+      "facts": {
+        "release": "Neueste Version",
+        "formats": "Dateiformate",
+        "providers": "Anbieter",
+        "license": "Lizenz"
+      }
     },
     "terminal": {
       "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
-      "caption": "Mitschnitt aufgezeichnet mit @verbatra/cli {version}.",
       "transcript": {
-        "init": {
-          "l1": "✓ verbatra.config.ts erstellt",
-          "l2": "Quelle en · Ziele de, es, fr",
-          "l3": "Anbieter gemini · Schlüssel aus GEMINI_API_KEY"
-        },
-        "translate": {
-          "l1": "diff en.json · 12 neu · 0 geändert · 108 unverändert",
-          "l2": "de  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l3": "es  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l4": "fr  12 übersetzt · 108 unverändert · 0 zurückgehalten",
-          "l5": "✓ 36 Schlüssel in 5,4 s übersetzt · 0 übersprungen · Lock aktualisiert"
-        },
-        "diff": {
-          "l1": "en.json · 120 Schlüssel · Quelle der Wahrheit",
-          "l2": "de  2 neu · 1 geändert · 117 aktuell",
-          "l3": "es  0 neu · 0 geändert · 120 aktuell",
-          "l4": "fr  5 neu · 0 geändert · 115 aktuell",
-          "l5": "8 Schlüssel würden gesendet · führe verbatra translate aus"
-        },
-        "watch": {
-          "l1": "beobachte en.json auf Änderungen",
-          "l2": "en.json geändert · 1 neuer Schlüssel",
-          "l3": "de  1 übersetzt · 0 zurückgehalten",
-          "l4": "es  1 übersetzt · 0 zurückgehalten",
-          "l5": "fr  1 übersetzt · 0 zurückgehalten",
-          "l6": "✓ 3 Schlüssel übersetzt · warte auf Änderungen"
+        "run": {
+          "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
+          "l2": "de  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l3": "es  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l4": "fr  3 übersetzt · 117 unberührt · 0 zurückgehalten",
+          "l5": "✓ 9 Schlüssel in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
         }
       }
-    },
-    "status": {
-      "label": "Build-Status, Testabdeckung, Paketversion und Lizenz",
-      "cliVersionAlt": "Neueste veröffentlichte @verbatra/cli-Version auf npm",
-      "buildAlt": "Build-Status der Continuous Integration",
-      "coverageAlt": "Auf Codecov gemeldete Testabdeckung",
-      "licenseAlt": "Veröffentlicht unter der MIT-Lizenz"
     },
     "install": {
       "tablistLabel": "Paketmanager",
@@ -67,22 +45,6 @@
       "aiCaptionLink": "der Einrichtungsanleitung"
     },
     "gate": {
-      "heading": "Eine Übersetzung, die einen Platzhalter zerstört, erreicht deine Dateien nie.",
-      "lead": "Ein Lauf über zwei geänderte Keys. verbatra hat einen geschrieben und den anderen verweigert, und das Deutsch, das deine Nutzer schon hatten, blieb genau so stehen.",
-      "panels": {
-        "source": {
-          "badge": "Quelle",
-          "note": "Beide Keys wurden auf Englisch geändert, also gehen beide an den Provider."
-        },
-        "written": {
-          "badge": "geschrieben",
-          "note": "de.json nach dem Lauf. Eine Zeile ist neu, die andere ist der Wert, den der vorige Lauf hinterlassen hat."
-        },
-        "refused": {
-          "badge": "verweigert",
-          "note": "Der Kandidat für inbox.count hat die Datei nie berührt, und die Lock-Datei hat ihren alten Hash behalten, also versucht es der nächste Lauf erneut."
-        }
-      },
       "rows": {
         "key": "Key",
         "candidate": "Kandidat",
@@ -93,160 +55,31 @@
       "annotations": {
         "new": "neu",
         "kept": "behalten"
-      },
-      "reasonGloss": "placeholder: Der Kandidat trägt nicht dieselben Platzhalter wie die Quelle, die Interpolation würde also zur Laufzeit brechen.",
-      "outputLabel": "Der Lauf meldet es so:"
+      }
     },
     "how": {
-      "heading": "Ein Lauf ist eine kurze, vorhersehbare Pipeline.",
-      "lead": "Keine Magie, keine Hintergrundsynchronisierung: eine deterministische Abfolge, die du von oben nach unten lesen kannst.",
+      "heading": "Jeder Lauf ist ein Diff, keine Neuübersetzung.",
       "steps": {
         "configure": {
           "title": "Konfigurieren",
-          "body": "Richte verbatra auf deine Quell-Locale, liste die Zielsprachen auf und wähle einen Anbieter. Die Konfiguration liegt in einer Datei; API-Schlüssel bleiben in deiner Umgebung."
+          "body": "Quell-Locale, Ziele, ein Anbieter."
         },
         "diff": {
           "title": "Vergleichen",
-          "body": "Jeder Lauf vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei und sortiert jeden Schlüssel in neu, geändert, unverändert oder verwaist ein. Verwaiste Schlüssel, also solche, die nicht mehr in deiner Quelle stehen, werden gemeldet und bleiben erhalten: Aus deinen Locale-Dateien wird nichts entfernt, es sei denn, du aktivierst --prune."
+          "body": "Neu, geändert, unverändert oder verwaist, gegen die Lock-Datei."
         },
         "translate": {
           "title": "Übersetzen",
-          "body": "Nur die neuen und geänderten Schlüssel werden in Stapeln an deinen Anbieter gesendet, mit deinem Glossar und Tonfall. Alles andere bleibt unangetastet."
+          "body": "Nur neue und geänderte Schlüssel gehen raus."
         },
         "verifyWrite": {
           "title": "Prüfen und schreiben",
-          "body": "Die Integrität von Platzhaltern und ICU wird bei jedem Ergebnis geprüft. Alles, was kaputtgeht, wird zurückgehalten; der Rest wird in deine Locale-Dateien geschrieben und die Lock-Datei wird aktualisiert."
-        }
-      }
-    },
-    "pillars": {
-      "heading": "Ein Tool für den gesamten Übersetzungsablauf.",
-      "lead": "verbatra ist mehr als KI-Übersetzung. Es deckt maschinelle Übersetzung ab, die du steuerst, eine saubere Excel-Übergabe für menschliche Übersetzerinnen und die Automatisierung, um jede Locale synchron zu halten.",
-      "ai": {
-        "title": "KI-Übersetzung",
-        "body": "Übersetze nur das Geänderte über den von dir gewählten Anbieter: Anthropic, OpenAI, Gemini, DeepL, Google Cloud Translation oder einen beliebigen OpenAI-kompatiblen Server, den du selbst betreibst. Eine festgeschriebene Lock-Datei sorgt dafür, dass jeder Durchlauf inkrementell ist, und die Integrität von Platzhaltern und ICU wird geprüft, bevor etwas geschrieben wird."
-      },
-      "excel": {
-        "title": "Excel-Übergabe",
-        "body": "Führe verbatra export aus, um eine gestylte .xlsx-Arbeitsmappe zu erzeugen, gib sie an ein Übersetzungsbüro oder interne Übersetzerinnen, und verbatra import liest ihre Änderungen zurück in deine Locale-Dateien. Kombiniere maschinelle Übersetzung mit professioneller menschlicher Arbeit."
-      },
-      "automation": {
-        "title": "Automatisierung",
-        "body": "Halte jede Locale synchron, während du arbeitest: verbatra watch übersetzt bei Änderungen, CI-freundliche Exit-Codes und --json-Ausgabe fügen sich in jede Pipeline ein, und eine GitHub Action führt es in deinem Workflow aus."
-      }
-    },
-    "commands": {
-      "heading": "Jeder Befehl, den die Binary mitbringt.",
-      "lead": "Eine Installation, gruppiert nach der Aufgabe. Ein Test hält diese Liste gegen die Befehlstabelle im CLI-Quellcode, sie kann also nicht still zurückfallen.",
-      "helpNote": "Führe verbatra <command> --help aus, um die Flags eines Befehls zu sehen.",
-      "groups": {
-        "run": "Übersetzen",
-        "verify": "Prüfen, ohne zu schreiben",
-        "author": "Quelle pflegen und prüfen",
-        "handoff": "An Menschen übergeben",
-        "open": "Einrichten und öffnen"
-      },
-      "items": {
-        "translate": "Übersetzt jede Ziel-Locale einmal und beendet sich dann.",
-        "watch": "Übersetzt bei jeder Quelländerung neu, bis du abbrichst.",
-        "check": "Meldet pro Locale, welche Keys fehlen oder veraltet sind, ohne Dateien zu schreiben.",
-        "diff": "Zeigt pro Locale die Keys, die hinzukämen, neu übersetzt würden oder verwaist sind.",
-        "doctor": "Prüft das Projekt-Setup, ohne einen Provider aufzurufen oder einen API-Key zu lesen.",
-        "extract": "Durchsucht deinen Quellcode nach Übersetzungsaufrufen und ergänzt neue Keys in der Quell-Locale.",
-        "types": "Erzeugt TypeScript-Deklarationen für deine Katalog-Keys und Nachrichtenargumente.",
-        "pseudo": "Erzeugt eine Pseudolocale aus den Quelltexten, ohne einen Provider aufzurufen.",
-        "export": "Exportiert unübersetzte Strings in eine Übergabedatei: Excel-Mappe, CSV oder TSV.",
-        "import": "Liest eine ausgefüllte Übergabedatei zurück in die Locale-Dateien, mit denselben Sicherheitsprüfungen.",
-        "tmx": "Importiert ein TMX-Translation-Memory aus einem anderen Tool oder exportiert das Memory dieses Projekts als TMX.",
-        "studio": "Startet Verbatra Studio, das lokale Übersetzungs-Dashboard.",
-        "mcp": "Startet einen stdio-MCP-Server, der verbatras Tools einem MCP-Client bereitstellt.",
-        "init": "Legt eine verbatra-Konfiguration und eine .env-Vorlage für dieses Projekt an."
-      }
-    },
-    "stack": {
-      "heading": "Die Dateien, die du schon hast, und die Modelle, die du wählst.",
-      "lead": "verbatra liest das Locale-Format, das dein Stack ohnehin nutzt, und füllt es über den Provider, den du in einer Zeile Konfiguration nennst. Auf keiner Seite musst du etwas Neues übernehmen.",
-      "formats": {
-        "title": "Formate und Frameworks",
-        "note": "Jedes Format, das die Adapter-Registry mitbringt, von i18next-JSON bis zu Apple String Catalogs und .NET .resx.",
-        "marqueeLabel": "Frameworks und Formate"
-      },
-      "providers": {
-        "title": "Übersetzungs-Provider",
-        "note": "LLMs und maschinelle Übersetzung hinter einer Schnittstelle, dazu jeder OpenAI-kompatible Server, den du selbst betreibst.",
-        "marqueeLabel": "Übersetzungs-Provider"
-      }
-    },
-    "studio": {
-      "heading": "Behalte den gesamten Übersetzungsstand im Blick, lokal.",
-      "lead": "Verbatra Studio ist ein lokales Dashboard über deinem Projekt. Es zeigt die Abdeckung jeder Locale live, listet die Übersetzungen auf, die ein Lauf als prüfenswert markiert hat, und lässt dich sie direkt korrigieren. Das Bearbeiten braucht keinen API-Key und ruft nie einen Provider auf.",
-      "alt": "Die Seite Übersetzungen in Verbatra Studio: vier Kacheln für Keys, die Aufmerksamkeit brauchen, durchschnittliche Abdeckung, synchrone Locales und Token-Verbrauch des letzten Laufs, darunter ein Raster, das jeden Key pro Locale als fehlend oder synchron markiert, und eine Abdeckungstabelle pro Locale.",
-      "caption": "Studio gibt es hell und dunkel. Wechsle den Screenshot, um zu vergleichen.",
-      "cta": "Übersetzungen in Studio prüfen"
-    },
-    "agents": {
-      "heading": "Gib es deinem Agenten in die Hand.",
-      "lead": "Dieselbe Engine, erreichbar aus einem Assistenten statt aus einer Shell.",
-      "items": {
-        "mcp": {
-          "title": "MCP-Server",
-          "body": "verbatra mcp startet einen stdio-MCP-Server, der Übersetzungsstand, Glossar und das Bearbeiten einzelner Einträge jedem MCP-Client bereitstellt.",
-          "cta": "Mit KI starten"
-        },
-        "skills": {
-          "title": "Agent Skills",
-          "body": "Die installierbaren SKILL.md-Dokumente liegen in einem eigenen Repository: eines für die CLI, eines für die MCP-Tools, eines für die Agent-Tools in Studio.",
-          "cta": "verbatra/skills"
-        },
-        "llms": {
-          "title": "llms.txt",
-          "body": "Jede Dokumentationsseite als reiner Text: ein Index unter /llms.txt und die ganze Seite unter /llms-full.txt.",
-          "cta": "llms.txt öffnen"
-        }
-      },
-      "installLabel": "Eines installieren"
-    },
-    "trust": {
-      "heading": "Was du dir wirklich ins Projekt holst.",
-      "lead": "Fünf Dinge, die du prüfen solltest, bevor eine Abhängigkeit in dein Repository wandert. Jede Zeile verlinkt die Datei, die es belegt.",
-      "rows": {
-        "license": {
-          "label": "Lizenz",
-          "value": "MIT",
-          "detail": "Eine freizügige Lizenz für das ganze Repository, ohne Doppellizenzierung und ohne Contributor-Vereinbarung, die du unterschreiben musst.",
-          "cta": "LICENSE lesen"
-        },
-        "local": {
-          "label": "Wo es läuft",
-          "value": "Dein Rechner, deine CI",
-          "detail": "Es gibt keinen verbatra-Dienst, bei dem du dich anmelden müsstest. Provider-API-Keys werden ausschließlich aus Umgebungsvariablen gelesen, nie aus der Konfigurationsdatei und nie aus einem CLI-Argument.",
-          "cta": "env.ts lesen"
-        },
-        "provenance": {
-          "label": "Veröffentlichung",
-          "value": "npm Trusted Publishing",
-          "detail": "Releases werden über OIDC veröffentlicht, ohne langlebigen npm-Token im Workflow, und jedes Tarball wird mit eingeschalteter Provenance gebaut.",
-          "cta": "release.yml lesen"
-        },
-        "coverage": {
-          "label": "Testabdeckung",
-          "value": "Testabdeckung auf Codecov",
-          "detail": "Das Merge-Gate hält jedes Paket bei 90 Prozent auf Zeilen, Funktionen, Statements und Branches.",
-          "cta": "Codecov öffnen"
-        },
-        "cost": {
-          "label": "Kosten",
-          "value": "Keine Bezahlstufe",
-          "detail": "Open Source, komplett: kein gehosteter Plan, keine Platzzahl, keine zurückgehaltene Funktion. Bezahlt wird nur die Nutzung deines Providers, über einen Key, den du selbst hältst.",
-          "cta": "Quellcode ansehen"
+          "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest geschrieben."
         }
       }
     },
     "faq": {
       "heading": "Häufig gestellte Fragen",
-      "supporting": "Kurze, direkte Antworten auf die Fragen, die Teams vor der Einführung von verbatra stellen.",
-      "ctaDocs": "Zur Dokumentation",
-      "ctaIssue": "ein Issue eröffnen",
       "items": {
         "incremental": {
           "question": "Wie vermeidet verbatra, bei jedem Lauf alles neu zu übersetzen?",
@@ -272,7 +105,7 @@
     },
     "finalClose": {
       "heading": "Schluss mit dem manuellen Synchronisieren von Locale-Dateien.",
-      "lead": "Füge verbatra hinzu, checke die Lock-Datei ein und lass jeden Lauf nur das anfassen, was sich geändert hat."
+      "docs": "Zur Dokumentation"
     },
     "footer": {
       "tagline": "Übersetze nur, was sich geändert hat. Ein quelloffenes CLI und SDK, das deine i18n-Locale-Dateien über den Anbieter deiner Wahl synchron hält.",
@@ -337,6 +170,129 @@
       "contact": "Kontakt",
       "npm": "verbatra auf npm",
       "skipToContent": "Zum Inhalt springen"
+    },
+    "proof": {
+      "copyCommand": "{command} kopieren",
+      "lock": {
+        "body": "Ein Hash pro Schlüssel und Locale, eingecheckt neben deinen Dateien.",
+        "title": "Die Lock-Datei"
+      },
+      "refused": {
+        "body": "Zurückgehalten, nie geschrieben, beim nächsten Lauf erneut gesendet.",
+        "title": "Abgelehnt, bevor es die Datei erreicht"
+      },
+      "written": {
+        "body": "de.json nach dem Lauf.",
+        "title": "Geschrieben, und nur das"
+      }
+    },
+    "gains": {
+      "heading": "Was du wirklich bekommst.",
+      "items": {
+        "ci": {
+          "body": "<code>verbatra check</code> endet mit Exit-Code 1, wenn eine Locale fehlt oder veraltet ist, mit <code>--json</code> für CI.",
+          "note": "diese Seite führt es bei jedem Pull Request aus",
+          "title": "Abweichende Locales lassen den Pull Request fehlschlagen."
+        },
+        "config": {
+          "body": "Ein Glossar legt fest, wie aufgeführte Begriffe übersetzt werden; <code>tone</code> setzt formelle, informelle oder neutrale Anrede.",
+          "note": "die verbatra.config.ts dieser Seite",
+          "title": "Deine Begriffe und deine Anrede bleiben fest."
+        },
+        "cost": {
+          "body": "Nur neue und geänderte Schlüssel gehen an den Anbieter, und jeder Lauf gibt seine Token-Anzahl pro Locale aus.",
+          "note": "ein Lauf über die Texte dieser Seite",
+          "title": "Du zahlst für die Schlüssel, die du geändert hast."
+        },
+        "gate": {
+          "body": "Ein Kandidat, der einen Platzhalter verliert, ICU bricht oder Markup aus dem Gleichgewicht bringt, wird zurückgehalten, nie geschrieben und beim nächsten Lauf erneut gesendet.",
+          "note": "dieselbe Prüfung gilt für Studio-Bearbeitungen und Importe",
+          "title": "Ein kaputter Platzhalter erreicht nie die Produktion."
+        },
+        "git": {
+          "body": "Locale-Dateien und die Lock-Datei sind Klartext in deinem Repo, und ohne <code>--prune</code> wird nichts entfernt.",
+          "note": "ein Hash pro Schlüssel und Ziel-Locale",
+          "title": "Jede Übersetzung ist ein Git-Diff."
+        },
+        "handoff": {
+          "body": "Excel-Export und -Import für Übersetzer, TMX für Translation Memory, generierte TypeScript-Typen für deine Schlüssel.",
+          "note": "vier der vierzehn Befehle",
+          "title": "Menschen und andere Tools können übernehmen."
+        }
+      },
+      "lead": "Die deutsche, spanische und französische Fassung dieser Seite stammt daraus."
+    },
+    "loop": {
+      "heading": "Der Rest des Übersetzungskreislaufs, im selben Tool.",
+      "links": {
+        "llms": "llms.txt",
+        "llmsFull": "llms-full.txt",
+        "mcpDocs": "Doku zum MCP-Server"
+      },
+      "rows": {
+        "agent": {
+          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
+          "cta": "Mit KI starten",
+          "title": "Oder überlass es deinem Agenten."
+        },
+        "ci": {
+          "body": "<code>watch</code> übersetzt bei jeder Änderung. <code>check</code> lässt den Pull Request fehlschlagen, wenn eine Locale abweicht.",
+          "cta": "CI einrichten",
+          "title": "Beim Speichern, in CI oder per GitHub Action ausführen."
+        },
+        "excel": {
+          "body": "Exportieren, ausgefüllt zurückbekommen, durch dieselbe Prüfung importieren.",
+          "cta": "Mehr zur Excel-Übergabe",
+          "title": "Gib Übersetzern eine Arbeitsmappe, importiere sie zurück."
+        },
+        "studio": {
+          "alt": "Die Seite Review in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr, wobei jede Zeile den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject zeigt.",
+          "body": "Abdeckung, markierte Einträge, Bearbeitung direkt vor Ort. Kein Anbieter-Aufruf.",
+          "cta": "Übersetzungen in Studio prüfen",
+          "title": "Sieh den Stand jeder Locale in Verbatra Studio."
+        }
+      },
+      "table": {
+        "key": "Schlüssel",
+        "source": "Quelle",
+        "target": "Ziel"
+      }
+    },
+    "marquee": {
+      "formatTip": "format: \"{id}\"",
+      "formatsLabel": "Dateiformate, die verbatra liest und schreibt",
+      "frameworks": {
+        "android": "strings.xml",
+        "angular": "ngx-translate JSON oder XLIFF",
+        "apple": ".strings und .xcstrings",
+        "astro": "i18next JSON oder YAML",
+        "dotnet": ".resx",
+        "flutter": "Flutter ARB",
+        "next": "next-intl JSON",
+        "node": "i18next JSON",
+        "nuxt": "vue-i18n JSON",
+        "react": "i18next JSON",
+        "reactNative": "i18next JSON",
+        "spring": "Java .properties",
+        "svelte": "i18next JSON oder YAML",
+        "vue": "vue-i18n JSON"
+      },
+      "frameworksLabel": "Frameworks, mit denen verbatra funktioniert",
+      "intro": "Funktioniert mit den Locale-Dateien, die du schon hast.",
+      "label": "Unterstützte Frameworks und Formate"
+    },
+    "providers": {
+      "heading": "Sechs Anbieter, eine Schnittstelle.",
+      "hint": "Fahre mit der Maus über die Karten oder springe mit Tab durch sie.",
+      "kinds": {
+        "anthropic": "Claude-Modelle",
+        "deepl": "maschinelle Übersetzung",
+        "gemini": "kostenloses Kontingent verfügbar",
+        "googleTranslate": "maschinelle Übersetzung",
+        "openai": "GPT-Modelle",
+        "openaiCompatible": "Ollama, vLLM, LM Studio"
+      },
+      "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst."
     }
   },
   "legal": {
