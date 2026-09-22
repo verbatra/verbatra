@@ -1,5 +1,559 @@
 # @verbatra/cli
 
+## 0.11.0
+
+### Minor Changes
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`3239884`](https://github.com/verbatra/verbatra/commit/3239884a88eeee61a86efe1a45350d6e6f81f043) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add a keyless pre-run cost estimate: `verbatra translate --estimate`.
+  
+  The estimate reuses the dry-run plan, so it constructs no provider, reads no API key, makes no
+  network call, and writes no file. It reports how many keys would be sent, how many provider
+  requests they would be split into, and the billing quantity the configured provider actually
+  charges for: estimated prompt and completion tokens for the LLM providers, estimated source
+  characters for DeepL and Google Cloud Translation.
+  
+  verbatra still ships no prices of its own. A currency figure appears only when the config carries
+  a new optional `rates` block naming the date the rates were read, the currency code, and a table
+  of rates keyed by `provider/model`. Every figure is printed beside that date, so a stale number is
+  visibly stale. A provider or model with no rate on file is reported as such, with the exact config
+  key to add, rather than as a cost of zero; a rate written in the wrong unit is refused rather than
+  applied; and a self-hosted `openai-compatible` endpoint is reported as carrying no API cost at
+  all. `RunEstimate` is a union discriminated on `pricing`, so a priced estimate always carries its
+  figure, its currency and its date, and an unpriced one carries none of them.
+  
+  The figure bounds the plan, not the invoice. Every provider call a live run schedules is counted,
+  including the plural-generation batches, which are a separate call path from the translation
+  batches; the prompt is measured by serializing the payload that would be sent rather than by
+  modelling its shape, so a configured glossary and tone are counted in every request they travel in;
+  and the response is sized from the source value plus a 50 percent expansion allowance, because the
+  translation does not exist yet and completion tokens are the expensive half of every rate card.
+  Against that plan a live run usually spends less, because it consults the translation memory and
+  collapses identical source strings.
+  
+  It can also spend more, and `estimate excludes` names every way: the provider SDKs retry a failed
+  call underneath each counted request (two extra attempts on Anthropic, OpenAI and
+  openai-compatible, two on Gemini's own loop, five on DeepL), an incomplete response triggers a
+  repair round that re-sends the system rules, glossary and tone in full, a target language can
+  expand past the allowance, and the token figure is a character heuristic rather than the provider's
+  own tokenizer. The estimate covers `translate`; `retranslateEntry` calls a provider on its own path
+  and is not counted here.
+  
+  A dry run now also reports the plural forms it would generate, whether or not an estimate was asked
+  for.
+  
+  `RunSummary.estimate` carries the whole breakdown as structured fields, per locale and in total,
+  so `--json` consumers get the numbers rather than a rendered string.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`784889f`](https://github.com/verbatra/verbatra/commit/784889f6dc08c1e56a4a7751bb135d7422f9b021) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add a read-only consistency report: `verbatra check --consistency`, and `consistency: true` on the SDK's `check`, list every source string that a target locale translates more than one way under different keys. Each finding names the source string, every distinct translation, and the keys holding each one, so the wording can be aligned by hand.
+  
+  The report is opt-in and changes nothing else. It never changes `inSync`, a count, or the exit code, never withholds or rewrites a value, never enters `integrityMismatches`, and never adds a review reason to `needsReview`. Like the rest of `check`, it constructs no provider and needs no API key. Without the flag the output is exactly what it was.
+  
+  Each `LocaleCheckSummary` carries the findings as `inconsistencies`, an array of the newly exported `InconsistencyGroup` type: `{ source, context?, description?, meaning?, isPlural, pluralForm?, translations }`, where each `InconsistentTranslation` is `{ value, keys }`.
+  
+  The comparison follows one rule on both sides: values are compared after Unicode NFC normalization, folding `\r\n` to `\n`, and trimming leading and trailing whitespace, so a translation that differs only in surrounding whitespace is not a finding, while internal whitespace and letter case still count. Only up-to-date keys are compared, since a stale key's translation belongs to an older source text. Keys whose description, meaning, plural flag, or gettext `msgctxt` differ are never grouped, because that metadata exists to allow a different translation. Plural forms are compared per form: in a format that stores each form under its own key (i18next, Apple `.stringsdict` and `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`), the forms of one key are never grouped with each other, while the same form under different keys still is, and the group names that form as `pluralForm`. A translation identical to its own source is not a finding here; that remains the `EQUALS_SOURCE` review reason.
+  
+  Groups are sorted by source string, translations by value, and keys by name, all by UTF-16 code unit, so the same catalog always produces the same report. The report groups keys in a single hash-map pass over the catalog.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`d4568f7`](https://github.com/verbatra/verbatra/commit/d4568f7a68b7c08efd2223ee122b706a978dd2dc) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add opt-in fuzzy reuse of the translation memory. With `fuzzyCache: { enabled: true }` in the config, a source string that changed only slightly reuses the translation of its earlier form instead of being sent to the provider, as long as the two are at least `fuzzyCache.threshold` alike (a similarity ratio from `0.5` to `1`, default `0.9`). The feature is off by default, so no existing run changes behavior.
+  
+  A fuzzy reuse is never presented as an exact one, and never lands silently. It carries the new `FUZZY_CACHE_REUSE` review reason on every run whatever it scored, so it appears on `needsReview` and in Studio's Review queue as "Reused after source edit"; it also lands in a new `LocaleSummary.fuzzyHits` bucket carrying the key, the score, and the earlier source text the translation was actually produced for, which `runStatus` now persists so a tool opened after the run can still show what was reused and from what. The CLI prints it as its own `fuzzy-reused` count with those details underneath. It passes the same integrity gate every other candidate value passes, so a reuse whose placeholders no longer fit the edited source is refused and the key goes to the provider. It is also never written back into the cache, so a reused value can never be laundered into an exact hit on a later run. `--no-cache` bypasses it along with the rest of the cache.
+  
+  A reuse is written to the locale file but deliberately not locked: the key keeps the lock-file baseline it already had, so it stays changed and is offered, flagged and listed again on every later run, at no provider cost, until a real translation lands and locks normally. That is what makes the "on every run" promise true rather than a single chance to notice, and it means `check` keeps reporting the key as out of date, which it is. Editing only an entry's description, meaning or plural flag leaves the source text identical, and such a key is never handled by the fuzzy layer at all: it goes to the provider exactly as it would with the feature off, so the new guidance is actually applied.
+  
+  The threshold is a spend dial, not a safety dial, and the default of `0.9` is set on that understanding. Similarity is measured in characters and meaning is not a function of character distance: a dropped negation, an inverted modal or a swapped proper noun all score above `0.9`, and a single changed letter late in an eighty-character string scores `0.987`, past anything the schema accepts. Safety therefore comes from the parts that do not depend on the number: the feature is off by default, every reuse is flagged for review, and an entry whose numerals differ from the current source in count, value or order is refused outright whatever it scores, because a changed number is always a changed fact and is the one meaning-changing edit recognizable without knowing the language. The numeral rule covers every Unicode numeric character, so a superscript, a vulgar fraction or a Roman numeral character counts as much as an ASCII digit; a number written as a word does not, and is left to the review flag.
+  
+  `ReviewReasonCode` is now derived from an exported `REVIEW_REASON_CODES` tuple, so a runtime validator or an exhaustive lookup can be built from the set rather than retyping its members.
+  
+  Scoring needs the source text, which the cache did not store, so `verbatra.cache.json` moves to schema version 2 and gains a `sources` block mapping each content hash to the text it stands for. The file grows by roughly the size of the source corpus. A version 1 cache is carried forward rather than rejected: its translations keep working as exact hits and their source text refills as later runs touch them. Going the other way, a version 1 build reading a version 2 file takes the existing unrecognized-version path, reporting `CACHE_VERSION_UNRECOGNIZED` and leaving the file untouched, so a downgrade costs a cold cache and never a wrong translation.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`2ae0960`](https://github.com/verbatra/verbatra/commit/2ae09606a20961e475018447d18db9a9c12da74e) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add per-key maximum length budgets for translated values.
+  
+  A new optional `maxLength` config key maps a translation key to the longest translated value that
+  key may hold, for a string under a layout constraint: a nav label, a button, a table header. A key
+  absent from the map has no budget and is never measured, so the check costs nothing for a project
+  that configures none.
+  
+  A budget is checked whenever `translate` produces a value for that key: a fresh translation, a
+  value reused from the cache, and a value fanned out to a key that shares its source text. A key
+  already translated and still in step with its source is not retranslated and so is not measured,
+  which means adding budgets to a finished project flags nothing until those keys next change.
+  `export --include-unchanged` recomputes its review columns for every row it writes, so it is how
+  you sweep a catalog that is already translated.
+  
+  `REVIEW_REASON_CODES`, the tuple every reason code is drawn from, is now exported too, so a
+  consumer can build its own validator or exhaustive lookup from it instead of retyping the members.
+  
+  Length is counted in grapheme clusters: the characters a reader perceives, rather than UTF-16 code
+  units or Unicode code points. An emoji assembled from several code points counts as one, and so
+  does a letter followed by a combining accent. The value is measured exactly as written, leading and
+  trailing whitespace included, and the comparison is inclusive, so a value of exactly the budget is
+  not flagged.
+  
+  Going over budget is advisory, not blocking. It surfaces as a new `MAX_LENGTH_EXCEEDED` review
+  reason on the run summary's `needsReview` list, in the workbook's review columns, and through the
+  retranslate flow; the value itself is still written to the locale file and still recorded in the
+  lock file, because a correct translation that overruns a layout budget is more useful than no
+  translation. The reason never enters `integrityMismatches`, which stays reserved for output the
+  integrity gate refuses to write.
+  
+  The budget is read from the config map and nowhere else: it is never derived from an entry's
+  description or from a format's own length metadata, and a misspelled top-level key is rejected at
+  config load rather than silently ignored. A value served from the translation-memory cache, and a
+  value fanned out to a key that shares its source text, are held to their own key's budget rather
+  than the budget of the key that was translated.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`f491ca2`](https://github.com/verbatra/verbatra/commit/f491ca2f121a2c0521bc19c037fd8df41a6ec533) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Turn `budgetBehavior: "stop"` into an enforceable ceiling, and stop the budget being inert for
+  providers that report no usage.
+  
+  `maxTokens` was counted after a sub-batch had already been paid for, so a `stop` run overshot its
+  ceiling by one sub-batch, and it counted nothing at all for DeepL or Google Cloud Translation,
+  which report no token usage. A run now projects each provider request before it is sent, using the
+  same projection the pre-run estimate reports, and under `stop` refuses to send a request that would
+  take the run past `maxTokens`. After every request the count is reconciled to the usage the
+  provider actually reported, because the provider is the authority on what was billed; a request
+  that reported nothing keeps its projection instead of counting zero.
+  
+  The reservation is taken per request actually sent, not per planned batch, so a request that
+  verbatra re-splits after a truncated response has each half checked in turn and a cascade of retries
+  cannot outrun one reservation. A request that fails or comes back truncated keeps its whole
+  projection charged rather than being refunded, because such a call has usually already billed for
+  its prompt, and a report of zero or less is treated as no report at all rather than as a refund.
+  Every projection carries a fixed allowance for the prompt, DeepL and Google Cloud Translation
+  included, so a ceiling below one batch's projection refuses that batch on every run; the refusal
+  notice now says so whenever the refused projection alone is above `maxTokens`, and names lowering
+  `maxBatchSize` or raising `maxTokens` as the way out.
+  
+  A reported figure is normalized before it is counted or added to another request's figure, the
+  halves of a re-split request included: each field is floored at zero and rounded to a whole number,
+  so a negative field can no longer cancel a positive one down below the invoice and a fractional
+  report can no longer produce a run-status file the reader then refuses, which used to lose the whole
+  run record rather than just the budget.
+  
+  What a reservation cannot bound is what happens inside a request it already admitted, and that is
+  documented rather than hidden. The provider layer sends one repair call of its own when keys come
+  back missing, so one admitted batch can cost up to about twice its projection; a request can report
+  more than it was projected to cost; and the count is only as good as what the provider reports. All
+  of it lands at reconciliation, and nothing further is sent once it does. Withheld keys keep their
+  prior lock hash and retry on the next run, exactly as before, so a stopped run leaves no
+  half-written locale file and no lock entry claiming work that was withheld.
+  
+  The ceiling bounds one run, not a session: `watch` starts a fresh budget for each run it triggers,
+  so a watch session can spend up to `maxTokens` again on every source edit. It covers `translate`
+  and nothing else; `retranslateEntry`, reached from the Studio dashboard and the agent tools,
+  constructs its own provider and is not capped by it. Both limits are now stated in the docs and in
+  the published `RunBudget` type rather than left to be inferred.
+  
+  Behavior breaks, both on paths a user opted into:
+  
+  - With `budgetBehavior: "stop"`, a run now gets strictly less work done for the same ceiling, since
+    the sub-batch that used to be paid for and accepted is now withheld. Nothing is lost (withheld
+    keys retry next run), but a single run's output changes. Set `budgetBehavior: "warn"` to keep the
+    previous permissive behavior.
+  - A `maxTokens` set against DeepL or Google Cloud Translation used to do nothing and report itself
+    as unsupported. It is now enforced from an estimated count, so such a run can stop early. Under
+    the default `warn` it still withholds nothing; it only reports a figure where it used to report
+    none.
+  
+  `budgetBehavior` keeps `warn` as its default, so a run that never set it withholds nothing.
+  `RunBudget.supported` keeps its type and changes meaning: it now says whether `tokensUsed` is
+  entirely the provider's own reported usage, rather than whether the budget can be enforced, because
+  the budget is enforced either way. It is `false` as soon as one counted request came back without a
+  usable figure, a failed or truncated request included. The CLI budget line no longer claims a budget
+  is "not supported by this provider"; it prints the counted total, marked estimated when the count is
+  not entirely the provider's, and says a `stop` run that withheld a request while its count was still
+  under the ceiling stopped before the ceiling rather than calling it exceeded. Studio's budget tile
+  and its translations stat strip now show the consumption and the ceiling-reached state for an
+  estimated budget instead of collapsing to an untracked placeholder, and tell a run stopped before
+  its ceiling apart from one that reached it. The `usage.summary` agent tool's description now says
+  where the counted figure came from rather than implying the provider reported it. `@verbatra/sdk`
+  now exports `budgetStanding` and its `BudgetStanding` type, which classify a `RunBudget` as
+  `within`, `stopped-before-ceiling`, or `reached`, so a caller no longer has to derive the difference
+  between the last two from `exceeded`, `behavior`, and the count itself. The CLI budget line derives
+  its wording from it, Studio takes its states from that type, and the `usage.summary` agent tool
+  reports it as a new `budget.standing` field and describes each of the three states. A run with no
+  `maxTokens` configured is unchanged: no projection is computed and no summary field moves.
+  
+  Because `supported: false` used to mean that nothing was counted at all, the run-status snapshot in
+  `.verbatra-local/run-status.json` now carries a marker field saying its budget was counted under the
+  enforced rules, and keeps its version. A snapshot without that marker is still read, but a budget it
+  recorded with `supported: false` is dropped rather than presented as a count of zero, so Studio and
+  the `usage.summary` agent tool no longer show an older DeepL or Google Cloud Translation run as
+  within budget. An older Studio or MCP server ignores the marker and keeps reading the snapshot,
+  review queue and usage included; until it is upgraded, it may show an estimated budget as not
+  tracked. The `usage.summary` description also says that a run which sent no request at all reports
+  `supported: false` with nothing counted, which is no estimate.
+  
+  The refusal to combine `maxTokens` with `--concurrency` above 1 on a live run is deliberately kept.
+  The reservation is taken synchronously, so the ceiling would hold across concurrent locales, but
+  which locale loses its remaining work would depend on the order the locales interleave. That reason
+  now replaces the old claim of a nondeterministic overshoot everywhere it was written: the thrown
+  error, the published `SdkErrorCode` documentation, the SDK README, and the `translate` and `watch`
+  command pages in all four locales.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`eca295f`](https://github.com/verbatra/verbatra/commit/eca295fc24937a91b4064ac909e733ac2e1f15df) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Generate TypeScript declarations for your catalog keys and their message arguments
+  
+  `generateTypes` reads the source catalog through the configured format adapter and writes a declaration file: a union of every key the catalog holds and, per key, the arguments its message interpolates. Type a translation function against it and a misspelled key or a missing interpolation argument becomes a compile error instead of a runtime lookup failure.
+  
+  The new `verbatra types` command runs it, and `verbatra types --check` exits 1 when the committed declaration no longer matches the catalog, which is the shape a CI gate wants. Neither constructs a provider, reads an API key, nor makes a network request.
+  
+  Keys are exactly what the adapter produced, in document order, so two runs over an unchanged catalog write byte-identical bytes. Every key is emitted as a quoted string literal, so one carrying a dot, a reserved word, a leading digit, a quote or nothing at all is declared verbatim. For `next-intl-json` and `arb`, each message is read with the same ICU parser the adapter uses, so an argument only some `select` or `plural` branches use is declared as optional instead of being left out, and one every branch uses stays required. A numbered argument only some branches use becomes an optional trailing tuple position when every position after it is optional too. Arguments are typed by how the message formats them: `plural`, `selectordinal` and `number` declare `number`, ICU `date` and `time` and an i18next `datetime` formatter declare `Date | number`, `select` declares `string`, and a plain argument keeps `string | number`. A name used more than once with different types is declared as the union of what each use accepts, so `{d, date, short}` next to a plain `{d}` declares `Date | number | string`. An i18next unescaped interpolation such as `{{- name}}` is declared as `name`. A message whose syntax the adapter reported as invalid, one that appears to both name and number its arguments, and one whose placeholder index is out of range are all declared with their arguments reported as undetermined rather than silently declared as taking none, and they are not counted among the keys taking arguments.
+  
+  The output path is refused before anything is read or written when it names no file, is absolute, climbs out of the working directory, is not a TypeScript file, or names a locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run actually loaded, including one named with `--config`. A generating run also refuses to replace an existing file that does not begin with the header verbatra writes (ignoring a leading byte order mark and blank lines) or is too large to verify, and leaves it untouched; `--check` only compares.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`54ff539`](https://github.com/verbatra/verbatra/commit/54ff5396426c91d05f82042976ca3e037bca35c5) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add two format adapters: `ini` for classic INI files, and `resx` for .NET XML resource files.
+  
+  `ini` reads one level of `[section]` headers over `key=value` lines, addressed as `section.key`, and guards single-brace placeholders. `resx` reads `<data name>`/`<value>` pairs, carries a `<comment>` across as the entry description, and guards .NET composite format items including alignment and format specifiers.
+  
+  Both write by patching the destination document in place, so comments, spacing, the `.resx` schema preamble, and `.resx` entries holding serialized objects or designer metadata survive untouched.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`47b22da`](https://github.com/verbatra/verbatra/commit/47b22da37106cbfddf077266a66f6880576ed03c) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add pseudolocale generation: a new `pseudolocalize` SDK entry point and a `verbatra pseudo` command that build a fake locale from the source strings alone, so layout truncation and untranslated hardcoded strings show up before any API key exists.
+  
+  Every value is accented, expanded by roughly a third of its translatable length and wrapped in `[` and `]` boundary markers, while placeholders stay untouched in every syntax the shipped adapters recognise, including ICU plural and select arms, markup tags and escape sequences. Each generated value is held to the same integrity gate a provider translation must pass; one that would not pass it is copied from the source verbatim and reported rather than written broken.
+  
+  The run constructs no provider, reads no API key and makes no network request. Output goes to `.verbatra-local/pseudo` by default, which the scaffolded ignore list already covers, and a pseudolocale that names a configured locale or would land on a configured locale file is refused, so `translate` never spends on it and `check` and `diff` never report it as drifted.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`d9d77b4`](https://github.com/verbatra/verbatra/commit/d9d77b408138f024b304631b264d762eabd00f68) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add source string extraction: a new `extract` entry point and `verbatra extract` command that scan
+  your application source for i18next translation call sites and add the keys they find to the source
+  locale catalog, so verbatra now works on a project that has no catalog yet.
+  
+  The run spends nothing: it constructs no provider, reads no API key environment variable, and makes
+  no network request. Only the source locale file is written, and only genuinely new keys are added,
+  so a value already in the catalog is never overwritten. A run that finds nothing new writes nothing
+  at all.
+  
+  Configure it with a new optional `extract` block naming the framework and the source roots. A call
+  site whose key is not a static string, a key found with two conflicting defaults, and a file that
+  could not be read are all reported in the result rather than guessed at or thrown. `--dry-run`
+  previews the additions and `--json` prints the usual envelope.
+  
+  A namespace-qualified key such as `t("common:nav.home")` is reported as dynamic and never written:
+  one config addresses one catalog file, so a project that spells a namespace at every call site gets
+  a run that adds nothing. That limit is the first thing to lift once multi-namespace projects are
+  supported.
+  
+  `SdkFs` gains an optional `readDirectory` member, which is what the scan discovers source files
+  through. It is optional, so an existing `deps.fs` implementation keeps working; `extract` reports a
+  file system without it as `EXTRACT_FS_UNSUPPORTED`.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`9659fff`](https://github.com/verbatra/verbatra/commit/9659fff529d8d6a509947fa3dad68dca11558dba) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Let a format adapter ship outside verbatra.
+  
+  A format is now named either by one of the built-in names or by a `custom:` identifier: a reserved
+  prefix followed by a lowercase, hyphen-separated name, such as `custom:toml`. The built-in set is
+  unchanged and still closed, and no built-in name contains a colon, so a third-party identifier can
+  never shadow one. A config naming a `custom:` format loads; a config naming an unknown bare name is
+  still rejected, and the shape reaches the shipped JSON Schema document as a pattern, so an editor
+  validates it too.
+  
+  Everything needed to build an adapter is now reachable from `@verbatra/sdk` itself:
+  `createFlatFileAdapter` and `createTreeFileAdapter` with their option types, the `AdapterFs`
+  file-system port and `nodeAdapterFs`, `createDefaultRegistry` and `AdapterRegistry`, `AdapterError`
+  and `AdapterErrorCode`, the `FormatAdapter` and `ReadResult` contract, the `FormatId`,
+  `CustomFormatId` and `isCustomFormatId` identity helpers, and the callback and tree types the two
+  options interfaces are written in terms of, so an adapter's own signatures can be given type
+  annotations without redeclaring them. A consumer that depends only on the
+  published package can compile and register an adapter for a format verbatra does not ship, and hand
+  it to any flow through the `adapterRegistry` dependency those flows already accept.
+  
+  Registry behaviour changed in three ways. Registering a second adapter for a format the registry
+  already holds now raises `DUPLICATE_FORMAT` instead of being accepted and shadowed by whichever
+  adapter registered first. An adapter whose `custom:` identifier is malformed is refused with
+  `INVALID_FORMAT_ID` rather than registered without the containment wrapper. And an adapter with a
+  well-formed `custom:` identifier is wrapped so an unexpected throw from any of its contract methods
+  surfaces as `ADAPTER_FAILED` naming the format, rather than as an unattributed stack trace; an
+  `AdapterError` the adapter raised itself and an error carrying an errno code still travel unchanged.
+  
+  The flat-file factory gained the two things the tree factory already had, so an adapter built on it
+  is no longer second-class: an optional `comparePlaceholders`, and the ability to report skipped
+  content by returning `{ entries, excludedLeafPaths }` from `parseEntries` instead of a bare map.
+  Both are additive and every existing implementation keeps compiling. The Android adapter now uses
+  the second one, so a `translatable="false"` resource is reported as excluded rather than dropped
+  silently.
+  
+  A plugin is fully trusted code, at the trust level of any other dependency the project installs.
+  verbatra does not sandbox it, and because the adapter decides what counts as a placeholder, a buggy
+  or hostile one can make the placeholder-integrity check pass vacuously for its format. Loading is
+  never implicit: verbatra discovers nothing on its own, and a plugin is reached only by the
+  project's own code importing it and supplying the registry.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`b5c3afd`](https://github.com/verbatra/verbatra/commit/b5c3afd15b65697c7dad9fed2e4e63179f925e48) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Read and write the translation memory as TMX, the interchange format every mainstream translation
+  platform can produce and consume: `verbatra tmx import <file>` and `verbatra tmx export [file]`,
+  `importTmx` and `exportTmx` from the SDK. A team arriving with years of accumulated memory no longer
+  starts cold, and a team leaving can take theirs.
+  
+  Both directions are keyless and cost nothing. Neither constructs a provider, reads an API key, nor
+  makes a network call: every value comes from the file or from the memory already on disk.
+  
+  An imported file is untrusted third-party XML and is treated as such. Its size is bounded before the
+  parser sees it. The prolog is scanned as a prolog rather than by searching the raw bytes, so the
+  decision about doctypes and entity declarations is made only on the region before the root element
+  and can neither cut payload out of a data section nor refuse a translation that happens to discuss
+  an entity declaration. Every doctype in the prolog is inspected, not just the first; an internal DTD
+  subset or an entity declaration is refused outright, so neither an external entity reference nor an
+  unbounded expansion can be reached; a greater-than inside a system identifier does not end the
+  declaration early; and the bare external doctype that real writers emit is discarded rather than
+  fetched. Unit, language and segment-length bounds are enforced during the walk, the root element
+  must be `tmx` in no namespace or the TMX one, and a well-formedness error the parser reports as
+  non-fatal is treated as fatal, so an undeclared entity reference cannot survive as literal text.
+  
+  A refused file never produces a raw parser error or a hang. `importTmx` throws an `SdkError` with
+  code `SOURCE_INVALID` whose message names the file and what failed, and, when the problem has a
+  place in the file, its line, column and, inside a translation unit, the unit's 1-based ordinal.
+  `tmxErrorLocation(error)` returns the same place as a structured `TmxErrorLocation`, or `undefined`
+  for any other error, so a caller never casts the error or its `cause`. A parser's own description is
+  kept readable, without the nested `Error: ` prefix or a space before the closing period, and
+  `verbatra tmx import` prints that message on its error line and in the `--json` error envelope, so a
+  mismatched closing tag in the second unit and a truncated file are reported as two distinct, located
+  refusals.
+  
+  Nothing lands in the memory unchecked. Every candidate translation passes the same placeholder,
+  inline markup, ICU, degeneracy and emptiness gate that provider output and a filled translator
+  handoff already face,
+  enforced where the record enters the store rather than left to the run that later reads it, so a
+  record that was never validated can never be served as a reuse. A unit whose source segment is blank
+  identifies no string and is refused. Inline markup is flattened to its text, which the placeholder
+  check then catches if the markup carried anything that mattered; the text of a `sub` element, a
+  sub-flow such as a tooltip embedded in that markup, is not part of the segment's string and is left
+  out. Every refusal, skip, flattening and left-out sub-flow is counted and reported. A unit refused
+  for inline markup is counted under `rejected.markup` and `verbatra tmx import` prints a line for
+  those refusals, so a translation memory from another tool cannot slip a tag its source never had
+  (such as an injected `<img onerror>`) into the memory.
+  
+  A language tag resolves against the source locale and every configured target locale at once, by an
+  explicit rule. After lowercasing and folding underscores to hyphens, an exact match wins, so
+  `pt_BR`, `pt-br` and `pt-BR` are one locale. Failing that, a tag resolves onto a configured locale
+  that is a strict subtag prefix of it, and when several are, onto the longest, as RFC 4647 lookup
+  does: a file written in `en-US` lands in a project configured for `en`, and `de-AT-1996` lands on
+  `de-AT` in a project configured for `de` and `de-AT`. A shorter tag widens onto a configured locale
+  that begins with it only when every subtag the locale adds is a region or a variant, never a script,
+  so a file written in `de` lands in a project configured only for `de-DE` while `sr` never lands on
+  `sr-Latn` and `zh` never on `zh-Hant-TW`; a prefix of the tag always takes precedence, and among
+  several longer locales the nearest wins. Two tags whose script or region subtags differ never match,
+  so `zh-CN` is never stored as `zh-TW`, `sr-Latn` never as `sr-Cyrl`, and `de-AT` never as `de-CH`;
+  such a tag is reported as unmatched rather than guessed at, and a tag is reported as ambiguous only
+  when the configured locales it could reach do not lie on one prefix chain. Resolving against the
+  whole configured set in one pass is what keeps a regional target such as `pt-BR` from being taken
+  for the bare `pt` source it extends. Source segments are ranked like target segments: an exact tag
+  outranks a prefix match and identical values agree, so `en` and `en-US` both reading "Save" import
+  normally, while a unit whose equal-ranked source segments carry different values is refused rather
+  than attributed to whichever came last, and a config whose source and one target are the same tag
+  once normalized is refused outright.
+  
+  Two target segments of one unit that resolve to the same configured locale never let the last one
+  silently win. An exact tag always outranks a segment that only reaches the locale by subtag prefix,
+  so `de` beats `de-CH` in a project configured for `de`. Two segments of equal standing that carry
+  different values store nothing for that locale in that unit and are counted per locale as
+  `conflicting`, shown in the human summary and carried in the `--json` result; the unit's other
+  locales still land, and two segments carrying the same value are not a conflict.
+  
+  Tags matching nothing configured are counted per tag, as are units skipped, units with no source
+  segment, units whose markup was flattened, and `tu` elements sitting outside the file's first
+  `body`. A header `srclang` that is not the configured source locale is reported rather than ignored.
+  
+  Imported units are stored under the project's current configuration fingerprint, the same key a real
+  run writes, so an imported memory is reused exactly when the configuration that would consume it
+  matches and stops matching when the provider, model, tone or glossary changes. Where an imported
+  unit disagrees with a translation the project already holds, the project's own translation wins and
+  the imported one is counted as kept; `--overwrite` reverses that. Importing the same file twice
+  therefore changes nothing the second time and writes no file at all.
+  
+  One consequence is stated plainly in the published docs rather than left implicit, because no
+  import-time check can police it: an accepted unit's source text lands in the memory's source index,
+  which is what fuzzy reuse scores a changed string against. An imported source that differs from a
+  project string can therefore be served for it by fuzzy reuse, which is what resemblance means. An
+  imported source that is identical to a project string but hashes differently is not reachable at
+  all: fuzzy reuse discards any candidate whose normalized source equals the query, so a project entry
+  carrying a description, a meaning, or a plural flag that a TMX unit cannot carry falls through to
+  the provider instead. A fuzzy reuse still faces the integrity gate against the real entry and is
+  reported as a `FUZZY_CACHE_REUSE` review flag, so it is visible; a project that does not want an
+  imported memory reachable that way should leave `fuzzyCache` out of its config.
+  
+  Export refuses the same configuration import refuses: a source locale and a target locale that are
+  one tag after normalizing case and separators would produce two language attributes the import could
+  not tell apart, so the file a project exported would be one it could not read back.
+  
+  A narrowed run reports the configured locales it left out, so `--locales de` on a file that also
+  carries French does not read like a file holding less than it does.
+  
+  Export writes one `tu` per distinct source string with the source segment and one target segment per
+  exported locale, escaping segment text so markup inside a value stays data and a carriage return
+  survives a reader's line-ending normalization, and removing the characters XML 1.0 cannot represent
+  at all, lone surrogates and noncharacters included, so the artifact is one a conformant parser
+  accepts. How many characters were removed is returned as `illegalCharactersRemoved` and reported by
+  `verbatra tmx export`. Language tags are written in BCP 47 form whatever spelling the config uses:
+  underscores become hyphens, the language is lowercase, a script is title case and a region
+  uppercase, so a project configured for `en_US` and `pt_BR` writes `srclang="en-US"` and
+  `xml:lang="pt-BR"`, and that file re-imports into the same config unchanged. How verbatra keys its
+  memory is not affected. An empty memory produces a valid, empty TMX file rather than an error. The
+  cache schema is unchanged: export reads the source text the memory already stores beside each entry,
+  and an entry carried forward from a cache written before that block existed is left out and counted
+  rather than written without a source.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`6dec4dd`](https://github.com/verbatra/verbatra/commit/6dec4dda4a03706b769bc4abef8161963eb88ab8) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Add `verbatra doctor --literals`, a keyless lint that flags hardcoded user-facing strings that never
+  made it into a translation catalog.
+  
+  It scans the source roots of the `extract` block and reports every JSX text node, user-facing JSX
+  attribute (`alt`, `title`, `placeholder`, `label`, `aria-label` and similar), and prose-like string
+  literal that does not go through a recognised translation call. Each finding carries its file, line,
+  and column, and its text has whitespace collapsed, JSX character references such as `&amp;` decoded,
+  and is cut to at most 80 characters. The scan prefers staying quiet to being noisy: a literal passed
+  to `t()` (also when renamed, as in `const { t: translate } = useTranslation()`, from that
+  declaration to the end of its block) or rendered inside `<Trans>` or `<Translation>`, an object key,
+  an import specifier, a class name or CSS value, a test id or `data-*` attribute, an attribute that
+  holds ids or a keyword (`aria-describedby`, `aria-labelledby`, `rel`, `sandbox`, `autoComplete`,
+  `referrerPolicy` and similar), a URL, a literal in a type position (including one after `as` or
+  `satisfies`), a logging message, the message of a constructed error (`new ValidationError(...)`) or
+  of a built-in error called without `new` (`throw Error(...)`), a comparison operand, a literal with
+  no letters, and test, story, declaration and config files are never reported, and a single word
+  outside JSX is not reported either. The direct string arguments (a string that is a whole argument
+  on its own) of `describe`, `query`, `execute`, `prepare`, `format`, and `parse`, the string elements
+  of the array passed directly to `z.enum`, every string argument of `setItem`, `getItem`, and
+  `removeItem`, and the first argument of `on`, `off`, `once`, `emit`, `addEventListener`, and a
+  member `get` or `set` call, are skipped too. A string nested deeper inside one of those calls, such
+  as in a callback, an object, or JSX, is still checked. A function that only ends in `Error`, such as
+  `setError`, is still checked.
+  
+  A `// verbatra-ignore-next-line` or `// verbatra-ignore-line` comment (also as `{/* ... */}` in JSX)
+  holds a literal back at the call site. A next-line directive targets the next line that holds code
+  (blank and comment-only lines are skipped) and covers what starts on that line, plus every attribute
+  of a JSX opening tag that starts there, even across lines; text and nested elements on later lines
+  need their own directive. The new optional `extract.literals.ignore` list holds exact texts back
+  project-wide, matched against the text as reported (whitespace collapsed, character references
+  decoded). Held-back literals are still listed, under `suppressed`, with the reason.
+  
+  The lint reads source and never writes it, constructs no provider, reads no API key environment
+  variable, and loads no `.env` file, so it passes with no key set. In this mode `doctor` runs the
+  config check and the literal check only. It exits `0` when nothing was found, `1` when a literal was
+  found or a file could not be scanned (a file the scanner cannot read to the end, such as one with an
+  unterminated comment or template literal, or with a JSX element that never closes or is closed by an
+  enclosing element's tag, is a diagnostic, never a silent pass; a generic function type such as
+  `<T>(x: T) => T` or a type parameter list such as `<const T = "a">(x: T) => x` in a `.tsx` file is
+  read as code and never fails the file, and type arguments of any length on an element are skipped),
+  and `2` when it cannot run. `--json` prints the usual envelope with the scan under
+  `result.literals`. `doctor({ literals: true })` is the SDK entry point, and `DoctorResult.literals`
+  carries the same data.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`21cd75f`](https://github.com/verbatra/verbatra/commit/21cd75f32a5bc9c686d8fcf5ba07ff23a348c429) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Report source-catalog keys that your application source no longer references:
+  `verbatra diff --unused`, backed by `diff({ config, unused: true })`, scans the source roots named
+  by the `extract` block and adds an `unused` report to the diff summary.
+  
+  The report is a separate axis from each locale's `orphaned` list: a key is orphaned when a target
+  locale still carries it after it left the source catalog, and unused when the source catalog still
+  carries it after the code stopped naming it. The two lists are never merged, and an unused key
+  never flips `hasPendingChanges`.
+  
+  It is read-only like the rest of `diff`: it never removes, rewrites, or reorders a catalog, it
+  constructs no provider, and it reads no API key environment variable.
+  
+  The scan models the i18next runtime. A key counts as referenced when a `t` call names it, including
+  a call through a `t` alias (`const { t: translate } = useTranslation()`, `const tr = i18n.t`), a
+  `Trans` element's static `i18nKey`, a namespace-qualified key (`common:nav.home`) or a
+  natural-language key (`Loading...`), a key under a static `keyPrefix` option or `getFixedT` prefix,
+  every key of a static key array (`t(["a", "b"])`), and a plural or context variant of any of those.
+  Keys are compared in the catalog format's own encoding, so a flat dotted JSON key, a gettext plural
+  or `msgctxt` entry, and an Android plural all match the key your code names.
+  
+  The report is `complete` only when the scan can bound every key the source reaches:
+  
+  - A template-literal key with a static head (`` t(`nav.${page}`) ``) lists the keys under that head
+    as `possiblyDynamic`, apart from `unused`.
+  - A fully dynamic key, a non-literal key prefix, a `Trans` element without a static `i18nKey`, `t`
+    assigned to something other than a plain variable, template files the scan does not read
+    (`.vue`, `.svelte`, `.html`, and similar), or a file it could not read make the report
+    `unreliable`, with each reason and its sites.
+  - The scan only trusts translate functions it sees being created in a recognised shape: a local
+    `const { t } = useTranslation(...)` with static arguments, a local `getFixedT(...)` with static
+    arguments (a named language such as `i18n.language` may come first), a direct `i18n.t(...)` call
+    or local `i18n.t` alias, a `t` destructured from the instance in a local, non-exported
+    declaration (`const { t } = i18next`, `const { t: tr } = i18n`), a `Translation` render prop,
+    `withTranslation("ns")(Component)`, or `import { t } from "i18next"`. Any other use of those
+    sources (a wrapper hook, options passed by name, an exported `getFixedT` result, `t` destructured
+    from a member of the instance, with a default value, or in an exported declaration) is reported
+    as `unrecognised-translate-source`, and a
+    translate function used anywhere but a direct call, its own binding, a local alias, the `t={t}`
+    attribute of `Trans` or `Translation`, or a React hook dependency array (for example passed as an
+    argument, exported, or used in a ternary) is reported as `translate-function-escapes`. Every
+    binding named `t` or `$t` is checked this way, whatever it is bound from: a function parameter
+    named `t` is fine while it is only called, and a `t` declared or destructured from anything
+    unrecognised is `unrecognised-translate-source`. Both reasons make the report `unreliable`.
+  - The report is `not-run`, with a reason code and no key list, when there is no `extract` block, the
+    format is `next-intl-json`, `vue-i18n-json`, or `ngx-translate-json` (runtimes the scan does not
+    model), there is no source file under the roots, or the scanned files reference no key at all.
+  
+  Each listed key carries its decoded `key` (`Welcome. Enjoy`) and its `catalogKey` as the adapter
+  spells it. A new optional `extract.unused.ignore` list excludes keys referenced only from outside
+  the scanned source, such as a server template, a CMS, or a test fixture. Each entry is an exact
+  decoded key or a pattern in which `*` matches any run of characters. An excluded key is listed under
+  `ignored`, never dropped silently. The field is part of the shipped config JSON Schema.
+  
+  `diff --unused` exits `1` when anything is pending or a `complete` scan lists at least one unused
+  key. Possibly dynamic keys, ignored keys, and an `unreliable` or `not-run` report never produce exit
+  `1` on their own. `--json` carries the whole report inside the usual `diff` envelope. Without
+  `--unused`, `diff` scans nothing and behaves exactly as before.
+  
+  The source scan behind `verbatra extract` and the unused-key report reads a regular expression
+  after a `<` operator correctly while keeping a JSX closing tag as markup.
+  
+  A `${...}` substitution inside a template literal is read by the same token scanner as the rest of
+  the file, so a regular expression inside it (as in `` `"${v.replace(/"/g, '""')}"` ``) is
+  recognised by the same rule, including its character classes, escapes, and flags, and a quote, a
+  backtick, `//`, `/*`, or a brace inside that regular expression never starts a string, template,
+  comment, or block. Templates nested inside substitutions are read without recursion and in time
+  proportional to the nesting depth, so deeply nested templates cannot exhaust the stack, and a line
+  continuation (a backslash at the end of a line) in a template nested inside another template's
+  substitution does not shift the line reported for any call site after it.
+  
+  In a `.tsx`, `.jsx`, or `.js` file, the same scan now reads JSX text and quoted attribute values as
+  markup rather than as code, so an apostrophe in them (`<p>Don't worry</p>`) never hides a call,
+  never pairs with another apostrophe to swallow the code between, and a word such as `t` in them
+  never counts as a use of the translate function. Such a file whose JSX element never closes, or
+  whose quoted string in code runs into the end of its line, is reported as an `unparseable`
+  diagnostic by `verbatra extract` and makes the unused-key report `unreliable` with
+  `incomplete-scan`, rather than being judged from a partial reading. `.ts`, `.mts`, `.cts`,
+  `.mjs`, and `.cjs` files are read as code only, as before.
+
+### Patch Changes
+
+- [#228](https://github.com/verbatra/verbatra/pull/228) [`1be14b0`](https://github.com/verbatra/verbatra/commit/1be14b029feada82394833490a70a3aa087f32db) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Rewrite the README each package publishes to npm.
+  
+  Every package now carries the same header (mark, name, its own one-sentence description, its own
+  version badge and no other package's), absolute image URLs so the artwork renders on npmjs.com, and
+  no relative links, which never resolve there.
+  
+  The bodies drop the reference material the documentation site owns and would drift from: the
+  configuration schema, the exit-code contract, and the per-provider key table are links now. What is
+  left is what a reader on the package page needs. `@verbatra/cli` carries the command table derived
+  from its own command registrations, one line each and no flags. `@verbatra/sdk` caps its API
+  reference at what the built `dist/index.d.ts` actually declares. `@verbatra/studio` gains a
+  screenshot of the dashboard and states the loopback bind and the `--allow-spend` gate up front.
+  `@verbatra/mcp` gains the full thirteen-tool table and names the two tools the spend gate hides.
+  
+  No runtime behavior changes.
+
+- [#226](https://github.com/verbatra/verbatra/pull/226) [`3ca4396`](https://github.com/verbatra/verbatra/commit/3ca4396d64ddc7d6d416cacbe1c6b12847d783d7) Thanks [@dependabot](https://github.com/apps/dependabot)! - Refresh runtime dependencies that reach consumers of the published packages.
+  
+  - `@verbatra/sdk`: bundled provider SDKs `@anthropic-ai/sdk` 0.125.0 -> 0.127.0, `@google/genai`
+    2.22.0 -> 2.23.0 and `openai` 7.15.0 -> 7.19.0, plus
+    `@formatjs/icu-messageformat-parser` 3.5.17 -> 3.5.19 for ICU parsing and `yaml` 2.9.0 -> 2.9.1
+    for the YAML format adapter.
+  - `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/mcp` and `@verbatra/studio`: `zod` 4.6.2 -> 4.6.5.
+  
+  No behavior change is intended. Every bump is a minor or patch release of the dependency, and the
+  JSON Schemas derived from zod (the shipped `config-schema.json`, the MCP tool input and output
+  schemas, the Studio agent tool schemas and the provider response schema) are unchanged.
+
+- [#221](https://github.com/verbatra/verbatra/pull/221) [`3709eff`](https://github.com/verbatra/verbatra/commit/3709eff773e3e7c23ba6f4bf1a2b9f3fe999b1a2) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Refresh runtime dependencies that reach consumers of the published packages.
+  
+  - `@verbatra/sdk`: bundled provider SDKs `@anthropic-ai/sdk` 0.122.0 -> 0.125.0, `@google/genai`
+    2.19.0 -> 2.22.0 and `openai` 7.8.0 -> 7.15.0, plus `jszip` 3.10.1 -> 3.10.2 for workbook
+    interchange.
+  - `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/mcp` and `@verbatra/studio`: `zod` 4.5.1 -> 4.6.2.
+  
+  No behavior change is intended. The JSON Schemas derived from zod (the shipped
+  `config-schema.json`, the MCP tool input and output schemas, the Studio agent tool schemas and the
+  provider response schema) are byte-identical under both zod versions.
+- Updated dependencies [[`3239884`](https://github.com/verbatra/verbatra/commit/3239884a88eeee61a86efe1a45350d6e6f81f043), [`15264b6`](https://github.com/verbatra/verbatra/commit/15264b678afea41cc92fe51408af5318f89b2a93), [`784889f`](https://github.com/verbatra/verbatra/commit/784889f6dc08c1e56a4a7751bb135d7422f9b021), [`769c651`](https://github.com/verbatra/verbatra/commit/769c6510c4c4d10913175a172302c8ac92314c78), [`d4568f7`](https://github.com/verbatra/verbatra/commit/d4568f7a68b7c08efd2223ee122b706a978dd2dc), [`2f496aa`](https://github.com/verbatra/verbatra/commit/2f496aa8b4eda81a01482b75f26bb645448da82f), [`2ae0960`](https://github.com/verbatra/verbatra/commit/2ae09606a20961e475018447d18db9a9c12da74e), [`f491ca2`](https://github.com/verbatra/verbatra/commit/f491ca2f121a2c0521bc19c037fd8df41a6ec533), [`eca295f`](https://github.com/verbatra/verbatra/commit/eca295fc24937a91b4064ac909e733ac2e1f15df), [`54ff539`](https://github.com/verbatra/verbatra/commit/54ff5396426c91d05f82042976ca3e037bca35c5), [`47b22da`](https://github.com/verbatra/verbatra/commit/47b22da37106cbfddf077266a66f6880576ed03c), [`1be14b0`](https://github.com/verbatra/verbatra/commit/1be14b029feada82394833490a70a3aa087f32db), [`3ca4396`](https://github.com/verbatra/verbatra/commit/3ca4396d64ddc7d6d416cacbe1c6b12847d783d7), [`3709eff`](https://github.com/verbatra/verbatra/commit/3709eff773e3e7c23ba6f4bf1a2b9f3fe999b1a2), [`d9d77b4`](https://github.com/verbatra/verbatra/commit/d9d77b408138f024b304631b264d762eabd00f68), [`9659fff`](https://github.com/verbatra/verbatra/commit/9659fff529d8d6a509947fa3dad68dca11558dba), [`b5c3afd`](https://github.com/verbatra/verbatra/commit/b5c3afd15b65697c7dad9fed2e4e63179f925e48), [`6dec4dd`](https://github.com/verbatra/verbatra/commit/6dec4dda4a03706b769bc4abef8161963eb88ab8), [`21cd75f`](https://github.com/verbatra/verbatra/commit/21cd75f32a5bc9c686d8fcf5ba07ff23a348c429)]:
+  - @verbatra/sdk@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes
