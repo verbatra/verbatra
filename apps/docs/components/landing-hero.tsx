@@ -52,18 +52,25 @@ export async function LandingHero(): Promise<ReactNode> {
             <div className="mt-7">
               <PackageInstall />
             </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Button
                 href={localizedPath(locale, "/docs/your-first-translation")}
                 variant="primary"
                 size="lg"
               >
-                {t("ctaQuickstart")}
+                {t("ctaStart")}
               </Button>
-              <Button href={GITHUB_URL} variant="secondary" size="lg">
-                <GithubIcon size={18} />
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex min-h-11 items-center gap-2 font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]"
+                data-umami-event="outbound-link"
+                data-umami-event-target="github"
+              >
+                <GithubIcon size={16} />
                 {t("ctaGithub")}
-              </Button>
+              </a>
             </div>
           </div>
 

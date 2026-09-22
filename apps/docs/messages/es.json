@@ -10,9 +10,10 @@
     },
     "hero": {
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra es una CLI y un SDK que mantiene tus archivos de locale i18n sincronizados. Tú mantienes el locale de origen; verbatra rellena todos los demás locales a través del proveedor de IA que elijas.",
+      "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas, y deja todas las demás claves intactas.",
       "ctaQuickstart": "Lee la guía de inicio rápido",
-      "ctaGithub": "Danos una estrella en GitHub"
+      "ctaGithub": "Danos una estrella en GitHub",
+      "ctaStart": "Empezar"
     },
     "terminal": {
       "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",

@@ -10,9 +10,10 @@
     },
     "hero": {
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "verbatra ist ein CLI und SDK, das deine i18n-Locale-Dateien synchron hält. Du pflegst die Quell-Locale; es füllt jede weitere Locale über den KI-Anbieter, den du wählst.",
+      "lead": "verbatra vergleicht deine Quell-Locale mit der eingecheckten Lock-Datei, sendet nur die neuen und geänderten Schlüssel an den von dir gewählten Anbieter und lässt jeden anderen Schlüssel unberührt.",
       "ctaQuickstart": "Zum Schnellstart",
-      "ctaGithub": "Stern auf GitHub"
+      "ctaGithub": "Stern auf GitHub",
+      "ctaStart": "Leg los"
     },
     "terminal": {
       "sessionLabel": "Eine Beispielsitzung von verbatra auf der Kommandozeile.",
