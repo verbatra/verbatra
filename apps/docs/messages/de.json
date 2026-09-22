@@ -34,15 +34,16 @@
     },
     "install": {
       "tablistLabel": "Paketmanager",
-      "copy": "kopieren",
-      "copied": "kopiert",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
       "copyAria": "Installationsbefehl kopieren",
       "pnpmNote": "pnpm installiert korrekt, beendet sich aber mit 1 und ERR_PNPM_IGNORED_BUILDS, weil es die Installationsskripte einer Abhängigkeit sperrt. Führe einmal pnpm approve-builds aus, oder siehe",
       "pnpmNoteLink": "Fehlerbehebung",
       "copyPromptAria": "Kopiere die Einrichtungsaufforderung für den KI-Agenten",
       "aiTabLabel": "KI",
       "aiCaption": "Dies ist eine gekürzte Vorschau. Lies die vollständige Aufforderung und die Einrichtungsanleitung auf",
-      "aiCaptionLink": "der Einrichtungsanleitung"
+      "aiCaptionLink": "der Einrichtungsanleitung",
+      "copyCommand": "{command} kopieren"
     },
     "gate": {
       "rows": {
@@ -172,7 +173,6 @@
       "skipToContent": "Zum Inhalt springen"
     },
     "proof": {
-      "copyCommand": "{command} kopieren",
       "lock": {
         "body": "Ein Hash pro Schlüssel und Locale, eingecheckt neben deinen Dateien.",
         "title": "Die Lock-Datei"

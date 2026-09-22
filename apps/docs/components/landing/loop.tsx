@@ -1,9 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
-import CommandLine from "@/components/ui/command-line";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { CommandBox } from "./command-box";
 import { SKILLS_REPO_URL } from "./links";
 import { Reveal } from "./reveal";
 import { Section } from "./section";
@@ -19,9 +19,10 @@ const EXCEL_ROWS = [
 ] as const;
 
 const CHECK_JSON_EXCERPT = [
-  '{ "command": "check", "result": { "inSync": false, "locales": [',
-  '    { "locale": "de", "missing": 0, "stale": 2, "upToDate": 257, "inSync": false }',
-  "] } }",
+  '{ "command": "check",',
+  '  "result": { "inSync": false, "locales": [',
+  '    { "locale": "de", "missing": 0, "stale": 2 }',
+  "  ] } }",
 ];
 
 const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -y`;
@@ -78,6 +79,10 @@ function Row({
 
 export async function Loop(): Promise<ReactNode> {
   const t = await getTranslations("landing.loop");
+  const tInstall = await getTranslations("landing.install");
+  const box = (command: string) => (
+    <CommandBox command={command} label={tInstall("copyCommand", { command })} />
+  );
   const locale = (await getLocale()) as Locale;
   const docs = (path: string) => localizedPath(locale, path);
   const codeTags = {
@@ -100,8 +105,8 @@ export async function Loop(): Promise<ReactNode> {
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
-              <CommandLine command="verbatra export" />
-              <CommandLine command="verbatra import translations.xlsx" />
+              {box("verbatra export")}
+              {box("verbatra import translations.xlsx")}
             </div>
             <table className="w-full border-t border-fd-border font-mono text-[13px]">
               <thead>
@@ -137,7 +142,12 @@ export async function Loop(): Promise<ReactNode> {
           href={docs("/docs/review-in-studio")}
           flip
         >
-          <StudioScreenshot shot="review" alt={t("rows.studio.alt")} />
+          <StudioScreenshot
+            shot="review"
+            alt={t("rows.studio.alt")}
+            elevated={false}
+            className="my-0"
+          />
         </Row>
 
         <Row
@@ -147,9 +157,7 @@ export async function Loop(): Promise<ReactNode> {
           href={docs("/docs/ci-and-exit-codes")}
         >
           <Frame>
-            <div className="p-5">
-              <CommandLine command="verbatra check --json" />
-            </div>
+            <div className="p-5">{box("verbatra check --json")}</div>
             <pre
               className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-[13px] leading-relaxed text-fd-muted-foreground"
               style={{ background: "var(--v-void)" }}
@@ -168,8 +176,8 @@ export async function Loop(): Promise<ReactNode> {
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
-              <CommandLine command={SKILL_INSTALL} />
-              <CommandLine command="verbatra mcp" />
+              {box(SKILL_INSTALL)}
+              {box("verbatra mcp")}
             </div>
             <p className="flex flex-wrap gap-x-5 gap-y-2 px-5 pb-5 text-sm">
               <a href="/llms.txt" className={LINK_CLASS}>

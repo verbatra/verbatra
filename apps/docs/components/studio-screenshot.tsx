@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { TabList } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 const SHOTS = {
   review: { width: 2880, height: 1200 },
@@ -12,7 +13,7 @@ const SHOTS = {
 
 const THEMES = ["dark", "light"] as const;
 
-const TAB_CLASS = "rounded px-2.5 py-1 text-xs transition-colors";
+const TAB_CLASS = "rounded-md px-2.5 py-1 text-xs transition-colors";
 
 export type StudioShot = keyof typeof SHOTS;
 
@@ -21,6 +22,8 @@ export type StudioScreenshotProps = {
   alt: string;
   caption?: string;
   priority?: boolean;
+  elevated?: boolean;
+  className?: string;
 };
 
 export function StudioScreenshot({
@@ -28,16 +31,21 @@ export function StudioScreenshot({
   alt,
   caption,
   priority = false,
+  elevated = true,
+  className,
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
   const [theme, setTheme] = useState<(typeof THEMES)[number]>("dark");
   const { width, height } = SHOTS[shot];
 
   return (
-    <figure className="not-prose my-8">
+    <figure className={cn("not-prose my-8", className)}>
       <div
         className="overflow-hidden rounded-xl border border-fd-border"
-        style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
+        style={{
+          background: "var(--surface-card)",
+          boxShadow: elevated ? "var(--shadow-panel)" : undefined,
+        }}
       >
         <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
           <span className="font-mono text-xs tracking-wide text-fd-muted-foreground">
@@ -50,6 +58,7 @@ export function StudioScreenshot({
             ariaLabel={t("tablistLabel")}
             className="flex gap-1"
             tabClassName={TAB_CLASS}
+            variant="pill"
           />
         </div>
         <Image

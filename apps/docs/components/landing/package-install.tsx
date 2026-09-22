@@ -4,12 +4,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { HighlightedCommand } from "@/components/ui/command-line";
+import { CopyButton } from "@/components/ui/copy-button";
 import { TabList } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { trackUmamiEvent } from "@/lib/umami";
-import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { NPM_CLI } from "./links";
 
@@ -21,62 +21,39 @@ const MANAGERS = [
 ] as const;
 
 const AI_TAB_ID = "ai" as const;
-type ActiveTab = (typeof MANAGERS)[number]["id"] | typeof AI_TAB_ID;
+type ManagerId = (typeof MANAGERS)[number]["id"];
+type ActiveTab = ManagerId | typeof AI_TAB_ID;
 
 const CLI_TOKEN = "@verbatra/cli";
-const WINDOW_DOTS = ["#ff5f56", "#ffbd2e", "#27c93f"] as const;
-const TAB_CLASS = "rounded px-3 py-1.5 font-mono text-xs lowercase transition-colors";
+const TAB_CLASS = "rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors";
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 const HINT_LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]";
 
-type BubbleVariant = "desktop" | "mobile";
-
-const BUBBLE_WRAPPER_CLASS: Record<BubbleVariant, string> = {
-  desktop:
-    "z-20 hidden lg:absolute lg:left-full lg:top-1/2 lg:block lg:w-60 lg:-translate-y-1/2 lg:ml-3",
-  mobile: "lg:hidden",
-};
-
-function HintBubble({
-  variant,
+function Hint({
   activeKey,
   hint,
   reduced,
 }: {
-  variant: BubbleVariant;
   activeKey: string;
   hint: ReactNode | null;
   reduced: boolean;
 }): ReactNode {
-  const offset = variant === "desktop" ? { x: -8 } : { y: -8 };
   return (
-    <div className={BUBBLE_WRAPPER_CLASS[variant]} aria-live="polite">
+    <div aria-live="polite">
       <AnimatePresence mode="wait">
         {hint ? (
-          <motion.div
+          <motion.p
             key={activeKey}
-            className={cn("relative isolate", variant === "mobile" && "mt-3")}
-            initial={reduced ? false : { opacity: 0, ...offset }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, ...offset }}
+            className="mt-3 text-[13px] leading-relaxed text-fd-muted-foreground"
+            initial={reduced ? false : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -4 }}
             transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
           >
-            {variant === "desktop" ? (
-              <span
-                aria-hidden="true"
-                className="-z-10 absolute left-0 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-l border-fd-border"
-                style={{ background: "var(--surface-card)" }}
-              />
-            ) : null}
-            <div
-              className="rounded-xl border border-fd-border px-3 py-2.5 text-[13px] leading-relaxed text-fd-muted-foreground"
-              style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
-            >
-              {hint}
-            </div>
-          </motion.div>
+            {hint}
+          </motion.p>
         ) : null}
       </AnimatePresence>
     </div>
@@ -87,7 +64,6 @@ export function PackageInstall(): ReactNode {
   const t = useTranslations("landing.install");
   const locale = useLocale() as Locale;
   const [active, setActive] = useState<ActiveTab>("npm");
-  const [copied, copy] = useCopyToClipboard();
   const reduced = useReducedMotionPreference();
   const isAiTab = active === AI_TAB_ID;
   const manager = MANAGERS.find((m) => m.id === active) ?? MANAGERS[0];
@@ -110,89 +86,72 @@ export function PackageInstall(): ReactNode {
       </>
     ) : null;
 
+  const trackCopy = () => {
+    if (isAiTab) {
+      trackUmamiEvent("copy-ai-prompt");
+    } else {
+      trackUmamiEvent("copy-install-command", { manager: active });
+    }
+  };
+
   return (
     <div className="vk-w-install not-prose w-full">
-      <div className="relative">
-        <div
-          className="overflow-hidden rounded-xl border border-fd-border"
-          style={{ background: "var(--surface-card)", boxShadow: "var(--shadow-panel)" }}
-        >
-          <div className="flex items-center gap-3 border-b border-fd-border px-4 py-2.5">
-            <span className="flex gap-1.5" aria-hidden="true">
-              {WINDOW_DOTS.map((color) => (
-                <span
-                  key={color}
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: color }}
-                />
-              ))}
-            </span>
-            <TabList
-              tabs={MANAGERS}
-              active={active}
-              onSelect={(id) => setActive(id as (typeof MANAGERS)[number]["id"])}
-              ariaLabel={t("tablistLabel")}
-              className="flex"
-              tabClassName={TAB_CLASS}
-            />
-            <button
-              type="button"
-              aria-pressed={isAiTab}
-              onClick={() => setActive(AI_TAB_ID)}
-              className={cn(
-                TAB_CLASS,
-                "ml-auto border-l border-fd-border pl-3",
-                isAiTab
-                  ? "text-fd-foreground"
-                  : "text-fd-muted-foreground hover:text-fd-foreground",
-              )}
-              style={isAiTab ? { boxShadow: "inset 0 -2px 0 var(--v-glow)" } : undefined}
-            >
-              {t("aiTabLabel")}
-            </button>
-          </div>
-          <div
-            className="flex items-center gap-3 px-4 py-3 font-mono text-sm"
-            style={{ background: "var(--surface-bg)" }}
-          >
-            {isAiTab ? null : (
-              <span aria-hidden="true" style={{ color: "var(--v-glow)" }}>
-                $
-              </span>
+      <div
+        className="overflow-hidden rounded-xl border border-fd-border backdrop-blur-[6px]"
+        style={{ background: "color-mix(in srgb, var(--v-void) 72%, transparent)" }}
+      >
+        <div className="flex items-center gap-1 border-b border-fd-border px-2 py-1.5">
+          <TabList
+            tabs={MANAGERS}
+            active={active}
+            onSelect={(id) => setActive(id as ManagerId)}
+            ariaLabel={t("tablistLabel")}
+            className="flex gap-1"
+            tabClassName={TAB_CLASS}
+            variant="pill"
+          />
+          <button
+            type="button"
+            aria-pressed={isAiTab}
+            onClick={() => setActive(AI_TAB_ID)}
+            className={cn(
+              TAB_CLASS,
+              "ml-auto",
+              isAiTab
+                ? "bg-[color:var(--surface-card)] text-fd-foreground"
+                : "text-fd-muted-foreground hover:text-fd-foreground",
             )}
-            <code
-              aria-hidden={isAiTab || undefined}
-              className={cn("text-fd-foreground", isAiTab && "block min-w-0 flex-1 truncate")}
-            >
-              {isAiTab ? (
-                commandText
-              ) : (
-                <HighlightedCommand
-                  command={commandText}
-                  link={{ token: CLI_TOKEN, href: NPM_CLI }}
-                />
-              )}
-            </code>
-            <button
-              type="button"
-              onClick={() => {
-                copy(commandText);
-                if (isAiTab) {
-                  trackUmamiEvent("copy-ai-prompt");
-                } else {
-                  trackUmamiEvent("copy-install-command", { manager: active });
-                }
-              }}
-              aria-label={isAiTab ? t("copyPromptAria") : t("copyAria")}
-              className="ms-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-fd-border px-2 py-1 text-xs text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground sm:min-h-6 sm:min-w-0"
-            >
-              {copied ? t("copied") : t("copy")}
-            </button>
-          </div>
+          >
+            {t("aiTabLabel")}
+          </button>
         </div>
-        <HintBubble variant="desktop" activeKey={active} hint={hint} reduced={reduced} />
+        <div className="flex items-center gap-3 px-3.5 py-3 font-mono text-sm">
+          {isAiTab ? null : (
+            <span aria-hidden="true" style={{ color: "var(--v-glow)" }}>
+              $
+            </span>
+          )}
+          <code
+            aria-hidden={isAiTab || undefined}
+            className="vk-scroll min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-fd-foreground"
+          >
+            {isAiTab ? (
+              commandText
+            ) : (
+              <HighlightedCommand
+                command={commandText}
+                link={{ token: CLI_TOKEN, href: NPM_CLI }}
+              />
+            )}
+          </code>
+          <CopyButton
+            text={commandText}
+            label={isAiTab ? t("copyPromptAria") : t("copyAria")}
+            onCopied={trackCopy}
+          />
+        </div>
       </div>
-      <HintBubble variant="mobile" activeKey={active} hint={hint} reduced={reduced} />
+      <Hint activeKey={active} hint={hint} reduced={reduced} />
     </div>
   );
 }

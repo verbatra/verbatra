@@ -665,3 +665,11 @@ figure.shiki {
     transition: none;
   }
 }
+
+.vk-scroll {
+  scrollbar-width: none;
+}
+
+.vk-scroll::-webkit-scrollbar {
+  display: none;
+}
