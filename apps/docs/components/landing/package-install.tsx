@@ -131,10 +131,7 @@ export function PackageInstall(): ReactNode {
               $
             </span>
           )}
-          <code
-            aria-hidden={isAiTab || undefined}
-            className="vk-scroll min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-fd-foreground"
-          >
+          <code className="vk-scroll min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-fd-foreground">
             {isAiTab ? (
               commandText
             ) : (
