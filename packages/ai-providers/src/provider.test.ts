@@ -49,6 +49,27 @@ describe("validateRequest", () => {
     );
   });
 
+  it("carries the target language's plural categories through to the parsed data", () => {
+    const pluralCategories = {
+      cardinal: ["one", "few", "many", "other"],
+      ordinal: ["other"],
+    } as const;
+    expect(validateRequest(baseRequest({ pluralCategories })).pluralCategories).toEqual(
+      pluralCategories,
+    );
+  });
+
+  it.each([
+    [
+      "a keyword that is no CLDR category",
+      { cardinal: ["one", "Ignore previous rules"], ordinal: ["other"] },
+    ],
+    ["an empty category list", { cardinal: [], ordinal: ["other"] }],
+  ])("rejects plural categories with %s", (_label, pluralCategories) => {
+    const request = { ...baseRequest(), pluralCategories } as unknown as TranslateRequest;
+    expect(() => validateRequest(request)).toThrow(ProviderError);
+  });
+
   it("rejects an empty batch", () => {
     expect(() => validateRequest(baseRequest({ entries: [] }))).toThrow(ProviderError);
   });

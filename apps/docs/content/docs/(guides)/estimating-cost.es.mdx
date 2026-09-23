@@ -48,7 +48,7 @@ Una petición a un LLM lleva cuatro cosas. Una escala con tu número de claves, 
 
 | Parte | Escala con | Tamaño aproximado |
 | --- | --- | --- |
-| Reglas del sistema | nada: constante por petición | ~250 tokens |
+| Reglas del sistema | nada: constante por petición | ~350 tokens |
 | Esquema de salida | nada: constante por petición | ~100 tokens |
 | Carga de items | claves del sublote, más el glosario y el tono | clave + valor + ~21 caracteres de JSON, por item |
 | Respuesta | claves del sublote | clave + valor traducido + ~21 caracteres de JSON, por item |
@@ -150,10 +150,10 @@ Sustituye cada suposición de este bloque por tus propios números.
 
 | | |
 | --- | --- |
-| Reglas del sistema | 250 |
+| Reglas del sistema | 350 |
 | Esquema de salida | 100 |
 | (50 items x (20 + 40 + ~21 de JSON) caracteres + ~50 de envoltura) / 4 | 1.038 |
-| **Total** | **~1.388** |
+| **Total** | **~1.488** |
 
 **Tokens de salida por petición**
 
@@ -161,11 +161,11 @@ Sustituye cada suposición de este bloque por tus propios números.
 
 **Totales para 3 locales**
 
-- Entrada: 24 x 1.388 = **~33.312 tokens**
+- Entrada: 24 x 1.488 = **~35.712 tokens**
 - Salida: 24 x 1.280 = **~30.720 tokens**
-- Coste: (33.312 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0033 + $0.0123 = **unos 1,6 centavos**
+- Coste: (35.712 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0036 + $0.0123 = **unos 1,6 centavos**
 
-Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 350 = 8.400 de los 33.312 tokens de entrada, alrededor de una cuarta parte. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
+Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 450 = 10.800 de los 35.712 tokens de entrada, alrededor del 30 por ciento. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
 
 ## El método exacto: calibra con un locale
 

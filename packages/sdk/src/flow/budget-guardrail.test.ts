@@ -205,7 +205,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 500,
+          maxTokens: 600,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -231,7 +231,7 @@ describe("translate: budget crossed, stop behavior", () => {
     expect(summary.failed).toEqual(["fr"]);
 
     expect(summary.budget).toEqual({
-      maxTokens: 500,
+      maxTokens: 600,
       behavior: "stop",
       supported: true,
       tokensUsed: 200,
@@ -252,7 +252,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 500,
+          maxTokens: 600,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -260,7 +260,7 @@ describe("translate: budget crossed, stop behavior", () => {
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(500);
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(600);
     expect(stub.calls).toHaveLength(2);
   });
 
@@ -499,7 +499,7 @@ describe("translate: token-less provider with a configured budget", () => {
       maxTokens: 1000,
       behavior: "stop",
       supported: false,
-      tokensUsed: 788,
+      tokensUsed: 988,
       exceeded: true,
     });
     expect(summary.usage).toBeUndefined();

@@ -1,8 +1,9 @@
+import { PLURAL_CATEGORIES } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import {
-  CLDR_CATEGORY_ORDER,
   describePluralRules,
   pluralCategoriesFor,
+  pluralCategoryLookupFor,
   pluralRulesRuntime,
   resolvePluralCategories,
 } from "./plural-rules.js";
@@ -65,7 +66,7 @@ describe("pluralCategoriesFor: CLDR cardinal categories", () => {
   it("always lists categories in CLDR order", () => {
     for (const locale of ["ar", "cy", "ga", "mt", "gd", "cs", "fr", "he", "sl"]) {
       const categories = pluralCategoriesFor(locale);
-      const indices = categories.map((category) => CLDR_CATEGORY_ORDER.indexOf(category));
+      const indices = categories.map((category) => PLURAL_CATEGORIES.indexOf(category));
       expect(indices).toEqual([...indices].sort((left, right) => left - right));
       expect(categories.at(-1)).toBe("other");
     }
@@ -162,5 +163,20 @@ describe("describePluralRules", () => {
 
   it("defaults to the running process's versions", () => {
     expect(describePluralRules(["de"])).toContain(`ICU ${process.versions.icu}`);
+  });
+});
+
+describe("pluralCategoryLookupFor", () => {
+  it("answers each rule type from CLDR for a language the runtime knows", () => {
+    const lookup = pluralCategoryLookupFor("cy");
+    expect(lookup("cardinal")).toEqual(["zero", "one", "two", "few", "many", "other"]);
+    expect(lookup("ordinal")).toEqual(["zero", "one", "two", "few", "many", "other"]);
+    expect(pluralCategoryLookupFor("en")("ordinal")).toEqual(["one", "two", "few", "other"]);
+  });
+
+  it("answers undefined rather than the fallback for a language it does not know", () => {
+    const lookup = pluralCategoryLookupFor("x-klingon");
+    expect(lookup("cardinal")).toBeUndefined();
+    expect(lookup("ordinal")).toBeUndefined();
   });
 });

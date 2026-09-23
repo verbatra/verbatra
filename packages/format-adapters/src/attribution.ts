@@ -61,6 +61,7 @@ function guardAsync<TArgs extends unknown[], TResult>(
 export function attributeAdapterFailures(adapter: FormatAdapter): FormatAdapter {
   const { format } = adapter;
   const compare = adapter.comparePlaceholders?.bind(adapter);
+  const compareArms = adapter.compareBranchArms?.bind(adapter);
   return {
     format,
     canHandle: guard(format, "canHandle", (filePath: string, sample?: string) =>
@@ -81,5 +82,8 @@ export function attributeAdapterFailures(adapter: FormatAdapter): FormatAdapter 
     ...(compare === undefined
       ? {}
       : { comparePlaceholders: guard(format, "comparePlaceholders", compare) }),
+    ...(compareArms === undefined
+      ? {}
+      : { compareBranchArms: guard(format, "compareBranchArms", compareArms) }),
   };
 }

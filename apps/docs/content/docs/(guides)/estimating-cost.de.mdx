@@ -48,7 +48,7 @@ Ein LLM-Request trägt vier Dinge. Eines skaliert mit deiner Key-Anzahl, und ein
 
 | Teil | Skaliert mit | Ungefähre Größe |
 | --- | --- | --- |
-| Systemregeln | nichts: konstant pro Request | ~250 Tokens |
+| Systemregeln | nichts: konstant pro Request | ~350 Tokens |
 | Ausgabeschema | nichts: konstant pro Request | ~100 Tokens |
 | Items-Payload | Keys im Sub-Batch, dazu Glossar und Tonfall | Key + Wert + ~21 Zeichen JSON, pro Item |
 | Antwort | Keys im Sub-Batch | Key + übersetzter Wert + ~21 Zeichen JSON, pro Item |
@@ -150,10 +150,10 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 | | |
 | --- | --- |
-| Systemregeln | 250 |
+| Systemregeln | 350 |
 | Ausgabeschema | 100 |
 | (50 Items x (20 + 40 + ~21 JSON) Zeichen + ~50 Envelope) / 4 | 1.038 |
-| **Summe** | **~1.388** |
+| **Summe** | **~1.488** |
 
 **Ausgabe-Tokens pro Request**
 
@@ -161,11 +161,11 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 **Summen über 3 Locales**
 
-- Eingabe: 24 x 1.388 = **~33.312 Tokens**
+- Eingabe: 24 x 1.488 = **~35.712 Tokens**
 - Ausgabe: 24 x 1.280 = **~30.720 Tokens**
-- Kosten: (33.312 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0033 + $0.0123 = **etwa 1,6 Cent**
+- Kosten: (35.712 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0036 + $0.0123 = **etwa 1,6 Cent**
 
-Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 350 = 8.400 der 33.312 Eingabe-Tokens aus, etwa ein Viertel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
+Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 450 = 10.800 der 35.712 Eingabe-Tokens aus, etwa 30 Prozent. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
 
 ## Die genaue Methode: an einem Locale kalibrieren
 

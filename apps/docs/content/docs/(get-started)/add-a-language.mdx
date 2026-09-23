@@ -73,6 +73,10 @@ export default defineConfig({
 
 Generation is supported for i18next-JSON projects translated by an LLM provider only; DeepL and Google Cloud Translation, the other formats, and target locales ICU has no plural rules for fall back to the notice and never fail the run. Generated forms are integrity-checked like any translation and reported separately from translated keys in the run summary.
 
+<AvailableFrom version="0.12.0" />
+
+The ICU formats (next-intl and ARB) keep a whole plural in one value, so nothing needs generating there: an LLM provider is asked for exactly the target language's arms, and a Russian translation of `{n, plural, one {# file} other {# files}}` gets `one`, `few`, `many` and `other` arms while a Japanese one gets `other` alone. A value whose arms do not fit the target language is refused, whoever wrote it. See [Plural arms per target language](/docs/translation-safety#plural-arms-per-target-language).
+
 ## Maintaining the source locale
 
 You only ever hand-maintain the source locale. To add strings, put them in the source file and run `translate` again: verbatra fills them into every target, including the one you just added.

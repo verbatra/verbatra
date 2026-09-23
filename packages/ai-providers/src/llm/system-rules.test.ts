@@ -12,6 +12,14 @@ describe("SHARED_SYSTEM_RULES", () => {
     }
   });
 
+  it("names pluralCategories as the one sanctioned change to ICU plural and selectordinal arms", () => {
+    const rules = SHARED_SYSTEM_RULES.join("\n");
+    expect(rules).toContain("optional pluralCategories");
+    expect(rules).toContain("pluralCategories.cardinal");
+    expect(rules).toContain("pluralCategories.ordinal");
+    expect(rules).toContain("keep every =N arm, the offset, and each # unchanged");
+  });
+
   it("prefixes every provider's assembled system rules, byte for byte", () => {
     const sharedBlock = SHARED_SYSTEM_RULES.join("\n");
     expect(ANTHROPIC_SYSTEM_RULES.startsWith(sharedBlock)).toBe(true);
@@ -40,7 +48,7 @@ describe("SHARED_SYSTEM_RULES", () => {
 
 describe("the fixed per-request overhead a pre-run cost estimate reserves for", () => {
   const CHARACTERS_PER_TOKEN = 4;
-  const SYSTEM_RULES_TOKEN_ALLOWANCE = 250;
+  const SYSTEM_RULES_TOKEN_ALLOWANCE = 350;
   const RESPONSE_SCHEMA_TOKEN_ALLOWANCE = 100;
 
   function tokens(text: string): number {

@@ -164,7 +164,7 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       isPlural: false,
     };
     expect(
-      gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter),
+      gateCandidateValue(sourceEntry, testCase.candidateValue, testCase.adapter, "de"),
     ).toMatchObject(testCase.expected);
   });
 

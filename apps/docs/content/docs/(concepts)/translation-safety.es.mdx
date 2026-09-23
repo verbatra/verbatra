@@ -10,14 +10,15 @@ ruta de error. Esta página cubre cada capa de ese modelo.
 ## Cadenas no confiables y la frontera contra la inyección de prompts
 
 verbatra nunca deja que una cadena traducible actúe como una instrucción para la IA. Una cadena
-traducible puede contener texto que parece una instrucción (una cadena de UI que dice
-literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable.
-Las reglas de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la
-entrada variable, las entradas a traducir junto con tu glosario y tono, viaja solo en la carga JSON
-de datos del turno de usuario, nunca insertada en el canal de instrucciones. La salida del
-proveedor está restringida a un esquema y se valida como datos: una respuesta malformada falla, y
-una respuesta que contiene una clave que nunca se pidió hace fallar el sublote entero, porque no
-hay una aceptación parcial segura alrededor de contenido inventado.
+traducible puede contener texto que parece una instrucción (una cadena de UI que dice literalmente
+"ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable. Las reglas
+de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la entrada
+variable, las entradas a traducir junto con tu glosario y tono y, para un plural ICU, las categorías
+de plural del idioma de destino, viaja solo en la carga JSON de datos del turno de usuario, nunca
+insertada en el canal de instrucciones. La salida del proveedor está restringida a un esquema y se
+valida como datos: una respuesta malformada falla, y una respuesta que contiene una clave que nunca
+se pidió hace fallar el sublote entero, porque no hay una aceptación parcial segura alrededor de
+contenido inventado.
 
 ## La puerta de integridad
 
@@ -43,7 +44,9 @@ nuevo por clave.
   válido. Una candidata que conserva todos los placeholders pero rompe la estructura de plural o de
   select también se rechaza. Para estos formatos la comparación de placeholders además distingue
   ramas: un placeholder fabricado dentro de una rama de plural se detecta aunque exista
-  legítimamente en otra.
+  legítimamente en otra. Las ramas de plural y de select también deben encajar con el idioma de
+  destino; consulta [Ramas de plural por idioma de
+  destino](#ramas-de-plural-por-idioma-de-destino) más abajo.
 - Tokens de llave simple fabricados: en los formatos de doble llave (i18next, ngx-translate y YAML),
   un token con forma `{name}` es texto literal corriente y no interpolación, así que no se extrae
   como placeholder ni tiene que sobrevivir a una traducción. Inventar uno se sigue rechazando: un
@@ -73,6 +76,40 @@ la misma manera.
 
 Del lado del origen, una clave de origen cuyo propio valor es ICU inválido se aparta antes de la
 traducción y se notifica, en lugar de enviarse al proveedor en un estado roto.
+
+### Ramas de plural por idioma de destino
+
+<AvailableFrom version="0.12.0" />
+
+Un plural ICU lleva una rama por cada categoría de plural CLDR de su idioma, y los idiomas
+difieren: el inglés tiene `one` y `other`, el ruso, el polaco y el checo tienen `one`, `few`,
+`many` y `other`, el árabe y el galés las seis, y el japonés solo `other`. Para next-intl y ARB,
+verbatra lee las categorías del idioma de destino de los datos CLDR incluidos en Node.js y mide
+cada traducción con ellas:
+
+- A un proveedor LLM se le piden exactamente las ramas del idioma de destino: las categorías
+  cardinales para un `plural` y las ordinales para un `selectordinal`. Las categorías viajan como
+  datos en la carga del turno de usuario, junto a los locales; las reglas de sistema solo dicen qué
+  hacer con ellas, así que la frontera contra la inyección de prompts de arriba no cambia. Un
+  `{n, plural, one {# file} other {# files}}` en inglés vuelve de una ejecución en ruso con las
+  ramas `one`, `few`, `many` y `other`, y de una en japonés solo con `other`.
+- La puerta de integridad rechaza una candidata, con el motivo ICU, cuyo `plural` o
+  `selectordinal` omite una rama que el idioma de destino exige o conserva una rama de categoría
+  que el idioma de destino no tiene. El rechazo nombra cada rama incorrecta. Esto se aplica en
+  todas las vías de escritura, así que también se rechaza un valor ruso escrito a mano con solo
+  `one` y `other`.
+- Las ramas de valor exacto como `=0` y `=1` no son categorías: cada una que tenga el origen debe
+  sobrevivir, y una traducción puede añadir más. El `offset` y cada `#` no cambian.
+- Las ramas de `select` son claves que pasa tu código, no reglas del idioma, así que una traducción
+  conserva exactamente las ramas de `select` del origen.
+- Para un locale de destino sin reglas de plural en Node.js, solo `other` es obligatoria y se acepta
+  cualquier palabra clave CLDR. [`verbatra doctor`](/docs/cli/doctor) nombra ese locale.
+
+DeepL y Google Cloud Translation no pueden reestructurar un mensaje ICU, así que siguen dejando sin
+traducir todo valor ICU (el aviso `PLACEHOLDER_UNSUPPORTED`). Un valor de destino escrito antes de
+esta comprobación, por ejemplo un plural francés sin la rama CLDR `many`, se queda en el archivo
+hasta que cambie su origen; cuando se vuelve a ofrecer una copia de él desde la caché o una
+importación, se rechaza y la clave se traduce de nuevo.
 
 ### Paridad del marcado en línea
 

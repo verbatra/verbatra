@@ -73,6 +73,10 @@ export default defineConfig({
 
 Die Generierung wird nur für i18next-JSON-Projekte unterstützt, die ein LLM-Provider übersetzt; DeepL und Google Cloud Translation, die anderen Formate und Ziel-Locales ohne Pluralregeln in ICU fallen auf den Hinweis zurück und lassen den Lauf nie fehlschlagen. Generierte Formen werden wie jede Übersetzung auf Integrität geprüft und in der Lauf-Zusammenfassung getrennt von übersetzten Keys ausgewiesen.
 
+<AvailableFrom version="0.12.0" />
+
+Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert, dort muss also nichts generiert werden: Ein LLM-Provider wird um genau die Zweige der Zielsprache gebeten, und eine russische Übersetzung von `{n, plural, one {# file} other {# files}}` bekommt die Zweige `one`, `few`, `many` und `other`, eine japanische nur `other`. Ein Wert, dessen Zweige nicht zur Zielsprache passen, wird abgelehnt, egal wer ihn geschrieben hat. Siehe [Plural-Zweige je Zielsprache](/docs/translation-safety#plural-zweige-je-zielsprache).
+
 ## Die Quell-Locale pflegen
 
 Du pflegst immer nur die Quell-Locale von Hand. Um Strings hinzuzufügen, trage sie in die Quelldatei ein und führe `translate` erneut aus: verbatra füllt sie in jedes Ziel, auch in das gerade hinzugefügte.

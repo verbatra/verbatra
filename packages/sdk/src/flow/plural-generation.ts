@@ -1,5 +1,10 @@
 import type { Tone, TranslateResult, TranslationProvider } from "@verbatra/ai-providers";
-import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
+import {
+  contentHash,
+  type LocaleResource,
+  type PluralCategory,
+  type TranslationEntry,
+} from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
@@ -11,7 +16,6 @@ import {
   planPluralGeneration,
   syntheticEntry,
 } from "./plural-categories.js";
-import type { CldrPluralCategory } from "./plural-rules.js";
 import type { LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
 import { createUsageAccumulator, foldUsage } from "./usage.js";
@@ -64,7 +68,7 @@ const EMPTY_RESULT: PluralGenerationResult = {
 
 function generatedLockHash(
   governingEntries: readonly TranslationEntry[],
-  category: CldrPluralCategory,
+  category: PluralCategory,
 ): string {
   const governingHashes = governingEntries.map(contentHash).sort();
   return contentHash({
@@ -190,7 +194,7 @@ async function runGenerationSubBatch(
     return { notices: [subBatchFailedNotice(batch.length, error)], usage: undefined };
   }
   for (const item of batch) {
-    foldGenerationItem(item, result, context.adapter, accepted, withheld, providerFailures);
+    foldGenerationItem(item, result, context, accepted, withheld, providerFailures);
   }
   return { notices: readNotices(result), usage: result.usage };
 }
@@ -198,7 +202,7 @@ async function runGenerationSubBatch(
 function foldGenerationItem(
   item: PluralGenerationItem,
   result: TranslateResult,
-  adapter: FormatAdapter,
+  context: PluralGenerationContext,
   accepted: GeneratedForm[],
   withheld: string[],
   providerFailures: string[],
@@ -208,7 +212,7 @@ function foldGenerationItem(
     providerFailures.push(item.targetKey);
     return;
   }
-  if (gateCandidateValue(item.sourceEntry, value, adapter).accepted) {
+  if (gateCandidateValue(item.sourceEntry, value, context.adapter, context.targetLocale).accepted) {
     accepted.push({
       targetKey: item.targetKey,
       entry: { ...syntheticEntry(item), value },

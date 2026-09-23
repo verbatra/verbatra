@@ -59,7 +59,7 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 
 Utilise `createTreeFileAdapter` quand les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et s'il s'agit d'une forme plurielle.
 
-Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le perdre : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
+Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure, et un `compareBranchArms` optionnel pour un format à branches plural et select : il reçoit la valeur source, la candidate et une consultation des catégories de pluriel CLDR de la langue cible, et renvoie un problème lisible par branche fautive, que la porte d'intégrité rapporte quand elle rejette la candidate. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le perdre : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
 
 Les deux fabriques acceptent un `sniff` optionnel, une vérification sur un échantillon du début du contenu. Fournis-en un dès que ton extension est générique : sans lui, ton adaptateur revendique tous les fichiers portant cette extension, et la détection signale une ambiguïté au lieu de choisir.
 
@@ -83,7 +83,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ## Comment tes échecs sont rapportés
 
-Un adaptateur portant un identifiant `custom:` est enveloppé à l'enregistrement. Une erreur inattendue venue de `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle` ou `comparePlaceholders` apparaît comme une `AdapterError` avec le code `ADAPTER_FAILED`, dont le message nomme ton format, si bien qu'un défaut de ton adaptateur n'est jamais rapporté comme un défaut de verbatra.
+Un adaptateur portant un identifiant `custom:` est enveloppé à l'enregistrement. Une erreur inattendue venue de `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle`, `comparePlaceholders` ou `compareBranchArms` apparaît comme une `AdapterError` avec le code `ADAPTER_FAILED`, dont le message nomme ton format, si bien qu'un défaut de ton adaptateur n'est jamais rapporté comme un défaut de verbatra.
 
 Deux sortes d'erreurs voyagent inchangées, parce qu'elles signifient déjà quelque chose de précis. Une `AdapterError` que tu lèves toi-même garde son propre code : lève-en une (`INVALID_STRUCTURE` convient dans la plupart des cas) pour du contenu que ton format ne peut pas représenter. Une erreur portant un code errno (`ENOENT`, `EACCES`) garde également le sien, donc un fichier manquant reste rapporté comme un fichier manquant. Tout le reste est attribué à ton adaptateur, y compris une erreur de mauvais usage de Node comme `ERR_INVALID_ARG_TYPE`, ce qu'un adaptateur bogué lève le plus probablement et qu'il ne faut pas confondre avec une défaillance du système de fichiers. Cette règle errno teste la forme de l'erreur, pas sa provenance : si ton propre code de validation lève une erreur portant `ENOENT`, elle est rapportée comme une condition du système de fichiers, car rien ne permet de les distinguer.
 

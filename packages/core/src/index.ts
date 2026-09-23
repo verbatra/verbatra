@@ -20,6 +20,11 @@ export {
 } from "./model/format-id.js";
 export type { LocaleResource } from "./model/locale-resource.js";
 export {
+  PLURAL_CATEGORIES,
+  type PluralCategory,
+  type PluralRuleType,
+} from "./model/plural-category.js";
+export {
   SUPPORTED_FORMATS,
   type SupportedFormat,
   supportedFormatSchema,

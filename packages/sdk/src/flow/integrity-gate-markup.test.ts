@@ -50,20 +50,22 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
   it("refuses a dropped XLIFF inline element once, as a placeholder mismatch and not as markup", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Hello <g id="1">world</g>');
-    const result = gateCandidateValue(source, "Hallo Welt", adapter);
+    const result = gateCandidateValue(source, "Hallo Welt", adapter, "de");
     expect(result).toEqual({ accepted: false, reason: "placeholder" });
   });
 
   it("accepts an XLIFF value whose inline element survives, with no markup opinion of its own", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Hello <g id="1">world</g>');
-    expect(gateCandidateValue(source, 'Hallo <g id="1">Welt</g>', adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, 'Hallo <g id="1">Welt</g>', adapter, "de").accepted).toBe(
+      true,
+    );
   });
 
   it("refuses a surplus XLIFF closing tag the placeholder check cannot see", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
-    expect(gateCandidateValue(source, 'Lies <g id="1">Doku</g></g>', adapter)).toEqual({
+    expect(gateCandidateValue(source, 'Lies <g id="1">Doku</g></g>', adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["+</g>"],
@@ -73,7 +75,7 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
   it("refuses an XLIFF inline element whose closing tag the candidate dropped", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
-    expect(gateCandidateValue(source, 'Lies <g id="1">Doku', adapter)).toEqual({
+    expect(gateCandidateValue(source, 'Lies <g id="1">Doku', adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</g>"],
@@ -83,14 +85,16 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
   it("accepts an XLIFF self-closing inline element carried through", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <x id="1"/> now');
-    expect(gateCandidateValue(source, 'Lies <x id="1"/> jetzt', adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, 'Lies <x id="1"/> jetzt', adapter, "de").accepted).toBe(true);
   });
 
   it("stands down per tag name, so untokenised markup in the same value is still compared", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
     expect(source.placeholders.some((token) => token.startsWith("<"))).toBe(true);
-    expect(gateCandidateValue(source, 'Lies <g id="1">die Doku</g> und das', adapter)).toEqual({
+    expect(
+      gateCandidateValue(source, 'Lies <g id="1">die Doku</g> und das', adapter, "de"),
+    ).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
@@ -101,23 +105,26 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
     expect(
-      gateCandidateValue(source, 'Lies <b>das</b> und <g id="1">die Doku</g>', adapter).accepted,
+      gateCandidateValue(source, 'Lies <b>das</b> und <g id="1">die Doku</g>', adapter, "de")
+        .accepted,
     ).toBe(true);
   });
 
   it("refuses html markup that now crosses the XLIFF inline element it was nested in", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the <b>docs</b></g>');
-    expect(gateCandidateValue(source, 'Lies <g id="1">die <b>Doku</g></b>', adapter)).toEqual({
-      accepted: false,
-      reason: "markup",
-    });
+    expect(gateCandidateValue(source, 'Lies <g id="1">die <b>Doku</g></b>', adapter, "de")).toEqual(
+      {
+        accepted: false,
+        reason: "markup",
+      },
+    );
   });
 
   it("names a value that drops both its tokenised and its untokenised markup once", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g> and <b>this</b>');
-    expect(gateCandidateValue(source, "Lies die Doku und das", adapter)).toEqual({
+    expect(gateCandidateValue(source, "Lies die Doku und das", adapter, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
     });
@@ -126,7 +133,7 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
   it("still refuses html-shaped markup an XLIFF value carries that XLIFF does not tokenise", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, "Read <b>the docs</b>");
-    expect(gateCandidateValue(source, "Lies die Doku", adapter)).toEqual({
+    expect(gateCandidateValue(source, "Lies die Doku", adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
@@ -138,7 +145,7 @@ describe("gateCandidateValue: android string values carry their markup escaped",
   it("refuses a translation that drops an escaped tag pair", () => {
     const adapter = createAndroidXmlAdapter();
     const source = entryFor(adapter, "Tap <b>Save</b> to continue");
-    expect(gateCandidateValue(source, "Tippe auf Speichern", adapter)).toEqual({
+    expect(gateCandidateValue(source, "Tippe auf Speichern", adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
@@ -148,7 +155,7 @@ describe("gateCandidateValue: android string values carry their markup escaped",
   it("accepts a translation that keeps the tag pair and the printf placeholder", () => {
     const adapter = createAndroidXmlAdapter();
     const source = entryFor(adapter, "Tap <b>%1$s</b> to continue");
-    expect(gateCandidateValue(source, "Tippe auf <b>%1$s</b>", adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, "Tippe auf <b>%1$s</b>", adapter, "de").accepted).toBe(true);
   });
 });
 
@@ -395,7 +402,7 @@ describe("the markup gate covers every registered format", () => {
   it.each(SUPPORTED_FORMATS)("%s refuses a dropped attribute-bearing tag as markup", (format) => {
     const adapter = adapterFor(format);
     const source = entryFor(adapter, 'Read <a href="/docs">the docs</a>');
-    expect(gateCandidateValue(source, "Lies die Doku", adapter)).toEqual({
+    expect(gateCandidateValue(source, "Lies die Doku", adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</a>", "-<a href>"],
@@ -410,7 +417,7 @@ describe("the markup gate covers every registered format", () => {
       const adapter = adapterFor(format);
       const source = entryFor(adapter, 'Read <a href="/docs">the docs</a>');
       expect(
-        gateCandidateValue(source, '<a href="/de/doku">Lies die Doku</a>', adapter).accepted,
+        gateCandidateValue(source, '<a href="/de/doku">Lies die Doku</a>', adapter, "de").accepted,
       ).toBe(true);
     },
   );
@@ -420,7 +427,9 @@ describe("the markup gate covers every registered format", () => {
     (format) => {
       const adapter = adapterFor(format);
       const source = entryFor(adapter, 'Read <a href="/docs">the docs</a>');
-      expect(gateCandidateValue(source, '<a href="/de/doku">Lies die Doku</a>', adapter)).toEqual({
+      expect(
+        gateCandidateValue(source, '<a href="/de/doku">Lies die Doku</a>', adapter, "de"),
+      ).toEqual({
         accepted: false,
         reason: "icu",
       });
@@ -430,7 +439,7 @@ describe("the markup gate covers every registered format", () => {
   it.each(SUPPORTED_FORMATS)("%s leaves prose with a bare less-than sign alone", (format) => {
     const adapter = adapterFor(format);
     const source = entryFor(adapter, "Wait < 5 minutes");
-    expect(gateCandidateValue(source, "Warte < 5 Minuten", adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, "Warte < 5 Minuten", adapter, "de").accepted).toBe(true);
   });
 
   it.each([
@@ -443,7 +452,7 @@ describe("the markup gate covers every registered format", () => {
       const adapter = adapterFor(format);
       const source = entryFor(adapter, sourceValue);
       expect(source.placeholders.some((token) => token.startsWith("<"))).toBe(true);
-      expect(gateCandidateValue(source, "Lies die Doku", adapter)).toEqual({
+      expect(gateCandidateValue(source, "Lies die Doku", adapter, "de")).toEqual({
         accepted: false,
         reason: "placeholder",
       });
@@ -466,7 +475,7 @@ describe("the markup gate on a value whose format tokenises only part of its mar
   it.each(SUPPORTED_FORMATS)("%s refuses the dropped line break", (format) => {
     const adapter = adapterFor(format);
     const source = entryFor(adapter, MIXED_SOURCE);
-    expect(gateCandidateValue(source, MIXED_CANDIDATE, adapter)).toEqual({
+    expect(gateCandidateValue(source, MIXED_CANDIDATE, adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-<br>"],
@@ -511,7 +520,7 @@ describe("the markup gate on a plural message", () => {
       );
       const candidate =
         "{count, plural, one {<b>jedno</b> jablko} few {<b>#</b> jablka} many {<b>#</b> jablek} other {<b>#</b> jablka}}";
-      expect(gateCandidateValue(source, candidate, adapter).accepted).toBe(true);
+      expect(gateCandidateValue(source, candidate, adapter, "cs").accepted).toBe(true);
     },
   );
 
@@ -521,7 +530,7 @@ describe("the markup gate on a plural message", () => {
       const adapter = adapterFor(format);
       const source = pluralEntry(adapter, "apples", "{count, plural, other {<b>#</b><br/>apples}}");
       expect(
-        gateCandidateValue(source, "{count, plural, other {<b>#</b> jablka}}", adapter),
+        gateCandidateValue(source, "{count, plural, other {<b>#</b> jablka}}", adapter, "de"),
       ).toEqual({ accepted: false, reason: "markup", details: ["-<br>"] });
     },
   );
@@ -530,7 +539,7 @@ describe("the markup gate on a plural message", () => {
     const adapter = adapterFor("i18next-json");
     const source = pluralEntry(adapter, "items_other", "<b>a</b> and <b>b</b>");
     expect(source.isPlural).toBe(true);
-    expect(gateCandidateValue(source, "<b>a</b> und b", adapter)).toEqual({
+    expect(gateCandidateValue(source, "<b>a</b> und b", adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
@@ -542,14 +551,14 @@ describe("the markup gate on a plural message", () => {
     const value = "<b>a</b> and <b>b</b>";
     const candidate = "<b>a</b> und b";
     expect(
-      gateCandidateValue(pluralEntry(adapter, "items_other", value), candidate, adapter),
-    ).toEqual(gateCandidateValue(entryFor(adapter, value), candidate, adapter));
+      gateCandidateValue(pluralEntry(adapter, "items_other", value), candidate, adapter, "de"),
+    ).toEqual(gateCandidateValue(entryFor(adapter, value), candidate, adapter, "de"));
   });
 
   it("refuses an arm-separated value whose markup was rewrapped around the separator", () => {
     const adapter = adapterFor("vue-i18n-json");
     const source = pluralEntry(adapter, "apples", "<b>one</b> apple | <b>{count}</b> apples");
-    expect(gateCandidateValue(source, "<b>ein Apfel | {count} Aepfel</b>", adapter)).toEqual({
+    expect(gateCandidateValue(source, "<b>ein Apfel | {count} Aepfel</b>", adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "-<b>"],
@@ -564,6 +573,7 @@ describe("the markup gate on a plural message", () => {
         source,
         "<b>jedno</b> jablko | <b>kilka</b> jablka | <b>duzo</b> jablek",
         adapter,
+        "de",
       ),
     ).toEqual({ accepted: false, reason: "markup", details: ["+</b>", "+<b>"] });
   });
@@ -584,7 +594,7 @@ describe("the markup gate on an ICU-style plural in a format that does not parse
       );
       const candidate =
         "{count, plural, one {<b>jedno</b> jablko} few {<b>kilka</b> jablka} other {<b>duzo</b> jablek}}";
-      expect(gateCandidateValue(source, candidate, adapter)).toEqual({
+      expect(gateCandidateValue(source, candidate, adapter, "de")).toEqual({
         accepted: false,
         reason: "markup",
         details: ["+</b>", "+<b>"],
@@ -598,7 +608,7 @@ describe("the markup gate on a reorder that nests a tag inside another of the sa
     const adapter = i18nextAdapter();
     const source = entryFor(adapter, '<a href="/a">one</a> and <a href="/b">two</a>');
     expect(
-      gateCandidateValue(source, '<a href="/a">eins und <a href="/b">zwei</a></a>', adapter),
+      gateCandidateValue(source, '<a href="/a">eins und <a href="/b">zwei</a></a>', adapter, "de"),
     ).toEqual({ accepted: false, reason: "markup" });
   });
 
@@ -606,7 +616,7 @@ describe("the markup gate on a reorder that nests a tag inside another of the sa
     const adapter = i18nextAdapter();
     const source = entryFor(adapter, '<a href="/a">one</a> and <a href="/b">two</a>');
     expect(
-      gateCandidateValue(source, '<a href="/b">zwei</a> und <a href="/a">eins</a>', adapter)
+      gateCandidateValue(source, '<a href="/b">zwei</a> und <a href="/a">eins</a>', adapter, "de")
         .accepted,
     ).toBe(true);
   });
@@ -616,14 +626,14 @@ describe("the markup gate on the two spellings of a void element", () => {
   it("accepts a line break rewritten from self-closing to bare", () => {
     const adapter = i18nextAdapter();
     expect(
-      gateCandidateValue(entryFor(adapter, "One<br/>two"), "Eins<br>zwei", adapter).accepted,
+      gateCandidateValue(entryFor(adapter, "One<br/>two"), "Eins<br>zwei", adapter, "de").accepted,
     ).toBe(true);
   });
 
   it("accepts a line break rewritten from bare to self-closing", () => {
     const adapter = i18nextAdapter();
     expect(
-      gateCandidateValue(entryFor(adapter, "One<br>two"), "Eins<br/>zwei", adapter).accepted,
+      gateCandidateValue(entryFor(adapter, "One<br>two"), "Eins<br/>zwei", adapter, "de").accepted,
     ).toBe(true);
   });
 });
@@ -675,7 +685,7 @@ describe("the markup gate on a second spelling of a tag the format reports", () 
       const adapter = resolution.adapter;
       const source = entryFor(adapter, "Read <b>the docs</b> and <b/>");
       expect(source.placeholders).toEqual(["<b>"]);
-      expect(gateCandidateValue(source, "Lies <b>die Doku</b>", adapter)).toEqual({
+      expect(gateCandidateValue(source, "Lies <b>die Doku</b>", adapter, "de")).toEqual({
         accepted: false,
         reason: "markup",
         details: ["-<b/>"],
@@ -690,14 +700,16 @@ describe("the markup gate on a second spelling of a tag the format reports", () 
     }
     const adapter = resolution.adapter;
     const source = entryFor(adapter, "Read <b>the docs</b> and <b/>");
-    expect(gateCandidateValue(source, "Lies <b>die Doku</b> und <b/>", adapter).accepted).toBe(
-      true,
-    );
+    expect(
+      gateCandidateValue(source, "Lies <b>die Doku</b> und <b/>", adapter, "de").accepted,
+    ).toBe(true);
   });
 
   it("still ignores the closing tag that pairs with the reported opening one", () => {
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Read <g id="1">the docs</g>');
-    expect(gateCandidateValue(source, 'Lies <g id="1">die Doku</g>', adapter).accepted).toBe(true);
+    expect(gateCandidateValue(source, 'Lies <g id="1">die Doku</g>', adapter, "de").accepted).toBe(
+      true,
+    );
   });
 });

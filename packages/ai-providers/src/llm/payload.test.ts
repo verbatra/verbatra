@@ -147,3 +147,34 @@ describe("resultPayloadCharacters", () => {
     );
   });
 });
+
+describe("buildDataPayload: optional plural categories", () => {
+  it("sends the target language's categories as data and omits them when absent", () => {
+    const pluralCategories = {
+      cardinal: ["one", "few", "many", "other"],
+      ordinal: ["other"],
+    } as const;
+    const payload = buildDataPayload(
+      data({
+        pluralCategories: {
+          cardinal: [...pluralCategories.cardinal],
+          ordinal: [...pluralCategories.ordinal],
+        },
+      }),
+    );
+    expect(payload.pluralCategories).toEqual(pluralCategories);
+    expect(buildDataPayload(data())).not.toHaveProperty("pluralCategories");
+  });
+
+  it("places them before the items, alongside the other request-level fields", () => {
+    const payload = buildDataPayload(
+      data({ pluralCategories: { cardinal: ["other"], ordinal: ["other"] } }),
+    );
+    expect(Object.keys(payload)).toEqual([
+      "sourceLocale",
+      "targetLocale",
+      "pluralCategories",
+      "items",
+    ]);
+  });
+});

@@ -13,10 +13,11 @@ verbatra never lets a translatable string act like an instruction to the AI. A t
 can contain text that looks like an instruction (a UI string that literally reads "ignore your
 instructions"), so verbatra treats every one as untrusted input. The system rules sent to an LLM
 provider are compile-time constants. All variable input, the entries to translate along with your
-glossary and tone, travels only in the user-turn JSON data payload, never spliced into the
-instruction channel. Provider output is constrained to a schema and validated as data: a malformed
-response fails, and a response containing a key that was never requested fails the whole
-sub-batch, because there is no safe partial accept around invented content.
+glossary and tone, and for an ICU plural the target language's plural categories, travels only in
+the user-turn JSON data payload, never spliced into the instruction channel. Provider output is
+constrained to a schema and validated as data: a malformed response fails, and a response containing
+a key that was never requested fails the whole sub-batch, because there is no safe partial accept
+around invented content.
 
 ## The integrity gate
 
@@ -37,7 +38,9 @@ keys can match without being byte-identical. That is exactly why the gate is re-
   plurals and select statements), the translated value must still parse as a valid message. A
   candidate that keeps every placeholder but breaks the plural or select structure is rejected
   too. For these formats the placeholder comparison is also branch-aware: a placeholder fabricated
-  inside one plural branch is caught even if it legitimately exists in another.
+  inside one plural branch is caught even if it legitimately exists in another. Plural and select
+  arms must also fit the target language; see [Plural arms per target
+  language](#plural-arms-per-target-language) below.
 - Fabricated single-brace tokens: for the double-brace formats (i18next, ngx-translate, and YAML), a
   `{name}`-shaped token is ordinary literal text rather than interpolation, so it is not extracted as
   a placeholder and is not required to survive a translation. Inventing one is still rejected: a
@@ -64,6 +67,39 @@ provider failure, not an integrity mismatch. Both retry the same way.
 
 On the source side, a source key whose own value is invalid ICU is set aside before translation
 and reported, instead of being sent to the provider in a broken state.
+
+### Plural arms per target language
+
+<AvailableFrom version="0.12.0" />
+
+An ICU plural carries one arm per CLDR plural category of its language, and languages differ:
+English has `one` and `other`, Russian, Polish and Czech have `one`, `few`, `many` and `other`,
+Arabic and Welsh have all six, and Japanese has `other` alone. For next-intl and ARB, verbatra
+reads the target language's categories from the CLDR data built into Node.js and holds every
+translation to them:
+
+- An LLM provider is asked for exactly the target language's arms: the cardinal categories for a
+  `plural`, the ordinal categories for a `selectordinal`. The categories travel as data in the
+  user-turn payload, next to the locales; the system rules only say what to do with them, so the
+  prompt-injection boundary above is unchanged. An English `{n, plural, one {# file} other {#
+  files}}` comes back from a Russian run with `one`, `few`, `many` and `other` arms, and from a
+  Japanese run with `other` alone.
+- The integrity gate refuses a candidate, under the ICU reason, whose `plural` or
+  `selectordinal` lacks an arm the target language requires or keeps a keyword arm the target
+  language does not have. The refusal names each wrong arm. This applies on every write path, so
+  a hand-typed Russian value with only `one` and `other` is refused as well.
+- Exact-value arms such as `=0` and `=1` are not categories: every one the source has must
+  survive, and a translation may add more. The `offset` and each `#` stay unchanged.
+- `select` arms are keys your code passes in, not language rules, so a translation keeps exactly
+  the source's `select` arms.
+- For a target locale Node.js has no plural rules for, only `other` is required and any CLDR
+  keyword is accepted. [`verbatra doctor`](/docs/cli/doctor) names such a locale.
+
+DeepL and Google Cloud Translation cannot restructure an ICU message, so they keep leaving every
+ICU value untranslated (the `PLACEHOLDER_UNSUPPORTED` notice). A target value written before this
+check, for example a French plural without the CLDR `many` arm, stays in the file until its source
+changes; when a cached or imported copy of it is offered again, it is refused and the key is
+translated anew.
 
 ### Inline markup parity
 

@@ -73,6 +73,10 @@ export default defineConfig({
 
 La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL et Google Cloud Translation, les autres formats et les locales cibles sans règles de pluriel dans ICU se contentent de l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
 
+<AvailableFrom version="0.12.0" />
+
+Les formats ICU (next-intl et ARB) gardent un pluriel entier dans une seule valeur, donc rien n'y est à générer : on demande à un fournisseur LLM exactement les branches de la langue cible, et une traduction russe de `{n, plural, one {# file} other {# files}}` reçoit les branches `one`, `few`, `many` et `other`, tandis qu'une traduction japonaise reçoit seulement `other`. Une valeur dont les branches ne conviennent pas à la langue cible est rejetée, quel que soit son auteur. Voir [Branches plurielles par langue cible](/docs/translation-safety#branches-plurielles-par-langue-cible).
+
 ## Maintenir la locale source
 
 La seule locale que tu maintiens à la main, c'est la locale source. Pour ajouter des chaînes, mets-les dans le fichier source et relance `translate` : verbatra les remplit dans chaque cible, y compris celle que tu viens d'ajouter.

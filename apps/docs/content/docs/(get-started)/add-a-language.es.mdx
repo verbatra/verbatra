@@ -73,6 +73,10 @@ export default defineConfig({
 
 La generación solo se admite en proyectos i18next-JSON traducidos por un proveedor LLM; DeepL y Google Cloud Translation, los otros formatos y los locales de destino sin reglas de plural en ICU recurren al aviso y nunca hacen fallar la ejecución. Las formas generadas pasan las comprobaciones de integridad como cualquier traducción y se informan por separado de las claves traducidas en el resumen de la ejecución.
 
+<AvailableFrom version="0.12.0" />
+
+Los formatos ICU (next-intl y ARB) guardan un plural completo en un solo valor, así que ahí no hay nada que generar: a un proveedor LLM se le piden exactamente las ramas del idioma de destino, y una traducción al ruso de `{n, plural, one {# file} other {# files}}` recibe las ramas `one`, `few`, `many` y `other`, mientras que una al japonés recibe solo `other`. Un valor cuyas ramas no encajan con el idioma de destino se rechaza, lo haya escrito quien lo haya escrito. Consulta [Ramas de plural por idioma de destino](/docs/translation-safety#ramas-de-plural-por-idioma-de-destino).
+
 ## Mantener el locale de origen
 
 El único locale que mantienes a mano es el de origen. Para añadir cadenas, ponlas en el archivo de origen y ejecuta `translate` de nuevo: verbatra las completa en todos los destinos, incluido el que acabas de añadir.

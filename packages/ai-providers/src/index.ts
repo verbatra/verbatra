@@ -62,6 +62,7 @@ export {
 export type {
   PlaceholderComparator,
   PlaceholderExtractor,
+  PluralCategories,
   ProviderKind,
   ProviderNotice,
   ProviderNoticeCode,

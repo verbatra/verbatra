@@ -4,6 +4,7 @@ import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { readFileContent } from "../json/bounded-read.js";
 import {
   buildCanHandle,
+  type CompareBranchArms,
   type ComparePlaceholders,
   type ComputeInvalidIcuKeys,
   computeIcu,
@@ -76,6 +77,8 @@ export interface FlatFileAdapterOptions {
    * would lose. Omitted adapters are compared by `extractPlaceholders` plus a flat multiset check.
    */
   readonly comparePlaceholders?: ComparePlaceholders;
+  /** Optional check of a translation's plural and select branch arms against its source. */
+  readonly compareBranchArms?: CompareBranchArms;
   /** The file-system port to read and write through. Defaults to `nodeAdapterFs`. */
   readonly fs?: AdapterFs;
 }
@@ -138,6 +141,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     validateMessage,
     computeInvalidIcuKeys,
     comparePlaceholders,
+    compareBranchArms,
     fs = nodeAdapterFs,
   } = options;
   return {
@@ -146,6 +150,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     extractPlaceholders,
     validateMessage: validateMessage ?? ((): boolean => true),
     ...(comparePlaceholders !== undefined ? { comparePlaceholders } : {}),
+    ...(compareBranchArms !== undefined ? { compareBranchArms } : {}),
     async read(filePath, locale): Promise<ReadResult> {
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);

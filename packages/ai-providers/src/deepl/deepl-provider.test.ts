@@ -201,6 +201,23 @@ describe("createDeepLProvider: per-key integrity (load-bearing for DeepL)", () =
 });
 
 describe("createDeepLProvider: placeholder-bearing entries are withheld", () => {
+  it("withholds an ICU plural even when the request names the target's plural categories", async () => {
+    const { client, calls } = deeplStubClient(deeplResult(["Frei"]));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({
+        entries: [
+          entry("free", "Free"),
+          entry("files", "{n, plural, one {# file} other {# files}}", ["{n}"]),
+        ],
+        pluralCategories: { cardinal: ["one", "few", "many", "other"], ordinal: ["other"] },
+      }),
+    )) as DeepLTranslateResult;
+
+    expect(firstCallOf(calls).texts).toEqual(["Free"]);
+    expect(result.values.has("files")).toBe(false);
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
   it("translates only placeholder-free entries and withholds placeholder-bearing ones", async () => {
     const { client, calls } = deeplStubClient(deeplResult(["Frei"]));
     const result = (await createDeepLProvider(config, { client }).translateBatch(

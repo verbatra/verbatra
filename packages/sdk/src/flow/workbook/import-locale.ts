@@ -56,11 +56,12 @@ function judge(
   row: WorkbookRow,
   sourceEntry: TranslationEntry,
   adapter: FormatAdapter,
+  targetLocale: string,
 ): Reason | undefined {
   if (contentHash(sourceEntry) !== row.sourceHash) {
     return "drift";
   }
-  const gate = gateCandidateValue(sourceEntry, row.translation, adapter);
+  const gate = gateCandidateValue(sourceEntry, row.translation, adapter, targetLocale);
   return gate.accepted ? undefined : gate.reason;
 }
 
@@ -116,7 +117,7 @@ function classifyRows(
       classifyClear(row, sourceEntry, buckets);
       continue;
     }
-    const reason = judge(row, sourceEntry, params.adapter);
+    const reason = judge(row, sourceEntry, params.adapter, params.target.locale);
     if (reason === undefined) {
       buckets.accepted.set(row.key, {
         value: row.translation,
