@@ -85,7 +85,7 @@ export function keyProvenance(record: ProvenanceRecord | undefined, value: strin
   };
 }
 
-export function emptyProvenanceSummary(): {
+function emptyProvenanceSummary(): {
   byOrigin: Record<KeyOrigin, number>;
   byReviewState: Record<KeyReviewState, number>;
 } {

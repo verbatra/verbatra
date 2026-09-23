@@ -78,7 +78,7 @@ export interface ProvenancePatch {
   readonly retain?: ReadonlySet<string>;
 }
 
-export const CURRENT_PROVENANCE_VERSION = 1;
+const CURRENT_PROVENANCE_VERSION = 1;
 
 const MAX_PROVENANCE_FILE_BYTES = 32 * 1024 * 1024;
 
@@ -312,7 +312,7 @@ export interface MachineAttribution {
   readonly model?: string;
 }
 
-export function provenanceRecord(
+function provenanceRecord(
   origin: ProvenanceOrigin,
   value: string,
   attribution?: MachineAttribution,
