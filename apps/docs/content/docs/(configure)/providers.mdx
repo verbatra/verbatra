@@ -6,16 +6,16 @@ verbatra ships six providers behind one interface: Anthropic, OpenAI, Gemini, an
 
 ## Which one should I pick?
 
-Any provider works with any format and command; the choice is about cost, quality, privacy, and how you get a key.
+Any provider works with any format and command; the choice is about cost, quality, privacy, and how you get a key. What each provider receives, and what its vendor says about retention and training, is on [Data handling and privacy](/docs/data-handling).
 
-- **Small or side project, want it free?** Use **Gemini**. It has a real free API tier, so you can translate a whole app at zero cost. Grab a key from [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. The free tier is rate-limited (see the note below), which only matters on a large first-time run.
+- **Small or side project, want it free?** Use **Gemini**. It has a real free API tier, so you can translate a whole app at zero cost. Grab a key from [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. The free tier is rate-limited (see the note below), which only matters on a large first-time run. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products and have human reviewers read them, so keep confidential strings off the free tier; see [Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms).
 - **Best translation quality for a production app?** Use **Anthropic** or **OpenAI**. Both are paid LLMs and read `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
 - **High volume, glossary-driven, or no LLM in the loop?** Use **DeepL**. It is a dedicated machine-translation API with a free and a paid tier, and supports a native glossary by id. It does not translate placeholder-bearing strings (see the note below); for those, use an LLM provider.
 - **Already on Google Cloud, or want the widest language coverage from a plain API key?** Use **Google Cloud Translation**. It is Google's dedicated machine-translation API (the Basic, v2 tier), billed through your Google Cloud project. Like DeepL, it does not translate placeholder-bearing strings.
 - **Offline, cost-free, or your strings must never leave your network?** Use **openai-compatible**. It points verbatra at a local or self-hosted inference server (LM Studio, Ollama, vLLM) instead of a hosted API. No account, no API key, and no network egress beyond your own machine or LAN.
 - **No machine translation at all, because a contract or company policy forbids it?** Use **none**. No provider is constructed and no API key is read: verbatra fills keys only from the translation memory and hands every other key to a human. See [Human-only workflow](/docs/human-only-workflow).
 
-Not sure? Start on Gemini's free tier, then switch providers later by editing one `id` in your config. Nothing else changes.
+Not sure? Start on Gemini's free tier with strings that are not confidential, then switch providers later by editing one `id` in your config. Nothing else changes.
 
 ## Keys come from the environment
 
@@ -76,7 +76,7 @@ provider: {
 Reads `GEMINI_API_KEY`. `model` and `maxOutputTokens` are both required. The optional `requestTimeoutMs` is also accepted; see [Request timeout](#request-timeout).
 
 <Callout title="The free tier and its limits">
-Gemini is the recommended starting point for small projects because its API has a free tier. Create a key at [Google AI Studio](https://aistudio.google.com/apikey), no billing required. The free tier caps requests per minute and per day (the exact numbers depend on the model and change over time, so check Google's current limits), and verbatra splits work into sequential sub-batches, so a first-time run over many locales can hit those caps. A brief rate-limit or server error is retried automatically with a short backoff, but that only smooths over momentary hiccups, not a sustained cap. If you do hit the cap, translate one locale at a time or lower `maxBatchSize`, then re-run: verbatra only picks up what is still missing, so runs are safe to repeat.
+Gemini is the recommended starting point for small projects because its API has a free tier. Create a key at [Google AI Studio](https://aistudio.google.com/apikey), no billing required. The free tier caps requests per minute and per day (the exact numbers depend on the model and change over time, so check Google's current limits), and verbatra splits work into sequential sub-batches, so a first-time run over many locales can hit those caps. A brief rate-limit or server error is retried automatically with a short backoff, but that only smooths over momentary hiccups, not a sustained cap. If you do hit the cap, translate one locale at a time or lower `maxBatchSize`, then re-run: verbatra only picks up what is still missing, so runs are safe to repeat. The free tier's data terms differ from the paid tier's as well: outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products. See [Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms).
 </Callout>
 
 ## DeepL

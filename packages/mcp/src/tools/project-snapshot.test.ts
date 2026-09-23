@@ -23,8 +23,22 @@ describe("project.snapshot", () => {
         provider: { id: "anthropic" },
         configSource: "override",
         glossary: { source: "none" },
+        humanEdits: "protect",
+        prune: false,
       },
     });
+  });
+
+  it("reports the configured humanEdits policy and prune setting", async () => {
+    const context = makeContext({
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({ humanEdits: "overwrite", prune: true }),
+      }),
+    });
+
+    const outcome = await projectSnapshotTool.execute({}, context);
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { humanEdits: "overwrite", prune: true } });
   });
 
   it("reports a relative, redacted config file path when the config was loaded from disk", async () => {

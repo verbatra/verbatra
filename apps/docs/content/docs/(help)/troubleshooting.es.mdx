@@ -221,7 +221,7 @@ Consulta [Formatos](/docs/formats) para las reglas de claves de cada formato.
 usage (N) reached the configured budget of M tokens (behavior: warn)`. Con
 `budgetBehavior: "stop"` dice `The run's next provider request was projected at P tokens on top of
 the N already counted, which would have crossed the configured budget of M tokens, so it was
-withheld rather than sent`, y las claves también aparecen bajo `budgetWithheld`.
+withheld rather than sent`, y las claves también aparecen bajo `budgetWithheld`. Si el techo vino de la propia ejecución (`--max-tokens`, o la entrada `maxTokens` del SDK o de una herramienta de agente), los mensajes nombran el presupuesto propio de la ejecución (`own budget`) en lugar del configurado; sube o quita ese valor de la ejecución, no el de la configuración.
 
 **Causa**: la ejecución alcanzó el techo de `maxTokens` configurado. Con `"warn"` (el valor por
 defecto) la ejecución continúa sin cambios y no cambia el código de salida; con `"stop"` la

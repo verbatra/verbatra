@@ -4,7 +4,7 @@ description: Restrict which hosts a translation provider may connect to, so a lo
 ---
 <AvailableFrom version="0.12.0" />
 
-A self-hosted model behind `openai-compatible` keeps your strings on your own network, but only as long as every setting stays right. A mistyped `baseUrl`, a stray `OPENAI_BASE_URL` in someone's shell, or a teammate switching the provider to a hosted one is enough to send strings to a public endpoint. A network policy makes the rule explicit: verbatra refuses to talk to a host the policy does not permit, and says so before any request leaves the machine.
+A self-hosted model behind `openai-compatible` keeps your strings on your own network, but only as long as every setting stays right. A mistyped `baseUrl`, a stray `OPENAI_BASE_URL` in someone's shell, or a teammate switching the provider to a hosted one is enough to send strings to a public endpoint. A network policy makes the rule explicit: verbatra refuses to talk to a host the policy does not permit, and says so before any request leaves the machine. For what a request contains and everything else verbatra keeps local, see [Data handling and privacy](/docs/data-handling).
 
 ## Set it up
 

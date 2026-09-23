@@ -127,6 +127,25 @@ Two of those decide whether you can treat the number as a ceiling. The SDK retri
 
 The estimate covers `translate`. Retranslating a single entry from [Studio](/docs/review-in-studio) or from an agent tool calls the provider on its own path, and no estimate here sees that spend.
 
+## Step 6: cap the run you agreed to
+
+<AvailableFrom version="0.12.0" />
+
+An estimate is a plan. To make sure the run cannot drift far past it, give the run its own ceiling:
+
+```bash
+verbatra translate --estimate --locales de
+verbatra translate --locales de --max-tokens 40000
+```
+
+`--max-tokens` is a hard stop for that run alone: a provider request that would pass the ceiling is withheld rather than sent, whatever the config's `budgetBehavior` says, and its keys stay pending for the next run. When the config also sets `maxTokens`, the lower of the two applies, so the flag can tighten the budget but never loosen it. A figure a little above the estimate's input plus output tokens leaves room for the heuristics without letting a surprise through. The ceiling is counted in tokens, so on DeepL or Google Cloud Translation it is enforced against verbatra's own projection, as a configured budget is. See [`verbatra translate`](/docs/cli/translate).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+An agent gets the same two steps. The MCP server's `translation.estimate` tool, and `verbatra_translation_estimate` in [Studio's agent tools](/docs/agent-tools-in-studio), return exactly what `translate --estimate --json` prints, optionally for a subset of `locales`, and never call a provider. They are available even when spending is not. `translation.translatePending` then takes the same `locales` and a `maxTokens` ceiling. See [`verbatra mcp`](/docs/cli/mcp#estimate-then-spend).
+
 ## A worked example
 
 Substitute your own numbers for every assumption in this block.

@@ -225,7 +225,7 @@ A budget must be a positive integer. Exceeding it is advisory, never blocking: t
 
 ### maxTokens and budgetBehavior
 
-`maxTokens` is a whole-run token budget: input plus output tokens, summed across every provider call (main translation and plural generation alike) and across every target locale. Config-only, no CLI flag.
+`maxTokens` is a whole-run token budget: input plus output tokens, summed across every provider call (main translation and plural generation alike) and across every target locale. For one run, `verbatra translate --max-tokens <n>` sets a stricter ceiling that always stops: the lower of the two applies (from 0.12.0).
 
 <AvailableFrom version="0.11.0" />
 

@@ -49,7 +49,7 @@ fehlenden und geänderten Keys an den Provider schicken, die Integritätsprüfun
 Locale-Dateien schreiben und das Lock aktualisieren. Nutze ihn für Skripte, Build-Schritte und
 CI-Jobs.
 
-Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, maxTokens?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` schränkt den Lauf auf eine Teilmenge der konfigurierten Ziel-Locales ein, genau wie bei
   `check` und `diff`. Eine nicht konfigurierte Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas
@@ -66,7 +66,7 @@ Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   passende Konfigurationsoption für diesen Lauf.
 - `concurrency` übersetzt bis zu so viele Ziel-Locales gleichzeitig (Standard 1, streng seriell).
   Ein Wert unter 1 wirft `CONCURRENCY_INVALID`; bei einem Live-Lauf wirft ein Wert über 1 mit
-  gesetztem `maxTokens` einen `CONCURRENCY_BUDGET_CONFLICT` (ein Dry-Run ist ausgenommen). Ein
+  einem `maxTokens`-Budget einen `CONCURRENCY_BUDGET_CONFLICT` (ein Dry-Run ist ausgenommen). Ein
   Fehler des gesamten Laufs, der auftritt, während bereits Locales laufen, verhindert den Start
   jedes weiteren Locales, und die laufenden Locales schließen ab und geben ihre Schreibsperren
   frei, bevor `translate` fehlschlägt; der Fehlschlag kommt also nach dem langsamsten von ihnen an
@@ -80,8 +80,14 @@ Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   ist. Beides sind Benachrichtigungs-Callbacks; das SDK gibt selbst nichts aus. `lockAcquireTimeoutMs`
   übersteuert, wie lange eine umkämpfte Schreibsperre erneut versucht, bevor sie mit `LOCK_CONTENDED`
   fehlschlägt.
-- `maxBatchSize`, `maxTokens` und `budgetBehavior` sind nur über die Konfiguration steuerbar; es
-  gibt keine Übersteuerung pro Lauf.
+- `maxTokens` (ab 0.12.0) setzt eine Token-Obergrenze nur für diesen Lauf (das `--max-tokens` der
+  CLI). Es wirkt immer wie `budgetBehavior: "stop"`, und setzt die Konfiguration ebenfalls
+  `maxTokens`, gilt der niedrigere der beiden Werte; es kann das konfigurierte Budget also
+  verschärfen, aber nie lockern. Ein Wert, der keine ganze Zahl von mindestens 1 ist, wirft
+  `MAX_TOKENS_INVALID`, und wie ein konfiguriertes Budget lässt es sich bei einem Live-Lauf nicht mit
+  einer `concurrency` über 1 kombinieren.
+- `maxBatchSize` und `budgetBehavior` sind nur über die Konfiguration steuerbar; es gibt keine
+  Übersteuerung pro Lauf.
 
 Gibt eine `RunSummary` zurück (siehe [ihre Anatomie unten](#die-anatomie-der-runsummary)).
 Probleme des gesamten Laufs werfen einen `SdkError`; eine einzelne fehlschlagende Locale wirft
@@ -1143,7 +1149,8 @@ geworfen.
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |
 | `LOCALE_PATH_COLLISION` | zwei konfigurierte Locales lösen auf denselben absoluten Dateipfad auf |
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor eine Locale läuft |
-| `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während `maxTokens` konfiguriert ist; wird geworfen, bevor irgendein Provider-Aufruf stattfindet (ein Dry-Run ist ausgenommen) |
+| `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während ein Token-Budget gilt, konfiguriert oder für den Lauf; wird geworfen, bevor irgendein Provider-Aufruf stattfindet (ein Dry-Run ist ausgenommen) |
+| `MAX_TOKENS_INVALID` | das `maxTokens` pro Lauf von `translate` wurde gesetzt, ist aber keine ganze Zahl von mindestens 1; wird geworfen, bevor irgendetwas gelesen oder ausgegeben wird |
 | `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
 | `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` wurde nach einer Pseudo-Locale gefragt, die eine konfigurierte Locale benennt, oder nach einem Ausgabepfad, der auf eine konfigurierte Locale-Datei schreiben würde; wird abgelehnt, bevor irgendetwas gelesen oder geschrieben wird |
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |

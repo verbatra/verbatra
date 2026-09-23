@@ -18,11 +18,6 @@ describe("key.value", () => {
         target: "Hallo",
         provenance: { origin: "unrecorded", reviewState: "unreviewed" },
       },
-      structuredContent: {
-        source: "Hello",
-        target: "Hallo",
-        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
-      },
     });
   });
 
@@ -37,7 +32,6 @@ describe("key.value", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { source: "Hello" },
-      structuredContent: { source: "Hello" },
     });
   });
 

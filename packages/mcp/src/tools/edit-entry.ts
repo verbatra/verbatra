@@ -44,18 +44,25 @@ async function editKeyEntry(
 export const editEntryTool = defineTool({
   name: "translation.editEntry",
   description:
-    "Write a manual translation for one key in one target locale, without calling a provider. " +
-    "The value is accepted only if it passes the integrity gate (it carries the source's " +
-    "placeholders, parses as valid ICU, and is not empty or degenerate); a rejection is returned " +
-    "as accepted: false with a reason, not an error, so you can see why and retry with a " +
-    "corrected value. Writes the locale file on disk when accepted, and records the value's " +
-    "origin as agent in verbatra.provenance.json. A key matching the config's pinnedKeys is " +
-    "refused with KEY_PINNED: it is reserved for a person.",
+    "Writes one caller-supplied translation for one key in one target locale. Use it " +
+    "whenever you already know the correct text: it never calls a provider and costs " +
+    "nothing, so prefer it over translation.retranslateEntry. Do not use it to obtain a " +
+    "translation: what is written is exactly the value you send. The required locale " +
+    "parameter must be a configured target locale, the required key parameter must exist in " +
+    "the source, and the required value parameter is the new text, capped at 20000 " +
+    "characters. The value is accepted only if it passes the integrity gate (it carries the " +
+    "source's placeholders, parses as valid ICU, and is not empty or degenerate); a " +
+    "rejection is returned as accepted: false with a reason and writes nothing, so correct " +
+    "the value rather than resending it. An accepted value overwrites the locale file and " +
+    "its lock entry at once, with no undo, and is recorded with origin agent in " +
+    "verbatra.provenance.json, so a key the last run flagged stays in review.queue. A key " +
+    "matching the config's pinnedKeys is refused with KEY_PINNED: it is reserved for a " +
+    "person. Always listed: it needs no spend capability.",
   paramsSchema,
   outputSchema: editEntryResultSchema,
   annotations: {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: false,
   },

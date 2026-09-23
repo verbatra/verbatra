@@ -30,6 +30,7 @@ const READ_TOOLS = [
   "usage.summary",
   "key.value",
   "locale.values",
+  "translation.estimate",
 ] as const;
 
 const WRITE_AND_SPEND_TOOLS = [
@@ -52,6 +53,7 @@ const UNTRUSTED_TOOLS = [
   "translation.editEntry",
   "translation.retranslateEntry",
   "translation.translatePending",
+  "translation.estimate",
   "glossary.write",
 ] as const;
 
@@ -240,11 +242,11 @@ describe("registerAgentTools no-ops", () => {
 });
 
 describe("registerAgentTools registration set", () => {
-  it("registers the eleven read tools and the two unpriced write tools, but no spend tool, when spend is false", async () => {
+  it("registers the twelve read tools and the two unpriced write tools, but no spend tool, when spend is false", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON);
     const names = tools.map((tool) => tool.name);
 
-    expect(tools).toHaveLength(13);
+    expect(tools).toHaveLength(14);
     for (const name of READ_TOOLS) {
       expect(names).toContain(expectedName(name));
     }
@@ -255,11 +257,11 @@ describe("registerAgentTools registration set", () => {
     }
   });
 
-  it("registers all fifteen tools when spend is true", async () => {
+  it("registers all sixteen tools when spend is true", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
     const names = tools.map((tool) => tool.name);
 
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(16);
     for (const name of [...READ_TOOLS, ...WRITE_AND_SPEND_TOOLS]) {
       expect(names).toContain(expectedName(name));
     }
@@ -315,15 +317,15 @@ describe("registerAgentTools registration report", () => {
   it("reports every attempted tool as registered when the surface accepts them all", async () => {
     const { registration } = await registerWith(SNAPSHOT_ON);
 
-    expect(registration.attempted).toBe(13);
-    expect(registration.registered).toHaveLength(13);
+    expect(registration.attempted).toBe(14);
+    expect(registration.registered).toHaveLength(14);
     expect(registration.failures).toEqual([]);
   });
 
   it("counts the two spend tools among the attempts once spend is granted", async () => {
     const { registration } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
 
-    expect(registration.attempted).toBe(15);
+    expect(registration.attempted).toBe(16);
     expect(registration.failures).toEqual([]);
   });
 
@@ -353,8 +355,8 @@ describe("registerAgentTools failure reporting", () => {
     const registration = await registerWithContext(SNAPSHOT_ON, context);
     const registeredNames = tools.map((tool) => tool.name);
 
-    expect(registration.attempted).toBe(13);
-    expect(registration.registered).toHaveLength(12);
+    expect(registration.attempted).toBe(14);
+    expect(registration.registered).toHaveLength(13);
     expect(registration.failures).toEqual([
       { tool: refused, errorName: "SecurityError", message: "registration refused" },
     ]);
@@ -380,7 +382,7 @@ describe("registerAgentTools failure reporting", () => {
       expect(registration.failures).toEqual([
         { tool: refused, errorName: "SecurityError", message: "registration refused" },
       ]);
-      expect(registration.registered).toHaveLength(12);
+      expect(registration.registered).toHaveLength(13);
       expect(tools.map((tool) => tool.name)).toContain(expectedName("key.value"));
     } finally {
       process.off("unhandledRejection", onUnhandled);
@@ -394,16 +396,16 @@ describe("registerAgentTools failure reporting", () => {
     const second = await registerWithContext(SNAPSHOT_ON, context);
 
     expect(first.failures).toEqual([]);
-    expect(first.registered).toHaveLength(13);
+    expect(first.registered).toHaveLength(14);
     expect(second.registered).toEqual([]);
-    expect(second.failures).toHaveLength(13);
+    expect(second.failures).toHaveLength(14);
     expect(new Set(second.failures.map((failure) => failure.errorName))).toEqual(
       new Set(["InvalidStateError"]),
     );
     expect(second.failures.map((failure) => failure.tool)).toContain(
       expectedName("project.snapshot"),
     );
-    expect(tools).toHaveLength(13);
+    expect(tools).toHaveLength(14);
   });
 });
 

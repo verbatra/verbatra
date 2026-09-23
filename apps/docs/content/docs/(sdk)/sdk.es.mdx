@@ -49,7 +49,7 @@ bloqueo, enviar al proveedor las claves faltantes y modificadas, ejecutar las co
 integridad, escribir los archivos de locale y actualizar el bloqueo.
 Úsalo para scripts, pasos de build y jobs de CI.
 
-Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, maxTokens?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restringe la ejecución a un subconjunto de los locales de destino configurados, igual
   que en `check` y `diff`. Un locale no configurado lanza `UNKNOWN_LOCALE` antes de leer o gastar
@@ -65,7 +65,7 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   de configuración correspondiente para esa ejecución.
 - `concurrency` traduce hasta ese número de locales de destino a la vez (por defecto 1, estrictamente
   en serie). Un valor menor que 1 lanza `CONCURRENCY_INVALID`; en una ejecución real, un valor mayor
-  que 1 con `maxTokens` configurado lanza `CONCURRENCY_BUDGET_CONFLICT` (un dry run queda exento). Un
+  que 1 con un presupuesto `maxTokens` lanza `CONCURRENCY_BUDGET_CONFLICT` (un dry run queda exento). Un
   error de toda la ejecución que surge cuando ya hay locales en marcha impide que se arranque
   ningún locale más, y los locales en vuelo terminan y liberan sus bloqueos de escritura antes de que
   `translate` rechace, así que el rechazo llega después del más lento en vez de al instante.
@@ -78,8 +78,13 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   está en disputa. Ambos son callbacks de notificación; el SDK no escribe nada por sí mismo.
   `lockAcquireTimeoutMs` anula cuánto tiempo reintenta un bloqueo de escritura en disputa antes de
   fallar con `LOCK_CONTENDED`.
-- `maxBatchSize`, `maxTokens` y `budgetBehavior` son solo de configuración; no hay anulación por
-  ejecución.
+- `maxTokens` (desde 0.12.0) fija un techo de tokens solo para esta ejecución (el `--max-tokens` de la
+  CLI). Siempre actúa como `budgetBehavior: "stop"`, y cuando la configuración también fija
+  `maxTokens` se aplica el menor de los dos, así que puede endurecer el presupuesto configurado pero
+  nunca relajarlo. Un valor que no sea un número entero de al menos 1 lanza `MAX_TOKENS_INVALID` y,
+  como un presupuesto configurado, no se puede combinar con una `concurrency` mayor que 1 en una
+  ejecución real.
+- `maxBatchSize` y `budgetBehavior` son solo de configuración; no hay anulación por ejecución.
 
 Devuelve un `RunSummary` (consulta [su anatomía más abajo](#la-anatomía-de-runsummary)). Los problemas
 de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y queda como
@@ -1113,7 +1118,8 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |
 | `LOCALE_PATH_COLLISION` | dos locales configurados resuelven al mismo archivo absoluto |
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
-| `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 con `maxTokens` configurado; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
+| `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
+| `MAX_TOKENS_INVALID` | el `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
 | `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado; se rechaza antes de leer o escribir nada |
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |

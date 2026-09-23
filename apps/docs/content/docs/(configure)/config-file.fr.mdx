@@ -226,7 +226,7 @@ Un budget doit être un entier positif. Le dépasser est consultatif, jamais blo
 
 ### maxTokens et budgetBehavior
 
-`maxTokens` est un budget de tokens pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction principale et génération de pluriels confondues) et sur chaque locale cible. Configuration uniquement, pas d'option CLI.
+`maxTokens` est un budget de tokens pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction principale et génération de pluriels confondues) et sur chaque locale cible. Pour une seule exécution, `verbatra translate --max-tokens <n>` fixe un plafond plus strict qui s'arrête toujours : le plus bas des deux s'applique (à partir de 0.12.0).
 
 <AvailableFrom version="0.11.0" />
 

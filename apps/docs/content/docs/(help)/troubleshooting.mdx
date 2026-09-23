@@ -208,7 +208,7 @@ the file is your source locale, this surfaces wrapped in `SOURCE_INVALID`. See
 token usage (N) reached the configured budget of M tokens (behavior: warn)`. Under
 `budgetBehavior: "stop"` it reads `The run's next provider request was projected at P tokens on top
 of the N already counted, which would have crossed the configured budget of M tokens, so it was
-withheld rather than sent`, and keys also appear under `budgetWithheld`.
+withheld rather than sent`, and keys also appear under `budgetWithheld`. When the ceiling came from the run itself (`--max-tokens`, or the `maxTokens` input of the SDK or an agent tool), the messages name the run's own budget instead of the configured one; raise or drop that per-run value rather than the config's.
 
 **Cause**: the run reached its configured `maxTokens` ceiling. With `"warn"` (the default) the run
 continues unchanged and does not change the exit code; with `"stop"` the request that would have

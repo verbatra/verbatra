@@ -178,3 +178,39 @@ describe("translatePendingHandler", () => {
     }
   });
 });
+
+describe("translatePendingHandler: locales and maxTokens", () => {
+  it("translates only the named locales and leaves the others untouched", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de", "fr"] },
+      { greeting: "hello" },
+    );
+    try {
+      const result = await translatePendingHandler(
+        { locales: ["fr"] },
+        deps(project, stubCreateProvider),
+      );
+
+      expect(result.locales.map((locale) => locale.locale)).toEqual(["fr"]);
+      expect(result.succeeded).toEqual(["fr"]);
+      await expect(readFile(join(project.root, "locales", "de.json"), "utf8")).rejects.toThrow();
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("passes maxTokens through as a hard per-run ceiling", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      const result = await translatePendingHandler(
+        { maxTokens: 1 },
+        deps(project, stubCreateProvider),
+      );
+
+      expect(result.budget).toMatchObject({ maxTokens: 1, behavior: "stop", exceeded: true });
+      expect(result.locales[0]?.budgetWithheld).toEqual(["greeting"]);
+    } finally {
+      await project.cleanup();
+    }
+  });
+});
