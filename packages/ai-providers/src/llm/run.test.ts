@@ -361,3 +361,35 @@ describe("runLlmTranslation: reviewFlags", () => {
     expect(result.reviewFlags?.get("greeting")?.reasons).not.toContain("PROVIDER_DEGRADED");
   });
 });
+
+describe("runLlmTranslation: localeMap", () => {
+  function payloadOf(input: LlmCompletionInput | undefined): Record<string, unknown> {
+    return JSON.parse(input?.payloadJson ?? "{}") as Record<string, unknown>;
+  }
+
+  it("sends the mapped codes in the payload and leaves unmapped locales as configured", async () => {
+    const { mechanism, inputs } = stubMechanism(
+      rawResult([{ key: "greeting", value: "Olá {{name}}" }]),
+    );
+    const result = await runLlmTranslation(request({ targetLocale: "pt-BR" }), mechanism, {
+      "pt-BR": "Brazilian Portuguese (pt-BR)",
+    });
+    expect(payloadOf(inputs[0])).toMatchObject({
+      sourceLocale: "en",
+      targetLocale: "Brazilian Portuguese (pt-BR)",
+    });
+    expect(result.values.get("greeting")).toBe("Olá {{name}}");
+  });
+
+  it("keeps the mapped codes on the repair round", async () => {
+    const { mechanism, inputs } = sequencedMechanism([
+      { raw: rawResult([{ key: "a", value: "Hallo {{name}}" }]) },
+      { raw: rawResult([{ key: "b", value: "Tschüss {{name}}" }]) },
+    ]);
+    await runLlmTranslation(twoEntryRequest(), mechanism, { de: "de-DE", en: "en-US" });
+    expect(inputs).toHaveLength(2);
+    for (const input of inputs) {
+      expect(payloadOf(input)).toMatchObject({ sourceLocale: "en-US", targetLocale: "de-DE" });
+    }
+  });
+});

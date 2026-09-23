@@ -1,5 +1,6 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
+import { resolveProviderLocale } from "../locale-map.js";
 import {
   type PlaceholderComparator,
   type PlaceholderExtractor,
@@ -13,6 +14,7 @@ import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js
 import { createDefaultClient, GOOGLE_TRANSLATE_ENDPOINT_HOST } from "./client.js";
 import { type GoogleTranslateConfig, googleTranslateConfigSchema } from "./config.js";
 import { chunkTextsForGoogleTranslate } from "./limits.js";
+import { toGoogleTranslateCode } from "./locale-codes.js";
 import { assertValidGoogleTranslateLocale } from "./locale-validation.js";
 import { PLACEHOLDER_UNSUPPORTED_MESSAGE, partitionByPlaceholders } from "./placeholders.js";
 import { buildTranslateNotices } from "./request.js";
@@ -25,6 +27,11 @@ import type {
 } from "./types.js";
 
 const PROVIDER_ID = "google-translate";
+
+interface GoogleLanguages {
+  readonly sourceLang: string;
+  readonly targetLang: string;
+}
 
 export interface GoogleTranslateDeps {
   readonly client?: GoogleTranslateClient;
@@ -58,8 +65,7 @@ async function translate(
   request: TranslateRequest,
 ): Promise<GoogleTranslateResult> {
   const data = validateRequest(request);
-  assertValidGoogleTranslateLocale(data.sourceLocale, "source");
-  assertValidGoogleTranslateLocale(data.targetLocale, "target");
+  const languages = resolveGoogleLanguages(config, data);
   const { protectable, unprotectable } = partitionByPlaceholders(data.entries);
   const genericGlossarySupplied =
     request.glossary !== undefined && Object.keys(request.glossary).length > 0;
@@ -69,7 +75,7 @@ async function translate(
   });
   const { values, integrity } = await translateProtectable(
     bundle.client,
-    data,
+    languages,
     protectable,
     request.extractPlaceholders,
     request.comparePlaceholders,
@@ -95,9 +101,28 @@ async function translate(
   return { values, integrity, notices, reviewFlags };
 }
 
+function resolveGoogleLanguages(
+  config: GoogleTranslateConfig,
+  data: ValidatedRequestData,
+): GoogleLanguages {
+  const sourceLang = resolveProviderLocale(
+    data.sourceLocale,
+    config.localeMap,
+    toGoogleTranslateCode,
+  );
+  const targetLang = resolveProviderLocale(
+    data.targetLocale,
+    config.localeMap,
+    toGoogleTranslateCode,
+  );
+  assertValidGoogleTranslateLocale(sourceLang, "source");
+  assertValidGoogleTranslateLocale(targetLang, "target");
+  return { sourceLang, targetLang };
+}
+
 async function translateProtectable(
   client: GoogleTranslateClient,
-  data: ValidatedRequestData,
+  languages: GoogleLanguages,
   protectable: readonly TranslationEntry[],
   extract: PlaceholderExtractor,
   compare: PlaceholderComparator | undefined,
@@ -114,8 +139,8 @@ async function translateProtectable(
   const translatedTexts = await callClientChunked(
     client,
     texts,
-    data.sourceLocale,
-    data.targetLocale,
+    languages.sourceLang,
+    languages.targetLang,
     timeoutMs,
     signal,
   );

@@ -29,6 +29,8 @@ function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
 }
 
 function payloadOf(body: { contents: ReadonlyArray<{ parts: ReadonlyArray<{ text: string }> }> }): {
+  sourceLocale: string;
+  targetLocale: string;
   tone?: string;
   glossary?: Record<string, string>;
   items: Array<{ key: string; value: string; description?: string; meaning?: string }>;
@@ -97,6 +99,19 @@ describe("createGeminiProvider: request building", () => {
     expect(payload.glossary).toEqual({ Hello: "Hi" });
     expect(payload.items[0]?.description).toBe("a verb");
     expect(payload.items[0]?.meaning).toBe("publish");
+  });
+});
+
+describe("createGeminiProvider: localeMap", () => {
+  it("sends the mapped target code in the payload", async () => {
+    const { client, calls } = geminiStubClient(
+      geminiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createGeminiProvider(
+      { ...config, localeMap: { de: "de-DE" } },
+      { client },
+    ).translateBatch(request());
+    expect(payloadOf(firstCallOf(calls)).targetLocale).toBe("de-DE");
   });
 });
 

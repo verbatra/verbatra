@@ -34,7 +34,7 @@ export function createOpenAiCompatibleProvider(
     kind: "llm",
     supportsGlossary: true,
     translateBatch: (request: TranslateRequest): Promise<TranslateResult> =>
-      runLlmTranslation(request, mechanism),
+      runLlmTranslation(request, mechanism, validConfig.localeMap),
   };
 }
 

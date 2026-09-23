@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ProviderCallContext } from "../guard.js";
 import { PROVIDER_ENV } from "../key-env-vars.js";
+import { localeMapConfigSchema } from "../locale-map.js";
 import { requestTimeoutConfigSchema } from "../request-timeout-config.js";
 
 const HOSTED_PROVIDER_ENV_VARS: ReadonlySet<string> = new Set(
@@ -28,7 +29,8 @@ export const openAiCompatibleConfigSchema = z
       })
       .optional(),
   })
-  .extend(requestTimeoutConfigSchema.shape);
+  .extend(requestTimeoutConfigSchema.shape)
+  .extend(localeMapConfigSchema.shape);
 
 export type OpenAiCompatibleConfig = z.infer<typeof openAiCompatibleConfigSchema>;
 

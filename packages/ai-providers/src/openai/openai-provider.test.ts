@@ -30,6 +30,8 @@ function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
 }
 
 function payloadOf(body: { messages: ReadonlyArray<{ content: string }> }): {
+  sourceLocale: string;
+  targetLocale: string;
   tone?: string;
   glossary?: Record<string, string>;
   items: Array<{ key: string; value: string; description?: string; meaning?: string }>;
@@ -102,6 +104,21 @@ describe("createOpenAiProvider: request building", () => {
     expect(payload.glossary).toEqual({ Hello: "Hi" });
     expect(payload.items[0]?.description).toBe("a verb");
     expect(payload.items[0]?.meaning).toBe("publish");
+  });
+});
+
+describe("createOpenAiProvider: localeMap", () => {
+  it("sends the mapped source code in the payload and keeps localeMap out of the request body", async () => {
+    const { client, calls } = openAiStubClient(
+      openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createOpenAiProvider(
+      { ...config, localeMap: { en: "en-US" } },
+      { client },
+    ).translateBatch(request());
+    const body = firstCallOf(calls);
+    expect(payloadOf(body).sourceLocale).toBe("en-US");
+    expect(JSON.stringify(body)).not.toContain("localeMap");
   });
 });
 

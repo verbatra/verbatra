@@ -1,5 +1,6 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
+import { type LocaleMap, resolveProviderLocale } from "../locale-map.js";
 import {
   type ProviderNotice,
   type TranslateRequest,
@@ -33,17 +34,23 @@ export interface LlmMechanism {
 export async function runLlmTranslation(
   request: TranslateRequest,
   mechanism: LlmMechanism,
+  localeMap?: LocaleMap,
 ): Promise<TranslateResult> {
   const data = validateRequest(request);
   const signal = request.signal;
+  const sent: ValidatedRequestData = {
+    ...data,
+    sourceLocale: resolveProviderLocale(data.sourceLocale, localeMap),
+    targetLocale: resolveProviderLocale(data.targetLocale, localeMap),
+  };
 
-  const first = await requestTranslations(mechanism, data, signal);
+  const first = await requestTranslations(mechanism, sent, signal);
   const values = first.outcome.accepted;
   let usage = first.completion.usage;
 
   let toRepair = entriesFor(data.entries, first.outcome.missingKeys);
   for (let round = 0; round < MAX_REPAIR_ROUNDS && toRepair.length > 0; round += 1) {
-    const repair = await requestTranslations(mechanism, { ...data, entries: toRepair }, signal);
+    const repair = await requestTranslations(mechanism, { ...sent, entries: toRepair }, signal);
     for (const [key, value] of repair.outcome.accepted) {
       values.set(key, value);
     }

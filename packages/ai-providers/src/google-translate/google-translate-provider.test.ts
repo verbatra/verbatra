@@ -225,6 +225,45 @@ describe("createGoogleTranslateProvider: locale validation (pre-flight, before a
   });
 });
 
+describe("createGoogleTranslateProvider: locale codes sent to Cloud Translation", () => {
+  it("maps a Traditional Chinese script locale to zh-TW and a Simplified one to zh-CN", async () => {
+    const traditional = googleTranslateStubClient(googleTranslateSuccess(["x"]));
+    await createGoogleTranslateProvider(config, { client: traditional.client }).translateBatch(
+      request({ targetLocale: "zh-Hant", entries: [entry("k", "v")] }),
+    );
+    expect(firstCallOf(traditional.calls).targetLang).toBe("zh-TW");
+
+    const simplified = googleTranslateStubClient(googleTranslateSuccess(["x"]));
+    await createGoogleTranslateProvider(config, { client: simplified.client }).translateBatch(
+      request({ sourceLocale: "zh-Hans", targetLocale: "en", entries: [entry("k", "v")] }),
+    );
+    expect(firstCallOf(simplified.calls).sourceLang).toBe("zh-CN");
+  });
+
+  it("lets an explicit localeMap entry win over the built-in normalization", async () => {
+    const { client, calls } = googleTranslateStubClient(googleTranslateSuccess(["x"]));
+    await createGoogleTranslateProvider(
+      { localeMap: { "zh-Hant": "zh-HK", en: "en-GB" } },
+      { client },
+    ).translateBatch(request({ targetLocale: "zh-Hant", entries: [entry("k", "v")] }));
+    expect(firstCallOf(calls)).toMatchObject({ sourceLang: "en-GB", targetLang: "zh-HK" });
+  });
+
+  it("rejects a malformed mapped code as INVALID_REQUEST before calling translate", async () => {
+    const translate = vi.fn();
+    const client: GoogleTranslateClient = { translate };
+    await expect(
+      createGoogleTranslateProvider({ localeMap: { de: "de_DE" } }, { client }).translateBatch(
+        request({ entries: [entry("k", "v")] }),
+      ),
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+      message: expect.stringContaining('"de_DE"'),
+    });
+    expect(translate).not.toHaveBeenCalled();
+  });
+});
+
 describe("createGoogleTranslateProvider: API error mapping", () => {
   it("maps a 401 response to AUTH_FAILED naming the env var, never the key value", async () => {
     const { client } = googleTranslateStubClient(googleTranslateError(401));

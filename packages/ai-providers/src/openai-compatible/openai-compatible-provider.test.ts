@@ -49,6 +49,21 @@ describe("createOpenAiCompatibleProvider: identity", () => {
   });
 });
 
+describe("createOpenAiCompatibleProvider: localeMap", () => {
+  it("sends the mapped target code in the user payload", async () => {
+    const { client, calls } = openAiStubClient(
+      openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createOpenAiCompatibleProvider(
+      { ...config, localeMap: { de: "German (de)" } },
+      { client },
+    ).translateBatch(request());
+    const body = JSON.stringify(firstCallOf(calls).messages);
+    expect(body).toContain("German (de)");
+    expect(body).not.toContain("localeMap");
+  });
+});
+
 describe("createOpenAiCompatibleProvider: request building", () => {
   it("sets the configured model and max_tokens from config, no hardcoded model", async () => {
     const { client, calls } = openAiStubClient(
