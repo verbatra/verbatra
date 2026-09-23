@@ -1,4 +1,5 @@
 import {
+  type CheckSummary,
   DEFAULT_EXCHANGE_FORMAT,
   DEFAULT_TMX_PATH,
   DEFAULT_TYPES_PATH,
@@ -10,6 +11,8 @@ import {
   type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
+  QA_SEVERITIES,
+  type QaSeverity,
   type RunSummary,
   resolveDryRun,
   type TranslateInput,
@@ -141,7 +144,45 @@ function parseTmxDirection(raw: string): TmxDirection {
 const checkOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
   consistency: z.boolean().optional(),
+  qa: z.boolean().optional(),
+  severity: z.string().optional(),
+  strict: z.boolean().optional(),
 });
+
+type CheckOpts = z.infer<typeof checkOptsSchema>;
+
+function parseQaSeverity(opts: CheckOpts): QaSeverity | undefined {
+  if (opts.qa !== true && (opts.severity !== undefined || opts.strict === true)) {
+    const given = opts.severity !== undefined ? "--severity" : "--strict";
+    throw new CliUsageError(
+      "INVALID_QA_OPTION",
+      `${given} applies to the quality check only. Add --qa to run it.`,
+    );
+  }
+  if (opts.severity === undefined) {
+    return undefined;
+  }
+  const severity = QA_SEVERITIES.find((known) => known === opts.severity);
+  if (severity === undefined) {
+    throw new CliUsageError(
+      "INVALID_SEVERITY",
+      `The --severity option takes ${QA_SEVERITIES.map((known) => `"${known}"`).join(" or ")}, got "${opts.severity}".`,
+    );
+  }
+  return severity;
+}
+
+function parseCheckOpts(rawOpts: unknown): CheckOpts & { readonly qaSeverity?: QaSeverity } {
+  const opts = parseLocaleCommandOpts(checkOptsSchema, rawOpts);
+  const qaSeverity = parseQaSeverity(opts);
+  return qaSeverity !== undefined ? { ...opts, qaSeverity } : opts;
+}
+
+function checkExitCode(summary: CheckSummary, strict: boolean): number {
+  const qa = summary.qa;
+  const qaFails = qa !== undefined && (qa.errors > 0 || (strict && qa.warnings > 0));
+  return summary.inSync && !qaFails ? 0 : 1;
+}
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
@@ -754,28 +795,34 @@ export async function runTmx(
 
 async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
   const context = commandContext("check", rawOpts, streams);
-  return withLocaleOpts(checkOptsSchema, rawOpts, context, async (opts) => {
-    const cwd = opts.cwd ?? process.cwd();
-    return withWholeRunErrors(
-      deps,
-      context,
-      loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-      async (config) => {
-        const summary = await deps.check({
-          config,
-          cwd,
-          ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-          ...(opts.consistency === true ? { consistency: true } : {}),
-        });
-        streams.out(
-          context.json
-            ? `${renderSuccessEnvelope("check", summary)}\n`
-            : `${renderCheckHuman(summary)}\n`,
-        );
-        return summary.inSync ? 0 : 1;
-      },
-    );
-  });
+  return withParsedOpts(
+    () => parseCheckOpts(rawOpts),
+    context,
+    async (opts) => {
+      const cwd = opts.cwd ?? process.cwd();
+      return withWholeRunErrors(
+        deps,
+        context,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        async (config) => {
+          const summary = await deps.check({
+            config,
+            cwd,
+            ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+            ...(opts.consistency === true ? { consistency: true } : {}),
+            ...(opts.qa === true ? { qa: true } : {}),
+            ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
+          });
+          streams.out(
+            context.json
+              ? `${renderSuccessEnvelope("check", summary)}\n`
+              : `${renderCheckHuman(summary)}\n`,
+          );
+          return checkExitCode(summary, opts.strict === true);
+        },
+      );
+    },
+  );
 }
 
 function hasConfirmedUnusedKeys(summary: DiffSummary): boolean {
@@ -1130,6 +1177,12 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
       "--consistency",
       "also report source strings translated more than one way (report only, exit code unchanged)",
     )
+    .option(
+      "--qa",
+      "also run the integrity and review checks on every committed translation (exit 1 on errors)",
+    )
+    .option("--severity <level>", "lowest quality-check severity to report: error or warning")
+    .option("--strict", "with --qa, also exit 1 when the quality check reports warnings")
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams));
@@ -1143,6 +1196,8 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --locales de,fr  only check the German and French locales",
         "  $ verbatra check --json           machine-readable status on stdout for CI",
         "  $ verbatra check --consistency    also list source strings translated more than one way",
+        "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
+        "  $ verbatra check --qa --strict    fail on quality-check warnings too, not only errors",
       ].join("\n"),
     );
 }
