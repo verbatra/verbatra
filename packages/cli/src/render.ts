@@ -178,12 +178,15 @@ function renderFuzzyHit(hit: FuzzyCacheHit): string {
   return `${hit.key} (${percent}% like "${previewSource(hit.previousSource)}")`;
 }
 
+function renderSuggestion(entry: ProtectedKey): string {
+  if (entry.suggestion !== undefined) {
+    return `, suggestion "${preview(entry.suggestion, FUZZY_SOURCE_PREVIEW)}"`;
+  }
+  return entry.suggestionStatus === undefined ? "" : `, suggestion ${entry.suggestionStatus}`;
+}
+
 function renderProtectedKey(entry: ProtectedKey): string {
-  const suggestion =
-    entry.suggestion === undefined
-      ? ""
-      : `, suggestion "${preview(entry.suggestion, FUZZY_SOURCE_PREVIEW)}"`;
-  return `${entry.key} (${entry.reason}${suggestion})`;
+  return `${entry.key} (${entry.reason}${renderSuggestion(entry)})`;
 }
 
 function renderPosition(at: { readonly row: number; readonly line?: number }): string {

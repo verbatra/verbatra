@@ -59,7 +59,7 @@ Una clave protegida deja de estar obsoleta en cuanto una persona decide qué deb
 ## Sugerencias en lugar de sobrescrituras
 
 Con `humanEdits: "suggest"` en la configuración, una clave protegida se envía igualmente al
-proveedor, pero la respuesta es solo una sugerencia. Aparece junto a la clave en el resumen de la
+proveedor, pero la respuesta es solo una sugerencia. Una entrada exacta de la memoria de traducción para el nuevo texto también puede servir de sugerencia, pero una coincidencia aproximada nunca. La sugerencia aparece, con un `suggestionStatus` que dice si llegó o por qué no (rechazada por la puerta de integridad, un fallo del proveedor o retenida por el presupuesto de tokens), junto a la clave en el resumen de la
 ejecución y se guarda en la memoria de traducción; nunca se escribe en el archivo de locale. La
 siguiente ejecución sirve la misma sugerencia desde la memoria sin volver a pagar.
 `translate --estimate` cuenta estas claves, porque se envían. En un proyecto solo humano
@@ -113,6 +113,6 @@ La página Translations marca una clave protegida como **Needs review** en la cu
 - **Un archivo de procedencia de un verbatra más nuevo.** El origen de cada valor no se puede leer,
   así que toda clave obsoleta con valor queda protegida hasta que actualices.
 - **Un archivo de procedencia dañado.** Un dry run falla con `PROVENANCE_FILE_INVALID`, igual que
-  una ejecución real. `check` y `diff` siguen funcionando y omiten sus campos `protected`.
+  una ejecución real. `check` y `diff` siguen funcionando y solo listan como protegidas las claves fijadas, porque no se puede leer ningún origen.
 - **Proyectos solo humanos.** Las claves protegidas cuentan para el código de salida `3`, como las
   claves que la memoria de traducción no pudo rellenar: ambas necesitan a una persona.

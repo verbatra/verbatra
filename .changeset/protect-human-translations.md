@@ -16,14 +16,16 @@ values. To get the previous behavior back, set `humanEdits: "overwrite"` in the 
 
 - `@verbatra/sdk`: new config fields `humanEdits` (`"protect"`, the default, `"suggest"`, or
   `"overwrite"`) and `pinnedKeys` (key patterns with `*`). Under `suggest`, a protected key is still
-  sent to the provider and the answer comes back as `ProtectedKey.suggestion` and is kept in the
-  translation memory, but never written to the locale file. A key matching `pinnedKeys` is never
+  sent to the provider (or served from an exact translation-memory entry, never a fuzzy one) and
+  the answer comes back as `ProtectedKey.suggestion` and is kept in the translation memory, but
+  never written to the locale file; `ProtectedKey.suggestionStatus` says whether a suggestion
+  arrived or why not. Generated plural forms of a protected base form are held too. A key matching `pinnedKeys` is never
   translated, suggested, or retranslated, whatever `humanEdits` says. `TranslateInput.humanEdits`
   overrides the config for one run. `retranslateEntry` refuses a protected value with the new
   `KEY_PROTECTED` code unless `includeHuman` is set or the config says `overwrite`, and refuses a
   pinned key with the new `KEY_PINNED` code; `editEntry` refuses a pinned key for the `agent` actor.
   `LocaleCheckSummary.protected` and `LocaleDiff.protected` report the keys a run would leave
-  alone. When `verbatra.provenance.json` was written by a newer verbatra, every stale key with a
+  alone, only the pinned ones when the provenance file cannot be read. When `verbatra.provenance.json` was written by a newer verbatra, every stale key with a
   value is protected. A dry run now reads the provenance file unless `humanEdits` is `overwrite`,
   so a corrupt file fails it with `PROVENANCE_FILE_INVALID` as it fails a live run.
   `LocaleSummary.protected` is a new required field, so code that builds a `LocaleSummary` by hand

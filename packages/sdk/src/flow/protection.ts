@@ -133,12 +133,12 @@ export function assertNotProtected(
 export function reportedProtectedKeys(
   config: VerbatraConfig,
   result: LocaleDiffResult,
-): readonly string[] | undefined {
-  if (result.provenance === undefined) {
-    return undefined;
-  }
+): readonly string[] {
+  const policy = protectionPolicy(config);
   const keys = [...result.diff.missing, ...result.diff.changed];
-  return [
-    ...protectedKeys(protectionPolicy(config), result.provenance, result.target, keys).keys(),
-  ].sort();
+  const reasons =
+    result.provenance === undefined
+      ? protectedKeys({ ...policy, humanEdits: "overwrite" }, new Map(), result.target, keys)
+      : protectedKeys(policy, result.provenance, result.target, keys);
+  return [...reasons.keys()].sort();
 }

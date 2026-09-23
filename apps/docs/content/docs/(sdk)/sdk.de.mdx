@@ -318,7 +318,7 @@ Datei beschädigt ist oder von einem neueren verbatra stammt.
 
 <AvailableFrom version="0.12.0" />
 
-Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer fehlenden und veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde. Sie zählen weiter als fehlend oder veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Das Feld fehlt unter denselben Bedingungen wie `provenance`.
+Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer fehlenden und veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde. Sie zählen weiter als fehlend oder veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
 
 ### diff
 
@@ -349,7 +349,7 @@ wessen Arbeit eine Neuübersetzung ersetzen würde.
 
 <AvailableFrom version="0.12.0" />
 
-Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend.
+Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend. Ist die Provenienz-Datei nicht lesbar, werden nur gepinnte Keys gelistet.
 
 ### keyIntegrity
 
@@ -911,7 +911,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
-  protected: { key: string; reason: string; suggestion?: string }[]; // keys left for a person
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -971,7 +971,7 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
   (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
-- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, der `suggestion` des Providers, die nicht geschrieben wurde. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ### budgetStanding
 

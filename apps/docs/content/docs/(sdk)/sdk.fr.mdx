@@ -213,7 +213,7 @@ Chaque `LocaleCheckSummary` porte aussi `provenance` : des comptes `byOrigin` et
 
 <AvailableFrom version="0.12.0" />
 
-Chaque `LocaleCheckSummary` porte aussi `protected` : combien de ses clés manquantes et obsolètes une exécution de `translate` laisserait à une personne selon le `humanEdits` et les `pinnedKeys` de la config. Elles comptent toujours comme manquantes ou obsolètes, donc `inSync` reste à false jusqu'à ce qu'une personne les résolve. Le champ est absent dans les mêmes conditions que `provenance`.
+Chaque `LocaleCheckSummary` porte aussi `protected` : combien de ses clés manquantes et obsolètes une exécution de `translate` laisserait à une personne selon le `humanEdits` et les `pinnedKeys` de la config. Elles comptent toujours comme manquantes ou obsolètes, donc `inSync` reste à false jusqu'à ce qu'une personne les résolve. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées sont comptées.
 
 ### diff
 
@@ -229,7 +229,7 @@ Chaque `LocaleDiff` porte aussi `changedOrigins`, l'origine interprétée de la 
 
 <AvailableFrom version="0.12.0" />
 
-Chaque `LocaleDiff` porte aussi `protected`, les clés manquantes et modifiées qu'une exécution de `translate` laisserait tranquilles, triées. Elles comptent toujours comme en attente.
+Chaque `LocaleDiff` porte aussi `protected`, les clés manquantes et modifiées qu'une exécution de `translate` laisserait tranquilles, triées. Elles comptent toujours comme en attente. Si le fichier de provenance est illisible, seules les clés épinglées sont listées.
 
 ### keyIntegrity
 
@@ -630,7 +630,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
-  protected: { key: string; reason: string; suggestion?: string }[]; // keys left for a person
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -648,7 +648,7 @@ Les parties à connaître :
 - **budget** n'apparaît que quand `maxTokens` est configuré : `{ maxTokens, behavior, supported, tokensUsed, exceeded }`. `supported` indique si `tokensUsed` est entièrement l'usage rapporté par le fournisseur lui-même ; il vaut `false` dès qu'une requête revient sans chiffre exploitable, et le total est alors en partie la projection de verbatra, comptée et appliquée de la même façon. Un dry run le rapporte avec `tokensUsed: 0`, puisque rien n'a été envoyé. Sous `behavior: "stop"`, le plafond est vérifié avant chaque requête que l'exécution envoie, y compris chaque moitié d'une requête redécoupée, donc `tokensUsed` finit au plafond ou en dessous, à un résidu près : la dernière requête admise est réconciliée avec ce que le fournisseur a rapporté, ce qui peut pousser le total au-dessus du plafond après coup. Plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le budget borne un appel à `translate` : `watch` en démarre un neuf par exécution, et `retranslateEntry` n'est pas couvert du tout.
 - **error.code** sur une locale échouée est une chaîne préservée (le code du fournisseur ou de l'adaptateur sous-jacent, avec `LOCALE_FAILED` seulement en dernier recours), donc ne le traite pas comme un ensemble fermé.
 - **cacheHits** liste les clés servies depuis le [cache de mémoire de traduction](/docs/the-cache) plutôt que par le fournisseur. **fuzzyHits** liste les clés qui ont réutilisé une traduction pour une chaîne source qui avait changé, chacune portant `key`, `similarity` et le `previousSource` correspondant ; elle est vide tant que `fuzzyCache` n'est pas activé, et ces clés ne sont jamais comptées dans **cacheHits**. **unfilled**, **malformedRows** et **duplicateKeys** ne sont remplis que par `importWorkbook` (une exécution `translate` les laisse vides) : une ligne vide dont la clé demande toujours une traduction au moment de l'import (qu'elle ait été exportée comme `new` ou comme `changed`), une ligne du classeur que le lecteur n'a pas pu analyser, et une clé en double dont la première occurrence a gagné. Le `line` optionnel des deux derniers est la ligne du fichier où commence l'enregistrement, présent uniquement pour un import délimité (`csv` ou `tsv`). La seule exception est un projet [100 % humain](/docs/human-only-workflow) : là, `translate` et `watch` listent dans **unfilled** chaque clé pour laquelle la mémoire de traduction n'avait pas d'entrée exacte, et **fuzzyHits** reste vide car aucune réutilisation approximative n'y est jamais appliquée.
-- **protected** liste les clés qu'une exécution de `translate` a laissées tranquilles, chacune avec sa `reason` (`human`, `import`, `external` ou `pinned`) et, avec `humanEdits: "suggest"`, la `suggestion` du fournisseur, qui n'a pas été écrite. Elles ne sont pas dans **translated**, ne changent jamais le statut d'une locale et restent obsolètes pour `check`. `importWorkbook` le laisse vide. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+- **protected** liste les clés qu'une exécution de `translate` a laissées tranquilles, chacune avec sa `reason` (`human`, `import`, `external` ou `pinned`) et, avec `humanEdits: "suggest"`, une `suggestion` (la réponse du fournisseur ou une entrée exacte de la mémoire de traduction, jamais une correspondance approximative), qui n'a pas été écrite, et un `suggestionStatus` : `planned` lors d'un dry run, `suggested` ou pourquoi pas (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Une suggestion en échec ne change jamais le statut d'une locale. Elles ne sont pas dans **translated**, ne changent jamais le statut d'une locale et restent obsolètes pour `check`. `importWorkbook` le laisse vide. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
 
 ### budgetStanding
 

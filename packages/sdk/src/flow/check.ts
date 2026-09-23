@@ -39,8 +39,8 @@ export interface LocaleCheckSummary {
    * How many of the missing and stale keys a {@link translate} run would leave alone under the
    * config's `humanEdits` and `pinnedKeys`, because a person wrote, imported, or changed their
    * value, or because they are pinned. They still count as missing or stale, so `inSync` stays
-   * false until a person resolves them. Absent when the provenance file is corrupt or was written
-   * by a newer verbatra.
+   * false until a person resolves them. When the provenance file is corrupt or was written by a
+   * newer verbatra, no origin can be read and only the pinned keys are counted.
    */
   readonly protected?: number;
   /**
@@ -108,7 +108,6 @@ function toCheckSummary(
   consistency: InconsistentTranslationsOptions | undefined,
 ): LocaleCheckSummary {
   const { locale, diff, source, target, provenance } = result;
-  const protectedKeys = reportedProtectedKeys(config, result);
   return {
     locale,
     missing: diff.missing.length,
@@ -118,7 +117,7 @@ function toCheckSummary(
     ...(provenance !== undefined
       ? { provenance: summarizeProvenance(provenance, source, target) }
       : {}),
-    ...(protectedKeys !== undefined ? { protected: protectedKeys.length } : {}),
+    protected: reportedProtectedKeys(config, result).length,
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(

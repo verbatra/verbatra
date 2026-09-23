@@ -291,7 +291,7 @@ corrupt or was written by a newer verbatra.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleCheckSummary` also carries `protected`, how many of its missing and stale keys a `translate` run would leave for a person under the config's `humanEdits` and `pinnedKeys`. They still count as missing or stale, so `inSync` stays false until a person resolves them. It is absent under the same conditions as `provenance`.
+Each `LocaleCheckSummary` also carries `protected`, how many of its missing and stale keys a `translate` run would leave for a person under the config's `humanEdits` and `pinnedKeys`. They still count as missing or stale, so `inSync` stays false until a person resolves them. When `verbatra.provenance.json` is corrupt or from a newer verbatra, no origin can be read and only pinned keys are counted.
 
 ### diff
 
@@ -321,7 +321,7 @@ retranslation would replace before you run it.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted. They still count as pending.
+Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted. They still count as pending. When the provenance file is unreadable, only pinned keys are listed.
 
 ### keyIntegrity
 
@@ -839,7 +839,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
-  protected: { key: string; reason: string; suggestion?: string }[]; // keys left for a person
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -894,7 +894,7 @@ The parts worth knowing:
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
   import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no exact entry for, and **fuzzyHits** stays empty because fuzzy reuse is never applied there.
-- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, the provider's `suggestion`, which was not written. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
+- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`). A failed suggestion never changes the locale's status. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
 
 ### budgetStanding
 

@@ -173,7 +173,7 @@ describe("translate: protecting human translations", () => {
     ]);
     expect(summary.locales[0]?.translated).toEqual(["extra"]);
     const drift = await diff({ config: cfg(), cwd: dir });
-    expect(drift.locales[0]?.protected).toBeUndefined();
+    expect(drift.locales[0]?.protected).toEqual([]);
   });
 
   it("fails a dry run on a corrupt provenance file unless protection is off", async () => {
@@ -201,7 +201,12 @@ describe("translate: humanEdits suggest", () => {
     const first = await translate({ config, cwd: dir }, { createProvider: () => stub.provider });
 
     expect(first.locales[0]?.protected).toEqual([
-      { key: "greeting", reason: "human", suggestion: "[de] Hello there" },
+      {
+        key: "greeting",
+        reason: "human",
+        suggestion: "[de] Hello there",
+        suggestionStatus: "suggested",
+      },
     ]);
     expect(first.locales[0]?.translated).toEqual(["farewell"]);
     expect(sentKeys(stub)).toEqual(["farewell", "greeting"]);
@@ -213,7 +218,12 @@ describe("translate: humanEdits suggest", () => {
 
     expect(again.calls).toHaveLength(0);
     expect(second.locales[0]?.protected).toEqual([
-      { key: "greeting", reason: "human", suggestion: "[de] Hello there" },
+      {
+        key: "greeting",
+        reason: "human",
+        suggestion: "[de] Hello there",
+        suggestionStatus: "suggested",
+      },
     ]);
     expect(second.locales[0]?.cacheHits).toEqual([]);
     expect((await check({ config, cwd: dir })).locales[0]?.stale).toBe(1);
@@ -228,7 +238,9 @@ describe("translate: humanEdits suggest", () => {
       },
     );
 
-    expect(summary.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
+    expect(summary.locales[0]?.protected).toEqual([
+      { key: "greeting", reason: "human", suggestionStatus: "provider-failure" },
+    ]);
     expect(summary.locales[0]?.providerFailures).toEqual([]);
     expect(summary.locales[0]?.status).toBe("succeeded");
   });
@@ -263,7 +275,10 @@ describe("translate: humanEdits suggest", () => {
 
     expect(sentKeys(stub)).toEqual(["farewell"]);
     expect(summary.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
-    expect(summary.locales[0]?.invalidIcuSource).toEqual([]);
+    expect(summary.locales[0]?.invalidIcuSource).toEqual(["greeting"]);
+    const estimated = await translate({ config, cwd: dir, estimate: true });
+    expect(estimated.estimate?.locales[0]?.keys).toBe(0);
+    expect(estimated.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
   });
 });
 
@@ -327,5 +342,159 @@ describe("translate: protection in human-only mode", () => {
     expect(summary.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
     expect(summary.locales[0]?.unfilled).not.toContain("greeting");
     expect((await targetFile(dir)).greeting).toBe("Hallo");
+  });
+});
+
+describe("translate: protection edge cases", () => {
+  it.each([
+    ["the representative", "a"],
+    ["the duplicate", "b"],
+  ])("keeps a protected key when it is %s of a content-duplicate group", async (_label, human) => {
+    for (const humanEdits of ["protect", "suggest"] as const) {
+      const dir = await project({ a: "Same", b: "Same" });
+      await translate(
+        { config: cfg(), cwd: dir },
+        { createProvider: () => makeStubProvider().provider },
+      );
+      await editEntry({ config: cfg(), cwd: dir, locale: "de", key: human, value: "Von Hand" });
+      await writeJsonFile(join(dir, "locales", "en.json"), { a: "Same again", b: "Same again" });
+      const other = human === "a" ? "b" : "a";
+
+      const summary = await translate(
+        { config: cfg({ humanEdits }), cwd: dir },
+        { createProvider: () => makeStubProvider().provider },
+      );
+
+      const target = await targetFile(dir);
+      expect(target[human]).toBe("Von Hand");
+      expect(target[other]).toBe("[de] Same again");
+      expect(summary.locales[0]?.protected.map((entry) => entry.key)).toEqual([human]);
+      expect(summary.locales[0]?.protected[0]?.suggestion).toBe(
+        humanEdits === "suggest" ? "[de] Same again" : undefined,
+      );
+    }
+  });
+
+  it("reports a suggestion refused by the integrity gate", async () => {
+    const dir = await humanEditedProject();
+
+    const summary = await translate(
+      { config: cfg({ humanEdits: "suggest" }), cwd: dir, cache: false },
+      {
+        createProvider: () => makeStubProvider({ failIntegrity: new Set(["greeting"]) }).provider,
+      },
+    );
+
+    expect(summary.locales[0]?.protected).toEqual([
+      { key: "greeting", reason: "human", suggestionStatus: "integrity-mismatch" },
+    ]);
+    expect(summary.locales[0]?.integrityMismatches).toEqual([]);
+  });
+
+  it("reports a suggestion the token budget withheld, without failing the locale", async () => {
+    const dir = await translatedProject();
+    await editEntry({ config: cfg(), cwd: dir, locale: "de", key: "greeting", value: "Hallo" });
+    await writeJsonFile(join(dir, "locales", "en.json"), { ...SOURCE, greeting: "Hello there" });
+
+    const summary = await translate(
+      {
+        config: cfg({ humanEdits: "suggest", maxTokens: 1, budgetBehavior: "stop" }),
+        cwd: dir,
+        cache: false,
+      },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect(summary.locales[0]?.protected).toEqual([
+      { key: "greeting", reason: "human", suggestionStatus: "budget-withheld" },
+    ]);
+    expect(summary.locales[0]?.budgetWithheld).toEqual([]);
+    expect(summary.locales[0]?.status).toBe("succeeded");
+  });
+
+  it("never offers a fuzzy memory match as a suggestion, and asks the provider instead", async () => {
+    const config = cfg({ humanEdits: "suggest", fuzzyCache: { enabled: true, threshold: 0.5 } });
+    const dir = await translatedProject();
+    await editEntry({ config, cwd: dir, locale: "de", key: "greeting", value: "Hallo" });
+    await writeJsonFile(join(dir, "locales", "en.json"), { ...SOURCE, greeting: "Hello!" });
+    const stub = makeStubProvider();
+
+    const summary = await translate({ config, cwd: dir }, { createProvider: () => stub.provider });
+
+    expect(sentKeys(stub)).toEqual(["greeting"]);
+    expect(summary.locales[0]?.fuzzyHits).toEqual([]);
+    expect(summary.locales[0]?.protected[0]?.suggestion).toBe("[de] Hello!");
+  });
+});
+
+describe("translate: protection and generated plural forms", () => {
+  const pluralConfig = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
+    cfg({ targetLocales: ["ru"], generatePlurals: true, ...overrides });
+  const PLURAL_SOURCE = { items_one: "{{count}} item", items_other: "{{count}} items" };
+
+  async function generatedProject(): Promise<string> {
+    const dir = await project(PLURAL_SOURCE);
+    await translate(
+      { config: pluralConfig(), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+    return dir;
+  }
+
+  async function ruFile(dir: string): Promise<Record<string, string>> {
+    return (await readJsonFile(join(dir, "locales", "ru.json"))) as Record<string, string>;
+  }
+
+  it("holds a generated form a translator edited, while regenerating the rest", async () => {
+    const dir = await generatedProject();
+    const before = await ruFile(dir);
+    expect(before.items_few).toBeDefined();
+    await writeJsonFile(join(dir, "locales", "ru.json"), { ...before, items_few: "{{count}} X" });
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      ...PLURAL_SOURCE,
+      items_other: "{{count}} things",
+    });
+
+    const summary = await translate(
+      { config: pluralConfig(), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect((await ruFile(dir)).items_few).toBe("{{count}} X");
+    expect(summary.locales[0]?.protected).toContainEqual({ key: "items_few", reason: "external" });
+    expect(summary.locales[0]?.generated).not.toContain("items_few");
+  });
+
+  it("holds every generated form of a protected base form, so a plural set is never mixed", async () => {
+    const dir = await generatedProject();
+    const before = await ruFile(dir);
+    await editEntry({
+      config: pluralConfig(),
+      cwd: dir,
+      locale: "ru",
+      key: "items_other",
+      value: "{{count}} vesch",
+    });
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      ...PLURAL_SOURCE,
+      items_other: "{{count}} things",
+    });
+    const stub = makeStubProvider();
+
+    const summary = await translate(
+      { config: pluralConfig(), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    const after = await ruFile(dir);
+    expect(after.items_other).toBe("{{count}} vesch");
+    expect(after.items_few).toBe(before.items_few);
+    expect(after.items_many).toBe(before.items_many);
+    expect(summary.locales[0]?.generated).toEqual([]);
+    expect(summary.locales[0]?.protected).toEqual([
+      { key: "items_few", reason: "human" },
+      { key: "items_many", reason: "human" },
+      { key: "items_other", reason: "human" },
+    ]);
   });
 });

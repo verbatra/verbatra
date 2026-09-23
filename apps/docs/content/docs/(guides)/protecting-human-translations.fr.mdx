@@ -60,7 +60,7 @@ Une clé protégée n'est plus obsolète dès qu'une personne décide de ce qu'e
 ## Des suggestions plutôt que des écrasements
 
 Avec `humanEdits: "suggest"` dans la configuration, une clé protégée est quand même envoyée au
-fournisseur, mais la réponse n'est qu'une suggestion. Elle s'affiche à côté de la clé dans le
+fournisseur, mais la réponse n'est qu'une suggestion. Une entrée exacte de la mémoire de traduction pour le nouveau texte peut aussi servir de suggestion, mais jamais une correspondance approximative. La suggestion s'affiche, avec un `suggestionStatus` qui dit si elle est arrivée ou pourquoi pas (refusée par la barrière d'intégrité, un échec du fournisseur ou retenue par le budget de tokens), à côté de la clé dans le
 résumé de l'exécution et est gardée dans la mémoire de traduction ; elle n'est jamais écrite dans le
 fichier de locale. L'exécution suivante sert la même suggestion depuis la mémoire sans payer à
 nouveau. `translate --estimate` compte ces clés, puisqu'elles sont envoyées. Dans un projet
@@ -115,7 +115,7 @@ La page Translations marque une clé protégée comme **Needs review** dans la g
 - **Un fichier de provenance d'un verbatra plus récent.** L'origine des valeurs ne peut pas être
   lue, donc toute clé obsolète qui a une valeur est protégée jusqu'à ta mise à jour.
 - **Un fichier de provenance corrompu.** Un dry run échoue avec `PROVENANCE_FILE_INVALID`,
-  exactement comme une vraie exécution. `check` et `diff` continuent de fonctionner et omettent
-  leurs champs `protected`.
+  exactement comme une vraie exécution. `check` et `diff` continuent de fonctionner et ne listent comme
+  protégées que les clés épinglées, puisqu'aucune origine ne peut être lue.
 - **Projets uniquement humains.** Les clés protégées comptent pour le code de sortie `3`, comme les
   clés que la mémoire de traduction n'a pas pu remplir : les deux ont besoin d'une personne.

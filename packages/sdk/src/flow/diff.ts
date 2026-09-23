@@ -37,8 +37,8 @@ export interface LocaleDiff {
    * The missing and changed keys a {@link translate} run would leave alone under the config's
    * `humanEdits` and `pinnedKeys`, sorted: stale keys whose value a person wrote, imported, or
    * changed outside verbatra, and pinned keys. They still count as pending, since they stay stale
-   * until a person resolves them. Absent when the provenance file is corrupt or was written by a
-   * newer verbatra.
+   * until a person resolves them. When the provenance file is corrupt or was written by a newer
+   * verbatra, no origin can be read and only the pinned keys are listed.
    */
   readonly protected?: readonly string[];
 }
@@ -149,13 +149,12 @@ export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffS
   const { source, results } = await diffLocalesWithSource(input, deps);
   const locales = results.map((entry) => {
     const { locale, diff: result, target, provenance } = entry;
-    const protectedKeys = reportedProtectedKeys(input.config, entry);
     return {
       ...toLocaleDiff(locale, result),
       ...(provenance !== undefined
         ? { changedOrigins: originsOf(provenance, target, result.changed) }
         : {}),
-      ...(protectedKeys !== undefined ? { protected: protectedKeys } : {}),
+      protected: reportedProtectedKeys(input.config, entry),
     };
   });
   const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
