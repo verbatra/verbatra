@@ -331,6 +331,13 @@ el `ProviderError` propio del proveedor (por ejemplo `RATE_LIMITED`) cuando la l
 Consulta [Revisión en Studio](/docs/review-in-studio) para los mismos puntos de integración detrás de
 una interfaz.
 
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` lanza `KEY_PROTECTED` para un valor que escribió, importó o cambió una persona
+fuera de verbatra, salvo que pases `includeHuman: true`, y `KEY_PINNED` para una clave que coincide
+con los `pinnedKeys` de la configuración, que `editEntry` también lanza con `actor: "agent"`.
+Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
 ## Lee todos los valores de golpe
 
 <AvailableFrom version="0.10.0" />

@@ -332,6 +332,13 @@ Eine unbekannte Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNK
 wenn der Aufruf selbst fehlschlägt. Dieselben Nahtstellen hinter einer Oberfläche zeigt
 [Review in Studio](/docs/review-in-studio).
 
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` wirft `KEY_PROTECTED` für einen Wert, den ein Mensch geschrieben, importiert oder
+außerhalb von verbatra geändert hat, außer du übergibst `includeHuman: true`, und `KEY_PINNED` für
+einen Key, der auf die `pinnedKeys` der Konfiguration passt; `editEntry` wirft das auch bei
+`actor: "agent"`. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
 ## Alle Werte auf einmal lesen
 
 <AvailableFrom version="0.10.0" />

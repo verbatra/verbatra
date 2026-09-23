@@ -57,7 +57,7 @@ A protected key stops being stale as soon as a person decides what it should say
 ## Suggestions instead of overwrites
 
 With `humanEdits: "suggest"` in the config, a protected key is still sent to the provider, but the
-answer is only a suggestion. It appears next to the key in the run summary and is kept in the
+answer is only a suggestion. An exact translation-memory entry for the new text can serve as one too, but a fuzzy match never does. The suggestion appears next to the key in the run summary, with a `suggestionStatus` that says whether it arrived or why not (refused by the integrity gate, a provider failure, or withheld by the token budget), and is kept in the
 translation memory; it is never written to the locale file. The next run serves the same
 suggestion from the memory without paying again. `translate --estimate` counts these keys, since
 they are sent. In a human-only project (`provider: { id: "none" }`) there is no provider to ask, so
@@ -108,6 +108,6 @@ The Translations page marks a protected key as **Needs review** in the key grid 
 - **A provenance file from a newer verbatra.** The origin of each value cannot be read, so every
   stale key with a value is protected until you upgrade.
 - **A corrupt provenance file.** A dry run fails with `PROVENANCE_FILE_INVALID`, exactly as a live
-  run does. `check` and `diff` keep working and leave their `protected` fields out.
+  run does. `check` and `diff` keep working and list only pinned keys as protected, since no origin can be read.
 - **Human-only projects.** Protected keys count toward exit code `3`, like keys the translation
   memory could not fill: both need a person.

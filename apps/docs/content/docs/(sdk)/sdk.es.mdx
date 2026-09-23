@@ -311,7 +311,7 @@ el archivo está corrupto o lo escribió un verbatra más nuevo.
 
 <AvailableFrom version="0.12.0" />
 
-Cada `LocaleCheckSummary` lleva además `protected`: cuántas de sus claves ausentes y obsoletas dejaría una ejecución de `translate` para una persona según el `humanEdits` y los `pinnedKeys` de la configuración. Siguen contando como ausentes u obsoletas, así que `inSync` sigue en false hasta que una persona las resuelva. Falta en las mismas condiciones que `provenance`.
+Cada `LocaleCheckSummary` lleva además `protected`: cuántas de sus claves ausentes y obsoletas dejaría una ejecución de `translate` para una persona según el `humanEdits` y los `pinnedKeys` de la configuración. Siguen contando como ausentes u obsoletas, así que `inSync` sigue en false hasta que una persona las resuelva. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo se cuentan las claves fijadas.
 
 ### diff
 
@@ -341,7 +341,7 @@ trabajo reemplazaría una retraducción.
 
 <AvailableFrom version="0.12.0" />
 
-Cada `LocaleDiff` lleva además `protected`, las claves ausentes y cambiadas que una ejecución de `translate` dejaría en paz, ordenadas. Siguen contando como pendientes.
+Cada `LocaleDiff` lleva además `protected`, las claves ausentes y cambiadas que una ejecución de `translate` dejaría en paz, ordenadas. Siguen contando como pendientes. Si el archivo de procedencia no se puede leer, solo se listan las claves fijadas.
 
 ### keyIntegrity
 
@@ -887,7 +887,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
-  protected: { key: string; reason: string; suggestion?: string }[]; // keys left for a person
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -945,7 +945,7 @@ Las partes que conviene conocer:
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
   que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía una entrada exacta, y **fuzzyHits** queda vacía porque ahí nunca se aplica una reutilización aproximada.
-- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, la `suggestion` del proveedor, que no se escribió. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
 
 ### budgetStanding
 
