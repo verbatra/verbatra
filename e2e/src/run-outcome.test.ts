@@ -400,12 +400,30 @@ describe("classifyRunEnvelope: transient provider faults", () => {
     });
   });
 
-  it("reads only the code the sdk stamped, not a transient code quoted inside the provider message", () => {
+  it("ignores a transient code quoted after the stamped code inside the provider message", () => {
     const outcome = classifyRunEnvelope(
       record(
         locale({
           providerFailures: ["welcome"],
           notices: [subBatchNotice("PROVIDER_ERROR", "upstream said (TIMEOUT: retry later)")],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome.kind).toBe("failed");
+  });
+
+  it("ignores a transient code that appears before the stamped template starts the message", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          providerFailures: ["welcome"],
+          notices: [
+            {
+              code: "SUB_BATCH_FAILED",
+              message: `(TIMEOUT: relayed) ${subBatchNotice("TIMEOUT").message}`,
+            },
+          ],
         }),
       ),
       TARGET,

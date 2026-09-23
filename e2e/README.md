@@ -60,8 +60,8 @@ deterministic test joins the required gate automatically.
 
   **This tier is advisory and never gates a publish**, because its result depends on a third
   party's availability. That is not licence to ignore it: both live tests read each run's `--json`
-  record (`src/run-outcome.ts`), and a transient provider fault, a `RATE_LIMITED`,
-  `PROVIDER_UNAVAILABLE`, or `TIMEOUT` code on a withheld sub-batch or a failed locale, is reported
+  record (`src/run-outcome.ts`), and a transient provider fault (a `RATE_LIMITED`,
+  `PROVIDER_UNAVAILABLE`, or `TIMEOUT` code on a withheld sub-batch or a failed locale) is reported
   as a skipped test. The skip applies only when every failure in the run is transient: a transient
   fault beside any other provider code, a placeholder-integrity rejection, or a budget withholding
   still fails. A red run here therefore means the CLI is genuinely broken against a real provider.
