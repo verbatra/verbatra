@@ -76,6 +76,11 @@ export interface InitOpts {
   readonly source?: string;
   readonly targets?: string;
   readonly path?: string;
+  readonly format?: string;
+  readonly model?: string;
+  readonly baseUrl?: string;
+  readonly apiKeyEnvVar?: string;
   readonly yes?: boolean;
   readonly force?: boolean;
+  readonly json?: boolean;
 }

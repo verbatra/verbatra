@@ -201,8 +201,8 @@ Un modelo local malo falla de forma ruidosa, no en silencio: verbatra valida cad
 
 `openai-compatible` solicita el mismo formato de respuesta estricto y restringido por esquema que el proveedor alojado `openai`. La única diferencia está a la vuelta: los modelos locales y más pequeños tienden más a envolver una respuesta por lo demás correcta en prosa o en un bloque de código Markdown a pesar de que se les pide que no, así que `openai-compatible` extrae el primer objeto JSON balanceado en cualquier parte de la respuesta antes de parsear, cosa que el proveedor alojado no hace. Su salida pasa igualmente por exactamente la misma validación de esquema y las mismas comprobaciones de integridad que la de cualquier otro proveedor: la salida de un modelo local es entrada no confiable, y una respuesta malformada o con placeholders discordantes se rechaza de la misma manera.
 
-<Callout title="No está en verbatra init">
-`verbatra init` no ofrece `openai-compatible` como opción de scaffold, porque no tiene una única variable de entorno obligatoria por la que preguntar. Añade a mano el bloque de proveedor de arriba a tu configuración; todo lo demás de esta página (glosario, tono, límites de tokens de salida) le aplica como a cualquier proveedor LLM.
+<Callout title="Genéralo con verbatra init">
+`verbatra init --provider openai-compatible --base-url <url> --model <name>` escribe este bloque por ti, con `maxOutputTokens: 4096`. Añade `--api-key-env-var <NAME>` cuando el servidor necesite una clave bajo una variable propia; `init` escribe solo el nombre de la variable, nunca un valor. Consulta [verbatra init](/docs/cli/init#proveedores). Todo lo demás de esta página (glosario, tono, límites de tokens de salida) le aplica como a cualquier proveedor LLM.
 </Callout>
 
 ## none

@@ -22,14 +22,15 @@ pnpm requiere un paso más. `pnpm add -D @verbatra/cli` instala bien, pero sale 
 npx verbatra init --provider gemini
 ```
 
-Con una terminal conectada, `init` pregunta por todo lo que no pasaste como flag, cada uno con un valor por defecto:
+`init` mira primero los archivos de locale que ya hay en tu proyecto y detecta su formato, su patrón de ruta y sus locales. Con una terminal conectada, después pregunta por todo lo que no pasaste como flag, sugiriendo lo que detectó o, si no, un valor por defecto:
 
-- el proveedor: uno de `anthropic`, `openai`, `gemini`, `deepl` o `google-translate` (flag `--provider`, la única entrada sin valor por defecto)
+- el proveedor: uno de `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none` (flag `--provider`, la única entrada sin valor por defecto)
+- el formato de los archivos de locale, por defecto `i18next-json` (`--format`)
 - el locale de origen, por defecto `en` (`--source`)
 - los locales de destino, separados por comas, por defecto `de` (`--targets`)
 - el patrón de archivos de locale, por defecto `locales/{locale}.json` (`--path`)
 
-Pasa `--yes` para saltarte las preguntas y aceptar los valores por defecto. Sin una terminal (en CI, por ejemplo) `init` nunca pregunta; usa los valores por defecto y solo exige `--provider`.
+Pasa `--yes` para saltarte las preguntas y aceptar los valores detectados o los valores por defecto. Sin una terminal (en CI, por ejemplo) `init` nunca pregunta: un valor que no pudo ni detectar ni tomar por defecto con `--yes` hace que salga con `2` y `MISSING_OPTIONS`, nombrando los flags que debes pasar.
 
 `init` escribe tres cosas:
 
@@ -37,7 +38,7 @@ Pasa `--yes` para saltarte las preguntas y aceptar los valores por defecto. Sin 
 - `.env.example`: nombra la variable de la clave del proveedor, nunca el valor de una clave
 - entradas en `.gitignore` para `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`, creadas o añadidas para que una clave real, el estado local o la caché regenerable nunca acaben en una confirmación
 
-Volver a ejecutar `init` se salta los archivos que ya existen; `--force` los sobrescribe. También rellena `format` de antemano mirando tus dependencias: un proyecto que usa i18next, vue-i18n, next-intl o `@ngx-translate/core` recibe el formato JSON correspondiente, y cualquier otro toma por defecto `i18next-json` con un comentario TODO para cambiarlo. Para Gemini la configuración generada queda así:
+Volver a ejecutar `init` con las mismas respuestas no cambia nada. Un `verbatra.config.ts` con un contenido distinto se rechaza salvo que pases `--force`, y a un `.env.example` existente solo se le añade la variable de la clave cuando falta. Cuando el proyecto todavía no tiene ningún archivo de locale, `format` sale de tus dependencias (i18next, vue-i18n, next-intl o `@ngx-translate/core` eligen el formato JSON correspondiente), y si no, toma por defecto `i18next-json` con un comentario TODO para cambiarlo. [verbatra init](/docs/cli/init#detección) tiene los detalles. Para Gemini en un proyecto vacío la configuración generada queda así:
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

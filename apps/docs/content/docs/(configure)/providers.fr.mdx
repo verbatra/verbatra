@@ -201,8 +201,8 @@ Un mauvais modèle local échoue bruyamment, pas en silence : verbatra valide ch
 
 `openai-compatible` demande le même format de réponse strict et contraint par schéma que le fournisseur hébergé `openai`. La seule différence est au retour : les modèles locaux et plus petits ont plus tendance à envelopper une réponse par ailleurs correcte dans de la prose ou un bloc de code Markdown malgré la consigne contraire, donc `openai-compatible` extrait le premier objet JSON équilibré n'importe où dans la réponse avant l'analyse, là où le fournisseur hébergé ne le fait pas. Sa sortie passe quand même par exactement la même validation de schéma et les mêmes contrôles d'intégrité que tout autre fournisseur : la sortie d'un modèle local est une entrée non fiable, et une réponse malformée ou aux placeholders discordants est rejetée de la même façon.
 
-<Callout title="Pas dans verbatra init">
-`verbatra init` ne propose pas `openai-compatible` comme option de génération, puisqu'il n'a pas une unique variable d'environnement requise à demander. Ajoute le bloc de fournisseur ci-dessus à ta configuration à la main ; tout le reste de cette page (glossaire, ton, limites de tokens de sortie) s'applique à lui comme à tout fournisseur LLM.
+<Callout title="Génère-le avec verbatra init">
+`verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc pour toi, avec `maxOutputTokens: 4096`. Ajoute `--api-key-env-var <NAME>` quand le serveur a besoin d'une clé sous une variable qui lui est propre ; `init` n'écrit que le nom de la variable, jamais une valeur. Voir [verbatra init](/docs/cli/init#fournisseurs). Tout le reste de cette page (glossaire, ton, limites de tokens de sortie) s'applique à lui comme à tout fournisseur LLM.
 </Callout>
 
 ## none

@@ -5,14 +5,22 @@ import type { ScaffoldableProviderId } from "./scaffolding.js";
 import { scaffoldingMetadata } from "./scaffolding.js";
 
 describe("scaffoldingMetadata", () => {
-  it("exposes the four pass-through tables and the human-only provider id", () => {
+  it("exposes the pass-through tables, the human-only provider id, and the config file names", () => {
     expect(Object.keys(scaffoldingMetadata).sort()).toEqual([
+      "configSearchPlaces",
       "humanOnlyProviderId",
+      "openAiCompatibleKeyEnv",
       "providerEnv",
       "providerTokenLimitKeys",
       "scaffoldModels",
       "supportedFormats",
     ]);
+  });
+
+  it("names the openai-compatible key variable and the searched config files", () => {
+    expect(scaffoldingMetadata.openAiCompatibleKeyEnv).toBe("OPENAI_COMPATIBLE_API_KEY");
+    expect(scaffoldingMetadata.configSearchPlaces).toContain("verbatra.config.ts");
+    expect(scaffoldingMetadata.configSearchPlaces).toContain(".verbatrarc.json");
   });
 
   it("names none as the human-only provider id, a schema-accepted id with no key variable", () => {

@@ -16,9 +16,9 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
+| `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an oder fand es schon auf dem aktuellen Stand, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
 | `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron (oder mit `--qa` eine eingecheckte Übersetzung mit einem Integritätsfehler oder mit `--strict` einer Review-Warnung), `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init` ohne auflösbaren Provider oder unfähig, eine gültige Konfiguration anzulegen, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init`, dem ein benötigtes Flag fehlt, das mehrere passende Formate oder Dateimuster findet, das sich weigert, eine bestehende Konfiguration zu überschreiben, oder das keine gültige Konfiguration anlegen kann, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
 | `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 
@@ -59,12 +59,20 @@ Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` o
 
 ## JSON-Ausgabe
 
-Elf Befehle akzeptieren `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types` und `extract`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
+Zwölf Befehle akzeptieren `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` und `init`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
 
 ```ts
 type Envelope<TResult> =
   | { ok: true; version: 1; command: string; result: TResult }
-  | { ok: false; version: 1; command: string | null; code: string; message: string };
+  | {
+      ok: false;
+      version: 1;
+      command: string | null;
+      code: string;
+      message: string;
+      candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
+    };
 ```
 
 `version` ist die Version dieser Envelope-Form, nicht die Version des Pakets. Es ist eine ganze Zahl, du vergleichst sie also mit `===`, statt einen Bereich zu parsen, und sie ändert sich nur, wenn ein bestehendes Feld seine Bedeutung ändert oder verschwindet. Neue Felder können hinzukommen, ohne dass die Version steigt; ignoriere also die, die du nicht kennst.
@@ -75,7 +83,7 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 { "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
 ```
 
-`command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war.
+`command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war. `candidates` erscheint nur bei einem Fehler, der dich wählen lässt, etwa `FORMAT_AMBIGUOUS` von `init`, und listet die Werte auf, aus denen du wählst. `missing` erscheint bei einem Verwendungsfehler von `init`, der Flags unbeantwortet lässt, und nennt jedes Flag, das du noch übergeben musst.
 
 Ein Verwendungsfehler trägt einen dieser Codes:
 
@@ -86,7 +94,13 @@ Ein Verwendungsfehler trägt einen dieser Codes:
 | `INVALID_QA_OPTION` | `check` `--severity` oder `--strict` ohne `--qa` bekommen hat, oder `--strict` zusammen mit `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` weder `error` noch `warning` ist |
 | `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
-| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt |
+| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt oder `--format` bei `init` kein unterstütztes Format für Locale-Dateien |
+| `MISSING_OPTIONS` | `init` nicht fragen konnte (kein Terminal oder `--json`) und ein Wert weder übergeben noch erkannt noch durch `--yes` mit einem Default gefüllt wurde; die Meldung nennt jedes fehlende Flag |
+| `INVALID_PROVIDER` | `init --provider` keinen bekannten Provider nennt |
+| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist oder `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält |
+| `FORMAT_AMBIGUOUS` | `init` mehrere Formate gefunden hat, die die Locale-Dateien lesen; `candidates` listet sie auf |
+| `LAYOUT_AMBIGUOUS` | `init` mehrere Dateimuster gefunden hat, die gleich gut passen; `candidates` listet sie auf |
+| `CONFIG_EXISTS` | `init` ohne `--force` eine abweichende `verbatra.config.ts` überschreiben würde oder eine andere verbatra-Konfigurationsdatei im Verzeichnis zuerst gelesen würde |
 | `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
 | `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
 | `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
@@ -96,7 +110,7 @@ Ein Verwendungsfehler trägt einen dieser Codes:
 
 `CLI_ERROR` ist der Ausweich-Code für einen Fehlschlag, der keinen eigenen Code mitbrachte.
 
-Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Zwei Klassen von Fehlern folgen dieser Grammatik nicht, weil sie auftreten, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und `init` weist einen fehlenden Provider mit `verbatra: --provider is required (...)` ab, mit Präfix, aber ohne Code. Beide enden mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst greift ein Parser, der allein auf die strukturierte Grammatik setzt, stillschweigend bei keinem von beiden. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
+Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Eine Klasse von Fehlern folgt dieser Grammatik nicht, weil sie auftritt, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und endet mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst übersieht ein Parser, der allein auf die strukturierte Grammatik setzt, diesen Fall stillschweigend. `init` folgt der strukturierten Grammatik seit 0.12.0; davor gab ein fehlender Provider `verbatra: --provider is required (...)` ohne Code aus. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
 
 Der Rest dieses Abschnitts beschreibt das `result`, das jeder Befehl in einen erfolgreichen Envelope legt.
 
@@ -165,6 +179,8 @@ interface LocaleDiff {
   locales: { locale: string; rows: number }[];
 }
 ```
+
+`verbatra init --json` trägt, was es geschrieben hat: den Konfigurationspfad, jede Datei und was mit ihr passiert ist, die Konfiguration selbst, woher jeder Wert kam, die Erkennung mit ihrer Konfidenz und ihren Begründungen sowie die nächsten Befehle. Die vollständige Form steht unter [verbatra init](/docs/cli/init#unbeaufsichtigte-läufe).
 
 `verbatra doctor --json` trägt den Bericht zur Einrichtung. Das oberste `ok` ist genau dann true, wenn der Befehl mit `0` endet:
 

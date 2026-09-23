@@ -1,8 +1,8 @@
 ---
 title: verbatra init
-description: Crea una configuración de verbatra y un ejemplo de .env para este proyecto.
+description: Crea una configuración de verbatra y un ejemplo de .env para este proyecto, detectados a partir de tus archivos de locale, de forma interactiva o totalmente desatendida.
 ---
-Prepara un proyecto: `init` escribe un `verbatra.config.ts` y un `.env.example` que nombra la variable de la clave de API de tu proveedor (nunca el valor de una clave), y se asegura de que `.gitignore` cubra `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`. Cuando stdin es una terminal y `--yes` está ausente, pregunta por todo lo que no pasaste como flag; si no, toma los valores por defecto, así que se ejecuta desatendido en CI.
+Prepara un proyecto: `init` escribe un `verbatra.config.ts` y un `.env.example` que nombra la variable de la clave de API de tu proveedor (nunca el valor de una clave), y se asegura de que `.gitignore` cubra `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`. Primero mira los archivos de locale que ya hay en el proyecto, así que en la mayoría de los proyectos el proveedor es lo único que tienes que indicarle.
 
 ## Sinopsis
 
@@ -14,28 +14,115 @@ verbatra init [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | escribe la configuración y los archivos de entorno en este directorio |
-| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` o `none`; cuando se omite, se pregunta de forma interactiva |
-| `--source` | `<locale>` | `en` | el locale de origen en el que están escritas tus cadenas |
-| `--targets` | `<locales>` | `de` | locales de destino separados por comas a los que traducir |
-| `--path` | `<pattern>` | `locales/{locale}.json` | patrón de los archivos de locale; debe contener el token `{locale}` |
-| `--yes` | ninguno | desactivado | omite las preguntas y acepta los valores por defecto |
-| `--force` | ninguno | desactivado | sobrescribe un `verbatra.config.ts` o `.env.example` existente |
+| `--cwd` | `<path>` | directorio actual | analiza este directorio y escribe en él la configuración y los archivos de entorno |
+| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none` |
+| `--format` | `<id>` | detectado, si no `i18next-json` | el formato de los archivos de locale, uno de los ids de [Formatos](/docs/formats) |
+| `--source` | `<locale>` | detectado, si no `en` | el locale de origen en el que están escritas tus cadenas |
+| `--targets` | `<locales>` | detectado, si no `de` | locales de destino separados por comas a los que traducir |
+| `--path` | `<pattern>` | detectado, si no `locales/{locale}.json` | patrón de los archivos de locale; debe contener el token `{locale}` |
+| `--model` | `<name>` | el valor por defecto del scaffold | el modelo; obligatorio para `openai-compatible`, opcional para `anthropic`, `openai` y `gemini` |
+| `--base-url` | `<url>` | ninguno | la URL del servidor; solo para `openai-compatible`, y ahí es obligatorio |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable de entorno de la que `openai-compatible` lee su clave; solo para `openai-compatible` |
+| `--yes` | ninguno | desactivado | nunca pregunta, y toma el valor por defecto de todo lo que ni se pasó ni se detectó |
+| `--force` | ninguno | desactivado | sobrescribe un `verbatra.config.ts` existente cuyo contenido es distinto |
+| `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) que describe lo que se escribió; nunca pregunta |
 
-El formato no es un flag: `init` lo detecta a partir de tus dependencias (`i18next`, `vue-i18n`, `next-intl` o `@ngx-translate/core`). Sin una única coincidencia inequívoca recurre a `i18next-json` y deja un comentario TODO que lista todos los formatos admitidos. Sin `--force`, un `verbatra.config.ts` o `.env.example` existente se omite, nunca se sobrescribe, y el comando aun así termina con éxito.
+Un flag siempre gana. Lo que dejes fuera se detecta a partir del proyecto; después se pregunta por ello cuando stdin es una terminal y no se da ni `--yes` ni `--json`, y en otro caso se toma su valor por defecto solo con `--yes`.
+
+<AvailableFrom version="0.12.0" />
+
+## Detección
+
+`init` recorre el directorio en busca de archivos que reclame un adaptador de formato, saltándose los directorios ocultos, `node_modules` y la salida de compilación habitual, y encuentra la parte de cada ruta que escribe un locale: un nombre de archivo como `de.json`, `messages_pt_BR.properties` o `app_en.arb`, o un directorio como `locales/de/`, `de.lproj/` o `values-de/` de Android. Gana el patrón de archivo que cubre más locales, y con él rellena:
+
+- `format`: el único formato cuyo adaptador lee cada archivo encontrado. Todos los adaptadores JSON leen `.json`, así que para archivos JSON decide una única dependencia coincidente en `package.json` (`i18next`, `vue-i18n`, `next-intl` o `@ngx-translate/core`).
+- `files.pattern` y `files.localeStyle`: `posix` cuando los archivos escriben `pt_BR`, `android` para directorios `values-*`, `literal` en otro caso.
+- `sourceLocale`: el idioma de origen de un catálogo `.xcstrings`; si no, `en` o el único locale `en-*` encontrado; si no, el único locale encontrado.
+- `targetLocales`: todos los demás locales encontrados.
+
+Un archivo junto a los archivos de locale que guarda cadenas sin nombre de locale, como `messages.properties` junto a `messages_de.properties`, `Strings.resx` junto a `Strings.de.resx`, o un `app.pot` de gettext, se informa como `unqualifiedSourceFile`. verbatra lee el origen del archivo que su patrón nombra para el locale de origen y no puede apuntar a un archivo así, así que en ese caso `init` no adivina el locale de origen: pasa `--source`, incluso con `--yes`, y los siguientes pasos te dicen a qué archivo renombrar o copiar el archivo base.
+
+Sin ningún archivo de locale, solo las dependencias deciden el formato. `--format`, `--path` y `--source` acotan la detección en lugar de ser sustituidos por ella, así que `--format yaml` solo mira archivos YAML.
+
+`init` nunca adivina entre opciones equivalentes. Cuando varios formatos leen los archivos (JSON simple sin dependencia de i18n, por ejemplo) sale con `2` y `FORMAT_AMBIGUOUS`, y cuando varios patrones de archivo empatan (un archivo por namespace, como `locales/{locale}/common.json` y `locales/{locale}/auth.json`) sale con `2` y `LAYOUT_AMBIGUOUS`. Ambos listan los candidatos; pasa `--format` o `--path` para elegir uno. En una terminal, en cambio, te pregunta, sugiriendo el primer candidato.
+
+## Ejecuciones desatendidas
+
+Sin una terminal, o con `--json`, `init` nunca pregunta. Un valor que no se pasó, no se detectó ni se tomó por defecto con `--yes` es un error: `init` sale con `2` y `MISSING_OPTIONS` y nombra de una vez cada flag que falta. Un error por una ambigüedad o por un flag no válido también lista los flags que aún faltan, así que una sola ejecución le dice a un agente todo lo que tiene que pasar. `--provider` no tiene valor por defecto, y tampoco lo tienen `--base-url` y `--model` para `openai-compatible`, así que esos siempre hacen falta. Este es el comando que ejecuta un agente:
+
+```bash
+npx verbatra init --provider gemini --yes --json
+```
+
+Con `--json`, stdout lleva exactamente un envoltorio. Su `result`:
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options: Record<string, unknown> };
+  };
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  };
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  };
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+`confidence` es `high` cuando los archivos por sí solos lo decidieron todo, `medium` cuando una convención o una dependencia rellenó un hueco (como tomar `en` como origen), `low` cuando ningún archivo de locale respaldó el formato, y `none` cuando no se detectó nada. Un `default` en `sources` es el valor que conviene revisar. `nextSteps` termina con los comandos exactos que ejecutar a continuación, como `npx verbatra doctor`.
+
+Un envoltorio de error para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` o `INVALID_FORMAT` también lleva un array `candidates` con los valores entre los que elegir. Todo error de uso que deja flags sin responder lleva además un array `missing` que los nombra, como `"--source <locale>"`.
+
+## Proveedores
 
 `--provider none` prepara una configuración [solo humana](/docs/human-only-workflow) sin `options` y no escribe ningún `.env.example`, porque nunca se lee una clave de API.
 
-<AvailableFrom version="0.12.0" />
+`--provider openai-compatible` prepara un servidor local o autoalojado a partir de `--base-url` y `--model`, con `maxOutputTokens: 4096`. Su clave es opcional: un servidor que no necesita ninguna deja `OPENAI_COMPATIBLE_API_KEY` sin definir, y `--api-key-env-var` nombra otra variable para uno que sí la necesita. `init` escribe el nombre de esa variable en la configuración y en `.env.example`, nunca un valor, y rechaza una URL base que lleve credenciales, una query string o un fragmento, como `https://user:key@host` o `https://host/v1?api-key=...`, con los que una clave podría acabar en la configuración confirmada en el repositorio. `--api-key-env-var` espera un nombre en mayúsculas como `LLM_API_KEY`, y un valor rechazado nunca se repite por si era la clave misma.
+
+## Archivos existentes
+
+Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega.
+
+Un `.env.example` existente se conserva tal cual; cuando todavía no nombra la variable de la clave, se le añade esa única línea. `.gitignore` recibe solo las entradas que le faltan.
 
 ## Ejemplos
 
 ```bash
-# create config + .env example, prompting for the rest
+# prompt for anything not passed or detected
 verbatra init --provider gemini
 
-# non-interactive, accept all defaults
-verbatra init --provider deepl --yes
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes
@@ -45,11 +132,12 @@ verbatra init --provider none --yes
 
 | Código | Significado |
 | --- | --- |
-| `0` | archivos escritos, u omitidos con seguridad porque ya existen |
-| `2` | un `--provider` faltante o desconocido, una configuración generada inválida o un error de uso |
+| `0` | archivos escritos, o ya al día |
+| `2` | un error de uso: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, o `CONFIG_INVALID` cuando las respuestas no formarían una configuración válida |
 
 ## Relacionado
 
+- [Configura verbatra con un agente de IA](/docs/start-with-ai) es el prompt para agentes construido sobre este comando.
 - [Tu primera traducción](/docs/your-first-translation) va desde init hasta la primera ejecución.
 - [Archivo de configuración](/docs/config-file) documenta cada clave que define la configuración generada.
 - [Proveedores](/docs/providers) cubre las opciones de proveedor y las variables de clave de API.

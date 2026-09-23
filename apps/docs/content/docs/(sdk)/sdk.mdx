@@ -764,6 +764,27 @@ because it takes no token limit. The `ScaffoldableProviderId` type is
 
 `scaffoldingMetadata.humanOnlyProviderId` is `"none"`, the id that disables machine translation. It has no `providerEnv` entry, since it reads no key.
 
+`scaffoldingMetadata.openAiCompatibleKeyEnv` is `"OPENAI_COMPATIBLE_API_KEY"`, the variable an `openai-compatible` provider reads when its options name no `apiKeyEnvVar`. `scaffoldingMetadata.configSearchPlaces` lists every file name `loadConfig` searches for a config, in the order it checks them; a generator writing `verbatra.config.ts` should refuse when another of them already exists, since the first one found wins.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Detects a project's locale file format and layout from its files, the way `verbatra init` does before writing a config. It writes nothing and calls no provider. It scans the directory (skipping hidden directories, `node_modules`, and build output, within a bounded depth and entry count) for files a registered adapter claims, finds the path segment that spells a locale in each, and keeps the file pattern covering the most locales. The format is the one whose adapter `canHandle` claims every matched file given its content; for JSON, where every JSON adapter does, a single matching i18n library in `package.json` decides.
+
+```ts
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+The result carries `format` (with `from`: `input`, `files`, or `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (each with a `subject` of `format` or `layout` and its `candidates`), a `confidence` of `high`, `medium`, `low`, or `none`, and `reasons`, one sentence per decision. Ties are reported as ambiguities, never guessed. The optional `format`, `pattern`, and `sourceLocale` inputs narrow the search, and `deps.fs` and `deps.adapterRegistry` swap the file system and the adapters, so a third-party adapter's files are detected too. It never throws for a missing, unreadable, or malformed file; it reports less instead. `layout.unqualifiedSourceFile` names a file beside the layout that holds strings under no locale name, such as `messages.properties` or a gettext `.pot` template; the source locale is then left open rather than guessed, since the source is read from the file the pattern names for it.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

@@ -42,7 +42,7 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` akzeptiert es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
 - `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
   - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
-  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` und `tmx` unterstützen es; `init`, `studio` und `mcp` nicht.
+  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` und `init` unterstützen es; `studio` und `mcp` nicht.
   - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben ihre Ausgabe aus und beenden sich mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag beendet sich mit `2`.
 
