@@ -262,7 +262,7 @@ Your files, the lock file, and the translation memory always use the locale code
 
 | Provider | Source locale | Target locale |
 | --- | --- | --- |
-| DeepL | The language alone: `en-US` is sent as `EN`, `zh-Hant-TW` as `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK`, and `zh-MO` are sent as `ZH-HANT`; `zh-Hans`, `zh-CN`, and `zh-SG` as `ZH-HANS`. A DeepL variant is kept (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Any other region or script is dropped: `de-AT` is sent as `DE`, `es-MX` as `ES`. |
+| DeepL | The language alone: `en-US` is sent as `EN`, `zh-Hant-TW` as `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK`, and `zh-MO` are sent as `ZH-HANT`; `zh-Hans`, `zh-CN`, and `zh-SG` as `ZH-HANS`. A DeepL variant is kept (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Spanish with a Latin American or Caribbean region (`MX`, `AR`, `CO`, `CL`, `PE`, `VE`, `EC`, `GT`, `CU`, `BO`, `DO`, `HN`, `PY`, `SV`, `NI`, `CR`, `PA`, `UY`, `PR`, `US`, or `419`) is sent as `ES-419`, so `es-MX` becomes `ES-419`. Any other region or script is dropped: `de-AT` is sent as `DE`, `es-ES` as `ES`. |
 | Google Cloud Translation | `zh-Hant` (and `zh-HK`, `zh-MO`) is sent as `zh-TW`, `zh-Hans` (and `zh-SG`) as `zh-CN`, and `nb` as `no`. Every other code is sent as written. | Same as the source. |
 | Anthropic, OpenAI, Gemini, openai-compatible | Sent as written. | Sent as written. |
 
@@ -276,13 +276,13 @@ provider: {
   options: {
     localeMap: {
       "en-AU": "EN-GB",
-      "es-MX": "ES-419",
+      "fr-BE": "FR-FR",
     },
   },
 }
 ```
 
-Every key must be `sourceLocale` or one of `targetLocales`, spelled exactly as in your config; any other key fails the config load with `CONFIG_INVALID`, naming the key. Every value must be a non-empty string, which verbatra sends unchanged: DeepL and Google Cloud Translation get it as the language code, an LLM provider gets it in the request in place of the locale code, so a value such as `"pt-BR (Brazilian Portuguese)"` works there too. A value the provider itself rejects fails that sub-batch with a structured error, like any other provider failure. `localeMap` is accepted by every provider except `none`. Changing it does not retranslate keys that are already up to date: only new and changed source strings are sent with the new code.
+Every key must be `sourceLocale` or one of `targetLocales`, spelled exactly as in your config; any other key fails the config load with `CONFIG_INVALID`, naming the key. Every value must be a non-empty string of at most 64 characters, which verbatra sends unchanged: DeepL and Google Cloud Translation get it as the language code, an LLM provider gets it in the request in place of the locale code, so a value such as `"pt-BR (Brazilian Portuguese)"` works there too. A value the provider itself rejects fails that sub-batch with a structured error, like any other provider failure. `localeMap` is accepted by every provider except `none`. Changing it does not retranslate keys that are already up to date: only new and changed source strings are sent with the new code. A non-empty `localeMap` is part of the [translation memory](/docs/the-cache) fingerprint, so changing it starts a separate memory bucket: translations made with the old codes are not reused for the new ones.
 
 ### Structured errors
 

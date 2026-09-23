@@ -52,7 +52,7 @@ Scoring stays inside one fingerprint bucket, so a changed provider, model, tone 
 
 ## The fingerprint
 
-Every cached value is scoped to the translation context it was produced in: a short fingerprint over the provider, the model, the tone, and the glossary. Change any of them and prior entries stop matching, so a new tone or an edited glossary re-translates rather than serving a stale result. The format is deliberately not part of the fingerprint; a format change is caught by the integrity check on each hit instead.
+Every cached value is scoped to the translation context it was produced in: a short fingerprint over the provider, the model, the tone, the glossary, and the provider's [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) when it has entries. Change any of them and prior entries stop matching, so a new tone or an edited glossary re-translates rather than serving a stale result. The format is deliberately not part of the fingerprint; a format change is caught by the integrity check on each hit instead.
 
 ## The file
 

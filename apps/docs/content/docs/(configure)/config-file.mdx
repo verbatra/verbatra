@@ -91,7 +91,7 @@ Every locale code, source and target alike, must be a well-formed tag that `Intl
 
 ### provider
 
-An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). Every provider except `none` also accepts `options.localeMap`, which maps a configured locale to the code the provider receives, such as `{ "es-MX": "ES-419" }` for DeepL; see [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider). `none` disables machine translation by policy, and its `options` may be omitted; if given it must be `{}`; see [Human-only workflow](/docs/human-only-workflow).
+An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). Every provider except `none` also accepts `options.localeMap`, which maps a configured locale to the code the provider receives, such as `{ "en-AU": "EN-GB" }` for DeepL; see [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider). `none` disables machine translation by policy, and its `options` may be omitted; if given it must be `{}`; see [Human-only workflow](/docs/human-only-workflow).
 
 ### glossary
 

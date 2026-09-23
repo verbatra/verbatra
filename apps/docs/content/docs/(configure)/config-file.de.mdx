@@ -92,7 +92,7 @@ Jeder Locale-Code, Quelle wie Ziel, muss ein wohlgeformter Tag sein, den `Intl.g
 
 ### provider
 
-Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert. Jeder Provider außer `none` akzeptiert zusätzlich `options.localeMap`, das eine konfigurierte Locale auf den Code abbildet, den der Provider erhält, etwa `{ "es-MX": "ES-419" }` für DeepL; siehe [An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes). `none` schaltet Maschinenübersetzung per Richtlinie ab, und seine `options` darf fehlen; wenn angegeben, muss es `{}` sein; siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
+Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert. Jeder Provider außer `none` akzeptiert zusätzlich `options.localeMap`, das eine konfigurierte Locale auf den Code abbildet, den der Provider erhält, etwa `{ "en-AU": "EN-GB" }` für DeepL; siehe [An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes). `none` schaltet Maschinenübersetzung per Richtlinie ab, und seine `options` darf fehlen; wenn angegeben, muss es `{}` sein; siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
 
 ### glossary
 
