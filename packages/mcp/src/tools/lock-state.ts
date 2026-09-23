@@ -2,6 +2,7 @@ import { lockState } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { provenanceSummarySchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -11,6 +12,7 @@ const lockLocaleStateSchema = z.strictObject({
   missing: z.number(),
   stale: z.number(),
   upToDate: z.number(),
+  provenance: provenanceSummarySchema.optional(),
 });
 
 const lockStateResultSchema = z.object({

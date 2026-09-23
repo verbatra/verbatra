@@ -2,6 +2,7 @@ import { keyValue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { keyProvenanceSchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
@@ -11,6 +12,7 @@ const paramsSchema = z.strictObject({
 const keyValueResultSchema = z.strictObject({
   source: z.string(),
   target: z.string().optional(),
+  provenance: keyProvenanceSchema.optional(),
 });
 
 type KeyValueResult = z.infer<typeof keyValueResultSchema>;

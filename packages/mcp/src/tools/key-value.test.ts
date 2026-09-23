@@ -13,8 +13,16 @@ describe("key.value", () => {
 
     expect(outcome).toEqual({
       kind: "ok",
-      result: { source: "Hello", target: "Hallo" },
-      structuredContent: { source: "Hello", target: "Hallo" },
+      result: {
+        source: "Hello",
+        target: "Hallo",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      },
+      structuredContent: {
+        source: "Hello",
+        target: "Hallo",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      },
     });
   });
 
