@@ -73,6 +73,10 @@ Desde `@verbatra/studio` 0.6.0, `verbatra_key_value` y `verbatra_locale_values` 
 
 Una edición mediante `verbatra_translation_editEntry` queda registrada con el origen `agent` en `verbatra.provenance.json`, mientras que una edición desde el propio diálogo del panel se registra como `human`. La herramienta lo fija ella misma; un agente no puede elegirlo.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_retranslateEntry` rechaza con `KEY_PROTECTED` una clave cuyo valor escribió, importó o cambió una persona fuera de verbatra, y con `KEY_PINNED` una clave fijada; el agente no puede forzar ninguna de las dos. `verbatra_translation_editEntry` rechaza una clave fijada. En el panel, a una persona que retraduce una clave así se le pregunta primero y puede elegir **Replace anyway**. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` añade, reemplaza o elimina un término del glosario y devuelve el glosario tal como queda. Solo funciona con un glosario respaldado por archivo: un glosario escrito en línea en la configuración, o la ausencia de glosario, se rechaza en lugar de convertirse, y ningún parámetro nombra un archivo, porque el destino sale únicamente de la configuración cargada. Igual que editar, no gasta nada y se registra sin `--allow-spend`. Está limitada a 20 escrituras por minuto deslizante.

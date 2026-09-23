@@ -19,6 +19,7 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     error: describeError(error, "LOCALE_FAILED"),

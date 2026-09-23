@@ -39,6 +39,15 @@ describe("deriveKeyLocaleStatus", () => {
     expect(rows).toEqual([{ locale: "de", status: "orphaned" }]);
   });
 
+  it("reports protected ahead of changed when a run would leave the key for a person", () => {
+    const rows = deriveKeyLocaleStatus(
+      [locale({ locale: "de", changed: ["greeting"], protected: ["greeting"] })],
+      "greeting",
+    );
+
+    expect(rows).toEqual([{ locale: "de", status: "protected" }]);
+  });
+
   it("reports in-sync when the key is in none of the three lists", () => {
     const rows = deriveKeyLocaleStatus([locale({ locale: "de" })], "greeting");
 

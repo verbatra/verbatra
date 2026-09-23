@@ -51,6 +51,8 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `prune` | boolean | `false` | Elimina las claves huérfanas de los archivos de destino y del bloqueo. |
 | `generatePlurals` | boolean | `false` | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
 | `fuzzyCache` | objeto | desactivado | Reutiliza una traducción para una cadena de origen que cambió solo un poco. |
+| `humanEdits` | `"protect"`, `"suggest"` o `"overwrite"` | `"protect"` | Qué hace una ejecución con una clave obsoleta cuyo valor escribió una persona. |
+| `pinnedKeys` | array de strings | ninguno | Patrones de claves que ninguna escritura automática toca nunca. |
 | `maxBatchSize` | entero positivo | `50` | El máximo de entradas enviadas en una sola petición al proveedor. |
 | `maxLength` | objeto | ninguno | Longitudes máximas por clave para los valores traducidos, contadas en clústeres de grafemas. |
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
@@ -132,6 +134,18 @@ Desactivado por defecto. Cuando es true, verbatra sintetiza las formas plurales 
 <AvailableFrom version="0.11.0" />
 
 Desactivado salvo que lo pongas. `fuzzyCache: { enabled: true }` permite que una clave cuyo texto de origen cambió reutilice la traducción de su forma anterior en lugar de ir al proveedor, siempre que ambas se parezcan al menos `threshold`. `threshold` es una razón de similitud de `0.5` a `1` y por omisión vale `0.9`. Una reutilización se informa aparte de un acierto exacto de caché, se marca siempre para revisión con la razón `FUZZY_CACHE_REUSE`, pasa las mismas comprobaciones de integridad que cualquier otro valor candidato y nunca se vuelve a escribir en la caché. Una entrada cuyos numerales difieran del origen actual se rechaza sea cual sea su puntuación. Una clave reutilizada se escribe pero no se bloquea, así que sigue cambiada y se vuelve a ofrecer en cada ejecución posterior hasta que llega una traducción real. `threshold` ajusta cuánto gasto de proveedor evitas, no cuán segura es la reutilización; el porqué está en [la caché](/docs/the-cache), y no actives esto salvo que alguien trabaje la cola de revisión. Solo por configuración: no hay opción de CLI, aunque `--no-cache` lo omite junto con el resto de la caché.
+
+### humanEdits y pinnedKeys
+
+<AvailableFrom version="0.12.0" />
+
+`humanEdits` decide qué hacen `translate` y `watch` con una clave obsoleta cuyo valor actual escribió una persona: con el diálogo de edición de Studio (origen `human`), con una entrega de traducción importada (`import`) o editando el archivo de locale fuera de verbatra (`external`). El origen viene de `verbatra.provenance.json`, consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
+- `"protect"`, el valor por defecto, conserva el valor. La clave no se envía al proveedor, sigue obsoleta en `verbatra check` y aparece como protegida hasta que una persona la edite, la importe o la retraduzca a propósito.
+- `"suggest"` también conserva el valor, pero pregunta igualmente al proveedor. La respuesta se muestra como sugerencia y se guarda en la memoria de traducción; nunca se escribe en el archivo de locale.
+- `"overwrite"` retraduce la clave como cualquier otra clave obsoleta, que es como se comportaba verbatra antes de que existiera este ajuste. `verbatra translate --include-human` hace lo mismo para una sola ejecución.
+
+`pinnedKeys` lista patrones de claves, donde `*` coincide con cualquier secuencia de caracteres, para claves que nunca se deben tocar automáticamente en ningún locale de destino, como `["legal.*", "brand.name"]`. Una clave fijada nunca se traduce, sugiere ni retraduce, diga lo que diga `humanEdits` o `--include-human`, y un agente de IA no puede editarla. Una persona sí puede. Un valor sin registro de procedencia (`unrecorded`) no está protegido, así que un proyecto que ya usaba verbatra antes de la procedencia sigue traduciendo. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
 
 ### maxBatchSize
 

@@ -60,6 +60,7 @@ export function makeLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummar
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     ...overrides,

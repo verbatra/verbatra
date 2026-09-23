@@ -9,6 +9,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
@@ -53,6 +54,7 @@ import { createBudgetTracker, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
+import { type ProtectionPolicy, protectionPolicy, readProvenanceView } from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
@@ -137,6 +139,12 @@ export interface TranslateInput {
    * mode (provider `none`), where the memory is all a live run would use.
    */
   readonly cache?: boolean;
+  /**
+   * Overrides the config's `humanEdits` for this run only (see {@link HumanEditsPolicy}). Set
+   * `overwrite` to retranslate stale keys a person wrote, as the CLI's `--include-human` flag does.
+   * Keys matching the config's `pinnedKeys` stay protected whatever this says.
+   */
+  readonly humanEdits?: HumanEditsPolicy;
 }
 
 /** Injectable dependencies for {@link translate}. Every field has a working default. */
@@ -238,16 +246,23 @@ interface LocaleRunContext {
   readonly budget: BudgetTracker;
   readonly cache: RunCacheState | undefined;
   readonly machine: ReturnType<typeof machineAttribution>;
+  readonly protection: ProtectionPolicy;
   readonly onLockWait?: LockWaitListener;
   readonly onProgress?: ProgressListener;
   readonly lockAcquireTimeoutMs?: number;
 }
 
-function buildLocaleRunParams(
+async function buildLocaleRunParams(
   context: LocaleRunContext,
   targetLocale: string,
   baseline: ReadonlyMap<string, string>,
-): LocaleRunParams {
+): Promise<LocaleRunParams> {
+  const provenance = await readProvenanceView(
+    context.protection,
+    context.cwd,
+    context.fs,
+    targetLocale,
+  );
   return {
     source: context.source.resource,
     sourceInvalidIcuKeys: context.source.invalidIcuKeys,
@@ -268,6 +283,7 @@ function buildLocaleRunParams(
     fs: context.fs,
     budget: context.budget,
     ...(context.machine !== undefined ? { machine: context.machine } : {}),
+    protection: { policy: context.protection, provenance },
     ...(context.cache !== undefined
       ? {
           cache: {
@@ -286,7 +302,7 @@ async function runDryLocale(
   targetLocale: string,
   lock: LockFile,
 ): Promise<LocaleSummary> {
-  const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
+  const params = await buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
   return (await runLocale(params)).summary;
 }
 
@@ -306,7 +322,11 @@ async function runLiveLocale(
     context.fs,
     async () => {
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
-      const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
+      const params = await buildLocaleRunParams(
+        context,
+        targetLocale,
+        baselineFor(lock, targetLocale),
+      );
       const result = await runLocale(params);
       const update = await updateLockFileLocale(
         context.cwd,
@@ -544,6 +564,16 @@ function estimateFields(
  *
  * Set `dryRun` to compute the whole plan without writing or spending anything.
  *
+ * A stale key whose current value a person wrote is protected by default: its origin in the
+ * provenance file is `human` or `import`, or its value changed outside verbatra since it was
+ * recorded. The key is not translated, keeps its value and its lock-file baseline, so it stays
+ * stale for {@link check}, and is listed in {@link LocaleSummary.protected}. The config's
+ * `humanEdits` (or {@link TranslateInput.humanEdits} for one run) changes this: `suggest` also sends
+ * the key to the provider and returns the answer as a suggestion without writing it, and
+ * `overwrite` retranslates it. A key matching `pinnedKeys` is never sent or written, whatever the
+ * setting. When the provenance file was written by a newer verbatra, every stale key with a value
+ * is protected, since its origin cannot be read. Protected keys do not change a locale's status.
+ *
  * A config whose provider is `none` runs in human-only mode. No provider is constructed and no API
  * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written
  * as usual; every other missing or stale key is left untouched, keeps its lock-file baseline, and is
@@ -578,7 +608,7 @@ function estimateFields(
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. A live run reads it before any locale runs and again as each locale records
  * its result, so, like a corrupt lock-file, it can abort the run after other locales have been
- * written. A dry run does not read it.
+ * written. A dry run reads it too, once per locale, unless `humanEdits` resolves to `overwrite`.
  *
  * @example
  * ```ts
@@ -642,6 +672,7 @@ export async function translate(
     budget,
     cache,
     machine: machineAttribution(config.provider),
+    protection: protectionPolicy(config, input.humanEdits),
     ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
     ...(input.lockAcquireTimeoutMs !== undefined

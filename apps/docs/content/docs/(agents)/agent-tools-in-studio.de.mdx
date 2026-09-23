@@ -73,6 +73,10 @@ Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_v
 
 Eine Bearbeitung über `verbatra_translation_editEntry` wird in `verbatra.provenance.json` mit der Herkunft `agent` festgehalten, eine Bearbeitung aus dem Dialog des Dashboards dagegen als `human`. Das Tool setzt das selbst; ein Agent kann es nicht wählen.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_retranslateEntry` lehnt einen Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, mit `KEY_PROTECTED` ab und einen gepinnten Key mit `KEY_PINNED`; der Agent kann beides nicht übersteuern. `verbatra_translation_editEntry` lehnt einen gepinnten Key ab. Im Dashboard wird ein Mensch, der so einen Key neu übersetzt, zuerst gefragt und kann **Replace anyway** wählen. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` fügt einen Glossarbegriff hinzu, ersetzt ihn oder entfernt ihn und gibt das Glossar in seinem neuen Stand zurück. Es arbeitet nur mit einem dateibasierten Glossar: ein inline in der Konfiguration geschriebenes Glossar, oder gar keines, wird abgelehnt statt umgewandelt, und kein Parameter nennt eine Datei, denn das Ziel stammt allein aus der geladenen Konfiguration. Wie das Bearbeiten gibt es nichts aus und wird ohne `--allow-spend` registriert. Es ist auf 20 Schreibvorgänge pro gleitender Minute begrenzt.

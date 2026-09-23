@@ -44,6 +44,7 @@ describe("statusDiffHandler", () => {
           orphaned: [],
           hasPendingChanges: false,
           changedOrigins: expect.any(Object),
+          protected: [],
         },
       ]);
     } finally {
@@ -70,6 +71,7 @@ describe("statusDiffHandler", () => {
           orphaned: ["extra"],
           hasPendingChanges: true,
           changedOrigins: {},
+          protected: [],
         },
       ]);
     } finally {
@@ -119,6 +121,7 @@ describe("statusDiffHandler", () => {
           orphaned: [],
           hasPendingChanges: true,
           changedOrigins: expect.any(Object),
+          protected: [],
         },
       ]);
 
@@ -133,6 +136,7 @@ describe("statusDiffHandler", () => {
           orphaned: [],
           hasPendingChanges: false,
           changedOrigins: expect.any(Object),
+          protected: [],
         },
       ]);
     } finally {

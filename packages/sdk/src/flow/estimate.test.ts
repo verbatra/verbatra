@@ -535,6 +535,7 @@ describe("estimateForRun", () => {
       notices: [],
       needsReview: [],
       unfilled: [],
+      protected: [],
       malformedRows: [],
       duplicateKeys: [],
     };

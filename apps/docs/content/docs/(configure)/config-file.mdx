@@ -51,6 +51,8 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `prune` | boolean | `false` | Remove orphaned keys from target files and the lock. |
 | `generatePlurals` | boolean | `false` | Synthesize the CLDR plural forms a target language needs. |
 | `fuzzyCache` | object | off | Reuse a translation for a source string that changed only slightly. |
+| `humanEdits` | `"protect"`, `"suggest"`, or `"overwrite"` | `"protect"` | What a run does with a stale key whose value a person wrote. |
+| `pinnedKeys` | string array | none | Key patterns no machine write ever touches. |
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
 | `maxLength` | object | none | Per-key maximum lengths for translated values, counted in grapheme clusters. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
@@ -132,6 +134,18 @@ Off by default. When true, verbatra synthesizes the CLDR plural forms a target l
 <AvailableFrom version="0.11.0" />
 
 Off unless you set it. `fuzzyCache: { enabled: true }` lets a key whose source text changed reuse the translation of its earlier form instead of going to the provider, as long as the two are at least `threshold` alike. `threshold` is a similarity ratio from `0.5` to `1` and defaults to `0.9`. A reuse is reported separately from an exact cache hit, is always flagged for review with the `FUZZY_CACHE_REUSE` reason, passes the same integrity checks as any other candidate value, and is never written back into the cache. An entry whose numerals differ from the current source is refused whatever it scores. A reused key is written but not locked, so it stays changed and is offered again on every later run until a real translation lands. `threshold` tunes how much provider spend you avoid, not how safe the reuse is; see [the cache](/docs/the-cache) for why, and do not enable this unless someone works the review queue. Config-only: there is no CLI flag, though `--no-cache` bypasses it along with the rest of the cache.
+
+### humanEdits and pinnedKeys
+
+<AvailableFrom version="0.12.0" />
+
+`humanEdits` decides what `translate` and `watch` do with a stale key whose current value a person wrote: through the Studio edit dialog (origin `human`), through an imported translator handoff (`import`), or by editing the locale file outside verbatra (`external`). The origin comes from `verbatra.provenance.json`, see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).
+
+- `"protect"`, the default, keeps the value. The key is not sent to the provider, stays stale in `verbatra check`, and is listed as protected until a person edits, imports, or deliberately retranslates it.
+- `"suggest"` keeps the value too, but still asks the provider. The answer is shown as a suggestion and kept in the translation memory; it is never written to the locale file.
+- `"overwrite"` retranslates the key like any other stale key, which is how verbatra behaved before this setting existed. `verbatra translate --include-human` does the same for one run.
+
+`pinnedKeys` lists key patterns, where `*` matches any run of characters, for keys that must never be machine-touched in any target locale, such as `["legal.*", "brand.name"]`. A pinned key is never translated, suggested, or retranslated, whatever `humanEdits` or `--include-human` says, and an AI agent cannot edit it. A person still can. A value with no provenance record yet (`unrecorded`) is not protected, so a project that adopted verbatra before provenance existed keeps translating. See [Protecting human translations](/docs/protecting-human-translations).
 
 ### maxBatchSize
 

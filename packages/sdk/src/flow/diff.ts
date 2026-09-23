@@ -5,6 +5,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
 import { diffLocalesWithSource } from "./diff-locales.js";
+import { reportedProtectedKeys } from "./protection.js";
 import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 
 /** One locale's pending work in a {@link DiffSummary}, as key names rather than counts. */
@@ -32,6 +33,14 @@ export interface LocaleDiff {
    * report never fails over it.
    */
   readonly changedOrigins?: Readonly<Record<string, KeyOrigin>>;
+  /**
+   * The missing and changed keys a {@link translate} run would leave alone under the config's
+   * `humanEdits` and `pinnedKeys`, sorted: stale keys whose value a person wrote, imported, or
+   * changed outside verbatra, and pinned keys. They still count as pending, since they stay stale
+   * until a person resolves them. When the provenance file is corrupt or was written by a newer
+   * verbatra, no origin can be read and only the pinned keys are listed.
+   */
+  readonly protected?: readonly string[];
 }
 
 /** The result of {@link diff}: per-locale key lists plus one project-wide verdict. */
@@ -138,12 +147,16 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);
-  const locales = results.map(({ locale, diff: result, target, provenance }) => ({
-    ...toLocaleDiff(locale, result),
-    ...(provenance !== undefined
-      ? { changedOrigins: originsOf(provenance, target, result.changed) }
-      : {}),
-  }));
+  const locales = results.map((entry) => {
+    const { locale, diff: result, target, provenance } = entry;
+    return {
+      ...toLocaleDiff(locale, result),
+      ...(provenance !== undefined
+        ? { changedOrigins: originsOf(provenance, target, result.changed) }
+        : {}),
+      protected: reportedProtectedKeys(input.config, entry),
+    };
+  });
   const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
   if (input.unused !== true) {
     return summary;

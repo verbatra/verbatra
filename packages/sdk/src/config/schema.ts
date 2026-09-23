@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
 import { extractionConfigSchema } from "./extraction-config.js";
+import { humanEditsSchema, pinnedKeysSchema } from "./human-edits.js";
 import { localeCodeSchema } from "./locale-code.js";
 import { providerConfigSchema } from "./provider-config.js";
 import { findUnknownLocaleMapKeys } from "./provider-locale-map.js";
@@ -52,6 +53,11 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * paying the provider for it. `threshold` is a similarity ratio from `0.5` to `1` and defaults to
  * `0.9`.
  *
+ * `humanEdits` decides what a run does with a stale key whose value a person wrote (see
+ * {@link HumanEditsPolicy}); it defaults to `protect`. `pinnedKeys` lists key patterns, where `*`
+ * matches any run of characters, that no machine write ever touches in any target locale: a
+ * matching key is never translated, suggested, or retranslated, whatever `humanEdits` says.
+ *
  * `sourceLocale` and every entry of `targetLocales` must be a well-formed BCP 47 locale code that
  * `Intl.getCanonicalLocales` accepts, such as `en`, `pt-BR`, `zh-Hant-TW`, or `es-419`. An
  * underscore spelling such as `pt_BR` is rejected: write `pt-BR` and set `files.localeStyle` to
@@ -91,6 +97,8 @@ export const verbatraConfigSchema = z
     budgetBehavior: z.enum(["warn", "stop"]).optional(),
     rates: rateCardSchema.optional(),
     extract: extractionConfigSchema.optional(),
+    humanEdits: humanEditsSchema.optional(),
+    pinnedKeys: pinnedKeysSchema.optional(),
   })
   .refine(
     (config) => {

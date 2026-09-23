@@ -30,7 +30,7 @@ Chaque point d'entrée prend un objet d'entrée dont le premier champ est la `co
 
 Le flux en une passe : lire la source, comparer chaque locale cible à la ligne de base du verrou, envoyer les clés manquantes et modifiées au fournisseur, exécuter les contrôles d'intégrité, écrire les fichiers de locale et mettre à jour le verrou. Utilise-le pour les scripts, les étapes de build et les jobs CI.
 
-Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restreint l'exécution à un sous-ensemble des locales cibles configurées, exactement comme sur `check` et `diff`. Une locale non configurée lève `UNKNOWN_LOCALE` avant toute lecture et toute dépense. Omets-le pour couvrir toutes les locales cibles.
 - `dryRun` lit, compare et rapporte sans construire ni appeler le fournisseur et sans rien écrire.
@@ -38,6 +38,7 @@ Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals
 - `prune` supprime les clés orphelines (clés cibles absentes de la source) du fichier écrit et du verrou. `generatePlurals` synthétise les formes plurielles CLDR manquantes (i18next-JSON avec un fournisseur LLM uniquement). Les deux sont désactivés par défaut ; quand ils sont définis, chacun remplace l'option de config correspondante pour cette exécution.
 - `concurrency` traite jusqu'à ce nombre de locales cibles à la fois (par défaut 1, strictement en série). Une valeur inférieure à 1 lève `CONCURRENCY_INVALID` ; sur une exécution réelle, une valeur supérieure à 1 avec `maxTokens` configuré lève `CONCURRENCY_BUDGET_CONFLICT` (un dry run est exempté). Une erreur globale levée alors que des locales tournent déjà empêche toute autre locale d'être démarrée, et les locales en cours terminent et libèrent leurs verrous d'écriture avant que `translate` ne rejette, donc le rejet arrive après la plus lente plutôt qu'instantanément.
 - `cache` est activé par défaut et réutilise le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`, exporté aussi comme `CACHE_FILE_NAME`) ; mets-le à false pour contourner le cache le temps de l'exécution (le `--no-cache` de la CLI).
+- `humanEdits` remplace le `humanEdits` de la config pour cette exécution : `"overwrite"` retraduit aussi les clés obsolètes dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne (le `--include-human` de la CLI). Par défaut ces clés sont gardées et listées dans `LocaleSummary.protected` ; les clés qui correspondent à `pinnedKeys` restent protégées quoi qu'il dise. Voir [Protéger les traductions humaines](/docs/protecting-human-translations). Un dry run lit désormais aussi `verbatra.provenance.json`, sauf si `humanEdits` vaut `"overwrite"`.
 - `onProgress` est appelé à mesure que l'exécution avance (au démarrage et à la fin de chaque locale, et par sous-lot du fournisseur), et `onLockWait` se déclenche pendant qu'un verrou d'écriture de locale est disputé. Les deux sont des callbacks de notification ; le SDK n'écrit rien de lui-même. `lockAcquireTimeoutMs` remplace la durée pendant laquelle un verrou d'écriture disputé réessaie avant d'échouer avec `LOCK_CONTENDED`.
 - `maxBatchSize`, `maxTokens` et `budgetBehavior` sont réservés à la config ; il n'y a pas de surcharge par exécution.
 
@@ -210,6 +211,10 @@ Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistenci
 
 Chaque `LocaleCheckSummary` porte aussi `provenance` : des comptes `byOrigin` et `byReviewState` sur les clés pour lesquelles la locale a une valeur, lus dans `verbatra.provenance.json`. Ce que signifie chaque origine est expliqué dans [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur). Ce champ, comme tout autre champ de provenance d'un rapport, est omis plutôt que de provoquer une erreur quand le fichier est corrompu ou écrit par un verbatra plus récent.
 
+<AvailableFrom version="0.12.0" />
+
+Chaque `LocaleCheckSummary` porte aussi `protected` : combien de ses clés manquantes et obsolètes une exécution de `translate` laisserait à une personne selon le `humanEdits` et les `pinnedKeys` de la config. Elles comptent toujours comme manquantes ou obsolètes, donc `inSync` reste à false jusqu'à ce qu'une personne les résolve. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées sont comptées.
+
 ### diff
 
 Le pendant détaillé de `check` : le même calcul, mais il renvoie les listes de clés par locale (`missing`, `changed`, `orphaned`) au lieu de comptes. Les clés orphelines ne font l'objet que d'un rapport et ne font jamais basculer `hasPendingChanges`, puisqu'une exécution par défaut ne les supprime pas.
@@ -221,6 +226,10 @@ Entrée : `{ config, cwd?, locales?, unused? }`. Renvoie un `DiffSummary`.
 <AvailableFrom version="0.12.0" />
 
 Chaque `LocaleDiff` porte aussi `changedOrigins`, l'origine interprétée de la valeur actuelle de chaque clé `changed` (par exemple `machine`, `human` ou `external`), pour que tu voies avant d'exécuter quel travail une retraduction remplacerait.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque `LocaleDiff` porte aussi `protected`, les clés manquantes et modifiées qu'une exécution de `translate` laisserait tranquilles, triées. Elles comptent toujours comme en attente. Si le fichier de provenance est illisible, seules les clés épinglées sont listées.
 
 ### keyIntegrity
 
@@ -278,13 +287,21 @@ Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux b
 
 La valeur écrite est enregistrée dans `verbatra.provenance.json` avec l'origine `human`. Passe `actor: "agent"` quand un agent d'IA l'a écrite, pour que l'enregistrement le dise ; c'est la surface appelante qui l'affirme et rien ne le vérifie. Le fichier de provenance est vérifié avant que la valeur ne passe le contrôle : un fichier corrompu lève `PROVENANCE_FILE_INVALID` et rien n'est écrit, et celui d'un verbatra plus récent, ou celui que l'enregistrement ferait dépasser la taille que verbatra relit, est laissé intact pendant que la valeur est écrite sans enregistrement.
 
+<AvailableFrom version="0.12.0" />
+
+Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lève `KEY_PINNED` avant toute lecture ou écriture. La modification d'une clé épinglée par une personne est acceptée.
+
 ### retranslateEntry
 
 Relance le fournisseur pour exactement une clé et une locale : un appel à entrée unique via le même chemin de fournisseur que `translate`, passé par les mêmes contrôles d'intégrité. À l'acceptation, il écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
 
-Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
+Entrée : `{ config, cwd?, locale, key, includeHuman? }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
 La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec le fournisseur et le modèle configurés. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
+
+<AvailableFrom version="0.12.0" />
+
+Une clé dont la valeur actuelle a été écrite, importée ou modifiée hors de verbatra par une personne lève `KEY_PROTECTED` dans le verrou d'écriture, avant l'appel au fournisseur, sauf si tu passes `includeHuman: true` ou si la config fixe `humanEdits: "overwrite"`. Si le fichier de provenance vient d'un verbatra plus récent, toute valeur existante compte comme protégée. Une clé qui correspond à `pinnedKeys` lève `KEY_PINNED` avant la construction du fournisseur, même avec `includeHuman`.
 
 ## Lectures de contenu en masse
 
@@ -613,6 +630,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -630,6 +648,7 @@ Les parties à connaître :
 - **budget** n'apparaît que quand `maxTokens` est configuré : `{ maxTokens, behavior, supported, tokensUsed, exceeded }`. `supported` indique si `tokensUsed` est entièrement l'usage rapporté par le fournisseur lui-même ; il vaut `false` dès qu'une requête revient sans chiffre exploitable, et le total est alors en partie la projection de verbatra, comptée et appliquée de la même façon. Un dry run le rapporte avec `tokensUsed: 0`, puisque rien n'a été envoyé. Sous `behavior: "stop"`, le plafond est vérifié avant chaque requête que l'exécution envoie, y compris chaque moitié d'une requête redécoupée, donc `tokensUsed` finit au plafond ou en dessous, à un résidu près : la dernière requête admise est réconciliée avec ce que le fournisseur a rapporté, ce qui peut pousser le total au-dessus du plafond après coup. Plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le budget borne un appel à `translate` : `watch` en démarre un neuf par exécution, et `retranslateEntry` n'est pas couvert du tout.
 - **error.code** sur une locale échouée est une chaîne préservée (le code du fournisseur ou de l'adaptateur sous-jacent, avec `LOCALE_FAILED` seulement en dernier recours), donc ne le traite pas comme un ensemble fermé.
 - **cacheHits** liste les clés servies depuis le [cache de mémoire de traduction](/docs/the-cache) plutôt que par le fournisseur. **fuzzyHits** liste les clés qui ont réutilisé une traduction pour une chaîne source qui avait changé, chacune portant `key`, `similarity` et le `previousSource` correspondant ; elle est vide tant que `fuzzyCache` n'est pas activé, et ces clés ne sont jamais comptées dans **cacheHits**. **unfilled**, **malformedRows** et **duplicateKeys** ne sont remplis que par `importWorkbook` (une exécution `translate` les laisse vides) : une ligne vide dont la clé demande toujours une traduction au moment de l'import (qu'elle ait été exportée comme `new` ou comme `changed`), une ligne du classeur que le lecteur n'a pas pu analyser, et une clé en double dont la première occurrence a gagné. Le `line` optionnel des deux derniers est la ligne du fichier où commence l'enregistrement, présent uniquement pour un import délimité (`csv` ou `tsv`). La seule exception est un projet [100 % humain](/docs/human-only-workflow) : là, `translate` et `watch` listent dans **unfilled** chaque clé pour laquelle la mémoire de traduction n'avait pas d'entrée exacte, et **fuzzyHits** reste vide car aucune réutilisation approximative n'y est jamais appliquée.
+- **protected** liste les clés qu'une exécution de `translate` a laissées tranquilles, chacune avec sa `reason` (`human`, `import`, `external` ou `pinned`) et, avec `humanEdits: "suggest"`, une `suggestion` (la réponse du fournisseur ou une entrée exacte de la mémoire de traduction, jamais une correspondance approximative), qui n'a pas été écrite, et un `suggestionStatus` : `planned` lors d'un dry run, `suggested` ou pourquoi pas (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Une suggestion en échec ne change jamais le statut d'une locale. Elles ne sont pas dans **translated**, ne changent jamais le statut d'une locale et restent obsolètes pour `check`. `importWorkbook` le laisse vide. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
 
 ### budgetStanding
 
@@ -648,6 +667,8 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `UNKNOWN_FORMAT` | aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute lecture de fichier |
 | `UNKNOWN_LOCALE` | une locale demandée n'est pas parmi les locales cibles configurées |
 | `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`) |
+| `KEY_PROTECTED` | `retranslateEntry` a refusé de remplacer une valeur écrite, importée ou modifiée hors de verbatra par une personne, car ni `includeHuman` ni `humanEdits: "overwrite"` ne l'autorisaient |
+| `KEY_PINNED` | la clé correspond aux `pinnedKeys` de la config, donc une écriture automatique a été refusée (`retranslateEntry`, et `editEntry` avec `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante |
 | `MACHINE_TRANSLATION_DISABLED` | la configuration fixe `provider: { id: "none" }`, donc une action dépensant auprès du fournisseur a été refusée avant qu'aucun fournisseur ne soit construit (`retranslateEntry`, `assertMachineTranslationEnabled`) ; `translate` et `watch` ne la lèvent jamais |
 | `SOURCE_UNREADABLE` | le fichier de la locale source n'existe pas |

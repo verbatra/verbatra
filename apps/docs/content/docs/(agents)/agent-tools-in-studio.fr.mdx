@@ -73,6 +73,10 @@ Depuis `@verbatra/studio` 0.6.0, `verbatra_key_value` et `verbatra_locale_values
 
 Une modification via `verbatra_translation_editEntry` est enregistrée avec l'origine `agent` dans `verbatra.provenance.json`, alors qu'une modification depuis la boîte de dialogue du tableau de bord est enregistrée comme `human`. L'outil le fixe lui-même ; un agent ne peut pas le choisir.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_retranslateEntry` refuse avec `KEY_PROTECTED` une clé dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne, et avec `KEY_PINNED` une clé épinglée ; l'agent ne peut forcer ni l'un ni l'autre. `verbatra_translation_editEntry` refuse une clé épinglée. Dans le tableau de bord, une personne qui retraduit une telle clé est d'abord prévenue et peut choisir **Replace anyway**. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` ajoute, remplace ou supprime un terme du glossaire et renvoie le glossaire tel qu'il est désormais. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.

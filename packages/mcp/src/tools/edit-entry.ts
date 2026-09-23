@@ -49,7 +49,8 @@ export const editEntryTool = defineTool({
     "placeholders, parses as valid ICU, and is not empty or degenerate); a rejection is returned " +
     "as accepted: false with a reason, not an error, so you can see why and retry with a " +
     "corrected value. Writes the locale file on disk when accepted, and records the value's " +
-    "origin as agent in verbatra.provenance.json.",
+    "origin as agent in verbatra.provenance.json. A key matching the config's pinnedKeys is " +
+    "refused with KEY_PINNED: it is reserved for a person.",
   paramsSchema,
   outputSchema: editEntryResultSchema,
   annotations: {

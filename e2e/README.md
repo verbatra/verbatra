@@ -43,7 +43,10 @@ deterministic test joins the required gate automatically.
   so no provider is ever called), and the human-only workflow under `provider: { id: "none" }`
   (`tests/human-only.e2e.test.ts`: `init --provider none`, `doctor`, `translate` exiting 3 with
   every key left for a human, then `export`, `import`, and `check` green, all under a preload that
-  makes any network call fatal). It makes no provider call and no network request, so it is
+  makes any network call fatal), and protection of human work
+  (`tests/protect-human.e2e.test.ts`: an imported value whose source changed is listed as
+  protected by `translate --dry-run`, not as to translate, is counted by `check` and `diff`, and is
+  planned for translation again only with `--include-human`). It makes no provider call and no network request, so it is
   deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
