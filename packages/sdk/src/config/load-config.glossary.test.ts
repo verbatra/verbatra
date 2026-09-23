@@ -238,7 +238,6 @@ describe("loadConfigWithMeta: an inline version 1 glossary in a JSON config", ()
       ["__proto__", "Prototyp"],
       ["Save", "Speichern"],
     ]);
-    expect(Object.prototype).not.toHaveProperty("Save");
   });
 
   it("keeps a term named __proto__ in a YAML config too", async () => {

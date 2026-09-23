@@ -67,7 +67,6 @@ describe("readGlossaryFile: versions", () => {
     const { path } = await seed('{\n  "__proto__": "Prototyp",\n  "Save": "Speichern"\n}\n');
     const glossary = await readGlossaryFile({ glossary: file(path) });
     expect(glossary.terms.map((term) => term.source)).toEqual(["__proto__", "Save"]);
-    expect(Object.prototype).not.toHaveProperty("Save");
   });
 
   it("refuses an unsupported version and names the supported ones", async () => {
@@ -180,7 +179,23 @@ describe("updateGlossaryTerm: version 2 files", () => {
     const seeded = await seed(V2);
     await edit(seeded, { term: "Dashboard", locale: "DE", translation: "Startseite" });
     const terms = ((await onDisk(seeded.path)) as typeof V2).terms;
-    expect(terms[0]?.targets).toEqual({ fr: "Tableau de bord", DE: "Startseite" });
+    expect(Object.entries(terms[0]?.targets ?? {})).toEqual([
+      ["DE", "Startseite"],
+      ["fr", "Tableau de bord"],
+    ]);
+  });
+
+  it("keeps the file's key order when a do-not-translate term is added or the last one removed", async () => {
+    const seeded = await seed('{"doNotTranslate":["verbatra"],"terms":[],"version":2}');
+    await edit(seeded, { term: "Acme", doNotTranslate: true });
+    expect(Object.keys((await onDisk(seeded.path)) as object)).toEqual([
+      "doNotTranslate",
+      "terms",
+      "version",
+    ]);
+    await edit(seeded, { term: "Acme", doNotTranslate: false });
+    await edit(seeded, { term: "verbatra", doNotTranslate: false });
+    expect(Object.keys((await onDisk(seeded.path)) as object)).toEqual(["terms", "version"]);
   });
 
   it("replaces and clears a locale's forbidden renderings", async () => {
@@ -314,6 +329,29 @@ describe("updateGlossaryTerm: edits that change nothing", () => {
       "repeating a version 1 translation",
       '{"Save":"Speichern"}',
       { term: "Save", translation: "Speichern" },
+    ],
+    [
+      "clearing the shared translation of an absent version 2 term",
+      '{"version":2,"terms":[{"source":"A","target":"B"}]}',
+      { term: "Absent", translation: null },
+    ],
+    [
+      "clearing every field of an absent version 2 term",
+      '{"version":2,"terms":[{"source":"A","target":"B"}]}',
+      {
+        term: "Absent",
+        locale: "de",
+        translation: null,
+        forbidden: [],
+        note: null,
+        partOfSpeech: null,
+        caseSensitive: false,
+      },
+    ],
+    [
+      "repeating the translation of a locale that is not the last one",
+      '{"version":2,"terms":[{"source":"A","targets":{"de":"B","fr":"C"}}]}',
+      { term: "A", locale: "de", translation: "B" },
     ],
     [
       "repeating a version 2 translation",

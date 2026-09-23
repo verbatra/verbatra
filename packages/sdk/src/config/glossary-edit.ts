@@ -139,8 +139,13 @@ function withLocaleEntry<T>(
   value: T | undefined,
 ): Readonly<Record<string, T>> {
   const key = localeKey(locale);
-  const kept = Object.entries(record ?? {}).filter(([existing]) => localeKey(existing) !== key);
-  return Object.fromEntries(value === undefined ? kept : [...kept, [locale, value]]);
+  const entries = Object.entries(record ?? {});
+  const index = entries.findIndex(([existing]) => localeKey(existing) === key);
+  if (index < 0) {
+    return Object.fromEntries(value === undefined ? entries : [...entries, [locale, value]]);
+  }
+  const replaced: (readonly [string, T])[] = value === undefined ? [] : [[locale, value]];
+  return Object.fromEntries([...entries.slice(0, index), ...replaced, ...entries.slice(index + 1)]);
 }
 
 type MutableTerm = { -readonly [K in keyof GlossaryTermDefinition]: GlossaryTermDefinition[K] };
@@ -207,12 +212,25 @@ function editedTerm(existing: GlossaryTermDefinition | undefined, edit: Glossary
   return term;
 }
 
+function onlyClears(edit: GlossaryEdit): boolean {
+  return (
+    (edit.translation ?? null) === null &&
+    (edit.forbidden ?? []).length === 0 &&
+    (edit.note ?? null) === null &&
+    (edit.partOfSpeech ?? null) === null &&
+    edit.caseSensitive !== true
+  );
+}
+
 function editTerms(
   terms: readonly GlossaryTermDefinition[],
   edit: GlossaryEdit,
 ): readonly GlossaryTermDefinition[] {
   const index = terms.findIndex((term) => term.source === edit.term);
   const existing = index >= 0 ? terms[index] : undefined;
+  if (existing === undefined && onlyClears(edit)) {
+    return terms;
+  }
   const next = editedTerm(existing, edit);
   if (isEmptyTerm(next) && existing === undefined) {
     throw invalid(
@@ -259,11 +277,15 @@ function validated(definition: GlossaryDefinition): GlossaryDefinition {
 export function applyEdit(definition: GlossaryDefinition, edit: GlossaryEdit): GlossaryDefinition {
   if (edit.doNotTranslate !== undefined) {
     const doNotTranslate = editDoNotTranslate(definition.doNotTranslate ?? [], edit);
-    return validated({
-      version: 2,
-      terms: definition.terms,
-      ...(doNotTranslate.length > 0 ? { doNotTranslate } : {}),
-    });
+    const next: { -readonly [K in keyof GlossaryDefinition]: GlossaryDefinition[K] } = {
+      ...definition,
+    };
+    if (doNotTranslate.length > 0) {
+      next.doNotTranslate = doNotTranslate;
+    } else {
+      delete next.doNotTranslate;
+    }
+    return validated(next);
   }
   return validated({ ...definition, terms: editTerms(definition.terms, edit) });
 }
