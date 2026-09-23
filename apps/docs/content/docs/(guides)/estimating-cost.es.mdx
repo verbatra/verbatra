@@ -48,12 +48,12 @@ Una petición a un LLM lleva cuatro cosas. Una escala con tu número de claves, 
 
 | Parte | Escala con | Tamaño aproximado |
 | --- | --- | --- |
-| Reglas del sistema | nada: constante por petición | ~350 tokens |
+| Reglas del sistema | nada: constante por petición | ~450 tokens |
 | Esquema de salida | nada: constante por petición | ~100 tokens |
 | Carga de items | claves del sublote, más el glosario y el tono | clave + valor + ~21 caracteres de JSON, por item |
 | Respuesta | claves del sublote | clave + valor traducido + ~21 caracteres de JSON, por item |
 
-Las reglas del sistema son una constante de tiempo de compilación, idéntica en cada petición, y por eso la sobrecarga por petición se conoce en lugar de estimarse. La carga de items es un objeto JSON con el locale de origen y el de destino, un tono y un glosario opcionales, y un item por clave con su `key`, su `value` y, opcionalmente, `description` y `meaning`. La respuesta repite cada clave junto a su traducción, así que el tamaño de salida sigue de cerca al de entrada.
+Las reglas del sistema son una constante de tiempo de compilación, idéntica en cada petición, y por eso la sobrecarga por petición se conoce en lugar de estimarse. La carga de items es un objeto JSON con el locale de origen y el de destino, el nombre en inglés de cada idioma (con su escritura y su región cuando el código las indica), un tono y un glosario opcionales, y un item por clave con su `key`, su `value` y, opcionalmente, `description` y `meaning`. La respuesta repite cada clave junto a su traducción, así que el tamaño de salida sigue de cerca al de entrada.
 
 El glosario es la parte que se suele pasar por alto. Se serializa entero en **cada** petición, no una vez por ejecución, así que un glosario de 200 términos y unos 6.000 caracteres añade en torno a 1.500 tokens a cada una. En sublotes pequeños puede pesar más que las propias claves, y es otra razón por la que importa el tamaño del lote.
 
@@ -89,7 +89,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~33312 input + ~30720 output tokens
+  estimate: 1200 keys in 24 requests, ~38544 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -150,22 +150,22 @@ Sustituye cada suposición de este bloque por tus propios números.
 
 | | |
 | --- | --- |
-| Reglas del sistema | 350 |
+| Reglas del sistema | 450 |
 | Esquema de salida | 100 |
-| (50 items x (20 + 40 + ~21 de JSON) caracteres + ~50 de envoltura) / 4 | 1.038 |
-| **Total** | **~1.488** |
+| (50 items x (20 + 40 + ~21 de JSON) caracteres + ~172 de envoltura) / 4 | 1.056 |
+| **Total** | **~1.606** |
 
 **Tokens de salida por petición**
 
-(50 items x (20 caracteres de clave + 40 de valor + ~21 de JSON) + ~20 de envoltura + 50 x 20 de margen) / 4 = **~1.280**.
+(50 items x (20 caracteres de clave + 40 de valor + ~21 de JSON) + ~68 de envoltura + 50 x 20 de margen) / 4 = **~1.280**.
 
 **Totales para 3 locales**
 
-- Entrada: 24 x 1.488 = **~35.712 tokens**
+- Entrada: 24 x 1.606 = **~38.544 tokens**
 - Salida: 24 x 1.280 = **~30.720 tokens**
-- Coste: (35.712 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0036 + $0.0123 = **unos 1,6 centavos**
+- Coste: (38.544 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0039 + $0.0123 = **unos 1,6 centavos**
 
-Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 450 = 10.800 de los 35.712 tokens de entrada, alrededor del 30 por ciento. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
+Fíjate en dónde cae la sobrecarga fija: las reglas del sistema y el esquema suponen 24 x 550 = 13.200 de los 38.544 tokens de entrada, alrededor de un tercio. Subir `maxBatchSize` reparte esa constante entre más claves; bajarlo (por ejemplo, para no superar un límite de tasa) cuesta proporcionalmente más.
 
 ## El método exacto: calibra con un locale
 

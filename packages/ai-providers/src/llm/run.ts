@@ -1,17 +1,16 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
-import { type LocaleMap, resolveProviderLocale } from "../locale-map.js";
+import type { LocaleMap } from "../locale-map.js";
 import {
   type ProviderNotice,
   type TranslateRequest,
   type TranslateResult,
   type Usage,
-  type ValidatedRequestData,
   validateRequest,
 } from "../provider.js";
 import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
 import { toIntegrityInputs } from "./integrity-inputs.js";
-import { buildDataPayload } from "./payload.js";
+import { buildDataPayload, type DataPayloadInput } from "./payload.js";
 import { type ReconcileOutcome, reconcileResult } from "./response.js";
 
 const MAX_REPAIR_ROUNDS = 1;
@@ -38,11 +37,7 @@ export async function runLlmTranslation(
 ): Promise<TranslateResult> {
   const data = validateRequest(request);
   const signal = request.signal;
-  const sent: ValidatedRequestData = {
-    ...data,
-    sourceLocale: resolveProviderLocale(data.sourceLocale, localeMap),
-    targetLocale: resolveProviderLocale(data.targetLocale, localeMap),
-  };
+  const sent: DataPayloadInput = { ...data, localeMap };
 
   const first = await requestTranslations(mechanism, sent, signal);
   const values = first.outcome.accepted;
@@ -84,7 +79,7 @@ export async function runLlmTranslation(
 
 async function requestTranslations(
   mechanism: LlmMechanism,
-  data: ValidatedRequestData,
+  data: DataPayloadInput,
   signal: AbortSignal | undefined,
 ): Promise<{ readonly completion: LlmCompletion; readonly outcome: ReconcileOutcome }> {
   const payloadJson = JSON.stringify(buildDataPayload(data));

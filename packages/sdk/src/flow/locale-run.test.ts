@@ -1118,7 +1118,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
   it("issues no sub-batch whose projected cost would cross the ceiling", async () => {
     const { dir, sourceResource } = await setup(twelveKeys);
     const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
-    const budget = createBudgetTracker(800, "stop");
+    const budget = createBudgetTracker(920, "stop");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
@@ -1137,7 +1137,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
         [...sourceResource.entries.values()].slice(6, 8),
         payloadContextOf(params),
       ),
-    ).toBeGreaterThan(800 - 450);
+    ).toBeGreaterThan(920 - 450);
     expect(result.summary.translated).toEqual(["k00", "k01", "k02", "k03", "k04", "k05"]);
     expect(result.summary.budgetWithheld).toEqual(["k06", "k07", "k08", "k09", "k10", "k11"]);
   });
@@ -1150,7 +1150,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
       {
         mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         maxBatchSize: 2,
-        budget: createBudgetTracker(800, "stop"),
+        budget: createBudgetTracker(920, "stop"),
       },
     );
 
@@ -1209,7 +1209,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
   it("counts a projection for a provider that reports no usage, so the ceiling still bites", async () => {
     const { dir, sourceResource } = await setup(twelveKeys);
     const stub = makeStubProvider({ kind: "machine-translation" });
-    const budget = createBudgetTracker(1_000, "stop");
+    const budget = createBudgetTracker(1_250, "stop");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
@@ -1222,7 +1222,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const result = await runLocale(params);
 
     expect(stub.calls).toHaveLength(2);
-    expect(budget.tokensUsed).toBe(994);
+    expect(budget.tokensUsed).toBe(1_230);
     expect(budget.usageSeen).toBe(false);
     expect(result.summary.translated).toEqual(["k00", "k01", "k02", "k03"]);
     expect(result.summary.budgetWithheld).toHaveLength(8);
@@ -1319,7 +1319,7 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     );
 
     expect(splitter.calls).toHaveLength(3);
-    expect(budget.tokensUsed).toBe(546);
+    expect(budget.tokensUsed).toBe(664);
   });
 
   it("keeps a failed call's projection charged and marks the count estimated", async () => {
@@ -1352,7 +1352,7 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
       ),
     );
 
-    expect(budget.tokensUsed).toBe(507);
+    expect(budget.tokensUsed).toBe(625);
     expect(toBudgetSummary(budget)?.supported).toBe(false);
     expect(result.summary.providerFailures).toEqual(["k02", "k03"]);
   });
@@ -1385,7 +1385,7 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
   it("sends no half at all when the ceiling cannot take one after the truncated parent", async () => {
     const { dir, sourceResource } = await setup(fourKeys);
     const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
-    const budget = createBudgetTracker(600, "stop");
+    const budget = createBudgetTracker(720, "stop");
 
     const result = await runLocale(
       makeParams(
@@ -1399,7 +1399,7 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     );
 
     expect(splitter.calls).toHaveLength(1);
-    expect(budget.tokensUsed).toBe(526);
+    expect(budget.tokensUsed).toBe(644);
     expect(result.summary.budgetWithheld).toEqual(["k00", "k01", "k02", "k03"]);
   });
 });

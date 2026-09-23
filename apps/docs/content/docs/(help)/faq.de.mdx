@@ -26,8 +26,8 @@ Vier Hebel, alle ohne Provider-Aufruf, bis du dich anders entscheidest:
 Ein durchgerechnetes Beispiel, um die Größenordnung greifbar zu machen. Ein Projekt mit 400 zu
 übersetzenden Keys in 3 Locales sendet bei der Standard-`maxBatchSize` von 50 acht Requests pro
 Locale, insgesamt also 24. Bei grob 4 Zeichen pro Token, mit 40 Zeichen langen Quellwerten und 20
-Zeichen langen Key-Namen sind das etwa 33.300 Eingabe-Tokens und 30.700 Ausgabe-Tokens, also rund
-64.000 Tokens für den ganzen Lauf. Auf `gemini-2.5-flash` ergibt das bei einer illustrativen Rate
+Zeichen langen Key-Namen sind das etwa 38.500 Eingabe-Tokens und 30.700 Ausgabe-Tokens, also rund
+69.000 Tokens für den ganzen Lauf. Auf `gemini-2.5-flash` ergibt das bei einer illustrativen Rate
 von $0.10 pro Million Eingabe-Tokens und $0.40 pro Million Ausgabe-Tokens etwa 1,6 Cent.
 
 Die Annahmen hinter dieser Zahl, damit du sie auf dein eigenes Projekt umrechnen kannst: 400 Keys
@@ -39,7 +39,7 @@ der Preisseite deines Providers nach, denn verbatra verfolgt keine Provider-Rate
 sich.
 
 Zwei Dinge bestimmen die echte Rechnung stärker als die Key-Anzahl. Jeder Request trägt einen
-konstanten Overhead von etwa 350 Tokens (die festen Systemregeln und das Ausgabeschema); eine
+konstanten Overhead von etwa 550 Tokens (die festen Systemregeln und das Ausgabeschema); eine
 größere `maxBatchSize` verteilt diese Konstante also auf mehr Keys, und eine kleinere kostet
 proportional mehr. Und das sind nur die Kosten des ersten Laufs: Läufe sind inkrementell, im
 Alltag zahlst du also für die Handvoll geänderter Strings, nicht für die ganze Datei. DeepL

@@ -15,11 +15,36 @@ chaîne traduisible peut contenir du texte qui ressemble à une instruction (une
 littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une entrée non
 fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
 compilation. Toute entrée variable, les entrées à traduire ainsi que le glossaire et le ton que tu
-as définis et, pour un pluriel ICU, les catégories de pluriel de la langue cible, voyage uniquement
+as définis, les noms de langue et, pour un pluriel ICU, les catégories de pluriel de la langue cible, voyage uniquement
 dans la charge utile JSON du tour utilisateur, jamais insérée dans le canal d'instructions. La
 sortie du fournisseur est contrainte à un schéma et validée comme des données : une réponse
 malformée échoue, et une réponse contenant une clé jamais demandée fait échouer le sous-lot entier,
 parce qu'il n'existe pas d'acceptation partielle sûre autour de contenu inventé.
+
+### Noms de langue, d'écriture et de région
+
+<AvailableFrom version="0.12.0" />
+
+Un code de locale seul ne suffit pas toujours à un modèle : `sr-Latn` revient souvent en
+cyrillique, et `pt-BR` et `pt-PT` se confondent. Un fournisseur LLM reçoit donc aussi
+`sourceLanguage` et `targetLanguage` : le nom anglais de la langue et, quand le code les précise,
+de l'écriture et de la région, obtenus avec `Intl.DisplayNames` à partir des données intégrées à
+Node.js.
+
+| Locale | Noms envoyés |
+| --- | --- |
+| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
+| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
+| `pt-PT` | `{ "name": "Portuguese (Portugal)", "region": "Portugal" }` |
+| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
+| `qaa` (usage privé) | aucun : le code est envoyé seul |
+
+Les noms viennent de la locale de ta configuration, même quand une entrée de
+[`localeMap`](/docs/providers) envoie un autre code au fournisseur. Ils voyagent comme des données
+dans la charge utile du tour utilisateur, comme le reste de l'entrée ci-dessus, et une règle
+système fixe demande au modèle d'écrire dans l'écriture et la variante régionale indiquées. Ils ne
+font pas partie de l'empreinte de la mémoire de traduction, donc la mémoire existante continue
+d'être réutilisée. DeepL et Google Cloud Translation reçoivent un code de langue et aucun nom.
 
 ## La barrière d'intégrité
 

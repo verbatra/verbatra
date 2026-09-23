@@ -13,12 +13,36 @@ verbatra nunca deja que una cadena traducible actúe como una instrucción para 
 traducible puede contener texto que parece una instrucción (una cadena de UI que dice literalmente
 "ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable. Las reglas
 de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la entrada
-variable, las entradas a traducir junto con tu glosario y tono y, para un plural ICU, las categorías
+variable, las entradas a traducir junto con tu glosario y tono, los nombres de idioma y, para un plural ICU, las categorías
 de plural del idioma de destino, viaja solo en la carga JSON de datos del turno de usuario, nunca
 insertada en el canal de instrucciones. La salida del proveedor está restringida a un esquema y se
 valida como datos: una respuesta malformada falla, y una respuesta que contiene una clave que nunca
 se pidió hace fallar el sublote entero, porque no hay una aceptación parcial segura alrededor de
 contenido inventado.
+
+### Nombres de idioma, escritura y región
+
+<AvailableFrom version="0.12.0" />
+
+Un código de locale solo no siempre le basta a un modelo: `sr-Latn` a menudo vuelve en cirílico, y
+`pt-BR` y `pt-PT` se confunden. Por eso un proveedor LLM recibe también `sourceLanguage` y
+`targetLanguage`: el nombre en inglés del idioma y, cuando el código los indica, de la escritura y
+la región, buscados con `Intl.DisplayNames` en los datos integrados en Node.js.
+
+| Locale | Nombres enviados |
+| --- | --- |
+| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
+| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
+| `pt-PT` | `{ "name": "Portuguese (Portugal)", "region": "Portugal" }` |
+| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
+| `qaa` (uso privado) | ninguno: el código se envía solo |
+
+Los nombres salen del locale de tu configuración, aunque una entrada de
+[`localeMap`](/docs/providers) le envíe al proveedor otro código. Viajan como datos en la carga del
+turno de usuario, igual que el resto de la entrada de arriba, y una regla de sistema fija le pide
+al modelo que escriba en la escritura y la variante regional indicadas. No forman parte de la
+huella de la memoria de traducción, así que la memoria existente se sigue reutilizando. DeepL y
+Google Cloud Translation reciben un código de idioma y ningún nombre.
 
 ## La puerta de integridad
 
