@@ -18,6 +18,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
+import { describePluralRules } from "./plural-rules.js";
 import { readSourceResource } from "./source.js";
 
 /**
@@ -29,6 +30,9 @@ import { readSourceResource } from "./source.js";
  * - `api-key`: the environment variable the configured provider reads its key from is set.
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
+ * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
+ *   plural categories from, and every target locale ICU has no plural rules for, which falls back to
+ *   `one` and `other` and gets no generated plural forms.
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
@@ -39,6 +43,7 @@ export type DoctorCheckId =
   | "provider"
   | "api-key"
   | "source-file"
+  | "plural-rules"
   | "untranslated-literals";
 
 /**
@@ -70,7 +75,7 @@ export interface DoctorResult {
   readonly ok: boolean;
   /**
    * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, and `source-file`. A literal run
+   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, and `plural-rules`. A literal run
    * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
@@ -118,6 +123,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   provider: "Provider",
   "api-key": "API key environment variable",
   "source-file": "Source locale file",
+  "plural-rules": "Plural rules",
   "untranslated-literals": "Untranslated literals",
 };
 
@@ -126,6 +132,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "provider",
   "api-key",
   "source-file",
+  "plural-rules",
 ];
 
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
@@ -321,11 +328,15 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * placeholder key, so a missing variable passes unless the config names its own variable through
  * `provider.options.apiKeyEnvVar`, which then has to be set.
  *
+ * A sixth, informational check never fails: it names the ICU and CLDR versions the runtime derives
+ * each target language's plural categories from, and lists any target locale ICU has no plural
+ * rules for.
+ *
  * A target locale file is not checked at all: a missing one is not a problem, because
  * {@link translate} creates it. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the four config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the five config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -380,5 +391,6 @@ export async function doctor(
     checkProvider(config.provider),
     checkApiKey(config.provider),
     await checkSourceFile(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs, adapter),
+    verdict("plural-rules", true, describePluralRules(config.targetLocales)),
   ]);
 }

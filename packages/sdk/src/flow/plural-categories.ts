@@ -1,35 +1,11 @@
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
+import { makePluralKey, pluralBaseKey, pluralCategoryOf } from "@verbatra/format-adapters";
 import {
-  type I18nextPluralCategory,
-  makePluralKey,
-  pluralBaseKey,
-  pluralCategoryOf,
-} from "@verbatra/format-adapters";
+  type CldrPluralCategory,
+  pluralCategoriesFor,
+  resolvePluralCategories,
+} from "./plural-rules.js";
 import type { SdkNotice } from "./summary.js";
-
-export type CldrPluralCategory = I18nextPluralCategory;
-
-const LANGUAGE_CATEGORIES: Readonly<Record<string, readonly CldrPluralCategory[]>> = {
-  ar: ["zero", "one", "two", "few", "many", "other"],
-  cy: ["zero", "one", "two", "few", "many", "other"],
-  ga: ["one", "two", "few", "many", "other"],
-  pl: ["one", "few", "many", "other"],
-  ru: ["one", "few", "many", "other"],
-  uk: ["one", "few", "many", "other"],
-  be: ["one", "few", "many", "other"],
-  lt: ["one", "few", "many", "other"],
-  sl: ["one", "two", "few", "other"],
-};
-
-function isKnownRicherLanguage(locale: string): boolean {
-  const subtag = locale.toLowerCase().split(/[-_]/)[0] ?? "";
-  return LANGUAGE_CATEGORIES[subtag] !== undefined;
-}
-
-function requiredCategories(locale: string): readonly CldrPluralCategory[] {
-  const subtag = locale.toLowerCase().split(/[-_]/)[0] ?? "";
-  return LANGUAGE_CATEGORIES[subtag] ?? ["one", "other"];
-}
 
 function groupPluralSources(
   source: LocaleResource,
@@ -73,7 +49,7 @@ export function detectMissingPluralCategories(
   if (supplied.size === 0) {
     return undefined;
   }
-  const missing = requiredCategories(targetLocale).filter((category) => !supplied.has(category));
+  const missing = pluralCategoriesFor(targetLocale).filter((category) => !supplied.has(category));
   if (missing.length === 0) {
     return undefined;
   }
@@ -90,7 +66,7 @@ export function targetPluralSetIncomplete(
   targetKeys: Iterable<string>,
   targetLocale: string,
 ): boolean {
-  const required = requiredCategories(targetLocale);
+  const required = pluralCategoriesFor(targetLocale);
   const present = new Map<string, Set<CldrPluralCategory>>();
   for (const key of targetKeys) {
     const baseKey = pluralBaseKey(key);
@@ -167,10 +143,10 @@ export function planPluralGeneration(
   targetLocale: string,
   format: string,
 ): PluralGenerationPlan {
-  if (format !== "i18next-json" || !isKnownRicherLanguage(targetLocale)) {
+  if (format !== "i18next-json" || resolvePluralCategories(targetLocale).kind === "fallback") {
     return { items: [] };
   }
-  const required = requiredCategories(targetLocale);
+  const required = pluralCategoriesFor(targetLocale);
   const groups = groupPluralSources(source);
   const items: PluralGenerationItem[] = [];
   for (const [baseKey, group] of groups) {
