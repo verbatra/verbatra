@@ -5,13 +5,19 @@ import type { ScaffoldableProviderId } from "./scaffolding.js";
 import { scaffoldingMetadata } from "./scaffolding.js";
 
 describe("scaffoldingMetadata", () => {
-  it("exposes the four pass-through tables", () => {
+  it("exposes the four pass-through tables and the human-only provider id", () => {
     expect(Object.keys(scaffoldingMetadata).sort()).toEqual([
+      "humanOnlyProviderId",
       "providerEnv",
       "providerTokenLimitKeys",
       "scaffoldModels",
       "supportedFormats",
     ]);
+  });
+
+  it("names none as the human-only provider id, a schema-accepted id with no key variable", () => {
+    expect(scaffoldingMetadata.humanOnlyProviderId).toBe("none");
+    expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("none");
   });
 
   it("maps each provider id to its environment variable name", () => {

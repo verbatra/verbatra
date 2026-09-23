@@ -125,12 +125,18 @@ describe("hasProviderFactory: membership without construction", () => {
 });
 
 describe("providerConfigSchema: none", () => {
-  it("accepts a bare none provider", () => {
-    expect(providerConfigSchema.safeParse({ id: "none" }).success).toBe(true);
+  it("fills in empty options for a bare none provider, so options exists on every variant", () => {
+    expect(providerConfigSchema.parse({ id: "none" })).toEqual({ id: "none", options: {} });
   });
 
-  it("rejects options on none, since human-only mode has nothing to configure", () => {
-    expect(providerConfigSchema.safeParse({ id: "none", options: {} }).success).toBe(false);
+  it("accepts an explicit empty options object", () => {
+    expect(providerConfigSchema.safeParse({ id: "none", options: {} }).success).toBe(true);
+  });
+
+  it("rejects any option on none, since human-only mode has nothing to configure", () => {
+    expect(providerConfigSchema.safeParse({ id: "none", options: { model: "x" } }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -138,7 +144,7 @@ describe("buildProvider: none", () => {
   it("refuses with MACHINE_TRANSLATION_DISABLED instead of reaching a factory", () => {
     let caught: unknown;
     try {
-      buildProvider({ id: "none" });
+      buildProvider({ id: "none", options: {} });
     } catch (error) {
       caught = error;
     }

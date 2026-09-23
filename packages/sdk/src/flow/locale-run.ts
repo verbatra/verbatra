@@ -62,14 +62,18 @@ import { buildTranslateRequest } from "./translate-request.js";
 import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
 
+export type LocaleRunMode =
+  | { readonly kind: "plan" }
+  | { readonly kind: "memory-only"; readonly write: boolean }
+  | { readonly kind: "translate"; readonly provider: TranslationProvider };
+
 export interface LocaleRunParams {
   readonly source: LocaleResource;
   readonly sourceInvalidIcuKeys: readonly string[];
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
-  readonly provider: TranslationProvider | undefined;
+  readonly mode: LocaleRunMode;
   readonly providerKind: ProviderKind | undefined;
-  readonly memoryOnly?: boolean;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
@@ -378,6 +382,9 @@ async function shouldWriteTarget(
   path: string,
   changed: { readonly accepted: number; readonly pruned: number; readonly generated: number },
 ): Promise<boolean> {
+  if (params.mode.kind === "memory-only" && !params.mode.write) {
+    return false;
+  }
   if (changed.accepted > 0 || changed.pruned > 0 || changed.generated > 0) {
     return true;
   }
@@ -413,8 +420,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   );
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
 
-  const provider = params.provider;
-  if (provider === undefined && params.memoryOnly !== true) {
+  if (params.mode.kind === "plan") {
     const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
     const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
       (key) => !pruned.includes(key),
@@ -454,7 +460,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
-  const unfilled = unfilledKeys(provider, partition);
+  const provider = params.mode.kind === "translate" ? params.mode.provider : undefined;
+  const unfilled = unfilledKeys(params.mode, partition);
   const translation = await translateMisses(provider, params, missGroups, entries, {
     accepted,
     integrityMismatches,
@@ -712,11 +719,8 @@ const NO_TRANSLATION: TranslateAndCheckResult = {
   usage: undefined,
 };
 
-function unfilledKeys(
-  provider: TranslationProvider | undefined,
-  partition: CachePartition,
-): readonly string[] {
-  return provider === undefined ? [...partition.misses].sort() : [];
+function unfilledKeys(mode: LocaleRunMode, partition: CachePartition): readonly string[] {
+  return mode.kind === "memory-only" ? [...partition.misses, ...partition.fuzzy.keys()].sort() : [];
 }
 
 async function translateMisses(

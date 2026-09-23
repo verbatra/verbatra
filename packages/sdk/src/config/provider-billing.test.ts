@@ -37,7 +37,7 @@ describe("modelOf", () => {
   it("reports no model for a provider whose config has no model field", () => {
     expect(modelOf({ id: "deepl", options: {} })).toBeUndefined();
     expect(modelOf({ id: "google-translate", options: {} })).toBeUndefined();
-    expect(modelOf({ id: "none" })).toBeUndefined();
+    expect(modelOf({ id: "none", options: {} })).toBeUndefined();
   });
 });
 

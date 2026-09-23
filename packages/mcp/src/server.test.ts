@@ -91,7 +91,9 @@ describe("createMcpServer: handshake and tools/list", () => {
   it("omits the two spend tools under provider none even with spending allowed", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: baseLoadedConfig({ config: baseVerbatraConfig({ provider: { id: "none" } }) }),
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({ provider: { id: "none", options: {} } }),
+      }),
       cwd: dir,
       allowSpend: true,
     });

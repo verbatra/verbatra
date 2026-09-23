@@ -13,7 +13,7 @@ describe("isMachineTranslationEnabled", () => {
   });
 
   it("is false for provider none", () => {
-    expect(isMachineTranslationEnabled({ provider: { id: "none" } })).toBe(false);
+    expect(isMachineTranslationEnabled({ provider: { id: "none", options: {} } })).toBe(false);
   });
 });
 
@@ -25,7 +25,10 @@ describe("assertMachineTranslationEnabled", () => {
   it("throws MACHINE_TRANSLATION_DISABLED naming the refused action for provider none", () => {
     let caught: unknown;
     try {
-      assertMachineTranslationEnabled({ provider: { id: "none" } }, "translating pending keys");
+      assertMachineTranslationEnabled(
+        { provider: { id: "none", options: {} } },
+        "translating pending keys",
+      );
     } catch (error) {
       caught = error;
     }

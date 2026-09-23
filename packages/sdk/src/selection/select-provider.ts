@@ -22,10 +22,9 @@ export type CreateProvider = (config: ProviderConfig) => TranslationProvider;
 export function selectProvider(
   config: ProviderConfig,
   createProvider: CreateProvider = buildProvider,
-  action = "calling a translation provider",
 ): TranslationProvider {
   if (!isMachineProvider(config)) {
-    throw machineTranslationDisabledError(action);
+    throw machineTranslationDisabledError("calling a translation provider");
   }
   try {
     return createProvider(config);

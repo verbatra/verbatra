@@ -109,6 +109,17 @@ describe("provider model authoring suggestions (type-level)", () => {
     expect(assertions).toEqual(assertions.map(() => true));
   });
 
+  it("defineConfig lets a none provider leave out options and fills in the empty object", () => {
+    const config = defineConfig({
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "none" },
+    });
+    expect(config.provider).toEqual({ id: "none", options: {} });
+  });
+
   it("defineConfig accepts a known model ID and returns the runtime config unchanged", () => {
     const config = defineConfig({
       sourceLocale: "en",

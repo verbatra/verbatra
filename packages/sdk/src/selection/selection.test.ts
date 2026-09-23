@@ -66,7 +66,7 @@ describe("selectProvider", () => {
     const calls: string[] = [];
     const error = (() => {
       try {
-        selectProvider({ id: "none" }, (config) => {
+        selectProvider({ id: "none", options: {} }, (config) => {
           calls.push(config.id);
           return makeStubProvider().provider;
         });

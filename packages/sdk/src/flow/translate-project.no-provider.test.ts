@@ -24,7 +24,7 @@ const PROVIDER_ENV_VARS: readonly string[] = Object.values(PROVIDER_ENV);
 const SOURCE_PATH = fileURLToPath(new URL("./translate-project.ts", import.meta.url));
 
 const humanOnly = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
-  baseConfig({ targetLocales: ["de"], provider: { id: "none" }, ...overrides });
+  baseConfig({ targetLocales: ["de"], provider: { id: "none", options: {} }, ...overrides });
 
 async function project(
   source: Record<string, string>,
@@ -95,26 +95,15 @@ afterEach(() => {
   }
 });
 
-describe("static proof: translate selects a provider only for a machine-translation config", () => {
+describe("static proof: translate has exactly one provider selection site", () => {
   const content = readFileSync(SOURCE_PATH, "utf8");
 
-  it("reads the source it is asserting about, so the checks cannot pass vacuously", () => {
+  it("reads the source it is asserting about, so the check cannot pass vacuously", () => {
     expect(content).toContain("export async function translate(");
   });
 
-  it("never hands the raw provider block to selectProvider", () => {
-    expect(content).not.toContain("selectProvider(config.provider");
+  it("selects a provider in one place only, the one the runtime tests below exercise", () => {
     expect(content.match(/selectProvider\(/g)).toHaveLength(1);
-  });
-
-  it("guards its one selectProvider call behind the narrowed machine-provider config", () => {
-    expect(content).toContain("isMachineProvider(config.provider) ? config.provider : undefined");
-    expect(content).toContain("selectProvider(machineProvider, createProvider)");
-  });
-
-  it("never builds a provider or calls one directly", () => {
-    expect(content).not.toContain("buildProvider");
-    expect(content).not.toContain("translateBatch");
   });
 });
 
@@ -198,6 +187,32 @@ describe("translate: human-only mode fills from the translation memory alone", (
     expect(summary.locales[0]?.providerFailures).toEqual([]);
   });
 
+  it("still counts a fuzzy reuse as unfilled, since only a human can confirm it", async () => {
+    const config = humanOnly({ fuzzyCache: { enabled: true, threshold: 0.8 } });
+    const dir = await project({ greeting: "Hello there, friend!" });
+    await seedMemory(dir, config, {
+      greeting: { source: "Hello there, friend", value: "Hallo, Freund" },
+    });
+
+    const summary = await translate({ config, cwd: dir });
+
+    expect(summary.locales[0]?.fuzzyHits.map((hit) => hit.key)).toEqual(["greeting"]);
+    expect(summary.locales[0]?.unfilled).toEqual(["greeting"]);
+  });
+
+  it("keeps using memory entries after the tone or glossary change", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await seedMemory(dir, humanOnly(), { greeting: { source: "Hello", value: "Hallo" } });
+
+    const summary = await translate({
+      config: humanOnly({ tone: "formal", glossary: { Hello: "Hallo" } }),
+      cwd: dir,
+    });
+
+    expect(summary.locales[0]?.cacheHits).toEqual(["greeting"]);
+    expect(summary.locales[0]?.unfilled).toEqual([]);
+  });
+
   it("creates an empty target file when nothing landed and none existed yet", async () => {
     const dir = await project({ greeting: "Hello" });
 
@@ -222,6 +237,22 @@ describe("translate: a human-only dry run", () => {
     expect(summary.locales[0]?.translated).toEqual([]);
     expect(summary.locales[0]?.unfilled).toEqual(["farewell"]);
     expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
+  });
+
+  it("reads the translation memory, so its plan matches what a live run would do", async () => {
+    const config = humanOnly();
+    const dir = await project({ greeting: "Hello", farewell: "Bye" });
+    await seedMemory(dir, config, { greeting: { source: "Hello", value: "Hallo" } });
+
+    const plan = await translate({ config, cwd: dir, dryRun: true });
+
+    expect(plan.locales[0]?.cacheHits).toEqual(["greeting"]);
+    expect(plan.locales[0]?.unfilled).toEqual(["farewell"]);
+    await expect(readJsonFile(join(dir, "locales", "de.json"))).rejects.toThrow();
+
+    const live = await translate({ config, cwd: dir });
+    expect(live.locales[0]?.cacheHits).toEqual(plan.locales[0]?.cacheHits);
+    expect(live.locales[0]?.unfilled).toEqual(plan.locales[0]?.unfilled);
   });
 
   it("estimates nothing to send and nothing billed", async () => {

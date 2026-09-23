@@ -385,7 +385,12 @@ describe("retranslateEntry: human-only mode", () => {
     const factoryCalls: string[] = [];
 
     const error = await retranslateEntry(
-      { config: cfg({ provider: { id: "none" } }), cwd: dir, locale: "de", key: "greeting" },
+      {
+        config: cfg({ provider: { id: "none", options: {} } }),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+      },
       {
         createProvider: (config) => {
           factoryCalls.push(config.id);

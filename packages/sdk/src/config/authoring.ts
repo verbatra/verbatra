@@ -46,8 +46,16 @@ type AuthoringProviderVariant = {
   "google-translate": Extract<ProviderConfig, { id: "google-translate" }>;
   /** A local or self-hosted OpenAI-compatible endpoint, whose model stays a free-form string. */
   "openai-compatible": Extract<ProviderConfig, { id: "openai-compatible" }>;
-  /** Human-only mode: machine translation disabled by policy, no provider and no options. */
-  none: Extract<ProviderConfig, { id: "none" }>;
+  /**
+   * Human-only mode: machine translation disabled by policy. `options` may be left out, since the
+   * only value it can hold is an empty object.
+   */
+  none: {
+    /** Always `none`. */
+    id: "none";
+    /** Always empty when present. */
+    options?: Record<string, never>;
+  };
 };
 
 /**

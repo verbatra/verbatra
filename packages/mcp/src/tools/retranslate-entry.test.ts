@@ -57,7 +57,9 @@ describe("translation.retranslateEntry", () => {
     const factoryCalls: string[] = [];
     const context = makeContext({
       cwd: dir,
-      config: baseLoadedConfig({ config: baseVerbatraConfig({ provider: { id: "none" } }) }),
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({ provider: { id: "none", options: {} } }),
+      }),
       createProvider: (config) => {
         factoryCalls.push(config.id);
         return makeStubProvider();

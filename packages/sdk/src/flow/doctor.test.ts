@@ -605,7 +605,7 @@ describe("doctor: it reports every independent problem and spends nothing", () =
 describe("doctor: human-only mode", () => {
   it("passes the provider and key checks, reporting machine translation disabled by policy", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", undefined);
-    await writeConfig(validConfig({ provider: { id: "none" } }));
+    await writeConfig(validConfig({ provider: { id: "none", options: {} } }));
     await writeSourceFile();
 
     const result = await doctor({ cwd: projectDir });

@@ -35,7 +35,7 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),
-  z.strictObject({ id: z.literal("none") }),
+  z.strictObject({ id: z.literal("none"), options: z.strictObject({}).default({}) }),
 ]);
 
 /**
@@ -49,7 +49,8 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * sends no real key otherwise, since a local server usually needs none; naming a different variable
  * through `apiKeyEnvVar` makes that variable required. It still never holds the key itself.
  *
- * The `none` variant takes no options and disables machine translation by policy: no provider is
+ * The `none` variant disables machine translation by policy. Its `options` is always an empty
+ * object, filled in when omitted, so `provider.options` exists on every variant: no provider is
  * ever constructed and no API key is read. {@link translate} and {@link watch} then fill only from
  * the translation memory and report every other key as `unfilled`, and {@link retranslateEntry}
  * fails with `MACHINE_TRANSLATION_DISABLED`.

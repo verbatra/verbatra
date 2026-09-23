@@ -183,7 +183,7 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
       baseline: new Map(),
       maxLength: undefined,
       adapter: testCase.adapter,
-      provider,
+      mode: { kind: "translate", provider },
       cwd: dir,
       resolver: createLocalePathResolver(dir, {
         sourceLocale: "en",

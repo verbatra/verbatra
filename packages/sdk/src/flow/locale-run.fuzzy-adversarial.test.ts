@@ -78,7 +78,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: countingProvider().provider,
+    mode: { kind: "translate", provider: countingProvider().provider },
     providerKind: "llm",
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
@@ -119,7 +119,7 @@ async function runEdit(
     makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
+        mode: { kind: "translate", provider: stub.provider },
         cache: {
           snapshot: memoryFor(previousSource, CACHED_TRANSLATION),
           fingerprint: FINGERPRINT,
@@ -356,7 +356,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -379,7 +379,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -404,7 +404,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
         makeParams(
           { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
           {
-            provider: stub.provider,
+            mode: { kind: "translate", provider: stub.provider },
             cache: {
               snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
               fingerprint: FINGERPRINT,

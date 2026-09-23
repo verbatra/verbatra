@@ -1,5 +1,12 @@
 import type { AuthoringConfig, AuthoringConfigFor } from "./authoring.js";
+import type { ProviderId } from "./provider-config.js";
 import type { VerbatraConfigInput } from "./schema.js";
+
+function isMachineAuthoring(
+  config: AuthoringConfig,
+): config is AuthoringConfigFor<Exclude<ProviderId, "none">> {
+  return config.provider.id !== "none";
+}
 
 /**
  * Types a `verbatra.config.ts` while you author it. The call is a pure identity function at
@@ -75,5 +82,8 @@ export function defineConfig(config: AuthoringConfigFor<"google-translate">): Ve
  */
 export function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
 export function defineConfig(config: AuthoringConfig): VerbatraConfigInput {
-  return config;
+  if (isMachineAuthoring(config)) {
+    return config;
+  }
+  return { ...config, provider: { id: "none", options: {} } };
 }
