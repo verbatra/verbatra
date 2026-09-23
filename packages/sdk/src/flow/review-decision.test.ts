@@ -427,6 +427,27 @@ describe("rejectEntry", () => {
     expect((await recordOf(dir, "greeting"))?.reviewState).toBeUndefined();
   });
 
+  it("records the rejection on a key that has a record but no lock entry", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const value = await currentValue(dir, "greeting");
+    await writeJsonFile(join(dir, "verbatra.lock.json"), { version: 1, locales: { de: {} } });
+    expect((await recordOf(dir, "greeting"))?.origin).toBe("machine");
+
+    await rejectEntry({
+      config: cfg(),
+      cwd: dir,
+      locale: "de",
+      key: "greeting",
+      expectedValue: value,
+    });
+
+    expect(await recordOf(dir, "greeting")).toMatchObject({
+      origin: "machine",
+      valueHash: valueHash(value),
+      reviewState: "rejected",
+    });
+  });
+
   it("drops the rejected text from the translation memory, keeping the other entries", async () => {
     const dir = await translated({ greeting: "Hello", farewell: "Bye" });
     const value = await currentValue(dir, "greeting");

@@ -1,8 +1,9 @@
+import { relative, sep } from "node:path";
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { evictMemoryValue } from "../cache/translation-memory.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { SdkError } from "../errors.js";
+import { errorMessage, SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
@@ -269,21 +270,53 @@ async function removeValue(
   }
 }
 
+function displayPath(context: ReviewContext, path: string): string {
+  return relative(context.cwd, path).split(sep).join("/");
+}
+
+async function restoreProvenance(context: ReviewContext, before: BoundedFileRead): Promise<void> {
+  const provenancePath = provenanceFilePath(context.cwd);
+  if (before.kind === "ok") {
+    await context.fs.writeFile(provenancePath, before.content);
+    return;
+  }
+  if (before.kind === "missing") {
+    await context.fs.deleteFile(provenancePath);
+    return;
+  }
+  throw new Error("no copy of the provenance file was kept");
+}
+
 async function restoreAfterFailedReject(
   context: ReviewContext,
   path: string,
   snapshot: Uint8Array,
   provenanceBefore: BoundedFileRead,
-): Promise<void> {
+  failure: unknown,
+): Promise<never> {
+  const unrestored: string[] = [];
   try {
     await context.fs.writeBytes(path, snapshot);
-    const provenancePath = provenanceFilePath(context.cwd);
-    if (provenanceBefore.kind === "ok") {
-      await context.fs.writeFile(provenancePath, provenanceBefore.content);
-    } else {
-      await context.fs.deleteFile(provenancePath);
-    }
-  } catch {}
+  } catch {
+    unrestored.push(displayPath(context, path));
+  }
+  try {
+    await restoreProvenance(context, provenanceBefore);
+  } catch {
+    unrestored.push(displayPath(context, provenanceFilePath(context.cwd)));
+  }
+  if (unrestored.length === 0) {
+    throw failure;
+  }
+  throw new SdkError(
+    "REVIEW_RESTORE_FAILED",
+    `Rejecting "${context.key}" in ${context.locale} failed (${errorMessage(failure)}), and putting the files back failed too, so ${unrestored.join(" and ")} may not match the lock file. Restore them from version control before running verbatra again.`,
+    { cause: failure },
+  );
+}
+
+async function assertLockReadable(context: ReviewContext): Promise<void> {
+  await readLockFile(lockFilePath(context.cwd), context.fs);
 }
 
 async function rejectUnderGuard(
@@ -294,7 +327,7 @@ async function rejectUnderGuard(
   const path = targetPath(context);
   const snapshot = await targetSnapshot(context, path);
   return withLockFileGuard(context.cwd, context.fs, async () => {
-    await readLockFile(lockFilePath(context.cwd), context.fs);
+    await assertLockReadable(context);
     const plan = await planDecision(context, reviewed.value, decision);
     const provenanceBefore = await context.fs.readFileBounded(
       provenanceFilePath(context.cwd),
@@ -314,8 +347,7 @@ async function rejectUnderGuard(
         { requireProvenance: true },
       );
     } catch (error) {
-      await restoreAfterFailedReject(context, path, snapshot, provenanceBefore);
-      throw error;
+      return restoreAfterFailedReject(context, path, snapshot, provenanceBefore, error);
     }
     return plan.record;
   });
@@ -431,8 +463,9 @@ export async function approveEntry(
  * {@link approveEntry}, it does not require the translation to be up to date with its source. The
  * lock-file and the provenance file are checked, and the decision is planned, under the lock-file
  * guard before the locale file is touched, and the lock-file and provenance file are then written
- * under that same guard. If anything fails after the locale file was rewritten, the locale file
- * and the provenance file are put back as they were and the translation memory is left alone.
+ * under that same guard. If a step fails after the locale file was rewritten, the locale file
+ * and the provenance file are restored on failure and the translation memory is left alone; a
+ * process that is killed mid-write cannot be undone this way.
  * Commit the locale file, the lock-file and the provenance file together to share the decision.
  *
  * @param input - The config, locale, key, the value the reviewer saw, and an optional reviewer.
@@ -458,6 +491,10 @@ export async function approveEntry(
  * @throws {@link SdkError} `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps the translation
  * when the file is written without it, as XLIFF and Flutter ARB do, or the locale file is too large
  * to keep a copy to restore. The locale file is left as it was and nothing else is written.
+ * @throws {@link SdkError} `REVIEW_RESTORE_FAILED`: a step failed after the locale file was
+ * rewritten, and restoring the locale file or the provenance file failed too. The message names the
+ * original failure and the files that may no longer match the lock-file; the original error is the
+ * `cause`.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or

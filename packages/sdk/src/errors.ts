@@ -78,6 +78,10 @@
  *   where a unit without a target reads as its source text, and Flutter ARB, whose writer keeps
  *   every existing message, are such formats. It is also thrown when the locale file is too large to
  *   keep a copy to restore. The locale file is left as it was, and nothing else is written.
+ * - `REVIEW_RESTORE_FAILED`: {@link rejectEntry} failed after it rewrote the locale file, and
+ *   restoring the locale file or the provenance file failed as well. The message names the original
+ *   failure, which is also the error's `cause`, and the files that may no longer match the
+ *   lock-file; restore them from version control.
  * - `REVIEWER_INVALID`: the reviewer name is empty, longer than 64 characters, or contains a
  *   control character. Thrown by {@link approveEntry} and {@link rejectEntry} before anything is
  *   read.
@@ -170,6 +174,7 @@ export type SdkErrorCode =
   | "REVIEW_VALUE_CHANGED"
   | "REVIEW_SOURCE_CHANGED"
   | "REVIEW_REJECT_UNSUPPORTED"
+  | "REVIEW_RESTORE_FAILED"
   | "REVIEWER_INVALID"
   | "LOCK_CONTENDED"
   | "GLOSSARY_NOT_FILE_BACKED"

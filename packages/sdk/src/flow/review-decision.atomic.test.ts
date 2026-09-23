@@ -191,4 +191,75 @@ describe("rejectEntry: a failure leaves every file as it was", () => {
       code: "ENOENT",
     });
   });
+
+  it("names the original failure and every file it could not put back when restoring fails too", async () => {
+    const p = await project();
+    let provenanceWrites = 0;
+    const fs: SdkFs = {
+      ...defaultFs,
+      writeFile: async (path, data) => {
+        if (path.endsWith("verbatra.lock.json")) {
+          throw new Error("disk full");
+        }
+        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+          provenanceWrites += 1;
+          if (provenanceWrites > 1) {
+            throw new Error("restore refused");
+          }
+        }
+        await defaultFs.writeFile(path, data);
+      },
+      writeBytes: async () => {
+        throw new Error("restore refused");
+      },
+    };
+
+    const error = await reject(p, fs).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "REVIEW_RESTORE_FAILED" });
+    expect((error as Error).message).toContain("disk full");
+    expect((error as Error).message).toContain("locales/de.json and verbatra.provenance.json");
+    expect((error as Error).cause).toBeInstanceOf(Error);
+    expect(((error as Error).cause as Error).message).toBe("disk full");
+    expect(await readTextFile(cacheFilePath(p.dir))).toBe(p.before.memory);
+  });
+
+  it("names only the file it could not put back", async () => {
+    const p = await project();
+    const fs: SdkFs = {
+      ...failingWrites((path) => path.endsWith("verbatra.lock.json")),
+      writeBytes: async () => {
+        throw new Error("restore refused");
+      },
+    };
+
+    const error = await reject(p, fs).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "REVIEW_RESTORE_FAILED" });
+    expect((error as Error).message).toContain("so locales/de.json may not match");
+    expect(await readTextFile(join(p.dir, PROVENANCE_FILE_NAME))).toBe(p.before.provenance);
+  });
+
+  it("reports the provenance file as not put back when no copy of it could be kept", async () => {
+    const p = await project();
+    let provenanceReads = 0;
+    const fs: SdkFs = {
+      ...failingWrites((path) => path.endsWith("verbatra.lock.json")),
+      readFileBounded: async (path, max) => {
+        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+          provenanceReads += 1;
+          if (provenanceReads === 2) {
+            return { kind: "too-large" };
+          }
+        }
+        return defaultFs.readFileBounded(path, max);
+      },
+    };
+
+    const error = await reject(p, fs).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "REVIEW_RESTORE_FAILED" });
+    expect((error as Error).message).toContain("so verbatra.provenance.json may not match");
+    expect(await readFile(p.targetPath)).toEqual(p.before.target);
+  });
 });
