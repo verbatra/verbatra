@@ -9,6 +9,7 @@ import {
   entry,
   firstCallOf,
   regexExtractor,
+  termGlossary,
 } from "../test-support.js";
 import type { DeepLConfig } from "./config.js";
 import { createDeepLProvider } from "./deepl-provider.js";
@@ -160,7 +161,7 @@ describe("createDeepLProvider: glossary", () => {
   it("ignores a supplied generic term-map but signals it observably (not an error)", async () => {
     const { client, calls } = deeplStubClient(deeplResult(["x"]));
     const result = (await createDeepLProvider(config, { client }).translateBatch(
-      request({ glossary: { Hello: "Hallo" }, entries: [entry("k", "Hello")] }),
+      request({ glossary: termGlossary({ Hello: "Hallo" }), entries: [entry("k", "Hello")] }),
     )) as DeepLTranslateResult;
     expect(firstCallOf(calls).options.glossary).toBeUndefined();
     expect(noticeCodes(result)).toContain("GLOSSARY_IGNORED");
@@ -265,7 +266,7 @@ describe("createDeepLProvider: placeholder-bearing entries are withheld", () => 
     const result = (await createDeepLProvider(config, { client, freeAccount: true }).translateBatch(
       request({
         tone: "formal",
-        glossary: { Hello: "Hallo" },
+        glossary: termGlossary({ Hello: "Hallo" }),
         entries: [entry("free", "Free"), entry("bearing", "Hi {{name}}", ["{{name}}"])],
       }),
     )) as DeepLTranslateResult;
@@ -304,7 +305,7 @@ describe("createDeepLProvider: notice messages are static, never interpolated", 
   it("GLOSSARY_IGNORED message is byte-identical across unrelated glossary content and keys", async () => {
     const first = deeplStubClient(deeplResult(["x"]));
     const firstResult = (await createDeepLProvider(config, { client: first.client }).translateBatch(
-      request({ glossary: { Hello: "Hallo" }, entries: [entry("k1", "Hello")] }),
+      request({ glossary: termGlossary({ Hello: "Hallo" }), entries: [entry("k1", "Hello")] }),
     )) as DeepLTranslateResult;
 
     const second = deeplStubClient(deeplResult(["y"]));
@@ -312,7 +313,7 @@ describe("createDeepLProvider: notice messages are static, never interpolated", 
       client: second.client,
     }).translateBatch(
       request({
-        glossary: { SecretTerm: "GeheimBegriff", AnotherTerm: "NochEinBegriff" },
+        glossary: termGlossary({ SecretTerm: "GeheimBegriff", AnotherTerm: "NochEinBegriff" }),
         entries: [entry("very-different-key", "Something else entirely")],
       }),
     )) as DeepLTranslateResult;
@@ -387,7 +388,10 @@ describe("createDeepLProvider: errors and secrets", () => {
     let caught: unknown;
     try {
       await createDeepLProvider(config, { client }).translateBatch(
-        request({ glossary: { Hello: "Hallo" }, entries: [entry("a", "A?"), entry("b", "B?")] }),
+        request({
+          glossary: termGlossary({ Hello: "Hallo" }),
+          entries: [entry("a", "A?"), entry("b", "B?")],
+        }),
       );
     } catch (error) {
       caught = error;

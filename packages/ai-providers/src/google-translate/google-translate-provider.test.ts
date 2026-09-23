@@ -9,6 +9,7 @@ import {
   googleTranslateStubClient,
   googleTranslateSuccess,
   regexExtractor,
+  termGlossary,
 } from "../test-support.js";
 import { createGoogleTranslateProvider } from "./google-translate-provider.js";
 import { GOOGLE_TRANSLATE_MAX_TEXT_PAYLOAD_BYTES } from "./limits.js";
@@ -89,10 +90,38 @@ describe("createGoogleTranslateProvider: glossary -> always ignored", () => {
   it("ignores a supplied generic term-map but signals it observably (not an error)", async () => {
     const { client } = googleTranslateStubClient(googleTranslateSuccess(["x"]));
     const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
-      request({ glossary: { Hello: "Hallo" }, entries: [entry("k", "Hello")] }),
+      request({ glossary: termGlossary({ Hello: "Hallo" }), entries: [entry("k", "Hello")] }),
     )) as GoogleTranslateResult;
     expect(noticeCodes(result)).toContain("GLOSSARY_IGNORED");
     expect(result.values.get("k")).toBe("x");
+  });
+});
+
+describe("createGoogleTranslateProvider: glossary notices by kind of term", () => {
+  it("reports GLOSSARY_IGNORED for a do-not-translate term it cannot keep", async () => {
+    const { client } = googleTranslateStubClient(googleTranslateSuccess(["x"]));
+    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({
+        glossary: { terms: [], doNotTranslate: [{ term: "verbatra", caseSensitive: true }] },
+        entries: [entry("k", "Hello")],
+      }),
+    )) as GoogleTranslateResult;
+    expect(noticeCodes(result)).toContain("GLOSSARY_IGNORED");
+  });
+
+  it("raises no notice for forbidden renderings, which it checks rather than applies", async () => {
+    const { client } = googleTranslateStubClient(googleTranslateSuccess(["Instrumententafel"]));
+    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({
+        glossary: {
+          terms: [{ source: "Dashboard", forbidden: ["Instrumententafel"], caseSensitive: false }],
+          doNotTranslate: [],
+        },
+        entries: [entry("k", "Dashboard")],
+      }),
+    )) as GoogleTranslateResult;
+    expect(noticeCodes(result)).not.toContain("GLOSSARY_IGNORED");
+    expect(result.reviewFlags?.get("k")?.reasons).toEqual(["GLOSSARY_FORBIDDEN_TERM"]);
   });
 });
 
@@ -368,7 +397,10 @@ describe("createGoogleTranslateProvider: errors and secrets", () => {
     let caught: unknown;
     try {
       await createGoogleTranslateProvider(config, { client }).translateBatch(
-        request({ glossary: { Hello: "Hallo" }, entries: [entry("a", "A?"), entry("b", "B?")] }),
+        request({
+          glossary: termGlossary({ Hello: "Hallo" }),
+          entries: [entry("a", "A?"), entry("b", "B?")],
+        }),
       );
     } catch (error) {
       caught = error;

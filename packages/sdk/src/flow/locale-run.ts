@@ -1,5 +1,6 @@
 import {
   computeReviewFlags,
+  type LocaleGlossary,
   ProviderError,
   type ProviderKind,
   type ReviewFlag,
@@ -93,7 +94,7 @@ export interface LocaleRunParams {
   readonly sourceLocale: string;
   readonly targetLocale: string;
   readonly format: FormatId;
-  readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly glossary: LocaleGlossary | undefined;
   readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly prune: boolean;

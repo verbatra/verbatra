@@ -6,7 +6,7 @@ import {
   type TmxExportUnit,
   type TmxTranslation,
 } from "@verbatra/exchange";
-import { computeFingerprint } from "../../cache/fingerprint.js";
+import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js";
 import { cacheFilePath, readTranslationMemory } from "../../cache/translation-memory.js";
 import type { TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
@@ -127,7 +127,7 @@ interface Collected {
 
 function collect(
   memory: TranslationMemory,
-  fingerprint: string,
+  fingerprintFor: FingerprintFor,
   locales: readonly string[],
 ): Collected {
   const byHash = new Map<string, Collecting>();
@@ -135,7 +135,9 @@ function collect(
   let withoutSource = 0;
   for (const locale of locales) {
     let kept = 0;
-    for (const [hash, value] of Object.entries(memory.entries[fingerprint]?.[locale] ?? {})) {
+    for (const [hash, value] of Object.entries(
+      memory.entries[fingerprintFor(locale)]?.[locale] ?? {},
+    )) {
       const source = memory.sources[hash];
       if (source === undefined) {
         withoutSource += 1;
@@ -260,7 +262,7 @@ export async function exportTmx(
   });
   const path = await resolveOutputPath(fs, cwd, input.out, reserved);
   const { memory } = await readTranslationMemory(cacheFilePath(cwd), fs);
-  const collected = collect(memory, computeFingerprint(input.config), locales);
+  const collected = collect(memory, fingerprintsFor(input.config), locales);
   const build: BuildTmxInput = {
     sourceLanguage: input.config.sourceLocale,
     units: collected.units,

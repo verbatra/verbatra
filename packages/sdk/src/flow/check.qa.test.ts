@@ -252,3 +252,39 @@ describe("check: qa report on plurals and ICU", () => {
     expect(summary.qa?.invalidSourceKeys).toEqual(["broken"]);
   });
 });
+
+describe("check: qa report against a per-locale glossary", () => {
+  it("holds each locale to its own glossary translation and forbidden renderings", async () => {
+    const dir = await project(
+      { title: "Open the Dashboard", brand: "verbatra help" },
+      {
+        de: { title: "Öffne die Instrumententafel", brand: "verbatra Hilfe" },
+        fr: { title: "Ouvre le tableau de bord", brand: "Aide de Verbatra" },
+      },
+    );
+    const glossary = {
+      version: 2 as const,
+      terms: [
+        {
+          source: "Dashboard",
+          targets: { de: "Übersicht", fr: "Tableau de bord" },
+          forbidden: { de: ["Instrumententafel"] },
+        },
+      ],
+      doNotTranslate: ["verbatra"],
+    };
+
+    const summary = await check({ config: cfg({ glossary }), cwd: dir, qa: true });
+
+    const findings = Object.fromEntries(
+      summary.locales.map((locale) => [locale.locale, locale.qa?.findings]),
+    );
+    expect(findings.de).toEqual([
+      { key: "title", severity: "warning", reason: "GLOSSARY_TERM_MISSED" },
+      { key: "title", severity: "warning", reason: "GLOSSARY_FORBIDDEN_TERM" },
+    ]);
+    expect(findings.fr).toEqual([
+      { key: "brand", severity: "warning", reason: "GLOSSARY_TERM_MISSED" },
+    ]);
+  });
+});

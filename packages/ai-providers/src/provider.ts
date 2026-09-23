@@ -2,6 +2,7 @@ import type { PlaceholderIntegrityResult, PluralCategory, TranslationEntry } fro
 import { PLURAL_CATEGORIES, translationEntrySchema } from "@verbatra/core";
 import { z } from "zod";
 import { ProviderError } from "./errors.js";
+import { type LocaleGlossary, localeGlossarySchema } from "./glossary.js";
 
 /**
  * A provider is either a prompt-driven LLM (`llm`) or a dedicated machine-translation API
@@ -60,8 +61,13 @@ export interface TranslateRequest {
   readonly targetLocale: string;
   /** The entries to translate; at least one is required. */
   readonly entries: readonly TranslationEntry[];
-  /** Optional source-term to target-term map applied by glossary-capable providers. */
-  readonly glossary?: Readonly<Record<string, string>>;
+  /**
+   * Optional glossary for this batch's target locale only: required translations, forbidden
+   * renderings, and terms to keep untranslated. An LLM provider sends it to the model as data; a
+   * machine-translation provider cannot apply it and reports `GLOSSARY_IGNORED` when it holds a
+   * required translation or a term to keep. Every provider checks its output against it for review.
+   */
+  readonly glossary?: LocaleGlossary;
   /** Optional target {@link Tone}; machine-translation providers map it to formality. */
   readonly tone?: Tone;
   /**
@@ -114,8 +120,10 @@ export interface Usage {
  *
  * - `FORMALITY_DOWNGRADED`: a requested `formal` or `informal` tone was not applied (DeepL's free
  *   tier does not support formality, and Google Cloud Translation Basic has no formality control).
- * - `GLOSSARY_IGNORED`: a supplied generic glossary term map was not applied (DeepL only applies a
- *   native glossary id, never a term map, and Google Cloud Translation Basic supports no glossary).
+ * - `GLOSSARY_IGNORED`: a supplied glossary with a required translation or a term to keep
+ *   untranslated was not applied (DeepL only applies a native glossary id, never verbatra's glossary,
+ *   and Google Cloud Translation Basic supports no glossary). A glossary that only lists forbidden
+ *   renderings does not raise it, since those are checked after translation rather than applied.
  * - `PLACEHOLDER_UNSUPPORTED`: at least one placeholder- or ICU-bearing entry was left untranslated
  *   because the provider cannot preserve those tokens; such entries are withheld (absent from the
  *   result maps) rather than sent to the provider and mangled.
@@ -159,17 +167,27 @@ export interface ProviderNotice {
  * - `EQUALS_SOURCE`: the translated value equals the source value once both are trimmed, so a
  *   difference in leading or trailing whitespace alone still counts as equal. Also requires that
  *   the locales differ and that the value contains at least one letter (so a bare symbol or number
- *   is not flagged).
- * - `GLOSSARY_TERM_MISSED`: a configured glossary source term appeared in the source but its target
- *   term did not appear in the translation. Matching is case-insensitive, and the two sides are
- *   held to deliberately different standards. The source side requires a whole-word occurrence, so
- *   the term "AI" is not found inside "Airport" and cannot raise an expectation the translator was
- *   never given; a source term whose edge character belongs to a script written without word
- *   separators (Han, kana, Thai and similar) has no boundary to anchor to and falls back to
- *   containment. The target side requires containment only, because a translated term legitimately
- *   fuses with the text around it: German compounds ("Benutzerkonto"), Korean particles ("계정을")
- *   and Japanese loanwords all carry the term with no boundary around it, and demanding one there
- *   would flag correct translations in most languages a glossary is used for.
+ *   is not flagged). A source made only of do-not-translate terms, or of glossary terms whose
+ *   translation is the term itself, is not flagged either, since copying it is the correct result.
+ * - `GLOSSARY_TERM_MISSED`: a glossary term of the target locale appeared in the source but its
+ *   translation for that locale did not appear in the translated value, or a do-not-translate term
+ *   appeared in the source but not, exactly as written, in the translated value. Each locale is
+ *   checked against its own translations, so a German translation is never held to a French term.
+ *   Matching ignores case unless the term is marked case-sensitive, and folds case by the rules of
+ *   each side's locale. The two sides are held to deliberately different standards. The source
+ *   side requires a whole-word occurrence, so the term "AI" is not found inside "Airport" and cannot
+ *   raise an expectation the translator was never given; a source term whose edge character belongs
+ *   to a script written without word separators (Han, kana, Thai and similar) has no boundary to
+ *   anchor to and falls back to containment. The target side requires containment only, because a
+ *   translated term legitimately fuses with the text around it: German compounds ("Benutzerkonto"),
+ *   Korean particles ("계정을") and Japanese loanwords all carry the term with no boundary around
+ *   it, and demanding one there would flag correct translations in most languages a glossary is
+ *   used for.
+ * - `GLOSSARY_FORBIDDEN_TERM`: the translated value uses a rendering the glossary forbids for the
+ *   target locale. It is matched as a whole word on the translated side, with the same fallback to
+ *   containment for scripts without word separators, so an inflected or compounded form is only
+ *   caught when it is listed too. A rendering the source itself contains is not flagged, since the
+ *   translation may legitimately quote it.
  * - `INTEGRITY_REORDERED`: the placeholder set matched but landed in a different order.
  * - `PROVIDER_DEGRADED`: the batch this key came from carried a `FORMALITY_DOWNGRADED` or
  *   `GLOSSARY_IGNORED` notice, either of which can silently change wording. A
@@ -200,6 +218,7 @@ export const REVIEW_REASON_CODES = [
   "MAX_LENGTH_EXCEEDED",
   "EQUALS_SOURCE",
   "GLOSSARY_TERM_MISSED",
+  "GLOSSARY_FORBIDDEN_TERM",
   "INTEGRITY_REORDERED",
   "PROVIDER_DEGRADED",
   "FUZZY_CACHE_REUSE",
@@ -285,7 +304,7 @@ const requestDataSchema = z.object({
   sourceLocale: z.string().min(1),
   targetLocale: z.string().min(1),
   entries: z.array(translationEntrySchema).min(1),
-  glossary: z.record(z.string(), z.string()).optional(),
+  glossary: localeGlossarySchema.optional(),
   tone: z.enum(["formal", "informal", "neutral"]).optional(),
   maxLength: z.map(z.string().min(1), z.number().int().nonnegative()).optional(),
   pluralCategories: z

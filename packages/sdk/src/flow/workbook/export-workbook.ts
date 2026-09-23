@@ -1,5 +1,5 @@
 import { dirname, join, resolve } from "node:path";
-import { computeReviewFlags, type ReviewFlag } from "@verbatra/ai-providers";
+import { computeReviewFlags, type LocaleGlossary, type ReviewFlag } from "@verbatra/ai-providers";
 import { checkPlaceholders, contentHash, diffResources, type LocaleResource } from "@verbatra/core";
 import {
   buildDelimited,
@@ -12,6 +12,7 @@ import {
   type WorkbookSheet,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { glossaryForLocale } from "../../config/glossary.js";
 import { toMaxLengthMap } from "../../config/max-length.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -104,7 +105,7 @@ function computeRowReview(
   currentTarget: string,
   sourceLocale: string,
   targetLocale: string,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: number | undefined,
 ): { reviewStatus: ReviewStatus; reviewReasons: string } {
   if (currentTarget === "") {
@@ -134,7 +135,7 @@ function buildRows(
   baseline: ReadonlyMap<string, string>,
   includeUnchanged: boolean,
   adapter: FormatAdapter,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: ReadonlyMap<string, number> | undefined,
 ): readonly WorkbookRow[] {
   const diff = diffResources(source, target, { baseline });
@@ -269,7 +270,7 @@ export async function exportWorkbook(
         baselineFor(lock, locale),
         input.includeUnchanged ?? false,
         adapter,
-        config.glossary,
+        glossaryForLocale(config.glossary, locale),
         maxLengthBudgets,
       );
       return { locale, rows };

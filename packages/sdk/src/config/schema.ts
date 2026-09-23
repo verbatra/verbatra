@@ -4,6 +4,7 @@ import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
 import { extractionConfigSchema } from "./extraction-config.js";
+import { type GlossaryInput, glossaryDefinitionSchema } from "./glossary.js";
 import { humanEditsSchema, pinnedKeysSchema } from "./human-edits.js";
 import { localeCodeSchema } from "./locale-code.js";
 import { providerConfigSchema } from "./provider-config.js";
@@ -67,6 +68,10 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * rejected even though `Intl` would accept them. A valid code that is not in canonical form, such
  * as `zh-hant-tw` or the deprecated `iw`, is accepted as written and reported by {@link doctor}.
  *
+ * `glossary` is a path to a glossary JSON file, a version 1 map from source term to the translation
+ * every target locale uses, or a version 2 {@link GlossaryDefinition} with per-locale translations,
+ * forbidden renderings, and terms to keep untranslated.
+ *
  * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not
  * contain the source locale, it must not contain two locales that differ only in case (they
  * would collide on a case-insensitive file system), and every key of `provider.options.localeMap`
@@ -87,7 +92,9 @@ export const verbatraConfigSchema = z
       localeStyle: z.enum(LOCALE_STYLES).optional(),
     }),
     provider: providerConfigSchema,
-    glossary: z.union([z.record(z.string(), z.string()), z.string().min(1)]).optional(),
+    glossary: z
+      .union([z.string().min(1), glossaryDefinitionSchema, z.record(z.string(), z.string())])
+      .optional(),
     tone: z.enum(["formal", "informal", "neutral"]).optional(),
     prune: z.boolean().optional(),
     generatePlurals: z.boolean().optional(),
@@ -142,8 +149,9 @@ export type ParsedVerbatraConfig = z.infer<typeof verbatraConfigSchema>;
 
 /**
  * A fully resolved config, ready to pass to any SDK entry point. It differs from
- * {@link VerbatraConfigInput} in two respects: `glossary` is always an in-memory term map, because
- * {@link loadConfig} has already read and validated any glossary file the config pointed at, and
+ * {@link VerbatraConfigInput} in two respects: `glossary` is always held in memory, as a version 1
+ * term map or a version 2 {@link GlossaryDefinition}, because {@link loadConfig} has already read
+ * and validated any glossary file the config pointed at, and
  * `provider.options` is always present, `{}` for a `none` provider.
  *
  * Every entry point takes this shape, so a caller that builds a config by hand rather than loading
@@ -151,8 +159,10 @@ export type ParsedVerbatraConfig = z.infer<typeof verbatraConfigSchema>;
  */
 export type VerbatraConfig = Omit<ParsedVerbatraConfig, "glossary"> & {
   /**
-   * Terms that must be translated a fixed way, already resolved to an in-memory map. A config that
-   * named a glossary file has had it read by {@link loadConfig} before it reaches here.
+   * Terms that must be translated a fixed way, forbidden renderings, and terms to keep untranslated,
+   * already held in memory in either supported shape. A config that named a glossary file has had
+   * it read by {@link loadConfig} before it reaches here. {@link glossaryForLocale} resolves the part
+   * that applies to one target locale.
    */
-  glossary?: Readonly<Record<string, string>>;
+  glossary?: GlossaryInput;
 };

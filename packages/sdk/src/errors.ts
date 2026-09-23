@@ -11,10 +11,11 @@
  *   to the explicit-path case: a config that is only absent from the search is reported as a failed
  *   check instead, since reporting that is the command's job.
  * - `CONFIG_INVALID`: a config was found but is unparseable or fails validation, or its glossary
- *   file could not be resolved or parsed. Thrown by {@link loadConfig} and
- *   {@link loadConfigWithMeta}, by {@link readGlossaryFile}, and by {@link updateGlossaryTerm},
- *   which additionally throws it for a blank term or translation and for an edit whose result would
- *   exceed the glossary file size limit. {@link importTmx} and {@link exportTmx} throw it when the
+ *   file could not be resolved or parsed, including one that declares an unsupported version.
+ *   Thrown by {@link loadConfig} and {@link loadConfigWithMeta}, by {@link readGlossaryFile}, and by
+ *   {@link updateGlossaryTerm}, which additionally throws it for an edit with a blank field, an
+ *   edit that changes nothing or combines fields that cannot go together, an edit that would leave
+ *   an invalid glossary, and an edit whose result would exceed the glossary file size limit. {@link importTmx} and {@link exportTmx} throw it when the
  *   source locale and a target locale are the same language tag once case and separators are
  *   normalized, since a TMX segment could not be attributed to either. {@link importWorkbook} does
  *   not throw it: when a handoff sheet or file names a locale that is not a configured target

@@ -1,4 +1,9 @@
-import type { PluralCategories, Tone, TranslateRequest } from "@verbatra/ai-providers";
+import type {
+  LocaleGlossary,
+  PluralCategories,
+  Tone,
+  TranslateRequest,
+} from "@verbatra/ai-providers";
 import type { TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { resolvePluralCategories } from "./plural-rules.js";
@@ -7,7 +12,7 @@ export interface TranslateRequestContext {
   readonly sourceLocale: string;
   readonly targetLocale: string;
   readonly adapter: FormatAdapter;
-  readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly glossary: LocaleGlossary | undefined;
   readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
 }

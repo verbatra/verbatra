@@ -1,4 +1,10 @@
-export { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-providers";
+export {
+  type DoNotTranslateTerm,
+  type LocaleGlossary,
+  type LocaleGlossaryTerm,
+  REVIEW_REASON_CODES,
+  type ReviewReasonCode,
+} from "@verbatra/ai-providers";
 export {
   type CustomFormatId,
   type FormatId,
@@ -63,6 +69,16 @@ export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";
 export { defineConfig } from "./config/define-config.js";
 export type { ExtractionConfig } from "./config/extraction-config.js";
+export {
+  type Glossary,
+  type GlossaryDefinition,
+  type GlossaryDoNotTranslateDefinition,
+  type GlossaryInput,
+  type GlossaryTerm,
+  type GlossaryTermDefinition,
+  glossaryForLocale,
+  normalizeGlossary,
+} from "./config/glossary.js";
 export {
   type GlossaryFileDeps,
   type GlossaryFileInput,

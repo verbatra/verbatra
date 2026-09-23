@@ -7,6 +7,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import {
   baseConfig,
+  localeGlossaryOf,
   makeStubProvider,
   makeTempDir,
   readJsonFile,
@@ -308,7 +309,7 @@ describe("retranslateEntry: provider request shape", () => {
       { createProvider: () => stub.provider },
     );
 
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "salut" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "salut" }));
     expect(stub.calls[0]?.request.tone).toBe("formal");
   });
 

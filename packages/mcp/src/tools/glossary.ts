@@ -1,4 +1,10 @@
-import { readGlossaryFile, redact, updateGlossaryTerm } from "@verbatra/sdk";
+import {
+  type Glossary,
+  normalizeGlossary,
+  readGlossaryFile,
+  redact,
+  updateGlossaryTerm,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { resolveGlossaryProvenance } from "./config-projection.js";
@@ -28,14 +34,25 @@ const glossaryWriteParamsSchema = z.strictObject({
   translation: z.string().min(1).max(MAX_GLOSSARY_TRANSLATION_LENGTH).nullable(),
 });
 
+function termMap(glossary: Glossary): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    glossary.terms.flatMap((term) =>
+      term.target !== undefined ? [[term.source, term.target]] : [],
+    ),
+  );
+}
+
 async function currentEntries(context: McpToolContext): Promise<Readonly<Record<string, string>>> {
   if (context.config.glossary.source === "file") {
-    return readGlossaryFile(
-      { glossary: context.config.glossary },
-      context.fs !== undefined ? { fs: context.fs } : {},
+    return termMap(
+      await readGlossaryFile(
+        { glossary: context.config.glossary },
+        context.fs !== undefined ? { fs: context.fs } : {},
+      ),
     );
   }
-  return context.config.config.glossary ?? {};
+  const inline = context.config.config.glossary;
+  return inline === undefined ? {} : termMap(normalizeGlossary(inline));
 }
 
 function buildResult(
@@ -78,7 +95,7 @@ async function glossaryWrite(
     },
     context.fs !== undefined ? { fs: context.fs } : {},
   );
-  return buildResult(context, entries);
+  return buildResult(context, termMap(entries));
 }
 
 export const glossaryGetTool = defineTool({

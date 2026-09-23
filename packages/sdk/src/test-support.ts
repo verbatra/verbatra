@@ -2,6 +2,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
+  LocaleGlossary,
   ProviderNotice,
   TranslateRequest,
   TranslateResult,
@@ -9,6 +10,7 @@ import type {
   Usage,
 } from "@verbatra/ai-providers";
 import { checkPlaceholders, type PlaceholderIntegrityResult } from "@verbatra/core";
+import { type GlossaryInput, glossaryForLocale } from "./config/glossary.js";
 import type { VerbatraConfig } from "./config/schema.js";
 import { type BoundedBytesRead, type BoundedFileRead, defaultFs, type SdkFs } from "./fs.js";
 
@@ -185,4 +187,12 @@ export function makeFakeFs(overrides: Partial<SdkFs> = {}): SdkFs {
     deleteFile: async (): Promise<void> => {},
     ...overrides,
   };
+}
+
+export function localeGlossaryOf(glossary: GlossaryInput, locale = "de"): LocaleGlossary {
+  const resolved = glossaryForLocale(glossary, locale);
+  if (resolved === undefined) {
+    throw new Error(`the glossary has nothing for ${locale}`);
+  }
+  return resolved;
 }

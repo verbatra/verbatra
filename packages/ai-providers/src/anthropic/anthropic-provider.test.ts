@@ -8,6 +8,7 @@ import {
   firstCallOf,
   regexExtractor,
   stubClient,
+  termGlossary,
   toolMessage,
   truncatedToolMessage,
 } from "../test-support.js";
@@ -79,7 +80,7 @@ describe("createAnthropicProvider: request building", () => {
     await createAnthropicProvider(config, { client }).translateBatch(
       request({
         tone: "formal",
-        glossary: { Hello: "Servus" },
+        glossary: termGlossary({ Hello: "Servus" }),
         entries: [entry("greeting", "Hello {{name}}", ["{{name}}"])],
       }),
     );
@@ -95,7 +96,7 @@ describe("createAnthropicProvider: request building", () => {
       toolMessage([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
     await createAnthropicProvider(config, { client }).translateBatch(
-      request({ tone: "informal", glossary: { Hello: "Hi" } }),
+      request({ tone: "informal", glossary: termGlossary({ Hello: "Hi" }) }),
     );
     const payload = payloadOf(firstCallOf(calls));
     expect(payload.tone).toBe("informal");

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { translate } from "../flow/translate-project.js";
 import {
   baseConfig,
+  localeGlossaryOf,
   makeFakeFs,
   makeStubProvider,
   makeTempDir,
@@ -172,8 +173,8 @@ describe("loadConfig: delegates to loadConfigWithMeta unchanged", () => {
   });
 });
 
-describe("consumer-unchanged: the translation flow keeps receiving a resolved record", () => {
-  it("a config loaded with a glossary file path reaches the provider as a plain record", async () => {
+describe("consumer-unchanged: the translation flow receives the glossary resolved per locale", () => {
+  it("a config loaded with a glossary file path reaches the provider as that locale's terms", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, "locales"));
     await writeJsonFile(join(dir, "locales", "en.json"), { a: "A" });
@@ -187,6 +188,34 @@ describe("consumer-unchanged: the translation flow keeps receiving a resolved re
     const stub = makeStubProvider({ kind: "llm" });
     await translate({ config, cwd: dir }, { createProvider: () => stub.provider });
 
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "hallo" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "hallo" }));
+  });
+});
+
+describe("loadConfigWithMeta: an inline version 2 glossary", () => {
+  it("passes a valid version 2 glossary through as written", async () => {
+    const glossary = {
+      version: 2 as const,
+      terms: [{ source: "Dashboard", targets: { de: "Übersicht" } }],
+      doNotTranslate: ["verbatra"],
+    };
+    const loaded = await loadConfigWithMeta({ configOverride: baseConfig({ glossary }) });
+    expect(loaded.glossary).toEqual({ source: "inline" });
+    expect(loaded.config.glossary).toEqual(glossary);
+  });
+
+  it("refuses an invalid version 2 glossary as CONFIG_INVALID", async () => {
+    await expect(
+      loadConfigWithMeta({
+        configOverride: {
+          ...baseConfig(),
+          glossary: {
+            version: 2,
+            terms: [{ source: "A", target: "B" }],
+            doNotTranslate: ["A"],
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "CONFIG_INVALID" });
   });
 });

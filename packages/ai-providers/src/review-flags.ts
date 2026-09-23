@@ -1,4 +1,5 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import type { DoNotTranslateTerm, LocaleGlossary } from "./glossary.js";
 import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js";
 
 const LENGTH_RATIO_MIN = 0.35;
@@ -33,7 +34,7 @@ export interface ReviewFlagInput {
   readonly sourceLocale: string;
   readonly targetLocale: string;
   readonly integrity: PlaceholderIntegrityResult;
-  readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly glossary?: LocaleGlossary | undefined;
   readonly maxLength?: number | undefined;
 }
 
@@ -75,13 +76,55 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
+function foldCase(text: string, locale: string, caseSensitive: boolean): string {
+  if (caseSensitive) {
+    return text;
+  }
+  try {
+    return text.toLocaleLowerCase(locale);
+  } catch {
+    return text.toLowerCase();
+  }
+}
+
+function removeAll(text: string, term: string): string {
+  return term === "" ? text : text.split(term).join(" ");
+}
+
+function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
+  if (glossary === undefined) {
+    return [];
+  }
+  const identities = glossary.terms
+    .filter((term) => term.target === term.source)
+    .map(({ source, caseSensitive }) => ({ term: source, caseSensitive }));
+  return [...glossary.doNotTranslate, ...identities];
+}
+
+function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
+  const fixed = fixedTermsOf(input.glossary);
+  if (fixed.length === 0) {
+    return false;
+  }
+  let remaining = input.sourceValue;
+  for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
+    remaining = removeAll(remaining, term);
+  }
+  remaining = foldCase(remaining, input.sourceLocale, false);
+  for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
+    remaining = removeAll(remaining, foldCase(term, input.sourceLocale, false));
+  }
+  return !UNICODE_LETTER.test(remaining);
+}
+
 function isEqualsSource(input: ReviewFlagInput): boolean {
   const trimmedSource = input.sourceValue.trim();
   const trimmedTranslated = input.translatedValue.trim();
   return (
     trimmedTranslated === trimmedSource &&
     input.targetLocale !== input.sourceLocale &&
-    UNICODE_LETTER.test(trimmedSource)
+    UNICODE_LETTER.test(trimmedSource) &&
+    !consistsOfFixedTerms(input)
   );
 }
 
@@ -110,24 +153,60 @@ function occursAsWholeTerm(text: string, term: string): boolean {
   return false;
 }
 
+interface ExpectedTerm {
+  readonly source: string;
+  readonly target: string;
+  readonly caseSensitive: boolean;
+}
+
+function expectedTermsOf(glossary: LocaleGlossary): readonly ExpectedTerm[] {
+  const expected: ExpectedTerm[] = [];
+  for (const { source, target, caseSensitive } of glossary.terms) {
+    if (target !== undefined && target !== "") {
+      expected.push({ source, target, caseSensitive });
+    }
+  }
+  for (const { term, caseSensitive } of glossary.doNotTranslate) {
+    expected.push({ source: term, target: term, caseSensitive });
+  }
+  return expected;
+}
+
 function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
-  const glossary = input.glossary;
-  if (glossary === undefined || Object.keys(glossary).length === 0) {
+  if (input.glossary === undefined) {
     return false;
   }
-  const sourceLower = input.sourceValue.toLowerCase();
-  const translatedLower = input.translatedValue.toLowerCase();
-  for (const [sourceTerm, targetTerm] of Object.entries(glossary)) {
-    if (targetTerm === "") {
-      continue;
-    }
-    const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
-    const targetHit = translatedLower.includes(targetTerm.toLowerCase());
-    if (sourceHit && !targetHit) {
-      return true;
-    }
+  return expectedTermsOf(input.glossary).some(({ source, target, caseSensitive }) => {
+    const sourceHit = occursAsWholeTerm(
+      foldCase(input.sourceValue, input.sourceLocale, caseSensitive),
+      foldCase(source, input.sourceLocale, caseSensitive),
+    );
+    return (
+      sourceHit &&
+      !foldCase(input.translatedValue, input.targetLocale, caseSensitive).includes(
+        foldCase(target, input.targetLocale, caseSensitive),
+      )
+    );
+  });
+}
+
+function isForbiddenTermUsed(input: ReviewFlagInput): boolean {
+  if (input.glossary === undefined) {
+    return false;
   }
-  return false;
+  return input.glossary.terms.some(({ forbidden, caseSensitive }) =>
+    forbidden.some(
+      (rendering) =>
+        occursAsWholeTerm(
+          foldCase(input.translatedValue, input.targetLocale, caseSensitive),
+          foldCase(rendering, input.targetLocale, caseSensitive),
+        ) &&
+        !occursAsWholeTerm(
+          foldCase(input.sourceValue, input.targetLocale, caseSensitive),
+          foldCase(rendering, input.targetLocale, caseSensitive),
+        ),
+    ),
+  );
 }
 
 function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
@@ -148,6 +227,9 @@ export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefin
   if (isGlossaryTermMissed(input)) {
     reasons.push("GLOSSARY_TERM_MISSED");
   }
+  if (isForbiddenTermUsed(input)) {
+    reasons.push("GLOSSARY_FORBIDDEN_TERM");
+  }
   if (isIntegrityReordered(input.integrity)) {
     reasons.push("INTEGRITY_REORDERED");
   }
@@ -160,7 +242,7 @@ export function buildEntryReviewFlags(
   integrity: ReadonlyMap<string, PlaceholderIntegrityResult>,
   sourceLocale: string,
   targetLocale: string,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: ReadonlyMap<string, number> | undefined,
 ): Map<string, ReviewFlag> {
   const reviewFlags = new Map<string, ReviewFlag>();

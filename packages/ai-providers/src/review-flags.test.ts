@@ -8,7 +8,7 @@ import {
   latinEquivalentLength,
   type ReviewFlagInput,
 } from "./review-flags.js";
-import { entry } from "./test-support.js";
+import { entry, termGlossary } from "./test-support.js";
 
 const CLEAN_INTEGRITY: PlaceholderIntegrityResult = {
   matches: true,
@@ -334,7 +334,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: {},
+        glossary: termGlossary({}),
       }),
     );
     expect(flag).toBeUndefined();
@@ -345,7 +345,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -356,7 +356,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie SPEICHERN zum Fortfahren",
-        glossary: { save: "Speichern" },
+        glossary: termGlossary({ save: "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -367,7 +367,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Continue",
         translatedValue: "Klicken Sie Weiter",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -378,7 +378,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Airport transfers are included",
         translatedValue: "Flughafentransfers sind inklusive",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -389,7 +389,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "AI summary",
         translatedValue: "Kindliche Zusammenfassung",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -400,7 +400,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "AI2 is the model name",
         translatedValue: "AI2 ist der Modellname",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -411,7 +411,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "xAI builds models",
         translatedValue: "xAI baut Modelle",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -422,7 +422,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Learn C++ today",
         translatedValue: "Lerne heute",
-        glossary: { "C++": "C++" },
+        glossary: termGlossary({ "C++": "C++" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -433,7 +433,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Learn .NET today",
         translatedValue: "Lerne heute .NET",
-        glossary: { ".NET": ".NET" },
+        glossary: termGlossary({ ".NET": ".NET" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -445,7 +445,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         sourceLocale: "ja",
         sourceValue: "アカウントを削除します",
         translatedValue: "Delete your account",
-        glossary: { アカウント: "account" },
+        glossary: termGlossary({ アカウント: "account" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -458,7 +458,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "en",
         sourceValue: "サーバー1台を追加します",
         translatedValue: "Add one machine",
-        glossary: { サーバー: "server" },
+        glossary: termGlossary({ サーバー: "server" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -470,7 +470,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ja",
         sourceValue: "Delete your account",
         translatedValue: "これを削除してください",
-        glossary: { account: "アカウント" },
+        glossary: termGlossary({ account: "アカウント" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -482,7 +482,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         sourceLocale: "ja",
         sourceValue: "AI検索を実行します",
         translatedValue: "Führe die Suche aus",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -493,7 +493,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Order at the cafe\u0301",
         translatedValue: "Bestellen Sie dort",
-        glossary: { cafe: "Kaffee" },
+        glossary: termGlossary({ cafe: "Kaffee" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -504,7 +504,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Open your account",
         translatedValue: "Öffne dein Benutzerkonto",
-        glossary: { account: "Konto" },
+        glossary: termGlossary({ account: "Konto" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -515,7 +515,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Open your account settings",
         translatedValue: "Öffne deine Kontoeinstellungen",
-        glossary: { account: "Konto" },
+        glossary: termGlossary({ account: "Konto" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -527,7 +527,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ko",
         sourceValue: "Delete your account",
         translatedValue: "계정을 삭제합니다",
-        glossary: { account: "계정" },
+        glossary: termGlossary({ account: "계정" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -539,7 +539,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
         targetLocale: "ja",
         sourceValue: "Add one server",
         translatedValue: "サーバー1台を追加",
-        glossary: { server: "サーバー" },
+        glossary: termGlossary({ server: "サーバー" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -550,7 +550,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Klicken Sie zum Fortfahren",
-        glossary: { Save: "", "": "Speichern" },
+        glossary: termGlossary({ Save: "", "": "Speichern" }),
       }),
     );
     expect(flag).toBeUndefined();
@@ -561,7 +561,7 @@ describe("computeReviewFlags: GLOSSARY_TERM_MISSED", () => {
       input({
         sourceValue: "xAI and AI both ship models",
         translatedValue: "xAI und AI liefern beide Modelle",
-        glossary: { AI: "KI" },
+        glossary: termGlossary({ AI: "KI" }),
       }),
     );
     expect(flag?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);
@@ -599,7 +599,7 @@ describe("computeReviewFlags: multi-reason key", () => {
       input({
         sourceValue: "Click Save to continue",
         translatedValue: "Click Save to continue",
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
         integrity: { matches: true, missing: [], extra: [], reordered: true },
       }),
     );
@@ -699,7 +699,7 @@ describe("buildEntryReviewFlags", () => {
       new Map([["cta", CLEAN_INTEGRITY]]),
       "en",
       "de",
-      { Save: "Speichern" },
+      termGlossary({ Save: "Speichern" }),
       undefined,
     );
     expect(result.get("cta")?.reasons).toEqual(["GLOSSARY_TERM_MISSED"]);

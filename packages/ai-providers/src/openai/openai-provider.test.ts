@@ -11,6 +11,7 @@ import {
   openAiResult,
   openAiStubClient,
   regexExtractor,
+  termGlossary,
   truncatedOpenAiCompletion,
 } from "../test-support.js";
 import { createOpenAiProvider } from "./openai-provider.js";
@@ -74,7 +75,7 @@ describe("createOpenAiProvider: request building", () => {
       openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
     await createOpenAiProvider(config, { client }).translateBatch(
-      request({ tone: "formal", glossary: { Hello: "Servus" } }),
+      request({ tone: "formal", glossary: termGlossary({ Hello: "Servus" }) }),
     );
     const body = firstCallOf(calls);
     expect(body.messages[0].role).toBe("system");
@@ -95,7 +96,7 @@ describe("createOpenAiProvider: request building", () => {
     await createOpenAiProvider(config, { client }).translateBatch(
       request({
         tone: "informal",
-        glossary: { Hello: "Hi" },
+        glossary: termGlossary({ Hello: "Hi" }),
         entries: [entry("post", "Post", [], { description: "a verb", meaning: "publish" })],
       }),
     );
@@ -133,7 +134,7 @@ describe("createOpenAiProvider: prompt-injection defense", () => {
     const result = await createOpenAiProvider(config, { client }).translateBatch(
       request({
         entries: [entry("greeting", hostile, [], { description: hostile, meaning: hostile })],
-        glossary: { [hostile]: hostile },
+        glossary: termGlossary({ [hostile]: hostile }),
       }),
     );
     const body = firstCallOf(calls);

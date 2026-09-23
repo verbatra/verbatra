@@ -8,6 +8,7 @@ import type {
 } from "./deepl/types.js";
 import type { GeminiRequest } from "./gemini/request.js";
 import type { GeminiClient, GeminiResponse } from "./gemini/types.js";
+import type { LocaleGlossary } from "./glossary.js";
 import type {
   GoogleTranslateClient,
   GoogleTranslateHttpResponse,
@@ -203,4 +204,16 @@ export function googleTranslateStubClient(response: GoogleTranslateHttpResponse)
 
 export function resetDeclaredKeyEnvVars(): void {
   declaredKeyEnvVars().clear();
+}
+
+export function termGlossary(terms: Readonly<Record<string, string>>): LocaleGlossary {
+  return {
+    terms: Object.entries(terms).map(([source, target]) => ({
+      source,
+      target,
+      forbidden: [],
+      caseSensitive: false,
+    })),
+    doNotTranslate: [],
+  };
 }

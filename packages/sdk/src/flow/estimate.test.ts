@@ -3,7 +3,7 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
-import { baseConfig } from "../test-support.js";
+import { baseConfig, localeGlossaryOf } from "../test-support.js";
 import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
   ESTIMATED_RESPONSE_SCHEMA_TOKENS,
@@ -406,7 +406,11 @@ describe("quantifyLocale: everything the request carries is counted", () => {
       Array.from({ length: 300 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
     );
     const without = quantifyLocale([GREETING], CONTEXT, 50);
-    const withGlossary = quantifyLocale([GREETING], { ...CONTEXT, glossary }, 50);
+    const withGlossary = quantifyLocale(
+      [GREETING],
+      { ...CONTEXT, glossary: localeGlossaryOf(glossary) },
+      50,
+    );
 
     expect(withGlossary.inputTokens).toBeGreaterThan(without.inputTokens * 4);
   });
@@ -415,7 +419,11 @@ describe("quantifyLocale: everything the request carries is counted", () => {
     const glossary = { Hello: "Hallo" };
     const entries = Array.from({ length: 60 }, (_, index) => entry(`k${index}`, "value"));
     const without = quantifyLocale(entries, CONTEXT, 50);
-    const withGlossary = quantifyLocale(entries, { ...CONTEXT, glossary }, 50);
+    const withGlossary = quantifyLocale(
+      entries,
+      { ...CONTEXT, glossary: localeGlossaryOf(glossary) },
+      50,
+    );
     const glossaryCharacters = JSON.stringify(glossary).length;
 
     expect(withGlossary.requests).toBe(2);

@@ -13,6 +13,7 @@ import {
 } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import type { TranslationMemory } from "../cache/types.js";
+import { glossaryForLocale } from "../config/glossary.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { makeTempDir, readJsonFile, readTextFile, writeJsonFile } from "../test-support.js";
@@ -115,7 +116,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -136,7 +137,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -158,7 +159,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Speichern deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -230,7 +231,7 @@ describe("runLocale: review flags on cache hits", () => {
             format: "android-xml",
             files: { pattern: "locales/{locale}.xml" },
           }),
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -299,7 +300,7 @@ describe("runLocale: review flags fanned out to content duplicates", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           mode: {
             kind: "translate",
             provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
@@ -467,7 +468,7 @@ describe("runLocale: budgets on fanned-out duplicates keep every other reason", 
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           mode: {
             kind: "translate",
             provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
