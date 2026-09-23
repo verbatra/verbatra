@@ -84,6 +84,7 @@ describe("the config JSON Schema document: refinements that cannot be expressed"
     expect(collectCustomCheckPaths(verbatraConfigSchema)).toEqual([
       "<root>",
       "<root>",
+      "<root>",
       "sourceLocale",
       "provider[5].options.apiKeyEnvVar.innerType",
     ]);
@@ -180,5 +181,34 @@ describe("the config JSON Schema document: the extract block", () => {
       type: "array",
       items: { type: "string", minLength: 1 },
     });
+  });
+});
+
+describe("the config JSON Schema document: provider.options.localeMap", () => {
+  function variantOptions(id: string): JsonSchemaObject | undefined {
+    const variants = asArray(
+      propertyOf(document, "provider")?.oneOf ?? propertyOf(document, "provider")?.anyOf,
+    );
+    const variant = variants.find(
+      (candidate) =>
+        (propertyOf(candidate as JsonSchemaObject, "id") as { const?: unknown } | undefined)
+          ?.const === id,
+    ) as JsonSchemaObject | undefined;
+    return propertyOf(variant, "options");
+  }
+
+  it.each(["anthropic", "openai", "gemini", "deepl", "google-translate", "openai-compatible"])(
+    "offers a string-to-string localeMap on the %s options",
+    (id) => {
+      expect(propertyOf(variantOptions(id), "localeMap")).toEqual({
+        type: "object",
+        propertyNames: { type: "string", minLength: 1 },
+        additionalProperties: { type: "string", minLength: 1 },
+      });
+    },
+  );
+
+  it("offers no localeMap on the none options", () => {
+    expect(propertyOf(variantOptions("none"), "localeMap")).toBeUndefined();
   });
 });

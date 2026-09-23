@@ -5,6 +5,7 @@ import { LOCALE_STYLES } from "../locale-path/style.js";
 import { extractionConfigSchema } from "./extraction-config.js";
 import { localeCodeSchema } from "./locale-code.js";
 import { providerConfigSchema } from "./provider-config.js";
+import { findUnknownLocaleMapKeys } from "./provider-locale-map.js";
 import { rateCardSchema } from "./rate-card.js";
 
 export const DEFAULT_MAX_BATCH_SIZE = 50;
@@ -59,10 +60,11 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * rejected even though `Intl` would accept them. A valid code that is not in canonical form, such
  * as `zh-hant-tw` or the deprecated `iw`, is accepted as written and reported by {@link doctor}.
  *
- * Beyond the per-field checks, two whole-config rules are enforced: `targetLocales` must not
- * contain the source locale, and it must not contain two locales that differ only in case (they
- * would collide on a case-insensitive file system). The `{locale}` token requirement is a
- * per-field check on `files.pattern`.
+ * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not
+ * contain the source locale, it must not contain two locales that differ only in case (they
+ * would collide on a case-insensitive file system), and every key of `provider.options.localeMap`
+ * must be `sourceLocale` or one of `targetLocales`, spelled exactly as configured. The `{locale}`
+ * token requirement is a per-field check on `files.pattern`.
  */
 export const verbatraConfigSchema = z
   .strictObject({
@@ -108,6 +110,11 @@ export const verbatraConfigSchema = z
       return `targetLocales must not contain case-insensitively duplicate locales: "${duplicate}"`;
     },
     path: ["targetLocales"],
+  })
+  .superRefine((config, ctx) => {
+    for (const { key, message } of findUnknownLocaleMapKeys(config)) {
+      ctx.addIssue({ code: "custom", message, path: ["provider", "options", "localeMap", key] });
+    }
   });
 
 /**
