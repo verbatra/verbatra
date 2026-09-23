@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Icon } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 
@@ -16,7 +16,9 @@ export function TextField({
   className,
   type = "text",
   ...props
-}: InputHTMLAttributes<HTMLInputElement>): ReactNode {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  readonly ref?: Ref<HTMLInputElement> | undefined;
+}): ReactNode {
   return <input type={type} className={cn(FIELD_CLASSNAME, className)} {...props} />;
 }
 

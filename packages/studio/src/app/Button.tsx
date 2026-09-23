@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { cn } from "./lib/cn.js";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
@@ -27,6 +27,7 @@ const VARIANT_CLASSNAME: Readonly<Record<ButtonVariant, string>> = {
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
+  readonly ref?: Ref<HTMLButtonElement>;
   readonly children: ReactNode;
 }
 
