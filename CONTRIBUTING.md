@@ -517,3 +517,20 @@ Two conventions to preserve:
   the docs site itself is dark-only by design, so that toggle switches the image
   and nothing else. Adding a shot means adding both themes and registering its
   pixel dimensions in that component.
+
+## Refreshing the contributor list
+
+The avatars in the docs site footer are self-hosted, so a visitor's browser
+never requests an image from GitHub. The list lives in
+`apps/docs/lib/contributors.json` and the images in
+`apps/docs/public/contributors/`. Both are committed, and the build reads them
+without any network access, so they only change when someone refreshes them:
+
+```
+pnpm --filter @verbatra/docs run contributors
+```
+
+The script reads the GitHub contributors API, downloads a 64px avatar per
+contributor, validates the result, and only then replaces the manifest and the
+image folder. Set `GITHUB_TOKEN` if the anonymous GitHub API rate limit gets in
+the way. Commit the updated JSON file and images together.
