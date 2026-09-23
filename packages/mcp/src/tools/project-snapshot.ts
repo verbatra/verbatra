@@ -1,20 +1,26 @@
-import { type FormatId, type GlossaryProvenance, type ProviderId, redact } from "@verbatra/sdk";
+import { redact } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
-import { resolveConfigSource, resolveGlossaryProvenance } from "./config-projection.js";
+import {
+  glossaryProvenanceSchema,
+  resolveConfigSource,
+  resolveGlossaryProvenance,
+} from "./config-projection.js";
 import { defineTool } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({});
 
-interface ProjectSnapshotResult {
-  readonly sourceLocale: string;
-  readonly targetLocales: readonly string[];
-  readonly format: FormatId;
-  readonly files: { readonly pattern: string };
-  readonly provider: { readonly id: ProviderId };
-  readonly configSource: string;
-  readonly glossary: GlossaryProvenance;
-}
+const projectSnapshotResultSchema = z.strictObject({
+  sourceLocale: z.string(),
+  targetLocales: z.array(z.string()).readonly(),
+  format: z.string(),
+  files: z.strictObject({ pattern: z.string() }),
+  provider: z.strictObject({ id: z.string() }),
+  configSource: z.string(),
+  glossary: glossaryProvenanceSchema,
+});
+
+type ProjectSnapshotResult = z.infer<typeof projectSnapshotResultSchema>;
 
 async function projectSnapshot(
   _params: z.infer<typeof paramsSchema>,
@@ -35,12 +41,16 @@ async function projectSnapshot(
 export const projectSnapshotTool = defineTool({
   name: "project.snapshot",
   description:
-    "Read the resolved verbatra project configuration: source locale, target locales, file " +
-    "format, the locale-file path pattern, the configured translation provider id, where the " +
-    "config file was loaded from, and whether a glossary is configured. Call this first to " +
-    "orient before calling any other tool, since it tells you which locales and provider are in " +
-    "play without reading any locale file content. Read-only, calls no provider.",
+    "Reads the resolved project configuration: source locale, target locales, file format, " +
+    "the locale-file path pattern, the configured provider id, where the config was loaded " +
+    "from, and where the glossary comes from. Call it first, since every other tool takes " +
+    "its locale codes from this project, and a provider id of none means the spend tools " +
+    "are never listed. Do not use it to read translated text or translation status: it " +
+    "reads no locale file, and it is resolved once when the server starts, so it does not " +
+    "change between calls. Takes no parameters. Read-only: it calls no provider and writes " +
+    "nothing.",
   paramsSchema,
+  outputSchema: projectSnapshotResultSchema,
   annotations: {
     readOnlyHint: true,
     destructiveHint: false,

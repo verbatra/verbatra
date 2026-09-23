@@ -21,8 +21,10 @@ const countsOf = <const T extends readonly string[]>(names: T) =>
     },
   );
 
+export const keyOriginSchema = z.enum(KEY_ORIGINS);
+
 export const keyProvenanceSchema = z.strictObject({
-  origin: z.enum(KEY_ORIGINS),
+  origin: keyOriginSchema,
   provider: z.string().optional(),
   model: z.string().optional(),
   reviewState: z.enum(REVIEW_STATES),

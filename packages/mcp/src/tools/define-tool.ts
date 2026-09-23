@@ -11,7 +11,7 @@ export interface McpToolAnnotations {
 }
 
 export type McpToolOutcome =
-  | { readonly kind: "ok"; readonly result: unknown; readonly structuredContent?: unknown }
+  | { readonly kind: "ok"; readonly result: object }
   | { readonly kind: "invalid"; readonly message: string }
   | { readonly kind: "error"; readonly message: string };
 
@@ -19,18 +19,22 @@ export interface RegisteredMcpTool {
   readonly name: string;
   readonly description: string;
   readonly inputSchema: Readonly<Record<string, unknown>>;
-  readonly outputSchema?: Readonly<Record<string, unknown>>;
+  readonly outputSchema: Readonly<Record<string, unknown>>;
   readonly annotations: McpToolAnnotations;
   execute(rawParams: unknown, context: McpToolContext): Promise<McpToolOutcome>;
 }
 
-export interface McpToolConfig<Params, Result> {
+export interface McpToolConfig<Params, Result extends object> {
   readonly name: string;
   readonly description: string;
   readonly paramsSchema: z.ZodType<Params>;
-  readonly outputSchema?: z.ZodType<Result>;
+  readonly outputSchema: z.ZodType<Result>;
   readonly annotations: McpToolAnnotations;
   readonly handler: (params: Params, context: McpToolContext) => Promise<Result>;
+}
+
+function issuePath(issue: z.core.$ZodIssue): string {
+  return issue.path.length > 0 ? issue.path.join(".") : "(root)";
 }
 
 function formatValidationError(error: z.ZodError): string {
@@ -39,8 +43,14 @@ function formatValidationError(error: z.ZodError): string {
   if (issue === undefined) {
     return "Invalid input.";
   }
-  const field = issue.path.length > 0 ? issue.path.join(".") : "(root)";
-  return `Invalid input for field "${field}": ${issue.message}`;
+  return `Invalid input for field "${issuePath(issue)}": ${issue.message}`;
+}
+
+function formatOutputMismatch(toolName: string, error: z.ZodError): string {
+  const issue = error.issues[0];
+  /* v8 ignore next -- a ZodError from a failed safeParse always carries at least one issue. */
+  const at = issue === undefined ? "(root)" : issuePath(issue);
+  return `OUTPUT_SCHEMA_MISMATCH: the result of "${toolName}" does not match its output schema at "${at}".`;
 }
 
 function rawErrorMessage(error: unknown): string {
@@ -72,36 +82,34 @@ function describeToolError(error: unknown, cwd: string): string {
   return relativizeAbsolutePaths(rawErrorMessage(error), cwd);
 }
 
-export function defineTool<Params, Result>(
+export function defineTool<Params, Result extends object>(
   config: McpToolConfig<Params, Result>,
 ): RegisteredMcpTool {
   const inputSchema = z.toJSONSchema(config.paramsSchema) as Readonly<Record<string, unknown>>;
-  const outputSchema =
-    config.outputSchema !== undefined
-      ? (z.toJSONSchema(config.outputSchema) as Readonly<Record<string, unknown>>)
-      : undefined;
+  const outputSchema = z.toJSONSchema(config.outputSchema) as Readonly<Record<string, unknown>>;
 
   return {
     name: config.name,
     description: config.description,
     inputSchema,
-    ...(outputSchema !== undefined ? { outputSchema } : {}),
+    outputSchema,
     annotations: config.annotations,
     async execute(rawParams, context) {
       const parsed = config.paramsSchema.safeParse(rawParams ?? {});
       if (!parsed.success) {
         return { kind: "invalid", message: formatValidationError(parsed.error) };
       }
+      let result: Result;
       try {
-        const result = await config.handler(parsed.data, context);
-        return {
-          kind: "ok",
-          result,
-          ...(config.outputSchema !== undefined ? { structuredContent: result } : {}),
-        };
+        result = await config.handler(parsed.data, context);
       } catch (error) {
         return { kind: "error", message: describeToolError(error, context.cwd) };
       }
+      const conforms = config.outputSchema.safeParse(result);
+      if (!conforms.success) {
+        return { kind: "error", message: formatOutputMismatch(config.name, conforms.error) };
+      }
+      return { kind: "ok", result };
     },
   };
 }

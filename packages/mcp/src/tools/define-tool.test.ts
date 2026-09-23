@@ -13,6 +13,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -26,24 +27,7 @@ describe("defineTool", () => {
     expect(tool.inputSchema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
   });
 
-  it("omits outputSchema when the tool config declares none", () => {
-    const tool = defineTool({
-      name: "test.tool",
-      description: "test",
-      paramsSchema,
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-      handler: async (params) => ({ greeting: `hi ${params.name}` }),
-    });
-
-    expect(tool.outputSchema).toBeUndefined();
-  });
-
-  it("derives outputSchema and produces structuredContent when the config declares one", async () => {
+  it("derives a JSON Schema outputSchema and returns a result that conforms to it", async () => {
     const tool = defineTool({
       name: "test.tool",
       description: "test",
@@ -58,13 +42,56 @@ describe("defineTool", () => {
       handler: async (params) => ({ greeting: `hi ${params.name}` }),
     });
 
-    expect(tool.outputSchema?.type).toBe("object");
+    expect(tool.outputSchema.type).toBe("object");
 
     const outcome = await tool.execute({ name: "Ada" }, makeContext());
+    expect(outcome).toEqual({ kind: "ok", result: { greeting: "hi Ada" } });
+  });
+
+  it("turns a handler result that breaks the outputSchema into an error naming the field, not its value", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => ({ greeting: 42 }) as unknown as { greeting: string },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
     expect(outcome).toEqual({
-      kind: "ok",
-      result: { greeting: "hi Ada" },
-      structuredContent: { greeting: "hi Ada" },
+      kind: "error",
+      message:
+        'OUTPUT_SCHEMA_MISMATCH: the result of "test.tool" does not match its output schema at "greeting".',
+    });
+  });
+
+  it("names the root when a handler result breaks the outputSchema at its top level", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => null as unknown as { greeting: string },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
+    expect(outcome).toMatchObject({
+      kind: "error",
+      message: expect.stringContaining('at "(root)"'),
     });
   });
 
@@ -73,6 +100,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -92,6 +120,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -111,6 +140,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -131,6 +161,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -151,6 +182,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -172,6 +204,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema: emptyParamsSchema,
+      outputSchema: z.strictObject({ ok: z.boolean() }),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -191,6 +224,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -220,6 +254,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -245,6 +280,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -269,6 +305,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -293,6 +330,7 @@ describe("defineTool", () => {
       name: "test.tool",
       description: "test",
       paramsSchema,
+      outputSchema,
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

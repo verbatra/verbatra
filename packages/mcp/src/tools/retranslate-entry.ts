@@ -1,15 +1,14 @@
-import { REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
+import { retranslateEntry } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
+import { reviewReasonCodeSchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
 });
-
-const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 
 const retranslateEntryResultSchema = z.object({
   accepted: z.boolean(),
@@ -40,20 +39,26 @@ async function retranslateKeyEntry(
 export const retranslateEntryTool = defineTool({
   name: "translation.retranslateEntry",
   description:
-    "Ask the configured translation provider for a fresh translation of one key in one target " +
-    "locale, replacing the current value if the result passes the integrity gate. A rejected " +
-    "result is returned as accepted: false with a reason, not an error. An accepted result may " +
-    "still carry reviewReasons flagging it for human review (for example a length outlier or a " +
+    "Asks the configured translation provider for a fresh translation of one key in one " +
+    "target locale, and writes it over the current value when it passes the integrity gate. " +
+    "Use it when the source text changed or the current translation is wrong and you do not " +
+    "know the correct text yourself; if you do, translation.editEntry is free. Do not call " +
+    "it in a loop to fix many keys: status.diff and translation.translatePending cover a " +
+    "whole project in one run. The required locale parameter must be a configured target " +
+    "locale and the required key parameter must exist in the source. A rejected result is " +
+    "returned as accepted: false with a reason and writes nothing. An accepted result may " +
+    "still carry reviewReasons flagging it for a person (for example a length outlier or a " +
     "missed glossary term) even though it was written. A key whose value a person wrote, " +
-    "imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key matching the " +
-    "config's pinnedKeys with KEY_PINNED; leave those for a person. Calls a translation " +
-    "provider and spends against your API usage; only available when the server was started " +
-    "with spending allowed and a translation provider is configured.",
+    "imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key " +
+    "matching the config's pinnedKeys with KEY_PINNED; leave those for a person. Cost: " +
+    "calls a translation provider and bills your API usage on every call, and it is outside " +
+    "the per-run token budget. Only listed when the server was started with spending " +
+    "allowed and a translation provider is configured; ask the user before calling it.",
   paramsSchema,
   outputSchema: retranslateEntryResultSchema,
   annotations: {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: false,
     openWorldHint: true,
   },
