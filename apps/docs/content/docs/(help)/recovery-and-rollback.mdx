@@ -69,7 +69,7 @@ the bad run had never happened.
 ## Re-running after a rollback
 
 Rolling back and running `verbatra translate` again is a redo, not a second opinion. With the same
-provider, model, tone, and glossary, the [cache](/docs/the-cache) fingerprint is unchanged, so the
+provider, model, tone, glossary, and provider `localeMap`, the [cache](/docs/the-cache) fingerprint is unchanged, so the
 run serves the identical translations back from `verbatra.cache.json` without calling the provider
 at all.
 

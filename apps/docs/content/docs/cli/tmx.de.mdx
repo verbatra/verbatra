@@ -91,7 +91,7 @@ Dieselbe Datei ein zweites Mal zu importieren, ändert deshalb nichts und schrei
 
 ## Importierte Einheiten und deine Konfiguration
 
-Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, demselben Key, den auch ein echter Lauf schreibt. Das ist Absicht: ein importierter Übersetzungsspeicher wird genau dann wiederverwendet, wenn die Konfiguration passt, die ihn verbrauchen würde, und hört auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar ändern. Genau dafür gibt es die Fingerprint-Schicht. Importiere die Datei nach so einer Änderung erneut.
+Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, demselben Key, den auch ein echter Lauf schreibt. Das ist Absicht: ein importierter Übersetzungsspeicher wird genau dann wiederverwendet, wenn die Konfiguration passt, die ihn verbrauchen würde, und hört auf zu passen, sobald sich Provider, Modell, Tonfall, Glossar oder das `localeMap` des Providers ändern. Genau dafür gibt es die Fingerprint-Schicht. Importiere die Datei nach so einer Änderung erneut.
 
 Wurde die Datei des Übersetzungsspeichers von einem neueren verbatra geschrieben als dem, das du ausführst, lässt der Import sie unangetastet und sagt es dir, statt eine Datei zu schreiben, der der neuere Build danach misstrauen müsste. Die Zählungen werden trotzdem gemeldet, wie bei `--dry-run`, und zeigen also, was gelandet wäre, nicht was gelandet ist: gelandet ist nichts.
 

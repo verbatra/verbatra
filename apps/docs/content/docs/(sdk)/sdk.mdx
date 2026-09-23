@@ -508,7 +508,7 @@ it.
 
 Where an imported unit disagrees with a translation the memory already holds, the memory wins unless
 `overwrite` is set. Units are stored under the current configuration fingerprint, the same key a real
-run writes, so they stop matching when the provider, model, tone, or glossary changes. Importing the
+run writes, so they stop matching when the provider, model, tone, glossary, or provider `localeMap` changes. Importing the
 same file twice changes nothing the second time.
 
 Returns a report rather than throwing on damaged data: how many units were read, a per-locale

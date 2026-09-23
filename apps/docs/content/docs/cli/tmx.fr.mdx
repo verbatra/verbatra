@@ -91,7 +91,7 @@ Importer deux fois le même fichier ne change donc rien la seconde fois, et n'é
 
 ## Les unités importées et ta configuration
 
-Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet, la même clé qu'écrit une exécution réelle. C'est délibéré : une mémoire importée est réutilisée exactement quand la configuration qui la consommerait correspond, et cesse de correspondre dès que le fournisseur, le modèle, le ton ou le glossaire changent, ce qui est précisément la protection pour laquelle la couche d'empreinte existe. Réimporte le fichier après un tel changement.
+Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet, la même clé qu'écrit une exécution réelle. C'est délibéré : une mémoire importée est réutilisée exactement quand la configuration qui la consommerait correspond, et cesse de correspondre dès que le fournisseur, le modèle, le ton, le glossaire ou la `localeMap` du fournisseur changent, ce qui est précisément la protection pour laquelle la couche d'empreinte existe. Réimporte le fichier après un tel changement.
 
 Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier dont la version plus récente devrait ensuite se méfier. Les décomptes sont tout de même renvoyés, comme avec `--dry-run`, et montrent donc ce qui serait entré plutôt que ce qui est entré : rien n'est entré.
 

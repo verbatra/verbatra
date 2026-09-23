@@ -44,7 +44,7 @@ entfernt, und nichts anderes.
 
 Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache
 (`verbatra.cache.json`) nachgeschlagen. Eine gespeicherte Übersetzung für denselben Quelltext,
-unter demselben Fingerabdruck aus Provider, Modell, Tonfall und Glossar, wird unverändert
+unter demselben Fingerabdruck aus Provider, Modell, Tonfall, Glossar und `localeMap` des Providers, wird unverändert
 wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Wie Einträge
 ihren Key bilden und wann sie nicht mehr passen, steht unter [Der Cache](/docs/the-cache).
 
