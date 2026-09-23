@@ -60,6 +60,12 @@ verbatra check --locales de,fr --json
 verbatra check --consistency
 ```
 
+## Clés protégées
+
+<AvailableFrom version="0.12.0" />
+
+Une clé obsolète dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne, ou une clé qui correspond à `pinnedKeys`, est une clé que `translate` laisserait à une personne (voir [Protéger les traductions humaines](/docs/protecting-human-translations)). `check` la compte quand même comme manquante ou obsolète et affiche la part protégée entre parenthèses, par exemple `2 stale (1 protected)`. `--json` porte ce nombre dans `protected` pour chaque locale ; si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées comptent.
+
 ## Codes de sortie
 
 | Code | Signification |

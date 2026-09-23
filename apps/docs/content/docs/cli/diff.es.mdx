@@ -94,6 +94,12 @@ verbatra diff --json
 verbatra diff --unused
 ```
 
+## Claves protegidas
+
+<AvailableFrom version="0.12.0" />
+
+Las claves ausentes y cambiadas que una ejecución de `translate` dejaría para una persona, porque una persona escribió, importó o cambió su valor fuera de verbatra o porque coinciden con `pinnedKeys`, se listan además bajo `protected` (consulta [Proteger traducciones humanas](/docs/protecting-human-translations)). También siguen en `re-translate` y `add`, porque siguen pendientes. `--json` las lleva como un array `protected` en cada locale; si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, solo se listan las claves fijadas.
+
 ## Códigos de salida
 
 | Código | Significado |
