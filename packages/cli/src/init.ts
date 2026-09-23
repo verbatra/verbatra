@@ -12,7 +12,14 @@ import { readPackageManifest } from "./package-manifest.js";
 import { askLine, stdinIsTty } from "./prompt.js";
 import type { InitOpts, Streams } from "./types.js";
 
-const PROVIDER_IDS = Object.keys(scaffoldingMetadata.providerEnv) as ScaffoldableProviderId[];
+const HUMAN_ONLY_PROVIDER = "none";
+
+type InitProviderId = ScaffoldableProviderId | typeof HUMAN_ONLY_PROVIDER;
+
+const PROVIDER_IDS: readonly InitProviderId[] = [
+  ...(Object.keys(scaffoldingMetadata.providerEnv) as ScaffoldableProviderId[]),
+  HUMAN_ONLY_PROVIDER,
+];
 
 const FORMAT_BY_DEP: ReadonlyArray<readonly [string, SupportedFormat]> = [
   ["i18next", "i18next-json"],
@@ -34,11 +41,11 @@ interface Inputs {
   readonly sourceLocale: string;
   readonly targetLocales: string[];
   readonly filesPattern: string;
-  readonly provider: ScaffoldableProviderId;
+  readonly provider: InitProviderId;
 }
 
-function isProviderId(value: string): value is ScaffoldableProviderId {
-  return (PROVIDER_IDS as string[]).includes(value);
+function isProviderId(value: string): value is InitProviderId {
+  return (PROVIDER_IDS as readonly string[]).includes(value);
 }
 
 function readDependencyNames(cwd: string): Set<string> {
@@ -103,7 +110,20 @@ const NO_MODEL_NOTES: Readonly<Partial<Record<ScaffoldableProviderId, string>>> 
   "google-translate": "    // Google Cloud Translation needs no model.",
 };
 
-function renderProviderBlock(id: ScaffoldableProviderId, options: Record<string, unknown>): string {
+function renderHumanOnlyProviderBlock(): string {
+  return [
+    "  provider: {",
+    "    // Machine translation disabled by policy: translate fills only from the translation",
+    "    // memory, and every other key is handed to a human through export and import.",
+    `    id: ${JSON.stringify(HUMAN_ONLY_PROVIDER)},`,
+    "  },",
+  ].join("\n");
+}
+
+function renderProviderBlock(id: InitProviderId, options: Record<string, unknown>): string {
+  if (id === HUMAN_ONLY_PROVIDER) {
+    return renderHumanOnlyProviderBlock();
+  }
   const optionLines = renderProviderOptions(options);
   const noteText = NO_MODEL_NOTES[id];
   const note = noteText === undefined ? [] : [noteText];
@@ -179,7 +199,7 @@ async function resolveProvider(
   interactive: boolean,
   ask: (question: string) => Promise<string>,
   streams: Streams,
-): Promise<ScaffoldableProviderId | undefined> {
+): Promise<InitProviderId | undefined> {
   let value = opts.provider?.trim() ?? "";
   if (value === "" && interactive) {
     value = await ask(`Provider (${PROVIDER_IDS.join(", ")}): `);
@@ -253,13 +273,16 @@ export async function runInit(
   const inputs: Inputs = { sourceLocale, targetLocales, filesPattern, provider };
   const { format, detected } = detectFormat(cwd);
 
-  const providerOptions = buildProviderOptions(provider);
+  const providerOptions = provider === HUMAN_ONLY_PROVIDER ? {} : buildProviderOptions(provider);
   const candidate = {
     sourceLocale,
     targetLocales,
     format,
     files: { pattern: filesPattern },
-    provider: { id: provider, options: providerOptions },
+    provider:
+      provider === HUMAN_ONLY_PROVIDER
+        ? { id: provider }
+        : { id: provider, options: providerOptions },
   };
   const validated = verbatraConfigSchema.safeParse(candidate);
   if (!validated.success) {
@@ -277,13 +300,15 @@ export async function runInit(
     "verbatra.config.ts",
     streams,
   );
-  writeFileIfAllowed(
-    resolve(cwd, ".env.example"),
-    renderEnvExample(provider),
-    force,
-    ".env.example",
-    streams,
-  );
+  if (provider !== HUMAN_ONLY_PROVIDER) {
+    writeFileIfAllowed(
+      resolve(cwd, ".env.example"),
+      renderEnvExample(provider),
+      force,
+      ".env.example",
+      streams,
+    );
+  }
   ensureGitignore(cwd, streams);
   return 0;
 }

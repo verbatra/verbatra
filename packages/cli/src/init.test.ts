@@ -53,6 +53,30 @@ describe("runInit", () => {
     expect(gitignore).toContain("verbatra.cache.json");
   });
 
+  it("scaffolds a human-only config with no env example for provider none", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(0);
+    const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
+    expect(config).toContain('id: "none"');
+    expect(config).toContain("Machine translation disabled by policy");
+    expect(config).not.toContain("options");
+    expect(existsSync(join(dir, ".env.example"))).toBe(false);
+    expect(cap.out()).not.toContain(".env.example");
+    expect(readFileSync(join(dir, ".gitignore"), "utf8")).toContain(".verbatra-local/");
+  });
+
+  it("lists none among the providers it offers", async () => {
+    const cap = captureStreams();
+    expect(await runInit({ cwd: dir, yes: true }, cap.streams, nonInteractive)).toBe(2);
+    expect(cap.err()).toContain("google-translate, none");
+  });
+
   it("scaffolds a google-translate config, env example, and gitignore non-interactively", async () => {
     const cap = captureStreams();
     const code = await runInit(

@@ -474,6 +474,45 @@ describe("run translate: exit codes", () => {
     expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);
   });
 
+  it("a human-only run that left keys for a human -> 3, with a hand-off hint on stderr", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ cacheHits: ["greeting"], unfilled: ["farewell", "thanks"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    const cap = captureStreams();
+
+    expect(await run(["translate"], deps, cap.streams)).toBe(3);
+    expect(cap.err()).toContain("2 keys need a human translation");
+    expect(cap.err()).toContain("verbatra export");
+  });
+
+  it("a human-only run with one key left keeps the success envelope under --json -> 3", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    const cap = captureStreams();
+
+    expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
+    expect(parseEnvelope(cap.out().trim())).toMatchObject({ ok: true, command: "translate" });
+    expect(cap.err()).toContain("1 key needs a human translation");
+  });
+
+  it("a failed locale outranks keys left for a human -> 1", async () => {
+    const summary = makeSummary({
+      locales: [
+        makeLocale({ status: "failed", error: { code: "LOCALE_FAILED", message: "x" } }),
+        makeLocale({ locale: "fr", unfilled: ["farewell"] }),
+      ],
+      succeeded: ["fr"],
+      failed: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);
+  });
+
   it("a whole-run SdkError -> 2, structured error on stderr, stdout empty", async () => {
     const { deps } = recordingDeps({
       translate: async () => {

@@ -39,7 +39,10 @@ deterministic test joins the required gate automatically.
   the `watch` SIGINT contract, and the full `watch` lifecycle: a successful startup run, a second
   run triggered by a source change, and a clean exit 0 on a single interrupt
   (`tests/watch-lifecycle.e2e.test.ts`, which stays keyless by giving the run nothing to translate,
-  so no provider is ever called). It makes no provider call and no network request, so it is
+  so no provider is ever called), and the human-only workflow under `provider: { id: "none" }`
+  (`tests/human-only.e2e.test.ts`: `init --provider none`, `doctor`, `translate` exiting 3 with
+  every key left for a human, then `export`, `import`, and `check` green, all under a preload that
+  makes any network call fatal). It makes no provider call and no network request, so it is
   deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in

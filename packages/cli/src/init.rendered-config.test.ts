@@ -66,11 +66,25 @@ describe("the scaffolded verbatra.config.ts", () => {
       const parsed = verbatraConfigSchema.parse(rendered);
 
       expect(parsed.provider.id).toBe(provider);
-      expect(Object.keys(parsed.provider.options)).toEqual(
+      expect(Object.keys("options" in parsed.provider ? parsed.provider.options : {})).toEqual(
         Object.keys((rendered as { provider: { options: object } }).provider.options),
       );
     },
   );
+
+  it("parses back into a human-only config for provider none", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      cap.streams,
+      nonInteractive,
+    );
+    expect(code).toBe(0);
+
+    const rendered = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
+
+    expect(verbatraConfigSchema.parse(rendered).provider).toEqual({ id: "none" });
+  });
 
   it("names the token limit option each language model provider actually accepts", async () => {
     const cap = captureStreams();

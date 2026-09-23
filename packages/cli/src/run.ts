@@ -9,6 +9,7 @@ import {
   type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
+  type RunSummary,
   resolveDryRun,
   type TranslateInput,
 } from "@verbatra/sdk";
@@ -190,6 +191,27 @@ function runExitCode(summary: {
   readonly failed: readonly string[];
 }): number {
   return summary.failed.length > 0 || summary.partial.length > 0 ? 1 : 0;
+}
+
+const NEEDS_HUMAN_EXIT_CODE = 3;
+
+function unfilledKeyCount(summary: RunSummary): number {
+  return summary.locales.reduce((total, locale) => total + locale.unfilled.length, 0);
+}
+
+function translateExitCode(summary: RunSummary): number {
+  const code = runExitCode(summary);
+  return code === 0 && unfilledKeyCount(summary) > 0 ? NEEDS_HUMAN_EXIT_CODE : code;
+}
+
+function renderNeedsHumanHint(summary: RunSummary, streams: Streams): void {
+  const count = unfilledKeyCount(summary);
+  if (count === 0) {
+    return;
+  }
+  streams.err(
+    `verbatra: machine translation is disabled by policy; ${count} ${count === 1 ? "key needs" : "keys need"} a human translation (hand them off with verbatra export)\n`,
+  );
 }
 
 interface CommandContext {
@@ -438,7 +460,8 @@ export async function runTranslate(
               ? `${renderSuccessEnvelope("translate", summary)}\n`
               : `${renderHuman(summary)}\n`,
           );
-          return runExitCode(summary);
+          renderNeedsHumanHint(summary, streams);
+          return translateExitCode(summary);
         },
         () => loadEnvFiles(cwd),
       );
@@ -909,6 +932,9 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra translate --prune --dry-run  preview the keys that would be pruned",
         "  $ verbatra translate --json          machine-readable summary on stdout",
         "  $ verbatra translate --estimate      size and price the run without spending anything",
+        "",
+        'With provider "none", keys are filled from the translation memory only; the run exits 3',
+        "when any key still needs a human translation.",
       ].join("\n"),
     );
 }
@@ -1255,8 +1281,8 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "write the config and env files to this directory")
     .option(
       "--provider <id>",
-      "translation provider to use: anthropic, openai, gemini, deepl, or google-translate " +
-        "(required unless prompted)",
+      "translation provider to use: anthropic, openai, gemini, deepl, google-translate, or " +
+        "none to disable machine translation (required unless prompted)",
     )
     .option("--source <locale>", "locale your source strings are written in (default en)")
     .option("--targets <locales>", "comma-separated locales to translate into (default de)")
@@ -1277,6 +1303,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider anthropic        create config + .env example, prompting for the rest",
         "  $ verbatra init --provider deepl --yes      non-interactive, accept all defaults",
         "  $ verbatra init --provider google-translate --yes  non-interactive, accept all defaults",
+        "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
       ].join("\n"),
     );
 }
