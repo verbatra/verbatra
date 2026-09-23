@@ -42,7 +42,10 @@ export const lockStateTool = defineTool({
   name: "lock.state",
   description:
     "Read the translation lock file: its version, and per configured target locale how many " +
-    "keys are missing, stale, or up to date. Reports exists: false when no lock file exists yet, " +
+    "keys are missing, stale, or up to date. Each locale also carries provenance: counts byOrigin " +
+    "and byReviewState over the keys it has a value for, read from verbatra.provenance.json, and " +
+    "absent when that file is corrupt or from a newer verbatra. Reports exists: false when no lock " +
+    "file exists yet, " +
     "which happens before the first successful translate run in this project. Read-only, calls " +
     "no provider.",
   paramsSchema,

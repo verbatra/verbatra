@@ -37,7 +37,12 @@ export const keyValueTool = defineTool({
   description:
     "Read one key's current source text and, if it has been translated, its current text in one " +
     "target locale. target is absent when the key has not been translated into that locale yet. " +
-    "Use this before translation.editEntry to see the current value. Read-only, calls no provider.",
+    "When target is present, provenance says who wrote it, read from verbatra.provenance.json: " +
+    "origin (machine, memory, fuzzy, agent, human, import, unknown, unrecorded when nothing was " +
+    "recorded, or external when the value was edited outside verbatra since), provider and model " +
+    "for machine output, and reviewState; provenance is absent when that file is corrupt or from " +
+    "a newer verbatra. Use this before translation.editEntry to see the current value. Read-only, " +
+    "calls no provider.",
   paramsSchema,
   outputSchema: keyValueResultSchema,
   annotations: {

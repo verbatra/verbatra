@@ -30,7 +30,10 @@ export const statusCheckTool = defineTool({
   name: "status.check",
   description:
     "Report, per target locale, how many keys are missing, stale, or up to date, and whether the " +
-    "locale is fully in sync with the source. Use this to check translation status without " +
+    "locale is fully in sync with the source. Each locale also carries provenance, the counts of " +
+    "who wrote its current values (byOrigin, byReviewState) read from verbatra.provenance.json, " +
+    "absent when that file is corrupt or from a newer verbatra. Use this to check translation " +
+    "status without " +
     "writing anything or calling a provider. Pass locales to narrow the report to a subset of " +
     "configured target locales; omit it to check every configured target locale.",
   paramsSchema,
