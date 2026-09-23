@@ -2,6 +2,7 @@
   "name": "@verbatra/mcp",
   "version": "0.2.2",
   "type": "module",
+  "mcpName": "io.github.verbatra/verbatra",
   "description": "Stdio MCP server exposing verbatra's translation status, glossary, and editing capabilities as tools for any MCP client, without a browser.",
   "keywords": [
     "i18n",

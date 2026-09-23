@@ -40,36 +40,24 @@ Cuando falta `--allow-spend`, el servidor lee en su lugar la variable de entorno
 
 ## Configurar un cliente MCP
 
-Apunta tu cliente MCP al binario `verbatra-mcp`. Para Claude Desktop, añade esto a tu `claude_desktop_config.json`:
+Apunta tu cliente MCP a `npx -y @verbatra/mcp`: npx obtiene el paquete bajo demanda y ejecuta su binario `verbatra-mcp`. Una entrada mínima con la forma `mcpServers` que comparten la mayoría de los clientes:
 
 ```json
 {
   "mcpServers": {
     "verbatra": {
       "command": "npx",
-      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-api-key-here"
-      }
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
     }
   }
 }
 ```
 
-Omite por completo el bloque `env` y su `--allow-spend` para un servidor solo de lectura y edición local: `project.snapshot`, las herramientas de estado y glosario, `translation.estimate` y `translation.editEntry` nunca llaman a un proveedor ni necesitan una clave. Añade `--allow-spend` al array `args` en cuanto también quieras `translation.retranslateEntry` y `translation.translatePending` disponibles, y define la variable de entorno de la clave de API que lee tu proveedor configurado (consulta [Proveedores](/docs/providers)).
+`verbatra mcp` también funciona como comando, pero solo cuando el proyecto tiene instalados tanto `@verbatra/cli` como `@verbatra/mcp`. La CLI carga `@verbatra/mcp` bajo demanda y nunca lo instala, así que `npx -y @verbatra/cli mcp` por sí solo sale con `2` y el mensaje que se muestra en [Instalación](#instalación).
 
-Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando en su lugar:
+Omite la clave y `--allow-spend` para un servidor solo de lectura y edición local: `project.snapshot`, las herramientas de estado y glosario, `translation.estimate` y `translation.editEntry` nunca llaman a un proveedor ni necesitan una clave. Añade `--allow-spend` al array `args` en cuanto también quieras `translation.retranslateEntry` y `translation.translatePending` disponibles, y pasa al servidor la variable de entorno de la clave de API que lee tu proveedor configurado (consulta [Proveedores](/docs/providers)) a través del entorno del cliente, nunca escrita en un archivo de configuración que subas al repositorio.
 
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "command": "npx",
-      "args": ["-y", "@verbatra/cli", "mcp", "--cwd", "/path/to/your/project"]
-    }
-  }
-}
-```
+[Conectar un cliente MCP](/docs/connect-an-mcp-client) tiene la configuración exacta para Claude Code (`claude mcp add` y un `.mcp.json` en el repositorio), Cursor, VS Code, Windsurf y Claude Desktop, incluido el directorio en el que cada cliente inicia el servidor y cómo le pasa cada uno una clave.
 
 ## Instrucciones para el agente
 
@@ -183,6 +171,10 @@ Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verb
 
 Ejecutar `verbatra-mcp` directamente no necesita la CLI en absoluto: instala `@verbatra/mcp` por separado, o deja que `npx` lo obtenga bajo demanda como se muestra arriba.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Cada versión de `@verbatra/mcp` también publica el servidor en el [MCP Registry oficial](https://registry.modelcontextprotocol.io) como `io.github.verbatra/verbatra`, justo después del paquete de npm, para que un cliente que explore el registro pueda encontrarlo allí.
+
 ## Ejemplos
 
 ```bash
@@ -209,6 +201,7 @@ Estos son los códigos de salida de `verbatra mcp`; el `verbatra-mcp` independie
 
 ## Relacionado
 
+- [Conectar un cliente MCP](/docs/connect-an-mcp-client) tiene la configuración para Claude Code, Cursor, VS Code, Windsurf, Claude Desktop y cualquier otro cliente stdio.
 - [`verbatra studio`](/docs/cli/studio) y [Opera Studio con un agente del navegador](/docs/agent-tools-in-studio) cubren la superficie de agente basada en navegador que este servidor complementa.
 - [Proveedores](/docs/providers) documenta de qué variable de entorno lee cada proveedor su clave de API.
 - [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) son los mismos cálculos que exponen `status.check` y `status.diff`.

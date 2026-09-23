@@ -70,7 +70,7 @@ El paso 1 es opcional: `verbatra diff` o `verbatra check` muestran las mismas cl
 
 ## En CI
 
-La salida `3` significa "terminó sin errores, pero hay claves esperando a una persona". Es distinta de `1` (un locale fallido o parcial) para que un pipeline pueda tratar ambos casos de forma distinta: hacer fallar el build, abrir un ticket de traducción o simplemente informar. Un locale fallido o parcial sigue teniendo prioridad y sale con `1`. Consulta [CI y códigos de salida](/docs/ci-and-exit-codes).
+La salida `3` significa "terminó sin errores, pero hay claves esperando a una persona". Es distinta de `1` (un locale fallido o parcial) para que un pipeline pueda tratar ambos casos de forma distinta: hacer fallar el build, abrir un ticket de traducción o simplemente informar. Un locale fallido o parcial sigue teniendo prioridad y sale con `1`. Consulta [CI y códigos de salida](/docs/ci-and-exit-codes). La [GitHub Action](/docs/github-action#modo-solo-humano) deja pasar el paso con la salida `3` y pone su salida `needs-human` en `"true"`, para que un paso posterior pueda pasar las claves a quien corresponda.
 
 ## Relacionado
 

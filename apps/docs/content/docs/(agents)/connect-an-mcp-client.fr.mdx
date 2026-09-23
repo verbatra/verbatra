@@ -1,0 +1,243 @@
+---
+title: Connecter un client MCP
+description: Branche le serveur MCP stdio de verbatra sur Claude Code, Cursor, VS Code, Windsurf, Claude Desktop ou tout autre client MCP, sans que la clé du fournisseur finisse dans un fichier commité.
+status: new
+---
+Le serveur MCP de verbatra utilise le transport stdio : ton client MCP le lance comme processus enfant et lui parle par stdin et stdout, il n'y a donc ni port, ni URL, ni rien à maintenir en marche toi-même. Chaque client a besoin des trois mêmes réponses : quelle commande lance le serveur, quel répertoire est le projet, et d'où vient une clé de fournisseur, si l'agent a le droit de dépenser. Cette page y répond une fois, puis montre la syntaxe de configuration de chaque client. Les outils eux-mêmes, leurs entrées et leurs résultats sont documentés dans [`verbatra mcp`](/docs/cli/mcp).
+
+<AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
+
+## Choisir une commande de lancement
+
+Deux commandes lancent le même serveur :
+
+| Commande | Nécessite | Lit les fichiers `.env` |
+| --- | --- | --- |
+| `npx -y @verbatra/mcp` | rien d'installé : npx récupère `@verbatra/mcp` à la demande et lance son binaire `verbatra-mcp` | non |
+| `npx verbatra mcp` | `@verbatra/cli` et `@verbatra/mcp`, tous deux installés dans le projet | oui : `.env.local`, puis `.env`, depuis le répertoire de travail ou le répertoire de `--cwd` |
+
+`npx -y @verbatra/mcp` est la valeur par défaut de tous les exemples ci-dessous, parce qu'il fonctionne dans n'importe quel projet. Passe à `npx verbatra mcp` quand le projet a déjà les deux paquets en dépendances de développement et que sa clé de fournisseur se trouve déjà dans `.env.local` :
+
+```bash
+npm install --save-dev @verbatra/cli @verbatra/mcp
+```
+
+Deux commandes qui ont l'air correctes ne fonctionnent pas dans un projet sans ces installations. `npx -y @verbatra/cli mcp` n'installe que la CLI, qui charge `@verbatra/mcp` à la demande et ne l'installe jamais, donc elle se termine avec le code `2` et `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` sans `@verbatra/cli` local fait chercher à npx un paquet du registre nommé `verbatra`, qui n'est pas la CLI de verbatra : la commande échoue, et elle pourrait exécuter le paquet de quelqu'un d'autre si ce nom est un jour enregistré.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Chaque version de `@verbatra/mcp` publie aussi le serveur dans le [MCP Registry officiel](https://registry.modelcontextprotocol.io) sous le nom `io.github.verbatra/verbatra`, juste après le paquet npm, pour qu'un client qui parcourt le registre puisse l'y trouver.
+
+## Quel répertoire est le projet
+
+Le serveur charge la configuration et résout chaque fichier de locale depuis son répertoire de travail, ou depuis le répertoire que nomme `--cwd`. Sans `--config`, il cherche un fichier de configuration en remontant depuis là et s'arrête au répertoire `.git` le plus proche, mais les outils résolvent toujours les chemins depuis le répertoire de travail lui-même. Pointe le serveur vers le répertoire qui contient `verbatra.config.ts`.
+
+Les clients diffèrent quant au répertoire dans lequel ils lancent un serveur :
+
+| Client | Répertoire de travail | Que faire |
+| --- | --- | --- |
+| Claude Code | le répertoire depuis lequel tu as lancé `claude` | lancer `claude` depuis la racine du projet |
+| Cursor | non documenté | passer `--cwd ${workspaceFolder}` |
+| VS Code | le dossier du workspace | rien, ou définir `cwd` |
+| Windsurf | non documenté | passer `--cwd` avec un chemin absolu |
+| Claude Desktop | non documenté, et il n'y a pas de projet | passer `--cwd` avec un chemin absolu |
+
+## Clés et dépenses
+
+Le serveur démarre en lecture seule. Sans dépense autorisée, il annonce tous les outils sauf `translation.retranslateEntry` et `translation.translatePending`, et aucun de ces outils n'appelle de fournisseur ni ne lit de clé : lire le statut et le glossaire, chiffrer une exécution avec `translation.estimate` et écrire une traduction à la main avec `translation.editEntry` fonctionnent sans aucune clé. Pour cette configuration, laisse complètement la clé et l'interrupteur de dépense hors de la configuration du client.
+
+Pour laisser l'agent dépenser, active deux choses :
+
+- **L'interrupteur de dépense.** Ajoute `--allow-spend` aux arguments du serveur, ou définis `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` dans son environnement. Le flag l'emporte sur la variable. Une configuration avec `provider: { id: "none" }` garde les deux outils de dépense cachés quoi que tu définisses.
+- **La clé du fournisseur.** Le serveur lit la même variable d'environnement que la CLI, par exemple `ANTHROPIC_API_KEY` ; vois laquelle est la tienne dans [Fournisseurs](/docs/providers). Il ne lit jamais de clé depuis ses arguments ni depuis un fichier de configuration du client.
+
+N'écris jamais de clé dans un fichier que tu commites : `.mcp.json`, `.cursor/mcp.json` et `.vscode/mcp.json` sont faits pour être partagés avec toute l'équipe. Chaque client ci-dessous a un moyen de transmettre une clé au serveur sans que le fichier la contienne : un environnement hérité, une référence à une variable, ou une invite qui stocke la valeur hors du fichier.
+
+Même avec la dépense autorisée, les instructions du serveur lui-même demandent à l'agent de lancer d'abord `translation.estimate` et d'attendre ton oui explicite avant d'appeler un outil de dépense.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.estimate`, le fournisseur `none` et ces instructions du serveur sont arrivés avec cette version.
+
+## Claude Code
+
+Ajoute le serveur depuis la racine du projet :
+
+```bash
+claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
+```
+
+Tout ce qui suit `--` est la ligne de commande du serveur lui-même, transmise telle quelle, donc les flags de verbatra vont après et les options propres à Claude Code (`--transport`, `--scope`, `--env`) vont avant. `--scope` décide où l'entrée est stockée :
+
+| Scope | Stockée dans | Qui l'obtient |
+| --- | --- | --- |
+| `local` (par défaut) | `~/.claude.json`, sous le chemin de ce projet | toi, dans ce projet uniquement |
+| `project` | `.mcp.json` à la racine du projet, fait pour être commité | tous ceux qui ouvrent le projet |
+| `user` | `~/.claude.json` | toi, dans tous les projets |
+
+`--scope project` écrit ce `.mcp.json`, que tu peux aussi écrire à la main et commiter :
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Claude Code demande à chaque personne d'approuver un serveur de scope projet issu de `.mcp.json` avant sa première utilisation dans une session interactive.
+
+Claude Code lance le serveur dans le répertoire depuis lequel tu as lancé `claude` et lui transmet l'environnement avec lequel tu as lancé `claude`. Le fichier commité ne contient donc ni clé ni interrupteur de dépense : un membre de l'équipe qui veut les outils de dépense les active pour une session, avec la clé déjà exportée dans son shell :
+
+```bash
+VERBATRA_MCP_ALLOW_SPEND=1 claude
+```
+
+Avec la commande de lancement `npx verbatra mcp`, le serveur récupère aussi la clé dans le `.env.local` ou le `.env` du projet, il n'y a alors même pas besoin de l'exporter.
+
+Ne passe pas de clé avec `--env` en même temps que `--scope project` : `--env KEY=value` écrit la valeur elle-même dans l'entrée, et avec ce scope l'entrée est `.mcp.json`.
+
+Lance `claude mcp list` pour voir si le serveur se connecte. La référence complète des commandes se trouve dans la [documentation MCP de Claude Code](https://code.claude.com/docs/en/mcp).
+
+## Cursor
+
+Cursor lit les serveurs d'un projet dans `.cursor/mcp.json` et les tiens dans `~/.cursor/mcp.json` :
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "${workspaceFolder}"]
+    }
+  }
+}
+```
+
+`${workspaceFolder}` est la variable de Cursor pour la racine du projet. Pour autoriser la dépense, ajoute l'interrupteur et transmets la clé par référence, de sorte que le fichier ne contienne que le nom de la variable et que la valeur vienne de l'environnement dans lequel Cursor tourne :
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "${workspaceFolder}", "--allow-spend"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Garde une entrée avec dépense autorisée dans `~/.cursor/mcp.json` plutôt que dans le fichier commité du projet si toute l'équipe ne doit pas dépenser. Vois la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
+
+## VS Code
+
+VS Code (le mode agent de GitHub Copilot) lit les serveurs d'un workspace dans `.vscode/mcp.json`. Sa clé de premier niveau est `servers`, pas `mcpServers`, et VS Code lance un serveur dans le dossier du workspace, donc aucun `--cwd` n'est nécessaire :
+
+```json
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Pour autoriser la dépense, déclare la clé comme input. VS Code la demande au premier lancement du serveur et stocke la valeur de façon sécurisée, hors du fichier :
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "anthropic-key",
+      "description": "Anthropic API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${input:anthropic-key}"
+      }
+    }
+  }
+}
+```
+
+Sinon, `"envFile": "${workspaceFolder}/.env.local"` charge la clé depuis un fichier ignoré que tu as déjà. Lance **MCP: Open User Configuration** pour un `mcp.json` qui s'applique à tous tes workspaces. Vois la [référence de configuration MCP de VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
+## Windsurf
+
+L'agent Cascade de Windsurf lit ses serveurs dans un unique `mcp_config.json` pour tous les projets, donc indique le projet avec un `--cwd` absolu :
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+Pour autoriser la dépense, ajoute `--allow-spend` à `args` et transmets la clé par référence avec `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. L'emplacement du fichier et le reste de la syntaxe se trouvent dans la [documentation MCP de Cascade](https://docs.devin.ai/desktop/cascade/mcp).
+
+## Claude Desktop
+
+Claude Desktop lit `claude_desktop_config.json`, qu'il t'ouvre sous **Settings**, **Developer**, **Edit Config** :
+
+- macOS : `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows : `%APPDATA%\Claude\claude_desktop_config.json`
+
+Il n'a pas de notion de projet, donc `--cwd` doit être un chemin absolu :
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
+    }
+  }
+}
+```
+
+Pour autoriser la dépense, ajoute `--allow-spend` à `args` et un bloc `env` nommant la variable de ton fournisseur, par exemple `"env": { "ANTHROPIC_API_KEY": "..." }`. Ce fichier t'est propre et se trouve hors de tout dépôt, la valeur reste donc sur ta machine ; ne la copie jamais dans un fichier du projet. Quitte complètement Claude Desktop et relance-le après chaque modification. Les diagnostics du serveur vont sur stderr, que Claude Desktop écrit dans `mcp-server-verbatra.log`, dans `~/Library/Logs/Claude` sous macOS et dans `%APPDATA%\Claude\logs` sous Windows. Vois [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+
+## Tout autre client stdio
+
+Tout client capable de lancer un serveur stdio local fonctionne de la même façon. Donne-lui :
+
+- la commande `npx` avec les arguments `-y @verbatra/mcp`, ou le chemin absolu d'un binaire `verbatra-mcp` installé ;
+- `--cwd /path/to/your/project`, sauf si tu sais que le client lance les serveurs à la racine du projet ;
+- `--config <path>` si le fichier de configuration n'est pas là où la recherche ascendante le trouve ;
+- `--allow-spend` et la variable de clé du fournisseur uniquement si l'agent doit dépenser, avec la clé fournie par le propre mécanisme de secrets ou d'environnement du client.
+
+Le serveur n'écrit que des messages de protocole sur stdout et chaque ligne de log sur stderr, donc le log de serveur du client est l'endroit où regarder quand il ne se connecte pas. Une erreur de configuration y est signalée avant même que le serveur réponde, et le processus se termine.
+
+## Vérifier la connexion
+
+Demande à l'agent d'appeler `project.snapshot`. L'outil lit la configuration, n'appelle aucun fournisseur et renvoie la locale source, les locales cibles, le format et l'id du fournisseur, donc un mauvais répertoire de travail ou une configuration manquante se voit tout de suite. Si les outils de dépense devraient être là et n'y sont pas, vérifie l'interrupteur de dépense et si le fournisseur de la configuration est `none`.
+
+## Ensuite
+
+- [`verbatra mcp`](/docs/cli/mcp) : chaque outil, ses entrées et résultats, et les codes de sortie.
+- [Recettes pour agents et scripts](/docs/agent-recipes#le-pack-de-skills) : la skill `verbatra-mcp-tools`, qui apprend à un agent à travailler avec ces outils.
+- [Configure verbatra avec un agent IA](/docs/start-with-ai) : un prompt qui ajoute verbatra à un projet avant que tu y connectes un client.
+- [Fournisseurs](/docs/providers) : de quelle variable d'environnement chaque fournisseur lit sa clé.
