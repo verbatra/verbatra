@@ -534,12 +534,16 @@ describe("createDeepLProvider: locale codes sent to DeepL", () => {
     expect((await sentLanguages({ targetLocale: "pt-BR" })).targetLang).toBe("PT-BR");
   });
 
+  it("sends Latin American Spanish as ES-419 (es-MX sends ES-419)", async () => {
+    expect((await sentLanguages({ targetLocale: "es-MX" })).targetLang).toBe("ES-419");
+  });
+
   it("lets an explicit localeMap entry win over the built-in normalization", async () => {
     const mapped = await sentLanguages(
       { sourceLocale: "en-US", targetLocale: "es-MX" },
-      { localeMap: { "en-US": "EN", "es-MX": "ES-419" } },
+      { localeMap: { "en-US": "EN", "es-MX": "ES" } },
     );
-    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ES-419" });
+    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ES" });
   });
 
   it("normalizes a locale the localeMap does not name", async () => {
@@ -612,7 +616,9 @@ describe("createDeepLProvider: locale codes sent to DeepL", () => {
       createDeepLProvider({ localeMap: { de: "XX-YY" } }, { client }).translateBatch(
         request({ entries: [entry("k", "v")] }),
       ),
-    ).rejects.toBeInstanceOf(ProviderError);
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof ProviderError && error.code === "PROVIDER_ERROR",
+    );
     expect(translateText).toHaveBeenCalledWith(["v"], "EN", "XX-YY", {});
   });
 });

@@ -51,12 +51,43 @@ describe("toDeepLTargetCode", () => {
   it.each([
     ["de", "DE"],
     ["de-AT", "DE"],
-    ["es-MX", "ES"],
+    ["es-ES", "ES"],
     ["sr-Latn", "SR"],
     ["en-AU", "EN"],
     ["en", "EN"],
   ])("falls back to the language of %s, sending %s", (locale, expected) => {
     expect(toDeepLTargetCode(locale)).toBe(expected);
+  });
+
+  it.each([
+    "MX",
+    "AR",
+    "CO",
+    "CL",
+    "PE",
+    "VE",
+    "EC",
+    "GT",
+    "CU",
+    "BO",
+    "DO",
+    "HN",
+    "PY",
+    "SV",
+    "NI",
+    "CR",
+    "PA",
+    "UY",
+    "PR",
+    "US",
+    "419",
+  ])("sends Spanish for the Latin American or Caribbean region %s as ES-419", (region) => {
+    expect(toDeepLTargetCode(`es-${region}`)).toBe("ES-419");
+  });
+
+  it("does not map a non-Spanish language with a Latin American region to ES-419", () => {
+    expect(toDeepLTargetCode("pt-MX")).toBe("PT");
+    expect(toDeepLTargetCode("en-US")).toBe("EN-US");
   });
 
   it("keeps the first subtag of a code Intl cannot parse", () => {
