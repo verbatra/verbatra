@@ -47,7 +47,7 @@ describe("loadConfig upward search: home-directory fallback when there is no .gi
     homedirMock.mockReturnValue(home);
     await writeFile(
       join(home, "verbatra.config.ts"),
-      `export default ${JSON.stringify(baseConfig({ sourceLocale: "from-home" }))};`,
+      `export default ${JSON.stringify(baseConfig({ sourceLocale: "fr" }))};`,
       "utf8",
     );
     const nested = join(home, "workspace", "project");
@@ -55,6 +55,6 @@ describe("loadConfig upward search: home-directory fallback when there is no .gi
 
     const config = await loadConfig({ cwd: nested });
 
-    expect(config.sourceLocale).toBe("from-home");
+    expect(config.sourceLocale).toBe("fr");
   });
 });

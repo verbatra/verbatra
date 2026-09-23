@@ -88,11 +88,12 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the five config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the six config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -383,7 +384,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(6);
+    expect(result.checks).toHaveLength(7);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -600,7 +601,57 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "api-key",
       "source-file",
       "plural-rules",
+      "locale-codes",
     ]);
+  });
+});
+
+describe("doctor: the locale-codes check", () => {
+  it("reports that every locale code is canonical when none needs a change", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "zh-Hant-TW", "es-419"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "locale-codes")).toBe("pass");
+    expect(detailOf(result, "locale-codes")).toBe(
+      "Every configured locale code is in canonical BCP 47 form.",
+    );
+  });
+
+  it("suggests the canonical form for non-canonical and deprecated codes without failing", async () => {
+    await writeConfig(validConfig({ targetLocales: ["zh-hant-tw", "iw", "in", "tl"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "locale-codes")).toBe("pass");
+    const detail = detailOf(result, "locale-codes");
+    expect(detail).toContain('"zh-hant-tw" is canonically "zh-Hant-TW"');
+    expect(detail).toContain('"iw" is canonically "he"');
+    expect(detail).toContain('"in" is canonically "id"');
+    expect(detail).toContain('"tl" is canonically "fil"');
+    expect(detail).toContain("never renamed");
+  });
+
+  it("covers the source locale too", async () => {
+    await writeConfig(validConfig({ sourceLocale: "EN", targetLocales: ["de"] }));
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "locale-codes")).toBe("pass");
+    expect(detailOf(result, "locale-codes")).toContain('"EN" is canonically "en"');
+  });
+
+  it("is skipped when the config cannot be loaded", async () => {
+    await writeConfig(validConfig({ targetLocales: ["en_US"] }));
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "config")).toBe("fail");
+    expect(detailOf(result, "config")).toContain('"en_US" is not a valid BCP 47 locale code');
+    expect(statusOf(result, "locale-codes")).toBe("skipped");
   });
 });
 

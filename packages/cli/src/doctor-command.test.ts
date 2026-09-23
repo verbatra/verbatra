@@ -404,3 +404,35 @@ describe("run doctor: the informational plural-rules check", () => {
     }
   });
 });
+
+describe("run doctor: the informational locale-codes check", () => {
+  it("suggests the canonical form of a deprecated target locale yet still exits 0", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-locale-codes-"));
+    vi.stubEnv("ANTHROPIC_API_KEY", KEY_CANARY);
+    try {
+      await writeFile(
+        join(dir, ".verbatrarc.json"),
+        JSON.stringify({
+          sourceLocale: "en",
+          targetLocales: ["de", "iw"],
+          format: "i18next-json",
+          files: { pattern: "locales/{locale}.json" },
+          provider: { id: "anthropic", options: { model: "claude-test", maxTokens: 1024 } },
+        }),
+        "utf8",
+      );
+      await mkdir(join(dir, "locales"));
+      await writeFile(join(dir, "locales", "en.json"), JSON.stringify({ hi: "Hi" }), "utf8");
+      const { deps } = recordingDeps({ doctor });
+      const cap = captureStreams();
+
+      const code = await run(["doctor", "--cwd", dir], deps, cap.streams);
+
+      expect(code).toBe(0);
+      expect(cap.out()).toMatch(/\[ok {2}\] Locale codes: "iw" is canonically "he"/);
+      expect(cap.out()).toContain("no problems found");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

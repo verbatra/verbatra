@@ -7,6 +7,7 @@ import {
   type LoadedConfig,
   loadConfigWithMeta,
 } from "../config/load-config.js";
+import { describeLocaleCodes } from "../config/locale-code.js";
 import {
   hasProviderFactory,
   isMachineProvider,
@@ -36,6 +37,9 @@ import { readSourceResource } from "./source.js";
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
  *   plural categories from, and every target locale ICU has no plural rules for, which falls back to
  *   `one` and `other` and gets no generated plural forms.
+ * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
+ *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
+ *   canonical form `Intl.getCanonicalLocales` suggests for it.
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
@@ -47,6 +51,7 @@ export type DoctorCheckId =
   | "api-key"
   | "source-file"
   | "plural-rules"
+  | "locale-codes"
   | "untranslated-literals";
 
 /**
@@ -78,7 +83,7 @@ export interface DoctorResult {
   readonly ok: boolean;
   /**
    * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, and `plural-rules`. A literal run
+   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, `plural-rules`, and `locale-codes`. A literal run
    * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
@@ -127,6 +132,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "api-key": "API key environment variable",
   "source-file": "Source locale file",
   "plural-rules": "Plural rules",
+  "locale-codes": "Locale codes",
   "untranslated-literals": "Untranslated literals",
 };
 
@@ -136,6 +142,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "api-key",
   "source-file",
   "plural-rules",
+  "locale-codes",
 ];
 
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
@@ -349,6 +356,10 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * each target language's plural categories from, and lists any target locale ICU has no plural
  * rules for.
  *
+ * A seventh, informational check never fails either: it names every configured locale code that is
+ * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
+ * configured code, so nothing is renamed.
+ *
  * A config whose provider is `none` passes both the provider and the key check: its provider check
  * reports that machine translation is disabled by policy, and no key variable is looked at.
  *
@@ -356,7 +367,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * {@link translate} creates it. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the five config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the six config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -412,5 +423,10 @@ export async function doctor(
     checkApiKey(config.provider),
     await checkSourceFile(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs, adapter),
     verdict("plural-rules", true, describePluralRules(config.targetLocales)),
+    verdict(
+      "locale-codes",
+      true,
+      describeLocaleCodes([config.sourceLocale, ...config.targetLocales]),
+    ),
   ]);
 }

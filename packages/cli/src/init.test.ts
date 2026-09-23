@@ -190,6 +190,19 @@ describe("runInit", () => {
     expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
   });
 
+  it("returns 2 for a target locale that is not a BCP 47 code, suggesting the hyphenated form", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "deepl", source: "en", targets: "de,pt_BR" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain('"pt_BR" is not a valid BCP 47 locale code; write "pt-BR"');
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
+  });
+
   it("detects the format from a single matching dependency", async () => {
     writeFileSync(
       join(dir, "package.json"),
