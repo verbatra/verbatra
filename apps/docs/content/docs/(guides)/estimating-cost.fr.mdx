@@ -89,7 +89,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~33312 input + ~30720 output tokens
+  estimate: 1200 keys in 24 requests, ~38544 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -152,12 +152,12 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 | --- | --- |
 | Règles système | 450 |
 | Schéma de sortie | 100 |
-| (50 items x (20 + 40 + ~21 de JSON) caractères + ~120 d'enveloppe) / 4 | 1 056 |
+| (50 items x (20 + 40 + ~21 de JSON) caractères + ~172 d'enveloppe) / 4 | 1 056 |
 | **Total** | **~1 606** |
 
 **Tokens de sortie par requête**
 
-(50 items x (20 caractères de clé + 40 de valeur + ~21 de JSON) + ~20 d'enveloppe + 50 x 20 de marge) / 4 = **~1 280**.
+(50 items x (20 caractères de clé + 40 de valeur + ~21 de JSON) + ~68 d'enveloppe + 50 x 20 de marge) / 4 = **~1 280**.
 
 **Totaux sur 3 locales**
 
