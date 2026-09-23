@@ -110,6 +110,25 @@ const UMAMI_DEVICE_READS: Record<Locale, RegExp> = {
   fr: /taille de ton écran et la langue de ton navigateur/,
 };
 
+const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
+  en: [
+    /copying a command or prompt \(with the copied command text/,
+    /previous and the newly selected language/,
+  ],
+  de: [
+    /Kopieren eines Befehls oder Prompts \(mit dem kopierten Befehlstext/,
+    /bisherigen und der neu gewählten Sprache/,
+  ],
+  es: [
+    /copiar un comando o un prompt \(con el texto del comando copiado/,
+    /idioma anterior y el recién seleccionado/,
+  ],
+  fr: [
+    /copier une commande ou un prompt \(avec le texte de la commande copiée/,
+    /langue précédente et la langue nouvellement sélectionnée/,
+  ],
+};
+
 const UMAMI_RETIRED_CLAIM =
   /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
 
@@ -207,6 +226,15 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(analytics).toMatch(UMAMI_NOT_STORED[locale]);
     expect(analytics).toMatch(UMAMI_SAME_SERVER[locale]);
     expect(analytics).toMatch(/Do[ -]Not[ -]Track/);
+  });
+
+  it("names the data each tracked event carries", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+
+    for (const payload of UMAMI_EVENT_PAYLOADS[locale]) {
+      expect(analytics).toMatch(payload);
+    }
+    expect(analytics).not.toMatch(/install command or prompt|Installationsbefehls oder Prompts/);
   });
 
   it("documents the umami.disabled opt-out and renders the control in the analytics section", async () => {
