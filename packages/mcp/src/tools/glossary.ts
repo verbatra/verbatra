@@ -114,7 +114,8 @@ export const glossaryWriteTool = defineTool({
   name: "glossary.write",
   description:
     "Add, replace, or remove one glossary term. Pass translation as a non-empty string to set or " +
-    "replace the term, or null to remove it. Writes to the glossary file the config points at " +
+    "replace the term, or null to clear its shared translation; the term is removed once nothing " +
+    "else is left. Writes to the glossary file the config points at " +
     "and returns the full glossary afterward, in the same redacted shape glossary.get returns. " +
     "It needs a file-backed glossary: an inline glossary or a config without one fails with " +
     "GLOSSARY_NOT_FILE_BACKED. This changes what a future translation of any key " +

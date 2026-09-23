@@ -127,7 +127,7 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
       "Use it to keep brand terms and fixed vocabulary current, since it spends no provider budget at all and changes no translated text. " +
       "Do not expect it to work on every project: only a file-backed glossary can be written, so a glossary written inline in the config, or no glossary at all, is refused as not file backed and nothing is converted on your behalf. " +
       "Do not send back a value verbatra_glossary_get reported as redacted, because that value is a redaction placeholder rather than the real text and writing it would destroy the original. " +
-      "The required `term` parameter is the source term, capped at 200 characters, and the required `translation` parameter is its replacement text, capped at 2000 characters, or null to remove the term entirely. " +
+      "The required `term` parameter is the source term, capped at 200 characters, and the required `translation` parameter is its replacement text, capped at 2000 characters, or null to clear the shared translation; the term is removed once nothing else is left. " +
       "There is no parameter naming a file: the target is derived from the loaded config alone. The write replaces the previous value with no undo on this surface, and the rest of the file keeps its order and indentation. " +
       "This tool is always registered: editing the glossary needs no capability flag and is never gated behind the spend flag.",
     readOnlyHint: false,
