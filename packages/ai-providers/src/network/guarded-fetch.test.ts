@@ -181,6 +181,35 @@ describe("createGuardedFetch: redirects", () => {
     expect(sentUrls(send)).toEqual(["http://127.0.0.1:9000/start"]);
   });
 
+  it("follows a same-origin 307 that spells out the default port", async () => {
+    const send = scripted(redirect(307, "https://h.localhost:443/next"), new Response("done"));
+    const response = await guarded(send, async () => ["127.0.0.1"]).fetch("https://h.localhost/");
+    expect(await response.text()).toBe("done");
+    expect(sentUrls(send)).toEqual(["https://h.localhost/", "https://h.localhost/next"]);
+  });
+
+  it("treats a Unicode host and its punycode form as the same origin", async () => {
+    const send = scripted(
+      redirect(307, "http://xn--bcher-kva.localhost/next"),
+      new Response("done"),
+    );
+    const response = await guarded(send, async () => ["::1"]).fetch("http://bücher.localhost/");
+    expect(await response.text()).toBe("done");
+    expect(sentUrls(send)).toEqual([
+      "http://bücher.localhost/",
+      "http://xn--bcher-kva.localhost/next",
+    ]);
+  });
+
+  it("refuses a redirect whose location is not a valid URL", async () => {
+    const send = scripted(redirect(307, "http://["));
+    const { fetch, run } = guarded(send);
+    await expect(run(() => fetch("http://127.0.0.1/"))).rejects.toThrow(
+      "it redirected to a location that is not a valid URL",
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   it("refuses an https to http downgrade on the same host", async () => {
     const send = scripted(redirect(307, "http://localhost/next"));
     await expect(

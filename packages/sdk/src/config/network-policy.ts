@@ -19,7 +19,7 @@ import {
 function configRule(network: NetworkConfig | undefined): NetworkRule | undefined {
   return network === undefined
     ? undefined
-    : { source: "config", policy: network.policy, allowedHosts: network.allowedHosts ?? [] };
+    : { source: "config", policy: network.policy, allowedHosts: [...(network.allowedHosts ?? [])] };
 }
 
 export function resolveNetworkPolicy(

@@ -89,12 +89,29 @@ type RedirectStep =
   | { readonly kind: "follow"; readonly next: URL }
   | { readonly kind: "refuse"; readonly violation: NetworkPolicyViolation };
 
+function parseLocation(location: string, current: URL): URL | undefined {
+  try {
+    return new URL(location, current);
+  } catch {
+    return undefined;
+  }
+}
+
 function redirectStep(response: Response, current: URL, followable: boolean): RedirectStep {
   const location = response.headers.get("location");
   if (!REDIRECT_STATUSES.has(response.status) || location === null) {
     return { kind: "none" };
   }
-  const next = new URL(location, current);
+  const next = parseLocation(location, current);
+  if (next === undefined) {
+    return {
+      kind: "refuse",
+      violation: blocked(
+        current.host,
+        "it redirected to a location that is not a valid URL, so its origin cannot be checked",
+      ),
+    };
+  }
   if (next.origin !== current.origin) {
     return {
       kind: "refuse",

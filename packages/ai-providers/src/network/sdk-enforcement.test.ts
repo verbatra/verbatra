@@ -140,6 +140,35 @@ describe("the network policy inside the real SDK clients", () => {
     },
   );
 
+  it.each([
+    [
+      "openai",
+      (net: ProviderNetwork) =>
+        createOpenAiProvider({ model: "gpt-5-mini", maxOutputTokens: 64 }, { network: net }),
+      { OPENAI_BASE_URL: "http://127.0.0.1:9000/v1" },
+    ],
+    [
+      "gemini",
+      (net: ProviderNetwork) =>
+        createGeminiProvider({ model: "gemini-2.5-flash", maxOutputTokens: 64 }, { network: net }),
+      { GOOGLE_GEMINI_BASE_URL: "http://127.0.0.1:7000" },
+    ],
+  ] as const)(
+    "%s: a real 400 from a permitted host stays a provider error, not a policy refusal",
+    async (_, build, env) => {
+      const send = vi.fn<FetchLike>(
+        async () =>
+          new Response(JSON.stringify({ error: { message: "bad request", code: 400 } }), {
+            status: 400,
+            headers: { "content-type": "application/json" },
+          }),
+      );
+      const error = await failure(build(network(send, env)));
+      expect(error.code).toBe("PROVIDER_ERROR");
+      expect(send).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("pins the OpenAI base URL resolved at check time", async () => {
     const send = vi.fn<FetchLike>(async () => new Response("{}", { status: 400 }));
     const provider = createOpenAiProvider(

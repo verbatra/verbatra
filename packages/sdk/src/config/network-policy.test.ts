@@ -48,6 +48,13 @@ describe("resolveNetworkPolicy", () => {
     expect(resolveNetworkPolicy({ policy: "any" }, {}).rules[0]?.allowedHosts).toEqual([]);
   });
 
+  it("copies allowedHosts, so a later change to the config cannot widen the policy", () => {
+    const allowedHosts = ["gpu.lan"];
+    const policy = resolveNetworkPolicy({ policy: "local-only", allowedHosts }, {});
+    allowedHosts.push("api.anthropic.com");
+    expect(policy.rules[0]?.allowedHosts).toEqual(["gpu.lan"]);
+  });
+
   it("fails closed as CONFIG_INVALID on an invalid environment value", () => {
     const error = thrown(() =>
       resolveNetworkPolicy(undefined, { VERBATRA_NETWORK_POLICY: "local_only" }),
