@@ -350,7 +350,7 @@
       },
       "s11": {
         "heading": "12. Formulario de contacto",
-        "body": "Cuando usas el <contact>formulario de contacto</contact>, tratamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo externo participa en su entrega, y esa entrega no implica ninguna transferencia de datos fuera de la UE. El único encargado del tratamiento externo en el sentido del art. 28 del RGPD es Arcjet, que trata la dirección IP y las cabeceras de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario frente a bots y abusos; esos datos se conservan durante el periodo que fija nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo de notificación resultante se conservan solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún sitio más allá de la bandeja de entrada del operador."
+        "body": "Cuando usas el <contact>formulario de contacto</contact>, tratamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo externo participa en su entrega, y esa entrega no implica ninguna transferencia de datos fuera de la UE. El único encargado del tratamiento externo en el sentido del art. 28 del RGPD es Arcjet, que trata la dirección IP y las cabeceras de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario frente a bots y abusos; esos datos se conservan durante el periodo que fija nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo de notificación resultante no se almacenan en ningún sitio más allá de la bandeja de entrada del operador. Se eliminan una vez que tu consulta se ha gestionado por completo, salvo que las obligaciones legales de conservación del derecho mercantil o fiscal alemán (HGB o AO) exijan conservarlos más tiempo; en ese caso, se eliminan al finalizar dicho plazo de conservación."
       },
       "s12": {
         "heading": "13. Traducción asistida por IA",
@@ -373,6 +373,7 @@
       },
       "title": "Contacto",
       "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el Aviso legal.",
+      "privacyNotice": "Usamos tu nombre, tu dirección de correo electrónico y tu mensaje solo para responder a tu consulta, y los eliminamos una vez gestionada. Encontrarás los detalles en la <privacy>política de privacidad</privacy>.",
       "form": {
         "nameLabel": "Nombre",
         "namePlaceholder": "Tu nombre",

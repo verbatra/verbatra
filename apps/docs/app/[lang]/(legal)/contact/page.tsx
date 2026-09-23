@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import type { ReactNode } from "react";
 import { ContactForm } from "@/components/contact-form";
-import { toLocale } from "@/lib/i18n";
-import { localeAlternates } from "@/lib/site";
+import { localizedPath, toLocale } from "@/lib/i18n";
+import { localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
+
+const NOTICE_LINK_CLASS =
+  "font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]";
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -20,13 +24,22 @@ export async function generateMetadata(props: {
 
 export default async function ContactPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
-  const t = await getTranslations({ locale: lang, namespace: "legal.contact" });
+  const locale = toLocale(lang);
+  const t = await getTranslations({ locale, namespace: "legal.contact" });
+  const privacyHref = `${localizedPath(locale, "/privacy")}#${PRIVACY_CONTACT_FORM_ANCHOR}`;
+  const privacyNotice = t.rich("privacyNotice", {
+    privacy: (chunks: ReactNode) => (
+      <a href={privacyHref} className={NOTICE_LINK_CLASS}>
+        {chunks}
+      </a>
+    ),
+  });
 
   return (
     <main className="container mx-auto max-w-3xl px-6 py-16 prose">
       <h1>{t("title")}</h1>
       <p>{t("intro")}</p>
-      <ContactForm />
+      <ContactForm privacyNotice={privacyNotice} />
     </main>
   );
 }

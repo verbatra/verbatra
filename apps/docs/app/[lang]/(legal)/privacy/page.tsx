@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CALLOUT_CLASS } from "@/components/mdx";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
+import { LEGAL_LAST_UPDATED, localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
 
 const UMAMI_DOCS = "https://umami.is/docs/";
 const GITHUB_REPO = "https://github.com/verbatra/verbatra";
@@ -34,6 +34,10 @@ const SECTION_KEYS = [
   "s11",
   "s12",
 ] as const;
+
+const HEADING_ANCHORS: Partial<Record<(typeof SECTION_KEYS)[number], string>> = {
+  s11: PRIVACY_CONTACT_FORM_ANCHOR,
+};
 
 const linkTagsFor = (locale: Locale) => ({
   email: (chunks: ReactNode) => <a href={CONTACT_MAILTO}>{chunks}</a>,
@@ -101,7 +105,9 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
           </section>
         ) : (
           <section key={key}>
-            <h2>{t(`${key}.heading`)}</h2>
+            <h2 id={HEADING_ANCHORS[key]} className="scroll-mt-24">
+              {t(`${key}.heading`)}
+            </h2>
             <p>{t.rich(`${key}.body`, linkTags)}</p>
           </section>
         ),

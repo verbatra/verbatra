@@ -350,7 +350,7 @@
       },
       "s11": {
         "heading": "12. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers au sens de l'art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une durée fixée par notre offre Arcjet, actuellement jusqu'à une heure sur l'offre gratuite. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont conservés que le temps nécessaire au traitement de la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers au sens de l'art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une durée fixée par notre offre Arcjet, actuellement jusqu'à une heure sur l'offre gratuite. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur. Ils sont supprimés dès que ta demande a été entièrement traitée, sauf si des obligations légales de conservation prévues par le droit commercial ou fiscal allemand (HGB ou AO) imposent de les conserver plus longtemps ; dans ce cas, ils sont supprimés à l'expiration de ce délai de conservation."
       },
       "s12": {
         "heading": "13. Traduction assistée par IA",
@@ -373,6 +373,7 @@
       },
       "title": "Contact",
       "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les mentions légales.",
+      "privacyNotice": "Nous utilisons ton nom, ton adresse e-mail et ton message uniquement pour répondre à ta demande, et nous les supprimons une fois celle-ci traitée. Tous les détails figurent dans la <privacy>politique de confidentialité</privacy>.",
       "form": {
         "nameLabel": "Nom",
         "namePlaceholder": "Ton nom",

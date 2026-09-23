@@ -350,7 +350,7 @@
       },
       "s11": {
         "heading": "12. Kontaktformular",
-        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübermittlung außerhalb der EU. Der einzige beteiligte Auftragsverarbeiter nach Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, den unser Arcjet-Tarif festlegt, derzeit bis zu einer Stunde im kostenlosen Tarif. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und an der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange aufbewahrt, wie es zur Bearbeitung der Anfrage nötig ist, und nirgends außerhalb des Postfachs des Betreibers gespeichert."
+        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübermittlung außerhalb der EU. Der einzige beteiligte Auftragsverarbeiter nach Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, den unser Arcjet-Tarif festlegt, derzeit bis zu einer Stunde im kostenlosen Tarif. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und an der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nirgends außerhalb des Postfachs des Betreibers gespeichert. Sie werden gelöscht, sobald deine Anfrage abschließend bearbeitet ist, es sei denn, handels- oder steuerrechtliche Aufbewahrungspflichten (nach HGB oder AO) verlangen eine längere Aufbewahrung; in diesem Fall werden sie mit Ablauf der Aufbewahrungsfrist gelöscht."
       },
       "s12": {
         "heading": "13. KI-gestützte Übersetzung",
@@ -373,6 +373,7 @@
       },
       "title": "Kontakt",
       "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im Impressum.",
+      "privacyNotice": "Wir nutzen deinen Namen, deine E-Mail-Adresse und deine Nachricht nur, um deine Anfrage zu beantworten, und löschen sie, sobald die Anfrage erledigt ist. Details findest du in der <privacy>Datenschutzerklärung</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Dein Name",
