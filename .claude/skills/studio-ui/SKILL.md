@@ -193,7 +193,8 @@ co-located test). Compose these before writing anything new.
 
 - **Primitives:** `Button` (`variant: "primary" | "secondary" | "ghost" | "danger"`,
   `size: "sm" | "md"`, default `secondary`/`sm`), `Card` (`padding: "none" | "sm" | "md"`,
-  `as: "div" | "section"`), `Badge` (`tone: "success" | "warning" | "neutral" | "danger"`),
+  `as: "div" | "section"`), `Badge` (`tone: "success" | "warning" | "neutral" | "danger"`, `wrap` to let a long
+  user value break inside the pill instead of overflowing; pills stay on one line by default),
   `Input`, `Select`, `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Accordion`, `Table`,
   `Sheet`, `Skeleton`, `Loading`, `ProgressBar`, `Toast`, `ErrorMessage`, `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
