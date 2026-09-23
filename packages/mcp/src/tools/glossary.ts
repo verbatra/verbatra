@@ -1,11 +1,9 @@
 import {
+  editConfiguredGlossaryTerm,
   type Glossary,
   glossaryForLocale,
-  normalizeGlossary,
-  readGlossaryFile,
+  readCurrentGlossary,
   redactGlossary,
-  SdkError,
-  updateGlossaryTerm,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
@@ -82,23 +80,6 @@ function fsDeps(context: McpToolContext): { readonly fs?: NonNullable<McpToolCon
   return context.fs !== undefined ? { fs: context.fs } : {};
 }
 
-async function currentGlossary(context: McpToolContext): Promise<Glossary | undefined> {
-  if (context.config.glossary.source === "file") {
-    return readGlossaryFile({ glossary: context.config.glossary }, fsDeps(context));
-  }
-  const inline = context.config.config.glossary;
-  return inline === undefined ? undefined : normalizeGlossary(inline);
-}
-
-function assertTargetLocale(context: McpToolContext, locale: string): void {
-  if (!context.config.config.targetLocales.includes(locale)) {
-    throw new SdkError(
-      "UNKNOWN_LOCALE",
-      `"${locale}" is not one of the configured target locales: ${context.config.config.targetLocales.join(", ")}.`,
-    );
-  }
-}
-
 function effectiveFor(glossary: Glossary, locale: string): GlossaryResult["effective"] {
   const slice = glossaryForLocale(glossary, locale);
   return {
@@ -134,32 +115,19 @@ async function glossaryGet(
   params: z.infer<typeof glossaryGetParamsSchema>,
   context: McpToolContext,
 ): Promise<GlossaryResult> {
-  if (params.locale !== undefined) {
-    assertTargetLocale(context, params.locale);
-  }
-  return buildResult(context, await currentGlossary(context), params.locale);
+  const glossary = await readCurrentGlossary(
+    { loaded: context.config, locale: params.locale },
+    fsDeps(context),
+  );
+  return buildResult(context, glossary, params.locale);
 }
 
 async function glossaryWrite(
   params: z.infer<typeof glossaryWriteParamsSchema>,
   context: McpToolContext,
 ): Promise<GlossaryResult> {
-  if (params.locale !== undefined) {
-    assertTargetLocale(context, params.locale);
-  }
-  const glossary = await updateGlossaryTerm(
-    {
-      glossary: context.config.glossary,
-      cwd: context.cwd,
-      term: params.term,
-      ...(params.translation !== undefined ? { translation: params.translation } : {}),
-      ...(params.locale !== undefined ? { locale: params.locale } : {}),
-      ...(params.forbidden !== undefined ? { forbidden: params.forbidden } : {}),
-      ...(params.note !== undefined ? { note: params.note } : {}),
-      ...(params.partOfSpeech !== undefined ? { partOfSpeech: params.partOfSpeech } : {}),
-      ...(params.caseSensitive !== undefined ? { caseSensitive: params.caseSensitive } : {}),
-      ...(params.doNotTranslate !== undefined ? { doNotTranslate: params.doNotTranslate } : {}),
-    },
+  const glossary = await editConfiguredGlossaryTerm(
+    { ...params, loaded: context.config, cwd: context.cwd },
     fsDeps(context),
   );
   return buildResult(context, glossary, params.locale);
@@ -202,7 +170,7 @@ export const glossaryWriteTool = defineTool({
     "renderings that locale must never use, replacing any listed before; null or an empty list " +
     "clears them), note and partOfSpeech (context for the translator; null clears), and " +
     "caseSensitive. To keep a term untranslated in every locale pass doNotTranslate: true, and " +
-    "false to stop; it cannot be combined with the other fields. Use it to correct or extend " +
+    "false to stop; it cannot be combined with any field but caseSensitive. Use it to correct or extend " +
     "terminology; it does not retranslate existing keys, so a changed term only affects later " +
     "translations. It needs a file-backed glossary: an inline glossary or none fails with " +
     "GLOSSARY_NOT_FILE_BACKED, and an edit that would leave an invalid glossary fails with " +

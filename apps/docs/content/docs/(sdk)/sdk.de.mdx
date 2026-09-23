@@ -867,6 +867,26 @@ nennt, bei dem ein Wert ersetzt wurde. Quellbegriffe und Begriffe aus `doNotTran
 sie sind. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt; nutze es in
 deinem eigenen Werkzeug genauso.
 
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Liest das Glossar, das eine geladene Konfiguration nennt, so wie es jetzt ist:
+`readCurrentGlossary({ loaded, locale? })`, wobei `loaded` das ist, was `loadConfigWithMeta`
+zurückgibt. Ein dateibasiertes Glossar wird frisch von der Festplatte gelesen, ein Inline-Glossar
+kommt aus der Konfiguration, und in beiden Fällen ist das Ergebnis das normalisierte `Glossary` oder
+`undefined`, wenn die Konfiguration keins angibt. Ist `locale` angegeben, muss es eine konfigurierte
+Ziel-Locale sein, sonst scheitert der Aufruf mit `UNKNOWN_LOCALE` und nennt die konfigurierten.
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+`updateGlossaryTerm` für ein Werkzeug mit geladener Konfiguration: nimmt `{ loaded, cwd?, term, ... }`
+mit denselben Änderungsfeldern, behandelt ein auf `undefined` gelassenes Feld als nicht angegeben
+und prüft `locale` zuerst gegen die konfigurierten Ziel-Locales; ist es keine davon, scheitert es mit
+`UNKNOWN_LOCALE` und schreibt nichts. Der MCP-Server und Studio schreiben das Glossar darüber.
+
 ### defineConfig
 
 Ein Identitätshelfer zum Schreiben einer typisierten `verbatra.config.ts`: er gibt sein Argument

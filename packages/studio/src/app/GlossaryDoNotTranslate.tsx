@@ -31,7 +31,7 @@ function KeptTerm({
           variant="ghost"
           onClick={() => void writer.write({ term: entry.term, doNotTranslate: false })}
           disabled={writer.pending === entry.term}
-          aria-label={`Translate ${entry.term} again`}
+          aria-label={`Remove ${entry.term} from do not translate`}
         >
           Remove
         </Button>

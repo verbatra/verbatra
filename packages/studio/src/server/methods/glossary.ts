@@ -1,13 +1,11 @@
 import {
+  editConfiguredGlossaryTerm,
   type Glossary,
   type GlossaryFileDeps,
   type GlossaryTerm,
   glossaryForLocale,
-  normalizeGlossary,
-  readGlossaryFile,
+  readCurrentGlossary,
   redactGlossary,
-  SdkError,
-  updateGlossaryTerm,
 } from "@verbatra/sdk";
 import type {
   GlossaryGetResult,
@@ -23,14 +21,6 @@ function fsDeps(deps: RpcHandlerDeps): GlossaryFileDeps {
   return deps.fs !== undefined ? { fs: deps.fs } : {};
 }
 
-async function currentGlossary(deps: RpcHandlerDeps): Promise<Glossary | undefined> {
-  if (deps.config.glossary.source === "file") {
-    return readGlossaryFile({ glossary: deps.config.glossary }, fsDeps(deps));
-  }
-  const inline = deps.config.config.glossary;
-  return inline === undefined ? undefined : normalizeGlossary(inline);
-}
-
 function hasOwnEntry(record: Readonly<Record<string, unknown>>, locale: string): boolean {
   const wanted = locale.toLowerCase();
   return Object.keys(record).some((key) => key.toLowerCase() === wanted);
@@ -41,9 +31,10 @@ function localeViews(
   locales: readonly string[],
 ): ReadonlyMap<string, ReadonlyMap<string, GlossaryLocaleView>> {
   const views = new Map<string, Map<string, GlossaryLocaleView>>();
+  const bySource = new Map(glossary.terms.map((term) => [term.source, term]));
   for (const locale of locales) {
     for (const term of glossaryForLocale(glossary, locale)?.terms ?? []) {
-      const own = glossary.terms.find((candidate) => candidate.source === term.source);
+      const own = bySource.get(term.source);
       const byLocale = views.get(term.source) ?? new Map<string, GlossaryLocaleView>();
       byLocale.set(locale, {
         ...(term.target !== undefined ? { target: term.target } : {}),
@@ -83,28 +74,11 @@ function buildResult(deps: RpcHandlerDeps, loaded: Glossary | undefined): Glossa
 }
 
 export const glossaryGetHandler: RpcHandler<"glossary.get"> = async (_params, deps) =>
-  buildResult(deps, await currentGlossary(deps));
+  buildResult(deps, await readCurrentGlossary({ loaded: deps.config }, fsDeps(deps)));
 
 export const glossaryWriteHandler: RpcHandler<"glossary.write"> = async (params, deps) => {
-  if (params.locale !== undefined && !deps.config.config.targetLocales.includes(params.locale)) {
-    throw new SdkError(
-      "UNKNOWN_LOCALE",
-      `"${params.locale}" is not one of the configured target locales.`,
-    );
-  }
-  const glossary = await updateGlossaryTerm(
-    {
-      glossary: deps.config.glossary,
-      cwd: deps.projectRoot,
-      term: params.term,
-      ...(params.translation !== undefined ? { translation: params.translation } : {}),
-      ...(params.locale !== undefined ? { locale: params.locale } : {}),
-      ...(params.forbidden !== undefined ? { forbidden: params.forbidden } : {}),
-      ...(params.note !== undefined ? { note: params.note } : {}),
-      ...(params.partOfSpeech !== undefined ? { partOfSpeech: params.partOfSpeech } : {}),
-      ...(params.caseSensitive !== undefined ? { caseSensitive: params.caseSensitive } : {}),
-      ...(params.doNotTranslate !== undefined ? { doNotTranslate: params.doNotTranslate } : {}),
-    },
+  const glossary = await editConfiguredGlossaryTerm(
+    { ...params, loaded: deps.config, cwd: deps.projectRoot },
     fsDeps(deps),
   );
   return buildResult(deps, glossary);

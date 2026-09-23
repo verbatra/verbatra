@@ -73,7 +73,7 @@ function field(view: RenderResult, label: string): HTMLInputElement {
 }
 
 async function showLocale(view: RenderResult, locale: string): Promise<void> {
-  selectOption(view.get('select[aria-label="Glossary locale"]') as HTMLSelectElement, locale);
+  selectOption(view.get("select") as HTMLSelectElement, locale);
   await clickAsync(view.get("ul"));
 }
 
@@ -173,6 +173,22 @@ describe("GlossarySection, file-backed", () => {
     expect(view.get('[role="alert"]').textContent).toContain("could not be written");
   });
 
+  it("labels the locale selector by its visible text", async () => {
+    const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+    const select = view.get("select");
+
+    expect(select.hasAttribute("aria-label")).toBe(false);
+    expect(view.get(`label[for="${select.id}"]`).textContent).toBe("Show translations for");
+  });
+
+  it("refuses a term longer than the cap", async () => {
+    const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+    typeInto(field(view, "New glossary term"), "a".repeat(201));
+    typeInto(field(view, "New glossary translation"), "x");
+
+    expect(view.getByText("button", "Add term").hasAttribute("disabled")).toBe(true);
+  });
+
   it("refuses to submit an add form that is missing either half", async () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
     typeInto(field(view, "New glossary term"), "cart");
@@ -255,7 +271,7 @@ describe("GlossarySection, file-backed", () => {
     expect(buttonLabeled(view, "Remove verbatra").hasAttribute("disabled")).toBe(false);
   });
 
-  it("neither edits nor shows the real value of a term the server redacted", async () => {
+  it("neither edits, removes, nor shows the real value of a term the server redacted", async () => {
     const redacted: GlossaryGetResult = {
       ...FILE_BACKED,
       terms: [sharedTerm("apiTerm", "[REDACTED]")],
@@ -265,7 +281,7 @@ describe("GlossarySection, file-backed", () => {
     const view = await renderAsync(<GlossarySection glossary={redacted} onChange={() => {}} />);
 
     expect(view.query('button[aria-label="Edit apiTerm"]')).toBeNull();
-    expect(buttonLabeled(view, "Remove apiTerm")).toBeTruthy();
+    expect(view.query('button[aria-label="Remove apiTerm"]')).toBeNull();
     expect(view.text()).toContain("looks like a secret");
   });
 });
@@ -278,7 +294,7 @@ describe("GlossarySection, do-not-translate terms", () => {
 
     expect(view.text()).toContain("Northwind");
     expect(view.text()).toContain("match case");
-    await clickAsync(buttonLabeled(view, "Translate Northwind again"));
+    await clickAsync(buttonLabeled(view, "Remove Northwind from do not translate"));
 
     expect(rpcCalls).toEqual([
       { method: "glossary.write", params: { term: "Northwind", doNotTranslate: false } },

@@ -1,4 +1,5 @@
 import { SdkError } from "../errors.js";
+import { selectLocales } from "../flow/select-locales.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { withGlossaryGuard } from "../lock/locale-write-lock.js";
 import {
@@ -20,6 +21,7 @@ import {
   isVersion1Edit,
   toDefinition,
 } from "./glossary-edit.js";
+import type { LoadedConfig } from "./load-config.js";
 import type { GlossaryProvenance } from "./resolve-glossary.js";
 
 export const MAX_GLOSSARY_FILE_BYTES = 1024 * 1024;
@@ -327,4 +329,82 @@ export async function updateGlossaryTerm(
     }
     return normalizeGlossary(inputOf(content));
   });
+}
+
+/** The loaded config a glossary tool works on: the resolved config and its glossary provenance. */
+export type GlossaryConfig = Pick<LoadedConfig, "config" | "glossary">;
+
+/** Input for {@link readCurrentGlossary}. */
+export interface ReadCurrentGlossaryInput {
+  /** The loaded config, as {@link loadConfigWithMeta} returns it. */
+  readonly loaded: GlossaryConfig;
+  /**
+   * A target locale the caller is about to resolve the glossary for. When given it must be one of
+   * the config's target locales.
+   */
+  readonly locale?: string | undefined;
+}
+
+/**
+ * Reads the glossary a loaded config names as it is now: a file-backed glossary fresh from disk,
+ * an inline one from the config itself, normalized either way. This is the read path behind a
+ * glossary viewer that runs longer than one config load.
+ *
+ * @param input - The loaded config and, optionally, the target locale the caller will resolve.
+ * @param deps - Optional file-system override.
+ * @returns The normalized glossary, or `undefined` when the config declares none.
+ *
+ * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locale` is not one of the configured target locales.
+ * @throws {@link SdkError} `CONFIG_INVALID`: the glossary file cannot be read as a glossary.
+ */
+export async function readCurrentGlossary(
+  input: ReadCurrentGlossaryInput,
+  deps: GlossaryFileDeps = {},
+): Promise<Glossary | undefined> {
+  if (input.locale !== undefined) {
+    selectLocales(input.loaded.config, [input.locale]);
+  }
+  if (input.loaded.glossary.source === "file") {
+    return readGlossaryFile({ glossary: input.loaded.glossary }, deps);
+  }
+  const inline = input.loaded.config.glossary;
+  return inline === undefined ? undefined : normalizeGlossary(inline);
+}
+
+type OptionalFields<T> = { readonly [K in keyof T]?: T[K] | undefined };
+
+/** Input for {@link editConfiguredGlossaryTerm}. */
+export interface EditConfiguredGlossaryTermInput
+  extends OptionalFields<Omit<UpdateGlossaryTermInput, "glossary" | "term">> {
+  /** The loaded config, as {@link loadConfigWithMeta} returns it. */
+  readonly loaded: GlossaryConfig;
+  /** The source term to add, change, or remove. Must not be blank. */
+  readonly term: string;
+}
+
+/**
+ * {@link updateGlossaryTerm} for a tool that holds a loaded config: the same edit, with `locale`
+ * checked against the config's target locales first and any field left `undefined` treated as
+ * absent. MCP and Studio write the glossary through it.
+ *
+ * @param input - The loaded config, the term, and what to change about it.
+ * @param deps - Optional file-system override.
+ * @returns The glossary as it now stands on disk, in its normalized form.
+ *
+ * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locale` is not one of the configured target locales;
+ * nothing is written.
+ * @throws {@link SdkError} Every code {@link updateGlossaryTerm} throws.
+ */
+export async function editConfiguredGlossaryTerm(
+  input: EditConfiguredGlossaryTermInput,
+  deps: GlossaryFileDeps = {},
+): Promise<Glossary> {
+  const { loaded, ...edit } = input;
+  if (edit.locale !== undefined) {
+    selectLocales(loaded.config, [edit.locale]);
+  }
+  const defined = Object.fromEntries(
+    Object.entries(edit).filter(([, value]) => value !== undefined),
+  ) as Omit<UpdateGlossaryTermInput, "glossary">;
+  return updateGlossaryTerm({ ...defined, glossary: loaded.glossary }, deps);
 }

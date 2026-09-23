@@ -65,8 +65,8 @@ Fourteen tools, listed here in the order the server advertises them.
 | `project.snapshot` | Read the resolved project configuration: locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
 | `status.check` | Per target locale, how many keys are missing, stale, or up to date, and whether the locale is in sync |
 | `status.diff` | Per target locale, the exact keys the next translate run would add, re-translate, or orphan |
-| `glossary.get` | Every configured term and its translation, plus where the glossary comes from |
-| `glossary.write` | Add, replace, or remove one glossary term, and return the glossary afterward |
+| `glossary.get` | Every glossary term with its translation for all locales, per-locale translations, forbidden renderings, case sensitivity, note and part of speech, the terms kept untranslated, the glossary version and where it comes from; with `locale`, also the terms that locale is held to |
+| `glossary.write` | Change one glossary term (a translation for all locales or one `locale`, `forbidden` renderings, `note`, `partOfSpeech`, `caseSensitive`, or `doNotTranslate`) and return the glossary afterward |
 | `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
 | `key.value` | One key's current source text and, if translated, its current text in one target locale |

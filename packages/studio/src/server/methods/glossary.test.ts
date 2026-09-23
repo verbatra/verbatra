@@ -355,7 +355,11 @@ describe("glossary handlers: per-locale views", () => {
 
     await expect(
       glossaryWriteHandler({ term: "Board", locale: "it", translation: "x" }, perLocaleDeps(store)),
-    ).rejects.toMatchObject({ code: "UNKNOWN_LOCALE" });
+    ).rejects.toMatchObject({
+      code: "UNKNOWN_LOCALE",
+      message:
+        "Requested locale not in the configured target locales: it. Configured targets: de, fr.",
+    });
     expect(store.get("/project/glossary.json")).toBe(PER_LOCALE);
   });
 

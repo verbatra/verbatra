@@ -794,6 +794,25 @@ that had a value replaced. Source terms and do-not-translate terms are left as t
 server and Studio use it before a glossary leaves the process; use it the same way in your own
 tool.
 
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Reads the glossary a loaded config names as it is now: `readCurrentGlossary({ loaded, locale? })`,
+where `loaded` is what `loadConfigWithMeta` returns. A file-backed glossary is read fresh from disk,
+an inline one comes from the config, and either way the result is the normalized `Glossary`, or
+`undefined` when the config declares none. When `locale` is given it must be a configured target
+locale, or the call fails with `UNKNOWN_LOCALE` naming the configured ones.
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+`updateGlossaryTerm` for a tool that holds a loaded config: takes `{ loaded, cwd?, term, ... }` with
+the same edit fields, treats a field left `undefined` as absent, and checks `locale` against the
+configured target locales first, failing with `UNKNOWN_LOCALE` and writing nothing when it is not
+one of them. The MCP server and Studio write the glossary through it.
+
 ### defineConfig
 
 An identity helper for authoring a typed `verbatra.config.ts`: it returns its argument unchanged,

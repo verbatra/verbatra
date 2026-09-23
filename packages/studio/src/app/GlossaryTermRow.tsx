@@ -210,7 +210,7 @@ function RowActions({
   readonly onEdit: () => void;
   readonly onRemove: () => void;
 }): ReactNode {
-  const removable = scope === ALL_LOCALES && !hasPerLocaleData(term);
+  const removable = scope === ALL_LOCALES && !redacted && !hasPerLocaleData(term);
   return (
     <span className="flex items-center gap-1.5">
       {redacted ? null : (

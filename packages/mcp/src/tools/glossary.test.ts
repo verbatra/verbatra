@@ -170,7 +170,9 @@ describe("glossary.get", () => {
 
     expect(outcome).toMatchObject({
       kind: "error",
-      message: expect.stringContaining("UNKNOWN_LOCALE"),
+      message: expect.stringContaining(
+        "UNKNOWN_LOCALE: Requested locale not in the configured target locales: it. Configured targets: de, fr.",
+      ),
     });
   });
 
@@ -334,7 +336,9 @@ describe("glossary.write", () => {
 
     expect(outcome).toMatchObject({
       kind: "error",
-      message: expect.stringContaining("UNKNOWN_LOCALE"),
+      message: expect.stringContaining(
+        "UNKNOWN_LOCALE: Requested locale not in the configured target locales: it. Configured targets: de, fr.",
+      ),
     });
     expect(await onDisk(path)).toEqual(V2);
   });

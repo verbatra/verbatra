@@ -10,6 +10,7 @@ import {
   type GlossaryIndicator,
   type GlossaryWriteParams,
   type GlossaryWriteResult,
+  MAX_GLOSSARY_TERM_LENGTH,
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { rpcClient } from "./api.js";
@@ -61,12 +62,7 @@ function ScopeSelect({
   return (
     <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
       <label htmlFor={id}>Show translations for</label>
-      <Select
-        id={id}
-        aria-label="Glossary locale"
-        value={scope}
-        onChange={(event) => onScope(event.target.value)}
-      >
+      <Select id={id} value={scope} onChange={(event) => onScope(event.target.value)}>
         <option value={ALL_LOCALES}>All locales</option>
         {locales.map((locale) => (
           <option key={locale} value={locale}>
@@ -90,6 +86,7 @@ function GlossaryAddForm({
   const busy = writer.pending !== undefined;
   const ready =
     term.trim().length > 0 &&
+    term.length <= MAX_GLOSSARY_TERM_LENGTH &&
     translation.trim().length > 0 &&
     translation.length <= MAX_GLOSSARY_TRANSLATION_LENGTH;
 

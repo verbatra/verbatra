@@ -470,24 +470,29 @@ export interface RedactedGlossary {
   readonly redactedTerms: readonly string[];
 }
 
-function redactRecord<T>(
-  record: Readonly<Record<string, T>>,
-  redactValue: (value: T) => T,
-): Readonly<Record<string, T>> {
-  return Object.fromEntries(
-    Object.entries(record).map(([locale, value]) => [locale, redactValue(value)]),
-  );
+interface RedactedTerm {
+  readonly term: GlossaryTerm;
+  readonly redacted: boolean;
 }
 
-function redactTerm(term: GlossaryTerm): GlossaryTerm {
-  return {
-    ...term,
-    ...(term.target !== undefined ? { target: redact(term.target) } : {}),
-    targets: redactRecord(term.targets, redact),
-    forbidden: redactRecord(term.forbidden, (renderings) => renderings.map(redact)),
-    ...(term.note !== undefined ? { note: redact(term.note) } : {}),
-    ...(term.partOfSpeech !== undefined ? { partOfSpeech: redact(term.partOfSpeech) } : {}),
+function redactTerm(term: GlossaryTerm): RedactedTerm {
+  let redacted = false;
+  const scrub = (value: string): string => {
+    const safe = redact(value);
+    redacted ||= safe !== value;
+    return safe;
   };
+  const scrubRecord = <T>(record: Readonly<Record<string, T>>, each: (value: T) => T) =>
+    Object.fromEntries(Object.entries(record).map(([locale, value]) => [locale, each(value)]));
+  const next: GlossaryTerm = {
+    ...term,
+    ...(term.target !== undefined ? { target: scrub(term.target) } : {}),
+    targets: scrubRecord(term.targets, scrub),
+    forbidden: scrubRecord(term.forbidden, (renderings) => renderings.map(scrub)),
+    ...(term.note !== undefined ? { note: scrub(term.note) } : {}),
+    ...(term.partOfSpeech !== undefined ? { partOfSpeech: scrub(term.partOfSpeech) } : {}),
+  };
+  return { term: next, redacted };
 }
 
 /**
@@ -500,9 +505,9 @@ function redactTerm(term: GlossaryTerm): GlossaryTerm {
  * @returns The redacted glossary and the source terms whose values were redacted.
  */
 export function redactGlossary(glossary: Glossary): RedactedGlossary {
-  const terms = glossary.terms.map(redactTerm);
-  const redactedTerms = terms
-    .filter((term, index) => JSON.stringify(term) !== JSON.stringify(glossary.terms[index]))
-    .map((term) => term.source);
-  return { glossary: { ...glossary, terms }, redactedTerms };
+  const results = glossary.terms.map(redactTerm);
+  return {
+    glossary: { ...glossary, terms: results.map(({ term }) => term) },
+    redactedTerms: results.filter(({ redacted }) => redacted).map(({ term }) => term.source),
+  };
 }

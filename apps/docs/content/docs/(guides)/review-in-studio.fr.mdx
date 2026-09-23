@@ -135,7 +135,7 @@ Deux cas restent en lecture seule, et le panneau dit lequel te concerne :
 - **Le glossaire est écrit inline dans `verbatra.config.ts`.** C'est du code exécutable, et Studio ne le réécrit pas. Déplace les termes dans un fichier JSON et fais pointer la clé `glossary` de la config vers ce chemin.
 - **Le projet n'a pas de glossaire.** Crée un fichier JSON, en paires terme et traduction ou en glossaire version 2, puis mets `glossary` sur ce chemin.
 
-Une valeur qui ressemble à une clé d'API de fournisseur est masquée avant même d'atteindre le navigateur, et un tel terme ne peut pas être modifié ici : ce que le panneau détient est le placeholder, pas le texte réel. Modifie celui-là directement dans le fichier de glossaire.
+Une valeur qui ressemble à une clé d'API de fournisseur est masquée avant même d'atteindre le navigateur, et un tel terme ne peut être ni modifié ni supprimé ici : ce que le panneau détient est le placeholder, pas le texte réel. Modifie celui-là directement dans le fichier de glossaire.
 
 ## Ensuite
 

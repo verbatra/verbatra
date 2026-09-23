@@ -841,6 +841,27 @@ término al que se le sustituyó un valor. Los términos de origen y los de `doN
 como están. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso; úsalo igual
 en tu propia herramienta.
 
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Lee el glosario que nombra una configuración cargada tal como está ahora:
+`readCurrentGlossary({ loaded, locale? })`, donde `loaded` es lo que devuelve `loadConfigWithMeta`.
+Un glosario respaldado por archivo se lee directamente del disco, uno en línea sale de la
+configuración, y en ambos casos el resultado es el `Glossary` normalizado, o `undefined` cuando la
+configuración no declara ninguno. Si se pasa `locale`, tiene que ser un locale de destino
+configurado; si no, la llamada falla con `UNKNOWN_LOCALE` y nombra los configurados.
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+`updateGlossaryTerm` para una herramienta que tiene una configuración cargada: recibe
+`{ loaded, cwd?, term, ... }` con los mismos campos de edición, trata un campo dejado en `undefined`
+como ausente y comprueba primero `locale` contra los locales de destino configurados; si no es uno de
+ellos, falla con `UNKNOWN_LOCALE` y no escribe nada. El servidor MCP y Studio escriben el glosario
+a través de ella.
+
 ### defineConfig
 
 Un ayudante de identidad para escribir un `verbatra.config.ts` tipado: devuelve su argumento sin cambios y
