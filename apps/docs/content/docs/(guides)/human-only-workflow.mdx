@@ -24,13 +24,31 @@ An existing project can switch the same way: replace its `provider` block with `
 
 | Command | With `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. `translate` exits `3` when any key is left. |
+| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. A fuzzy reuse (with `fuzzyCache` on) is written for reference but also counts as `unfilled`, since only a person can confirm it. `translate` exits `3` when any key is left. |
 | `export`, `import`, `tmx` | unchanged: the handoff and the translation memory are how human translations get in. |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unchanged; none of them calls a provider. |
 | `studio`, `mcp` | local reads and edits work; the provider-spending actions are never offered, even with `--allow-spend`. |
 | SDK `retranslateEntry` | fails with `MACHINE_TRANSLATION_DISABLED` before reading or locking anything. |
 
 No provider is constructed on any of these paths, whatever the environment holds, and no network request is made.
+
+## Switching from a machine provider
+
+The translation memory keeps human-only work in a bucket of its own, apart from anything a machine provider produced, and nothing is read across buckets. Changing `tone` or the glossary does not touch that bucket, so a human translation stays reusable however the project's settings evolve.
+
+That isolation also means switching to `none` starts from an empty memory. To carry earlier translations across, move them explicitly, knowing that you are importing machine output into what is otherwise a human-only memory:
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+Order matters: run `tmx export` before switching. Run right after the switch, it exports the human-only bucket, which is still empty. See [`verbatra tmx`](/docs/cli/tmx) for the file name and flags.
 
 ## The day-to-day loop
 

@@ -24,13 +24,31 @@ Ein bestehendes Projekt stellst du genauso um: Ersetz seinen `provider`-Block du
 
 | Befehl | Mit `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | füllen einen Key nur aus [dem Translation Memory](/docs/the-cache); jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet, nicht angefasst und beim nächsten Lauf wieder angeboten. `translate` endet mit `3`, wenn ein Key übrig bleibt. |
+| `translate`, `watch` | füllen einen Key nur aus [dem Translation Memory](/docs/the-cache); jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet, nicht angefasst und beim nächsten Lauf wieder angeboten. Eine unscharfe Wiederverwendung (mit eingeschaltetem `fuzzyCache`) wird zur Orientierung geschrieben, zählt aber ebenfalls als `unfilled`, weil nur ein Mensch sie bestätigen kann. `translate` endet mit `3`, wenn ein Key übrig bleibt. |
 | `export`, `import`, `tmx` | unverändert: Über die Übergabe und das Translation Memory kommen menschliche Übersetzungen hinein. |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unverändert; keiner davon ruft einen Provider auf. |
 | `studio`, `mcp` | lokales Lesen und Bearbeiten funktioniert; die kostenpflichtigen Provider-Aktionen werden nie angeboten, auch nicht mit `--allow-spend`. |
 | SDK `retranslateEntry` | schlägt mit `MACHINE_TRANSLATION_DISABLED` fehl, bevor irgendetwas gelesen oder gesperrt wird. |
 
 Auf keinem dieser Wege wird ein Provider erzeugt, egal was in der Umgebung steht, und es gibt keine Netzwerkanfrage.
+
+## Umstieg von einem Maschinen-Provider
+
+Das Translation Memory hält rein menschliche Arbeit in einem eigenen Bereich, getrennt von allem, was ein Maschinen-Provider erzeugt hat, und zwischen den Bereichen wird nichts gelesen. Eine Änderung von `tone` oder am Glossar berührt diesen Bereich nicht, eine menschliche Übersetzung bleibt also wiederverwendbar, egal wie sich die Einstellungen des Projekts entwickeln.
+
+Diese Trennung heißt auch: Der Umstieg auf `none` beginnt mit einem leeren Memory. Willst du frühere Übersetzungen mitnehmen, überträgst du sie ausdrücklich, im Wissen, dass du damit Maschinenausgabe in ein sonst rein menschliches Memory importierst:
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+Die Reihenfolge zählt: Führ `tmx export` vor dem Umstieg aus. Direkt nach dem Umstieg exportiert es den rein menschlichen Bereich, der dann noch leer ist. Dateiname und Flags findest du unter [`verbatra tmx`](/docs/cli/tmx).
 
 ## Der tägliche Ablauf
 

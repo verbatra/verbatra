@@ -215,7 +215,7 @@ Desactiva la traducción automática por política. Úsalo cuando un NDA o una n
 provider: { id: "none" }
 ```
 
-`none` no recibe `options`. Nunca se construye un proveedor, no se lee ninguna clave de API y no se hace ninguna petición de red. `translate` y `watch` rellenan una clave solo desde [la memoria de traducción](/docs/the-cache) e informan de cualquier otra clave ausente o cambiada como `unfilled`, sin tocarla; `translate` termina entonces con el código `3`. [Studio](/docs/cli/studio) y el [servidor MCP](/docs/cli/mcp) nunca ofrecen sus acciones que gastan en el proveedor, ni siquiera con `--allow-spend`, y `retranslateEntry` del SDK falla con `MACHINE_TRANSLATION_DISABLED`. `verbatra init --provider none` lo prepara. El flujo completo está en [Flujo solo humano](/docs/human-only-workflow).
+`none` no recibe `options`. Nunca se construye un proveedor, no se lee ninguna clave de API y no se hace ninguna petición de red. `translate` y `watch` rellenan una clave solo desde [la memoria de traducción](/docs/the-cache) e informan de cualquier otra clave ausente o cambiada como `unfilled`, sin tocarla; `translate` termina entonces con el código `3`. [Studio](/docs/cli/studio) y el [servidor MCP](/docs/cli/mcp) nunca ofrecen sus acciones que gastan en el proveedor, ni siquiera con `--allow-spend`, y `retranslateEntry` del SDK falla con `MACHINE_TRANSLATION_DISABLED`. Su memoria de traducción es un compartimento propio, así que un proyecto que cambia desde un proveedor automático empieza vacío salvo que traspase entradas con `tmx export` antes del cambio y `tmx import` después. `verbatra init --provider none` lo prepara. El flujo completo está en [Flujo solo humano](/docs/human-only-workflow).
 
 ## Tono y glosario entre proveedores
 

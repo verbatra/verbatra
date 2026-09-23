@@ -29,6 +29,10 @@ Standardmäßig löscht ein Lauf nichts: verwaiste Keys werden gemeldet und blei
 
 `--dry-run` konstruiert überhaupt keinen Provider, braucht also keinen API-Key und kann keine Kosten verursachen: Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), es liest und schreibt den Cache nicht und es nimmt keine Schreibsperre pro Locale, wartet also nie auf einen bereits laufenden Lauf. Das Laden von `.env` oben passiert bei einem Dry Run weiterhin; es gibt nur keinen Key zu lesen. Damit ist es ein vollwertiger Weg, verbatra an einem echten Projekt auszuprobieren, bevor du ein Provider-Konto anlegst.
 
+In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) ist ein Dry Run die einzige Ausnahme von der Cache-Regel: Er liest das Translation Memory, schreibt aber weiterhin nichts, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys auflistet wie ein echter Lauf, und `--estimate` meldet nichts zu senden und nichts zu bezahlen.
+
+<AvailableFrom version="0.12.0" />
+
 `--estimate` ergänzt diesen Dry Run um eine Kostenschätzung vor dem Lauf: wie viele Keys gesendet würden, in wie viele Provider-Requests sie aufgeteilt würden und welche Menge der konfigurierte Provider tatsächlich abrechnet (geschätzte Prompt- und Antwort-Tokens bei einem LLM, geschätzte Quellzeichen bei DeepL oder Google Cloud Translation und gar keine Kosten bei einem selbst gehosteten `openai-compatible`-Endpunkt). Es impliziert `--dry-run`, kostet also nichts und schreibt nichts. Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block hat, der den konfigurierten Provider und das Modell abdeckt; ohne einen solchen wird die Menge trotzdem gemeldet und der fehlende Raten-Key benannt, statt Kosten von `0.00` zu erfinden. Jede Zahl wird neben dem Datum ausgegeben, an dem diese Raten gelesen wurden, und neben einer Zeile, die benennt, was die Schätzung auslässt. Siehe [Kosten abschätzen](/docs/estimating-cost).
 
 <AvailableFrom version="0.11.0" />

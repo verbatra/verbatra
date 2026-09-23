@@ -606,6 +606,8 @@ because it takes no token limit. The `ScaffoldableProviderId` type is
 `Exclude<ProviderId, "openai-compatible" | "none">`, so it covers the five hosted providers;
 `openai-compatible` is excluded because it has no single required environment variable.
 
+`scaffoldingMetadata.humanOnlyProviderId` is `"none"`, the id that disables machine translation. It has no `providerEnv` entry, since it reads no key.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

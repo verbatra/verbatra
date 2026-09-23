@@ -643,6 +643,8 @@ tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible" | "non
 proveedores alojados; `openai-compatible` queda excluido porque no tiene una única variable de
 entorno obligatoria.
 
+`scaffoldingMetadata.humanOnlyProviderId` es `"none"`, el id que desactiva la traducción automática. No tiene entrada en `providerEnv`, porque no lee ninguna clave.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

@@ -36,6 +36,8 @@ Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo
 
 Cuando falta `--allow-spend`, el servidor lee en su lugar la variable de entorno `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado. El flag de la CLI siempre gana sobre la variable de entorno. Sin ninguno de los dos, `translation.retranslateEntry` y `translation.translatePending` no se exponen en absoluto: un cliente MCP que liste las herramientas nunca las ve, y llamarlas por nombre falla como herramienta desconocida. Esta es una garantía por proceso, no una comprobación por llamada, así que una herramienta bloqueada por gasto es estructuralmente imposible de llamar, no simplemente rechazada en el momento de la llamada. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, y entonces las dos herramientas nunca se exponen, ni siquiera con `--allow-spend`.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
 ## Configurar un cliente MCP
 
 Apunta tu cliente MCP al binario `verbatra-mcp`. Para Claude Desktop, añade esto a tu `claude_desktop_config.json`:

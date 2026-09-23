@@ -432,6 +432,8 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "none">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
 
+`scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

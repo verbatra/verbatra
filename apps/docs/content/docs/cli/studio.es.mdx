@@ -24,6 +24,8 @@ verbatra studio [flags]
 
 Cuando el flag `--allow-spend` está ausente, Studio lee en su lugar la variable de entorno `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado. El flag de la CLI siempre gana sobre la variable de entorno. Sin ninguno de los dos, Studio nunca contacta con un proveedor; la edición local no necesita ningún flag. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, y entonces Studio retiene el gasto en el proveedor incluso con `--allow-spend`: la página de Settings lo indica en lugar de remitir al flag.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
 `--expose-agent-tools` se resuelve igual a partir de `VERBATRA_STUDIO_AGENT_TOOLS`, con el mismo conjunto de valores admitidos y la misma regla de que el flag de la CLI gana sobre la variable. Está desactivado por defecto. Para que un agente pueda gastar hacen falta este flag y `--allow-spend` a la vez; ninguno de los dos flags implica el otro. Consulta [Opera Studio con un agente del navegador](/docs/agent-tools-in-studio) para el catálogo de herramientas y el modelo de seguridad.
 
 ## La URL impresa

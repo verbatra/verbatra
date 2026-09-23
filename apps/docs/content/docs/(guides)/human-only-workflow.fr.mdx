@@ -24,13 +24,31 @@ Un projet existant bascule de la même façon : remplace son bloc `provider` par
 
 | Commande | Avec `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | ne remplissent une clé que depuis [la mémoire de traduction](/docs/the-cache) ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée de nouveau à l'exécution suivante. `translate` sort avec `3` quand il reste une clé. |
+| `translate`, `watch` | ne remplissent une clé que depuis [la mémoire de traduction](/docs/the-cache) ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée de nouveau à l'exécution suivante. Une réutilisation approximative (avec `fuzzyCache` activé) est écrite à titre indicatif, mais compte aussi comme `unfilled`, puisque seule une personne peut la confirmer. `translate` sort avec `3` quand il reste une clé. |
 | `export`, `import`, `tmx` | inchangées : l'échange de fichiers et la mémoire de traduction sont la voie d'entrée des traductions humaines. |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | inchangées ; aucune n'appelle de fournisseur. |
 | `studio`, `mcp` | la lecture et la modification locales fonctionnent ; les actions qui dépensent auprès du fournisseur ne sont jamais proposées, même avec `--allow-spend`. |
 | `retranslateEntry` du SDK | échoue avec `MACHINE_TRANSLATION_DISABLED` avant de lire ou de verrouiller quoi que ce soit. |
 
 Aucun fournisseur n'est construit sur aucun de ces chemins, quel que soit le contenu de l'environnement, et aucune requête réseau n'est faite.
+
+## Passer depuis un fournisseur automatique
+
+La mémoire de traduction garde le travail 100 % humain dans un compartiment à part, séparé de tout ce qu'un fournisseur automatique a produit, et rien n'est lu d'un compartiment à l'autre. Changer `tone` ou le glossaire ne touche pas ce compartiment, une traduction humaine reste donc réutilisable quelle que soit l'évolution des réglages du projet.
+
+Cet isolement signifie aussi que passer à `none` démarre avec une mémoire vide. Pour reprendre des traductions antérieures, déplace-les explicitement, en sachant que tu importes ainsi de la sortie automatique dans une mémoire par ailleurs 100 % humaine :
+
+```bash
+# 1. Still on the old provider: export its memory
+verbatra tmx export
+
+# 2. Switch the config to provider: { id: "none" }
+
+# 3. Import it into the human-only bucket
+verbatra tmx import verbatra-memory.tmx
+```
+
+L'ordre compte : lance `tmx export` avant de basculer. Lancé juste après la bascule, il exporte le compartiment 100 % humain, encore vide. Voir [`verbatra tmx`](/docs/cli/tmx) pour le nom du fichier et les options.
 
 ## La boucle au quotidien
 
