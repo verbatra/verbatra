@@ -132,13 +132,19 @@ export function localeKey(code: string): string {
   }
 }
 
-function duplicateLocaleIssues(
+function localeKeyIssues(
   record: Readonly<Record<string, unknown>> | undefined,
   path: readonly (string | number)[],
 ): GlossaryIssue[] {
   const seen = new Set<string>();
   const issues: GlossaryIssue[] = [];
   for (const locale of Object.keys(record ?? {})) {
+    if (!localeCodeSchema.safeParse(locale).success) {
+      issues.push({
+        message: `names "${locale}", which is not a locale code`,
+        path: [...path, locale],
+      });
+    }
     const key = localeKey(locale);
     if (seen.has(key)) {
       issues.push({ message: `names the locale "${locale}" twice`, path: [...path, locale] });
@@ -206,8 +212,8 @@ function termIssues(terms: readonly GlossaryTermDefinition[]): GlossaryIssue[] {
       });
     }
     issues.push(
-      ...duplicateLocaleIssues(term.targets, ["terms", index, "targets"]),
-      ...duplicateLocaleIssues(term.forbidden, ["terms", index, "forbidden"]),
+      ...localeKeyIssues(term.targets, ["terms", index, "targets"]),
+      ...localeKeyIssues(term.forbidden, ["terms", index, "forbidden"]),
       ...forbiddenTargetIssues(term, index),
     );
   });
@@ -256,7 +262,31 @@ export const glossaryDefinitionSchema = z
     }
   });
 
-export function describeGlossaryIssues(issues: readonly z.core.$ZodIssue[]): string {
+interface DescribedIssue {
+  readonly message: string;
+  readonly path: readonly PropertyKey[];
+}
+
+function recordOf(value: unknown): Readonly<Record<string, unknown>> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+export function rawLocaleKeyIssues(definition: unknown): readonly GlossaryIssue[] {
+  const terms = recordOf(definition)?.terms;
+  if (!Array.isArray(terms)) {
+    return [];
+  }
+  return terms.flatMap((term: unknown, index) =>
+    (["targets", "forbidden"] as const).flatMap((field) => {
+      const record = recordOf(recordOf(term)?.[field]);
+      return record === undefined ? [] : localeKeyIssues(record, ["terms", index, field]);
+    }),
+  );
+}
+
+export function describeGlossaryIssues(issues: readonly DescribedIssue[]): string {
   return issues
     .map((issue) => {
       const path = issue.path.map(String).join(".");

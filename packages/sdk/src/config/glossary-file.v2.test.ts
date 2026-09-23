@@ -145,6 +145,28 @@ describe("updateGlossaryTerm: version 1 files", () => {
 });
 
 describe("updateGlossaryTerm: version 2 files", () => {
+  it("keeps the key order the file was written in, not the schema's", async () => {
+    const seeded = await seed(
+      '{\n  "terms": [\n    {\n      "targets": { "fr": "Tableau de bord" },\n      "note": "Start page",\n      "source": "Dashboard"\n    }\n  ],\n  "doNotTranslate": ["verbatra"],\n  "version": 2\n}\n',
+    );
+    await edit(seeded, { term: "Dashboard", locale: "de", translation: "Übersicht" });
+    const written = (await onDisk(seeded.path)) as Record<string, unknown>;
+    expect(Object.keys(written)).toEqual(["terms", "doNotTranslate", "version"]);
+    const term = (written.terms as Record<string, unknown>[])[0] ?? {};
+    expect(Object.keys(term)).toEqual(["targets", "note", "source"]);
+    expect(Object.keys(term.targets as object)).toEqual(["fr", "de"]);
+  });
+
+  it("refuses a file whose per-locale translations use __proto__ as a locale", async () => {
+    const { path } = await seed(
+      '{ "version": 2, "terms": [{ "source": "A", "targets": { "__proto__": "B" } }] }',
+    );
+    await expect(readGlossaryFile({ glossary: file(path) })).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      message: expect.stringContaining('names "__proto__", which is not a locale code'),
+    });
+  });
+
   it("sets one locale's translation without touching the others", async () => {
     const seeded = await seed(V2);
     await edit(seeded, { term: "Dashboard", locale: "de", translation: "Startseite" });

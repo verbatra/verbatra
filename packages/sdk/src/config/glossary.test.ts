@@ -4,6 +4,7 @@ import {
   glossaryDefinitionSchema,
   glossaryForLocale,
   normalizeGlossary,
+  rawLocaleKeyIssues,
   sharedGlossaryTranslations,
 } from "./glossary.js";
 
@@ -242,5 +243,26 @@ describe("sharedGlossaryTranslations", () => {
       normalizeGlossary(Object.fromEntries([["__proto__", "Prototyp"]])),
     );
     expect(Object.keys(shared)).toEqual(["__proto__"]);
+  });
+});
+
+describe("rawLocaleKeyIssues", () => {
+  it.each([
+    ["not an object", "glossary"],
+    ["terms that are not a list", { version: 2, terms: {} }],
+  ])("reports nothing for %s, leaving the shape to the schema", (_label, definition) => {
+    expect(rawLocaleKeyIssues(definition)).toEqual([]);
+  });
+
+  it("names a locale key the schema would silently drop", () => {
+    const definition = JSON.parse(
+      '{ "terms": [{ "source": "A", "forbidden": { "__proto__": ["B"] } }] }',
+    );
+    expect(rawLocaleKeyIssues(definition)).toEqual([
+      {
+        message: 'names "__proto__", which is not a locale code',
+        path: ["terms", 0, "forbidden", "__proto__"],
+      },
+    ]);
   });
 });

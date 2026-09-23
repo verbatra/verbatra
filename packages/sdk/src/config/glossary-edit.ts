@@ -254,7 +254,7 @@ function validated(definition: GlossaryDefinition): GlossaryDefinition {
       `The glossary edit would leave an invalid glossary: ${describeGlossaryIssues(result.error.issues)}.`,
     );
   }
-  return result.data;
+  return definition;
 }
 
 export function applyEdit(definition: GlossaryDefinition, edit: GlossaryEdit): GlossaryDefinition {

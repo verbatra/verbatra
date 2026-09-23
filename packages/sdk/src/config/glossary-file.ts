@@ -8,6 +8,7 @@ import {
   type GlossaryInput,
   glossaryDefinitionSchema,
   normalizeGlossary,
+  rawLocaleKeyIssues,
 } from "./glossary.js";
 import {
   applyEdit,
@@ -67,15 +68,19 @@ function version1Entries(parsed: Readonly<Record<string, unknown>>): Version1Ent
   return entries;
 }
 
-function parseDefinition(parsed: unknown, path: string): GlossaryDefinition {
+function parseDefinition(
+  parsed: Readonly<Record<string, unknown>>,
+  path: string,
+): GlossaryDefinition {
   const result = glossaryDefinitionSchema.safeParse(parsed);
-  if (!result.success) {
+  const issues = [...rawLocaleKeyIssues(parsed), ...(result.success ? [] : result.error.issues)];
+  if (issues.length > 0) {
     throw new SdkError(
       "CONFIG_INVALID",
-      `The glossary file at ${path} is not a valid version 2 glossary: ${describeGlossaryIssues(result.error.issues)}.`,
+      `The glossary file at ${path} is not a valid version 2 glossary: ${describeGlossaryIssues(issues)}.`,
     );
   }
-  return result.data;
+  return parsed as unknown as GlossaryDefinition;
 }
 
 function parseContent(parsed: unknown, path: string): GlossaryContent {
