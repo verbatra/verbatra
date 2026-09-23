@@ -65,7 +65,7 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
 
 ### Locales et fichiers
 
-- **`sourceLocale`** doit être une chaîne non vide.
+- **`sourceLocale`** doit être un code de locale BCP 47 valide, comme `en`, `pt-BR`, `zh-Hant-TW` ou `es-419`. Voir [Codes de locale](#codes-de-locale).
 - **`targetLocales`** doit contenir au moins une locale, ne doit pas inclure `sourceLocale`, et deux entrées ne peuvent pas être égales sans tenir compte de la casse (par exemple `["de", "DE"]` est rejeté), puisque chaque locale devient le nom de sa propre feuille Excel à l'export.
 - **`format`** est l'un de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` ou `resx`, ou un identifiant `custom:` nommant un format fourni par un adaptateur extérieur à verbatra. Voir [Formats](/docs/formats) et [Adaptateurs de format personnalisés](/docs/custom-format-adapters).
 - **`files.pattern`** doit contenir le jeton `{locale}`, que verbatra remplace par chaque locale : `locales/{locale}.json` se résout en `locales/de.json`. Les chemins se résolvent par rapport au répertoire de travail. Le motif est un chemin littéral, pas un glob, et `{locale}` est le seul jeton qu'il comprend, donc une configuration adresse exactement un fichier par locale. Si ton projet répartit ses chaînes sur plusieurs fichiers d'espace de noms par locale, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms). La seule exception est `apple-xcstrings`, où toutes les locales partagent un seul fichier de catalogue : le jeton reste obligatoire dans le motif, mais il se résout vers le même chemin quelle que soit la locale. Voir [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
@@ -80,6 +80,12 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
 
   Un style refuse une locale qu'il ne peut pas écrire correctement pour ce style, plutôt que
   d'écrire un répertoire que la plateforme ignorerait en silence.
+
+### Codes de locale
+
+<AvailableFrom version="0.12.0" />
+
+Chaque code de locale, source comme cible, doit être une étiquette bien formée qu'accepte `Intl.getCanonicalLocales`, avec une sous-étiquette de langue de deux ou trois lettres. Un code invalide fait échouer le chargement de la configuration avec `CONFIG_INVALID`, en nommant le champ et le code. Les tirets bas ne font pas partie de BCP 47, donc `pt_BR` est rejeté : écris `pt-BR` et règle `files.localeStyle` sur `posix` si tes noms de fichiers utilisent `pt_BR`. Un nom de langue comme `german` est rejeté aussi. Un code valide mais pas canonique, comme `zh-hant-tw` ou l'obsolète `iw` (désormais `he`), se charge toujours et fonctionne tel qu'il est écrit ; [`verbatra doctor`](/docs/cli/doctor) le nomme et suggère la forme canonique. verbatra ne renomme jamais un fichier à ta place.
 
 ### provider
 
@@ -296,13 +302,14 @@ Deux des emplacements de recherche ne peuvent pas être servis. La propriété `
 
 ### Ce que le document ne peut pas vérifier
 
-Le document porte chaque clé, son type, ses valeurs d'énumération, les clés obligatoires, la règle du jeton `{locale}` sur `files.pattern` et le rejet des clés inconnues. Trois règles sont appliquées à l'exécution mais n'ont aucune expression dans le draft 2020-12 de JSON Schema : l'éditeur reste donc muet à leur sujet, et verbatra les signale au chargement de la configuration.
+Le document porte chaque clé, son type, ses valeurs d'énumération, les clés obligatoires, la règle du jeton `{locale}` sur `files.pattern`, la grammaire des codes de locale sur `sourceLocale` et `targetLocales`, et le rejet des clés inconnues. Quatre règles sont appliquées à l'exécution mais n'ont aucune expression dans le draft 2020-12 de JSON Schema : l'éditeur reste donc muet à leur sujet, et verbatra les signale au chargement de la configuration.
 
 - `targetLocales` ne doit pas inclure `sourceLocale`. Comparer deux valeurs sœurs n'a aucun vocabulaire dans ce draft.
 - `targetLocales` ne doit pas contenir deux locales qui ne diffèrent que par la casse.
+- Un code de locale doit être accepté par `Intl.getCanonicalLocales`, pas seulement correspondre à la grammaire. Le motif ne voit pas une variante répétée comme `de-1996-1996`.
 - `provider.options.apiKeyEnvVar` (openai-compatible seulement) ne doit pas nommer la variable d'environnement d'un fournisseur hébergé. L'exprimer reviendrait à figer ces noms de variables dans un document livré, qui dériverait ensuite du code qui les possède.
 
-C'est la liste complète. Une configuration que l'éditeur affiche comme propre peut encore échouer sur l'une de ces trois règles : un éditeur au vert est donc une première passe rapide, pas un substitut à `verbatra check`.
+C'est la liste complète. Une configuration que l'éditeur affiche comme propre peut encore échouer sur l'une de ces quatre règles : un éditeur au vert est donc une première passe rapide, pas un substitut à `verbatra check`.
 
 ## Le répertoire de travail et .env
 

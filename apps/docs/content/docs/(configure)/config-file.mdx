@@ -65,7 +65,7 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
 ### Locales and files
 
-- **`sourceLocale`** must be a non-empty string.
+- **`sourceLocale`** must be a valid BCP 47 locale code, such as `en`, `pt-BR`, `zh-Hant-TW`, or `es-419`. See [Locale codes](#locale-codes).
 - **`targetLocales`** must contain at least one locale, must not include `sourceLocale`, and no two entries may be case-insensitively equal (for example `["de", "DE"]` is rejected), since each locale becomes its own Excel worksheet name on export.
 - **`format`** is one of `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini`, or `resx`, or a `custom:` identifier naming a format supplied by an adapter from outside verbatra. See [Formats](/docs/formats) and [Custom format adapters](/docs/custom-format-adapters).
 - **`files.pattern`** must contain the `{locale}` token, which verbatra replaces with each locale: `locales/{locale}.json` resolves to `locales/de.json`. Paths resolve against the working directory. The pattern is a literal path, not a glob, and `{locale}` is the only token it understands, so one config addresses exactly one file per locale. If your project splits strings across several namespace files per locale, see [Namespace layouts](/docs/formats#namespace-layouts). The one exception is `apple-xcstrings`, where every locale shares one catalogue file: the token is still required in the pattern, but it resolves to the same path regardless of locale. See [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
@@ -80,6 +80,12 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
   A style refuses a locale it cannot spell correctly for that style, rather than writing a
   directory the platform would silently ignore.
+
+### Locale codes
+
+<AvailableFrom version="0.12.0" />
+
+Every locale code, source and target alike, must be a well-formed tag that `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag. An invalid code fails the config load with `CONFIG_INVALID`, naming the field and the code. Underscores are not part of BCP 47, so `pt_BR` is rejected: write `pt-BR` and set `files.localeStyle` to `posix` if your file names use `pt_BR`. A language name such as `german` is rejected too. A code that is valid but not in canonical form, such as `zh-hant-tw` or the deprecated `iw` (now `he`), still loads and works as written; [`verbatra doctor`](/docs/cli/doctor) names it and suggests the canonical form. verbatra never renames a file for you.
 
 ### provider
 
@@ -296,13 +302,14 @@ Two of the discovery places cannot be served. The `"verbatra"` property inside `
 
 ### What the document cannot check
 
-The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, and the rejection of unknown keys. Three rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
+The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Four rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
 
 - `targetLocales` must not include `sourceLocale`. Comparing two sibling values has no vocabulary in the draft.
 - `targetLocales` must not contain two locales that differ only in case.
+- A locale code must be accepted by `Intl.getCanonicalLocales`, not only match the grammar. The pattern cannot see a repeated variant such as `de-1996-1996`.
 - `provider.options.apiKeyEnvVar` (openai-compatible only) must not name a hosted provider's environment variable. Expressing it would hard-code the hosted variable names into a shipped document, which would then drift from the code that owns them.
 
-That is the complete list. A config the editor shows as clean can still fail one of these three, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
+That is the complete list. A config the editor shows as clean can still fail one of these four, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
 
 ## The working directory and .env
 

@@ -30,6 +30,10 @@ export default defineConfig({
 
 Zwei Regeln, beide beim Laden der Konfiguration erzwungen: Eine Ziel-Locale darf nicht die `sourceLocale` sein, und zwei Einträge dürfen sich nicht nur in der Groß- und Kleinschreibung unterscheiden (kein `de` und `DE` in derselben Liste).
 
+<AvailableFrom version="0.12.0" />
+
+Ein Locale-Code muss außerdem gültiges BCP 47 sein, etwa `fr`, `pt-BR`, `zh-Hant-TW` oder `es-419`, und ein ungültiger lässt das Laden der Konfiguration mit einer Meldung scheitern, die ihn nennt. Nimm einen Bindestrich, keinen Unterstrich: Heißen deine Dateien `pt_BR.json`, schreib `pt-BR` und setz `files.localeStyle` auf `posix`, dann schreibt verbatra weiterhin `pt_BR.json`. Ein gültiger, aber nicht kanonischer Code wie `zh-hant-tw` oder das veraltete `iw` funktioniert weiter so, wie er dasteht; [`verbatra doctor`](/docs/cli/doctor) schlägt die kanonische Form vor. Siehe [Locale-Codes](/docs/config-file#locale-codes).
+
 ## Sieh dir die Arbeit vorab an
 
 Bevor du einen Token ausgibst, sieh dir an, was ein Lauf tun würde. `diff` liest nur und listet die ausstehenden Keys pro Locale:

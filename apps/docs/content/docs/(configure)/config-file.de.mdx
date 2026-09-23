@@ -65,7 +65,7 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
 ### Locales und Dateien
 
-- **`sourceLocale`** muss ein nicht-leerer String sein.
+- **`sourceLocale`** muss ein gültiger BCP-47-Locale-Code sein, zum Beispiel `en`, `pt-BR`, `zh-Hant-TW` oder `es-419`. Siehe [Locale-Codes](#locale-codes).
 - **`targetLocales`** muss mindestens eine Locale enthalten, darf `sourceLocale` nicht einschließen, und keine zwei Einträge dürfen case-insensitiv gleich sein (zum Beispiel wird `["de", "DE"]` abgelehnt), da jede Locale beim Export der Name ihres eigenen Excel-Arbeitsblatts wird.
 - **`format`** ist eines von `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` oder `resx`, oder ein `custom:`-Bezeichner, der ein Format benennt, das ein Adapter von außerhalb verbatra liefert. Siehe [Formate](/docs/formats) und [Eigene Format-Adapter](/docs/custom-format-adapters).
 - **`files.pattern`** muss das `{locale}`-Token enthalten, das verbatra durch jede Locale ersetzt: `locales/{locale}.json` wird zu `locales/de.json`. Pfade werden gegen das Arbeitsverzeichnis aufgelöst. Das Muster ist ein wörtlicher Pfad, kein Glob, und `{locale}` ist das einzige Token, das es versteht; eine Konfiguration adressiert also genau eine Datei pro Locale. Wenn dein Projekt seine Strings über mehrere Namespace-Dateien pro Locale verteilt, siehe [Namespace-Layouts](/docs/formats#namespace-layouts). Die eine Ausnahme ist `apple-xcstrings`, wo sich alle Locales eine Katalogdatei teilen: Das Token bleibt im Muster erforderlich, löst sich aber unabhängig von der Locale zum selben Pfad auf. Siehe [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
@@ -80,6 +80,12 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
   Ein Style lehnt eine Locale ab, die er für diesen Style nicht korrekt schreiben kann, statt ein
   Verzeichnis zu schreiben, das die Plattform stillschweigend ignorieren würde.
+
+### Locale-Codes
+
+<AvailableFrom version="0.12.0" />
+
+Jeder Locale-Code, Quelle wie Ziel, muss ein wohlgeformter Tag sein, den `Intl.getCanonicalLocales` akzeptiert, mit einem Sprach-Subtag aus zwei oder drei Buchstaben. Ein ungültiger Code lässt das Laden der Konfiguration mit `CONFIG_INVALID` scheitern und nennt Feld und Code. Unterstriche gehören nicht zu BCP 47, deshalb wird `pt_BR` abgelehnt: Schreib `pt-BR` und setz `files.localeStyle` auf `posix`, wenn deine Dateinamen `pt_BR` verwenden. Auch ein Sprachname wie `german` wird abgelehnt. Ein gültiger, aber nicht kanonischer Code wie `zh-hant-tw` oder das veraltete `iw` (heute `he`) lädt weiterhin und funktioniert so, wie er dasteht; [`verbatra doctor`](/docs/cli/doctor) nennt ihn und schlägt die kanonische Form vor. verbatra benennt nie eine Datei für dich um.
 
 ### provider
 
@@ -296,13 +302,14 @@ Zwei der Fundorte lassen sich nicht bedienen. Die `"verbatra"`-Property in der `
 
 ### Was das Dokument nicht prüfen kann
 
-Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern` und die Ablehnung unbekannter Keys. Drei Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
+Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Vier Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
 
 - `targetLocales` darf `sourceLocale` nicht enthalten. Für den Vergleich zweier Geschwisterwerte hat der Draft kein Vokabular.
 - `targetLocales` darf keine zwei Locales enthalten, die sich nur in der Groß- und Kleinschreibung unterscheiden.
+- Ein Locale-Code muss von `Intl.getCanonicalLocales` akzeptiert werden, nicht nur zur Grammatik passen. Eine wiederholte Variante wie `de-1996-1996` sieht das Muster nicht.
 - `provider.options.apiKeyEnvVar` (nur openai-compatible) darf keine Umgebungsvariable eines gehosteten Providers benennen. Das auszudrücken hieße, die Namen dieser Variablen fest in ein ausgeliefertes Dokument zu schreiben, das dann vom Code auseinanderdriften würde, dem sie gehören.
 
-Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser drei Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
+Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser vier Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
 
 ## Das Arbeitsverzeichnis und .env
 

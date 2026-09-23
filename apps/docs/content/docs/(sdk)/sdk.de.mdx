@@ -253,6 +253,11 @@ Eine sechste Prüfung, `plural-rules`, ist rein informativ und besteht immer: Ih
 ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
 und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
 
+Eine siebte Prüfung, `locale-codes`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
+nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
+`zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
+vorschlägt. Umbenannt wird nichts.
+
 Eingabe: `{ cwd?, configPath? }`. Keine geladene Konfiguration nötig: `doctor` lädt sie selbst, ein
 Projekt ganz ohne Konfiguration bekommt also trotzdem einen Bericht statt eines geworfenen Fehlers.
 Gibt ein `DoctorResult` zurück, dessen `ok` genau dann true ist, wenn keine Prüfung fehlgeschlagen
