@@ -113,9 +113,10 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [GLOSSARY_GET_METHOD]: {
     description:
-      "Reads the project glossary: the configured term mappings plus whether they came from the config file inline, from a separate JSON file, or are absent entirely. " +
+      "Reads the project glossary: every term with its translation for all locales, its per-locale translations, the renderings each locale must never use, whether it is matched with case, its note and part of speech, the terms kept untranslated in every locale, and whether the glossary came from the config file inline, from a separate JSON file, or is absent. " +
+      "For every configured target locale each term also carries the translation and forbidden renderings that locale is held to, and whether that translation is inherited from its base language or from the translation for all locales. " +
       "Use it to learn the terminology a translation is expected to follow before you write or request one, and to see whether the glossary can be changed at all, since only a file-backed one can. " +
-      "Do not treat every value as verbatim: each glossary value passes through secret redaction first, so a value shaped like a provider API key is returned as a placeholder rather than its real text, and the result's list of redacted terms names exactly those terms. " +
+      "Do not treat every value as verbatim: each translation, forbidden rendering, note, and part of speech passes through secret redaction first, so a value shaped like a provider API key is returned as a placeholder rather than its real text, and the result's list of redacted terms names exactly those terms. " +
       "A file-backed glossary is read fresh from disk on every call, so it reflects edits made since the server started. " +
       "Takes no parameters. Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
@@ -124,11 +125,16 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [GLOSSARY_WRITE_METHOD]: {
     description:
-      "Adds, replaces, or removes exactly one term in the project glossary, rewriting the JSON file the config points at and returning the glossary as it now stands. " +
+      "Changes exactly one term in the project glossary, rewriting the JSON file the config points at and returning the glossary as it now stands. " +
       "Use it to keep brand terms and fixed vocabulary current, since it spends no provider budget at all and changes no translated text. " +
       "Do not expect it to work on every project: only a file-backed glossary can be written, so a glossary written inline in the config, or no glossary at all, is refused as not file backed and nothing is converted on your behalf. " +
       "Do not send back a value verbatra_glossary_get reported as redacted, because that value is a redaction placeholder rather than the real text and writing it would destroy the original. " +
-      "The required `term` parameter is the source term, capped at 200 characters, and the required `translation` parameter is its replacement text, capped at 2000 characters, or null to clear the shared translation; the term is removed once nothing else is left. " +
+      "The required `term` parameter is the source term, capped at 200 characters. " +
+      "The optional `translation` parameter sets the term's translation, capped at 2000 characters, or null to clear it; without `locale` it is the translation for all locales, and clearing it keeps the term's per-locale data, the term being removed once nothing else is left. " +
+      "The optional `locale` parameter, a configured target locale, makes `translation` and `forbidden` apply to that locale only. " +
+      "The optional `forbidden` parameter lists the renderings that locale must never use, replacing any listed before, or null to clear them. " +
+      "The optional `note` and `partOfSpeech` parameters give translators context, or null to clear it, and the optional `caseSensitive` parameter says whether the term is matched with case. " +
+      "The optional `doNotTranslate` parameter, true or false, keeps the term untranslated in every locale or stops doing so, and cannot be combined with any parameter but `caseSensitive`. " +
       "There is no parameter naming a file: the target is derived from the loaded config alone. The write replaces the previous value with no undo on this surface, and the rest of the file keeps its order and indentation. " +
       "This tool is always registered: editing the glossary needs no capability flag and is never gated behind the spend flag.",
     readOnlyHint: false,

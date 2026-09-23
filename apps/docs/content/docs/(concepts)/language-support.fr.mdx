@@ -20,10 +20,10 @@ Quelles langues se traduisent, et avec quelle qualité, c'est le fournisseur qui
 
 | Fournisseur | Langues | Code envoyé | Glossaire | Ton |
 | --- | --- | --- | --- | --- |
-| `anthropic` | Pas de liste fixe. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Tel qu'écrit, plus les noms anglais de la langue, de l'écriture et de la région | Table de termes dans le prompt | Dans le prompt |
-| `openai` | Pas de liste fixe. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Tel qu'écrit, plus les noms | Table de termes dans le prompt | Dans le prompt |
-| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Tel qu'écrit, plus les noms | Table de termes dans le prompt | Dans le prompt |
-| `openai-compatible` | Ce que couvre le modèle que tu fais tourner | Tel qu'écrit, plus les noms | Table de termes dans le prompt | Dans le prompt |
+| `anthropic` | Pas de liste fixe. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Tel qu'écrit, plus les noms anglais de la langue, de l'écriture et de la région | Termes de la locale dans le prompt | Dans le prompt |
+| `openai` | Pas de liste fixe. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Tel qu'écrit, plus les noms | Termes de la locale dans le prompt | Dans le prompt |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Tel qu'écrit, plus les noms | Termes de la locale dans le prompt | Dans le prompt |
+| `openai-compatible` | Ce que couvre le modèle que tu fais tourner | Tel qu'écrit, plus les noms | Termes de la locale dans le prompt | Dans le prompt |
 | `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalisé vers les codes de DeepL | Seulement un glossaire DeepL créé à l'avance, via `glossaryId` | Formality de DeepL, pas avec une clé gratuite |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (pour le niveau Basic, v2, qu'utilise verbatra, c'est la liste NMT qui vaut) | Normalisé pour le chinois et le norvégien, sinon tel qu'écrit | Aucun | Aucun |
 | `none` | Sans objet : aucun fournisseur n'est appelé | Rien n'est envoyé | Sans objet | Sans objet |
@@ -57,7 +57,7 @@ Une sous-étiquette d'écriture ou de région change ce qu'on demande au fournis
 
 Deux choses en découlent. DeepL ne garde l'écriture que pour le chinois, donc `sr-Latn` et `sr-Cyrl` partent tous deux comme `SR` et reçoivent l'écriture que DeepL utilise pour le serbe. Google Cloud Translation reçoit la sous-étiquette d'écriture telle qu'elle est écrite, et c'est la liste de Google qui décide s'il l'accepte. Pour une langue qui s'écrit dans plusieurs écritures, un fournisseur LLM, à qui l'écriture est nommée, est le choix fiable, et `localeMap` couvre les cas où un fournisseur écrit la variante autrement.
 
-Deux contrôles tiennent aussi compte des écritures. Le signalement de révision `LENGTH_RATIO_OUTLIER` pondère chaque caractère selon son écriture, pour qu'une traduction compacte en chinois, en japonais ou en coréen ne soit pas signalée juste parce qu'elle est courte. Et un terme de glossaire écrit dans une écriture sans espaces entre les mots (han, kana, thaï et similaires) est cherché par inclusion plutôt que par limite de mot.
+Deux contrôles tiennent aussi compte des écritures. Le signalement de révision `LENGTH_RATIO_OUTLIER` pondère chaque caractère selon son écriture, pour qu'une traduction compacte en chinois, en japonais ou en coréen ne soit pas signalée juste parce qu'elle est courte. Et un terme de glossaire écrit dans une écriture sans espaces entre les mots (han, kana, thaï et similaires) est cherché par inclusion plutôt que par limite de mot, tout comme une traduction interdite dans une telle écriture.
 
 ## Pluriels
 

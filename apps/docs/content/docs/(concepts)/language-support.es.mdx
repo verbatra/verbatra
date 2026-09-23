@@ -20,10 +20,10 @@ Qué idiomas se traducen, y con qué calidad, lo decide el proveedor. verbatra n
 
 | Proveedor | Idiomas | Código enviado | Glosario | Tono |
 | --- | --- | --- | --- | --- |
-| `anthropic` | Sin lista fija. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Tal como está escrito, más los nombres en inglés del idioma, la escritura y la región | Mapa de términos en el prompt | En el prompt |
-| `openai` | Sin lista fija. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Tal como está escrito, más los nombres | Mapa de términos en el prompt | En el prompt |
-| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Tal como está escrito, más los nombres | Mapa de términos en el prompt | En el prompt |
-| `openai-compatible` | Lo que cubra el modelo que ejecutas | Tal como está escrito, más los nombres | Mapa de términos en el prompt | En el prompt |
+| `anthropic` | Sin lista fija. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Tal como está escrito, más los nombres en inglés del idioma, la escritura y la región | Términos del locale en el prompt | En el prompt |
+| `openai` | Sin lista fija. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Tal como está escrito, más los nombres | Términos del locale en el prompt | En el prompt |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Tal como está escrito, más los nombres | Términos del locale en el prompt | En el prompt |
+| `openai-compatible` | Lo que cubra el modelo que ejecutas | Tal como está escrito, más los nombres | Términos del locale en el prompt | En el prompt |
 | `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalizado a los códigos de DeepL | Solo un glosario de DeepL creado de antemano, por `glossaryId` | Formality de DeepL, no con una clave gratuita |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (para el nivel Basic, v2, que usa verbatra vale la lista NMT) | Normalizado para chino y noruego, si no, tal como está escrito | Ninguno | Ninguno |
 | `none` | No aplica: no se llama a ningún proveedor | No se envía nada | No aplica | No aplica |
@@ -57,7 +57,7 @@ Una subetiqueta de escritura o de región cambia lo que se le pide al proveedor,
 
 De esta tabla salen dos cosas. DeepL solo conserva la escritura para el chino, así que `sr-Latn` y `sr-Cyrl` salen los dos como `SR` y reciben la escritura que DeepL use para el serbio. Google Cloud Translation recibe la subetiqueta de escritura tal como está escrita, y si la acepta depende de la lista de Google. Para un idioma que se escribe en más de una escritura, un proveedor LLM, al que se le nombra la escritura, es la opción fiable, y `localeMap` cubre los casos en que un proveedor escribe la variante de otra forma.
 
-Dos comprobaciones también tienen en cuenta las escrituras. La señal de revisión `LENGTH_RATIO_OUTLIER` pondera cada carácter según su escritura, así que una traducción compacta al chino, al japonés o al coreano no se marca solo por ser corta. Y un término del glosario escrito en una escritura sin espacios entre palabras (han, kana, tailandés y similares) se busca por inclusión y no por límite de palabra.
+Dos comprobaciones también tienen en cuenta las escrituras. La señal de revisión `LENGTH_RATIO_OUTLIER` pondera cada carácter según su escritura, así que una traducción compacta al chino, al japonés o al coreano no se marca solo por ser corta. Y un término del glosario escrito en una escritura sin espacios entre palabras (han, kana, tailandés y similares) se busca por inclusión y no por límite de palabra, igual que una traducción prohibida en una escritura así.
 
 ## Plurales
 

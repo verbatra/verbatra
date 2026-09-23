@@ -66,7 +66,17 @@ function stubPanelReads(): void {
     "lock.state": { ok: true, result: { exists: false } },
     "usage.summary": { ok: true, result: { available: false } },
     "history.list": { ok: true, result: { available: false } },
-    "glossary.get": { ok: true, result: { indicator: { source: "none" }, entries: {} } },
+    "glossary.get": {
+      ok: true,
+      result: {
+        indicator: { source: "none" },
+        version: null,
+        locales: [],
+        terms: [],
+        doNotTranslate: [],
+        redactedTerms: [],
+      },
+    },
   });
 }
 

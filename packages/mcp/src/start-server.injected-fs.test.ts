@@ -93,7 +93,10 @@ describe("startMcpServer: injected fs", () => {
       kind: "ok",
       result: {
         indicator: { source: "file" },
-        entries: { API: "API", Dashboard: "Armaturenbrett" },
+        terms: [
+          { source: "API", target: "API" },
+          { source: "Dashboard", target: "Armaturenbrett" },
+        ],
       },
     });
     expect(memory.servedPaths.slice(1)).toEqual([glossaryPath]);

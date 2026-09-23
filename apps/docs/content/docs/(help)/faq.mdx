@@ -85,7 +85,7 @@ Accepted translations pass through review heuristics that flag suspicious result
 withholding them: a length far out of proportion to the source (`LENGTH_RATIO_OUTLIER`), a value
 longer than the budget configured for its key (`MAX_LENGTH_EXCEEDED`), a
 translation identical to the source (`EQUALS_SOURCE`), a missed glossary term
-(`GLOSSARY_TERM_MISSED`), reordered placeholders (`INTEGRITY_REORDERED`), a degraded provider path
+(`GLOSSARY_TERM_MISSED`), a forbidden glossary rendering (`GLOSSARY_FORBIDDEN_TERM`), reordered placeholders (`INTEGRITY_REORDERED`), a degraded provider path
 (`PROVIDER_DEGRADED`), or a value reused from the cache for a source string that has since been
 edited (`FUZZY_CACHE_REUSE`). The flags land on the run summary's `needsReview` list and in Studio's
 Review queue. See [Translation safety](/docs/translation-safety).

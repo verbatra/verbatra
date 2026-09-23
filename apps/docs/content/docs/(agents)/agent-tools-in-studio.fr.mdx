@@ -52,7 +52,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_project_snapshot` | l'état et les capacités résolus du projet |
 | `verbatra_status_check` | le récapitulatif de couverture par locale |
 | `verbatra_status_diff` | la dérive par locale (clés manquantes, modifiées, orphelines) |
-| `verbatra_glossary_get` | le glossaire résolu |
+| `verbatra_glossary_get` | le glossaire résolu : les traductions de chaque terme pour toutes les locales et par locale, les traductions interdites, le contexte, ce à quoi chaque locale cible est tenue et les termes à ne pas traduire |
 | `verbatra_lock_state` | l'état du fichier de verrouillage |
 | `verbatra_history_list` | l'historique récent des commits des fichiers de locale |
 | `verbatra_key_integrity` | l'intégrité des placeholders, du balisage en ligne et de l'ICU pour une clé |
@@ -82,7 +82,7 @@ Une modification via `verbatra_translation_editEntry` est enregistrée avec l'or
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-`verbatra_glossary_write` ajoute, remplace ou supprime un terme du glossaire et renvoie le glossaire tel qu'il est désormais. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.
+`verbatra_glossary_write` modifie un terme du glossaire et renvoie le glossaire tel qu'il est désormais : une traduction pour toutes les locales ou pour une `locale`, les traductions interdites (`forbidden`) de cette locale, une `note`, une `partOfSpeech`, `caseSensitive` ou, avec `doNotTranslate`, le fait que le terme reste non traduit dans toutes les locales. Une `translation` à `null` efface cette traduction, et le terme est supprimé dès qu'il ne reste plus rien d'autre. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.
 
 ### Outils de dépense (deux)
 

@@ -78,11 +78,18 @@ export {
   type GlossaryTermDefinition,
   glossaryForLocale,
   normalizeGlossary,
+  type RedactedGlossary,
+  redactGlossary,
   sharedGlossaryTranslations,
 } from "./config/glossary.js";
 export {
+  type EditConfiguredGlossaryTermInput,
+  editConfiguredGlossaryTerm,
+  type GlossaryConfig,
   type GlossaryFileDeps,
   type GlossaryFileInput,
+  type ReadCurrentGlossaryInput,
+  readCurrentGlossary,
   readGlossaryFile,
   type UpdateGlossaryTermInput,
   updateGlossaryTerm,

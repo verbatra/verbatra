@@ -20,10 +20,10 @@ Welche Sprachen sich übersetzen lassen und wie gut, entscheidet der Provider. v
 
 | Provider | Sprachen | Gesendeter Code | Glossar | Tonfall |
 | --- | --- | --- | --- | --- |
-| `anthropic` | Keine feste Liste. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Wie geschrieben, plus englische Namen für Sprache, Schrift und Region | Begriffsliste im Prompt | Im Prompt |
-| `openai` | Keine feste Liste. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Wie geschrieben, plus Namen | Begriffsliste im Prompt | Im Prompt |
-| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Wie geschrieben, plus Namen | Begriffsliste im Prompt | Im Prompt |
-| `openai-compatible` | Was das Modell abdeckt, das du betreibst | Wie geschrieben, plus Namen | Begriffsliste im Prompt | Im Prompt |
+| `anthropic` | Keine feste Liste. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | Wie geschrieben, plus englische Namen für Sprache, Schrift und Region | Begriffe der Locale im Prompt | Im Prompt |
+| `openai` | Keine feste Liste. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
+| `openai-compatible` | Was das Modell abdeckt, das du betreibst | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
 | `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Auf DeepLs Codes normalisiert | Nur ein vorab angelegtes DeepL-Glossar per `glossaryId` | DeepL-Formality, nicht mit einem Free-Key |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (für die Basic-Stufe v2, die verbatra nutzt, gilt die NMT-Liste) | Für Chinesisch und Norwegisch normalisiert, sonst wie geschrieben | Keins | Keiner |
 | `none` | Entfällt: Es wird kein Provider aufgerufen | Es wird nichts gesendet | Entfällt | Entfällt |
@@ -57,7 +57,7 @@ Ein Schrift- oder Regions-Subtag ändert, worum der Provider gebeten wird, nicht
 
 Daraus folgen zwei Dinge. DeepL behält eine Schrift nur für Chinesisch, also gehen `sr-Latn` und `sr-Cyrl` beide als `SR` raus und bekommen die Schrift, die DeepL für Serbisch schreibt. Google Cloud Translation bekommt das Schrift-Subtag wie geschrieben, und ob es angenommen wird, entscheidet Googles Liste. Für eine Sprache mit mehr als einer Schrift ist ein LLM-Provider, dem die Schrift mit Namen genannt wird, die verlässliche Wahl, und `localeMap` deckt die Fälle ab, in denen ein Anbieter die Variante anders schreibt.
 
-Auch zwei Prüfungen berücksichtigen Schriften. Das Review-Flag `LENGTH_RATIO_OUTLIER` gewichtet jedes Zeichen nach seiner Schrift, damit eine kompakte chinesische, japanische oder koreanische Übersetzung nicht nur wegen ihrer Kürze markiert wird. Und ein Glossarbegriff in einer Schrift ohne Leerzeichen zwischen Wörtern (Han, Kana, Thai und ähnliche) wird über Enthaltensein statt über Wortgrenzen gefunden.
+Auch zwei Prüfungen berücksichtigen Schriften. Das Review-Flag `LENGTH_RATIO_OUTLIER` gewichtet jedes Zeichen nach seiner Schrift, damit eine kompakte chinesische, japanische oder koreanische Übersetzung nicht nur wegen ihrer Kürze markiert wird. Und ein Glossarbegriff in einer Schrift ohne Leerzeichen zwischen Wörtern (Han, Kana, Thai und ähnliche) wird über Enthaltensein statt über Wortgrenzen gefunden, ebenso eine verbotene Wiedergabe in einer solchen Schrift.
 
 ## Plurale
 

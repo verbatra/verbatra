@@ -551,6 +551,24 @@ Convertit un glossaire sous l'une ou l'autre forme, une table plate version 1 ou
 
 Projette un `Glossary` normalisé sur une table plate de chaque terme doté d'un `target` partagé vers cette traduction, dans l'ordre du glossaire. Les traductions par locale, les traductions interdites et les termes de `doNotTranslate` en sont exclus : utilise-le seulement là où un consommateur ne peut afficher qu'une table plate de termes. Un terme nommé `__proto__` reste une clé propre.
 
+### redactGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Fait passer chaque traduction, traduction interdite, note et catégorie grammaticale d'un `Glossary` normalisé par `redact` et renvoie `{ glossary, redactedTerms }`, où `redactedTerms` nomme chaque terme dont une valeur a été remplacée. Les termes source et ceux de `doNotTranslate` restent tels quels. Le serveur MCP et Studio l'utilisent avant qu'un glossaire ne quitte le processus ; utilise-le de la même façon dans ton propre outil.
+
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Lit le glossaire que nomme une configuration chargée tel qu'il est maintenant : `readCurrentGlossary({ loaded, locale? })`, où `loaded` est ce que renvoie `loadConfigWithMeta`. Un glossaire stocké dans un fichier est relu depuis le disque, un glossaire inline vient de la config, et dans les deux cas le résultat est le `Glossary` normalisé, ou `undefined` quand la config n'en déclare aucun. Si `locale` est fourni, il doit être une locale cible configurée, sinon l'appel échoue avec `UNKNOWN_LOCALE` en nommant celles qui sont configurées.
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+`updateGlossaryTerm` pour un outil qui détient une configuration chargée : prend `{ loaded, cwd?, term, ... }` avec les mêmes champs de modification, traite un champ laissé à `undefined` comme absent et vérifie d'abord `locale` par rapport aux locales cibles configurées ; si ce n'en est pas une, il échoue avec `UNKNOWN_LOCALE` et n'écrit rien. Le serveur MCP et Studio écrivent le glossaire par son intermédiaire.
+
 ### defineConfig
 
 Une fonction identité pour écrire un `verbatra.config.ts` typé : elle renvoie son argument inchangé et n'existe que pour l'inférence de types et l'autocomplétion de l'éditeur, y compris la complétion des IDs de modèles connus du fournisseur sélectionné. La restriction de modèle ne vaut qu'à l'écriture ; à l'exécution, toute chaîne non vide passe la validation.

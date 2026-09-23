@@ -41,7 +41,7 @@ config) exactly those keys are removed from the target file and the lock, and no
 
 Before anything is sent, every candidate is looked up in the local translation-memory cache
 (`verbatra.cache.json`). A stored translation for the same source text, under the same provider,
-model, tone, glossary and provider `localeMap` fingerprint, is reused as-is and never reaches the provider; only the
+model, tone, locale glossary and provider `localeMap` fingerprint, is reused as-is and never reaches the provider; only the
 misses go on. See [The cache](/docs/the-cache) for how entries are keyed and when they stop
 matching.
 
@@ -50,7 +50,7 @@ first, so that text costs one request per locale rather than one per key; the va
 back is copied to the other keys in its group and re-checked against each one's own source in the
 integrity step below. The groups go to your configured provider in sequential sub-batches of at
 most `maxBatchSize` (default 50), so one oversized request cannot take down a whole locale. Each
-sub-batch carries the entries plus your optional `glossary` and `tone`. If a sub-batch call fails
+sub-batch carries the entries plus the glossary terms of its target locale and your optional `tone`. If a sub-batch call fails
 (a rate limit, a timeout, a revoked key), its keys are withheld for this run and picked up again
 next run while the other sub-batches keep making progress. See [Providers](/docs/providers) for
 how each provider applies the inputs.

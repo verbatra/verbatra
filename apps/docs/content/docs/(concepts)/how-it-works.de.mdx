@@ -44,7 +44,7 @@ entfernt, und nichts anderes.
 
 Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache
 (`verbatra.cache.json`) nachgeschlagen. Eine gespeicherte Übersetzung für denselben Quelltext,
-unter demselben Fingerabdruck aus Provider, Modell, Tonfall, Glossar und `localeMap` des Providers, wird unverändert
+unter demselben Fingerabdruck aus Provider, Modell, Tonfall, Glossar der Locale und `localeMap` des Providers, wird unverändert
 wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Wie Einträge
 ihren Key bilden und wann sie nicht mehr passen, steht unter [Der Cache](/docs/the-cache).
 
@@ -54,7 +54,7 @@ Wert wird auf die anderen Keys seiner Gruppe kopiert und im Integritätsschritt 
 die jeweils eigene Quelle erneut geprüft. Die Gruppen gehen in sequenziellen Sub-Batches von
 höchstens `maxBatchSize` Einträgen (Default 50) an deinen konfigurierten Provider, damit eine
 überdimensionierte Anfrage nicht eine ganze Locale zu Fall bringt. Jeder Sub-Batch trägt die
-Einträge plus dein optionales `glossary` und `tone`. Schlägt ein Sub-Batch-Aufruf fehl (ein
+Einträge plus die Glossarbegriffe seiner Ziel-Locale und dein optionales `tone`. Schlägt ein Sub-Batch-Aufruf fehl (ein
 Rate-Limit, ein Timeout, ein widerrufener Key), werden seine Keys für diesen Lauf zurückgehalten
 und beim nächsten Lauf wieder aufgegriffen, während die anderen Sub-Batches weiter vorankommen.
 Wie jeder Provider die Eingaben anwendet, steht unter [Provider](/docs/providers).
