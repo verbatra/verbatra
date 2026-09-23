@@ -478,29 +478,38 @@ whether one of these already covers it.
 The `dispatch-skills-parity` job in `.github/workflows/release.yml` runs after
 the `publish` job succeeds, on every push to `main` that passed CI, whether that
 run published packages or only opened the Version Packages pull request. It
-sends a `repository_dispatch` event of type `source-changed` to
-[verbatra/skills](https://github.com/verbatra/skills) with
-`client_payload.source_ref` set to the commit that was released, and that
-repository's `Tool parity` workflow asserts its skill tables against exactly
-that commit. A registry change is therefore reported minutes after it merges
-instead of at the next nightly run.
+starts the `Tool parity` workflow (`parity.yml`) of
+[verbatra/skills](https://github.com/verbatra/skills) on its `main` branch
+through a `workflow_dispatch` event, passing the released commit as the
+`source_ref` input, so the skill tables are asserted against exactly that
+commit. A registry change is therefore reported minutes after it merges instead
+of at the next nightly run.
 
 The workflow `GITHUB_TOKEN` cannot do this: its permissions are limited to the
 repository that runs the workflow
 ([GitHub docs](https://docs.github.com/en/actions/concepts/security/github_token)).
 The job authenticates as a GitHub App instead, through
 `actions/create-github-app-token`, and the token it mints is scoped to
-`verbatra/skills` alone with `contents: write`, the one permission the
-[create a repository dispatch event](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)
+`verbatra/skills` alone with `actions: write`, the one permission the
+[create a workflow dispatch event](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
 endpoint requires of an app
-([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-contents)).
-The token is revoked when the job ends. The job itself grants the workflow token
-no permissions.
+([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-actions)).
+The token is revoked when the job ends, and the job grants the workflow token no
+permissions at all.
+
+The job deliberately does not send a `repository_dispatch` event, although
+`parity.yml` listens for one too. That endpoint requires `contents: write`
+([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-contents)),
+which would also let a leaked token push commits, create branches and publish
+releases in the skills repository. `actions: write` reaches workflow runs,
+artifacts and caches there (start, cancel, rerun, delete), but cannot change a
+single file, and a workflow dispatch can only start a workflow that already
+exists on the named branch.
 
 One-time setup, done by an organization owner:
 
 1. Create a GitHub App owned by the `verbatra` organization. Disable the
-   webhook. Under repository permissions, grant **Contents: Read and write**
+   webhook. Under repository permissions, grant **Actions: Read and write**
    (Metadata: Read-only is added automatically) and nothing else. Allow
    installation on this account only.
 2. Install the app on the `verbatra` organization for **only** the
@@ -519,9 +528,11 @@ the skills drift guard had fallen back to its nightly schedule. Rotating the key
 means generating a new one, replacing the secret, and deleting the old key from
 the app.
 
-`scripts/verify-skills-dispatch.test.mjs` pins the job's shape (the event type
-and payload key the receiving workflow listens for, the token scope, the empty
-permissions block), so run `pnpm test:scripts` after editing it.
+Renaming `parity.yml` or its `source_ref` input in verbatra/skills breaks this
+job, so change both sides together. `scripts/verify-skills-dispatch.test.mjs`
+pins this side (the workflow file, branch and input it targets, the token scope,
+the empty permissions block, the secret check running before the token is
+minted), so run `pnpm test:scripts` after editing the job.
 
 ## Refreshing the Studio screenshots
 
