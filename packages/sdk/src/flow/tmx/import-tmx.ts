@@ -514,8 +514,9 @@ function additionsByLocale(
  *
  * Units are stored under the project's current configuration fingerprint, the same key a real run
  * writes. That is deliberate: an imported memory is reused exactly when the configuration that
- * would consume it matches, and stops matching when the provider, model, tone or glossary changes,
- * which is the protection the fingerprint layer exists to give. Re-import after such a change.
+ * would consume it matches, and stops matching when the provider, model, tone, glossary or a
+ * non-empty provider `localeMap` changes, which is the protection the fingerprint layer exists to
+ * give. Re-import after such a change.
  *
  * A collision is decided in favour of what the project already has: if the memory already holds a
  * different translation for the same source and locale, the imported one is refused and counted as
