@@ -187,17 +187,22 @@ describe("translate: human-only mode fills from the translation memory alone", (
     expect(summary.locales[0]?.providerFailures).toEqual([]);
   });
 
-  it("still counts a fuzzy reuse as unfilled, since only a human can confirm it", async () => {
+  it("never writes a fuzzy reuse, so the key stays missing and unfilled on every run", async () => {
     const config = humanOnly({ fuzzyCache: { enabled: true, threshold: 0.8 } });
     const dir = await project({ greeting: "Hello there, friend!" });
     await seedMemory(dir, config, {
       greeting: { source: "Hello there, friend", value: "Hallo, Freund" },
     });
 
-    const summary = await translate({ config, cwd: dir });
+    const first = await translate({ config, cwd: dir });
+    const second = await translate({ config, cwd: dir });
 
-    expect(summary.locales[0]?.fuzzyHits.map((hit) => hit.key)).toEqual(["greeting"]);
-    expect(summary.locales[0]?.unfilled).toEqual(["greeting"]);
+    for (const run of [first, second]) {
+      expect(run.locales[0]?.unfilled).toEqual(["greeting"]);
+      expect(run.locales[0]?.fuzzyHits).toEqual([]);
+      expect(run.locales[0]?.cacheHits).toEqual([]);
+    }
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({});
   });
 
   it("keeps using memory entries after the tone or glossary change", async () => {

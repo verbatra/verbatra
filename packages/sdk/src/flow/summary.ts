@@ -464,9 +464,9 @@ export interface LocaleSummary {
    * Keys still missing or out of date that nothing filled, so a human has to translate them. For
    * {@link importWorkbook}, the keys the handoff left blank. For a {@link translate} or
    * {@link watch} run, empty unless the config's provider is `none`: then it lists the keys the
-   * translation memory had no exact entry for. They were left untouched rather than sent anywhere,
-   * except a fuzzy reuse, which is written for reference and listed here as well. A human-only dry
-   * run reads the memory too, so it lists the same keys a live run would.
+   * translation memory had no exact entry for, fuzzy reuse never being applied in that mode. They
+   * were left untouched rather than sent anywhere. A human-only dry run reads the memory too, so it
+   * lists the same keys a live run would.
    */
   readonly unfilled: readonly string[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */

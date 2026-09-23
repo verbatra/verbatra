@@ -63,9 +63,13 @@ import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from 
 import { writeTargetResource } from "./write-target.js";
 
 export type LocaleRunMode =
-  | { readonly kind: "plan" }
+  | { readonly kind: "plan"; readonly providerKind: ProviderKind }
   | { readonly kind: "memory-only"; readonly write: boolean }
-  | { readonly kind: "translate"; readonly provider: TranslationProvider };
+  | {
+      readonly kind: "translate";
+      readonly provider: TranslationProvider;
+      readonly providerKind: ProviderKind;
+    };
 
 export interface LocaleRunParams {
   readonly source: LocaleResource;
@@ -73,7 +77,6 @@ export interface LocaleRunParams {
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
   readonly mode: LocaleRunMode;
-  readonly providerKind: ProviderKind | undefined;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
@@ -194,11 +197,19 @@ function acceptFromCache(
   return gate.accepted ? { value: cached, integrity: gate.integrity } : undefined;
 }
 
+function cacheForMode(params: LocaleRunParams): RunCache | undefined {
+  const cache = params.cache;
+  if (cache === undefined || params.mode.kind !== "memory-only") {
+    return cache;
+  }
+  return { snapshot: cache.snapshot, fingerprint: cache.fingerprint };
+}
+
 function partitionCacheHits(
   params: LocaleRunParams,
   toTranslate: readonly string[],
 ): CachePartition {
-  const cache = params.cache;
+  const cache = cacheForMode(params);
   const hits = new Map<string, Accepted>();
   const fuzzy = new Map<string, FuzzyCacheHit>();
   const reviewFlags = new Map<string, ReviewFlag>();
@@ -566,7 +577,11 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
 };
 
 function generationEnabled(params: LocaleRunParams): boolean {
-  return params.generatePlurals && params.providerKind === "llm";
+  return (
+    params.generatePlurals &&
+    params.mode.kind !== "memory-only" &&
+    params.mode.providerKind === "llm"
+  );
 }
 
 function plannedGenerationKeys(
@@ -720,7 +735,7 @@ const NO_TRANSLATION: TranslateAndCheckResult = {
 };
 
 function unfilledKeys(mode: LocaleRunMode, partition: CachePartition): readonly string[] {
-  return mode.kind === "memory-only" ? [...partition.misses, ...partition.fuzzy.keys()].sort() : [];
+  return mode.kind === "memory-only" ? [...partition.misses].sort() : [];
 }
 
 async function translateMisses(

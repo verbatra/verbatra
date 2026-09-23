@@ -9,8 +9,8 @@ Add a human-only mode: `provider: { id: "none" }` disables machine translation b
 
 - `@verbatra/sdk`: `none` is a new `ProviderConfig` variant whose `options` is always `{}`
   (filled in when omitted). No provider is ever constructed and no API key is read. `translate`
-  and `watch` fill only from the translation memory, which keeps a human-only bucket unaffected
-  by tone and glossary changes, and list every other missing or stale key, fuzzy reuses included,
+  and `watch` fill only from exact translation-memory hits, in a human-only bucket unaffected by
+  tone and glossary changes, never apply a fuzzy reuse, and list every other missing or stale key
   in `LocaleSummary.unfilled`. A human-only dry run reads the memory so its plan matches a live
   run. `retranslateEntry` fails with the new `MACHINE_TRANSLATION_DISABLED` code, `doctor`
   reports machine translation disabled by policy, `scaffoldingMetadata.humanOnlyProviderId`

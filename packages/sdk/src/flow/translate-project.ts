@@ -1,4 +1,3 @@
-import type { ProviderKind } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import {
@@ -223,7 +222,6 @@ interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
   readonly mode: LocaleRunMode;
-  readonly providerKind: ProviderKind | undefined;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -249,7 +247,6 @@ function buildLocaleRunParams(
     baseline,
     adapter: context.adapter,
     mode: context.mode,
-    providerKind: context.providerKind,
     cwd: context.cwd,
     resolver: context.resolver,
     sourceLocale: context.config.sourceLocale,
@@ -479,21 +476,23 @@ export function resolveDryRun(input: {
   return input.dryRun === true || input.estimate === true;
 }
 
-type RunModeSelection = Pick<LocaleRunContext, "mode" | "providerKind">;
-
 function selectRunMode(
   config: VerbatraConfig,
   dryRun: boolean,
   createProvider: CreateProvider | undefined,
-): RunModeSelection {
+): LocaleRunMode {
   const machineProvider = isMachineProvider(config.provider) ? config.provider : undefined;
   if (machineProvider === undefined) {
-    return { mode: { kind: "memory-only", write: !dryRun }, providerKind: undefined };
+    return { kind: "memory-only", write: !dryRun };
   }
-  const mode: LocaleRunMode = dryRun
-    ? { kind: "plan" }
-    : { kind: "translate", provider: selectProvider(machineProvider, createProvider) };
-  return { mode, providerKind: kindOf(machineProvider.id) };
+  const providerKind = kindOf(machineProvider.id);
+  return dryRun
+    ? { kind: "plan", providerKind }
+    : {
+        kind: "translate",
+        provider: selectProvider(machineProvider, createProvider),
+        providerKind,
+      };
 }
 
 function estimateFields(
@@ -537,8 +536,9 @@ function estimateFields(
  * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written
  * as usual; every other missing or stale key is left untouched, keeps its lock-file baseline, and is
  * listed in {@link LocaleSummary.unfilled} for a human to translate, through `exportWorkbook` and
- * {@link importWorkbook} for instance. A fuzzy reuse is written for reference but also listed there
- * and never locked, since only a person can confirm it. Such keys do not change a locale's status.
+ * {@link importWorkbook} for instance. Only exact memory hits are written: fuzzy reuse is never
+ * applied in this mode, even with `fuzzyCache` on, because only a person can confirm a translation
+ * of text that has changed. Such keys do not change a locale's status.
  * A human-only dry run reads the memory too, without writing anything, so its plan matches a live
  * run, and an estimate reports nothing to send and nothing billed.
  *
@@ -607,14 +607,14 @@ export async function translate(
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const selection = selectRunMode(config, dryRun, deps.createProvider);
+  const mode = selectRunMode(config, dryRun, deps.createProvider);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
   const context: LocaleRunContext = {
     source,
     adapter,
-    ...selection,
+    mode,
     cwd,
     config,
     resolver,
