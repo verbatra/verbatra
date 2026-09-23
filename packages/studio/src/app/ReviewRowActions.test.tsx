@@ -90,19 +90,25 @@ describe("ReviewRowActions", () => {
     expect(spies.onEdit).toHaveBeenCalledTimes(1);
   });
 
-  it("disables every action and announces the pending decision while a row is busy", () => {
+  it("shows the pending decision inside the Approve button and announces it, disabling every action", () => {
     const spies = handlers();
     const view = render(<ReviewRowActions {...spies} pendingLabel="Approving…" />);
 
-    for (const name of ["Edit", "Approve", "Reject…"]) {
+    for (const name of ["Edit", "Approving…", "Reject…"]) {
       expect((view.getByText("button", name) as HTMLButtonElement).disabled).toBe(true);
     }
     expect(view.get('[role="status"]').textContent).toBe("Approving…");
+    expect(view.get('[role="status"]').className).toContain("sr-only");
   });
 
-  it("wraps its actions onto a new line in a narrow cell", () => {
-    const view = render(<ReviewRowActions {...handlers()} />);
+  it("keeps the Approve button at one width and every action on one line", () => {
+    const idle = render(<ReviewRowActions {...handlers()} />);
+    const busy = render(<ReviewRowActions {...handlers()} pendingLabel="Approving…" />);
 
-    expect(view.get("span").className).toContain("flex-wrap");
+    expect(idle.getByText("button", "Approve").className).toContain("min-w-[5.75rem]");
+    expect(busy.getByText("button", "Approving…").className).toContain("min-w-[5.75rem]");
+    expect(idle.get("span").className).toContain("whitespace-nowrap");
+    expect(idle.get("span").className).not.toContain("flex-wrap");
+    expect(idle.get('[role="status"]').textContent).toBe("");
   });
 });

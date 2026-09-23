@@ -163,4 +163,13 @@ describe("RejectEntryDialog", () => {
     await clickAsync(view.getByText("button", "Close"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("draws its focusable status with the ring token rather than the browser outline", async () => {
+    stubRpc({ "review.reject": rpcError("LOCK_CONTENDED", "busy") });
+    const { view } = renderDialog();
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+
+    expect(view.get('[role="alert"]').className).toContain("focus-visible:outline-ring");
+  });
 });

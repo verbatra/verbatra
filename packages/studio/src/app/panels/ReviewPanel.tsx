@@ -138,7 +138,7 @@ function ReviewRow({
         <ReasonChips reasons={row.reasons} />
       </TableCell>
       {capabilities?.writeToDisk === true ? (
-        <TableCell>
+        <TableCell className="whitespace-nowrap">
           <ReviewRowActions
             decisionDisabled={value === undefined}
             {...(pending !== undefined ? { pendingLabel: pending } : {})}
