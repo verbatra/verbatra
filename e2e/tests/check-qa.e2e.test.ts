@@ -1,4 +1,4 @@
-import { mkdir, readdir } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -56,6 +56,7 @@ beforeAll(async () => {
 describe("check --qa on committed translations, with no provider key", () => {
   it("exits 1 with a structured finding for a hand-broken placeholder, writing nothing", async () => {
     const dir = await projectWith("broken", { greeting: "Hallo {{nme}}", title: "Einstellungen" });
+    const germanBefore = await readFile(join(dir, "locales/de.json"));
 
     const run = await runVerbatra(consumer, ["check", "--qa", "--json", "--cwd", dir], {
       env: NO_PROVIDER_KEYS,
@@ -77,6 +78,8 @@ describe("check --qa on committed translations, with no provider key", () => {
       },
     ]);
     expect((await readdir(dir)).sort()).toEqual([".verbatrarc.json", "locales"]);
+    expect((await readdir(join(dir, "locales"))).sort()).toEqual(["de.json", "en.json"]);
+    expect((await readFile(join(dir, "locales/de.json"))).equals(germanBefore)).toBe(true);
   });
 
   it("exits 0 on warnings alone and 1 once --strict is given", async () => {

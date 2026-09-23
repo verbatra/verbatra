@@ -2,7 +2,13 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
-import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
+import {
+  baseConfig,
+  makeFakeFs,
+  makeTempDir,
+  realDiskReads,
+  writeJsonFile,
+} from "../test-support.js";
 import { check } from "./check.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
@@ -53,6 +59,27 @@ describe("check: qa report", () => {
       ],
     });
     expect(summary.qa).toEqual({ errors: 1, warnings: 0, invalidSourceKeys: [] });
+  });
+
+  it("writes nothing on the qa path, even with findings of both severities", async () => {
+    const dir = await project(
+      { greeting: "Hello {{name}}", copy: "Delete account" },
+      { de: { greeting: "Hallo", copy: "Delete account" }, fr: {} },
+    );
+    const refuse = (what: string) => async (): Promise<never> => {
+      throw new Error(`check --qa must not ${what}`);
+    };
+    const fs = makeFakeFs({
+      ...realDiskReads(),
+      writeFile: refuse("write a file"),
+      writeBytes: refuse("write bytes"),
+      createExclusive: refuse("create a file"),
+      deleteFile: refuse("delete a file"),
+    });
+
+    const summary = await check({ config: cfg(), cwd: dir, qa: true }, { fs });
+
+    expect(summary.qa).toMatchObject({ errors: 1, warnings: 1 });
   });
 
   it("reports hand-broken inline markup as an error naming the offending tags", async () => {
