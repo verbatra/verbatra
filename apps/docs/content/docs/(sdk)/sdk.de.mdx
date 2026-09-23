@@ -777,7 +777,7 @@ Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eint
 
 ### createTreeFileAdapter
 
-Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` und `keyMode`.
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` und `keyMode`.
 
 ### nodeAdapterFs
 

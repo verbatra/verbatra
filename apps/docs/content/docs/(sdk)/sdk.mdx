@@ -711,7 +711,7 @@ Builds a `FormatAdapter` for a flat key/value format, one where every entry is a
 
 ### createTreeFileAdapter
 
-Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and handles flattening and unflattening itself. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` and `keyMode`.
+Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and handles flattening and unflattening itself. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` and `keyMode`.
 
 ### nodeAdapterFs
 

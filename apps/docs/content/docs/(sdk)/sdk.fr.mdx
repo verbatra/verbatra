@@ -515,7 +515,7 @@ Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée
 
 ### createTreeFileAdapter
 
-Construit un `FormatAdapter` pour un format arborescent, dont les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et si elle est une forme plurielle, et gère lui-même l'aplatissement et la reconstruction. Il porte aussi les hooks optionnels dont un format structuré a besoin : `validateTree`, `validateMessage`, `comparePlaceholders`, `deriveDescriptions` et `keyMode`.
+Construit un `FormatAdapter` pour un format arborescent, dont les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et si elle est une forme plurielle, et gère lui-même l'aplatissement et la reconstruction. Il porte aussi les hooks optionnels dont un format structuré a besoin : `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` et `keyMode`.
 
 ### nodeAdapterFs
 

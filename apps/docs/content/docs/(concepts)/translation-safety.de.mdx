@@ -14,7 +14,7 @@ verbatra lässt nie zu, dass ein übersetzbarer String wie eine Anweisung an die
 wörtlich "ignore your instructions" lautet), deshalb behandelt verbatra jeden einzelnen als nicht
 vertrauenswürdige Eingabe. Die Systemregeln, die an einen LLM-Provider gehen, sind Konstanten aus
 der Kompilierzeit. Alle variablen Eingaben, die zu übersetzenden Einträge samt deinem Glossar und
-Tonfall, reisen ausschließlich im JSON-Datenpayload des User-Turns und werden nie in den
+Tonfall und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im JSON-Datenpayload des User-Turns und werden nie in den
 Anweisungskanal gespleißt. Die Ausgabe des Providers ist auf ein Schema beschränkt und wird als
 Daten validiert: Eine fehlerhafte Antwort schlägt fehl, und eine Antwort mit einem Key, der nie
 angefragt wurde, lässt den ganzen Sub-Batch fehlschlagen, weil es um erfundene Inhalte herum kein
@@ -44,7 +44,9 @@ erneut.
   gültige Nachricht parsen. Ein Kandidat, der jeden Platzhalter behält, aber die Plural- oder
   Select-Struktur bricht, wird ebenfalls abgelehnt. Für diese Formate vergleicht die
   Platzhalterprüfung außerdem pro Zweig: Ein Platzhalter, der in einem Plural-Zweig erfunden
-  wurde, fällt auch dann auf, wenn er in einem anderen legitim vorkommt.
+  wurde, fällt auch dann auf, wenn er in einem anderen legitim vorkommt. Plural- und
+  Select-Zweige müssen außerdem zur Zielsprache passen; siehe
+  [Plural-Zweige je Zielsprache](#plural-zweige-je-zielsprache) weiter unten.
 - Erfundene Einzelklammer-Token: Bei den Doppelklammer-Formaten (i18next, ngx-translate und YAML)
   ist ein Token der Form `{name}` gewöhnlicher Literaltext und keine Interpolation. Es wird deshalb
   nicht als Platzhalter erfasst und muss eine Übersetzung nicht überleben. Eines zu erfinden wird
@@ -75,6 +77,42 @@ demselben Weg erneut versucht.
 
 Auf der Quellseite wird ein Quell-Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
 beiseitegelegt und gemeldet, statt in kaputtem Zustand an den Provider zu gehen.
+
+### Plural-Zweige je Zielsprache
+
+<AvailableFrom version="0.12.0" />
+
+Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache, und Sprachen
+unterscheiden sich: Englisch hat `one` und `other`, Russisch, Polnisch und Tschechisch haben
+`one`, `few`, `many` und `other`, Arabisch und Walisisch alle sechs, Japanisch nur `other`. Für
+next-intl und ARB liest verbatra die Kategorien der Zielsprache aus den CLDR-Daten, die in Node.js
+eingebaut sind, und misst jede Übersetzung daran:
+
+- Ein LLM-Provider wird um genau die Zweige der Zielsprache gebeten: die Kardinalkategorien für
+  ein `plural`, die Ordinalkategorien für ein `selectordinal`. Die Kategorien reisen als Daten im
+  Payload des User-Turns neben den Locales; die Systemregeln sagen nur, was damit zu tun ist,
+  deshalb bleibt die Prompt-Injection-Grenze oben unverändert. Ein englisches `{n, plural, one {#
+  file} other {# files}}` kommt aus einem russischen Lauf mit den Zweigen `one`, `few`, `many`
+  und `other` zurück und aus einem japanischen Lauf nur mit `other`.
+- Das Integritäts-Gate lehnt einen Kandidaten mit dem ICU-Grund ab, wenn sein `plural` oder
+  `selectordinal` einen Zweig auslässt, den die Zielsprache braucht, oder einen Kategorie-Zweig
+  behält, den die Zielsprache nicht hat. Die Ablehnung nennt jeden falschen Zweig. Das gilt auf
+  jedem Schreibweg, also wird auch ein von Hand getippter russischer Wert mit nur `one` und
+  `other` abgelehnt.
+- Zweige mit exaktem Wert wie `=0` und `=1` sind keine Kategorien: Jeder, den die Quelle hat,
+  muss erhalten bleiben, und eine Übersetzung darf weitere hinzufügen. `offset` und jedes `#`
+  bleiben unverändert.
+- `select`-Zweige sind Schlüssel, die dein Code übergibt, keine Sprachregeln, deshalb behält eine
+  Übersetzung genau die `select`-Zweige der Quelle.
+- Für eine Ziel-Locale, für die Node.js keine Pluralregeln hat, ist nur `other` Pflicht, und jedes
+  CLDR-Schlüsselwort wird akzeptiert. [`verbatra doctor`](/docs/cli/doctor) nennt eine solche
+  Locale.
+
+DeepL und Google Cloud Translation können eine ICU-Nachricht nicht umbauen, deshalb lassen sie
+weiterhin jeden ICU-Wert unübersetzt (der Hinweis `PLACEHOLDER_UNSUPPORTED`). Ein Zielwert, der vor
+dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne den CLDR-Zweig `many`, bleibt
+in der Datei, bis sich seine Quelle ändert; wird eine gecachte oder importierte Kopie davon erneut
+angeboten, wird sie abgelehnt und der Key neu übersetzt.
 
 ### Inline-Markup-Parität
 

@@ -15,7 +15,7 @@ chaîne traduisible peut contenir du texte qui ressemble à une instruction (une
 dit littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une
 entrée non fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
 compilation. Toute entrée variable, les entrées à traduire ainsi que le glossaire et le ton que tu
-as définis, voyage uniquement dans la charge utile JSON du tour utilisateur, jamais insérée dans le
+as définis et, pour un pluriel ICU, les catégories de pluriel de la langue cible, voyage uniquement dans la charge utile JSON du tour utilisateur, jamais insérée dans le
 canal d'instructions. La sortie du fournisseur est contrainte à un schéma et validée comme des données :
 une réponse malformée échoue, et une réponse contenant une clé jamais demandée fait échouer le
 sous-lot entier, parce qu'il n'existe pas d'acceptation partielle sûre autour de contenu inventé.
@@ -44,7 +44,9 @@ pour cela que la barrière est rejouée par clé.
   s'analyser comme un message valide. Une candidate qui garde chaque placeholder mais casse la
   structure plural ou select est rejetée aussi. Pour ces formats, la comparaison des placeholders
   tient aussi compte des branches : un placeholder fabriqué dans une branche plurielle est attrapé
-  même s'il existe légitimement dans une autre.
+  même s'il existe légitimement dans une autre. Les branches plural et select doivent aussi
+  convenir à la langue cible ; voir [Branches plurielles par langue
+  cible](#branches-plurielles-par-langue-cible) plus bas.
 - Jetons à accolade simple fabriqués : pour les formats à double accolade (i18next, ngx-translate et
   YAML), un jeton de la forme `{name}` est du texte littéral ordinaire et non de l'interpolation. Il
   n'est donc pas extrait comme placeholder et n'a pas à survivre à une traduction. En inventer un
@@ -74,6 +76,42 @@ un échec fournisseur, pas comme un défaut d'intégrité. Les deux se retentent
 
 Côté source, une clé source dont la propre valeur est de l'ICU invalide est mise de côté avant la
 traduction et signalée, au lieu d'être envoyée au fournisseur dans un état cassé.
+
+### Branches plurielles par langue cible
+
+<AvailableFrom version="0.12.0" />
+
+Un pluriel ICU porte une branche par catégorie de pluriel CLDR de sa langue, et les langues
+diffèrent : l'anglais a `one` et `other`, le russe, le polonais et le tchèque ont `one`, `few`,
+`many` et `other`, l'arabe et le gallois les six, et le japonais seulement `other`. Pour next-intl et
+ARB, verbatra lit les catégories de la langue cible dans les données CLDR intégrées à Node.js et y
+confronte chaque traduction :
+
+- On demande à un fournisseur LLM exactement les branches de la langue cible : les catégories
+  cardinales pour un `plural`, les catégories ordinales pour un `selectordinal`. Les catégories
+  voyagent comme des données dans la charge utile du tour utilisateur, à côté des locales ; les
+  règles système disent seulement quoi en faire, donc la frontière contre l'injection de prompt
+  ci-dessus ne change pas. Un `{n, plural, one {# file} other {# files}}` anglais revient d'une
+  exécution en russe avec les branches `one`, `few`, `many` et `other`, et d'une exécution en
+  japonais avec `other` seul.
+- La porte d'intégrité rejette une candidate, avec le motif ICU, dont le `plural` ou le
+  `selectordinal` omet une branche que la langue cible exige ou garde une branche de catégorie que
+  la langue cible n'a pas. Le rejet nomme chaque branche fautive. Cela vaut sur chaque chemin
+  d'écriture, donc une valeur russe tapée à la main avec seulement `one` et `other` est rejetée
+  aussi.
+- Les branches à valeur exacte comme `=0` et `=1` ne sont pas des catégories : chacune de celles de
+  la source doit survivre, et une traduction peut en ajouter. L'`offset` et chaque `#` restent
+  inchangés.
+- Les branches de `select` sont des clés que ton code transmet, pas des règles de langue, donc une
+  traduction garde exactement les branches de `select` de la source.
+- Pour une locale cible sans règles de pluriel dans Node.js, seul `other` est obligatoire et tout
+  mot-clé CLDR est accepté. [`verbatra doctor`](/docs/cli/doctor) nomme une telle locale.
+
+DeepL et Google Cloud Translation ne peuvent pas restructurer un message ICU, donc ils continuent à
+laisser chaque valeur ICU non traduite (la notice `PLACEHOLDER_UNSUPPORTED`). Une valeur cible écrite
+avant cette vérification, par exemple un pluriel français sans la branche CLDR `many`, reste dans le
+fichier jusqu'à ce que sa source change ; quand une copie en cache ou importée est proposée à
+nouveau, elle est rejetée et la clé est retraduite.
 
 ### Parité du balisage en ligne
 
