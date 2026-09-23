@@ -20,6 +20,7 @@ import {
   type IsSharedCatalogueFile,
   type LayoutChoice,
   localeStyleOf,
+  unqualifiedSourceFile,
 } from "./layout-candidates.js";
 import { MAX_SCAN_DEPTH, MAX_SCAN_ENTRIES, scanLocaleFiles } from "./locale-file-scan.js";
 
@@ -65,6 +66,14 @@ export interface DetectedLocaleLayout {
   readonly sourceLocale: string | undefined;
   /** The matching files, relative to the scanned directory, sorted. */
   readonly files: readonly string[];
+  /**
+   * A file next to the layout that holds strings under no locale name, such as
+   * `messages.properties` beside `messages_de.properties`, `Strings.resx` beside
+   * `Strings.de.resx`, or a gettext `app.pot` template. Such a file is usually the source, but
+   * verbatra reads the source from the file its pattern names for the source locale, so the
+   * source locale is left open when one exists. Absent when there is none.
+   */
+  readonly unqualifiedSourceFile: string | undefined;
 }
 
 /** A question detection could not answer on its own, with the answers it found. */
@@ -187,6 +196,11 @@ async function candidateFiles(context: ScanContext): Promise<readonly string[]> 
     );
     return [];
   }
+  if (scan.skippedOther > 0) {
+    context.findings.note(
+      `Skipped ${scan.skippedOther} entr${scan.skippedOther === 1 ? "y" : "ies"} that ${scan.skippedOther === 1 ? "is" : "are"} neither a file nor a directory, such as a symbolic link; nothing behind a symbolic link was scanned.`,
+    );
+  }
   if (scan.truncated) {
     context.findings.doubt(
       "medium",
@@ -239,21 +253,25 @@ function chooseLayoutFor(files: readonly string[], context: ScanContext): Layout
 async function formatFromDependencies(
   context: ScanContext,
   among: readonly FormatId[] | undefined,
+  confidence: DetectionConfidence,
 ): Promise<readonly FormatId[]> {
   const evidence = await readDependencyEvidence(context.cwd, context.fs);
   const fitting = evidence.filter(({ format }) => among === undefined || among.includes(format));
   if (fitting.length === 1 && fitting[0] !== undefined) {
     const { dependency, format } = fitting[0];
     context.findings.doubt(
-      among === undefined ? "low" : "medium",
+      confidence,
       `Chose ${format} because package.json depends on ${dependency}.`,
     );
   }
   return fitting.map(({ format }) => format);
 }
 
-async function formatWithoutFiles(context: ScanContext): Promise<DetectedFormat | undefined> {
-  const formats = await formatFromDependencies(context, undefined);
+async function formatWithoutFiles(
+  context: ScanContext,
+  confidence: DetectionConfidence,
+): Promise<DetectedFormat | undefined> {
+  const formats = await formatFromDependencies(context, undefined, confidence);
   const [only] = formats;
   if (formats.length === 1 && only !== undefined) {
     return { id: only, from: "dependencies" };
@@ -278,10 +296,10 @@ async function formatForFiles(
   }
   if (claimed.length === 0) {
     context.findings.note("No single adapter reads every locale file found.");
-    return formatWithoutFiles(context);
+    return formatWithoutFiles(context, "medium");
   }
   context.findings.note(`Several adapters read these files (${list(claimed)}).`);
-  const fromDependencies = await formatFromDependencies(context, claimed);
+  const fromDependencies = await formatFromDependencies(context, claimed, "medium");
   const [chosen] = fromDependencies;
   if (fromDependencies.length === 1 && chosen !== undefined) {
     return { id: chosen, from: "dependencies" };
@@ -314,7 +332,7 @@ function inferSourceLocale(
     findings.doubt("medium", `Took ${onlyLocale}, the only locale found, as the source locale.`);
     return onlyLocale;
   }
-  findings.note("Could not tell which locale is the source.");
+  findings.doubt("medium", "Could not tell which locale is the source.");
   return undefined;
 }
 
@@ -343,8 +361,27 @@ async function localeEvidence(
   };
 }
 
+function sourceLocaleFor(
+  evidence: LocaleEvidence,
+  unqualified: string | undefined,
+  context: ScanContext,
+): string | undefined {
+  const given = context.input.sourceLocale ?? evidence.catalogueSource;
+  if (unqualified !== undefined) {
+    context.findings.doubt(
+      "medium",
+      `${unqualified} holds strings under no locale name. verbatra reads the source from the file the pattern names for the source locale, so the source locale was not guessed.`,
+    );
+    return given;
+  }
+  return (
+    given ?? inferSourceLocale(evidence.locales, evidence.hasUnspelledSource, context.findings)
+  );
+}
+
 async function describeLayout(
   layout: ConsistentLayout,
+  scanned: readonly string[],
   context: ScanContext,
 ): Promise<DetectedLocaleLayout> {
   const files = [...layout.group.members.keys()].sort();
@@ -356,16 +393,14 @@ async function describeLayout(
   if (count < 2 && !evidence.hasUnspelledSource) {
     context.findings.doubt("medium", "Only one locale file backs the pattern.");
   }
-  const sourceLocale =
-    context.input.sourceLocale ??
-    evidence.catalogueSource ??
-    inferSourceLocale(evidence.locales, evidence.hasUnspelledSource, context.findings);
+  const unqualified = unqualifiedSourceFile(layout.group, scanned);
   return {
     pattern: layout.group.pattern,
     localeStyle: layout.localeStyle,
     locales: evidence.locales,
-    sourceLocale,
+    sourceLocale: sourceLocaleFor(evidence, unqualified, context),
     files,
+    unqualifiedSourceFile: unqualified,
   };
 }
 
@@ -380,7 +415,7 @@ async function resolveFormat(
   if (choice.kind === "found") {
     return formatForFiles([...choice.layout.group.members.keys()].sort(), context);
   }
-  return formatWithoutFiles(context);
+  return formatWithoutFiles(context, choice.kind === "ambiguous" ? "medium" : "low");
 }
 
 function overallConfidence(
@@ -392,7 +427,8 @@ function overallConfidence(
   if (layout === undefined && !detectedFormat) {
     return "none";
   }
-  if (layout === undefined) {
+  const layoutAmbiguous = findings.ambiguities.some((ambiguity) => ambiguity.subject === "layout");
+  if (layout === undefined && !layoutAmbiguous) {
     findings.doubt("low", "No locale file backs the format.");
   }
   if (findings.ambiguities.length > 0) {
@@ -441,7 +477,8 @@ export async function detectProject(
   const files = await candidateFiles(context);
   const choice = chooseLayoutFor(files, context);
   const format = await resolveFormat(choice, context);
-  const layout = choice.kind === "found" ? await describeLayout(choice.layout, context) : undefined;
+  const layout =
+    choice.kind === "found" ? await describeLayout(choice.layout, files, context) : undefined;
   const confidence = overallConfidence(format, layout, context.findings);
   return {
     format,

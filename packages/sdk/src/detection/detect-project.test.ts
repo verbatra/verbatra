@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { AdapterRegistry, type FormatAdapter } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
@@ -108,6 +108,7 @@ describe("detectProject: formats decided by the files", () => {
 
     expect(detection.layout?.sourceLocale).toBeUndefined();
     expect(detection.reasons).toContain("Could not tell which locale is the source.");
+    expect(detection.confidence).toBe("medium");
   });
 
   it("takes the only locale found as the source", async () => {
@@ -184,6 +185,71 @@ describe("detectProject: locale styles", () => {
 
     expect(detection.layout).toBeUndefined();
     expect(detection.reasons).toContain("No locale file was found.");
+  });
+});
+
+describe("detectProject: an unqualified source file", () => {
+  it.each([
+    {
+      name: "a Java base bundle",
+      files: {
+        "src/main/resources/messages.properties": "a=A\n",
+        "src/main/resources/messages_de.properties": "a=B\n",
+        "src/main/resources/messages_fr.properties": "a=C\n",
+      },
+      base: "src/main/resources/messages.properties",
+      pattern: "src/main/resources/messages_{locale}.properties",
+    },
+    {
+      name: "a .NET neutral resource file",
+      files: {
+        "Resources/Strings.resx": "<root/>",
+        "Resources/Strings.de.resx": "<root/>",
+        "Resources/Strings.en.resx": "<root/>",
+      },
+      base: "Resources/Strings.resx",
+      pattern: "Resources/Strings.{locale}.resx",
+    },
+    {
+      name: "a gettext template",
+      files: {
+        "po/app.pot": 'msgid "a"\nmsgstr ""\n',
+        "locale/de/LC_MESSAGES/app.po": 'msgid "a"\nmsgstr "b"\n',
+        "locale/en/LC_MESSAGES/app.po": 'msgid "a"\nmsgstr "a"\n',
+      },
+      base: "po/app.pot",
+      pattern: "locale/{locale}/LC_MESSAGES/app.po",
+    },
+  ])(
+    "names $name and leaves the source open at medium confidence",
+    async ({ files, base, pattern }) => {
+      const cwd = await project(files);
+      const detection = await detectProject({ cwd });
+
+      expect(detection.layout?.pattern).toBe(pattern);
+      expect(detection.layout?.unqualifiedSourceFile).toBe(base);
+      expect(detection.layout?.sourceLocale).toBeUndefined();
+      expect(detection.confidence).toBe("medium");
+      expect(detection.reasons.some((reason) => reason.startsWith(`${base} holds strings`))).toBe(
+        true,
+      );
+    },
+  );
+
+  it("keeps a given source locale next to an unqualified file", async () => {
+    const cwd = await project({
+      "i18n/messages.properties": "a=A\n",
+      "i18n/messages_de.properties": "a=B\n",
+    });
+    const detection = await detectProject({ cwd, sourceLocale: "en" });
+
+    expect(detection.layout?.sourceLocale).toBe("en");
+    expect(detection.confidence).toBe("medium");
+  });
+
+  it("reports no unqualified file when none exists", async () => {
+    const cwd = await project({ "i18n/app_en.arb": "{}", "i18n/app_de.arb": "{}" });
+    expect((await detectProject({ cwd })).layout?.unqualifiedSourceFile).toBeUndefined();
   });
 });
 
@@ -346,6 +412,49 @@ describe("detectProject: layouts", () => {
       { subject: "layout", candidates: ["apps/web/i18n/{locale}.yaml", "locales/{locale}.yaml"] },
     ]);
     expect(detection.confidence).toBe("none");
+  });
+
+  it("does not add a missing-file doubt when the layout is ambiguous", async () => {
+    const cwd = await project({
+      "package.json": manifest({ i18next: "^23" }),
+      "locales/en/common.json": "{}",
+      "locales/de/common.json": "{}",
+      "locales/en/auth.json": "{}",
+      "locales/de/auth.json": "{}",
+    });
+    const detection = await detectProject({ cwd });
+
+    expect(detection.format).toEqual({ id: "i18next-json", from: "dependencies" });
+    expect(detection.reasons).not.toContain("No locale file backs the format.");
+    expect(detection.confidence).toBe("medium");
+  });
+
+  it("requires a locale hint when every spelling is a three-letter code", async () => {
+    const cwd = await project({
+      "src/app.yaml": "a: A\n",
+      "bin/app.yaml": "a: B\n",
+      "ast/app.yaml": "a: C\n",
+    });
+    expect((await detectProject({ cwd })).layout).toBeUndefined();
+  });
+
+  it("accepts a three-letter locale when the path before it names a locale directory", async () => {
+    const cwd = await project({ "i18n/fil.yaml": "a: A\n", "src/ast/app.yaml": "a: B\n" });
+    expect((await detectProject({ cwd })).layout?.pattern).toBe("i18n/{locale}.yaml");
+  });
+
+  it("notes symbolic links it did not follow", async () => {
+    const cwd = await project({
+      "real/locales/en.yaml": "a: A\n",
+      "real/locales/de.yaml": "a: B\n",
+    });
+    await symlink(join(cwd, "real"), join(cwd, "linked"));
+    const detection = await detectProject({ cwd });
+
+    expect(detection.layout?.pattern).toBe("real/locales/{locale}.yaml");
+    expect(detection.reasons).toContain(
+      "Skipped 1 entry that is neither a file nor a directory, such as a symbolic link; nothing behind a symbolic link was scanned.",
+    );
   });
 
   it("prefers the deepest token among patterns over the same files", async () => {

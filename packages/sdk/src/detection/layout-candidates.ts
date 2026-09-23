@@ -186,16 +186,72 @@ const TRANSLATION_ONLY_EXTENSIONS: ReadonlySet<string> = new Set([
   ".resx",
 ]);
 
+function mentionsLocale(text: string): boolean {
+  const lower = text.toLowerCase();
+  return LOCALE_PATH_HINTS.some((hint) => lower.includes(hint));
+}
+
 function hasLocaleHint(group: LayoutGroup): boolean {
-  const pattern = group.pattern.replaceAll(LOCALE_TOKEN, "").toLowerCase();
-  return (
-    LOCALE_PATH_HINTS.some((hint) => pattern.includes(hint)) ||
-    TRANSLATION_ONLY_EXTENSIONS.has(extname(pattern))
-  );
+  const pattern = group.pattern.replaceAll(LOCALE_TOKEN, "");
+  return mentionsLocale(pattern) || TRANSLATION_ONLY_EXTENSIONS.has(extname(pattern).toLowerCase());
+}
+
+function hasHintBeforeToken(group: LayoutGroup): boolean {
+  return mentionsLocale(group.pattern.slice(0, group.pattern.indexOf(LOCALE_TOKEN)));
+}
+
+function isThreeLetterLanguage(spelled: SpelledLocale): boolean {
+  return spelled.locale !== undefined && /^[a-z]{3}(?:-|$)/i.test(spelled.locale);
 }
 
 function isPlausible(group: LayoutGroup): boolean {
-  return group.sharedCatalogue || group.members.size > 1 || hasLocaleHint(group);
+  if (group.sharedCatalogue) {
+    return true;
+  }
+  const spellings = [...group.members.values()];
+  if (spellings.every(isThreeLetterLanguage)) {
+    return hasHintBeforeToken(group);
+  }
+  return spellings.length > 1 || hasLocaleHint(group);
+}
+
+const BASE_NAME_SEPARATORS = new Set([".", "_", "-"]);
+
+function strippedTokenPath(pattern: string): string | undefined {
+  const index = pattern.indexOf(LOCALE_TOKEN);
+  const before = pattern.slice(0, index);
+  const separator = before.charAt(before.length - 1);
+  const beforeSeparator = before.charAt(before.length - 2);
+  if (!BASE_NAME_SEPARATORS.has(separator) || beforeSeparator === "" || beforeSeparator === "/") {
+    return undefined;
+  }
+  return `${before.slice(0, -1)}${pattern.slice(index + LOCALE_TOKEN.length)}`;
+}
+
+function gettextTemplate(pattern: string, files: readonly string[]): string | undefined {
+  if (!pattern.endsWith(".po")) {
+    return undefined;
+  }
+  const stem = pattern.slice(pattern.lastIndexOf("/") + 1, -".po".length);
+  if (stem.includes(LOCALE_TOKEN)) {
+    return undefined;
+  }
+  const template = `${stem}.pot`;
+  return files.find((file) => file === template || file.endsWith(`/${template}`));
+}
+
+export function unqualifiedSourceFile(
+  group: LayoutGroup,
+  files: readonly string[],
+): string | undefined {
+  if (group.sharedCatalogue || !group.pattern.includes(LOCALE_TOKEN)) {
+    return undefined;
+  }
+  const stripped = strippedTokenPath(group.pattern);
+  if (stripped !== undefined && files.includes(stripped)) {
+    return stripped;
+  }
+  return gettextTemplate(group.pattern, files);
 }
 
 function score(group: LayoutGroup): number {

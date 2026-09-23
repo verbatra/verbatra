@@ -33,6 +33,12 @@ describe("parseLocaleSpelling: rejected spellings", () => {
     "values-b+",
     "values-rBR",
     "toString",
+    "mul",
+    "zxx",
+    "mis",
+    "und",
+    "qaa",
+    "qtz-DE",
   ])("rejects %j", (spelling) => {
     expect(parseLocaleSpelling(spelling)).toBeUndefined();
   });

@@ -15,9 +15,15 @@ const ANDROID_PREFIX = "values-";
 const ANDROID_LEGACY = /^([a-z]{2,3})(?:-r([A-Z]{2}))?$/;
 const ANDROID_BCP47_PREFIX = "b+";
 
+const NON_LOCALE_LANGUAGES: ReadonlySet<string> = new Set(["mul", "zxx", "mis", "und"]);
+const PRIVATE_USE_LANGUAGE = /^q[a-t][a-z]$/;
+
 let languageNames: Intl.DisplayNames | undefined;
 
 function isKnownLanguage(language: string): boolean {
+  if (NON_LOCALE_LANGUAGES.has(language) || PRIVATE_USE_LANGUAGE.test(language)) {
+    return false;
+  }
   languageNames ??= new Intl.DisplayNames(["en"], { type: "language", fallback: "none" });
   try {
     return languageNames.of(language) !== undefined;

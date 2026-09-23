@@ -29,6 +29,7 @@ const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set([
 export interface LocaleFileScan {
   readonly files: readonly string[];
   readonly truncated: boolean;
+  readonly skippedOther: number;
 }
 
 interface ScanState {
@@ -38,6 +39,7 @@ interface ScanState {
   readonly files: string[];
   visited: number;
   truncated: boolean;
+  skippedOther: number;
 }
 
 function isSkippedDirectory(name: string): boolean {
@@ -69,24 +71,44 @@ async function listDirectory(
   }
 }
 
-async function walk(state: ScanState, relativeDir: string, depth: number): Promise<void> {
-  const entries = await listDirectory(state.readDirectory, join(state.cwd, relativeDir));
-  const sorted = [...entries].sort(compareNames);
-  for (const entry of sorted) {
-    if (state.visited >= MAX_SCAN_ENTRIES) {
-      state.truncated = true;
-      return;
-    }
-    state.visited += 1;
-    const relativePath = relativeDir === "" ? entry.name : `${relativeDir}/${entry.name}`;
-    if (entry.kind === "file" && isClaimedByAnyAdapter(state.registry, relativePath)) {
+interface PendingDirectory {
+  readonly path: string;
+  readonly depth: number;
+}
+
+function visitEntry(
+  state: ScanState,
+  entry: DirectoryEntry,
+  parent: PendingDirectory,
+  queue: PendingDirectory[],
+): void {
+  const relativePath = parent.path === "" ? entry.name : `${parent.path}/${entry.name}`;
+  if (entry.kind === "file") {
+    if (isClaimedByAnyAdapter(state.registry, relativePath)) {
       state.files.push(relativePath);
-    } else if (entry.kind === "directory" && !isSkippedDirectory(entry.name)) {
-      if (depth >= MAX_SCAN_DEPTH) {
+    }
+  } else if (entry.kind === "other") {
+    state.skippedOther += 1;
+  } else if (!isSkippedDirectory(entry.name)) {
+    if (parent.depth >= MAX_SCAN_DEPTH) {
+      state.truncated = true;
+    } else {
+      queue.push({ path: relativePath, depth: parent.depth + 1 });
+    }
+  }
+}
+
+async function walk(state: ScanState): Promise<void> {
+  const queue: PendingDirectory[] = [{ path: "", depth: 0 }];
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    const entries = await listDirectory(state.readDirectory, join(state.cwd, next.path));
+    for (const entry of [...entries].sort(compareNames)) {
+      if (state.visited >= MAX_SCAN_ENTRIES) {
         state.truncated = true;
-      } else {
-        await walk(state, relativePath, depth + 1);
+        return;
       }
+      state.visited += 1;
+      visitEntry(state, entry, next, queue);
     }
   }
 }
@@ -107,7 +129,8 @@ export async function scanLocaleFiles(
     files: [],
     visited: 0,
     truncated: false,
+    skippedOther: 0,
   };
-  await walk(state, "", 0);
-  return { files: state.files, truncated: state.truncated };
+  await walk(state);
+  return { files: state.files, truncated: state.truncated, skippedOther: state.skippedOther };
 }
