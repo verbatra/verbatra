@@ -187,8 +187,10 @@ que la décision ferait grossir au-delà de la taille que verbatra relit, fait �
   bien que la clé compte comme manquante jusqu'à ce que la prochaine exécution de `translate`, ou
   une personne, écrive une nouvelle valeur. L'enregistrement reste avec un hash du texte supprimé,
   et l'entrée correspondante de la mémoire de traduction de cette machine est retirée pour que la
-  prochaine exécution ne remette pas le même texte aussitôt. Le fichier de locale, le fichier de
-  verrouillage et le fichier de provenance changent ensemble ou pas du tout. Un format qui ne peut
+  prochaine exécution ne remette pas le même texte aussitôt. Si une étape échoue, le fichier
+  de locale et le fichier de provenance sont restaurés en cas d'échec ; si cela échoue aussi,
+  l'appel signale `REVIEW_RESTORE_FAILED` et nomme les fichiers à récupérer depuis le contrôle de
+  version. Un processus interrompu en pleine écriture ne peut pas être annulé ainsi. Un format qui ne peut
   pas supprimer une seule traduction refuse le rejet avec `REVIEW_REJECT_UNSUPPORTED` et laisse le
   fichier tel quel : XLIFF, où une unité sans cible se lit comme son texte source, et Flutter ARB,
   dont l'écrivain garde tous les messages existants.

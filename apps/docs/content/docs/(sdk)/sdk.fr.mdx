@@ -684,6 +684,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `REVIEW_VALUE_CHANGED` | la clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | la source a changé depuis l'écriture de la valeur, qui ne peut donc pas être approuvée telle quelle (`approveEntry`) |
 | `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF et Flutter ARB, donc `rejectEntry` a restauré le fichier à la place |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` a échoué après avoir réécrit le fichier de locale, et la restauration du fichier de locale ou du fichier de provenance a échoué aussi ; le message nomme l'échec d'origine (aussi la `cause`) et les fichiers à récupérer depuis le contrôle de version |
 | `REVIEWER_INVALID` | `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | le verrou d'écriture d'une locale n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
 | `GLOSSARY_NOT_FILE_BACKED` | le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`) |

@@ -1047,6 +1047,7 @@ geworfen.
 | `REVIEW_VALUE_CHANGED` | der Key hat keinen Wert, oder sein Wert ist nicht der `expectedValue`, den die prüfende Person gesehen hat (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | die Quelle hat sich geändert, seit der Wert geschrieben wurde, also lässt er sich so nicht freigeben (`approveEntry`) |
 | `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF und Flutter ARB, also hat `rejectEntry` die Datei stattdessen wiederhergestellt |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` ist nach dem Umschreiben der Locale-Datei gescheitert, und auch das Wiederherstellen der Locale-Datei oder der Herkunftsdatei schlug fehl; die Message nennt den ursprünglichen Fehler (auch die `cause`) und die Dateien, die du aus der Versionskontrolle wiederherstellst |
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | das Schreib-Lock einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |

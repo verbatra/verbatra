@@ -272,7 +272,9 @@ How the actions are carried out, as delivered:
   the machine that rejected it, once everything else has succeeded. The lock file is validated and
   the record planned under the lock-file guard before the locale file is touched, and the lock and
   provenance files are written under that same guard; any failure after the locale file was
-  rewritten restores the locale file and the provenance file byte for byte. A format whose writer
+  rewritten restores the locale file and the provenance file, and a failed restore is
+  reported as `REVIEW_RESTORE_FAILED` naming the files left inconsistent; a process killed
+  mid-write cannot be undone this way. A format whose writer
   keeps a key it was not given cannot express a removed value: XLIFF, where a unit without a
   target reads as its source text, and Flutter ARB, whose writer keeps every existing message. The
   file is restored and the call fails with `REVIEW_REJECT_UNSUPPORTED`. Keeping the value in place and

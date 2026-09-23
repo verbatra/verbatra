@@ -182,8 +182,10 @@ cambia nada.
   que la clave cuenta como faltante hasta que la siguiente ejecución de `translate`, o una persona,
   escriba un valor nuevo. El registro se queda con un hash del texto eliminado, y la entrada
   correspondiente de la memoria de traducción de esta máquina se borra para que la siguiente
-  ejecución no vuelva a poner el mismo texto. El archivo de locale, el archivo de bloqueo y el
-  archivo de procedencia cambian juntos o no cambian. Un formato que no puede eliminar una sola
+  ejecución no vuelva a poner el mismo texto. Si un paso falla, el archivo
+  de locale y el archivo de procedencia se restauran en caso de fallo; si eso también falla, la
+  llamada informa `REVIEW_RESTORE_FAILED` y nombra los archivos que tienes que recuperar del control
+  de versiones. Un proceso que se detiene a mitad de la escritura no se puede deshacer así. Un formato que no puede eliminar una sola
   traducción rechaza el rechazo con `REVIEW_REJECT_UNSUPPORTED` y deja el archivo como estaba: XLIFF,
   donde una unidad sin destino se lee como su texto de origen, y Flutter ARB, cuyo escritor conserva
   todos los mensajes existentes.

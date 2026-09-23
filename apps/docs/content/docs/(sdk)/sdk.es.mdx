@@ -1018,6 +1018,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `REVIEW_VALUE_CHANGED` | la clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | el origen cambió desde que se escribió el valor, así que no se puede aprobar tal cual (`approveEntry`) |
 | `REVIEW_REJECT_UNSUPPORTED` | el formato conserva el valor de una clave cuando el archivo se escribe sin ella, como XLIFF y Flutter ARB, así que `rejectEntry` restauró el archivo en su lugar |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` falló después de reescribir el archivo de locale, y también falló la restauración del archivo de locale o del archivo de procedencia; el mensaje nombra el fallo original (también la `cause`) y los archivos que tienes que recuperar del control de versiones |
 | `REVIEWER_INVALID` | `reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | el bloqueo de escritura de un locale no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
