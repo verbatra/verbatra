@@ -10,6 +10,7 @@ import {
   firstCallOf,
   regexExtractor,
 } from "../test-support.js";
+import type { DeepLConfig } from "./config.js";
 import { createDeepLProvider } from "./deepl-provider.js";
 import { DEEPL_MAX_TEXTS_PER_REQUEST } from "./limits.js";
 import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
@@ -72,8 +73,8 @@ describe("createDeepLProvider: ordered send and positional zip", () => {
       request({ entries: [entry("a", "A?"), entry("b", "B?")] }),
     );
     expect(firstCallOf(calls).texts).toEqual(["A?", "B?"]);
-    expect(firstCallOf(calls).sourceLang).toBe("en");
-    expect(firstCallOf(calls).targetLang).toBe("de");
+    expect(firstCallOf(calls).sourceLang).toBe("EN");
+    expect(firstCallOf(calls).targetLang).toBe("DE");
     expect(result.values.get("a")).toBe("A");
     expect(result.values.get("b")).toBe("B");
     expect(result.usage).toBeUndefined();
@@ -499,63 +500,126 @@ describe("createDeepLProvider: comparePlaceholders wiring", () => {
   });
 });
 
-describe("createDeepLProvider: locale validation (pre-flight, before any network call)", () => {
-  it("rejects a regional source locale code (de-DE) as INVALID_REQUEST before calling translateText", async () => {
+describe("createDeepLProvider: locale codes sent to DeepL", () => {
+  async function sentLanguages(
+    overrides: Partial<TranslateRequest>,
+    providerConfig: DeepLConfig = config,
+  ): Promise<{ sourceLang: string | null; targetLang: string }> {
+    const { client, calls } = deeplStubClient(deeplResult(["x"]));
+    await createDeepLProvider(providerConfig, { client }).translateBatch(
+      request({ entries: [entry("k", "v")], ...overrides }),
+    );
+    const { sourceLang, targetLang } = firstCallOf(calls);
+    return { sourceLang, targetLang };
+  }
+
+  it("strips the region from a regional source locale (en-US sends EN)", async () => {
+    expect(await sentLanguages({ sourceLocale: "en-US", targetLocale: "de" })).toEqual({
+      sourceLang: "EN",
+      targetLang: "DE",
+    });
+  });
+
+  it("strips region and script from a source locale (zh-Hant-TW sends ZH)", async () => {
+    expect((await sentLanguages({ sourceLocale: "zh-Hant-TW" })).sourceLang).toBe("ZH");
+  });
+
+  it("maps a Traditional Chinese target to ZH-HANT and a Simplified one to ZH-HANS", async () => {
+    expect((await sentLanguages({ targetLocale: "zh-Hant" })).targetLang).toBe("ZH-HANT");
+    expect((await sentLanguages({ targetLocale: "zh-TW" })).targetLang).toBe("ZH-HANT");
+    expect((await sentLanguages({ targetLocale: "zh-CN" })).targetLang).toBe("ZH-HANS");
+  });
+
+  it("keeps a DeepL regional target variant (pt-BR sends PT-BR)", async () => {
+    expect((await sentLanguages({ targetLocale: "pt-BR" })).targetLang).toBe("PT-BR");
+  });
+
+  it("sends Latin American Spanish as ES-419 (es-MX sends ES-419)", async () => {
+    expect((await sentLanguages({ targetLocale: "es-MX" })).targetLang).toBe("ES-419");
+  });
+
+  it("lets an explicit localeMap entry win over the built-in normalization", async () => {
+    const mapped = await sentLanguages(
+      { sourceLocale: "en-US", targetLocale: "es-MX" },
+      { localeMap: { "en-US": "EN", "es-MX": "ES" } },
+    );
+    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ES" });
+  });
+
+  it("normalizes a locale the localeMap does not name", async () => {
+    const mapped = await sentLanguages(
+      { sourceLocale: "en-US", targetLocale: "zh-Hant" },
+      { localeMap: { fr: "FR" } },
+    );
+    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ZH-HANT" });
+  });
+
+  it("keeps the project locale codes for review flags while DeepL sees the mapped codes", async () => {
+    const { client, calls } = deeplStubClient(deeplResult(["Hallo"]));
+    const result = await createDeepLProvider(config, { client }).translateBatch(
+      request({ sourceLocale: "de", targetLocale: "de-AT", entries: [entry("k", "Hallo")] }),
+    );
+    expect(firstCallOf(calls)).toMatchObject({ sourceLang: "DE", targetLang: "DE" });
+    expect(result.reviewFlags?.get("k")?.reasons).toContain("EQUALS_SOURCE");
+  });
+
+  it("rejects a mapped regional source code as INVALID_REQUEST before calling translateText", async () => {
     const translateText = vi.fn();
     const client: DeepLTranslateClient = { translateText };
     await expect(
-      createDeepLProvider(config, { client }).translateBatch(
-        request({ sourceLocale: "de-DE", entries: [entry("k", "v")] }),
+      createDeepLProvider({ localeMap: { en: "EN-US" } }, { client }).translateBatch(
+        request({ entries: [entry("k", "v")] }),
       ),
     ).rejects.toMatchObject({
       code: "INVALID_REQUEST",
-      message: expect.stringContaining('"de-DE"'),
+      message: expect.stringContaining('"EN-US" (for the locale "en")'),
     });
     expect(translateText).not.toHaveBeenCalled();
   });
 
-  it("rejects a deprecated bare target locale code (en) as INVALID_REQUEST before calling translateText", async () => {
+  it("rejects a bare en target as INVALID_REQUEST before calling translateText", async () => {
     const translateText = vi.fn();
     const client: DeepLTranslateClient = { translateText };
     await expect(
       createDeepLProvider(config, { client }).translateBatch(
-        request({ targetLocale: "en", entries: [entry("k", "v")] }),
+        request({ sourceLocale: "de", targetLocale: "en", entries: [entry("k", "v")] }),
       ),
-    ).rejects.toMatchObject({ code: "INVALID_REQUEST", message: expect.stringContaining('"en"') });
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST", message: expect.stringContaining('"EN"') });
     expect(translateText).not.toHaveBeenCalled();
   });
 
-  it("passes a title-case Chinese script subtag through unmodified (zh-Hans)", async () => {
-    const { client, calls } = deeplStubClient(deeplResult(["x"]));
-    const result = await createDeepLProvider(config, { client }).translateBatch(
-      request({ targetLocale: "zh-Hans", entries: [entry("k", "v")] }),
-    );
-    expect(firstCallOf(calls).targetLang).toBe("zh-Hans");
-    expect(result.values.get("k")).toBe("x");
-  });
-
-  it("passes a valid, in-cap request through unmodified (no rewriting of a disambiguated target)", async () => {
-    const { client, calls } = deeplStubClient(deeplResult(["Frei"]));
-    const result = await createDeepLProvider(config, { client }).translateBatch(
-      request({ targetLocale: "en-US", entries: [entry("k", "Free")] }),
-    );
-    expect(firstCallOf(calls).targetLang).toBe("en-US");
-    expect(result.values.get("k")).toBe("Frei");
-  });
-
-  it("rejects the same code as a source but accepts it as a target (en-US)", async () => {
-    const sourceRejected = deeplStubClient(deeplResult(["x"]));
+  it("rejects an English region DeepL has no variant for, pointing at localeMap", async () => {
+    const translateText = vi.fn();
+    const client: DeepLTranslateClient = { translateText };
     await expect(
-      createDeepLProvider(config, { client: sourceRejected.client }).translateBatch(
-        request({ sourceLocale: "en-US", entries: [entry("k", "v")] }),
+      createDeepLProvider(config, { client }).translateBatch(
+        request({ sourceLocale: "de", targetLocale: "en-AU", entries: [entry("k", "v")] }),
       ),
-    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+      message: expect.stringContaining("provider.options.localeMap"),
+    });
+    expect(translateText).not.toHaveBeenCalled();
+  });
 
-    const targetAccepted = deeplStubClient(deeplResult(["x"]));
-    const result = await createDeepLProvider(config, {
-      client: targetAccepted.client,
-    }).translateBatch(request({ targetLocale: "en-US", entries: [entry("k", "v")] }));
-    expect(result.values.get("k")).toBe("x");
+  it("surfaces a mapped code DeepL itself rejects as a structured ProviderError", async () => {
+    const translateText = vi.fn(async () => {
+      throw Object.assign(
+        new Error("Bad request, message: Value for 'target_lang' not supported."),
+        {
+          status: 400,
+        },
+      );
+    });
+    const client: DeepLTranslateClient = { translateText };
+    await expect(
+      createDeepLProvider({ localeMap: { de: "XX-YY" } }, { client }).translateBatch(
+        request({ entries: [entry("k", "v")] }),
+      ),
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof ProviderError && error.code === "PROVIDER_ERROR",
+    );
+    expect(translateText).toHaveBeenCalledWith(["v"], "EN", "XX-YY", {});
   });
 });
 

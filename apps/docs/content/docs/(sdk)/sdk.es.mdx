@@ -541,7 +541,7 @@ y se comprueba cuando el registro entra en la memoria, no se deja para la ejecuc
 Cuando una unidad importada contradice una traducción que la memoria ya tiene, gana la memoria salvo
 que se pase `overwrite`. Las unidades se guardan bajo la huella de configuración actual, la misma
 clave que escribe una ejecución real, así que dejan de coincidir cuando cambian el proveedor, el
-modelo, el tono o el glosario. Importar el mismo archivo dos veces no cambia nada la segunda vez.
+modelo, el tono, el glosario o el `localeMap` del proveedor. Importar el mismo archivo dos veces no cambia nada la segunda vez.
 
 Ante datos dañados devuelve un informe en lugar de lanzar: cuántas unidades se leyeron, una cuenta
 por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` y `rejected`

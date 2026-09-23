@@ -4,8 +4,9 @@
  * already translated under the same configuration is reused instead of paid for again.
  *
  * Entries are keyed by configuration fingerprint, then locale, then source-content hash. The
- * fingerprint layer means that changing the provider, model, tone, or glossary does not silently
- * reuse translations produced under the old settings; those entries simply stop matching.
+ * fingerprint layer means that changing the provider, model, tone, glossary, or a non-empty provider
+ * `localeMap` does not silently reuse translations produced under the old settings; those entries
+ * simply stop matching.
  *
  * `sources` sits beside them as a flat hash-to-text index. A hash cannot be compared for
  * similarity, so the source text itself has to be on file for a fuzzy match to have anything to

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
 import { keyEnvVarNames } from "../key-env-vars.js";
 import { deriveJsonSchema, translationsResultSchema } from "../llm/schema.js";
+import { OPENAI_SYSTEM_RULES } from "../openai/request.js";
 import type { OpenAiClient } from "../openai/types.js";
 import type { TranslateRequest } from "../provider.js";
 import { redactKeys } from "../redaction.js";
@@ -46,6 +47,24 @@ describe("createOpenAiCompatibleProvider: identity", () => {
     expect(provider.id).toBe("openai-compatible");
     expect(provider.kind).toBe("llm");
     expect(provider.supportsGlossary).toBe(true);
+  });
+});
+
+describe("createOpenAiCompatibleProvider: localeMap", () => {
+  it("sends the mapped target code only in the user payload, never in the system prompt", async () => {
+    const mapped = "German (de-DE)";
+    const { client, calls } = openAiStubClient(
+      openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createOpenAiCompatibleProvider(
+      { ...config, localeMap: { de: mapped } },
+      { client },
+    ).translateBatch(request());
+    const body = firstCallOf(calls);
+    expect(body.messages[0]?.content).toBe(OPENAI_SYSTEM_RULES);
+    expect(body.messages[0]?.content).not.toContain(mapped);
+    expect(body.messages[1]?.content).toContain(mapped);
+    expect(JSON.stringify(body)).not.toContain("localeMap");
   });
 });
 

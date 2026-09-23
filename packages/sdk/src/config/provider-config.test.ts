@@ -68,6 +68,14 @@ describe("buildProvider: openai-compatible", () => {
     expect(provider.id).toBe("openai-compatible");
     expect(provider.kind).toBe("llm");
   });
+
+  it("constructs the provider with a localeMap in its options", () => {
+    const provider = buildProvider({
+      ...validOpenAiCompatible,
+      options: { ...validOpenAiCompatible.options, localeMap: { de: "de-DE" } },
+    });
+    expect(provider.id).toBe("openai-compatible");
+  });
 });
 
 describe("providerConfigSchema: google-translate", () => {

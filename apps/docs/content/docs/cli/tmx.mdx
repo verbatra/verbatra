@@ -91,7 +91,7 @@ Importing the same file twice therefore changes nothing the second time, and wri
 
 ## Imported units and your configuration
 
-Imported units are stored under the project's current configuration fingerprint, the same key a real run writes. That is deliberate: an imported memory is reused exactly when the configuration that would consume it matches, and stops matching when the provider, model, tone, or glossary changes, which is the protection the fingerprint layer exists to give. Re-import the file after such a change.
+Imported units are stored under the project's current configuration fingerprint, the same key a real run writes. That is deliberate: an imported memory is reused exactly when the configuration that would consume it matches, and stops matching when the provider, model, tone, glossary, or provider `localeMap` changes, which is the protection the fingerprint layer exists to give. Re-import the file after such a change.
 
 If the memory file was written by a newer verbatra than the one you are running, import leaves it untouched and says so, rather than writing a file the newer build would then have to distrust. The counts are still reported, as on a `--dry-run`, so they show what would have landed rather than what did: nothing did.
 

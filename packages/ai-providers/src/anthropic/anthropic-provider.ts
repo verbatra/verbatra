@@ -27,7 +27,7 @@ export function createAnthropicProvider(
     kind: "llm",
     supportsGlossary: true,
     translateBatch: (request: TranslateRequest): Promise<TranslateResult> =>
-      runLlmTranslation(request, mechanism),
+      runLlmTranslation(request, mechanism, validConfig.localeMap),
   };
 }
 

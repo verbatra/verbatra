@@ -1,3 +1,4 @@
+import { stableStringHash } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { baseConfig } from "../test-support.js";
@@ -65,5 +66,38 @@ describe("computeFingerprint", () => {
 
   it("distinguishes an absent glossary from an empty one only by staying stable", () => {
     expect(computeFingerprint(cfg())).toBe(computeFingerprint(cfg({ glossary: {} })));
+  });
+});
+
+describe("computeFingerprint: provider localeMap", () => {
+  const deepl = (options: { localeMap?: Record<string, string> } = {}): VerbatraConfig =>
+    cfg({ provider: { id: "deepl", options } });
+
+  it("keeps the fingerprint of a config without a localeMap unchanged", () => {
+    const withoutLocaleMap = JSON.stringify({
+      provider: "deepl",
+      model: null,
+      tone: null,
+      glossary: {},
+    });
+    expect(computeFingerprint(deepl())).toBe(stableStringHash(withoutLocaleMap));
+  });
+
+  it("treats an empty localeMap like an absent one", () => {
+    expect(computeFingerprint(deepl({ localeMap: {} }))).toBe(computeFingerprint(deepl()));
+  });
+
+  it("changes when a non-empty localeMap is added or changed", () => {
+    const base = computeFingerprint(deepl());
+    const mapped = computeFingerprint(deepl({ localeMap: { "es-MX": "ES-419" } }));
+    const remapped = computeFingerprint(deepl({ localeMap: { "es-MX": "ES" } }));
+    expect(mapped).not.toBe(base);
+    expect(remapped).not.toBe(mapped);
+  });
+
+  it("ignores the order of the localeMap keys", () => {
+    const ab = computeFingerprint(deepl({ localeMap: { de: "DE", fr: "FR" } }));
+    const ba = computeFingerprint(deepl({ localeMap: { fr: "FR", de: "DE" } }));
+    expect(ab).toBe(ba);
   });
 });

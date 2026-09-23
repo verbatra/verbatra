@@ -29,6 +29,8 @@ function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
 }
 
 function payloadOf(body: { contents: ReadonlyArray<{ parts: ReadonlyArray<{ text: string }> }> }): {
+  sourceLocale: string;
+  targetLocale: string;
   tone?: string;
   glossary?: Record<string, string>;
   items: Array<{ key: string; value: string; description?: string; meaning?: string }>;
@@ -97,6 +99,22 @@ describe("createGeminiProvider: request building", () => {
     expect(payload.glossary).toEqual({ Hello: "Hi" });
     expect(payload.items[0]?.description).toBe("a verb");
     expect(payload.items[0]?.meaning).toBe("publish");
+  });
+});
+
+describe("createGeminiProvider: localeMap", () => {
+  it("sends the mapped target code only in the payload, never in the system instruction", async () => {
+    const mapped = "German (de-DE)";
+    const { client, calls } = geminiStubClient(
+      geminiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createGeminiProvider({ ...config, localeMap: { de: mapped } }, { client }).translateBatch(
+      request(),
+    );
+    const body = firstCallOf(calls);
+    expect(payloadOf(body).targetLocale).toBe(mapped);
+    expect(body.config.systemInstruction).toBe(GEMINI_SYSTEM_RULES);
+    expect(body.config.systemInstruction).not.toContain(mapped);
   });
 });
 

@@ -361,7 +361,7 @@ l'enregistrement dans la mémoire plutôt que laissée à l'exécution qui la li
 Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
 sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,
 la même clé qu'écrit une exécution réelle, et cessent donc de correspondre dès que le fournisseur, le
-modèle, le ton ou le glossaire changent. Importer deux fois le même fichier ne change rien la seconde
+modèle, le ton, le glossaire ou la `localeMap` du fournisseur changent. Importer deux fois le même fichier ne change rien la seconde
 fois.
 
 Face à des données abîmées, renvoie un rapport au lieu de lever : combien d'unités ont été lues, un

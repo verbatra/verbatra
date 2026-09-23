@@ -41,7 +41,7 @@ config) exactly those keys are removed from the target file and the lock, and no
 
 Before anything is sent, every candidate is looked up in the local translation-memory cache
 (`verbatra.cache.json`). A stored translation for the same source text, under the same provider,
-model, tone and glossary fingerprint, is reused as-is and never reaches the provider; only the
+model, tone, glossary and provider `localeMap` fingerprint, is reused as-is and never reaches the provider; only the
 misses go on. See [The cache](/docs/the-cache) for how entries are keyed and when they stop
 matching.
 

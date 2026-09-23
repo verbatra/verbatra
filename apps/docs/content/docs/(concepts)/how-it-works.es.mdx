@@ -45,7 +45,7 @@ de destino y del bloqueo, y nada más.
 
 Antes de enviar nada, cada candidata se busca en la caché local de memoria de traducción
 (`verbatra.cache.json`). Una traducción guardada para el mismo texto de origen, bajo la misma
-huella de proveedor, modelo, tono y glosario, se reutiliza tal cual y nunca llega al proveedor;
+huella de proveedor, modelo, tono, glosario y `localeMap` del proveedor, se reutiliza tal cual y nunca llega al proveedor;
 solo siguen adelante las que no encuentran coincidencia. Consulta [La caché](/docs/the-cache)
 para ver cómo se indexan las entradas y cuándo dejan de coincidir.
 

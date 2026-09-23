@@ -1,5 +1,6 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
+import { resolveProviderLocale } from "../locale-map.js";
 import {
   type PlaceholderComparator,
   type PlaceholderExtractor,
@@ -13,6 +14,7 @@ import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js
 import { createDefaultClient } from "./client.js";
 import { type DeepLConfig, deepLConfigSchema } from "./config.js";
 import { chunkTextsForDeepL } from "./limits.js";
+import { toDeepLSourceCode, toDeepLTargetCode } from "./locale-codes.js";
 import { assertValidDeepLSourceLocale, assertValidDeepLTargetLocale } from "./locale-validation.js";
 import { PLACEHOLDER_UNSUPPORTED_MESSAGE, partitionByPlaceholders } from "./placeholders.js";
 import { buildTranslateOptions } from "./request.js";
@@ -26,6 +28,11 @@ import type {
 } from "./types.js";
 
 const PROVIDER_ID = "deepl";
+
+interface DeepLLanguages {
+  readonly sourceLang: string;
+  readonly targetLang: string;
+}
 
 export interface DeepLDeps {
   readonly client?: DeepLTranslateClient;
@@ -60,8 +67,7 @@ async function translate(
   request: TranslateRequest,
 ): Promise<DeepLTranslateResult> {
   const data = validateRequest(request);
-  assertValidDeepLSourceLocale(data.sourceLocale);
-  assertValidDeepLTargetLocale(data.targetLocale);
+  const languages = resolveDeepLLanguages(config, data);
   const { protectable, unprotectable } = partitionByPlaceholders(data.entries);
   const genericGlossarySupplied =
     request.glossary !== undefined && Object.keys(request.glossary).length > 0;
@@ -73,7 +79,7 @@ async function translate(
   });
   const { values, integrity } = await translateProtectable(
     bundle.client,
-    data,
+    languages,
     protectable,
     options,
     request.extractPlaceholders,
@@ -100,9 +106,17 @@ async function translate(
   return { values, integrity, notices, reviewFlags };
 }
 
+function resolveDeepLLanguages(config: DeepLConfig, data: ValidatedRequestData): DeepLLanguages {
+  const sourceLang = resolveProviderLocale(data.sourceLocale, config.localeMap, toDeepLSourceCode);
+  const targetLang = resolveProviderLocale(data.targetLocale, config.localeMap, toDeepLTargetCode);
+  assertValidDeepLSourceLocale(sourceLang, data.sourceLocale);
+  assertValidDeepLTargetLocale(targetLang, data.targetLocale);
+  return { sourceLang, targetLang };
+}
+
 async function translateProtectable(
   client: DeepLTranslateClient,
-  data: ValidatedRequestData,
+  languages: DeepLLanguages,
   protectable: readonly TranslationEntry[],
   options: DeepLTranslateOptions,
   extract: PlaceholderExtractor,
@@ -120,8 +134,8 @@ async function translateProtectable(
   const results = await callClientChunked(
     client,
     texts,
-    data.sourceLocale,
-    data.targetLocale,
+    languages.sourceLang,
+    languages.targetLang,
     options,
     timeoutMs,
     signal,

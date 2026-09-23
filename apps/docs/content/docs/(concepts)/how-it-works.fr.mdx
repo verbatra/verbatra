@@ -44,7 +44,7 @@ ces clés qui sont supprimées du fichier cible et du fichier de verrouillage, e
 
 Avant tout envoi, chaque candidate est recherchée dans le cache local de mémoire de traduction
 (`verbatra.cache.json`). Une traduction stockée pour le même texte source, sous la même empreinte
-de fournisseur, modèle, ton et glossaire, est réutilisée telle quelle et n'atteint jamais le
+de fournisseur, modèle, ton, glossaire et `localeMap` du fournisseur, est réutilisée telle quelle et n'atteint jamais le
 fournisseur ; seules celles qui n'y figurent pas poursuivent leur chemin. Voir
 [Le cache](/docs/the-cache) pour savoir comment les entrées sont indexées et quand elles cessent
 de correspondre.

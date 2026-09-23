@@ -49,6 +49,15 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * sends no real key otherwise, since a local server usually needs none; naming a different variable
  * through `apiKeyEnvVar` makes that variable required. It still never holds the key itself.
  *
+ * Every variant except `none` accepts an optional `options.localeMap`, from a configured locale
+ * code to the code that provider should receive instead, such as `{ "zh-Hant": "zh-HK" }`. Only the
+ * provider request sees the mapped code: file names, the lock file, and the translation memory
+ * keep the configured one. A locale without an entry gets the provider's built-in normalization:
+ * DeepL receives a source language without region or script (`en-US` is sent as `EN`) and a target
+ * mapped to its own variants (`zh-Hant` and `zh-TW` are sent as `ZH-HANT`), Google Cloud
+ * Translation receives `zh-TW` for Traditional and `zh-CN` for Simplified Chinese, and the LLM
+ * providers receive the configured code unchanged.
+ *
  * The `none` variant disables machine translation by policy. Its `options` is always an empty
  * object, filled in when omitted, so `provider.options` exists on every variant: no provider is
  * ever constructed and no API key is read. {@link translate} and {@link watch} then fill only from

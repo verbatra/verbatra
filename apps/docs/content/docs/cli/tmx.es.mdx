@@ -91,7 +91,7 @@ Importar el mismo archivo dos veces, por tanto, no cambia nada la segunda vez, y
 
 ## Unidades importadas y tu configuración
 
-Las unidades importadas se guardan bajo la huella de configuración actual del proyecto, la misma clave que escribe una ejecución real. Es deliberado: una memoria importada se reutiliza exactamente cuando coincide la configuración que la consumiría, y deja de coincidir cuando cambian el proveedor, el modelo, el tono o el glosario, que es justo la protección para la que existe la capa de huella. Vuelve a importar el archivo después de un cambio así.
+Las unidades importadas se guardan bajo la huella de configuración actual del proyecto, la misma clave que escribe una ejecución real. Es deliberado: una memoria importada se reutiliza exactamente cuando coincide la configuración que la consumiría, y deja de coincidir cuando cambian el proveedor, el modelo, el tono, el glosario o el `localeMap` del proveedor, que es justo la protección para la que existe la capa de huella. Vuelve a importar el archivo después de un cambio así.
 
 Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, la importación lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar. Los recuentos se siguen informando, como con `--dry-run`, así que muestran lo que habría entrado y no lo que entró: no entró nada.
 
