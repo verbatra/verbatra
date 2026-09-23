@@ -105,7 +105,8 @@
  *   replace an existing file there that does not begin with the header line verbatra writes, and
  *   leaves that file untouched.
  * - `TYPES_UNWRITABLE`: the declaration file {@link generateTypes} produces could not be written,
- *   because its directory is not writable, does not exist, or the disk is out of space.
+ *   because its directory is not writable, does not exist, or the disk is out of space. The
+ *   message names the file relative to `cwd` and the underlying file-system code.
  * - `TMX_OUTPUT_CONFLICT`: {@link exportTmx} refused its output path. Before the memory is read
  *   or anything is written, it refuses a path that names no file or resolves outside the working
  *   directory or to the working directory itself, and one naming a configured locale file, the

@@ -2,7 +2,7 @@ import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path
 import type { FormatId, TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
-import { errorMessage, SdkError } from "../errors.js";
+import { SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
@@ -25,7 +25,7 @@ import {
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
-import { escapesWorkingDirectory } from "./write-target.js";
+import { escapesWorkingDirectory, unwritableFileMessage } from "./write-target.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
@@ -296,14 +296,19 @@ async function refuseForeignOutput(
   );
 }
 
-async function writeDeclaration(fs: SdkFs, path: string, declaration: string): Promise<void> {
+async function writeDeclaration(
+  fs: SdkFs,
+  path: string,
+  cwd: string,
+  declaration: string,
+): Promise<void> {
   try {
     await fs.mkdir?.(dirname(path));
     await fs.writeFile(path, declaration);
   } catch (error) {
     throw new SdkError(
       "TYPES_UNWRITABLE",
-      `The declaration file at ${path} could not be written: ${errorMessage(error)}`,
+      unwritableFileMessage("the declaration file", path, cwd, error),
     );
   }
 }
@@ -354,7 +359,8 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * @throws {@link SdkError} `TYPES_OUTPUT_CONFLICT`: the output path is refused (see
  * {@link GenerateTypesInput.out} for the full set), or a generating run found a file there that
  * does not begin with the header verbatra writes.
- * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written.
+ * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written. The
+ * message names the file relative to `cwd` and the underlying file-system code.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined.
@@ -397,7 +403,7 @@ export async function generateTypes(
   if (stale && !check) {
     const requested = input.out ?? DEFAULT_TYPES_PATH;
     await refuseForeignOutput(fs, outputPath, requested, onDisk, declarationBytes);
-    await writeDeclaration(fs, outputPath, declaration);
+    await writeDeclaration(fs, outputPath, cwd, declaration);
   }
   return {
     path: outputPath,
