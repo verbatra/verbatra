@@ -332,3 +332,179 @@ describe("classifyLiveRun", () => {
     expect(verdict.kind).toBe("throttled");
   });
 });
+
+const TRANSIENT_CODES = ["RATE_LIMITED", "PROVIDER_UNAVAILABLE", "TIMEOUT"] as const;
+
+function subBatchNotice(code: string, message = "The translation provider failed.") {
+  return {
+    code: "SUB_BATCH_FAILED",
+    message: `A sub-batch of 1 entries failed (${code}: ${message}) and was withheld; it will be retried next run.`,
+  };
+}
+
+describe("classifyRunEnvelope: transient provider faults", () => {
+  it.each(TRANSIENT_CODES)(
+    "reads a sub-batch withheld on %s as throttled, naming the code",
+    (code) => {
+      const outcome = classifyRunEnvelope(
+        record(locale({ providerFailures: ["welcome"], notices: [subBatchNotice(code)] })),
+        TARGET,
+      );
+      expect(outcome).toMatchObject({ kind: "throttled", detail: expect.stringContaining(code) });
+    },
+  );
+
+  it.each(TRANSIENT_CODES)("reads a locale that threw %s as throttled, naming the code", (code) => {
+    const outcome = classifyRunEnvelope(
+      record(locale({ error: { code, message: "transient" } })),
+      TARGET,
+    );
+    expect(outcome).toMatchObject({ kind: "throttled", detail: expect.stringContaining(code) });
+  });
+
+  it.each(["PROVIDER_ERROR", "AUTH_FAILED", "INVALID_RESPONSE", "PROVIDER_CALL_FAILED"])(
+    "still fails a sub-batch withheld on %s, which is outside the transient set",
+    (code) => {
+      const outcome = classifyRunEnvelope(
+        record(locale({ providerFailures: ["welcome"], notices: [subBatchNotice(code)] })),
+        TARGET,
+      );
+      expect(outcome).toMatchObject({ kind: "failed", detail: expect.stringContaining(code) });
+    },
+  );
+
+  it.each(["PROVIDER_ERROR", "AUTH_FAILED", "INVALID_RESPONSE"])(
+    "still fails a locale that threw %s, which is outside the transient set",
+    (code) => {
+      const outcome = classifyRunEnvelope(
+        record(locale({ error: { code, message: "broken" } })),
+        TARGET,
+      );
+      expect(outcome).toMatchObject({ kind: "failed", detail: expect.stringContaining(code) });
+    },
+  );
+
+  it("fails when a transient sub-batch failure sits beside a genuine one in the same locale", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          providerFailures: ["welcome"],
+          notices: [subBatchNotice("PROVIDER_UNAVAILABLE"), subBatchNotice("AUTH_FAILED")],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome).toMatchObject({
+      kind: "failed",
+      detail: expect.stringContaining("AUTH_FAILED"),
+    });
+  });
+
+  it("reads only the code the sdk stamped, not a transient code quoted inside the provider message", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          providerFailures: ["welcome"],
+          notices: [subBatchNotice("PROVIDER_ERROR", "upstream said (TIMEOUT: retry later)")],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome.kind).toBe("failed");
+  });
+
+  it("fails a throttled watch run that also rejected another key on integrity", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          providerFailures: ["welcome"],
+          integrityMismatches: ["greeting"],
+          notices: [subBatchNotice("TIMEOUT")],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome).toMatchObject({
+      kind: "failed",
+      detail: expect.stringContaining("placeholder-integrity"),
+    });
+  });
+
+  it("fails a locale that threw a transient code while also withholding keys on budget", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          error: { code: "PROVIDER_UNAVAILABLE", message: "down" },
+          budgetWithheld: ["greeting"],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome).toMatchObject({
+      kind: "failed",
+      detail: expect.stringContaining("token budget"),
+    });
+  });
+});
+
+describe("classifyLiveRun: transient provider faults", () => {
+  it.each(TRANSIENT_CODES)("skips a translate run whose only failure is %s", (code) => {
+    const verdict = classifyLiveRun(
+      {
+        exitCode: 1,
+        stdout: stdoutOf(
+          locale({
+            status: "failed",
+            providerFailures: ["farewell"],
+            notices: [subBatchNotice(code)],
+          }),
+        ),
+      },
+      LIVE_TARGET,
+    );
+    expect(verdict).toMatchObject({ kind: "throttled", detail: expect.stringContaining(code) });
+  });
+
+  it("skips the exact outage that turned the live workflow red, a watch sub-batch on PROVIDER_UNAVAILABLE", () => {
+    const verdict = classifyLiveRun(
+      {
+        exitCode: 1,
+        stdout: stdoutOf(
+          locale({
+            status: "partial",
+            translated: ["greeting"],
+            providerFailures: ["farewell"],
+            notices: [
+              subBatchNotice(
+                "PROVIDER_UNAVAILABLE",
+                "The translation provider is temporarily unavailable.",
+              ),
+            ],
+          }),
+        ),
+      },
+      LIVE_TARGET,
+    );
+    expect(verdict.kind).toBe("throttled");
+  });
+
+  it("fails a run that mixes an outage with a genuine provider failure", () => {
+    const verdict = classifyLiveRun(
+      {
+        exitCode: 1,
+        stdout: stdoutOf(
+          locale({
+            status: "failed",
+            providerFailures: ["farewell"],
+            notices: [subBatchNotice("TIMEOUT"), subBatchNotice("PROVIDER_REFUSED")],
+          }),
+        ),
+      },
+      LIVE_TARGET,
+    );
+    expect(verdict).toMatchObject({
+      kind: "failed",
+      detail: expect.stringContaining("PROVIDER_REFUSED"),
+    });
+  });
+});

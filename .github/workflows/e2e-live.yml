@@ -73,9 +73,9 @@ jobs:
             echo "This tier is advisory and never gates a publish. The required release gate is the"
             echo "deterministic no-key tier, reported as \"Build and test gate\" on the CI workflow."
             echo
-            echo "A provider rate limit is reported as a skipped test, not a failure, so a failure"
-            echo "here means the CLI is genuinely broken against a real provider."
+            echo "A provider rate limit, outage, or timeout is reported as a skipped test, not a failure,"
+            echo "so a failure here means the CLI is genuinely broken against a real provider."
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$SUITE_OUTCOME" = "failure" ]; then
-            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than throttling. Investigate before the next release."
+            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than a rate limit, outage, or timeout. Investigate before the next release."
           fi
