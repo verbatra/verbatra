@@ -238,6 +238,18 @@ describe("verbatra tmx export guards its output path", () => {
     expect(calls.exportTmx[0]).toMatchObject({ configPath: "/proj/custom/settings.ts" });
   });
 
+  it("hands the SDK a file-backed glossary's path, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    const { streams } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
+
+    expect(calls.exportTmx[0]).toMatchObject({ glossaryPath: "/proj/glossary.json" });
+  });
+
   it("names no config file when the config came from no file", async () => {
     const { deps, calls } = recordingDeps({
       loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),

@@ -167,6 +167,24 @@ describe("exportTmx: an output path naming a project file", () => {
     expect(await readFile(join(dir, "custom.config.mjs"), "utf8")).toBe(PROTECTED_MARKER);
   });
 
+  it("refuses the glossary file the config names, and leaves its bytes untouched", async () => {
+    const dir = await seed();
+    await writeFile(join(dir, "glossary.json"), PROTECTED_MARKER, "utf8");
+
+    await expect(
+      exportTmx({
+        config: cfg(),
+        cwd: dir,
+        out: "Glossary.JSON",
+        glossaryPath: join(dir, "glossary.json"),
+      }),
+    ).rejects.toMatchObject({
+      code: "TMX_OUTPUT_CONFLICT",
+      message: expect.stringContaining("is the glossary file the config names."),
+    });
+    expect(await readFile(join(dir, "glossary.json"), "utf8")).toBe(PROTECTED_MARKER);
+  });
+
   it("writes that same name when it is not the loaded configuration", async () => {
     const dir = await seed();
 

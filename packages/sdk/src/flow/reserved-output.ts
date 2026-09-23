@@ -10,7 +10,8 @@ export type ReservedPathKind =
   | "lock-file"
   | "translation-memory-cache"
   | "config-search-place"
-  | "loaded-config";
+  | "loaded-config"
+  | "glossary-file";
 
 export interface ReservedPath {
   readonly kind: ReservedPathKind;
@@ -22,6 +23,7 @@ export interface ReservedPathsInput {
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
   readonly configPath?: string;
+  readonly glossaryPath?: string;
 }
 
 export function reservedProjectPaths(input: ReservedPathsInput): Map<string, ReservedPath> {
@@ -52,6 +54,9 @@ export function reservedProjectPaths(input: ReservedPathsInput): Map<string, Res
       "loaded-config",
       "the configuration file this run loaded",
     );
+  }
+  if (input.glossaryPath !== undefined) {
+    claim(resolve(cwd, input.glossaryPath), "glossary-file", "the glossary file the config names");
   }
   return reserved;
 }

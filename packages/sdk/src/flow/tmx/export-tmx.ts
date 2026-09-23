@@ -66,8 +66,9 @@ export interface ExportTmxInput {
    * Where to write the file. Defaults to {@link DEFAULT_TMX_PATH}, resolved against `cwd`. Refused
    * with `TMX_OUTPUT_CONFLICT`, before anything is read or written, when it names no file, resolves
    * outside `cwd` or to `cwd` itself, or names a configured locale file, the lock file, the
-   * translation-memory cache, a file verbatra searches for its configuration, or the
-   * {@link ExportTmxInput.configPath} file. Names are compared case-insensitively.
+   * translation-memory cache, a file verbatra searches for its configuration, the
+   * {@link ExportTmxInput.configPath} file, or the {@link ExportTmxInput.glossaryPath} file. Names
+   * are compared case-insensitively.
    */
   readonly out?: string;
   /**
@@ -75,6 +76,11 @@ export interface ExportTmxInput {
    * as the output path even when its name is not one verbatra searches for.
    */
   readonly configPath?: string;
+  /**
+   * The glossary file the config names, absolute or relative to `cwd`, normally the `path` of a
+   * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
+   */
+  readonly glossaryPath?: string;
   /** Directory the output path and the memory are resolved against. Defaults to the process working directory. */
   readonly cwd?: string;
   /** Subset of configured target locales to export. Defaults to all of them. */
@@ -191,8 +197,8 @@ async function writeTmxFile(fs: SdkFs, path: string, cwd: string, content: strin
  * It reads the memory and writes a file; it never changes the memory, which is why the CLI refuses
  * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
- * @param input - The config, the output path, the config path to protect, the locale subset, and the
- * tool version to stamp.
+ * @param input - The config, the output path, the config and glossary paths to protect, the locale
+ * subset, and the tool version to stamp.
  * @param deps - Optional file-system override.
  * @returns The path written, the unit count, and what was left out.
  *
@@ -230,6 +236,7 @@ export async function exportTmx(
     config: input.config,
     resolver: createLocalePathResolver(cwd, input.config),
     ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
   });
   const path = resolveOutputPath(cwd, input.out, reserved);
   const { memory } = await readTranslationMemory(cacheFilePath(cwd), fs);

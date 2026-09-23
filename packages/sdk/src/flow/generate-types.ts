@@ -53,7 +53,8 @@ export interface GenerateTypesInput {
    * Refused with `TYPES_OUTPUT_CONFLICT`, before anything is read or written, when it names no
    * file, is absolute, climbs out of `cwd`, does not end in `.ts`, `.mts` or `.cts`, or names a
    * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
-   * for its configuration, or the {@link GenerateTypesInput.configPath} file. Names are compared
+   * for its configuration, the {@link GenerateTypesInput.configPath} file, or the
+   * {@link GenerateTypesInput.glossaryPath} file. Names are compared
    * case-insensitively. A generating run also refuses to replace an existing file there unless
    * that file begins with the header line verbatra writes, after any leading byte order mark and
    * blank lines, and refuses one too large to verify.
@@ -64,6 +65,11 @@ export interface GenerateTypesInput {
    * as the output path even when its name is not one verbatra searches for.
    */
   readonly configPath?: string;
+  /**
+   * The glossary file the config names, absolute or relative to `cwd`, normally the `path` of a
+   * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
+   */
+  readonly glossaryPath?: string;
   /**
    * Compare instead of writing. The run reports whether the file on disk matches what a fresh
    * generation would produce and leaves every file untouched.
@@ -119,6 +125,7 @@ export const TYPES_OUTPUT_REFUSALS = [
   "translation-memory-cache",
   "config-search-place",
   "loaded-config",
+  "glossary-file",
   "unverified-existing-file",
 ] as const;
 
@@ -136,6 +143,7 @@ const REFUSAL_HINTS: Readonly<Record<TypesOutputRefusal, string>> = {
   "translation-memory-cache": RELATIVE_PATH_HINT,
   "config-search-place": RELATIVE_PATH_HINT,
   "loaded-config": "Choose an output path other than the config file.",
+  "glossary-file": "Choose an output path other than the glossary file.",
   "unverified-existing-file":
     "Pass a different --out path, or delete the file if it really is an old declaration.",
 };
@@ -343,6 +351,7 @@ export async function generateTypes(
     config,
     resolver,
     ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
   });
   const outputPath = resolveOutputPath(cwd, input.out, reserved);
 
