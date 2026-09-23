@@ -3,6 +3,7 @@ import type { SourceExtractor, SourceFramework } from "@verbatra/extract";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
+import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
 import { diffLocalesWithSource } from "./diff-locales.js";
 import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 
@@ -24,6 +25,13 @@ export interface LocaleDiff {
    * because they need no translation work.
    */
   readonly hasPendingChanges: boolean;
+  /**
+   * The interpreted origin of each `changed` key's current value, read from the provenance file,
+   * so a caller can see before a run whose work a retranslation would replace. See
+   * {@link KeyOrigin}. Absent when that file is corrupt or was written by a newer verbatra, since a
+   * report never fails over it.
+   */
+  readonly changedOrigins?: Readonly<Record<string, KeyOrigin>>;
 }
 
 /** The result of {@link diff}: per-locale key lists plus one project-wide verdict. */
@@ -130,7 +138,12 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);
-  const locales = results.map(({ locale, diff: result }) => toLocaleDiff(locale, result));
+  const locales = results.map(({ locale, diff: result, target, provenance }) => ({
+    ...toLocaleDiff(locale, result),
+    ...(provenance !== undefined
+      ? { changedOrigins: originsOf(provenance, target, result.changed) }
+      : {}),
+  }));
   const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
   if (input.unused !== true) {
     return summary;

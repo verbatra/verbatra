@@ -5,6 +5,9 @@ import { SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir, readTextFile } from "../test-support.js";
 import { baselineFor, lockFilePath, readLockFile, updateLockFileLocale } from "./lock-file.js";
+import { PROVENANCE_FILE_NAME } from "./provenance-file.js";
+
+const NO_PROVENANCE = { records: new Map() };
 
 describe("lock-file", () => {
   it("a missing lock-file reads as an empty lock (first-run degradation)", async () => {
@@ -16,10 +19,16 @@ describe("lock-file", () => {
   it("writes deterministically (sorted keys, trailing newline) and round-trips", async () => {
     const dir = await makeTempDir();
     const path = lockFilePath(dir);
-    await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "replace",
-      entries: { b: "2", a: "1" },
-    });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "replace",
+        entries: { b: "2", a: "1" },
+      },
+      NO_PROVENANCE,
+    );
     const text = await readTextFile(path);
     expect(text.endsWith("\n")).toBe(true);
     expect(text.indexOf('"a"')).toBeLessThan(text.indexOf('"b"'));
@@ -30,13 +39,19 @@ describe("lock-file", () => {
   it("round-trips a key named __proto__ as an own entry, without polluting Object.prototype", async () => {
     const dir = await makeTempDir();
     const path = lockFilePath(dir);
-    await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "replace",
-      entries: Object.fromEntries([
-        ["__proto__", "hash-proto"],
-        ["plain", "hash-plain"],
-      ]),
-    });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "replace",
+        entries: Object.fromEntries([
+          ["__proto__", "hash-proto"],
+          ["plain", "hash-plain"],
+        ]),
+      },
+      NO_PROVENANCE,
+    );
 
     const reread = await readLockFile(path, defaultFs);
     expect(baselineFor(reread, "de").get("__proto__")).toBe("hash-proto");
@@ -151,7 +166,13 @@ describe("lock-file", () => {
   it("a failed write leaves the prior lock-file intact", async () => {
     const dir = await makeTempDir();
     const path = lockFilePath(dir);
-    await updateLockFileLocale(dir, defaultFs, "de", { mode: "replace", entries: { a: "1" } });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      { mode: "replace", entries: { a: "1" } },
+      NO_PROVENANCE,
+    );
 
     const throwingFs = makeFakeFs({
       fileExists: async () => true,
@@ -161,7 +182,13 @@ describe("lock-file", () => {
       },
     });
     await expect(
-      updateLockFileLocale(dir, throwingFs, "de", { mode: "replace", entries: { a: "2" } }),
+      updateLockFileLocale(
+        dir,
+        throwingFs,
+        "de",
+        { mode: "replace", entries: { a: "2" } },
+        NO_PROVENANCE,
+      ),
     ).rejects.toThrow();
 
     const reread = await readLockFile(path, defaultFs);
@@ -172,40 +199,73 @@ describe("lock-file", () => {
 describe("updateLockFileLocale: replace mode", () => {
   it("replaces the locale's entire entries record, leaving other locales untouched", async () => {
     const dir = await makeTempDir();
-    await updateLockFileLocale(dir, defaultFs, "de", { mode: "replace", entries: { old: "h1" } });
-    await updateLockFileLocale(dir, defaultFs, "fr", { mode: "replace", entries: { keep: "h2" } });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      { mode: "replace", entries: { old: "h1" } },
+      NO_PROVENANCE,
+    );
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "fr",
+      { mode: "replace", entries: { keep: "h2" } },
+      NO_PROVENANCE,
+    );
 
-    const result = await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "replace",
-      entries: { fresh: "h3" },
-    });
+    const result = await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "replace",
+        entries: { fresh: "h3" },
+      },
+      NO_PROVENANCE,
+    );
 
-    expect(result.locales.de).toEqual({ fresh: "h3" });
-    expect(result.locales.fr).toEqual({ keep: "h2" });
+    expect(result.lock.locales.de).toEqual({ fresh: "h3" });
+    expect(result.lock.locales.fr).toEqual({ keep: "h2" });
   });
 });
 
 describe("updateLockFileLocale: merge mode", () => {
   it("overlays only the given keys, leaving every other key in the locale untouched", async () => {
     const dir = await makeTempDir();
-    await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "replace",
-      entries: { a: "h1", b: "h2" },
-    });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "replace",
+        entries: { a: "h1", b: "h2" },
+      },
+      NO_PROVENANCE,
+    );
 
-    const result = await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "merge",
-      entries: { a: "h1-new" },
-    });
+    const result = await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "merge",
+        entries: { a: "h1-new" },
+      },
+      NO_PROVENANCE,
+    );
 
-    expect(result.locales.de).toEqual({ a: "h1-new", b: "h2" });
+    expect(result.lock.locales.de).toEqual({ a: "h1-new", b: "h2" });
   });
 
   it("performs exactly one read and one write, no internal retry loop", async () => {
     let reads = 0;
     const writes: string[] = [];
     const fs = makeFakeFs({
-      readFileBounded: async (): Promise<BoundedFileRead> => {
+      readFileBounded: async (path: string): Promise<BoundedFileRead> => {
+        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+          return { kind: "missing" };
+        }
         reads += 1;
         return { kind: "ok", content: `${JSON.stringify({ version: 1, locales: {} })}\n` };
       },
@@ -214,12 +274,18 @@ describe("updateLockFileLocale: merge mode", () => {
       },
     });
 
-    const result = await updateLockFileLocale("/anywhere", fs, "de", {
-      mode: "merge",
-      entries: { mine: "h" },
-    });
+    const result = await updateLockFileLocale(
+      "/anywhere",
+      fs,
+      "de",
+      {
+        mode: "merge",
+        entries: { mine: "h" },
+      },
+      NO_PROVENANCE,
+    );
 
-    expect(result.locales.de).toEqual({ mine: "h" });
+    expect(result.lock.locales.de).toEqual({ mine: "h" });
     expect(reads).toBe(1);
     expect(writes).toHaveLength(1);
   });
@@ -234,7 +300,10 @@ describe("updateLockFileLocale: the internal lock-file guard serializes concurre
 
     const fs: SdkFs = {
       fileExists: async () => true,
-      readFileBounded: async (): Promise<BoundedFileRead> => {
+      readFileBounded: async (path: string): Promise<BoundedFileRead> => {
+        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+          return { kind: "missing" };
+        }
         insideCount += 1;
         maxInsideCount = Math.max(maxInsideCount, insideCount);
         await new Promise((res) => setTimeout(res, 10));
@@ -259,8 +328,20 @@ describe("updateLockFileLocale: the internal lock-file guard serializes concurre
     };
 
     await Promise.all([
-      updateLockFileLocale("/proj", fs, "de", { mode: "merge", entries: { greeting: "hde" } }),
-      updateLockFileLocale("/proj", fs, "fr", { mode: "merge", entries: { greeting: "hfr" } }),
+      updateLockFileLocale(
+        "/proj",
+        fs,
+        "de",
+        { mode: "merge", entries: { greeting: "hde" } },
+        NO_PROVENANCE,
+      ),
+      updateLockFileLocale(
+        "/proj",
+        fs,
+        "fr",
+        { mode: "merge", entries: { greeting: "hfr" } },
+        NO_PROVENANCE,
+      ),
     ]);
 
     expect(maxInsideCount).toBe(1);

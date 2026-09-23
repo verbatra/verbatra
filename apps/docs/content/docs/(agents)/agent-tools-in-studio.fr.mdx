@@ -65,6 +65,10 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 
 `verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par la même barrière d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Une modification via `verbatra_translation_editEntry` est enregistrée avec l'origine `agent` dans `verbatra.provenance.json`, alors qu'une modification depuis la boîte de dialogue du tableau de bord est enregistrée comme `human`. L'outil le fixe lui-même ; un agent ne peut pas le choisir.
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` ajoute, remplace ou supprime un terme du glossaire et renvoie le glossaire tel qu'il est désormais. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.

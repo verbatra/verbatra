@@ -98,6 +98,9 @@ detection work everywhere, including CI. Do not commit `.env`, `.env.local`,
 missing any of them. See
 [The lock file](/docs/the-lock-file).
 
+Commit `verbatra.provenance.json` too, once a run has written it: it records whether each value came
+from a provider, the translation memory, a person, or an import, and it is shared the same way.
+
 ## How do I re-translate everything?
 
 Deleting the lock file does not do it: without a baseline, keys that exist in both source and

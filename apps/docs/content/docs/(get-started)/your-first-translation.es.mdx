@@ -124,7 +124,7 @@ verbatra lee el locale de origen, ve que todas las claves faltan en `de`, las en
 
 ## Qué acaba de pasar
 
-Ahora hay tres cosas en disco:
+Ahora hay cuatro cosas en disco:
 
 - `locales/de.json`: el archivo del locale de destino. Tiene las mismas claves que tu origen, en el mismo orden del documento, y `{{name}}` sobrevivió intacto a la traducción; un resultado que lo hubiera perdido se habría retenido, no escrito.
 - `verbatra.lock.json`: el archivo de bloqueo. Para cada locale de destino asocia cada clave traducida con un hash de la cadena de origen de la que salió esa traducción:
@@ -141,12 +141,13 @@ Ahora hay tres cosas en disco:
   }
   ```
 
+- `verbatra.provenance.json`: el archivo de procedencia. Para cada clave traducida registra qué vía de escritura produjo el valor (aquí `machine`, con tu proveedor y tu modelo), para que una ejecución posterior, `check --json` y `diff --json` distingan la traducción automática del trabajo humano. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 - `.verbatra-local/`: estado local del proceso (la instantánea de estado de la ejecución y los bloqueos de escritura por locale). `init` lo añadió a `.gitignore`; nunca lo confirmes.
 
 El archivo de bloqueo es la línea base de todas las ejecuciones futuras. Ejecuta `verbatra translate` de nuevo sin editar nada y no se envía nada: todas las claves ya están al día. Edita una cadena de origen y solo esa clave se retraduce.
 
 <Callout title="Confirma el archivo de bloqueo">
-Confirma `verbatra.lock.json` junto a tus archivos de locale, para que cada máquina y tu CI hagan diff contra la misma línea base. Consulta [El archivo de bloqueo](/docs/the-lock-file).
+Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale, para que cada máquina y tu CI hagan diff contra la misma línea base. Consulta [El archivo de bloqueo](/docs/the-lock-file).
 </Callout>
 
 ## Siguiente

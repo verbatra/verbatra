@@ -33,6 +33,12 @@ import {
   readLockFile,
   updateLockFileLocale,
 } from "../lock/lock-file.js";
+import { machineAttribution } from "../lock/machine-attribution.js";
+import {
+  isNewerProvenance,
+  withNewerProvenanceNotice,
+  withProvenanceWriteNotice,
+} from "../lock/provenance-notice.js";
 import type { LockFile } from "../lock/types.js";
 import type { ProgressListener } from "../progress/types.js";
 import {
@@ -45,7 +51,7 @@ import { type CreateProvider, selectProvider } from "../selection/select-provide
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
-import { failureSummary, partition } from "./locale-failure.js";
+import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -231,6 +237,7 @@ interface LocaleRunContext {
   readonly fs: SdkFs;
   readonly budget: BudgetTracker;
   readonly cache: RunCacheState | undefined;
+  readonly machine: ReturnType<typeof machineAttribution>;
   readonly onLockWait?: LockWaitListener;
   readonly onProgress?: ProgressListener;
   readonly lockAcquireTimeoutMs?: number;
@@ -260,6 +267,7 @@ function buildLocaleRunParams(
     maxBatchSize: context.maxBatchSize,
     fs: context.fs,
     budget: context.budget,
+    ...(context.machine !== undefined ? { machine: context.machine } : {}),
     ...(context.cache !== undefined
       ? {
           cache: {
@@ -300,14 +308,17 @@ async function runLiveLocale(
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
       const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
       const result = await runLocale(params);
-      await updateLockFileLocale(context.cwd, context.fs, targetLocale, {
-        mode: "replace",
-        entries: result.lockEntries,
-      });
+      const update = await updateLockFileLocale(
+        context.cwd,
+        context.fs,
+        targetLocale,
+        { mode: "replace", entries: result.lockEntries },
+        result.provenance,
+      );
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
       }
-      return result.summary;
+      return withProvenanceWriteNotice(result.summary, update.provenance);
     },
     lockOptions,
   );
@@ -320,7 +331,7 @@ async function runOneLocale(
   try {
     return await run();
   } catch (error) {
-    if (error instanceof SdkError && error.code === "LOCK_FILE_INVALID") {
+    if (isWholeRunError(error)) {
       throw error;
     }
     return failureSummary(targetLocale, error);
@@ -506,7 +517,8 @@ function estimateFields(
  * Runs the one-shot translation flow over every configured target locale, or over the subset named
  * by `locales`: read the source, diff
  * each locale against the lock-file baseline, translate what is missing or stale, verify placeholder
- * and ICU integrity, write the locale files, and update the lock-file and translation memory. A
+ * and ICU integrity, write the locale files, and update the lock-file, the provenance file, and
+ * the translation memory. A
  * live run also records its summary in the run-status file that {@link runStatus} reads; a failure
  * to write that file or the translation memory is swallowed rather than failing the run.
  *
@@ -563,6 +575,10 @@ function estimateFields(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version. A dry run reads it once before any locale runs; a live run reads it per
  * locale, so this can abort the run after other locales have already been written.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong. A live run reads it before any locale runs and again as each locale records
+ * its result, so, like a corrupt lock-file, it can abort the run after other locales have been
+ * written. A dry run does not read it.
  *
  * @example
  * ```ts
@@ -611,6 +627,7 @@ export async function translate(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
+  const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
   const context: LocaleRunContext = {
     source,
     adapter,
@@ -624,6 +641,7 @@ export async function translate(
     fs,
     budget,
     cache,
+    machine: machineAttribution(config.provider),
     ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
     ...(input.lockAcquireTimeoutMs !== undefined
@@ -636,7 +654,7 @@ export async function translate(
     : await runAllLocalesLive(context, targetLocales, concurrency);
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
-  const locales = withCacheNotices(summaries, cache);
+  const locales = withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance);
   const { succeeded, partial, failed } = partition(locales);
   const usage = summaries.reduce<ReturnType<typeof combineUsage>>(
     (total, summary) => combineUsage(total, summary.usage),

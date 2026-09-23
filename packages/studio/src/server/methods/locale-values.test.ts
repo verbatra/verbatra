@@ -36,7 +36,16 @@ describe("localeValuesHandler", () => {
       const result = await localeValuesHandler({}, deps(project));
 
       expect(result).toEqual([
-        { locale: "de", values: { greeting: { source: "hello", target: "hallo" } } },
+        {
+          locale: "de",
+          values: {
+            greeting: {
+              source: "hello",
+              target: "hallo",
+              provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+            },
+          },
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -61,7 +70,10 @@ describe("localeValuesHandler", () => {
 
       const result = await localeValuesHandler({}, deps(project));
 
-      expect(result[0]?.values.legacy).toEqual({ target: "old" });
+      expect(result[0]?.values.legacy).toEqual({
+        target: "old",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      });
     } finally {
       await project.cleanup();
     }
@@ -86,7 +98,7 @@ describe("localeValuesHandler", () => {
         const result = await localeValuesHandler({}, deps(project));
 
         expect(JSON.stringify(result)).toBe(
-          `[{"locale":"de","values":{${JSON.stringify(key)}:{"source":"source","target":"target"}}}]`,
+          `[{"locale":"de","values":{${JSON.stringify(key)}:{"source":"source","target":"target","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]`,
         );
       } finally {
         await project.cleanup();

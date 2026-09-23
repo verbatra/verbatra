@@ -200,6 +200,7 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   const refusals = typesOutputRefusals();
   const names = [
     stringConstant("packages/sdk/src/lock/lock-file.ts", "LOCK_FILE_NAME"),
+    stringConstant("packages/sdk/src/lock/provenance-file.ts", "PROVENANCE_FILE_NAME"),
     stringConstant("packages/sdk/src/cache/translation-memory.ts", "CACHE_FILE_NAME"),
     ...configSearchPlaces(),
     ...refusals.extensions,

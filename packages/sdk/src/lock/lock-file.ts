@@ -2,8 +2,13 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { sortRecordKeys } from "../record-utils.js";
+import { ownValue, sortRecordKeys } from "../record-utils.js";
 import { withLockFileGuard } from "./locale-write-lock.js";
+import {
+  type ProvenancePatch,
+  type ProvenanceWriteOutcome,
+  writeProvenanceLocale,
+} from "./provenance-file.js";
 import type { LockEntries, LockFile } from "./types.js";
 
 /**
@@ -101,18 +106,32 @@ function applyLockLocalePatch(
   return { ...currentEntries, ...patch.entries };
 }
 
+export interface LockLocaleUpdate {
+  readonly lock: LockFile;
+  readonly provenance: ProvenanceWriteOutcome;
+}
+
 export async function updateLockFileLocale(
   cwd: string,
   fs: SdkFs,
   locale: string,
   patch: LockLocalePatch,
-): Promise<LockFile> {
+  provenance: ProvenancePatch,
+): Promise<LockLocaleUpdate> {
   return withLockFileGuard(cwd, fs, async () => {
     const path = lockFilePath(cwd);
     const lock = parseLockFileRead(await fs.readFileBounded(path, MAX_LOCK_FILE_BYTES), path);
-    const nextEntries = applyLockLocalePatch(lock.locales[locale], patch);
+    const priorEntries = ownValue(lock.locales, locale);
+    const nextEntries = applyLockLocalePatch(priorEntries, patch);
+    const outcome = await writeProvenanceLocale(
+      cwd,
+      fs,
+      locale,
+      provenance,
+      (key) => ownValue(priorEntries, key) === ownValue(nextEntries, key),
+    );
     const next = updateLockLocale(lock, locale, nextEntries);
     await fs.writeFile(path, serializeLockFile(next));
-    return next;
+    return { lock: next, provenance: outcome };
   });
 }

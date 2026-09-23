@@ -19,13 +19,21 @@ import type { ProviderId } from "../config/provider-config.js";
  *   ceiling is withheld before it is sent, and so is every request after it.
  * - `CACHE_VERSION_UNRECOGNIZED`: the translation memory is at a version this release does not
  *   understand, so the run used no cache and left the file untouched.
+ * - `PROVENANCE_VERSION_UNRECOGNIZED`: the provenance file was written by a newer verbatra, so the
+ *   run left it untouched and recorded no provenance for the values it wrote. Reported by
+ *   {@link translate}, {@link watch}, and {@link importWorkbook}.
+ * - `PROVENANCE_FILE_TOO_LARGE`: recording this locale's provenance would have grown the provenance
+ *   file past the size verbatra reads back, so the file was left as it was and the values the
+ *   locale wrote have no record.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
   | "SUB_BATCH_FAILED"
   | "BLANK_ROW_BASELINE_RETAINED"
   | "BUDGET_TOKENS_EXCEEDED"
-  | "CACHE_VERSION_UNRECOGNIZED";
+  | "CACHE_VERSION_UNRECOGNIZED"
+  | "PROVENANCE_VERSION_UNRECOGNIZED"
+  | "PROVENANCE_FILE_TOO_LARGE";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is

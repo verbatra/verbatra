@@ -307,6 +307,14 @@ gettext-`msgctxt` werden nie gruppiert, und Pluralformen unter eigenen Keys werd
 verglichen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
 keinen Provider auf.
 
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `provenance`: Zähler `byOrigin` und `byReviewState` über
+die Keys, für die die Locale einen Wert hat, gelesen aus `verbatra.provenance.json`. Was jede
+Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+Dieses und jedes andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die
+Datei beschädigt ist oder von einem neueren verbatra stammt.
+
 ### diff
 
 Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
@@ -327,6 +335,12 @@ Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell
 kippt nie `hasPendingChanges`.
 
 Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` trägt außerdem `changedOrigins`, die ausgewertete Herkunft des aktuellen Werts
+jedes `changed`-Keys (etwa `machine`, `human` oder `external`), damit du vor einem Lauf siehst,
+wessen Arbeit eine Neuübersetzung ersetzen würde.
 
 ### keyIntegrity
 
@@ -353,6 +367,8 @@ ist das Ergebnis `{ exists: false }` und nichts weiter wird gelesen.
 
 Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LockStateResult` zurück.
 
+Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
+
 ### loadLockFile
 
 Liest die Lock-Datei selbst (`verbatra.lock.json`, auch als `LOCK_FILE_NAME` exportiert) und gibt
@@ -362,6 +378,21 @@ leeres Lock zurück, dasselbe Erstlauf-Verhalten, auf das sich `translate` verl�
 `lockState`, wenn du Abwesenheit unterscheiden musst.
 
 Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt ein `LockFile` zurück.
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+Liest die Herkunftsdatei selbst (`verbatra.provenance.json`, auch als `PROVENANCE_FILE_NAME`
+exportiert) und gibt ihre gespeicherte Form zurück: `{ version, locales }`, wobei jede Locale Keys
+auf einen Eintrag `{ origin, provider?, model?, valueHash, reviewState?, reviewer? }` abbildet. Sie
+enthält keinen übersetzten Text. Eine fehlende Datei oder eine von einem neueren verbatra
+geschriebene liest sich als leer; eine korrupte wirft `PROVENANCE_FILE_INVALID`. `keyValue`,
+`localeValues`, `check`, `diff` und `lockState` melden bereits die ausgewertete Sicht
+(`KeyProvenance`), die außerdem einen Wert ohne Eintrag (`unrecorded`) von einem unterscheidet, der
+seit dem Eintrag außerhalb von verbatra geändert wurde (`external`).
+
+Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
 
 ### runStatus
 
@@ -395,6 +426,9 @@ Locale. Nur lesend.
 Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ source, target? }` zurück; `target` fehlt genau
 dann, wenn der Key in dieser Locale noch nicht existiert.
 
+Ist `target` vorhanden, trägt das Ergebnis außerdem `provenance`, die ausgewertete
+`KeyProvenance` des Keys: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
 ### editEntry
 
 Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
@@ -413,6 +447,13 @@ daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzl
 betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
 oder `+` für eines, das der Kandidat erfunden hat.
 
+Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten.
+Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die
+aufrufende Oberfläche behauptet das, geprüft wird es nicht. Die Herkunftsdatei wird geprüft, bevor
+der Wert das Gate durchläuft: Eine beschädigte wirft `PROVENANCE_FILE_INVALID` und nichts wird
+geschrieben, eine von einem neueren verbatra, oder eine, die der Eintrag über die Größe wachsen
+ließe, die verbatra zurückliest, bleibt unangetastet und der Wert wird ohne Eintrag geschrieben.
+
 ### retranslateEntry
 
 Lässt den Provider für genau einen Key und eine Locale neu laufen: ein Einzeleintrag-Aufruf durch
@@ -425,6 +466,10 @@ Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewR
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
+
+Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit dem konfigurierten
+Provider und Modell. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
+Provider aufgerufen wird.
 
 ## Inhalte in großen Mengen lesen
 
@@ -445,6 +490,9 @@ Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeute
 verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
 keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene
 Eigenschaft, und ein Key, der im Katalog fehlt, ergibt `undefined`.
+
+Jedes Paar mit einem `target` trägt außerdem `provenance`, dieselbe `KeyProvenance`, die `keyValue`
+meldet.
 
 ## Locale-Datei-Schnappschüsse
 
@@ -593,7 +641,7 @@ glossaryPath?, locales?, toolVersion? }`, wobei `out` auf `DEFAULT_TMX_PATH` (`v
 zurückfällt, das als Konstante exportiert wird. Bevor der Übersetzungsspeicher gelesen wird, weist
 `TMX_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf ein
 Pfadtrennzeichen endet), außerhalb von `cwd` oder auf `cwd` selbst landet oder eine konfigurierte
-Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine
+Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine
 Konfiguration sucht, die `configPath`-Datei oder die `glossaryPath`-Datei benennt, ohne Beachtung
 der Groß- und Kleinschreibung und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung,
 noch einmal nach dem Auflösen symbolischer Links. Scheitert das Schreiben, weil das Verzeichnis
@@ -868,8 +916,10 @@ Die Teile, die du kennen solltest:
   [Review in Studio](/docs/review-in-studio).
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
-  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED` und
-  `CACHE_VERSION_UNRECOGNIZED` ab. Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
+  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED` und `PROVENANCE_FILE_TOO_LARGE`
+  ab (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
+  die verbatra zurückliest, daher blieb die Datei, wie sie war). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
   sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
@@ -934,6 +984,7 @@ geworfen.
 | `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |
 | `SOURCE_INVALID` | die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters |
 | `LOCK_FILE_INVALID` | die Lock-Datei ist vorhanden, aber korrupt, übergroß oder in einer nicht unterstützten Version |
+| `PROVENANCE_FILE_INVALID` | die Herkunftsdatei ist vorhanden, aber korrupt, übergroß oder falsch aufgebaut; geworfen von einem Schreibvorgang (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`), bevor er etwas ändert, und von `loadProvenance`, nie von einem Bericht; eine von einem neueren verbatra bleibt stattdessen unangetastet, und `translate`, `watch` und `importWorkbook` melden die Notice `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `LOCK_CONTENDED` | das Schreib-Lock einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben werden (`updateGlossaryTerm`) |
@@ -946,9 +997,9 @@ geworfen.
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
 | `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
 | `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
-| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
 | `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 

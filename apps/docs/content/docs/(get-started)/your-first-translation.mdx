@@ -124,7 +124,7 @@ verbatra reads the source locale, sees that every key is missing from `de`, send
 
 ## What just happened
 
-Three things are now on disk:
+Four things are now on disk:
 
 - `locales/de.json`: the target locale file. It has the same keys as your source, in the same document order, and `{{name}}` survived translation intact; a result that dropped it would have been withheld, not written.
 - `verbatra.lock.json`: the lock file. For each target locale it maps every translated key to a hash of the source string that translation came from:
@@ -141,12 +141,13 @@ Three things are now on disk:
   }
   ```
 
+- `verbatra.provenance.json`: the provenance file. For each translated key it records which write path produced the value (here `machine`, with your provider and model), so a later run, `check --json`, and `diff --json` can tell machine output from human work. See [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).
 - `.verbatra-local/`: process-local state (the run-status snapshot and per-locale write locks). `init` gitignored it; never commit it.
 
 The lock file is the baseline for every future run. Run `verbatra translate` again without editing anything and nothing is sent: every key is already current. Edit one source string and only that key is retranslated.
 
 <Callout title="Commit the lock file">
-Commit `verbatra.lock.json` alongside your locale files, so every machine and your CI diff against the same baseline. See [The lock file](/docs/the-lock-file).
+Commit `verbatra.lock.json` and `verbatra.provenance.json` alongside your locale files, so every machine and your CI diff against the same baseline. See [The lock file](/docs/the-lock-file).
 </Callout>
 
 ## Next

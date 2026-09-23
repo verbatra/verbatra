@@ -63,7 +63,7 @@ describe("lockState", () => {
       throw new Error("expected exists: true");
     }
     expect(result.version).toBe(1);
-    expect(result.locales).toEqual([
+    expect(result.locales).toMatchObject([
       { locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 2 },
     ]);
   });
@@ -81,7 +81,7 @@ describe("lockState", () => {
     if (!result.exists) {
       throw new Error("expected exists: true");
     }
-    expect(result.locales).toEqual([
+    expect(result.locales).toMatchObject([
       { locale: "de", keyCount: 1, missing: 0, stale: 0, upToDate: 2 },
     ]);
   });
@@ -100,7 +100,7 @@ describe("lockState", () => {
       throw new Error("expected exists: true");
     }
     expect(result.version).toBe(1);
-    expect(result.locales).toEqual([
+    expect(result.locales).toMatchObject([
       { locale: "de", keyCount: 2, missing: 1, stale: 1, upToDate: 1 },
     ]);
   });
@@ -159,7 +159,7 @@ describe("lockState", () => {
       },
     });
     const result = await lockState({ config: cfg({ targetLocales: ["de"] }), cwd: dir }, { fs });
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       exists: true,
       version: 1,
       locales: [{ locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 1 }],

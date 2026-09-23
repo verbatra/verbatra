@@ -1,4 +1,4 @@
-import { describeError } from "../errors.js";
+import { describeError, SdkError } from "../errors.js";
 import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 export function failureSummary(locale: string, error: unknown): LocaleSummary {
@@ -63,4 +63,11 @@ export function partition(locales: readonly LocaleSummary[]): {
     partial: namesWith("partial"),
     failed: namesWith("failed"),
   };
+}
+
+export function isWholeRunError(error: unknown): boolean {
+  return (
+    error instanceof SdkError &&
+    (error.code === "LOCK_FILE_INVALID" || error.code === "PROVENANCE_FILE_INVALID")
+  );
 }

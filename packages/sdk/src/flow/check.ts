@@ -13,6 +13,7 @@ import {
 } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
+import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
 import { diffLocales, type LocaleDiffResult } from "./diff-locales.js";
 
 /** One locale's counts in a {@link CheckSummary}. */
@@ -27,6 +28,12 @@ export interface LocaleCheckSummary {
   readonly upToDate: number;
   /** True when this locale has nothing missing and nothing stale. */
   readonly inSync: boolean;
+  /**
+   * Counts by origin and review state over the keys this locale has a value for, read from the
+   * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
+   * corrupt or was written by a newer verbatra, since a report never fails over it.
+   */
+  readonly provenance?: ProvenanceSummary;
   /**
    * Every source string this locale translates more than one way under different keys, present only
    * when {@link CheckInput.consistency} is true (an empty array then means the locale is
@@ -87,7 +94,7 @@ function consistencyOptions(format: FormatId): InconsistentTranslationsOptions {
 }
 
 function toCheckSummary(
-  { locale, diff, source, target }: LocaleDiffResult,
+  { locale, diff, source, target, provenance }: LocaleDiffResult,
   consistency: InconsistentTranslationsOptions | undefined,
 ): LocaleCheckSummary {
   return {
@@ -96,6 +103,9 @@ function toCheckSummary(
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
     inSync: diff.missing.length === 0 && diff.changed.length === 0,
+    ...(provenance !== undefined
+      ? { provenance: summarizeProvenance(provenance, source, target) }
+      : {}),
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(

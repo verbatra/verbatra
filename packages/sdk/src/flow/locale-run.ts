@@ -22,6 +22,13 @@ import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../lock/carry-forward.js";
+import {
+  type MachineAttribution,
+  type PendingProvenance,
+  type ProvenanceOrigin,
+  type ProvenancePatch,
+  settleProvenance,
+} from "../lock/provenance-file.js";
 import type { ProgressListener } from "../progress/types.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import {
@@ -95,12 +102,14 @@ export interface LocaleRunParams {
     readonly fuzzy?: { readonly threshold: number };
   };
   readonly budget: BudgetTracker;
+  readonly machine?: MachineAttribution;
   readonly onProgress?: ProgressListener;
 }
 
 export interface LocaleRunResult {
   readonly summary: LocaleSummary;
   readonly lockEntries: Record<string, string>;
+  readonly provenance: ProvenancePatch;
   readonly cacheAdditions: readonly CacheAddition[];
 }
 
@@ -453,6 +462,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         notices: generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices,
       }),
       lockEntries: {},
+      provenance: { records: new Map() },
       cacheAdditions: [],
     };
   }
@@ -503,6 +513,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     pruned: pruned.length,
     generated: generation.accepted.length,
   });
+  const pending = pendingProvenance(params, accepted, { cacheHitKeys, fuzzyKeys }, generation);
+  let written: LocaleResource = { ...target, entries: merged };
   if (writeNeeded) {
     await writeTargetResource(
       params.adapter,
@@ -515,6 +527,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       path,
       params.cwd,
     );
+    written = await readWrittenTarget(params, pending.size > 0, written);
   }
 
   const pluralNotices = params.generatePlurals
@@ -560,6 +573,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
     lockEntries: computeLockEntries(params, merged, withheld, generation.accepted),
+    provenance: settleProvenance(pending, written, new Set(merged.keys())),
     cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys),
   };
 }
@@ -968,4 +982,60 @@ function computeLockEntries(
     lockEntries.set(form.targetKey, form.lockHash);
   }
   return Object.fromEntries(lockEntries);
+}
+
+interface ReuseKeys {
+  readonly cacheHitKeys: ReadonlySet<string>;
+  readonly fuzzyKeys: ReadonlySet<string>;
+}
+
+function acceptedOrigin(key: string, reuse: ReuseKeys): ProvenanceOrigin {
+  if (reuse.fuzzyKeys.has(key)) {
+    return "fuzzy";
+  }
+  return reuse.cacheHitKeys.has(key) ? "memory" : "machine";
+}
+
+function pendingProvenance(
+  params: LocaleRunParams,
+  accepted: ReadonlyMap<string, Accepted>,
+  reuse: ReuseKeys,
+  generation: PluralGenerationResult,
+): Map<string, PendingProvenance> {
+  const pending = new Map<string, PendingProvenance>();
+  for (const [key, entry] of accepted) {
+    const origin = acceptedOrigin(key, reuse);
+    pending.set(key, withAttribution(origin, entry.value, params.machine));
+  }
+  for (const form of generation.accepted) {
+    pending.set(form.targetKey, withAttribution("machine", form.entry.value, params.machine));
+  }
+  return pending;
+}
+
+function withAttribution(
+  origin: ProvenanceOrigin,
+  value: string,
+  attribution: MachineAttribution | undefined,
+): PendingProvenance {
+  return origin === "machine" && attribution !== undefined
+    ? { origin, value, attribution }
+    : { origin, value };
+}
+
+async function readWrittenTarget(
+  params: LocaleRunParams,
+  needed: boolean,
+  fallback: LocaleResource,
+): Promise<LocaleResource> {
+  if (!needed) {
+    return fallback;
+  }
+  return readTargetResource({
+    resolver: params.resolver,
+    format: params.format,
+    locale: params.targetLocale,
+    adapter: params.adapter,
+    fs: params.fs,
+  });
 }

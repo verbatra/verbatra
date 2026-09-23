@@ -114,9 +114,62 @@ structurellement incorrect, trop gros ou à une version non prise en charge fait
 avec `LOCK_FILE_INVALID` au lieu d'être écrasé en silence, pour que tu puisses l'inspecter ou le
 restaurer plutôt que de perdre la référence.
 
+## La provenance de chaque valeur
+
+<AvailableFrom version="0.12.0" />
+
+À côté du fichier de verrouillage, verbatra tient `verbatra.provenance.json`. Là où le fichier de
+verrouillage enregistre de quel texte source vient une traduction, le fichier de provenance
+enregistre quel chemin d'écriture a produit la valeur qui se trouve maintenant dans le fichier de
+locale, et si quelqu'un l'a relue. La provenance a son propre fichier à dessein : le format et la version du
+fichier de verrouillage ne changent pas, si bien qu'un verbatra plus ancien, par exemple épinglé
+dans une action de CI, continue de lire le fichier de verrouillage et ignore simplement le fichier
+de provenance.
+
+Chaque enregistrement nomme une origine :
+
+| Origine | Écrite par |
+| --- | --- |
+| `machine` | une réponse du fournisseur dans `translate` ou `watch` (formes plurielles générées par le fournisseur comprises) et une retraduction d'une seule clé, avec le fournisseur configuré et, s'il en a un, le modèle |
+| `memory` | une correspondance exacte de la mémoire de traduction, y compris chaque valeur qu'une exécution purement humaine (fournisseur `none`) remplit |
+| `fuzzy` | une correspondance approximative de la mémoire de traduction |
+| `human` | une valeur qu'une personne a écrite via `editEntry` du SDK, comme le fait la boîte de dialogue d'édition de Studio |
+| `agent` | une valeur qu'un agent d'IA a écrite via `editEntry` avec `actor: "agent"` |
+| `import` | une ligne acceptée de `verbatra import` |
+
+À la lecture des fichiers, deux autres origines sont déduites plutôt que stockées. `unrecorded` est
+une valeur sans enregistrement ; c'est là que commence chaque clé d'un projet après la mise à jour.
+`external` est une valeur qui ne correspond plus à son enregistrement parce que quelque chose hors
+de verbatra l'a modifiée : quelqu'un qui édite le fichier de locale dans une pull request, un
+verbatra plus ancien ou un merge. Chaque enregistrement porte un hash de la valeur qu'il décrit ;
+c'est ainsi qu'un enregistrement périmé est repéré au lieu d'être cru. `check --json`,
+`diff --json` et les lectures de clés du SDK rapportent ces origines interprétées ;
+les champs figurent dans la [référence du SDK](/docs/sdk#loadprovenance).
+
+Le fichier ne contient aucun texte traduit ni horodatage, et ses enregistrements sont triés, un par
+ligne : une exécution qui ne change rien le laisse identique octet pour octet, et deux branches qui
+touchent des clés différentes entrent rarement en conflit. Si cela arrive, garde l'un ou l'autre
+côté : un enregistrement qui ne correspond pas à la valeur d'à côté se lit comme `external`, si bien
+que le mauvais choix ne fait que perdre de l'information et n'attribue jamais la valeur au mauvais
+auteur. Une écriture qui laisse inchangés une valeur et son texte source garde l'enregistrement tel
+quel ; toute autre le remplace par un nouvel enregistrement, non relu.
+
+Un fichier de provenance corrompu arrête chaque écriture avec `PROVENANCE_FILE_INVALID` avant
+qu'un fichier de locale ne change ou qu'un fournisseur ne soit appelé, au lieu d'être écrasé.
+`check`, `diff` et les autres rapports n'échouent jamais à cause de lui : ils omettent leurs champs
+de provenance jusqu'à ce que le fichier soit réparé. Un fichier écrit par un verbatra plus récent
+est laissé intact ; `translate`, `watch` et `import` signalent l'avis
+`PROVENANCE_VERSION_UNRECOGNIZED`, et la modification d'une seule clé n'enregistre simplement rien.
+verbatra n'écrit jamais un fichier de provenance plus gros que ce qu'il peut relire : quand
+enregistrer une locale ferait dépasser cette taille au fichier, l'ancien fichier est conservé et
+l'exécution signale `PROVENANCE_FILE_TOO_LARGE` ; la modification d'une seule clé le conserve
+sans rien signaler. L'enregistrement dit quel chemin d'écriture de verbatra a
+produit une valeur ; il n'est pas infalsifiable, puisque quiconque peut éditer les fichiers de
+locale peut aussi l'éditer.
+
 ## Commite-le
 
-Commite `verbatra.lock.json` avec tes fichiers de locale. C'est la référence partagée qui sert de
+Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale. C'est la référence partagée qui sert de
 base de comparaison à tes coéquipiers et à ta CI ; le garder sous contrôle de version est ce qui
 rend les exécutions incrémentales reproductibles d'une machine à l'autre. Ne le modifie jamais à la
 main.

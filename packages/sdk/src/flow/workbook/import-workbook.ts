@@ -26,9 +26,19 @@ import {
   readLockFile,
   updateLockFileLocale,
 } from "../../lock/lock-file.js";
+import {
+  type PendingProvenance,
+  type ProvenancePatch,
+  settleProvenance,
+} from "../../lock/provenance-file.js";
+import {
+  isNewerProvenance,
+  withNewerProvenanceNotice,
+  withProvenanceWriteNotice,
+} from "../../lock/provenance-notice.js";
 import type { LockFile } from "../../lock/types.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
-import { failureSummary, partition } from "../locale-failure.js";
+import { failureSummary, isWholeRunError, partition } from "../locale-failure.js";
 import { readTargetResource } from "../read-target.js";
 import { readSourceResource } from "../source.js";
 import type { LocaleSummary, RunSummary } from "../summary.js";
@@ -214,6 +224,18 @@ function mergeAccepted(
   return merged;
 }
 
+function importProvenance(
+  written: LocaleResource,
+  merged: ReadonlyMap<string, TranslationEntry>,
+  accepted: ImportLocaleResult["accepted"],
+): ProvenancePatch {
+  const pending = new Map<string, PendingProvenance>();
+  for (const [key, { value }] of accepted) {
+    pending.set(key, { origin: "import", value });
+  }
+  return settleProvenance(pending, written, new Set(merged.keys()));
+}
+
 function sheetCacheAdditions(
   accepted: ImportLocaleResult["accepted"],
 ): Record<string, CacheAddition> {
@@ -337,6 +359,7 @@ async function runSheet(
 ): Promise<{
   summary: LocaleSummary;
   lockEntries: Record<string, string>;
+  provenance: ProvenancePatch;
   cacheAdditions: Record<string, CacheAddition>;
 }> {
   if (!ctx.config.targetLocales.includes(sheet.locale)) {
@@ -373,10 +396,11 @@ async function runSheet(
   });
 
   if (ctx.dryRun) {
-    return { summary, lockEntries: {}, cacheAdditions: {} };
+    return { summary, lockEntries: {}, provenance: { records: new Map() }, cacheAdditions: {} };
   }
 
   const merged = mergeAccepted(target, accepted);
+  let written: LocaleResource = { ...target, entries: merged };
   if (accepted.size > 0) {
     const path = ctx.resolver.pathFor(sheet.locale);
     await writeTargetResource(
@@ -390,10 +414,18 @@ async function runSheet(
       path,
       ctx.cwd,
     );
+    written = await readTargetResource({
+      resolver: ctx.resolver,
+      format: ctx.config.format,
+      locale: sheet.locale,
+      adapter: ctx.adapter,
+      fs: ctx.fs,
+    });
   }
   return {
     summary,
     lockEntries: computeSheetLockEntries(ctx.source, merged, baseline, accepted),
+    provenance: importProvenance(written, merged, accepted),
     cacheAdditions: sheetCacheAdditions(accepted),
   };
 }
@@ -408,7 +440,8 @@ async function runSheet(
  * written, and a row whose source text changed since the export is refused the same way. A row
  * holding exactly `[[CLEAR]]` empties that key's translation. Each locale takes its write lock, and
  * the lock-file and translation memory are updated exactly as in a {@link translate} run, so an
- * imported translation counts as up to date afterwards.
+ * imported translation counts as up to date afterwards. Each accepted row is recorded in the
+ * provenance file with the origin `import`.
  *
  * Damage is contained rather than fatal: a blank row keeps the existing translation and its
  * baseline, an unreadable row is reported as a {@link MalformedRowReport}, and a repeated key is
@@ -440,6 +473,9 @@ async function runSheet(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version. Read before any locale is applied, and re-read as each locale's entries are
  * recorded, so a lock-file that turns corrupt mid-run aborts the run rather than failing one locale.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong. Checked like the lock-file: before any locale is applied, and again as each
+ * locale's result is recorded. A dry run does not read it.
  */
 export async function importWorkbook(
   input: ImportWorkbookInput,
@@ -462,6 +498,7 @@ export async function importWorkbook(
   );
 
   const lock = await readLockFile(lockFilePath(cwd), fs);
+  const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
 
   const ctx: SheetContext = {
     config,
@@ -491,18 +528,21 @@ export async function importWorkbook(
           fs,
           async () => {
             const result = await runSheet(ctx, sheet, lock);
-            await updateLockFileLocale(cwd, fs, sheet.locale, {
-              mode: "replace",
-              entries: result.lockEntries,
-            });
+            const update = await updateLockFileLocale(
+              cwd,
+              fs,
+              sheet.locale,
+              { mode: "replace", entries: result.lockEntries },
+              result.provenance,
+            );
             collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
-            return result.summary;
+            return withProvenanceWriteNotice(result.summary, update.provenance);
           },
         );
       }
       summaries.push(summary);
     } catch (error) {
-      if (error instanceof SdkError && error.code === "LOCK_FILE_INVALID") {
+      if (isWholeRunError(error)) {
         throw error;
       }
       summaries.push(failureSummary(sheet.locale, error));
@@ -515,6 +555,7 @@ export async function importWorkbook(
     await feedTranslationMemory(cwd, fs, computeFingerprint(config), cacheAdditions);
   }
 
-  const { succeeded, partial, failed } = partition(summaries);
-  return { dryRun, locales: summaries, succeeded, partial, failed };
+  const locales = withNewerProvenanceNotice(summaries, newerProvenance);
+  const { succeeded, partial, failed } = partition(locales);
+  return { dryRun, locales, succeeded, partial, failed };
 }

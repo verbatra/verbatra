@@ -35,7 +35,14 @@ describe("statusCheckHandler", () => {
 
       expect(result.inSync).toBe(true);
       expect(result.locales).toEqual([
-        { locale: "de", missing: 0, stale: 0, upToDate: 0, inSync: true },
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 0,
+          inSync: true,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -49,7 +56,14 @@ describe("statusCheckHandler", () => {
 
       expect(result.inSync).toBe(false);
       expect(result.locales).toEqual([
-        { locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false },
+        {
+          locale: "de",
+          missing: 1,
+          stale: 0,
+          upToDate: 0,
+          inSync: false,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -68,7 +82,14 @@ describe("statusCheckHandler", () => {
 
       expect(result.inSync).toBe(false);
       expect(result.locales).toEqual([
-        { locale: "de", missing: 1, stale: 0, upToDate: 1, inSync: false },
+        {
+          locale: "de",
+          missing: 1,
+          stale: 0,
+          upToDate: 1,
+          inSync: false,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -112,14 +133,28 @@ describe("statusCheckHandler", () => {
     try {
       const first = await statusCheckHandler({}, deps(project));
       expect(first.locales).toEqual([
-        { locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false },
+        {
+          locale: "de",
+          missing: 1,
+          stale: 0,
+          upToDate: 0,
+          inSync: false,
+          provenance: expect.any(Object),
+        },
       ]);
 
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
       const second = await statusCheckHandler({}, deps(project));
       expect(second.locales).toEqual([
-        { locale: "de", missing: 0, stale: 0, upToDate: 1, inSync: true },
+        {
+          locale: "de",
+          missing: 0,
+          stale: 0,
+          upToDate: 1,
+          inSync: true,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();

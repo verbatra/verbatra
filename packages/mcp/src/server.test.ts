@@ -141,7 +141,11 @@ describe("createMcpServer: tools/call", () => {
     });
 
     expect(result.isError).toBeUndefined();
-    expect(result.structuredContent).toEqual({ source: "Hello", target: "Hallo" });
+    expect(result.structuredContent).toEqual({
+      source: "Hello",
+      target: "Hallo",
+      provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+    });
   });
 
   it("returns content with no structuredContent for a tool that declares no outputSchema", async () => {
@@ -264,7 +268,11 @@ describe("createMcpServer: tools/call", () => {
         });
 
         expect(result.isError).toBeUndefined();
-        expect(result.structuredContent).toEqual({ source: expected, target: expected });
+        expect(result.structuredContent).toEqual({
+          source: expected,
+          target: expected,
+          provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+        });
       }
     });
   });

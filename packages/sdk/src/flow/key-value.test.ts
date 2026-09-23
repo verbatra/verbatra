@@ -62,7 +62,11 @@ describe("keyValue: reads", () => {
 
     const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" });
 
-    expect(result).toEqual({ source: "Hello", target: "Hallo" });
+    expect(result).toEqual({
+      source: "Hello",
+      target: "Hallo",
+      provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+    });
   });
 
   it("omits target entirely when the key does not yet exist in that target locale", async () => {
@@ -98,7 +102,11 @@ describe("keyValue: reads", () => {
     try {
       process.chdir(dir);
       const result = await keyValue({ config: cfg(), locale: "de", key: "greeting" });
-      expect(result).toEqual({ source: "Hello", target: "Hallo" });
+      expect(result).toEqual({
+        source: "Hello",
+        target: "Hallo",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      });
     } finally {
       process.chdir(previous);
     }

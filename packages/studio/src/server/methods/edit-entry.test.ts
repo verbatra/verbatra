@@ -1,6 +1,6 @@
 import { access, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { LoadedConfig, SdkFs } from "@verbatra/sdk";
+import { type LoadedConfig, loadProvenance, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
@@ -57,6 +57,38 @@ function deps(project: FixtureProject): RpcHandlerDeps {
   };
   return { config: loaded, projectRoot: project.root };
 }
+
+async function storedOrigin(project: FixtureProject): Promise<string | undefined> {
+  const loaded = await loadProvenance({ cwd: project.root });
+  return loaded.locales.de?.greeting?.origin;
+}
+
+describe("editEntryHandler: provenance", () => {
+  it("records human when the dialog omits the actor", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await editEntryHandler({ locale: "de", key: "greeting", value: "Hallo" }, deps(project));
+
+      expect(await storedOrigin(project)).toBe("human");
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("records agent when the WebMCP tool passes actor agent", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await editEntryHandler(
+        { locale: "de", key: "greeting", value: "Hallo", actor: "agent" },
+        deps(project),
+      );
+
+      expect(await storedOrigin(project)).toBe("agent");
+    } finally {
+      await project.cleanup();
+    }
+  });
+});
 
 describe("editEntryHandler", () => {
   it("delegates to the sdk seam and returns its accepted result", async () => {

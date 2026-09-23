@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { RpcCallResult, RpcClient } from "../client/rpc-client.js";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
+import { agentEditEntryParamsSchema } from "../shared/rpc/edit-entry.js";
 import type { ProjectSnapshotResult } from "../shared/rpc/snapshot.js";
 import { type ModelContext, registerAgentTools, type WebMcpTool } from "./register-tools.js";
 import type { AgentToolsRegistration } from "./registration-report.js";
@@ -295,8 +296,8 @@ describe("registerAgentTools annotations and input schema", () => {
   it("derives each tool's inputSchema from the injected params schema", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
 
-    expect(toolByName(tools, expectedName("translation.editEntry")).inputSchema).toEqual(
-      z.toJSONSchema(rpcParamsSchemas["translation.editEntry"]),
+    expect(toolByName(tools, expectedName("translation.retranslateEntry")).inputSchema).toEqual(
+      z.toJSONSchema(rpcParamsSchemas["translation.retranslateEntry"]),
     );
     expect(toolByName(tools, expectedName("project.snapshot")).inputSchema).toEqual(
       z.toJSONSchema(rpcParamsSchemas["project.snapshot"]),
@@ -411,7 +412,9 @@ function backtickedTokens(description: string): Set<string> {
 }
 
 function schemaParamNames(method: RpcMethodName): Set<string> {
-  const schema = z.toJSONSchema(rpcParamsSchemas[method]) as {
+  const agentSchema =
+    method === "translation.editEntry" ? agentEditEntryParamsSchema : rpcParamsSchemas[method];
+  const schema = z.toJSONSchema(agentSchema) as {
     readonly properties?: Readonly<Record<string, unknown>>;
   };
   return new Set(Object.keys(schema.properties ?? {}));
@@ -507,10 +510,6 @@ describe("registerAgentTools execute delegation", () => {
 
     const cases = [
       { method: "key.value", params: { locale: "de", key: "greeting" } },
-      {
-        method: "translation.editEntry",
-        params: { locale: "de", key: "greeting", value: "Hallo" },
-      },
       { method: "translation.retranslateEntry", params: { locale: "de", key: "greeting" } },
     ];
 
@@ -522,5 +521,43 @@ describe("registerAgentTools execute delegation", () => {
       expect(forMethod.at(0)?.params).toEqual(params);
       expect(output).toBe(JSON.stringify({ ok: true, result: { echoed: method } }));
     }
+  });
+});
+
+describe("registerAgentTools: the editEntry tool records an agent author", () => {
+  it("hides the actor parameter from the agent's input schema", async () => {
+    const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+    expect(toolByName(tools, expectedName("translation.editEntry")).inputSchema).toEqual(
+      z.toJSONSchema(agentEditEntryParamsSchema),
+    );
+    expect(
+      JSON.stringify(toolByName(tools, expectedName("translation.editEntry")).inputSchema),
+    ).not.toContain("actor");
+  });
+
+  it("always sends actor agent, even when the agent claims to be human", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const tool = toolByName(tools, expectedName("translation.editEntry"));
+
+    await tool.execute({ locale: "de", key: "greeting", value: "Hallo" });
+    await tool.execute({ locale: "de", key: "greeting", value: "Hallo", actor: "human" });
+
+    expect(
+      calls.filter((call) => call.method === "translation.editEntry").map((call) => call.params),
+    ).toEqual([
+      { locale: "de", key: "greeting", value: "Hallo", actor: "agent" },
+      { locale: "de", key: "greeting", value: "Hallo", actor: "agent" },
+    ]);
+  });
+
+  it("passes a non-object input through untouched", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+    await toolByName(tools, expectedName("translation.editEntry")).execute(null);
+
+    expect(calls.filter((call) => call.method === "translation.editEntry").at(0)?.params).toBe(
+      null,
+    );
   });
 });

@@ -124,7 +124,7 @@ verbatra liest die Quell-Locale, sieht, dass jeder Key in `de` fehlt, sendet sie
 
 ## Was gerade passiert ist
 
-Drei Dinge liegen jetzt auf der Platte:
+Vier Dinge liegen jetzt auf der Platte:
 
 - `locales/de.json`: die Ziel-Locale-Datei. Die Datei hat dieselben Keys wie deine Quelle, in derselben Dokumentreihenfolge, und `{{name}}` hat die Übersetzung intakt überstanden; ein Ergebnis, das den Platzhalter verworfen hätte, wäre zurückgehalten und nicht geschrieben worden.
 - `verbatra.lock.json`: die Lock-Datei. Für jede Ziel-Locale bildet sie jeden übersetzten Key auf einen Hash des Quellstrings ab, aus dem die Übersetzung entstanden ist:
@@ -141,12 +141,13 @@ Drei Dinge liegen jetzt auf der Platte:
   }
   ```
 
+- `verbatra.provenance.json`: die Herkunftsdatei. Für jeden übersetzten Key hält sie fest, welcher Schreibweg den Wert erzeugt hat (hier `machine`, mit deinem Provider und Modell), damit ein späterer Lauf, `check --json` und `diff --json` Maschinenübersetzung von menschlicher Arbeit unterscheiden können. Siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 - `.verbatra-local/`: prozesslokaler Zustand (der Schnappschuss des Lauf-Status und die Schreibsperren pro Locale). `init` hat das Verzeichnis in `.gitignore` eingetragen; committe es nie.
 
 Die Lock-Datei ist die Baseline für jeden künftigen Lauf. Führe `verbatra translate` erneut aus, ohne etwas zu bearbeiten, und nichts wird gesendet: Jeder Key ist bereits aktuell. Ändere einen einzigen Quellstring, und nur dieser Key wird neu übersetzt.
 
 <Callout title="Committe die Lock-Datei">
-Committe `verbatra.lock.json` zusammen mit deinen Locale-Dateien, damit jede Maschine und deine CI mit derselben Baseline vergleichen. Siehe [Die Lock-Datei](/docs/the-lock-file).
+Committe `verbatra.lock.json` und `verbatra.provenance.json` zusammen mit deinen Locale-Dateien, damit jede Maschine und deine CI mit derselben Baseline vergleichen. Siehe [Die Lock-Datei](/docs/the-lock-file).
 </Callout>
 
 ## Nächste Schritte
