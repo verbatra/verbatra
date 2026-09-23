@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { LocaleFileSnapshot, SdkFs, VerbatraConfig } from "@verbatra/sdk";
-import { LOCK_FILE_NAME } from "@verbatra/sdk";
+import { LOCK_FILE_NAME, PROVENANCE_FILE_NAME } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RefreshEvent } from "../shared/sse-events.js";
 import { baseStudioConfig } from "./test-support.js";
@@ -91,18 +91,19 @@ function sequencedReadLocaleSnapshot(
 }
 
 describe("createProjectWatcher: category wiring", () => {
-  it("watches the source file, every target locale file as its own call, and the lock file", async () => {
+  it("watches the source file, every target locale file as its own call, the lock file, and the provenance file", async () => {
     const harness = multiWatcherHarness();
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de", "fr"] });
     await createProjectWatcher(
       { config, projectRoot: PROJECT_ROOT },
       { createWatcher: harness.createWatcher, readLocaleSnapshot: emptyReadLocaleSnapshot },
     );
-    expect(harness.calls).toHaveLength(4);
+    expect(harness.calls).toHaveLength(5);
     expect(harness.calls[0]?.paths).toEqual([join(PROJECT_ROOT, "locales/en.json")]);
     expect(harness.calls[1]?.paths).toEqual([join(PROJECT_ROOT, "locales/de.json")]);
     expect(harness.calls[2]?.paths).toEqual([join(PROJECT_ROOT, "locales/fr.json")]);
     expect(harness.calls[3]?.paths).toEqual([join(PROJECT_ROOT, LOCK_FILE_NAME)]);
+    expect(harness.calls[4]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
   });
 
   it("creates no targets watcher when no target locales are configured", async () => {
@@ -112,9 +113,10 @@ describe("createProjectWatcher: category wiring", () => {
       { config, projectRoot: PROJECT_ROOT },
       { createWatcher: harness.createWatcher, readLocaleSnapshot: emptyReadLocaleSnapshot },
     );
-    expect(harness.calls).toHaveLength(2);
+    expect(harness.calls).toHaveLength(3);
     expect(harness.calls[0]?.paths).toEqual([join(PROJECT_ROOT, "locales/en.json")]);
     expect(harness.calls[1]?.paths).toEqual([join(PROJECT_ROOT, LOCK_FILE_NAME)]);
+    expect(harness.calls[2]?.paths).toEqual([join(PROJECT_ROOT, PROVENANCE_FILE_NAME)]);
   });
 
   it("never emits a refresh event until a raw change is seen", async () => {
@@ -804,7 +806,7 @@ describe("createProjectWatcher: close", () => {
     await flushMicrotasks();
 
     expect(refresh.events).toEqual([]);
-    expect(harness.calls).toHaveLength(4);
+    expect(harness.calls).toHaveLength(5);
     expect(harness.calls.every((call) => call.closed)).toBe(true);
   });
 });
@@ -855,6 +857,23 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
         delta: { added: 0, changed: 0, removed: 0 },
       });
     }
+    await watcher.close();
+  }, 5000);
+
+  it("a write to the provenance file raises a lock refresh so provenance badges update live", async () => {
+    const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      { config, projectRoot: root, debounceMs: 50 },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+    await wait(200);
+
+    await writeFile(join(root, PROVENANCE_FILE_NAME), JSON.stringify({ version: 1, locales: {} }));
+    await wait(600);
+
+    expect(refresh.events).toEqual([{ reason: "lock", at: expect.any(String) }]);
     await watcher.close();
   }, 5000);
 
