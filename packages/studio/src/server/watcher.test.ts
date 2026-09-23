@@ -877,6 +877,26 @@ describe("defaultCreateStudioWatcher: real chokidar behavior", () => {
     await watcher.close();
   }, 5000);
 
+  it("a real atomic temp-write-then-rename over the provenance file raises exactly one lock refresh", async () => {
+    const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });
+    const refresh = collectRefresh();
+    const watcher = await createProjectWatcher(
+      { config, projectRoot: root, debounceMs: 50 },
+      { createWatcher: defaultCreateStudioWatcher },
+    );
+    watcher.onRefresh(refresh.listener);
+    await wait(200);
+
+    const provenancePath = join(root, PROVENANCE_FILE_NAME);
+    const tempPath = join(dirname(provenancePath), ".verbatra.provenance.json.tmp-probe");
+    await writeFile(tempPath, JSON.stringify({ version: 1, locales: {} }));
+    await rename(tempPath, provenancePath);
+    await wait(600);
+
+    expect(refresh.events).toEqual([{ reason: "lock", at: expect.any(String) }]);
+    await watcher.close();
+  }, 5000);
+
   it("a real atomic temp-write-then-rename over the lock file raises exactly one lock refresh", async () => {
     const config: VerbatraConfig = baseStudioConfig({ targetLocales: ["de"] });
     const refresh = collectRefresh();
