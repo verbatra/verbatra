@@ -24,6 +24,10 @@ npm install --save-dev @verbatra/cli @verbatra/mcp
 
 Two commands that look right do not work in a project without those installs. `npx -y @verbatra/cli mcp` installs only the CLI, which loads `@verbatra/mcp` on demand and never installs it, so it exits `2` with `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` without a local `@verbatra/cli` makes npx look up a registry package named `verbatra`, which is not verbatra's CLI, so the command fails, and it could run someone else's package if that name is ever registered.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Every `@verbatra/mcp` release also publishes the server to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`, right after the npm package, so a client that browses the registry can find it there.
+
 ## Which directory is the project
 
 The server loads the config and resolves every locale file from its working directory, or from the directory `--cwd` names. Without `--config`, it searches upward from there for a config file, stopping at the nearest `.git` directory, but the tools still resolve paths from the working directory itself. Point the server at the directory that holds `verbatra.config.ts`.
