@@ -291,6 +291,7 @@ export async function writeProvenanceLocale(
   locale: string,
   patch: ProvenancePatch,
   sourceUnchanged: (key: string) => boolean,
+  maxBytes: number = MAX_PROVENANCE_FILE_BYTES,
 ): Promise<ProvenanceWriteOutcome> {
   const path = provenanceFilePath(cwd);
   const { file, writable } = await readProvenanceFile(path, fs);
@@ -306,7 +307,7 @@ export async function writeProvenanceLocale(
   if (serialized === serializeProvenanceFile(file)) {
     return "unchanged";
   }
-  if (Buffer.byteLength(serialized, "utf8") > MAX_PROVENANCE_FILE_BYTES) {
+  if (Buffer.byteLength(serialized, "utf8") > maxBytes) {
     return "too-large";
   }
   await fs.writeFile(path, serialized);

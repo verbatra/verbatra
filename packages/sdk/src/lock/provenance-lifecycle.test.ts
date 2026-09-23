@@ -244,11 +244,39 @@ describe("provenance: the file never grows past what verbatra reads back", () =>
     const out = await exportWorkbook({ config: cfg(), cwd: dir });
     await fillWorkbook(out.path, { greeting: "Hallo" });
 
+    const before = await readTextFile(join(dir, PROVENANCE_FILE_NAME));
+
     const summary = await importWorkbook({ config: cfg(), workbook: out.path, cwd: dir });
 
     expect(summary.locales[0]?.notices.map((notice) => notice.code)).toContain(
       "PROVENANCE_FILE_TOO_LARGE",
     );
+    expect(await readTextFile(join(dir, PROVENANCE_FILE_NAME))).toBe(before);
+  });
+
+  it("still advances the lock when a source change is translated while the file is too large", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await translate({ config: cfg(), cwd: dir }, { createProvider: stubCreate });
+    const lockBefore = await readTextFile(join(dir, "verbatra.lock.json"));
+    const padding = "x".repeat(MAX_PROVENANCE_FILE_BYTES - 200);
+    const oversized = `${JSON.stringify({
+      version: 1,
+      locales: { fr: { pad: { origin: "human", valueHash: "h", padding } } },
+    })}\n`;
+    await writeFile(join(dir, PROVENANCE_FILE_NAME), oversized, "utf8");
+    await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello there" });
+
+    const stub = makeStubProvider();
+    await translate({ config: cfg(), cwd: dir }, { createProvider: () => stub.provider });
+    const again = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(await readTextFile(join(dir, "verbatra.lock.json"))).not.toBe(lockBefore);
+    expect(await readTextFile(join(dir, PROVENANCE_FILE_NAME))).toBe(oversized);
+    expect(again.locales[0]?.translated).toEqual([]);
+    expect(stub.calls).toHaveLength(1);
   });
 });
 

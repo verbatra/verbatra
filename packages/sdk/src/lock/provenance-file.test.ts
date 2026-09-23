@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -344,5 +345,56 @@ describe("writeProvenanceLocale", () => {
     const read = await readProvenanceFile(join(dir, PROVENANCE_FILE_NAME), defaultFs);
     expect(read.file.locales.fr?.k).toEqual(machine("f"));
     expect(read.file.locales.de?.k).toEqual(machine("d"));
+  });
+});
+
+describe("writeProvenanceLocale: the read limit", () => {
+  const patch = { records: new Map([["k", machine("x")]]) };
+
+  async function expectedBytes(): Promise<number> {
+    return Buffer.byteLength(
+      serializeProvenanceFile(withLocaleRecords(emptyProvenance(), "de", { k: machine("x") })),
+      "utf8",
+    );
+  }
+
+  it("writes a file exactly as large as the limit", async () => {
+    const dir = await makeTempDir();
+    const limit = await expectedBytes();
+
+    const outcome = await writeProvenanceLocale(dir, defaultFs, "de", patch, () => true, limit);
+
+    expect(outcome).toBe("written");
+    expect(Buffer.byteLength(await readTextFile(provenanceFilePath(dir)), "utf8")).toBe(limit);
+  });
+
+  it("keeps the previous file when the result would be one byte over the limit", async () => {
+    const dir = await makeTempDir();
+    const previous = '{"version":1,"locales":{}}';
+    const path = await writeRaw(dir, previous);
+
+    const outcome = await writeProvenanceLocale(
+      dir,
+      defaultFs,
+      "de",
+      patch,
+      () => true,
+      (await expectedBytes()) - 1,
+    );
+
+    expect(outcome).toBe("too-large");
+    expect(await readTextFile(path)).toBe(previous);
+  });
+
+  it("reports an unchanged file and a newer file without writing", async () => {
+    const dir = await makeTempDir();
+    await writeProvenanceLocale(dir, defaultFs, "de", patch, () => true);
+    expect(await writeProvenanceLocale(dir, defaultFs, "de", patch, () => true)).toBe("unchanged");
+
+    const newerDir = await makeTempDir();
+    await writeRaw(newerDir, '{"version":5,"locales":{}}');
+    expect(await writeProvenanceLocale(newerDir, defaultFs, "de", patch, () => true)).toBe(
+      "newer-version",
+    );
   });
 });
