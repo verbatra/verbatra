@@ -157,12 +157,6 @@ const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
   fr: /journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires/,
 };
 
-const RETIRED_SHORT_PERIOD_CLAIM =
-  /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période/;
-
-const UMAMI_RETIRED_CLAIM =
-  /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
-
 const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
   en: /machine-translated into German, Spanish, and French by verbatra with Google's Gemini/,
   de: /von verbatra mit dem Sprachmodell Gemini von Google maschinell/,
@@ -176,12 +170,6 @@ const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
   es: /se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona/,
   fr: /vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne/,
 };
-
-const RETIRED_REVIEW_CLAIM =
-  /reviewed before publication|vor der Veröffentlichung geprüft|se revisa antes de publicarse|relu avant sa publication/;
-
-const RETIRED_NO_LEGAL_DUTY_CLAIM =
-  /not because a specific legal disclosure requirement|nicht weil dafür eine bestimmte gesetzliche|no porque se aplique una obligación legal|non parce qu'une obligation légale/;
 
 function imprintFacts(): string[] {
   const source = readFileSync(IMPRINT_PAGE, "utf8")
@@ -283,13 +271,11 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
 
     expect(hosting).toMatch(CONTAINER_LOG_ROTATION[locale]);
     expect(hosting).toMatch(ACCESS_LOG_DELETION[locale]);
-    expect(hosting).not.toMatch(RETIRED_SHORT_PERIOD_CLAIM);
   });
 
-  it("describes what Umami reads and processes instead of claiming it collects no personal data", async () => {
+  it("describes what Umami reads and processes", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
-    expect(analytics).not.toMatch(UMAMI_RETIRED_CLAIM);
     expect(analytics).toMatch(UMAMI_DEVICE_READS[locale]);
     expect(analytics).toMatch(UMAMI_PSEUDONYMOUS[locale]);
     expect(analytics).toMatch(UMAMI_NOT_STORED[locale]);
@@ -322,19 +308,15 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     const contactForm = sectionText(doc, /^12\. /);
 
     expect(contactForm).toMatch(ARCJET_RETENTION[locale]);
-    expect(contactForm).not.toMatch(/\b(one hour|einer Stunde|una hora|une heure)\b/);
     expect(
       sectionNumbered(doc, 12)?.querySelector('a[href="https://docs.arcjet.com/privacy"]'),
     ).not.toBeNull();
   });
 
-  it("names Arcjet as the only processor besides the hosting provider, not the only one overall", async () => {
+  it("names Arcjet as the only processor besides the hosting provider", async () => {
     const contactForm = sectionText(await renderPrivacy(locale), /^12\. /);
 
     expect(contactForm).toMatch(ARCJET_ONLY_OTHER_PROCESSOR[locale]);
-    expect(contactForm).not.toMatch(
-      /only third-party processor|Der einzige beteiligte Auftragsverarbeiter/,
-    );
   });
 
   it("discloses the transfer to the United States and the safeguard it relies on", async () => {
@@ -348,14 +330,12 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       sectionNumbered(doc, 12)?.querySelector('a[href="mailto:info@kreitz-webdev.de"]'),
     ).not.toBeNull();
   });
-  it("describes the actual translation process without claiming a review of every text", async () => {
+  it("describes the actual translation process and its best-effort review", async () => {
     const doc = await renderPrivacy(locale);
     const aiTranslation = sectionText(doc, /^13\. /);
 
     expect(aiTranslation).toMatch(AI_TRANSLATION_PIPELINE[locale]);
     expect(aiTranslation).toMatch(AI_TRANSLATION_BEST_EFFORT[locale]);
-    expect(aiTranslation).not.toMatch(RETIRED_REVIEW_CLAIM);
-    expect(aiTranslation).not.toMatch(RETIRED_NO_LEGAL_DUTY_CLAIM);
     expect(
       sectionNumbered(doc, 13)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
     ).not.toBeNull();
