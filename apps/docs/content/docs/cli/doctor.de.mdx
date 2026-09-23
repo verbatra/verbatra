@@ -36,7 +36,7 @@ verbatra doctor [flags]
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung Plural rules ist rein informativ und schlägt nie fehl: Eine Ziel-Locale, die sie nennt, wird trotzdem übersetzt, und ihre Pluralprüfungen nehmen `one` und `other` an.
+Die Prüfung Plural rules ist rein informativ und schlägt nie fehl: Eine Ziel-Locale, die sie nennt, wird trotzdem übersetzt, und ihre Pluralprüfungen nehmen bei Kardinal-Keys `one` und `other` an, bei Ordinal-Keys `other`. Ordinal-Keys (`<key>_ordinal_<category>`) werden immer gegen die CLDR-Ordinalregeln geprüft, französische Ordinalzahlen brauchen also nur `one` und `other`.
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die fünf Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 

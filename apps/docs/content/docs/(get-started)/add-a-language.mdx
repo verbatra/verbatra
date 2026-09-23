@@ -56,7 +56,7 @@ Some languages need more CLDR plural categories than your source has. English ha
 
 <AvailableFrom version="0.12.0" />
 
-verbatra reads which categories a language needs from the CLDR plural rules in the ICU data built into Node.js, so every language CLDR covers is handled, always in CLDR order (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) reports the ICU and CLDR versions in use. A target locale ICU has no plural rules for is assumed to need `one` and `other`, and `doctor` names it.
+verbatra reads which categories a language needs from the CLDR plural rules in the ICU data built into Node.js, so every language CLDR covers is handled, always in CLDR order (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) reports the ICU and CLDR versions in use. i18next ordinal keys (`<key>_ordinal_<category>`) are checked and generated against the CLDR ordinal rules instead, so French ordinals need only `one` and `other`. For a target locale ICU has no plural rules for, cardinal keys are assumed to need `one` and `other`, ordinal keys only `other`, and `doctor` names the locale.
 
 To have verbatra synthesize the missing forms instead, set `generatePlurals: true` in your config:
 

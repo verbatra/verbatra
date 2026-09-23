@@ -117,7 +117,7 @@ Off by default. When true, keys present in a target file but absent from the sou
 
 ### generatePlurals
 
-Off by default. When true, verbatra synthesizes the CLDR plural forms a target language requires but the source does not supply (for example Polish few and many). Supported only for i18next-JSON projects translated by an LLM provider; DeepL, non-i18next formats, and target locales ICU has no CLDR plural rules for fall back to the per-locale plural warning. There is no CLI flag, so set this in the config; the SDK `translate()` input accepts a per-run `generatePlurals` override that takes precedence.
+Off by default. When true, verbatra synthesizes the CLDR plural forms a target language requires but the source does not supply (for example Polish few and many). Supported only for i18next-JSON projects translated by an LLM provider; DeepL, non-i18next formats, and target locales ICU has no CLDR plural rules for fall back to the per-locale plural warning; for such a locale, cardinal keys are assumed to need `one` and `other` and ordinal keys `other`. Ordinal keys (`<key>_ordinal_<category>`) are checked and generated against the CLDR ordinal rules, so French ordinals need only `one` and `other`. There is no CLI flag, so set this in the config; the SDK `translate()` input accepts a per-run `generatePlurals` override that takes precedence.
 
 ### fuzzyCache
 

@@ -36,7 +36,7 @@ verbatra doctor [flags]
 
 <AvailableFrom version="0.12.0" />
 
-La vérification Plural rules est informative et n'échoue jamais : une locale cible qu'elle nomme est quand même traduite, et ses contrôles de pluriel supposent `one` et `other`.
+La vérification Plural rules est informative et n'échoue jamais : une locale cible qu'elle nomme est quand même traduite, et ses contrôles de pluriel supposent `one` et `other` pour les clés cardinales et `other` pour les clés ordinales. Les clés ordinales (`<key>_ordinal_<category>`) sont toujours vérifiées selon les règles ordinales CLDR, donc les ordinaux français n'ont besoin que de `one` et `other`.
 
 Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les cinq vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
 

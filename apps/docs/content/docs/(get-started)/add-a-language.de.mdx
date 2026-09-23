@@ -56,7 +56,7 @@ Manche Sprachen brauchen mehr CLDR-Pluralkategorien, als deine Quelle hat. Engli
 
 <AvailableFrom version="0.12.0" />
 
-Welche Kategorien eine Sprache braucht, liest verbatra aus den CLDR-Pluralregeln in den ICU-Daten, die in Node.js eingebaut sind. So ist jede Sprache abgedeckt, die CLDR kennt, immer in CLDR-Reihenfolge (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) zeigt dir die verwendeten ICU- und CLDR-Versionen. Für eine Ziel-Locale, für die ICU keine Pluralregeln hat, nimmt verbatra `one` und `other` an, und `doctor` nennt sie.
+Welche Kategorien eine Sprache braucht, liest verbatra aus den CLDR-Pluralregeln in den ICU-Daten, die in Node.js eingebaut sind. So ist jede Sprache abgedeckt, die CLDR kennt, immer in CLDR-Reihenfolge (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) zeigt dir die verwendeten ICU- und CLDR-Versionen. i18next-Ordinal-Keys (`<key>_ordinal_<category>`) werden stattdessen gegen die CLDR-Ordinalregeln geprüft und generiert, französische Ordinalzahlen brauchen also nur `one` und `other`. Für eine Ziel-Locale, für die ICU keine Pluralregeln hat, nimmt verbatra bei Kardinal-Keys `one` und `other` an, bei Ordinal-Keys nur `other`, und `doctor` nennt die Locale.
 
 Damit verbatra die fehlenden Formen stattdessen synthetisiert, setze `generatePlurals: true` in deiner Konfiguration:
 

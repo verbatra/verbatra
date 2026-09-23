@@ -56,7 +56,7 @@ Algunos idiomas necesitan más categorías de plural CLDR que tu origen. El ingl
 
 <AvailableFrom version="0.12.0" />
 
-verbatra lee qué categorías necesita un idioma de las reglas de plural CLDR incluidas en los datos ICU de Node.js, así que cubre todos los idiomas que conoce CLDR, siempre en orden CLDR (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) te muestra las versiones de ICU y CLDR en uso. Para un locale de destino sin reglas de plural en ICU, verbatra supone `one` y `other`, y `doctor` lo nombra.
+verbatra lee qué categorías necesita un idioma de las reglas de plural CLDR incluidas en los datos ICU de Node.js, así que cubre todos los idiomas que conoce CLDR, siempre en orden CLDR (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) te muestra las versiones de ICU y CLDR en uso. Las claves ordinales de i18next (`<key>_ordinal_<category>`) se comprueban y generan según las reglas ordinales CLDR, así que los ordinales en francés solo necesitan `one` y `other`. Para un locale de destino sin reglas de plural en ICU, verbatra supone `one` y `other` en las claves cardinales y solo `other` en las ordinales, y `doctor` nombra el locale.
 
 Para que verbatra sintetice en su lugar las formas que faltan, define `generatePlurals: true` en tu configuración:
 
