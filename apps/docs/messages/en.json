@@ -401,7 +401,7 @@
       },
       "title": "Contact",
       "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the Imprint.",
-      "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled. Details are in the <privacy>privacy policy</privacy>.",
+      "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled, unless we are legally required to keep them. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Your name",

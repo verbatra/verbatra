@@ -48,13 +48,20 @@ const DELETION_RULE: Record<Locale, RegExp> = {
   fr: /supprimés dès que ta demande a été entièrement traitée, sauf si/,
 };
 
+const NOTICE_DELETION: Record<Locale, RegExp> = {
+  en: /delete them once it has been handled, unless we are legally required to keep them/,
+  de: /löschen sie, sobald die Anfrage erledigt ist, es sei denn, wir sind gesetzlich zur Aufbewahrung verpflichtet/,
+  es: /los eliminamos una vez gestionada, salvo que la ley nos obligue a conservarlos/,
+  fr: /nous les supprimons une fois celle-ci traitée, sauf si la loi nous oblige à les conserver/,
+};
+
 describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
   it("sits directly below the submit button and links to the contact form section of the privacy policy", async () => {
     const doc = await renderContact(locale);
     const notice = doc.querySelector('button[type="submit"]')?.nextElementSibling;
     const link = notice?.querySelector("a");
 
-    expect(notice?.textContent?.length ?? 0).toBeGreaterThan(20);
+    expect(notice?.textContent).toMatch(NOTICE_DELETION[locale]);
     expect(link?.getAttribute("href")).toBe(`${privacyPath(locale)}#contact-form`);
     expect(link?.textContent?.trim()).not.toBe("");
   });
