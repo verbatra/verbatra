@@ -115,6 +115,7 @@ One record per key and target locale:
 | `valueHash` | yes | `stableStringHash(normalizeText(value))` of the target value that was written. |
 | `reviewState` | no | `approved` or `rejected`; absent means unreviewed (Decision 5). |
 | `reviewer` | no | Free text, stored only when a caller supplies it (Decision 6). |
+| `reviewedSourceHash` | no | The lock-file source hash an approval was given against (Decision 8). |
 
 The record stores no text: no source value, no target value, no machine suggestion. The file stays
 small and carries nothing that could be sensitive beyond key names, which the lock already holds.
@@ -258,6 +259,29 @@ unreviewed.
 two, and a second positive state would add a transition question with no consumer. A future need
 (XLIFF 2 `reviewed` versus `final`, for example) can add it under Decision 7.
 
+How the actions are carried out, as delivered:
+
+- **Approve** (`approveEntry`) requires the key's current value to equal the value the reviewer saw
+  and its lock entry to match the current source hash, and stores `reviewedSourceHash`. A value
+  whose source changed since it was written is refused (`REVIEW_SOURCE_CHANGED`): approving it
+  would need the lock updated, which approve never does, so the key is edited or retranslated
+  instead.
+- **Reject** (`rejectEntry`) removes the value from the locale file and its lock entry, so the key
+  reads as missing and the next run, or a person, writes a new value. The `rejected` record stays
+  as the tombstone above, and the exact translation-memory entry for the key's source is dropped on
+  the machine that rejected it. A format whose writer keeps a key it was not given, such as XLIFF,
+  where a unit without a target reads as its source text, cannot express a removed value: the file
+  is restored and the call fails with `REVIEW_REJECT_UNSUPPORTED`. Keeping the value in place and
+  marking it for retranslation was rejected because it keeps shipping text a reviewer refused and
+  needs every run to learn the rule; reverting to an earlier value from git was deferred, because
+  this file stores no text and the earlier value may itself be unreviewed machine output.
+- Both actions check the provenance file before anything is written and fail with
+  `PROVENANCE_FILE_UNWRITABLE`, rather than succeed silently, when the file is from a newer
+  version or the decision would grow it past the read bound.
+- Neither action is offered to AI agents: the MCP server and the Studio WebMCP tools expose no
+  approve or reject, because an agent approving machine output is the failure the review record
+  exists to prevent.
+
 ## Decision 6: timestamps and reviewer
 
 **No timestamps.** A timestamp would change the file on every write, including writes that change
@@ -305,7 +329,7 @@ for a change an older reader would misinterpret. Within a version, change is add
 
 Locales sorted, keys sorted (in JavaScript object order, as the lock file is: integer-like keys such
 as `"10"` first in ascending numeric order, then every other key in code-unit order), one record per line, fields in the fixed order `origin`, `provider`,
-`model`, `valueHash`, `reviewState`, `reviewer`, absent fields omitted, a trailing newline. One
+`model`, `valueHash`, `reviewState`, `reviewer`, `reviewedSourceHash`, absent fields omitted, a trailing newline. One
 line per record keeps the file's diffs and conflicts line-shaped like the lock's: two branches that
 touch different keys do not conflict unless the keys are adjacent.
 
@@ -400,12 +424,19 @@ Delivered with this record:
   `key.value`; `loadProvenance`; the output guards.
 - The `actor` on `editEntry`, passed as `agent` by the MCP tool and the Studio WebMCP tool.
 
+Delivered next:
+
+- Approve and reject as actions: the SDK functions `approveEntry` and `rejectEntry` with the
+  stale-value check, the 64-character `reviewer` limit, and `reviewedSourceHash`; Studio's Approve
+  and Reject buttons; and a review queue (`reviewQueue`, Studio, MCP `review.queue`) that leaves
+  out every flag decided since the run (Decisions 5, 6 and 8).
+
 Specified here, delivered later:
 
-- Approve and reject as actions (SDK functions, Studio buttons, MCP tools), including the
-  stale-value check, the `rejected` handling in a run, and the 64-character `reviewer` limit
-  (Decisions 5 and 6). Until then, no write path sets `reviewState` or `reviewer`; the fields are
-  read, preserved, and reported.
+- The `rejected` handling in a run: skipping an exact or fuzzy memory hit whose value hash equals a
+  `rejected` record's hash, so a teammate's memory cannot reinstate the text (Decision 5).
+- A review queue built from committed state alone (every machine-class, unreviewed value), bulk
+  approval, and a CI gate on unreviewed machine values.
 - The Studio origin badge, the key-drawer record, the lock-card counts, and watching
   `verbatra.provenance.json` for live refresh (Decision 10).
 - Protecting human values and machine-translation markers in exports (Decision 11).

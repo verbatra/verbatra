@@ -65,6 +65,8 @@ Inspect project state without changing anything. These are marked read-only.
 
 Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values` also report who wrote each present value (its origin, the provider and model for machine output, and its review state), `verbatra_status_check` and `verbatra_lock_state` count each locale's values by origin, and `verbatra_status_diff` names the origin of every changed key's current value. See [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).
 
+The dashboard's **Approve** and **Reject** buttons have no agent tool, with or without spend: a review decision is a person's call. `verbatra_review_queue` leaves out every entry decided since the run, but keeps one an agent edited, since that edit still needs a person's look.
+
 ### Write tools (two)
 
 `verbatra_translation_editEntry` edits one locale's value in place. It goes through the same integrity gate as every other verbatra write: a value that fails any of its checks is rejected and nothing is written. An accepted edit writes the locale file and advances the key's lock entry, exactly as a dashboard edit does. Editing needs no spend flag; it touches only your local files and never calls a provider, but it is not ungated: it is rate limited at 20 edits per rolling minute, and a second call for the same locale and key while one is still in flight is rejected with `ALREADY_IN_PROGRESS` (HTTP 409) rather than queued, so two callers cannot race on one entry.

@@ -86,7 +86,7 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 | `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder, inline markup, and ICU integrity | no | no |
 | `translation.retranslateEntry` | ask the configured provider to retranslate one key in one locale | no | yes |
 | `translation.translatePending` | translate every missing or stale key across every target locale | no | yes |
-| `review.queue` | keys the last run flagged for human review, and why | yes | no |
+| `review.queue` | keys the last run flagged for human review, and why, minus the ones decided since | yes | no |
 | `usage.summary` | token usage and budget status from the last run, including `budget.standing` and `budget.supported` | yes | no |
 
 `translation.retranslateEntry` and `translation.translatePending` are advertised only when the server was started with `--allow-spend`. Every tool's input, and every tool's output where the result shape is small and closed, is a JSON Schema derived from the same zod schema the server validates the call against. Calling an unknown tool name is a protocol-level error; calling a known tool with input that fails validation returns a result naming the offending field, so an agent can read the failure and self-correct.
@@ -96,6 +96,8 @@ The two entry writers, `translation.editEntry` and `translation.retranslateEntry
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 A value written through `translation.editEntry` is recorded with the origin `agent` in `verbatra.provenance.json`, so it is never mistaken for a person's edit. See [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).
+
+`review.queue` leaves out every flagged key that was dealt with since the run: one whose current value a person approved or rejected in Verbatra Studio, one a person rewrote or imported, and one with no translation any more. A value written through `translation.editEntry` stays listed, since an agent's edit still needs a person's look, and each remaining entry carries the `provenance` of its current value. The server offers no tool to approve or reject: a review decision is a person's call, made in Studio or through the SDK. See [Review decisions](/docs/the-lock-file#review-decisions).
 
 ### Inputs and results
 

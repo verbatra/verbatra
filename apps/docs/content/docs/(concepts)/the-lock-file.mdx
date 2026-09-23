@@ -149,6 +149,31 @@ the file past that size, the previous file is kept and the run reports
 `PROVENANCE_FILE_TOO_LARGE`; a single-key edit keeps it silently. The record says which verbatra write path produced a value; it
 is not tamper-proof, since anyone who can edit the locale files can edit it too.
 
+### Review decisions
+
+<AvailableFrom version="0.12.0" />
+
+A record can also carry a review decision: `approved` or `rejected`, with an optional `reviewer`
+name. Verbatra Studio's Review page writes them, and so do the SDK's `approveEntry` and
+`rejectEntry`. Both work on the exact value the reviewer saw and are refused when the value has
+changed since, and neither saves a decision it could not record: a provenance file from a newer
+verbatra, or one the decision would grow past the size verbatra reads back, fails the call with
+`PROVENANCE_FILE_UNWRITABLE` and nothing changes.
+
+- **An approval** changes only the provenance file. It also stores the source hash it was given
+  against, so an approval whose source text has changed since reads as unreviewed again. A value
+  whose source changed since it was written cannot be approved; edit or retranslate it first.
+- **A rejection** removes the value from the locale file and its entry from the lock file, so the
+  key reads as missing until the next `translate` run, or a person, writes a new value. The record
+  stays behind with a hash of the removed text, and the matching translation-memory entry on this
+  machine is dropped so the next run does not put the same text straight back. A format that cannot
+  drop one translation, such as XLIFF, where a unit without a target reads as its source text,
+  refuses the rejection with `REVIEW_REJECT_UNSUPPORTED` and leaves the file as it was.
+
+Any later write that changes the value starts a fresh, unreviewed record, so editing an approved
+value sends it back for review. The `reviewer` name is stored in a committed file, so it is public;
+verbatra never fills it in on its own.
+
 ## Commit it
 
 Commit `verbatra.lock.json` and `verbatra.provenance.json` alongside your locale files. It is the shared baseline your teammates

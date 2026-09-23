@@ -65,6 +65,8 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 
 Desde `@verbatra/studio` 0.6.0, `verbatra_key_value` y `verbatra_locale_values` también informan de quién escribió cada valor presente (su origen, el proveedor y el modelo para la traducción automática, y su estado de revisión), `verbatra_status_check` y `verbatra_lock_state` cuentan los valores de cada locale por origen, y `verbatra_status_diff` nombra el origen del valor actual de cada clave cambiada. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 
+Los botones **Approve** y **Reject** del panel no tienen herramienta de agente, con o sin gasto: una decisión de revisión la toma una persona. `verbatra_review_queue` omite cada entrada decidida desde la ejecución, pero conserva una que editó un agente, porque esa edición todavía necesita que la mire una persona.
+
 ### Herramientas de escritura (dos)
 
 `verbatra_translation_editEntry` edita en el sitio el valor de un locale. Pasa por la misma puerta de integridad que cualquier otra escritura de verbatra: un valor que no supera alguna de sus comprobaciones se rechaza y no se escribe nada. Una edición aceptada escribe el archivo de locale y avanza la entrada del bloqueo de esa clave, exactamente como lo hace una edición desde el panel. Editar no necesita ningún flag de gasto; toca solo tus archivos locales y nunca llama a un proveedor, pero no está sin restricciones: está limitada a 20 ediciones por minuto deslizante, y una segunda llamada para el mismo locale y la misma clave mientras otra sigue en curso se rechaza con `ALREADY_IN_PROGRESS` (HTTP 409) en lugar de encolarse, así que dos llamadas no pueden competir por la misma entrada.

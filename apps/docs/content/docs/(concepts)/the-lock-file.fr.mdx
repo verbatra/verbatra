@@ -167,6 +167,34 @@ sans rien signaler. L'enregistrement dit quel chemin d'écriture de verbatra a
 produit une valeur ; il n'est pas infalsifiable, puisque quiconque peut éditer les fichiers de
 locale peut aussi l'éditer.
 
+### Décisions de revue
+
+<AvailableFrom version="0.12.0" />
+
+Un enregistrement peut aussi porter une décision de revue : `approved` ou `rejected`, avec un nom
+facultatif dans `reviewer`. La page Review de Verbatra Studio les écrit, tout comme `approveEntry` et
+`rejectEntry` du SDK. Les deux portent exactement sur la valeur que la personne a vue et sont
+refusées si la valeur a changé depuis, et aucune n'enregistre une décision qu'elle n'a pas pu
+consigner : un fichier de provenance écrit par une version plus récente de verbatra, ou un fichier
+que la décision ferait grossir au-delà de la taille que verbatra relit, fait échouer l'appel avec
+`PROVENANCE_FILE_UNWRITABLE` et rien ne change.
+
+- **Une approbation** ne modifie que le fichier de provenance. Elle enregistre aussi le hash du
+  texte source contre lequel elle a été donnée, si bien qu'une approbation dont la source a changé
+  depuis redevient non relue. Une valeur dont la source a changé depuis son écriture ne peut pas
+  être approuvée ; modifie-la ou retraduis-la d'abord.
+- **Un rejet** supprime la valeur du fichier de locale et son entrée du fichier de verrouillage, si
+  bien que la clé compte comme manquante jusqu'à ce que la prochaine exécution de `translate`, ou
+  une personne, écrive une nouvelle valeur. L'enregistrement reste avec un hash du texte supprimé,
+  et l'entrée correspondante de la mémoire de traduction de cette machine est retirée pour que la
+  prochaine exécution ne remette pas le même texte aussitôt. Un format qui ne peut pas supprimer une
+  seule traduction, comme XLIFF, où une unité sans cible se lit comme son texte source, refuse le
+  rejet avec `REVIEW_REJECT_UNSUPPORTED` et laisse le fichier tel quel.
+
+Toute écriture ultérieure qui change la valeur démarre un nouvel enregistrement non relu : modifier
+une valeur approuvée la renvoie donc en revue. Le nom dans `reviewer` est stocké dans un fichier
+commité, il est donc public ; verbatra ne le remplit jamais de lui-même.
+
 ## Commite-le
 
 Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale. C'est la référence partagée qui sert de

@@ -86,7 +86,7 @@ Rufst du bereits alles über die `verbatra`-CLI auf, starte es stattdessen als U
 | `translation.editEntry` | eine manuelle Übersetzung für einen Key in einer Locale schreiben, abgesichert durch das Integritäts-Gate für Platzhalter, Inline-Markup und ICU | nein | nein |
 | `translation.retranslateEntry` | den konfigurierten Provider bitten, einen Key in einer Locale neu zu übersetzen | nein | ja |
 | `translation.translatePending` | jeden fehlenden oder veralteten Key über alle Ziel-Locales übersetzen | nein | ja |
-| `review.queue` | Keys, die der letzte Lauf zur menschlichen Prüfung markiert hat, und warum | ja | nein |
+| `review.queue` | Keys, die der letzte Lauf zur menschlichen Prüfung markiert hat, und warum, ohne die seitdem entschiedenen | ja | nein |
 | `usage.summary` | Token-Verbrauch und Budgetstatus des letzten Laufs, einschließlich `budget.standing` und `budget.supported` | ja | nein |
 
 `translation.retranslateEntry` und `translation.translatePending` werden nur bereitgestellt, wenn der Server mit `--allow-spend` gestartet wurde. Der Input jedes Tools und, wo die Ergebnisform klein und geschlossen ist, auch der Output sind ein JSON-Schema, abgeleitet aus demselben zod-Schema, gegen das der Server den Aufruf validiert. Der Aufruf eines unbekannten Tool-Namens ist ein Fehler auf Protokollebene; der Aufruf eines bekannten Tools mit Input, der die Validierung nicht besteht, liefert ein Ergebnis, das das betroffene Feld nennt, sodass ein Agent den Fehler lesen und selbst korrigieren kann.
@@ -96,6 +96,8 @@ Die beiden Eintrags-Schreiber, `translation.editEntry` und `translation.retransl
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Ein über `translation.editEntry` geschriebener Wert wird in `verbatra.provenance.json` mit der Herkunft `agent` festgehalten, damit er nie mit der Bearbeitung einer Person verwechselt wird. Siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
+`review.queue` lässt jeden markierten Key weg, um den sich seit dem Lauf jemand gekümmert hat: einen, dessen aktuellen Wert eine Person in Verbatra Studio freigegeben oder abgelehnt hat, einen, den eine Person neu geschrieben oder importiert hat, und einen ohne Übersetzung. Ein über `translation.editEntry` geschriebener Wert bleibt gelistet, weil die Bearbeitung eines Agents noch einen Blick von einer Person braucht, und jeder verbleibende Eintrag trägt die `provenance` seines aktuellen Werts. Der Server bietet kein Tool zum Freigeben oder Ablehnen: Eine Review-Entscheidung trifft eine Person, in Studio oder über das SDK. Siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 
 ### Inputs und Ergebnisse
 

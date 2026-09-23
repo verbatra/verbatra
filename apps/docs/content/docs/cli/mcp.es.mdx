@@ -86,7 +86,7 @@ Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, verificada por la puerta de integridad de placeholders, marcado en línea e ICU | no | no |
 | `translation.retranslateEntry` | pide al proveedor configurado que retraduzca una clave en un locale | no | sí |
 | `translation.translatePending` | traduce cada clave faltante u obsoleta en todos los locales de destino | no | sí |
-| `review.queue` | claves que la última ejecución marcó para revisión humana, y por qué | sí | no |
+| `review.queue` | claves que la última ejecución marcó para revisión humana, y por qué, sin las ya decididas | sí | no |
 | `usage.summary` | uso de tokens y estado del presupuesto de la última ejecución, incluidos `budget.standing` y `budget.supported` | sí | no |
 
 `translation.retranslateEntry` y `translation.translatePending` solo se exponen cuando el servidor se inició con `--allow-spend`. La entrada de cada herramienta, y la salida de cada herramienta cuya forma de resultado es pequeña y cerrada, es un JSON Schema derivado del mismo esquema zod contra el que el servidor valida la llamada. Llamar a un nombre de herramienta desconocido es un error a nivel de protocolo; llamar a una herramienta conocida con una entrada que falla la validación devuelve un resultado que nombra el campo problemático, así que un agente puede leer el fallo y autocorregirse.
@@ -96,6 +96,8 @@ Los dos escritores de entradas, `translation.editEntry` y `translation.retransla
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Un valor escrito mediante `translation.editEntry` queda registrado con el origen `agent` en `verbatra.provenance.json`, para que nunca se confunda con la edición de una persona. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
+`review.queue` omite cada clave marcada que alguien ya atendió desde la ejecución: una cuyo valor actual una persona aprobó o rechazó en Verbatra Studio, una que una persona reescribió o importó, y una que ya no tiene traducción. Un valor escrito mediante `translation.editEntry` sigue en la lista, porque la edición de un agente todavía necesita que la mire una persona, y cada entrada restante lleva la `provenance` de su valor actual. El servidor no ofrece ninguna herramienta para aprobar o rechazar: una decisión de revisión la toma una persona, en Studio o mediante el SDK. Consulta [Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión).
 
 ### Entradas y resultados
 

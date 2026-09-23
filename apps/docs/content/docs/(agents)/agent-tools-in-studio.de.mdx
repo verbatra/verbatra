@@ -65,6 +65,8 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 
 Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_values` außerdem, wer jeden vorhandenen Wert geschrieben hat (Herkunft, Provider und Modell bei Maschinenübersetzung sowie Prüfstatus), `verbatra_status_check` und `verbatra_lock_state` zählen die Werte jeder Locale nach Herkunft, und `verbatra_status_diff` nennt die Herkunft des aktuellen Werts jedes geänderten Keys. Siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 
+Die Buttons **Approve** und **Reject** im Dashboard haben kein Agent-Tool, mit oder ohne Spend: Eine Review-Entscheidung trifft eine Person. `verbatra_review_queue` lässt jeden seit dem Lauf entschiedenen Eintrag weg, behält aber einen, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht.
+
 ### Schreib-Tools (zwei)
 
 `verbatra_translation_editEntry` bearbeitet den Wert einer Locale an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dieselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht in einen Wettlauf um einen Eintrag geraten.
