@@ -126,9 +126,10 @@
  *   {@link translate} before any locale runs, and by {@link watch} once at startup, before any
  *   watching begins, since the value is fixed for the session rather than re-read per run.
  * - `CONCURRENCY_BUDGET_CONFLICT`: a live run requested a `concurrency` above 1 while a token
- *   budget applies, whether configured or passed as the run's own `maxTokens`. The ceiling itself would still hold, but which locale loses its
- *   remaining work would depend on the order the locales interleave, so the same project would not
- *   produce the same run twice. A dry run is exempt, since it never consults the budget.
+ *   budget applies, whether configured or passed as the run's own `maxTokens`. The ceiling itself
+ *   would still hold, but which locale loses its remaining work would depend on the order the
+ *   locales interleave, so the same project would not produce the same run twice. A dry run is
+ *   exempt, since it never consults the budget.
  * - `MAX_TOKENS_INVALID`: the per-run `maxTokens` input is not a whole number of at least 1. Thrown
  *   by {@link translate} before anything is read, written, or spent.
  * - `TARGET_UNWRITABLE`: a target locale file could not be written, because its directory is not

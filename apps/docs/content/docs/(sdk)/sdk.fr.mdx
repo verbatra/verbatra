@@ -728,7 +728,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` et `files.localeStyle` ne peuvent pas être combinés, ou le style n'a pas d'écriture de chemin valide pour une locale configurée |
 | `LOCALE_PATH_COLLISION` | deux locales configurées résolvent vers le même chemin absolu |
 | `CONCURRENCY_INVALID` | `concurrency` a été défini mais n'est pas un entier d'au moins 1 ; levé avant l'exécution de toute locale |
-| `CONCURRENCY_BUDGET_CONFLICT` | une exécution réelle a défini `concurrency` au-dessus de 1 alors que `maxTokens` est configuré ; levé avant tout appel au fournisseur (un dry run est exempté) |
+| `CONCURRENCY_BUDGET_CONFLICT` | une exécution réelle a défini `concurrency` au-dessus de 1 alors qu'un budget de tokens s'applique, configuré ou propre à l'exécution ; levé avant tout appel au fournisseur (un dry run est exempté) |
 | `MAX_TOKENS_INVALID` | le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nombre entier d'au moins 1 ; levé avant toute lecture ou dépense |
 | `TARGET_UNWRITABLE` | un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique |
 | `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` s'est vu demander une pseudo-locale qui nomme une locale configurée, ou un chemin de sortie qui écrirait sur un fichier de locale configuré ; refusé avant toute lecture et toute écriture |

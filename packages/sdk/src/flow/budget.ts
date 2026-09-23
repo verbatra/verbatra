@@ -5,9 +5,12 @@ import { type PayloadContext, quantifyBatch } from "./estimate.js";
 import type { BudgetBehavior, RunBudget, SdkNotice } from "./summary.js";
 import { countableUsage } from "./usage.js";
 
+export type BudgetSource = "config" | "run";
+
 export interface BudgetTracker {
   readonly maxTokens: number | undefined;
   readonly behavior: BudgetBehavior;
+  readonly source: BudgetSource;
   tokensUsed: number;
   usageSeen: boolean;
   estimatedSeen: boolean;
@@ -29,6 +32,7 @@ const UNBUDGETED: BudgetReservation = { projected: 0 };
 export interface RunBudgetSettings {
   readonly maxTokens: number | undefined;
   readonly behavior: BudgetBehavior;
+  readonly source: BudgetSource;
 }
 
 export interface ConfiguredBudget {
@@ -52,21 +56,24 @@ export function resolveRunBudget(
 ): RunBudgetSettings {
   const behavior = configured.budgetBehavior ?? defaultBehavior;
   if (override === undefined) {
-    return { maxTokens: configured.maxTokens, behavior };
+    return { maxTokens: configured.maxTokens, behavior, source: "config" };
   }
   assertValidMaxTokensOverride(override);
-  const maxTokens =
-    configured.maxTokens === undefined ? override : Math.min(configured.maxTokens, override);
-  return { maxTokens, behavior: "stop" };
+  if (configured.maxTokens !== undefined && configured.maxTokens < override) {
+    return { maxTokens: configured.maxTokens, behavior: "stop", source: "config" };
+  }
+  return { maxTokens: override, behavior: "stop", source: "run" };
 }
 
 export function createBudgetTracker(
   maxTokens: number | undefined,
   behavior: BudgetBehavior,
+  source: BudgetSource = "config",
 ): BudgetTracker {
   return {
     maxTokens,
     behavior,
+    source,
     tokensUsed: 0,
     usageSeen: false,
     estimatedSeen: false,
@@ -179,11 +186,21 @@ export function toBudgetSummary(tracker: BudgetTracker): RunBudget | undefined {
   };
 }
 
+function budgetLabel(tracker: BudgetTracker): string {
+  return tracker.source === "run" ? "the run's own budget" : "the configured budget";
+}
+
+function raiseCeilingAdvice(tracker: BudgetTracker): string {
+  return tracker.source === "run"
+    ? "raise the run's maxTokens (--max-tokens)"
+    : "raise maxTokens in the config";
+}
+
 export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run's cumulative token usage (${tracker.tokensUsed}) reached the configured budget of ` +
+      `The run's cumulative token usage (${tracker.tokensUsed}) reached ${budgetLabel(tracker)} of ` +
       `${tracker.maxTokens} tokens (behavior: ${tracker.behavior}).`,
   };
 }
@@ -191,7 +208,7 @@ export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
 function oversizedRequestHint(tracker: BudgetTracker, projected: number): string {
   return tracker.maxTokens !== undefined && projected > tracker.maxTokens
     ? " That request alone is projected above the whole budget, so it is refused on every run: " +
-        "lower maxBatchSize or raise maxTokens."
+        `lower maxBatchSize or ${raiseCeilingAdvice(tracker)}.`
     : "";
 }
 
@@ -200,7 +217,7 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
       `The run's next provider request was projected at ${projected} tokens on top of the ` +
-      `${tracker.tokensUsed} already counted, which would have crossed the configured budget of ` +
+      `${tracker.tokensUsed} already counted, which would have crossed ${budgetLabel(tracker)} of ` +
       `${tracker.maxTokens} tokens, so it was withheld rather than sent ` +
       `(behavior: ${tracker.behavior}).${oversizedRequestHint(tracker, projected)}`,
   };
@@ -210,7 +227,7 @@ export function budgetAlreadyStoppedNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run had already reached its configured budget of ${tracker.maxTokens} tokens ` +
+      `The run had already reached ${tracker.source === "run" ? "its own budget" : "its configured budget"} of ${tracker.maxTokens} tokens ` +
       `(${tracker.tokensUsed} counted, behavior: ${tracker.behavior}), ` +
       "so this locale's keys were withheld rather than sent.",
   };

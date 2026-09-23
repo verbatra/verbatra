@@ -662,7 +662,7 @@ export async function translate(
   const generatePlurals = input.generatePlurals ?? config.generatePlurals ?? false;
   const maxBatchSize = config.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
   const fs = deps.fs ?? defaultFs;
-  const budget = createBudgetTracker(runBudget.maxTokens, runBudget.behavior);
+  const budget = createBudgetTracker(runBudget.maxTokens, runBudget.behavior, runBudget.source);
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
