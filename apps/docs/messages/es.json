@@ -363,7 +363,7 @@
       },
       "s12": {
         "heading": "13. Traducción asistida por IA",
-        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo: la interfaz se traduce al alemán, español y francés con la ayuda de modelos de lenguaje de IA. Las páginas de documentación más extensas también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. El contenido traducido se revisa antes de publicarse. Lo indicamos aquí de forma voluntaria, por transparencia, no porque se aplique una obligación legal de divulgación específica."
+        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo. El idioma de origen es el inglés. verbatra traduce automáticamente los textos de la interfaz (navegación, botones y textos similares) al alemán, español y francés con el modelo de lenguaje Gemini de Google. Las páginas de documentación también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. Algunos textos, entre ellos partes de estas páginas legales, se redactaron o corrigieron directamente en lugar de generarse con esa canalización. Las traducciones se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona antes de publicarse, por lo que una traducción puede contener errores. Si detectas alguno, avísanos a través del <contact>formulario de contacto</contact>. Ofrecemos esta información de forma voluntaria, por transparencia."
       }
     },
     "imprint": {

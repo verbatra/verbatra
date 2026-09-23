@@ -363,7 +363,7 @@
       },
       "s12": {
         "heading": "13. KI-gestützte Übersetzung",
-        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein: Die Oberfläche wird mithilfe von KI-Sprachmodellen ins Deutsche, Spanische und Französische übersetzt. Auch die längeren Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Übersetzte Inhalte werden vor der Veröffentlichung geprüft. Wir weisen hier freiwillig aus Transparenzgründen darauf hin, nicht weil dafür eine bestimmte gesetzliche Offenlegungspflicht gilt."
+        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein. Ausgangssprache ist Englisch. Die Oberflächentexte (Navigation, Schaltflächen und ähnliche Texte) werden von verbatra mit dem Sprachmodell Gemini von Google maschinell ins Deutsche, Spanische und Französische übersetzt. Auch die Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Einige Texte, darunter Teile dieser rechtlichen Seiten, wurden direkt verfasst oder korrigiert, statt von dieser Pipeline erzeugt zu werden. Übersetzungen werden nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird vor der Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Wenn dir einer auffällt, sag uns bitte über das <contact>Kontaktformular</contact> Bescheid. Wir geben diese Information freiwillig, aus Transparenzgründen."
       }
     },
     "imprint": {

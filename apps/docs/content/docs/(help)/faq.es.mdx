@@ -195,18 +195,26 @@ Los tres están enlazados desde la columna "Para agentes de IA" del pie de pági
 
 ## ¿El contenido de este sitio está traducido por IA?
 
-Sí, las dos mitades, por dos mecanismos distintos. El texto de la interfaz (etiquetas de navegación,
+En su mayor parte, por dos mecanismos distintos. El texto de la interfaz (etiquetas de navegación,
 botones, el pie de página, el texto de la página de inicio, sus preguntas frecuentes) vive en
 `messages/en.json` y sus hermanos `de`, `es` y `fr`; esos se traducen automáticamente con verbatra
-mismo, contra el formato `next-intl-json`, a través del proveedor Gemini, ejecutado por `pnpm i18n`
-cada vez que cambia la fuente en inglés. Es el propio proyecto usando su propia herramienta
-(dogfooding). La prosa de la documentación que estás leyendo ahora mismo, cada guía y cada página de
-referencia incluida esta, es MDX con sufijo de locale (`page.mdx`, `page.de.mdx`, `page.es.mdx`,
-`page.fr.mdx`) y también está traducida con IA, solo que fuera de esa canalización automatizada:
-`pnpm i18n` solo traduce archivos JSON, XLIFF, YAML, ARB y properties, nunca Markdown, así que nunca
-toca estas páginas. Traducir una página de documentación es un paso aparte y manual cada vez que
-cambia la fuente en inglés.
+mismo, contra el formato `next-intl-json`, a través del proveedor Gemini, ejecutando `pnpm i18n`
+después de que cambie la fuente en inglés. Es el propio proyecto usando su propia herramienta
+(dogfooding), y el workflow `docs-i18n-check` hace fallar un pull request cuyos archivos de locale
+se han desviado de la fuente en inglés. La prosa de la documentación que estás leyendo ahora mismo,
+cada guía y cada página de referencia incluida esta, es MDX con sufijo de locale (`page.mdx`,
+`page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) y también está traducida con IA, solo que fuera de esa
+canalización automatizada: `pnpm i18n` solo traduce archivos JSON, XLIFF, YAML, ARB y properties,
+nunca Markdown, así que nunca toca estas páginas. Traducir una página de documentación es un paso
+aparte y manual cada vez que cambia la fuente en inglés.
 
-Si algo en alemán, español o francés suena raro, abre un issue en cualquiera de los dos casos: el
-texto de la interfaz se corrige en la fuente en inglés y `pnpm i18n` lo retraduce automáticamente;
-para la prosa de la documentación, edita el archivo MDX directamente y envía un pull request.
+No todo sale tal cual de esos dos pasos: algunos textos, entre ellos partes de las páginas legales,
+se redactaron o corrigieron directamente en los archivos de locale. Las traducciones se revisan en
+la medida de lo posible, y no todos los textos traducidos los revisa una persona antes de
+publicarse, por lo que una traducción puede contener errores. La [política de privacidad](/privacy)
+describe el mismo proceso.
+
+Si algo en alemán, español o francés suena raro, abre un issue en cualquiera de los dos casos: en el
+texto de la interfaz, la corrección va a la fuente en inglés y se vuelve a traducir, o directamente
+al archivo de locale afectado; para la prosa de la documentación, edita el archivo MDX directamente
+y envía un pull request.

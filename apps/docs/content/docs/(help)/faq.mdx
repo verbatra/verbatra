@@ -185,17 +185,23 @@ All three are linked from the footer's "For AI agents" column.
 
 ## Is this site's content translated by AI?
 
-Yes, both halves, through two different mechanisms. The UI chrome (navigation labels, buttons,
-the footer, the landing page copy, the landing FAQ) lives in `messages/en.json` and its `de`,
-`es`, and `fr` siblings; those are machine-translated with verbatra itself, against the
-`next-intl-json` format, through the Gemini provider, run by `pnpm i18n` automatically whenever
-the English source changes. It is this project dogfooding its own tool. The documentation prose
-you are reading right now, every guide and reference page including this one, is locale-suffixed
-MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) that is also AI-translated, but
-outside that automated pipeline: `pnpm i18n` only translates JSON, XLIFF, YAML, ARB, and
-properties files, never Markdown, so it never touches these pages. Translating a doc page is a
-separate, manual step whenever the English source changes.
+Mostly, through two different mechanisms. The UI chrome (navigation labels, buttons, the footer, the
+landing page copy, the landing FAQ) lives in `messages/en.json` and its `de`, `es`, and `fr`
+siblings; those are machine-translated with verbatra itself, against the `next-intl-json` format,
+through the Gemini provider, by running `pnpm i18n` after the English source changes. It is this
+project dogfooding its own tool, and the `docs-i18n-check` workflow fails a pull request whose
+locale files have drifted from the English source. The documentation prose you are reading right
+now, every guide and reference page including this one, is locale-suffixed MDX (`page.mdx`,
+`page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) that is also AI-translated, but outside that automated
+pipeline: `pnpm i18n` only translates JSON, XLIFF, YAML, ARB, and properties files, never Markdown,
+so it never touches these pages. Translating a doc page is a separate, manual step whenever the
+English source changes.
 
-If something in German, Spanish, or French reads oddly, open an issue either way: for UI copy it
-gets corrected at the English source and machine-retranslated by `pnpm i18n`; for doc prose, edit
-the MDX file directly and send a pull request.
+Not everything comes out of those two steps unchanged: some texts, including parts of the legal
+pages, were written or corrected directly in the locale files instead. Translations are checked on a
+best-effort basis, and not every translated text is reviewed by a person before it is published, so
+a translation may contain errors. The [privacy policy](/privacy) describes the same process.
+
+If something in German, Spanish, or French reads oddly, open an issue either way: for UI copy the
+fix goes into the English source and is retranslated, or straight into the affected locale file; for
+doc prose, edit the MDX file directly and send a pull request.
