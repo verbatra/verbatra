@@ -13,6 +13,7 @@ import {
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
 import {
+  canonicalOutputConflict,
   namesNoFile,
   type ReservedPath,
   reservedPathAt,
@@ -54,7 +55,8 @@ export interface GenerateTypesInput {
    * file, is absolute, climbs out of `cwd`, does not end in `.ts`, `.mts` or `.cts`, or names a
    * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
    * for its configuration, the {@link GenerateTypesInput.configPath} file, or the
-   * {@link GenerateTypesInput.glossaryPath} file. Names are compared
+   * {@link GenerateTypesInput.glossaryPath} file. When the file-system port implements `realpath`,
+   * the same checks run again after symbolic links are resolved. Names are compared
    * case-insensitively. A generating run also refuses to replace an existing file there unless
    * that file begins with the header line verbatra writes, after any leading byte order mark and
    * blank lines, and refuses one too large to verify.
@@ -186,6 +188,30 @@ function resolveOutputPath(
     );
   }
   return outputPath;
+}
+
+async function refuseLinkedOutput(
+  fs: SdkFs,
+  cwd: string,
+  outputPath: string,
+  reserved: ReadonlyMap<string, ReservedPath>,
+  requested: string,
+): Promise<void> {
+  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
+  if (conflict?.kind === "outside-working-directory") {
+    refuseOutput(
+      requested,
+      "outside-working-directory",
+      "resolves outside the working directory through a symbolic link.",
+    );
+  }
+  if (conflict?.kind === "reserved") {
+    refuseOutput(
+      requested,
+      conflict.reserved.kind,
+      `resolves to ${conflict.reserved.what} through a symbolic link.`,
+    );
+  }
 }
 
 const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
@@ -354,6 +380,7 @@ export async function generateTypes(
     ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
   });
   const outputPath = resolveOutputPath(cwd, input.out, reserved);
+  await refuseLinkedOutput(fs, cwd, outputPath, reserved, input.out ?? DEFAULT_TYPES_PATH);
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);

@@ -1,4 +1,4 @@
-import { lstat, mkdir, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
@@ -136,4 +136,53 @@ describe("the positive set the guard must still let through", () => {
       expect(await refusal(dir, out)).toBe("TYPES_OUTPUT_CONFLICT");
     },
   );
+});
+
+describe("an output path that reaches through a symbolic link", () => {
+  it("refuses a linked directory pointing into the locales and leaves the locale file untouched", async () => {
+    const dir = await seed();
+    await symlink(join(dir, "locales"), join(dir, "linked"), "dir");
+
+    await writeFile(join(dir, "locales", "de.ts"), PROTECTED_MARKER, "utf8");
+    const config = baseConfig({ files: { pattern: "locales/{locale}.ts" } });
+
+    await expect(generateTypes({ config, cwd: dir, out: "linked/de.ts" })).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        'resolves to the locale file for "de" through a symbolic link.',
+      ),
+    });
+    expect(await readTextFile(join(dir, "locales", "de.ts"))).toBe(PROTECTED_MARKER);
+  });
+
+  it("refuses a linked file ending in .ts that points at the locale file", async () => {
+    const dir = await seed();
+    await symlink(join(dir, "locales", "de.json"), join(dir, "types.d.ts"), "file");
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "types.d.ts" }),
+    ).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        'resolves to the locale file for "de" through a symbolic link.',
+      ),
+    });
+    expect(await readTextFile(join(dir, "locales", "de.json"))).toBe(PROTECTED_MARKER);
+  });
+
+  it("refuses a linked directory pointing outside the working directory and writes nothing there", async () => {
+    const dir = await seed();
+    const outside = await makeTempDir();
+    await symlink(outside, join(dir, "away"), "dir");
+
+    await expect(
+      generateTypes({ config: baseConfig(), cwd: dir, out: "away/types.d.ts" }),
+    ).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        "resolves outside the working directory through a symbolic link.",
+      ),
+    });
+    expect(await readdir(outside)).toEqual([]);
+  });
 });

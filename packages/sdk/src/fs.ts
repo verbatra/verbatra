@@ -6,6 +6,7 @@ import {
   mkdir,
   open,
   readdir,
+  realpath,
   rename,
   rm,
   writeFile,
@@ -115,6 +116,17 @@ export interface SdkFs {
    * @returns Every immediate entry with its kind. Rejects when the path is not a readable directory.
    */
   readDirectory?(path: string): Promise<readonly DirectoryEntry[]>;
+  /**
+   * Resolves every symbolic link in an existing path and returns the canonical absolute path.
+   * Optional, so an implementation written before it existed keeps compiling. The output guards of
+   * {@link generateTypes} and {@link exportTmx} use it to see where a path really lands, so a
+   * symbolic link cannot carry an output file outside the working directory or onto a file the
+   * project depends on. Without it, those guards compare paths as written.
+   *
+   * @param path - An existing file or directory.
+   * @returns The canonical absolute path. Rejects when the path does not exist.
+   */
+  realpath?(path: string): Promise<string>;
 }
 
 function entryKind(entry: Dirent): DirectoryEntry["kind"] {
@@ -248,6 +260,7 @@ export const defaultFs: SdkFs = {
   mkdir: async (path: string): Promise<void> => {
     await mkdir(path, { recursive: true });
   },
+  realpath: (path: string): Promise<string> => realpath(path),
   readDirectory: async (path: string): Promise<readonly DirectoryEntry[]> => {
     const entries = await readdir(path, { withFileTypes: true });
     return entries.map((entry) => ({ name: entry.name, kind: entryKind(entry) }));

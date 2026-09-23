@@ -14,6 +14,7 @@ import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import {
+  canonicalOutputConflict,
   namesNoFile,
   type ReservedPath,
   reservedPathAt,
@@ -68,7 +69,9 @@ export interface ExportTmxInput {
    * outside `cwd` or to `cwd` itself, or names a configured locale file, the lock file, the
    * translation-memory cache, a file verbatra searches for its configuration, the
    * {@link ExportTmxInput.configPath} file, or the {@link ExportTmxInput.glossaryPath} file. Names
-   * are compared case-insensitively.
+   * are compared case-insensitively, and, when the file-system port implements `realpath`, again
+   * after symbolic links are resolved, so a link cannot carry the file anywhere a plain path could
+   * not.
    */
   readonly out?: string;
   /**
@@ -153,11 +156,12 @@ function refuseOutput(requested: string, why: string): never {
   throw new SdkError("TMX_OUTPUT_CONFLICT", `The output path "${requested}" ${why} ${OUTPUT_HINT}`);
 }
 
-function resolveOutputPath(
+async function resolveOutputPath(
+  fs: SdkFs,
   cwd: string,
   out: string | undefined,
   reserved: ReadonlyMap<string, ReservedPath>,
-): string {
+): Promise<string> {
   const requested = out ?? DEFAULT_TMX_PATH;
   if (namesNoFile(requested)) {
     refuseOutput(requested, "names no file.");
@@ -169,6 +173,13 @@ function resolveOutputPath(
   const claimed = reservedPathAt(reserved, outputPath);
   if (claimed !== undefined) {
     refuseOutput(requested, `is ${claimed.what}.`);
+  }
+  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
+  if (conflict?.kind === "outside-working-directory") {
+    refuseOutput(requested, "resolves outside the working directory through a symbolic link.");
+  }
+  if (conflict?.kind === "reserved") {
+    refuseOutput(requested, `resolves to ${conflict.reserved.what} through a symbolic link.`);
   }
   return outputPath;
 }
@@ -238,7 +249,7 @@ export async function exportTmx(
     ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
     ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
   });
-  const path = resolveOutputPath(cwd, input.out, reserved);
+  const path = await resolveOutputPath(fs, cwd, input.out, reserved);
   const { memory } = await readTranslationMemory(cacheFilePath(cwd), fs);
   const collected = collect(memory, computeFingerprint(input.config), locales);
   const build: BuildTmxInput = {

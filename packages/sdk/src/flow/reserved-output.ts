@@ -1,9 +1,11 @@
-import { resolve, sep } from "node:path";
+import { basename, dirname, relative, resolve, sep } from "node:path";
 import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
 import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
+import { escapesWorkingDirectory } from "./write-target.js";
 
 export type ReservedPathKind =
   | "locale-file"
@@ -14,6 +16,7 @@ export type ReservedPathKind =
   | "glossary-file";
 
 export interface ReservedPath {
+  readonly path: string;
   readonly kind: ReservedPathKind;
   readonly what: string;
 }
@@ -30,7 +33,7 @@ export function reservedProjectPaths(input: ReservedPathsInput): Map<string, Res
   const { cwd, config, resolver } = input;
   const reserved = new Map<string, ReservedPath>();
   const claim = (path: string, kind: ReservedPathKind, what: string): void => {
-    reserved.set(path.toLowerCase(), { kind, what });
+    reserved.set(path.toLowerCase(), { path, kind, what });
   };
   for (const locale of [config.sourceLocale, ...config.targetLocales]) {
     claim(resolver.pathFor(locale), "locale-file", `the locale file for "${locale}"`);
@@ -70,4 +73,52 @@ export function reservedPathAt(
 
 export function namesNoFile(requested: string): boolean {
   return requested.trim() === "" || requested.endsWith("/") || requested.endsWith(sep);
+}
+
+async function canonicalPath(
+  realpath: (path: string) => Promise<string>,
+  path: string,
+): Promise<string> {
+  const missing: string[] = [];
+  let current = path;
+  while (true) {
+    try {
+      return resolve(await realpath(current), ...missing);
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) {
+        return path;
+      }
+      missing.unshift(basename(current));
+      current = parent;
+    }
+  }
+}
+
+export type CanonicalOutputConflict =
+  | { readonly kind: "outside-working-directory" }
+  | { readonly kind: "reserved"; readonly reserved: ReservedPath };
+
+export async function canonicalOutputConflict(
+  fs: SdkFs,
+  cwd: string,
+  outputPath: string,
+  reserved: ReadonlyMap<string, ReservedPath>,
+): Promise<CanonicalOutputConflict | undefined> {
+  const realpath = fs.realpath?.bind(fs);
+  if (realpath === undefined) {
+    return undefined;
+  }
+  const root = await canonicalPath(realpath, cwd);
+  const target = await canonicalPath(realpath, outputPath);
+  if (escapesWorkingDirectory(relative(root, target))) {
+    return { kind: "outside-working-directory" };
+  }
+  const key = target.toLowerCase();
+  for (const entry of reserved.values()) {
+    if ((await canonicalPath(realpath, entry.path)).toLowerCase() === key) {
+      return { kind: "reserved", reserved: entry };
+    }
+  }
+  return undefined;
 }

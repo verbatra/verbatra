@@ -1,4 +1,4 @@
-import { chmod, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CACHE_FILE_NAME } from "../../cache/translation-memory.js";
@@ -199,6 +199,58 @@ describe("exportTmx: an output path naming a project file", () => {
     await expect(exportTmx({ config: cfg(), cwd: dir, out: CACHE_FILE_NAME })).rejects.toThrow(
       /is the translation-memory cache\./,
     );
+  });
+});
+
+describe("exportTmx: an output path that reaches through a symbolic link", () => {
+  it("refuses a linked directory pointing into the locales and leaves the locale file untouched", async () => {
+    const dir = await seed();
+    await symlink(join(dir, "locales"), join(dir, "linked"), "dir");
+
+    await expect(
+      exportTmx({ config: cfg(), cwd: dir, out: "linked/de.json" }),
+    ).rejects.toMatchObject({
+      code: "TMX_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        'resolves to the locale file for "de" through a symbolic link.',
+      ),
+    });
+    expect(await readFile(join(dir, "locales", "de.json"), "utf8")).toBe(PROTECTED_MARKER);
+  });
+
+  it("refuses a linked directory pointing outside the working directory and writes nothing there", async () => {
+    const dir = await seed();
+    const outside = await makeTempDir();
+    await symlink(outside, join(dir, "away"), "dir");
+
+    await expect(
+      exportTmx({ config: cfg(), cwd: dir, out: "away/nested/memory.tmx" }),
+    ).rejects.toMatchObject({
+      code: "TMX_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        "resolves outside the working directory through a symbolic link.",
+      ),
+    });
+    expect(await readdir(outside)).toEqual([]);
+  });
+
+  it("refuses a linked file pointing at the lock file", async () => {
+    const dir = await seed();
+    await symlink(join(dir, LOCK_FILE_NAME), join(dir, "memory.tmx"), "file");
+
+    expect(await refusalCode(dir, "memory.tmx")).toBe("TMX_OUTPUT_CONFLICT");
+    expect(await readFile(join(dir, LOCK_FILE_NAME), "utf8")).toBe(PROTECTED_MARKER);
+  });
+
+  it("writes through a linked directory that stays inside the working directory", async () => {
+    const dir = await seed();
+    await mkdir(join(dir, "exports"));
+    await symlink(join(dir, "exports"), join(dir, "latest"), "dir");
+
+    const result = await exportTmx({ config: cfg(), cwd: dir, out: "latest/memory.tmx" });
+
+    expect(await readFile(join(dir, "exports", "memory.tmx"), "utf8")).toContain("<tmx");
+    expect(result.path).toBe(join(dir, "latest", "memory.tmx"));
   });
 });
 

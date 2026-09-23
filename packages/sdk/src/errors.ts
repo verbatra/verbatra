@@ -100,9 +100,10 @@
  *   directory, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale
  *   file, the lock file, the translation-memory cache, a file verbatra searches for its
  *   configuration, the configuration file the run loaded, or the glossary file the config names,
- *   compared case-insensitively. A generating run, never a `check` run, also refuses to replace
- *   an existing file there that does not begin with the header line verbatra writes, and leaves
- *   that file untouched.
+ *   compared case-insensitively and, through a file-system port that implements `realpath`, again
+ *   after symbolic links are resolved. A generating run, never a `check` run, also refuses to
+ *   replace an existing file there that does not begin with the header line verbatra writes, and
+ *   leaves that file untouched.
  * - `TYPES_UNWRITABLE`: the declaration file {@link generateTypes} produces could not be written,
  *   because its directory is not writable, does not exist, or the disk is out of space.
  * - `TMX_OUTPUT_CONFLICT`: {@link exportTmx} refused its output path. Before the memory is read
@@ -110,7 +111,8 @@
  *   directory or to the working directory itself, and one naming a configured locale file, the
  *   lock file, the translation-memory cache, a file verbatra searches for its configuration, the
  *   configuration file the run loaded, or the glossary file the config names, compared
- *   case-insensitively.
+ *   case-insensitively and, through a file-system port that implements `realpath`, again after
+ *   symbolic links are resolved.
  * - `TMX_UNWRITABLE`: the TMX file {@link exportTmx} produces could not be written, because its
  *   directory is not writable, a directory already sits at that path, or the disk is out of space.
  *   The message names the file relative to `cwd` and the underlying file-system code.
