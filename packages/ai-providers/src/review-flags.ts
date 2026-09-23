@@ -76,8 +76,12 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
-function removeAll(text: string, term: string): string {
-  return term === "" ? text : text.split(term).join(" ");
+function removeWholeTerms(text: string, term: string): string {
+  let remaining = text;
+  for (const index of wholeTermIndices(text, term).reverse()) {
+    remaining = `${remaining.slice(0, index)} ${remaining.slice(index + term.length)}`;
+  }
+  return remaining;
 }
 
 function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
@@ -97,11 +101,11 @@ function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
   }
   let remaining = input.sourceValue;
   for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
-    remaining = removeAll(remaining, term);
+    remaining = removeWholeTerms(remaining, term);
   }
   remaining = foldGlossaryCase(remaining, input.sourceLocale, false);
   for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
-    remaining = removeAll(remaining, foldGlossaryCase(term, input.sourceLocale, false));
+    remaining = removeWholeTerms(remaining, foldGlossaryCase(term, input.sourceLocale, false));
   }
   return !UNICODE_LETTER.test(remaining);
 }
@@ -126,9 +130,10 @@ function isFollowedByWordCharacter(text: string, index: number): boolean {
   return WORD_JOINING_AT_START.test(text.slice(index, index + MAX_CODE_UNITS_PER_CODE_POINT));
 }
 
-function occursAsWholeTerm(text: string, term: string): boolean {
+function wholeTermIndices(text: string, term: string): number[] {
+  const indices: number[] = [];
   if (term === "") {
-    return false;
+    return indices;
   }
   const guardStart = WORD_JOINING_AT_START.test(term);
   const guardEnd = WORD_JOINING_AT_END.test(term);
@@ -136,10 +141,14 @@ function occursAsWholeTerm(text: string, term: string): boolean {
     const blockedStart = guardStart && isPrecededByWordCharacter(text, index);
     const blockedEnd = guardEnd && isFollowedByWordCharacter(text, index + term.length);
     if (!blockedStart && !blockedEnd) {
-      return true;
+      indices.push(index);
     }
   }
-  return false;
+  return indices;
+}
+
+function occursAsWholeTerm(text: string, term: string): boolean {
+  return wholeTermIndices(text, term).length > 0;
 }
 
 interface ExpectedTerm {

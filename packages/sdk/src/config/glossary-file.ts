@@ -332,7 +332,9 @@ export async function updateGlossaryTerm(
   return withGlossaryGuard(cwd, fs, async () => {
     const document = await readGlossaryDocument(path, fs);
     const content = editedContent(document.content, edit);
-    await writeGlossary(path, serializeGlossary(content, document, path), fs);
+    if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
+      await writeGlossary(path, serializeGlossary(content, document, path), fs);
+    }
     return normalizeGlossary(inputOf(content));
   });
 }

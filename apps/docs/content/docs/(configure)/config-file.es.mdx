@@ -144,7 +144,7 @@ Con más de un idioma de destino, una sola traducción por término no basta. Un
 | `terms[].forbidden` | Traducciones que un locale nunca debe usar. Un locale regional se rige por su propia lista y la de su idioma base. |
 | `terms[].caseSensitive` | Comparar el término, sus traducciones y sus traducciones prohibidas distinguiendo mayúsculas. Por defecto es `false`. |
 | `terms[].note`, `terms[].partOfSpeech` | Contexto en texto libre para el término, que un proveedor LLM recibe como datos. |
-| `doNotTranslate` | Términos que se copian en cada traducción exactamente como están escritos. Un string simple se compara distinguiendo mayúsculas; `{ "term", "caseSensitive": false }` no. |
+| `doNotTranslate` | Términos que se copian sin traducir en cada traducción. Un string simple también debe conservar sus mayúsculas y minúsculas; con `{ "term", "caseSensitive": false }` pueden cambiar. |
 
 Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`. Un término no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. Una petición de traducción solo lleva los términos de su propio locale de destino, y la huella de [caché](/docs/the-cache) de cada locale solo cubre esos, así que editar la traducción alemana deja en su sitio las traducciones francesas en caché.
 

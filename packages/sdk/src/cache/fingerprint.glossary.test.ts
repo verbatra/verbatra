@@ -27,8 +27,9 @@ describe("computeFingerprint: a version 1 glossary", () => {
       glossary: { Account: "Konto", Save: "Speichern" },
     });
     const config = deepl({ Save: "Speichern", Account: "Konto" });
-    expect(computeFingerprint(config, "de")).toBe(stableStringHash(legacy));
-    expect(computeFingerprint(config, "fr")).toBe(stableStringHash(legacy));
+    expect(stableStringHash(legacy)).toBe("10e47a4574f3d37d");
+    expect(computeFingerprint(config, "de")).toBe("10e47a4574f3d37d");
+    expect(computeFingerprint(config, "fr")).toBe("10e47a4574f3d37d");
   });
 
   it("matches the same terms written as a version 2 glossary with global translations", () => {

@@ -145,7 +145,7 @@ Avec plus d'une langue cible, une seule traduction par terme ne suffit pas. Un g
 | `terms[].forbidden` | Les traductions qu'une locale ne doit jamais utiliser. Une locale régionale respecte sa propre liste et celle de sa langue de base. |
 | `terms[].caseSensitive` | Comparer le terme, ses traductions et ses traductions interdites en tenant compte de la casse. `false` par défaut. |
 | `terms[].note`, `terms[].partOfSpeech` | Un contexte en texte libre pour le terme, qu'un fournisseur LLM reçoit comme données. |
-| `doNotTranslate` | Les termes à recopier dans chaque traduction exactement comme ils sont écrits. Une simple chaîne est comparée en tenant compte de la casse ; `{ "term", "caseSensitive": false }` non. |
+| `doNotTranslate` | Les termes à recopier sans traduction dans chaque traduction. Une simple chaîne doit aussi garder sa casse ; avec `{ "term", "caseSensitive": false }`, elle peut changer. |
 
 Chaque terme a besoin d'un `target`, d'une entrée dans `targets` ou d'une liste `forbidden`. Un terme ne peut pas interdire sa propre traduction, nommer deux fois une locale ni figurer aussi dans `doNotTranslate`. Une requête de traduction ne porte que les termes de sa propre locale cible, et l'empreinte de [cache](/docs/the-cache) de chaque locale ne couvre que ceux-là : modifier la traduction allemande laisse donc en place les traductions françaises en cache.
 

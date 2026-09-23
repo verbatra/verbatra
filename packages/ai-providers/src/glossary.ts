@@ -19,11 +19,14 @@ export interface LocaleGlossaryTerm {
   readonly partOfSpeech?: string | undefined;
 }
 
-/** A term that must be copied into every translation exactly as written, such as a brand name. */
+/**
+ * A term, such as a brand name, that must be copied into every translation untranslated. Whether its
+ * letter case must survive too is up to {@link DoNotTranslateTerm.caseSensitive}.
+ */
 export interface DoNotTranslateTerm {
   /** The term to keep untranslated. */
   readonly term: string;
-  /** Whether the term is matched with case. */
+  /** Whether the term is matched with case, so a translation must also keep its letter case. */
   readonly caseSensitive: boolean;
 }
 
@@ -34,7 +37,7 @@ export interface DoNotTranslateTerm {
 export interface LocaleGlossary {
   /** Terms with a required translation, forbidden renderings, or both, for this locale. */
   readonly terms: readonly LocaleGlossaryTerm[];
-  /** Terms to keep exactly as written in every locale. */
+  /** Terms to keep untranslated in every locale, each matched with case or not as it says. */
   readonly doNotTranslate: readonly DoNotTranslateTerm[];
 }
 

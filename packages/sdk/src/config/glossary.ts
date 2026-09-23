@@ -61,7 +61,10 @@ export interface GlossaryDefinition {
   readonly version: 2;
   /** The glossary's terms, each with its translations, forbidden renderings, and context. */
   readonly terms: readonly GlossaryTermDefinition[];
-  /** Terms, such as brand names, to copy into every translation exactly as written. */
+  /**
+   * Terms, such as brand names, to copy into every translation untranslated. A bare string must also
+   * keep its letter case; an object with `caseSensitive: false` need not.
+   */
   readonly doNotTranslate?: readonly GlossaryDoNotTranslateDefinition[] | undefined;
 }
 

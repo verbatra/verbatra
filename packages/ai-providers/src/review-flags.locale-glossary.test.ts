@@ -173,6 +173,26 @@ describe("computeReviewFlags: EQUALS_SOURCE with fixed terms", () => {
     ).toEqual(["EQUALS_SOURCE"]);
   });
 
+  it("only discounts a fixed term where it stands as a whole word", () => {
+    expect(
+      reasons({
+        sourceValue: "verbatras",
+        translatedValue: "verbatras",
+        glossary: glossary([], [{ term: "verbatra", caseSensitive: true }]),
+      }),
+    ).toEqual(["EQUALS_SOURCE"]);
+  });
+
+  it("discounts every whole occurrence of a fixed term", () => {
+    expect(
+      reasons({
+        sourceValue: "verbatra, verbatra!",
+        translatedValue: "verbatra, verbatra!",
+        glossary: glossary([], [{ term: "verbatra", caseSensitive: true }]),
+      }),
+    ).toEqual([]);
+  });
+
   it("is still raised for an untranslated copy when the glossary has no fixed terms", () => {
     expect(
       reasons({

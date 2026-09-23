@@ -171,7 +171,8 @@ export interface ProviderNotice {
  *   translation is the term itself, is not flagged either, since copying it is the correct result.
  * - `GLOSSARY_TERM_MISSED`: a glossary term of the target locale appeared in the source but its
  *   translation for that locale did not appear in the translated value, or a do-not-translate term
- *   appeared in the source but not, exactly as written, in the translated value. Each locale is
+ *   appeared in the source but not in the translated value, compared with case unless the term is
+ *   not case-sensitive. Each locale is
  *   checked against its own translations, so a German translation is never held to a French term.
  *   Matching ignores case unless the term is marked case-sensitive, and folds case by the rules of
  *   each side's locale. The two sides are held to deliberately different standards. The source

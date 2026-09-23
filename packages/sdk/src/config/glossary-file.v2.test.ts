@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { makeTempDir, readTextFile } from "../test-support.js";
 import {
   readGlossaryFile,
@@ -299,6 +300,39 @@ describe("updateGlossaryTerm: version 2 files", () => {
       cwd: seeded.cwd,
     });
     expect(loaded.config.glossary).toEqual(await onDisk(seeded.path));
+  });
+});
+
+describe("updateGlossaryTerm: edits that change nothing", () => {
+  it.each<[string, unknown, Omit<UpdateGlossaryTermInput, "glossary" | "cwd">]>([
+    [
+      "removing an absent version 1 term",
+      '{"Save":"Speichern"}',
+      { term: "Open", translation: null },
+    ],
+    [
+      "repeating a version 1 translation",
+      '{"Save":"Speichern"}',
+      { term: "Save", translation: "Speichern" },
+    ],
+    [
+      "repeating a version 2 translation",
+      '{"version":2,"terms":[{"source":"A","targets":{"de":"B"}}]}',
+      { term: "A", locale: "de", translation: "B" },
+    ],
+  ])("leaves the file untouched when %s", async (_label, content, change) => {
+    const seeded = await seed(content);
+    const writes: string[] = [];
+    const fs: SdkFs = {
+      ...defaultFs,
+      writeFile: async (path, data) => {
+        writes.push(path);
+        await defaultFs.writeFile(path, data);
+      },
+    };
+    await updateGlossaryTerm({ glossary: file(seeded.path), cwd: seeded.cwd, ...change }, { fs });
+    expect(writes.filter((path) => path === seeded.path)).toEqual([]);
+    expect(await readTextFile(seeded.path)).toBe(content);
   });
 });
 

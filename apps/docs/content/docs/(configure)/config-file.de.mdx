@@ -145,7 +145,7 @@ Bei mehr als einer Zielsprache reicht eine Übersetzung pro Begriff nicht. Ein G
 | `terms[].forbidden` | Wiedergaben, die eine Locale nie verwenden darf. Eine regionale Locale gilt für ihre eigene Liste und die ihrer Basissprache. |
 | `terms[].caseSensitive` | Begriff, Übersetzungen und verbotene Wiedergaben mit Groß- und Kleinschreibung vergleichen. Standard ist `false`. |
 | `terms[].note`, `terms[].partOfSpeech` | Freitext-Kontext zum Begriff, den ein LLM-Provider als Daten erhält. |
-| `doNotTranslate` | Begriffe, die in jede Übersetzung genau so übernommen werden, wie sie geschrieben sind. Ein reiner String wird mit Groß- und Kleinschreibung verglichen, `{ "term", "caseSensitive": false }` nicht. |
+| `doNotTranslate` | Begriffe, die unübersetzt in jede Übersetzung übernommen werden. Ein reiner String muss auch seine Groß- und Kleinschreibung behalten, bei `{ "term", "caseSensitive": false }` darf sie sich ändern. |
 
 Jeder Begriff braucht ein `target`, einen Eintrag in `targets` oder eine `forbidden`-Liste. Ein Begriff darf seine eigene Übersetzung nicht verbieten, keine Locale doppelt nennen und nicht zusätzlich in `doNotTranslate` stehen. Eine Übersetzungsanfrage enthält nur die Begriffe ihrer eigenen Ziel-Locale, und der [Cache](/docs/the-cache)-Fingerprint jeder Locale deckt nur diese ab. Änderst du die deutsche Übersetzung, bleiben gecachte französische Übersetzungen also erhalten.
 
