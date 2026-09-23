@@ -127,10 +127,11 @@ Recurre a `--include-unchanged` cuando un traductor quiera el contexto completo 
 - `length-ratio-outlier`: la traducción es mucho más corta o más larga que su origen.
 - `max-length-exceeded`: la traducción es más larga que el presupuesto configurado para su clave.
 - `equals-source`: la traducción es idéntica al origen.
-- `glossary-term-missed`: un término del glosario configurado no llegó a la traducción.
+- `glossary-term-missed`: la traducción de un término del glosario para este locale, o un término de `doNotTranslate`, no llegó a la traducción.
+- `glossary-forbidden-term`: la traducción usa una traducción que el glosario prohíbe para este locale.
 - `integrity-reordered`: los placeholders coinciden pero quedaron en un orden distinto al del origen.
 
-Otros dos motivos completan el conjunto de siete, y ambos existen solo al traducir: `provider-degraded` (un aviso de formalidad degradada o de glosario ignorado sobre el lote del que vino una clave) y `fuzzy-cache-reuse` (el valor se reutilizó de la memoria de traducción para un origen anterior casi idéntico que desde entonces se ha editado). La exportación recalcula las columnas solo a partir de los valores de origen y destino, así que ninguno de los dos aparece nunca en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
+Otros dos motivos completan el conjunto de ocho, y ambos existen solo al traducir: `provider-degraded` (un aviso de formalidad degradada o de glosario ignorado sobre el lote del que vino una clave) y `fuzzy-cache-reuse` (el valor se reutilizó de la memoria de traducción para un origen anterior casi idéntico que desde entonces se ha editado). La exportación recalcula las columnas solo a partir de los valores de origen y destino, así que ninguno de los dos aparece nunca en una fila exportada. Una fila todavía sin traducción siempre exporta `ok`; no hay nada que revisar. Consulta [Seguridad de la traducción](/docs/translation-safety) para ver cómo se relacionan estas señales con las comprobaciones duras de integridad.
 
 ## Desde el SDK
 

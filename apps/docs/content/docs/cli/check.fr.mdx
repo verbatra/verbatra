@@ -84,7 +84,7 @@ Une clé obsolète dont la valeur a été écrite, importée ou modifiée hors d
 Les constats ont deux niveaux de gravité :
 
 - **error** : la valeur échoue à la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité), donc verbatra refuserait de l'écrire. Le motif est `placeholder`, `markup`, `icu` (un message ICU invalide, ou des [branches plurielles](/docs/translation-safety#branches-plurielles-par-langue-cible) qui ne conviennent pas à la langue cible), `degenerate` ou `empty`. Un constat `placeholder` liste chaque placeholder que la valeur a perdu sous la forme `-{{name}}` et chaque placeholder ajouté sous la forme `+{{nom}}` ; `markup` et `icu` listent les balises ou branches fautives de la même façon.
-- **warning** : la valeur passe la barrière mais porte un [motif de révision](/docs/translation-safety#signalements-de-révision) : `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED` ou `INTEGRITY_REORDERED`. Une valeur en erreur ne reçoit pas d'avertissement en plus.
+- **warning** : la valeur passe la barrière mais porte un [motif de révision](/docs/translation-safety#signalements-de-révision) : `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM` ou `INTEGRITY_REORDERED`. Une valeur en erreur ne reçoit pas d'avertissement en plus.
 
 `--severity error` ne signale que les erreurs. Une erreur fixe la sortie `1` ; les avertissements aussi, dès que tu ajoutes `--strict`. La dérive fixe toujours la sortie `1` elle aussi, donc `check --qa` échoue quand une locale est désynchronisée ou qu'une valeur commitée est cassée. Le rapport lisible regroupe les constats par locale et par clé :
 
@@ -114,7 +114,7 @@ interface LocaleQaReport {
 
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
-  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "INTEGRITY_REORDERED" };
+  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "GLOSSARY_FORBIDDEN_TERM" | "INTEGRITY_REORDERED" };
 ```
 
 Quelques cas restent hors du contrôle : une clé que seule la cible possède (elle est orpheline, et [`verbatra diff`](/docs/cli/diff) la liste), une clé manquante (il n'y a pas de valeur à vérifier) et une clé dont la source n'est pas un ICU valide, contre laquelle aucune traduction ne peut être jugée ; ces clés sont listées une fois sous `invalidSourceKeys`. Les clés [protégées](/docs/protecting-human-translations) et épinglées sont vérifiées comme les autres, puisque leurs valeurs sont livrées tout pareil, et c'est aussi le cas des valeurs rejetées en révision. `--consistency` reste une option séparée qui ne fait que signaler ; combine les deux pour obtenir les deux rapports.

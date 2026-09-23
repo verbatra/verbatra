@@ -6,7 +6,9 @@
  * Entries are keyed by configuration fingerprint, then locale, then source-content hash. The
  * fingerprint layer means that changing the provider, model, tone, glossary, or a non-empty provider
  * `localeMap` does not silently reuse translations produced under the old settings; those entries
- * simply stop matching.
+ * simply stop matching. The glossary counts per locale: each locale's fingerprint covers only the
+ * glossary terms that apply to it, so editing the German translation of a term leaves the French
+ * entries in place.
  *
  * `sources` sits beside them as a flat hash-to-text index. A hash cannot be compared for
  * similarity, so the source text itself has to be on file for a fuzzy match to have anything to

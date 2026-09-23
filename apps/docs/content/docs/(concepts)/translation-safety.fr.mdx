@@ -332,9 +332,15 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
   de même verrouillée, car une traduction correcte qui dépasse un budget de mise en page vaut mieux
   que pas de traduction du tout.
 - `EQUALS_SOURCE` : la traduction est identique mot pour mot à la source alors que la locale cible
-  diffère de la locale source, et la source avait réellement du texte traduisible.
-- `GLOSSARY_TERM_MISSED` : un terme de glossaire configuré apparaît dans la source mais son terme
-  cible associé est absent de la traduction. La correspondance ignore la casse, et les deux côtés
+  diffère de la locale source, et la source avait réellement du texte traduisible. Une source faite
+  uniquement de termes de `doNotTranslate`, ou de termes dont la traduction est le terme lui-même,
+  n'est pas signalée, car la recopier est le bon résultat.
+- `GLOSSARY_TERM_MISSED` : un terme du glossaire apparaît dans la source mais sa traduction pour la
+  locale cible est absente de la traduction, ou un terme de `doNotTranslate` manque ou a été
+  modifié. Chaque locale est vérifiée par rapport à sa propre traduction d'un
+  [glossaire par locale](/docs/config-file#glossary) : l'allemand n'est donc
+  jamais jugé sur le terme français. La correspondance ignore la casse sauf si le terme est
+  `caseSensitive`, suit les règles de chaque locale (y compris le `İ` turc), et les deux côtés
   sont tenus à des exigences différentes, volontairement. Le côté source exige un mot entier, donc
   le terme `AI` ne compte pas comme présent à l'intérieur de `Airport` et ne peut pas créer une
   attente que personne n'a formulée. Le côté cible demande seulement que le terme apparaisse quelque
@@ -343,6 +349,12 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
   une frontière à cet endroit signalerait des traductions correctes dans la plupart des langues pour
   lesquelles tu tiens un glossaire. Un terme source écrit sans séparateur de mots (han, kana, thaï
   et similaires) n'a pas non plus de frontière, il retombe donc sur la même règle de sous-chaîne.
+- `GLOSSARY_FORBIDDEN_TERM` : la traduction utilise une traduction que la liste `forbidden` du
+  glossaire exclut pour la locale cible. La comparaison se fait sur le mot entier, et sur la
+  sous-chaîne pour les écritures sans séparateur de mots : une forme fléchie ou composée n'est donc
+  détectée que si tu la listes aussi. Une traduction interdite déjà présente dans la source n'est
+  pas signalée, car la traduction peut la citer. Comme chaque motif ici, il signale au lieu de
+  bloquer.
 - `INTEGRITY_REORDERED` : l'ensemble des placeholders correspondait exactement mais est arrivé dans
   un ordre différent de la source. Ne se déclenche que sur une traduction que la barrière a déjà
   acceptée.

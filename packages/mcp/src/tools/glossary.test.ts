@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -127,5 +128,71 @@ describe("glossary.write", () => {
 
   it("is annotated as destructive, since passing translation: null deletes a term", () => {
     expect(glossaryWriteTool.annotations.destructiveHint).toBe(true);
+  });
+});
+
+describe("glossary tools on a version 2 glossary", () => {
+  const V2 = {
+    version: 2,
+    terms: [
+      { source: "Dashboard", target: "Dashboard", targets: { de: "Übersicht" } },
+      { source: "Save", target: "Speichern" },
+    ],
+  };
+
+  it("lists the shared translations of an inline version 2 glossary", async () => {
+    const context = makeContext({
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({ glossary: { ...V2, version: 2 } }),
+        glossary: { source: "inline" },
+      }),
+    });
+
+    const outcome = await glossaryGetTool.execute({}, context);
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: { entries: { Dashboard: "Dashboard", Save: "Speichern" } },
+    });
+  });
+
+  it("clears only the shared translation for null and keeps a term that still has others", async () => {
+    const dir = await makeTempDir();
+    const path = join(dir, "glossary.json");
+    await writeJsonFile(path, V2);
+    const context = makeContext({
+      config: baseLoadedConfig({ glossary: { source: "file", path } }),
+      cwd: dir,
+      fs: nodeFs,
+    });
+
+    const outcome = await glossaryWriteTool.execute(
+      { term: "Dashboard", translation: null },
+      context,
+    );
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { entries: { Save: "Speichern" } } });
+    expect(JSON.parse(await readFile(path, "utf8"))).toEqual({
+      version: 2,
+      terms: [
+        { source: "Dashboard", targets: { de: "Übersicht" } },
+        { source: "Save", target: "Speichern" },
+      ],
+    });
+  });
+
+  it("removes a term whose shared translation was all it had", async () => {
+    const dir = await makeTempDir();
+    const path = join(dir, "glossary.json");
+    await writeJsonFile(path, V2);
+    const context = makeContext({
+      config: baseLoadedConfig({ glossary: { source: "file", path } }),
+      cwd: dir,
+      fs: nodeFs,
+    });
+
+    await glossaryWriteTool.execute({ term: "Save", translation: null }, context);
+
+    expect(JSON.parse(await readFile(path, "utf8")).terms).toEqual([V2.terms[0]]);
   });
 });

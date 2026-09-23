@@ -87,6 +87,7 @@ describe("the config JSON Schema document: refinements that cannot be expressed"
       "<root>",
       "sourceLocale",
       "provider[5].options.apiKeyEnvVar.innerType",
+      "glossary.innerType[1]",
       "network.innerType[0].allowedHosts.innerType.element",
     ]);
   });

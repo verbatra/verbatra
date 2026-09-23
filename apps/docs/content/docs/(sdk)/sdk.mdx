@@ -713,27 +713,76 @@ resolved from a file. Use it when you need to display where the config came from
 
 <AvailableFrom version="0.9.0" />
 
-Reads a file-backed glossary fresh from disk and returns it as a flat term map. Takes
+Reads a file-backed glossary fresh from disk and returns it as a normalized `Glossary`:
+`{ version, terms, doNotTranslate }`, where `version` is `1` for a flat term map and `2` for a
+[per-locale glossary](/docs/config-file#glossary), and every term carries `source`, an optional
+`target`, `targets`, `forbidden`, `caseSensitive`, and an optional `note` and `partOfSpeech`. Takes
 `{ glossary }`, the `GlossaryProvenance` from `loadConfigWithMeta`, so the file it reads is always
 the one the config names; there is no path argument. Use it in a long-running tool that has to show
 the glossary as it is now rather than as it was when the config was loaded.
 
 Throws `GLOSSARY_NOT_FILE_BACKED` when the glossary is inline or absent, and `CONFIG_INVALID` when
-the file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+the file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor a valid
+version 2 glossary, or declares another version.
+
+<AvailableFrom version="0.12.0" />
+
+Up to 0.11 it returned the flat term map itself.
 
 ### updateGlossaryTerm
 
 <AvailableFrom version="0.9.0" />
 
-Adds, replaces, or removes exactly one term in a file-backed glossary and returns the glossary as it
-now stands. Takes `{ glossary, cwd?, term, translation }`, where `translation` is the new text or
-`null` to remove the term. The rest of the file keeps its key order and its indentation, the write
-is atomic, and the whole read-modify-write is held under a project-wide glossary lock, so two
-concurrent edits are serialized rather than interleaved.
+Adds, changes, or removes exactly one term in a file-backed glossary and returns the normalized
+glossary as it now stands. Takes `{ glossary, cwd?, term, translation }`, where `translation` is
+the new text or `null` to remove the term. The rest of the file keeps its key order and its
+indentation, the write is atomic, and the whole read-modify-write is held under a project-wide
+glossary lock, so two concurrent edits are serialized rather than interleaved.
+
+<AvailableFrom version="0.12.0" />
+
+It also takes `locale` (then `translation` is that locale's own and `null` removes only it),
+`forbidden` (the renderings `locale` must never use; `null` or `[]` removes them), `note`,
+`partOfSpeech` (each `null` to remove), `caseSensitive`, and `doNotTranslate` (`true` adds the term
+to the terms kept untranslated, `false` removes it; it cannot be combined with the term fields).
+A version 1 file stays version 1 while an edit only sets or removes a translation for every
+locale; any other edit rewrites it as version 2, every existing term keeping its translation as
+`target`. `translation: null` without `locale` now removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
 
 An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than converted: it lives inside
-an executable config module. A blank term or translation, and an edit whose result would exceed the
-1 MiB glossary limit, are refused with `CONFIG_INVALID`; a failed write is `GLOSSARY_UNWRITABLE`.
+an executable config module. A blank field, an edit that changes nothing or mixes `doNotTranslate`
+with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
+leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are
+refused with `CONFIG_INVALID`; a failed write is `GLOSSARY_UNWRITABLE`.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Resolves the part of a glossary that applies to one target locale:
+`glossaryForLocale(config.glossary, "de")` returns `{ terms, doNotTranslate }`, each term with the
+locale's `target` (its own entry, then its base language's, then the shared one), its `forbidden`
+renderings, `caseSensitive`, and its `note` and `partOfSpeech`, or `undefined` when nothing in the
+glossary applies there. This is exactly what a translation request into that locale carries as
+`TranslateRequest.glossary`, and what the review checks and the cache fingerprint of that locale
+see.
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Converts a glossary in either shape, a version 1 flat map or a version 2 definition, to the
+normalized `Glossary` that `readGlossaryFile` returns, with every default filled in. Use it to show
+an inline glossary the same way as a file-backed one. It does not validate again; `loadConfig` has.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Projects a normalized `Glossary` onto a flat map of each term that has a shared `target` to that
+translation, in glossary order. Per-locale translations, forbidden renderings, and do-not-translate
+terms are left out, so use it only where a consumer can show nothing but a flat term map. A term
+named `__proto__` stays an own key.
 
 ### defineConfig
 
@@ -945,7 +994,7 @@ The parts worth knowing:
 
 - **needsReview** lists accepted, written keys the review heuristics flagged, each with its reason
   codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`,
-  `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED`, and `FUZZY_CACHE_REUSE`. The set ships as the
+  `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED`, and `FUZZY_CACHE_REUSE`. The set ships as the
   `REVIEW_REASON_CODES` tuple, so build any runtime schema or exhaustive lookup from that rather
   than retyping the members. A review flag is advisory and never withholds a key, so a key never
   appears in both `needsReview` and `integrityMismatches`. See

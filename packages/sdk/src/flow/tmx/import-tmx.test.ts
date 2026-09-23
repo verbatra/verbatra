@@ -65,7 +65,7 @@ function entryHash(value: string, placeholders: readonly string[] = []): string 
 }
 
 function bucket(memory: TranslationMemory, config: VerbatraConfig, locale: string) {
-  return memory.entries[computeFingerprint(config)]?.[locale] ?? {};
+  return memory.entries[computeFingerprint(config, "de")]?.[locale] ?? {};
 }
 
 describe("importTmx lands units in the translation memory", () => {
@@ -958,7 +958,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: { [entryHash("Hello")]: "Hello" },
     });
 
@@ -980,7 +980,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: { [entryHash("Hello")]: "Hello" },
     });
 
@@ -1019,7 +1019,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: {},
     });
 

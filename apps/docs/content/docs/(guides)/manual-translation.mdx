@@ -127,10 +127,11 @@ Reach for `--include-unchanged` when a translator wants the full context of a lo
 - `length-ratio-outlier`: the translation is far shorter or longer than its source.
 - `max-length-exceeded`: the translation is longer than the budget configured for its key.
 - `equals-source`: the translation is identical to the source.
-- `glossary-term-missed`: a configured glossary term did not make it into the translation.
+- `glossary-term-missed`: a glossary term's translation for this locale, or a `doNotTranslate` term, did not make it into the translation.
+- `glossary-forbidden-term`: the translation uses a rendering the glossary forbids for this locale.
 - `integrity-reordered`: the placeholders match but landed in a different order than the source.
 
-Two more reasons round out the set of seven, and both exist only at translate time: `provider-degraded` (a formality-downgraded or glossary-ignored notice on the batch a key came from) and `fuzzy-cache-reuse` (the value was reused from the translation memory for an earlier, near-identical source that has since been edited). Export recomputes the columns from the source and target values alone, so neither one ever appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
+Two more reasons round out the set of eight, and both exist only at translate time: `provider-degraded` (a formality-downgraded or glossary-ignored notice on the batch a key came from) and `fuzzy-cache-reuse` (the value was reused from the translation memory for an earlier, near-identical source that has since been edited). Export recomputes the columns from the source and target values alone, so neither one ever appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
 
 ## From the SDK
 

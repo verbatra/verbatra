@@ -10,6 +10,7 @@ import {
   geminiResult,
   geminiStubClient,
   regexExtractor,
+  termGlossary,
 } from "../test-support.js";
 import { createGeminiProvider } from "./gemini-provider.js";
 import { GEMINI_SYSTEM_RULES } from "./request.js";
@@ -73,7 +74,7 @@ describe("createGeminiProvider: request building", () => {
       geminiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
     await createGeminiProvider(config, { client }).translateBatch(
-      request({ tone: "formal", glossary: { Hello: "Servus" } }),
+      request({ tone: "formal", glossary: termGlossary({ Hello: "Servus" }) }),
     );
     const body = firstCallOf(calls);
     expect(body.config.systemInstruction).toBe(GEMINI_SYSTEM_RULES);
@@ -90,7 +91,7 @@ describe("createGeminiProvider: request building", () => {
     await createGeminiProvider(config, { client }).translateBatch(
       request({
         tone: "informal",
-        glossary: { Hello: "Hi" },
+        glossary: termGlossary({ Hello: "Hi" }),
         entries: [entry("post", "Post", [], { description: "a verb", meaning: "publish" })],
       }),
     );
@@ -127,7 +128,7 @@ describe("createGeminiProvider: prompt-injection defense", () => {
     const result = await createGeminiProvider(config, { client }).translateBatch(
       request({
         entries: [entry("greeting", hostile, [], { description: hostile, meaning: hostile })],
-        glossary: { [hostile]: hostile },
+        glossary: termGlossary({ [hostile]: hostile }),
       }),
     );
     const body = firstCallOf(calls);

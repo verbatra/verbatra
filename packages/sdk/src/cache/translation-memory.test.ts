@@ -173,12 +173,31 @@ describe("lookupMemory", () => {
 });
 
 describe("applyAdditions", () => {
+  it("stores each locale under the fingerprint its own glossary gives it", () => {
+    const merged = applyAdditions(
+      memory({}),
+      (locale) => `fp-${locale}`,
+      new Map([
+        ["de", added("h1", "Hallo", "Hello")],
+        ["fr", added("h1", "Bonjour", "Hello")],
+      ]),
+    );
+    expect(merged.entries).toEqual({
+      "fp-de": { de: { h1: "Hallo" } },
+      "fp-fr": { fr: { h1: "Bonjour" } },
+    });
+  });
+
   it("returns the base unchanged when there is nothing to add", () => {
-    expect(applyAdditions(SAMPLE, "fp1", new Map())).toBe(SAMPLE);
+    expect(applyAdditions(SAMPLE, () => "fp1", new Map())).toBe(SAMPLE);
   });
 
   it("adds a new locale and preserves existing locales under the same fingerprint", () => {
-    const merged = applyAdditions(SAMPLE, "fp1", new Map([["fr", added("h9", "Bonjour", "Hi")]]));
+    const merged = applyAdditions(
+      SAMPLE,
+      () => "fp1",
+      new Map([["fr", added("h9", "Bonjour", "Hi")]]),
+    );
     expect(merged.entries.fp1?.de).toEqual({ h1: "Hallo", h2: "Tschuss" });
     expect(merged.entries.fp1?.fr).toEqual({ h9: "Bonjour" });
   });
@@ -186,7 +205,7 @@ describe("applyAdditions", () => {
   it("merges into an existing locale and overwrites a repeated hash", () => {
     const merged = applyAdditions(
       SAMPLE,
-      "fp1",
+      () => "fp1",
       new Map([["de", { ...added("h1", "Hi", "Hello"), ...added("h3", "Neu", "New") }]]),
     );
     expect(merged.entries.fp1?.de).toEqual({ h1: "Hi", h2: "Tschuss", h3: "Neu" });
@@ -194,7 +213,7 @@ describe("applyAdditions", () => {
 
   it("preserves other fingerprints untouched", () => {
     const base = memory({ fp1: { de: { h1: "A" } }, fp2: { de: { h1: "B" } } });
-    const merged = applyAdditions(base, "fp1", new Map([["de", added("h1", "C", "See")]]));
+    const merged = applyAdditions(base, () => "fp1", new Map([["de", added("h1", "C", "See")]]));
     expect(merged.entries.fp2?.de).toEqual({ h1: "B" });
     expect(merged.entries.fp1?.de).toEqual({ h1: "C" });
   });
@@ -202,7 +221,7 @@ describe("applyAdditions", () => {
   it("files the source text of every addition under its content hash", () => {
     const merged = applyAdditions(
       SAMPLE,
-      "fp1",
+      () => "fp1",
       new Map([
         ["fr", added("h9", "Bonjour", "Hello there")],
         ["es", added("h9", "Hola", "Hello there")],
@@ -213,13 +232,17 @@ describe("applyAdditions", () => {
 
   it("keeps source text already on file for hashes this run did not touch", () => {
     const base = memory({ fp1: { de: { h1: "Hallo" } } }, { h1: "Hello" });
-    const merged = applyAdditions(base, "fp1", new Map([["de", added("h2", "Neu", "New")]]));
+    const merged = applyAdditions(base, () => "fp1", new Map([["de", added("h2", "Neu", "New")]]));
     expect(merged.sources).toEqual({ h1: "Hello", h2: "New" });
   });
 
   it("backfills source text for a hash whose translation is already on file", () => {
     const base = memory({ fp1: { de: { h1: "Hallo" } } });
-    const merged = applyAdditions(base, "fp1", new Map([["de", added("h1", "Hallo", "Hello")]]));
+    const merged = applyAdditions(
+      base,
+      () => "fp1",
+      new Map([["de", added("h1", "Hallo", "Hello")]]),
+    );
     expect(merged.sources).toEqual({ h1: "Hello" });
     expect(merged.entries.fp1?.de).toEqual({ h1: "Hallo" });
   });
@@ -278,7 +301,7 @@ describe("writeTranslationMemory", () => {
 describe("feedTranslationMemory", () => {
   it("is a no-op when there are no additions", async () => {
     const writeFile = vi.fn(async () => {});
-    await feedTranslationMemory("/x", makeFakeFs({ writeFile }), "fp1", new Map());
+    await feedTranslationMemory("/x", makeFakeFs({ writeFile }), () => "fp1", new Map());
     expect(writeFile).not.toHaveBeenCalled();
   });
 
@@ -290,7 +313,12 @@ describe("feedTranslationMemory", () => {
         stored = data;
       },
     });
-    await feedTranslationMemory("/x", fs, "fp1", new Map([["de", added("h3", "Neu", "New")]]));
+    await feedTranslationMemory(
+      "/x",
+      fs,
+      () => "fp1",
+      new Map([["de", added("h3", "Neu", "New")]]),
+    );
     const parsed = JSON.parse(stored) as TranslationMemory;
     expect(parsed.entries.fp1?.de).toEqual({ h1: "Hallo", h2: "Tschuss", h3: "Neu" });
     expect(parsed.sources).toEqual({ h3: "New" });
@@ -303,7 +331,7 @@ describe("feedTranslationMemory", () => {
       },
     });
     await expect(
-      feedTranslationMemory("/x", fs, "fp1", new Map([["de", added("h3", "Neu", "New")]])),
+      feedTranslationMemory("/x", fs, () => "fp1", new Map([["de", added("h3", "Neu", "New")]])),
     ).resolves.toBeUndefined();
   });
 });

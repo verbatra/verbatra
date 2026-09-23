@@ -180,7 +180,9 @@ describe("translation-memory cache: cross-key reuse", () => {
     expect(de.a).toBe("[de] Hello");
     expect(de.b).toBe("[de] Hello");
     expect([...(summary.locales[0]?.translated ?? [])].sort()).toEqual(["a", "b"]);
-    expect(localeCacheKeys(await loadCache(dir), computeFingerprint(cfg()), "de")).toHaveLength(1);
+    expect(
+      localeCacheKeys(await loadCache(dir), computeFingerprint(cfg(), "de"), "de"),
+    ).toHaveLength(1);
   });
 
   it("withholds every key sharing content when the representative fails the integrity gate", async () => {
@@ -241,7 +243,7 @@ describe("translation-memory cache: cross-key reuse", () => {
     const dir = await project({ a_solo: "Solo", z_a: "Dup", z_b: "Dup" }, { de: {} });
     const stub = makeStubProvider({ usage: USAGE_100 });
     const summary = await translate(
-      { config: cfg({ maxTokens: 620, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
+      { config: cfg({ maxTokens: 720, budgetBehavior: "stop", maxBatchSize: 1 }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 
@@ -292,7 +294,7 @@ describe("translation-memory cache: fingerprint and gate", () => {
       { createProvider: () => makeStubProvider().provider },
     );
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "de");
     expect(hash).toBeDefined();
     await writeFile(
@@ -329,7 +331,7 @@ describe("translation-memory cache: a hit is held to the target language's plura
       { createProvider: () => russianStub().provider },
     );
 
-    const fingerprint = computeFingerprint(ruCfg());
+    const fingerprint = computeFingerprint(ruCfg(), "de");
     const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "ru");
     expect(hash).toBeDefined();
     await writeFile(
@@ -408,7 +410,7 @@ describe("translation-memory cache: interaction with prune, check, diff", () => 
       { config: cfg(), cwd: dir },
       { createProvider: () => makeStubProvider().provider },
     );
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const before = localeCacheKeys(await loadCache(dir), fingerprint, "de");
 
     await setSource(dir, { b: "Hello" });
@@ -428,7 +430,7 @@ describe("translation-memory cache: interaction with prune, check, diff", () => 
     const checkBefore = await check({ config: cfg(), cwd: dir });
     const diffBefore = await diff({ config: cfg(), cwd: dir });
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     await writeFile(
       cacheFilePath(dir),
       `${JSON.stringify({ version: 1, entries: { [fingerprint]: { de: { someHash: "X" } } } })}\n`,
@@ -884,13 +886,13 @@ describe("fuzzy reuse of the translation memory", () => {
       { createProvider: () => makeStubProvider().provider },
     );
 
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     expect(localeCacheKeys(await loadCache(dir), fingerprint, "de")).toHaveLength(1);
   });
 
   it("leaves the cache fingerprint alone, so turning it on does not cool the cache", () => {
-    expect(computeFingerprint(cfg({ fuzzyCache: { enabled: true, threshold: 0.8 } }))).toBe(
-      computeFingerprint(cfg()),
+    expect(computeFingerprint(cfg({ fuzzyCache: { enabled: true, threshold: 0.8 } }), "de")).toBe(
+      computeFingerprint(cfg(), "de"),
     );
   });
 
@@ -900,7 +902,7 @@ describe("fuzzy reuse of the translation memory", () => {
       { config: cfg(), cwd: dir },
       { createProvider: () => makeStubProvider().provider },
     );
-    const fingerprint = computeFingerprint(cfg());
+    const fingerprint = computeFingerprint(cfg(), "de");
     const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "de");
     await writeFile(
       cacheFilePath(dir),

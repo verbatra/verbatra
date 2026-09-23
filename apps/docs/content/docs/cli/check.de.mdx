@@ -84,7 +84,7 @@ Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerha
 Befunde gibt es in zwei Schweregraden:
 
 - **error**: Der Wert fällt durch das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate), verbatra würde ihn also nie schreiben. Der Grund ist `placeholder`, `markup`, `icu` (eine ungültige ICU-Nachricht oder [Plural-Zweige](/docs/translation-safety#plural-zweige-je-zielsprache), die nicht zur Zielsprache passen), `degenerate` oder `empty`. Ein `placeholder`-Befund nennt jeden Platzhalter, den der Wert verloren hat, als `-{{name}}` und jeden hinzugefügten als `+{{nom}}`; `markup` und `icu` nennen die betroffenen Tags oder Zweige genauso.
-- **warning**: Der Wert besteht das Gate, trägt aber einen [Review-Grund](/docs/translation-safety#review-flags): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED` oder `INTEGRITY_REORDERED`. Ein Wert mit einem Fehler bekommt keine Warnungen obendrauf.
+- **warning**: Der Wert besteht das Gate, trägt aber einen [Review-Grund](/docs/translation-safety#review-flags): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM` oder `INTEGRITY_REORDERED`. Ein Wert mit einem Fehler bekommt keine Warnungen obendrauf.
 
 `--severity error` meldet nur Fehler. Ein Fehler setzt Exit `1`; Warnungen tun das auch, sobald du `--strict` ergänzt. Drift setzt weiterhin ebenfalls Exit `1`, `check --qa` schlägt also fehl, wenn ein Locale nicht synchron ist oder ein eingecheckter Wert kaputt ist. Der menschenlesbare Bericht gruppiert die Befunde nach Locale und Key:
 
@@ -114,7 +114,7 @@ interface LocaleQaReport {
 
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
-  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "INTEGRITY_REORDERED" };
+  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "GLOSSARY_FORBIDDEN_TERM" | "INTEGRITY_REORDERED" };
 ```
 
 Ein paar Dinge lässt die Prüfung aus: einen Key, den nur das Ziel hat (er ist verwaist, und [`verbatra diff`](/docs/cli/diff) listet ihn), einen fehlenden Key (es gibt keinen Wert zu prüfen) und einen Key, dessen Quelle kein gültiges ICU ist, weil sich daran keine Übersetzung messen lässt; solche Keys stehen einmal unter `invalidSourceKeys`. [Geschützte](/docs/protecting-human-translations) und gepinnte Keys werden wie alle anderen geprüft, denn ihre Werte werden genauso ausgeliefert, und das gilt auch für Werte, die jemand im Review abgelehnt hat. `--consistency` bleibt ein eigenes Flag, das nur berichtet; kombiniere beide, um beide Berichte zu bekommen.
