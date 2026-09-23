@@ -243,7 +243,8 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
 
     expect(analytics?.textContent).toContain("umami.disabled");
     expect(analytics?.querySelector("button")).not.toBeNull();
-    expect(analytics?.querySelector('[role="status"]')).not.toBeNull();
+    expect(analytics?.querySelector("button")?.getAttribute("aria-describedby")).toBeTruthy();
+    expect(analytics?.querySelector('[aria-live="polite"]')?.textContent).toBe("");
     expect(doc.querySelectorAll("button")).toHaveLength(1);
   });
 

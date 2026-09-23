@@ -33,7 +33,12 @@ function render(): HTMLDivElement {
 }
 
 function status(container: HTMLElement): string | null | undefined {
-  return container.querySelector('[role="status"]')?.textContent;
+  const id = button(container).getAttribute("aria-describedby");
+  return id ? container.ownerDocument.getElementById(id)?.textContent : undefined;
+}
+
+function announcement(container: HTMLElement): string | null | undefined {
+  return container.querySelector('[aria-live="polite"]')?.textContent;
 }
 
 function button(container: HTMLElement): HTMLButtonElement {
@@ -63,6 +68,7 @@ describe("AnalyticsOptOut", () => {
     );
 
     expect(status(doc.body)).toBe("Needs JavaScript");
+    expect(announcement(doc.body)).toBe("");
     expect(button(doc.body).disabled).toBe(true);
   });
 
@@ -72,6 +78,37 @@ describe("AnalyticsOptOut", () => {
     expect(status(container)).toBe("Counted");
     expect(button(container).textContent).toBe("Opt out");
     expect(button(container).disabled).toBe(false);
+  });
+
+  it("announces nothing on page load, before the visitor has toggled", () => {
+    const container = render();
+
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(announcement(container)).toBe("");
+  });
+
+  it("keeps the status as the button's description, outside the live region", () => {
+    const container = render();
+    const described = container.ownerDocument.getElementById(
+      button(container).getAttribute("aria-describedby") ?? "",
+    );
+
+    expect(described?.textContent).toBe("Counted");
+    expect(described?.hasAttribute("aria-live")).toBe(false);
+  });
+
+  it("announces the new status after each toggle", () => {
+    const container = render();
+
+    act(() => {
+      button(container).click();
+    });
+    expect(announcement(container)).toBe("Opted out");
+
+    act(() => {
+      button(container).click();
+    });
+    expect(announcement(container)).toBe("Counted");
   });
 
   it("writes the opt-out key on click and removes it on the next click", () => {
