@@ -56,8 +56,8 @@
  * - `PROVENANCE_FILE_INVALID`: the provenance file (`verbatra.provenance.json`) exists but is
  *   corrupt, oversized, or structurally wrong. A file from a newer verbatra is not this error: it is
  *   left untouched, {@link translate}, {@link watch}, and {@link importWorkbook} report it as the
- *   notice `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit records nothing. Thrown wherever the
- *   provenance file is written, checked before anything else is: {@link translate},
+ *   notice `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit records nothing. Thrown
+ *   wherever the provenance file is written, checked before anything else is: {@link translate},
  *   {@link watch}, {@link importWorkbook}, {@link editEntry}, and {@link retranslateEntry}, and by
  *   {@link loadProvenance}. The reports ({@link check}, {@link diff}, {@link lockState},
  *   {@link keyValue}, {@link localeValues}) never throw it; they leave their provenance fields out.

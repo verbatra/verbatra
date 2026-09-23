@@ -145,8 +145,9 @@ function machinePending(value: string, config: VerbatraConfig): PendingProvenanc
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong. Checked before the provider is called or anything is written. A file from a newer verbatra is left untouched and the value is
- * written without a record.
+ * structurally wrong. Checked before the provider is called or anything is written. A file from a
+ * newer verbatra is left untouched and the value is written without a record, and so is a value
+ * whose record would grow the file past the size verbatra reads back.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
