@@ -21,7 +21,6 @@ describe("lock.state", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { exists: false },
-      structuredContent: { exists: false },
     });
   });
 

@@ -28,7 +28,6 @@ describe("translation.editEntry", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { accepted: true, value: "Hallo {{name}}" },
-      structuredContent: { accepted: true, value: "Hallo {{name}}" },
     });
 
     const written = JSON.parse(await readFile(join(dir, "locales", "de.json"), "utf8")) as Record<
@@ -49,12 +48,6 @@ describe("translation.editEntry", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { accepted: false, reason: "placeholder", details: ["-{{name}}"], value: "Hallo" },
-      structuredContent: {
-        accepted: false,
-        reason: "placeholder",
-        details: ["-{{name}}"],
-        value: "Hallo",
-      },
     });
   });
 

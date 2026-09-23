@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const keyIntegrityEntrySchema = z.strictObject({
+const keyIntegrityEntrySchema = z.object({
   hasPlaceholders: z.boolean(),
   matches: z.boolean(),
   missing: z.array(z.string()).readonly(),
@@ -18,12 +18,12 @@ const keyIntegrityEntrySchema = z.strictObject({
   markupDetails: z.array(z.string()).readonly(),
 });
 
-const keyIntegrityLocaleSchema = z.strictObject({
+const keyIntegrityLocaleSchema = z.object({
   locale: z.string(),
   entries: z.array(keyIntegrityEntrySchema),
 });
 
-const keyIntegrityResultSchema = z.strictObject({
+const keyIntegrityResultSchema = z.object({
   locales: z.array(keyIntegrityLocaleSchema),
 });
 
@@ -71,14 +71,18 @@ async function checkKeyIntegrity(
 export const keyIntegrityTool = defineTool({
   name: "key.integrity",
   description:
-    "Report one key's placeholder, inline markup, and ICU drift against the lock-file baseline, " +
-    "per target locale. This only checks keys whose source text has changed since the baseline " +
-    "was last recorded for them; it is not a general correctness check. A row is returned for " +
-    "every locale in scope, but its entries array is empty when the key has no baseline entry " +
-    "yet or its source text already matches the baseline: an empty entries array means the " +
-    "locale was checked and found unchanged, not that the translation was verified as correct. " +
-    "Pass locales to narrow the check to a subset of configured target locales; omit it to check " +
-    "every configured target locale. Read-only, calls no provider.",
+    "Reports one key's placeholder, inline markup, and ICU drift against the lock-file " +
+    "baseline, per target locale. Use it to decide whether a translation is safe to keep, " +
+    "typically before or right after rewriting one with translation.editEntry. Do not read " +
+    "it as a general correctness check: it only checks keys whose source text changed since " +
+    "the baseline was recorded for them. A row is returned for every locale in scope, but " +
+    "its entries array is empty when the key has no baseline entry yet or its source text " +
+    "still matches the baseline, which means checked and unchanged, not verified correct. " +
+    "The required key parameter is the source key; the optional locales parameter narrows " +
+    "the check to the named target locales, and omitting it covers every configured target " +
+    "locale. The result carries only boolean outcomes and the placeholder or markup tokens " +
+    "involved, never a full source or target string. Read-only: it calls no provider and " +
+    "writes nothing.",
   paramsSchema,
   outputSchema: keyIntegrityResultSchema,
   annotations: {

@@ -59,11 +59,54 @@ describe("buildToolRegistry", () => {
     }
   });
 
-  it("gives every declared outputSchema type object at its root", () => {
+  it("gives every tool an outputSchema with type object at its root", () => {
     for (const tool of buildToolRegistry(true)) {
-      if (tool.outputSchema !== undefined) {
-        expect(tool.outputSchema.type).toBe("object");
-      }
+      expect(tool.outputSchema, tool.name).toBeDefined();
+      expect(tool.outputSchema.type, tool.name).toBe("object");
+    }
+  });
+
+  it("lets every outputSchema tolerate unknown properties while every inputSchema rejects them", () => {
+    for (const tool of buildToolRegistry(true)) {
+      expect(JSON.stringify(tool.outputSchema), tool.name).not.toContain(
+        '"additionalProperties":false',
+      );
+      expect(tool.inputSchema.additionalProperties, tool.name).toBe(false);
+    }
+  });
+
+  it("marks exactly the tools that overwrite existing values as destructive", () => {
+    const destructive = buildToolRegistry(true)
+      .filter((tool) => tool.annotations.destructiveHint)
+      .map((tool) => tool.name);
+
+    expect(destructive).toEqual([
+      "glossary.write",
+      "translation.editEntry",
+      "translation.retranslateEntry",
+      "translation.translatePending",
+    ]);
+  });
+
+  it("marks every tool that writes nothing as read-only and every other tool as not", () => {
+    const writers = new Set([
+      "glossary.write",
+      "translation.editEntry",
+      "translation.retranslateEntry",
+      "translation.translatePending",
+    ]);
+    for (const tool of buildToolRegistry(true)) {
+      expect(tool.annotations.readOnlyHint, tool.name).toBe(!writers.has(tool.name));
+    }
+  });
+
+  it("says in every description what the tool costs or that it calls no provider", () => {
+    for (const tool of buildToolRegistry(true)) {
+      const spends = SPEND_TOOL_NAMES.includes(tool.name);
+      const pattern = spends
+        ? /bills your API usage/
+        : /calls no provider|never calls a provider|does not call a provider/;
+      expect(tool.description, tool.name).toMatch(pattern);
     }
   });
 
