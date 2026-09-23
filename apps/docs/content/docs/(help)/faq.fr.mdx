@@ -26,7 +26,7 @@ Quatre leviers, tous sans appel au fournisseur tant que tu n'en décides pas aut
 Un exemple chiffré, pour donner un ordre de grandeur. Un projet de 400 clés à traduire vers 3
 locales, avec le `maxBatchSize` par défaut de 50, envoie 8 requêtes par locale, soit 24 au total.
 À environ 4 caractères par token, avec des valeurs source de 40 caractères et des noms de clés de
-20, cela fait à peu près 33 300 tokens d'entrée et 30 700 tokens de sortie, donc environ 64 000
+20, cela fait à peu près 38 500 tokens d'entrée et 30 700 tokens de sortie, donc environ 69 000
 tokens pour toute l'exécution. Sur `gemini-2.5-flash`, à un tarif illustratif de $0.10 par million
 de tokens d'entrée et $0.40 par million de tokens de sortie, cela revient à environ 1,6 centime.
 
@@ -38,7 +38,7 @@ tarif est une valeur d'exemple qui rend le calcul concret, pas un prix relevé :
 ton fournisseur, car verbatra ne suit pas les tarifs des fournisseurs et ceux-ci changent.
 
 Deux choses pèsent plus sur la facture réelle que le nombre de clés. Chaque requête porte une
-surcharge constante d'environ 350 tokens (les règles système fixes et le schéma de sortie) : un
+surcharge constante d'environ 550 tokens (les règles système fixes et le schéma de sortie) : un
 `maxBatchSize` plus grand répartit donc cette constante sur davantage de clés, et un plus petit
 coûte proportionnellement plus. Et ce chiffre n'est que le coût de la première exécution : les
 exécutions sont incrémentales, donc au quotidien tu paies pour la poignée de chaînes que tu as

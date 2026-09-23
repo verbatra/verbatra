@@ -13,11 +13,35 @@ verbatra never lets a translatable string act like an instruction to the AI. A t
 can contain text that looks like an instruction (a UI string that literally reads "ignore your
 instructions"), so verbatra treats every one as untrusted input. The system rules sent to an LLM
 provider are compile-time constants. All variable input, the entries to translate along with your
-glossary and tone, and for an ICU plural the target language's plural categories, travels only in
+glossary and tone, the language names, and for an ICU plural the target language's plural categories, travels only in
 the user-turn JSON data payload, never spliced into the instruction channel. Provider output is
 constrained to a schema and validated as data: a malformed response fails, and a response containing
 a key that was never requested fails the whole sub-batch, because there is no safe partial accept
 around invented content.
+
+### Language, script and region names
+
+<AvailableFrom version="0.12.0" />
+
+A locale code alone is not always enough for a model: `sr-Latn` often comes back in Cyrillic, and
+`pt-BR` and `pt-PT` blur together. So an LLM provider also receives `sourceLanguage` and
+`targetLanguage`: the English name of the language, plus the script and region when the code
+names them, looked up with `Intl.DisplayNames` from the data built into Node.js.
+
+| Locale | Names sent |
+| --- | --- |
+| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
+| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
+| `pt-PT` | `{ "name": "Portuguese (Portugal)", "region": "Portugal" }` |
+| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
+| `qaa` (private use) | none: the code is sent alone |
+
+The names come from the locale in your config, even when a
+[`localeMap`](/docs/providers) entry sends the provider a different code. They travel as data in
+the user-turn payload like the rest of the input above, and one fixed system rule asks the model
+to write in the named script and regional variant. They are not part of the translation memory
+fingerprint, so existing memory keeps being reused. DeepL and Google Cloud Translation take a
+language code and receive no names.
 
 ## The integrity gate
 

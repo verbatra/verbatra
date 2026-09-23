@@ -48,12 +48,12 @@ Une requête LLM transporte quatre choses. Une évolue avec ton nombre de clés,
 
 | Partie | Évolue avec | Taille approximative |
 | --- | --- | --- |
-| Règles système | rien : constant par requête | ~350 tokens |
+| Règles système | rien : constant par requête | ~450 tokens |
 | Schéma de sortie | rien : constant par requête | ~100 tokens |
 | Charge utile des items | clés du sous-lot, plus le glossaire et le ton | clé + valeur + ~21 caractères de JSON, par item |
 | Réponse | clés du sous-lot | clé + valeur traduite + ~21 caractères de JSON, par item |
 
-Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la locale source et la locale cible, un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
+Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la locale source et la locale cible, le nom anglais de chaque langue (avec son écriture et sa région quand le code les précise), un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
 
 Le glossaire est la partie qu'on oublie. Il est sérialisé en entier dans **chaque** requête, pas une fois par exécution : un glossaire de 200 termes et d'environ 6 000 caractères ajoute donc à peu près 1 500 tokens à chacune d'elles. Sur de petits sous-lots, cela peut peser plus lourd que les clés elles-mêmes, une raison de plus pour laquelle la taille du lot compte.
 
@@ -150,10 +150,10 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 | | |
 | --- | --- |
-| Règles système | 350 |
+| Règles système | 450 |
 | Schéma de sortie | 100 |
-| (50 items x (20 + 40 + ~21 de JSON) caractères + ~50 d'enveloppe) / 4 | 1 038 |
-| **Total** | **~1 488** |
+| (50 items x (20 + 40 + ~21 de JSON) caractères + ~120 d'enveloppe) / 4 | 1 056 |
+| **Total** | **~1 606** |
 
 **Tokens de sortie par requête**
 
@@ -161,11 +161,11 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 **Totaux sur 3 locales**
 
-- Entrée : 24 x 1 488 = **~35 712 tokens**
+- Entrée : 24 x 1 606 = **~38 544 tokens**
 - Sortie : 24 x 1 280 = **~30 720 tokens**
-- Coût : (35 712 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0036 + $0.0123 = **environ 1,6 centime**
+- Coût : (38 544 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0039 + $0.0123 = **environ 1,6 centime**
 
-Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 450 = 10 800 des 35 712 tokens d'entrée, soit environ 30 %. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
+Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 550 = 13 200 des 38 544 tokens d'entrée, soit environ un tiers. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
 
 ## La méthode exacte : calibrer sur une locale
 

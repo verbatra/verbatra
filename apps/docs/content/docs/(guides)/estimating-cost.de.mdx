@@ -48,12 +48,12 @@ Ein LLM-Request trägt vier Dinge. Eines skaliert mit deiner Key-Anzahl, und ein
 
 | Teil | Skaliert mit | Ungefähre Größe |
 | --- | --- | --- |
-| Systemregeln | nichts: konstant pro Request | ~350 Tokens |
+| Systemregeln | nichts: konstant pro Request | ~450 Tokens |
 | Ausgabeschema | nichts: konstant pro Request | ~100 Tokens |
 | Items-Payload | Keys im Sub-Batch, dazu Glossar und Tonfall | Key + Wert + ~21 Zeichen JSON, pro Item |
 | Antwort | Keys im Sub-Batch | Key + übersetzter Wert + ~21 Zeichen JSON, pro Item |
 
-Die Systemregeln sind eine Compile-Zeit-Konstante, in jedem Request identisch. Deshalb ist der Overhead pro Request bekannt und keine Schätzung. Die Items-Payload ist ein JSON-Objekt mit Quell- und Ziel-Locale, einem optionalen Tonfall und Glossar sowie einem Item pro Key mit `key`, `value` und optional `description` und `meaning`. Die Antwort wiederholt jeden Key neben seiner Übersetzung, die Ausgabegröße folgt der Eingabegröße also eng.
+Die Systemregeln sind eine Compile-Zeit-Konstante, in jedem Request identisch. Deshalb ist der Overhead pro Request bekannt und keine Schätzung. Die Items-Payload ist ein JSON-Objekt mit Quell- und Ziel-Locale, dem englischen Namen jeder Sprache (mit Schrift und Region, wenn der Code sie nennt), einem optionalen Tonfall und Glossar sowie einem Item pro Key mit `key`, `value` und optional `description` und `meaning`. Die Antwort wiederholt jeden Key neben seiner Übersetzung, die Ausgabegröße folgt der Eingabegröße also eng.
 
 Das Glossar wird dabei gern übersehen. Es wird vollständig in **jeden** Request serialisiert, nicht einmal pro Lauf. Ein Glossar mit 200 Begriffen und rund 6.000 Zeichen legt also auf jeden einzelnen Request etwa 1.500 Tokens drauf. Bei kleinen Sub-Batches kann das schwerer wiegen als die Keys selbst, ein weiterer Grund, warum die Batch-Größe zählt.
 
@@ -150,10 +150,10 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 | | |
 | --- | --- |
-| Systemregeln | 350 |
+| Systemregeln | 450 |
 | Ausgabeschema | 100 |
-| (50 Items x (20 + 40 + ~21 JSON) Zeichen + ~50 Envelope) / 4 | 1.038 |
-| **Summe** | **~1.488** |
+| (50 Items x (20 + 40 + ~21 JSON) Zeichen + ~120 Envelope) / 4 | 1.056 |
+| **Summe** | **~1.606** |
 
 **Ausgabe-Tokens pro Request**
 
@@ -161,11 +161,11 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 **Summen über 3 Locales**
 
-- Eingabe: 24 x 1.488 = **~35.712 Tokens**
+- Eingabe: 24 x 1.606 = **~38.544 Tokens**
 - Ausgabe: 24 x 1.280 = **~30.720 Tokens**
-- Kosten: (35.712 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0036 + $0.0123 = **etwa 1,6 Cent**
+- Kosten: (38.544 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0039 + $0.0123 = **etwa 1,6 Cent**
 
-Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 450 = 10.800 der 35.712 Eingabe-Tokens aus, etwa 30 Prozent. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
+Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 550 = 13.200 der 38.544 Eingabe-Tokens aus, etwa ein Drittel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
 
 ## Die genaue Methode: an einem Locale kalibrieren
 

@@ -48,12 +48,12 @@ An LLM request carries four things. One scales with your key count, and one carr
 
 | Part | Scales with | Approximate size |
 | --- | --- | --- |
-| System rules | nothing: constant per request | ~350 tokens |
+| System rules | nothing: constant per request | ~450 tokens |
 | Output schema | nothing: constant per request | ~100 tokens |
 | Items payload | keys in the sub-batch, plus the glossary and tone | key + value + ~21 characters of JSON, per item |
 | Response | keys in the sub-batch | key + translated value + ~21 characters of JSON, per item |
 
-The system rules are a compile-time constant, identical on every request, which is why the per-request overhead is knowable rather than a guess. The items payload is a JSON object holding the source and target locale, an optional tone and glossary, and one item per key with its `key`, `value`, and optional `description` and `meaning`. The response repeats each key alongside its translation, so output size tracks input size closely.
+The system rules are a compile-time constant, identical on every request, which is why the per-request overhead is knowable rather than a guess. The items payload is a JSON object holding the source and target locale, the English name of each language (with its script and region when the code names them), an optional tone and glossary, and one item per key with its `key`, `value`, and optional `description` and `meaning`. The response repeats each key alongside its translation, so output size tracks input size closely.
 
 The glossary is the part people miss. It is serialized in full into **every** request, not once per run, so a 200-term glossary of around 6,000 characters adds roughly 1,500 tokens to each one. On small sub-batches that can outweigh the keys themselves, and it is another reason batch size matters.
 
@@ -150,10 +150,10 @@ Substitute your own numbers for every assumption in this block.
 
 | | |
 | --- | --- |
-| System rules | 350 |
+| System rules | 450 |
 | Output schema | 100 |
-| (50 items x (20 + 40 + ~21 JSON) chars + ~50 envelope) / 4 | 1,038 |
-| **Total** | **~1,488** |
+| (50 items x (20 + 40 + ~21 JSON) chars + ~120 envelope) / 4 | 1,056 |
+| **Total** | **~1,606** |
 
 **Output tokens per request**
 
@@ -161,11 +161,11 @@ Substitute your own numbers for every assumption in this block.
 
 **Totals across 3 locales**
 
-- Input: 24 x 1,488 = **~35,712 tokens**
+- Input: 24 x 1,606 = **~38,544 tokens**
 - Output: 24 x 1,280 = **~30,720 tokens**
-- Cost: (35,712 / 1,000,000 x $0.10) + (30,720 / 1,000,000 x $0.40) = $0.0036 + $0.0123 = **about 1.6 cents**
+- Cost: (38,544 / 1,000,000 x $0.10) + (30,720 / 1,000,000 x $0.40) = $0.0039 + $0.0123 = **about 1.6 cents**
 
-Note where the fixed overhead lands: the system rules and schema account for 24 x 450 = 10,800 of the 35,712 input tokens, about 30 percent. Raising `maxBatchSize` spreads that constant over more keys; lowering it (to stay under a rate limit, say) costs proportionally more.
+Note where the fixed overhead lands: the system rules and schema account for 24 x 550 = 13,200 of the 38,544 input tokens, about a third. Raising `maxBatchSize` spreads that constant over more keys; lowering it (to stay under a rate limit, say) costs proportionally more.
 
 ## The accurate method: calibrate on one locale
 

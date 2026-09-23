@@ -14,11 +14,36 @@ verbatra lässt nie zu, dass ein übersetzbarer String wie eine Anweisung an die
 wörtlich "ignore your instructions" lautet), deshalb behandelt verbatra jeden einzelnen als nicht
 vertrauenswürdige Eingabe. Die Systemregeln, die an einen LLM-Provider gehen, sind Konstanten aus
 der Kompilierzeit. Alle variablen Eingaben, die zu übersetzenden Einträge samt deinem Glossar und
-Tonfall und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im
+Tonfall, die Sprachnamen und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im
 JSON-Datenpayload des User-Turns und werden nie in den Anweisungskanal gespleißt. Die Ausgabe des
 Providers ist auf ein Schema beschränkt und wird als Daten validiert: Eine fehlerhafte Antwort
 schlägt fehl, und eine Antwort mit einem Key, der nie angefragt wurde, lässt den ganzen Sub-Batch
 fehlschlagen, weil es um erfundene Inhalte herum kein sicheres teilweises Annehmen gibt.
+
+### Namen von Sprache, Schrift und Region
+
+<AvailableFrom version="0.12.0" />
+
+Ein Locale-Code allein reicht einem Modell nicht immer: `sr-Latn` kommt oft in kyrillischer
+Schrift zurück, und `pt-BR` und `pt-PT` verschwimmen. Deshalb erhält ein LLM-Provider zusätzlich
+`sourceLanguage` und `targetLanguage`: den englischen Namen der Sprache und, wenn der Code sie
+nennt, der Schrift und der Region, nachgeschlagen mit `Intl.DisplayNames` aus den Daten, die in
+Node.js eingebaut sind.
+
+| Locale | Gesendete Namen |
+| --- | --- |
+| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
+| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
+| `pt-PT` | `{ "name": "Portuguese (Portugal)", "region": "Portugal" }` |
+| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
+| `qaa` (private Nutzung) | keine: Der Code wird allein gesendet |
+
+Die Namen stammen aus der Locale in deiner Konfiguration, auch wenn ein
+[`localeMap`](/docs/providers)-Eintrag dem Provider einen anderen Code schickt. Sie reisen wie die
+übrigen Eingaben oben als Daten im Payload des User-Turns, und eine feste Systemregel bittet das
+Modell, in der genannten Schrift und regionalen Variante zu schreiben. Sie sind nicht Teil des
+Fingerprints des Übersetzungsspeichers, vorhandener Speicher wird also weiter wiederverwendet.
+DeepL und Google Cloud Translation nehmen einen Sprachcode und erhalten keine Namen.
 
 ## Das Integritäts-Gate
 
