@@ -200,19 +200,26 @@ Les trois sont accessibles depuis la colonne du pied de page dédiée aux agents
 
 ## Le contenu de ce site est-il traduit par IA ?
 
-Oui, les deux moitiés, par deux mécanismes différents. Le texte de l'interface (libellés de
-navigation, boutons, le pied de page, le texte de la landing page, la FAQ de la landing page) vit
-dans `messages/en.json` et ses fichiers frères `de`, `es` et `fr` ; ceux-ci sont traduits
-automatiquement avec verbatra lui-même, avec le format `next-intl-json`, via le fournisseur
-Gemini, exécuté par `pnpm i18n` dès que la source anglaise change. C'est le projet qui utilise ici
-son propre outil (dogfooding). La prose de la documentation que tu lis en ce moment, chaque guide
-et chaque page de référence y compris celle-ci, est du MDX à suffixe de locale (`page.mdx`,
-`page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) et elle aussi traduite par IA, mais en dehors de cette
-chaîne automatisée : `pnpm i18n` ne traduit que les fichiers JSON, XLIFF, YAML, ARB et properties,
-jamais le Markdown, donc il ne touche jamais ces pages. Traduire une page de documentation est une
-étape séparée et manuelle à chaque changement de la source anglaise.
+En grande partie, par deux mécanismes différents. Le texte de l'interface (libellés de navigation,
+boutons, le pied de page, le texte de la landing page, la FAQ de la landing page) vit dans
+`messages/en.json` et ses fichiers frères `de`, `es` et `fr` ; ceux-ci sont traduits automatiquement
+avec verbatra lui-même, avec le format `next-intl-json`, via le fournisseur Gemini, en exécutant
+`pnpm i18n` après chaque changement de la source anglaise. C'est le projet qui utilise ici son
+propre outil (dogfooding), et le workflow `docs-i18n-check` fait échouer une pull request dont les
+fichiers de locale ne correspondent plus à la source anglaise. La prose de la documentation que tu
+lis en ce moment, chaque guide et chaque page de référence y compris celle-ci, est du MDX à suffixe
+de locale (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) et elle aussi traduite par IA,
+mais en dehors de cette chaîne automatisée : `pnpm i18n` ne traduit que les fichiers JSON, XLIFF,
+YAML, ARB et properties, jamais le Markdown, donc il ne touche jamais ces pages. Traduire une page
+de documentation est une étape séparée et manuelle à chaque changement de la source anglaise.
+
+Tout ne sort pas tel quel de ces deux étapes : certains textes, dont des parties des pages
+juridiques, ont été rédigés ou corrigés directement dans les fichiers de locale. Les traductions
+sont vérifiées dans la mesure du possible, et tous les textes traduits ne sont pas relus par une
+personne avant leur publication, une traduction peut donc contenir des erreurs. La [politique de
+confidentialité](/privacy) décrit le même processus.
 
 Si quelque chose sonne bizarre en allemand, en espagnol ou en français, ouvre une issue dans les
-deux cas : le texte de l'interface est corrigé à la source anglaise puis retraduit automatiquement
-par `pnpm i18n` ; pour la prose de la documentation, modifie le fichier MDX directement et envoie
-une pull request.
+deux cas : pour le texte de l'interface, la correction va dans la source anglaise puis est
+retraduite, ou directement dans le fichier de locale concerné ; pour la prose de la documentation,
+modifie le fichier MDX directement et envoie une pull request.

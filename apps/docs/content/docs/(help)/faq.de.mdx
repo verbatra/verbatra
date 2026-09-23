@@ -196,19 +196,26 @@ Alle drei sind aus der Footer-Spalte "Für KI-Agenten" verlinkt.
 
 ## Ist der Inhalt dieser Seite KI-übersetzt?
 
-Ja, beide Hälften, auf zwei verschiedenen Wegen. Der UI-Rahmen (Navigationsbeschriftungen, Buttons,
-der Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und seinen `de`-,
-`es`- und `fr`-Geschwistern; die werden mit verbatra selbst maschinell übersetzt, gegen das Format
-`next-intl-json`, über den Gemini-Provider, ausgeführt von `pnpm i18n`, automatisch immer dann,
-wenn sich die englische Quelle ändert. Das Projekt nutzt hier sein eigenes Tool (Dogfooding). Die
-Doku-Prosa, die du gerade liest, jeder Guide und jede Referenzseite einschließlich dieser hier, ist
-locale-suffigiertes MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) und ebenfalls
-KI-übersetzt, nur außerhalb dieser automatisierten Pipeline: `pnpm i18n` übersetzt nur JSON-,
-XLIFF-, YAML-, ARB- und Properties-Dateien, nie Markdown, es rührt diese Seiten also nie an. Eine
-Doku-Seite zu übersetzen ist ein eigener, manueller Schritt, sobald sich die englische Quelle
-ändert.
+Größtenteils, auf zwei verschiedenen Wegen. Der UI-Rahmen (Navigationsbeschriftungen, Buttons, der
+Footer, der Landingpage-Text, die Landing-FAQ) lebt in `messages/en.json` und seinen `de`-, `es`-
+und `fr`-Geschwistern; die werden mit verbatra selbst maschinell übersetzt, gegen das Format
+`next-intl-json`, über den Gemini-Provider, indem nach einer Änderung der englischen Quelle `pnpm
+i18n` ausgeführt wird. Das Projekt nutzt hier sein eigenes Tool (Dogfooding), und der Workflow
+`docs-i18n-check` lässt einen Pull Request scheitern, dessen Locale-Dateien von der englischen
+Quelle abweichen. Die Doku-Prosa, die du gerade liest, jeder Guide und jede Referenzseite
+einschließlich dieser hier, ist locale-suffigiertes MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`,
+`page.fr.mdx`) und ebenfalls KI-übersetzt, nur außerhalb dieser automatisierten Pipeline: `pnpm
+i18n` übersetzt nur JSON-, XLIFF-, YAML-, ARB- und Properties-Dateien, nie Markdown, es rührt diese
+Seiten also nie an. Eine Doku-Seite zu übersetzen ist ein eigener, manueller Schritt, sobald sich
+die englische Quelle ändert.
+
+Nicht alles kommt unverändert aus diesen beiden Schritten: Einige Texte, darunter Teile der
+rechtlichen Seiten, wurden stattdessen direkt in den Locale-Dateien verfasst oder korrigiert.
+Übersetzungen werden nach bestem Bemühen geprüft, und nicht jeder übersetzte Text wird vor der
+Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Die
+[Datenschutzerklärung](/privacy) beschreibt denselben Ablauf.
 
 Wenn dir im Deutschen, Spanischen oder Französischen etwas seltsam vorkommt, eröffne in beiden
-Fällen ein Issue: UI-Texte werden an der englischen Quelle korrigiert und von `pnpm i18n`
-maschinell neu übersetzt; bei Doku-Prosa bearbeite die MDX-Datei direkt und schicke einen Pull
-Request.
+Fällen ein Issue: Bei UI-Texten landet die Korrektur in der englischen Quelle und wird neu
+übersetzt, oder direkt in der betroffenen Locale-Datei; bei Doku-Prosa bearbeite die MDX-Datei
+direkt und schicke einen Pull Request.
