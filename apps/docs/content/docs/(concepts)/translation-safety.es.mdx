@@ -326,9 +326,15 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
   porque una traducción correcta que se pasa de un presupuesto de maquetación vale más que ninguna
   traducción.
 - `EQUALS_SOURCE`: la traducción es literalmente idéntica al origen aunque el locale de destino
-  difiere del locale de origen, y el origen sí tenía texto traducible.
-- `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término
-  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y cada
+  difiere del locale de origen, y el origen sí tenía texto traducible. Un origen formado solo por
+  términos de `doNotTranslate`, o por términos cuya traducción es el propio término, no se marca,
+  porque copiarlo es el resultado correcto.
+- `GLOSSARY_TERM_MISSED`: un término del glosario aparece en el origen pero su traducción para el
+  locale de destino está ausente de la traducción, o falta o se alteró un término de
+  `doNotTranslate`. Cada locale se comprueba contra su propia traducción de un
+  [glosario por locale](/docs/config-file#glossary), así que el alemán nunca se
+  mide con el término francés. La coincidencia no distingue mayúsculas salvo que el término sea
+  `caseSensitive`, sigue las reglas de cada locale (también la `İ` turca), y cada
   lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa, así
   que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una expectativa
   que nadie dio. El lado de destino solo exige que el término aparezca en algún punto de la
@@ -337,6 +343,11 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
   marcaría traducciones correctas en la mayoría de los idiomas para los que mantendrías un glosario.
   Un término de origen escrito en una escritura sin separadores de palabra (han, kana, tailandés y
   similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de subcadena.
+- `GLOSSARY_FORBIDDEN_TERM`: la traducción usa una traducción que la lista `forbidden` del glosario
+  descarta para el locale de destino. Se compara como palabra completa, y como subcadena en
+  escrituras sin separadores de palabra, así que una forma flexionada o compuesta solo se detecta
+  si también la listas. Una traducción prohibida que ya aparece en el origen no se marca, porque la
+  traducción puede citarla. Como todos los motivos de aquí, marca en lugar de bloquear.
 - `INTEGRITY_REORDERED`: el conjunto de placeholders coincidió exactamente pero quedó en un orden
   distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.
 - `PROVIDER_DEGRADED`: el lote del que salió esta clave sufrió una degradación controlada por parte

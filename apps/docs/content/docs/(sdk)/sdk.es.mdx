@@ -749,31 +749,71 @@ resuelto desde un archivo. Úsalo cuando necesites mostrar de dónde salió la c
 
 <AvailableFrom version="0.9.0" />
 
-Lee un glosario respaldado por archivo directamente del disco y lo devuelve como un mapa plano de
-términos. Recibe `{ glossary }`, la `GlossaryProvenance` de `loadConfigWithMeta`, de modo que el
-archivo que lee siempre es el que nombra la configuración; no hay ningún argumento de ruta. Úsalo en
-una herramienta de larga duración que deba mostrar el glosario tal como está ahora y no como estaba
-cuando se cargó la configuración.
+Lee un glosario respaldado por archivo directamente del disco y lo devuelve como un `Glossary`
+normalizado: `{ version, terms, doNotTranslate }`, donde `version` es `1` para un mapa plano de
+términos y `2` para un [glosario por locale](/docs/config-file#glossary), y cada término lleva
+`source`, un `target` opcional, `targets`, `forbidden`, `caseSensitive` y, de forma opcional, `note`
+y `partOfSpeech`. Recibe `{ glossary }`, la `GlossaryProvenance` de `loadConfigWithMeta`, de modo
+que el archivo que lee siempre es el que nombra la configuración; no hay ningún argumento de ruta.
+Úsalo en una herramienta de larga duración que deba mostrar el glosario tal como está ahora y no
+como estaba cuando se cargó la configuración.
 
 Lanza `GLOSSARY_NOT_FILE_BACKED` cuando el glosario está en línea o ausente, y `CONFIG_INVALID`
-cuando el archivo falta, es demasiado grande, no es UTF-8, no es JSON válido o no es un mapa plano
-de cadenas.
+cuando el archivo falta, es demasiado grande, no es UTF-8, no es JSON válido, no es ni un mapa plano
+de cadenas ni un glosario válido de la versión 2, o declara otra versión.
+
+<AvailableFrom version="0.12.0" />
+
+Hasta la 0.11 devolvía el propio mapa plano de términos.
 
 ### updateGlossaryTerm
 
 <AvailableFrom version="0.9.0" />
 
-Añade, reemplaza o elimina exactamente un término de un glosario respaldado por archivo y devuelve
-el glosario tal como queda. Recibe `{ glossary, cwd?, term, translation }`, donde `translation` es
-el texto nuevo o `null` para eliminar el término. El resto del archivo conserva su orden de claves y
-su sangría, la escritura es atómica y todo el ciclo de leer, modificar y escribir se mantiene bajo
-un bloqueo de glosario para todo el proyecto, así que dos ediciones simultáneas se serializan en vez
-de entrelazarse.
+Añade, cambia o elimina exactamente un término de un glosario respaldado por archivo y devuelve el
+glosario normalizado tal como queda. Recibe `{ glossary, cwd?, term, translation }`, donde
+`translation` es el texto nuevo o `null` para eliminar el término. El resto del archivo conserva su
+orden de claves y su sangría, la escritura es atómica y todo el ciclo de leer, modificar y escribir
+se mantiene bajo un bloqueo de glosario para todo el proyecto, así que dos ediciones simultáneas se
+serializan en vez de entrelazarse.
+
+<AvailableFrom version="0.12.0" />
+
+También recibe `locale` (entonces `translation` es la traducción propia de ese locale y `null` solo
+elimina esa), `forbidden` (las traducciones que `locale` nunca debe usar; `null` o `[]` las
+elimina), `note`, `partOfSpeech` (cada uno `null` para eliminarlo), `caseSensitive` y
+`doNotTranslate` (`true` añade el término a los que no se traducen, `false` lo quita; no se puede
+combinar con los campos del término). Un archivo de la versión 1 sigue siendo versión 1 mientras la
+edición solo fije o elimine una traducción para todos los locales; cualquier otra edición lo
+reescribe como versión 2, y cada término existente conserva su traducción como `target`. Un término
+que se queda sin traducción y sin traducción prohibida se elimina.
 
 Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de convertirse: vive dentro
-de un módulo de configuración ejecutable. Un término o una traducción en blanco, y una edición cuyo
-resultado superaría el límite de 1 MiB del glosario, se rechazan con `CONFIG_INVALID`; una escritura
-fallida es `GLOSSARY_UNWRITABLE`.
+de un módulo de configuración ejecutable. Un campo vacío, una edición que no cambia nada o que mezcla
+`doNotTranslate` con los campos del término, traducciones prohibidas sin locale, un locale no válido,
+una edición que dejaría un glosario no válido y una edición cuyo resultado superaría el límite de
+1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida es `GLOSSARY_UNWRITABLE`.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Resuelve la parte de un glosario que se aplica a un locale de destino:
+`glossaryForLocale(config.glossary, "de")` devuelve `{ terms, doNotTranslate }`, cada término con el
+`target` del locale (su propia entrada, luego la de su idioma base, luego la compartida), sus
+traducciones `forbidden`, `caseSensitive`, y su `note` y `partOfSpeech`, o `undefined` cuando nada
+del glosario se aplica allí. Es exactamente lo que una petición de traducción a ese locale lleva como
+`TranslateRequest.glossary`, y lo que ven las comprobaciones de revisión y la huella de caché de
+ese locale.
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Convierte un glosario en cualquiera de sus formas, un mapa plano de la versión 1 o una definición de
+la versión 2, al `Glossary` normalizado que devuelve `readGlossaryFile`, con todos los valores por
+defecto rellenados. Úsalo para mostrar un glosario en línea igual que uno respaldado por archivo. No
+vuelve a validar; `loadConfig` ya lo hizo.
 
 ### defineConfig
 
@@ -971,7 +1011,7 @@ Las partes que conviene conocer:
 
 - **needsReview** lista claves aceptadas y escritas que las heurísticas de revisión marcaron, cada una
   con sus códigos de motivo: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`,
-  `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` y `FUZZY_CACHE_REUSE`. El
+  `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` y `FUZZY_CACHE_REUSE`. El
   conjunto se publica como la tupla `REVIEW_REASON_CODES`, así que construye a partir de ella
   cualquier esquema en tiempo de ejecución o búsqueda exhaustiva, en lugar de reescribir los
   miembros. Una señal de revisión es orientativa y nunca retiene una

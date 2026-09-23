@@ -101,7 +101,7 @@ provider: {
 
 DeepL se dégrade en douceur au lieu d'échouer quand il ne peut pas honorer un réglage, et signale chaque dégradation comme un avis sur l'exécution :
 
-- Une table de termes `glossary` configurée n'est pas appliquée (DeepL n'utilise qu'un id de glossaire pré-créé), signalé comme `GLOSSARY_IGNORED`.
+- Une traduction de `glossary` ou un terme de `doNotTranslate` configuré pour la locale cible n'est pas appliqué (DeepL n'utilise qu'un id de glossaire pré-créé), signalé comme `GLOSSARY_IGNORED`. Les traductions interdites seules ne déclenchent aucun avis : elles sont vérifiées après la traduction, jamais appliquées.
 - `tone` se mappe sur la formalité de DeepL : `formal` devient plus formel, `informal` devient moins formel, `neutral` ou un ton absent est omis. Sur une clé de l'offre gratuite, la formalité n'est pas prise en charge, donc un ton non par défaut se dégrade vers le ton par défaut, signalé comme `FORMALITY_DOWNGRADED`.
 
 <Callout title="DeepL et les placeholders">
@@ -126,7 +126,7 @@ Ce fournisseur vise le niveau Basic (v2) de Cloud Translation, authentifié avec
 Cloud Translation n'a ni réglage de formalité ni glossaire générique au niveau Basic, donc un `tone` ou un `glossary` configuré n'est jamais appliqué. Chacun est signalé comme un avis plutôt que discrètement ignoré :
 
 - `tone` signale toujours `FORMALITY_DOWNGRADED` quand il est défini à `formal` ou `informal` ; `neutral` ou un ton absent est omis.
-- Une table de termes `glossary` fournie signale toujours `GLOSSARY_IGNORED`.
+- Une traduction de `glossary` ou un terme de `doNotTranslate` pour la locale cible signale toujours `GLOSSARY_IGNORED`.
 
 <Callout title="Google Cloud Translation et les placeholders">
 Comme DeepL, Google Cloud Translation ne peut pas préserver les placeholders ni les jetons ICU, donc il n'envoie pas les chaînes qui en contiennent : ces entrées sont retenues (laissées non traduites) et signalées avec un avis `PLACEHOLDER_UNSUPPORTED`. Les chaînes sans placeholder se traduisent normalement. Pour traduire des chaînes portant des placeholders, utilise un fournisseur LLM (Anthropic, OpenAI, Gemini ou openai-compatible).
@@ -222,7 +222,7 @@ provider: { id: "none" }
 Les champs de configuration optionnels `tone` et `glossary` (voir [Fichier de configuration](/docs/config-file)) sont appliqués par fournisseur :
 
 - **Ton.** Les fournisseurs LLM (Anthropic, OpenAI, Gemini et openai-compatible) reçoivent le ton avec la requête et ont pour instruction de le respecter. DeepL le mappe sur la formalité, avec la dégradation de l'offre gratuite décrite plus haut. Google Cloud Translation n'a aucun contrôle de formalité, donc un ton non neutre signale toujours `FORMALITY_DOWNGRADED`.
-- **Glossaire.** Les fournisseurs LLM reçoivent la table de termes et ont pour instruction de traiter ses termes comme contraignants. DeepL ignore une table de termes (avec un avis `GLOSSARY_IGNORED`) et applique uniquement son `glossaryId` natif. Google Cloud Translation n'a aucune prise en charge de glossaire en v1, donc une table de termes fournie signale toujours `GLOSSARY_IGNORED`.
+- **Glossaire.** Chaque requête ne porte que les termes du glossaire de sa propre locale cible. Les fournisseurs LLM reçoivent les traductions, les traductions `forbidden`, les termes de `doNotTranslate` et les notes comme données, et ont pour instruction de traiter les traductions comme contraignantes, de ne jamais utiliser une traduction interdite et de recopier tels quels les termes de `doNotTranslate`. DeepL ne peut pas les appliquer (avec un avis `GLOSSARY_IGNORED`) et applique uniquement son `glossaryId` natif. Google Cloud Translation n'a aucune prise en charge de glossaire en v1, donc une traduction ou un terme de `doNotTranslate` signale toujours `GLOSSARY_IGNORED`. Quel que soit le fournisseur, sa sortie est vérifiée par rapport aux termes de la locale et signalée pour relecture avec `GLOSSARY_TERM_MISSED` ou `GLOSSARY_FORBIDDEN_TERM`.
 
 ## Comportement partagé par tous les fournisseurs
 

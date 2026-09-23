@@ -84,7 +84,7 @@ A stale key whose value a person wrote, imported, or changed outside verbatra, o
 Findings come in two severities:
 
 - **error**: the value fails the [integrity gate](/docs/translation-safety#the-integrity-gate), so verbatra would refuse to write it. The reason is `placeholder`, `markup`, `icu` (an invalid ICU message, or [plural arms](/docs/translation-safety#plural-arms-per-target-language) that do not fit the target language), `degenerate`, or `empty`. A `placeholder` finding lists each token the value dropped as `-{{name}}` and each one it added as `+{{nom}}`; `markup` and `icu` list the offending tags or arms the same way.
-- **warning**: the value passes the gate but carries a [review reason](/docs/translation-safety#review-flags): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, or `INTEGRITY_REORDERED`. A value with an error gets no warnings on top.
+- **warning**: the value passes the gate but carries a [review reason](/docs/translation-safety#review-flags): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, or `INTEGRITY_REORDERED`. A value with an error gets no warnings on top.
 
 `--severity error` reports errors only. An error sets exit `1`; warnings do too once you add `--strict`. Drift still sets exit `1` as well, so `check --qa` fails when a locale is out of sync or a committed value is broken. The human report groups findings per locale and key:
 
@@ -114,7 +114,7 @@ interface LocaleQaReport {
 
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
-  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "INTEGRITY_REORDERED" };
+  | { key: string; severity: "warning"; reason: "LENGTH_RATIO_OUTLIER" | "MAX_LENGTH_EXCEEDED" | "EQUALS_SOURCE" | "GLOSSARY_TERM_MISSED" | "GLOSSARY_FORBIDDEN_TERM" | "INTEGRITY_REORDERED" };
 ```
 
 A few things the check leaves alone: a key only the target has (it is orphaned, and [`verbatra diff`](/docs/cli/diff) lists it), a missing key (there is no value to check), and a key whose source is not valid ICU, which no translation can be judged against; those are listed once under `invalidSourceKeys`. [Protected](/docs/protecting-human-translations) and pinned keys are checked like any other, since their values ship all the same, and so are values a reviewer rejected. `--consistency` stays a separate, report-only flag; combine the two to get both reports.

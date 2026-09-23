@@ -46,7 +46,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `files.pattern` | string | obligatoria | La ruta de cada archivo de locale, con un token `{locale}`. |
 | `files.localeStyle` | `"literal"`, `"posix"` o `"android"` | `"literal"` | Cómo se escribe el token `{locale}` para cada locale. |
 | `provider` | objeto | obligatoria | El proveedor de traducción, seleccionado por `id`. |
-| `glossary` | objeto o string | ninguno | Términos de origen a términos de destino preferidos, en línea o como ruta a un archivo JSON. |
+| `glossary` | objeto o string | ninguno | Términos con traducciones fijas, traducciones prohibidas y términos que no se traducen, en línea o como ruta a un archivo JSON. |
 | `tone` | `"formal"`, `"informal"` o `"neutral"` | ninguno | El registro que deben usar las traducciones. |
 | `prune` | boolean | `false` | Elimina las claves huérfanas de los archivos de destino y del bloqueo. |
 | `generatePlurals` | boolean | `false` | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
@@ -98,7 +98,7 @@ Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `goog
 
 ### glossary
 
-Un mapa de términos de origen a términos de destino preferidos, en línea o como ruta a un archivo JSON con la misma forma (un objeto plano de claves string a valores string):
+Términos que se deben traducir de una forma fija, en línea o como ruta a un archivo JSON con la misma forma. La forma más simple (versión 1) es un objeto plano de términos de origen a la traducción que usa cada locale de destino:
 
 ```ts
 export default defineConfig({
@@ -110,13 +110,51 @@ export default defineConfig({
 });
 ```
 
-Las dos formas son mutuamente excluyentes; no hay fusión entre ellas. Una ruta de archivo relativa se resuelve contra el directorio del archivo de configuración cargado, o contra el directorio de trabajo cuando la configuración se pasa como override en memoria. El archivo debe estar codificado en UTF-8 y no superar 1 MiB, y se lee una vez cuando la configuración carga: verbatra no lo vigila en busca de cambios, así que edítalo y reinicia para recoger una actualización. Un archivo ausente, JSON inválido o un valor que no sea un mapa plano de strings hace fallar la carga de la configuración con `CONFIG_INVALID`, nombrando la ruta resuelta.
+Las dos formas son mutuamente excluyentes; no hay fusión entre ellas. Una ruta de archivo relativa se resuelve contra el directorio del archivo de configuración cargado, o contra el directorio de trabajo cuando la configuración se pasa como override en memoria. El archivo debe estar codificado en UTF-8 y no superar 1 MiB, y se lee una vez cuando la configuración carga: verbatra no lo vigila en busca de cambios, así que edítalo y reinicia para recoger una actualización. Un archivo ausente, JSON inválido o un valor que no sea ni un mapa plano de strings ni un glosario válido de la versión 2 hace fallar la carga de la configuración con `CONFIG_INVALID`, nombrando la ruta resuelta y, en la versión 2, el campo con el error.
+
+#### Glosario por locale (versión 2)
+
+<AvailableFrom version="0.12.0" />
+
+Con más de un idioma de destino, una sola traducción por término no basta. Un glosario de la versión 2 da a cada término su propia traducción por locale, descarta traducciones incorrectas y lista términos, como nombres de marca, que deben quedarse tal como están escritos:
+
+```json title="glossary.json"
+{
+  "version": 2,
+  "terms": [
+    {
+      "source": "Dashboard",
+      "targets": { "de": "Übersicht", "fr": "Tableau de bord" },
+      "forbidden": { "de": ["Instrumententafel"] },
+      "note": "The start page after sign-in",
+      "partOfSpeech": "noun"
+    },
+    { "source": "Sign in", "target": "Anmelden", "caseSensitive": true }
+  ],
+  "doNotTranslate": ["verbatra", { "term": "Acme", "caseSensitive": false }]
+}
+```
+
+| Campo | Significado |
+| --- | --- |
+| `version` | Siempre `2`. Es lo que distingue un glosario de la versión 2 de un mapa plano, así que es obligatorio. Cualquier otro número falla con `CONFIG_INVALID`. |
+| `terms[].source` | El término en el idioma de origen. Cada término aparece una vez. |
+| `terms[].target` | La traducción para cada locale que no tenga entrada propia en `targets`. |
+| `terms[].targets` | Traducciones por locale. Un locale usa su propia entrada, luego la de su idioma base (`de` también cubre `de-AT`) y luego `target`. Los códigos se comparan en forma canónica, sin distinguir mayúsculas. |
+| `terms[].forbidden` | Traducciones que un locale nunca debe usar. Un locale regional se rige por su propia lista y la de su idioma base. |
+| `terms[].caseSensitive` | Comparar el término, sus traducciones y sus traducciones prohibidas distinguiendo mayúsculas. Por defecto es `false`. |
+| `terms[].note`, `terms[].partOfSpeech` | Contexto en texto libre para el término, que un proveedor LLM recibe como datos. |
+| `doNotTranslate` | Términos que se copian en cada traducción exactamente como están escritos. Un string simple se compara distinguiendo mayúsculas; `{ "term", "caseSensitive": false }` no. |
+
+Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`. Un término no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. Una petición de traducción solo lleva los términos de su propio locale de destino, y la huella de [caché](/docs/the-cache) de cada locale solo cubre esos, así que editar la traducción alemana deja en su sitio las traducciones francesas en caché.
+
+Un archivo de la versión 1 sigue funcionando sin cambios, con la misma huella de caché. Solo se reescribe como versión 2 cuando Studio, el servidor MCP o `updateGlossaryTerm` guardan en él un cambio por locale, una traducción prohibida, una nota o un término de `doNotTranslate`; cada término existente conserva entonces su traducción como `target`.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 Las dos formas también se diferencian en quién puede cambiarlas. Solo la forma de archivo se puede editar desde [Verbatra Studio](/docs/review-in-studio), que reescribe ese archivo JSON término a término y nunca toca tu módulo de configuración; un glosario en línea se queda de solo lectura allí, porque vive dentro de código ejecutable. Prefiere la forma de archivo si quieres gestionar los términos desde el panel.
 
-Cómo se aplica el glosario depende del proveedor: los proveedores LLM reciben el mapa resuelto con la petición y se les instruye para tratar sus términos como vinculantes, mientras que DeepL ignora un mapa de términos y aplica en su lugar un glosario configurado por id. Consulta [Proveedores](/docs/providers).
+Cómo se aplica el glosario depende del proveedor: los proveedores LLM reciben los términos del locale con la petición y se les instruye para tratar sus traducciones como vinculantes, no usar nunca una traducción prohibida y dejar los términos de `doNotTranslate` tal como están, mientras que DeepL y Google Cloud Translation no pueden aplicarlos. La salida de cada proveedor se comprueba después contra el glosario y se marca para revisión (`GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`); consulta [Seguridad de la traducción](/docs/translation-safety#review-flags) y [Proveedores](/docs/providers).
 
 ### tone
 
@@ -329,7 +367,7 @@ Dos de los lugares de búsqueda no se pueden cubrir. La propiedad `"verbatra"` d
 
 ### Lo que el documento no puede comprobar
 
-El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Seis reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
+El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Siete reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
 
 - `targetLocales` no debe incluir `sourceLocale`. Comparar dos valores hermanos no tiene vocabulario en el borrador.
 - `targetLocales` no debe contener dos locales que solo difieran en mayúsculas y minúsculas.
@@ -337,8 +375,9 @@ El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves
 - Cada clave de `provider.options.localeMap` debe ser `sourceLocale` o uno de los `targetLocales`. Como en la primera regla, compara un valor con sus hermanos.
 - `provider.options.apiKeyEnvVar` (solo en openai-compatible) no debe nombrar la variable de entorno de un proveedor alojado. Expresarlo obligaría a fijar esos nombres de variable dentro de un documento publicado, que luego se desincronizaría del código que los posee.
 - Una entrada de `network.allowedHosts` tiene que ser una dirección o un rango válidos, no solo encajar en el patrón: el patrón no ve un octeto IPv4 mayor que 255, un prefijo CIDR más largo que la dirección ni un IPv6 mal formado.
+- Un `glossary` en línea de la versión 2 no puede repetir un término, tiene que dar a cada término una traducción o una traducción prohibida, no puede prohibir la traducción propia de un término ni nombrar un locale dos veces, y no puede listar un término del glosario en `doNotTranslate`. Cada regla compara entradas entre sí.
 
-Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas seis reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
+Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas siete reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
 
 ## El directorio de trabajo y .env
 

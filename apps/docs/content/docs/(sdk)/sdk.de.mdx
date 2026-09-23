@@ -772,31 +772,74 @@ woher die Konfiguration kam.
 
 <AvailableFrom version="0.9.0" />
 
-Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als flache Begriffszuordnung
-zurück. Nimmt `{ glossary }`, die `GlossaryProvenance` aus `loadConfigWithMeta`, sodass die gelesene
-Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es nicht. Nutze es in einem
-lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist, und nicht so, wie es beim
-Laden der Konfiguration war.
+Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als normalisiertes `Glossary`
+zurück: `{ version, terms, doNotTranslate }`, wobei `version` für eine flache Begriffszuordnung `1`
+und für ein [Glossar pro Locale](/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
+optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
+`partOfSpeech` trägt. Nimmt `{ glossary }`, die `GlossaryProvenance` aus `loadConfigWithMeta`,
+sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
+nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist,
+und nicht so, wie es beim Laden der Konfiguration war.
 
 Wirft `GLOSSARY_NOT_FILE_BACKED`, wenn das Glossar inline oder gar nicht vorhanden ist, und
-`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist oder
-keine flache String-Zuordnung ist.
+`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist, weder
+eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist oder eine andere Version
+angibt.
+
+<AvailableFrom version="0.12.0" />
+
+Bis 0.11 gab es die flache Begriffszuordnung selbst zurück.
 
 ### updateGlossaryTerm
 
 <AvailableFrom version="0.9.0" />
 
-Fügt genau einen Begriff zu einem dateibasierten Glossar hinzu, ersetzt ihn oder entfernt ihn, und
-gibt das Glossar in seinem neuen Stand zurück. Nimmt `{ glossary, cwd?, term, translation }`, wobei
-`translation` der neue Text ist oder `null`, um den Begriff zu entfernen. Der Rest der Datei behält
-seine Key-Reihenfolge und seine Einrückung, der Schreibvorgang ist atomar, und das gesamte
-Lesen, Ändern und Schreiben läuft unter einer projektweiten Glossarsperre, sodass zwei gleichzeitige
-Änderungen serialisiert statt verschränkt werden.
+Fügt genau einen Begriff zu einem dateibasierten Glossar hinzu, ändert ihn oder entfernt ihn, und
+gibt das normalisierte Glossar in seinem neuen Stand zurück. Nimmt
+`{ glossary, cwd?, term, translation }`, wobei `translation` der neue Text ist oder `null`, um den
+Begriff zu entfernen. Der Rest der Datei behält seine Key-Reihenfolge und seine Einrückung, der
+Schreibvorgang ist atomar, und das gesamte Lesen, Ändern und Schreiben läuft unter einer
+projektweiten Glossarsperre, sodass zwei gleichzeitige Änderungen serialisiert statt verschränkt
+werden.
 
-Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: es liegt in
-einem ausführbaren Konfigurationsmodul. Ein leerer Begriff oder eine leere Übersetzung, und eine
-Änderung, deren Ergebnis die Glossargrenze von 1 MiB überschreiten würde, werden mit
-`CONFIG_INVALID` abgelehnt; ein fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`.
+<AvailableFrom version="0.12.0" />
+
+Es nimmt außerdem `locale` (dann ist `translation` die eigene Übersetzung dieser Locale und `null`
+entfernt nur sie), `forbidden` (die Wiedergaben, die `locale` nie verwenden darf; `null` oder `[]`
+entfernt sie), `note`, `partOfSpeech` (jeweils `null` zum Entfernen), `caseSensitive` und
+`doNotTranslate` (`true` nimmt den Begriff in die unübersetzten Begriffe auf, `false` entfernt ihn;
+es lässt sich nicht mit den Begriffsfeldern kombinieren). Eine Datei der Version 1 bleibt Version 1,
+solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfernt; jede andere
+Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
+`target` behält. Ein Begriff ohne Übersetzung und ohne verbotene Wiedergabe wird entfernt.
+
+Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
+einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die nichts ändert oder
+`doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
+Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
+die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
+fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Löst den Teil eines Glossars auf, der für eine Ziel-Locale gilt:
+`glossaryForLocale(config.glossary, "de")` gibt `{ terms, doNotTranslate }` zurück, jeden Begriff
+mit dem `target` der Locale (ihr eigener Eintrag, dann der ihrer Basissprache, dann der gemeinsame),
+seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`, oder `undefined`,
+wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
+`TranslateRequest.glossary`, und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
+dieser Locale.
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Wandelt ein Glossar in beiden Formen, eine flache Zuordnung der Version 1 oder eine Definition der
+Version 2, in das normalisierte `Glossary` um, das `readGlossaryFile` zurückgibt, mit allen
+Standardwerten. Nutze es, um ein Inline-Glossar genauso anzuzeigen wie ein dateibasiertes. Es
+validiert nicht erneut; das hat `loadConfig` schon getan.
 
 ### defineConfig
 
@@ -996,7 +1039,7 @@ Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
   haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`,
-  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
+  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
   `FUZZY_CACHE_REUSE`. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jedes
   Laufzeitschema und jede vollständige Zuordnung daraus, statt die Mitglieder abzutippen. Ein
   Review-Flag ist nur ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in

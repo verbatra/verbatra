@@ -101,7 +101,7 @@ provider: {
 
 DeepL se degrada de forma controlada en lugar de fallar cuando no puede respetar un ajuste, e informa de cada degradación como un aviso en la ejecución:
 
-- Un mapa de términos `glossary` configurado no se aplica (DeepL solo usa un id de glosario creado de antemano), informado como `GLOSSARY_IGNORED`.
+- Una traducción de `glossary` o un término de `doNotTranslate` configurado para el locale de destino no se aplica (DeepL solo usa un id de glosario creado de antemano), informado como `GLOSSARY_IGNORED`. Las traducciones prohibidas por sí solas no generan aviso: se comprueban después de traducir, nunca se aplican.
 - `tone` se asigna a la formalidad de DeepL: `formal` pasa a más formal, `informal` a menos formal, `neutral` o un tono ausente se omite. Con una clave del nivel gratuito, la formalidad no está soportada, así que un tono distinto del predeterminado se degrada al predeterminado, informado como `FORMALITY_DOWNGRADED`.
 
 <Callout title="DeepL y los placeholders">
@@ -126,7 +126,7 @@ Este proveedor apunta al nivel Basic (v2) de Cloud Translation, autenticado con 
 Cloud Translation no tiene ajuste de formalidad ni glosario genérico en el nivel Basic, así que un `tone` o `glossary` configurado nunca se aplica. De cada uno se informa con un aviso en lugar de descartarse en silencio:
 
 - `tone` siempre notifica `FORMALITY_DOWNGRADED` cuando se define como `formal` o `informal`; `neutral` o un tono ausente se omite.
-- Un mapa de términos `glossary` proporcionado siempre notifica `GLOSSARY_IGNORED`.
+- Una traducción de `glossary` o un término de `doNotTranslate` para el locale de destino siempre notifica `GLOSSARY_IGNORED`.
 
 <Callout title="Google Cloud Translation y los placeholders">
 Como DeepL, Google Cloud Translation no puede preservar placeholders ni tokens ICU, así que no envía las cadenas que los contienen: esas entradas se retienen (quedan sin traducir) y se informan con un aviso `PLACEHOLDER_UNSUPPORTED`. Las cadenas sin placeholders se traducen con normalidad. Para traducir cadenas con placeholders, usa un proveedor LLM (Anthropic, OpenAI, Gemini u openai-compatible).
@@ -222,7 +222,7 @@ provider: { id: "none" }
 Los campos opcionales `tone` y `glossary` de la configuración (consulta [Archivo de configuración](/docs/config-file)) se aplican por proveedor:
 
 - **Tono.** Los proveedores LLM (Anthropic, OpenAI, Gemini y openai-compatible) reciben el tono con la petición y se les instruye para respetarlo. DeepL lo asigna a la formalidad, con la degradación del nivel gratuito descrita arriba. Google Cloud Translation no tiene ningún control de formalidad, así que un tono no neutro siempre notifica `FORMALITY_DOWNGRADED`.
-- **Glosario.** Los proveedores LLM reciben el mapa de términos y se les instruye para tratar sus términos como vinculantes. DeepL ignora un mapa de términos (con un aviso `GLOSSARY_IGNORED`) y aplica solo su `glossaryId` nativo. Google Cloud Translation no tiene glosario alguno en v1, así que un mapa de términos proporcionado siempre notifica `GLOSSARY_IGNORED`.
+- **Glosario.** Cada petición lleva solo los términos del glosario de su propio locale de destino. Los proveedores LLM reciben las traducciones, las traducciones `forbidden`, los términos de `doNotTranslate` y las notas como datos, y se les instruye para tratar las traducciones como vinculantes, no usar nunca una traducción prohibida y copiar tal cual los términos de `doNotTranslate`. DeepL no puede aplicarlos (con un aviso `GLOSSARY_IGNORED`) y aplica solo su `glossaryId` nativo. Google Cloud Translation no tiene glosario alguno en v1, así que una traducción o un término de `doNotTranslate` siempre notifica `GLOSSARY_IGNORED`. Sea cual sea el proveedor, su salida se comprueba contra los términos del locale y se marca para revisión con `GLOSSARY_TERM_MISSED` o `GLOSSARY_FORBIDDEN_TERM`.
 
 ## Comportamiento que todo proveedor comparte
 

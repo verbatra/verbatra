@@ -46,7 +46,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `files.pattern` | String | erforderlich | Der Pfad zu jeder Locale-Datei, mit einem `{locale}`-Token. |
 | `files.localeStyle` | `"literal"`, `"posix"` oder `"android"` | `"literal"` | Wie das `{locale}`-Token für jede Locale geschrieben wird. |
 | `provider` | Objekt | erforderlich | Der Übersetzungs-Provider, ausgewählt über `id`. |
-| `glossary` | Objekt oder String | keines | Quellbegriffe zu bevorzugten Zielbegriffen, inline oder als Pfad zu einer JSON-Datei. |
+| `glossary` | Objekt oder String | keines | Begriffe mit festen Übersetzungen, verbotenen Wiedergaben und Begriffen, die unübersetzt bleiben, inline oder als Pfad zu einer JSON-Datei. |
 | `tone` | `"formal"`, `"informal"` oder `"neutral"` | keiner | Das Register, das Übersetzungen verwenden sollen. |
 | `prune` | Boolean | `false` | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei. |
 | `generatePlurals` | Boolean | `false` | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
@@ -99,7 +99,7 @@ Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `g
 
 ### glossary
 
-Eine Zuordnung von Quellbegriffen zu bevorzugten Zielbegriffen, entweder inline oder als Pfad zu einer JSON-Datei mit derselben Form (ein flaches Objekt aus String-Keys zu String-Werten):
+Begriffe, die auf eine feste Weise übersetzt werden müssen, entweder inline oder als Pfad zu einer JSON-Datei mit derselben Form. Die einfachste Form (Version 1) ist ein flaches Objekt aus Quellbegriffen zu der Übersetzung, die jede Ziel-Locale verwendet:
 
 ```ts
 export default defineConfig({
@@ -111,13 +111,51 @@ export default defineConfig({
 });
 ```
 
-Die beiden Formen schließen einander aus; es gibt keinen Merge zwischen ihnen. Ein relativer Dateipfad wird gegen das Verzeichnis der geladenen Konfigurationsdatei aufgelöst, oder gegen das Arbeitsverzeichnis, wenn die Konfiguration als In-Memory-Override übergeben wird. Die Datei muss UTF-8-kodiert und höchstens 1 MiB groß sein, und sie wird einmal beim Laden der Konfiguration gelesen: verbatra beobachtet sie nicht auf Änderungen, also bearbeite sie und starte neu, damit ein Update greift. Eine fehlende Datei, ungültiges JSON oder ein Wert, der keine flache String-Zuordnung ist, lässt das Laden der Konfiguration mit `CONFIG_INVALID` fehlschlagen und nennt den aufgelösten Pfad.
+Die beiden Formen schließen einander aus; es gibt keinen Merge zwischen ihnen. Ein relativer Dateipfad wird gegen das Verzeichnis der geladenen Konfigurationsdatei aufgelöst, oder gegen das Arbeitsverzeichnis, wenn die Konfiguration als In-Memory-Override übergeben wird. Die Datei muss UTF-8-kodiert und höchstens 1 MiB groß sein, und sie wird einmal beim Laden der Konfiguration gelesen: verbatra beobachtet sie nicht auf Änderungen, also bearbeite sie und starte neu, damit ein Update greift. Eine fehlende Datei, ungültiges JSON oder ein Wert, der weder eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist, lässt das Laden der Konfiguration mit `CONFIG_INVALID` fehlschlagen und nennt den aufgelösten Pfad sowie bei Version 2 das fehlerhafte Feld.
+
+#### Glossar pro Locale (Version 2)
+
+<AvailableFrom version="0.12.0" />
+
+Bei mehr als einer Zielsprache reicht eine Übersetzung pro Begriff nicht. Ein Glossar der Version 2 gibt jedem Begriff eine eigene Übersetzung pro Locale, schließt falsche Wiedergaben aus und listet Begriffe wie Markennamen, die so bleiben müssen, wie sie geschrieben sind:
+
+```json title="glossary.json"
+{
+  "version": 2,
+  "terms": [
+    {
+      "source": "Dashboard",
+      "targets": { "de": "Übersicht", "fr": "Tableau de bord" },
+      "forbidden": { "de": ["Instrumententafel"] },
+      "note": "The start page after sign-in",
+      "partOfSpeech": "noun"
+    },
+    { "source": "Sign in", "target": "Anmelden", "caseSensitive": true }
+  ],
+  "doNotTranslate": ["verbatra", { "term": "Acme", "caseSensitive": false }]
+}
+```
+
+| Feld | Bedeutung |
+| --- | --- |
+| `version` | Immer `2`. Daran erkennt verbatra ein Glossar der Version 2 im Unterschied zu einer flachen Zuordnung, deshalb ist es Pflicht. Jede andere Zahl scheitert mit `CONFIG_INVALID`. |
+| `terms[].source` | Der Begriff in der Quellsprache. Jeder Begriff kommt einmal vor. |
+| `terms[].target` | Die Übersetzung für jede Locale ohne eigenen Eintrag in `targets`. |
+| `terms[].targets` | Übersetzungen pro Locale. Eine Locale nimmt ihren eigenen Eintrag, dann den ihrer Basissprache (`de` deckt auch `de-AT` ab), dann `target`. Codes werden in kanonischer Form verglichen, ohne Groß- und Kleinschreibung. |
+| `terms[].forbidden` | Wiedergaben, die eine Locale nie verwenden darf. Eine regionale Locale gilt für ihre eigene Liste und die ihrer Basissprache. |
+| `terms[].caseSensitive` | Begriff, Übersetzungen und verbotene Wiedergaben mit Groß- und Kleinschreibung vergleichen. Standard ist `false`. |
+| `terms[].note`, `terms[].partOfSpeech` | Freitext-Kontext zum Begriff, den ein LLM-Provider als Daten erhält. |
+| `doNotTranslate` | Begriffe, die in jede Übersetzung genau so übernommen werden, wie sie geschrieben sind. Ein reiner String wird mit Groß- und Kleinschreibung verglichen, `{ "term", "caseSensitive": false }` nicht. |
+
+Jeder Begriff braucht ein `target`, einen Eintrag in `targets` oder eine `forbidden`-Liste. Ein Begriff darf seine eigene Übersetzung nicht verbieten, keine Locale doppelt nennen und nicht zusätzlich in `doNotTranslate` stehen. Eine Übersetzungsanfrage enthält nur die Begriffe ihrer eigenen Ziel-Locale, und der [Cache](/docs/the-cache)-Fingerprint jeder Locale deckt nur diese ab. Änderst du die deutsche Übersetzung, bleiben gecachte französische Übersetzungen also erhalten.
+
+Eine Datei der Version 1 funktioniert unverändert weiter, mit demselben Cache-Fingerprint. Sie wird erst dann als Version 2 neu geschrieben, wenn Studio, der MCP-Server oder `updateGlossaryTerm` eine Änderung pro Locale, eine verbotene Wiedergabe, eine Notiz oder einen Begriff für `doNotTranslate` darin speichert; jeder bestehende Begriff behält seine Übersetzung dann als `target`.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 Die beiden Formen unterscheiden sich auch darin, wer sie ändern kann. Nur die Dateiform lässt sich aus [Verbatra Studio](/docs/review-in-studio) heraus bearbeiten; Studio schreibt diese JSON-Datei Begriff für Begriff neu und rührt dein Konfigurationsmodul nie an. Ein Inline-Glossar bleibt dort nur lesbar, weil es in ausführbarem Code liegt. Nimm die Dateiform, wenn du die Begriffe im Dashboard pflegen willst.
 
-Wie das Glossar angewendet wird, hängt vom Provider ab: Die LLM-Provider erhalten die aufgelöste Zuordnung mit der Anfrage und werden angewiesen, ihre Begriffe als bindend zu behandeln, während DeepL eine Begriffszuordnung ignoriert und stattdessen ein per Id konfiguriertes Glossar anwendet. Siehe [Provider](/docs/providers).
+Wie das Glossar angewendet wird, hängt vom Provider ab: Die LLM-Provider erhalten die Begriffe der Locale mit der Anfrage und werden angewiesen, ihre Übersetzungen als bindend zu behandeln, nie eine verbotene Wiedergabe zu verwenden und Begriffe aus `doNotTranslate` unverändert zu lassen, während DeepL und Google Cloud Translation sie nicht anwenden können. Die Ausgabe jedes Providers wird danach gegen das Glossar geprüft und zur Prüfung markiert (`GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`); siehe [Übersetzungssicherheit](/docs/translation-safety#review-flags) und [Provider](/docs/providers).
 
 ### tone
 
@@ -330,7 +368,7 @@ Zwei der Fundorte lassen sich nicht bedienen. Die `"verbatra"`-Property in der `
 
 ### Was das Dokument nicht prüfen kann
 
-Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Sechs Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
+Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Sieben Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
 
 - `targetLocales` darf `sourceLocale` nicht enthalten. Für den Vergleich zweier Geschwisterwerte hat der Draft kein Vokabular.
 - `targetLocales` darf keine zwei Locales enthalten, die sich nur in der Groß- und Kleinschreibung unterscheiden.
@@ -338,8 +376,9 @@ Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht
 - Jeder Key von `provider.options.localeMap` muss `sourceLocale` oder einer der `targetLocales` sein. Wie bei der ersten Regel wird hier ein Wert mit seinen Geschwistern verglichen.
 - `provider.options.apiKeyEnvVar` (nur openai-compatible) darf keine Umgebungsvariable eines gehosteten Providers benennen. Das auszudrücken hieße, die Namen dieser Variablen fest in ein ausgeliefertes Dokument zu schreiben, das dann vom Code auseinanderdriften würde, dem sie gehören.
 - Ein Eintrag in `network.allowedHosts` muss eine gültige Adresse oder ein gültiger Bereich sein, nicht nur zum Muster passen: Das Muster sieht kein IPv4-Oktett über 255, kein CIDR-Präfix, das länger als die Adresse ist, und kein fehlerhaftes IPv6.
+- Ein Inline-`glossary` der Version 2 darf keinen Begriff wiederholen, muss jedem Begriff eine Übersetzung oder eine verbotene Wiedergabe geben, darf die eigene Übersetzung eines Begriffs nicht verbieten oder eine Locale doppelt nennen und darf keinen Glossarbegriff in `doNotTranslate` aufführen. Jede dieser Regeln vergleicht Einträge miteinander.
 
-Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser sechs Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
+Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser sieben Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
 
 ## Das Arbeitsverzeichnis und .env
 
