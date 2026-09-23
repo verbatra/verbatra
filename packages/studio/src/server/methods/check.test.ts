@@ -42,6 +42,7 @@ describe("statusCheckHandler", () => {
           upToDate: 0,
           inSync: true,
           provenance: expect.any(Object),
+          protected: 0,
         },
       ]);
     } finally {
@@ -63,6 +64,7 @@ describe("statusCheckHandler", () => {
           upToDate: 0,
           inSync: false,
           provenance: expect.any(Object),
+          protected: 0,
         },
       ]);
     } finally {
@@ -89,6 +91,7 @@ describe("statusCheckHandler", () => {
           upToDate: 1,
           inSync: false,
           provenance: expect.any(Object),
+          protected: 0,
         },
       ]);
     } finally {
@@ -140,6 +143,7 @@ describe("statusCheckHandler", () => {
           upToDate: 0,
           inSync: false,
           provenance: expect.any(Object),
+          protected: 0,
         },
       ]);
 
@@ -154,6 +158,7 @@ describe("statusCheckHandler", () => {
           upToDate: 1,
           inSync: true,
           provenance: expect.any(Object),
+          protected: 0,
         },
       ]);
     } finally {
