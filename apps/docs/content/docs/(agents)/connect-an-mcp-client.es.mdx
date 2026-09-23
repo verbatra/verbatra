@@ -103,6 +103,24 @@ No pases una clave con `--env` junto con `--scope project`: `--env KEY=value` es
 
 Ejecuta `claude mcp list` para ver si el servidor se conecta. La referencia completa de comandos está en la [documentación MCP de Claude Code](https://code.claude.com/docs/en/mcp).
 
+### El plugin de verbatra
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+En lugar de añadir el servidor a mano, puedes instalar el plugin de verbatra para Claude Code. Trae las tres [skills de verbatra](/docs/agent-recipes#el-paquete-de-skills), este servidor MCP y un hook que comprueba los archivos de locale después de que Claude los edite. Instálalo para el proyecto, desde una shell en la raíz del proyecto:
+
+```bash
+claude plugin marketplace add verbatra/skills
+claude plugin install verbatra@verbatra --scope project
+```
+
+`--scope project` registra el plugin en el `.claude/settings.json` del proyecto y lo mantiene fuera de tus otros proyectos. Cada persona del equipo lo instala igualmente una vez: hasta entonces, Claude Code lo marca como no instalado y muestra el comando `claude plugin install` que hay que ejecutar. El servidor necesita una configuración de verbatra para arrancar, así que con el scope `user` por defecto arrancaría en cada proyecto que abras y fallaría en todos los que no usan verbatra. Dentro de Claude Code, `/plugin marketplace add verbatra/skills` y `/plugin install verbatra@verbatra` hacen lo mismo; elige **Project scope** cuando [la instalación te pida un scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
+
+- **El servidor.** El plugin arranca `npx -y @verbatra/mcp` en la versión que fija, con `--cwd` apuntando al proyecto que tienes abierto en Claude Code. Si el proyecto aún no tiene configuración, ejecuta primero `npx verbatra init` ahí.
+- **El gasto está desactivado.** Las herramientas de gasto siguen ocultas hasta que activas la opción `allowSpend` del plugin, que este le pasa al servidor como `VERBATRA_MCP_ALLOW_SPEND`, así que arrancar `claude` con esa variable no activa el gasto en el servidor del plugin. Defínela con `--config allowSpend=true` en `claude plugin install`, o más tarde en `/config`. Claude Code ignora las opciones de plugins del `.claude/settings.json` de un proyecto, así que un archivo subido al repositorio nunca activa el gasto para el equipo. Los scopes y las opciones están en la [referencia de plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
+- **La clave sale de tu entorno.** El plugin no tiene ninguna opción para una clave. El servidor lee la variable de tu proveedor del entorno con el que arrancaste `claude`, igual que arriba.
+- **El hook de archivos de locale.** Después de que Claude edite o escriba un archivo que puede ser de locale, el hook ejecuta el `verbatra check --qa` del propio proyecto. Cuando una traducción ya guardada rompe un placeholder, el marcado en línea o ICU, le devuelve los hallazgos a Claude para que los corrija. Solo usa la `@verbatra/cli` instalada en el `node_modules` del proyecto, desde la versión 0.12.0, no descarga nada y no llama a ningún proveedor. En un proyecto sin `@verbatra/cli` local, no hace nada.
+
 ## Cursor
 
 Cursor lee los servidores de un proyecto de `.cursor/mcp.json` y los tuyos de `~/.cursor/mcp.json`:
