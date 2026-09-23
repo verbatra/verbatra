@@ -201,6 +201,16 @@ Rules shared by every path:
   in human-only mode) keeps its prior record, exactly as it keeps its prior lock hash.
 - **A write is skipped when the serialized file is unchanged,** so a no-op run does not touch the
   file and does not wake the Studio file watcher.
+- **A write checks the file before it does anything else.** `translate`, `watch`, and
+  `importWorkbook` read it before any locale runs; `editEntry` reads it before the value is gated
+  and `retranslateEntry` before the provider is called. A corrupt file therefore stops the write
+  before a locale file changes or a provider is paid.
+- **A key removed from the source keeps its record** for as long as its value stays in the target
+  file, exactly as its value does: without `prune`, an orphaned key is reported and kept, and so is
+  its record. A pruning run removes both, except a `rejected` record (Decision 5).
+- **A locale removed from the configuration keeps its records,** as it keeps its lock entries: no
+  run touches a locale it does not run, so nothing is dropped behind the user's back. Deleting that
+  locale's block from the file by hand is safe.
 
 The hash is taken over the value as the adapter reads it back, so a format whose writer escapes or
 re-encodes a value must still hash to the same thing after a round trip. A round-trip test runs
@@ -271,13 +281,18 @@ for a change an older reader would misinterpret. Within a version, change is add
   unrecognized origin as `unknown` and an unrecognized review state as unreviewed; a writer carries
   a record it does not rewrite through unchanged, unknown fields included. New origins (a future
   `derived`) and new optional fields ship without a version bump.
-- **A newer version** is read as "no records" for this run, is never overwritten, and produces a
-  notice `PROVENANCE_VERSION_UNRECOGNIZED`, following the translation-memory precedent. The run
-  itself proceeds: the lock and the locale files are still written, and the values this run writes
-  will read as `external` to the newer CLI, which is honest.
-- **A corrupt file** (not JSON, wrong shape, oversized) fails the run with a new error code
+- **A newer version** is read as "no records" and is never overwritten, following the
+  translation-memory precedent. `translate`, `watch`, and `importWorkbook` report the notice
+  `PROVENANCE_VERSION_UNRECOGNIZED`; `editEntry` and `retranslateEntry`, which return no notices,
+  skip the record silently. The write itself proceeds: the lock and the locale files are still
+  written, and the values it writes will read as `external` to the newer CLI, which is honest.
+- **A corrupt file** (not JSON, wrong shape, oversized) fails every write with a new error code
   `PROVENANCE_FILE_INVALID`, like the lock, because silently treating it as empty and then writing
-  would erase every review decision in the project.
+  would erase every review decision in the project. `loadProvenance`, which returns the raw file,
+  throws it too.
+- **Reports never fail over the provenance file.** `check`, `diff`, `lockState`, `keyValue`, and
+  `localeValues` leave their provenance fields out when the file is corrupt or from a newer version,
+  so a CI gate on drift keeps working while the file is being repaired or the CLI upgraded.
 - **A missing file** is not an error: every key reads as `unrecorded`, and the first write creates
   the file.
 - **The lock file needs no migration.** It is unchanged, so an old lock file is read exactly as
@@ -290,8 +305,17 @@ for a change an older reader would misinterpret. Within a version, change is add
 Locales sorted, keys sorted, one record per line, fields in the fixed order `origin`, `provider`,
 `model`, `valueHash`, `reviewState`, `reviewer`, absent fields omitted, a trailing newline. One
 line per record keeps the file's diffs and conflicts line-shaped like the lock's: two branches that
-touch different keys do not conflict unless the keys are adjacent. The read bound is 32 MiB, twice
-the lock's, because a record is several times longer than a hash.
+touch different keys do not conflict unless the keys are adjacent.
+
+The read bound is 32 MiB. A lock entry is a key plus a 16-character hash, about 40 bytes per key
+and locale; a provenance record carries the same key, an origin, a 16-character value hash, and for
+machine output a provider and model name, about 110 to 150 bytes. The lock's 16 MiB bound therefore
+holds roughly 400,000 key-locale pairs and this one roughly 220,000 to 300,000, so a project near
+the lock's limit can outgrow this file first. Because a file verbatra cannot read back would fail
+every later write, a writer never produces one: when the serialized file would exceed the bound, it
+keeps the previous file untouched and the run reports the notice `PROVENANCE_FILE_TOO_LARGE` for
+that locale. The values that locale wrote then read as `external` or `unrecorded`, which is a loss
+of information, never a false attribution.
 
 ## Decision 9: what the record is, and is not
 
@@ -309,21 +333,24 @@ output contract changes incompatibly.
 - **SDK:** `loadProvenance` (the raw file, mirroring `loadLockFile`), `PROVENANCE_FILE_NAME`, the
   record and origin types, and an effective per-key view `{ origin, provider?, model?,
   reviewState, reviewer? }` where `origin` includes the derived `unrecorded` and `external`.
-  `LockLocaleState` and `LocaleCheckSummary` gain per-locale counts by origin class and review
-  state. `KeyValueResult` and `KeyValuePair` (from `localeValues`) gain the effective view.
+  `LockLocaleState` and `LocaleCheckSummary` gain per-locale counts by origin and review state. `KeyValueResult` and `KeyValuePair` (from `localeValues`) gain the effective view.
   `LocaleDiff` gains the effective origin for each `changed` key, which is what protection needs to
   show before a run.
 - **CLI:** `check --json` and `diff --json` carry the new fields. The human-readable output of
   `check` and `diff` is unchanged in this increment; gates and new lines belong to the workflows
   that act on them.
 - **MCP:** `lock.state` gains the counts and `key.value` gains the effective view. `status.check`
-  and `status.diff` pass the SDK fields through.
+  and `status.diff` pass the SDK fields through. `translation.editEntry` writes with the actor
+  `agent`.
 - **Studio:** a per-key origin badge in the translations table (from `localeValues`), the full
   record in the key drawer, and the counts on the lock card. The file watcher also watches
-  `verbatra.provenance.json`.
+  `verbatra.provenance.json`. The `translation.editEntry` RPC method takes an optional `actor`: the
+  edit dialog leaves it out (recorded as `human`), and the WebMCP tool always sends `agent` without
+  exposing the parameter to the agent.
 - **Output guards:** `verbatra.provenance.json` joins the reserved outputs
-  (`packages/sdk/src/flow/reserved-output.ts`), so `export`, `tmx export` and `types` cannot
-  overwrite it.
+  (`packages/sdk/src/flow/reserved-output.ts`), so `tmx export` and `types` cannot overwrite it.
+- **Unreadable file:** every report field above is optional and left out when the file is corrupt
+  or from a newer version (Decision 7).
 
 ## Decision 11: what the dependent workflows get from this
 
@@ -345,6 +372,28 @@ output contract changes incompatibly.
   review state, which map directly onto an XLIFF `state-qualifier="mt-suggestion"` for unreviewed
   machine-class values and a TMX `<prop type="x-origin">`, and onto per-locale counts of
   machine-unreviewed, machine-approved, human, and imported values.
+
+## Implementation status
+
+Delivered with this record:
+
+- The provenance file, its reader, writer, versioning, size guard, and serialization (Decisions 1,
+  2, 7, 8).
+- Every write path listed in Decision 4 records its origin, enforced by the required argument and
+  the scan test; the per-adapter round-trip test.
+- The optional report fields in the SDK, `check --json`, `diff --json`, and MCP `lock.state` and
+  `key.value`; `loadProvenance`; the output guards.
+- The `actor` on `editEntry`, passed as `agent` by the MCP tool and the Studio WebMCP tool.
+
+Specified here, delivered later:
+
+- Approve and reject as actions (SDK functions, Studio buttons, MCP tools), including the
+  stale-value check, the `rejected` handling in a run, and the 64-character `reviewer` limit
+  (Decisions 5 and 6). Until then, no write path sets `reviewState` or `reviewer`; the fields are
+  read, preserved, and reported.
+- The Studio origin badge, the key-drawer record, the lock-card counts, and watching
+  `verbatra.provenance.json` for live refresh (Decision 10).
+- Protecting human values and machine-translation markers in exports (Decision 11).
 
 ## Deferred
 
