@@ -30,7 +30,8 @@ export interface LocaleCheckSummary {
   readonly inSync: boolean;
   /**
    * Counts by origin and review state over the keys this locale has a value for, read from the
-   * provenance file. See {@link KeyProvenance} for what each origin means.
+   * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
+   * corrupt or was written by a newer verbatra, since a report never fails over it.
    */
   readonly provenance?: ProvenanceSummary;
   /**
@@ -102,7 +103,9 @@ function toCheckSummary(
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
     inSync: diff.missing.length === 0 && diff.changed.length === 0,
-    provenance: summarizeProvenance(provenance, source, target),
+    ...(provenance !== undefined
+      ? { provenance: summarizeProvenance(provenance, source, target) }
+      : {}),
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(
@@ -155,8 +158,6 @@ function toCheckSummary(
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
- * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  */
 export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<CheckSummary> {

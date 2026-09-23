@@ -18,7 +18,7 @@ export interface KeyValuePair {
   readonly target?: string;
   /**
    * The provenance of the current translation, read from the provenance file. Absent when
-   * `target` is.
+   * `target` is, and when that file is corrupt or was written by a newer verbatra.
    */
   readonly provenance?: KeyProvenance;
 }
@@ -53,10 +53,18 @@ export interface LocaleValuesDeps {
   readonly fs?: SdkFs;
 }
 
+function provenanceOf(
+  records: ReadonlyMap<string, ProvenanceRecord> | undefined,
+  key: string,
+  value: string,
+): { provenance?: KeyProvenance } {
+  return records === undefined ? {} : { provenance: keyProvenance(records.get(key), value) };
+}
+
 function mergeValues(
   source: LocaleResource,
   target: LocaleResource,
-  records: ReadonlyMap<string, ProvenanceRecord>,
+  records: ReadonlyMap<string, ProvenanceRecord> | undefined,
 ): Record<string, KeyValuePair> {
   const keys = new Set([...source.entries.keys(), ...target.entries.keys()]);
   const values: Record<string, KeyValuePair> = Object.create(null);
@@ -66,10 +74,7 @@ function mergeValues(
     values[key] = {
       ...(sourceEntry !== undefined ? { source: sourceEntry.value } : {}),
       ...(targetEntry !== undefined
-        ? {
-            target: targetEntry.value,
-            provenance: keyProvenance(records.get(key), targetEntry.value),
-          }
+        ? { target: targetEntry.value, ...provenanceOf(records, key, targetEntry.value) }
         : {}),
     };
   }
@@ -107,8 +112,6 @@ function mergeValues(
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
- * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong.
  *
  * @example
  * ```ts
@@ -149,7 +152,7 @@ export async function localeValues(
         adapter,
         fs,
       });
-      return { locale, values: mergeValues(source.resource, target, provenanceFor(locale)) };
+      return { locale, values: mergeValues(source.resource, target, provenanceFor?.(locale)) };
     }),
   );
 }

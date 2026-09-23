@@ -36,7 +36,7 @@ describe("statusDiffHandler", () => {
       const result = await statusDiffHandler({}, deps(project));
 
       expect(result.hasPendingChanges).toBe(false);
-      expect(result.locales).toMatchObject([
+      expect(result.locales).toEqual([
         { locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false },
       ]);
     } finally {
@@ -55,7 +55,7 @@ describe("statusDiffHandler", () => {
       const result = await statusDiffHandler({}, deps(project));
 
       expect(result.hasPendingChanges).toBe(true);
-      expect(result.locales).toMatchObject([
+      expect(result.locales).toEqual([
         {
           locale: "de",
           missing: ["greeting"],
@@ -103,14 +103,14 @@ describe("statusDiffHandler", () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
       const first = await statusDiffHandler({}, deps(project));
-      expect(first.locales).toMatchObject([
+      expect(first.locales).toEqual([
         { locale: "de", missing: ["greeting"], changed: [], orphaned: [], hasPendingChanges: true },
       ]);
 
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
       const second = await statusDiffHandler({}, deps(project));
-      expect(second.locales).toMatchObject([
+      expect(second.locales).toEqual([
         { locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false },
       ]);
     } finally {

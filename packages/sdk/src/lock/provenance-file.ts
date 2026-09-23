@@ -1,7 +1,9 @@
+import { Buffer } from "node:buffer";
 import { resolve } from "node:path";
 import { type LocaleResource, normalizeText, stableStringHash } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
+import { ownValue, sortRecordKeys } from "../record-utils.js";
 
 /**
  * The file name of the project's provenance record, resolved against the run's working directory.
@@ -80,7 +82,7 @@ export interface ProvenancePatch {
 
 const CURRENT_PROVENANCE_VERSION = 1;
 
-const MAX_PROVENANCE_FILE_BYTES = 32 * 1024 * 1024;
+export const MAX_PROVENANCE_FILE_BYTES = 32 * 1024 * 1024;
 
 const RECORD_FIELD_ORDER = [
   "origin",
@@ -194,7 +196,7 @@ export async function readProvenanceFile(path: string, fs: SdkFs): Promise<Prove
 }
 
 function sortedEntries<T>(record: Readonly<Record<string, T>>): [string, T][] {
-  return Object.entries(record).sort(([a], [b]) => (a < b ? -1 : 1));
+  return Object.entries(sortRecordKeys(record));
 }
 
 function serializeRecord(record: ProvenanceRecord): string {
@@ -250,8 +252,7 @@ export function applyProvenancePatch(
     }
   }
   for (const [key, record] of patch.records) {
-    const prior =
-      current === undefined ? undefined : Object.hasOwn(current, key) ? current[key] : undefined;
+    const prior = ownValue(current, key);
     next.set(key, keepsPrior(prior, record, sourceUnchanged(key)) ? prior : record);
   }
   return nullPrototypeCopy(Object.fromEntries(next), (record) => record as ProvenanceRecord);
@@ -279,9 +280,10 @@ export function localeRecords(
   file: ProvenanceFile,
   locale: string,
 ): ReadonlyMap<string, ProvenanceRecord> {
-  const entries = Object.hasOwn(file.locales, locale) ? file.locales[locale] : undefined;
-  return new Map(Object.entries(entries ?? {}));
+  return new Map(Object.entries(ownValue(file.locales, locale) ?? {}));
 }
+
+export type ProvenanceWriteOutcome = "written" | "unchanged" | "newer-version" | "too-large";
 
 export async function writeProvenanceLocale(
   cwd: string,
@@ -289,22 +291,26 @@ export async function writeProvenanceLocale(
   locale: string,
   patch: ProvenancePatch,
   sourceUnchanged: (key: string) => boolean,
-): Promise<void> {
+): Promise<ProvenanceWriteOutcome> {
   const path = provenanceFilePath(cwd);
   const { file, writable } = await readProvenanceFile(path, fs);
   if (!writable) {
-    return;
+    return "newer-version";
   }
-  const current = Object.hasOwn(file.locales, locale) ? file.locales[locale] : undefined;
   const next = withLocaleRecords(
     file,
     locale,
-    applyProvenancePatch(current, patch, sourceUnchanged),
+    applyProvenancePatch(ownValue(file.locales, locale), patch, sourceUnchanged),
   );
   const serialized = serializeProvenanceFile(next);
-  if (serialized !== serializeProvenanceFile(file)) {
-    await fs.writeFile(path, serialized);
+  if (serialized === serializeProvenanceFile(file)) {
+    return "unchanged";
   }
+  if (Buffer.byteLength(serialized, "utf8") > MAX_PROVENANCE_FILE_BYTES) {
+    return "too-large";
+  }
+  await fs.writeFile(path, serialized);
+  return "written";
 }
 
 export interface MachineAttribution {

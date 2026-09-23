@@ -16,7 +16,7 @@ export interface LocaleDiffResult {
   readonly diff: DiffResult;
   readonly source: LocaleResource;
   readonly target: LocaleResource;
-  readonly provenance: ReadonlyMap<string, ProvenanceRecord>;
+  readonly provenance: ReadonlyMap<string, ProvenanceRecord> | undefined;
 }
 
 export interface DiffLocalesInput {
@@ -75,7 +75,7 @@ export async function diffLocalesWithSource(
         fs,
       });
       const diff = diffResources(source.resource, target, { baseline: baselineFor(lock, locale) });
-      return { locale, diff, source: source.resource, target, provenance: provenanceFor(locale) };
+      return { locale, diff, source: source.resource, target, provenance: provenanceFor?.(locale) };
     }),
   );
   return { source: source.resource, results };

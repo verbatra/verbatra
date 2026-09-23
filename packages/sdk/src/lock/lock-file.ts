@@ -2,9 +2,13 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { sortRecordKeys } from "../record-utils.js";
+import { ownValue, sortRecordKeys } from "../record-utils.js";
 import { withLockFileGuard } from "./locale-write-lock.js";
-import { type ProvenancePatch, writeProvenanceLocale } from "./provenance-file.js";
+import {
+  type ProvenancePatch,
+  type ProvenanceWriteOutcome,
+  writeProvenanceLocale,
+} from "./provenance-file.js";
 import type { LockEntries, LockFile } from "./types.js";
 
 /**
@@ -102,8 +106,9 @@ function applyLockLocalePatch(
   return { ...currentEntries, ...patch.entries };
 }
 
-function hashAt(entries: LockEntries | undefined, key: string): string | undefined {
-  return entries !== undefined && Object.hasOwn(entries, key) ? entries[key] : undefined;
+export interface LockLocaleUpdate {
+  readonly lock: LockFile;
+  readonly provenance: ProvenanceWriteOutcome;
 }
 
 export async function updateLockFileLocale(
@@ -112,21 +117,21 @@ export async function updateLockFileLocale(
   locale: string,
   patch: LockLocalePatch,
   provenance: ProvenancePatch,
-): Promise<LockFile> {
+): Promise<LockLocaleUpdate> {
   return withLockFileGuard(cwd, fs, async () => {
     const path = lockFilePath(cwd);
     const lock = parseLockFileRead(await fs.readFileBounded(path, MAX_LOCK_FILE_BYTES), path);
-    const priorEntries = Object.hasOwn(lock.locales, locale) ? lock.locales[locale] : undefined;
+    const priorEntries = ownValue(lock.locales, locale);
     const nextEntries = applyLockLocalePatch(priorEntries, patch);
-    await writeProvenanceLocale(
+    const outcome = await writeProvenanceLocale(
       cwd,
       fs,
       locale,
       provenance,
-      (key) => hashAt(priorEntries, key) === hashAt(nextEntries, key),
+      (key) => ownValue(priorEntries, key) === ownValue(nextEntries, key),
     );
     const next = updateLockLocale(lock, locale, nextEntries);
     await fs.writeFile(path, serializeLockFile(next));
-    return next;
+    return { lock: next, provenance: outcome };
   });
 }

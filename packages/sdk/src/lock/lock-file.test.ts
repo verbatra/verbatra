@@ -225,8 +225,8 @@ describe("updateLockFileLocale: replace mode", () => {
       NO_PROVENANCE,
     );
 
-    expect(result.locales.de).toEqual({ fresh: "h3" });
-    expect(result.locales.fr).toEqual({ keep: "h2" });
+    expect(result.lock.locales.de).toEqual({ fresh: "h3" });
+    expect(result.lock.locales.fr).toEqual({ keep: "h2" });
   });
 });
 
@@ -255,7 +255,7 @@ describe("updateLockFileLocale: merge mode", () => {
       NO_PROVENANCE,
     );
 
-    expect(result.locales.de).toEqual({ a: "h1-new", b: "h2" });
+    expect(result.lock.locales.de).toEqual({ a: "h1-new", b: "h2" });
   });
 
   it("performs exactly one read and one write, no internal retry loop", async () => {
@@ -285,7 +285,7 @@ describe("updateLockFileLocale: merge mode", () => {
       NO_PROVENANCE,
     );
 
-    expect(result.locales.de).toEqual({ mine: "h" });
+    expect(result.lock.locales.de).toEqual({ mine: "h" });
     expect(reads).toBe(1);
     expect(writes).toHaveLength(1);
   });

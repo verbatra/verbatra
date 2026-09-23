@@ -34,7 +34,11 @@ import {
   updateLockFileLocale,
 } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
-import { provenanceWritable, withProvenanceNotices } from "../lock/provenance-notice.js";
+import {
+  isNewerProvenance,
+  withNewerProvenanceNotice,
+  withProvenanceWriteNotice,
+} from "../lock/provenance-notice.js";
 import type { LockFile } from "../lock/types.js";
 import type { ProgressListener } from "../progress/types.js";
 import {
@@ -304,7 +308,7 @@ async function runLiveLocale(
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
       const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
       const result = await runLocale(params);
-      await updateLockFileLocale(
+      const update = await updateLockFileLocale(
         context.cwd,
         context.fs,
         targetLocale,
@@ -314,7 +318,7 @@ async function runLiveLocale(
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
       }
-      return result.summary;
+      return withProvenanceWriteNotice(result.summary, update.provenance);
     },
     lockOptions,
   );
@@ -623,7 +627,7 @@ export async function translate(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
-  const writable = dryRun || (await provenanceWritable(cwd, fs));
+  const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
   const context: LocaleRunContext = {
     source,
     adapter,
@@ -650,7 +654,7 @@ export async function translate(
     : await runAllLocalesLive(context, targetLocales, concurrency);
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
-  const locales = withProvenanceNotices(withCacheNotices(summaries, cache), writable);
+  const locales = withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance);
   const { succeeded, partial, failed } = partition(locales);
   const usage = summaries.reduce<ReturnType<typeof combineUsage>>(
     (total, summary) => combineUsage(total, summary.usage),

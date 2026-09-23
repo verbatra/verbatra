@@ -350,15 +350,4 @@ describe("provenance: a newer or corrupt provenance file", () => {
     ).rejects.toMatchObject({ code: "PROVENANCE_FILE_INVALID" });
     expect(await readdir(join(dir, "locales"))).toEqual(["en.json"]);
   });
-
-  it("a file that turns corrupt mid-run aborts importWorkbook rather than failing one locale", async () => {
-    const dir = await project({ greeting: "Hello" });
-    const out = await exportWorkbook({ config: cfg(), cwd: dir });
-    await fillWorkbook(out.path, { greeting: "Hallo" });
-    await writeFile(join(dir, PROVENANCE_FILE_NAME), "[]", "utf8");
-
-    await expect(
-      importWorkbook({ config: cfg(), workbook: out.path, cwd: dir }),
-    ).rejects.toMatchObject({ code: "PROVENANCE_FILE_INVALID" });
-  });
 });

@@ -36,7 +36,7 @@ export interface KeyValueResult {
   readonly target?: string;
   /**
    * The provenance of the current translation, read from the provenance file. Absent when
-   * `target` is.
+   * `target` is, and when that file is corrupt or was written by a newer verbatra.
    */
   readonly provenance?: KeyProvenance;
 }
@@ -67,8 +67,6 @@ export interface KeyValueResult {
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong.
  */
 export async function keyValue(
   input: KeyValueInput,
@@ -99,10 +97,12 @@ export async function keyValue(
   if (targetEntry === undefined) {
     return { source: sourceEntry.value };
   }
-  const records = (await readLocaleProvenance(cwd, fs))(locale);
+  const records = (await readLocaleProvenance(cwd, fs))?.(locale);
   return {
     source: sourceEntry.value,
     target: targetEntry.value,
-    provenance: keyProvenance(records.get(input.key), targetEntry.value),
+    ...(records !== undefined
+      ? { provenance: keyProvenance(records.get(input.key), targetEntry.value) }
+      : {}),
   };
 }

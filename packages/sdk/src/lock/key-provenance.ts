@@ -1,4 +1,5 @@
 import type { LocaleResource } from "@verbatra/core";
+import { SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import {
   localeRecords,
@@ -107,8 +108,23 @@ function emptyProvenanceSummary(): {
 
 export type LocaleProvenance = (locale: string) => ReadonlyMap<string, ProvenanceRecord>;
 
-export async function readLocaleProvenance(cwd: string, fs: SdkFs): Promise<LocaleProvenance> {
-  const { file } = await readProvenanceFile(provenanceFilePath(cwd), fs);
+export async function readLocaleProvenance(
+  cwd: string,
+  fs: SdkFs,
+): Promise<LocaleProvenance | undefined> {
+  let read: Awaited<ReturnType<typeof readProvenanceFile>>;
+  try {
+    read = await readProvenanceFile(provenanceFilePath(cwd), fs);
+  } catch (error) {
+    if (error instanceof SdkError && error.code === "PROVENANCE_FILE_INVALID") {
+      return undefined;
+    }
+    throw error;
+  }
+  if (!read.writable) {
+    return undefined;
+  }
+  const { file } = read;
   return (locale) => localeRecords(file, locale);
 }
 

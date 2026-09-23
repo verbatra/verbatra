@@ -27,7 +27,8 @@ export interface LockLocaleState {
   readonly upToDate: number;
   /**
    * Counts by origin and review state over the keys this locale has a value for, read from the
-   * provenance file. See {@link KeyProvenance} for what each origin means.
+   * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
+   * corrupt or was written by a newer verbatra, since a report never fails over it.
    */
   readonly provenance?: ProvenanceSummary;
 }
@@ -102,8 +103,6 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
- * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
@@ -136,9 +135,12 @@ export async function lockState(
       const target = await readTarget(cwd, config, adapter, fs, locale);
       const baseline = baselineFor(lock, locale);
       const diff = diffResources(source.resource, target, { baseline });
+      const records = provenanceFor?.(locale);
       return {
         ...toLockLocaleState(locale, baseline.size, diff),
-        provenance: summarizeProvenance(provenanceFor(locale), source.resource, target),
+        ...(records !== undefined
+          ? { provenance: summarizeProvenance(records, source.resource, target) }
+          : {}),
       };
     }),
   );

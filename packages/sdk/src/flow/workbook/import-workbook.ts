@@ -31,7 +31,11 @@ import {
   type ProvenancePatch,
   settleProvenance,
 } from "../../lock/provenance-file.js";
-import { provenanceWritable, withProvenanceNotices } from "../../lock/provenance-notice.js";
+import {
+  isNewerProvenance,
+  withNewerProvenanceNotice,
+  withProvenanceWriteNotice,
+} from "../../lock/provenance-notice.js";
 import type { LockFile } from "../../lock/types.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { failureSummary, isWholeRunError, partition } from "../locale-failure.js";
@@ -494,7 +498,7 @@ export async function importWorkbook(
   );
 
   const lock = await readLockFile(lockFilePath(cwd), fs);
-  const writable = dryRun || (await provenanceWritable(cwd, fs));
+  const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
 
   const ctx: SheetContext = {
     config,
@@ -524,7 +528,7 @@ export async function importWorkbook(
           fs,
           async () => {
             const result = await runSheet(ctx, sheet, lock);
-            await updateLockFileLocale(
+            const update = await updateLockFileLocale(
               cwd,
               fs,
               sheet.locale,
@@ -532,7 +536,7 @@ export async function importWorkbook(
               result.provenance,
             );
             collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
-            return result.summary;
+            return withProvenanceWriteNotice(result.summary, update.provenance);
           },
         );
       }
@@ -551,7 +555,7 @@ export async function importWorkbook(
     await feedTranslationMemory(cwd, fs, computeFingerprint(config), cacheAdditions);
   }
 
-  const locales = withProvenanceNotices(summaries, writable);
+  const locales = withNewerProvenanceNotice(summaries, newerProvenance);
   const { succeeded, partial, failed } = partition(locales);
   return { dryRun, locales, succeeded, partial, failed };
 }

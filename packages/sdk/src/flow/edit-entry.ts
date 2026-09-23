@@ -9,6 +9,7 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
 import { settleProvenance } from "../lock/provenance-file.js";
+import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -124,7 +125,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
- * structurally wrong.
+ * structurally wrong. Checked before the value is gated or anything is written. A file from a newer verbatra is left untouched and the value is
+ * written without a record.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
@@ -152,6 +154,8 @@ export async function editEntry(
       `The key "${input.key}" was not found in the source resource.`,
     );
   }
+
+  await assertProvenanceReadable(cwd, fs);
 
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
     const target = await readTarget(cwd, config, adapter, fs, locale);

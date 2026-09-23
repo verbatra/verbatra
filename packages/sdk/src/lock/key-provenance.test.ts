@@ -1,6 +1,12 @@
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
-import { keyProvenance, originsOf, summarizeProvenance } from "./key-provenance.js";
+import { makeFakeFs } from "../test-support.js";
+import {
+  keyProvenance,
+  originsOf,
+  readLocaleProvenance,
+  summarizeProvenance,
+} from "./key-provenance.js";
 import { type ProvenanceRecord, valueHash } from "./provenance-file.js";
 
 function resource(values: Record<string, string>): LocaleResource {
@@ -103,5 +109,17 @@ describe("summarizeProvenance and originsOf", () => {
       a: "machine",
       b: "external",
     });
+  });
+});
+
+describe("readLocaleProvenance", () => {
+  it("passes on a read failure that is not about the provenance file's content", async () => {
+    const failure = new Error("EACCES");
+    const fs = makeFakeFs({
+      readFileBounded: async () => {
+        throw failure;
+      },
+    });
+    await expect(readLocaleProvenance("/p", fs)).rejects.toBe(failure);
   });
 });
