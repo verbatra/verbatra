@@ -30,6 +30,10 @@ export default defineConfig({
 
 Two rules, both enforced when the config loads: a target locale must not be the `sourceLocale`, and two entries must not collide case-insensitively (no `de` and `DE` in the same list).
 
+<AvailableFrom version="0.12.0" />
+
+A locale code must also be valid BCP 47, such as `fr`, `pt-BR`, `zh-Hant-TW`, or `es-419`, and an invalid one fails the config load with a message naming it. Use a hyphen, not an underscore: if your files are named `pt_BR.json`, write `pt-BR` and set `files.localeStyle` to `posix`, and verbatra keeps writing `pt_BR.json`. A valid code that is not in canonical form, such as `zh-hant-tw` or the deprecated `iw`, still works as written; [`verbatra doctor`](/docs/cli/doctor) suggests the canonical form. See [Locale codes](/docs/config-file#locale-codes).
+
 ## Preview the work
 
 Before spending a token, see what a run would do. `diff` is read-only and lists the pending keys per locale:

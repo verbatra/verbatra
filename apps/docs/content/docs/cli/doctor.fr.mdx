@@ -33,12 +33,17 @@ verbatra doctor [flags]
 | API key environment variable | la variable dans laquelle ce fournisseur lit sa clé est définie |
 | Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse correctement avec le format configuré |
 | Plural rules | toujours (informative) : nomme les versions d'ICU et de CLDR dans lesquelles verbatra lit les catégories de pluriel, et toute locale cible pour laquelle ICU n'a pas de règles de pluriel |
+| Locale codes | toujours (informative) : nomme chaque code de locale configuré qui est valide mais pas sous forme BCP 47 canonique, avec la forme canonique à utiliser |
 
 <AvailableFrom version="0.12.0" />
 
 La vérification Plural rules est informative et n'échoue jamais : une locale cible qu'elle nomme est quand même traduite, et ses contrôles de pluriel supposent `one` et `other` pour les clés cardinales et `other` pour les clés ordinales. Les clés ordinales (`<key>_ordinal_<category>`) sont toujours vérifiées selon les règles ordinales CLDR, donc les ordinaux français n'ont besoin que de `one` et `other`.
 
-Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les cinq vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
+<AvailableFrom version="0.12.0" />
+
+La vérification Locale codes est elle aussi informative et n'échoue jamais. Un code comme `zh-hant-tw`, `en-us` ou les obsolètes `iw`, `in` ou `tl` est valide : il se charge et se traduit tel qu'il est écrit, et cette vérification suggère plutôt `zh-Hant-TW`, `en-US`, `he`, `id` ou `fil`. Les noms de fichiers suivent le code de ta configuration, donc rien n'est renommé tant que tu ne le changes pas toi-même. Un code qui n'est pas du tout du BCP 47 valide, comme `en_US`, n'atteint jamais cette vérification : il fait échouer la vérification Configuration. Voir [Codes de locale](/docs/config-file#codes-de-locale).
+
+Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les six vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
 
 Quatre détails comptent :
 

@@ -135,14 +135,14 @@ describe("loadConfig configPath: precedence (configOverride > configPath > searc
     const dir = await makeTempDir();
     await writeFile(
       join(dir, ".verbatrarc.json"),
-      JSON.stringify(baseConfig({ sourceLocale: "searched" })),
+      JSON.stringify(baseConfig({ sourceLocale: "it" })),
       "utf8",
     );
     const explicit = join(dir, "explicit.json");
-    await writeFile(explicit, JSON.stringify(baseConfig({ sourceLocale: "explicit" })), "utf8");
+    await writeFile(explicit, JSON.stringify(baseConfig({ sourceLocale: "fr" })), "utf8");
 
     const config = await loadConfig({ cwd: dir, configPath: explicit });
 
-    expect(config.sourceLocale).toBe("explicit");
+    expect(config.sourceLocale).toBe("fr");
   });
 });

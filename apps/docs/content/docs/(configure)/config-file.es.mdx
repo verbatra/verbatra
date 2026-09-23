@@ -65,7 +65,7 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
 
 ### Locales y archivos
 
-- **`sourceLocale`** debe ser una cadena no vacía.
+- **`sourceLocale`** debe ser un código de locale BCP 47 válido, como `en`, `pt-BR`, `zh-Hant-TW` o `es-419`. Consulta [Códigos de locale](#códigos-de-locale).
 - **`targetLocales`** debe contener al menos un locale, no debe incluir `sourceLocale`, y dos entradas no pueden ser iguales sin distinguir mayúsculas de minúsculas (por ejemplo `["de", "DE"]` se rechaza), porque cada locale se convierte en el nombre de su propia hoja de Excel al exportar.
 - **`format`** es uno de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` o `resx`, o un identificador `custom:` que nombre un formato aportado por un adaptador externo a verbatra. Consulta [Formatos](/docs/formats) y [Adaptadores de formato propios](/docs/custom-format-adapters).
 - **`files.pattern`** debe contener el token `{locale}`, que verbatra reemplaza con cada locale: `locales/{locale}.json` se resuelve a `locales/de.json`. Las rutas se resuelven contra el directorio de trabajo. El patrón es una ruta literal, no un glob, y `{locale}` es el único token que entiende, así que una configuración direcciona exactamente un archivo por locale. Si tu proyecto reparte sus cadenas entre varios archivos de namespace por locale, consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). La única excepción es `apple-xcstrings`, donde todos los locales comparten un único archivo de catálogo: el token sigue siendo obligatorio en el patrón, pero se resuelve a la misma ruta sin importar el locale. Consulta [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
@@ -73,13 +73,21 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
   - `literal`, el valor por defecto, usa la etiqueta configurada tal cual, que es lo que necesitan
     los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
   - `posix` reemplaza `-` por `_`, para gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) y el
-    diseño Java `messages_{locale}.properties`.
+    diseño Java `messages_{locale}.properties`. Un script o una región numérica se une de la
+    misma forma, conservando las mayúsculas que configuraste: `zh-Hant-TW` pasa a `zh_Hant_TW` y
+    `es-419` pasa a `es_419`. Un locale con variante, como `de-1996`, no tiene escritura posix.
   - `android` expande el token a un directorio de recursos completo de Android, escrito como
     `res/{locale}/strings.xml`: `values` para el locale de origen, y luego `values-de`,
     `values-pt-rBR` y `values-b+zh+Hans`.
 
   Un estilo rechaza un locale que no puede escribir correctamente para ese estilo, en lugar de
   escribir un directorio que la plataforma ignoraría en silencio.
+
+### Códigos de locale
+
+<AvailableFrom version="0.12.0" />
+
+Cada código de locale, de origen o de destino, debe ser una etiqueta bien formada que `Intl.getCanonicalLocales` acepte, con una subetiqueta de idioma de dos o tres letras. Un código no válido hace fallar la carga de la configuración con `CONFIG_INVALID`, nombrando el campo y el código. Los guiones bajos no forman parte de BCP 47, así que `pt_BR` se rechaza: escribe `pt-BR` y pon `files.localeStyle` en `posix` si tus nombres de archivo usan `pt_BR`. Un nombre de idioma como `german` también se rechaza. Un código válido pero no canónico, como `zh-hant-tw` o el obsoleto `iw` (ahora `he`), se sigue cargando y funciona tal como está escrito; [`verbatra doctor`](/docs/cli/doctor) lo nombra y sugiere la forma canónica. verbatra nunca renombra un archivo por ti.
 
 ### provider
 
@@ -296,13 +304,14 @@ Dos de los lugares de búsqueda no se pueden cubrir. La propiedad `"verbatra"` d
 
 ### Lo que el documento no puede comprobar
 
-El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern` y el rechazo de claves desconocidas. Tres reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
+El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Cuatro reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
 
 - `targetLocales` no debe incluir `sourceLocale`. Comparar dos valores hermanos no tiene vocabulario en el borrador.
 - `targetLocales` no debe contener dos locales que solo difieran en mayúsculas y minúsculas.
+- Un código de locale debe ser aceptado por `Intl.getCanonicalLocales`, no solo encajar en la gramática. El patrón no ve una variante repetida como `de-1996-1996`.
 - `provider.options.apiKeyEnvVar` (solo en openai-compatible) no debe nombrar la variable de entorno de un proveedor alojado. Expresarlo obligaría a fijar esos nombres de variable dentro de un documento publicado, que luego se desincronizaría del código que los posee.
 
-Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas tres reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
+Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas cuatro reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
 
 ## El directorio de trabajo y .env
 

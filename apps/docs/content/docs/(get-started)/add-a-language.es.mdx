@@ -30,6 +30,10 @@ export default defineConfig({
 
 Dos reglas, ambas aplicadas al cargar la configuración: un locale de destino no puede ser el `sourceLocale`, y dos entradas no pueden coincidir si se ignoran mayúsculas y minúsculas (nada de `de` y `DE` en la misma lista).
 
+<AvailableFrom version="0.12.0" />
+
+Un código de locale también debe ser BCP 47 válido, como `fr`, `pt-BR`, `zh-Hant-TW` o `es-419`, y uno no válido hace fallar la carga de la configuración con un mensaje que lo nombra. Usa un guion, no un guion bajo: si tus archivos se llaman `pt_BR.json`, escribe `pt-BR` y pon `files.localeStyle` en `posix`, y verbatra sigue escribiendo `pt_BR.json`. Un código válido pero no canónico, como `zh-hant-tw` o el obsoleto `iw`, sigue funcionando tal como está escrito; [`verbatra doctor`](/docs/cli/doctor) sugiere la forma canónica. Consulta [Códigos de locale](/docs/config-file#códigos-de-locale).
+
 ## Previsualiza el trabajo
 
 Antes de gastar un token, mira qué haría una ejecución. `diff` es de solo lectura y lista las claves pendientes por locale:

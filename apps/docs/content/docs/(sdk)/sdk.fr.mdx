@@ -182,6 +182,8 @@ Valide la mise en place du projet et ne dépense rien : il ne construit aucun fo
 
 Une sixième vérification, `plural-rules`, est informative et passe toujours : son détail nomme les versions d'ICU et de CLDR dont le runtime tire les catégories de pluriel de chaque langue cible, ainsi que toute locale cible pour laquelle ICU n'a pas de règles de pluriel.
 
+Une septième vérification, `locale-codes`, est elle aussi informative et passe toujours : son détail nomme chaque code de locale configuré qui est valide mais pas sous forme BCP 47 canonique, comme `zh-hant-tw` ou l'obsolète `iw`, avec la forme canonique que suggère `Intl.getCanonicalLocales`. Rien n'est renommé.
+
 Entrée : `{ cwd?, configPath? }`. Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
 
 ### extract
