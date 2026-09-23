@@ -94,9 +94,9 @@ export interface DoctorResult {
   readonly ok: boolean;
   /**
    * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, `plural-rules`, and
-   * `locale-codes`. A literal run ({@link DoctorInput.literals}) has exactly two: `config` and
-   * `untranslated-literals`.
+   * `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
+   * `plural-rules`, and `locale-codes`. A literal run ({@link DoctorInput.literals}) has exactly
+   * two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
   /**
@@ -116,9 +116,10 @@ export interface DoctorInput {
   readonly configPath?: string;
   /**
    * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
-   * source roots of its `extract` block are scanned for hardcoded user-facing string literals. The
-   * provider, API-key, format, and source-file checks do not run, so no API key environment
-   * variable is looked at and a run with no key set can pass.
+   * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
+   * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
+   * `source-file`, `plural-rules`, `locale-codes`), so no API key environment variable is looked
+   * at and a run with no key set can pass.
    */
   readonly literals?: boolean;
 }

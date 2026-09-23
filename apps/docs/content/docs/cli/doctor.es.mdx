@@ -4,7 +4,7 @@ description: Valida la configuración del proyecto sin llamar a un proveedor ni 
 ---
 <AvailableFrom version="0.9.0" />
 
-Responde una pregunta antes de ejecutar cualquier otra cosa: ¿este proyecto está bien configurado? `doctor` valida la configuración, el adaptador de formato, el proveedor, la variable de la clave de API y el archivo del locale de origen, y luego informa de todos los problemas que encontró a la vez. No gasta nada: no construye ningún proveedor, no hace ninguna petición de red, no escribe ningún archivo y nunca lee el valor de una clave de API.
+Responde una pregunta antes de ejecutar cualquier otra cosa: ¿este proyecto está bien configurado? `doctor` valida la configuración, el adaptador de formato, el proveedor, la variable de la clave de API, la política de red y el archivo del locale de origen, y luego informa de todos los problemas que encontró a la vez. No gasta nada: no construye ningún proveedor, no hace ninguna petición de red, no escribe ningún archivo y nunca lee el valor de una clave de API.
 
 Úsalo en un checkout recién hecho, justo después de [`verbatra init`](/docs/cli/init), o cuando otro comando haya fallado y quieras la lista completa en lugar del primer error. [`verbatra check`](/docs/cli/check) es la validación más barata una vez que el proyecto ya funciona, pero lee los archivos de locale y se detiene en el primer error de toda la ejecución, así que no puede decirte qué falla en un proyecto que todavía no tiene archivo de origen.
 

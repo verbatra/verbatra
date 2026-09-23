@@ -248,18 +248,28 @@ que un directorio en su lugar, un archivo vacío y contenido malformado se infor
 
 <AvailableFrom version="0.12.0" />
 
-Una sexta comprobación, `plural-rules`, es informativa y siempre pasa: su detalle nombra las
+Una sexta comprobación, `network-policy`, pasa cuando la [política de red](/docs/network-policy)
+efectiva, que sale del bloque `network` de la configuración y de la variable de entorno
+`VERBATRA_NETWORK_POLICY`, permite el host al que se conecta el proveedor configurado y cualquier
+proxy que usaría. Su detalle nombra la política, sus dos fuentes y el host. Falla cuando ese host
+se rechaza o una variable de entorno de red tiene un valor no válido, pasa para el proveedor `none`
+y no resuelve ningún nombre de host.
+
+Una séptima comprobación, `plural-rules`, es informativa y siempre pasa: su detalle nombra las
 versiones de ICU y CLDR de las que el runtime deriva las categorías de plural de cada idioma de
 destino, y cualquier locale de destino para el que ICU no tiene reglas de plural.
 
-Una séptima comprobación, `locale-codes`, también es informativa y siempre pasa: su detalle nombra
+Una octava comprobación, `locale-codes`, también es informativa y siempre pasa: su detalle nombra
 cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, como
 `zh-hant-tw` o el obsoleto `iw`, con la forma canónica que sugiere `Intl.getCanonicalLocales`. No
 se renombra nada.
 
-Entrada: `{ cwd?, configPath? }`. No necesita una configuración ya cargada: `doctor` la carga por sí
-mismo, así que un proyecto sin ninguna configuración sigue obteniendo un informe en lugar de un
-error lanzado.
+Entrada: `{ cwd?, configPath?, literals? }`. Con `literals` activado, `doctor` solo ejecuta la
+comprobación `config` y, en lugar de las demás, una comprobación `untranslated-literals` que
+recorre las raíces de código del bloque `extract` de la configuración, igual que
+[`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir). No necesita una
+configuración ya cargada: `doctor` la carga por sí mismo, así que un proyecto sin ninguna
+configuración sigue obteniendo un informe en lugar de un error lanzado.
 Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comprobación falló. Lanza
 `CONFIG_NOT_FOUND` solo para un `configPath` explícito que no existe.
 

@@ -233,18 +233,27 @@ place, an empty file, and malformed content are all reported here.
 
 <AvailableFrom version="0.12.0" />
 
-A sixth check, `plural-rules`, is informational and always passes: its detail names the ICU and
+A sixth check, `network-policy`, passes when the effective [network policy](/docs/network-policy),
+from the config's `network` block and the `VERBATRA_NETWORK_POLICY` environment variable, permits
+the host the configured provider connects to and any proxy it would use. Its detail names the
+policy, both of its sources, and the host. It fails when that host is refused or a network
+environment variable holds an invalid value, passes for the `none` provider, and resolves no host
+name.
+
+A seventh check, `plural-rules`, is informational and always passes: its detail names the ICU and
 CLDR versions the runtime derives each target language's plural categories from, and any target
 locale ICU has no plural rules for.
 
-A seventh check, `locale-codes`, is informational too and always passes: its detail names every
+An eighth check, `locale-codes`, is informational too and always passes: its detail names every
 configured locale code that is valid but not in canonical BCP 47 form, such as `zh-hant-tw` or the
 deprecated `iw`, with the canonical form `Intl.getCanonicalLocales` suggests. Nothing is renamed.
 
-Input: `{ cwd?, configPath? }`. No loaded config needed: `doctor` loads it itself, so a project
-with no config at all still gets a report rather than a thrown error. Returns a `DoctorResult`
-whose `ok` is true exactly when no check failed. It throws `CONFIG_NOT_FOUND` only for an explicit
-`configPath` that does not exist.
+Input: `{ cwd?, configPath?, literals? }`. With `literals` set, `doctor` runs only the `config`
+check and an `untranslated-literals` check instead, scanning the source roots of the config's
+`extract` block, as [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. No
+loaded config needed: `doctor` loads it itself, so a project with no config at all still gets a
+report rather than a thrown error. Returns a `DoctorResult` whose `ok` is true exactly when no
+check failed. It throws `CONFIG_NOT_FOUND` only for an explicit `configPath` that does not exist.
 
 ### extract
 
