@@ -80,27 +80,41 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function main(mode) {
-  const manifest = readJson(MCP_MANIFEST_PATH);
-  const serverJson = readJson(SERVER_JSON_PATH);
+function reportMismatches(mismatches) {
+  for (const mismatch of mismatches) {
+    console.error(`mcp-server-json: ${mismatch}`);
+  }
+}
 
+function runSync(serverJsonPath, manifestPath) {
+  const manifest = readJson(manifestPath);
+  const synced = syncServerJson(readJson(serverJsonPath), manifest);
+  const mismatches = serverJsonMismatches(synced, manifest);
+  if (mismatches.length > 0) {
+    reportMismatches(mismatches);
+    return 1;
+  }
+  writeFileSync(serverJsonPath, renderServerJson(synced));
+  return 0;
+}
+
+function main(mode) {
   if (mode === "sync") {
-    writeFileSync(SERVER_JSON_PATH, renderServerJson(syncServerJson(serverJson, manifest)));
-    return 0;
+    return runSync(SERVER_JSON_PATH, MCP_MANIFEST_PATH);
   }
   if (mode !== "check") {
     console.error(`mcp-server-json: unknown mode "${mode}", expected "sync" or "check"`);
     return 2;
   }
 
+  const manifest = readJson(MCP_MANIFEST_PATH);
+  const serverJson = readJson(SERVER_JSON_PATH);
   const published = process.env.PUBLISHED_PACKAGES_JSON;
   const mismatches = [
     ...serverJsonMismatches(serverJson, manifest),
     ...(published ? publishedVersionMismatches(serverJson, published, manifest.name) : []),
   ];
-  for (const mismatch of mismatches) {
-    console.error(`mcp-server-json: ${mismatch}`);
-  }
+  reportMismatches(mismatches);
   return mismatches.length === 0 ? 0 : 1;
 }
 
@@ -108,4 +122,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   process.exitCode = main(process.argv[2]);
 }
 
-export { publishedVersionMismatches, renderServerJson, serverJsonMismatches, syncServerJson };
+export {
+  publishedVersionMismatches,
+  renderServerJson,
+  runSync,
+  serverJsonMismatches,
+  syncServerJson,
+};

@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   publishedVersionMismatches,
   renderServerJson,
+  runSync,
   serverJsonMismatches,
   syncServerJson,
 } from "./mcp-server-json.mjs";
@@ -19,6 +21,7 @@ const MCP_MANIFEST = JSON.parse(
 );
 const ROOT_MANIFEST = JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), "utf8"));
 const RELEASE_WORKFLOW = readFileSync(resolve(REPO_ROOT, ".github/workflows/release.yml"), "utf8");
+const MCP_BIN_SOURCE = readFileSync(resolve(REPO_ROOT, "packages/mcp/src/bin.ts"), "utf8");
 const KEY_ENV_VARS_SOURCE = readFileSync(
   resolve(REPO_ROOT, "packages/ai-providers/src/key-env-vars.ts"),
   "utf8",
@@ -106,6 +109,17 @@ describe("packages/mcp/server.json: official MCP Registry constraints", () => {
   });
 });
 
+describe("packages/mcp/server.json: alignment with packages/mcp/src/bin.ts", () => {
+  it("declares exactly one non-secret variable, the allow-spend variable the bin reads", () => {
+    const binVariable = /const ALLOW_SPEND_ENV_VAR = "([A-Z0-9_]+)";/.exec(MCP_BIN_SOURCE)?.[1];
+    expect(binVariable).toBeDefined();
+    const nonSecret = SERVER_JSON.packages[0].environmentVariables
+      .filter((variable) => !variable.isSecret)
+      .map((variable) => variable.name);
+    expect(nonSecret).toEqual([binVariable]);
+  });
+});
+
 describe("serverJsonMismatches: drift detection", () => {
   it("reports nothing for an aligned file", () => {
     expect(serverJsonMismatches(serverJsonFor("1.4.0"), MANIFEST)).toEqual([]);
@@ -168,6 +182,50 @@ describe("syncServerJson: the Changesets version step", () => {
       "changeset version && node scripts/mcp-server-json.mjs sync",
     );
     expect(RELEASE_WORKFLOW).toContain("version-script: pnpm version-packages");
+  });
+});
+
+describe("runSync: the sync mode validates what it would write", () => {
+  function withFixture(serverJson, manifest, assertion) {
+    const dir = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-server-json-"));
+    const serverJsonPath = join(dir, "server.json");
+    const manifestPath = join(dir, "package.json");
+    const original = renderServerJson(serverJson);
+    writeFileSync(serverJsonPath, original);
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    try {
+      assertion({ serverJsonPath, manifestPath, original });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("writes the synced file and exits 0 when the result is aligned", () => {
+    withFixture(serverJsonFor("1.3.0"), MANIFEST, ({ serverJsonPath, manifestPath }) => {
+      expect(runSync(serverJsonPath, manifestPath)).toBe(0);
+      const written = JSON.parse(readFileSync(serverJsonPath, "utf8"));
+      expect(serverJsonMismatches(written, MANIFEST)).toEqual([]);
+    });
+  });
+
+  it.each([
+    [
+      "a registry name that is not the mcpName",
+      { ...serverJsonFor("1.3.0"), name: "io.github.x/y" },
+    ],
+    [
+      "an npm identifier that is not the package name",
+      {
+        ...serverJsonFor("1.3.0"),
+        packages: [{ registryType: "npm", identifier: "@verbatra/cli", version: "1.3.0" }],
+      },
+    ],
+    ["no npm package", { ...serverJsonFor("1.3.0"), packages: [] }],
+  ])("exits 1 and leaves the file untouched for %s", (_label, serverJson) => {
+    withFixture(serverJson, MANIFEST, ({ serverJsonPath, manifestPath, original }) => {
+      expect(runSync(serverJsonPath, manifestPath)).toBe(1);
+      expect(readFileSync(serverJsonPath, "utf8")).toBe(original);
+    });
   });
 });
 
