@@ -785,8 +785,9 @@ elimina), `note`, `partOfSpeech` (cada uno `null` para eliminarlo), `caseSensiti
 `doNotTranslate` (`true` añade el término a los que no se traducen, `false` lo quita; no se puede
 combinar con los campos del término). Un archivo de la versión 1 sigue siendo versión 1 mientras la
 edición solo fije o elimine una traducción para todos los locales; cualquier otra edición lo
-reescribe como versión 2, y cada término existente conserva su traducción como `target`. Un término
-que se queda sin traducción y sin traducción prohibida se elimina.
+reescribe como versión 2, y cada término existente conserva su traducción como `target`. `translation: null` sin `locale` ahora elimina solo la traducción compartida; el término en sí
+se elimina cuando ya no le queda ninguna traducción ni traducción prohibida, lo que en un término de
+la versión 1 ocurre de inmediato.
 
 Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de convertirse: vive dentro
 de un módulo de configuración ejecutable. Un campo vacío, una edición que no cambia nada o que mezcla
@@ -814,6 +815,16 @@ Convierte un glosario en cualquiera de sus formas, un mapa plano de la versión 
 la versión 2, al `Glossary` normalizado que devuelve `readGlossaryFile`, con todos los valores por
 defecto rellenados. Úsalo para mostrar un glosario en línea igual que uno respaldado por archivo. No
 vuelve a validar; `loadConfig` ya lo hizo.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Proyecta un `Glossary` normalizado sobre un mapa plano de cada término que tiene un `target`
+compartido a esa traducción, en el orden del glosario. Las traducciones por locale, las traducciones
+prohibidas y los términos de `doNotTranslate` quedan fuera, así que úsalo solo donde un consumidor
+no pueda mostrar más que un mapa plano de términos. Un término llamado `__proto__` sigue siendo una
+clave propia.
 
 ### defineConfig
 

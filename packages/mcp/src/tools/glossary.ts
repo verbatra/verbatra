@@ -1,8 +1,8 @@
 import {
-  type Glossary,
   normalizeGlossary,
   readGlossaryFile,
   redact,
+  sharedGlossaryTranslations,
   updateGlossaryTerm,
 } from "@verbatra/sdk";
 import { z } from "zod";
@@ -34,17 +34,9 @@ const glossaryWriteParamsSchema = z.strictObject({
   translation: z.string().min(1).max(MAX_GLOSSARY_TRANSLATION_LENGTH).nullable(),
 });
 
-function termMap(glossary: Glossary): Readonly<Record<string, string>> {
-  return Object.fromEntries(
-    glossary.terms.flatMap((term) =>
-      term.target !== undefined ? [[term.source, term.target]] : [],
-    ),
-  );
-}
-
 async function currentEntries(context: McpToolContext): Promise<Readonly<Record<string, string>>> {
   if (context.config.glossary.source === "file") {
-    return termMap(
+    return sharedGlossaryTranslations(
       await readGlossaryFile(
         { glossary: context.config.glossary },
         context.fs !== undefined ? { fs: context.fs } : {},
@@ -52,7 +44,7 @@ async function currentEntries(context: McpToolContext): Promise<Readonly<Record<
     );
   }
   const inline = context.config.config.glossary;
-  return inline === undefined ? {} : termMap(normalizeGlossary(inline));
+  return inline === undefined ? {} : sharedGlossaryTranslations(normalizeGlossary(inline));
 }
 
 function buildResult(
@@ -95,7 +87,7 @@ async function glossaryWrite(
     },
     context.fs !== undefined ? { fs: context.fs } : {},
   );
-  return buildResult(context, termMap(entries));
+  return buildResult(context, sharedGlossaryTranslations(entries));
 }
 
 export const glossaryGetTool = defineTool({

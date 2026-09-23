@@ -4,6 +4,7 @@ import {
   glossaryDefinitionSchema,
   glossaryForLocale,
   normalizeGlossary,
+  sharedGlossaryTranslations,
 } from "./glossary.js";
 
 const DASHBOARD: GlossaryDefinition = {
@@ -226,5 +227,20 @@ describe("glossaryDefinitionSchema", () => {
     ["another version", { version: 3, terms: [] }],
   ])("refuses %s", (_label, definition) => {
     expect(issuesOf(definition).length).toBeGreaterThan(0);
+  });
+});
+
+describe("sharedGlossaryTranslations", () => {
+  it("maps each term with a shared translation to it, leaving per-locale-only terms out", () => {
+    expect(sharedGlossaryTranslations(normalizeGlossary(DASHBOARD))).toEqual({
+      Dashboard: "Dashboard",
+    });
+  });
+
+  it("keeps a term named __proto__ as an own key", () => {
+    const shared = sharedGlossaryTranslations(
+      normalizeGlossary(Object.fromEntries([["__proto__", "Prototyp"]])),
+    );
+    expect(Object.keys(shared)).toEqual(["__proto__"]);
   });
 });

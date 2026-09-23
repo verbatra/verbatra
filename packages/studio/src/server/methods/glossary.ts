@@ -1,9 +1,9 @@
 import {
-  type Glossary,
   type GlossaryFileDeps,
   normalizeGlossary,
   readGlossaryFile,
   redact,
+  sharedGlossaryTranslations,
   updateGlossaryTerm,
 } from "@verbatra/sdk";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
@@ -14,20 +14,14 @@ function fsDeps(deps: RpcHandlerDeps): GlossaryFileDeps {
   return deps.fs !== undefined ? { fs: deps.fs } : {};
 }
 
-function termMap(glossary: Glossary): Readonly<Record<string, string>> {
-  return Object.fromEntries(
-    glossary.terms.flatMap((term) =>
-      term.target !== undefined ? [[term.source, term.target]] : [],
-    ),
-  );
-}
-
 async function currentEntries(deps: RpcHandlerDeps): Promise<Readonly<Record<string, string>>> {
   if (deps.config.glossary.source === "file") {
-    return termMap(await readGlossaryFile({ glossary: deps.config.glossary }, fsDeps(deps)));
+    return sharedGlossaryTranslations(
+      await readGlossaryFile({ glossary: deps.config.glossary }, fsDeps(deps)),
+    );
   }
   const inline = deps.config.config.glossary;
-  return inline === undefined ? {} : termMap(normalizeGlossary(inline));
+  return inline === undefined ? {} : sharedGlossaryTranslations(normalizeGlossary(inline));
 }
 
 function buildResult(
@@ -63,5 +57,5 @@ export const glossaryWriteHandler: RpcHandler<"glossary.write"> = async (params,
     },
     fsDeps(deps),
   );
-  return buildResult(deps, termMap(entries));
+  return buildResult(deps, sharedGlossaryTranslations(entries));
 };

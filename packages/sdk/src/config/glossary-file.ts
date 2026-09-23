@@ -204,8 +204,9 @@ export interface UpdateGlossaryTermInput extends GlossaryFileInput {
   readonly term: string;
   /**
    * The translation to store for the term. Without `locale` it is the translation every target
-   * locale uses, and `null` removes the whole term when no other field is given. With `locale` it
-   * is that locale's own translation, and `null` removes only that. Must not be blank.
+   * locale uses; with `locale` it is that locale's own translation. `null` removes that translation
+   * only, and the term goes with it once it has no translation and no forbidden rendering left.
+   * Must not be blank.
    */
   readonly translation?: string | null;
   /** The target locale `translation` and `forbidden` apply to. Omit it for every locale. */

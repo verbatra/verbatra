@@ -811,7 +811,7 @@ entfernt sie), `note`, `partOfSpeech` (jeweils `null` zum Entfernen), `caseSensi
 es lässt sich nicht mit den Begriffsfeldern kombinieren). Eine Datei der Version 1 bleibt Version 1,
 solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfernt; jede andere
 Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
-`target` behält. Ein Begriff ohne Übersetzung und ohne verbotene Wiedergabe wird entfernt.
+`target` behält. `translation: null` ohne `locale` entfernt jetzt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
 
 Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
 einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die nichts ändert oder
@@ -840,6 +840,16 @@ Wandelt ein Glossar in beiden Formen, eine flache Zuordnung der Version 1 oder e
 Version 2, in das normalisierte `Glossary` um, das `readGlossaryFile` zurückgibt, mit allen
 Standardwerten. Nutze es, um ein Inline-Glossar genauso anzuzeigen wie ein dateibasiertes. Es
 validiert nicht erneut; das hat `loadConfig` schon getan.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Bildet ein normalisiertes `Glossary` auf eine flache Zuordnung ab: jeder Begriff mit einem
+gemeinsamen `target` zu dieser Übersetzung, in Glossarreihenfolge. Übersetzungen pro Locale,
+verbotene Wiedergaben und Begriffe aus `doNotTranslate` fehlen darin, nutze es also nur dort, wo
+ein Verbraucher nichts als eine flache Begriffszuordnung zeigen kann. Ein Begriff namens
+`__proto__` bleibt ein eigener Key.
 
 ### defineConfig
 

@@ -742,7 +742,7 @@ It also takes `locale` (then `translation` is that locale's own and `null` remov
 to the terms kept untranslated, `false` removes it; it cannot be combined with the term fields).
 A version 1 file stays version 1 while an edit only sets or removes a translation for every
 locale; any other edit rewrites it as version 2, every existing term keeping its translation as
-`target`. A term left with no translation and no forbidden rendering is removed.
+`target`. `translation: null` without `locale` now removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
 
 An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than converted: it lives inside
 an executable config module. A blank field, an edit that changes nothing or mixes `doNotTranslate`
@@ -769,6 +769,15 @@ see.
 Converts a glossary in either shape, a version 1 flat map or a version 2 definition, to the
 normalized `Glossary` that `readGlossaryFile` returns, with every default filled in. Use it to show
 an inline glossary the same way as a file-backed one. It does not validate again; `loadConfig` has.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Projects a normalized `Glossary` onto a flat map of each term that has a shared `target` to that
+translation, in glossary order. Per-locale translations, forbidden renderings, and do-not-translate
+terms are left out, so use it only where a consumer can show nothing but a flat term map. A term
+named `__proto__` stays an own key.
 
 ### defineConfig
 

@@ -208,23 +208,19 @@ function editedTerm(existing: GlossaryTermDefinition | undefined, edit: Glossary
   return term;
 }
 
-function isWholeTermRemoval(edit: GlossaryEdit): boolean {
-  return isVersion1Edit(edit) && edit.translation === null;
-}
-
 function editTerms(
   terms: readonly GlossaryTermDefinition[],
   edit: GlossaryEdit,
 ): readonly GlossaryTermDefinition[] {
   const index = terms.findIndex((term) => term.source === edit.term);
   const existing = index >= 0 ? terms[index] : undefined;
-  const next = isWholeTermRemoval(edit) ? undefined : editedTerm(existing, edit);
-  if (next !== undefined && isEmptyTerm(next) && existing === undefined) {
+  const next = editedTerm(existing, edit);
+  if (isEmptyTerm(next) && existing === undefined) {
     throw invalid(
       `The glossary term "${edit.term}" needs a translation or a forbidden rendering before it can be added.`,
     );
   }
-  const kept = next === undefined || isEmptyTerm(next) ? [] : [next];
+  const kept = isEmptyTerm(next) ? [] : [next];
   if (index < 0) {
     return [...terms, ...kept];
   }

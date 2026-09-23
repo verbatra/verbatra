@@ -206,14 +206,25 @@ describe("updateGlossaryTerm: version 2 files", () => {
     expect(glossary.terms).toEqual([]);
   });
 
-  it("removes the whole term for a shared translation of null, as a version 1 edit does", async () => {
-    const seeded = await seed(V2);
-    await edit(seeded, { term: "Dashboard", translation: null });
-    expect(await onDisk(seeded.path)).toEqual({
+  it("clears only the shared translation for null and keeps the term's other data", async () => {
+    const seeded = await seed({
       version: 2,
-      terms: [],
-      doNotTranslate: ["verbatra"],
+      terms: [{ source: "A", target: "B", targets: { de: "C" } }],
     });
+    const glossary = await edit(seeded, { term: "A", translation: null });
+    expect(glossary.terms).toEqual([
+      { source: "A", targets: { de: "C" }, forbidden: {}, caseSensitive: false },
+    ]);
+  });
+
+  it("removes the term for a shared translation of null once nothing else is left", async () => {
+    const seeded = await seed({
+      version: 2,
+      terms: [{ source: "A", target: "B" }],
+      doNotTranslate: ["x"],
+    });
+    await edit(seeded, { term: "A", translation: null });
+    expect(await onDisk(seeded.path)).toEqual({ version: 2, terms: [], doNotTranslate: ["x"] });
   });
 
   it("adds a term that only lists forbidden renderings", async () => {

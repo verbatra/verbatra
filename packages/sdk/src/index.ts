@@ -78,6 +78,7 @@ export {
   type GlossaryTermDefinition,
   glossaryForLocale,
   normalizeGlossary,
+  sharedGlossaryTranslations,
 } from "./config/glossary.js";
 export {
   type GlossaryFileDeps,

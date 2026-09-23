@@ -389,3 +389,21 @@ export function glossaryForLocale(
   }
   return { terms: localeTerms, doNotTranslate };
 }
+
+/**
+ * Projects a glossary onto the translations every target locale shares: a map from each term that
+ * has a shared `target` to that translation. Per-locale translations, forbidden renderings, and
+ * terms kept untranslated are left out, so use it only where a flat term map is all a consumer can
+ * show. The result's keys are own properties, so a term named `__proto__` is kept.
+ *
+ * @param glossary - A normalized glossary, as {@link readGlossaryFile} or {@link normalizeGlossary}
+ * returns it.
+ * @returns The shared translation of each term that has one, in glossary order.
+ */
+export function sharedGlossaryTranslations(glossary: Glossary): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    glossary.terms.flatMap((term) =>
+      term.target !== undefined ? [[term.source, term.target]] : [],
+    ),
+  );
+}
