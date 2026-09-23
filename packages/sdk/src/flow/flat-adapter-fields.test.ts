@@ -93,6 +93,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     expect(gateCandidateValue(entry, "Hallo", withoutComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ["-{name}"],
     });
     expect(gateCandidateValue(entry, "Hallo", withComparator, "de")).toEqual({
       accepted: true,
@@ -112,6 +113,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     expect(gateCandidateValue(entry, "Hallo {name}", withComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ["-{name}"],
     });
   });
 

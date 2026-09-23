@@ -17,7 +17,7 @@ Le code de sortie est le contrat sur lequel ton étape CI se branche :
 | Code | Signification |
 | --- | --- |
 | `0` | succès : `translate` ou `import` a terminé avec toutes les locales complètes, `check` a trouvé toutes les locales synchronisées, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a généré la structure du projet, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
-| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée, `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
+| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée (ou, avec `--qa`, une traduction commitée avec une erreur d'intégrité ou, avec `--strict`, un avertissement de révision), `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
 | `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` sans fournisseur résoluble ou incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
 | `3` | `translate` dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine |
 | `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
@@ -49,6 +49,12 @@ verbatra diff
 
 Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux les clés exactes derrière la dérive, par exemple pour les poster dans un commentaire de pull request. Les clés orphelines (dans un fichier cible mais disparues de la source) apparaissent dans la sortie de `diff` mais ne déclenchent jamais le code de sortie `1` à elles seules.
 
+### Bloquer sur la qualité des traductions
+
+<AvailableFrom version="0.12.0" />
+
+La dérive n'est pas la seule chose qui mérite un contrôle. `verbatra check --qa` passe aussi la barrière d'intégrité et les signalements de révision sur chaque traduction commitée : une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches plurielles ICU qui ne conviennent pas à sa langue fait échouer le job avec la sortie `1`. Ajoute `--strict` pour échouer aussi sur des avertissements de révision comme `EQUALS_SOURCE`. Aucun fournisseur n'est appelé non plus, donc aucune clé n'est nécessaire. Voir [le contrôle qualité](/docs/cli/check#contrôle-qualité).
+
 Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur soumis à des limites de débit.
 
 ## Sortie JSON
@@ -77,6 +83,8 @@ Une erreur d'utilisation porte l'un de ces codes :
 | --- | --- |
 | `USAGE_ERROR` | l'analyseur d'arguments a rejeté la ligne de commande (une option inconnue, un argument manquant), ou `mcp` a reçu des options qu'il ne peut pas accepter |
 | `INVALID_LOCALES` | `--locales` a été donné mais ne liste aucune locale |
+| `INVALID_QA_OPTION` | `check` a reçu `--severity` ou `--strict` sans `--qa`, ou `--strict` avec `--severity error` |
+| `INVALID_SEVERITY` | `check --severity` n'est ni `error` ni `warning` |
 | `INVALID_LOCALE` | `pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets |
 | `INVALID_FORMAT` | `--format` sur `export` ou `import` ne nomme aucun format de remise pris en charge |
 | `INVALID_DIRECTION` | `tmx` a reçu une direction autre que `import` ou `export`, ou `tmx export` a reçu une option réservée à l'import (`--dry-run`, `--overwrite`) |
@@ -113,12 +121,13 @@ Chaque `LocaleSummary` porte les listes de clés par locale (traduites, inchang�
 
 `verbatra watch --json` affiche une enveloppe par exécution en NDJSON (un objet JSON par ligne), avec `command: "watch"`. Une exécution réussie est un enregistrement `ok: true` portant le `RunSummary` de cette exécution ; une exécution échouée est un enregistrement `ok: false` portant son code et son message : le code propre de l'échec quand il en avait un, et `WATCH_RUN_FAILED` sinon. Une exécution échouée n'est qu'un enregistrement sur le flux : elle n'arrête pas la surveillance et ne change pas le code de sortie.
 
-`verbatra check --json` porte un document d'état. Le `inSync` de premier niveau est vrai exactement quand la commande sort avec `0` :
+`verbatra check --json` porte un document d'état. Sans `--qa`, le `inSync` de premier niveau est vrai exactement quand la commande sort avec `0` ; avec `--qa`, `qa` porte les totaux du [contrôle qualité](/docs/cli/check#contrôle-qualité) et chaque locale son propre rapport `qa` :
 
 ```ts
 interface CheckSummary {
-  inSync: boolean;             // true exactly when the command exits 0
+  inSync: boolean;             // without --qa, true exactly when the command exits 0
   locales: LocaleCheckSummary[];
+  qa?: CheckQaSummary;         // only with --qa; see verbatra check
 }
 
 interface LocaleCheckSummary {
@@ -127,6 +136,7 @@ interface LocaleCheckSummary {
   stale: number;               // source changed since last translated
   upToDate: number;            // target matches the recorded baseline
   inSync: boolean;             // missing === 0 && stale === 0
+  qa?: LocaleQaReport;         // only with --qa
 }
 ```
 

@@ -293,7 +293,7 @@ optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member w
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
 
-Eingabe: `{ config, cwd?, locales?, consistency? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
+Eingabe: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
 genau dann true ist, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
 <AvailableFrom version="0.11.0" />
@@ -319,6 +319,19 @@ Datei beschädigt ist oder von einem neueren verbatra stammt.
 <AvailableFrom version="0.12.0" />
 
 Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer fehlenden und veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde. Sie zählen weiter als fehlend oder veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `qa: true` lässt `check` zusätzlich die Qualitätsprüfung über jeden eingecheckten Wert laufen,
+ohne Key und ohne etwas zu schreiben: Jede `LocaleCheckSummary` trägt einen `qa`-Bericht aus
+`{ checked, errors, warnings, findings }`, und die Zusammenfassung trägt die `qa`-Summen aus
+`{ errors, warnings, invalidSourceKeys }`. Ein Befund ist `{ key, severity: "error", reason, details? }`
+für einen Wert, den das Integritäts-Gate ablehnen würde (`reason` aus `INTEGRITY_GATE_REASONS`),
+oder `{ key, severity: "warning", reason }` für einen Wert, der besteht, aber einen Review-Grund
+aus `REVIEW_REASON_CODES` trägt. `qaSeverity: "error"` lässt die Review-Gründe weg. Die
+Schweregrade sind als Tupel `QA_SEVERITIES` veröffentlicht (`"error"`, `"warning"`). Der Bericht
+ändert `inSync` nie; ein CI-Gate liest `qa.errors` und für ein strenges Gate auch `qa.warnings`.
+Welche Werte geprüft werden, steht unter [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
 
 ### diff
 
@@ -470,9 +483,9 @@ wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitesp
 für eine Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze
 dafür also das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
 `INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
-daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzlich `details`, die
-betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
-oder `+` für eines, das der Kandidat erfunden hat.
+daraus, statt die Mitglieder abzutippen. Eine `placeholder`- oder `markup`-Ablehnung trägt
+zusätzlich `details`: die betroffenen Platzhalter oder Tags, jeweils mit `-` für einen, den die
+Quelle hatte und der Kandidat weggelassen hat, oder `+` für einen, den der Kandidat erfunden hat.
 
 Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten.
 Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die

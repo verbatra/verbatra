@@ -141,6 +141,8 @@ weiterhin jeden ICU-Wert unübersetzt (der Hinweis `PLACEHOLDER_UNSUPPORTED`). E
 dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne den CLDR-Zweig `many`, bleibt
 in der Datei, bis sich seine Quelle ändert; wird eine gecachte oder importierte Kopie davon erneut
 angeboten, wird sie abgelehnt und der Key neu übersetzt.
+[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) findet einen solchen Wert, ohne darauf
+zu warten.
 
 ### Inline-Markup-Parität
 
@@ -433,3 +435,11 @@ Integritätsabweichungen, Provider-Fehlschläge, wegen des Budgets zurückgehalt
 mit ungültigem ICU, Review-Flags und Hinweise. Nichts wird versteckt, und der Fehlschlag einer
 Locale stoppt nie die anderen. Wo jede Prüfung in der Pipeline sitzt, steht unter
 [Wie es funktioniert](/docs/how-it-works).
+
+<AvailableFrom version="0.12.0" />
+
+Das Gate und die Review-Flags laufen auch über das, was schon eingecheckt ist:
+[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) prüft jeden Zielwert in deinen
+Locale-Dateien, egal wie er dorthin kam, meldet eine Ablehnung durch das Gate als Fehler und einen
+Review-Grund als Warnung und endet bei einem Fehler mit Exit `1`. So kann eine von Hand bearbeitete
+Übersetzung einen Pull Request aufhalten, ganz ohne Provider-Aufruf.
