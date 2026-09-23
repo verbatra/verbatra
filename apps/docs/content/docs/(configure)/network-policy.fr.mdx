@@ -4,7 +4,7 @@ description: Limite les hôtes auxquels un fournisseur de traduction peut se con
 ---
 <AvailableFrom version="0.12.0" />
 
-Un modèle auto-hébergé derrière `openai-compatible` garde tes chaînes sur ton propre réseau, mais seulement tant que chaque réglage reste juste. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié dans le shell de quelqu'un ou un coéquipier qui passe à un fournisseur hébergé suffit pour envoyer des chaînes vers un point de terminaison public. Une politique réseau rend la règle explicite : verbatra refuse de parler à un hôte que la politique n'autorise pas, et le dit avant qu'aucune requête ne quitte la machine.
+Un modèle auto-hébergé derrière `openai-compatible` garde tes chaînes sur ton propre réseau, mais seulement tant que chaque réglage reste juste. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié dans le shell de quelqu'un ou un coéquipier qui passe à un fournisseur hébergé suffit pour envoyer des chaînes vers un point de terminaison public. Une politique réseau rend la règle explicite : verbatra refuse de parler à un hôte que la politique n'autorise pas, et le dit avant qu'aucune requête ne quitte la machine. Pour le contenu d'une requête et tout ce que verbatra garde en local, voir [Traitement des données et confidentialité](/docs/data-handling).
 
 ## La mettre en place
 
