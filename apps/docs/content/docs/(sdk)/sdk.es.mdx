@@ -806,6 +806,27 @@ entorno obligatoria.
 
 `scaffoldingMetadata.humanOnlyProviderId` es `"none"`, el id que desactiva la traducción automática. No tiene entrada en `providerEnv`, porque no lee ninguna clave.
 
+`scaffoldingMetadata.openAiCompatibleKeyEnv` es `"OPENAI_COMPATIBLE_API_KEY"`, la variable que lee un proveedor `openai-compatible` cuando sus opciones no nombran ningún `apiKeyEnvVar`. `scaffoldingMetadata.configSearchPlaces` lista cada nombre de archivo que `loadConfig` busca como configuración, en el orden en que los comprueba; un generador que escribe `verbatra.config.ts` debería negarse cuando ya existe otro de ellos, porque gana el primero que se encuentra.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Detecta el formato de los archivos de locale de un proyecto y su estructura a partir de sus archivos, igual que hace `verbatra init` antes de escribir una configuración. No escribe nada y no llama a ningún proveedor. Recorre el directorio (saltándose los directorios ocultos, `node_modules` y la salida de compilación, dentro de una profundidad y un número de entradas acotados) en busca de archivos que reclame un adaptador registrado, encuentra en cada uno el segmento de la ruta que escribe un locale, y se queda con el patrón de archivo que cubre más locales. El formato es aquel cuyo adaptador reclama con `canHandle` cada archivo encontrado según su contenido; para JSON, donde todos los adaptadores JSON lo hacen, decide una única biblioteca de i18n coincidente en `package.json`.
+
+```ts
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+El resultado lleva `format` (con `from`: `input`, `files` o `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`), `ambiguities` (cada una con un `subject` de `format` o `layout` y sus `candidates`), una `confidence` de `high`, `medium`, `low` o `none`, y `reasons`, una frase por decisión. Los empates se informan como ambigüedades, nunca se adivinan. Las entradas opcionales `format`, `pattern` y `sourceLocale` acotan la búsqueda, y `deps.fs` y `deps.adapterRegistry` sustituyen el sistema de archivos y los adaptadores, así que también se detectan los archivos de un adaptador de terceros. Nunca lanza una excepción por un archivo ausente, ilegible o malformado; en su lugar informa de menos.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

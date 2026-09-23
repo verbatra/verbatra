@@ -536,6 +536,27 @@ Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses que
 
 `scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
 
+`scaffoldingMetadata.openAiCompatibleKeyEnv` vaut `"OPENAI_COMPATIBLE_API_KEY"`, la variable que lit un fournisseur `openai-compatible` quand ses options ne nomment aucun `apiKeyEnvVar`. `scaffoldingMetadata.configSearchPlaces` liste chaque nom de fichier où `loadConfig` cherche une config, dans l'ordre où il les vérifie ; un générateur qui écrit `verbatra.config.ts` devrait refuser quand un autre d'entre eux existe déjà, puisque le premier trouvé l'emporte.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Détecte le format et l'organisation des fichiers de locale d'un projet à partir de ses fichiers, comme le fait `verbatra init` avant d'écrire une config. Il n'écrit rien et n'appelle aucun fournisseur. Il parcourt le répertoire (en sautant les répertoires cachés, `node_modules` et les sorties de build, dans une profondeur et un nombre d'entrées bornés) à la recherche de fichiers revendiqués par un adaptateur enregistré, trouve dans chacun le segment de chemin qui écrit une locale, et garde le motif de fichier qui couvre le plus de locales. Le format est celui dont le `canHandle` de l'adaptateur revendique chaque fichier trouvé compte tenu de son contenu ; pour le JSON, où tous les adaptateurs JSON le font, une seule bibliothèque i18n correspondante dans `package.json` tranche.
+
+```ts
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+Le résultat porte `format` (avec `from` : `input`, `files` ou `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`), `ambiguities` (chacune avec un `subject` valant `format` ou `layout` et ses `candidates`), une `confidence` valant `high`, `medium`, `low` ou `none`, et `reasons`, une phrase par décision. Les égalités sont signalées comme ambiguïtés, jamais devinées. Les entrées optionnelles `format`, `pattern` et `sourceLocale` restreignent la recherche, et `deps.fs` et `deps.adapterRegistry` remplacent le système de fichiers et les adaptateurs : les fichiers d'un adaptateur tiers sont donc détectés aussi. Il ne lève jamais d'erreur pour un fichier manquant, illisible ou malformé ; il en rapporte moins à la place.
+
 ### isMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />

@@ -1,8 +1,8 @@
 ---
 title: verbatra init
-description: Crée une config verbatra et un exemple de .env pour ce projet.
+description: Crée une config verbatra et un exemple de .env pour ce projet, détectés depuis tes fichiers de locale, en interactif ou entièrement sans surveillance.
 ---
-Échafaude un projet : `init` écrit un `verbatra.config.ts` et un `.env.example` qui nomme la variable de clé d'API de ton fournisseur (jamais une valeur de clé), et s'assure que `.gitignore` couvre `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`. Quand stdin est un terminal et que `--yes` est absent, il te demande tout ce que tu n'as pas passé en option ; sinon il prend les valeurs par défaut, donc il tourne sans surveillance en CI.
+Échafaude un projet : `init` écrit un `verbatra.config.ts` et un `.env.example` qui nomme la variable de clé d'API de ton fournisseur (jamais une valeur de clé), et s'assure que `.gitignore` couvre `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`. Il regarde d'abord les fichiers de locale déjà présents dans le projet, donc dans la plupart des projets le fournisseur est la seule chose que tu as à lui indiquer.
 
 ## Synopsis
 
@@ -14,28 +14,112 @@ verbatra init [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | écrit la config et les fichiers d'environnement dans ce répertoire |
-| `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` ou `none` ; quand il est omis, demandé interactivement |
-| `--source` | `<locale>` | `en` | la locale source dans laquelle tes chaînes sont écrites |
-| `--targets` | `<locales>` | `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
-| `--path` | `<pattern>` | `locales/{locale}.json` | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
-| `--yes` | aucun | désactivé | saute les questions et accepte les valeurs par défaut |
-| `--force` | aucun | désactivé | écrase un `verbatra.config.ts` ou un `.env.example` existant |
+| `--cwd` | `<path>` | répertoire courant | analyse ce répertoire et y écrit la config et les fichiers d'environnement |
+| `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` ou `none` |
+| `--format` | `<id>` | détecté, sinon `i18next-json` | le format des fichiers de locale, l'un des ids de [Formats](/docs/formats) |
+| `--source` | `<locale>` | détectée, sinon `en` | la locale source dans laquelle tes chaînes sont écrites |
+| `--targets` | `<locales>` | détectées, sinon `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
+| `--path` | `<pattern>` | détecté, sinon `locales/{locale}.json` | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
+| `--model` | `<name>` | le défaut de l'échafaudage | le modèle ; requis pour `openai-compatible`, optionnel pour `anthropic`, `openai` et `gemini` |
+| `--base-url` | `<url>` | aucun | l'URL du serveur ; `openai-compatible` uniquement, et requis dans ce cas |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable d'environnement dans laquelle `openai-compatible` lit sa clé ; `openai-compatible` uniquement |
+| `--yes` | aucun | désactivé | ne pose jamais de question, et prend le défaut pour tout ce qui n'est ni passé ni détecté |
+| `--force` | aucun | désactivé | écrase un `verbatra.config.ts` existant dont le contenu diffère |
+| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) décrivant ce qui a été écrit ; ne pose jamais de question |
 
-Le format n'est pas une option : `init` le détecte depuis tes dépendances (`i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`). Sans correspondance unique et non ambiguë, il retombe sur `i18next-json` et laisse un commentaire TODO listant tous les formats pris en charge. Sans `--force`, un `verbatra.config.ts` ou un `.env.example` existant est sauté, jamais écrasé, et la commande réussit quand même.
+Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` ne sont donnés, et sinon pris depuis son défaut, uniquement sous `--yes`.
+
+<AvailableFrom version="0.12.0" />
+
+## Détection
+
+`init` parcourt le répertoire à la recherche de fichiers qu'un adaptateur de format revendique, en sautant les répertoires cachés, `node_modules` et les sorties de build courantes, et trouve la partie de chaque chemin qui écrit une locale : un nom de fichier comme `de.json`, `messages_pt_BR.properties` ou `app_en.arb`, ou un répertoire comme `locales/de/`, `de.lproj/` ou le `values-de/` d'Android. Le motif de fichier qui couvre le plus de locales l'emporte, et il remplit :
+
+- `format` : le seul format dont l'adaptateur lit chaque fichier trouvé. Tous les adaptateurs JSON lisent `.json`, donc pour des fichiers JSON c'est une seule dépendance correspondante dans `package.json` (`i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`) qui tranche.
+- `files.pattern` et `files.localeStyle` : `posix` quand les fichiers écrivent `pt_BR`, `android` pour les répertoires `values-*`, `literal` sinon.
+- `sourceLocale` : la langue source d'un catalogue `.xcstrings`, sinon `en` ou l'unique locale `en-*` trouvée, sinon la seule locale trouvée.
+- `targetLocales` : toutes les autres locales trouvées.
+
+Sans aucun fichier de locale, ce sont les dépendances seules qui décident du format. `--format`, `--path` et `--source` restreignent la détection au lieu d'être écrasés par elle : `--format yaml` ne regarde donc que les fichiers YAML.
+
+`init` ne choisit jamais au hasard entre des égaux. Quand plusieurs formats lisent les fichiers (du JSON brut sans dépendance i18n, par exemple), il sort avec `2` et `FORMAT_AMBIGUOUS`, et quand plusieurs motifs de fichiers sont à égalité (un fichier par namespace, comme `locales/{locale}/common.json` et `locales/{locale}/auth.json`), il sort avec `2` et `LAYOUT_AMBIGUOUS`. Les deux listent les candidats ; passe `--format` ou `--path` pour en choisir un. Dans un terminal, il te pose la question à la place, en proposant le premier candidat.
+
+## Exécutions sans surveillance
+
+Sans terminal, ou avec `--json`, `init` ne pose jamais de question. Une valeur ni passée, ni détectée, ni fixée par défaut par `--yes` est une erreur : `init` sort avec `2` et `MISSING_OPTIONS`, et nomme d'un coup chaque option manquante. `--provider` n'a pas de défaut, pas plus que `--base-url` et `--model` pour `openai-compatible`, donc ceux-là sont toujours nécessaires. Voici la commande qu'un agent lance :
+
+```bash
+npx verbatra init --provider gemini --yes --json
+```
+
+Avec `--json`, stdout porte exactement une enveloppe. Son `result` :
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options: Record<string, unknown> };
+  };
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  };
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  };
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+`confidence` vaut `high` quand les fichiers seuls ont tout décidé, `medium` quand une convention ou une dépendance a comblé un manque (par exemple prendre `en` comme source), `low` quand aucun fichier de locale n'appuyait le format, et `none` quand rien n'a été détecté. Un `default` dans `sources` est la valeur à revérifier. `nextSteps` se termine par les commandes exactes à lancer ensuite, comme `npx verbatra doctor`.
+
+Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` ou `INVALID_FORMAT` porte aussi un tableau `candidates` avec les valeurs parmi lesquelles choisir.
+
+## Fournisseurs
 
 `--provider none` génère une configuration [100 % humaine](/docs/human-only-workflow) sans `options` et n'écrit aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue.
 
-<AvailableFrom version="0.12.0" />
+`--provider openai-compatible` génère la config d'un serveur local ou auto-hébergé à partir de `--base-url` et `--model`, avec `maxOutputTokens: 4096`. Sa clé est optionnelle : un serveur qui n'en a pas besoin laisse `OPENAI_COMPATIBLE_API_KEY` non définie, et `--api-key-env-var` nomme une autre variable pour un serveur qui en a besoin. `init` écrit le nom de cette variable dans la config et dans `.env.example`, jamais une valeur, et refuse une URL de base qui contient des identifiants, une query string ou un fragment, comme `https://user:key@host` ou `https://host/v1?api-key=...`, par lesquels une clé pourrait finir dans la config versionnée. `--api-key-env-var` attend un nom en majuscules comme `LLM_API_KEY`, et une valeur refusée n'est jamais répétée, au cas où ce serait la clé elle-même.
+
+## Fichiers existants
+
+Relancer `init` avec les mêmes réponses ne change rien et réussit : tu peux donc le répéter sans risque. Un `verbatra.config.ts` au contenu différent est refusé avec `CONFIG_EXISTS` sauf si tu passes `--force`. Une autre config verbatra dans le même répertoire (un `.verbatrarc.json`, par exemple, ou une propriété `verbatra` dans `package.json`) est refusée avec `CONFIG_EXISTS` même sous `--force`, parce qu'elle serait lue avant `verbatra.config.ts`. Rien n'est écrit quand `init` refuse.
+
+Un `.env.example` existant est gardé tel quel ; quand il ne nomme pas encore la variable de clé, cette seule ligne y est ajoutée. `.gitignore` ne reçoit que les entrées qui lui manquent.
 
 ## Exemples
 
 ```bash
-# create config + .env example, prompting for the rest
+# prompt for anything not passed or detected
 verbatra init --provider gemini
 
-# non-interactive, accept all defaults
-verbatra init --provider deepl --yes
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes
@@ -45,11 +129,12 @@ verbatra init --provider none --yes
 
 | Code | Signification |
 | --- | --- |
-| `0` | fichiers écrits, ou sautés sans risque parce qu'ils existent déjà |
-| `2` | un `--provider` manquant ou inconnu, une config générée invalide, ou une erreur d'utilisation |
+| `0` | fichiers écrits, ou déjà à jour |
+| `2` | une erreur d'utilisation : `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, ou `CONFIG_INVALID` quand les réponses ne donneraient pas une config valide |
 
 ## Voir aussi
 
+- [Configure verbatra avec un agent IA](/docs/start-with-ai) est le prompt pour agent construit sur cette commande.
 - [Ta première traduction](/docs/your-first-translation) va de init jusqu'à la première exécution.
 - [Le fichier de configuration](/docs/config-file) documente chaque clé posée par l'échafaudage.
 - [Fournisseurs](/docs/providers) couvre les options de fournisseur et les variables de clé d'API.

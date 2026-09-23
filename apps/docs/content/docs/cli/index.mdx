@@ -42,7 +42,7 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 - `--config <path>` loads that config file instead of searching for one. Every command except `init` takes it; the search order is described in [The config file](/docs/config-file).
 - `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping.
   - Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way.
-  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, and `tmx` support it; `init`, `studio`, and `mcp` do not.
+  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx`, and `init` support it; `studio` and `mcp` do not.
   - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
 - `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
 

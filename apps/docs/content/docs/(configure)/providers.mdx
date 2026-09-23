@@ -201,8 +201,8 @@ A bad local model fails loudly, not silently: verbatra validates every provider 
 
 `openai-compatible` requests the same strict, schema-constrained response format as the hosted `openai` provider. The one difference is on the way back: local and smaller models are more likely to wrap an otherwise-correct answer in surrounding prose or a Markdown code fence despite being asked not to, so `openai-compatible` extracts the first balanced JSON object anywhere in the response before parsing, where the hosted provider does not. Its output still runs through the exact same schema validation and integrity checks as every other provider: a local model's output is untrusted input, and a malformed or placeholder-mismatched response is rejected the same way.
 
-<Callout title="Not in verbatra init">
-`verbatra init` does not offer `openai-compatible` as a scaffold option, since it has no single required environment variable to prompt for. Add the provider block above to your config by hand; everything else on this page (glossary, tone, output-token limits) applies to it like any LLM provider.
+<Callout title="Scaffold it with verbatra init">
+`verbatra init --provider openai-compatible --base-url <url> --model <name>` writes this block for you, with `maxOutputTokens: 4096`. Add `--api-key-env-var <NAME>` when the server needs a key under a variable of its own; `init` writes only the variable's name, never a value. See [verbatra init](/docs/cli/init#providers). Everything else on this page (glossary, tone, output-token limits) applies to it like any LLM provider.
 </Callout>
 
 ## none
