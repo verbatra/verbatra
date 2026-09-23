@@ -75,6 +75,7 @@ export {
 } from "./config/load-config.js";
 export type { BillingUnit, ProviderBilling } from "./config/provider-billing.js";
 export type { ProviderConfig, ProviderId } from "./config/provider-config.js";
+export { declareProviderKeyEnvVar } from "./config/provider-key-env.js";
 export type {
   CharacterRate,
   ModelRate,

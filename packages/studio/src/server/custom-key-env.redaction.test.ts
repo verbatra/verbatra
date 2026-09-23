@@ -1,6 +1,11 @@
 import { EventEmitter } from "node:events";
-import { type LoadedConfig, loadConfigWithMeta } from "@verbatra/sdk";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { type LoadedConfig, loadConfigWithMeta, redact } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { startStudioServer } from "./create-studio-server.js";
 import { glossaryGetHandler } from "./methods/glossary.js";
 import { dispatchRpc } from "./rpc-gate.js";
 import { createSseHub, type SseClientResponse } from "./sse.js";
@@ -93,5 +98,62 @@ describe("studio server: a key read through a custom apiKeyEnvVar never reaches 
     expect(writes.join("")).not.toContain(FAKE_KEY);
     expect(writes.join("")).toContain("[REDACTED]");
     hub.closeAll();
+  });
+});
+
+describe("startStudioServer: declares the key variable of the config its loader returns", () => {
+  const name = "STUDIO_START_LOCAL_KEY";
+  const fakeKey = "fakeStudioStartKey42";
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env[name];
+    process.env[name] = fakeKey;
+  });
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = saved;
+    }
+  });
+
+  it("scrubs the value even when the config never went through loadConfig", async () => {
+    const root = await mkdtemp(join(tmpdir(), "verbatra-studio-key-env-"));
+    await writeFile(join(root, "index.html"), "<html></html>");
+    const loaded: LoadedConfig = {
+      config: {
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: {
+          id: "openai-compatible",
+          options: {
+            baseUrl: "http://localhost:11434/v1",
+            model: "m",
+            maxOutputTokens: 256,
+            apiKeyEnvVar: name,
+          },
+        },
+      },
+      source: { kind: "override" },
+      glossary: { source: "none" },
+    };
+    expect(redact(`x ${fakeKey}`)).toBe(`x ${fakeKey}`);
+
+    const server = await startStudioServer({
+      port: 0,
+      cwd: root,
+      assetsRoot: pathToFileURL(`${root}/`),
+      loader: async () => loaded,
+    });
+    try {
+      expect(redact(`x ${fakeKey}`)).toBe("x [REDACTED]");
+    } finally {
+      await server.close();
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

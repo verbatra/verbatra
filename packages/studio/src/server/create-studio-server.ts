@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, type LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
@@ -206,6 +206,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   };
   const exposeAgentTools = options.exposeAgentTools ?? false;
   const config = await options.loader();
+  declareProviderKeyEnvVar(config.config.provider);
   const projectRoot = options.cwd ?? process.cwd();
 
   const watcher = await createProjectWatcher(

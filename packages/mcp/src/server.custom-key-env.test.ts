@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { type LoadedConfig, loadConfigWithMeta } from "@verbatra/sdk";
+import { type LoadedConfig, loadConfigWithMeta, redact } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createMcpServer } from "./server.js";
 import { makeProject } from "./test-support.js";
@@ -100,5 +100,51 @@ describe("createMcpServer: a key read through a custom apiKeyEnvVar never reache
     expect(logs.length).toBeGreaterThan(0);
     expect(logs.join("\n")).not.toContain(FAKE_KEY);
     expect(logs.join("\n")).toContain("[REDACTED]");
+  });
+});
+
+describe("createMcpServer: declares the key variable of the config it receives", () => {
+  const name = "MCP_CREATE_LOCAL_KEY";
+  const fakeKey = "fakeMcpCreateKey42";
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env[name];
+    process.env[name] = fakeKey;
+  });
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = saved;
+    }
+  });
+
+  it("scrubs the value even when the config never went through loadConfig", () => {
+    const config: LoadedConfig = {
+      config: {
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: {
+          id: "openai-compatible",
+          options: {
+            baseUrl: "http://localhost:11434/v1",
+            model: "m",
+            maxOutputTokens: 256,
+            apiKeyEnvVar: name,
+          },
+        },
+      },
+      source: { kind: "override" },
+      glossary: { source: "none" },
+    };
+    expect(redact(`x ${fakeKey}`)).toBe(`x ${fakeKey}`);
+
+    createMcpServer({ config, cwd: "/project" });
+
+    expect(redact(`x ${fakeKey}`)).toBe("x [REDACTED]");
   });
 });

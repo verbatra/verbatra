@@ -8,11 +8,14 @@ import { redactKeys } from "@verbatra/ai-providers";
  * keys, Gemini-style `AIza` keys, and hex UUID-shaped keys, with or without a `:fx` suffix), and an
  * exact-value scrub of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
  * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` currently holds in
- * the process environment, plus the variable an `openai-compatible` provider names through
- * `apiKeyEnvVar` once {@link loadConfig} has loaded a config declaring it or that provider has been
- * built. Use this on any text a surface returns to a caller that did not itself generate that text,
- * such as a file path, a config value, or an upstream error message, so a key value already present
- * in the environment or written by a user can never reach an agent, a browser tab, or a log line.
+ * the process environment, plus any variable declared as a key source: the one an
+ * `openai-compatible` provider names through `apiKeyEnvVar` is declared when {@link loadConfig}
+ * loads a config naming it or when that provider is built, and {@link declareProviderKeyEnvVar}
+ * declares it for a config obtained some other way. Declarations are never removed. A value shorter
+ * than eight characters is not scrubbed by value, so a short variable can never wipe unrelated text.
+ * Use this on any text a surface returns to a caller that did not itself generate that text, such
+ * as a file path, a config value, or an upstream error message, so a key value already present in
+ * the environment or written by a user can never reach an agent, a browser tab, or a log line.
  *
  * @param text - The text to scrub.
  * @returns The same text with every matching key shape and configured key value replaced by
