@@ -70,7 +70,7 @@ L'étape 1 est facultative : `verbatra diff` ou `verbatra check` montrent les m�
 
 ## En CI
 
-La sortie `3` signifie « terminé proprement, mais des clés attendent un humain ». Elle se distingue de `1` (une locale en échec ou partielle) pour qu'un pipeline puisse traiter les deux différemment : faire échouer le build, ouvrir un ticket de traduction, ou simplement le signaler. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Voir [CI et codes de sortie](/docs/ci-and-exit-codes).
+La sortie `3` signifie « terminé proprement, mais des clés attendent un humain ». Elle se distingue de `1` (une locale en échec ou partielle) pour qu'un pipeline puisse traiter les deux différemment : faire échouer le build, ouvrir un ticket de traduction, ou simplement le signaler. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Voir [CI et codes de sortie](/docs/ci-and-exit-codes). La [GitHub Action](/docs/github-action#mode-humain-uniquement) laisse l'étape réussir sur la sortie `3` et met sa sortie `needs-human` à `"true"`, pour qu'une étape suivante puisse transmettre les clés.
 
 ## Voir aussi
 
