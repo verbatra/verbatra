@@ -23,6 +23,8 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
     "This translation changed since the queue was loaded, so nothing was saved. Look at the current value and decide again.",
   REVIEW_SOURCE_CHANGED:
     "The source text changed since this translation was written, so it cannot be approved as it stands. Edit it to confirm it against the new source.",
+  REVIEW_RESTORE_FAILED:
+    "The rejection failed partway and the files could not be put back. Restore the locale file and verbatra.provenance.json from version control.",
   REVIEW_REJECT_UNSUPPORTED:
     "This project's file format cannot drop a single translation, so the file was left as it was. Edit the translation instead.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
