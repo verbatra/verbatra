@@ -11,7 +11,6 @@ import { i18n, type Locale } from "@/lib/i18n";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
 const IMPRINT_PAGE = join(HERE, "../imprint/page.tsx");
-const COMPOSE_FILE = join(HERE, "../../../../../../docker-compose.yml");
 
 function loadMessages(locale: string): Record<string, unknown> {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
@@ -137,11 +136,18 @@ const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
   fr: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne.*en tant que sous-traitant \(art\. 28 du RGPD\)/,
 };
 
-const CONTAINER_LOG_BOUND: Record<Locale, (files: string, megabytes: string) => string> = {
-  en: (files, megabytes) => `limited to ${files} files of ${megabytes} MB each`,
-  de: (files, megabytes) => `auf ${files} Dateien mit je ${megabytes} MB begrenzt`,
-  es: (files, megabytes) => `limitado a ${files} archivos de ${megabytes} MB cada uno`,
-  fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
+const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
+  en: /container log is rotated automatically and limited to \d+ files of \d+ MB each/,
+  de: /Container-Log wird automatisch rotiert und ist auf \d+ Dateien mit je \d+ MB begrenzt/,
+  es: /registro del contenedor se rota automáticamente y está limitado a \d+ archivos de \d+ MB cada uno/,
+  fr: /journal du conteneur fait l'objet d'une rotation automatique et est limité à \d+ fichiers de \d+ Mo chacun/,
+};
+
+const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
+  en: /Besides the hosting provider \(see section 3\), the only processor involved under Art\. 28 GDPR is Arcjet/,
+  de: /Neben dem Hosting-Anbieter \(siehe Abschnitt 3\) ist der einzige beteiligte Auftragsverarbeiter nach Art\. 28 DSGVO Arcjet/,
+  es: /Aparte del proveedor de alojamiento \(ver la sección 3\), el único encargado del tratamiento en el sentido del art\. 28 del RGPD es Arcjet/,
+  fr: /Outre l'hébergeur \(voir la section 3\), le seul sous-traitant au sens de l'art\. 28 du RGPD est Arcjet/,
 };
 
 const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
@@ -164,13 +170,6 @@ function imprintFacts(): string[] {
   const street = source.match(/Mönchfeldstraße \d+/)?.[0];
   const city = source.match(/\d{5} Stuttgart/)?.[0];
   return [street ?? "missing street", city ?? "missing city"];
-}
-
-function composeLogBound(): { files: string; megabytes: string } {
-  const compose = readFileSync(COMPOSE_FILE, "utf8");
-  const megabytes = compose.match(/max-size: "(\d+)m"/)?.[1] ?? "missing max-size";
-  const files = compose.match(/max-file: "(\d+)"/)?.[1] ?? "missing max-file";
-  return { files, megabytes };
 }
 
 describe.each(i18n.languages)("privacy page (%s)", (locale) => {
@@ -259,11 +258,10 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     ).not.toBeNull();
   });
 
-  it("states the container log bound that docker-compose.yml actually configures", async () => {
+  it("states a size-bounded container log and when the access logs are deleted", async () => {
     const hosting = sectionText(await renderPrivacy(locale), /^3\. /);
-    const { files, megabytes } = composeLogBound();
 
-    expect(hosting).toContain(CONTAINER_LOG_BOUND[locale](files, megabytes));
+    expect(hosting).toMatch(CONTAINER_LOG_ROTATION[locale]);
     expect(hosting).toMatch(ACCESS_LOG_DELETION[locale]);
     expect(hosting).not.toMatch(RETIRED_SHORT_PERIOD_CLAIM);
   });
@@ -308,6 +306,15 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(
       sectionNumbered(doc, 12)?.querySelector('a[href="https://docs.arcjet.com/privacy"]'),
     ).not.toBeNull();
+  });
+
+  it("names Arcjet as the only processor besides the hosting provider, not the only one overall", async () => {
+    const contactForm = sectionText(await renderPrivacy(locale), /^12\. /);
+
+    expect(contactForm).toMatch(ARCJET_ONLY_OTHER_PROCESSOR[locale]);
+    expect(contactForm).not.toMatch(
+      /only third-party processor|Der einzige beteiligte Auftragsverarbeiter/,
+    );
   });
 
   it("discloses the transfer to the United States and the safeguard it relies on", async () => {
