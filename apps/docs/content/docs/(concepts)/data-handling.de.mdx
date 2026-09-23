@@ -16,8 +16,9 @@ wird in der [Datenschutzerklärung](/privacy) der Website behandelt.
   macht, sind Übersetzungs-Requests an den Provider, den du konfiguriert hast, und nur, wenn ein
   Befehl tatsächlich übersetzt. Mit `provider: { id: "none" }` macht es gar keine.
 - **Gesendet wird nur, was übersetzt werden muss.** Keys, die unverändert sind, schon im
-  Translation Memory stehen oder für einen Menschen zurückgehalten werden, erreichen den Provider
-  nie.
+  Translation Memory stehen oder als Arbeit eines Menschen geschützt sind, erreichen den Provider
+  nie. Die einzige Ausnahme schaltest du selbst ein: Mit `humanEdits: "suggest"` wird ein
+  geschützter Key für einen Vorschlag gesendet.
 - **Alles andere bleibt lokal.** Locale-Dateien, die Lock-Datei, die Provenance-Datei, das
   Translation Memory und der Laufstatus sind Dateien in deinem Projekt. Studio lauscht nur auf
   `127.0.0.1`, und der MCP-Server spricht über stdio, nicht über einen Netzwerk-Port.
@@ -26,8 +27,9 @@ wird in der [Datenschutzerklärung](/privacy) der Website behandelt.
 ## Wie die Daten fließen
 
 ```text
- dein Projekt (lokale Platte)                            Provider (nur bei translate,
- +-----------------------------------------+             watch oder einem Retranslate)
+ dein Projekt (lokale Platte)                            Provider (nur bei translate, watch,
+                                                         SDK-retranslateEntry oder Studio-/
+ +-----------------------------------------+             MCP-Retranslate bzw. Translate-Pending)
  | Locale-Dateien, verbatra.config.ts,     |   HTTPS     +--------------------------+
  | Glossar         -- gelesen von verbatra-|------------>| Anthropic / OpenAI /     |
  |                                         |  geänderte  | Gemini / DeepL / Google  |
@@ -58,6 +60,17 @@ fehlen oder geändert sind, abzüglich aller Keys, die das
 [Translation Memory](/docs/the-cache) schon beantwortet. Keys mit identischem Quellinhalt werden
 einmal gesendet.
 
+Ein veralteter Key, dessen aktuellen Wert ein Mensch geschrieben hat, ist standardmäßig geschützt
+und wird nicht gesendet. Mit `humanEdits: "suggest"` wird er gesendet, und die Antwort bleibt nur
+ein Vorschlag, der nie in die Locale-Datei geschrieben wird. Ein gepinnter Key wird nie gesendet.
+Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations#vorschläge-statt-überschreiben).
+
+Jeder Request beginnt mit einem DNS-Lookup des Provider-Hostnamens über den Resolver deines
+Systems, der Resolver sieht diesen Namen also. Unter einer [Netzwerkrichtlinie](/docs/network-policy)
+`local-only` oder `allowlist` löst verbatra den Namen zusätzlich selbst auf, um ihn zu prüfen, außer
+es ist eine IP-Adresse oder namentlich in `allowedHosts` gelistet. `verbatra doctor`, Dry Runs und
+Schätzungen lösen nichts auf.
+
 ## Was jeder Provider bekommt
 
 | Provider | Was gesendet wird | Wohin es geht |
@@ -67,10 +80,13 @@ einmal gesendet.
 | `google-translate` | Der Quelltext jedes Keys ohne Platzhalter und die Quell- und Zielsprachcodes. Keine Key-Namen, keine Beschreibungen, kein Glossar. | `translation.googleapis.com` |
 | `none` | Nichts. Es wird kein Provider gebaut und kein Key gelesen. | Nirgendwohin. |
 
-`maxLength`-Grenzen werden auf deinem Rechner geprüft und nie gesendet. Der HTTP-Client jedes
-Providers hängt außerdem seine üblichen Request-Header an, die die Client-Bibliothek und ihre
-Version nennen und, bei den meisten, dein Betriebssystem und deine Node.js-Version. Der Request
-trägt deinen API-Key zu dem Provider, zu dem er gehört, und zu niemandem sonst.
+`maxLength`-Grenzen werden auf deinem Rechner geprüft und nie gesendet. Die Provider, die auf dem
+SDK eines Anbieters aufbauen (`anthropic`, `openai`, `openai-compatible`, `gemini` und `deepl`),
+schicken außerdem die üblichen Request-Header dieses SDK mit, die die Bibliothek und ihre Version
+nennen und, bei den meisten, dein Betriebssystem und deine Node.js-Version. Dein API-Key geht nur an
+den Endpunkt, den dieser Provider nutzen soll: seinen Standard-Host, eine `*_BASE_URL`-Überschreibung
+oder die `baseUrl` von `openai-compatible`, und durch jeden Proxy, über den der Request läuft.
+`google-translate` schickt ihn im Query-String `?key=` der Request-URL.
 
 Behandle alles in einem Quell-String, einer Beschreibung oder dem Glossar als an den Provider
 gesendet. Wenn ein String dein Netzwerk nicht verlassen darf, darf er nicht in einer Datei stehen,
@@ -94,7 +110,8 @@ geht vor, also nimm diese Tabelle als Ausgangspunkt für dein Review und lies di
 
 Zwei Folgen, klar gesagt: Die kostenlosen Kontingente von Gemini (außerhalb von EWR, Schweiz und
 Vereinigtem Königreich) und von DeepL dürfen das, was du sendest, zur Verbesserung der Modelle des
-Anbieters nutzen, und keiner der gehosteten Anbieter bietet standardmäßig Zero Retention. Für
+Anbieters nutzen, und keiner der gehosteten LLM-Anbieter (Anthropic, OpenAI, Gemini) bietet standardmäßig Zero
+Retention. Für
 vertrauliche Strings nimm ein bezahltes Kontingent mit den Bedingungen, die deine Organisation
 braucht, deinen eigenen Server oder gar keine maschinelle Übersetzung.
 
@@ -103,6 +120,9 @@ braucht, deinen eigenen Server oder gar keine maschinelle Übersetzung.
 - **Keine maschinelle Übersetzung.** `provider: { id: "none" }` macht verbatra zu einem rein
   lokalen Tool: Keys werden aus dem Translation Memory gefüllt oder von Menschen über Export und
   Import. Siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
+
+  <AvailableFrom version="0.12.0" />
+
 - **Dein eigenes Modell.** `openai-compatible` schickt Requests an die `baseUrl`, die du setzt,
   etwa Ollama, LM Studio oder vLLM auf deinem Rechner oder in deinem Netz. Siehe
   [Provider](/docs/providers).
@@ -111,7 +131,7 @@ braucht, deinen eigenen Server oder gar keine maschinelle Übersetzung.
   `VERBATRA_NETWORK_POLICY` legt sie aus der Umgebung fest, sodass die Config eines Repositorys sie
   nicht lockern kann.
 
-Alle drei gibt es ab verbatra 0.12.0.
+  <AvailableFrom version="0.12.0" />
 
 ## Was lokal geschrieben wird
 
@@ -119,7 +139,7 @@ Alle drei gibt es ab verbatra 0.12.0.
 | --- | --- | --- |
 | Deine Locale-Dateien | die Übersetzungen | ja |
 | `verbatra.lock.json` | einen Hash jedes Quell-Strings, aus dem eine Übersetzung entstand | ja |
-| `verbatra.provenance.json` | pro Key, welcher Schreibpfad den Wert erzeugt hat (`machine`, `memory`, `human`, `import` und weitere), bei maschineller Ausgabe Provider und Modell, und ob er reviewt wurde. Kein übersetzter Text und keine Zeitstempel. | ja |
+| `verbatra.provenance.json` | pro Key, welcher Schreibpfad den Wert erzeugt hat (`machine`, `memory`, `human`, `import` und weitere), bei maschineller Ausgabe Provider und Modell, und ob er reviewt wurde, samt Namen des Reviewers, wenn einer angegeben wurde. Kein übersetzter Text und keine Zeitstempel. | ja |
 | `verbatra.cache.json` | das Translation Memory: Quelltext und seine Übersetzungen, pro Provider, Modell, Tonfall und Glossar | nein, `verbatra init` trägt es in die `.gitignore` ein |
 | `.verbatra-local/run-status.json` | Ergebnis, Review-Flags und Token-Verbrauch des letzten Laufs pro Locale | nein, über `.verbatra-local/` ignoriert |
 | `.verbatra-local/pseudo/` | erzeugte Pseudolocales | nein |
@@ -167,8 +187,9 @@ entscheidet.
 Was verbatra dir gibt, ist ein Nachweis. Jeder Wert, den ein Provider erzeugt hat, wird mit dem
 Ursprung `machine` in `verbatra.provenance.json` festgehalten, samt Provider und Modell, bis der Wert
 neu geschrieben wird. Die Freigabe oder Ablehnung durch einen Reviewer wird daneben vermerkt. Werte
-von Menschen (`human`, `import`) und aus dem Translation Memory (`memory`, `fuzzy`) werden als solche
-festgehalten. Siehe
+von Menschen (`human`, `import`) und von KI-Agenten (`agent`) werden als solche festgehalten.
+Werte mit `memory` und `fuzzy` stammen aus dem Translation Memory, das auch frühere maschinelle
+Ausgaben enthalten kann, lies sie also nicht als menschliche Arbeit. Siehe
 [Herkunft: wer welchen Wert geschrieben hat](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 
 ## Checkliste für ein AVV- oder NDA-Review

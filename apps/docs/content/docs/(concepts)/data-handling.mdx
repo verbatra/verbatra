@@ -15,7 +15,8 @@ the machine? The website you are reading is a separate matter, covered by the si
   translation requests to the provider you configured, and only when a command actually translates.
   With `provider: { id: "none" }` it makes none at all.
 - **Only what needs translating is sent.** Keys that are unchanged, already in the translation
-  memory, or held back for a human never reach the provider.
+  memory, or protected as a person's work never reach the provider. The one exception is opt-in:
+  with `humanEdits: "suggest"`, a protected key is sent to get a suggestion.
 - **Everything else stays local.** Locale files, the lock file, the provenance file, the
   translation memory and run status are files in your project. Studio listens on `127.0.0.1` only,
   and the MCP server speaks over stdio, not a network port.
@@ -24,8 +25,9 @@ the machine? The website you are reading is a separate matter, covered by the si
 ## How data flows
 
 ```text
- your project (local disk)                               provider (only on translate,
- +-----------------------------------------+             watch, or a retranslate)
+ your project (local disk)                               provider (only on translate, watch,
+                                                         SDK retranslateEntry, or a Studio /
+ +-----------------------------------------+             MCP retranslate or translate-pending)
  | locale files, verbatra.config.ts,       |   HTTPS     +--------------------------+
  | glossary          -- read by verbatra --|------------>| Anthropic / OpenAI /     |
  |                                         |  changed    | Gemini / DeepL / Google  |
@@ -55,6 +57,16 @@ A `translate` run sends only the keys that are missing or changed against
 [the lock file](/docs/the-lock-file), minus every key the [translation memory](/docs/the-cache)
 already answers. Keys with identical source content are sent once.
 
+A stale key whose current value a person wrote is protected by default and is not sent. With
+`humanEdits: "suggest"` it is sent, and the answer is kept only as a suggestion, never written to
+the locale file. A pinned key is never sent. See
+[Protecting human translations](/docs/protecting-human-translations#suggestions-instead-of-overwrites).
+
+Every request starts with a DNS lookup of the provider's host name through your system's resolver,
+so the resolver sees that name. Under a `local-only` or `allowlist` [network policy](/docs/network-policy),
+verbatra also resolves the name itself to check it, unless it is an IP address or listed by name in
+`allowedHosts`. `verbatra doctor`, dry runs and estimates resolve nothing.
+
 ## What each provider receives
 
 | Provider | What is sent | Where it goes |
@@ -64,10 +76,13 @@ already answers. Keys with identical source content are sent once.
 | `google-translate` | The source text of each key that has no placeholders and the source and target language codes. No key names, no descriptions, no glossary. | `translation.googleapis.com` |
 | `none` | Nothing. No provider is built and no key is read. | Nowhere. |
 
-`maxLength` limits are checked on your machine and never sent. Every provider's HTTP client also
-adds its standard request headers, which name the client library and its version and, for most of
-them, your operating system and Node.js version. The request carries your API key to the provider
-it belongs to and to no one else.
+`maxLength` limits are checked on your machine and never sent. The providers built on a vendor SDK
+(`anthropic`, `openai`, `openai-compatible`, `gemini` and `deepl`) also send that SDK's standard
+request headers, which name the library and its version and, for most of them, your operating
+system and Node.js version. Your API key goes only to the endpoint that provider is configured to
+use: its default host, a `*_BASE_URL` override, or the `baseUrl` of `openai-compatible`, and
+through any proxy the request is routed through. `google-translate` sends it in the `?key=` query
+string of the request URL.
 
 Treat anything in a source string, a description, or the glossary as sent to the provider. If a
 string must not leave your network, it must not be in a file verbatra translates with a hosted
@@ -91,7 +106,7 @@ linked pages.
 
 Two consequences worth stating plainly: the free tiers of Gemini (outside the EEA, Switzerland and
 the UK) and of DeepL may use what you send to improve the vendor's models, and none of the hosted
-vendors offers zero retention by default. For confidential strings, use a paid tier with the terms
+LLM vendors (Anthropic, OpenAI, Gemini) offers zero retention by default. For confidential strings, use a paid tier with the terms
 your organization needs, your own server, or no machine translation.
 
 ## Keeping strings in-house
@@ -99,13 +114,16 @@ your organization needs, your own server, or no machine translation.
 - **No machine translation.** `provider: { id: "none" }` makes verbatra a purely local tool: keys
   are filled from the translation memory or by people through export and import. See
   [Human-only workflow](/docs/human-only-workflow).
+
+  <AvailableFrom version="0.12.0" />
+
 - **Your own model.** `openai-compatible` sends requests to the `baseUrl` you set, such as Ollama,
   LM Studio or vLLM on your machine or network. See [Providers](/docs/providers).
 - **Enforce it.** A [network policy](/docs/network-policy) such as `local-only` makes verbatra
   refuse any provider host outside your network before a request is sent, and
   `VERBATRA_NETWORK_POLICY` pins it from the environment so a repository's config cannot loosen it.
 
-All three are available from verbatra 0.12.0.
+  <AvailableFrom version="0.12.0" />
 
 ## What is written locally
 
@@ -113,7 +131,7 @@ All three are available from verbatra 0.12.0.
 | --- | --- | --- |
 | Your locale files | the translations | yes |
 | `verbatra.lock.json` | a hash of each source string a translation was made from | yes |
-| `verbatra.provenance.json` | per key, which write path produced the value (`machine`, `memory`, `human`, `import`, and others), the provider and model for machine output, and whether it was reviewed. No translated text and no timestamps. | yes |
+| `verbatra.provenance.json` | per key, which write path produced the value (`machine`, `memory`, `human`, `import`, and others), the provider and model for machine output, and whether it was reviewed, with the reviewer's name when one was given. No translated text and no timestamps. | yes |
 | `verbatra.cache.json` | the translation memory: source text and its translations, per provider, model, tone and glossary | no, `verbatra init` gitignores it |
 | `.verbatra-local/run-status.json` | the last run's per-locale outcome, review flags and token usage | no, gitignored with `.verbatra-local/` |
 | `.verbatra-local/pseudo/` | generated pseudolocales | no |
@@ -158,8 +176,9 @@ verbatra decides.
 
 What verbatra gives you is a record. Every value a provider produced is recorded as `machine`
 origin in `verbatra.provenance.json`, with the provider and model, until the value is written
-again. A reviewer's approval or rejection is recorded next to it. Values from people (`human`, `import`) and from the translation memory
-(`memory`, `fuzzy`) are recorded as such. See
+again. A reviewer's approval or rejection is recorded next to it. Values from people (`human`,
+`import`) and from AI agents (`agent`) are recorded as such. `memory` and `fuzzy` values come from
+the translation memory, which can hold earlier machine output, so do not read them as human work. See
 [Provenance: who wrote each value](/docs/the-lock-file#provenance-who-wrote-each-value).
 
 ## Checklist for a DPA or NDA review
