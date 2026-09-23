@@ -2,55 +2,59 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const COMPOSE_FILE = "docker-compose.yml";
+const POLICY_LOCALES = ["en", "de", "es", "fr"];
 const ROTATING_DRIVERS = new Set(["json-file", "local"]);
 
-function readCompose() {
-  return readFileSync(resolve(REPO_ROOT, COMPOSE_FILE), "utf8");
+const POLICY_BOUND = {
+  en: (files, megabytes) => `limited to ${files} files of ${megabytes} MB each`,
+  de: (files, megabytes) => `auf ${files} Dateien mit je ${megabytes} MB begrenzt`,
+  es: (files, megabytes) => `limitado a ${files} archivos de ${megabytes} MB cada uno`,
+  fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
+};
+
+function readRepoFile(relativePath) {
+  return readFileSync(resolve(REPO_ROOT, relativePath), "utf8");
 }
 
-function serviceBlocks(yamlText) {
-  const services = /^services:\n([\s\S]*?)(?=^\S|(?![\s\S]))/m.exec(yamlText)?.[1] ?? "";
-  return [...services.matchAll(/^ {2}([\w.-]+):\n((?: {4}.*\n?|\s*\n)*)/gm)].map((match) => ({
-    name: match[1],
-    body: match[2],
-  }));
+function composeServices() {
+  return Object.entries(parse(readRepoFile(COMPOSE_FILE)).services ?? {});
 }
 
-function loggingOf(serviceBody) {
-  const block = /^ {4}logging:\n((?: {6}.*\n?)*)/m.exec(serviceBody)?.[1] ?? "";
-  const driver = /^ {6}driver:\s*"?([\w-]+)"?\s*$/m.exec(block)?.[1];
-  const option = (name) => new RegExp(`^ {8}${name}:\\s*"?([^"\\s]+)"?\\s*$`, "m").exec(block)?.[1];
-  return { driver, maxSize: option("max-size"), maxFile: option("max-file") };
+function docsLogging() {
+  return parse(readRepoFile(COMPOSE_FILE)).services?.docs?.logging;
+}
+
+function hostingSection(locale) {
+  return JSON.parse(readRepoFile(`apps/docs/messages/${locale}.json`)).legal.privacy.s3.body;
 }
 
 describe(`${COMPOSE_FILE} keeps container log rotation configured`, () => {
-  const services = serviceBlocks(readCompose());
-
-  it("finds at least one service to check", () => {
-    expect(services.map((service) => service.name)).toContain("docs");
+  it("finds the docs service", () => {
+    expect(composeServices().map(([name]) => name)).toContain("docs");
   });
 
-  it.each(services.map((service) => [service.name, service.body]))(
+  it.each(composeServices())(
     "service %s logs through a rotating driver with a size and file-count bound",
-    (_name, body) => {
-      const { driver, maxSize, maxFile } = loggingOf(body);
+    (_name, service) => {
+      const logging = service?.logging;
 
-      expect(ROTATING_DRIVERS.has(driver ?? "")).toBe(true);
-      expect(maxSize).toMatch(/^[1-9]\d*[kmg]$/i);
-      expect(Number(maxFile)).toBeGreaterThanOrEqual(1);
+      expect(ROTATING_DRIVERS.has(logging?.driver)).toBe(true);
+      expect(String(logging?.options?.["max-size"])).toMatch(/^[1-9]\d*m$/);
+      expect(String(logging?.options?.["max-file"])).toMatch(/^[1-9]\d*$/);
     },
   );
+});
 
-  it("bounds the docs container log at three files of 10 MB, as the privacy policy states", () => {
-    const docs = services.find((service) => service.name === "docs");
+describe("the privacy policy states the container log bound the compose file configures", () => {
+  it.each(POLICY_LOCALES)("%s section 3 names the configured file count and size", (locale) => {
+    const options = docsLogging()?.options ?? {};
+    const files = String(options["max-file"]);
+    const megabytes = String(options["max-size"]).replace(/m$/, "");
 
-    expect(loggingOf(docs?.body ?? "")).toEqual({
-      driver: "json-file",
-      maxSize: "10m",
-      maxFile: "3",
-    });
+    expect(hostingSection(locale)).toContain(POLICY_BOUND[locale](files, megabytes));
   });
 });
