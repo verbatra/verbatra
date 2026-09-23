@@ -1015,7 +1015,7 @@ describe("TranslationsPanel key explorer", () => {
     await switchToList(view);
 
     expect(view.all("details ul button").map((button) => button.textContent)).toEqual([
-      "app.titleOrigin: Human",
+      "app.title Origin: Human. Written by a person.",
       "app.body",
     ]);
   });

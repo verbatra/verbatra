@@ -83,7 +83,7 @@ export function provenanceBadgeView(
 export function provenanceDetailItems(
   provenance: KeyProvenance,
 ): ReadonlyArray<readonly [string, string]> {
-  const items: [string, string][] = [["Origin", ORIGIN_VIEWS[provenance.origin].label]];
+  const items: [string, string][] = [];
   if (provenance.provider !== undefined) {
     items.push(["Provider", provenance.provider]);
   }

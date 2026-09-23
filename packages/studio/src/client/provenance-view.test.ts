@@ -43,7 +43,7 @@ describe("provenanceBadgeView", () => {
 });
 
 describe("provenanceDetailItems", () => {
-  it("lists origin, provider, model, review state and reviewer when present", () => {
+  it("lists provider, model, review state and reviewer when present, leaving the origin to the badge", () => {
     expect(
       provenanceDetailItems({
         origin: "machine",
@@ -53,7 +53,6 @@ describe("provenanceDetailItems", () => {
         reviewer: "mk",
       }),
     ).toEqual([
-      ["Origin", "Machine"],
       ["Provider", "anthropic"],
       ["Model", "claude-x"],
       ["Review", "Approved"],
@@ -63,7 +62,6 @@ describe("provenanceDetailItems", () => {
 
   it("leaves out fields the record does not carry", () => {
     expect(provenanceDetailItems({ origin: "human", reviewState: "unreviewed" })).toEqual([
-      ["Origin", "Human"],
       ["Review", "Not reviewed"],
     ]);
   });

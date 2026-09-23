@@ -15,8 +15,9 @@ export function ProvenanceBadge({
   return (
     <span title={view.description} className="inline-flex">
       <Badge tone={view.tone}>
-        <span className="sr-only">Origin: </span>
+        <span className="sr-only"> Origin: </span>
         {view.label}
+        <span className="sr-only">. {view.description}</span>
       </Badge>
     </span>
   );

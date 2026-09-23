@@ -10,13 +10,18 @@ describe("ProvenanceBadge", () => {
     expect(view.text()).toBe("");
   });
 
-  it("names the origin in text, with a screen-reader prefix, not by color alone", () => {
+  it("names the origin in text and describes it to screen readers, not by color or hover alone", () => {
     const view = render(
       <ProvenanceBadge provenance={{ origin: "external", reviewState: "unreviewed" }} />,
     );
 
-    expect(view.text()).toBe("Origin: Edited outside verbatra");
-    expect(view.get(".sr-only").textContent).toBe("Origin: ");
+    expect(view.text()).toBe(
+      " Origin: Edited outside verbatra. Changed since verbatra recorded who wrote it.",
+    );
+    expect(view.all(".sr-only").map((node) => node.textContent)).toEqual([
+      " Origin: ",
+      ". Changed since verbatra recorded who wrote it.",
+    ]);
     expect(view.get("[title]").getAttribute("title")).toBe(
       "Changed since verbatra recorded who wrote it.",
     );

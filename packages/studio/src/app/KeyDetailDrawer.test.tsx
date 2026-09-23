@@ -665,10 +665,11 @@ describe("KeyDetailDrawer: provenance", () => {
     const block = localeBlocks(view)[0];
 
     expect(block?.textContent).toContain("Origin: Machine");
+    expect(block?.querySelectorAll("dt")).toHaveLength(3);
     const terms = [...(block?.querySelectorAll("dt") ?? [])].map((node) => node.textContent);
     const details = [...(block?.querySelectorAll("dd") ?? [])].map((node) => node.textContent);
-    expect(terms).toEqual(["Origin", "Provider", "Model", "Review"]);
-    expect(details).toEqual(["Machine", "anthropic", "claude-sonnet-4-5", "Not reviewed"]);
+    expect(terms).toEqual(["Provider", "Model", "Review"]);
+    expect(details).toEqual(["anthropic", "claude-sonnet-4-5", "Not reviewed"]);
   });
 
   it("shows no provenance for a locale the server reported none for", async () => {
