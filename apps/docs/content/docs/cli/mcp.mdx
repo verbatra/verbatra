@@ -104,12 +104,15 @@ A value written through `translation.editEntry` is recorded with the origin `age
 - `glossary.write` takes `{ term, translation }`, with `term` limited to 200 characters and `translation` to 2,000; `translation: null` removes the term. It needs a file-backed glossary (the config's `glossary` pointing at a JSON file); an inline glossary or none fails with `GLOSSARY_NOT_FILE_BACKED`.
 - `translation.editEntry` and `translation.retranslateEntry` return `{ accepted, value, reason?, details? }`. A refused value carries `reason`, one of `placeholder`, `markup`, `icu`, `degenerate`, or `empty`, and `details` naming what failed; `translation.retranslateEntry` adds `reviewReasons` to an accepted result: the review heuristics' flags for the new value, empty when none fired.
 - `lock.state` returns `exists`, and when the lock file exists, its `version` and per-locale `keyCount`, `missing`, `stale`, and `upToDate` counts.
-- `key.value` also returns `provenance` whenever `target` is present: `origin`, `provider` and `model` for machine output, `reviewState`, and `reviewer` when one was recorded. Each `lock.state` and `status.check` locale carries `provenance` counts (`byOrigin`, `byReviewState`), and each `status.diff` locale carries `changedOrigins`, the origin of every changed key's current value. All of them are left out when `verbatra.provenance.json` is corrupt or was written by a newer verbatra; see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
 - `usage.summary` returns the last run's `usage` and, when a token budget was configured, a `budget` whose `standing` is `within`, `stopped-before-ceiling`, or `reached`, and whose `supported` says whether the counted figure is entirely the provider's own reported usage.
 
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
 The inline markup checks in `key.integrity` (`markupMatches`, `markupDetails`) and in `translation.editEntry` (the `markup` reason), a `custom:` format id in `project.snapshot`, and `budget.standing` in `usage.summary` arrived in this release.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`key.value` also returns `provenance` whenever `target` is present: `origin`, `provider` and `model` for machine output, `reviewState`, and `reviewer` when one was recorded. Each `lock.state` and `status.check` locale carries `provenance` counts (`byOrigin`, `byReviewState`), and each `status.diff` locale carries `changedOrigins`, the origin of every changed key's current value. All of them are left out when `verbatra.provenance.json` is corrupt or was written by a newer verbatra; see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
 
 ## Secret redaction
 
