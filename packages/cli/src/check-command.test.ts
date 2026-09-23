@@ -69,6 +69,34 @@ describe("run check: SDK delegation, rendering, and exit codes", () => {
     });
   });
 
+  it("--json carries each locale's provenance counts through unchanged", async () => {
+    const provenance = {
+      byOrigin: {
+        machine: 2,
+        memory: 0,
+        fuzzy: 0,
+        agent: 0,
+        human: 1,
+        import: 0,
+        unknown: 0,
+        unrecorded: 0,
+        external: 1,
+      },
+      byReviewState: { unreviewed: 4, approved: 0, rejected: 0 },
+    };
+    const summary = makeCheckSummary({
+      inSync: true,
+      locales: [{ locale: "de", missing: 0, stale: 0, upToDate: 4, inSync: true, provenance }],
+    });
+    const { deps } = recordingDeps({ check: async () => summary });
+    const cap = captureStreams();
+
+    await run(["check", "--json"], deps, cap.streams);
+
+    const envelope = parseEnvelope(cap.out()) as { result: { locales: { provenance: unknown }[] } };
+    expect(envelope.result.locales[0]?.provenance).toEqual(provenance);
+  });
+
   it("forwards --config to loadConfig", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();
