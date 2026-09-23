@@ -381,6 +381,21 @@ describe("runLlmTranslation: localeMap", () => {
     expect(result.values.get("greeting")).toBe("Olá {{name}}");
   });
 
+  it("computes review flags against the configured locales, not the mapped codes", async () => {
+    const { mechanism, inputs } = stubMechanism(
+      rawResult([{ key: "greeting", value: "Hello {{name}}" }]),
+    );
+    const result = await runLlmTranslation(request({ targetLocale: "en-GB" }), mechanism, {
+      en: "English",
+      "en-GB": "English",
+    });
+    expect(payloadOf(inputs[0])).toMatchObject({
+      sourceLocale: "English",
+      targetLocale: "English",
+    });
+    expect(result.reviewFlags?.get("greeting")?.reasons).toContain("EQUALS_SOURCE");
+  });
+
   it("keeps the mapped codes on the repair round", async () => {
     const { mechanism, inputs } = sequencedMechanism([
       { raw: rawResult([{ key: "a", value: "Hallo {{name}}" }]) },

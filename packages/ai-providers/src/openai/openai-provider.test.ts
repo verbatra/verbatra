@@ -108,16 +108,18 @@ describe("createOpenAiProvider: request building", () => {
 });
 
 describe("createOpenAiProvider: localeMap", () => {
-  it("sends the mapped source code in the payload and keeps localeMap out of the request body", async () => {
+  it("sends the mapped source code only in the payload, never in the system prompt", async () => {
+    const mapped = "English (en-US)";
     const { client, calls } = openAiStubClient(
       openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
-    await createOpenAiProvider(
-      { ...config, localeMap: { en: "en-US" } },
-      { client },
-    ).translateBatch(request());
+    await createOpenAiProvider({ ...config, localeMap: { en: mapped } }, { client }).translateBatch(
+      request(),
+    );
     const body = firstCallOf(calls);
-    expect(payloadOf(body).sourceLocale).toBe("en-US");
+    expect(payloadOf(body).sourceLocale).toBe(mapped);
+    expect(body.messages[0]?.content).toBe(OPENAI_SYSTEM_RULES);
+    expect(body.messages[0]?.content).not.toContain(mapped);
     expect(JSON.stringify(body)).not.toContain("localeMap");
   });
 });

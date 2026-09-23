@@ -103,15 +103,18 @@ describe("createGeminiProvider: request building", () => {
 });
 
 describe("createGeminiProvider: localeMap", () => {
-  it("sends the mapped target code in the payload", async () => {
+  it("sends the mapped target code only in the payload, never in the system instruction", async () => {
+    const mapped = "German (de-DE)";
     const { client, calls } = geminiStubClient(
       geminiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
-    await createGeminiProvider(
-      { ...config, localeMap: { de: "de-DE" } },
-      { client },
-    ).translateBatch(request());
-    expect(payloadOf(firstCallOf(calls)).targetLocale).toBe("de-DE");
+    await createGeminiProvider({ ...config, localeMap: { de: mapped } }, { client }).translateBatch(
+      request(),
+    );
+    const body = firstCallOf(calls);
+    expect(payloadOf(body).targetLocale).toBe(mapped);
+    expect(body.config.systemInstruction).toBe(GEMINI_SYSTEM_RULES);
+    expect(body.config.systemInstruction).not.toContain(mapped);
   });
 });
 
