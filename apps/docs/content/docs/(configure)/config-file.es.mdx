@@ -53,6 +53,7 @@ Cuando escribes la configuración en TypeScript, tu editor ofrece para `options.
 | `fuzzyCache` | objeto | desactivado | Reutiliza una traducción para una cadena de origen que cambió solo un poco. |
 | `humanEdits` | `"protect"`, `"suggest"` o `"overwrite"` | `"protect"` | Qué hace una ejecución con una clave obsoleta cuyo valor escribió una persona. |
 | `pinnedKeys` | array de strings | ninguno | Patrones de claves que ninguna escritura automática toca nunca. |
+| `network` | objeto | `any` | A qué hosts puede conectarse un proveedor. |
 | `maxBatchSize` | entero positivo | `50` | El máximo de entradas enviadas en una sola petición al proveedor. |
 | `maxLength` | objeto | ninguno | Longitudes máximas por clave para los valores traducidos, contadas en clústeres de grafemas. |
 | `maxTokens` | entero positivo | ninguno | Un presupuesto de tokens para toda la ejecución, a través de todas las llamadas al proveedor. |
@@ -146,6 +147,16 @@ Desactivado salvo que lo pongas. `fuzzyCache: { enabled: true }` permite que una
 - `"overwrite"` retraduce la clave como cualquier otra clave obsoleta, que es como se comportaba verbatra antes de que existiera este ajuste. `verbatra translate --include-human` hace lo mismo para una sola ejecución.
 
 `pinnedKeys` lista patrones de claves, donde `*` coincide con cualquier secuencia de caracteres, para claves que nunca se deben tocar automáticamente en ningún locale de destino, como `["legal.*", "brand.name"]`. Una clave fijada nunca se traduce, sugiere ni retraduce, diga lo que diga `humanEdits` o `--include-human`, y un agente de IA no puede editarla. Una persona sí puede. Un valor sin registro de procedencia (`unrecorded`) no está protegido, así que un proyecto que ya usaba verbatra antes de la procedencia sigue traduciendo. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
+### network
+
+<AvailableFrom version="0.12.0" />
+
+Limita a qué hosts puede conectarse un proveedor de traducción. `policy` es `"any"` (el valor por defecto), `"local-only"` (direcciones loopback, privadas y únicas locales) o `"allowlist"`, y `allowedHosts` lista nombres de host, comodines `*.suffix`, direcciones IP o rangos CIDR que también se permiten. La variable de entorno `VERBATRA_NETWORK_POLICY` puede fijar una política más estricta en CI. Consulta [Política de red](/docs/network-policy).
+
+```ts
+network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
+```
 
 ### maxBatchSize
 
@@ -318,15 +329,16 @@ Dos de los lugares de búsqueda no se pueden cubrir. La propiedad `"verbatra"` d
 
 ### Lo que el documento no puede comprobar
 
-El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Cinco reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
+El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Seis reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
 
 - `targetLocales` no debe incluir `sourceLocale`. Comparar dos valores hermanos no tiene vocabulario en el borrador.
 - `targetLocales` no debe contener dos locales que solo difieran en mayúsculas y minúsculas.
 - Un código de locale debe ser aceptado por `Intl.getCanonicalLocales`, no solo encajar en la gramática. El patrón no ve una variante repetida como `de-1996-1996`.
 - Cada clave de `provider.options.localeMap` debe ser `sourceLocale` o uno de los `targetLocales`. Como en la primera regla, compara un valor con sus hermanos.
 - `provider.options.apiKeyEnvVar` (solo en openai-compatible) no debe nombrar la variable de entorno de un proveedor alojado. Expresarlo obligaría a fijar esos nombres de variable dentro de un documento publicado, que luego se desincronizaría del código que los posee.
+- Una entrada de `network.allowedHosts` tiene que ser una dirección o un rango válidos, no solo encajar en el patrón: el patrón no ve un octeto IPv4 mayor que 255, un prefijo CIDR más largo que la dirección ni un IPv6 mal formado.
 
-Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas cinco reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
+Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas seis reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
 
 ## El directorio de trabajo y .env
 

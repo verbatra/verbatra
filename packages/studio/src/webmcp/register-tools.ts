@@ -15,6 +15,10 @@ import {
   agentRetranslateEntryParamsSchema,
   RETRANSLATE_ENTRY_METHOD,
 } from "../shared/rpc/retranslate-entry.js";
+import {
+  HUMAN_ONLY_METHOD_NAMES,
+  type HumanOnlyMethodName,
+} from "../shared/rpc/review-decision.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import { PROJECT_SNAPSHOT_METHOD } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
@@ -63,7 +67,15 @@ interface AgentInput {
   readonly stamp: Readonly<Record<string, unknown>>;
 }
 
-const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
+type AgentMethodName = Exclude<RpcMethodName, HumanOnlyMethodName>;
+
+const HUMAN_ONLY: ReadonlySet<RpcMethodName> = new Set(HUMAN_ONLY_METHOD_NAMES);
+
+function isAgentMethod(method: RpcMethodName): method is AgentMethodName {
+  return !HUMAN_ONLY.has(method);
+}
+
+const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   [PROJECT_SNAPSHOT_METHOD]: {
     description:
       "Reads the loaded project configuration: source locale, target locales, file format and pattern, provider id, glossary provenance, and the server capability flags. " +
@@ -161,7 +173,8 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Lists the entries the last recorded translation run flagged as needing human review, per locale, with the reason code behind each flag. " +
       "Use it to find the translations most worth a second look before spending anything on them. " +
       "Do not treat an unavailable result as an empty queue: it means no run has ever recorded a status snapshot, or that snapshot is missing, corrupt, or at an unrecognized version. " +
-      "Only a real translation run refreshes the snapshot, so an entry corrected through verbatra_translation_editEntry stays listed here until the next run. " +
+      "An entry leaves the list once a person approves or rejects its current value in the dashboard, rewrites it, or it loses its translation; an entry corrected through verbatra_translation_editEntry stays listed, because an agent's edit still needs a person's review. " +
+      "Each remaining entry carries the provenance of its current value when the project's provenance file is readable. " +
       "Takes no parameters. Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
@@ -303,7 +316,7 @@ export async function registerAgentTools(
   const spendGranted = snapshot.result.capabilities.spend;
   const registered: string[] = [];
   const failures: ToolRegistrationFailure[] = [];
-  for (const method of RPC_METHOD_NAMES) {
+  for (const method of RPC_METHOD_NAMES.filter(isAgentMethod)) {
     const descriptor = TOOL_DESCRIPTORS[method];
     if (isAborted(signal)) {
       break;

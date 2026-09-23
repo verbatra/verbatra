@@ -23,7 +23,7 @@ export function OverlayBackdrop({
   return (
     <button
       type="button"
-      className="absolute inset-0 z-0 cursor-default border-none bg-foreground/40"
+      className="absolute inset-0 z-0 cursor-default border-none bg-overlay"
       onClick={onClose}
       aria-label={label}
     />

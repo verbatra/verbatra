@@ -53,6 +53,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `fuzzyCache` | object | off | Reuse a translation for a source string that changed only slightly. |
 | `humanEdits` | `"protect"`, `"suggest"`, or `"overwrite"` | `"protect"` | What a run does with a stale key whose value a person wrote. |
 | `pinnedKeys` | string array | none | Key patterns no machine write ever touches. |
+| `network` | object | `any` | Which hosts a provider may connect to. |
 | `maxBatchSize` | positive integer | `50` | The maximum entries sent in a single provider request. |
 | `maxLength` | object | none | Per-key maximum lengths for translated values, counted in grapheme clusters. |
 | `maxTokens` | positive integer | none | A whole-run token budget across every provider call. |
@@ -146,6 +147,16 @@ Off unless you set it. `fuzzyCache: { enabled: true }` lets a key whose source t
 - `"overwrite"` retranslates the key like any other stale key, which is how verbatra behaved before this setting existed. `verbatra translate --include-human` does the same for one run.
 
 `pinnedKeys` lists key patterns, where `*` matches any run of characters, for keys that must never be machine-touched in any target locale, such as `["legal.*", "brand.name"]`. A pinned key is never translated, suggested, or retranslated, whatever `humanEdits` or `--include-human` says, and an AI agent cannot edit it. A person still can. A value with no provenance record yet (`unrecorded`) is not protected, so a project that adopted verbatra before provenance existed keeps translating. See [Protecting human translations](/docs/protecting-human-translations).
+
+### network
+
+<AvailableFrom version="0.12.0" />
+
+Restricts which hosts a translation provider may connect to. `policy` is `"any"` (the default), `"local-only"` (loopback, private and unique-local addresses) or `"allowlist"`, and `allowedHosts` lists host names, `*.suffix` wildcards, IP addresses or CIDR ranges that are also permitted. The `VERBATRA_NETWORK_POLICY` environment variable can pin a stricter policy in CI. See [Network policy](/docs/network-policy).
+
+```ts
+network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
+```
 
 ### maxBatchSize
 
@@ -318,15 +329,16 @@ Two of the discovery places cannot be served. The `"verbatra"` property inside `
 
 ### What the document cannot check
 
-The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Five rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
+The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Six rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
 
 - `targetLocales` must not include `sourceLocale`. Comparing two sibling values has no vocabulary in the draft.
 - `targetLocales` must not contain two locales that differ only in case.
 - A locale code must be accepted by `Intl.getCanonicalLocales`, not only match the grammar. The pattern cannot see a repeated variant such as `de-1996-1996`.
 - Every key of `provider.options.localeMap` must be `sourceLocale` or one of `targetLocales`. Like the first rule, this compares a value with its siblings.
 - `provider.options.apiKeyEnvVar` (openai-compatible only) must not name a hosted provider's environment variable. Expressing it would hard-code the hosted variable names into a shipped document, which would then drift from the code that owns them.
+- An entry of `network.allowedHosts` must be a valid address or range, not only match the pattern: the pattern cannot see an IPv4 octet above 255, a CIDR prefix longer than the address, or malformed IPv6.
 
-That is the complete list. A config the editor shows as clean can still fail one of these five, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
+That is the complete list. A config the editor shows as clean can still fail one of these six, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
 
 ## The working directory and .env
 

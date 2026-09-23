@@ -521,7 +521,7 @@ function selectRunMode(
     ? { kind: "plan", providerKind }
     : {
         kind: "translate",
-        provider: selectProvider(machineProvider, createProvider),
+        provider: selectProvider(machineProvider, createProvider, { network: config.network }),
         providerKind,
       };
 }
@@ -602,6 +602,11 @@ function estimateFields(
  * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the provider could not be constructed,
  * most often because its API key environment variable is unset. Not thrown on a dry run, which
  * never constructs a provider.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown before the provider is constructed or any
+ * API key is read. Not thrown on a dry run.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid. Not thrown on a dry run.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version. A dry run reads it once before any locale runs; a live run reads it per
  * locale, so this can abort the run after other locales have already been written.

@@ -303,6 +303,7 @@ Un échec de fournisseur ne remonte jamais comme une erreur SDK brute, qui pourr
 | `PROVIDER_REFUSED` | Le modèle a refusé de répondre. |
 | `PROVIDER_BLOCKED` | La requête ou la réponse a été bloquée ou filtrée pour raison de sécurité. |
 | `PROVIDER_ERROR` | Tout ce qui est inclassable. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. |
+| `NETWORK_POLICY_VIOLATION` | La [politique réseau](/docs/network-policy) a refusé la requête juste avant son envoi : le nom d'hôte pointait vers une adresse que la politique n'autorise pas, ou une réponse redirigeait vers un hôte refusé. Le message ne nomme que l'hôte. Réessayer n'aidera pas. |
 
 Un échec n'affecte que son propre sous-lot : les clés échouées sont retenues et reprises à l'exécution suivante.
 

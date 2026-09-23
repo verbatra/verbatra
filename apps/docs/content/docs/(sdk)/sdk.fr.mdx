@@ -268,7 +268,7 @@ Entrée : `{ cwd? }`. Aucune config requise. Renvoie un `LockFile`.
 
 <AvailableFrom version="0.12.0" />
 
-Lit le fichier de provenance lui-même (`verbatra.provenance.json`, aussi exporté sous `PROVENANCE_FILE_NAME`) et renvoie sa forme stockée : `{ version, locales }`, où chaque locale associe chaque clé à un enregistrement `{ origin, provider?, model?, valueHash, reviewState?, reviewer? }`. Il ne contient aucun texte traduit. Un fichier absent, ou écrit par un verbatra plus récent, se lit comme vide ; un fichier corrompu lève `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff` et `lockState` rapportent déjà la vue interprétée (`KeyProvenance`), qui distingue aussi une valeur sans enregistrement (`unrecorded`) d'une valeur modifiée hors de verbatra depuis son enregistrement (`external`).
+Lit le fichier de provenance lui-même (`verbatra.provenance.json`, aussi exporté sous `PROVENANCE_FILE_NAME`) et renvoie sa forme stockée : `{ version, locales }`, où chaque locale associe chaque clé à un enregistrement `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }`. Il ne contient aucun texte traduit. Un fichier absent, ou écrit par un verbatra plus récent, se lit comme vide ; un fichier corrompu lève `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff` et `lockState` rapportent déjà la vue interprétée (`KeyProvenance`), qui distingue aussi une valeur sans enregistrement (`unrecorded`) d'une valeur modifiée hors de verbatra depuis son enregistrement (`external`).
 
 Entrée : `{ cwd? }`. Aucune config nécessaire. Renvoie un `ProvenanceFile`.
 
@@ -280,9 +280,17 @@ Entrée : `{ cwd? }`. Aucune config requise. Renvoie `{ available: false }` ou `
 
 Un instantané écrit par une version antérieure à l'application du budget de tokens est toujours lu, mais son `budget` est omis quand il indique `supported: false` : à l'époque, cela voulait dire que rien n'était compté, donc son `tokensUsed: 0` n'est pas un décompte. Les instantanés écrits désormais gardent la même `version` et ajoutent seulement un champ marqueur qu'un Studio ou un serveur d'agents plus ancien ignore : un lecteur plus ancien continue donc d'afficher la file de révision et l'usage. Tant qu'il n'est pas mis à jour, il peut afficher un budget estimé comme non suivi.
 
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+Lit la file de révision : les clés que la dernière exécution a signalées (l'instantané de `runStatus`), moins toutes celles dont quelqu'un s'est occupé depuis. Un signalement quitte la file dès que sa valeur actuelle est approuvée ou rejetée dans `verbatra.provenance.json`, dès qu'une personne a écrit ou importé une nouvelle valeur pour elle, ou dès qu'elle n'a plus de traduction ; une valeur réécrite par un agent reste. Comme les décisions viennent de fichiers commités, une personne de ton équipe avec le même état d'exécution voit la même file. Ne lève jamais : un fichier d'état inutilisable donne `{ available: false }`, un fichier de provenance illisible laisse les signalements non filtrés, et une locale dont le fichier ne peut pas être lu garde ses signalements tels qu'enregistrés.
+
+Entrée : `{ config, cwd? }`. Renvoie la forme de `runStatus`, chaque entrée de `needsReview` portant en plus `provenance`, la `KeyProvenance` de sa valeur actuelle, quand le fichier de provenance est lisible.
+
 ## Opérations sur une seule clé
 
-Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de révision. Toutes les trois résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
+Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de révision. Toutes résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
 
 ### keyValue
 
@@ -315,6 +323,24 @@ La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machi
 <AvailableFrom version="0.12.0" />
 
 Une clé dont la valeur actuelle a été écrite, importée ou modifiée hors de verbatra par une personne lève `KEY_PROTECTED` dans le verrou d'écriture, avant l'appel au fournisseur, sauf si tu passes `includeHuman: true` ou si la config fixe `humanEdits: "overwrite"`. Si le fichier de provenance vient d'un verbatra plus récent, toute valeur existante compte comme protégée. Une clé qui correspond à `pinnedKeys` lève `KEY_PINNED` avant la construction du fournisseur, même avec `includeHuman`.
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et l'accepte. N'écrit que `verbatra.provenance.json`, jamais un fichier de locale ni le fichier de verrouillage, et n'appelle aucun fournisseur. L'approbation enregistre aussi le hash source de la clé dans le fichier de verrouillage, si bien qu'elle redevient non relue dès que la source change ; toute écriture ultérieure qui change la valeur démarre un nouvel enregistrement non relu.
+
+Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedValue` est le texte que la personne a vu : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et la refuse, et supprime cette valeur pour qu'elle soit remplacée. La clé est retirée du fichier de locale et son entrée de verrou est supprimée : `check` et `diff` la signalent comme manquante et la prochaine exécution de `translate` la remplit à nouveau (avec `provider: { id: "none" }`, elle reste manquante jusqu'à ce que quelqu'un écrive une valeur). L'enregistrement de provenance est conservé comme `rejected` avec un hash du texte supprimé, et l'entrée correspondante de la mémoire de traduction de cette machine est retirée. N'appelle aucun fournisseur.
+
+Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`, vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF ou Flutter ARB, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
+
+Les deux appels vérifient le fichier de provenance avant d'écrire quoi que ce soit et ne signalent jamais une décision qu'ils n'ont pas pu enregistrer : un fichier écrit par un verbatra plus récent, ou un fichier que la décision ferait grossir au-delà de la taille que verbatra relit, lève `PROVENANCE_FILE_UNWRITABLE`.
 
 ## Lectures de contenu en masse
 
@@ -679,15 +705,22 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `CONFIG_INVALID` | une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu |
 | `UNKNOWN_FORMAT` | aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute lecture de fichier |
 | `UNKNOWN_LOCALE` | une locale demandée n'est pas parmi les locales cibles configurées |
-| `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`) |
+| `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
 | `KEY_PROTECTED` | `retranslateEntry` a refusé de remplacer une valeur écrite, importée ou modifiée hors de verbatra par une personne, car ni `includeHuman` ni `humanEdits: "overwrite"` ne l'autorisaient |
 | `KEY_PINNED` | la clé correspond aux `pinnedKeys` de la config, donc une écriture automatique a été refusée (`retranslateEntry`, et `editEntry` avec `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante |
 | `MACHINE_TRANSLATION_DISABLED` | la configuration fixe `provider: { id: "none" }`, donc une action dépensant auprès du fournisseur a été refusée avant qu'aucun fournisseur ne soit construit (`retranslateEntry`, `assertMachineTranslationEnabled`) ; `translate` et `watch` ne la lèvent jamais |
+| `NETWORK_POLICY_VIOLATION` | la [politique réseau](/docs/network-policy) effective n'autorise pas le point de terminaison du fournisseur ni son proxy ; levée par `translate` hors exécution à blanc, par `watch` au démarrage et par `retranslateEntry`, avant de construire le fournisseur ou de lire une clé d'API |
 | `SOURCE_UNREADABLE` | le fichier de la locale source n'existe pas |
 | `SOURCE_INVALID` | le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'erreur de lecture de l'adaptateur |
 | `LOCK_FILE_INVALID` | le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une version non prise en charge |
 | `PROVENANCE_FILE_INVALID` | le fichier de provenance est présent mais corrompu, trop volumineux ou mal formé ; levé par une écriture (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`) avant qu'elle ne change quoi que ce soit, et par `loadProvenance`, jamais par un rapport ; celui d'un verbatra plus récent est laissé intact à la place, et `translate`, `watch` et `importWorkbook` signalent l'avis `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_UNWRITABLE` | une décision de revue n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit |
+| `REVIEW_VALUE_CHANGED` | la clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue (`approveEntry`, `rejectEntry`) |
+| `REVIEW_SOURCE_CHANGED` | la source a changé depuis l'écriture de la valeur, qui ne peut donc pas être approuvée telle quelle (`approveEntry`) |
+| `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF et Flutter ARB, donc `rejectEntry` a restauré le fichier à la place |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` a échoué après avoir réécrit le fichier de locale, et la restauration du fichier de locale ou du fichier de provenance a échoué aussi ; le message nomme l'échec d'origine (aussi la `cause`) et les fichiers à récupérer depuis le contrôle de version |
+| `REVIEWER_INVALID` | `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | le verrou d'écriture d'une locale n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
 | `GLOSSARY_NOT_FILE_BACKED` | le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | le fichier de glossaire n'a pas pu être écrit (`updateGlossaryTerm`) |

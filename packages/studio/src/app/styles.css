@@ -30,6 +30,7 @@
   --v-warning-soft: hsl(43 96% 50% / 15%);
   --v-danger: hsl(0 75% 40%);
   --v-danger-soft: hsl(0 84% 60% / 10%);
+  --v-danger-foreground: hsl(0 0% 100%);
   --v-neutral: hsl(243 10% 36%);
   --v-neutral-soft: hsl(240 30% 95%);
 
@@ -42,6 +43,8 @@
 
   --v-shadow-panel: 0 8px 24px -12px hsl(244 40% 20% / 22%);
   --v-shadow-panel-lg: 0 24px 64px -28px hsl(244 40% 20% / 32%);
+
+  --v-overlay: hsl(240 30% 7% / 40%);
 }
 
 :root[data-theme="dark"] {
@@ -74,6 +77,7 @@
   --v-warning-soft: hsl(43 96% 56% / 16%);
   --v-danger: hsl(0 91% 75%);
   --v-danger-soft: hsl(0 91% 71% / 15%);
+  --v-danger-foreground: hsl(0 60% 12%);
   --v-neutral: hsl(240 14% 68%);
   --v-neutral-soft: hsl(241 26% 17%);
 
@@ -86,6 +90,8 @@
 
   --v-shadow-panel: 0 8px 24px -12px hsl(240 40% 2% / 62%);
   --v-shadow-panel-lg: 0 16px 48px -20px hsl(240 40% 2% / 68%);
+
+  --v-overlay: hsl(240 40% 2% / 70%);
 }
 
 @theme {
@@ -130,6 +136,7 @@
   --color-warning-soft: var(--v-warning-soft);
   --color-danger: var(--v-danger);
   --color-danger-soft: var(--v-danger-soft);
+  --color-danger-foreground: var(--v-danger-foreground);
   --color-neutral: var(--v-neutral);
   --color-neutral-soft: var(--v-neutral-soft);
 
@@ -142,6 +149,8 @@
 
   --shadow-panel: var(--v-shadow-panel);
   --shadow-panel-lg: var(--v-shadow-panel-lg);
+
+  --color-overlay: var(--v-overlay);
 }
 
 @layer base {

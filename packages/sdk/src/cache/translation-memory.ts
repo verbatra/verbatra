@@ -171,3 +171,45 @@ export async function feedTranslationMemory(
     await writeTranslationMemory(path, applyAdditions(memory, fingerprint, additionsByLocale), fs);
   } catch {}
 }
+
+function withoutMatchingValue(
+  memory: TranslationMemory,
+  locale: string,
+  contentHash: string,
+  matches: (value: string) => boolean,
+): TranslationMemory | undefined {
+  let changed = false;
+  const entries: Record<string, Record<string, Record<string, string>>> = {};
+  for (const [fingerprint, locales] of Object.entries(memory.entries)) {
+    const hashes = locales[locale];
+    const value = hashes?.[contentHash];
+    if (hashes === undefined || value === undefined || !matches(value)) {
+      entries[fingerprint] = locales;
+      continue;
+    }
+    const { [contentHash]: _evicted, ...rest } = hashes;
+    entries[fingerprint] = { ...locales, [locale]: rest };
+    changed = true;
+  }
+  return changed ? { ...memory, entries } : undefined;
+}
+
+export async function evictMemoryValue(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+  contentHash: string,
+  matches: (value: string) => boolean,
+): Promise<void> {
+  try {
+    const path = cacheFilePath(cwd);
+    const { memory, writable } = await readTranslationMemory(path, fs);
+    if (!writable) {
+      return;
+    }
+    const next = withoutMatchingValue(memory, locale, contentHash, matches);
+    if (next !== undefined) {
+      await writeTranslationMemory(path, next, fs);
+    }
+  } catch {}
+}

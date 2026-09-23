@@ -1,4 +1,5 @@
 import { type LlmMechanism, runLlmTranslation } from "../llm/run.js";
+import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
@@ -11,6 +12,7 @@ const PROVIDER_ID = "openai";
 
 export interface OpenAiDeps {
   readonly client?: OpenAiClient;
+  readonly network?: ProviderNetwork;
 }
 
 export function createOpenAiProvider(
@@ -18,7 +20,7 @@ export function createOpenAiProvider(
   deps: OpenAiDeps = {},
 ): TranslationProvider {
   const validConfig = openAiConfigSchema.parse(config);
-  const client = deps.client ?? createDefaultClient();
+  const client = deps.client ?? createDefaultClient(deps.network);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,

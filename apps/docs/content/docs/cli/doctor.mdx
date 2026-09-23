@@ -31,6 +31,7 @@ verbatra doctor [flags]
 | Format adapter | the configured `format` resolves to a file adapter |
 | Provider | the configured `provider.id` resolves to a provider factory |
 | API key environment variable | the variable that provider reads its key from is set |
+| Network policy | the effective [network policy](/docs/network-policy) permits the host the configured provider connects to, and any proxy it would use; the detail names the policy, where it comes from, and the host |
 | Source locale file | the source locale file exists at its resolved path, is a regular file, and parses under the configured format |
 | Plural rules | always (informational): names the ICU and CLDR versions verbatra reads plural categories from, and any target locale ICU has no plural rules for |
 | Locale codes | always (informational): names every configured locale code that is valid but not in canonical BCP 47 form, with the canonical form to use |
@@ -43,7 +44,7 @@ The Plural rules check is informational and never fails: a target locale it name
 
 The Locale codes check is informational and never fails either. A code such as `zh-hant-tw`, `en-us`, or the deprecated `iw`, `in`, or `tl` is valid, so it loads and translates as written, and this check suggests `zh-Hant-TW`, `en-US`, `he`, `id`, or `fil` instead. File names follow the code in your config, so nothing is renamed until you change it yourself. A code that is not valid BCP 47 at all, such as `en_US`, never reaches this check: it fails the Configuration check. See [Locale codes](/docs/config-file#locale-codes).
 
-Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the six checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
+Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the seven checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
 
 Four details are worth knowing:
 

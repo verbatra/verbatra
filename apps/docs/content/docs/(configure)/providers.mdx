@@ -303,6 +303,7 @@ A provider failure never surfaces as a raw SDK error, which could carry request 
 | `PROVIDER_REFUSED` | The model declined to answer. |
 | `PROVIDER_BLOCKED` | The request or response was safety-blocked or filtered. |
 | `PROVIDER_ERROR` | Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. |
+| `NETWORK_POLICY_VIOLATION` | The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host. Retrying will not help. |
 
 A failure affects only its own sub-batch: the failed keys are withheld and picked up again on the next run.
 

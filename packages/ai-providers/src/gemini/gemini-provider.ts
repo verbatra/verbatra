@@ -1,4 +1,5 @@
 import { type LlmCompletion, type LlmMechanism, runLlmTranslation } from "../llm/run.js";
+import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
@@ -11,6 +12,7 @@ const PROVIDER_ID = "gemini";
 
 export interface GeminiDeps {
   readonly client?: GeminiClient;
+  readonly network?: ProviderNetwork;
 }
 
 export function createGeminiProvider(
@@ -18,7 +20,7 @@ export function createGeminiProvider(
   deps: GeminiDeps = {},
 ): TranslationProvider {
   const validConfig = geminiConfigSchema.parse(config);
-  const client = deps.client ?? createDefaultClient();
+  const client = deps.client ?? createDefaultClient(deps.network);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,

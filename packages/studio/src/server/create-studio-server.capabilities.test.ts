@@ -708,3 +708,48 @@ describe("translation.editEntry's per-(locale,key) in-flight guard, wired end to
     }
   });
 });
+
+describe.each(["review.approve", "review.reject"])(
+  "%s's dispatch-layer rate limit, wired end to end",
+  (method) => {
+    it("trips after the configured ceiling and a call under the limit is unaffected", async () => {
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const params = { locale: "de", key: "greeting", expectedValue: "Hallo" };
+          const first = await postRpc(server.url, cookie, method, params);
+          expect(first.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+
+          const second = await postRpc(server.url, cookie, method, params);
+          expect(second.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+
+          const third = await postRpc(server.url, cookie, method, params);
+          expect(third.status).toBe(429);
+          expect(third.body).toMatchObject({ ok: false, error: { code: "METHOD_RATE_LIMITED" } });
+        },
+        {
+          token: TOKEN,
+          loader: stubLoader(),
+          reviewDecisionRateLimitWindowMs: 60_000,
+          reviewDecisionRateLimitMax: 2,
+        },
+      );
+    });
+  },
+);
+
+describe("review decisions: the default rate limit", () => {
+  it("allows a reviewer to decide on many rows in a minute before limiting", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const params = { locale: "de", key: "greeting", expectedValue: "Hallo" };
+        for (let call = 0; call < 20; call += 1) {
+          const response = await postRpc(server.url, cookie, "review.approve", params);
+          expect(response.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+        }
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
+  });
+});

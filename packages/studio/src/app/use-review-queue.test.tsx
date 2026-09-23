@@ -37,8 +37,14 @@ function queueAnswer(result: ReviewQueueData): { readonly ok: true; readonly res
 
 let seen: RefreshableView<ReviewQueueData> = { kind: "loading" };
 
-function Probe({ token }: { readonly token?: number }): ReactNode {
-  seen = useReviewQueue(token);
+function Probe({
+  token,
+  reload,
+}: {
+  readonly token?: number;
+  readonly reload?: number;
+}): ReactNode {
+  seen = useReviewQueue(token, reload);
   return <span data-testid="kind">{seen.kind}</span>;
 }
 
@@ -145,5 +151,16 @@ describe("useReviewQueue", () => {
     await flush();
 
     expect(seen).toEqual({ kind: "loading" });
+  });
+
+  it("re-fetches when the caller asks for a reload, without a refresh event", async () => {
+    stubRpc({ "review.queue": queueAnswer(FLAGGED) });
+    const view = await renderAsync(<Probe token={0} reload={0} />);
+    stubRpc({ "review.queue": queueAnswer(CLEARED) });
+
+    view.rerender(<Probe token={0} reload={1} />);
+    await flush();
+
+    expect(seen.kind === "data" && seen.data).toEqual(CLEARED);
   });
 });

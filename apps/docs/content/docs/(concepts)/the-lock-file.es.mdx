@@ -162,6 +162,38 @@ edición de una sola clave lo conserva sin avisar. El registro dice qué vía de
 un valor; no es a prueba de manipulaciones, porque quien puede editar los archivos de locale también
 puede editarlo a él.
 
+### Decisiones de revisión
+
+<AvailableFrom version="0.12.0" />
+
+Un registro también puede llevar una decisión de revisión: `approved` o `rejected`, con un nombre
+opcional en `reviewer`. La página Review de Verbatra Studio las escribe, y también `approveEntry` y
+`rejectEntry` del SDK. Ambas se aplican exactamente al valor que vio quien revisa y se rechazan si
+el valor cambió desde entonces, y ninguna guarda una decisión que no pudo registrar: un archivo de
+procedencia de una versión más nueva de verbatra, o uno que la decisión haría crecer por encima del
+tamaño que verbatra vuelve a leer, hace fallar la llamada con `PROVENANCE_FILE_UNWRITABLE` y no
+cambia nada.
+
+- **Una aprobación** solo cambia el archivo de procedencia. También guarda el hash del texto de
+  origen contra el que se dio, así que una aprobación cuyo origen cambió desde entonces vuelve a
+  contar como sin revisar. Un valor cuyo origen cambió desde que se escribió no se puede aprobar;
+  edítalo o retradúcelo primero.
+- **Un rechazo** elimina el valor del archivo de locale y su entrada del archivo de bloqueo, de modo
+  que la clave cuenta como faltante hasta que la siguiente ejecución de `translate`, o una persona,
+  escriba un valor nuevo. El registro se queda con un hash del texto eliminado, y la entrada
+  correspondiente de la memoria de traducción de esta máquina se borra para que la siguiente
+  ejecución no vuelva a poner el mismo texto. Si un paso falla, el archivo
+  de locale y el archivo de procedencia se restauran en caso de fallo; si eso también falla, la
+  llamada informa `REVIEW_RESTORE_FAILED` y nombra los archivos que tienes que recuperar del control
+  de versiones. Un proceso que se detiene a mitad de la escritura no se puede deshacer así. Un formato que no puede eliminar una sola
+  traducción rechaza el rechazo con `REVIEW_REJECT_UNSUPPORTED` y deja el archivo como estaba: XLIFF,
+  donde una unidad sin destino se lee como su texto de origen, y Flutter ARB, cuyo escritor conserva
+  todos los mensajes existentes.
+
+Cualquier escritura posterior que cambie el valor empieza un registro nuevo, sin revisar, así que
+editar un valor aprobado lo devuelve a revisión. El nombre en `reviewer` se guarda en un archivo con
+commit, así que es público; verbatra nunca lo rellena por su cuenta.
+
 ## Confírmalo
 
 Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale. Es la línea base compartida contra la

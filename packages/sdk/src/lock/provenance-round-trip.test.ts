@@ -1,11 +1,13 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { LocaleResource, SupportedFormat, TranslationEntry } from "@verbatra/core";
 import { SUPPORTED_FORMATS } from "@verbatra/core";
 import { createDefaultRegistry, type FormatAdapter } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
+import { diff } from "../flow/diff.js";
 import { editEntry } from "../flow/edit-entry.js";
 import { keyValue } from "../flow/key-value.js";
+import { rejectEntry } from "../flow/review-decision.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
 
 interface Fixture {
@@ -167,6 +169,53 @@ describe("provenance: a value written through every built-in adapter reads back 
 
       expect(outcomes.length).toBeGreaterThan(0);
       expect(outcomes.filter(([, origin]) => origin !== "human")).toEqual([]);
+    },
+  );
+});
+
+const KEEPS_DROPPED_KEYS: ReadonlySet<SupportedFormat> = new Set(["xliff", "arb"]);
+
+async function rejectedProject(format: SupportedFormat) {
+  const dir = await makeTempDir();
+  await seedSource(dir, format);
+  const config = baseConfig({ format, files: { pattern: FIXTURES[format].pattern } });
+  const key = plainKey(format);
+  const written = await editEntry({ config, cwd: dir, locale: "de", key, value: "Titel" });
+  expect(written.accepted).toBe(true);
+  const input = { config, cwd: dir, locale: "de", key, expectedValue: "Titel" };
+  return { dir, config, key, input };
+}
+
+describe("rejectEntry: a rejected value is removed through every built-in adapter that can", () => {
+  it.each(SUPPORTED_FORMATS.filter((format) => !KEEPS_DROPPED_KEYS.has(format)))(
+    "%s drops the key from the target and reports it missing",
+    async (format) => {
+      const { dir, config, key, input } = await rejectedProject(format);
+
+      const result = await rejectEntry(input);
+
+      expect(result.provenance).toEqual({ origin: "human", reviewState: "rejected" });
+      expect((await keyValue({ config, cwd: dir, locale: "de", key })).target).toBeUndefined();
+      expect((await diff({ config, cwd: dir })).locales[0]?.missing).toContain(key);
+    },
+  );
+
+  it.each([...KEEPS_DROPPED_KEYS])(
+    "%s keeps a dropped key, so the rejection is refused and the file restored",
+    async (format) => {
+      const { dir, config, key, input } = await rejectedProject(format);
+      const path = join(dir, FIXTURES[format].pattern.replace("{locale}", "de"));
+      const before = await readFile(path);
+
+      await expect(rejectEntry(input)).rejects.toMatchObject({
+        code: "REVIEW_REJECT_UNSUPPORTED",
+      });
+
+      expect(await readFile(path)).toEqual(before);
+      expect(await keyValue({ config, cwd: dir, locale: "de", key })).toMatchObject({
+        target: "Titel",
+        provenance: { origin: "human", reviewState: "unreviewed" },
+      });
     },
   );
 });

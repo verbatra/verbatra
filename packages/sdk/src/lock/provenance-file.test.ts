@@ -10,6 +10,7 @@ import {
   PROVENANCE_FILE_NAME,
   type ProvenanceFile,
   type ProvenanceRecord,
+  planProvenanceRecord,
   provenanceFilePath,
   readProvenanceFile,
   serializeProvenanceFile,
@@ -396,5 +397,97 @@ describe("writeProvenanceLocale: the read limit", () => {
     expect(await writeProvenanceLocale(newerDir, defaultFs, "de", patch, () => true)).toBe(
       "newer-version",
     );
+  });
+});
+
+describe("planProvenanceRecord", () => {
+  it("builds the record from the prior one and serializes the file with it", async () => {
+    const dir = await makeTempDir();
+    await writeRaw(dir, serializeProvenanceFile(fileWith({ de: { greeting: machine("Hallo") } })));
+
+    const plan = await planProvenanceRecord(dir, defaultFs, "de", "greeting", (prior) => ({
+      ...(prior ?? machine("x")),
+      reviewState: "approved",
+      reviewedSourceHash: "abc",
+    }));
+
+    expect(plan.kind).toBe("write");
+    expect(plan.kind === "write" && plan.content).toContain(
+      '"reviewState":"approved","reviewedSourceHash":"abc"',
+    );
+    expect(plan.kind === "write" && plan.path).toBe(provenanceFilePath(dir));
+  });
+
+  it("gives the builder no prior record for a key or locale without one, __proto__ included", async () => {
+    const dir = await makeTempDir();
+    const seen: (ProvenanceRecord | undefined)[] = [];
+
+    const plan = await planProvenanceRecord(dir, defaultFs, "de", "__proto__", (prior) => {
+      seen.push(prior);
+      return machine("x");
+    });
+
+    expect(seen).toEqual([undefined]);
+    expect(plan.kind === "write" && JSON.parse(plan.content).locales.de).toEqual({
+      ["__proto__"]: machine("x"),
+    });
+  });
+
+  it("reports unchanged when the record is already stored", async () => {
+    const dir = await makeTempDir();
+    await writeRaw(dir, serializeProvenanceFile(fileWith({ de: { greeting: machine("Hallo") } })));
+
+    const plan = await planProvenanceRecord(dir, defaultFs, "de", "greeting", () =>
+      machine("Hallo"),
+    );
+
+    expect(plan).toEqual({ kind: "unchanged", record: machine("Hallo") });
+  });
+
+  it("reports a file from a newer verbatra without building a record", async () => {
+    const dir = await makeTempDir();
+    await writeRaw(dir, JSON.stringify({ version: 2, locales: {} }));
+
+    const plan = await planProvenanceRecord(dir, defaultFs, "de", "greeting", () => {
+      throw new Error("must not build");
+    });
+
+    expect(plan).toEqual({ kind: "newer-version" });
+  });
+
+  it("reports a file that would grow past the limit", async () => {
+    const dir = await makeTempDir();
+
+    const plan = await planProvenanceRecord(
+      dir,
+      defaultFs,
+      "de",
+      "greeting",
+      () => machine("x"),
+      10,
+    );
+
+    expect(plan).toEqual({ kind: "too-large" });
+  });
+});
+
+describe("applyProvenancePatch: a replaced key", () => {
+  it("takes the new record even where the no-op rule would keep the prior one", () => {
+    const prior = { greeting: machine("Hallo") };
+    const decided: ProvenanceRecord = { ...machine("Hallo"), reviewState: "rejected" };
+
+    const kept = applyProvenancePatch(
+      prior,
+      { records: new Map([["greeting", decided]]) },
+      () => true,
+    );
+    const replaced = applyProvenancePatch(
+      prior,
+      { records: new Map([["greeting", decided]]), replace: new Set(["greeting"]) },
+      () => true,
+    );
+
+    expect(kept.greeting).toEqual(machine("Hallo"));
+    expect(replaced.greeting).toEqual(decided);
   });
 });

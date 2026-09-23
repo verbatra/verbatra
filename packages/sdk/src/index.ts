@@ -206,6 +206,21 @@ export {
   retranslateEntry,
 } from "./flow/retranslate-entry.js";
 export {
+  approveEntry,
+  type ReviewDecisionDeps,
+  type ReviewDecisionInput,
+  type ReviewDecisionResult,
+  rejectEntry,
+} from "./flow/review-decision.js";
+export {
+  type ReviewQueueDeps,
+  type ReviewQueueEntry,
+  type ReviewQueueInput,
+  type ReviewQueueLocale,
+  type ReviewQueueResult,
+  reviewQueue,
+} from "./flow/review-queue.js";
+export {
   type RunStatusDeps,
   type RunStatusInput,
   type RunStatusResult,
@@ -345,7 +360,7 @@ export type {
 export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
-export type { CreateProvider } from "./selection/select-provider.js";
+export type { CreateProvider, CreateProviderContext } from "./selection/select-provider.js";
 export {
   type CreateWatcher,
   type RunTranslate,

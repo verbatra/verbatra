@@ -12,6 +12,7 @@ const FOCUSABLE_SELECTOR = [
 export interface DialogA11yOptions {
   readonly isOpen: boolean;
   readonly onClose: () => void;
+  readonly shouldRestoreFocus?: () => boolean;
 }
 
 function focusableElements(container: HTMLElement): HTMLElement[] {
@@ -37,12 +38,15 @@ function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
 export function useDialogA11y<T extends HTMLElement>({
   isOpen,
   onClose,
+  shouldRestoreFocus,
 }: DialogA11yOptions): RefObject<T | null> {
   const containerRef = useRef<T | null>(null);
   const onCloseRef = useRef(onClose);
+  const shouldRestoreFocusRef = useRef(shouldRestoreFocus);
 
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
+    shouldRestoreFocusRef.current = shouldRestoreFocus;
   });
 
   useEffect(() => {
@@ -69,7 +73,9 @@ export function useDialogA11y<T extends HTMLElement>({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      previouslyFocused?.focus();
+      if (shouldRestoreFocusRef.current?.() !== false) {
+        previouslyFocused?.focus();
+      }
     };
   }, [isOpen]);
 

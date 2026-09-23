@@ -376,7 +376,7 @@ Input: `{ cwd? }`. No config needed. Returns a `LockFile`.
 
 Reads the provenance file itself (`verbatra.provenance.json`, also exported as
 `PROVENANCE_FILE_NAME`) and returns its stored shape: `{ version, locales }`, where each locale maps
-keys to a record `{ origin, provider?, model?, valueHash, reviewState?, reviewer? }`. It holds no
+keys to a record `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }`. It holds no
 translated text. A missing file, or one written by a newer verbatra, reads as empty; a corrupt one
 throws `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff`, and `lockState`
 already report the interpreted view (`KeyProvenance`), which also tells a value with no record
@@ -400,9 +400,25 @@ its `tokensUsed: 0` is not a count. Snapshots written now keep the same `version
 marker field that an older Studio or agent server ignores, so an older reader keeps showing the
 review queue and usage. Until it is upgraded, it may show an estimated budget as not tracked.
 
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+Reads the review queue: the keys the last run flagged (the `runStatus` snapshot), minus every key
+dealt with since. A flag leaves the queue once its current value is approved or rejected in
+`verbatra.provenance.json`, once a person wrote or imported a new value for it, or once it has no
+translation any more; a value an agent rewrote stays. Because the decisions come from committed
+files, a teammate with the same run status sees the same queue. Never throws: an unusable status
+file gives `{ available: false }`, an unreadable provenance file leaves the flags unnarrowed, and a
+locale whose file cannot be read keeps its flags as recorded.
+
+Input: `{ config, cwd? }`. Returns the `runStatus` shape, with each `needsReview` entry also
+carrying `provenance`, the `KeyProvenance` of its current value, when the provenance file is
+readable.
+
 ## Single-key operations
 
-These are the seams Verbatra Studio drives; use them to build your own review tooling. All three
+These are the seams Verbatra Studio drives; use them to build your own review tooling. All of them
 resolve `locale` and `key` fresh on every call and throw `UNKNOWN_LOCALE` or `UNKNOWN_KEY` when
 either does not exist.
 
@@ -463,6 +479,43 @@ and model. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the
 <AvailableFrom version="0.12.0" />
 
 A key whose current value a person wrote, imported, or changed outside verbatra throws `KEY_PROTECTED` inside the write lock, before the provider is called, unless `includeHuman: true` is passed or the config sets `humanEdits: "overwrite"`. When the provenance file is from a newer verbatra, any existing value counts as protected. A key matching `pinnedKeys` throws `KEY_PINNED` before the provider is constructed, even with `includeHuman`.
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+Records that a person reviewed one key's current value in one locale and accepts it. It writes only
+`verbatra.provenance.json`, never a locale file or the lock file, and calls no provider. The
+approval also stores the lock file's source hash for the key, so it reads as unreviewed again once
+the source changes; any later write that changes the value starts a fresh, unreviewed record.
+
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedValue` is the text the
+reviewer saw: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
+and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
+optional free text of at most 64 characters with no control characters (`REVIEWER_INVALID`
+otherwise), stored in the committed file and never filled in by verbatra. Returns
+`{ locale, key, provenance }`. A value with no record yet, or one changed outside verbatra, is
+recorded with the origin `unknown`.
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+Records that a person reviewed one key's current value in one locale and refuses it, and removes
+that value so it gets replaced. The key is dropped from the locale file and its lock entry is
+removed, so `check` and `diff` report it as missing and the next `translate` fills it again (under
+`provider: { id: "none" }` it stays missing until someone writes a value). The provenance record is
+kept as `rejected` with a hash of the removed text, and the matching translation-memory entry on
+this machine is dropped. Calls no provider.
+
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, checked like `approveEntry`
+except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A
+format that keeps a key it was not given, XLIFF or Flutter ARB, throws `REVIEW_REJECT_UNSUPPORTED` after
+restoring the file.
+
+Both calls check the provenance file before anything is written and never report a decision they
+could not save: a file from a newer verbatra, or one the decision would grow past the size verbatra
+reads back, throws `PROVENANCE_FILE_UNWRITABLE`.
 
 ## Bulk content reads
 
@@ -932,15 +985,22 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `CONFIG_INVALID` | a config was found but is unparseable or fails validation, or its glossary file could not be resolved |
 | `UNKNOWN_FORMAT` | no adapter is registered for the configured format; thrown before any file is read |
 | `UNKNOWN_LOCALE` | a requested locale is not among the configured target locales |
-| `UNKNOWN_KEY` | a requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`) |
+| `UNKNOWN_KEY` | a requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
 | `KEY_PROTECTED` | `retranslateEntry` refused to replace a value a person wrote, imported, or changed outside verbatra, because neither `includeHuman` nor `humanEdits: "overwrite"` allowed it |
 | `KEY_PINNED` | the key matches the config's `pinnedKeys`, so a machine write was refused (`retranslateEntry`, and `editEntry` with `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | the provider could not be built; wraps the provider's own error, including a missing API key |
 | `MACHINE_TRANSLATION_DISABLED` | the config sets `provider: { id: "none" }`, so a provider-spending action was refused before any provider was built (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` and `watch` never throw it |
+| `NETWORK_POLICY_VIOLATION` | the effective [network policy](/docs/network-policy) does not permit the provider's endpoint or its proxy; thrown by a non-dry-run `translate`, by `watch` at startup, and by `retranslateEntry`, before the provider is built or any API key read |
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |
 | `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_UNWRITABLE` | a review decision could not be saved because the provenance file is from a newer verbatra or would grow past the size verbatra reads back (`approveEntry`, `rejectEntry`); nothing is written |
+| `REVIEW_VALUE_CHANGED` | the key has no value, or its value is not the `expectedValue` the reviewer saw (`approveEntry`, `rejectEntry`) |
+| `REVIEW_SOURCE_CHANGED` | the source changed since the value was written, so it cannot be approved as it stands (`approveEntry`) |
+| `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF and Flutter ARB do, so `rejectEntry` restored the file instead |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control |
+| `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written (`updateGlossaryTerm`) |

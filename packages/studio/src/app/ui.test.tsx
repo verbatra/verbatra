@@ -52,6 +52,13 @@ describe("OverlayBackdrop", () => {
     expect(backdrop.getAttribute("aria-label")).toBe("Close the key detail");
   });
 
+  it("dims the page through the overlay token, which darkens in both themes", () => {
+    const view = render(<OverlayBackdrop onClose={() => {}} label="Close" />);
+
+    expect(view.get("button").className).toContain("bg-overlay");
+    expect(view.get("button").className).not.toContain("bg-foreground");
+  });
+
   it("calls onClose when clicked", () => {
     const onClose = vi.fn();
     const view = render(<OverlayBackdrop onClose={onClose} label="Close" />);
