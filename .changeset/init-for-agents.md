@@ -34,7 +34,12 @@ Now:
   `CONFIG_EXISTS` even under `--force`.
 - An existing `.env.example` is no longer skipped or overwritten: the key variable is appended when
   it is missing.
-- An error envelope may carry a `candidates` list.
+- A base file beside the locale files that names no locale, such as `messages.properties`,
+  `Strings.resx` or a gettext `.pot` template, is reported, and `--source` is then required even
+  with `--yes`; the next steps say which file verbatra reads the source from.
+- An error for an ambiguity or an invalid flag also lists every flag still missing, so one run
+  reports everything an agent has to pass.
+- An error envelope may carry a `candidates` list and a `missing` list.
 
 Compatibility: `init --yes` in a project whose locale files or dependencies fit several formats,
 such as plain JSON next to both `i18next` and `vue-i18n`, used to write `i18next-json` with a TODO

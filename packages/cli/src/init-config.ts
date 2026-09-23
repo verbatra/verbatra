@@ -1,8 +1,13 @@
-import { type LocaleStyle, type ScaffoldableProviderId, scaffoldingMetadata } from "@verbatra/sdk";
+import {
+  type LocaleStyle,
+  type ProviderId,
+  type ScaffoldableProviderId,
+  scaffoldingMetadata,
+} from "@verbatra/sdk";
 
 export const HUMAN_ONLY_PROVIDER = scaffoldingMetadata.humanOnlyProviderId;
 
-export const OPENAI_COMPATIBLE_PROVIDER = "openai-compatible";
+export const OPENAI_COMPATIBLE_PROVIDER = "openai-compatible" satisfies ProviderId;
 
 export type InitProviderId =
   | ScaffoldableProviderId

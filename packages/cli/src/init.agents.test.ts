@@ -23,7 +23,11 @@ interface InitJson {
   readonly apiKeyEnvVar: string | null;
   readonly detection: {
     readonly format: { readonly id: string; readonly from: string } | null;
-    readonly layout: { readonly pattern: string; readonly sourceLocale: string | null } | null;
+    readonly layout: {
+      readonly pattern: string;
+      readonly sourceLocale: string | null;
+      readonly unqualifiedSourceFile: string | null;
+    } | null;
     readonly confidence: string;
     readonly reasons: readonly string[];
   };
@@ -142,6 +146,7 @@ describe("runInit for agents", () => {
     });
     expect(result.detection.format).toEqual({ id: "yaml", from: "files" });
     expect(result.detection.confidence).toBe("medium");
+    expect(result.detection.layout?.unqualifiedSourceFile).toBeNull();
     expect(result.detection.reasons.length).toBeGreaterThan(0);
     expect(readConfig()).toContain("// The format of your locale files.");
   });
@@ -251,7 +256,132 @@ describe("runInit for agents", () => {
     expect(cap.err()).toContain(
       "[MISSING_OPTIONS] Missing --provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|none>, --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
     );
-    expect(cap.err()).toContain("Add --yes to accept the defaults");
+    expect(cap.err()).toContain(
+      "Or add --yes to accept the default for --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
+    );
+  });
+
+  it("offers no --yes hint when only flags without a default are missing", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, format: "yaml", source: "en", targets: "de", path: "i18n/{locale}.yaml" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("Missing --provider");
+    expect(cap.err()).not.toContain("--yes to accept");
+  });
+
+  it("reports an ambiguity together with every missing flag in one round trip", async () => {
+    write("locales/en.json", "{}");
+    write("locales/de.json", "{}");
+
+    const { code, out } = await initJson({});
+
+    expect(code).toBe(2);
+    const envelope = parseEnvelope(out) as {
+      code?: string;
+      message?: string;
+      candidates?: string[];
+      missing?: string[];
+    };
+    expect(envelope.code).toBe("FORMAT_AMBIGUOUS");
+    expect(envelope.candidates).toHaveLength(4);
+    expect(envelope.missing).toEqual([
+      "--provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|none>",
+    ]);
+    expect(envelope.message).toContain("Also Missing --provider");
+  });
+
+  it("reports an invalid option together with the other problems and missing flags", async () => {
+    const { code, out } = await initJson({ provider: "deepl", model: "m", format: "toml" });
+
+    expect(code).toBe(2);
+    const envelope = parseEnvelope(out) as { code?: string; message?: string; missing?: string[] };
+    expect(envelope.code).toBe("INVALID_FORMAT");
+    expect(envelope.message).toContain("[INVALID_OPTION] --model does not apply");
+    expect(envelope.missing).toEqual([
+      "--source <locale>",
+      "--targets <locales>",
+      "--path <pattern>",
+    ]);
+  });
+
+  it("lists the missing flags in the MISSING_OPTIONS envelope", async () => {
+    const { out } = await initJson({ provider: "deepl", format: "yaml" });
+    expect(parseEnvelope(out)).toMatchObject({
+      code: "MISSING_OPTIONS",
+      missing: ["--source <locale>", "--targets <locales>", "--path <pattern>"],
+    });
+  });
+
+  it.each([
+    {
+      name: "a Java base bundle",
+      files: {
+        "src/main/resources/messages.properties": "a=A\n",
+        "src/main/resources/messages_de.properties": "a=B\n",
+      },
+      base: "src/main/resources/messages.properties",
+      source: "src/main/resources/messages_en.properties",
+    },
+    {
+      name: "a .NET neutral resource file",
+      files: { "Resources/Strings.resx": "<root/>", "Resources/Strings.de.resx": "<root/>" },
+      base: "Resources/Strings.resx",
+      source: "Resources/Strings.en.resx",
+    },
+    {
+      name: "a gettext template",
+      files: {
+        "po/app.pot": 'msgid "a"\nmsgstr ""\n',
+        "locale/de/LC_MESSAGES/app.po": 'msgid "a"\nmsgstr "b"\n',
+      },
+      base: "po/app.pot",
+      source: "locale/en/LC_MESSAGES/app.po",
+    },
+  ])(
+    "requires --source next to $name, even with --yes, and explains the base file",
+    async ({ files, base, source }) => {
+      for (const [path, content] of Object.entries(files)) {
+        write(path, content);
+      }
+
+      const refused = await initJson({ provider: "deepl", yes: true });
+      expect(refused.code).toBe(2);
+      expect(parseEnvelope(refused.out)).toMatchObject({
+        code: "MISSING_OPTIONS",
+        missing: ["--source <locale>"],
+      });
+      expect(refused.err).toContain(
+        `--source <locale>: ${base} holds strings under no locale name`,
+      );
+
+      const { code, out } = await initJson({ provider: "deepl", yes: true, source: "en" });
+      expect(code).toBe(0);
+      const result = successResult(out);
+      expect(result.config.sourceLocale).toBe("en");
+      expect(result.detection.confidence).toBe("medium");
+      expect(result.detection.layout?.unqualifiedSourceFile).toBe(base);
+      expect(result.nextSteps.map((step) => step.description)).toContain(
+        `verbatra reads the en source strings from ${source}, never from ${base}. Rename or copy ${base} to ${source} before the first run.`,
+      );
+    },
+  );
+
+  it("tells the user to keep a base file in step when the source file already exists", async () => {
+    write("Resources/Strings.resx", "<root/>");
+    write("Resources/Strings.en.resx", "<root/>");
+    write("Resources/Strings.de.resx", "<root/>");
+
+    const { code, out } = await initJson({ provider: "deepl", source: "en" });
+
+    expect(code).toBe(0);
+    expect(successResult(out).nextSteps.map((step) => step.description)).toContain(
+      "verbatra reads the en source strings from Resources/Strings.en.resx, never from Resources/Strings.resx. Keep the two in step, or retire Resources/Strings.resx.",
+    );
   });
 
   it("never prompts under --json, even at a terminal", async () => {
@@ -363,7 +493,7 @@ describe("runInit for agents", () => {
 
     expect(code).toBe(2);
     expect(err).toContain("Missing --base-url <url>, --model <name>.");
-    expect(err).not.toContain("Add --yes");
+    expect(err).not.toContain("--yes to accept");
   });
 
   it.each([
@@ -559,6 +689,7 @@ describe("runInit for agents", () => {
         locales: [],
         sourceLocale: undefined,
         files: [],
+        unqualifiedSourceFile: undefined,
       },
       ambiguities: [],
       confidence: "low",
