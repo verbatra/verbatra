@@ -21,7 +21,7 @@ export function assertValidDeepLTargetLocale(code: string, locale: string): void
   if (DEPRECATED_BARE_TARGET_CODES.has(code.toLowerCase())) {
     throw new ProviderError(
       "INVALID_REQUEST",
-      `DeepL requires a regional target code instead of ${sentFor(code, locale)}: "EN-GB" or ` +
+      `DeepL's client rejects the bare target code ${sentFor(code, locale)}: use "EN-GB" or ` +
         `"EN-US" for English, "PT-PT" or "PT-BR" for Portuguese. Name the variant in the locale ` +
         `code or map it with provider.options.localeMap.`,
     );
