@@ -66,4 +66,31 @@ describe("localeValuesHandler", () => {
       await project.cleanup();
     }
   });
+
+  it.each(["__proto__", "constructor", "prototype"])(
+    "serializes a catalog key named %s into the JSON the RPC envelope sends",
+    async (key) => {
+      const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+      try {
+        await writeFile(
+          join(project.root, "locales", "en.json"),
+          `{${JSON.stringify(key)}:"source"}`,
+          "utf8",
+        );
+        await writeFile(
+          join(project.root, "locales", "de.json"),
+          `{${JSON.stringify(key)}:"target"}`,
+          "utf8",
+        );
+
+        const result = await localeValuesHandler({}, deps(project));
+
+        expect(JSON.stringify(result)).toBe(
+          `[{"locale":"de","values":{${JSON.stringify(key)}:{"source":"source","target":"target"}}}]`,
+        );
+      } finally {
+        await project.cleanup();
+      }
+    },
+  );
 });

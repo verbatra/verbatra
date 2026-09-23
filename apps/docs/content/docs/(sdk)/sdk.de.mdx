@@ -434,7 +434,9 @@ Eingabe: `{ config, cwd?, locales? }`; ein weggelassenes `locales` deckt jedes k
 Ziel-Locale ab. Gibt ein Array von `{ locale, values }` zurück, ein Eintrag pro Locale, wobei
 `values` jeden Key auf `{ source?, target? }` abbildet. Ein fehlendes `target` bedeutet, dass der
 Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
-verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle.
+verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
+keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene
+Eigenschaft, und ein Key, der im Katalog fehlt, ergibt `undefined`.
 
 ## Locale-Datei-Schnappschüsse
 

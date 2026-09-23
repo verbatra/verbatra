@@ -22,7 +22,8 @@ export interface LocaleValues {
   readonly locale: string;
   /**
    * Source and target text per key, keyed by key name. Covers missing, changed, orphaned, and
-   * in-sync keys alike.
+   * in-sync keys alike. The object has no prototype, so every key, including `__proto__` or
+   * `constructor`, is an own property and a key absent from the catalog reads as `undefined`.
    */
   readonly values: Readonly<Record<string, KeyValuePair>>;
 }
@@ -47,7 +48,7 @@ export interface LocaleValuesDeps {
 
 function mergeValues(source: LocaleResource, target: LocaleResource): Record<string, KeyValuePair> {
   const keys = new Set([...source.entries.keys(), ...target.entries.keys()]);
-  const values: Record<string, KeyValuePair> = {};
+  const values: Record<string, KeyValuePair> = Object.create(null);
   for (const key of keys) {
     const sourceEntry = source.entries.get(key);
     const targetEntry = target.entries.get(key);
