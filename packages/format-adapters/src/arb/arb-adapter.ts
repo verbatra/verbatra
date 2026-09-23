@@ -1,6 +1,7 @@
 import type { FormatAdapter } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { icuDeriveEntry, icuInvalidKeys, icuIsValid, icuPlaceholders } from "../icu/analyze.js";
+import { compareIcuBranchArms } from "../icu/branch-arms.js";
 import { compareIcuPlaceholders } from "../icu/compare.js";
 import {
   assertJsonRecord,
@@ -33,6 +34,7 @@ export function createArbAdapter(fs: AdapterFs = nodeAdapterFs): FormatAdapter {
     computeInvalidIcuKeys: icuInvalidKeys,
     validateMessage: icuIsValid,
     comparePlaceholders: compareIcuPlaceholders,
+    compareBranchArms: compareIcuBranchArms,
     buildWriteTree: buildArbWriteTree,
     deriveDescriptions: extractArbDescriptions,
   });

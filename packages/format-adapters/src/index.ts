@@ -53,9 +53,11 @@ export { createPropertiesAdapter } from "./properties/properties-adapter.js";
 export { AdapterRegistry, type AdapterResolution, type ResolveOptions } from "./registry.js";
 export { createResxAdapter } from "./resx/resx-adapter.js";
 export type {
+  CompareBranchArms,
   ComparePlaceholders,
   ComputeInvalidIcuKeys,
   ExtractPlaceholders,
+  PluralCategoryLookup,
   Sniff,
   ValidateMessage,
   ValidateTree,

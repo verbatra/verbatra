@@ -45,6 +45,14 @@ describe("createArbAdapter detection", () => {
     expect(adapter.format).toBe("arb");
   });
 
+  it("exposes the ICU branch-arm check, holding a plural to the target language's categories", () => {
+    const source = "{count, plural, one {# item} other {# items}}";
+    const russianShape = "{count, plural, one {# x} few {# x} many {# x} other {# x}}";
+    const russian = () => ["one", "few", "many", "other"] as const;
+    expect(adapter.compareBranchArms?.(source, russianShape, russian)).toEqual([]);
+    expect(adapter.compareBranchArms?.(source, source, russian)).toHaveLength(2);
+  });
+
   it("exposes branch-aware comparePlaceholders, catching a single-branch invention flat extraction misses", () => {
     const source = "{count, plural, one {# item} other {# items}}";
     const invented = "{count, plural, one {# item} other {# items by {author}}}";

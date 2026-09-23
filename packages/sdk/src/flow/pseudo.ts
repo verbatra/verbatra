@@ -177,7 +177,7 @@ function pseudolocalizeEntries(
   const copied: string[] = [];
   for (const [key, entry] of source) {
     const candidate = pseudolocalizeEntryValue(entry, format);
-    const accepted = gateCandidateValue(entry, candidate, adapter).accepted;
+    const accepted = gateCandidateValue(entry, candidate, adapter, undefined).accepted;
     if (!accepted) {
       copied.push(key);
     }

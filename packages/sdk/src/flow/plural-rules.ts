@@ -1,4 +1,4 @@
-import type { I18nextPluralCategory } from "@verbatra/format-adapters";
+import type { I18nextPluralCategory, PluralCategoryLookup } from "@verbatra/format-adapters";
 
 export type CldrPluralCategory = I18nextPluralCategory;
 
@@ -66,6 +66,13 @@ export function pluralCategoriesFor(
   type: PluralRuleType = "cardinal",
 ): readonly CldrPluralCategory[] {
   return resolvePluralCategories(locale, type).categories;
+}
+
+export function pluralCategoryLookupFor(locale: string): PluralCategoryLookup {
+  return (type) => {
+    const resolution = resolvePluralCategories(locale, type);
+    return resolution.kind === "cldr" ? resolution.categories : undefined;
+  };
 }
 
 export interface PluralRulesRuntime {

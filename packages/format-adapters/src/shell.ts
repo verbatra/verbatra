@@ -1,5 +1,10 @@
 import { basename, extname } from "node:path";
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import type {
+  PlaceholderIntegrityResult,
+  PluralCategory,
+  PluralRuleType,
+  TranslationEntry,
+} from "@verbatra/core";
 import { AdapterError } from "./errors.js";
 import type { JsonRecord } from "./json/json-tree.js";
 
@@ -32,6 +37,24 @@ export type ComparePlaceholders = (
   sourceValue: string,
   targetValue: string,
 ) => PlaceholderIntegrityResult;
+
+/**
+ * Answers which CLDR plural categories the target language uses for one rule type, `cardinal` for
+ * an ICU `plural` and `ordinal` for an ICU `selectordinal`. Returns `undefined` when the runtime has
+ * no plural rules for the language, so the caller can fall back to requiring only `other`.
+ */
+export type PluralCategoryLookup = (type: PluralRuleType) => readonly PluralCategory[] | undefined;
+
+/**
+ * Compares the branch arms of a translation against its source, for a message syntax with plural
+ * and select branches (ICU). Returns one readable problem per arm that is wrong, and an empty list
+ * when the arms are acceptable or either value cannot be parsed. Never throws.
+ */
+export type CompareBranchArms = (
+  sourceValue: string,
+  targetValue: string,
+  pluralCategories: PluralCategoryLookup,
+) => readonly string[];
 
 /**
  * Rejects a parsed tree that is structurally wrong for a format, by throwing an `AdapterError`.

@@ -190,7 +190,7 @@ async function runGenerationSubBatch(
     return { notices: [subBatchFailedNotice(batch.length, error)], usage: undefined };
   }
   for (const item of batch) {
-    foldGenerationItem(item, result, context.adapter, accepted, withheld, providerFailures);
+    foldGenerationItem(item, result, context, accepted, withheld, providerFailures);
   }
   return { notices: readNotices(result), usage: result.usage };
 }
@@ -198,7 +198,7 @@ async function runGenerationSubBatch(
 function foldGenerationItem(
   item: PluralGenerationItem,
   result: TranslateResult,
-  adapter: FormatAdapter,
+  context: PluralGenerationContext,
   accepted: GeneratedForm[],
   withheld: string[],
   providerFailures: string[],
@@ -208,7 +208,7 @@ function foldGenerationItem(
     providerFailures.push(item.targetKey);
     return;
   }
-  if (gateCandidateValue(item.sourceEntry, value, adapter).accepted) {
+  if (gateCandidateValue(item.sourceEntry, value, context.adapter, context.targetLocale).accepted) {
     accepted.push({
       targetKey: item.targetKey,
       entry: { ...syntheticEntry(item), value },

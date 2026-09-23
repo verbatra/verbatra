@@ -184,7 +184,7 @@ function acceptFuzzyFromCache(
   if (match === undefined) {
     return undefined;
   }
-  const gate = gateCandidateValue(source, match.value, params.adapter);
+  const gate = gateCandidateValue(source, match.value, params.adapter, params.targetLocale);
   return gate.accepted ? { value: match.value, integrity: gate.integrity, match } : undefined;
 }
 
@@ -202,7 +202,7 @@ function acceptFromCache(
   if (cached === undefined) {
     return acceptFuzzyFromCache(params, cache, source);
   }
-  const gate = gateCandidateValue(source, cached, params.adapter);
+  const gate = gateCandidateValue(source, cached, params.adapter, params.targetLocale);
   return gate.accepted ? { value: cached, integrity: gate.integrity } : undefined;
 }
 
@@ -368,7 +368,12 @@ function fanOutAccepted(
     if (source === undefined) {
       continue;
     }
-    const gate = gateCandidateValue(source, acceptedRepresentative.value, params.adapter);
+    const gate = gateCandidateValue(
+      source,
+      acceptedRepresentative.value,
+      params.adapter,
+      params.targetLocale,
+    );
     if (!gate.accepted) {
       outcome.integrityMismatches.push(key);
       continue;
@@ -867,6 +872,7 @@ async function runSubBatch(
       entry,
       result,
       params.adapter,
+      params.targetLocale,
       outcome.accepted,
       outcome.integrityMismatches,
       outcome.providerFailures,
@@ -940,6 +946,7 @@ function foldEntryResult(
   entry: TranslationEntry,
   result: TranslateResult,
   adapter: FormatAdapter,
+  targetLocale: string,
   accepted: Map<string, Accepted>,
   integrityMismatches: string[],
   providerFailures: string[],
@@ -949,7 +956,7 @@ function foldEntryResult(
     providerFailures.push(entry.key);
     return;
   }
-  if (gateCandidateValue(entry, value, adapter).accepted) {
+  if (gateCandidateValue(entry, value, adapter, targetLocale).accepted) {
     accepted.set(entry.key, { value, source: entry });
   } else {
     integrityMismatches.push(entry.key);

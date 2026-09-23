@@ -9,13 +9,13 @@ import {
 import { checkPlaceholders, type PlaceholderIntegrityResult } from "@verbatra/core";
 import { icuPlaceholders, tokenOf } from "./analyze.js";
 
-type BranchingElement = PluralElement | SelectElement;
+export type BranchingElement = PluralElement | SelectElement;
 
-function isBranching(element: MessageFormatElement): element is BranchingElement {
+export function isBranching(element: MessageFormatElement): element is BranchingElement {
   return element.type === TYPE.plural || element.type === TYPE.select;
 }
 
-function isTag(element: MessageFormatElement): element is TagElement {
+export function isTag(element: MessageFormatElement): element is TagElement {
   return element.type === TYPE.tag;
 }
 
@@ -73,7 +73,7 @@ function findUnconsumed<T extends MessageFormatElement>(
   return undefined;
 }
 
-function findMatchingBranching(
+export function findMatchingBranching(
   source: BranchingElement,
   target: readonly MessageFormatElement[],
   consumed: ReadonlySet<number>,
@@ -86,7 +86,7 @@ function findMatchingBranching(
   );
 }
 
-function findMatchingTag(
+export function findMatchingTag(
   source: TagElement,
   target: readonly MessageFormatElement[],
   consumed: ReadonlySet<number>,

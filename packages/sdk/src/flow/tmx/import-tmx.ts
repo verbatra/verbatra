@@ -371,7 +371,7 @@ function applyTranslation(
   sourceEntry: TranslationEntry,
   candidate: string,
 ): void {
-  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter);
+  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
   if (!gate.accepted) {
     tally.rejected[gate.reason] += 1;
     return;

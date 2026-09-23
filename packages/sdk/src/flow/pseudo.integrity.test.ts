@@ -67,7 +67,7 @@ function problemsFor(
   const problems: string[] = [];
   for (const value of valuesFor(format)) {
     const candidate = transform(value);
-    if (!gateCandidateValue(sourceEntry(value, adapter), candidate, adapter).accepted) {
+    if (!gateCandidateValue(sourceEntry(value, adapter), candidate, adapter, undefined).accepted) {
       problems.push(`gate refused: ${value}`);
     }
     if (candidate === value) {
@@ -158,6 +158,7 @@ describe("pseudolocalization survives the markup gate for every format", () => {
         sourceEntry(value, adapter),
         pseudolocalizeValue(value),
         adapter,
+        undefined,
       );
       return !result.accepted && result.reason === "markup";
     });
@@ -170,7 +171,9 @@ describe("pseudolocalization survives the markup gate for every format", () => {
   it("would report a format whose pseudolocalization rewrote a tag", () => {
     const adapter = adapterFor("i18next-json");
     const mangled = pseudolocalizeValue("<b>Save</b>").replace("</b>", "</i>");
-    expect(gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter)).toEqual({
+    expect(
+      gateCandidateValue(sourceEntry("<b>Save</b>", adapter), mangled, adapter, undefined),
+    ).toEqual({
       accepted: false,
       reason: "markup",
       details: ["-</b>", "+</i>"],

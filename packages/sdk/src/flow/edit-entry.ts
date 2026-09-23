@@ -161,7 +161,7 @@ export async function editEntry(
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
     const target = await readTarget(cwd, config, adapter, fs, locale);
 
-    const gate = gateCandidateValue(sourceEntry, input.value, adapter);
+    const gate = gateCandidateValue(sourceEntry, input.value, adapter, locale);
     if (!gate.accepted) {
       return {
         accepted: false,

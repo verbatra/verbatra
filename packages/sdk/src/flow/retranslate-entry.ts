@@ -207,7 +207,7 @@ export async function retranslateEntry(
       );
     }
 
-    const gate = gateCandidateValue(sourceEntry, value, adapter);
+    const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
     if (!gate.accepted) {
       return {
         accepted: false,

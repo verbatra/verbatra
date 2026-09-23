@@ -1,4 +1,5 @@
 import type { FormatId, LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
+import type { PluralCategoryLookup } from "./shell.js";
 
 /**
  * The result of reading a file into core's intermediate representation. The two diagnostic lists are
@@ -124,4 +125,26 @@ export interface FormatAdapter {
    * @returns The merged placeholder-integrity result. Does not throw.
    */
   comparePlaceholders?(sourceValue: string, targetValue: string): PlaceholderIntegrityResult;
+
+  /**
+   * Optional check of a translation's branch arms against its source, for a format whose messages
+   * carry plural and select branches. Both adapter factories accept one, under the
+   * `compareBranchArms` option. Among the shipped adapters the ICU formats (next-intl and ARB)
+   * define it: every `plural` must carry exactly the target language's CLDR cardinal categories and
+   * every `selectordinal` exactly its ordinal categories (only `other` is required when the runtime
+   * has no plural rules for the language), each keeps the source's `=N` exact-value arms and its
+   * `offset`, may add further exact-value arms, and every `select` keeps the source's arm set
+   * unchanged. Absent for every other adapter, whose values are not checked this way.
+   *
+   * @param sourceValue - The source value.
+   * @param targetValue - The translated value to check against it.
+   * @param pluralCategories - Answers which plural categories the target language uses.
+   * @returns One readable problem per wrong arm; empty when the arms are acceptable or either value
+   *   cannot be parsed. Does not throw.
+   */
+  compareBranchArms?(
+    sourceValue: string,
+    targetValue: string,
+    pluralCategories: PluralCategoryLookup,
+  ): readonly string[];
 }

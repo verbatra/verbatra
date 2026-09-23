@@ -3,6 +3,7 @@ import {
   CLDR_CATEGORY_ORDER,
   describePluralRules,
   pluralCategoriesFor,
+  pluralCategoryLookupFor,
   pluralRulesRuntime,
   resolvePluralCategories,
 } from "./plural-rules.js";
@@ -162,5 +163,20 @@ describe("describePluralRules", () => {
 
   it("defaults to the running process's versions", () => {
     expect(describePluralRules(["de"])).toContain(`ICU ${process.versions.icu}`);
+  });
+});
+
+describe("pluralCategoryLookupFor", () => {
+  it("answers each rule type from CLDR for a language the runtime knows", () => {
+    const lookup = pluralCategoryLookupFor("cy");
+    expect(lookup("cardinal")).toEqual(["zero", "one", "two", "few", "many", "other"]);
+    expect(lookup("ordinal")).toEqual(["zero", "one", "two", "few", "many", "other"]);
+    expect(pluralCategoryLookupFor("en")("ordinal")).toEqual(["one", "two", "few", "other"]);
+  });
+
+  it("answers undefined rather than the fallback for a language it does not know", () => {
+    const lookup = pluralCategoryLookupFor("x-klingon");
+    expect(lookup("cardinal")).toBeUndefined();
+    expect(lookup("ordinal")).toBeUndefined();
   });
 });

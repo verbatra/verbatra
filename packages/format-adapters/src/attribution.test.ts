@@ -29,6 +29,7 @@ function workingAdapter(): FormatAdapter {
     extractPlaceholders: () => ["{name}"],
     validateMessage: () => true,
     comparePlaceholders: () => INTACT,
+    compareBranchArms: () => ['{n} plural: missing arm "few"'],
     read: () => Promise.resolve({ resource: RESOURCE, invalidIcuKeys: [], excludedLeafPaths: [] }),
     write: () => Promise.resolve(),
   };
@@ -80,6 +81,19 @@ describe("attributeAdapterFailures passes working behaviour through untouched", 
 
   it("keeps comparePlaceholders' verdict", () => {
     expect(adapter.comparePlaceholders?.("a", "b")).toEqual(INTACT);
+  });
+
+  it("keeps compareBranchArms' verdict and hands it the plural lookup", () => {
+    const lookup = (): undefined => undefined;
+    expect(adapter.compareBranchArms?.("a", "b", lookup)).toEqual([
+      '{n} plural: missing arm "few"',
+    ]);
+  });
+
+  it("leaves compareBranchArms absent when the adapter defines none", () => {
+    const { compareBranchArms: _omitted, ...withoutArms } = workingAdapter();
+
+    expect("compareBranchArms" in attributeAdapterFailures(withoutArms)).toBe(false);
   });
 
   it("leaves comparePlaceholders absent when the adapter defines none", () => {
@@ -138,6 +152,15 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
         },
       },
       (adapter) => adapter.comparePlaceholders?.("a", "b"),
+    ],
+    [
+      "compareBranchArms",
+      {
+        compareBranchArms: () => {
+          throw new TypeError("boom");
+        },
+      },
+      (adapter) => adapter.compareBranchArms?.("a", "b", () => undefined),
     ],
   ];
 
@@ -344,9 +367,10 @@ describe("the containment pin is a real tripwire, not a self-satisfying check", 
     expect(Object.keys(wrapped).sort()).not.toEqual(Object.keys(seventh).sort());
   });
 
-  it("pins the wrapped surface to exactly the six contract methods plus the format", () => {
+  it("pins the wrapped surface to exactly the seven contract methods plus the format", () => {
     expect(Object.keys(attributeAdapterFailures(workingAdapter())).sort()).toEqual([
       "canHandle",
+      "compareBranchArms",
       "comparePlaceholders",
       "extractPlaceholders",
       "format",

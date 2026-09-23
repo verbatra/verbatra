@@ -80,7 +80,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
       return INTACT;
     });
 
-    gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo {name}", adapter);
+    gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo {name}", adapter, "de");
 
     expect(seen).toEqual(["Hi {name}", "Hallo {name}"]);
   });
@@ -90,11 +90,11 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     const withoutComparator = flatAdapterWith();
     const entry = sourceEntry("Hi {name}", ["{name}"]);
 
-    expect(gateCandidateValue(entry, "Hallo", withoutComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo", withoutComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
     });
-    expect(gateCandidateValue(entry, "Hallo", withComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo", withComparator, "de")).toEqual({
       accepted: true,
       integrity: INTACT,
     });
@@ -105,11 +105,11 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     const withoutComparator = flatAdapterWith();
     const entry = sourceEntry("Hi {name}", ["{name}"]);
 
-    expect(gateCandidateValue(entry, "Hallo {name}", withoutComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo {name}", withoutComparator, "de")).toEqual({
       accepted: true,
       integrity: INTACT,
     });
-    expect(gateCandidateValue(entry, "Hallo {name}", withComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo {name}", withComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
     });
@@ -124,7 +124,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     };
     const adapter = flatAdapterWith(() => verdict);
 
-    const result = gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo", adapter);
+    const result = gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo", adapter, "de");
 
     expect(result).toEqual({ accepted: true, integrity: verdict });
     expect(result.accepted && result.integrity.reordered).toBe(true);

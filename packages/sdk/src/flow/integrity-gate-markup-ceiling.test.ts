@@ -30,7 +30,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
     const source = entryFor(adapter, `<b>${PROSE}</b>`);
     const candidate = `${PROSE}${"<i>x</i>".repeat(100)}`;
 
-    expect(gateCandidateValue(source, candidate, adapter)).toMatchObject({
+    expect(gateCandidateValue(source, candidate, adapter, "de")).toMatchObject({
       accepted: false,
       reason: "markup",
     });
@@ -41,7 +41,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
     const candidate = `${PROSE}${"<i>x</i>".repeat(150)}`;
 
     expect(candidate.length / source.value.length).toBeLessThan(12);
-    expect(gateCandidateValue(source, candidate, adapter)).toEqual({
+    expect(gateCandidateValue(source, candidate, adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["+more than 256 inline tags"],
@@ -51,7 +51,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
   it("refuses a flood of empty invented tags against a small source", () => {
     const source = entryFor(adapter, "<b>x</b>");
 
-    expect(gateCandidateValue(source, `x${"<i></i>".repeat(200)}`, adapter)).toEqual({
+    expect(gateCandidateValue(source, `x${"<i></i>".repeat(200)}`, adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["+more than 256 inline tags"],
@@ -61,7 +61,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
   it("refuses a total markup loss when the source itself carries more than 256 tags", () => {
     const source = entryFor(adapter, `${"<b>a</b>".repeat(130)}<em>keep</em>`);
 
-    expect(gateCandidateValue(source, "nichts hier", adapter)).toMatchObject({
+    expect(gateCandidateValue(source, "nichts hier", adapter, "de")).toMatchObject({
       accepted: false,
       reason: "markup",
     });
@@ -70,7 +70,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
   it("raises the candidate limit to twice a large source's tags, naming it", () => {
     const source = entryFor(adapter, "<b>a</b>".repeat(200));
 
-    expect(gateCandidateValue(source, "<b>a</b>".repeat(401), adapter)).toEqual({
+    expect(gateCandidateValue(source, "<b>a</b>".repeat(401), adapter, "de")).toEqual({
       accepted: false,
       reason: "markup",
       details: ["+more than 800 inline tags"],
@@ -80,7 +80,7 @@ describe("the markup gate bounds the candidate's tags and never stops comparing 
   it("still refuses the same loss when the source stays under the ceiling", () => {
     const source = entryFor(adapter, `${"<b>a</b>".repeat(120)}<em>keep</em>`);
 
-    expect(gateCandidateValue(source, "nichts hier", adapter)).toMatchObject({
+    expect(gateCandidateValue(source, "nichts hier", adapter, "de")).toMatchObject({
       accepted: false,
       reason: "markup",
     });
