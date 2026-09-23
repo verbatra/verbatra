@@ -248,7 +248,11 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
 
 - `LENGTH_RATIO_OUTLIER`: Die Übersetzung ist deutlich kürzer oder länger als ihre Quelle (unter
   dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Länge; sehr kurze Quellen werden
-  übersprungen). Ein Anstoß hinzusehen, kein Urteil.
+  übersprungen). Gezählt wird in Graphem-Clustern, ein Emoji oder ein Buchstabe mit Akzent zählt
+  also einmal, und die Länge wird nach der Schrift jeder Locale gewichtet: Chinesischer,
+  japanischer und koreanischer Text ist von Natur aus deutlich kürzer als lateinischer, daher wird
+  eine korrekte Übersetzung von Englisch nach Japanisch nicht allein wegen ihrer Kürze markiert.
+  Ein Anstoß hinzusehen, kein Urteil.
 - `MAX_LENGTH_EXCEEDED`: Die Übersetzung ist länger als das absolute Budget, das für ihren Key
   unter [`maxLength`](/docs/config-file) konfiguriert ist. Gezählt in Graphemclustern, am Wert
   genau so, wie er geschrieben ist, und die Grenze ist inklusiv: ein Wert von genau der Budgethöhe

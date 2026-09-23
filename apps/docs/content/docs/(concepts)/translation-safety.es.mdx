@@ -246,8 +246,11 @@ una segunda capa, orientativa, marca los resultados sospechosos para una persona
 revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 
 - `LENGTH_RATIO_OUTLIER`: la traducción es mucho más corta o larga que su origen (por debajo de
-  0.35x o por encima de 3.0x de la longitud recortada; los orígenes muy cortos se omiten). Un aviso
-  para mirar, no un veredicto.
+  0.35x o por encima de 3.0x de la longitud recortada; los orígenes muy cortos se omiten). La
+  longitud se cuenta en clústeres de grafemas, así que un emoji o una letra con tilde cuenta una
+  vez, y se ajusta según la escritura de cada locale: el texto en chino, japonés y coreano es por
+  naturaleza mucho más corto que el latino, así que una traducción correcta del inglés al japonés
+  no se marca solo por ser compacta. Un aviso para mirar, no un veredicto.
 - `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para su
   clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor tal
   cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se marca.

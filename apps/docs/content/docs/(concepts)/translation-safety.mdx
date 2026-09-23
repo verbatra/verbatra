@@ -221,7 +221,11 @@ advisory layer flags suspicious results for a human. A review flag never withhol
 carries one or more reason codes:
 
 - `LENGTH_RATIO_OUTLIER`: the translation is far shorter or longer than its source (below 0.35x or
-  above 3.0x trimmed length; very short sources are skipped). A nudge to look, not a verdict.
+  above 3.0x trimmed length; very short sources are skipped). Length is counted in grapheme
+  clusters, so an emoji or an accented letter counts once, and is scaled by the script of each
+  locale: Chinese, Japanese, and Korean text naturally runs far shorter than Latin text, so a
+  correct English to Japanese translation is not flagged just for being compact. A nudge to look,
+  not a verdict.
 - `MAX_LENGTH_EXCEEDED`: the translation is longer than the absolute budget configured for its key
   under [`maxLength`](/docs/config-file). Counted in grapheme clusters, on the value exactly as
   written, and the boundary is inclusive, so a value of exactly the budget is not flagged. A key
