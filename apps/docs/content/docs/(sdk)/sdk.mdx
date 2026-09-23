@@ -652,8 +652,19 @@ generate, such as a glossary term, a file path, or an upstream error message, so
 present in your environment or written into a project file can never reach a browser tab, an
 agent, or a log line.
 
-That includes the variable an `openai-compatible` provider names through `apiKeyEnvVar`: once
-`loadConfig` has loaded a config naming it, its value is scrubbed exactly like the built-in ones.
+That includes the variable an `openai-compatible` provider names through `apiKeyEnvVar`. It is
+declared when `loadConfig` loads a config naming it or when that provider is built, and from then on
+its value is scrubbed exactly like the built-in ones. Declarations are never removed. A value
+shorter than eight characters is not scrubbed by value, so a short variable can never wipe
+unrelated text.
+
+### declareProviderKeyEnvVar
+
+Declares the variable a `provider` block names as its key source, so `redact` scrubs its value.
+Today only an `openai-compatible` provider with `apiKeyEnvVar` names one; any other provider is a
+no-op. `loadConfig` and building the provider already do this, and Studio and the MCP server also
+do it for the config they receive, so call it only when a config reaches your own code some other
+way. The declaration is process-wide and shared by every copy of the SDK loaded in the process.
 
 ## The dependency seam
 

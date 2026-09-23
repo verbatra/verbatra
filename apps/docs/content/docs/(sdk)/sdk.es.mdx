@@ -689,9 +689,20 @@ que no han generado ellos mismos, como un término del glosario, una ruta de arc
 error de un sistema previo, así que una clave ya presente en tu entorno o escrita en un archivo del
 proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log.
 
-Esto incluye la variable que un proveedor `openai-compatible` nombra con `apiKeyEnvVar`: en cuanto
-`loadConfig` ha cargado una config que la nombra, su valor se elimina igual que el de las variables
-integradas.
+Esto incluye la variable que un proveedor `openai-compatible` nombra con `apiKeyEnvVar`. Se declara
+cuando `loadConfig` carga una config que la nombra o cuando se construye ese proveedor, y desde ese
+momento su valor se elimina igual que el de las variables integradas. Las declaraciones nunca se
+retiran. Un valor de menos de ocho caracteres no se elimina por su valor, así que una variable corta
+nunca puede borrar texto ajeno.
+
+### declareProviderKeyEnvVar
+
+Declara la variable que un bloque `provider` nombra como origen de la clave, para que `redact`
+elimine su valor. Hoy solo un proveedor `openai-compatible` con `apiKeyEnvVar` nombra una; con
+cualquier otro proveedor no hace nada. `loadConfig` y la construcción del proveedor ya lo hacen, y
+Studio y el servidor MCP también lo hacen para la config que reciben, así que llámalo solo cuando
+una config llegue a tu propio código por otra vía. La declaración vale para todo el proceso y la
+comparten todas las copias del SDK cargadas en él.
 
 ## El punto de inyección de dependencias
 

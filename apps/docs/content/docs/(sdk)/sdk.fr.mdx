@@ -479,9 +479,20 @@ chemin de fichier ou un message d'erreur d'un système en amont, afin qu'une cl�
 ton environnement ou écrite dans un fichier du projet ne puisse jamais atteindre un onglet de
 navigateur, un agent ou une ligne de log.
 
-Cela inclut la variable qu'un fournisseur `openai-compatible` désigne via `apiKeyEnvVar` : dès que
-`loadConfig` a chargé une config qui la nomme, sa valeur est retirée exactement comme celle des
-variables intégrées.
+Cela inclut la variable qu'un fournisseur `openai-compatible` désigne via `apiKeyEnvVar`. Elle est
+déclarée quand `loadConfig` charge une config qui la nomme ou quand ce fournisseur est construit, et
+dès lors sa valeur est retirée exactement comme celle des variables intégrées. Les déclarations ne
+sont jamais supprimées. Une valeur de moins de huit caractères n'est pas retirée par sa valeur, afin
+qu'une variable courte ne puisse jamais effacer du texte sans rapport.
+
+### declareProviderKeyEnvVar
+
+Déclare la variable qu'un bloc `provider` désigne comme source de clé, pour que `redact` retire sa
+valeur. Aujourd'hui, seul un fournisseur `openai-compatible` avec `apiKeyEnvVar` en désigne une ;
+pour tout autre fournisseur, rien ne se passe. `loadConfig` et la construction du fournisseur le
+font déjà, et Studio comme le serveur MCP le font aussi pour la config qu'ils reçoivent : appelle-la
+donc seulement quand une config arrive dans ton propre code par un autre chemin. La déclaration vaut
+pour tout le processus et elle est partagée par chaque copie du SDK chargée dans celui-ci.
 
 ## Le point d'injection de dépendances
 
