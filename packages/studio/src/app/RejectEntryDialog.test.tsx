@@ -132,7 +132,7 @@ describe("RejectEntryDialog", () => {
   });
 
   it("keeps focus inside the dialog on the status while rejecting, then on the error", async () => {
-    let answer: (value: unknown) => void = () => {};
+    let answer: (value: ReturnType<typeof rpcError>) => void = () => {};
     stubRpc({
       "review.reject": () =>
         new Promise((resolve) => {
