@@ -40,36 +40,24 @@ Fehlt `--allow-spend`, liest der Server stattdessen die Umgebungsvariable `VERBA
 
 ## Einen MCP-Client konfigurieren
 
-Richte deinen MCP-Client auf das `verbatra-mcp`-Binary aus. Für Claude Desktop fügst du das zu deiner `claude_desktop_config.json` hinzu:
+Richte deinen MCP-Client auf `npx -y @verbatra/mcp` aus: npx holt das Paket bei Bedarf und startet sein `verbatra-mcp`-Binary. Ein minimaler Eintrag in der `mcpServers`-Form, die die meisten Clients teilen:
 
 ```json
 {
   "mcpServers": {
     "verbatra": {
       "command": "npx",
-      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-api-key-here"
-      }
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"]
     }
   }
 }
 ```
 
-Lass den `env`-Block und sein `--allow-spend` ganz weg für einen Server, der nur liest und nur lokal bearbeitet: `project.snapshot`, die Status- und Glossar-Tools, `translation.estimate` sowie `translation.editEntry` rufen nie einen Provider auf und brauchen keinen Key. Füge `--allow-spend` zum `args`-Array hinzu, sobald du auch `translation.retranslateEntry` und `translation.translatePending` verfügbar haben willst, und setze die Umgebungsvariable für den API-Key, die dein konfigurierter Provider liest (siehe [Provider](/docs/providers)).
+`verbatra mcp` funktioniert ebenfalls als Befehl, aber nur, wenn im Projekt sowohl `@verbatra/cli` als auch `@verbatra/mcp` installiert sind. Die CLI lädt `@verbatra/mcp` bei Bedarf und installiert es nie, deshalb endet `npx -y @verbatra/cli mcp` allein mit Exit-Code `2` und der Meldung unter [Installation](#installation).
 
-Rufst du bereits alles über die `verbatra`-CLI auf, starte es stattdessen als Unterbefehl:
+Lass den Key und `--allow-spend` weg für einen Server, der nur liest und nur lokal bearbeitet: `project.snapshot`, die Status- und Glossar-Tools, `translation.estimate` sowie `translation.editEntry` rufen nie einen Provider auf und brauchen keinen Key. Füge `--allow-spend` zum `args`-Array hinzu, sobald du auch `translation.retranslateEntry` und `translation.translatePending` verfügbar haben willst, und gib dem Server die Umgebungsvariable für den API-Key, die dein konfigurierter Provider liest (siehe [Provider](/docs/providers)), über die Umgebung des Clients mit, nie in einer Konfigurationsdatei, die du committest.
 
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "command": "npx",
-      "args": ["-y", "@verbatra/cli", "mcp", "--cwd", "/path/to/your/project"]
-    }
-  }
-}
-```
+[Einen MCP-Client verbinden](/docs/connect-an-mcp-client) zeigt die genaue Einrichtung für Claude Code (`claude mcp add` und eine committete `.mcp.json`), Cursor, VS Code, Windsurf und Claude Desktop, einschließlich des Verzeichnisses, in dem jeder Client den Server startet, und wie jeder ihm einen Key übergibt.
 
 ## Anweisungen für den Agenten
 
@@ -208,6 +196,7 @@ Das sind die Exit-Codes von `verbatra mcp`; das eigenständige `verbatra-mcp` we
 
 ## Siehe auch
 
+- [Einen MCP-Client verbinden](/docs/connect-an-mcp-client) zeigt die Einrichtung für Claude Code, Cursor, VS Code, Windsurf, Claude Desktop und jeden anderen stdio-Client.
 - [`verbatra studio`](/docs/cli/studio) und [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) behandeln die Browser-basierte Agent-Oberfläche, die dieser Server ergänzt.
 - [Provider](/docs/providers) dokumentiert, aus welcher Umgebungsvariable jeder Provider seinen API-Key liest.
 - [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind dieselben Berechnungen, die `status.check` und `status.diff` bereitstellen.
