@@ -78,8 +78,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    mode: { kind: "translate", provider: countingProvider().provider },
-    providerKind: "llm",
+    mode: { kind: "translate", provider: countingProvider().provider, providerKind: "llm" },
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -119,7 +118,7 @@ async function runEdit(
     makeParams(
       { source: sourceResource, cwd: dir },
       {
-        mode: { kind: "translate", provider: stub.provider },
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: {
           snapshot: memoryFor(previousSource, CACHED_TRANSLATION),
           fingerprint: FINGERPRINT,
@@ -356,7 +355,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          mode: { kind: "translate", provider: stub.provider },
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -379,7 +378,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          mode: { kind: "translate", provider: stub.provider },
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -404,7 +403,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
         makeParams(
           { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
           {
-            mode: { kind: "translate", provider: stub.provider },
+            mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
             cache: {
               snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
               fingerprint: FINGERPRINT,

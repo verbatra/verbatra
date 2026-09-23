@@ -109,15 +109,19 @@ describe("provider model authoring suggestions (type-level)", () => {
     expect(assertions).toEqual(assertions.map(() => true));
   });
 
-  it("defineConfig lets a none provider leave out options and fills in the empty object", () => {
-    const config = defineConfig({
+  it("defineConfig lets a none provider leave out options, and loading fills in the empty object", async () => {
+    const authored = {
       sourceLocale: "en",
       targetLocales: ["de"],
-      format: "i18next-json",
+      format: "i18next-json" as const,
       files: { pattern: "locales/{locale}.json" },
-      provider: { id: "none" },
-    });
-    expect(config.provider).toEqual({ id: "none", options: {} });
+      provider: { id: "none" as const },
+    };
+    const config = defineConfig(authored);
+    expect(config).toBe(authored);
+
+    const loaded = await loadConfig({ configOverride: config });
+    expect(loaded.provider).toEqual({ id: "none", options: {} });
   });
 
   it("defineConfig accepts a known model ID and returns the runtime config unchanged", () => {

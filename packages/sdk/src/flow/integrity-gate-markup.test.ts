@@ -173,13 +173,13 @@ describe("runLocale: a markup-mismatched value is withheld on the android-xml pa
     const { summary, lockEntries } = await runLocale({
       source,
       sourceInvalidIcuKeys: [],
-      providerKind: "llm",
       baseline: new Map(),
       maxLength: undefined,
       adapter,
       mode: {
         kind: "translate",
         provider: makeStubProvider({ translate: () => "Tippe auf Speichern" }).provider,
+        providerKind: "llm",
       },
       cwd: dir,
       resolver: createLocalePathResolver(dir, {
@@ -222,13 +222,13 @@ describe("runLocale: the gate guards the content-duplicate path too", () => {
     const { summary, lockEntries } = await runLocale({
       source,
       sourceInvalidIcuKeys: [],
-      providerKind: "llm",
       baseline: new Map(),
       maxLength: undefined,
       adapter,
       mode: {
         kind: "translate",
         provider: makeStubProvider({ translate: () => "Lies die Doku" }).provider,
+        providerKind: "llm",
       },
       cwd: dir,
       resolver: createLocalePathResolver(dir, {
@@ -267,13 +267,13 @@ async function i18nextRun(
   const result = await runLocale({
     source,
     sourceInvalidIcuKeys: [],
-    providerKind: "llm",
     baseline: new Map(),
     maxLength: undefined,
     adapter,
     mode: {
       kind: "translate",
       provider: makeStubProvider({ translate: () => "Lies <b>die Doku</b>" }).provider,
+      providerKind: "llm",
     },
     cwd: dir,
     resolver: createLocalePathResolver(dir, {
@@ -314,7 +314,7 @@ describe("runLocale: the markup gate guards reuse from the translation memory", 
     const { dir, result } = await i18nextRun(
       { docs: SOURCE },
       {
-        mode: { kind: "translate", provider: stub.provider },
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: { snapshot: memoryHolding(SOURCE, "Lies die Doku"), fingerprint: "fp" },
       },
     );
@@ -332,7 +332,7 @@ describe("runLocale: the markup gate guards reuse from the translation memory", 
     const { result } = await i18nextRun(
       { docs: SOURCE },
       {
-        mode: { kind: "translate", provider: stub.provider },
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: { snapshot: memoryHolding(SOURCE, "Lies <b>die Doku</b>"), fingerprint: "fp" },
       },
     );
@@ -346,7 +346,7 @@ describe("runLocale: the markup gate guards reuse from the translation memory", 
     const { dir, result } = await i18nextRun(
       { docs: `${SOURCE}!` },
       {
-        mode: { kind: "translate", provider: stub.provider },
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: {
           snapshot: memoryHolding(SOURCE, "Lies die Doku"),
           fingerprint: "fp",
@@ -367,7 +367,7 @@ describe("runLocale: the markup gate guards reuse from the translation memory", 
     const { result } = await i18nextRun(
       { docs: `${SOURCE}!` },
       {
-        mode: { kind: "translate", provider: stub.provider },
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: {
           snapshot: memoryHolding(SOURCE, "Lies <b>die Doku</b>"),
           fingerprint: "fp",

@@ -1,5 +1,5 @@
 import type { AnthropicModel, GeminiModel, OpenAiModel } from "@verbatra/ai-providers";
-import type { ProviderConfig, ProviderId } from "./provider-config.js";
+import type { ProviderConfig, ProviderConfigInput, ProviderId } from "./provider-config.js";
 import type { VerbatraConfigInput } from "./schema.js";
 
 /**
@@ -50,12 +50,7 @@ type AuthoringProviderVariant = {
    * Human-only mode: machine translation disabled by policy. `options` may be left out, since the
    * only value it can hold is an empty object.
    */
-  none: {
-    /** Always `none`. */
-    id: "none";
-    /** Always empty when present. */
-    options?: Record<string, never>;
-  };
+  none: Extract<ProviderConfigInput, { id: "none" }>;
 };
 
 /**

@@ -8,7 +8,7 @@ import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
-import { type VerbatraConfig, type VerbatraConfigInput, verbatraConfigSchema } from "./schema.js";
+import { type ParsedVerbatraConfig, type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
 
 const MODULE_NAME = "verbatra";
 
@@ -136,7 +136,7 @@ function formatIssues(error: z.ZodError): string {
     .join("; ");
 }
 
-function parseConfig(input: unknown): VerbatraConfigInput {
+function parseConfig(input: unknown): ParsedVerbatraConfig {
   const parsed = verbatraConfigSchema.safeParse(input);
   if (!parsed.success) {
     throw new SdkError(
@@ -148,7 +148,7 @@ function parseConfig(input: unknown): VerbatraConfigInput {
 }
 
 async function finalizeConfig(
-  parsed: VerbatraConfigInput,
+  parsed: ParsedVerbatraConfig,
   baseDir: string,
   fs: SdkFs,
 ): Promise<{ config: VerbatraConfig; glossary: GlossaryProvenance }> {

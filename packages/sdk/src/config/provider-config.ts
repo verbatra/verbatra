@@ -58,6 +58,12 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
 export type ProviderConfig = z.infer<typeof providerConfigSchema>;
 
 /**
+ * The `provider` block as written, before parsing: the same as {@link ProviderConfig} except that
+ * a `none` provider may leave out `options`.
+ */
+export type ProviderConfigInput = z.input<typeof providerConfigSchema>;
+
+/**
  * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`,
  * `google-translate`, `openai-compatible`, or `none`. `openai-compatible` targets a local or
  * self-hosted server that speaks the OpenAI chat-completions API; `none` disables machine
