@@ -2,6 +2,7 @@ import { CalloutContainer } from "fumadocs-ui/components/callout";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
 import { CALLOUT_CLASS } from "@/components/mdx";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
@@ -18,13 +19,14 @@ const CONTACT_MAILTO = "mailto:info@kreitz-webdev.de";
 const SUPERVISORY_AUTHORITY_URL = "https://www.baden-wuerttemberg.datenschutz.de";
 
 const OBJECTION_KEY = "objection";
+const ANALYTICS_KEY = "s4";
 const OBJECTION_HEADING_ID = "right-to-object";
 
 const SECTION_KEYS = [
   "s1",
   "s2",
   "s3",
-  "s4",
+  ANALYTICS_KEY,
   "s5",
   "s6",
   "s7",
@@ -75,6 +77,15 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
   const isAuthoritative = locale === i18n.defaultLanguage;
   const linkTags = linkTagsFor(locale);
+  const optOutLabels: AnalyticsOptOutLabels = {
+    optOut: t(`${ANALYTICS_KEY}.optOut.optOut`),
+    optIn: t(`${ANALYTICS_KEY}.optOut.optIn`),
+    statusPending: t(`${ANALYTICS_KEY}.optOut.statusPending`),
+    statusCounted: t(`${ANALYTICS_KEY}.optOut.statusCounted`),
+    statusOptedOut: t(`${ANALYTICS_KEY}.optOut.statusOptedOut`),
+    statusDoNotTrack: t(`${ANALYTICS_KEY}.optOut.statusDoNotTrack`),
+    statusUnavailable: t(`${ANALYTICS_KEY}.optOut.statusUnavailable`),
+  };
 
   const lastUpdated = (
     <p>
@@ -111,6 +122,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
               {t(`${key}.heading`)}
             </h2>
             <p>{t.rich(`${key}.body`, linkTags)}</p>
+            {key === ANALYTICS_KEY && <AnalyticsOptOut labels={optOutLabels} />}
           </section>
         ),
       )}
