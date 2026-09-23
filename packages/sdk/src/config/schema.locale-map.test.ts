@@ -75,6 +75,13 @@ describe("verbatraConfigSchema: provider.options.localeMap", () => {
     },
   );
 
+  it("rejects a code longer than 64 characters", () => {
+    expect(issuesOf(deeplConfig({ "pt-BR": "x".repeat(64) }))).toEqual([]);
+    expect(issuesOf(deeplConfig({ "pt-BR": "x".repeat(65) })).map((issue) => issue.path)).toEqual([
+      "provider.options.localeMap.pt-BR",
+    ]);
+  });
+
   it("is rejected on the none provider, which has no options", () => {
     const config = { ...baseConfig(), provider: { id: "none", options: { localeMap: {} } } };
     expect(verbatraConfigSchema.safeParse(config).success).toBe(false);

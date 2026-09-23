@@ -203,7 +203,7 @@ describe("the config JSON Schema document: provider.options.localeMap", () => {
       expect(propertyOf(variantOptions(id), "localeMap")).toEqual({
         type: "object",
         propertyNames: { type: "string", minLength: 1 },
-        additionalProperties: { type: "string", minLength: 1 },
+        additionalProperties: { type: "string", minLength: 1, maxLength: 64 },
       });
     },
   );

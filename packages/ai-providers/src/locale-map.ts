@@ -1,9 +1,13 @@
 import { z } from "zod";
 
+export const LOCALE_MAP_VALUE_MAX_LENGTH = 64;
+
 export type LocaleMap = Readonly<Record<string, string>>;
 
 export const localeMapConfigSchema = z.object({
-  localeMap: z.record(z.string().min(1), z.string().min(1)).optional(),
+  localeMap: z
+    .record(z.string().min(1), z.string().min(1).max(LOCALE_MAP_VALUE_MAX_LENGTH))
+    .optional(),
 });
 
 export type LocaleNormalizer = (locale: string) => string;
@@ -15,10 +19,9 @@ export function resolveProviderLocale(
   localeMap: LocaleMap | undefined,
   normalize: LocaleNormalizer = keepLocale,
 ): string {
-  if (localeMap !== undefined && Object.hasOwn(localeMap, locale)) {
-    return localeMap[locale] as string;
-  }
-  return normalize(locale);
+  const mapped =
+    localeMap !== undefined && Object.hasOwn(localeMap, locale) ? localeMap[locale] : undefined;
+  return mapped ?? normalize(locale);
 }
 
 export interface ParsedLocale {

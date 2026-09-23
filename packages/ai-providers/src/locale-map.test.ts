@@ -3,7 +3,12 @@ import { anthropicConfigSchema } from "./anthropic/config.js";
 import { deepLConfigSchema } from "./deepl/config.js";
 import { geminiConfigSchema } from "./gemini/config.js";
 import { googleTranslateConfigSchema } from "./google-translate/config.js";
-import { localeMapConfigSchema, parseLocale, resolveProviderLocale } from "./locale-map.js";
+import {
+  LOCALE_MAP_VALUE_MAX_LENGTH,
+  localeMapConfigSchema,
+  parseLocale,
+  resolveProviderLocale,
+} from "./locale-map.js";
 import { openAiConfigSchema } from "./openai/config.js";
 import { openAiCompatibleConfigSchema } from "./openai-compatible/config.js";
 
@@ -45,6 +50,17 @@ describe("localeMapConfigSchema", () => {
     expect(localeMapConfigSchema.parse({ localeMap: { "zh-Hant": "ZH-HANT" } })).toEqual({
       localeMap: { "zh-Hant": "ZH-HANT" },
     });
+  });
+
+  it("accepts a code of exactly the maximum length", () => {
+    const localeMap = { de: "x".repeat(LOCALE_MAP_VALUE_MAX_LENGTH) };
+    expect(localeMapConfigSchema.safeParse({ localeMap }).success).toBe(true);
+  });
+
+  it("rejects a code longer than 64 characters", () => {
+    const localeMap = { de: "x".repeat(LOCALE_MAP_VALUE_MAX_LENGTH + 1) };
+    expect(LOCALE_MAP_VALUE_MAX_LENGTH).toBe(64);
+    expect(localeMapConfigSchema.safeParse({ localeMap }).success).toBe(false);
   });
 
   it.each([[{ "": "DE" }], [{ de: "" }], [{ de: 7 }]])(
