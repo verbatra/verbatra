@@ -1,11 +1,11 @@
 import { access, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import ExcelJS from "exceljs";
 import { execa } from "execa";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
+  fillWorkbook,
   parseEnvelope,
   readJsonIn,
   readSharedConsumer,
@@ -32,9 +32,6 @@ interface DoctorJson {
   checks: { id: string; status: string; detail: string }[];
 }
 
-const HEADER_ROW = 1;
-const TRANSLATION_COLUMN = 5;
-const INSTRUCTIONS_SHEET = "Instructions";
 const NEEDS_HUMAN_EXIT_CODE = 3;
 
 const NO_NETWORK_PRELOAD = [
@@ -76,22 +73,6 @@ function successResult<TResult>(stdout: string, command: string): TResult {
   return envelope.result;
 }
 
-async function fillEveryRow(workbookPath: string, value: string): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(workbookPath);
-  for (const sheet of workbook.worksheets) {
-    if (sheet.name === INSTRUCTIONS_SHEET) {
-      continue;
-    }
-    sheet.eachRow((row, rowNumber) => {
-      if (rowNumber !== HEADER_ROW) {
-        row.getCell(TRANSLATION_COLUMN).value = value;
-      }
-    });
-  }
-  await workbook.xlsx.writeFile(workbookPath);
-}
-
 describe("human-only workflow (provider none, no key, no network)", () => {
   it("scaffolds, hands off, imports, and checks green without ever calling a provider", async () => {
     const dir = join(consumer.dir, "human-only-workflow");
@@ -126,7 +107,7 @@ describe("human-only workflow (provider none, no key, no network)", () => {
     const exported = await run(["export", "--out", workbookPath]);
     expect(exported.exitCode).toBe(0);
 
-    await fillEveryRow(workbookPath, "Von Hand");
+    await fillWorkbook(workbookPath, () => "Von Hand");
     const imported = await run(["import", workbookPath]);
     expect(imported.exitCode).toBe(0);
     expect(await readJsonIn<Record<string, string>>(dir, "locales/de.json")).toEqual({
