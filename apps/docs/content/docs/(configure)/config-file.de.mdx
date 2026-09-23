@@ -92,7 +92,7 @@ Jeder Locale-Code, Quelle wie Ziel, muss ein wohlgeformter Tag sein, den `Intl.g
 
 ### provider
 
-Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert. `none` schaltet Maschinenübersetzung per Richtlinie ab, und seine `options` darf fehlen; wenn angegeben, muss es `{}` sein; siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
+Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert. Jeder Provider außer `none` akzeptiert zusätzlich `options.localeMap`, das eine konfigurierte Locale auf den Code abbildet, den der Provider erhält, etwa `{ "es-MX": "ES-419" }` für DeepL; siehe [An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes). `none` schaltet Maschinenübersetzung per Richtlinie ab, und seine `options` darf fehlen; wenn angegeben, muss es `{}` sein; siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
 
 ### glossary
 
@@ -305,14 +305,15 @@ Zwei der Fundorte lassen sich nicht bedienen. Die `"verbatra"`-Property in der `
 
 ### Was das Dokument nicht prüfen kann
 
-Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Vier Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
+Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Fünf Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
 
 - `targetLocales` darf `sourceLocale` nicht enthalten. Für den Vergleich zweier Geschwisterwerte hat der Draft kein Vokabular.
 - `targetLocales` darf keine zwei Locales enthalten, die sich nur in der Groß- und Kleinschreibung unterscheiden.
 - Ein Locale-Code muss von `Intl.getCanonicalLocales` akzeptiert werden, nicht nur zur Grammatik passen. Eine wiederholte Variante wie `de-1996-1996` sieht das Muster nicht.
+- Jeder Key von `provider.options.localeMap` muss `sourceLocale` oder einer der `targetLocales` sein. Wie bei der ersten Regel wird hier ein Wert mit seinen Geschwistern verglichen.
 - `provider.options.apiKeyEnvVar` (nur openai-compatible) darf keine Umgebungsvariable eines gehosteten Providers benennen. Das auszudrücken hieße, die Namen dieser Variablen fest in ein ausgeliefertes Dokument zu schreiben, das dann vom Code auseinanderdriften würde, dem sie gehören.
 
-Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser vier Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
+Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser fünf Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
 
 ## Das Arbeitsverzeichnis und .env
 

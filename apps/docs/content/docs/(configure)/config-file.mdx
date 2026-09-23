@@ -91,7 +91,7 @@ Every locale code, source and target alike, must be a well-formed tag that `Intl
 
 ### provider
 
-An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). `none` disables machine translation by policy, and its `options` may be omitted; if given it must be `{}`; see [Human-only workflow](/docs/human-only-workflow).
+An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). Every provider except `none` also accepts `options.localeMap`, which maps a configured locale to the code the provider receives, such as `{ "es-MX": "ES-419" }` for DeepL; see [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider). `none` disables machine translation by policy, and its `options` may be omitted; if given it must be `{}`; see [Human-only workflow](/docs/human-only-workflow).
 
 ### glossary
 
@@ -304,14 +304,15 @@ Two of the discovery places cannot be served. The `"verbatra"` property inside `
 
 ### What the document cannot check
 
-The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Four rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
+The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Five rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
 
 - `targetLocales` must not include `sourceLocale`. Comparing two sibling values has no vocabulary in the draft.
 - `targetLocales` must not contain two locales that differ only in case.
 - A locale code must be accepted by `Intl.getCanonicalLocales`, not only match the grammar. The pattern cannot see a repeated variant such as `de-1996-1996`.
+- Every key of `provider.options.localeMap` must be `sourceLocale` or one of `targetLocales`. Like the first rule, this compares a value with its siblings.
 - `provider.options.apiKeyEnvVar` (openai-compatible only) must not name a hosted provider's environment variable. Expressing it would hard-code the hosted variable names into a shipped document, which would then drift from the code that owns them.
 
-That is the complete list. A config the editor shows as clean can still fail one of these four, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
+That is the complete list. A config the editor shows as clean can still fail one of these five, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
 
 ## The working directory and .env
 

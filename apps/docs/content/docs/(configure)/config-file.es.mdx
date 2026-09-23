@@ -91,7 +91,7 @@ Cada código de locale, de origen o de destino, debe ser una etiqueta bien forma
 
 ### provider
 
-Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers). `none` desactiva la traducción automática por política, y su `options` puede omitirse; si se indica, debe ser `{}`; consulta [Flujo solo humano](/docs/human-only-workflow).
+Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers). Todos los proveedores salvo `none` aceptan además `options.localeMap`, que asigna a un locale configurado el código que recibe el proveedor, por ejemplo `{ "es-MX": "ES-419" }` para DeepL; consulta [Códigos de locale enviados al proveedor](/docs/providers#códigos-de-locale-enviados-al-proveedor). `none` desactiva la traducción automática por política, y su `options` puede omitirse; si se indica, debe ser `{}`; consulta [Flujo solo humano](/docs/human-only-workflow).
 
 ### glossary
 
@@ -304,14 +304,15 @@ Dos de los lugares de búsqueda no se pueden cubrir. La propiedad `"verbatra"` d
 
 ### Lo que el documento no puede comprobar
 
-El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Cuatro reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
+El documento lleva cada clave, su tipo, sus valores de enumeración, qué claves son obligatorias, la regla del token `{locale}` en `files.pattern`, la gramática de los códigos de locale en `sourceLocale` y `targetLocales` y el rechazo de claves desconocidas. Cinco reglas se aplican en tiempo de ejecución pero no tienen expresión en el borrador 2020-12 de JSON Schema, así que el editor calla sobre ellas y verbatra las notifica al cargar la configuración:
 
 - `targetLocales` no debe incluir `sourceLocale`. Comparar dos valores hermanos no tiene vocabulario en el borrador.
 - `targetLocales` no debe contener dos locales que solo difieran en mayúsculas y minúsculas.
 - Un código de locale debe ser aceptado por `Intl.getCanonicalLocales`, no solo encajar en la gramática. El patrón no ve una variante repetida como `de-1996-1996`.
+- Cada clave de `provider.options.localeMap` debe ser `sourceLocale` o uno de los `targetLocales`. Como en la primera regla, compara un valor con sus hermanos.
 - `provider.options.apiKeyEnvVar` (solo en openai-compatible) no debe nombrar la variable de entorno de un proveedor alojado. Expresarlo obligaría a fijar esos nombres de variable dentro de un documento publicado, que luego se desincronizaría del código que los posee.
 
-Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas cuatro reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
+Esa es la lista completa. Una configuración que el editor muestra limpia todavía puede fallar por una de esas cinco reglas, así que un editor en verde es una primera pasada rápida, no un sustituto de ejecutar `verbatra check`.
 
 ## El directorio de trabajo y .env
 

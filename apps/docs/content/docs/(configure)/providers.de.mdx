@@ -88,7 +88,7 @@ provider: {
 }
 ```
 
-Liest `DEEPL_API_KEY`. DeepL ist eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld und kein Ausgabe-Token-Limit. Es akzeptiert zwei Optionen, beide optional: `glossaryId`, das ein Glossar nennt, das du bereits in DeepL angelegt hast, und `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)):
+Liest `DEEPL_API_KEY`. DeepL ist eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld und kein Ausgabe-Token-Limit. Es akzeptiert drei Optionen, alle optional: `glossaryId`, das ein Glossar nennt, das du bereits in DeepL angelegt hast, `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)) und `localeMap` (siehe [An den Provider gesendete Locale-Codes](#an-den-provider-gesendete-locale-codes)):
 
 ```ts
 provider: {
@@ -119,7 +119,7 @@ provider: {
 }
 ```
 
-Liest `GOOGLE_TRANSLATE_API_KEY`. Wie DeepL ist Google Cloud Translation eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld, kein Ausgabe-Token-Limit und in v1 keine Glossar-Option. Es akzeptiert eine Option, `requestTimeoutMs`, die optional ist (siehe [Anfrage-Timeout](#anfrage-timeout)).
+Liest `GOOGLE_TRANSLATE_API_KEY`. Wie DeepL ist Google Cloud Translation eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld, kein Ausgabe-Token-Limit und in v1 keine Glossar-Option. Es akzeptiert zwei Optionen, beide optional: `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)) und `localeMap` (siehe [An den Provider gesendete Locale-Codes](#an-den-provider-gesendete-locale-codes)).
 
 Dieser Provider zielt auf die Basic-Stufe (v2) von Cloud Translation, authentifiziert mit einem einfachen API-Schlüssel aus einem Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Er nutzt nicht die Advanced-Stufe (v3), die sich mit einem Service-Account oder Application Default Credentials authentifiziert statt mit einer einzelnen Umgebungsvariable, und deshalb nicht zu verbatras Regel "Keys nur aus der Umgebungsvariable" passt.
 
@@ -133,7 +133,7 @@ Wie DeepL kann Google Cloud Translation Platzhalter oder ICU-Tokens nicht erhalt
 </Callout>
 
 <Callout title="Google Cloud Translation und Locale-Codes">
-Locale-Codes werden vor jedem Netzwerkaufruf als wohlgeformtes BCP-47 validiert (zum Beispiel `en` oder `pt-BR`); ein fehlerhafter Code wie `en_US` schlägt mit `INVALID_REQUEST` fehl und nennt den betroffenen Code. Anders als DeepL erlaubt Cloud Translation regionale Zielcodes frei, diese Prüfung betrifft also nur die Syntax, keine feste Positivliste. Eine Ziel-Locale oder ein Sprachpaar, das Googles API selbst nicht unterstützt, schlägt weiterhin als strukturiertes `INVALID_REQUEST` fehl, sobald die Anfrage Google erreicht.
+Der Code, der für jede Locale gesendet wird (nach der [Abbildung der Locale-Codes](#an-den-provider-gesendete-locale-codes)), wird vor jedem Netzwerkaufruf als wohlgeformtes BCP-47 validiert (zum Beispiel `en` oder `pt-BR`); ein fehlerhafter Code wie `en_US` schlägt mit `INVALID_REQUEST` fehl und nennt den betroffenen Code. Anders als DeepL erlaubt Cloud Translation regionale Zielcodes frei, diese Prüfung betrifft also nur die Syntax, keine feste Positivliste. Eine Ziel-Locale oder ein Sprachpaar, das Googles API selbst nicht unterstützt, schlägt weiterhin als strukturiertes `INVALID_REQUEST` fehl, sobald die Anfrage Google erreicht.
 </Callout>
 
 ## openai-compatible
@@ -254,6 +254,36 @@ Lässt du sie weg, wendet verbatra seinen eigenen Standard von `120000` ms (zwei
 
 DeepL ist die eine Ausnahme beim Abbrechen: Sein Client kann eine bereits laufende Anfrage nicht abbrechen, also hört verbatra beim Timeout auf zu warten und macht weiter, aber die abgeschickte Anfrage läuft bei DeepL zu Ende. Google Cloud Translation nutzt unter der Haube eine einfache HTTP-Anfrage und bricht beim Timeout sofort ab, wie jeder andere Provider außer DeepL.
 
+### An den Provider gesendete Locale-Codes
+
+<AvailableFrom version="0.12.0" />
+
+Deine Dateien, die Lock-Datei und das Übersetzungsgedächtnis verwenden immer die Locale-Codes aus deiner Konfiguration. Die Provider sind sich dabei nicht immer einig: DeepL nimmt eine Quellsprache ohne Region an und nennt traditionelles Chinesisch `ZH-HANT`, wo deine Konfiguration `zh-Hant` oder `zh-TW` sagt. Deshalb übersetzt verbatra den Code erst im letzten Moment, nur für die Anfrage, die es sendet:
+
+| Provider | Quell-Locale | Ziel-Locale |
+| --- | --- | --- |
+| DeepL | Nur die Sprache: `en-US` wird als `EN` gesendet, `zh-Hant-TW` als `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK` und `zh-MO` werden als `ZH-HANT` gesendet, `zh-Hans`, `zh-CN` und `zh-SG` als `ZH-HANS`. Eine DeepL-Variante bleibt erhalten (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Jede andere Region oder Schrift fällt weg: `de-AT` wird als `DE` gesendet, `es-MX` als `ES`. |
+| Google Cloud Translation | `zh-Hant` (und `zh-HK`, `zh-MO`) wird als `zh-TW` gesendet, `zh-Hans` (und `zh-SG`) als `zh-CN` und `nb` als `no`. Jeder andere Code wird so gesendet, wie er geschrieben ist. | Wie bei der Quelle. |
+| Anthropic, OpenAI, Gemini, openai-compatible | So, wie er geschrieben ist. | So, wie er geschrieben ist. |
+
+DeepL hat kein allgemeines Englisch oder Portugiesisch als Ziel. Ein Ziel, das am Ende ein bloßes `en` oder `pt` ist (zum Beispiel `en-AU`), schlägt deshalb mit `INVALID_REQUEST` fehl, bevor eine Anfrage gesendet wird, und die Meldung sagt dir, dass du es abbilden sollst.
+
+Wenn die eingebaute Normalisierung nicht das ist, was du willst, ergänze `localeMap` in den `options` des Providers. Es bildet eine Locale aus deiner Konfiguration auf genau den Code ab, den der Provider erhält, und ein Eintrag gewinnt immer gegen die eingebaute Normalisierung:
+
+```ts
+provider: {
+  id: "deepl",
+  options: {
+    localeMap: {
+      "en-AU": "EN-GB",
+      "es-MX": "ES-419",
+    },
+  },
+}
+```
+
+Jeder Key muss `sourceLocale` oder einer der `targetLocales` sein, genau so geschrieben wie in deiner Konfiguration. Jeder andere Key lässt das Laden der Konfiguration mit `CONFIG_INVALID` scheitern und nennt den Key. Jeder Wert muss ein nicht leerer String sein, den verbatra unverändert sendet: DeepL und Google Cloud Translation erhalten ihn als Sprachcode, ein LLM-Provider erhält ihn in der Anfrage anstelle des Locale-Codes, dort funktioniert also auch ein Wert wie `"pt-BR (Brazilian Portuguese)"`. Ein Wert, den der Provider selbst ablehnt, lässt diesen Teil-Batch mit einem strukturierten Fehler scheitern, wie jeder andere Provider-Fehler. `localeMap` wird von jedem Provider außer `none` akzeptiert. Eine Änderung daran übersetzt Keys, die schon aktuell sind, nicht neu: Nur neue und geänderte Quelltexte werden mit dem neuen Code gesendet.
+
 ### Strukturierte Fehler
 
 Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header oder einen Key tragen könnte. verbatra klassifiziert jeden Fehlschlag über seinen HTTP-Status oder seine SDK-Fehlerklasse und erzeugt einen strukturierten Fehler mit einem stabilen Code und einer festen, geheimnisfreien Meldung:
@@ -261,7 +291,7 @@ Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header o
 | Code | Bedeutung |
 | --- | --- |
 | `MISSING_API_KEY` | Die erforderliche Umgebungsvariable ist ungesetzt oder leer. Die Meldung nennt die Variable, nie einen Wert. |
-| `INVALID_REQUEST` | Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Locale-Code, den DeepL nicht akzeptiert (ein regionaler Quell-Code oder ein bloßes `en` oder `pt` als Ziel), oder ein Locale-Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht. |
+| `INVALID_REQUEST` | Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht. |
 | `RATE_LIMITED` | HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit), da Googles API 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler nutzt. Warte und versuche es später erneut, oder erhöhe das Cloud-Translation-Kontingent deines Projekts. |
 | `TIMEOUT` | Ein Netzwerk- oder Anfrage-Timeout; keine Antwort kam rechtzeitig an. Wiederholen kann helfen, und [`requestTimeoutMs`](#anfrage-timeout) hebt die Grenze an. |
 | `AUTH_FAILED` | HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht. |
