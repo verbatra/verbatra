@@ -103,6 +103,21 @@ describe("the config JSON Schema document: the locale code rule", () => {
     expect(targetLocales?.items).toEqual(sourceLocale);
   });
 
+  it("leaves a repeated variant to the runtime check, which rejects it", () => {
+    const expression = new RegExp(String(sourceLocale?.pattern));
+    const parsed = verbatraConfigSchema.safeParse({
+      sourceLocale: "en",
+      targetLocales: ["de-1996-1996"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "none" },
+    });
+
+    expect(expression.test("de-1996-1996")).toBe(true);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues.map((issue) => issue.path.join("."))).toEqual(["targetLocales.0"]);
+  });
+
   it("accepts and rejects the same well-formed shapes the runtime does", () => {
     const expression = new RegExp(String(sourceLocale?.pattern));
 

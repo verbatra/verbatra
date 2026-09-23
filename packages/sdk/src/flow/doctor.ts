@@ -83,8 +83,9 @@ export interface DoctorResult {
   readonly ok: boolean;
   /**
    * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, `plural-rules`, and `locale-codes`. A literal run
-   * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
+   * `config`, `format-adapter`, `provider`, `api-key`, `source-file`, `plural-rules`, and
+   * `locale-codes`. A literal run ({@link DoctorInput.literals}) has exactly two: `config` and
+   * `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
   /**

@@ -48,15 +48,16 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  *
  * `fuzzyCache` is off unless `enabled` is set. With it on, a source string whose earlier form is in
  * the translation memory close enough to clear `threshold` reuses that translation instead of
- * paying the provider for it. `threshold` is a similarity ratio from `0.5` to `1` and defaults to `0.9`.
+ * paying the provider for it. `threshold` is a similarity ratio from `0.5` to `1` and defaults to
+ * `0.9`.
  *
  * `sourceLocale` and every entry of `targetLocales` must be a well-formed BCP 47 locale code that
  * `Intl.getCanonicalLocales` accepts, such as `en`, `pt-BR`, `zh-Hant-TW`, or `es-419`. An
  * underscore spelling such as `pt_BR` is rejected: write `pt-BR` and set `files.localeStyle` to
- * `posix` to keep underscores in file names. The language subtag must be two or three letters, so a
- * language name such as `german` and a built-in object property name such as `toString` are
- * rejected even though `Intl` would accept them. A valid code that is not in canonical form, such as `zh-hant-tw`
- * or the deprecated `iw`, is accepted as written and reported by {@link doctor}.
+ * `posix` to keep underscores in file names. The language subtag must be two or three letters, so
+ * a language name such as `german` and a built-in object property name such as `toString` are
+ * rejected even though `Intl` would accept them. A valid code that is not in canonical form, such
+ * as `zh-hant-tw` or the deprecated `iw`, is accepted as written and reported by {@link doctor}.
  *
  * Beyond the per-field checks, two whole-config rules are enforced: `targetLocales` must not
  * contain the source locale, and it must not contain two locales that differ only in case (they
