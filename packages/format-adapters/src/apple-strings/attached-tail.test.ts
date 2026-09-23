@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isAttachedTail } from "./attached-tail.js";
+import { parseAppleStringsEntries } from "./parse.js";
 
 const REGEX_ORACLE = /^[ \t]*\r?\n?[ \t]*$/;
 const ALPHABET = [" ", "\t", "\r", "\n", "x"] as const;
@@ -14,7 +15,7 @@ function allStrings(maxLength: number): string[] {
   return out;
 }
 
-function countCharacterReads(tail: string): { readonly attached: boolean; readonly reads: number } {
+function countCharacterReads<T>(run: () => T): { readonly result: T; readonly reads: number } {
   const { charCodeAt } = String.prototype;
   let reads = 0;
   String.prototype.charCodeAt = function (this: string, index: number): number {
@@ -22,13 +23,13 @@ function countCharacterReads(tail: string): { readonly attached: boolean; readon
     return charCodeAt.call(this, index);
   };
   try {
-    return { attached: isAttachedTail(tail), reads };
+    return { result: run(), reads };
   } finally {
     String.prototype.charCodeAt = charCodeAt;
   }
 }
 
-describe("isAttachedTail: accepted shapes", () => {
+describe("isAttachedTail: classification", () => {
   it.each([
     ["", true],
     ["\n", true],
@@ -45,6 +46,10 @@ describe("isAttachedTail: accepted shapes", () => {
     ["x", false],
     [" // note\n", false],
     ["\f", false],
+    ["\v", false],
+    ["\u00a0", false],
+    ["\u2028", false],
+    ["\u3000", false],
   ])("classifies %j as attached=%s", (tail, attached) => {
     expect(isAttachedTail(tail)).toBe(attached);
   });
@@ -72,8 +77,26 @@ describe("isAttachedTail: bounded work", () => {
       true,
     ],
   ])("reads each character a constant number of times for %s", (_label, tail, attached) => {
-    const result = countCharacterReads(tail);
-    expect(result.attached).toBe(attached);
-    expect(result.reads).toBeLessThanOrEqual(tail.length + 4);
+    const { result, reads } = countCharacterReads(() => isAttachedTail(tail));
+    expect(result).toBe(attached);
+    expect(reads).toBeGreaterThanOrEqual(tail.length);
+    expect(reads).toBeLessThanOrEqual(tail.length + 4);
   });
+});
+
+describe("parseAppleStringsEntries: bounded attachment work", () => {
+  const run = " ".repeat(10_000);
+
+  it.each([
+    ["detached", `/* note */${run}x\n"a" = "1";\n`, run.length + 2, undefined],
+    ["attached", `/* note */${run}\n${run}"a" = "1";\n`, run.length * 2 + 1, "note"],
+  ])(
+    "scans a long %s comment tail character by character",
+    (_label, content, tailLength, description) => {
+      const { result, reads } = countCharacterReads(() => parseAppleStringsEntries(content, "m"));
+      expect(result.get("a")?.description).toBe(description);
+      expect(reads).toBeGreaterThanOrEqual(tailLength);
+      expect(reads).toBeLessThanOrEqual(content.length + 8);
+    },
+  );
 });

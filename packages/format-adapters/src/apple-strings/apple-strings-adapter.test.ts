@@ -131,7 +131,7 @@ describe("createAppleStringsAdapter read", () => {
   });
 
   it("decides attachment across a long run of inline whitespace after the comment", async () => {
-    const run = " \t".repeat(50_000);
+    const run = " \t".repeat(50);
     const path = await tempFile(
       "m.strings",
       `/* attached */${run}\n${run}"a" = "1";\n/* detached */${run}\n${run}\n"b" = "2";\n`,
