@@ -10,9 +10,10 @@ resolves the real tarballs instead of workspace symlinks.
 
 ## How it works
 
-`src/global-setup.ts` packs `@verbatra/sdk` and `@verbatra/cli` once (or reuses the
-paths in `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL`). Each test builds a temp
-project, `npm install`s both tarballs, and runs the binary via `src/harness.ts`.
+`src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, and `@verbatra/studio` once (or
+reuses the paths in `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` / `VERBATRA_STUDIO_TARBALL`).
+Each test builds a temp project, `npm install`s the tarballs, and runs the binary via
+`src/harness.ts`.
 
 ## Tiers
 
@@ -79,11 +80,12 @@ npm run test:nokey
 E2E_PROVIDER=gemini GEMINI_API_KEY=... npm test
 ```
 
-Without `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL`, global setup builds `@verbatra/sdk`,
-`@verbatra/cli`, and their workspace dependencies, then packs the tarballs itself via pnpm, so a
-stale local `dist/` is never packed by accident. To reuse tarballs you packed yourself (the CI
-path), set both variables; setting only one fails setup. The variables must hold concrete paths
-(the harness does not expand globs), so resolve them with `$(ls ...)`:
+Without `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` / `VERBATRA_STUDIO_TARBALL`, global setup
+builds `@verbatra/sdk`, `@verbatra/cli`, and their workspace dependencies (which include
+`@verbatra/studio`), then packs the three tarballs itself via pnpm, so a stale local `dist/` is
+never packed by accident. To reuse tarballs you packed yourself (the CI path), set all three
+variables; setting only some of them fails setup. The variables must hold concrete paths (the
+harness does not expand globs), so resolve them with `$(ls ...)`:
 
 ```sh
 # from the repo root
@@ -91,10 +93,12 @@ pnpm build
 mkdir -p /tmp/packs
 pnpm --filter @verbatra/sdk pack --pack-destination /tmp/packs
 pnpm --filter @verbatra/cli pack --pack-destination /tmp/packs
+pnpm --filter @verbatra/studio pack --pack-destination /tmp/packs
 
 cd e2e
 VERBATRA_SDK_TARBALL=$(ls /tmp/packs/verbatra-sdk-*.tgz) \
 VERBATRA_CLI_TARBALL=$(ls /tmp/packs/verbatra-cli-*.tgz) \
+VERBATRA_STUDIO_TARBALL=$(ls /tmp/packs/verbatra-studio-*.tgz) \
   npm run test:nokey
 ```
 
