@@ -95,8 +95,23 @@ async function canonicalPath(
   }
 }
 
+export type WorkingDirectoryConflict = "working-directory" | "outside-working-directory";
+
+export const WORKING_DIRECTORY_REASON = "names the working directory itself.";
+
+export function workingDirectoryConflict(
+  root: string,
+  target: string,
+): WorkingDirectoryConflict | undefined {
+  const inside = relative(root, target);
+  if (inside === "") {
+    return "working-directory";
+  }
+  return escapesWorkingDirectory(inside) ? "outside-working-directory" : undefined;
+}
+
 export type CanonicalOutputConflict =
-  | { readonly kind: "outside-working-directory" }
+  | { readonly kind: WorkingDirectoryConflict }
   | { readonly kind: "reserved"; readonly reserved: ReservedPath };
 
 export async function canonicalOutputConflict(
@@ -111,8 +126,9 @@ export async function canonicalOutputConflict(
   }
   const root = await canonicalPath(realpath, cwd);
   const target = await canonicalPath(realpath, outputPath);
-  if (escapesWorkingDirectory(relative(root, target))) {
-    return { kind: "outside-working-directory" };
+  const place = workingDirectoryConflict(root, target);
+  if (place !== undefined) {
+    return { kind: place };
   }
   const key = target.toLowerCase();
   for (const entry of reserved.values()) {

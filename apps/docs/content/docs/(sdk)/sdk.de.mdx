@@ -786,7 +786,9 @@ innerhalb der übergebenen Roots.
 und die Ausgabe-Guards von [`generateTypes`](#generatetypes) und [`exportTmx`](#exporttmx) sehen
 damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
 hinaus noch auf eine Datei tragen kann, von der das Projekt abhängt. Ohne es vergleichen diese
-Guards die Pfade so, wie sie geschrieben sind.
+Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Ziel nicht existiert,
+lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` einen Link dort
+ersetzt, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
 
 Das Einzige, was `deps.fs` nicht erreicht, ist eine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer

@@ -121,7 +121,10 @@ export interface SdkFs {
    * Optional, so an implementation written before it existed keeps compiling. The output guards of
    * {@link generateTypes} and {@link exportTmx} use it to see where a path really lands, so a
    * symbolic link cannot carry an output file outside the working directory or onto a file the
-   * project depends on. Without it, those guards compare paths as written.
+   * project depends on. Without it, those guards compare paths as written. A symbolic link at
+   * the output path whose target does not exist cannot be resolved, so the guards assume
+   * {@link SdkFs.writeFile} replaces a link there rather than writing through it, as the default
+   * atomic write does.
    *
    * @param path - An existing file or directory.
    * @returns The canonical absolute path. Rejects when the path does not exist.

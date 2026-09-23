@@ -763,7 +763,9 @@ las raíces que recibió.
 guardas de salida de [`generateTypes`](#generatetypes) y [`exportTmx`](#exporttmx) lo usan para ver
 dónde cae de verdad una ruta de salida, así que un enlace no puede llevar un archivo escrito fuera
 de `cwd` ni sobre un archivo del que depende el proyecto. Sin él, esas guardas comparan las rutas
-tal como están escritas.
+tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe no se puede resolver,
+así que las guardas dan por hecho que `writeFile` reemplaza ese enlace en lugar de escribir a través
+de él, como hace la escritura atómica por defecto.
 
 Lo único que `deps.fs` no alcanza es un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya

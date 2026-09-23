@@ -1,4 +1,4 @@
-import { dirname, relative, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   type BuildTmxInput,
   buildTmx,
@@ -19,9 +19,11 @@ import {
   type ReservedPath,
   reservedPathAt,
   reservedProjectPaths,
+  WORKING_DIRECTORY_REASON,
+  workingDirectoryConflict,
 } from "../reserved-output.js";
 import { selectLocales } from "../select-locales.js";
-import { escapesWorkingDirectory, unwritableFileMessage } from "../write-target.js";
+import { unwritableFileMessage } from "../write-target.js";
 import { assertDistinctLocales } from "./locale-match.js";
 
 /** Default output path for a TMX export, used when {@link ExportTmxInput.out} is omitted. */
@@ -167,7 +169,11 @@ async function resolveOutputPath(
     refuseOutput(requested, "names no file.");
   }
   const outputPath = resolve(cwd, requested);
-  if (escapesWorkingDirectory(relative(cwd, outputPath))) {
+  const place = workingDirectoryConflict(cwd, outputPath);
+  if (place === "working-directory") {
+    refuseOutput(requested, WORKING_DIRECTORY_REASON);
+  }
+  if (place === "outside-working-directory") {
     refuseOutput(requested, "is not inside the working directory.");
   }
   const claimed = reservedPathAt(reserved, outputPath);
@@ -175,6 +181,9 @@ async function resolveOutputPath(
     refuseOutput(requested, `is ${claimed.what}.`);
   }
   const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
+  if (conflict?.kind === "working-directory") {
+    refuseOutput(requested, WORKING_DIRECTORY_REASON);
+  }
   if (conflict?.kind === "outside-working-directory") {
     refuseOutput(requested, "resolves outside the working directory through a symbolic link.");
   }

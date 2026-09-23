@@ -719,7 +719,9 @@ never follows one, which is what keeps it inside the roots it was given.
 `realpath` is optional too. It resolves every symbolic link in an existing path, and the output
 guards of [`generateTypes`](#generatetypes) and [`exportTmx`](#exporttmx) use it to see where an
 output path really lands, so a link cannot carry a written file outside `cwd` or onto a file the
-project depends on. Without it, those guards compare paths as written.
+project depends on. Without it, those guards compare paths as written. A link at the output path
+whose target does not exist cannot be resolved, so the guards assume `writeFile` replaces a link
+there rather than writing through it, as the default atomic write does.
 
 The one thing `deps.fs` cannot reach is a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.

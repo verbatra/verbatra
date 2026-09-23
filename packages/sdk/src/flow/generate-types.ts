@@ -18,6 +18,8 @@ import {
   type ReservedPath,
   reservedPathAt,
   reservedProjectPaths,
+  WORKING_DIRECTORY_REASON,
+  workingDirectoryConflict,
 } from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
@@ -25,7 +27,7 @@ import {
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
-import { escapesWorkingDirectory, unwritableFileMessage } from "./write-target.js";
+import { unwritableFileMessage } from "./write-target.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
@@ -172,8 +174,15 @@ function resolveOutputPath(
     refuseOutput(requested, "absolute", "is absolute.");
   }
   const outputPath = resolve(cwd, requested);
-  if (escapesWorkingDirectory(relative(cwd, outputPath))) {
-    refuseOutput(requested, "outside-working-directory", "is not inside the working directory.");
+  const place = workingDirectoryConflict(cwd, outputPath);
+  if (place !== undefined) {
+    refuseOutput(
+      requested,
+      "outside-working-directory",
+      place === "working-directory"
+        ? WORKING_DIRECTORY_REASON
+        : "is not inside the working directory.",
+    );
   }
   const claimed = reservedPathAt(reserved, outputPath);
   if (claimed !== undefined) {
@@ -198,6 +207,9 @@ async function refuseLinkedOutput(
   requested: string,
 ): Promise<void> {
   const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
+  if (conflict?.kind === "working-directory") {
+    refuseOutput(requested, "outside-working-directory", WORKING_DIRECTORY_REASON);
+  }
   if (conflict?.kind === "outside-working-directory") {
     refuseOutput(
       requested,

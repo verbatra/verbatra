@@ -534,7 +534,9 @@ Une implémentation doit respecter deux points du contrat. Les lectures sont bor
 les gardes de sortie de [`generateTypes`](#generatetypes) et [`exportTmx`](#exporttmx) s'en servent
 pour voir où un chemin de sortie aboutit vraiment, si bien qu'un lien ne peut porter un fichier
 écrit ni hors de `cwd` ni sur un fichier dont le projet dépend. Sans lui, ces gardes comparent les
-chemins tels qu'ils sont écrits.
+chemins tels qu'ils sont écrits. Un lien au chemin de sortie dont la cible n'existe pas ne peut pas
+être résolu, donc les gardes supposent que `writeFile` remplace ce lien au lieu d'écrire à travers
+lui, comme le fait l'écriture atomique par défaut.
 
 La seule chose que `deps.fs` n'atteint pas est un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 

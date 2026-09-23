@@ -242,6 +242,18 @@ describe("exportTmx: an output path that reaches through a symbolic link", () =>
     expect(await readFile(join(dir, LOCK_FILE_NAME), "utf8")).toBe(PROTECTED_MARKER);
   });
 
+  it("refuses a link that resolves to the working directory with the reason a plain path gets", async () => {
+    const dir = await seed();
+    await symlink(dir, join(dir, "here"), "dir");
+
+    for (const out of ["here", "."]) {
+      await expect(exportTmx({ config: cfg(), cwd: dir, out })).rejects.toMatchObject({
+        code: "TMX_OUTPUT_CONFLICT",
+        message: expect.stringContaining("names the working directory itself."),
+      });
+    }
+  });
+
   it("writes through a linked directory that stays inside the working directory", async () => {
     const dir = await seed();
     await mkdir(join(dir, "exports"));
