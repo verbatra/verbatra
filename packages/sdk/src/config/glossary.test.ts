@@ -5,6 +5,7 @@ import {
   glossaryForLocale,
   normalizeGlossary,
   rawLocaleKeyIssues,
+  redactGlossary,
   sharedGlossaryTranslations,
 } from "./glossary.js";
 
@@ -63,7 +64,10 @@ describe("normalizeGlossary", () => {
   it("returns the same result for the same glossary object, and accepts its own output", () => {
     const first = normalizeGlossary(DASHBOARD);
     expect(normalizeGlossary(DASHBOARD)).toBe(first);
-    expect(normalizeGlossary({ ...first, version: 2 })).toEqual({ ...first, version: 2 });
+    expect(normalizeGlossary({ ...first })).toEqual(first);
+    const version1 = normalizeGlossary({ Save: "Speichern" });
+    expect(normalizeGlossary({ ...version1 })).toEqual(version1);
+    expect(glossaryForLocale(version1, "de")?.terms[0]?.target).toBe("Speichern");
   });
 });
 
@@ -264,5 +268,45 @@ describe("rawLocaleKeyIssues", () => {
         path: ["terms", 0, "forbidden", "__proto__"],
       },
     ]);
+  });
+});
+
+describe("redactGlossary", () => {
+  const SECRET = "sk-abcdEFGH12345678";
+
+  it("redacts every secret-shaped value and names the terms that had one", () => {
+    const { glossary, redactedTerms } = redactGlossary(
+      normalizeGlossary({
+        version: 2,
+        terms: [
+          {
+            source: "Key",
+            target: SECRET,
+            targets: { de: SECRET },
+            note: SECRET,
+            partOfSpeech: SECRET,
+          },
+          { source: "Board", forbidden: { de: [SECRET, "Brett"] } },
+          { source: "Save", target: "Speichern" },
+        ],
+        doNotTranslate: ["verbatra"],
+      }),
+    );
+
+    expect(redactedTerms).toEqual(["Key", "Board"]);
+    expect(glossary.terms[0]).toMatchObject({
+      target: "[REDACTED]",
+      targets: { de: "[REDACTED]" },
+      note: "[REDACTED]",
+      partOfSpeech: "[REDACTED]",
+    });
+    expect(glossary.terms[1]?.forbidden).toEqual({ de: ["[REDACTED]", "Brett"] });
+    expect(glossary.terms[2]).toEqual(normalizeGlossary({ Save: "Speichern" }).terms[0]);
+    expect(glossary.doNotTranslate).toEqual([{ term: "verbatra", caseSensitive: true }]);
+  });
+
+  it("leaves a glossary with nothing secret unchanged", () => {
+    const clean = normalizeGlossary({ Save: "Speichern" });
+    expect(redactGlossary(clean)).toEqual({ glossary: clean, redactedTerms: [] });
   });
 });

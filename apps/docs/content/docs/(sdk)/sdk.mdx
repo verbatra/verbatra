@@ -784,6 +784,16 @@ translation, in glossary order. Per-locale translations, forbidden renderings, a
 terms are left out, so use it only where a consumer can show nothing but a flat term map. A term
 named `__proto__` stays an own key.
 
+### redactGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Passes every translation, forbidden rendering, note, and part of speech of a normalized `Glossary`
+through `redact`, and returns `{ glossary, redactedTerms }`, where `redactedTerms` names each term
+that had a value replaced. Source terms and do-not-translate terms are left as they are. The MCP
+server and Studio use it before a glossary leaves the process; use it the same way in your own
+tool.
+
 ### defineConfig
 
 An identity helper for authoring a typed `verbatra.config.ts`: it returns its argument unchanged,

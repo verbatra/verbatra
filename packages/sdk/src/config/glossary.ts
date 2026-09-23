@@ -5,6 +5,7 @@ import {
   type LocaleGlossaryTerm,
 } from "@verbatra/ai-providers";
 import { z } from "zod";
+import { redact } from "../redact.js";
 import { localeCodeSchema } from "./locale-code.js";
 
 export const MAX_GLOSSARY_TERM_LENGTH = 200;
@@ -314,7 +315,9 @@ export function describeGlossaryIssues(issues: readonly DescribedIssue[]): strin
     .join("; ");
 }
 
-export function isGlossaryDefinition(glossary: GlossaryInput): glossary is GlossaryDefinition {
+export function isGlossaryDefinition(
+  glossary: GlossaryInput | Glossary,
+): glossary is GlossaryDefinition | Glossary {
   return Array.isArray((glossary as { readonly terms?: unknown }).terms);
 }
 
@@ -352,17 +355,18 @@ const normalized = new WeakMap<object, Glossary>();
  * locale. The input is not validated again; {@link loadConfig} and {@link verbatraConfigSchema}
  * already have.
  *
- * @param glossary - A version 1 term map or a version 2 {@link GlossaryDefinition}.
+ * @param glossary - A version 1 term map, a version 2 {@link GlossaryDefinition}, or a glossary
+ * already normalized, which comes back unchanged in content and version.
  * @returns The normalized glossary.
  */
-export function normalizeGlossary(glossary: GlossaryInput): Glossary {
+export function normalizeGlossary(glossary: GlossaryInput | Glossary): Glossary {
   const cached = normalized.get(glossary);
   if (cached !== undefined) {
     return cached;
   }
   const result: Glossary = isGlossaryDefinition(glossary)
     ? {
-        version: 2,
+        version: glossary.version === 1 ? 1 : 2,
         terms: glossary.terms.map(normalizeTerm),
         doNotTranslate: (glossary.doNotTranslate ?? []).map(doNotTranslateTermOf),
       }
@@ -419,12 +423,13 @@ function localeTerm(term: GlossaryTerm, key: string): LocaleGlossaryTerm | undef
  * base language, then from its `target`; locale codes are compared in canonical form, ignoring
  * case. A term with neither a translation nor a forbidden rendering for the locale is left out.
  *
- * @param glossary - The config's glossary, in either supported shape, or `undefined` for none.
+ * @param glossary - The config's glossary, in either supported shape or already normalized, or
+ * `undefined` for none.
  * @param locale - The target locale code.
  * @returns The glossary for that locale, or `undefined` when nothing in it applies there.
  */
 export function glossaryForLocale(
-  glossary: GlossaryInput | undefined,
+  glossary: GlossaryInput | Glossary | undefined,
   locale: string,
 ): LocaleGlossary | undefined {
   if (glossary === undefined) {
@@ -455,4 +460,49 @@ export function sharedGlossaryTranslations(glossary: Glossary): Readonly<Record<
       term.target !== undefined ? [[term.source, term.target]] : [],
     ),
   );
+}
+
+/** A glossary with every secret-shaped value replaced, as {@link redactGlossary} returns it. */
+export interface RedactedGlossary {
+  /** The glossary with each redacted translation, forbidden rendering, note, and part of speech replaced by `[REDACTED]`. */
+  readonly glossary: Glossary;
+  /** The source term of every term that had at least one value redacted, in glossary order. */
+  readonly redactedTerms: readonly string[];
+}
+
+function redactRecord<T>(
+  record: Readonly<Record<string, T>>,
+  redactValue: (value: T) => T,
+): Readonly<Record<string, T>> {
+  return Object.fromEntries(
+    Object.entries(record).map(([locale, value]) => [locale, redactValue(value)]),
+  );
+}
+
+function redactTerm(term: GlossaryTerm): GlossaryTerm {
+  return {
+    ...term,
+    ...(term.target !== undefined ? { target: redact(term.target) } : {}),
+    targets: redactRecord(term.targets, redact),
+    forbidden: redactRecord(term.forbidden, (renderings) => renderings.map(redact)),
+    ...(term.note !== undefined ? { note: redact(term.note) } : {}),
+    ...(term.partOfSpeech !== undefined ? { partOfSpeech: redact(term.partOfSpeech) } : {}),
+  };
+}
+
+/**
+ * Passes every value of a glossary through {@link redact}, so a translation, forbidden rendering,
+ * note, or part of speech shaped like a provider API key never leaves a tool that shows the
+ * glossary. Source terms and terms kept untranslated are left as they are: they name the entry.
+ *
+ * @param glossary - A normalized glossary, as {@link readGlossaryFile} or {@link normalizeGlossary}
+ * returns it.
+ * @returns The redacted glossary and the source terms whose values were redacted.
+ */
+export function redactGlossary(glossary: Glossary): RedactedGlossary {
+  const terms = glossary.terms.map(redactTerm);
+  const redactedTerms = terms
+    .filter((term, index) => JSON.stringify(term) !== JSON.stringify(glossary.terms[index]))
+    .map((term) => term.source);
+  return { glossary: { ...glossary, terms }, redactedTerms };
 }
