@@ -2,10 +2,21 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { makePluralKey, pluralBaseKey, pluralCategoryOf } from "@verbatra/format-adapters";
 import {
   type CldrPluralCategory,
+  type PluralRuleType,
   pluralCategoriesFor,
   resolvePluralCategories,
 } from "./plural-rules.js";
 import type { SdkNotice } from "./summary.js";
+
+const ORDINAL_BASE_SUFFIX = "_ordinal";
+
+function ruleTypeOf(baseKey: string): PluralRuleType {
+  return baseKey.endsWith(ORDINAL_BASE_SUFFIX) ? "ordinal" : "cardinal";
+}
+
+function requiredFor(targetLocale: string, baseKey: string): readonly CldrPluralCategory[] {
+  return pluralCategoriesFor(targetLocale, ruleTypeOf(baseKey));
+}
 
 function groupPluralSources(
   source: LocaleResource,
@@ -26,14 +37,30 @@ function groupPluralSources(
 
 function suppliedCategories(
   groups: ReadonlyMap<string, ReadonlyMap<CldrPluralCategory, TranslationEntry>>,
+  type: PluralRuleType,
 ): Set<CldrPluralCategory> {
   const supplied = new Set<CldrPluralCategory>();
-  for (const group of groups.values()) {
+  for (const [baseKey, group] of groups) {
+    if (ruleTypeOf(baseKey) !== type) {
+      continue;
+    }
     for (const category of group.keys()) {
       supplied.add(category);
     }
   }
   return supplied;
+}
+
+function missingCategories(
+  groups: ReadonlyMap<string, ReadonlyMap<CldrPluralCategory, TranslationEntry>>,
+  targetLocale: string,
+  type: PluralRuleType,
+): readonly CldrPluralCategory[] {
+  const supplied = suppliedCategories(groups, type);
+  if (supplied.size === 0) {
+    return [];
+  }
+  return pluralCategoriesFor(targetLocale, type).filter((category) => !supplied.has(category));
 }
 
 export function detectMissingPluralCategories(
@@ -45,11 +72,10 @@ export function detectMissingPluralCategories(
     return undefined;
   }
   const groups = groupPluralSources(source);
-  const supplied = suppliedCategories(groups);
-  if (supplied.size === 0) {
-    return undefined;
-  }
-  const missing = pluralCategoriesFor(targetLocale).filter((category) => !supplied.has(category));
+  const missing = [
+    ...missingCategories(groups, targetLocale, "cardinal"),
+    ...missingCategories(groups, targetLocale, "ordinal").map((category) => `ordinal ${category}`),
+  ];
   if (missing.length === 0) {
     return undefined;
   }
@@ -66,7 +92,6 @@ export function targetPluralSetIncomplete(
   targetKeys: Iterable<string>,
   targetLocale: string,
 ): boolean {
-  const required = pluralCategoriesFor(targetLocale);
   const present = new Map<string, Set<CldrPluralCategory>>();
   for (const key of targetKeys) {
     const baseKey = pluralBaseKey(key);
@@ -78,8 +103,8 @@ export function targetPluralSetIncomplete(
     set.add(category);
     present.set(baseKey, set);
   }
-  for (const categories of present.values()) {
-    if (required.some((category) => !categories.has(category))) {
+  for (const [baseKey, categories] of present) {
+    if (requiredFor(targetLocale, baseKey).some((category) => !categories.has(category))) {
       return true;
     }
   }
@@ -129,12 +154,16 @@ function representativeEntry(
   return group.get("other") ?? group.get("one") ?? [...group.values()][0];
 }
 
+function ordinalLabel(targetKey: string): string {
+  return ruleTypeOf(pluralBaseKey(targetKey) ?? targetKey) === "ordinal" ? "ordinal " : "";
+}
+
 export function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
   return {
     ...item.sourceEntry,
     key: item.targetKey,
     isPlural: true,
-    meaning: `CLDR plural category "${item.category}"`,
+    meaning: `CLDR ${ordinalLabel(item.targetKey)}plural category "${item.category}"`,
   };
 }
 
@@ -143,10 +172,17 @@ export function planPluralGeneration(
   targetLocale: string,
   format: string,
 ): PluralGenerationPlan {
-  if (format !== "i18next-json" || resolvePluralCategories(targetLocale).kind === "fallback") {
+  if (format !== "i18next-json") {
     return { items: [] };
   }
-  const required = pluralCategoriesFor(targetLocale);
+  const cardinal = resolvePluralCategories(targetLocale);
+  if (cardinal.kind === "fallback") {
+    return { items: [] };
+  }
+  const required: Readonly<Record<PluralRuleType, readonly CldrPluralCategory[]>> = {
+    cardinal: cardinal.categories,
+    ordinal: pluralCategoriesFor(targetLocale, "ordinal"),
+  };
   const groups = groupPluralSources(source);
   const items: PluralGenerationItem[] = [];
   for (const [baseKey, group] of groups) {
@@ -155,7 +191,7 @@ export function planPluralGeneration(
       continue;
     }
     const governingEntries = [...group.values()];
-    for (const category of required) {
+    for (const category of required[ruleTypeOf(baseKey)]) {
       if (group.has(category)) {
         continue;
       }

@@ -2,7 +2,9 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import {
   detectMissingPluralCategories,
+  type PluralGenerationItem,
   planPluralGeneration,
+  syntheticEntry,
   targetPluralSetIncomplete,
 } from "./plural-categories.js";
 
@@ -181,5 +183,85 @@ describe("plural categories: CLDR-correct set per target language", () => {
     expect(notice?.message).toContain("(missing: one)");
     expect(planPluralGeneration(source(["item_other"]), "tlh", "i18next-json").items).toEqual([]);
     expect(targetPluralSetIncomplete(["item_one", "item_other"], "tlh")).toBe(false);
+  });
+});
+
+describe("plural categories: i18next ordinal keys follow ordinal rules", () => {
+  const ordinalSource = [
+    "place_ordinal_one",
+    "place_ordinal_two",
+    "place_ordinal_few",
+    "place_ordinal_other",
+  ];
+
+  it.each([
+    ["fr", ["place_ordinal_one", "place_ordinal_other"]],
+    ["en", ["place_ordinal_one", "place_ordinal_two", "place_ordinal_few", "place_ordinal_other"]],
+    ["de", ["place_ordinal_other"]],
+  ])(
+    "neither flags nor plans anything for a full English ordinal set targeting %s",
+    (locale, targetKeys) => {
+      expect(
+        detectMissingPluralCategories(source(ordinalSource), locale, "i18next-json"),
+      ).toBeUndefined();
+      expect(planPluralGeneration(source(ordinalSource), locale, "i18next-json").items).toEqual([]);
+      expect(targetPluralSetIncomplete(targetKeys, locale)).toBe(false);
+    },
+  );
+
+  it("never plans a cardinal-only category such as many for a French ordinal group", () => {
+    const plan = planPluralGeneration(source(["place_ordinal_other"]), "fr", "i18next-json");
+    expect(plan.items.map((item) => item.targetKey)).toEqual(["place_ordinal_one"]);
+    expect(syntheticEntry(plan.items[0] as PluralGenerationItem).meaning).toBe(
+      'CLDR ordinal plural category "one"',
+    );
+  });
+
+  it("flags the English ordinal categories an other-only ordinal source lacks", () => {
+    const notice = detectMissingPluralCategories(
+      source(["place_ordinal_other"]),
+      "en",
+      "i18next-json",
+    );
+    expect(notice?.message).toContain("(missing: ordinal one, ordinal two, ordinal few)");
+  });
+
+  it("reports an English target missing an ordinal form as incomplete", () => {
+    expect(targetPluralSetIncomplete(["place_ordinal_one", "place_ordinal_other"], "en")).toBe(
+      true,
+    );
+  });
+
+  it("resolves cardinal and ordinal groups of one source independently", () => {
+    const mixed = source([
+      "item_one",
+      "item_other",
+      "place_ordinal_one",
+      "place_ordinal_two",
+      "place_ordinal_few",
+      "place_ordinal_other",
+    ]);
+
+    const notice = detectMissingPluralCategories(mixed, "fr", "i18next-json");
+    expect(notice?.message).toContain("(missing: many)");
+
+    const plan = planPluralGeneration(mixed, "fr", "i18next-json");
+    expect(plan.items.map((item) => item.targetKey)).toEqual(["item_many"]);
+    expect(syntheticEntry(plan.items[0] as PluralGenerationItem).meaning).toBe(
+      'CLDR plural category "many"',
+    );
+
+    expect(
+      targetPluralSetIncomplete(
+        ["item_one", "item_many", "item_other", "place_ordinal_one", "place_ordinal_other"],
+        "fr",
+      ),
+    ).toBe(false);
+    expect(
+      targetPluralSetIncomplete(
+        ["item_one", "item_other", "place_ordinal_one", "place_ordinal_other"],
+        "fr",
+      ),
+    ).toBe(true);
   });
 });

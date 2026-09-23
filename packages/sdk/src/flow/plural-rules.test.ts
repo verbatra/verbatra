@@ -55,6 +55,9 @@ describe("pluralCategoriesFor: CLDR cardinal categories", () => {
     ["zh-Hant-TW", "zh"],
     ["iw", "he"],
     ["PL", "pl"],
+    ["en-XX", "en"],
+    ["de-XX", "de"],
+    ["sr-Latn", "sr"],
   ])("resolves the tag %s like its language %s", (tag, language) => {
     expect(pluralCategoriesFor(tag)).toEqual(pluralCategoriesFor(language));
   });
@@ -80,12 +83,10 @@ describe("resolvePluralCategories: locales ICU does not know", () => {
     },
   );
 
-  it("never borrows the host default locale's rules for an unknown tag", () => {
-    expect(resolvePluralCategories("tlh").kind).toBe("fallback");
-  });
-
-  it("reports the locale ICU matched for a known tag", () => {
-    expect(resolvePluralCategories("iw")).toMatchObject({ kind: "cldr", locale: "he" });
+  it("never borrows the rules of the locale ICU would substitute for an unknown tag", () => {
+    const substitute = new Intl.PluralRules("tlh", { type: "ordinal" }).resolvedOptions().locale;
+    expect(pluralCategoriesFor(substitute, "ordinal")).not.toEqual(["other"]);
+    expect(pluralCategoriesFor("tlh", "ordinal")).toEqual(["other"]);
   });
 
   it("returns the same resolution on a repeated lookup", () => {

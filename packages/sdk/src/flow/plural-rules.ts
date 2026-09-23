@@ -19,11 +19,7 @@ const FALLBACK_CATEGORIES: Readonly<Record<PluralRuleType, readonly CldrPluralCa
 };
 
 export type PluralCategoryResolution =
-  | {
-      readonly kind: "cldr";
-      readonly locale: string;
-      readonly categories: readonly CldrPluralCategory[];
-    }
+  | { readonly kind: "cldr"; readonly categories: readonly CldrPluralCategory[] }
   | { readonly kind: "fallback"; readonly categories: readonly CldrPluralCategory[] };
 
 function supportedLocaleOf(locale: string): string | undefined {
@@ -48,7 +44,7 @@ function resolveUncached(locale: string, type: PluralRuleType): PluralCategoryRe
   if (supported === undefined) {
     return { kind: "fallback", categories: FALLBACK_CATEGORIES[type] };
   }
-  return { kind: "cldr", locale: supported, categories: cldrCategories(supported, type) };
+  return { kind: "cldr", categories: cldrCategories(supported, type) };
 }
 
 export function resolvePluralCategories(
