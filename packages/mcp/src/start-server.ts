@@ -23,9 +23,9 @@ export interface StartMcpServerOptions {
    */
   readonly allowSpend?: boolean;
   /**
-   * File-system port the tools read and write the project through. Defaults to the real file
-   * system. The config and its glossary file are loaded at startup from the real file system
-   * regardless.
+   * File-system port the server reads and writes the project through: the config's glossary file
+   * at startup and every file the tools touch afterwards. The config file itself is always read
+   * from the real file system. Defaults to the real file system.
    */
   readonly fs?: McpToolContext["fs"];
   /** Format-adapter registry the tools resolve the configured format with. Defaults to the built-in registry. */
@@ -85,6 +85,7 @@ export async function startMcpServer(
   const loaded = await loadConfigWithMeta({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
+    ...(options.fs !== undefined ? { fs: options.fs } : {}),
   });
 
   const transport = new StdioServerTransport();
