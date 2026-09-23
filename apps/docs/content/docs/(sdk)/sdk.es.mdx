@@ -416,7 +416,9 @@ Entrada: `{ config, cwd?, locales? }`; un `locales` omitido cubre cada locale de
 configurado. Devuelve un array de `{ locale, values }`, una entrada por locale, donde `values`
 asigna cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
 se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente
-en el locale de destino pero ya no en el origen.
+en el locale de destino pero ya no en el origen. `values` no tiene prototipo: cada clave, incluida
+una llamada `__proto__` o `constructor`, es una propiedad propia, y una clave que no está en el
+catálogo se lee como `undefined`.
 
 ## Instantáneas de archivos de locale
 

@@ -393,7 +393,8 @@ Input: `{ config, cwd?, locales? }`; an omitted `locales` covers every configure
 Returns an array of `{ locale, values }`, one entry per locale, where `values` maps each key to
 `{ source?, target? }`. An absent `target` means the key has not been translated in that locale
 yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
-the source.
+the source. `values` has no prototype, so every key, including one named `__proto__` or
+`constructor`, is an own property, and a key absent from the catalog reads as `undefined`.
 
 ## Locale-file snapshots
 

@@ -261,7 +261,7 @@ Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, rev
 
 Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque. C'est le pendant en masse de `keyValue` : utilise-le quand tu as besoin de contenu de traduction en masse, par exemple pour chercher ou parcourir des valeurs plutôt que de simples noms de clé, puisque `keyValue` ne répond que pour une clé à la fois. En lecture seule.
 
-Entrée : `{ config, cwd?, locales? }` ; un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, values }`, une entrée par locale, où `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source.
+Entrée : `{ config, cwd?, locales? }` ; un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, values }`, une entrée par locale, où `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source. `values` n'a pas de prototype : chaque clé, y compris une clé nommée `__proto__` ou `constructor`, est une propriété propre, et une clé absente du catalogue se lit comme `undefined`.
 
 ## Instantanés de fichiers de locale
 

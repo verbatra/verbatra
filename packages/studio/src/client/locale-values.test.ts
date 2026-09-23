@@ -93,3 +93,22 @@ describe("localeValuesOrEmpty", () => {
     ).toBe(DATA);
   });
 });
+
+describe("locale values: prototype-named keys parsed from the RPC response", () => {
+  const parsed = JSON.parse(
+    '[{"locale":"de","values":{"__proto__":{"source":"P","target":"Pd"},"constructor":{"source":"C"}}}]',
+  ) as LocaleValuesData;
+
+  it("keeps __proto__ and constructor as lookup entries in valuesForLocale", () => {
+    const map = valuesForLocale(parsed, "de");
+    expect(map.get("__proto__")).toEqual({ source: "P", target: "Pd" });
+    expect(map.get("constructor")).toEqual({ source: "C" });
+    expect(map.size).toBe(2);
+  });
+
+  it("keeps __proto__ and constructor as lookup entries in valuesIndex", () => {
+    const index = valuesIndex(parsed);
+    expect(index.get("de\t__proto__")).toEqual({ source: "P", target: "Pd" });
+    expect(index.get("de\tconstructor")).toEqual({ source: "C" });
+  });
+});

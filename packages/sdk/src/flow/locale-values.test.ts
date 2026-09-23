@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -137,5 +137,59 @@ describe("localeValues", () => {
         cwd: dir,
       }),
     ).rejects.toMatchObject({ code: "UNKNOWN_FORMAT" });
+  });
+});
+
+describe("localeValues: prototype-named keys", () => {
+  async function rawProject(source: string, target: string): Promise<string> {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeFile(join(dir, "locales", "en.json"), source);
+    await writeFile(join(dir, "locales", "de.json"), target);
+    return dir;
+  }
+
+  it.each(["__proto__", "constructor", "prototype"])(
+    "reports a key named %s as an own entry of values",
+    async (key) => {
+      const dir = await rawProject(
+        `{${JSON.stringify(key)}:"S","a":"A"}`,
+        `{${JSON.stringify(key)}:"T","a":"Aa"}`,
+      );
+
+      const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+      const values = result[0]?.values ?? {};
+
+      expect(Object.keys(values).sort()).toEqual([key, "a"].sort());
+      expect(Object.getOwnPropertyDescriptor(values, key)?.value).toEqual({
+        source: "S",
+        target: "T",
+      });
+    },
+  );
+
+  it("keeps a __proto__ key through a JSON round trip without polluting Object.prototype", async () => {
+    const dir = await rawProject('{"__proto__":"S"}', '{"__proto__":"T"}');
+
+    const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+    const serialized = JSON.stringify(result);
+    const reparsed: unknown = JSON.parse(serialized);
+
+    expect(serialized).toBe('[{"locale":"de","values":{"__proto__":{"source":"S","target":"T"}}}]');
+    expect(Object.entries((reparsed as typeof result)[0]?.values ?? {})).toEqual([
+      ["__proto__", { source: "S", target: "T" }],
+    ]);
+    expect(Object.prototype).not.toHaveProperty("source");
+  });
+
+  it("does not resolve an absent prototype-named key to an inherited member", async () => {
+    const dir = await rawProject('{"a":"A"}', '{"a":"Aa"}');
+
+    const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+    const values = result[0]?.values ?? {};
+
+    expect(values.constructor).toBeUndefined();
+    expect(values.toString).toBeUndefined();
+    expect(values.hasOwnProperty).toBeUndefined();
   });
 });
