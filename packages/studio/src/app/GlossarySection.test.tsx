@@ -78,13 +78,21 @@ function field(view: RenderResult, label: string): HTMLInputElement {
   return view.get(`input[aria-label="${label}"]`) as HTMLInputElement;
 }
 
-function labeled(view: RenderResult, text: string): HTMLInputElement {
-  const label = view.all("label").find((candidate) => candidate.textContent === text);
+function labeled(view: RenderResult, name: string): HTMLInputElement {
+  const byName = view.query(`input[aria-label="${name}"]`);
+  if (byName !== null) {
+    return byName as HTMLInputElement;
+  }
+  const label = view.all("label").find((candidate) => candidate.textContent === name);
   const id = label?.getAttribute("for");
   if (id === null || id === undefined) {
-    throw new Error(`no label reading "${text}"`);
+    throw new Error(`no field named "${name}"`);
   }
   return view.get(`[id="${id}"]`) as HTMLInputElement;
+}
+
+function visibleLabel(view: RenderResult, input: HTMLInputElement): string | null {
+  return view.get(`label[for="${input.id}"]`).textContent;
 }
 
 async function showLocale(view: RenderResult, locale: string): Promise<void> {
@@ -276,7 +284,9 @@ describe("GlossarySection, file-backed", () => {
       "For de",
       "Whole term",
     ]);
-    for (const text of ["Translation (de)", "Never use (de)", "Note", "Part of speech"]) {
+    expect(visibleLabel(view, labeled(view, "Translation (de)"))).toBe("Translation");
+    expect(visibleLabel(view, labeled(view, "Never use (de)"))).toBe("Never use");
+    for (const text of ["Note", "Part of speech"]) {
       expect(labeled(view, text).hasAttribute("aria-label")).toBe(false);
     }
   });

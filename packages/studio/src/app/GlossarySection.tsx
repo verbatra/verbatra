@@ -127,7 +127,7 @@ function GlossaryAddForm({
           disabled={busy}
           onChange={(event) => setTranslation(event.target.value)}
         />
-        <Button variant="primary" onClick={() => void add()} disabled={busy || !ready}>
+        <Button variant="primary" size="md" onClick={() => void add()} disabled={busy || !ready}>
           Add term
         </Button>
       </div>

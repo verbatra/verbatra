@@ -58,6 +58,7 @@ export function CaseSensitiveToggle({
 
 function LabeledField({
   label,
+  accessibleName,
   value,
   maxLength,
   disabled,
@@ -67,6 +68,7 @@ function LabeledField({
   onChange,
 }: {
   readonly label: string;
+  readonly accessibleName?: string;
   readonly value: string;
   readonly maxLength: number;
   readonly disabled: boolean;
@@ -84,6 +86,7 @@ function LabeledField({
       <TextField
         id={id}
         ref={inputRef}
+        aria-label={accessibleName}
         dir={autoDirection ? "auto" : undefined}
         value={value}
         placeholder={placeholder}
@@ -240,7 +243,8 @@ function TermEditor({
     <div className="mt-2 flex flex-col gap-3">
       <EditorGroup title={`For ${scopeLabel}`}>
         <LabeledField
-          label={`Translation (${scopeLabel})`}
+          label="Translation"
+          accessibleName={`Translation (${scopeLabel})`}
           value={draft.translation}
           maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
           disabled={busy}
@@ -250,7 +254,8 @@ function TermEditor({
         />
         {scope === ALL_LOCALES ? null : (
           <LabeledField
-            label={`Never use (${scope})`}
+            label="Never use"
+            accessibleName={`Never use (${scope})`}
             value={draft.forbidden}
             maxLength={MAX_GLOSSARY_TRANSLATION_LENGTH}
             disabled={busy}
@@ -317,7 +322,7 @@ function RowActions({
 }): ReactNode {
   const removable = scope === ALL_LOCALES && !redacted && !hasPerLocaleData(term);
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex shrink-0 items-center gap-1.5">
       {redacted ? null : (
         <Button ref={editRef} onClick={onEdit} disabled={busy} aria-label={`Edit ${term.source}`}>
           Edit
@@ -374,7 +379,7 @@ export function GlossaryTermRow({
   return (
     <li className="min-w-0 rounded-md border border-border bg-muted/40 px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="flex min-w-0 flex-1 basis-0 flex-wrap items-center gap-2">
           <span
             className={`font-mono text-sm font-semibold text-accent-foreground ${WRAP_TEXT}`}
             dir="auto"
