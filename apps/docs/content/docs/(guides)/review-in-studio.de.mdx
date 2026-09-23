@@ -45,6 +45,10 @@ Die Integritätsanzeige hat einen weiteren Defektzustand, **Inline markup mismat
 
 Werte in einem Rechts-nach-links-Locale (Arabisch, Hebräisch, Persisch, Urdu) werden im gesamten Explorer und in der Detailansicht von rechts nach links dargestellt.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Studio zeigt außerdem, wer jeden Wert geschrieben hat, gelesen aus [`verbatra.provenance.json`](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat). In der Listenansicht trägt jeder geänderte oder verwaiste Key ein Herkunfts-Badge: **Machine**, **Memory**, **Fuzzy match**, **Agent**, **Human**, **Import**, **Unknown**, **Unrecorded**, wenn für den Wert noch nichts festgehalten wurde, oder **Edited outside verbatra**, wenn sich der Wert seit dem Eintrag geändert hat. Das Badge nennt die Herkunft als Text und hängt daher nicht an der Farbe. Die Detailansicht listet den vollständigen Eintrag jeder Locale (Herkunft, Provider und Modell bei Maschinenübersetzung sowie Prüfstatus), und **Lock file details** bekommt eine Spalte **Provenance**, die die Werte jeder Locale nach Herkunft zählt, oder **Unavailable**, wenn die Datei beschädigt ist oder von einem neueren verbatra stammt. Eine im Editor gespeicherte Bearbeitung wird als **Human** festgehalten, eine über die Agent-Tools von Studio als **Agent**. Jede Ansicht aktualisiert sich live, wenn sich die Herkunftsdatei ändert.
+
 ### Bearbeiten mit Integritäts-Gate
 
 Der Editor zeigt den Quellstring und ein Textfeld, vorbefüllt mit der aktuellen Übersetzung. Speichern schickt den Wert durch dasselbe Gate wie jeder andere verbatra-Schreibvorgang: Ein Wert, der eine der Integritätsprüfungen nicht besteht, wird mit benanntem Grund abgelehnt, und **nichts wird geschrieben**. Eine Übersetzung zu leeren lässt sich mit einer Bearbeitung nicht ausdrücken, deshalb wird auch ein leerer Wert abgelehnt; der unterstützte Weg, einen Key zu leeren, ist das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine akzeptierte Import-Zeile.

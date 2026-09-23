@@ -45,6 +45,10 @@ The integrity indicator has one more defect state, **Inline markup mismatch**: t
 
 Values in a right-to-left locale (Arabic, Hebrew, Persian, Urdu) render right to left throughout the explorer and the detail view.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Studio also shows who wrote each value, read from [`verbatra.provenance.json`](/docs/the-lock-file#provenance-who-wrote-each-value). In the List view each changed or orphaned key carries an origin badge: **Machine**, **Memory**, **Fuzzy match**, **Agent**, **Human**, **Import**, **Unknown**, **Unrecorded** when nothing was recorded for the value yet, or **Edited outside verbatra** when the value changed since it was recorded. The badge names the origin in text, so it does not depend on color. The detail view lists each locale's full record (origin, provider and model for machine output, and review state), and **Lock file details** gains a **Provenance** column counting each locale's values by origin, or **Unavailable** when the file is corrupt or was written by a newer verbatra. An edit saved from the editor is recorded as **Human**; one made through Studio's agent tools is recorded as **Agent**. Every view refreshes live when the provenance file changes.
+
 ### Edit with integrity gating
 
 The editor shows the source string and a text area pre-filled with the current translation. Saving submits the value through the same gate as every other verbatra write: a value that fails any of the integrity checks is rejected with the reason named and **nothing is written**. Clearing a translation is not one of the things an edit can express, so an empty value is refused too; the workbook's `[[CLEAR]]` sentinel is the supported way to unset a key. An accepted edit writes the locale file and advances the key's lock entry, exactly like an accepted import row.
