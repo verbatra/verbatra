@@ -73,7 +73,9 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
   - `literal`, el valor por defecto, usa la etiqueta configurada tal cual, que es lo que necesitan
     los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
   - `posix` reemplaza `-` por `_`, para gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) y el
-    diseño Java `messages_{locale}.properties`.
+    diseño Java `messages_{locale}.properties`. Un script o una región numérica se une de la
+    misma forma, conservando las mayúsculas que configuraste: `zh-Hant-TW` pasa a `zh_Hant_TW` y
+    `es-419` pasa a `es_419`. Un locale con variante, como `de-1996`, no tiene escritura posix.
   - `android` expande el token a un directorio de recursos completo de Android, escrito como
     `res/{locale}/strings.xml`: `values` para el locale de origen, y luego `values-de`,
     `values-pt-rBR` y `values-b+zh+Hans`.

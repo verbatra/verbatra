@@ -73,7 +73,10 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
   - `literal`, la valeur par défaut, utilise l'étiquette de langue configurée telle quelle, ce dont
     ont besoin les dispositions JSON, YAML, XLIFF, ARB, properties et `.lproj` d'Apple.
   - `posix` remplace `-` par `_`, pour gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) et la
-    disposition Java `messages_{locale}.properties`.
+    disposition Java `messages_{locale}.properties`. Une écriture ou une région numérique est
+    jointe de la même façon, en gardant la casse que tu as configurée : `zh-Hant-TW` devient
+    `zh_Hant_TW` et `es-419` devient `es_419`. Une locale avec variante, comme `de-1996`, n'a pas
+    d'écriture posix.
   - `android` développe le jeton en un répertoire de ressources Android complet, écrit sous la
     forme `res/{locale}/strings.xml` : `values` pour la locale source, puis `values-de`,
     `values-pt-rBR` et `values-b+zh+Hans`.
