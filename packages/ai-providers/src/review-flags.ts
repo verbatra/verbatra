@@ -4,6 +4,12 @@ import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js
 const LENGTH_RATIO_MIN = 0.35;
 const LENGTH_RATIO_MAX = 3.0;
 const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
+const LATIN_GRAPHEME_WEIGHT = 1;
+const SCRIPT_GRAPHEME_WEIGHTS: readonly (readonly [RegExp, number])[] = [
+  [/^\p{Script=Han}/u, 3.5],
+  [/^[\p{Script=Hiragana}\p{Script=Katakana}]/u, 1.5],
+  [/^\p{Script=Hangul}/u, 2],
+];
 
 const UNICODE_LETTER = /\p{L}/u;
 
@@ -39,16 +45,33 @@ function graphemeLength(value: string): number {
   return count;
 }
 
+function graphemeWeight(grapheme: string): number {
+  for (const [script, weight] of SCRIPT_GRAPHEME_WEIGHTS) {
+    if (script.test(grapheme)) {
+      return weight;
+    }
+  }
+  return LATIN_GRAPHEME_WEIGHT;
+}
+
+export function latinEquivalentLength(value: string): number {
+  let length = 0;
+  for (const { segment } of GRAPHEME_SEGMENTER.segment(value)) {
+    length += graphemeWeight(segment);
+  }
+  return length;
+}
+
 function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
   return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
 function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
-  const trimmedSource = sourceValue.trim();
-  if (trimmedSource.length < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
+  const sourceLength = latinEquivalentLength(sourceValue.trim());
+  if (sourceLength < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
     return false;
   }
-  const ratio = translatedValue.trim().length / trimmedSource.length;
+  const ratio = latinEquivalentLength(translatedValue.trim()) / sourceLength;
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 

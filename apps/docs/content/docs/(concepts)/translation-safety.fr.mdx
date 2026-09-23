@@ -249,7 +249,12 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 
 - `LENGTH_RATIO_OUTLIER` : la traduction est bien plus courte ou plus longue que sa source (en
   dessous de 0.35x ou au-dessus de 3.0x en longueur après retrait des espaces ; les sources très
-  courtes sont ignorées). Une invitation à regarder, pas un verdict.
+  courtes sont ignorées). La longueur se compte en clusters de graphèmes, donc un emoji ou une
+  lettre accentuée compte une seule fois, et chaque caractère est pondéré selon sa propre
+  écriture : un caractère chinois compte 3.5, un kana japonais 1.5 et une syllabe coréenne 2, car
+  ce texte est naturellement bien plus court que le texte latin. Une traduction correcte de
+  l'anglais vers le japonais n'est pas signalée simplement parce qu'elle est compacte, même avec
+  des placeholders ou des URL. Une invitation à regarder, pas un verdict.
 - `MAX_LENGTH_EXCEEDED` : la traduction est plus longue que le budget absolu configuré pour sa clé
   sous [`maxLength`](/docs/config-file). Comptée en groupes de graphèmes, sur la valeur telle
   qu'elle est écrite, et la limite est inclusive : une valeur égale au budget n'est pas signalée.

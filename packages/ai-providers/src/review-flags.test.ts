@@ -5,6 +5,7 @@ import {
   applyProviderDegraded,
   buildEntryReviewFlags,
   computeReviewFlags,
+  latinEquivalentLength,
   type ReviewFlagInput,
 } from "./review-flags.js";
 import { entry } from "./test-support.js";
@@ -34,7 +35,7 @@ describe("computeReviewFlags: clean input", () => {
 });
 
 describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
-  it("is skipped when the trimmed source is under 12 UTF-16 code units", () => {
+  it("is skipped when the trimmed source is under 12 grapheme clusters", () => {
     const flag = computeReviewFlags(input({ sourceValue: "short sourc", translatedValue: "x" }));
     expect(flag).toBeUndefined();
   });
@@ -70,6 +71,199 @@ describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
     const translated = "1".repeat(40);
     expect(translated.length / source.length).toBeGreaterThan(3.0);
     const flag = computeReviewFlags(input({ sourceValue: source, translatedValue: translated }));
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+});
+
+describe("latinEquivalentLength", () => {
+  it.each([
+    ["Latin", "abc", 3],
+    ["Han", "保存", 7],
+    ["Hiragana and Katakana", "さんファ", 6],
+    ["Hangul", "저장", 4],
+    ["Cyrillic", "абв", 3],
+    ["ideographic punctuation", "。、", 2],
+    ["astral Han", "\u{20000}", 3.5],
+  ])("weighs %s graphemes by their own script", (_script, value, expected) => {
+    expect(latinEquivalentLength(value)).toBe(expected);
+  });
+});
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER grapheme counting", () => {
+  it("counts an emoji with a skin-tone modifier as one character", () => {
+    const translated = "\u{1F44D}\u{1F3FD}".repeat(39);
+    expect(translated.length).toBeGreaterThan(39 * 3);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("counts an astral-plane character as one character", () => {
+    const translated = "\u{10330}".repeat(6);
+    expect(translated.length).toBe(12);
+    const flag = computeReviewFlags(
+      input({ sourceValue: "12345678901234567890", translatedValue: translated }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("counts a base letter with a combining mark as one character", () => {
+    const translated = "e\u0301".repeat(39);
+    expect(translated.length).toBe(78);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("does not open the ratio on a source of 12 code units but fewer graphemes", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "e\u0301".repeat(6), translatedValue: "x" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+});
+
+const SAVED = "Your changes have been saved successfully.";
+const SHARED = "{userName} shared {count} files";
+const DOCS_LINK = "See https://example.com/docs/getting-started for details";
+const DELETE_PROJECT =
+  "Are you sure you want to delete this project? This action cannot be undone.";
+const CONNECTION = "Please check your internet connection and try again.";
+const UPLOAD = "Upload failed because the file is too large.";
+const SETTINGS = "Account settings and privacy preferences";
+
+const CORRECT_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", SAVED, "变更已成功保存。"],
+  ["ja", SAVED, "変更が正常に保存されました。"],
+  ["ko", SAVED, "변경 사항이 성공적으로 저장되었습니다."],
+  ["zh", SHARED, "{userName} 共享了 {count} 个文件"],
+  ["ja", SHARED, "{userName} さんが {count} 件のファイルを共有しました"],
+  ["ko", SHARED, "{userName}님이 파일 {count}개를 공유했습니다"],
+  ["zh", DOCS_LINK, "详情请参阅 https://example.com/docs/getting-started"],
+  ["ja", DOCS_LINK, "詳細は https://example.com/docs/getting-started を参照してください"],
+  ["ko", DOCS_LINK, "자세한 내용은 https://example.com/docs/getting-started 를 참조하세요"],
+  ["zh", DELETE_PROJECT, "确定要删除此项目吗？此操作无法撤消。"],
+  ["ja", DELETE_PROJECT, "このプロジェクトを削除してもよろしいですか？この操作は元に戻せません。"],
+  ["ko", DELETE_PROJECT, "이 프로젝트를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."],
+  ["zh", CONNECTION, "请检查您的网络连接，然后重试。"],
+  ["ja", CONNECTION, "インターネット接続を確認して、もう一度お試しください。"],
+  ["ko", CONNECTION, "인터넷 연결을 확인한 후 다시 시도하세요."],
+  ["zh", UPLOAD, "文件过大，上传失败。"],
+  ["ja", UPLOAD, "ファイルが大きすぎるため、アップロードに失敗しました。"],
+  ["ko", UPLOAD, "파일이 너무 커서 업로드에 실패했습니다."],
+  ["zh", SETTINGS, "账户设置和隐私偏好"],
+  ["ja", SETTINGS, "アカウント設定とプライバシー設定"],
+  ["ko", SETTINGS, "계정 설정 및 개인정보 환경설정"],
+  ["ja", "Annual financial statement required", "年次財務諸表が必要です"],
+];
+
+const TRUNCATED_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", SAVED, "变更"],
+  ["ja", SAVED, "変更が"],
+  ["ko", SAVED, "변경"],
+  ["zh", DELETE_PROJECT, "确定要删除"],
+  ["ja", DELETE_PROJECT, "このプロジェクト"],
+  ["ko", DELETE_PROJECT, "이 프로젝트를"],
+];
+
+const OVERLONG_CJK_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["zh", "Save your changes", "保存您的更改".repeat(5)],
+  ["ja", "Save your changes", "変更を保存してください。".repeat(3)],
+  ["ko", "Save your changes", "변경 사항을 저장하세요. ".repeat(4)],
+];
+
+const LOWER_BOUND = 0.35;
+const UPPER_BOUND = 3.0;
+const MARGIN = 1.5;
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER across scripts", () => {
+  it.each(CORRECT_CJK_PAIRS)(
+    "does not flag a correct en to %s translation of %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      expect(
+        computeReviewFlags(input({ sourceValue, translatedValue, targetLocale })),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each(CORRECT_CJK_PAIRS)(
+    "keeps a correct en to %s ratio at least 1.5x inside both bounds for %j",
+    (_targetLocale, sourceValue, translatedValue) => {
+      const ratio = latinEquivalentLength(translatedValue) / latinEquivalentLength(sourceValue);
+      expect(ratio).toBeGreaterThan(LOWER_BOUND * MARGIN);
+      expect(ratio).toBeLessThan(UPPER_BOUND / MARGIN);
+    },
+  );
+
+  it.each(CORRECT_CJK_PAIRS)(
+    "does not flag the reverse %s to en direction of %j",
+    (sourceLocale, englishValue, cjkValue) => {
+      expect(
+        computeReviewFlags(
+          input({
+            sourceValue: cjkValue,
+            translatedValue: englishValue,
+            sourceLocale,
+            targetLocale: "en",
+          }),
+        ),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each(TRUNCATED_CJK_PAIRS)(
+    "still flags a truncated en to %s translation of %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      const flag = computeReviewFlags(input({ sourceValue, translatedValue, targetLocale }));
+      expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+    },
+  );
+
+  it.each(OVERLONG_CJK_PAIRS)(
+    "still flags an en to %s translation far longer than %j",
+    (targetLocale, sourceValue, translatedValue) => {
+      const flag = computeReviewFlags(input({ sourceValue, translatedValue, targetLocale }));
+      expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+    },
+  );
+
+  it("still flags a truncated ja to en translation", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "変更が正常に保存されました。",
+        translatedValue: "Saved",
+        sourceLocale: "ja",
+        targetLocale: "en",
+      }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("skips a Han source too short for the ratio once weighted to Latin length", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "保存", translatedValue: "x", sourceLocale: "zh", targetLocale: "en" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("weighs by the text's own script, not the locale tag", () => {
+    expect(
+      computeReviewFlags(
+        input({ sourceValue: SAVED, translatedValue: "变更已成功保存。", targetLocale: "en" }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    ["sr-Latn", "Vaše izmene su uspešno sačuvane."],
+    ["sr-Cyrl", "Ваше измене су успешно сачуване."],
+  ])("treats en to %s like Latin text", (targetLocale, translatedValue) => {
+    expect(
+      computeReviewFlags(input({ sourceValue: SAVED, translatedValue, targetLocale })),
+    ).toBeUndefined();
+    const flag = computeReviewFlags(
+      input({ sourceValue: SAVED, translatedValue: translatedValue.slice(0, 5), targetLocale }),
+    );
     expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
   });
 });
