@@ -556,7 +556,9 @@ wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `k
 Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wurde
 (`subflowDroppedUnits`), sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
 `memoryWritable` ist false, wenn die Datei des Übersetzungsspeichers von einem neueren verbatra
-geschrieben wurde; sie bleibt dann unangetastet.
+geschrieben wurde; sie bleibt dann unangetastet. Die Zählungen pro Locale werden trotzdem gemeldet,
+wie bei einem Probelauf, sodass `added` und `overwritten` beschreiben, was gelandet wäre; bei
+`memoryWritable` false ist nichts gelandet.
 
 ### tmxErrorLocation
 
@@ -576,9 +578,15 @@ try {
 
 ### exportTmx
 
-Schreibt den Übersetzungsspeicher als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, locales?, toolVersion? }`,
-wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt, das als Konstante exportiert
-wird. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
+Schreibt den Übersetzungsspeicher als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, configPath?,
+locales?, toolVersion? }`, wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt,
+das als Konstante exportiert wird. Bevor der Übersetzungsspeicher gelesen wird, weist
+`TMX_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt, außerhalb von `cwd` oder auf `cwd`
+selbst landet oder eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache,
+eine Datei, nach der verbatra seine Konfiguration sucht, oder die `configPath`-Datei benennt, ohne
+Beachtung der Groß- und Kleinschreibung. Scheitert das Schreiben, weil das Verzeichnis nicht
+schreibbar ist, an dem Pfad ein Verzeichnis liegt oder die Platte voll ist, wirft es
+`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Message. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
 Menge, die ein Lauf wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US`
 wird zu `en-US`), was nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein
 leerer Übersetzungsspeicher ergibt eine gültige, leere Datei statt eines Fehlers. Gibt
@@ -904,6 +912,8 @@ geworfen.
 | `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
 | `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt, absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, oder die geladene Konfigurationsdatei benennt; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
 | `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll) |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, oder die geladene Konfigurationsdatei benennt; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
+| `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen

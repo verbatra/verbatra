@@ -508,7 +508,8 @@ account of `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicti
 by reason, plus the units that were skipped, carried no source segment, lost inline markup, or had
 `sub` text left out (`subflowDroppedUnits`), and the language tags that matched nothing or matched
 ambiguously. `memoryWritable` is false when the memory file was written by a newer verbatra, in
-which case it is left untouched.
+which case it is left untouched. The per-locale counts are still reported then, as on a dry run, so
+`added` and `overwritten` describe what would have landed; with `memoryWritable` false, nothing did.
 
 ### tmxErrorLocation
 
@@ -528,8 +529,14 @@ try {
 
 ### exportTmx
 
-Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, locales?, toolVersion? }`, with
-`out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exported as a constant. Only entries
+Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, locales?,
+toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exported as a
+constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names no file,
+resolves outside `cwd` or to `cwd` itself, or names a configured locale file, the lock file, the
+translation-memory cache, a file verbatra searches for its configuration, or the `configPath` file,
+compared case-insensitively. A write that fails, because the directory is not writable, a directory
+sits at that path, or the disk is full, throws `TMX_UNWRITABLE` naming the file and the file-system
+code. Only entries
 under the current configuration fingerprint are written, which is the same set a run would reuse.
 Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not change how the
 memory is keyed. An empty memory produces a valid, empty file rather than an error. Returns `{ path,
@@ -834,6 +841,8 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
 | `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file, is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run loaded; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
 | `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space) |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run loaded; refused before the memory is read |
+| `TMX_UNWRITABLE` | the TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own

@@ -537,7 +537,9 @@ por locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `confli
 por motivo, más las unidades omitidas, sin segmento de origen, que perdieron marcado en línea o cuyo
 texto `sub` se dejó fuera (`subflowDroppedUnits`), y las etiquetas de idioma que no coincidieron o
 coincidieron de forma ambigua. `memoryWritable` es `false` cuando el archivo de memoria lo escribió
-un verbatra más nuevo, en cuyo caso se deja intacto.
+un verbatra más nuevo, en cuyo caso se deja intacto. Los recuentos por locale se siguen informando
+entonces, como en una ejecución de prueba, así que `added` y `overwritten` describen lo que habría
+entrado; con `memoryWritable` en `false`, no entró nada.
 
 ### tmxErrorLocation
 
@@ -558,8 +560,15 @@ try {
 
 ### exportTmx
 
-Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, locales?, toolVersion? }`, donde
-`out` por defecto es `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado como constante. Solo se
+Escribe la memoria como TMX 1.4b. Entrada: `{ config, out?, cwd?, configPath?, locales?,
+toolVersion? }`, donde `out` por defecto es `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exportado
+como constante. Antes de leer la memoria, `TMX_OUTPUT_CONFLICT` rechaza un `out` que no nombra
+ningún archivo, que queda fuera de `cwd` o en el propio `cwd`, o que nombra un archivo de locale
+configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca
+para su configuración, o el archivo `configPath`, sin distinguir mayúsculas de minúsculas. Una
+escritura que falla, porque el directorio no es escribible, ya hay un directorio en esa ruta o el
+disco está lleno, lanza `TMX_UNWRITABLE` con el archivo y el código del sistema de archivos en el
+mensaje. Solo se
 escriben las entradas bajo la huella de configuración actual, que es el mismo conjunto que
 reutilizaría una ejecución. Las etiquetas de idioma se escriben en forma BCP 47 (`en_US` pasa a
 `en-US`), lo que no cambia cómo se indexa la memoria. Una memoria vacía produce un archivo válido y
@@ -878,6 +887,8 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
 | `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo, es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, o el archivo de configuración que cargó la ejecución; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
 | `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio) |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, o el archivo de configuración que cargó la ejecución; se rechaza antes de leer la memoria |
+| `TMX_UNWRITABLE` | el archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`

@@ -93,7 +93,7 @@ Importar el mismo archivo dos veces, por tanto, no cambia nada la segunda vez, y
 
 Las unidades importadas se guardan bajo la huella de configuración actual del proyecto, la misma clave que escribe una ejecución real. Es deliberado: una memoria importada se reutiliza exactamente cuando coincide la configuración que la consumiría, y deja de coincidir cuando cambian el proveedor, el modelo, el tono o el glosario, que es justo la protección para la que existe la capa de huella. Vuelve a importar el archivo después de un cambio así.
 
-Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, la importación lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar.
+Si el archivo de memoria lo escribió un verbatra más nuevo que el que estás ejecutando, la importación lo deja intacto y te lo dice, en lugar de escribir un archivo del que la versión más nueva tendría luego que desconfiar. Los recuentos se siguen informando, como con `--dry-run`, así que muestran lo que habría entrado y no lo que entró: no entró nada.
 
 ## Unidades importadas y reutilización difusa
 
@@ -113,6 +113,8 @@ Un carácter que XML 1.0 no puede representar en absoluto, como un carácter de 
 
 Una memoria vacía produce un archivo TMX válido y vacío, no un error.
 
+El archivo solo se escribe dentro del directorio de trabajo. Antes de leer la memoria, una ruta de exportación que no nombra ningún archivo, que sale del directorio de trabajo o que nombra el propio directorio de trabajo se rechaza con `TMX_OUTPUT_CONFLICT`, igual que una que nombra un archivo del que depende el proyecto: un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, o el archivo de configuración que cargó la ejecución. Los nombres se comparan sin distinguir mayúsculas de minúsculas, y no se escribe nada. Una ruta que supera esas comprobaciones todavía puede fallar en el momento de escribir: cuando el directorio no es escribible, ya hay un directorio en esa ruta o el disco está lleno, la ejecución se detiene con `TMX_UNWRITABLE`, nombra el archivo y el código del sistema de archivos, y sale con `2`.
+
 Una entrada de la que la memoria no tiene texto de origen no se puede escribir, porque TMX no admite una unidad sin segmento de origen. Eso solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen; se dejan fuera y se cuentan, y se van rellenando a medida que ejecuciones posteriores vuelven a tocar esas cadenas.
 
 ## Códigos de salida
@@ -120,7 +122,7 @@ Una entrada de la que la memoria no tiene texto de origen no se puede escribir, 
 | Código | Significado |
 | --- | --- |
 | `0` | el archivo se leyó o se escribió |
-| `2` | no se pudo ejecutar: un error de configuración, un archivo ausente o ilegible, un archivo que no es TMX válido, o un error de uso |
+| `2` | no se pudo ejecutar: un error de configuración, un archivo ausente o ilegible, un archivo que no es TMX válido, una ruta de exportación rechazada (`TMX_OUTPUT_CONFLICT`), un archivo de exportación que no se pudo escribir (`TMX_UNWRITABLE`), o un error de uso |
 
 Un archivo demasiado grande, mal formado, que no sea un documento TMX o que declare una entidad XML se rechaza con un error estructurado que nombra qué falló. Cuando el problema tiene un lugar en el archivo, el mensaje también indica la línea y la columna y, dentro de una unidad de traducción, de qué unidad se trata (contando desde 1), así que `line 9, column 29, unit 2` te lleva al segundo `tu`. El código del error es `SOURCE_INVALID`; con `--json` el mismo mensaje va en el envoltorio de error, y quien llama al SDK obtiene el mismo lugar como datos estructurados con `tmxErrorLocation(error)`, cuya `cause` subyacente es un error de exchange con el código `TMX_INVALID`. Las declaraciones de entidad y los subconjuntos DTD internos se rechazan de plano, así que nunca se llega ni a una referencia de entidad externa ni a una expansión sin límite, y el doctype externo simple que emiten las herramientas reales se descarta en lugar de descargarse.
 
