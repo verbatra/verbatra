@@ -32,8 +32,9 @@ verbatra doctor [flags]
 | Provider | die konfigurierte `provider.id` zu einer Provider-Factory auflöst |
 | API key environment variable | die Variable gesetzt ist, aus der dieser Provider seinen Key liest |
 | Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad existiert, eine reguläre Datei ist und sich im konfigurierten Format parsen lässt |
+| Plural rules | immer (informativ): nennt die ICU- und CLDR-Versionen, aus denen verbatra die Pluralkategorien liest, und jede Ziel-Locale, für die ICU keine Pluralregeln hat |
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die vier Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die fünf Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 
 Vier Details sind wichtig:
 

@@ -52,7 +52,11 @@ Este es el comportamiento incremental en acción: solo el nuevo locale dispara l
 
 ## Idiomas con más categorías de plural
 
-Algunos idiomas necesitan más categorías de plural CLDR que tu origen. El inglés tiene dos (`one` y `other`); el polaco, el árabe y el ruso tienen más. Por defecto verbatra traduce las formas plurales que encuentra en el origen y no inventa las que faltan: la ejecución sigue teniendo éxito y emite un aviso por locale (código `PLURAL_CATEGORIES_INCOMPLETE`) que nombra las categorías que faltan.
+Algunos idiomas necesitan más categorías de plural CLDR que tu origen. El inglés tiene dos (`one` y `other`); el polaco y el checo tienen cuatro, el árabe y el galés seis, y el francés, el español, el italiano y el portugués añaden `many`. El japonés, el chino y el coreano solo necesitan `other`. Por defecto verbatra traduce las formas plurales que encuentra en el origen y no inventa las que faltan: la ejecución sigue teniendo éxito y emite un aviso por locale (código `PLURAL_CATEGORIES_INCOMPLETE`) que nombra las categorías que faltan.
+
+<AvailableFrom version="0.12.0" />
+
+verbatra lee qué categorías necesita un idioma de las reglas de plural CLDR incluidas en los datos ICU de Node.js, así que cubre todos los idiomas que conoce CLDR, siempre en orden CLDR (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) te muestra las versiones de ICU y CLDR en uso. Para un locale de destino sin reglas de plural en ICU, verbatra supone `one` y `other`, y `doctor` lo nombra.
 
 Para que verbatra sintetice en su lugar las formas que faltan, define `generatePlurals: true` en tu configuración:
 
@@ -63,7 +67,7 @@ export default defineConfig({
 });
 ```
 
-La generación solo se admite en proyectos i18next-JSON traducidos por un proveedor LLM; DeepL y Google Cloud Translation, los otros formatos y los idiomas de destino desconocidos recurren al aviso y nunca hacen fallar la ejecución. Las formas generadas pasan las comprobaciones de integridad como cualquier traducción y se informan por separado de las claves traducidas en el resumen de la ejecución.
+La generación solo se admite en proyectos i18next-JSON traducidos por un proveedor LLM; DeepL y Google Cloud Translation, los otros formatos y los locales de destino sin reglas de plural en ICU recurren al aviso y nunca hacen fallar la ejecución. Las formas generadas pasan las comprobaciones de integridad como cualquier traducción y se informan por separado de las claves traducidas en el resumen de la ejecución.
 
 ## Mantener el locale de origen
 

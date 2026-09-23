@@ -52,7 +52,11 @@ C'est le comportement incrémental à l'œuvre : seule la nouvelle locale décle
 
 ## Langues avec plus de catégories de pluriel
 
-Certaines langues ont besoin de plus de catégories de pluriel CLDR que ta source n'en a. L'anglais en a deux (`one` et `other`) ; le polonais, l'arabe et le russe en ont plus. Par défaut, verbatra traduit les formes plurielles qu'il trouve dans la source et n'invente pas les formes supplémentaires : l'exécution réussit quand même et émet un avis par locale (code `PLURAL_CATEGORIES_INCOMPLETE`) nommant les catégories manquantes.
+Certaines langues ont besoin de plus de catégories de pluriel CLDR que ta source n'en a. L'anglais en a deux (`one` et `other`) ; le polonais et le tchèque en ont quatre, l'arabe et le gallois six, et le français, l'espagnol, l'italien et le portugais ajoutent `many`. Le japonais, le chinois et le coréen n'ont besoin que de `other`. Par défaut, verbatra traduit les formes plurielles qu'il trouve dans la source et n'invente pas les formes supplémentaires : l'exécution réussit quand même et émet un avis par locale (code `PLURAL_CATEGORIES_INCOMPLETE`) nommant les catégories manquantes.
+
+<AvailableFrom version="0.12.0" />
+
+verbatra lit les catégories dont une langue a besoin dans les règles de pluriel CLDR des données ICU intégrées à Node.js, donc chaque langue couverte par CLDR est prise en charge, toujours dans l'ordre CLDR (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) t'indique les versions d'ICU et de CLDR utilisées. Pour une locale cible sans règles de pluriel dans ICU, verbatra suppose `one` et `other`, et `doctor` la nomme.
 
 Pour que verbatra synthétise les formes manquantes à la place, définis `generatePlurals: true` dans ta configuration :
 
@@ -63,7 +67,7 @@ export default defineConfig({
 });
 ```
 
-La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL et Google Cloud Translation, les autres formats et les langues cibles inconnues se contentent de l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
+La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL et Google Cloud Translation, les autres formats et les locales cibles sans règles de pluriel dans ICU se contentent de l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
 
 ## Maintenir la locale source
 
