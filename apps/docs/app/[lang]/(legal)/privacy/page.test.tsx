@@ -77,7 +77,7 @@ const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
 
 const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
   en: /not certified under the EU-U\.S\. Data Privacy Framework.*EU Standard Contractual Clauses \(Art\. 46\(2\)\(c\) GDPR\)/,
-  de: /nicht unter dem EU-US Data Privacy Framework zertifiziert.*EU-Standardvertragsklauseln \(Art\. 46 Abs\. 2 lit\. c DSGVO\)/,
+  de: /nicht unter dem EU-US-Datenschutzrahmen zertifiziert.*EU-Standardvertragsklauseln \(Art\. 46 Abs\. 2 lit\. c DSGVO\)/,
   es: /no está certificada en el marco del EU-U\.S\. Data Privacy Framework.*cláusulas contractuales tipo de la UE \(art\. 46\.2\.c\) del RGPD\)/,
   fr: /n'est pas certifiée au titre de l'EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l'UE \(art\. 46, § 2, point c\) du RGPD\)/,
 };
