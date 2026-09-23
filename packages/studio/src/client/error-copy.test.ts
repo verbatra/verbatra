@@ -62,6 +62,14 @@ describe("copyForErrorCode", () => {
     expect(copyForErrorCode("RATE_LIMITED")).not.toBe(copyForErrorCode("METHOD_RATE_LIMITED"));
   });
 
+  it("maps PROVENANCE_FILE_INVALID to copy naming the provenance file and that nothing was written", () => {
+    const copy = copyForErrorCode("PROVENANCE_FILE_INVALID");
+
+    expect(copy).toContain("verbatra.provenance.json");
+    expect(copy).toContain("nothing was written");
+    expect(copy).not.toBe(copyForErrorCode("LOCK_FILE_INVALID"));
+  });
+
   it("returns undefined for a code not in the table", () => {
     expect(copyForErrorCode("SOMETHING_UNKNOWN")).toBeUndefined();
   });

@@ -15,6 +15,8 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   SOURCE_UNREADABLE: "The source locale file could not be found on disk.",
   SOURCE_INVALID: "The source locale file could not be read or parsed for the configured format.",
   LOCK_FILE_INVALID: "The lock file is missing, corrupt, or at an unsupported version.",
+  PROVENANCE_FILE_INVALID:
+    "verbatra.provenance.json is corrupt, oversized, or not shaped as verbatra expects, so nothing was written. Restore it from version control and try again.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
   UNKNOWN_KEY: "The requested key was not found in the source resource. It may have been removed.",
   LOCK_CONTENDED:

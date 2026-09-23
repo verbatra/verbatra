@@ -7,7 +7,10 @@ export const editEntryParamsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
   value: z.string().max(20_000),
+  actor: z.enum(["human", "agent"]).optional(),
 });
+
+export const agentEditEntryParamsSchema = editEntryParamsSchema.omit({ actor: true });
 
 export type EditEntryParams = z.infer<typeof editEntryParamsSchema>;
 

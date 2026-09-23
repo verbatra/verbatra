@@ -4,7 +4,7 @@ import { STATUS_CHECK_METHOD } from "../shared/rpc/check.js";
 import type { RpcMethodName, RpcParamsFor, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { RPC_METHOD_NAMES } from "../shared/rpc/contract.js";
 import { STATUS_DIFF_METHOD } from "../shared/rpc/diff.js";
-import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
+import { agentEditEntryParamsSchema, EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
@@ -52,6 +52,12 @@ interface ToolDescriptor {
   readonly readOnlyHint: boolean;
   readonly untrustedContentHint: boolean;
   readonly spendGated: boolean;
+  readonly agentInput?: AgentInput;
+}
+
+interface AgentInput {
+  readonly schema: z.ZodType;
+  readonly stamp: Readonly<Record<string, unknown>>;
 }
 
 const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
@@ -196,10 +202,12 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Do not use it to obtain a translation: it never calls a provider, so what is written is exactly the text you send. " +
       "The required `locale` parameter must be a configured target locale, the required `key` parameter must exist in the source, and the required `value` parameter is the replacement text, capped at 20000 characters. " +
       "The value is checked for placeholder and ICU integrity before anything is written, so a rejected value is returned with its reason and nothing is written, while an accepted value is written to the target locale file and its lock entry immediately, replacing the previous value with no undo on this surface. " +
+      "The value is recorded as written by an agent in the project's provenance file. " +
       "This tool is always registered: local editing needs no capability flag and is never gated behind the spend flag.",
     readOnlyHint: false,
     untrustedContentHint: true,
     spendGated: false,
+    agentInput: { schema: agentEditEntryParamsSchema, stamp: { actor: "agent" } },
   },
   [RETRANSLATE_ENTRY_METHOD]: {
     description:
@@ -238,6 +246,13 @@ function buildAnnotations(descriptor: ToolDescriptor): WebMcpToolAnnotations {
   };
 }
 
+function stampAgentInput(input: unknown, agentInput: AgentInput | undefined): unknown {
+  if (agentInput === undefined || typeof input !== "object" || input === null) {
+    return input;
+  }
+  return { ...input, ...agentInput.stamp };
+}
+
 function buildTool<M extends RpcMethodName>(
   method: M,
   descriptor: ToolDescriptor,
@@ -246,10 +261,11 @@ function buildTool<M extends RpcMethodName>(
   return {
     name: toToolName(method),
     description: descriptor.description,
-    inputSchema: z.toJSONSchema(deps.schemas[method]),
+    inputSchema: z.toJSONSchema(descriptor.agentInput?.schema ?? deps.schemas[method]),
     annotations: buildAnnotations(descriptor),
     execute: async (input: unknown): Promise<string> => {
-      const result = await deps.rpcClient.call(method, input as RpcParamsFor<M>);
+      const params = stampAgentInput(input, descriptor.agentInput);
+      const result = await deps.rpcClient.call(method, params as RpcParamsFor<M>);
       return JSON.stringify(result);
     },
   };
