@@ -60,6 +60,12 @@ verbatra check --locales de,fr --json
 verbatra check --consistency
 ```
 
+## Geschützte Keys
+
+<AvailableFrom version="0.12.0" />
+
+Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, oder ein Key, der auf `pinnedKeys` passt, ist einer, den `translate` für einen Menschen übrig lassen würde (siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations)). `check` zählt ihn trotzdem als fehlend oder veraltet und zeigt den geschützten Anteil in Klammern, zum Beispiel `2 stale (1 protected)`. `--json` enthält die Zahl pro Locale als `protected`; sie fehlt, wenn `verbatra.provenance.json` beschädigt ist oder von einem neueren verbatra stammt.
+
 ## Exit-Codes
 
 | Code | Bedeutung |

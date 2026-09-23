@@ -33,6 +33,7 @@ Quelques cas limites à connaître :
 - `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
 - `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
 - Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des cinq codes.
+- Une clé [protégée](/docs/protecting-human-translations) (une valeur obsolète écrite, importée ou modifiée hors de verbatra par une personne, ou une clé épinglée) ne change pas le code de sortie de `translate` dans un projet avec fournisseur : il sort avec `0` et indique sur stderr combien de clés il a laissées. `check` sort quand même avec `1` pour elle, car la clé reste obsolète jusqu'à ce qu'une personne la résolve. Dans un projet 100 % humain, elle compte pour la sortie `3`.
 
 ## check ou diff : choisir le contrôle
 

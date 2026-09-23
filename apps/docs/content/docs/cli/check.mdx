@@ -60,6 +60,12 @@ verbatra check --locales de,fr --json
 verbatra check --consistency
 ```
 
+## Protected keys
+
+<AvailableFrom version="0.12.0" />
+
+A stale key whose value a person wrote, imported, or changed outside verbatra, or a key matching `pinnedKeys`, is one `translate` would leave for a person (see [Protecting human translations](/docs/protecting-human-translations)). `check` still counts it as missing or stale, and shows the protected share in brackets, for example `2 stale (1 protected)`. `--json` carries the count as `protected` on each locale, left out when `verbatra.provenance.json` is corrupt or from a newer verbatra.
+
 ## Exit codes
 
 | Code | Meaning |
