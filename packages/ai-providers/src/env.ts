@@ -1,5 +1,5 @@
 import { ProviderError } from "./errors.js";
-import { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 function readRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -32,9 +32,6 @@ export function requireGoogleTranslateKey(): string {
 export const OPENAI_COMPATIBLE_KEY_PLACEHOLDER = "local";
 
 export function resolveOpenAiCompatibleKey(customEnvVar?: string): string {
-  if (customEnvVar !== undefined) {
-    declareKeyEnvVar(customEnvVar);
-  }
   const varName = customEnvVar ?? OPENAI_COMPATIBLE_ENV_VAR;
   const value = process.env[varName];
   if (value !== undefined && value.length > 0) {

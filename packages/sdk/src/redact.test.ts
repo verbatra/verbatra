@@ -78,14 +78,12 @@ describe("redact", () => {
 });
 
 describe("redact: a key read through a custom apiKeyEnvVar", () => {
-  const FAKE_KEY = "fake local key value 42";
   const savedValues: Record<string, string | undefined> = {};
-  const names = ["MY_LOCAL_KEY", "MY_UNLOADED_KEY"];
+  const names = ["SDK_REDACT_LOADED_KEY", "SDK_REDACT_SUMMARY_KEY", "SDK_REDACT_UNDECLARED_KEY"];
 
   beforeEach(() => {
     for (const name of names) {
       savedValues[name] = process.env[name];
-      process.env[name] = FAKE_KEY;
     }
   });
 
@@ -119,23 +117,29 @@ describe("redact: a key read through a custom apiKeyEnvVar", () => {
   }
 
   it("leaves an undeclared variable's unshaped value alone", () => {
-    expect(redact(`value ${FAKE_KEY} here`)).toBe(`value ${FAKE_KEY} here`);
+    process.env.SDK_REDACT_UNDECLARED_KEY = "fake undeclared key value";
+    expect(redact("value fake undeclared key value here")).toBe(
+      "value fake undeclared key value here",
+    );
   });
 
   it("scrubs the value once a config naming the variable is loaded", async () => {
-    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("MY_LOCAL_KEY") });
+    process.env.SDK_REDACT_LOADED_KEY = "fake loaded key value";
+    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("SDK_REDACT_LOADED_KEY") });
 
-    const out = redact(`glossary ${FAKE_KEY}, error: ${FAKE_KEY}`);
+    const out = redact("glossary fake loaded key value, error: fake loaded key value");
 
-    expect(out).not.toContain(FAKE_KEY);
     expect(out).toBe("glossary [REDACTED], error: [REDACTED]");
   });
 
   it("scrubs the value inside a serialized run summary", async () => {
-    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("MY_LOCAL_KEY") });
+    process.env.SDK_REDACT_SUMMARY_KEY = "fake summary key value";
+    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("SDK_REDACT_SUMMARY_KEY") });
 
-    const summary = JSON.stringify({ failed: [{ locale: "de", message: `boom ${FAKE_KEY}` }] });
+    const summary = JSON.stringify({
+      failed: [{ locale: "de", message: "boom fake summary key value" }],
+    });
 
-    expect(redact(summary)).not.toContain(FAKE_KEY);
+    expect(redact(summary)).not.toContain("fake summary key value");
   });
 });

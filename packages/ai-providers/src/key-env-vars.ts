@@ -8,12 +8,25 @@ export const PROVIDER_ENV = {
 
 export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";
 
-const declaredKeyEnvVars = new Set<string>();
+export const DECLARED_KEY_ENV_VARS = Symbol.for("verbatra.keyEnvVars");
+
+type RegistryScope = Record<typeof DECLARED_KEY_ENV_VARS, Set<string> | undefined>;
+
+export function declaredKeyEnvVars(): Set<string> {
+  const scope = globalThis as unknown as RegistryScope;
+  const existing = scope[DECLARED_KEY_ENV_VARS];
+  if (existing !== undefined) {
+    return existing;
+  }
+  const created = new Set<string>();
+  scope[DECLARED_KEY_ENV_VARS] = created;
+  return created;
+}
 
 export function declareKeyEnvVar(name: string): void {
-  declaredKeyEnvVars.add(name);
+  declaredKeyEnvVars().add(name);
 }
 
 export function keyEnvVarNames(): readonly string[] {
-  return [...Object.values(PROVIDER_ENV), OPENAI_COMPATIBLE_ENV_VAR, ...declaredKeyEnvVars];
+  return [...Object.values(PROVIDER_ENV), OPENAI_COMPATIBLE_ENV_VAR, ...declaredKeyEnvVars()];
 }

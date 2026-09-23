@@ -3,41 +3,45 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { baseConfig } from "../test-support.js";
 import { declareProviderKeyEnvVar } from "./provider-key-env.js";
 
+const NAME = "PROVIDER_KEY_ENV_DECLARED";
 const FAKE_KEY = "fake provider key env value";
-const NAMES = ["PROVIDER_KEY_ENV_DECLARED"];
+
+function declaredCount(): number {
+  const registry = (globalThis as unknown as Record<symbol, Set<string> | undefined>)[
+    Symbol.for("verbatra.keyEnvVars")
+  ];
+  return registry?.size ?? 0;
+}
 
 describe("declareProviderKeyEnvVar", () => {
-  const saved: Record<string, string | undefined> = {};
+  let saved: string | undefined;
 
   beforeEach(() => {
-    for (const name of NAMES) {
-      saved[name] = process.env[name];
-      process.env[name] = FAKE_KEY;
-    }
+    saved = process.env[NAME];
+    process.env[NAME] = FAKE_KEY;
   });
 
   afterEach(() => {
-    for (const name of NAMES) {
-      const value = saved[name];
-      if (value === undefined) {
-        delete process.env[name];
-      } else {
-        process.env[name] = value;
-      }
+    if (saved === undefined) {
+      delete process.env[NAME];
+    } else {
+      process.env[NAME] = saved;
     }
   });
 
   it("declares nothing for a hosted provider", () => {
+    const before = declaredCount();
     declareProviderKeyEnvVar(baseConfig().provider);
-    expect(redactKeys(FAKE_KEY)).toBe(FAKE_KEY);
+    expect(declaredCount()).toBe(before);
   });
 
   it("declares nothing for an openai-compatible provider without apiKeyEnvVar", () => {
+    const before = declaredCount();
     declareProviderKeyEnvVar({
       id: "openai-compatible",
       options: { baseUrl: "http://localhost:1/v1", model: "m", maxOutputTokens: 1 },
     });
-    expect(redactKeys(FAKE_KEY)).toBe(FAKE_KEY);
+    expect(declaredCount()).toBe(before);
   });
 
   it("declares the variable an openai-compatible provider names", () => {
@@ -47,7 +51,7 @@ describe("declareProviderKeyEnvVar", () => {
         baseUrl: "http://localhost:1/v1",
         model: "m",
         maxOutputTokens: 1,
-        apiKeyEnvVar: "PROVIDER_KEY_ENV_DECLARED",
+        apiKeyEnvVar: NAME,
       },
     });
     expect(redactKeys(`leak ${FAKE_KEY}`)).toBe("leak [REDACTED]");

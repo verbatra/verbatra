@@ -4,7 +4,13 @@ import type { MessagesClient } from "./anthropic/types.js";
 import { ProviderError } from "./errors.js";
 import { declareKeyEnvVar } from "./key-env-vars.js";
 import type { TranslateRequest } from "./provider.js";
-import { entry, regexExtractor, stubClient, toolMessage } from "./test-support.js";
+import {
+  entry,
+  regexExtractor,
+  resetDeclaredKeyEnvVars,
+  stubClient,
+  toolMessage,
+} from "./test-support.js";
 
 const FAKE_KEY = "sk-ant-SENTINELKEY123";
 const CONTENT = "TRANSLATABLE-CONTENT-SENTINEL";
@@ -149,6 +155,7 @@ describe("ProviderError constructor scrubs key shapes as a defense-in-depth back
     "OPENAI_COMPATIBLE_API_KEY",
     "MY_LOCAL_KEY",
   ])("scrubs the exact value of %s, built-in or declared through apiKeyEnvVar", (name) => {
+    resetDeclaredKeyEnvVars();
     declareKeyEnvVar("MY_LOCAL_KEY");
     const saved = process.env[name];
     process.env[name] = "fake-unshaped-key-value";
@@ -160,6 +167,7 @@ describe("ProviderError constructor scrubs key shapes as a defense-in-depth back
       expect(error.message).not.toContain("fake-unshaped-key-value");
       expect(error.message).toBe("carrying [REDACTED] verbatim");
     } finally {
+      resetDeclaredKeyEnvVars();
       if (saved === undefined) {
         delete process.env[name];
       } else {

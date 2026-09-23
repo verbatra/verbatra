@@ -1,4 +1,5 @@
 import type { ProviderCallContext } from "../guard.js";
+import { declareKeyEnvVar } from "../key-env-vars.js";
 import { type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import { buildOpenAiRequest, type OpenAiRequest } from "../openai/request.js";
 import { extractOpenAiResult } from "../openai/response.js";
@@ -23,6 +24,9 @@ export function createOpenAiCompatibleProvider(
   deps: OpenAiCompatibleDeps = {},
 ): TranslationProvider {
   const validConfig = openAiCompatibleConfigSchema.parse(config);
+  if (validConfig.apiKeyEnvVar !== undefined) {
+    declareKeyEnvVar(validConfig.apiKeyEnvVar);
+  }
   const client = deps.client ?? createDefaultClient(validConfig);
   const mechanism = createMechanism(client, validConfig);
   return {
