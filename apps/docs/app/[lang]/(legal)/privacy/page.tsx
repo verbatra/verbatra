@@ -13,6 +13,7 @@ const GITHUB_PRIVACY =
 const NPM_SCOPE = "https://www.npmjs.com/search?q=%40verbatra";
 const NPM_PRIVACY = "https://docs.npmjs.com/policies/privacy";
 const CONTABO_URL = "https://contabo.com/de/";
+const ARCJET_PRIVACY = "https://docs.arcjet.com/privacy";
 const CONTACT_MAILTO = "mailto:info@kreitz-webdev.de";
 const SUPERVISORY_AUTHORITY_URL = "https://www.baden-wuerttemberg.datenschutz.de";
 
@@ -47,6 +48,7 @@ const linkTagsFor = (locale: Locale) => ({
   npm: (chunks: ReactNode) => <a href={NPM_SCOPE}>{chunks}</a>,
   npmprivacy: (chunks: ReactNode) => <a href={NPM_PRIVACY}>{chunks}</a>,
   contabo: (chunks: ReactNode) => <a href={CONTABO_URL}>{chunks}</a>,
+  arcjetprivacy: (chunks: ReactNode) => <a href={ARCJET_PRIVACY}>{chunks}</a>,
   contact: (chunks: ReactNode) => <a href={localizedPath(locale, "/contact")}>{chunks}</a>,
   imprint: (chunks: ReactNode) => <a href={localizedPath(locale, "/imprint")}>{chunks}</a>,
   lfdi: (chunks: ReactNode) => <a href={SUPERVISORY_AUTHORITY_URL}>{chunks}</a>,
