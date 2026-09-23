@@ -113,6 +113,11 @@ describe("createLocalePathResolver, posix style", () => {
     ["i18n/messages_{locale}.properties", "de", "i18n/messages_de.properties"],
     ["i18n/messages_{locale}.properties", "pt-BR", "i18n/messages_pt_BR.properties"],
     ["i18n/messages_{locale}.properties", "fil-PH", "i18n/messages_fil_PH.properties"],
+    ["i18n/messages_{locale}.properties", "zh-Hant-TW", "i18n/messages_zh_Hant_TW.properties"],
+    ["i18n/messages_{locale}.properties", "zh-Hans", "i18n/messages_zh_Hans.properties"],
+    ["i18n/messages_{locale}.properties", "sr-Latn", "i18n/messages_sr_Latn.properties"],
+    ["i18n/messages_{locale}.properties", "sr-Latn-RS", "i18n/messages_sr_Latn_RS.properties"],
+    ["locale/{locale}/LC_MESSAGES/messages.po", "es-419", "locale/es_419/LC_MESSAGES/messages.po"],
   ];
 
   it.each(posixCases)("%s spells %s as %s", (pattern, locale, expected) => {
@@ -128,9 +133,17 @@ describe("createLocalePathResolver, posix style", () => {
     expect(relativePathFor(config, "pt-br")).toBe("i18n/messages_pt_br.properties");
   });
 
-  const posixRefusals = ["zh-Hans", "sr-Latn", "sr-Latn-RS", "es-419", "de-1996", "en-POSIX"];
+  it("preserves the configured casing of a script subtag too", () => {
+    const config = makeConfig("i18n/messages_{locale}.properties", {
+      targetLocales: ["zh-hant-tw"],
+      localeStyle: "posix",
+    });
+    expect(relativePathFor(config, "zh-hant-tw")).toBe("i18n/messages_zh_hant_tw.properties");
+  });
 
-  it.each(posixRefusals)("refuses %s, which has no correct underscore form", (locale) => {
+  const posixRefusals = ["de-1996", "en-POSIX", "de-DE-1996", "sl-Latn-rozaj"];
+
+  it.each(posixRefusals)("refuses %s, whose variant has no underscore form", (locale) => {
     const config = makeConfig("locale/{locale}/LC_MESSAGES/messages.po", {
       targetLocales: [locale],
       localeStyle: "posix",
@@ -140,10 +153,10 @@ describe("createLocalePathResolver, posix style", () => {
 
   it("names the locale and the style in the refusal", () => {
     const config = makeConfig("locale/{locale}/LC_MESSAGES/messages.po", {
-      targetLocales: ["zh-Hans"],
+      targetLocales: ["de-1996"],
       localeStyle: "posix",
     });
-    expect(() => createLocalePathResolver(CWD, config)).toThrow(/zh-Hans.*posix|posix.*zh-Hans/);
+    expect(() => createLocalePathResolver(CWD, config)).toThrow(/de-1996.*posix|posix.*de-1996/);
   });
 });
 
