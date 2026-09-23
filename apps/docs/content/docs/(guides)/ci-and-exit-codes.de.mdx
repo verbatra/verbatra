@@ -19,6 +19,7 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 | `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
 | `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron, `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init` ohne auflösbaren Provider oder unfähig, eine gültige Konfiguration anzulegen, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
+| `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 
 Einige Randfälle, die du kennen solltest:
@@ -31,7 +32,7 @@ Einige Randfälle, die du kennen solltest:
 - Ein fehlgeschlagener Lauf während `watch` erscheint als Datensatz im Ausgabestrom, nie als Exit-Code ungleich null.
 - `export` hat keinen Fehlermodus pro Locale: Der Befehl endet mit `0` oder `2`, nie mit `1`.
 - `doctor` liest eine kaputte Konfiguration anders als jeder andere Befehl: Eine Konfiguration, die die Suche nicht findet, oder eine, die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung und Exit `1`, denn genau das zu melden ist die Aufgabe des Befehls. Exit `2` gibt es nur, wenn er überhaupt nicht laufen kann, etwa bei einem explizit angegebenen `--config`-Pfad, der nicht existiert.
-- Ein Fehlermodus liegt außerhalb des Vertrags: ein Parse-Fehler, der kein Verwendungsfehler ist, wird weitergeworfen, und das Binary fängt ihn nicht ab. Damit greift Nodes Standardverhalten für eine unbehandelte Rejection statt eines der vier Codes.
+- Ein Fehlermodus liegt außerhalb des Vertrags: ein Parse-Fehler, der kein Verwendungsfehler ist, wird weitergeworfen, und das Binary fängt ihn nicht ab. Damit greift Nodes Standardverhalten für eine unbehandelte Rejection statt eines der fünf Codes.
 
 ## check oder diff: das Gate wählen
 

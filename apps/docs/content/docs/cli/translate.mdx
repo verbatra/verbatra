@@ -62,10 +62,15 @@ verbatra translate --estimate
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, source, format, provider, or lock), or a usage error |
+| `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
 
 <AvailableFrom version="0.9.0" />
 
 One locale failing is not fatal: the run finishes, exits `1`, and the per-locale detail sits in the summary. A **partial** locale exits `1` as well. That is a locale whose file was written but still has keys missing, typically because a provider sub-batch failed or the integrity gate refused a translation, and shipping it as a success would leave a half-translated file in your repository unnoticed.
+
+Exit `3` only happens in a [human-only](/docs/human-only-workflow) project. No provider is called there: keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and left untouched. A failed or partial locale still wins and exits `1`. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
 
 ## Related
 

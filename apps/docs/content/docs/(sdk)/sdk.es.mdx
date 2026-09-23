@@ -398,7 +398,7 @@ Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ accepted: true, value, rev
 códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de
-`@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`.
+`@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
 
 ## Lecturas de contenido en bloque
 
@@ -639,9 +639,21 @@ proveedor LLM recibe su límite de tokens de salida) y `supportedFormats` (el co
 formato). Lee la clave del límite de tokens de `providerTokenLimitKeys` en lugar de suponer una:
 Anthropic la llama `maxTokens` y los demás `maxOutputTokens`, el esquema valida estrictamente las
 opciones de cada proveedor, y DeepL no tiene entrada porque no recibe límite de tokens. El
-tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible">`, así que cubre los cinco
+tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible" | "none">`, así que cubre los cinco
 proveedores alojados; `openai-compatible` queda excluido porque no tiene una única variable de
 entorno obligatoria.
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Devuelve `false` exactamente cuando la configuración fija `provider: { id: "none" }`, el modo [solo humano](/docs/human-only-workflow) en el que nunca se construye un proveedor ni se lee una clave de API. Una interfaz que ofrece acciones que gastan en el proveedor lo lee para omitirlas por completo; así es como Studio y el servidor MCP retienen el gasto incluso con `--allow-spend`.
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Recibe la configuración y una frase corta que nombra la acción, y lanza un `SdkError` `MACHINE_TRANSLATION_DISABLED` con `provider: { id: "none" }`. Llámalo antes de envolver `translate` en una acción explícita de "traducir todo lo pendiente", para que la acción falle igual que `retranslateEntry` en lugar de rellenar en silencio solo desde la memoria de traducción.
 
 ## Adaptadores de formato
 
@@ -756,7 +768,7 @@ interface LocaleSummary {
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
-  unfilled: string[];            // import only: blank rows whose key still needs a translation
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -811,7 +823,7 @@ Las partes que conviene conocer:
   todavía necesita traducción en el momento de la importación (tanto si se exportó como `new` como si
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
-  que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`).
+  que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía entrada.
 
 ### budgetStanding
 
@@ -838,6 +850,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `UNKNOWN_LOCALE` | un locale solicitado no está entre los locales de destino configurados |
 | `UNKNOWN_KEY` | una clave solicitada no está en el recurso de origen (`keyValue`, `editEntry`, `retranslateEntry`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | el proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente |
+| `MACHINE_TRANSLATION_DISABLED` | la configuración fija `provider: { id: "none" }`, así que se rechazó una acción que gasta en el proveedor antes de construir ningún proveedor (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` y `watch` nunca lo lanzan |
 | `SOURCE_UNREADABLE` | el archivo del locale de origen no existe |
 | `SOURCE_INVALID` | el archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador |
 | `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida |

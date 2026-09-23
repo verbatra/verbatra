@@ -1,0 +1,61 @@
+---
+title: Rein menschlicher Workflow
+description: Betreib verbatra mit per Richtlinie abgeschalteter Maschinenübersetzung, damit kein String je einen Übersetzungsdienst erreicht und jede Übersetzung von einem Menschen kommt.
+---
+<AvailableFrom version="0.12.0" />
+
+Manche Teams dürfen gar keine Maschinenübersetzung nutzen: Eine NDA, ein Kundenvertrag oder eine Firmenregel verbietet, Strings an irgendeinen KI- oder Übersetzungsdienst zu schicken. verbatra unterstützt das direkt. Setz den Provider auf `none`, und jeder Befehl, der etwas ausgeben oder senden könnte, arbeitet entweder nur mit lokalen Daten oder lehnt glatt ab. Der Rest von verbatra (Diffing, die Lock-Datei, das Translation Memory, Export und Import, Checks, Typen, Pseudolokalisierung, Extraktion) funktioniert genau wie vorher, weil nichts davon einen Provider braucht.
+
+## Einrichten
+
+```bash
+verbatra init --provider none
+```
+
+Das schreibt eine Konfiguration, deren Provider-Block nur so aussieht, und keine `.env.example`, weil nie ein API-Schlüssel gelesen wird:
+
+```ts
+provider: { id: "none" }
+```
+
+Ein bestehendes Projekt stellst du genauso um: Ersetz seinen `provider`-Block durch `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) meldet dann "machine translation disabled by policy" und besteht seine Provider- und API-Key-Prüfung, ohne sich einen Key anzusehen.
+
+## Was jeder Befehl macht
+
+| Befehl | Mit `provider: { id: "none" }` |
+| --- | --- |
+| `translate`, `watch` | füllen einen Key nur aus [dem Translation Memory](/docs/the-cache); jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet, nicht angefasst und beim nächsten Lauf wieder angeboten. `translate` endet mit `3`, wenn ein Key übrig bleibt. |
+| `export`, `import`, `tmx` | unverändert: Über die Übergabe und das Translation Memory kommen menschliche Übersetzungen hinein. |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unverändert; keiner davon ruft einen Provider auf. |
+| `studio`, `mcp` | lokales Lesen und Bearbeiten funktioniert; die kostenpflichtigen Provider-Aktionen werden nie angeboten, auch nicht mit `--allow-spend`. |
+| SDK `retranslateEntry` | schlägt mit `MACHINE_TRANSLATION_DISABLED` fehl, bevor irgendetwas gelesen oder gesperrt wird. |
+
+Auf keinem dieser Wege wird ein Provider erzeugt, egal was in der Umgebung steht, und es gibt keine Netzwerkanfrage.
+
+## Der tägliche Ablauf
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+Schritt 1 ist optional: `verbatra diff` oder `verbatra check` zeigen dieselben ausstehenden Keys. `translate` lohnt sich trotzdem, weil es jeden Key füllt, den das Translation Memory schon abdeckt (zum Beispiel Strings, die du woanders wiederverwendet hast, oder Übersetzungen, die du mit [`verbatra tmx import`](/docs/cli/tmx) hereingeholt hast), sodass deine Übersetzer nur sehen, was wirklich neu ist. Den Arbeitsmappen-Durchlauf selbst, samt seinen Integritätsprüfungen, beschreibt [Menschliche Übersetzung](/docs/manual-translation).
+
+## In CI
+
+Exit-Code `3` heißt "sauber durchgelaufen, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale), damit eine Pipeline beides unterschiedlich behandeln kann: den Build scheitern lassen, ein Übersetzungs-Ticket öffnen oder einfach berichten. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+
+## Siehe auch
+
+- [Menschliche Übersetzung](/docs/manual-translation) beschreibt den Export- und Import-Durchlauf im Detail.
+- [Der Cache](/docs/the-cache) erklärt das Translation Memory, aus dem `translate` füllt.
+- [Provider](/docs/providers) führt `none` neben den Übersetzungs-Providern auf.

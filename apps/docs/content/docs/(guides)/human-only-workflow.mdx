@@ -1,0 +1,61 @@
+---
+title: Human-only workflow
+description: Run verbatra with machine translation disabled by policy, so no string ever reaches a translation service and every translation comes from a person.
+---
+<AvailableFrom version="0.12.0" />
+
+Some teams may not use machine translation at all: an NDA, a customer contract, or a company rule forbids sending strings to any AI or translation service. verbatra supports that directly. Set the provider to `none`, and every command that could spend or send anything either works from local data alone or refuses outright. The rest of verbatra (diffing, the lock file, the translation memory, export and import, checks, types, pseudolocalization, extraction) works exactly as before, because none of it needs a provider.
+
+## Set it up
+
+```bash
+verbatra init --provider none
+```
+
+That writes a config whose provider block is just this, and no `.env.example`, since no API key is ever read:
+
+```ts
+provider: { id: "none" }
+```
+
+An existing project can switch the same way: replace its `provider` block with `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) then reports "machine translation disabled by policy" and passes its provider and API key checks without looking at any key.
+
+## What each command does
+
+| Command | With `provider: { id: "none" }` |
+| --- | --- |
+| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. `translate` exits `3` when any key is left. |
+| `export`, `import`, `tmx` | unchanged: the handoff and the translation memory are how human translations get in. |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unchanged; none of them calls a provider. |
+| `studio`, `mcp` | local reads and edits work; the provider-spending actions are never offered, even with `--allow-spend`. |
+| SDK `retranslateEntry` | fails with `MACHINE_TRANSLATION_DISABLED` before reading or locking anything. |
+
+No provider is constructed on any of these paths, whatever the environment holds, and no network request is made.
+
+## The day-to-day loop
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+Step 1 is optional: `verbatra diff` or `verbatra check` show the same pending keys. `translate` is still worth running, because it fills every key the translation memory already covers (for example strings you reused elsewhere, or translations you brought in with [`verbatra tmx import`](/docs/cli/tmx)), so your translators only see what is truly new. The workbook round-trip itself, including its integrity checks, is described in [Human translation](/docs/manual-translation).
+
+## In CI
+
+Exit `3` means "finished cleanly, but keys are waiting for a human". It is distinct from `1` (a failed or partial locale) so a pipeline can treat the two differently: fail the build, open a translation ticket, or just report. A failed or partial locale still wins and exits `1`. See [CI and exit codes](/docs/ci-and-exit-codes).
+
+## Related
+
+- [Human translation](/docs/manual-translation) covers the export and import round-trip in detail.
+- [The cache](/docs/the-cache) explains the translation memory `translate` fills from.
+- [Providers](/docs/providers) lists `none` alongside the translation providers.

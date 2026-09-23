@@ -1,0 +1,61 @@
+---
+title: Flux 100 % humain
+description: Utilise verbatra avec la traduction automatique désactivée par principe, pour qu'aucune chaîne n'atteigne jamais un service de traduction et que chaque traduction vienne d'une personne.
+---
+<AvailableFrom version="0.12.0" />
+
+Certaines équipes n'ont pas le droit d'utiliser la traduction automatique : un NDA, un contrat client ou une règle de l'entreprise interdit d'envoyer des chaînes à un service d'IA ou de traduction. verbatra le prend en charge directement. Mets le fournisseur à `none`, et chaque commande qui pourrait dépenser ou envoyer quoi que ce soit travaille uniquement sur des données locales ou refuse net. Le reste de verbatra (le diff, le fichier de verrou, la mémoire de traduction, l'export et l'import, les vérifications, les types, la pseudolocalisation, l'extraction) fonctionne exactement comme avant, car rien de tout cela n'a besoin d'un fournisseur.
+
+## Mise en place
+
+```bash
+verbatra init --provider none
+```
+
+Cela écrit une configuration dont le bloc fournisseur se réduit à ceci, et aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue :
+
+```ts
+provider: { id: "none" }
+```
+
+Un projet existant bascule de la même façon : remplace son bloc `provider` par `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) signale alors « machine translation disabled by policy » et réussit ses vérifications de fournisseur et de clé d'API sans regarder aucune clé.
+
+## Ce que fait chaque commande
+
+| Commande | Avec `provider: { id: "none" }` |
+| --- | --- |
+| `translate`, `watch` | ne remplissent une clé que depuis [la mémoire de traduction](/docs/the-cache) ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée de nouveau à l'exécution suivante. `translate` sort avec `3` quand il reste une clé. |
+| `export`, `import`, `tmx` | inchangées : l'échange de fichiers et la mémoire de traduction sont la voie d'entrée des traductions humaines. |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | inchangées ; aucune n'appelle de fournisseur. |
+| `studio`, `mcp` | la lecture et la modification locales fonctionnent ; les actions qui dépensent auprès du fournisseur ne sont jamais proposées, même avec `--allow-spend`. |
+| `retranslateEntry` du SDK | échoue avec `MACHINE_TRANSLATION_DISABLED` avant de lire ou de verrouiller quoi que ce soit. |
+
+Aucun fournisseur n'est construit sur aucun de ces chemins, quel que soit le contenu de l'environnement, et aucune requête réseau n'est faite.
+
+## La boucle au quotidien
+
+```bash
+# 1. After source strings change, see what needs a human
+verbatra translate          # exits 3 and lists the unfilled keys
+
+# 2. Hand them to your translators
+verbatra export
+
+# 3. Bring the filled workbook back
+verbatra import verbatra-translations.xlsx
+
+# 4. Gate CI on it
+verbatra check
+```
+
+L'étape 1 est facultative : `verbatra diff` ou `verbatra check` montrent les mêmes clés en attente. `translate` vaut quand même la peine, car il remplit chaque clé que la mémoire de traduction couvre déjà (par exemple des chaînes que tu as réutilisées ailleurs, ou des traductions importées avec [`verbatra tmx import`](/docs/cli/tmx)), pour que tes traducteurs ne voient que ce qui est vraiment nouveau. L'aller-retour du classeur lui-même, avec ses contrôles d'intégrité, est décrit dans [Traduction humaine](/docs/manual-translation).
+
+## En CI
+
+La sortie `3` signifie « terminé proprement, mais des clés attendent un humain ». Elle se distingue de `1` (une locale en échec ou partielle) pour qu'un pipeline puisse traiter les deux différemment : faire échouer le build, ouvrir un ticket de traduction, ou simplement le signaler. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Voir [CI et codes de sortie](/docs/ci-and-exit-codes).
+
+## Voir aussi
+
+- [Traduction humaine](/docs/manual-translation) détaille l'aller-retour d'export et d'import.
+- [Le cache](/docs/the-cache) explique la mémoire de traduction depuis laquelle `translate` remplit.
+- [Fournisseurs](/docs/providers) liste `none` à côté des fournisseurs de traduction.

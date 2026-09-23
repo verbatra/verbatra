@@ -62,10 +62,15 @@ verbatra translate --estimate
 | `0` | jede Ziel-Locale kam vollständig durch |
 | `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider oder Lock) oder ein Verwendungsfehler |
+| `3` | rein menschliches Projekt (`provider: { id: "none" }`): der Lauf lief sauber durch, aber Keys warten auf eine menschliche Übersetzung |
 
 <AvailableFrom version="0.9.0" />
 
 Eine fehlschlagende Locale ist nicht fatal: der Lauf läuft zu Ende, endet mit `1`, und das Detail pro Locale steht in der Zusammenfassung. Eine **unvollständige** Locale endet ebenfalls mit `1`. Das ist eine Locale, deren Datei geschrieben wurde, der aber weiterhin Keys fehlen, typischerweise weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat; sie als Erfolg auszuliefern, würde eine halb übersetzte Datei unbemerkt in deinem Repository liegen lassen.
+
+Exit-Code `3` gibt es nur in einem [rein menschlichen](/docs/human-only-workflow) Projekt. Dort wird kein Provider aufgerufen: Keys, die das Translation Memory abdeckt, werden geschrieben, und jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet und nicht angefasst. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Gib die `unfilled`-Keys mit [`verbatra export`](/docs/cli/export) weiter.
+
+<AvailableFrom version="0.12.0" />
 
 ## Siehe auch
 

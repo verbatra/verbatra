@@ -62,10 +62,15 @@ verbatra translate --estimate
 | `0` | chaque locale cible est ressortie complète |
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur ou verrou) ou une erreur d'utilisation |
+| `3` | projet 100 % humain (`provider: { id: "none" }`) : l'exécution s'est terminée proprement, mais des clés attendent une traduction humaine |
 
 <AvailableFrom version="0.9.0" />
 
 Une locale qui échoue n'est pas fatale : l'exécution se termine, sort avec `1`, et le détail par locale se trouve dans le résumé. Une locale **partielle** sort avec `1` elle aussi. C'est une locale dont le fichier a été écrit mais où des clés manquent encore, typiquement parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction, et la livrer comme un succès laisserait passer inaperçu un fichier à moitié traduit dans ton dépôt.
+
+La sortie `3` n'existe que dans un projet [100 % humain](/docs/human-only-workflow). Aucun fournisseur n'y est appelé : les clés que couvre la mémoire de traduction sont écrites, et toute autre clé manquante ou modifiée est listée comme `unfilled` sans être touchée. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Confie les clés `unfilled` à un humain avec [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
 
 ## Voir aussi
 

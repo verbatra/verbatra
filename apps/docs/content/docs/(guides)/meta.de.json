@@ -5,6 +5,7 @@
     "ci-and-exit-codes",
     "github-action",
     "manual-translation",
+    "human-only-workflow",
     "review-in-studio",
     "custom-format-adapters"
   ]

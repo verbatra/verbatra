@@ -15,7 +15,7 @@ verbatra init [flags]
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | répertoire courant | écrit la config et les fichiers d'environnement dans ce répertoire |
-| `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` ; quand il est omis, demandé interactivement |
+| `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` ou `none` ; quand il est omis, demandé interactivement |
 | `--source` | `<locale>` | `en` | la locale source dans laquelle tes chaînes sont écrites |
 | `--targets` | `<locales>` | `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
 | `--path` | `<pattern>` | `locales/{locale}.json` | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
@@ -23,6 +23,10 @@ verbatra init [flags]
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` ou un `.env.example` existant |
 
 Le format n'est pas une option : `init` le détecte depuis tes dépendances (`i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`). Sans correspondance unique et non ambiguë, il retombe sur `i18next-json` et laisse un commentaire TODO listant tous les formats pris en charge. Sans `--force`, un `verbatra.config.ts` ou un `.env.example` existant est sauté, jamais écrasé, et la commande réussit quand même.
+
+`--provider none` génère une configuration [100 % humaine](/docs/human-only-workflow) sans `options` et n'écrit aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue.
+
+<AvailableFrom version="0.12.0" />
 
 ## Exemples
 
@@ -32,6 +36,9 @@ verbatra init --provider gemini
 
 # non-interactive, accept all defaults
 verbatra init --provider deepl --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
 ```
 
 ## Codes de sortie

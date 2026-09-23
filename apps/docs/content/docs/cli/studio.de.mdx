@@ -22,7 +22,7 @@ verbatra studio [flags]
 | `--allow-spend` | keins | aus | Studio erlauben, einen Übersetzungs-Provider aufzurufen (einen Key neu übersetzen, ausstehende Änderungen übersetzen) |
 | `--expose-agent-tools` | keins | aus | die Review-Aktionen von Studio als WebMCP-Tools registrieren, damit ein KI-Agent im Browser sie bedienen kann |
 
-Wenn das Flag `--allow-spend` fehlt, liest Studio stattdessen die Umgebungsvariable `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer über die Umgebungsvariable. Ohne beides kontaktiert Studio nie einen Provider; lokales Bearbeiten braucht kein Flag.
+Wenn das Flag `--allow-spend` fehlt, liest Studio stattdessen die Umgebungsvariable `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer über die Umgebungsvariable. Ohne beides kontaktiert Studio nie einen Provider; lokales Bearbeiten braucht kein Flag. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, und dann hält Studio Provider-Ausgaben auch mit `--allow-spend` zurück: Die Settings-Seite sagt das, statt auf das Flag zu verweisen.
 
 `--expose-agent-tools` wird genauso aus `VERBATRA_STUDIO_AGENT_TOOLS` aufgelöst, mit derselben Menge gültiger Werte und derselben Regel, dass das CLI-Flag gegen die Variable gewinnt. Es ist standardmäßig aus. Ausgaben durch einen Agenten setzen sowohl dieses Flag als auch `--allow-spend` voraus; keines der Flags impliziert das andere. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio).
 

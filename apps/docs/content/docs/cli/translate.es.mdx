@@ -62,10 +62,15 @@ verbatra translate --estimate
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o bloqueo) o un error de uso |
+| `3` | proyecto solo humano (`provider: { id: "none" }`): la ejecución terminó sin errores, pero quedan claves para una traducción humana |
 
 <AvailableFrom version="0.9.0" />
 
 Que falle un locale no es fatal: la ejecución termina, sale con `1` y el detalle por locale queda en el resumen. Un locale **parcial** sale con `1` también. Ese es un locale cuyo archivo se escribió pero todavía tiene claves faltantes, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción, y darlo por bueno dejaría un archivo a medio traducir en tu repositorio sin que nadie lo note.
+
+La salida `3` solo ocurre en un proyecto [solo humano](/docs/human-only-workflow). Ahí no se llama a ningún proveedor: las claves que cubre la memoria de traducción se escriben, y cualquier otra clave ausente o cambiada se lista como `unfilled` y no se toca. Un locale fallido o parcial sigue teniendo prioridad y sale con `1`. Pasa las claves `unfilled` a una persona con [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
 
 ## Relacionado
 

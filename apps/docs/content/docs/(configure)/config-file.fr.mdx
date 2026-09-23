@@ -83,7 +83,7 @@ Les clés de premier niveau inconnues sont rejetées, à la seule exception de `
 
 ### provider
 
-Un objet sélectionné par `id` : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` ou `openai-compatible`. Chaque fournisseur prend ses propres `options` (modèle, limite de tokens, et champs spécifiques au fournisseur), et les clés d'option inconnues sont rejetées. Les options par fournisseur sont documentées sur [Fournisseurs](/docs/providers).
+Un objet sélectionné par `id` : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` ou `none`. Chaque fournisseur prend ses propres `options` (modèle, limite de tokens, et champs spécifiques au fournisseur), et les clés d'option inconnues sont rejetées. Les options par fournisseur sont documentées sur [Fournisseurs](/docs/providers). `none` ne prend aucune `options` et désactive la traduction automatique par principe ; voir [Flux 100 % humain](/docs/human-only-workflow).
 
 ### glossary
 

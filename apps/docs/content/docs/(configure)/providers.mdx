@@ -13,6 +13,7 @@ Any provider works with any format and command; the choice is about cost, qualit
 - **High volume, glossary-driven, or no LLM in the loop?** Use **DeepL**. It is a dedicated machine-translation API with a free and a paid tier, and supports a native glossary by id. It does not translate placeholder-bearing strings (see the note below); for those, use an LLM provider.
 - **Already on Google Cloud, or want the widest language coverage from a plain API key?** Use **Google Cloud Translation**. It is Google's dedicated machine-translation API (the Basic, v2 tier), billed through your Google Cloud project. Like DeepL, it does not translate placeholder-bearing strings.
 - **Offline, cost-free, or your strings must never leave your network?** Use **openai-compatible**. It points verbatra at a local or self-hosted inference server (LM Studio, Ollama, vLLM) instead of a hosted API. No account, no API key, and no network egress beyond your own machine or LAN.
+- **No machine translation at all, because a contract or company policy forbids it?** Use **none**. No provider is constructed and no API key is read: verbatra fills keys only from the translation memory and hands every other key to a human. See [Human-only workflow](/docs/human-only-workflow).
 
 Not sure? Start on Gemini's free tier, then switch providers later by editing one `id` in your config. Nothing else changes.
 
@@ -203,6 +204,18 @@ A bad local model fails loudly, not silently: verbatra validates every provider 
 <Callout title="Not in verbatra init">
 `verbatra init` does not offer `openai-compatible` as a scaffold option, since it has no single required environment variable to prompt for. Add the provider block above to your config by hand; everything else on this page (glossary, tone, output-token limits) applies to it like any LLM provider.
 </Callout>
+
+## none
+
+<AvailableFrom version="0.12.0" />
+
+Disables machine translation by policy. Use it when an NDA or a company rule forbids sending strings to any translation service, so every translation has to come from a person.
+
+```ts
+provider: { id: "none" }
+```
+
+`none` takes no `options`. No provider is ever constructed, no API key is read, and no network request is made. `translate` and `watch` fill a key only from [the translation memory](/docs/the-cache) and report every other missing or changed key as `unfilled`, leaving it untouched; `translate` then exits `3`. [Studio](/docs/cli/studio) and the [MCP server](/docs/cli/mcp) never offer their provider-spending actions, even with `--allow-spend`, and the SDK's `retranslateEntry` fails with `MACHINE_TRANSLATION_DISABLED`. `verbatra init --provider none` scaffolds it. The whole workflow is on [Human-only workflow](/docs/human-only-workflow).
 
 ## Tone and glossary across providers
 

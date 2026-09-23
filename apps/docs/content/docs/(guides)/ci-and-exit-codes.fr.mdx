@@ -19,6 +19,7 @@ Le code de sortie est le contrat sur lequel ton étape CI se branche :
 | `0` | succès : `translate` ou `import` a terminé avec toutes les locales complètes, `check` a trouvé toutes les locales synchronisées, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a généré la structure du projet, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
 | `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée, `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
 | `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` sans fournisseur résoluble ou incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
+| `3` | `translate` dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine |
 | `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
 
 Quelques cas limites à connaître :
@@ -31,7 +32,7 @@ Quelques cas limites à connaître :
 - Une exécution échouée pendant `watch` apparaît comme un enregistrement sur le flux de sortie, jamais comme un code de sortie non nul.
 - `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
 - `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
-- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des quatre codes.
+- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des cinq codes.
 
 ## check ou diff : choisir le contrôle
 
