@@ -147,7 +147,11 @@ describe("SettingsPanel", () => {
   });
 
   it("names the policy rather than the flag when machine translation is disabled", async () => {
-    stubSettings({ ...SNAPSHOT, provider: { id: "none" } });
+    stubSettings({
+      ...SNAPSHOT,
+      provider: { id: "none" },
+      capabilities: { spend: false, spendWithheld: "policy", writeToDisk: true },
+    });
 
     const view = await renderAsync(<SettingsPanel />);
 

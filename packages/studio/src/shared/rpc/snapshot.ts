@@ -8,8 +8,11 @@ export const projectSnapshotParamsSchema = z.strictObject({});
 
 export type ProjectSnapshotParams = z.infer<typeof projectSnapshotParamsSchema>;
 
+export type SpendWithheldReason = "flag" | "policy";
+
 export interface StudioCapabilities {
   readonly spend: boolean;
+  readonly spendWithheld?: SpendWithheldReason;
   readonly writeToDisk: boolean;
 }
 

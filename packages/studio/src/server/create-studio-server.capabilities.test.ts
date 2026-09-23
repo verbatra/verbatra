@@ -104,7 +104,7 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
         const { body } = await postRpc(server.url, cookie, "project.snapshot");
         expect(body).toMatchObject({
           ok: true,
-          result: { capabilities: { spend: false, writeToDisk: true } },
+          result: { capabilities: { spend: false, spendWithheld: "flag", writeToDisk: true } },
         });
       },
       { token: TOKEN, loader: stubLoader() },
@@ -128,7 +128,7 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
 
 describe("provider none withholds the spend capability even when it was granted", () => {
   const humanOnlyLoader = async () => ({
-    config: { ...(await stubLoader()()).config, provider: { id: "none" as const } },
+    config: { ...(await stubLoader()()).config, provider: { id: "none" as const, options: {} } },
     source: { kind: "override" as const },
     glossary: { source: "none" as const },
   });
@@ -140,7 +140,7 @@ describe("provider none withholds the spend capability even when it was granted"
         const { body } = await postRpc(server.url, cookie, "project.snapshot");
         expect(body).toMatchObject({
           ok: true,
-          result: { capabilities: { spend: false, writeToDisk: true } },
+          result: { capabilities: { spend: false, spendWithheld: "policy", writeToDisk: true } },
         });
       },
       { token: TOKEN, loader: humanOnlyLoader, spend: true },

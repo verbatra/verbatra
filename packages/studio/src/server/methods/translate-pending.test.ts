@@ -75,7 +75,10 @@ const stubCreateProvider: CreateProvider = () => ({
 
 describe("translatePendingHandler", () => {
   it("refuses with MACHINE_TRANSLATION_DISABLED under provider none, constructing nothing", async () => {
-    const project = await makeFixtureProject({ provider: { id: "none" } }, { greeting: "hello" });
+    const project = await makeFixtureProject(
+      { provider: { id: "none", options: {} } },
+      { greeting: "hello" },
+    );
     const factoryCalls: string[] = [];
     try {
       const error = await translatePendingHandler(

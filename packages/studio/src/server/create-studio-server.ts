@@ -1,12 +1,13 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
-import { isMachineTranslationEnabled, type LoadedConfig } from "@verbatra/sdk";
+import type { LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
+import { resolveCapabilities } from "./capabilities.js";
 import { cookieName } from "./cookie.js";
 import { resolvePort } from "./default-port.js";
 import { type DispatchContext, handleRequest } from "./dispatch.js";
@@ -14,7 +15,7 @@ import { StudioServerStartError } from "./errors.js";
 import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
 import { createRpcRateLimiter, type RpcRateLimiter } from "./rate-limiter.js";
 import { resolveBoundAddress } from "./resolve-bound-port.js";
-import { createRpcHandlers, type RpcHandlerDeps, type StudioCapabilities } from "./rpc.js";
+import { createRpcHandlers, type RpcHandlerDeps } from "./rpc.js";
 import { createSseHub, type SseHub } from "./sse.js";
 import { generateToken } from "./token.js";
 import { FORBIDDEN_BODY } from "./transport-responses.js";
@@ -91,14 +92,14 @@ function defaultOutput(line: string): void {
 function buildRpcHandlerDeps(
   config: LoadedConfig,
   projectRoot: string,
-  capabilities: StudioCapabilities,
+  spendGranted: boolean,
   exposeAgentTools: boolean,
   options: StudioServerOptions,
 ): RpcHandlerDeps {
   return {
     config,
     projectRoot,
-    spend: capabilities.spend,
+    spend: spendGranted,
     exposeAgentTools,
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
@@ -204,10 +205,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const granted = options.spend ?? false;
   const exposeAgentTools = options.exposeAgentTools ?? false;
   const config = await options.loader();
-  const capabilities: StudioCapabilities = {
-    spend: granted && isMachineTranslationEnabled(config.config),
-    writeToDisk: true,
-  };
+  const capabilities = resolveCapabilities(granted, config.config);
   const projectRoot = options.cwd ?? process.cwd();
 
   const watcher = await createProjectWatcher(
@@ -243,7 +241,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     cookieName: cookieName(port),
     assetsRootPath,
     log: output,
-    rpcDeps: buildRpcHandlerDeps(config, projectRoot, capabilities, exposeAgentTools, options),
+    rpcDeps: buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
     handlers,
     rateLimiter,
     inFlightGuard,

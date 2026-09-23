@@ -41,7 +41,7 @@ function ProviderActions({ snapshot }: { readonly snapshot: ProjectSnapshotResul
     return <Badge tone="success">Enabled</Badge>;
   }
   const hint =
-    snapshot.provider.id === "none"
+    snapshot.capabilities.spendWithheld === "policy"
       ? "machine translation disabled by policy"
       : "start with --allow-spend";
   return (
