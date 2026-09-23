@@ -40,13 +40,15 @@ Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abg
 - `sourceLocale`: die Quellsprache eines `.xcstrings`-Katalogs, sonst `en` oder das einzige gefundene `en-*`-Locale, sonst das einzige gefundene Locale.
 - `targetLocales`: jedes andere gefundene Locale.
 
+Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` neben `messages_de.properties`, `Strings.resx` neben `Strings.de.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra liest die Quelle aus der Datei, die das Muster für das Quell-Locale benennt, und kann nicht auf eine solche Datei zeigen. Deshalb rät `init` das Quell-Locale in diesem Fall nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte sagen dir, in welche Datei du die Basisdatei umbenennen oder kopieren sollst.
+
 Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format. `--format`, `--path` und `--source` grenzen die Erkennung ein, statt von ihr überschrieben zu werden, `--format yaml` sieht sich also nur YAML-Dateien an.
 
 `init` rät nie zwischen Gleichwertigen. Lesen mehrere Formate die Dateien (zum Beispiel reines JSON ohne i18n-Dependency), endet es mit `2` und `FORMAT_AMBIGUOUS`, und liegen mehrere Dateimuster gleichauf (eine Datei pro Namespace, etwa `locales/{locale}/common.json` und `locales/{locale}/auth.json`), endet es mit `2` und `LAYOUT_AMBIGUOUS`. Beide listen die Kandidaten auf; übergib `--format` oder `--path`, um einen zu wählen. Am Terminal fragt es stattdessen nach und schlägt den ersten Kandidaten vor.
 
 ## Unbeaufsichtigte Läufe
 
-Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` mit einem Standardwert gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. `--provider` hat keinen Standardwert, und für `openai-compatible` haben auch `--base-url` und `--model` keinen, die brauchst du also immer. Diesen Befehl führt ein Agent aus:
+Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` mit einem Standardwert gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. Ein Fehler wegen einer Mehrdeutigkeit oder eines ungültigen Flags listet zusätzlich die noch fehlenden Flags auf, sodass ein einziger Lauf einem Agenten alles sagt, was er übergeben muss. `--provider` hat keinen Standardwert, und für `openai-compatible` haben auch `--base-url` und `--model` keinen, die brauchst du also immer. Diesen Befehl führt ein Agent aus:
 
 ```bash
 npx verbatra init --provider gemini --yes --json
@@ -80,6 +82,7 @@ interface InitResult {
       localeStyle: "literal" | "posix" | "android";
       locales: string[];
       sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
       files: string[];
     } | null;
     ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
@@ -92,7 +95,7 @@ interface InitResult {
 
 `confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle anzunehmen), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen Befehlen, die als Nächstes auszuführen sind, etwa `npx verbatra doctor`.
 
-Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich ein `candidates`-Array mit den Werten, aus denen du wählst.
+Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich ein `candidates`-Array mit den Werten, aus denen du wählst. Jeder Verwendungsfehler, der Flags unbeantwortet lässt, trägt außerdem ein `missing`-Array, das sie nennt, etwa `"--source <locale>"`.
 
 ## Provider
 

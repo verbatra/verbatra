@@ -71,6 +71,7 @@ type Envelope<TResult> =
       code: string;
       message: string;
       candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
     };
 ```
 
@@ -82,7 +83,7 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 { "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
 ```
 
-`command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war. `candidates` erscheint nur bei einem Fehler, der dich wählen lässt, etwa `FORMAT_AMBIGUOUS` von `init`, und listet die Werte auf, aus denen du wählst.
+`command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war. `candidates` erscheint nur bei einem Fehler, der dich wählen lässt, etwa `FORMAT_AMBIGUOUS` von `init`, und listet die Werte auf, aus denen du wählst. `missing` erscheint bei einem Verwendungsfehler von `init`, der Flags unbeantwortet lässt, und nennt jedes Flag, das du noch übergeben musst.
 
 Ein Verwendungsfehler trägt einen dieser Codes:
 

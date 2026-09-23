@@ -40,13 +40,15 @@ A flag always wins. Anything you leave out is detected from the project, then pr
 - `sourceLocale`: the source language of an `.xcstrings` catalogue, else `en` or the single `en-*` locale found, else the only locale found.
 - `targetLocales`: every other locale found.
 
+A file next to the locale files that holds strings under no locale name, such as `messages.properties` beside `messages_de.properties`, `Strings.resx` beside `Strings.de.resx`, or a gettext `app.pot`, is reported as `unqualifiedSourceFile`. verbatra reads the source from the file its pattern names for the source locale and cannot point at such a file, so `init` does not guess the source locale then: pass `--source`, even with `--yes`, and the next steps tell you which file to rename or copy the base file to.
+
 With no locale file at all, the dependencies alone decide the format. `--format`, `--path`, and `--source` narrow the detection instead of being overridden by it, so `--format yaml` only looks at YAML files.
 
 `init` never guesses between equals. When several formats read the files (plain JSON with no i18n dependency, for example) it exits `2` with `FORMAT_AMBIGUOUS`, and when several file patterns tie (one file per namespace, such as `locales/{locale}/common.json` and `locales/{locale}/auth.json`) it exits `2` with `LAYOUT_AMBIGUOUS`. Both list the candidates; pass `--format` or `--path` to choose one. At a terminal it asks instead, suggesting the first candidate.
 
 ## Unattended runs
 
-Without a terminal, or with `--json`, `init` never prompts. A value that is neither passed, detected, nor defaulted by `--yes` is an error: `init` exits `2` with `MISSING_OPTIONS` and names every missing flag at once. `--provider` has no default, and neither do `--base-url` and `--model` for `openai-compatible`, so those are always needed. This is the command an agent runs:
+Without a terminal, or with `--json`, `init` never prompts. A value that is neither passed, detected, nor defaulted by `--yes` is an error: `init` exits `2` with `MISSING_OPTIONS` and names every missing flag at once. An error for an ambiguity or an invalid flag also lists the flags still missing, so one run tells an agent everything it has to pass. `--provider` has no default, and neither do `--base-url` and `--model` for `openai-compatible`, so those are always needed. This is the command an agent runs:
 
 ```bash
 npx verbatra init --provider gemini --yes --json
@@ -80,6 +82,7 @@ interface InitResult {
       localeStyle: "literal" | "posix" | "android";
       locales: string[];
       sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
       files: string[];
     } | null;
     ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
@@ -92,7 +95,7 @@ interface InitResult {
 
 `confidence` is `high` when the files alone decided everything, `medium` when a convention or a dependency filled a gap (such as taking `en` as the source), `low` when no locale file backed the format, and `none` when nothing was detected. A `default` in `sources` is the value to double-check. `nextSteps` ends with the exact commands to run next, such as `npx verbatra doctor`.
 
-An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER`, or `INVALID_FORMAT` also carries a `candidates` array with the values to choose from.
+An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER`, or `INVALID_FORMAT` also carries a `candidates` array with the values to choose from. Every usage error that leaves flags unanswered also carries a `missing` array naming them, such as `"--source <locale>"`.
 
 ## Providers
 

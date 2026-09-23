@@ -40,13 +40,15 @@ Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le proj
 - `sourceLocale` : la langue source d'un catalogue `.xcstrings`, sinon `en` ou l'unique locale `en-*` trouvée, sinon la seule locale trouvée.
 - `targetLocales` : toutes les autres locales trouvées.
 
+Un fichier à côté des fichiers de locale qui contient des chaînes sous aucun nom de locale, comme `messages.properties` à côté de `messages_de.properties`, `Strings.resx` à côté de `Strings.de.resx`, ou un `app.pot` gettext, est signalé comme `unqualifiedSourceFile`. verbatra lit la source depuis le fichier que son motif nomme pour la locale source et ne peut pas pointer vers un tel fichier, donc dans ce cas `init` ne devine pas la locale source : passe `--source`, même avec `--yes`, et les étapes suivantes t'indiquent vers quel fichier renommer ou copier le fichier de base.
+
 Sans aucun fichier de locale, ce sont les dépendances seules qui décident du format. `--format`, `--path` et `--source` restreignent la détection au lieu d'être écrasés par elle : `--format yaml` ne regarde donc que les fichiers YAML.
 
 `init` ne choisit jamais au hasard entre des égaux. Quand plusieurs formats lisent les fichiers (du JSON brut sans dépendance i18n, par exemple), il sort avec `2` et `FORMAT_AMBIGUOUS`, et quand plusieurs motifs de fichiers sont à égalité (un fichier par namespace, comme `locales/{locale}/common.json` et `locales/{locale}/auth.json`), il sort avec `2` et `LAYOUT_AMBIGUOUS`. Les deux listent les candidats ; passe `--format` ou `--path` pour en choisir un. Dans un terminal, il te pose la question à la place, en proposant le premier candidat.
 
 ## Exécutions sans surveillance
 
-Sans terminal, ou avec `--json`, `init` ne pose jamais de question. Une valeur ni passée, ni détectée, ni fixée par défaut par `--yes` est une erreur : `init` sort avec `2` et `MISSING_OPTIONS`, et nomme d'un coup chaque option manquante. `--provider` n'a pas de défaut, pas plus que `--base-url` et `--model` pour `openai-compatible`, donc ceux-là sont toujours nécessaires. Voici la commande qu'un agent lance :
+Sans terminal, ou avec `--json`, `init` ne pose jamais de question. Une valeur ni passée, ni détectée, ni fixée par défaut par `--yes` est une erreur : `init` sort avec `2` et `MISSING_OPTIONS`, et nomme d'un coup chaque option manquante. Une erreur due à une ambiguïté ou à une option invalide liste aussi les options encore manquantes, pour qu'une seule exécution dise à un agent tout ce qu'il doit passer. `--provider` n'a pas de défaut, pas plus que `--base-url` et `--model` pour `openai-compatible`, donc ceux-là sont toujours nécessaires. Voici la commande qu'un agent lance :
 
 ```bash
 npx verbatra init --provider gemini --yes --json
@@ -80,6 +82,7 @@ interface InitResult {
       localeStyle: "literal" | "posix" | "android";
       locales: string[];
       sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
       files: string[];
     } | null;
     ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
@@ -92,7 +95,7 @@ interface InitResult {
 
 `confidence` vaut `high` quand les fichiers seuls ont tout décidé, `medium` quand une convention ou une dépendance a comblé un manque (par exemple prendre `en` comme source), `low` quand aucun fichier de locale n'appuyait le format, et `none` quand rien n'a été détecté. Un `default` dans `sources` est la valeur à revérifier. `nextSteps` se termine par les commandes exactes à lancer ensuite, comme `npx verbatra doctor`.
 
-Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` ou `INVALID_FORMAT` porte aussi un tableau `candidates` avec les valeurs parmi lesquelles choisir.
+Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` ou `INVALID_FORMAT` porte aussi un tableau `candidates` avec les valeurs parmi lesquelles choisir. Toute erreur d'utilisation qui laisse des options sans réponse porte aussi un tableau `missing` qui les nomme, comme `"--source <locale>"`.
 
 ## Fournisseurs
 

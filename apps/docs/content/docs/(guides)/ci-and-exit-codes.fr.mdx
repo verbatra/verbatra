@@ -71,6 +71,7 @@ type Envelope<TResult> =
       code: string;
       message: string;
       candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
     };
 ```
 
@@ -82,7 +83,7 @@ Une exécution qui échoue dans son ensemble écrit exactement un enregistrement
 { "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
 ```
 
-`command` vaut `null` uniquement quand l'échec s'est produit avant qu'une sous-commande soit résolue. `candidates` n'apparaît que sur une erreur qui te demande de choisir, comme `FORMAT_AMBIGUOUS` d'`init`, et liste les valeurs parmi lesquelles choisir.
+`command` vaut `null` uniquement quand l'échec s'est produit avant qu'une sous-commande soit résolue. `candidates` n'apparaît que sur une erreur qui te demande de choisir, comme `FORMAT_AMBIGUOUS` d'`init`, et liste les valeurs parmi lesquelles choisir. `missing` apparaît sur une erreur d'utilisation d'`init` qui laisse des options sans réponse, et nomme chaque option encore à passer.
 
 Une erreur d'utilisation porte l'un de ces codes :
 
