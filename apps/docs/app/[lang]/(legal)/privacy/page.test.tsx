@@ -129,6 +129,37 @@ const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
   ],
 };
 
+const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
+  en: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Germany.*as a processor \(Art\. 28 GDPR\)/,
+  de: /Contabo GmbH, Welfenstraße 22, 81541 München, Deutschland.*als Auftragsverarbeiter \(Art\. 28 DSGVO\)/,
+  es: /Contabo GmbH, Welfenstraße 22, 81541 Múnich, Alemania.*como encargado del tratamiento \(art\. 28 del RGPD\)/,
+  fr: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne.*en tant que sous-traitant \(art\. 28 du RGPD\)/,
+};
+
+const CONTAINER_LOG_ROTATION: Record<Locale, RegExp> = {
+  en: /container log is rotated automatically and limited to \d+ files of \d+ MB each/,
+  de: /Container-Log wird automatisch rotiert und ist auf \d+ Dateien mit je \d+ MB begrenzt/,
+  es: /registro del contenedor se rota automáticamente y está limitado a \d+ archivos de \d+ MB cada uno/,
+  fr: /journal du conteneur fait l'objet d'une rotation automatique et est limité à \d+ fichiers de \d+ Mo chacun/,
+};
+
+const ARCJET_ONLY_OTHER_PROCESSOR: Record<Locale, RegExp> = {
+  en: /Besides the hosting provider \(see section 3\), the only processor involved under Art\. 28 GDPR is Arcjet/,
+  de: /Neben dem Hosting-Anbieter \(siehe Abschnitt 3\) ist der einzige beteiligte Auftragsverarbeiter nach Art\. 28 DSGVO Arcjet/,
+  es: /Aparte del proveedor de alojamiento \(ver la sección 3\), el único encargado del tratamiento en el sentido del art\. 28 del RGPD es Arcjet/,
+  fr: /Outre l'hébergeur \(voir la section 3\), le seul sous-traitant au sens de l'art\. 28 du RGPD est Arcjet/,
+};
+
+const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
+  en: /access logs are deleted as soon as they are no longer needed/,
+  de: /Zugriffs-Logs des Webservers werden gelöscht, sobald sie für diese Zwecke nicht mehr benötigt werden/,
+  es: /registros de acceso del servidor web se eliminan en cuanto dejan de ser necesarios/,
+  fr: /journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires/,
+};
+
+const RETIRED_SHORT_PERIOD_CLAIM =
+  /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période/;
+
 const UMAMI_RETIRED_CLAIM =
   /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
 
@@ -217,6 +248,24 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(sectionText(doc, /^8\. /)).toMatch(OBJECTION_CROSS_REFERENCE[locale]);
   });
 
+  it("names Contabo as the hosting processor with its legal entity and address", async () => {
+    const doc = await renderPrivacy(locale);
+    const hosting = sectionText(doc, /^3\. /);
+
+    expect(hosting).toMatch(HOSTING_PROCESSOR[locale]);
+    expect(
+      sectionNumbered(doc, 3)?.querySelector('a[href^="https://contabo.com/"]'),
+    ).not.toBeNull();
+  });
+
+  it("states a size-bounded container log and when the access logs are deleted", async () => {
+    const hosting = sectionText(await renderPrivacy(locale), /^3\. /);
+
+    expect(hosting).toMatch(CONTAINER_LOG_ROTATION[locale]);
+    expect(hosting).toMatch(ACCESS_LOG_DELETION[locale]);
+    expect(hosting).not.toMatch(RETIRED_SHORT_PERIOD_CLAIM);
+  });
+
   it("describes what Umami reads and processes instead of claiming it collects no personal data", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
@@ -257,6 +306,15 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(
       sectionNumbered(doc, 12)?.querySelector('a[href="https://docs.arcjet.com/privacy"]'),
     ).not.toBeNull();
+  });
+
+  it("names Arcjet as the only processor besides the hosting provider, not the only one overall", async () => {
+    const contactForm = sectionText(await renderPrivacy(locale), /^12\. /);
+
+    expect(contactForm).toMatch(ARCJET_ONLY_OTHER_PROCESSOR[locale]);
+    expect(contactForm).not.toMatch(
+      /only third-party processor|Der einzige beteiligte Auftragsverarbeiter/,
+    );
   });
 
   it("discloses the transfer to the United States and the safeguard it relies on", async () => {

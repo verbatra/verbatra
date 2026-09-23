@@ -27,6 +27,14 @@ function buildNotificationEmail(payload: ContactPayload): { subject: string; tex
   return { subject, text };
 }
 
+function describeSendFailure(error: unknown): { code?: string; message: string } {
+  if (!(error instanceof Error)) {
+    return { message: "non-Error rejection" };
+  }
+  const code = "code" in error && typeof error.code === "string" ? error.code : undefined;
+  return code === undefined ? { message: error.message } : { code, message: error.message };
+}
+
 export function resolveClient(deps: SendContactEmailDeps): EmailClient | undefined {
   if (deps.client) return deps.client;
 
@@ -93,7 +101,7 @@ export async function sendContactEmail(
     });
     return { ok: true };
   } catch (error) {
-    console.error("sendContactEmail: sendMail failed.", error);
+    console.error("sendContactEmail: sendMail failed.", describeSendFailure(error));
     return { ok: false };
   }
 }
