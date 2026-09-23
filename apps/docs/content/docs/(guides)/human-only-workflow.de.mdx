@@ -70,7 +70,7 @@ Schritt 1 ist optional: `verbatra diff` oder `verbatra check` zeigen dieselben a
 
 ## In CI
 
-Exit-Code `3` heißt "sauber durchgelaufen, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale), damit eine Pipeline beides unterschiedlich behandeln kann: den Build scheitern lassen, ein Übersetzungs-Ticket öffnen oder einfach berichten. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Exit-Code `3` heißt "sauber durchgelaufen, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale), damit eine Pipeline beides unterschiedlich behandeln kann: den Build scheitern lassen, ein Übersetzungs-Ticket öffnen oder einfach berichten. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes). Die [GitHub Action](/docs/github-action#rein-menschlicher-modus) lässt den Schritt bei Exit `3` bestehen und setzt ihren Output `needs-human` auf `"true"`, damit ein späterer Schritt die Keys weitergeben kann.
 
 ## Siehe auch
 
