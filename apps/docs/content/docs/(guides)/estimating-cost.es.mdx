@@ -127,6 +127,23 @@ Dos de ellos deciden si puedes tratar la cifra como un techo. Los reintentos de 
 
 La estimación cubre `translate`. Retraducir una entrada suelta desde [Studio](/docs/review-in-studio) o desde una herramienta de agente llama al proveedor por su propio camino, y ninguna estimación de aquí ve ese gasto.
 
+## Paso 6: limita la ejecución que aceptaste
+
+<AvailableFrom version="0.12.0" />
+
+Una estimación es un plan. Para asegurarte de que la ejecución no pueda desviarse mucho por encima, dale a la ejecución su propio techo:
+
+```bash
+verbatra translate --estimate --locales de
+verbatra translate --locales de --max-tokens 40000
+```
+
+`--max-tokens` es un tope duro solo para esa ejecución: una petición al proveedor que superaría el techo se retiene en lugar de enviarse, diga lo que diga el `budgetBehavior` de la configuración, y sus claves quedan pendientes para la siguiente ejecución. Cuando la configuración también fija `maxTokens`, se aplica el menor de los dos, así que el flag puede endurecer el presupuesto pero nunca relajarlo. Una cifra algo por encima de los tokens de entrada más salida de la estimación deja margen para las heurísticas sin dejar pasar una sorpresa. El techo se cuenta en tokens, así que en DeepL o Google Cloud Translation se aplica contra la proyección propia de verbatra, igual que un presupuesto configurado. Consulta [`verbatra translate`](/docs/cli/translate).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Un agente tiene los mismos dos pasos. La herramienta `translation.estimate` del servidor MCP, y `verbatra_translation_estimate` en [las herramientas de agente de Studio](/docs/agent-tools-in-studio), devuelven exactamente lo que imprime `translate --estimate --json`, opcionalmente para un subconjunto de `locales`, y nunca llaman a un proveedor. Están disponibles incluso cuando el gasto no lo está. Después, `translation.translatePending` acepta los mismos `locales` y un techo `maxTokens`. Consulta [`verbatra mcp`](/docs/cli/mcp#estimar-y-luego-gastar).
+
 ## Un ejemplo resuelto
 
 Sustituye cada suposición de este bloque por tus propios números.

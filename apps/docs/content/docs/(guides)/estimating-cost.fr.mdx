@@ -127,6 +127,23 @@ Deux d'entre eux décident si tu peux traiter ce chiffre comme un plafond. Les r
 
 L'estimation couvre `translate`. Retraduire une entrée isolée depuis [Studio](/docs/review-in-studio) ou depuis un outil d'agent appelle le fournisseur par son propre chemin, et aucune estimation d'ici ne voit cette dépense.
 
+## Étape 6 : plafonner l'exécution acceptée
+
+<AvailableFrom version="0.12.0" />
+
+Une estimation est un plan. Pour que l'exécution ne puisse pas le dépasser de beaucoup, donne-lui son propre plafond :
+
+```bash
+verbatra translate --estimate --locales de
+verbatra translate --locales de --max-tokens 40000
+```
+
+`--max-tokens` est un arrêt strict pour cette seule exécution : une requête au fournisseur qui dépasserait le plafond est retenue au lieu d'être envoyée, quoi que dise le `budgetBehavior` de la config, et ses clés restent en attente pour l'exécution suivante. Quand la config fixe aussi `maxTokens`, le plus bas des deux s'applique, donc l'option peut resserrer le budget mais jamais l'assouplir. Un chiffre un peu au-dessus des tokens d'entrée plus de sortie de l'estimation laisse de la marge aux heuristiques sans laisser passer une surprise. Le plafond se compte en tokens : avec DeepL ou Google Cloud Translation, il est donc appliqué sur la propre projection de verbatra, comme un budget configuré. Voir [`verbatra translate`](/docs/cli/translate).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Un agent dispose des deux mêmes étapes. L'outil `translation.estimate` du serveur MCP, et `verbatra_translation_estimate` dans [les outils d'agent de Studio](/docs/agent-tools-in-studio), renvoient exactement ce qu'affiche `translate --estimate --json`, éventuellement pour un sous-ensemble de `locales`, et n'appellent jamais de fournisseur. Ils sont disponibles même quand la dépense ne l'est pas. `translation.translatePending` accepte ensuite les mêmes `locales` et un plafond `maxTokens`. Voir [`verbatra mcp`](/docs/cli/mcp#estimer-avant-de-payer).
+
 ## Un exemple chiffré
 
 Remplace chaque hypothèse de ce bloc par tes propres nombres.

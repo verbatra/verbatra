@@ -15,6 +15,7 @@ const EXPECTED_METHOD_NAMES = [
   "translation.editEntry",
   "key.value",
   "locale.values",
+  "translation.estimate",
   "translation.translatePending",
   "usage.summary",
   "review.approve",
@@ -22,7 +23,7 @@ const EXPECTED_METHOD_NAMES = [
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the seventeen agreed method names, no more, no fewer", () => {
+  it("contains exactly the eighteen agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -61,7 +62,9 @@ describe("rpcParamsSchemas", () => {
     ],
     ["key.value", { locale: "de", key: "greeting" }, { locale: "", key: "greeting" }],
     ["locale.values", {}, { extra: true }],
+    ["translation.estimate", { locales: ["de"] }, { locales: [] }],
     ["translation.translatePending", {}, { locale: "de" }],
+    ["translation.translatePending", { locales: ["de"], maxTokens: 500 }, { maxTokens: 0 }],
     ["usage.summary", {}, { extra: true }],
     [
       "review.approve",

@@ -127,6 +127,23 @@ Zwei davon entscheiden, ob du die Zahl als Deckel behandeln kannst. Die SDK-Retr
 
 Die Schätzung deckt `translate` ab. Einen einzelnen Eintrag aus [Studio](/docs/review-in-studio) oder aus einem Agenten-Tool neu zu übersetzen, ruft den Provider auf einem eigenen Weg auf, und keine Schätzung hier sieht diese Ausgabe.
 
+## Schritt 6: den vereinbarten Lauf deckeln
+
+<AvailableFrom version="0.12.0" />
+
+Eine Schätzung ist ein Plan. Damit der Lauf nicht weit darüber hinausläuft, gib ihm eine eigene Obergrenze:
+
+```bash
+verbatra translate --estimate --locales de
+verbatra translate --locales de --max-tokens 40000
+```
+
+`--max-tokens` ist ein harter Stopp nur für diesen Lauf: Eine Provider-Anfrage, die die Obergrenze überschreiten würde, wird zurückgehalten statt gesendet, egal was das `budgetBehavior` der Konfiguration sagt, und ihre Keys bleiben für den nächsten Lauf ausstehend. Setzt die Konfiguration ebenfalls `maxTokens`, gilt der niedrigere der beiden Werte, das Flag kann das Budget also verschärfen, aber nie lockern. Eine Zahl knapp über den Eingabe- plus Ausgabe-Tokens der Schätzung lässt Spielraum für die Heuristiken, ohne eine Überraschung durchzulassen. Die Obergrenze wird in Tokens gezählt, bei DeepL oder Google Cloud Translation wird sie also gegen verbatras eigene Projektion durchgesetzt, wie ein konfiguriertes Budget auch. Siehe [`verbatra translate`](/docs/cli/translate).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Ein Agent bekommt dieselben zwei Schritte. Das Tool `translation.estimate` des MCP-Servers und `verbatra_translation_estimate` in [Studios Agent-Tools](/docs/agent-tools-in-studio) liefern genau das, was `translate --estimate --json` ausgibt, optional für eine Teilmenge der `locales`, und rufen nie einen Provider auf. Sie stehen auch dann zur Verfügung, wenn Ausgaben nicht erlaubt sind. `translation.translatePending` nimmt danach dieselben `locales` und eine `maxTokens`-Obergrenze. Siehe [`verbatra mcp`](/docs/cli/mcp#erst-schätzen-dann-ausgeben).
+
 ## Ein durchgerechnetes Beispiel
 
 Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
