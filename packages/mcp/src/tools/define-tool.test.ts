@@ -72,7 +72,7 @@ describe("defineTool", () => {
     });
   });
 
-  it("accepts and passes through a handler result carrying properties the outputSchema does not name", async () => {
+  it("lets an added field through even a strictObject outputSchema, so no tool breaks on an SDK addition", async () => {
     const tool = defineTool({
       name: "test.tool",
       description: "test",
@@ -109,6 +109,62 @@ describe("defineTool", () => {
     });
 
     expect(tool.inputSchema.additionalProperties).toBe(false);
+  });
+
+  it("adds a do-not-retry note to a mismatch from a tool that writes", async () => {
+    const tool = defineTool({
+      name: "test.writer",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      handler: async () => ({ greeting: 42 }) as unknown as { greeting: string },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message:
+        'OUTPUT_SCHEMA_MISMATCH: the result of "test.writer" does not match its output schema at "greeting". ' +
+        "The call ran and its changes were applied; do not retry it, read the current state instead.",
+    });
+  });
+
+  it("names a record's field by placeholder, never by its user-supplied key", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema: z.object({
+        locales: z
+          .array(z.object({ origins: z.record(z.string(), z.enum(["human"])).optional() }))
+          .readonly(),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () =>
+        ({ locales: [{ origins: { "secret.key.name": "robot" } }] }) as unknown as {
+          locales: readonly { origins?: Record<string, "human"> }[];
+        },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message:
+        'OUTPUT_SCHEMA_MISMATCH: the result of "test.tool" does not match its output schema at "locales.0.origins.<key>".',
+    });
   });
 
   it("names the root when a handler result breaks the outputSchema at its top level", async () => {

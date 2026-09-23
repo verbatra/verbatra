@@ -2,6 +2,7 @@ import { sep } from "node:path";
 import { SdkError } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
+import { describeIssuePath } from "./issue-path.js";
 
 export interface McpToolAnnotations {
   readonly readOnlyHint: boolean;
@@ -24,26 +25,22 @@ export interface RegisteredMcpTool {
   execute(rawParams: unknown, context: McpToolContext): Promise<McpToolOutcome>;
 }
 
-export interface McpToolConfig<Params, Result extends object> {
+export interface McpToolConfig<Params, Result extends Readonly<Record<string, unknown>>> {
   readonly name: string;
   readonly description: string;
   readonly paramsSchema: z.ZodType<Params>;
-  readonly outputSchema: z.ZodType<Result>;
+  readonly outputSchema: z.ZodObject & z.ZodType<Result>;
   readonly annotations: McpToolAnnotations;
   readonly handler: (params: Params, context: McpToolContext) => Promise<Result>;
 }
 
-function issuePath(issue: z.core.$ZodIssue): string {
-  return issue.path.length > 0 ? issue.path.join(".") : "(root)";
-}
-
-function formatValidationError(error: z.ZodError): string {
+function formatValidationError(schema: z.ZodType, error: z.ZodError): string {
   const issue = error.issues[0];
   /* v8 ignore next 3 -- a ZodError from a failed safeParse always carries at least one issue. */
   if (issue === undefined) {
     return "Invalid input.";
   }
-  return `Invalid input for field "${issuePath(issue)}": ${issue.message}`;
+  return `Invalid input for field "${describeIssuePath(schema, issue)}": ${issue.message}`;
 }
 
 function allowUnknownProperties(context: {
@@ -62,9 +59,20 @@ function outputMismatch(schema: z.ZodType, result: unknown): z.core.$ZodIssue | 
   return parsed.error.issues.find((issue) => issue.code !== "unrecognized_keys");
 }
 
-function formatOutputMismatch(toolName: string, issue: z.core.$ZodIssue): string {
-  const at = issuePath(issue);
-  return `OUTPUT_SCHEMA_MISMATCH: the result of "${toolName}" does not match its output schema at "${at}".`;
+function formatOutputMismatch(
+  config: {
+    readonly name: string;
+    readonly outputSchema: z.ZodType;
+    readonly annotations: McpToolAnnotations;
+  },
+  issue: z.core.$ZodIssue,
+): string {
+  const at = describeIssuePath(config.outputSchema, issue);
+  const mismatch = `OUTPUT_SCHEMA_MISMATCH: the result of "${config.name}" does not match its output schema at "${at}".`;
+  if (config.annotations.readOnlyHint) {
+    return mismatch;
+  }
+  return `${mismatch} The call ran and its changes were applied; do not retry it, read the current state instead.`;
 }
 
 function rawErrorMessage(error: unknown): string {
@@ -96,7 +104,7 @@ function describeToolError(error: unknown, cwd: string): string {
   return relativizeAbsolutePaths(rawErrorMessage(error), cwd);
 }
 
-export function defineTool<Params, Result extends object>(
+export function defineTool<Params, Result extends Readonly<Record<string, unknown>>>(
   config: McpToolConfig<Params, Result>,
 ): RegisteredMcpTool {
   const inputSchema = z.toJSONSchema(config.paramsSchema) as Readonly<Record<string, unknown>>;
@@ -113,7 +121,10 @@ export function defineTool<Params, Result extends object>(
     async execute(rawParams, context) {
       const parsed = config.paramsSchema.safeParse(rawParams ?? {});
       if (!parsed.success) {
-        return { kind: "invalid", message: formatValidationError(parsed.error) };
+        return {
+          kind: "invalid",
+          message: formatValidationError(config.paramsSchema, parsed.error),
+        };
       }
       let result: Result;
       try {
@@ -123,7 +134,7 @@ export function defineTool<Params, Result extends object>(
       }
       const mismatch = outputMismatch(config.outputSchema, result);
       if (mismatch !== undefined) {
-        return { kind: "error", message: formatOutputMismatch(config.name, mismatch) };
+        return { kind: "error", message: formatOutputMismatch(config, mismatch) };
       }
       return { kind: "ok", result };
     },

@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
@@ -8,6 +10,10 @@ vi.mock("@verbatra/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@verbatra/sdk")>();
   return {
     ...actual,
+    editEntry: async (...args: Parameters<typeof actual.editEntry>) => {
+      const written = await actual.editEntry(...args);
+      return { ...written, accepted: "yes" };
+    },
     lockState: async () => ({
       exists: true,
       version: 1,
@@ -26,15 +32,20 @@ vi.mock("@verbatra/sdk", async (importOriginal) => {
   };
 });
 
+async function connectedClient(dir: string): Promise<Client> {
+  const server = createMcpServer({ config: baseLoadedConfig(), cwd: dir });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "test-client", version: "1.0.0" });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  await client.listTools();
+  return client;
+}
+
 describe("createMcpServer: forward-compatible output schemas", () => {
   it("delivers a result with fields the outputSchema does not name, and the SDK client accepts it", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
-    const server = createMcpServer({ config: baseLoadedConfig(), cwd: dir });
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    const client = new Client({ name: "test-client", version: "1.0.0" });
-    await server.connect(serverTransport);
-    await client.connect(clientTransport);
-    await client.listTools();
+    const client = await connectedClient(dir);
 
     const result = await client.callTool({ name: "lock.state", arguments: {} });
 
@@ -44,5 +55,27 @@ describe("createMcpServer: forward-compatible output schemas", () => {
       addedByANewerSdk: "top level",
       locales: [{ locale: "de", addedByANewerSdk: { nested: true } }],
     });
+  });
+
+  it("tells the agent not to retry a writing tool whose result broke its schema, since the write already happened", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const client = await connectedClient(dir);
+
+    const result = await client.callTool({
+      name: "translation.editEntry",
+      arguments: { locale: "de", key: "greeting", value: "Servus" },
+    });
+
+    expect(result.isError).toBe(true);
+    const [content] = result.content as Array<{ type: string; text: string }>;
+    expect(content?.text).toContain(
+      'OUTPUT_SCHEMA_MISMATCH: the result of "translation.editEntry"',
+    );
+    expect(content?.text).toContain("its changes were applied; do not retry it");
+    const onDisk = JSON.parse(await readFile(join(dir, "locales", "de.json"), "utf8")) as Record<
+      string,
+      string
+    >;
+    expect(onDisk.greeting).toBe("Servus");
   });
 });
