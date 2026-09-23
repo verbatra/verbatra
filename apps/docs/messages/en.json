@@ -130,6 +130,10 @@
           "question": "What stops a bad translation from breaking my app?",
           "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops, invents, or reorders a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file. The same gate applies to edits and retranslations made in Verbatra Studio."
         },
+        "privacy": {
+          "question": "Does verbatra send my strings anywhere?",
+          "answer": "Only to the translation provider you configure, and only when a command translates. verbatra has no telemetry, analytics, or update check. You can switch machine translation off entirely, or run a model on your own hardware so nothing leaves your network. The <dataHandling>data handling page</dataHandling> lists what each provider receives and links each vendor's retention terms."
+        },
         "cost": {
           "question": "What does verbatra cost?",
           "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model."

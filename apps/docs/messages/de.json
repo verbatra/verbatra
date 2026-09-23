@@ -102,6 +102,10 @@
           "question": "Was verhindert, dass eine schlechte Übersetzung meine App kaputtmacht?",
           "answer": "Jedes Ergebnis durchläuft vor dem Schreiben eine Platzhalter- und ICU-Integritätsprüfung. Eine Übersetzung, die einen Platzhalter weglässt, erfindet oder umsortiert oder ungültige ICU-Nachrichtensyntax erzeugt, wird zurückgehalten statt in deine Locale-Datei geschrieben. Dasselbe Integritäts-Gate gilt für Bearbeitungen und Neuübersetzungen in Verbatra Studio."
         },
+        "privacy": {
+          "question": "Schickt verbatra meine Strings irgendwohin?",
+          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Du kannst die maschinelle Übersetzung ganz abschalten oder ein Modell auf deiner eigenen Hardware betreiben, sodass nichts dein Netz verlässt. Die <dataHandling>Seite zur Datenverarbeitung</dataHandling> listet, was jeder Provider bekommt, und verlinkt die Aufbewahrungsbedingungen jedes Anbieters."
+        },
         "cost": {
           "question": "Was kostet verbatra?",
           "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben."

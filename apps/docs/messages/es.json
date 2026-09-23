@@ -102,6 +102,10 @@
           "question": "¿Qué impide que una mala traducción rompa mi app?",
           "answer": "Cada resultado pasa unas comprobaciones de integridad de placeholders e ICU antes de escribirse. Una traducción que omite, inventa o reordena un placeholder, o que produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale. La misma puerta de integridad se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
         },
+        "privacy": {
+          "question": "¿verbatra envía mis textos a algún sitio?",
+          "answer": "Solo al proveedor de traducción que configures, y solo cuando un comando traduce. verbatra no tiene telemetría, ni analítica, ni comprobación de actualizaciones. Puedes desactivar del todo la traducción automática o ejecutar un modelo en tu propio hardware para que nada salga de tu red. La <dataHandling>página de tratamiento de datos</dataHandling> detalla qué recibe cada proveedor y enlaza las condiciones de retención de cada empresa."
+        },
         "cost": {
           "question": "¿Cuánto cuesta verbatra?",
           "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI."

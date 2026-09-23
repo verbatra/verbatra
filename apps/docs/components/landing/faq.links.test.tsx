@@ -26,6 +26,7 @@ const { Faq } = await import("./faq");
 const ITEMS = [
   { id: "languages", question: "Which languages?", answer: "Any." },
   { id: "releases", question: "Where are the releases?", answer: "On GitHub." },
+  { id: "dataHandling", question: "Does it send my strings?", answer: "Only to the provider." },
 ];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
@@ -77,6 +78,14 @@ describe("the landing faq answer links", () => {
 
   it("falls back to the default locale's page for a locale the site does not serve", () => {
     expect(answerLink(render("it"), 0)?.getAttribute("href")).toBe("/docs/language-support");
+  });
+
+  it("links the data handling page without a prefix in the default locale", () => {
+    expect(answerLink(render("en"), 2)?.getAttribute("href")).toBe("/docs/data-handling");
+  });
+
+  it("links the data handling page in the reader's locale", () => {
+    expect(answerLink(render("fr"), 2)?.getAttribute("href")).toBe("/fr/docs/data-handling");
   });
 
   it("opens the release notes in a new tab", () => {

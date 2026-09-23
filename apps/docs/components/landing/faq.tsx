@@ -18,9 +18,15 @@ const ANSWER_LINK_CLASS =
   "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
 
 const LANGUAGE_SUPPORT_PATH = "/docs/language-support";
+const DATA_HANDLING_PATH = "/docs/data-handling";
 
 function answerTags(locale: string) {
   const docsLocale = isLocale(locale) ? locale : i18n.defaultLanguage;
+  const docsLink = (path: string) => (chunks: ReactNode) => (
+    <a href={localizedPath(docsLocale, path)} className={ANSWER_LINK_CLASS}>
+      {chunks}
+    </a>
+  );
   return {
     releases: (chunks: ReactNode) => (
       <a
@@ -32,11 +38,8 @@ function answerTags(locale: string) {
         {chunks}
       </a>
     ),
-    languages: (chunks: ReactNode) => (
-      <a href={localizedPath(docsLocale, LANGUAGE_SUPPORT_PATH)} className={ANSWER_LINK_CLASS}>
-        {chunks}
-      </a>
-    ),
+    languages: docsLink(LANGUAGE_SUPPORT_PATH),
+    dataHandling: docsLink(DATA_HANDLING_PATH),
   };
 }
 
