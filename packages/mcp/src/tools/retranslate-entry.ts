@@ -46,9 +46,9 @@ export const retranslateEntryTool = defineTool({
     "still carry reviewReasons flagging it for human review (for example a length outlier or a " +
     "missed glossary term) even though it was written. A key whose value a person wrote, " +
     "imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key matching the " +
-    "config's pinnedKeys with KEY_PINNED; leave those for a person. Calls a translation provider and spends " +
-    "against your API usage; only available when the server was started with spending allowed " +
-    "and a translation provider is configured.",
+    "config's pinnedKeys with KEY_PINNED; leave those for a person. Calls a translation " +
+    "provider and spends against your API usage; only available when the server was started " +
+    "with spending allowed and a translation provider is configured.",
   paramsSchema,
   outputSchema: retranslateEntryResultSchema,
   annotations: {
