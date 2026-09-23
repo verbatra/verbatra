@@ -14,7 +14,7 @@ Two commands start the same server:
 | Command | Needs | Reads `.env` files |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | nothing installed: npx fetches `@verbatra/mcp` on demand and runs its `verbatra-mcp` binary | no |
-| `npx verbatra mcp` | both `@verbatra/cli` and `@verbatra/mcp` installed in the project | yes: `.env.local`, then `.env`, from the working directory |
+| `npx verbatra mcp` | both `@verbatra/cli` and `@verbatra/mcp` installed in the project | yes: `.env.local`, then `.env`, from the working directory, or the `--cwd` directory |
 
 `npx -y @verbatra/mcp` is the default in every example below, because it works in any project. Switch to `npx verbatra mcp` when the project already has both packages as dev dependencies and its provider key already lives in `.env.local`:
 
@@ -22,7 +22,7 @@ Two commands start the same server:
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
-Two commands that look right do not work in a project without those installs. `npx -y @verbatra/cli mcp` installs only the CLI, which loads `@verbatra/mcp` on demand and never installs it, so it exits `2` with `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` without a local install asks npx for an unrelated package named `verbatra`.
+Two commands that look right do not work in a project without those installs. `npx -y @verbatra/cli mcp` installs only the CLI, which loads `@verbatra/mcp` on demand and never installs it, so it exits `2` with `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` without a local `@verbatra/cli` makes npx look up a registry package named `verbatra`, which is not verbatra's CLI, so the command fails, and it could run someone else's package if that name is ever registered.
 
 ## Which directory is the project
 
@@ -132,7 +132,7 @@ Cursor reads a project's servers from `.cursor/mcp.json` and your own from `~/.c
 }
 ```
 
-Keep a spend-enabled entry in `~/.cursor/mcp.json` rather than the committed project file if not everyone on the team should spend. See the [Cursor MCP documentation](https://cursor.com/docs/context/mcp).
+Keep a spend-enabled entry in `~/.cursor/mcp.json` rather than the committed project file if not everyone on the team should spend. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
 ## VS Code
 
@@ -175,7 +175,7 @@ To allow spending, declare the key as an input. VS Code prompts for it the first
 }
 ```
 
-Alternatively, `"envFile": "${workspaceFolder}/.env.local"` loads the key from an ignored file you already have. Run **MCP: Open User Configuration** for a `mcp.json` that applies to all your workspaces. See the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/copilot/reference/mcp-configuration).
+Alternatively, `"envFile": "${workspaceFolder}/.env.local"` loads the key from an ignored file you already have. Run **MCP: Open User Configuration** for a `mcp.json` that applies to all your workspaces. See the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
 ## Windsurf
 

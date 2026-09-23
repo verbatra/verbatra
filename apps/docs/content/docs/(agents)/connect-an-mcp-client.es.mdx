@@ -14,7 +14,7 @@ Dos comandos inician el mismo servidor:
 | Comando | Necesita | Lee archivos `.env` |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | nada instalado: npx obtiene `@verbatra/mcp` bajo demanda y ejecuta su binario `verbatra-mcp` | no |
-| `npx verbatra mcp` | `@verbatra/cli` y `@verbatra/mcp`, ambos instalados en el proyecto | sí: `.env.local` y luego `.env`, del directorio de trabajo |
+| `npx verbatra mcp` | `@verbatra/cli` y `@verbatra/mcp`, ambos instalados en el proyecto | sí: `.env.local` y luego `.env`, del directorio de trabajo o del directorio de `--cwd` |
 
 `npx -y @verbatra/mcp` es el predeterminado en todos los ejemplos de abajo, porque funciona en cualquier proyecto. Cambia a `npx verbatra mcp` cuando el proyecto ya tenga ambos paquetes como dependencias de desarrollo y su clave de proveedor ya esté en `.env.local`:
 
@@ -22,7 +22,7 @@ Dos comandos inician el mismo servidor:
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
-Dos comandos que parecen correctos no funcionan en un proyecto sin esas instalaciones. `npx -y @verbatra/cli mcp` instala solo la CLI, que carga `@verbatra/mcp` bajo demanda y nunca lo instala, así que sale con `2` y `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` sin instalación local le pide a npx un paquete ajeno llamado `verbatra`.
+Dos comandos que parecen correctos no funcionan en un proyecto sin esas instalaciones. `npx -y @verbatra/cli mcp` instala solo la CLI, que carga `@verbatra/mcp` bajo demanda y nunca lo instala, así que sale con `2` y `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` sin un `@verbatra/cli` local hace que npx busque en el registro un paquete llamado `verbatra`, que no es la CLI de verbatra, así que el comando falla, y podría ejecutar el paquete de otra persona si alguien llega a registrar ese nombre.
 
 ## Qué directorio es el proyecto
 
@@ -132,7 +132,7 @@ Cursor lee los servidores de un proyecto de `.cursor/mcp.json` y los tuyos de `~
 }
 ```
 
-Guarda una entrada con gasto permitido en `~/.cursor/mcp.json` en lugar del archivo del proyecto si no todo el equipo debe gastar. Consulta la [documentación MCP de Cursor](https://cursor.com/docs/context/mcp).
+Guarda una entrada con gasto permitido en `~/.cursor/mcp.json` en lugar del archivo del proyecto si no todo el equipo debe gastar. Consulta la [documentación MCP de Cursor](https://cursor.com/docs/mcp).
 
 ## VS Code
 
@@ -175,7 +175,7 @@ Para permitir el gasto, declara la clave como input. VS Code la solicita la prim
 }
 ```
 
-Como alternativa, `"envFile": "${workspaceFolder}/.env.local"` carga la clave desde un archivo ignorado que ya tienes. Ejecuta **MCP: Open User Configuration** para un `mcp.json` que se aplica a todos tus workspaces. Consulta la [referencia de configuración MCP de VS Code](https://code.visualstudio.com/docs/copilot/reference/mcp-configuration).
+Como alternativa, `"envFile": "${workspaceFolder}/.env.local"` carga la clave desde un archivo ignorado que ya tienes. Ejecuta **MCP: Open User Configuration** para un `mcp.json` que se aplica a todos tus workspaces. Consulta la [referencia de configuración MCP de VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
 ## Windsurf
 

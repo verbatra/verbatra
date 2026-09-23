@@ -14,7 +14,7 @@ Zwei Befehle starten denselben Server:
 | Befehl | Braucht | Liest `.env`-Dateien |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | keine Installation: npx holt `@verbatra/mcp` bei Bedarf und startet sein `verbatra-mcp`-Binary | nein |
-| `npx verbatra mcp` | `@verbatra/cli` und `@verbatra/mcp`, beide im Projekt installiert | ja: `.env.local`, dann `.env`, aus dem Arbeitsverzeichnis |
+| `npx verbatra mcp` | `@verbatra/cli` und `@verbatra/mcp`, beide im Projekt installiert | ja: `.env.local`, dann `.env`, aus dem Arbeitsverzeichnis oder dem `--cwd`-Verzeichnis |
 
 `npx -y @verbatra/mcp` ist in allen Beispielen unten der Standard, weil es in jedem Projekt funktioniert. Wechsle zu `npx verbatra mcp`, wenn das Projekt beide Pakete schon als Dev-Dependencies hat und sein Provider-Key bereits in `.env.local` liegt:
 
@@ -22,7 +22,7 @@ Zwei Befehle starten denselben Server:
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
-Zwei Befehle, die richtig aussehen, funktionieren in einem Projekt ohne diese Installationen nicht. `npx -y @verbatra/cli mcp` installiert nur die CLI, die `@verbatra/mcp` bei Bedarf lädt und nie installiert, und endet deshalb mit Exit-Code `2` und `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` ohne lokale Installation fragt npx nach einem fremden Paket namens `verbatra`.
+Zwei Befehle, die richtig aussehen, funktionieren in einem Projekt ohne diese Installationen nicht. `npx -y @verbatra/cli mcp` installiert nur die CLI, die `@verbatra/mcp` bei Bedarf lädt und nie installiert, und endet deshalb mit Exit-Code `2` und `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` ohne lokales `@verbatra/cli` lässt npx in der Registry nach einem Paket namens `verbatra` suchen, das nicht die CLI von verbatra ist: Der Befehl schlägt fehl, und er könnte das Paket von jemand anderem ausführen, falls dieser Name je registriert wird.
 
 ## Welches Verzeichnis das Projekt ist
 
@@ -132,7 +132,7 @@ Cursor liest die Server eines Projekts aus `.cursor/mcp.json` und deine eigenen 
 }
 ```
 
-Leg einen Eintrag mit erlaubten Ausgaben besser in `~/.cursor/mcp.json` ab statt in der committeten Projektdatei, wenn nicht alle im Team Geld ausgeben sollen. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/context/mcp).
+Leg einen Eintrag mit erlaubten Ausgaben besser in `~/.cursor/mcp.json` ab statt in der committeten Projektdatei, wenn nicht alle im Team Geld ausgeben sollen. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/mcp).
 
 ## VS Code
 
@@ -175,7 +175,7 @@ Um Ausgaben zu erlauben, deklarierst du den Key als Input. VS Code fragt ihn bei
 }
 ```
 
-Alternativ lädt `"envFile": "${workspaceFolder}/.env.local"` den Key aus einer ignorierten Datei, die du schon hast. Mit **MCP: Open User Configuration** öffnest du eine `mcp.json`, die für alle deine Workspaces gilt. Siehe die [Referenz zur MCP-Konfiguration von VS Code](https://code.visualstudio.com/docs/copilot/reference/mcp-configuration).
+Alternativ lädt `"envFile": "${workspaceFolder}/.env.local"` den Key aus einer ignorierten Datei, die du schon hast. Mit **MCP: Open User Configuration** öffnest du eine `mcp.json`, die für alle deine Workspaces gilt. Siehe die [Referenz zur MCP-Konfiguration von VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
 ## Windsurf
 
