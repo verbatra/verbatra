@@ -90,6 +90,10 @@
           "question": "¿Qué proveedores de traducción puedo usar?",
           "answer": "Seis, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), y openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada."
         },
+        "languages": {
+          "question": "¿Qué idiomas admite verbatra?",
+          "answer": "Cualquier idioma que admita tu proveedor. verbatra acepta cualquier código de locale BCP 47 válido, como pt-BR, sr-Latn o zh-Hant, y lee las reglas de plural de CLDR, así que cada idioma que cubre CLDR recibe las formas de plural correctas. DeepL y Google Cloud Translation tienen listas de idiomas fijas; los proveedores LLM, ninguna. La página de <languages>soporte de idiomas</languages> enlaza la lista de cada proveedor y cubre escrituras, variantes regionales y texto de derecha a izquierda."
+        },
         "formats": {
           "question": "¿Qué formatos y frameworks soporta verbatra?",
           "answer": "JSON para i18next, vue-i18n, next-intl y ngx-translate, además de XLIFF, YAML, Flutter ARB, .properties de Java/Spring, .strings de Apple y los String Catalogs de Xcode, strings.xml de Android, archivos .po/.pot de gettext, INI y .resx de .NET. Eso cubre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android y cualquier stack basado en gettext. verbatra lee los archivos que ya tienes; no hay ningún formato propio de verbatra al que migrar."

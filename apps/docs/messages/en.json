@@ -122,6 +122,10 @@
           "question": "Which translation providers can I use?",
           "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
         },
+        "languages": {
+          "question": "Which languages does verbatra support?",
+          "answer": "Any language your provider supports. verbatra accepts every valid BCP 47 locale code, such as pt-BR, sr-Latn, or zh-Hant, and reads plural rules from CLDR, so every language CLDR covers gets the right plural forms. DeepL and Google Cloud Translation have fixed language lists, the LLM providers have none. The <languages>language support page</languages> links each vendor's list and covers scripts, regional variants, and right-to-left text."
+        },
         "safety": {
           "question": "What stops a bad translation from breaking my app?",
           "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops, invents, or reorders a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file. The same gate applies to edits and retranslations made in Verbatra Studio."
