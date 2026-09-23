@@ -19,19 +19,19 @@ network: {
 | Política | Permite |
 | --- | --- |
 | `any` | cualquier host. Es el valor por defecto cuando no hay bloque `network`, y verbatra se comporta exactamente como antes de que existiera la política. |
-| `local-only` | loopback (`127.0.0.0/8`, `::1`, `localhost` y `*.localhost`), direcciones IPv4 privadas (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), direcciones IPv6 únicas locales (`fc00::/7`) y todo lo que haya en `allowedHosts`. |
+| `local-only` | loopback (`127.0.0.0/8`, `::1`, `localhost` y `*.localhost` cuando cada dirección a la que resuelven es loopback), direcciones IPv4 privadas (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), direcciones IPv6 únicas locales (`fc00::/7`) y todo lo que haya en `allowedHosts`. |
 | `allowlist` | solo lo que lista `allowedHosts`. Hace falta al menos una entrada. |
 
 `allowedHosts` es una lista de entradas, cada una de ellas:
 
 - un nombre de host, como `llm.internal`, comparado de forma exacta y sin distinguir mayúsculas;
-- un comodín, como `*.corp.example`, que abarca todos los subdominios pero no `corp.example` en sí;
+- un comodín, como `*.corp.example`, que abarca todos los subdominios pero no `corp.example` en sí. Tras `*.` tienen que ir al menos dos etiquetas, así que `*.com` se rechaza;
 - una dirección IP, como `203.0.113.7` o `fd00::5`;
 - un rango CIDR, como `100.64.0.0/10` para una red Tailscale o `2001:db8::/32`.
 
 No escribas esquema, puerto ni ruta: `https://llm.internal:8443` se rechaza al cargar la configuración.
 
-`local-only` deja fuera a propósito las direcciones de enlace local (`169.254.0.0/16`, que incluye la dirección de metadatos de la nube, y `fe80::/10`), el rango NAT de operador `100.64.0.0/10` y las direcciones sin especificar `0.0.0.0` y `::`. Apunta a `127.0.0.1` un servidor que escucha en `0.0.0.0`, y añade un rango de VPN a `allowedHosts` si lo necesitas.
+`local-only` deja fuera a propósito las direcciones de enlace local (`169.254.0.0/16`, que incluye la dirección de metadatos de la nube, y `fe80::/10`), el rango NAT de operador `100.64.0.0/10` y las direcciones sin especificar `0.0.0.0` y `::`. Apunta a `127.0.0.1` un servidor que escucha en `0.0.0.0`, y añade un rango de VPN a `allowedHosts` si lo necesitas. Una dirección IPv6 con identificador de zona, como `fe80::1%en0`, se evalúa sin la zona, así que una dirección de enlace local sigue rechazada.
 
 ## Proveedores alojados
 
@@ -63,18 +63,19 @@ Un valor que verbatra no reconoce, como `local_only`, hace fallar la ejecución 
 
 Antes de construir un proveedor, verbatra averigua el host al que se conectaría y lo comprueba contra la política. Un host rechazado detiene `translate`, `watch` (al arrancar), `retranslate` en Studio y MCP, y `retranslateEntry` del SDK con `NETWORK_POLICY_VIOLATION` y código de salida `2`. No se lee ninguna clave de API y no se envía nada. Una ejecución de prueba y `--estimate` no llaman a ningún proveedor, así que no se rechazan; usa [`verbatra doctor`](/docs/cli/doctor) para comprobar la política sin traducir nada.
 
-Como esta primera comprobación no resuelve nombres, un nombre de host que no puede clasificar por sí sola, como `llm.internal` con `local-only`, la supera. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate` y `openai-compatible` se vuelve a comprobar justo antes de enviarse:
+Como esta primera comprobación no resuelve nombres, un nombre de host que no puede clasificar por sí sola, como `llm.internal` con `local-only`, la supera. Lo mismo pasa con `localhost`, que se resuelve como cualquier otro nombre y tiene que responder solo con direcciones loopback. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate` y `openai-compatible` se vuelve a comprobar justo antes de enviarse:
 
 - se resuelve el nombre de host, y cada dirección a la que resuelve tiene que estar permitida;
-- una redirección no se sigue automáticamente. Un `307` o `308` hacia un host permitido se sigue, hasta cinco veces, y una redirección hacia un host rechazado hace fallar la petición. Cualquier otra redirección se devuelve sin seguir al proveedor, que la informa como error.
+- una redirección no se sigue automáticamente. Solo se sigue un `307` o `308` hacia el mismo origen (mismo esquema, host y puerto), hasta cinco veces. Una redirección hacia cualquier otro origen hace fallar la petición, esté o no permitido ese origen, y eso incluye pasar de `https` a `http` en el mismo host, para que una petición y sus credenciales nunca lleguen a un segundo origen. Una redirección al mismo origen con otro estado se devuelve sin seguir al proveedor, que la informa como error.
 
-Una petición rechazada en este punto hace fallar su sub-lote con el error de proveedor `NETWORK_POLICY_VIOLATION`, como cualquier otro [fallo de proveedor](/docs/providers#errores-estructurados), y el mensaje nombra solo el host.
+Una petición rechazada en este punto hace fallar su sub-lote con el error de proveedor `NETWORK_POLICY_VIOLATION`, como cualquier otro [fallo de proveedor](/docs/providers#errores-estructurados), y el mensaje nombra solo el host. El cliente del proveedor no la reintenta: la petición falla una vez, y en el acto.
 
 ## Límites
 
 - **La resolución ocurre dos veces.** El nombre se resuelve para comprobarlo y otra vez al abrir la conexión. Un servidor DNS que responde distinto la segunda vez (DNS rebinding) puede colarse. Cuando eso importe, escribe una dirección IP o añade el host por nombre a `allowedHosts`, porque en un nombre listado se confía sin resolverlo.
+- **Sin reintentos.** Una petición que la política rechazó no se reintenta nunca, ni por parte de verbatra ni del cliente del proveedor, así que un rechazo cuesta una comprobación y ningún tiempo de espera.
 - **DeepL se comprueba una vez.** El cliente de DeepL hace sus propias peticiones, así que verbatra comprueba su host antes de construir el proveedor, pero no en cada petición ni en cada redirección.
-- **Proxies.** Con una política restrictiva, el host de cada proxy que usaría el proveedor tiene que estar permitido también: una dirección IP o un nombre listado en `allowedHosts`. Los nombres de proxy nunca se resuelven. DeepL usa `HTTPS_PROXY`, `HTTP_PROXY` y `ALL_PROXY` (en mayúsculas o minúsculas) en cuanto hay uno definido. Los demás proveedores usan el `fetch` integrado de Node, que en Node 22.20 y anteriores ignora estas variables y en Node 24 solo las usa si está definido `NODE_USE_ENV_PROXY=1`, así que verbatra comprueba el proxy para ellos solo entonces. `NO_PROXY` se ignora al comprobar.
+- **Proxies.** Con una política restrictiva, el host de cada proxy que usaría el proveedor tiene que estar permitido también: una dirección IP o un nombre listado en `allowedHosts`. Los nombres de proxy nunca se resuelven. DeepL usa `HTTPS_PROXY`, `HTTP_PROXY` y `ALL_PROXY` (en mayúsculas o minúsculas) en cuanto hay uno definido. Los demás proveedores usan el `fetch` integrado de Node, que en Node 22.20 y anteriores ignora estas variables y en Node 24 solo las usa si el proxy de entorno de Node está activado, así que verbatra comprueba el proxy para ellos solo entonces. Cuenta como activado si está definido `NODE_USE_ENV_PROXY=1` o si `--use-env-proxy` aparece en `NODE_OPTIONS` o en la línea de comandos de `node`. `NO_PROXY` se ignora al comprobar.
 - **Proveedores propios.** Un proveedor que pasas al SDK mediante `createProvider` se comprueba antes de construirse, contra el endpoint del proveedor configurado, y recibe la política efectiva. Aplicar la política a sus propias peticiones es cosa de ese código.
 
 ## Compruébala con doctor
