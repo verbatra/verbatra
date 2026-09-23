@@ -25,6 +25,9 @@ describe("SHARED_SYSTEM_RULES", () => {
     expect(rules).toContain("optional sourceLanguage and targetLanguage names");
     expect(rules).toContain("targetLanguage.script writing system");
     expect(rules).toContain("targetLanguage.region spelling and vocabulary");
+    expect(rules).toContain(
+      "it names the language to write and takes precedence over targetLocale, which is only its code",
+    );
   });
 
   it("prefixes every provider's assembled system rules, byte for byte", () => {
