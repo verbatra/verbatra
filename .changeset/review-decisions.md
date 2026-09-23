@@ -13,8 +13,9 @@ file, stores the source hash it was given against, and is refused when the value
 the reviewer saw (`REVIEW_VALUE_CHANGED`) or its source changed since it was written
 (`REVIEW_SOURCE_CHANGED`). `rejectEntry` records a refusal and removes the value from the locale
 file and the lock file, so the key reads as missing until the next `translate` or a person fills
-it; the matching translation-memory entry is dropped too. A format that cannot drop one value,
-such as XLIFF, fails with `REVIEW_REJECT_UNSUPPORTED` and keeps the file. Both take an optional
+it; the matching translation-memory entry is dropped too. The locale file, lock file and
+provenance file change together or not at all. A format that cannot drop one value, XLIFF or
+Flutter ARB, fails with `REVIEW_REJECT_UNSUPPORTED` and keeps the file. Both take an optional
 `reviewer` of at most 64 characters (`REVIEWER_INVALID`) and fail with
 `PROVENANCE_FILE_UNWRITABLE` rather than report a decision they could not save. `reviewQueue`
 returns the last run's flags minus every key approved, rejected, or rewritten by a person since.

@@ -470,3 +470,24 @@ describe("planProvenanceRecord", () => {
     expect(plan).toEqual({ kind: "too-large" });
   });
 });
+
+describe("applyProvenancePatch: a replaced key", () => {
+  it("takes the new record even where the no-op rule would keep the prior one", () => {
+    const prior = { greeting: machine("Hallo") };
+    const decided: ProvenanceRecord = { ...machine("Hallo"), reviewState: "rejected" };
+
+    const kept = applyProvenancePatch(
+      prior,
+      { records: new Map([["greeting", decided]]) },
+      () => true,
+    );
+    const replaced = applyProvenancePatch(
+      prior,
+      { records: new Map([["greeting", decided]]), replace: new Set(["greeting"]) },
+      () => true,
+    );
+
+    expect(kept.greeting).toEqual(machine("Hallo"));
+    expect(replaced.greeting).toEqual(decided);
+  });
+});

@@ -95,16 +95,42 @@ describe("approveEntry", () => {
     expect(await readTextFile(join(dir, "locales", "de.json"))).toBe(targetBefore);
   });
 
-  it("stores no reviewer when none is supplied, and drops one an earlier decision named", async () => {
+  it("stores no reviewer when none is supplied", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const value = await currentValue(dir, "greeting");
+
+    await approveEntry({
+      config: cfg(),
+      cwd: dir,
+      locale: "de",
+      key: "greeting",
+      expectedValue: value,
+    });
+
+    expect((await recordOf(dir, "greeting"))?.reviewer).toBeUndefined();
+  });
+
+  it("keeps the earlier reviewer when the same value is approved again without one", async () => {
     const dir = await translated({ greeting: "Hello" });
     const value = await currentValue(dir, "greeting");
     const input = { config: cfg(), cwd: dir, locale: "de", key: "greeting", expectedValue: value };
     await approveEntry({ ...input, reviewer: "first" });
 
-    await approveEntry(input);
+    const again = await approveEntry(input);
 
-    expect((await recordOf(dir, "greeting"))?.reviewer).toBeUndefined();
-    expect((await recordOf(dir, "greeting"))?.reviewState).toBe("approved");
+    expect(again.provenance.reviewer).toBe("first");
+    expect((await recordOf(dir, "greeting"))?.reviewer).toBe("first");
+  });
+
+  it("replaces the earlier reviewer when a new one approves the same value", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const value = await currentValue(dir, "greeting");
+    const input = { config: cfg(), cwd: dir, locale: "de", key: "greeting", expectedValue: value };
+    await approveEntry({ ...input, reviewer: "first" });
+
+    await approveEntry({ ...input, reviewer: "second" });
+
+    expect((await recordOf(dir, "greeting"))?.reviewer).toBe("second");
   });
 
   it("writes nothing when the same approval is recorded twice", async () => {

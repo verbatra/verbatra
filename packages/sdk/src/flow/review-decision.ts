@@ -3,7 +3,7 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { evictMemoryValue } from "../cache/translation-memory.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
-import { defaultFs, type SdkFs } from "../fs.js";
+import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import {
@@ -15,12 +15,15 @@ import {
   baselineFor,
   lockFilePath,
   readLockFile,
-  updateLockFileLocale,
+  updateLockFileLocaleUnguarded,
 } from "../lock/lock-file.js";
 import {
+  MAX_PROVENANCE_FILE_BYTES,
   type ProvenanceRecord,
+  type ProvenanceRecordPlan,
   type ProvenanceReviewState,
   planProvenanceRecord,
+  provenanceFilePath,
   valueHash,
 } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
@@ -167,14 +170,15 @@ function decidedRecord(
   decision: Decision,
 ): ProvenanceRecord {
   const hash = valueHash(value);
+  const same = prior !== undefined && prior.valueHash === hash ? prior : undefined;
   const base: ProvenanceRecord =
-    prior !== undefined && prior.valueHash === hash
-      ? withoutReview(prior)
-      : { origin: "unknown", valueHash: hash };
+    same !== undefined ? withoutReview(same) : { origin: "unknown", valueHash: hash };
+  const reviewer =
+    decision.reviewer ?? (same?.reviewState === decision.reviewState ? same.reviewer : undefined);
   return {
     ...base,
     reviewState: decision.reviewState,
-    ...(decision.reviewer !== undefined ? { reviewer: decision.reviewer } : {}),
+    ...(reviewer !== undefined ? { reviewer } : {}),
     ...(decision.reviewedSourceHash !== undefined
       ? { reviewedSourceHash: decision.reviewedSourceHash }
       : {}),
@@ -192,11 +196,11 @@ function notRecordable(context: ReviewContext, reason: "newer-version" | "too-la
   );
 }
 
-async function assertRecordable(
+async function planDecision(
   context: ReviewContext,
   value: string,
   decision: Decision,
-): Promise<void> {
+): Promise<Extract<ProvenanceRecordPlan, { kind: "write" | "unchanged" }>> {
   const plan = await planProvenanceRecord(
     context.cwd,
     context.fs,
@@ -207,29 +211,7 @@ async function assertRecordable(
   if (plan.kind === "newer-version" || plan.kind === "too-large") {
     throw notRecordable(context, plan.kind);
   }
-}
-
-async function recordDecision(
-  context: ReviewContext,
-  value: string,
-  decision: Decision,
-): Promise<ProvenanceRecord> {
-  return withLockFileGuard(context.cwd, context.fs, async () => {
-    const plan = await planProvenanceRecord(
-      context.cwd,
-      context.fs,
-      context.locale,
-      context.key,
-      (prior) => decidedRecord(prior, value, decision),
-    );
-    if (plan.kind === "newer-version" || plan.kind === "too-large") {
-      throw notRecordable(context, plan.kind);
-    }
-    if (plan.kind === "write") {
-      await context.fs.writeFile(plan.path, plan.content);
-    }
-    return plan.record;
-  });
+  return plan;
 }
 
 async function lockSourceHash(context: ReviewContext): Promise<string | undefined> {
@@ -239,9 +221,26 @@ async function lockSourceHash(context: ReviewContext): Promise<string | undefine
 
 const MAX_TARGET_SNAPSHOT_BYTES = 64 * 1024 * 1024;
 
-async function removeValue(context: ReviewContext, target: LocaleResource): Promise<void> {
-  const path = createLocalePathResolver(context.cwd, context.config).pathFor(context.locale);
+function targetPath(context: ReviewContext): string {
+  return createLocalePathResolver(context.cwd, context.config).pathFor(context.locale);
+}
+
+async function targetSnapshot(context: ReviewContext, path: string): Promise<Uint8Array> {
   const snapshot = await context.fs.readBytesBounded(path, MAX_TARGET_SNAPSHOT_BYTES);
+  if (snapshot.kind !== "ok") {
+    throw new SdkError(
+      "REVIEW_REJECT_UNSUPPORTED",
+      `The ${context.locale} locale file could not be read in full to keep a copy to restore, so "${context.key}" was not rejected and nothing was written.`,
+    );
+  }
+  return snapshot.bytes;
+}
+
+async function removeValue(
+  context: ReviewContext,
+  target: LocaleResource,
+  path: string,
+): Promise<void> {
   const remaining = new Map(target.entries);
   remaining.delete(context.key);
   await writeTargetResource(
@@ -262,16 +261,64 @@ async function removeValue(context: ReviewContext, target: LocaleResource): Prom
     context.fs,
     context.locale,
   );
-  if (!after.entries.has(context.key)) {
-    return;
+  if (after.entries.has(context.key)) {
+    throw new SdkError(
+      "REVIEW_REJECT_UNSUPPORTED",
+      `The ${context.config.format} format keeps a translation that verbatra drops from the file, so "${context.key}" in ${context.locale} cannot be rejected. The file was left as it was; edit or retranslate the key instead.`,
+    );
   }
-  if (snapshot.kind === "ok") {
-    await context.fs.writeBytes(path, snapshot.bytes);
-  }
-  throw new SdkError(
-    "REVIEW_REJECT_UNSUPPORTED",
-    `The ${context.config.format} format keeps a translation that verbatra drops from the file, so "${context.key}" in ${context.locale} cannot be rejected. The file was left as it was; edit or retranslate the key instead.`,
-  );
+}
+
+async function restoreAfterFailedReject(
+  context: ReviewContext,
+  path: string,
+  snapshot: Uint8Array,
+  provenanceBefore: BoundedFileRead,
+): Promise<void> {
+  try {
+    await context.fs.writeBytes(path, snapshot);
+    const provenancePath = provenanceFilePath(context.cwd);
+    if (provenanceBefore.kind === "ok") {
+      await context.fs.writeFile(provenancePath, provenanceBefore.content);
+    } else {
+      await context.fs.deleteFile(provenancePath);
+    }
+  } catch {}
+}
+
+async function rejectUnderGuard(
+  context: ReviewContext,
+  reviewed: ReviewedValue,
+  decision: Decision,
+): Promise<ProvenanceRecord> {
+  const path = targetPath(context);
+  const snapshot = await targetSnapshot(context, path);
+  return withLockFileGuard(context.cwd, context.fs, async () => {
+    await readLockFile(lockFilePath(context.cwd), context.fs);
+    const plan = await planDecision(context, reviewed.value, decision);
+    const provenanceBefore = await context.fs.readFileBounded(
+      provenanceFilePath(context.cwd),
+      MAX_PROVENANCE_FILE_BYTES,
+    );
+    try {
+      await removeValue(context, reviewed.target, path);
+      await updateLockFileLocaleUnguarded(
+        context.cwd,
+        context.fs,
+        context.locale,
+        { mode: "remove", keys: [context.key] },
+        {
+          records: new Map([[context.key, plan.record]]),
+          replace: new Set([context.key]),
+        },
+        { requireProvenance: true },
+      );
+    } catch (error) {
+      await restoreAfterFailedReject(context, path, snapshot, provenanceBefore);
+      throw error;
+    }
+    return plan.record;
+  });
 }
 
 function withLocaleLock<T>(context: ReviewContext, fn: () => Promise<T>): Promise<T> {
@@ -316,8 +363,8 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
+ * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
  * not `expectedValue`.
  * @throws {@link SdkError} `REVIEW_SOURCE_CHANGED`: the source text changed since the translation
@@ -338,23 +385,28 @@ export async function approveEntry(
   const context = await reviewContext(input, deps);
   return withLocaleLock(context, async () => {
     const { value } = await reviewedValue(context, input.expectedValue);
-    const sourceHash = await lockSourceHash(context);
-    if (sourceHash !== contentHash(context.sourceEntry)) {
-      throw new SdkError(
-        "REVIEW_SOURCE_CHANGED",
-        `The source text of "${context.key}" changed since its ${context.locale} translation was written, so the translation cannot be approved as it stands. Edit or retranslate it first.`,
-      );
-    }
-    const record = await recordDecision(context, value, {
-      reviewState: "approved",
-      reviewedSourceHash: sourceHash,
-      ...reviewerOf(input),
+    return withLockFileGuard(context.cwd, context.fs, async () => {
+      const sourceHash = await lockSourceHash(context);
+      if (sourceHash !== contentHash(context.sourceEntry)) {
+        throw new SdkError(
+          "REVIEW_SOURCE_CHANGED",
+          `The source text of "${context.key}" changed since its ${context.locale} translation was written, so the translation cannot be approved as it stands. Edit or retranslate it first.`,
+        );
+      }
+      const plan = await planDecision(context, value, {
+        reviewState: "approved",
+        reviewedSourceHash: sourceHash,
+        ...reviewerOf(input),
+      });
+      if (plan.kind === "write") {
+        await context.fs.writeFile(plan.path, plan.content);
+      }
+      return {
+        locale: context.locale,
+        key: context.key,
+        provenance: keyProvenance(plan.record, value, sourceHash),
+      };
     });
-    return {
-      locale: context.locale,
-      key: context.key,
-      provenance: keyProvenance(record, value, sourceHash),
-    };
   });
 }
 
@@ -370,15 +422,18 @@ export async function approveEntry(
  * back from the memory on this machine. A new value written for the key replaces the record with a
  * fresh, unreviewed one.
  *
- * A format whose writer keeps a key it was not given, such as XLIFF, where a unit without a target
- * reads as its source text, cannot express a removed value; the call then restores the file and
- * throws rather than report a rejection it could not carry out.
+ * A format whose writer keeps a key it was not given cannot express a removed value: XLIFF, where
+ * a unit without a target reads as its source text, and Flutter ARB, whose writer keeps every
+ * existing message. The call then restores the file and throws rather than report a rejection it
+ * could not carry out.
  *
  * The call is refused unless the key's current translation is `expectedValue`. Unlike
  * {@link approveEntry}, it does not require the translation to be up to date with its source. The
- * provenance file is checked before the locale file is touched, so a decision that could not be
- * recorded removes nothing. Commit the locale file, the lock-file and the provenance file together
- * to share the decision.
+ * lock-file and the provenance file are checked, and the decision is planned, under the lock-file
+ * guard before the locale file is touched, and the lock-file and provenance file are then written
+ * under that same guard. If anything fails after the locale file was rewritten, the locale file
+ * and the provenance file are put back as they were and the translation memory is left alone.
+ * Commit the locale file, the lock-file and the provenance file together to share the decision.
  *
  * @param input - The config, locale, key, the value the reviewer saw, and an optional reviewer.
  * @param deps - Optional adapter registry and file-system overrides.
@@ -394,15 +449,15 @@ export async function approveEntry(
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
+ * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
  * not `expectedValue`.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure.
  * @throws {@link SdkError} `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps the translation
- * when the file is written without it, as XLIFF does, so the value cannot be removed. The locale
- * file is restored and nothing else is written.
+ * when the file is written without it, as XLIFF and Flutter ARB do, or the locale file is too large
+ * to keep a copy to restore. The locale file is left as it was and nothing else is written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
@@ -420,19 +475,9 @@ export async function rejectEntry(
   const context = await reviewContext(input, deps);
   const decision: Decision = { reviewState: "rejected", ...reviewerOf(input) };
   return withLocaleLock(context, async () => {
-    const { target, value } = await reviewedValue(context, input.expectedValue);
-    await assertRecordable(context, value, decision);
-
-    await removeValue(context, target);
-    await updateLockFileLocale(
-      context.cwd,
-      context.fs,
-      context.locale,
-      { mode: "remove", keys: [context.key] },
-      { records: new Map() },
-    );
-    const record = await recordDecision(context, value, decision);
-    const rejectedHash = valueHash(value);
+    const reviewed = await reviewedValue(context, input.expectedValue);
+    const record = await rejectUnderGuard(context, reviewed, decision);
+    const rejectedHash = valueHash(reviewed.value);
     await evictMemoryValue(
       context.cwd,
       context.fs,
@@ -443,7 +488,7 @@ export async function rejectEntry(
     return {
       locale: context.locale,
       key: context.key,
-      provenance: keyProvenance(record, value),
+      provenance: keyProvenance(record, reviewed.value),
     };
   });
 }

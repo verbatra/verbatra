@@ -75,8 +75,9 @@
  *   the key first.
  * - `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps a key's translation in the file when
  *   verbatra writes the file without it, so {@link rejectEntry} cannot remove the value. XLIFF,
- *   where a unit without a target reads as its source text, is one such format. The locale file is
- *   restored before the error is thrown, and nothing else is written.
+ *   where a unit without a target reads as its source text, and Flutter ARB, whose writer keeps
+ *   every existing message, are such formats. It is also thrown when the locale file is too large to
+ *   keep a copy to restore. The locale file is left as it was, and nothing else is written.
  * - `REVIEWER_INVALID`: the reviewer name is empty, longer than 64 characters, or contains a
  *   control character. Thrown by {@link approveEntry} and {@link rejectEntry} before anything is
  *   read.

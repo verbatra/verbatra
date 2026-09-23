@@ -83,6 +83,7 @@ export interface ProvenanceRead {
 export interface ProvenancePatch {
   readonly records: ReadonlyMap<string, ProvenanceRecord>;
   readonly retain?: ReadonlySet<string>;
+  readonly replace?: ReadonlySet<string>;
 }
 
 const CURRENT_PROVENANCE_VERSION = 1;
@@ -265,7 +266,8 @@ export function applyProvenancePatch(
   }
   for (const [key, record] of patch.records) {
     const prior = ownValue(current, key);
-    next.set(key, keepsPrior(prior, record, sourceUnchanged(key)) ? prior : record);
+    const replaced = patch.replace?.has(key) === true;
+    next.set(key, !replaced && keepsPrior(prior, record, sourceUnchanged(key)) ? prior : record);
   }
   return nullPrototypeCopy(Object.fromEntries(next), (record) => record as ProvenanceRecord);
 }

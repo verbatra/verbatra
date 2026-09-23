@@ -250,7 +250,7 @@ describe("provenance: the set of SDK functions that write a locale file is close
       (path) => path !== "flow/locale-run.ts",
     );
     for (const path of recorders) {
-      expect(await readTextFile(join(root, path))).toContain("updateLockFileLocale(");
+      expect(await readTextFile(join(root, path))).toMatch(/updateLockFileLocale(Unguarded)?\(/);
     }
     expect(await readTextFile(join(root, "flow/locale-run.ts"))).toContain("settleProvenance(");
   });
