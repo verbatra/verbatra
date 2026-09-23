@@ -479,6 +479,10 @@ chemin de fichier ou un message d'erreur d'un système en amont, afin qu'une cl�
 ton environnement ou écrite dans un fichier du projet ne puisse jamais atteindre un onglet de
 navigateur, un agent ou une ligne de log.
 
+Cela inclut la variable qu'un fournisseur `openai-compatible` désigne via `apiKeyEnvVar` : dès que
+`loadConfig` a chargé une config qui la nomme, sa valeur est retirée exactement comme celle des
+variables intégrées.
+
 ## Le point d'injection de dépendances
 
 <AvailableFrom version="0.9.0" />

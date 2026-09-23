@@ -712,6 +712,10 @@ Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereit
 vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
 oder eine Log-Zeile erreichen kann.
 
+Das gilt auch für die Variable, die ein `openai-compatible`-Provider über `apiKeyEnvVar` benennt:
+Sobald `loadConfig` eine Config geladen hat, die sie nennt, wird ihr Wert genauso geschwärzt wie
+der der eingebauten Variablen.
+
 ## Die Abhängigkeits-Nahtstelle
 
 <AvailableFrom version="0.9.0" />
