@@ -137,19 +137,13 @@ export function localeKey(code: string): string {
   }
 }
 
-function localeKeyIssues(
+function duplicateLocaleIssues(
   record: Readonly<Record<string, unknown>> | undefined,
   path: readonly (string | number)[],
 ): GlossaryIssue[] {
   const seen = new Set<string>();
   const issues: GlossaryIssue[] = [];
   for (const locale of Object.keys(record ?? {})) {
-    if (!localeCodeSchema.safeParse(locale).success) {
-      issues.push({
-        message: `names "${locale}", which is not a locale code`,
-        path: [...path, locale],
-      });
-    }
     const key = localeKey(locale);
     if (seen.has(key)) {
       issues.push({ message: `names the locale "${locale}" twice`, path: [...path, locale] });
@@ -217,8 +211,8 @@ function termIssues(terms: readonly GlossaryTermDefinition[]): GlossaryIssue[] {
       });
     }
     issues.push(
-      ...localeKeyIssues(term.targets, ["terms", index, "targets"]),
-      ...localeKeyIssues(term.forbidden, ["terms", index, "forbidden"]),
+      ...duplicateLocaleIssues(term.targets, ["terms", index, "targets"]),
+      ...duplicateLocaleIssues(term.forbidden, ["terms", index, "forbidden"]),
       ...forbiddenTargetIssues(term, index),
     );
   });
@@ -301,7 +295,12 @@ export function rawLocaleKeyIssues(definition: unknown): readonly GlossaryIssue[
   return terms.flatMap((term: unknown, index) =>
     (["targets", "forbidden"] as const).flatMap((field) => {
       const record = recordOf(recordOf(term)?.[field]);
-      return record === undefined ? [] : localeKeyIssues(record, ["terms", index, field]);
+      return Object.keys(record ?? {})
+        .filter((locale) => !localeCodeSchema.safeParse(locale).success)
+        .map((locale) => ({
+          message: `names "${locale}", which is not a locale code`,
+          path: ["terms", index, field, locale],
+        }));
     }),
   );
 }

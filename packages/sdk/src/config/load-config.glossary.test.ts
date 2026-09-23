@@ -265,6 +265,25 @@ describe("loadConfigWithMeta: an inline version 1 glossary in a JSON config", ()
     expect(Object.entries(loaded.config.glossary ?? {})).toEqual([["__proto__", "Prototyp"]]);
   });
 
+  it("refuses a version 2 glossary that uses __proto__ as a locale", async () => {
+    const dir = await makeTempDir();
+    await writeFile(
+      join(dir, ".verbatrarc.json"),
+      JSON.stringify({
+        ...baseConfig(),
+        glossary: { version: 2, terms: [{ source: "A", target: "X", targets: { de: "B" } }] },
+      }).replace('"targets":{', '"targets":{"__proto__":"C",'),
+      "utf8",
+    );
+
+    await expect(loadConfigWithMeta({ cwd: dir })).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      message: expect.stringContaining(
+        'glossary.terms.0.targets.__proto__: names "__proto__", which is not a locale code',
+      ),
+    });
+  });
+
   it("refuses a __proto__ term whose translation is not a string", async () => {
     const dir = await makeTempDir();
     await writeFile(

@@ -37,7 +37,7 @@ describe("SHARED_SYSTEM_RULES", () => {
     );
     expect(rules).toContain("When a glossary is provided, treat its term translations as binding.");
     expect(rules).toContain(
-      "When forbiddenTranslations is provided, never render a listed term with any rendering listed for it.",
+      "When forbiddenTranslations is provided, never use a listed forbidden rendering anywhere unless it appears in the source.",
     );
   });
 
