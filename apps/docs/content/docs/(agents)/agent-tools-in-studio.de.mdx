@@ -52,7 +52,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_project_snapshot` | aufgelöster Projektzustand und Capabilities |
 | `verbatra_status_check` | Abdeckungsübersicht pro Locale |
 | `verbatra_status_diff` | Drift pro Locale (fehlende, geänderte, verwaiste Keys) |
-| `verbatra_glossary_get` | das aufgelöste Glossar |
+| `verbatra_glossary_get` | das aufgelöste Glossar: die Übersetzungen jedes Begriffs für alle Locales und pro Locale, verbotene Wiedergaben, Kontext, woran jede Ziel-Locale gebunden ist, und die unübersetzten Begriffe |
 | `verbatra_lock_state` | der Zustand der Lock-Datei |
 | `verbatra_history_list` | jüngste Commit-Historie der Locale-Dateien |
 | `verbatra_key_integrity` | Platzhalter-, Inline-Markup- und ICU-Integrität für einen Key |
@@ -82,7 +82,7 @@ Eine Bearbeitung über `verbatra_translation_editEntry` wird in `verbatra.proven
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-`verbatra_glossary_write` fügt einen Glossarbegriff hinzu, ersetzt ihn oder entfernt ihn und gibt das Glossar in seinem neuen Stand zurück. Es arbeitet nur mit einem dateibasierten Glossar: ein inline in der Konfiguration geschriebenes Glossar, oder gar keines, wird abgelehnt statt umgewandelt, und kein Parameter nennt eine Datei, denn das Ziel stammt allein aus der geladenen Konfiguration. Wie das Bearbeiten gibt es nichts aus und wird ohne `--allow-spend` registriert. Es ist auf 20 Schreibvorgänge pro gleitender Minute begrenzt.
+`verbatra_glossary_write` ändert einen Glossarbegriff und gibt das Glossar in seinem neuen Stand zurück: eine Übersetzung für alle Locales oder für eine `locale`, die verbotenen Wiedergaben (`forbidden`) dieser Locale, eine `note`, eine `partOfSpeech`, `caseSensitive` oder mit `doNotTranslate`, ob der Begriff in jeder Locale unübersetzt bleibt. Eine `translation` von `null` löscht diese Übersetzung, und der Begriff wird entfernt, sobald nichts anderes mehr übrig ist. Es arbeitet nur mit einem dateibasierten Glossar: ein inline in der Konfiguration geschriebenes Glossar, oder gar keines, wird abgelehnt statt umgewandelt, und kein Parameter nennt eine Datei, denn das Ziel stammt allein aus der geladenen Konfiguration. Wie das Bearbeiten gibt es nichts aus und wird ohne `--allow-spend` registriert. Es ist auf 20 Schreibvorgänge pro gleitender Minute begrenzt.
 
 ### Ausgaben-Tools (zwei)
 

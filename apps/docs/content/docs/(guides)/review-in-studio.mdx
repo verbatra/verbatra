@@ -124,14 +124,18 @@ Settings, the fourth page, shows the configuration this session was started with
 
 Each term then carries an **Edit** and a **Remove** action, and an **Add a term** form sits under the list. A change is written straight to that JSON file, one term at a time, and the panel shows the new state as soon as the write lands, with no reload. The rest of the file is left alone: key order and indentation survive, and the result is held to the same limits `loadConfig` enforces when it reads a glossary back, so an accepted edit is always re-readable.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+A [per-locale glossary](/docs/config-file#glossary) is edited from the same panel. **Show translations for** picks the view: **All locales** lists each term's translation for every locale and, under it, the locales that have their own; choosing a locale shows the translation that locale uses, marked **inherited** when it comes from the base language or the translation for all locales, and the renderings it must never use. **Edit** then sets the translation for that view, the locale's forbidden renderings (comma separated), a note, a part of speech, and **Match case**. **Remove** appears only on a term that has nothing but a translation for all locales. The **Do not translate** list below keeps brand and product names as written in every locale. A version 1 file is rewritten as version 2 only when an edit needs it.
+
 Nothing here calls a provider or spends anything, so the actions are present with or without `--allow-spend`. What they do not do is retranslate: a glossary edit changes the terminology the next run is told to follow, never any text already written to a locale file. The glossary a running Studio hands to a provider call is still the one loaded at startup, so restart Studio for a fresh term to take effect on a retranslation from this session.
 
 Two cases stay read-only, and the panel says which one you are in:
 
 - **The glossary is written inline in `verbatra.config.ts`.** That is executable code, and Studio will not rewrite it. Move the terms into a JSON file and point the config's `glossary` at that path.
-- **The project has no glossary.** Create a JSON file of term to translation pairs and set `glossary` to that path.
+- **The project has no glossary.** Create a JSON file, term to translation pairs or a version 2 glossary, and set `glossary` to that path.
 
-A value that looks like a provider API key is redacted before it ever reaches the browser, and such a term cannot be edited from here, only removed: what the panel holds is the placeholder, not the real text. Change that one in the glossary file itself.
+A value that looks like a provider API key is redacted before it ever reaches the browser, and such a term cannot be edited from here: what the panel holds is the placeholder, not the real text. Change that one in the glossary file itself.
 
 ## Next
 

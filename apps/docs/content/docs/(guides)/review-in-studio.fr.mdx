@@ -124,14 +124,18 @@ Settings, la quatrième page, montre la configuration avec laquelle cette sessio
 
 Chaque terme porte alors une action **Edit** et une action **Remove**, et un formulaire **Add a term** se trouve sous la liste. Une modification est écrite directement dans ce fichier JSON, un terme à la fois, et le panneau affiche le nouvel état dès que l'écriture aboutit, sans rechargement. Le reste du fichier n'est pas touché : l'ordre des clés et l'indentation survivent, et le résultat est soumis aux mêmes limites que celles qu'applique `loadConfig` en relisant un glossaire, si bien qu'une modification acceptée peut toujours être relue.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Un [glossaire par locale](/docs/config-file#glossary) se modifie depuis le même panneau. **Show translations for** choisit la vue : **All locales** montre la traduction de chaque terme pour toutes les locales et, en dessous, les locales qui ont la leur ; en choisissant une locale, tu vois la traduction qu'elle utilise, marquée **inherited** quand elle vient de la langue de base ou de la traduction pour toutes les locales, et les traductions qu'elle ne doit jamais utiliser. **Edit** définit alors la traduction de cette vue, les traductions interdites de la locale (séparées par des virgules), une note, une catégorie grammaticale et **Match case**. **Remove** n'apparaît que sur un terme qui n'a rien d'autre qu'une traduction pour toutes les locales. La liste **Do not translate** en dessous garde les noms de marque et de produit tels qu'ils sont écrits dans toutes les locales. Un fichier version 1 n'est réécrit en version 2 que lorsqu'une modification l'exige.
+
 Rien ici n'appelle un fournisseur ni ne dépense quoi que ce soit : les actions sont donc présentes avec ou sans `--allow-spend`. Ce qu'elles ne font pas, c'est retraduire. Une modification du glossaire change la terminologie que la prochaine exécution doit suivre, jamais un texte déjà écrit dans un fichier de locale. Le glossaire qu'un Studio en cours d'exécution transmet à un appel au fournisseur reste celui chargé au démarrage : redémarre donc Studio pour qu'un nouveau terme s'applique à une retraduction lancée depuis cette session.
 
 Deux cas restent en lecture seule, et le panneau dit lequel te concerne :
 
 - **Le glossaire est écrit inline dans `verbatra.config.ts`.** C'est du code exécutable, et Studio ne le réécrit pas. Déplace les termes dans un fichier JSON et fais pointer la clé `glossary` de la config vers ce chemin.
-- **Le projet n'a pas de glossaire.** Crée un fichier JSON de paires terme et traduction, puis mets `glossary` sur ce chemin.
+- **Le projet n'a pas de glossaire.** Crée un fichier JSON, en paires terme et traduction ou en glossaire version 2, puis mets `glossary` sur ce chemin.
 
-Une valeur qui ressemble à une clé d'API de fournisseur est masquée avant même d'atteindre le navigateur, et un tel terme ne peut pas être modifié ici, seulement supprimé : ce que le panneau détient est le placeholder, pas le texte réel. Modifie celui-là directement dans le fichier de glossaire.
+Une valeur qui ressemble à une clé d'API de fournisseur est masquée avant même d'atteindre le navigateur, et un tel terme ne peut pas être modifié ici : ce que le panneau détient est le placeholder, pas le texte réel. Modifie celui-là directement dans le fichier de glossaire.
 
 ## Ensuite
 

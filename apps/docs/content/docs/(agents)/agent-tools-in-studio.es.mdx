@@ -52,7 +52,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_project_snapshot` | el estado y las capacidades resueltos del proyecto |
 | `verbatra_status_check` | resumen de cobertura por locale |
 | `verbatra_status_diff` | desfase por locale (claves faltantes, modificadas, huérfanas) |
-| `verbatra_glossary_get` | el glosario resuelto |
+| `verbatra_glossary_get` | el glosario resuelto: las traducciones de cada término para todos los locales y por locale, traducciones prohibidas, contexto, a qué se atiene cada locale de destino y los términos que no se traducen |
 | `verbatra_lock_state` | el estado del archivo de bloqueo |
 | `verbatra_history_list` | historial reciente de commits de los archivos de locale |
 | `verbatra_key_integrity` | integridad de placeholders, marcado en línea e ICU para una clave |
@@ -82,7 +82,7 @@ Una edición mediante `verbatra_translation_editEntry` queda registrada con el o
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-`verbatra_glossary_write` añade, reemplaza o elimina un término del glosario y devuelve el glosario tal como queda. Solo funciona con un glosario respaldado por archivo: un glosario escrito en línea en la configuración, o la ausencia de glosario, se rechaza en lugar de convertirse, y ningún parámetro nombra un archivo, porque el destino sale únicamente de la configuración cargada. Igual que editar, no gasta nada y se registra sin `--allow-spend`. Está limitada a 20 escrituras por minuto deslizante.
+`verbatra_glossary_write` cambia un término del glosario y devuelve el glosario tal como queda: una traducción para todos los locales o para un `locale`, las traducciones prohibidas (`forbidden`) de ese locale, una `note`, una `partOfSpeech`, `caseSensitive` o, con `doNotTranslate`, si el término se queda sin traducir en todos los locales. Una `translation` a `null` borra esa traducción, y el término se elimina cuando no queda nada más. Solo funciona con un glosario respaldado por archivo: un glosario escrito en línea en la configuración, o la ausencia de glosario, se rechaza en lugar de convertirse, y ningún parámetro nombra un archivo, porque el destino sale únicamente de la configuración cargada. Igual que editar, no gasta nada y se registra sin `--allow-spend`. Está limitada a 20 escrituras por minuto deslizante.
 
 ### Herramientas de gasto (dos)
 

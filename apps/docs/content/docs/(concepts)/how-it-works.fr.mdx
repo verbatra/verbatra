@@ -44,7 +44,7 @@ ces clés qui sont supprimées du fichier cible et du fichier de verrouillage, e
 
 Avant tout envoi, chaque candidate est recherchée dans le cache local de mémoire de traduction
 (`verbatra.cache.json`). Une traduction stockée pour le même texte source, sous la même empreinte
-de fournisseur, modèle, ton, glossaire et `localeMap` du fournisseur, est réutilisée telle quelle et n'atteint jamais le
+de fournisseur, modèle, ton, glossaire de la locale et `localeMap` du fournisseur, est réutilisée telle quelle et n'atteint jamais le
 fournisseur ; seules celles qui n'y figurent pas poursuivent leur chemin. Voir
 [Le cache](/docs/the-cache) pour savoir comment les entrées sont indexées et quand elles cessent
 de correspondre.
@@ -55,7 +55,7 @@ valeur renvoyée est copiée sur les autres clés de son groupe et revérifiée 
 à chacune, à l'étape d'intégrité ci-dessous. Les groupes partent vers ton
 fournisseur configuré en sous-lots séquentiels d'au plus `maxBatchSize` entrées (50 par défaut),
 pour qu'une requête trop grosse ne puisse pas emporter toute une locale. Chaque sous-lot transporte
-les entrées plus tes `glossary` et `tone` optionnels. Si l'appel d'un sous-lot échoue (une limite
+les entrées plus les termes du glossaire de sa locale cible et ton `tone` optionnel. Si l'appel d'un sous-lot échoue (une limite
 de débit, un délai dépassé, une clé révoquée), ses clés sont retenues pour cette exécution et
 reprises à la suivante, pendant que les autres sous-lots continuent d'avancer. Voir
 [Fournisseurs](/docs/providers) pour la façon dont chaque fournisseur applique ces paramètres.

@@ -124,14 +124,18 @@ Settings, die vierte Seite, zeigt die Konfiguration, mit der diese Sitzung gesta
 
 Jeder Begriff trägt dann eine Aktion **Edit** und **Remove**, und unter der Liste steht ein Formular **Add a term**. Eine Änderung wird direkt in diese JSON-Datei geschrieben, immer nur ein Begriff, und das Panel zeigt den neuen Stand, sobald der Schreibvorgang durch ist, ganz ohne Neuladen. Der Rest der Datei bleibt unangetastet: Die Reihenfolge der Keys und die Einrückung überleben, und das Ergebnis wird an denselben Grenzen gemessen, die `loadConfig` beim Zurücklesen eines Glossars durchsetzt, sodass eine angenommene Änderung immer wieder lesbar ist.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Ein [Glossar pro Locale](/docs/config-file#glossary) bearbeitest du im selben Panel. **Show translations for** wählt die Ansicht: **All locales** zeigt die Übersetzung jedes Begriffs für alle Locales und darunter die Locales mit einer eigenen; wählst du eine Locale, siehst du die Übersetzung, die sie verwendet, markiert mit **inherited**, wenn sie aus der Basissprache oder der Übersetzung für alle Locales kommt, und die Wiedergaben, die sie nie verwenden darf. **Edit** setzt dann die Übersetzung für diese Ansicht, die verbotenen Wiedergaben der Locale (durch Kommas getrennt), eine Notiz, eine Wortart und **Match case**. **Remove** erscheint nur bei einem Begriff, der nichts als eine Übersetzung für alle Locales hat. Die Liste **Do not translate** darunter hält Marken- und Produktnamen in jeder Locale so, wie sie geschrieben sind. Eine Datei der Version 1 wird nur dann als Version 2 neu geschrieben, wenn eine Änderung es braucht.
+
 Nichts davon ruft einen Provider auf oder gibt Geld aus; die Aktionen sind also mit und ohne `--allow-spend` vorhanden. Was sie nicht tun: neu übersetzen. Eine Glossaränderung ändert die Terminologie, an die sich der nächste Lauf halten soll, nie einen bereits in eine Locale-Datei geschriebenen Text. Das Glossar, das ein laufendes Studio an einen Provider-Aufruf übergibt, ist weiterhin das beim Start geladene; starte Studio also neu, damit ein frischer Begriff bei einer Neuübersetzung aus dieser Sitzung wirkt.
 
 Zwei Fälle bleiben nur lesbar, und das Panel sagt dir, in welchem du bist:
 
 - **Das Glossar steht inline in `verbatra.config.ts`.** Das ist ausführbarer Code, und Studio schreibt ihn nicht um. Verschiebe die Begriffe in eine JSON-Datei und richte `glossary` in der Konfiguration auf diesen Pfad.
-- **Das Projekt hat kein Glossar.** Lege eine JSON-Datei mit Paaren aus Begriff und Übersetzung an und setze `glossary` auf diesen Pfad.
+- **Das Projekt hat kein Glossar.** Lege eine JSON-Datei an, mit Paaren aus Begriff und Übersetzung oder als Glossar der Version 2, und setze `glossary` auf diesen Pfad.
 
-Ein Wert, der wie der API-Schlüssel eines Providers aussieht, wird geschwärzt, bevor er überhaupt den Browser erreicht, und ein solcher Begriff lässt sich hier nicht bearbeiten, nur entfernen: Das Panel hält den Platzhalter, nicht den echten Text. Ändere diesen direkt in der Glossardatei.
+Ein Wert, der wie der API-Schlüssel eines Providers aussieht, wird geschwärzt, bevor er überhaupt den Browser erreicht, und ein solcher Begriff lässt sich hier nicht bearbeiten: Das Panel hält den Platzhalter, nicht den echten Text. Ändere diesen direkt in der Glossardatei.
 
 ## Nächste Schritte
 

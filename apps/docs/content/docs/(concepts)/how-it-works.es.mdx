@@ -45,7 +45,7 @@ de destino y del bloqueo, y nada más.
 
 Antes de enviar nada, cada candidata se busca en la caché local de memoria de traducción
 (`verbatra.cache.json`). Una traducción guardada para el mismo texto de origen, bajo la misma
-huella de proveedor, modelo, tono, glosario y `localeMap` del proveedor, se reutiliza tal cual y nunca llega al proveedor;
+huella de proveedor, modelo, tono, glosario del locale y `localeMap` del proveedor, se reutiliza tal cual y nunca llega al proveedor;
 solo siguen adelante las que no encuentran coincidencia. Consulta [La caché](/docs/the-cache)
 para ver cómo se indexan las entradas y cuándo dejan de coincidir.
 
@@ -54,8 +54,8 @@ se agrupan primero, así que ese texto cuesta una petición por locale en lugar 
 valor que vuelve se copia a las demás claves de su grupo y se vuelve a comprobar contra el origen de
 cada una en el paso de integridad de abajo. Los grupos van a tu proveedor configurado en sublotes
 secuenciales de como mucho `maxBatchSize` (por defecto 50), así que una petición sobredimensionada
-no puede tumbar un locale entero. Cada sublote lleva las entradas más tus `glossary` y `tone`
-opcionales. Si la llamada de un sublote falla (un límite de tasa, un tiempo de espera agotado, una
+no puede tumbar un locale entero. Cada sublote lleva las entradas más los términos del glosario de su locale de destino y tu `tone`
+opcional. Si la llamada de un sublote falla (un límite de tasa, un tiempo de espera agotado, una
 clave revocada), sus claves se retienen en esta ejecución y se recogen de nuevo en la siguiente
 mientras los demás sublotes siguen avanzando. Consulta [Proveedores](/docs/providers) para ver cómo
 aplica cada proveedor estas entradas.

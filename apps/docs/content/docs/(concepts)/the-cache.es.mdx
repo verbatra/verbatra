@@ -52,7 +52,7 @@ La puntuación se queda dentro de un mismo grupo de huella, de modo que un prove
 
 ## La huella
 
-Cada valor en caché queda acotado al contexto de traducción en el que se produjo: una huella corta sobre el proveedor, el modelo, el tono, el glosario y, si tiene entradas, el [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor. Cambia cualquiera de ellos y las entradas previas dejan de coincidir, así que un tono nuevo o un glosario editado provoca una retraducción en lugar de servir un resultado obsoleto. El formato queda deliberadamente fuera de la huella; un cambio de formato lo detecta en su lugar la comprobación de integridad en cada acierto.
+Cada valor en caché queda acotado al contexto de traducción en el que se produjo: una huella corta sobre el proveedor, el modelo, el tono, los términos del glosario de ese locale y, si tiene entradas, el [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor. Cambia cualquiera de ellos y las entradas previas dejan de coincidir, así que un tono nuevo o un glosario editado provoca una retraducción en lugar de servir un resultado obsoleto. Cada locale tiene su propia huella a partir de sus propios términos del glosario, así que editar solo la traducción alemana de un término deja que las entradas francesas sigan coincidiendo. El formato queda deliberadamente fuera de la huella; un cambio de formato lo detecta en su lugar la comprobación de integridad en cada acierto.
 
 ## El archivo
 

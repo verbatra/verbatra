@@ -20,10 +20,10 @@ Which languages translate, and how well, is decided by the provider. verbatra do
 
 | Provider | Languages | Code sent | Glossary | Tone |
 | --- | --- | --- | --- | --- |
-| `anthropic` | No fixed list. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | As written, plus English language, script and region names | Term map in the prompt | In the prompt |
-| `openai` | No fixed list. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | As written, plus names | Term map in the prompt | In the prompt |
-| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | As written, plus names | Term map in the prompt | In the prompt |
-| `openai-compatible` | Whatever the model you run covers | As written, plus names | Term map in the prompt | In the prompt |
+| `anthropic` | No fixed list. [Claude multilingual support](https://platform.claude.com/docs/en/build-with-claude/multilingual-support) | As written, plus English language, script and region names | Locale terms in the prompt | In the prompt |
+| `openai` | No fixed list. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | As written, plus names | Locale terms in the prompt | In the prompt |
+| `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | As written, plus names | Locale terms in the prompt | In the prompt |
+| `openai-compatible` | Whatever the model you run covers | As written, plus names | Locale terms in the prompt | In the prompt |
 | `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalized to DeepL's codes | A pre-created DeepL glossary by `glossaryId` only | DeepL formality, not on a free-tier key |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (the NMT list applies to the Basic, v2 tier verbatra uses) | Normalized for Chinese and Norwegian, otherwise as written | None | None |
 | `none` | Not applicable: no provider is called | Nothing is sent | Not applicable | Not applicable |
@@ -57,7 +57,7 @@ A script or region subtag changes what the provider is asked for, not how verbat
 
 Two things follow from this table. DeepL keeps a script only for Chinese, so `sr-Latn` and `sr-Cyrl` both go out as `SR` and get whatever script DeepL writes for Serbian. Google Cloud Translation receives the script subtag as written, and whether it accepts it is up to Google's list. For a language written in more than one script, an LLM provider, which is told the script by name, is the dependable choice, and `localeMap` covers the cases where a vendor spells the variant differently.
 
-Two checks also account for scripts. The `LENGTH_RATIO_OUTLIER` review flag weights each character by its script, so a compact Chinese, Japanese or Korean translation is not flagged just for being short. And a glossary term written in a script without spaces between words (Han, kana, Thai and similar) is matched by containment rather than by word boundary.
+Two checks also account for scripts. The `LENGTH_RATIO_OUTLIER` review flag weights each character by its script, so a compact Chinese, Japanese or Korean translation is not flagged just for being short. And a glossary term written in a script without spaces between words (Han, kana, Thai and similar) is matched by containment rather than by word boundary, and so is a forbidden rendering in such a script.
 
 ## Plurals
 

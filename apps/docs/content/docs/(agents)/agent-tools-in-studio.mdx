@@ -52,7 +52,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_project_snapshot` | resolved project state and capabilities |
 | `verbatra_status_check` | per-locale coverage summary |
 | `verbatra_status_diff` | per-locale drift (missing, changed, orphaned keys) |
-| `verbatra_glossary_get` | the resolved glossary |
+| `verbatra_glossary_get` | the resolved glossary: each term's translations for all locales and per locale, forbidden renderings, context, what every target locale is held to, and the terms kept untranslated |
 | `verbatra_lock_state` | the lock file's state |
 | `verbatra_history_list` | recent locale file commit history |
 | `verbatra_key_integrity` | placeholder, inline markup, and ICU integrity for a key |
@@ -82,7 +82,7 @@ An edit through `verbatra_translation_editEntry` is recorded with the origin `ag
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
-`verbatra_glossary_write` adds, replaces, or removes one glossary term, and returns the glossary as it now stands. It works only on a file-backed glossary: a glossary written inline in the config, or no glossary at all, is refused rather than converted, and no parameter names a file, since the target comes from the loaded config alone. Like editing, it spends nothing and is registered without `--allow-spend`. It is rate limited at 20 writes per rolling minute.
+`verbatra_glossary_write` changes one glossary term, and returns the glossary as it now stands: a translation for all locales or for one `locale`, that locale's `forbidden` renderings, a `note`, a `partOfSpeech`, `caseSensitive`, or with `doNotTranslate` whether the term stays untranslated in every locale. A `translation` of `null` clears that translation, and the term is removed once nothing else is left. It works only on a file-backed glossary: a glossary written inline in the config, or no glossary at all, is refused rather than converted, and no parameter names a file, since the target comes from the loaded config alone. Like editing, it spends nothing and is registered without `--allow-spend`. It is rate limited at 20 writes per rolling minute.
 
 ### Spend tools (two)
 
