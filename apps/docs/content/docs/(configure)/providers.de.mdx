@@ -303,6 +303,7 @@ Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header o
 | `PROVIDER_REFUSED` | Das Modell hat die Antwort verweigert. |
 | `PROVIDER_BLOCKED` | Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert. |
 | `PROVIDER_ERROR` | Alles Unklassifizierbare. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. |
+| `NETWORK_POLICY_VIOLATION` | Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Ein neuer Versuch hilft nicht. |
 
 Ein Fehlschlag betrifft nur seinen eigenen Sub-Batch: Die fehlgeschlagenen Keys werden zurückgehalten und beim nächsten Lauf wieder aufgegriffen.
 

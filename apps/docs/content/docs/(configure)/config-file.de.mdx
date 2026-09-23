@@ -53,6 +53,7 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `fuzzyCache` | Objekt | aus | Verwendet eine Übersetzung für einen nur leicht geänderten Quellstring wieder. |
 | `humanEdits` | `"protect"`, `"suggest"` oder `"overwrite"` | `"protect"` | Was ein Lauf mit einem veralteten Key macht, dessen Wert ein Mensch geschrieben hat. |
 | `pinnedKeys` | String-Array | keiner | Key-Muster, die kein maschineller Schreibvorgang je anfasst. |
+| `network` | Objekt | `any` | Zu welchen Hosts sich ein Provider verbinden darf. |
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
 | `maxLength` | Objekt | keines | Maximale Längen pro Key für übersetzte Werte, gezählt in Graphemclustern. |
 | `maxTokens` | positive Ganzzahl | keines | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
@@ -147,6 +148,16 @@ Aus, solange du es nicht setzt. `fuzzyCache: { enabled: true }` lässt einen Key
 - `"overwrite"` übersetzt den Key neu wie jeden anderen veralteten Key, so wie verbatra sich vor dieser Einstellung verhalten hat. `verbatra translate --include-human` macht dasselbe für einen einzelnen Lauf.
 
 `pinnedKeys` listet Key-Muster, bei denen `*` auf eine beliebige Zeichenfolge passt, für Keys, die in keiner Ziel-Locale je maschinell angefasst werden dürfen, etwa `["legal.*", "brand.name"]`. Ein gepinnter Key wird nie übersetzt, vorgeschlagen oder neu übersetzt, egal was `humanEdits` oder `--include-human` sagt, und ein KI-Agent kann ihn nicht bearbeiten. Ein Mensch kann es weiterhin. Ein Wert ohne Provenienz-Eintrag (`unrecorded`) ist nicht geschützt, damit ein Projekt, das verbatra schon vor der Provenienz benutzt hat, weiter übersetzt. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
+### network
+
+<AvailableFrom version="0.12.0" />
+
+Legt fest, zu welchen Hosts sich ein Übersetzungs-Provider verbinden darf. `policy` ist `"any"` (der Standard), `"local-only"` (Loopback-, private und Unique-Local-Adressen) oder `"allowlist"`, und `allowedHosts` listet Hostnamen, `*.suffix`-Platzhalter, IP-Adressen oder CIDR-Bereiche, die zusätzlich erlaubt sind. Die Umgebungsvariable `VERBATRA_NETWORK_POLICY` kann in der CI eine strengere Richtlinie festlegen. Siehe [Netzwerkrichtlinie](/docs/network-policy).
+
+```ts
+network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
+```
 
 ### maxBatchSize
 
@@ -319,15 +330,16 @@ Zwei der Fundorte lassen sich nicht bedienen. Die `"verbatra"`-Property in der `
 
 ### Was das Dokument nicht prüfen kann
 
-Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Fünf Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
+Das Dokument trägt jeden Key, seinen Typ, seine Enum-Werte, welche Keys Pflicht sind, die `{locale}`-Token-Regel auf `files.pattern`, die Grammatik der Locale-Codes in `sourceLocale` und `targetLocales` und die Ablehnung unbekannter Keys. Sechs Regeln werden zur Laufzeit erzwungen, haben aber in JSON Schema Draft 2020-12 keine Entsprechung. Ein Editor schweigt dazu, und verbatra meldet sie beim Laden der Konfiguration:
 
 - `targetLocales` darf `sourceLocale` nicht enthalten. Für den Vergleich zweier Geschwisterwerte hat der Draft kein Vokabular.
 - `targetLocales` darf keine zwei Locales enthalten, die sich nur in der Groß- und Kleinschreibung unterscheiden.
 - Ein Locale-Code muss von `Intl.getCanonicalLocales` akzeptiert werden, nicht nur zur Grammatik passen. Eine wiederholte Variante wie `de-1996-1996` sieht das Muster nicht.
 - Jeder Key von `provider.options.localeMap` muss `sourceLocale` oder einer der `targetLocales` sein. Wie bei der ersten Regel wird hier ein Wert mit seinen Geschwistern verglichen.
 - `provider.options.apiKeyEnvVar` (nur openai-compatible) darf keine Umgebungsvariable eines gehosteten Providers benennen. Das auszudrücken hieße, die Namen dieser Variablen fest in ein ausgeliefertes Dokument zu schreiben, das dann vom Code auseinanderdriften würde, dem sie gehören.
+- Ein Eintrag in `network.allowedHosts` muss eine gültige Adresse oder ein gültiger Bereich sein, nicht nur zum Muster passen: Das Muster sieht kein IPv4-Oktett über 255, kein CIDR-Präfix, das länger als die Adresse ist, und kein fehlerhaftes IPv6.
 
-Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser fünf Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
+Das ist die vollständige Liste. Eine Konfiguration, die der Editor als sauber anzeigt, kann immer noch an einer dieser sechs Regeln scheitern. Ein grüner Editor ist also ein schneller erster Durchgang, kein Ersatz für einen Lauf von `verbatra check`.
 
 ## Das Arbeitsverzeichnis und .env
 

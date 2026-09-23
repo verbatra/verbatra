@@ -671,6 +671,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `KEY_PINNED` | la clé correspond aux `pinnedKeys` de la config, donc une écriture automatique a été refusée (`retranslateEntry`, et `editEntry` avec `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante |
 | `MACHINE_TRANSLATION_DISABLED` | la configuration fixe `provider: { id: "none" }`, donc une action dépensant auprès du fournisseur a été refusée avant qu'aucun fournisseur ne soit construit (`retranslateEntry`, `assertMachineTranslationEnabled`) ; `translate` et `watch` ne la lèvent jamais |
+| `NETWORK_POLICY_VIOLATION` | la [politique réseau](/docs/network-policy) effective n'autorise pas le point de terminaison du fournisseur ni son proxy ; levée par `translate` hors exécution à blanc, par `watch` au démarrage et par `retranslateEntry`, avant de construire le fournisseur ou de lire une clé d'API |
 | `SOURCE_UNREADABLE` | le fichier de la locale source n'existe pas |
 | `SOURCE_INVALID` | le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'erreur de lecture de l'adaptateur |
 | `LOCK_FILE_INVALID` | le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une version non prise en charge |

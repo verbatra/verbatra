@@ -1002,6 +1002,7 @@ geworfen.
 | `KEY_PINNED` | der Key passt auf die `pinnedKeys` der Konfiguration, also wurde ein maschineller Schreibvorgang abgelehnt (`retranslateEntry` und `editEntry` mit `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys |
 | `MACHINE_TRANSLATION_DISABLED` | die Konfiguration setzt `provider: { id: "none" }`, also wurde eine kostenpflichtige Provider-Aktion abgelehnt, bevor ein Provider gebaut wurde (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` und `watch` werfen ihn nie |
+| `NETWORK_POLICY_VIOLATION` | die wirksame [Netzwerkrichtlinie](/docs/network-policy) erlaubt den Endpunkt des Providers oder seinen Proxy nicht; geworfen von `translate` außerhalb eines Probelaufs, von `watch` beim Start und von `retranslateEntry`, bevor der Provider gebaut oder ein API-Key gelesen wird |
 | `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |
 | `SOURCE_INVALID` | die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters |
 | `LOCK_FILE_INVALID` | die Lock-Datei ist vorhanden, aber korrupt, übergroß oder in einer nicht unterstützten Version |

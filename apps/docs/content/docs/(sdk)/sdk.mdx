@@ -924,6 +924,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `KEY_PINNED` | the key matches the config's `pinnedKeys`, so a machine write was refused (`retranslateEntry`, and `editEntry` with `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | the provider could not be built; wraps the provider's own error, including a missing API key |
 | `MACHINE_TRANSLATION_DISABLED` | the config sets `provider: { id: "none" }`, so a provider-spending action was refused before any provider was built (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` and `watch` never throw it |
+| `NETWORK_POLICY_VIOLATION` | the effective [network policy](/docs/network-policy) does not permit the provider's endpoint or its proxy; thrown by a non-dry-run `translate`, by `watch` at startup, and by `retranslateEntry`, before the provider is built or any API key read |
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |

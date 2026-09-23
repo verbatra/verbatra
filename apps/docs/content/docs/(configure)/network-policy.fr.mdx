@@ -1,0 +1,82 @@
+---
+title: Politique réseau
+description: Limite les hôtes auxquels un fournisseur de traduction peut se connecter, pour que verbatra impose une configuration purement locale au lieu de reposer sur une convention.
+---
+<AvailableFrom version="0.12.0" />
+
+Un modèle auto-hébergé derrière `openai-compatible` garde tes chaînes sur ton propre réseau, mais seulement tant que chaque réglage reste juste. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié dans le shell de quelqu'un ou un coéquipier qui passe à un fournisseur hébergé suffit pour envoyer des chaînes vers un point de terminaison public. Une politique réseau rend la règle explicite : verbatra refuse de parler à un hôte que la politique n'autorise pas, et le dit avant qu'aucune requête ne quitte la machine.
+
+## La mettre en place
+
+```ts
+network: {
+  policy: "local-only",
+}
+```
+
+`policy` accepte l'une de trois valeurs :
+
+| Politique | Autorise |
+| --- | --- |
+| `any` | tous les hôtes. C'est la valeur par défaut sans bloc `network`, et verbatra se comporte exactement comme avant l'existence de la politique. |
+| `local-only` | le loopback (`127.0.0.0/8`, `::1`, `localhost` et `*.localhost`), les adresses IPv4 privées (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), les adresses IPv6 uniques locales (`fc00::/7`) et tout ce qui figure dans `allowedHosts`. |
+| `allowlist` | seulement ce que liste `allowedHosts`. Au moins une entrée est requise. |
+
+`allowedHosts` est une liste d'entrées, chacune étant :
+
+- un nom d'hôte, comme `llm.internal`, comparé exactement et sans tenir compte de la casse ;
+- un joker, comme `*.corp.example`, qui couvre chaque sous-domaine mais pas `corp.example` lui-même ;
+- une adresse IP, comme `203.0.113.7` ou `fd00::5` ;
+- une plage CIDR, comme `100.64.0.0/10` pour un réseau Tailscale ou `2001:db8::/32`.
+
+N'écris ni schéma, ni port, ni chemin : `https://llm.internal:8443` est refusé au chargement de la configuration.
+
+`local-only` laisse volontairement de côté les adresses lien-local (`169.254.0.0/16`, qui contient l'adresse de métadonnées du cloud, et `fe80::/10`), la plage NAT d'opérateur `100.64.0.0/10` et les adresses non spécifiées `0.0.0.0` et `::`. Vise plutôt `127.0.0.1` pour un serveur qui écoute sur `0.0.0.0`, et ajoute une plage VPN à `allowedHosts` si tu en as besoin.
+
+## Fournisseurs hébergés
+
+Avec `local-only`, `anthropic`, `openai`, `gemini`, `deepl` et `google-translate` sont refusés, parce que leurs points de terminaison sont publics. Pour en autoriser un malgré tout, ajoute son hôte :
+
+```ts
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+Les hôtes sont `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` pour une clé qui se termine par `:fx`) et `translation.googleapis.com`. Quand `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` ou `GOOGLE_GEMINI_BASE_URL` est défini, le fournisseur utilise ce point de terminaison à la place, et c'est lui que verbatra vérifie. Gemini en mode Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` ou `GOOGLE_GENAI_USE_ENTERPRISE` à `true`) est toujours refusé sous une politique restrictive, parce que ses requêtes d'authentification ne passent pas par les vérifications ci-dessous.
+
+## L'imposer depuis l'environnement
+
+Une organisation peut imposer une politique en CI, quoi que dise la configuration du dépôt :
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_POLICY` accepte les trois mêmes valeurs. `VERBATRA_NETWORK_ALLOWED_HOSTS` est une liste séparée par des virgules des mêmes entrées que `allowedHosts`. Quand la configuration et l'environnement fixent tous deux une politique, un hôte doit satisfaire les deux, donc la plus stricte l'emporte toujours : une configuration ne peut pas assouplir ce que l'environnement impose, et les `allowedHosts` d'une configuration n'élargissent pas une `allowlist` de l'environnement.
+
+Une valeur que verbatra ne reconnaît pas, comme `local_only`, fait échouer l'exécution avec `CONFIG_INVALID` au lieu d'être ignorée, pour qu'une faute de frappe n'autorise jamais tous les hôtes en silence. Définir `VERBATRA_NETWORK_ALLOWED_HOSTS` sans `VERBATRA_NETWORK_POLICY` échoue de la même façon.
+
+## Quand et comment c'est vérifié
+
+Avant de construire un fournisseur, verbatra détermine l'hôte auquel il se connecterait et le vérifie contre la politique. Un hôte refusé arrête `translate`, `watch` (au démarrage), `retranslate` dans Studio et MCP, et `retranslateEntry` du SDK avec `NETWORK_POLICY_VIOLATION` et le code de sortie `2`. Aucune clé d'API n'est lue et rien n'est envoyé. Une exécution à blanc et `--estimate` n'appellent aucun fournisseur, donc ils ne sont pas refusés ; utilise [`verbatra doctor`](/docs/cli/doctor) pour vérifier la politique sans rien traduire.
+
+Comme cette première vérification ne résout aucun nom, un nom d'hôte qu'elle ne peut pas classer seule, comme `llm.internal` sous `local-only`, la passe. Chaque requête de `anthropic`, `openai`, `gemini`, `google-translate` et `openai-compatible` est ensuite vérifiée de nouveau juste avant son envoi :
+
+- le nom d'hôte est résolu, et chaque adresse vers laquelle il pointe doit être autorisée ;
+- une redirection n'est pas suivie automatiquement. Un `307` ou `308` vers un hôte autorisé est suivi, jusqu'à cinq fois, et une redirection vers un hôte refusé fait échouer la requête. Toute autre redirection est rendue au fournisseur sans être suivie, qui la signale comme une erreur.
+
+Une requête refusée à ce stade fait échouer son sous-lot avec l'erreur de fournisseur `NETWORK_POLICY_VIOLATION`, comme n'importe quel autre [échec de fournisseur](/docs/providers#erreurs-structurées), et le message ne nomme que l'hôte.
+
+## Limites
+
+- **La résolution a lieu deux fois.** Le nom est résolu pour le vérifier, puis de nouveau à l'ouverture de la connexion. Un serveur DNS qui répond différemment la seconde fois (DNS rebinding) peut passer entre les mailles. Quand ça compte, écris une adresse IP ou ajoute l'hôte par son nom à `allowedHosts`, car un nom listé est accepté sans être résolu.
+- **DeepL n'est vérifié qu'une fois.** Le client DeepL émet ses propres requêtes, donc verbatra vérifie son hôte avant de construire le fournisseur, mais pas à chaque requête ni à chaque redirection.
+- **Proxys.** Sous une politique restrictive, l'hôte de chaque proxy qu'utiliserait le fournisseur doit lui-même être autorisé : une adresse IP, ou un nom listé dans `allowedHosts`. Les noms de proxy ne sont jamais résolus. DeepL utilise `HTTPS_PROXY`, `HTTP_PROXY` et `ALL_PROXY` (en majuscules ou minuscules) dès que l'une d'elles est définie. Les autres fournisseurs utilisent le `fetch` intégré de Node, qui ignore ces variables sous Node 22.20 et antérieur et ne les utilise sous Node 24 que si `NODE_USE_ENV_PROXY=1` est défini, donc verbatra ne vérifie leur proxy que dans ce cas. `NO_PROXY` est ignoré lors de la vérification.
+- **Fournisseurs personnalisés.** Un fournisseur que tu passes au SDK via `createProvider` est vérifié avant sa construction, contre le point de terminaison du fournisseur configuré, et reçoit la politique effective. C'est à ce code d'appliquer la politique à ses propres requêtes.
+
+## La vérifier avec doctor
+
+[`verbatra doctor`](/docs/cli/doctor) indique la politique effective, d'où vient chacune de ses parties, l'hôte auquel se connecte le fournisseur configuré et si cet hôte est autorisé. La vérification échoue quand l'hôte est refusé ou qu'une variable d'environnement contient une valeur invalide, et comme le reste de `doctor`, elle ne résout aucun nom et n'envoie rien.
