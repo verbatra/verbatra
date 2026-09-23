@@ -1,6 +1,6 @@
+import { PLURAL_CATEGORIES } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import {
-  CLDR_CATEGORY_ORDER,
   describePluralRules,
   pluralCategoriesFor,
   pluralCategoryLookupFor,
@@ -66,7 +66,7 @@ describe("pluralCategoriesFor: CLDR cardinal categories", () => {
   it("always lists categories in CLDR order", () => {
     for (const locale of ["ar", "cy", "ga", "mt", "gd", "cs", "fr", "he", "sl"]) {
       const categories = pluralCategoriesFor(locale);
-      const indices = categories.map((category) => CLDR_CATEGORY_ORDER.indexOf(category));
+      const indices = categories.map((category) => PLURAL_CATEGORIES.indexOf(category));
       expect(indices).toEqual([...indices].sort((left, right) => left - right));
       expect(categories.at(-1)).toBe("other");
     }

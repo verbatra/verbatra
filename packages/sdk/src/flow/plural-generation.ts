@@ -1,5 +1,10 @@
 import type { Tone, TranslateResult, TranslationProvider } from "@verbatra/ai-providers";
-import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
+import {
+  contentHash,
+  type LocaleResource,
+  type PluralCategory,
+  type TranslationEntry,
+} from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
@@ -11,7 +16,6 @@ import {
   planPluralGeneration,
   syntheticEntry,
 } from "./plural-categories.js";
-import type { CldrPluralCategory } from "./plural-rules.js";
 import type { LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
 import { createUsageAccumulator, foldUsage } from "./usage.js";
@@ -64,7 +68,7 @@ const EMPTY_RESULT: PluralGenerationResult = {
 
 function generatedLockHash(
   governingEntries: readonly TranslationEntry[],
-  category: CldrPluralCategory,
+  category: PluralCategory,
 ): string {
   const governingHashes = governingEntries.map(contentHash).sort();
   return contentHash({

@@ -1,26 +1,14 @@
-import type { I18nextPluralCategory, PluralCategoryLookup } from "@verbatra/format-adapters";
+import { PLURAL_CATEGORIES, type PluralCategory, type PluralRuleType } from "@verbatra/core";
+import type { PluralCategoryLookup } from "@verbatra/format-adapters";
 
-export type CldrPluralCategory = I18nextPluralCategory;
-
-export type PluralRuleType = "cardinal" | "ordinal";
-
-export const CLDR_CATEGORY_ORDER: readonly CldrPluralCategory[] = [
-  "zero",
-  "one",
-  "two",
-  "few",
-  "many",
-  "other",
-];
-
-const FALLBACK_CATEGORIES: Readonly<Record<PluralRuleType, readonly CldrPluralCategory[]>> = {
+const FALLBACK_CATEGORIES: Readonly<Record<PluralRuleType, readonly PluralCategory[]>> = {
   cardinal: ["one", "other"],
   ordinal: ["other"],
 };
 
 export type PluralCategoryResolution =
-  | { readonly kind: "cldr"; readonly categories: readonly CldrPluralCategory[] }
-  | { readonly kind: "fallback"; readonly categories: readonly CldrPluralCategory[] };
+  | { readonly kind: "cldr"; readonly categories: readonly PluralCategory[] }
+  | { readonly kind: "fallback"; readonly categories: readonly PluralCategory[] };
 
 function supportedLocaleOf(locale: string): string | undefined {
   try {
@@ -30,11 +18,11 @@ function supportedLocaleOf(locale: string): string | undefined {
   }
 }
 
-function cldrCategories(locale: string, type: PluralRuleType): readonly CldrPluralCategory[] {
+function cldrCategories(locale: string, type: PluralRuleType): readonly PluralCategory[] {
   const reported = new Set<string>(
     new Intl.PluralRules(locale, { type }).resolvedOptions().pluralCategories,
   );
-  return CLDR_CATEGORY_ORDER.filter((category) => reported.has(category));
+  return PLURAL_CATEGORIES.filter((category) => reported.has(category));
 }
 
 const resolutionCache = new Map<string, PluralCategoryResolution>();
@@ -64,7 +52,7 @@ export function resolvePluralCategories(
 export function pluralCategoriesFor(
   locale: string,
   type: PluralRuleType = "cardinal",
-): readonly CldrPluralCategory[] {
+): readonly PluralCategory[] {
   return resolvePluralCategories(locale, type).categories;
 }
 
