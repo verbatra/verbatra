@@ -5,27 +5,27 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { startMcpServer } from "./start-server.js";
 import { makeContext, makeProject, nodeFs, writeJsonFile } from "./test-support.js";
 import { glossaryGetTool } from "./tools/glossary.js";
-import type { McpToolContext } from "./types.js";
+import type { McpServerOptions } from "./types.js";
 
-const connected = vi.hoisted(() => ({ contexts: [] as McpToolContext[] }));
+const connected = vi.hoisted(() => ({ contexts: [] as McpServerOptions[] }));
 
 vi.mock("./server.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("./server.js")>();
   return {
     ...original,
-    connectMcpServer: (context: McpToolContext, ...rest: unknown[]) => {
-      connected.contexts.push(context);
-      return (original.connectMcpServer as (...args: unknown[]) => unknown)(context, ...rest);
+    connectMcpServer: (...args: Parameters<typeof original.connectMcpServer>) => {
+      connected.contexts.push(args[0]);
+      return original.connectMcpServer(...args);
     },
   };
 });
 
-interface InMemoryGlossaryFs {
+interface OverlayFileFs {
   readonly fs: SdkFs;
   readonly servedPaths: string[];
 }
 
-function inMemoryGlossaryFs(path: string, content: string): InMemoryGlossaryFs {
+function overlayFileFs(path: string, content: string): OverlayFileFs {
   const servedPaths: string[] = [];
   const fs: SdkFs = {
     ...nodeFs,
@@ -66,7 +66,7 @@ describe("startMcpServer: injected fs", () => {
       provider: { id: "anthropic", options: { model: "test-model", maxTokens: 256 } },
       glossary: "./glossary.json",
     });
-    const memory = inMemoryGlossaryFs(
+    const memory = overlayFileFs(
       glossaryPath,
       JSON.stringify({ API: "API", Dashboard: "Armaturenbrett" }),
     );
@@ -76,11 +76,18 @@ describe("startMcpServer: injected fs", () => {
 
     expect(await existsOnDisk(glossaryPath)).toBe(false);
     expect(connected.contexts).toHaveLength(1);
-    const [context] = connected.contexts;
-    expect(context?.config.config.glossary).toEqual({ API: "API", Dashboard: "Armaturenbrett" });
-    expect(context?.fs).toBe(memory.fs);
+    const [options] = connected.contexts;
+    expect(options?.config.config.glossary).toEqual({ API: "API", Dashboard: "Armaturenbrett" });
+    expect(options?.fs).toBe(memory.fs);
+    expect(memory.servedPaths).toEqual([glossaryPath]);
 
-    const outcome = await glossaryGetTool.execute({}, makeContext(context));
+    const outcome = await glossaryGetTool.execute(
+      {},
+      makeContext({
+        ...(options !== undefined ? { config: options.config, cwd: options.cwd } : {}),
+        fs: memory.fs,
+      }),
+    );
 
     expect(outcome).toMatchObject({
       kind: "ok",
@@ -89,6 +96,6 @@ describe("startMcpServer: injected fs", () => {
         entries: { API: "API", Dashboard: "Armaturenbrett" },
       },
     });
-    expect(memory.servedPaths).toEqual([glossaryPath, glossaryPath]);
+    expect(memory.servedPaths.slice(1)).toEqual([glossaryPath]);
   });
 });
