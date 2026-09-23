@@ -83,7 +83,7 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
 
 ### provider
 
-Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers). `none` no recibe `options` y desactiva la traducción automática por política; consulta [Flujo solo humano](/docs/human-only-workflow).
+Un objeto seleccionado por `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none`. Cada proveedor toma sus propias `options` (modelo, límite de tokens y campos específicos del proveedor), y las claves de opción desconocidas se rechazan. Las opciones por proveedor están documentadas en [Proveedores](/docs/providers). `none` desactiva la traducción automática por política, y su `options` puede omitirse; si se indica, debe ser `{}`; consulta [Flujo solo humano](/docs/human-only-workflow).
 
 ### glossary
 

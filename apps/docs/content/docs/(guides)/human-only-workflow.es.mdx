@@ -24,7 +24,7 @@ Un proyecto existente cambia igual: sustituye su bloque `provider` por `{ id: "n
 
 | Comando | Con `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | rellenan una clave solo desde [la memoria de traducción](/docs/the-cache); cualquier otra clave ausente o cambiada se lista como `unfilled`, no se toca y se vuelve a ofrecer en la siguiente ejecución. Una reutilización aproximada (con `fuzzyCache` activado) se escribe como referencia, pero también cuenta como `unfilled`, porque solo una persona puede confirmarla. `translate` sale con `3` cuando queda alguna clave. |
+| `translate`, `watch` | rellenan una clave solo desde [la memoria de traducción](/docs/the-cache); cualquier otra clave ausente o cambiada se lista como `unfilled`, no se toca y se vuelve a ofrecer en la siguiente ejecución. Solo se escriben las coincidencias exactas de la memoria: una reutilización aproximada nunca se aplica, ni siquiera con `fuzzyCache` activado, así que esa clave también sigue como `unfilled` hasta que una persona la traduzca. `translate` sale con `3` cuando queda alguna clave. |
 | `export`, `import`, `tmx` | sin cambios: la entrega y la memoria de traducción son la vía por la que entran las traducciones humanas. |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | sin cambios; ninguno llama a un proveedor. |
 | `studio`, `mcp` | la lectura y la edición local funcionan; las acciones que gastan en el proveedor nunca se ofrecen, ni siquiera con `--allow-spend`. |

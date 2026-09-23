@@ -24,7 +24,7 @@ An existing project can switch the same way: replace its `provider` block with `
 
 | Command | With `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. A fuzzy reuse (with `fuzzyCache` on) is written for reference but also counts as `unfilled`, since only a person can confirm it. `translate` exits `3` when any key is left. |
+| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. Only exact memory hits are written: a fuzzy reuse is never applied, even with `fuzzyCache` on, so such a key also stays `unfilled` until a person translates it. `translate` exits `3` when any key is left. |
 | `export`, `import`, `tmx` | unchanged: the handoff and the translation memory are how human translations get in. |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unchanged; none of them calls a provider. |
 | `studio`, `mcp` | local reads and edits work; the provider-spending actions are never offered, even with `--allow-spend`. |

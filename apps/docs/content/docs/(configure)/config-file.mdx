@@ -83,7 +83,7 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
 ### provider
 
-An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). `none` takes no `options` and disables machine translation by policy; see [Human-only workflow](/docs/human-only-workflow).
+An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none`. Each provider takes its own `options` (model, token limit, and provider-specific fields), and unknown option keys are rejected. The per-provider options are documented on [Providers](/docs/providers). `none` disables machine translation by policy, and its `options` may be omitted; if given it must be `{}`; see [Human-only workflow](/docs/human-only-workflow).
 
 ### glossary
 
