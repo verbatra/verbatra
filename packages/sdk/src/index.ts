@@ -97,6 +97,17 @@ export {
   type VerbatraConfigInput,
   verbatraConfigSchema,
 } from "./config/schema.js";
+export {
+  type DetectedFormat,
+  type DetectedFormatSource,
+  type DetectedLocaleLayout,
+  type DetectionAmbiguity,
+  type DetectionConfidence,
+  type DetectProjectDeps,
+  type DetectProjectInput,
+  detectProject,
+  type ProjectDetection,
+} from "./detection/detect-project.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
 export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {
