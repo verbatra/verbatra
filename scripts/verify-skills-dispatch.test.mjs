@@ -12,6 +12,8 @@ const STEPS = JOB?.steps ?? [];
 const APP_TOKEN_ACTION = "actions/create-github-app-token@";
 const REQUIRED_SECRETS = ["SKILLS_DISPATCH_APP_CLIENT_ID", "SKILLS_DISPATCH_APP_PRIVATE_KEY"];
 const SAMPLE_SHA = "0123456789abcdef0123456789abcdef01234567";
+const JQ_AVAILABLE = spawnSync("jq", ["--version"]).status === 0;
+const JQ_MISSING_REASON = "jq is not installed locally; the GitHub-hosted runner provides it";
 
 function tokenStepIndex() {
   return STEPS.findIndex((step) => String(step.uses ?? "").startsWith(APP_TOKEN_ACTION));
@@ -76,7 +78,7 @@ describe("release.yml: dispatch-skills-parity", () => {
     });
   });
 
-  it("dispatches the skills parity workflow on main with the released commit as source_ref", () => {
+  it("dispatches the skills parity workflow with the released commit as SOURCE_REF", () => {
     const send = STEPS.at(-1);
 
     expect(STEPS.indexOf(send)).toBeGreaterThan(tokenStepIndex());
@@ -84,13 +86,18 @@ describe("release.yml: dispatch-skills-parity", () => {
       GH_TOKEN: `\${{ steps.${STEPS[tokenStepIndex()].id}.outputs.token }}`,
       SOURCE_REF: `\${{ github.event.workflow_run.head_sha }}`,
     });
-    expect(evaluatePayload(send.run, SAMPLE_SHA)).toEqual({
-      ref: "main",
-      inputs: { source_ref: SAMPLE_SHA },
-    });
     expect(send.run).toContain(
       "| gh api --method POST repos/verbatra/skills/actions/workflows/parity.yml/dispatches --input -",
     );
+  });
+
+  it("builds a dispatch payload on main with the released commit as source_ref", ({ skip }) => {
+    skip(!JQ_AVAILABLE, JQ_MISSING_REASON);
+
+    expect(evaluatePayload(STEPS.at(-1).run, SAMPLE_SHA)).toEqual({
+      ref: "main",
+      inputs: { source_ref: SAMPLE_SHA },
+    });
   });
 
   it("keeps every expression out of run scripts", () => {
