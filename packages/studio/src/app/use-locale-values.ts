@@ -5,7 +5,10 @@ import type { RefreshableView } from "../client/state.js";
 import { applyRefreshOutcome } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
-export function useLocaleValues(refreshToken?: unknown): RefreshableView<LocaleValuesData> {
+export function useLocaleValues(
+  refreshToken?: unknown,
+  reloadToken?: unknown,
+): RefreshableView<LocaleValuesData> {
   const [view, setView] = useState<RefreshableView<LocaleValuesData>>({ kind: "loading" });
 
   useEffect(() => {
@@ -20,7 +23,7 @@ export function useLocaleValues(refreshToken?: unknown): RefreshableView<LocaleV
     return () => {
       cancelled = true;
     };
-  }, [refreshToken]);
+  }, [refreshToken, reloadToken]);
 
   return view;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveReviewDecisionOutcome } from "./review-decision-outcome.js";
+import { deriveReviewDecisionOutcome, isStaleValueOutcome } from "./review-decision-outcome.js";
 
 describe("deriveReviewDecisionOutcome", () => {
   it("reports a saved decision as success", () => {
@@ -28,6 +28,18 @@ describe("deriveReviewDecisionOutcome", () => {
   it("falls back to the server message for an unknown code", () => {
     expect(
       deriveReviewDecisionOutcome({ ok: false, error: { code: "SOMETHING_NEW", message: "boom" } }),
-    ).toEqual({ kind: "error", message: "boom" });
+    ).toEqual({ kind: "error", code: "SOMETHING_NEW", message: "boom" });
+  });
+});
+
+describe("isStaleValueOutcome", () => {
+  it("is true only for a refusal because the value changed", () => {
+    expect(isStaleValueOutcome({ kind: "error", code: "REVIEW_VALUE_CHANGED", message: "x" })).toBe(
+      true,
+    );
+    expect(isStaleValueOutcome({ kind: "error", code: "LOCK_CONTENDED", message: "x" })).toBe(
+      false,
+    );
+    expect(isStaleValueOutcome({ kind: "success" })).toBe(false);
   });
 });

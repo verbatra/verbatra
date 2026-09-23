@@ -2,7 +2,10 @@ import type { ReviewReasonCode } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
-import { deriveReviewDecisionOutcome } from "../../client/review-decision-outcome.js";
+import {
+  deriveReviewDecisionOutcome,
+  isStaleValueOutcome,
+} from "../../client/review-decision-outcome.js";
 import { filterReviewRows, uniqueReviewLocales } from "../../client/review-filter.js";
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import { reviewedValueFor, visibleReviewQueueRows } from "../../client/review-queue-data.js";
@@ -60,6 +63,7 @@ type DecisionNotice =
   | { readonly kind: "rejected"; readonly locale: string; readonly key: string }
   | {
       readonly kind: "failed";
+      readonly action: "approve" | "reject";
       readonly locale: string;
       readonly key: string;
       readonly message: string;
@@ -167,7 +171,7 @@ function noticeText(notice: DecisionNotice): string {
   if (notice.kind === "rejected") {
     return `Rejected ${target}. Its translation was removed and the decision is saved in verbatra.provenance.json.`;
   }
-  return `Could not approve ${target}: ${notice.message}`;
+  return `Could not ${notice.action} ${target}: ${notice.message}`;
 }
 
 function DecisionStatus({ notice }: { readonly notice: DecisionNotice | null }): ReactNode {
@@ -241,6 +245,7 @@ function useDecisions(onDecided: () => void): {
   readonly notice: DecisionNotice | null;
   readonly approve: (row: ReviewQueueRow, value: string) => void;
   readonly rejected: (target: EditingTarget) => void;
+  readonly rejectStale: (target: EditingTarget, message: string) => void;
 } {
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const [notice, setNotice] = useState<DecisionNotice | null>(null);
@@ -269,9 +274,15 @@ function useDecisions(onDecided: () => void): {
     setNotice(
       outcome.kind === "success"
         ? { kind: "approved", locale: row.locale, key: row.key }
-        : { kind: "failed", locale: row.locale, key: row.key, message: outcome.message },
+        : {
+            kind: "failed",
+            action: "approve",
+            locale: row.locale,
+            key: row.key,
+            message: outcome.message,
+          },
     );
-    if (outcome.kind === "success") {
+    if (outcome.kind === "success" || isStaleValueOutcome(outcome)) {
       onDecided();
     }
   }
@@ -282,6 +293,10 @@ function useDecisions(onDecided: () => void): {
     approve: (row, value) => void approve(row, value),
     rejected: (target) => {
       setNotice({ kind: "rejected", locale: target.locale, key: target.key });
+      onDecided();
+    },
+    rejectStale: (target, message) => {
+      setNotice({ kind: "failed", action: "reject", ...target, message });
       onDecided();
     },
   };
@@ -298,7 +313,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [rejecting, setRejecting] = useState<RejectingTarget | null>(null);
   const [locale, setLocale] = useState("");
   const [query, setQuery] = useState("");
-  const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken));
+  const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
   const values = useMemo(() => valuesIndex(localeValues), [localeValues]);
   const decisions = useDecisions(() => setReloadToken((current) => current + 1));
 
@@ -392,6 +407,10 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
           onClose={() => setRejecting(null)}
           onRejected={() => {
             decisions.rejected(rejecting);
+            setRejecting(null);
+          }}
+          onValueChanged={(message) => {
+            decisions.rejectStale({ locale: rejecting.locale, key: rejecting.key }, message);
             setRejecting(null);
           }}
         />

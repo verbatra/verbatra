@@ -479,6 +479,62 @@ describe("ReviewPanel", () => {
     );
   });
 
+  it("reloads the queue and the values after a stale approval, so a retry sends the new value", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const changed: LocaleValuesResult = [
+      {
+        locale: "de",
+        values: {
+          "checkout.title": { source: "Checkout", target: "Zur Kasse" },
+          "checkout.subtitle": { source: "Review your order", target: "Bestellung prüfen" },
+        },
+      },
+      { locale: "fr", values: { "cart.badge": { source: "Cart", target: "Panier" } } },
+    ];
+    stubRpc({
+      "review.approve": rpcError("REVIEW_VALUE_CHANGED", "changed"),
+      "locale.values": { ok: true, result: changed },
+    });
+    const before = rpcCalls.length;
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    const reloaded = rpcCalls.slice(before).map((call) => call.method);
+    expect(reloaded).toContain("review.queue");
+    expect(reloaded).toContain("locale.values");
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "Could not approve checkout.title (de)",
+    );
+
+    stubRpc({
+      "review.approve": { ok: true, result: decided("de", "checkout.title", "approved") },
+    });
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+
+    expect(rpcCalls.filter((call) => call.method === "review.approve").at(-1)?.params).toEqual({
+      locale: "de",
+      key: "checkout.title",
+      expectedValue: "Zur Kasse",
+    });
+  });
+
+  it("closes the reject dialog and reloads when the value changed underneath it", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+    stubRpc({ "review.reject": rpcError("REVIEW_VALUE_CHANGED", "changed") });
+    const before = rpcCalls.length;
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls.slice(before).map((call) => call.method)).toContain("locale.values");
+    expect(view.get('[role="alert"]').textContent).toContain("Could not reject cart.badge (fr)");
+  });
+
   it("asks for confirmation before rejecting, and cancelling calls nothing", async () => {
     stubDecisionReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);

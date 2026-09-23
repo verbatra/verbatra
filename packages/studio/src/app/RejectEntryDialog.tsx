@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
   deriveReviewDecisionOutcome,
+  isStaleValueOutcome,
   type ReviewDecisionOutcome,
 } from "../client/review-decision-outcome.js";
 import { rpcClient } from "./api.js";
@@ -24,6 +25,7 @@ export interface RejectEntryDialogProps {
   readonly value: string;
   readonly onClose: () => void;
   readonly onRejected: () => void;
+  readonly onValueChanged: (message: string) => void;
 }
 
 export function RejectEntryDialog({
@@ -32,9 +34,18 @@ export function RejectEntryDialog({
   value,
   onClose,
   onRejected,
+  onValueChanged,
 }: RejectEntryDialogProps): ReactNode {
   const [state, setState] = useState<RejectState>({ kind: "idle" });
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
+  const closeUnlessSubmitting = (): void => {
+    if (state.kind !== "submitting") {
+      onClose();
+    }
+  };
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose: closeUnlessSubmitting,
+  });
 
   async function handleReject(): Promise<void> {
     setState({ kind: "submitting" });
@@ -46,6 +57,10 @@ export function RejectEntryDialog({
     const outcome = deriveReviewDecisionOutcome(response);
     if (outcome.kind === "success") {
       onRejected();
+      return;
+    }
+    if (isStaleValueOutcome(outcome)) {
+      onValueChanged(outcome.message);
       return;
     }
     setState({ kind: "failed", outcome });
@@ -61,7 +76,7 @@ export function RejectEntryDialog({
       }
       ariaLabel={`Reject ${keyName} in ${locale}`}
       closeLabel={`Keep ${keyName} and close`}
-      onClose={onClose}
+      onClose={closeUnlessSubmitting}
       containerRef={containerRef}
     >
       <Section title="Translation to reject">
@@ -74,7 +89,8 @@ export function RejectEntryDialog({
           <li>The translation is removed from the {locale} locale file.</li>
           <li>
             The key counts as missing until the next <code>verbatra translate</code> run, or
-            Translate pending, fills it again, or someone writes a new value.
+            <strong>Translate pending changes</strong>, fills it again, or someone writes a new
+            value.
           </li>
           <li>
             The rejection is saved to <code>verbatra.provenance.json</code>. Commit it with the

@@ -35,6 +35,8 @@ const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_MAX = 5;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
 function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
   return createRpcRateLimiter({
@@ -56,7 +58,20 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
         options.glossaryWriteRateLimitWindowMs ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.glossaryWriteRateLimitMax ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX,
     },
+    [REVIEW_APPROVE_METHOD]: reviewDecisionLimit(options),
+    [REVIEW_REJECT_METHOD]: reviewDecisionLimit(options),
   });
+}
+
+function reviewDecisionLimit(options: StudioServerOptions): {
+  readonly windowMs: number;
+  readonly maxCalls: number;
+} {
+  return {
+    windowMs:
+      options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
+    maxCalls: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
+  };
 }
 
 function buildInFlightGuard(): RpcInFlightGuard {

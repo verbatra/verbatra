@@ -135,6 +135,16 @@ export interface StudioServerDeps {
   readonly glossaryWriteRateLimitWindowMs?: number;
   /** How many `glossary.write` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
   readonly glossaryWriteRateLimitMax?: number;
+  /**
+   * Rolling window in milliseconds for the rate limits of `review.approve` and `review.reject`, each
+   * counted on its own. Defaults to 60000.
+   */
+  readonly reviewDecisionRateLimitWindowMs?: number;
+  /**
+   * How many `review.approve` calls, and separately how many `review.reject` calls, the window
+   * allows before `METHOD_RATE_LIMITED`. Defaults to 60.
+   */
+  readonly reviewDecisionRateLimitMax?: number;
 }
 
 /** Everything {@link startStudioServer} accepts: every {@link StudioServerDeps} seam, plus where to bind and run. */
