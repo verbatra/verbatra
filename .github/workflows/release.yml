@@ -142,3 +142,42 @@ jobs:
 
       - name: Publish server.json to the MCP Registry
         run: '"$RUNNER_TEMP/mcp-publisher" publish packages/mcp/server.json'
+
+  dispatch-skills-parity:
+    name: Ask verbatra/skills to re-run its tool parity
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    steps:
+      - name: Check the dispatch app credentials
+        env:
+          SKILLS_DISPATCH_APP_CLIENT_ID: ${{ secrets.SKILLS_DISPATCH_APP_CLIENT_ID }}
+          SKILLS_DISPATCH_APP_PRIVATE_KEY: ${{ secrets.SKILLS_DISPATCH_APP_PRIVATE_KEY }}
+        run: |
+          missing=""
+          [ -n "$SKILLS_DISPATCH_APP_CLIENT_ID" ] || missing="$missing SKILLS_DISPATCH_APP_CLIENT_ID"
+          [ -n "$SKILLS_DISPATCH_APP_PRIVATE_KEY" ] || missing="$missing SKILLS_DISPATCH_APP_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error title=Skills dispatch not configured::Missing repository secret(s):${missing}. See CONTRIBUTING.md, Dispatching the skills parity check."
+            exit 1
+          fi
+
+      - name: Create a token scoped to verbatra/skills
+        id: skills-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.SKILLS_DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SKILLS_DISPATCH_APP_PRIVATE_KEY }}
+          owner: verbatra
+          repositories: skills
+          permission-contents: write
+
+      - name: Send source-changed to verbatra/skills
+        env:
+          GH_TOKEN: ${{ steps.skills-token.outputs.token }}
+          SOURCE_REF: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          jq -n --arg source_ref "$SOURCE_REF" '{event_type: "source-changed", client_payload: {source_ref: $source_ref}}' \
+            | gh api --method POST repos/verbatra/skills/dispatches --input -
