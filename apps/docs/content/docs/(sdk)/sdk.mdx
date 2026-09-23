@@ -222,6 +222,8 @@ failed, so one call reports every independent problem. The API key is checked by
 source-file check reads and parses the file rather than only probing for it, so a directory in its
 place, an empty file, and malformed content are all reported here.
 
+<AvailableFrom version="0.12.0" />
+
 A sixth check, `plural-rules`, is informational and always passes: its detail names the ICU and
 CLDR versions the runtime derives each target language's plural categories from, and any target
 locale ICU has no plural rules for.

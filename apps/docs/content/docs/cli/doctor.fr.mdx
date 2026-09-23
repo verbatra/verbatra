@@ -34,6 +34,10 @@ verbatra doctor [flags]
 | Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse correctement avec le format configuré |
 | Plural rules | toujours (informative) : nomme les versions d'ICU et de CLDR dans lesquelles verbatra lit les catégories de pluriel, et toute locale cible pour laquelle ICU n'a pas de règles de pluriel |
 
+<AvailableFrom version="0.12.0" />
+
+La vérification Plural rules est informative et n'échoue jamais : une locale cible qu'elle nomme est quand même traduite, et ses contrôles de pluriel supposent `one` et `other`.
+
 Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les cinq vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
 
 Quatre détails comptent :

@@ -10,8 +10,9 @@ French, Spanish, Italian, Portuguese and the rest were never flagged or generate
 Chinese, Korean, Thai and Vietnamese were told they need `one`.
 
 Now the categories come from the CLDR data in the running Node.js ICU, for every language it knows,
-always in CLDR order. `PLURAL_CATEGORIES_INCOMPLETE` and `generatePlurals` use that set, so a
-French target now needs `many`. The nine previously covered languages resolve exactly as before. A
-locale ICU has no plural rules for keeps the old `one` and `other` assumption and gets no generated
-forms. `doctor` gains an informational `plural-rules` check naming the ICU and CLDR versions and any
-target locale without plural rules.
+always in CLDR order. `PLURAL_CATEGORIES_INCOMPLETE` and `generatePlurals` use that set, so a French
+target now needs `many`. i18next ordinal keys (`<key>_ordinal_<category>`) are checked and generated
+against the language's ordinal rules instead. The nine previously covered languages resolve exactly
+as before. A locale ICU has no plural rules for keeps the old `one` and `other` assumption and gets
+no generated forms. `doctor` gains an informational `plural-rules` check naming the ICU and CLDR
+versions and any target locale without plural rules.

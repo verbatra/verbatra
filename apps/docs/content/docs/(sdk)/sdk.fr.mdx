@@ -175,6 +175,8 @@ Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modi
 
 Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne fait aucune requête réseau et ne lit jamais la valeur d'une clé d'API. Cinq vérifications s'exécutent, chacune avec son propre verdict `pass`, `fail` ou `skipped` : la config se charge et se valide, le format configuré se résout en un adaptateur, l'ID de fournisseur configuré se résout en une fabrique, la variable d'environnement dans laquelle ce fournisseur lit sa clé est définie, et le fichier de locale source peut être lu. Chaque vérification s'exécute même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. La clé d'API est vérifiée par son nom uniquement. La vérification du fichier source le lit et l'analyse au lieu de seulement sonder son existence : un répertoire à sa place, un fichier vide et un contenu malformé sont donc tous signalés ici.
 
+<AvailableFrom version="0.12.0" />
+
 Une sixième vérification, `plural-rules`, est informative et passe toujours : son détail nomme les versions d'ICU et de CLDR dont le runtime tire les catégories de pluriel de chaque langue cible, ainsi que toute locale cible pour laquelle ICU n'a pas de règles de pluriel.
 
 Entrée : `{ cwd?, configPath? }`. Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
