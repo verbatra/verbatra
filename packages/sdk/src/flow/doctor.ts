@@ -9,6 +9,7 @@ import {
 } from "../config/load-config.js";
 import {
   hasProviderFactory,
+  isMachineProvider,
   PROVIDER_IDS,
   type ProviderConfig,
 } from "../config/provider-config.js";
@@ -26,8 +27,10 @@ import { readSourceResource } from "./source.js";
  *
  * - `config`: a config file was found and passes validation.
  * - `format-adapter`: the configured `format` resolves to a file adapter.
- * - `provider`: the configured `provider.id` resolves to a provider factory.
- * - `api-key`: the environment variable the configured provider reads its key from is set.
+ * - `provider`: the configured `provider.id` resolves to a provider factory. It passes for `none`,
+ *   reporting that machine translation is disabled by policy.
+ * - `api-key`: the environment variable the configured provider reads its key from is set. It
+ *   passes for `none`, which reads no API key.
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
@@ -204,7 +207,14 @@ function checkAdapter(config: VerbatraConfig, outcome: AdapterOutcome): DoctorCh
     : verdict("format-adapter", false, outcome.detail);
 }
 
+const MACHINE_TRANSLATION_DISABLED_DETAIL =
+  'Machine translation disabled by policy (provider "none"): translate and watch fill only from ' +
+  "the translation memory, and no provider is ever called.";
+
 function checkProvider(provider: ProviderConfig): DoctorCheck {
+  if (!isMachineProvider(provider)) {
+    return verdict("provider", true, MACHINE_TRANSLATION_DISABLED_DETAIL);
+  }
   return hasProviderFactory(provider.id)
     ? verdict("provider", true, `Provider "${provider.id}" resolves to a factory.`)
     : verdict(
@@ -237,6 +247,13 @@ function checkOpenAiCompatibleKey(apiKeyEnvVar: string | undefined): DoctorCheck
 }
 
 function checkApiKey(provider: ProviderConfig): DoctorCheck {
+  if (!isMachineProvider(provider)) {
+    return verdict(
+      "api-key",
+      true,
+      "No API key is needed: machine translation is disabled by policy, so none is read.",
+    );
+  }
   return provider.id === "openai-compatible"
     ? checkOpenAiCompatibleKey(provider.options.apiKeyEnvVar)
     : envVarVerdict(PROVIDER_ENV[provider.id]);
@@ -331,6 +348,9 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * A sixth, informational check never fails: it names the ICU and CLDR versions the runtime derives
  * each target language's plural categories from, and lists any target locale ICU has no plural
  * rules for.
+ *
+ * A config whose provider is `none` passes both the provider and the key check: its provider check
+ * reports that machine translation is disabled by policy, and no key variable is looked at.
  *
  * A target locale file is not checked at all: a missing one is not a problem, because
  * {@link translate} creates it. The source locale file is checked, because every other entry point

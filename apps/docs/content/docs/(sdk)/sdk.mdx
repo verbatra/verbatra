@@ -382,7 +382,7 @@ Input: `{ config, cwd?, locale, key }`. Returns `{ accepted: true, value, review
 review reason codes, if any, that apply to the new value) or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Unlike `translate`, a provider failure here throws: a `ProviderError` from `@verbatra/ai-providers`
-with a stable code such as `RATE_LIMITED` or `AUTH_FAILED`.
+with a stable code such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
 
 ## Bulk content reads
 
@@ -610,8 +610,22 @@ under), and `supportedFormats` (the closed set of format ids). Read the token-li
 `providerTokenLimitKeys` rather than assuming one: Anthropic calls it `maxTokens` and the others
 `maxOutputTokens`, the schema validates each provider's options strictly, and DeepL has no entry
 because it takes no token limit. The `ScaffoldableProviderId` type is
-`Exclude<ProviderId, "openai-compatible">`, so it covers the five hosted providers;
+`Exclude<ProviderId, "openai-compatible" | "none">`, so it covers the five hosted providers;
 `openai-compatible` is excluded because it has no single required environment variable.
+
+`scaffoldingMetadata.humanOnlyProviderId` is `"none"`, the id that disables machine translation. It has no `providerEnv` entry, since it reads no key.
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Returns `false` exactly when the config sets `provider: { id: "none" }`, the [human-only](/docs/human-only-workflow) mode in which no provider is ever constructed and no API key is read. A surface that offers provider-spending actions reads it to leave them out altogether, which is how Studio and the MCP server withhold spend even with `--allow-spend`.
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Takes the config and a short phrase naming the action, and throws `SdkError` `MACHINE_TRANSLATION_DISABLED` under `provider: { id: "none" }`. Call it before wrapping `translate` in an explicit "translate everything pending" action, so the action fails the same way `retranslateEntry` does instead of quietly filling from the translation memory alone.
 
 ## Format adapters
 
@@ -739,7 +753,7 @@ interface LocaleSummary {
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
-  unfilled: string[];            // import only: blank rows whose key still needs a translation
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -791,7 +805,7 @@ The parts worth knowing:
   translation at import time (whether it was exported as `new` or as `changed`), a workbook row the
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
-  import.
+  import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no entry for.
 
 ### budgetStanding
 
@@ -818,6 +832,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `UNKNOWN_LOCALE` | a requested locale is not among the configured target locales |
 | `UNKNOWN_KEY` | a requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | the provider could not be built; wraps the provider's own error, including a missing API key |
+| `MACHINE_TRANSLATION_DISABLED` | the config sets `provider: { id: "none" }`, so a provider-spending action was refused before any provider was built (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` and `watch` never throw it |
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |

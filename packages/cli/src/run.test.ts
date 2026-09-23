@@ -426,6 +426,8 @@ describe("run translate: progress reporting", () => {
   });
 });
 
+const humanOnlyConfig = async () => makeConfig({ provider: { id: "none", options: {} } });
+
 describe("run translate: exit codes", () => {
   it("all locales clean -> 0", async () => {
     const { deps } = recordingDeps({ translate: async () => makeSummary({ succeeded: ["de"] }) });
@@ -469,6 +471,58 @@ describe("run translate: exit codes", () => {
       succeeded: [],
       partial: ["de"],
       failed: [],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);
+  });
+
+  it("a human-only run that left keys for a human -> 3, with a hand-off hint on stderr", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ cacheHits: ["greeting"], unfilled: ["farewell", "thanks"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate"], deps, cap.streams)).toBe(3);
+    expect(cap.err()).toContain("2 keys need a human translation");
+    expect(cap.err()).toContain("verbatra export");
+  });
+
+  it("a human-only run with one key left keeps the success envelope under --json -> 3", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
+    expect(parseEnvelope(cap.out().trim())).toMatchObject({ ok: true, command: "translate" });
+    expect(cap.err()).toContain("1 key needs a human translation");
+  });
+
+  it("prints no human-only hint when the config names a translation provider", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    const cap = captureStreams();
+
+    await run(["translate"], deps, cap.streams);
+
+    expect(cap.err()).not.toContain("machine translation is disabled");
+  });
+
+  it("a failed locale outranks keys left for a human -> 1", async () => {
+    const summary = makeSummary({
+      locales: [
+        makeLocale({ status: "failed", error: { code: "LOCALE_FAILED", message: "x" } }),
+        makeLocale({ locale: "fr", unfilled: ["farewell"] }),
+      ],
+      succeeded: ["fr"],
+      failed: ["de"],
     });
     const { deps } = recordingDeps({ translate: async () => summary });
     expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);

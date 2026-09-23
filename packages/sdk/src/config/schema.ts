@@ -104,20 +104,24 @@ export const verbatraConfigSchema = z
  * A config exactly as it is written in a `verbatra.config.ts` file, before the SDK resolves
  * anything. Its `glossary` may still be a path string pointing at a JSON file.
  *
- * This is what {@link defineConfig} returns and what {@link verbatraConfigSchema} parses. Use
- * {@link VerbatraConfig} for the resolved shape the flows actually consume.
+ * This is what {@link defineConfig} returns and what {@link verbatraConfigSchema} parses. It is the
+ * schema's input shape, so a `none` provider may leave out `options`, which parsing fills in as
+ * `{}`. Use {@link VerbatraConfig} for the resolved shape the flows actually consume.
  */
-export type VerbatraConfigInput = z.infer<typeof verbatraConfigSchema>;
+export type VerbatraConfigInput = z.input<typeof verbatraConfigSchema>;
+
+export type ParsedVerbatraConfig = z.infer<typeof verbatraConfigSchema>;
 
 /**
  * A fully resolved config, ready to pass to any SDK entry point. It differs from
- * {@link VerbatraConfigInput} in one respect: `glossary` is always an in-memory term map, because
- * {@link loadConfig} has already read and validated any glossary file the config pointed at.
+ * {@link VerbatraConfigInput} in two respects: `glossary` is always an in-memory term map, because
+ * {@link loadConfig} has already read and validated any glossary file the config pointed at, and
+ * `provider.options` is always present, `{}` for a `none` provider.
  *
  * Every entry point takes this shape, so a caller that builds a config by hand rather than loading
  * one from disk must supply the glossary already resolved.
  */
-export type VerbatraConfig = Omit<VerbatraConfigInput, "glossary"> & {
+export type VerbatraConfig = Omit<ParsedVerbatraConfig, "glossary"> & {
   /**
    * Terms that must be translated a fixed way, already resolved to an in-memory map. A config that
    * named a glossary file has had it read by {@link loadConfig} before it reaches here.

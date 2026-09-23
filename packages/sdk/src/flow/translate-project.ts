@@ -1,4 +1,3 @@
-import type { ProviderKind, TranslationProvider } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import {
@@ -11,6 +10,7 @@ import {
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import { toMaxLengthMap } from "../config/max-length.js";
+import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
@@ -46,7 +46,7 @@ import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { failureSummary, partition } from "./locale-failure.js";
-import { type LocaleRunParams, runLocale } from "./locale-run.js";
+import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
@@ -76,7 +76,8 @@ export interface TranslateInput {
   /**
    * Compute the whole run but write nothing and call no provider. The returned
    * {@link RunSummary} reports what would have happened, which makes this safe to run in CI to
-   * preview work without spending anything. Defaults to false.
+   * preview work without spending anything. Defaults to false. In human-only mode (provider
+   * `none`) it reads the translation memory, so the plan matches a live run.
    */
   readonly dryRun?: boolean;
   /**
@@ -126,7 +127,8 @@ export interface TranslateInput {
   /**
    * Consult and update the translation memory, fuzzy reuse included. Defaults to true. Turning it
    * off forces every key through the provider, which is what to do when you want to re-pay for a
-   * fresh translation. A dry run never reads the memory, whatever this says.
+   * fresh translation. A dry run never reads the memory, whatever this says, except in human-only
+   * mode (provider `none`), where the memory is all a live run would use.
    */
   readonly cache?: boolean;
 }
@@ -170,7 +172,7 @@ async function createRunCacheState(
   dryRun: boolean,
   fs: SdkFs,
 ): Promise<RunCacheState | undefined> {
-  if (dryRun || input.cache === false) {
+  if ((dryRun && isMachineProvider(config.provider)) || input.cache === false) {
     return undefined;
   }
   const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
@@ -219,8 +221,7 @@ async function recordCacheAdditions(
 interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
-  readonly provider: TranslationProvider | undefined;
-  readonly providerKind: ProviderKind;
+  readonly mode: LocaleRunMode;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -245,8 +246,7 @@ function buildLocaleRunParams(
     sourceInvalidIcuKeys: context.source.invalidIcuKeys,
     baseline,
     adapter: context.adapter,
-    provider: context.provider,
-    providerKind: context.providerKind,
+    mode: context.mode,
     cwd: context.cwd,
     resolver: context.resolver,
     sourceLocale: context.config.sourceLocale,
@@ -476,6 +476,25 @@ export function resolveDryRun(input: {
   return input.dryRun === true || input.estimate === true;
 }
 
+function selectRunMode(
+  config: VerbatraConfig,
+  dryRun: boolean,
+  createProvider: CreateProvider | undefined,
+): LocaleRunMode {
+  const machineProvider = isMachineProvider(config.provider) ? config.provider : undefined;
+  if (machineProvider === undefined) {
+    return { kind: "memory-only", write: !dryRun };
+  }
+  const providerKind = kindOf(machineProvider.id);
+  return dryRun
+    ? { kind: "plan", providerKind }
+    : {
+        kind: "translate",
+        provider: selectProvider(machineProvider, createProvider),
+        providerKind,
+      };
+}
+
 function estimateFields(
   requested: boolean,
   params: EstimateForRunInput,
@@ -512,6 +531,16 @@ function estimateFields(
  * refused rather than written, leaving the previous value intact.
  *
  * Set `dryRun` to compute the whole plan without writing or spending anything.
+ *
+ * A config whose provider is `none` runs in human-only mode. No provider is constructed and no API
+ * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written
+ * as usual; every other missing or stale key is left untouched, keeps its lock-file baseline, and is
+ * listed in {@link LocaleSummary.unfilled} for a human to translate, through `exportWorkbook` and
+ * {@link importWorkbook} for instance. Only exact memory hits are written: fuzzy reuse is never
+ * applied in this mode, even with `fuzzyCache` on, because only a person can confirm a translation
+ * of text that has changed. Such keys do not change a locale's status.
+ * A human-only dry run reads the memory too, without writing anything, so its plan matches a live
+ * run, and an estimate reports nothing to send and nothing billed.
  *
  * @param input - The config and the per-run options.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
@@ -578,15 +607,14 @@ export async function translate(
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const provider = dryRun ? undefined : selectProvider(config.provider, deps.createProvider);
+  const mode = selectRunMode(config, dryRun, deps.createProvider);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
   const context: LocaleRunContext = {
     source,
     adapter,
-    provider,
-    providerKind: kindOf(config.provider.id),
+    mode,
     cwd,
     config,
     resolver,

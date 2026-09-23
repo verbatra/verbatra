@@ -76,6 +76,7 @@ body:
         - deepl
         - google-translate
         - openai-compatible
+        - none
     validations:
       required: false
 

@@ -102,7 +102,8 @@ export interface RunBudget {
  *   reported; the money is not, because verbatra ships no prices of its own and will not guess one.
  * - `rate-unit-mismatch`: a rate exists but is written in the wrong unit for this provider, for
  *   instance a per-character price against a token-billed model. It is refused rather than applied.
- * - `not-billed`: the provider is a self-hosted endpoint, so no API bills for the run at all.
+ * - `not-billed`: the provider is a self-hosted endpoint, or `none`, so no API bills for the run at
+ *   all.
  */
 export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch" | "not-billed";
 
@@ -460,8 +461,12 @@ export interface LocaleSummary {
   /** Translated keys flagged as worth a human look. The translations were still written. */
   readonly needsReview: readonly NeedsReviewEntry[];
   /**
-   * Keys an imported handoff left blank while they were missing or out of date in this locale.
-   * Always empty for a {@link translate} run.
+   * Keys still missing or out of date that nothing filled, so a human has to translate them. For
+   * {@link importWorkbook}, the keys the handoff left blank. For a {@link translate} or
+   * {@link watch} run, empty unless the config's provider is `none`: then it lists the keys the
+   * translation memory had no exact entry for, fuzzy reuse never being applied in that mode. They
+   * were left untouched rather than sent anywhere. A human-only dry run reads the memory too, so it
+   * lists the same keys a live run would.
    */
   readonly unfilled: readonly string[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */

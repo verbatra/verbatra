@@ -34,7 +34,9 @@ Both forms take the same three flags and start the same server, but the wrappers
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--allow-spend` | none | off | advertise the two tools that call a translation provider |
 
-When `--allow-spend` is absent, the server reads the `VERBATRA_MCP_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, `translation.retranslateEntry` and `translation.translatePending` are not advertised at all: an MCP client that lists tools never sees them, and calling either by name fails as an unknown tool. This is a per-process guarantee, not a per-call check, so a spend-gated tool is structurally uncallable rather than merely refused at call time.
+When `--allow-spend` is absent, the server reads the `VERBATRA_MCP_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, `translation.retranslateEntry` and `translation.translatePending` are not advertised at all: an MCP client that lists tools never sees them, and calling either by name fails as an unknown tool. This is a per-process guarantee, not a per-call check, so a spend-gated tool is structurally uncallable rather than merely refused at call time. A config with `provider: { id: "none" }` disables machine translation by policy, and then the two tools are never advertised, even with `--allow-spend`.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 ## Configuring an MCP client
 

@@ -45,7 +45,8 @@ export const retranslateEntryTool = defineTool({
     "result is returned as accepted: false with a reason, not an error. An accepted result may " +
     "still carry reviewReasons flagging it for human review (for example a length outlier or a " +
     "missed glossary term) even though it was written. Calls a translation provider and spends " +
-    "against your API usage; only available when the server was started with spending allowed.",
+    "against your API usage; only available when the server was started with spending allowed " +
+    "and a translation provider is configured.",
   paramsSchema,
   outputSchema: retranslateEntryResultSchema,
   annotations: {

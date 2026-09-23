@@ -1,3 +1,4 @@
+import { resolveCapabilities } from "../capabilities.js";
 import { buildProjectSnapshot } from "../projection.js";
 import type { RpcHandler } from "../rpc.js";
 
@@ -5,6 +6,6 @@ export const snapshotHandler: RpcHandler<"project.snapshot"> = async (_params, d
   buildProjectSnapshot(
     deps.config,
     deps.projectRoot,
-    { spend: deps.spend ?? false, writeToDisk: true },
+    resolveCapabilities(deps.spend ?? false, deps.config.config),
     deps.exposeAgentTools ?? false,
   );

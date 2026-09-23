@@ -74,6 +74,28 @@ const stubCreateProvider: CreateProvider = () => ({
 });
 
 describe("translatePendingHandler", () => {
+  it("refuses with MACHINE_TRANSLATION_DISABLED under provider none, constructing nothing", async () => {
+    const project = await makeFixtureProject(
+      { provider: { id: "none", options: {} } },
+      { greeting: "hello" },
+    );
+    const factoryCalls: string[] = [];
+    try {
+      const error = await translatePendingHandler(
+        {},
+        deps(project, (config) => {
+          factoryCalls.push(config.id);
+          return stubCreateProvider(config);
+        }),
+      ).catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({ name: "SdkError", code: "MACHINE_TRANSLATION_DISABLED" });
+      expect(factoryCalls).toEqual([]);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
   it("delegates to the sdk's unfiltered translate() and returns the whole RunSummary", async () => {
     const project = await makeFixtureProject(
       { targetLocales: ["de", "fr"] },

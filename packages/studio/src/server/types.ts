@@ -105,7 +105,9 @@ export interface StudioServerDeps {
    * Authorizes provider invocations: network egress, an API key read from its environment variable,
    * and a billable call. Read once at startup to decide which RPC methods exist at all, so a method
    * it does not cover answers `METHOD_UNKNOWN` rather than failing later. Off by default. This is
-   * the only capability option; writing a local locale file always needs no flag.
+   * the only capability option; writing a local locale file always needs no flag. A config whose
+   * provider is `none` withholds it regardless, since machine translation is then disabled by
+   * policy.
    */
   readonly spend?: boolean;
   /**

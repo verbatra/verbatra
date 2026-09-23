@@ -29,6 +29,10 @@ Por defecto una ejecución no borra nada: las claves huérfanas se informan y se
 
 `--dry-run` no construye ningún proveedor, así que no necesita clave de API y no puede gastar nada: lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea de estado de la ejecución), no lee ni escribe la caché, y no toma ningún bloqueo de escritura por locale, así que nunca espera a una ejecución ya en curso. La carga de `.env` de arriba sigue ocurriendo en un dry run; simplemente no hay ninguna clave que leer. Eso lo convierte en una forma completa de probar verbatra en un proyecto real antes de crear una cuenta de proveedor.
 
+En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) un dry run es la única excepción a la regla de la caché: lee la memoria de traducción, sin escribir nada, así que su plan lista las mismas claves `cacheHits` y `unfilled` que una ejecución real, y `--estimate` informa de que no hay nada que enviar ni que facturar.
+
+<AvailableFrom version="0.12.0" />
+
 `--estimate` añade a ese dry run una estimación de coste previa: cuántas claves se enviarían, en cuántas peticiones al proveedor se repartirían y qué cantidad factura realmente el proveedor configurado (tokens estimados de prompt y de respuesta en un LLM, caracteres de origen estimados en DeepL o Google Cloud Translation, y ningún coste en un endpoint `openai-compatible` autoalojado). Implica `--dry-run`, así que no gasta nada y no escribe nada. Una cifra en moneda solo aparece cuando la configuración lleva un bloque `rates` que cubre el proveedor y el modelo configurados; sin él se informa igualmente de la cantidad y se nombra la clave de tarifa que falta, en lugar de inventar un coste de `0.00`. Toda cifra se imprime junto a la fecha en que se leyeron esas tarifas y junto a una línea que nombra lo que la estimación deja fuera. Consulta [Estimar el coste](/docs/estimating-cost).
 
 <AvailableFrom version="0.11.0" />
@@ -62,10 +66,15 @@ verbatra translate --estimate
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o bloqueo) o un error de uso |
+| `3` | proyecto solo humano (`provider: { id: "none" }`): la ejecución terminó sin errores, pero quedan claves para una traducción humana |
 
 <AvailableFrom version="0.9.0" />
 
 Que falle un locale no es fatal: la ejecución termina, sale con `1` y el detalle por locale queda en el resumen. Un locale **parcial** sale con `1` también. Ese es un locale cuyo archivo se escribió pero todavía tiene claves faltantes, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción, y darlo por bueno dejaría un archivo a medio traducir en tu repositorio sin que nadie lo note.
+
+La salida `3` solo ocurre en un proyecto [solo humano](/docs/human-only-workflow). Ahí no se llama a ningún proveedor: las claves que cubre la memoria de traducción se escriben, y cualquier otra clave ausente o cambiada se lista como `unfilled` y no se toca. Un locale fallido o parcial sigue teniendo prioridad y sale con `1`. Pasa las claves `unfilled` a una persona con [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
 
 ## Relacionado
 

@@ -179,11 +179,10 @@ describe.each(cases)("gateCandidateValue agreement: $name", (testCase) => {
     const { summary, lockEntries } = await runLocale({
       source: sourceResource,
       sourceInvalidIcuKeys: [],
-      providerKind: "llm",
       baseline: new Map(),
       maxLength: undefined,
       adapter: testCase.adapter,
-      provider,
+      mode: { kind: "translate", provider, providerKind: "llm" },
       cwd: dir,
       resolver: createLocalePathResolver(dir, {
         sourceLocale: "en",

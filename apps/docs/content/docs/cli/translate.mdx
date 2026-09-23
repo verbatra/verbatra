@@ -29,6 +29,10 @@ By default a run deletes nothing: orphaned keys are reported and left in place. 
 
 `--dry-run` constructs no provider at all, so it needs no API key and cannot spend anything: it reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), it neither reads nor writes the cache, and it takes no per-locale write lock, so it never waits on a run already in progress. The `.env` load above still happens on a dry run; there is simply no key to read. That makes it a complete way to try verbatra on a real project before creating a provider account.
 
+In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) a dry run is the one exception to the cache rule: it reads the translation memory, still writing nothing, so its plan lists the same `cacheHits` and `unfilled` keys a live run would, and `--estimate` reports nothing to send and nothing billed.
+
+<AvailableFrom version="0.12.0" />
+
 `--estimate` adds a pre-run cost estimate to that dry run: how many keys would be sent, how many provider requests they would be split into, and the quantity the configured provider actually bills for (estimated prompt and completion tokens for an LLM, estimated source characters for DeepL or Google Cloud Translation, and no cost at all for a self-hosted `openai-compatible` endpoint). It implies `--dry-run`, so it spends nothing and writes nothing. A currency figure appears only when the config carries a `rates` block covering the configured provider and model; without one the quantity is still reported and the missing rate key is named, rather than a cost of `0.00` being invented. Every figure is printed beside the date those rates were read, and beside a line naming what the estimate leaves out. See [Estimating cost](/docs/estimating-cost).
 
 <AvailableFrom version="0.11.0" />
@@ -62,10 +66,15 @@ verbatra translate --estimate
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, source, format, provider, or lock), or a usage error |
+| `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
 
 <AvailableFrom version="0.9.0" />
 
 One locale failing is not fatal: the run finishes, exits `1`, and the per-locale detail sits in the summary. A **partial** locale exits `1` as well. That is a locale whose file was written but still has keys missing, typically because a provider sub-batch failed or the integrity gate refused a translation, and shipping it as a success would leave a half-translated file in your repository unnoticed.
+
+Exit `3` only happens in a [human-only](/docs/human-only-workflow) project. No provider is called there: keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and left untouched. A failed or partial locale still wins and exits `1`. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
 
 ## Related
 

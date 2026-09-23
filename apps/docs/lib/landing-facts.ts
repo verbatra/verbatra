@@ -17,7 +17,7 @@ const FORMAT_IDS: Readonly<Record<SupportedFormat, true>> = {
   resx: true,
 };
 
-const PROVIDER_IDS: Readonly<Record<ProviderId, true>> = {
+const PROVIDER_IDS: Readonly<Record<Exclude<ProviderId, "none">, true>> = {
   anthropic: true,
   openai: true,
   gemini: true,

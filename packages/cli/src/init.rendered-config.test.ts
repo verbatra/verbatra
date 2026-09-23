@@ -72,6 +72,20 @@ describe("the scaffolded verbatra.config.ts", () => {
     },
   );
 
+  it("parses back into a human-only config for provider none", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      cap.streams,
+      nonInteractive,
+    );
+    expect(code).toBe(0);
+
+    const rendered = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
+
+    expect(verbatraConfigSchema.parse(rendered).provider).toEqual({ id: "none", options: {} });
+  });
+
   it("names the token limit option each language model provider actually accepts", async () => {
     const cap = captureStreams();
     await runInit({ cwd: dir, yes: true, provider: "anthropic" }, cap.streams, nonInteractive);

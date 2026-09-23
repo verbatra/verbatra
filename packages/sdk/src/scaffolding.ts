@@ -3,11 +3,12 @@ import { SUPPORTED_FORMATS } from "@verbatra/core";
 import type { ProviderId } from "./config/provider-config.js";
 
 /**
- * A provider that project scaffolding can offer out of the box. It excludes `openai-compatible`,
- * which needs a `baseUrl` and a model name that only the user can supply, so there is nothing
- * sensible to prefill.
+ * A translation provider that project scaffolding can offer out of the box, each with an API key
+ * variable in {@link scaffoldingMetadata}. It excludes `openai-compatible`, which needs a `baseUrl`
+ * and a model name that only the user can supply, so there is nothing sensible to prefill, and
+ * `none`, which disables machine translation and so reads no API key at all.
  */
-export type ScaffoldableProviderId = Exclude<ProviderId, "openai-compatible">;
+export type ScaffoldableProviderId = Exclude<ProviderId, "openai-compatible" | "none">;
 
 const _envCoversAllProviders: Record<ScaffoldableProviderId, string> = PROVIDER_ENV;
 void _envCoversAllProviders;
@@ -48,4 +49,10 @@ export const scaffoldingMetadata = {
    * since its adapter ships outside verbatra.
    */
   supportedFormats: SUPPORTED_FORMATS,
+  /**
+   * The provider id that disables machine translation by policy, for a generator that offers a
+   * human-only project. It reads no API key, so it has no entry in {@link providerEnv}, and its
+   * provider block takes no options.
+   */
+  humanOnlyProviderId: "none" satisfies ProviderId,
 } as const;

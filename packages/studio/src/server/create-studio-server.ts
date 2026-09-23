@@ -7,6 +7,7 @@ import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
+import { resolveCapabilities } from "./capabilities.js";
 import { cookieName } from "./cookie.js";
 import { resolvePort } from "./default-port.js";
 import { type DispatchContext, handleRequest } from "./dispatch.js";
@@ -14,7 +15,7 @@ import { StudioServerStartError } from "./errors.js";
 import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
 import { createRpcRateLimiter, type RpcRateLimiter } from "./rate-limiter.js";
 import { resolveBoundAddress } from "./resolve-bound-port.js";
-import { createRpcHandlers, type RpcHandlerDeps, type StudioCapabilities } from "./rpc.js";
+import { createRpcHandlers, type RpcHandlerDeps } from "./rpc.js";
 import { createSseHub, type SseHub } from "./sse.js";
 import { generateToken } from "./token.js";
 import { FORBIDDEN_BODY } from "./transport-responses.js";
@@ -91,14 +92,14 @@ function defaultOutput(line: string): void {
 function buildRpcHandlerDeps(
   config: LoadedConfig,
   projectRoot: string,
-  capabilities: StudioCapabilities,
+  spendGranted: boolean,
   exposeAgentTools: boolean,
   options: StudioServerOptions,
 ): RpcHandlerDeps {
   return {
     config,
     projectRoot,
-    spend: capabilities.spend,
+    spend: spendGranted,
     exposeAgentTools,
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
@@ -168,7 +169,8 @@ async function closeServer(server: Server, sseHub: SseHub, watcher: ProjectWatch
  * calls are allowed only when {@link StudioServerDeps.spend} is set, so nothing the project's own
  * config module does can widen what this process was granted. Then `options.loader` resolves,
  * exactly once, before the server listens; every RPC handler reuses that one config for the life of
- * the process.
+ * the process. The config can only narrow the grant: a provider of `none` disables machine
+ * translation by policy, and then the provider-calling methods are absent even with `spend` set.
  *
  * @param options - The loader, where to bind and run, the granted capabilities, and any injection seams.
  * @returns The running server: its loopback URL, the port actually bound, and a `close` to stop it.
@@ -200,13 +202,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const assetsRootPath = fileURLToPath(options.assetsRoot ?? defaultAssetsRoot());
   const output = options.output ?? defaultOutput;
   const token = options.token ?? generateToken();
-  const capabilities: StudioCapabilities = {
-    spend: options.spend ?? false,
-    writeToDisk: true,
-  };
+  const granted = options.spend ?? false;
   const exposeAgentTools = options.exposeAgentTools ?? false;
   const config = await options.loader();
   declareProviderKeyEnvVar(config.config.provider);
+  const capabilities = resolveCapabilities(granted, config.config);
   const projectRoot = options.cwd ?? process.cwd();
 
   const watcher = await createProjectWatcher(
@@ -242,7 +242,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     cookieName: cookieName(port),
     assetsRootPath,
     log: output,
-    rpcDeps: buildRpcHandlerDeps(config, projectRoot, capabilities, exposeAgentTools, options),
+    rpcDeps: buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
     handlers,
     rateLimiter,
     inFlightGuard,

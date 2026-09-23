@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ExcelJS from "exceljs";
 import { execa } from "execa";
 import { type RecordedProcessOutput, recordPendingRun, recordRun } from "./diagnostics.js";
 
@@ -298,4 +299,42 @@ export function providerConfigBlock(provider: { id: ProviderEnv["id"]; model?: s
     case "google-translate":
       return `{ id: "google-translate", options: {} }`;
   }
+}
+
+const WORKBOOK_HEADER_ROW = 1;
+const WORKBOOK_KEY_COLUMN = 1;
+const WORKBOOK_TRANSLATION_COLUMN = 5;
+const WORKBOOK_INSTRUCTIONS_SHEET = "Instructions";
+
+export interface FillWorkbookOptions {
+  onDataSheetHeaders?: (headers: readonly string[]) => void;
+}
+
+export async function fillWorkbook(
+  workbookPath: string,
+  translationFor: (key: string) => string | undefined,
+  options: FillWorkbookOptions = {},
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(workbookPath);
+  for (const sheet of workbook.worksheets) {
+    if (sheet.name === WORKBOOK_INSTRUCTIONS_SHEET) {
+      continue;
+    }
+    const headers: string[] = [];
+    sheet.getRow(WORKBOOK_HEADER_ROW).eachCell((cell) => {
+      headers.push(String(cell.value));
+    });
+    options.onDataSheetHeaders?.(headers);
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === WORKBOOK_HEADER_ROW) {
+        return;
+      }
+      const translation = translationFor(String(row.getCell(WORKBOOK_KEY_COLUMN).value));
+      if (translation !== undefined) {
+        row.getCell(WORKBOOK_TRANSLATION_COLUMN).value = translation;
+      }
+    });
+  }
+  await workbook.xlsx.writeFile(workbookPath);
 }

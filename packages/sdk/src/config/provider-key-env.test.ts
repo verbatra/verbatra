@@ -35,6 +35,12 @@ describe("declareProviderKeyEnvVar", () => {
     expect(declaredCount()).toBe(before);
   });
 
+  it("declares nothing for provider none, which reads no key at all", () => {
+    const before = declaredCount();
+    declareProviderKeyEnvVar({ id: "none", options: {} });
+    expect(declaredCount()).toBe(before);
+  });
+
   it("declares nothing for an openai-compatible provider without apiKeyEnvVar", () => {
     const before = declaredCount();
     declareProviderKeyEnvVar({

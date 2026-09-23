@@ -15,7 +15,7 @@ verbatra init [flags]
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | current directory | write the config and env files to this directory |
-| `--provider` | `<id>` | none (required) | provider to scaffold: `anthropic`, `openai`, `gemini`, `deepl`, or `google-translate`; when omitted, prompted for interactively |
+| `--provider` | `<id>` | none (required) | provider to scaffold: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, or `none`; when omitted, prompted for interactively |
 | `--source` | `<locale>` | `en` | the source locale your strings are written in |
 | `--targets` | `<locales>` | `de` | comma-separated target locales to translate into |
 | `--path` | `<pattern>` | `locales/{locale}.json` | locale file pattern; must contain the `{locale}` token |
@@ -23,6 +23,10 @@ verbatra init [flags]
 | `--force` | none | off | overwrite an existing `verbatra.config.ts` or `.env.example` |
 
 The format is not a flag: `init` detects it from your dependencies (`i18next`, `vue-i18n`, `next-intl`, or `@ngx-translate/core`). With no single unambiguous match it falls back to `i18next-json` and leaves a TODO comment listing every supported format. Without `--force`, an existing `verbatra.config.ts` or `.env.example` is skipped, never overwritten, and the command still succeeds.
+
+`--provider none` scaffolds a [human-only](/docs/human-only-workflow) config with no `options` and writes no `.env.example`, since no API key is ever read.
+
+<AvailableFrom version="0.12.0" />
 
 ## Examples
 
@@ -32,6 +36,9 @@ verbatra init --provider gemini
 
 # non-interactive, accept all defaults
 verbatra init --provider deepl --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
 ```
 
 ## Exit codes

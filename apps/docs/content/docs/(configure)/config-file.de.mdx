@@ -83,7 +83,7 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
 
 ### provider
 
-Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` oder `openai-compatible`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert.
+Ein Objekt, ausgewählt über `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none`. Jeder Provider nimmt seine eigenen `options` (Modell, Token-Limit und provider-spezifische Felder), und unbekannte Options-Keys werden abgelehnt. Die Optionen pro Provider sind auf [Provider](/docs/providers) dokumentiert. `none` schaltet Maschinenübersetzung per Richtlinie ab, und seine `options` darf fehlen; wenn angegeben, muss es `{}` sein; siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
 
 ### glossary
 

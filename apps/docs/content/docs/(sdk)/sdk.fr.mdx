@@ -255,7 +255,7 @@ Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux b
 
 Relance le fournisseur pour exactement une clé et une locale : un appel à entrée unique via le même chemin de fournisseur que `translate`, passé par les mêmes contrôles d'intégrité. À l'acceptation, il écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
 
-Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`.
+Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError` de `@verbatra/ai-providers` avec un code stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
 ## Lectures de contenu en masse
 
@@ -434,7 +434,21 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 
 ### scaffoldingMetadata
 
-Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
+Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "none">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
+
+`scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Renvoie `false` exactement quand la configuration fixe `provider: { id: "none" }`, le mode [100 % humain](/docs/human-only-workflow) dans lequel aucun fournisseur n'est jamais construit et aucune clé d'API n'est lue. Une interface qui propose des actions dépensant auprès du fournisseur le lit pour les omettre entièrement ; c'est ainsi que Studio et le serveur MCP refusent la dépense même avec `--allow-spend`.
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Prend la configuration et une courte phrase nommant l'action, et lève une `SdkError` `MACHINE_TRANSLATION_DISABLED` sous `provider: { id: "none" }`. Appelle-le avant d'envelopper `translate` dans une action explicite « traduire tout ce qui est en attente », pour que l'action échoue comme `retranslateEntry` au lieu de remplir en silence depuis la seule mémoire de traduction.
 
 ## Adaptateurs de format
 
@@ -548,7 +562,7 @@ interface LocaleSummary {
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
-  unfilled: string[];            // import only: blank rows whose key still needs a translation
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -565,7 +579,7 @@ Les parties à connaître :
 - **usage** est `undefined`, jamais un zéro fabriqué, dès que rien dans ce périmètre n'a rapporté d'usage : un dry run n'appelle jamais de fournisseur, et DeepL ne rapporte jamais de tokens. `RunSummary.usage` est la somme sur les locales.
 - **budget** n'apparaît que quand `maxTokens` est configuré : `{ maxTokens, behavior, supported, tokensUsed, exceeded }`. `supported` indique si `tokensUsed` est entièrement l'usage rapporté par le fournisseur lui-même ; il vaut `false` dès qu'une requête revient sans chiffre exploitable, et le total est alors en partie la projection de verbatra, comptée et appliquée de la même façon. Un dry run le rapporte avec `tokensUsed: 0`, puisque rien n'a été envoyé. Sous `behavior: "stop"`, le plafond est vérifié avant chaque requête que l'exécution envoie, y compris chaque moitié d'une requête redécoupée, donc `tokensUsed` finit au plafond ou en dessous, à un résidu près : la dernière requête admise est réconciliée avec ce que le fournisseur a rapporté, ce qui peut pousser le total au-dessus du plafond après coup. Plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le budget borne un appel à `translate` : `watch` en démarre un neuf par exécution, et `retranslateEntry` n'est pas couvert du tout.
 - **error.code** sur une locale échouée est une chaîne préservée (le code du fournisseur ou de l'adaptateur sous-jacent, avec `LOCALE_FAILED` seulement en dernier recours), donc ne le traite pas comme un ensemble fermé.
-- **cacheHits** liste les clés servies depuis le [cache de mémoire de traduction](/docs/the-cache) plutôt que par le fournisseur. **fuzzyHits** liste les clés qui ont réutilisé une traduction pour une chaîne source qui avait changé, chacune portant `key`, `similarity` et le `previousSource` correspondant ; elle est vide tant que `fuzzyCache` n'est pas activé, et ces clés ne sont jamais comptées dans **cacheHits**. **unfilled**, **malformedRows** et **duplicateKeys** ne sont remplis que par `importWorkbook` (une exécution `translate` les laisse vides) : une ligne vide dont la clé demande toujours une traduction au moment de l'import (qu'elle ait été exportée comme `new` ou comme `changed`), une ligne du classeur que le lecteur n'a pas pu analyser, et une clé en double dont la première occurrence a gagné. Le `line` optionnel des deux derniers est la ligne du fichier où commence l'enregistrement, présent uniquement pour un import délimité (`csv` ou `tsv`).
+- **cacheHits** liste les clés servies depuis le [cache de mémoire de traduction](/docs/the-cache) plutôt que par le fournisseur. **fuzzyHits** liste les clés qui ont réutilisé une traduction pour une chaîne source qui avait changé, chacune portant `key`, `similarity` et le `previousSource` correspondant ; elle est vide tant que `fuzzyCache` n'est pas activé, et ces clés ne sont jamais comptées dans **cacheHits**. **unfilled**, **malformedRows** et **duplicateKeys** ne sont remplis que par `importWorkbook` (une exécution `translate` les laisse vides) : une ligne vide dont la clé demande toujours une traduction au moment de l'import (qu'elle ait été exportée comme `new` ou comme `changed`), une ligne du classeur que le lecteur n'a pas pu analyser, et une clé en double dont la première occurrence a gagné. Le `line` optionnel des deux derniers est la ligne du fichier où commence l'enregistrement, présent uniquement pour un import délimité (`csv` ou `tsv`). La seule exception est un projet [100 % humain](/docs/human-only-workflow) : là, `translate` et `watch` listent dans **unfilled** chaque clé pour laquelle la mémoire de traduction n'avait pas d'entrée.
 
 ### budgetStanding
 
@@ -585,6 +599,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `UNKNOWN_LOCALE` | une locale demandée n'est pas parmi les locales cibles configurées |
 | `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante |
+| `MACHINE_TRANSLATION_DISABLED` | la configuration fixe `provider: { id: "none" }`, donc une action dépensant auprès du fournisseur a été refusée avant qu'aucun fournisseur ne soit construit (`retranslateEntry`, `assertMachineTranslationEnabled`) ; `translate` et `watch` ne la lèvent jamais |
 | `SOURCE_UNREADABLE` | le fichier de la locale source n'existe pas |
 | `SOURCE_INVALID` | le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'erreur de lecture de l'adaptateur |
 | `LOCK_FILE_INVALID` | le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une version non prise en charge |

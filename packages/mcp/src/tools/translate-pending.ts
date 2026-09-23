@@ -1,4 +1,4 @@
-import { type RunSummary, translate } from "@verbatra/sdk";
+import { assertMachineTranslationEnabled, type RunSummary, translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -9,6 +9,7 @@ async function translatePending(
   _params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
 ): Promise<RunSummary> {
+  assertMachineTranslationEnabled(context.config.config, "translating every pending key");
   return translate(
     { config: context.config.config, cwd: context.cwd },
     {
@@ -29,7 +30,7 @@ export const translatePendingTool = defineTool({
     "is the same operation the verbatra translate CLI command runs with no locale filter. Call " +
     "status.diff first to see what this would change before running it. Calls a translation " +
     "provider and spends against your API usage; only available when the server was started " +
-    "with spending allowed.",
+    "with spending allowed and a translation provider is configured.",
   paramsSchema,
   annotations: {
     readOnlyHint: false,

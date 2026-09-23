@@ -98,8 +98,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: makeStubProvider().provider,
-    providerKind: "llm",
+    mode: { kind: "translate", provider: makeStubProvider().provider, providerKind: "llm" },
     maxLength: undefined,
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
@@ -129,7 +128,10 @@ function targetPath(dir: string, locale: string): string {
 describe("runLocale: dry-run", () => {
   it("reports what would be translated and writes nothing, with no lock entries", async () => {
     const { dir, sourceResource } = await setup({ a: "A", b: "B" }, { a: "da" });
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: undefined });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "plan", providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -151,7 +153,7 @@ describe("runLocale: dry-run", () => {
     });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: undefined, targetLocale: "pl", generatePlurals: true },
+      { mode: { kind: "plan", providerKind: "llm" }, targetLocale: "pl", generatePlurals: true },
     );
 
     const { summary } = await runLocale(params);
@@ -168,8 +170,7 @@ describe("runLocale: dry-run", () => {
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: undefined,
-        providerKind: "machine-translation",
+        mode: { kind: "plan", providerKind: "machine-translation" },
         targetLocale: "pl",
         generatePlurals: true,
       },
@@ -191,14 +192,18 @@ describe("runLocale: dry-run", () => {
     });
     const live = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: makeStubProvider().provider, targetLocale: "pl", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: makeStubProvider().provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
     );
     const { lockEntries } = await runLocale(live);
 
     const dry = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: undefined,
+        mode: { kind: "plan", providerKind: "llm" },
         targetLocale: "pl",
         generatePlurals: true,
         baseline: new Map(Object.entries(lockEntries)),
@@ -219,7 +224,7 @@ describe("runLocale: dry-run", () => {
     });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: undefined, targetLocale: "pl", generatePlurals: true },
+      { mode: { kind: "plan", providerKind: "llm" }, targetLocale: "pl", generatePlurals: true },
     );
 
     const { summary } = await runLocale(params);
@@ -232,7 +237,10 @@ describe("runLocale: translate and write", () => {
   it("translates the missing keys, writes the file, and locks every written key", async () => {
     const { dir, sourceResource } = await setup({ a: "A", b: "B" });
     const stub = makeStubProvider();
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -251,7 +259,10 @@ describe("runLocale: new-key append order", () => {
     );
     expect([...sourceResource.entries.keys()]).toEqual(["zebra", "alpha", "mango"]);
     const stub = makeStubProvider();
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     await runLocale(params);
 
@@ -267,7 +278,7 @@ describe("runLocale: withholding", () => {
     const throwing = makeStubProvider({ throwForLocales: new Set(["de"]) });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: throwing.provider },
+      { mode: { kind: "translate", provider: throwing.provider, providerKind: "llm" } },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -288,7 +299,7 @@ describe("runLocale: withholding", () => {
     const throwing = makeStubProvider({ throwForLocales: new Set(["de"]), error });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: throwing.provider },
+      { mode: { kind: "translate", provider: throwing.provider, providerKind: "llm" } },
     );
 
     const { summary } = await runLocale(params);
@@ -307,7 +318,7 @@ describe("runLocale: withholding", () => {
     const throwing = makeStubProvider({ throwForLocales: new Set(["de"]), error });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: throwing.provider },
+      { mode: { kind: "translate", provider: throwing.provider, providerKind: "llm" } },
     );
 
     const { summary } = await runLocale(params);
@@ -321,7 +332,10 @@ describe("runLocale: withholding", () => {
   it("withholds a key still missing from the response under providerFailures, not integrityMismatches", async () => {
     const { dir, sourceResource } = await setup({ a: "A", b: "B" });
     const stub = makeStubProvider({ missingValues: new Set(["a"]) });
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -341,7 +355,7 @@ describe("runLocale: withholding", () => {
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, baseline },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" }, baseline },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -353,7 +367,10 @@ describe("runLocale: withholding", () => {
   it("withholds a key whose translation fails the integrity check", async () => {
     const { dir, sourceResource } = await setup({ a: "A", b: "B" });
     const stub = makeStubProvider({ failIntegrity: new Set(["a"]) });
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -372,7 +389,7 @@ describe("runLocale: withholding", () => {
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, baseline },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" }, baseline },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -391,7 +408,10 @@ describe("runLocale: withholding", () => {
       key === "greeting" ? degenerate : `[de] ${value}`,
     );
     const baseline = new Map([["greeting", "stale-hash"]]);
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider, baseline });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" }, baseline },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -409,7 +429,10 @@ describe("runLocale: reordered placeholders", () => {
     const provider = makeIntegrityProvider((value) =>
       value.replace("{{a}} {{b}}", "{{b}} und {{a}}"),
     );
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -427,7 +450,10 @@ describe("runLocale: invalid-ICU source keys", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, sourceInvalidIcuKeys: ["a"] },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        sourceInvalidIcuKeys: ["a"],
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -446,7 +472,7 @@ describe("runLocale: pruning and orphans", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, prune: true },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" }, prune: true },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -461,7 +487,10 @@ describe("runLocale: pruning and orphans", () => {
   it("keeps an orphaned key when prune is off and never gives it a lock entry", async () => {
     const { dir, sourceResource } = await setup({ a: "A" }, { a: "da", orphan: "x" });
     const stub = makeStubProvider();
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -512,7 +541,7 @@ describe("runLocale: pruning and orphans", () => {
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         adapter: gettext,
         format: "gettext-po",
         targetLocale: "pl",
@@ -566,7 +595,7 @@ describe("runLocale: pruning and orphans", () => {
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         adapter: androidXml,
         format: "android-xml",
         targetLocale: "pl",
@@ -602,8 +631,7 @@ describe("runLocale: plural generation", () => {
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
-        providerKind: "llm",
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         targetLocale: "pl",
         generatePlurals: true,
       },
@@ -623,8 +651,7 @@ describe("runLocale: plural generation", () => {
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
-        providerKind: "machine-translation",
+        mode: { kind: "translate", provider: stub.provider, providerKind: "machine-translation" },
         targetLocale: "pl",
         generatePlurals: true,
       },
@@ -646,7 +673,11 @@ describe("runLocale: plural generation", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -668,7 +699,11 @@ describe("runLocale: plural generation", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -689,7 +724,11 @@ describe("runLocale: plural generation", () => {
     const stub = makeStubProvider();
     const firstParams = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
     );
     const first = await runLocale(firstParams);
     expect(first.summary.generated).toEqual(["items_few", "items_many"]);
@@ -697,7 +736,12 @@ describe("runLocale: plural generation", () => {
     const baseline = new Map(Object.entries(first.lockEntries));
     const secondParams = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: true, baseline },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+        baseline,
+      },
     );
     const second = await runLocale(secondParams);
 
@@ -724,7 +768,12 @@ describe("runLocale: plural generation", () => {
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: false, baseline },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: false,
+        baseline,
+      },
     );
 
     const { lockEntries } = await runLocale(params);
@@ -739,7 +788,7 @@ describe("runLocale: plural generation", () => {
     const baseline = new Map([["deleted_few", "generated-few-hash"]]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, baseline },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" }, baseline },
     );
 
     const { lockEntries } = await runLocale(params);
@@ -755,7 +804,11 @@ describe("runLocale: plural generation", () => {
     const stub = makeStubProvider({ failIntegrity: new Set(["items_many"]) });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, targetLocale: "pl", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        targetLocale: "pl",
+        generatePlurals: true,
+      },
     );
 
     const { summary } = await runLocale(params);
@@ -773,7 +826,11 @@ describe("runLocale: plural generation", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, format: "vue-i18n-json", generatePlurals: true },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        format: "vue-i18n-json",
+        generatePlurals: true,
+      },
     );
 
     const { summary } = await runLocale(params);
@@ -794,7 +851,11 @@ describe("runLocale: ICU branch-aware comparePlaceholders wiring (real ai-provid
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider, adapter: nextIntl, format: "next-intl-json" },
+      {
+        mode: { kind: "translate", provider, providerKind: "llm" },
+        adapter: nextIntl,
+        format: "next-intl-json",
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -813,7 +874,11 @@ describe("runLocale: ICU branch-aware comparePlaceholders wiring (real ai-provid
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider, adapter: nextIntl, format: "next-intl-json" },
+      {
+        mode: { kind: "translate", provider, providerKind: "llm" },
+        adapter: nextIntl,
+        format: "next-intl-json",
+      },
     );
 
     const { summary } = await runLocale(params);
@@ -833,7 +898,11 @@ describe("runLocale: ICU branch-aware comparePlaceholders wiring (real ai-provid
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider, adapter: nextIntl, format: "next-intl-json" },
+      {
+        mode: { kind: "translate", provider, providerKind: "llm" },
+        adapter: nextIntl,
+        format: "next-intl-json",
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -854,7 +923,11 @@ describe("runLocale: gateCandidateValue's validateMessage delta", () => {
     const provider = anthropicStubProvider([{ key: "greeting", value: "Hallo {name" }]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider, adapter: nextIntl, format: "next-intl-json" },
+      {
+        mode: { kind: "translate", provider, providerKind: "llm" },
+        adapter: nextIntl,
+        format: "next-intl-json",
+      },
     );
 
     const { summary, lockEntries } = await runLocale(params);
@@ -875,7 +948,11 @@ describe("runLocale: gateCandidateValue's validateMessage delta", () => {
     ]);
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider, adapter: nextIntl, format: "next-intl-json" },
+      {
+        mode: { kind: "translate", provider, providerKind: "llm" },
+        adapter: nextIntl,
+        format: "next-intl-json",
+      },
     );
 
     const { summary } = await runLocale(params);
@@ -887,7 +964,10 @@ describe("runLocale: gateCandidateValue's validateMessage delta", () => {
   it("keeps the non-ICU placeholder dimension unchanged: validateMessage is unconditionally true and never withholds", async () => {
     const { dir, sourceResource } = await setup({ a: "Hello {{name}}" });
     const stub = makeStubProvider({ failIntegrity: new Set(["a"]) });
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary } = await runLocale(params);
 
@@ -902,7 +982,10 @@ describe("runLocale: needsReview (real ai-providers reviewFlags call site)", () 
       { key: "b", value: "Hello there" },
       { key: "a", value: "Good day" },
     ]);
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" } },
+    );
 
     const { summary } = await runLocale(params);
 
@@ -918,7 +1001,10 @@ describe("runLocale: needsReview (real ai-providers reviewFlags call site)", () 
       long: "This is a fairly long source with {{ph}} inside",
     });
     const provider = anthropicStubProvider([{ key: "long", value: "hi" }]);
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" } },
+    );
 
     const { summary } = await runLocale(params);
 
@@ -930,7 +1016,10 @@ describe("runLocale: needsReview (real ai-providers reviewFlags call site)", () 
   it("reports an empty needsReview when the provider flags nothing", async () => {
     const { dir, sourceResource } = await setup({ a: "Hi there" });
     const provider = anthropicStubProvider([{ key: "a", value: "Hallo dort" }]);
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" } },
+    );
 
     const { summary } = await runLocale(params);
 
@@ -959,7 +1048,10 @@ describe("runLocale: needsReview (real ai-providers reviewFlags call site)", () 
         return { values, integrity, reviewFlags };
       },
     };
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider, maxBatchSize: 1 });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider, providerKind: "llm" }, maxBatchSize: 1 },
+    );
 
     const { summary } = await runLocale(params);
 
@@ -979,7 +1071,10 @@ describe("runLocale: lock entries for prototype-shaped keys", () => {
       ]),
     );
     const stub = makeStubProvider();
-    const params = makeParams({ source: sourceResource, cwd: dir }, { provider: stub.provider });
+    const params = makeParams(
+      { source: sourceResource, cwd: dir },
+      { mode: { kind: "translate", provider: stub.provider, providerKind: "llm" } },
+    );
 
     const { summary, lockEntries } = await runLocale(params);
 
@@ -1000,7 +1095,10 @@ describe("runLocale: lock entries for prototype-shaped keys", () => {
     const stub = makeStubProvider();
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, baseline: new Map([["__proto__", "prior-hash"]]) },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        baseline: new Map([["__proto__", "prior-hash"]]),
+      },
     );
 
     const { lockEntries } = await runLocale(params);
@@ -1023,7 +1121,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const budget = createBudgetTracker(700, "stop");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget,
+      },
     );
 
     const result = await runLocale(params);
@@ -1045,7 +1147,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const stub = makeStubProvider({ usage: { inputTokens: 90, outputTokens: 60 } });
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget: createBudgetTracker(700, "stop") },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget: createBudgetTracker(700, "stop"),
+      },
     );
 
     const result = await runLocale(params);
@@ -1065,7 +1171,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const budget = createBudgetTracker(700, "stop");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget,
+      },
     );
 
     const result = await runLocale(params);
@@ -1082,7 +1192,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const budget = createBudgetTracker(700, "stop");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget,
+      },
     );
 
     const result = await runLocale(params);
@@ -1099,8 +1213,7 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const params = makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
-        providerKind: "machine-translation",
+        mode: { kind: "translate", provider: stub.provider, providerKind: "machine-translation" },
         maxBatchSize: 2,
         budget,
       },
@@ -1121,7 +1234,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const budget = createBudgetTracker(1, "warn");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget,
+      },
     );
 
     const result = await runLocale(params);
@@ -1137,7 +1254,11 @@ describe("runLocale: the token budget is a pre-call reservation, not a post-hoc 
     const budget = createBudgetTracker(undefined, "warn");
     const params = makeParams(
       { source: sourceResource, cwd: dir },
-      { provider: stub.provider, maxBatchSize: 2, budget },
+      {
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
+        maxBatchSize: 2,
+        budget,
+      },
     );
 
     const result = await runLocale(params);
@@ -1189,7 +1310,11 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     await runLocale(
       makeParams(
         { source: sourceResource, cwd: dir },
-        { provider: splitter.provider, maxBatchSize: 4, budget },
+        {
+          mode: { kind: "translate", provider: splitter.provider, providerKind: "llm" },
+          maxBatchSize: 4,
+          budget,
+        },
       ),
     );
 
@@ -1221,7 +1346,10 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     const budget = createBudgetTracker(100_000, "stop");
 
     const result = await runLocale(
-      makeParams({ source: sourceResource, cwd: dir }, { provider, maxBatchSize: 2, budget }),
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        { mode: { kind: "translate", provider, providerKind: "llm" }, maxBatchSize: 2, budget },
+      ),
     );
 
     expect(budget.tokensUsed).toBe(407);
@@ -1241,7 +1369,11 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     const result = await runLocale(
       makeParams(
         { source: sourceResource, cwd: dir },
-        { provider: splitter.provider, maxBatchSize: 4, budget },
+        {
+          mode: { kind: "translate", provider: splitter.provider, providerKind: "llm" },
+          maxBatchSize: 4,
+          budget,
+        },
       ),
     );
 
@@ -1258,7 +1390,11 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
     const result = await runLocale(
       makeParams(
         { source: sourceResource, cwd: dir },
-        { provider: splitter.provider, maxBatchSize: 4, budget },
+        {
+          mode: { kind: "translate", provider: splitter.provider, providerKind: "llm" },
+          maxBatchSize: 4,
+          budget,
+        },
       ),
     );
 

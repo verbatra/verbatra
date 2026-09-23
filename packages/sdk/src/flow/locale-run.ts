@@ -62,13 +62,21 @@ import { buildTranslateRequest } from "./translate-request.js";
 import { combineUsage, countableUsage, createUsageAccumulator, foldUsage } from "./usage.js";
 import { writeTargetResource } from "./write-target.js";
 
+export type LocaleRunMode =
+  | { readonly kind: "plan"; readonly providerKind: ProviderKind }
+  | { readonly kind: "memory-only"; readonly write: boolean }
+  | {
+      readonly kind: "translate";
+      readonly provider: TranslationProvider;
+      readonly providerKind: ProviderKind;
+    };
+
 export interface LocaleRunParams {
   readonly source: LocaleResource;
   readonly sourceInvalidIcuKeys: readonly string[];
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
-  readonly provider: TranslationProvider | undefined;
-  readonly providerKind: ProviderKind;
+  readonly mode: LocaleRunMode;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
@@ -189,11 +197,19 @@ function acceptFromCache(
   return gate.accepted ? { value: cached, integrity: gate.integrity } : undefined;
 }
 
+function cacheForMode(params: LocaleRunParams): RunCache | undefined {
+  const cache = params.cache;
+  if (cache === undefined || params.mode.kind !== "memory-only") {
+    return cache;
+  }
+  return { snapshot: cache.snapshot, fingerprint: cache.fingerprint };
+}
+
 function partitionCacheHits(
   params: LocaleRunParams,
   toTranslate: readonly string[],
 ): CachePartition {
-  const cache = params.cache;
+  const cache = cacheForMode(params);
   const hits = new Map<string, Accepted>();
   const fuzzy = new Map<string, FuzzyCacheHit>();
   const reviewFlags = new Map<string, ReviewFlag>();
@@ -377,6 +393,9 @@ async function shouldWriteTarget(
   path: string,
   changed: { readonly accepted: number; readonly pruned: number; readonly generated: number },
 ): Promise<boolean> {
+  if (params.mode.kind === "memory-only" && !params.mode.write) {
+    return false;
+  }
   if (changed.accepted > 0 || changed.pruned > 0 || changed.generated > 0) {
     return true;
   }
@@ -412,8 +431,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   );
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
 
-  const provider = params.provider;
-  if (provider === undefined) {
+  if (params.mode.kind === "plan") {
     const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
     const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
       (key) => !pruned.includes(key),
@@ -453,17 +471,9 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
-  const translation = await translateAndCheck(
-    provider,
-    params,
-    entries,
-    accepted,
-    integrityMismatches,
-    providerFailures,
-    budgetWithheld,
-    reviewFlags,
-  );
-  fanOutContentDuplicates(params, missGroups, {
+  const provider = params.mode.kind === "translate" ? params.mode.provider : undefined;
+  const unfilled = unfilledKeys(params.mode, partition);
+  const translation = await translateMisses(provider, params, missGroups, entries, {
     accepted,
     integrityMismatches,
     providerFailures,
@@ -525,6 +535,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...generation.providerFailures,
     ...budgetWithheld,
     ...fuzzyKeys,
+    ...unfilled,
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {
@@ -544,6 +555,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
       pruned,
       notices,
+      unfilled,
       needsReview: needsReviewFor(accepted.keys(), reviewFlags),
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
@@ -565,7 +577,11 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
 };
 
 function generationEnabled(params: LocaleRunParams): boolean {
-  return params.generatePlurals && params.providerKind === "llm";
+  return (
+    params.generatePlurals &&
+    params.mode.kind !== "memory-only" &&
+    params.mode.providerKind === "llm"
+  );
 }
 
 function plannedGenerationKeys(
@@ -588,10 +604,10 @@ function plannedGenerationKeys(
 
 async function runGeneration(
   params: LocaleRunParams,
-  provider: TranslationProvider,
+  provider: TranslationProvider | undefined,
   targetKeys: ReadonlySet<string>,
 ): Promise<PluralGenerationResult> {
-  if (!generationEnabled(params)) {
+  if (provider === undefined || !generationEnabled(params)) {
     return NO_GENERATION_RESULT;
   }
   return generatePluralForms({
@@ -661,6 +677,7 @@ interface SummaryParts {
   readonly notices: readonly LocaleNotice[];
   readonly usage?: UsageSummary;
   readonly needsReview?: readonly NeedsReviewEntry[];
+  readonly unfilled?: readonly string[];
 }
 
 function baseSummary(parts: SummaryParts): LocaleSummary {
@@ -680,7 +697,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     generated: parts.generated,
     notices: parts.notices,
     needsReview: parts.needsReview ?? [],
-    unfilled: [],
+    unfilled: parts.unfilled ?? [],
     malformedRows: [],
     duplicateKeys: [],
     ...(parts.usage !== undefined ? { usage: parts.usage } : {}),
@@ -707,6 +724,42 @@ interface TranslateAndCheckResult {
   readonly refusedProjection: number | undefined;
   readonly counted: boolean;
   readonly usage: UsageSummary | undefined;
+}
+
+const NO_TRANSLATION: TranslateAndCheckResult = {
+  notices: [],
+  withheldByBudget: false,
+  refusedProjection: undefined,
+  counted: false,
+  usage: undefined,
+};
+
+function unfilledKeys(mode: LocaleRunMode, partition: CachePartition): readonly string[] {
+  return mode.kind === "memory-only" ? [...partition.misses].sort() : [];
+}
+
+async function translateMisses(
+  provider: TranslationProvider | undefined,
+  params: LocaleRunParams,
+  missGroups: readonly MissGroup[],
+  entries: readonly TranslationEntry[],
+  outcome: TranslationOutcome,
+): Promise<TranslateAndCheckResult> {
+  if (provider === undefined) {
+    return NO_TRANSLATION;
+  }
+  const translation = await translateAndCheck(
+    provider,
+    params,
+    entries,
+    outcome.accepted,
+    outcome.integrityMismatches,
+    outcome.providerFailures,
+    outcome.budgetWithheld,
+    outcome.reviewFlags,
+  );
+  fanOutContentDuplicates(params, missGroups, outcome);
+  return translation;
 }
 
 async function translateAndCheck(

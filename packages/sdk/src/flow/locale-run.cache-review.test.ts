@@ -85,8 +85,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: stubProvider([]),
-    providerKind: "llm",
+    mode: { kind: "translate", provider: stubProvider([]), providerKind: "llm" },
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -301,7 +300,11 @@ describe("runLocale: review flags fanned out to content duplicates", () => {
         { source: sourceResource, cwd: dir },
         {
           glossary: { Save: "Speichern" },
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
         },
       ),
     );
@@ -326,7 +329,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["intro", 10]]),
         },
       ),
@@ -343,7 +350,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["intro", 10]]),
         },
       ),
@@ -363,7 +374,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["other", 2]]),
         },
       ),
@@ -402,7 +417,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 10]]),
         },
       ),
@@ -424,7 +443,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["a", 10]]),
         },
       ),
@@ -445,7 +468,11 @@ describe("runLocale: budgets on fanned-out duplicates keep every other reason", 
         { source: sourceResource, cwd: dir },
         {
           glossary: { Save: "Speichern" },
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 10]]),
         },
       ),
@@ -466,7 +493,11 @@ describe("runLocale: budgets on fanned-out duplicates keep every other reason", 
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Ok" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Ok" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 1]]),
         },
       ),
@@ -489,7 +520,11 @@ describe("runLocale: budgets across a wider duplicate group", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([
             ["a", 5],
             ["b", 20],
@@ -514,7 +549,11 @@ describe("runLocale: budgets across a wider duplicate group", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([
             ["a", 100],
             ["b", 32],

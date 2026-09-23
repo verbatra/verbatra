@@ -146,6 +146,20 @@ describe("SettingsPanel", () => {
     expect(detailValue(view, "Provider actions")).toBe("Off (start with --allow-spend)");
   });
 
+  it("names the policy rather than the flag when machine translation is disabled", async () => {
+    stubSettings({
+      ...SNAPSHOT,
+      provider: { id: "none" },
+      capabilities: { spend: false, spendWithheld: "policy", writeToDisk: true },
+    });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(detailValue(view, "Provider actions")).toBe(
+      "Off (machine translation disabled by policy)",
+    );
+  });
+
   it("marks provider actions enabled when the session was started with spend allowed", async () => {
     stubSettings({ ...SNAPSHOT, capabilities: { spend: true, writeToDisk: true } });
 

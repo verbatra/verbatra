@@ -34,7 +34,9 @@ Beide Formen nehmen dieselben drei Flags und starten denselben Server, aber die 
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--allow-spend` | keins | aus | die beiden Tools bereitstellen, die einen Übersetzungs-Provider aufrufen |
 
-Fehlt `--allow-spend`, liest der Server stattdessen die Umgebungsvariable `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß-/Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer gegenüber der Umgebungsvariable. Ohne beides werden `translation.retranslateEntry` und `translation.translatePending` überhaupt nicht bereitgestellt: Ein MCP-Client, der die Tools auflistet, sieht sie nie, und der Aufruf eines der beiden Namen schlägt als unbekanntes Tool fehl. Das ist eine Garantie pro Prozess, keine Prüfung pro Aufruf: Ein Tool hinter dem Spend-Gate ist strukturell nicht aufrufbar, statt beim Aufruf nur abgelehnt zu werden.
+Fehlt `--allow-spend`, liest der Server stattdessen die Umgebungsvariable `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß-/Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer gegenüber der Umgebungsvariable. Ohne beides werden `translation.retranslateEntry` und `translation.translatePending` überhaupt nicht bereitgestellt: Ein MCP-Client, der die Tools auflistet, sieht sie nie, und der Aufruf eines der beiden Namen schlägt als unbekanntes Tool fehl. Das ist eine Garantie pro Prozess, keine Prüfung pro Aufruf: Ein Tool hinter dem Spend-Gate ist strukturell nicht aufrufbar, statt beim Aufruf nur abgelehnt zu werden. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, und dann werden die beiden Tools nie bereitgestellt, auch nicht mit `--allow-spend`.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 ## Einen MCP-Client konfigurieren
 

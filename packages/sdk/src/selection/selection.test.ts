@@ -62,6 +62,25 @@ describe("selectAdapter", () => {
 });
 
 describe("selectProvider", () => {
+  it("refuses none as MACHINE_TRANSLATION_DISABLED without calling the factory", () => {
+    const calls: string[] = [];
+    const error = (() => {
+      try {
+        selectProvider({ id: "none", options: {} }, (config) => {
+          calls.push(config.id);
+          return makeStubProvider().provider;
+        });
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(calls).toEqual([]);
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("MACHINE_TRANSLATION_DISABLED");
+    expect((error as SdkError).message).toContain("calling a translation provider");
+  });
+
   it("uses the injected createProvider", () => {
     const stub = makeStubProvider({ id: "stub" });
     const provider = selectProvider(

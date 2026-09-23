@@ -73,6 +73,10 @@ export {
   loadConfig,
   loadConfigWithMeta,
 } from "./config/load-config.js";
+export {
+  assertMachineTranslationEnabled,
+  isMachineTranslationEnabled,
+} from "./config/machine-translation.js";
 export type { BillingUnit, ProviderBilling } from "./config/provider-billing.js";
 export type { ProviderConfig, ProviderId } from "./config/provider-config.js";
 export { declareProviderKeyEnvVar } from "./config/provider-key-env.js";

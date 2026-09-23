@@ -13,6 +13,7 @@ Tout fournisseur fonctionne avec tout format et toute commande ; le choix porte 
 - **Gros volume, piloté par glossaire, ou pas de LLM dans la boucle ?** Utilise **DeepL**. C'est une API de traduction automatique dédiée avec une offre gratuite et une payante, et elle prend en charge un glossaire natif par id. Elle ne traduit pas les chaînes portant des placeholders (voir la note plus bas) ; pour celles-là, utilise un fournisseur LLM.
 - **Déjà sur Google Cloud, ou tu veux la couverture de langues la plus large avec une simple clé d'API ?** Utilise **Google Cloud Translation**. C'est l'API de traduction automatique dédiée de Google (le niveau Basic, v2), facturée via ton projet Google Cloud. Comme DeepL, elle ne traduit pas les chaînes portant des placeholders.
 - **Hors ligne, sans coût, ou tes chaînes ne doivent jamais quitter ton réseau ?** Utilise **openai-compatible**. Il pointe verbatra vers un serveur d'inférence local ou auto-hébergé (LM Studio, Ollama, vLLM) au lieu d'une API hébergée. Pas de compte, pas de clé d'API, et aucune sortie réseau au-delà de ta machine ou de ton LAN.
+- **Aucune traduction automatique, parce qu'un contrat ou une règle de l'entreprise l'interdit ?** Utilise **none**. Aucun fournisseur n'est construit et aucune clé d'API n'est lue : verbatra ne remplit les clés que depuis la mémoire de traduction et confie toutes les autres à un humain. Voir [Flux 100 % humain](/docs/human-only-workflow).
 
 Pas sûr ? Commence sur l'offre gratuite de Gemini, puis change de fournisseur plus tard en modifiant un seul `id` dans ta configuration. Rien d'autre ne change.
 
@@ -203,6 +204,18 @@ Un mauvais modèle local échoue bruyamment, pas en silence : verbatra valide ch
 <Callout title="Pas dans verbatra init">
 `verbatra init` ne propose pas `openai-compatible` comme option de génération, puisqu'il n'a pas une unique variable d'environnement requise à demander. Ajoute le bloc de fournisseur ci-dessus à ta configuration à la main ; tout le reste de cette page (glossaire, ton, limites de tokens de sortie) s'applique à lui comme à tout fournisseur LLM.
 </Callout>
+
+## none
+
+<AvailableFrom version="0.12.0" />
+
+Désactive la traduction automatique par principe. Utilise-le quand un NDA ou une règle de l'entreprise interdit d'envoyer des chaînes à un service de traduction, et que chaque traduction doit donc venir d'une personne.
+
+```ts
+provider: { id: "none" }
+```
+
+`options` peut être omis ; s'il est fourni, il doit valoir `{}`. Aucun fournisseur n'est jamais construit, aucune clé d'API n'est lue et aucune requête réseau n'est faite. `translate` et `watch` ne remplissent une clé que depuis [la mémoire de traduction](/docs/the-cache) et signalent toute autre clé manquante ou modifiée comme `unfilled`, sans y toucher ; `translate` sort alors avec le code `3`. [Studio](/docs/cli/studio) et le [serveur MCP](/docs/cli/mcp) ne proposent jamais leurs actions qui dépensent auprès du fournisseur, même avec `--allow-spend`, et `retranslateEntry` du SDK échoue avec `MACHINE_TRANSLATION_DISABLED`. Sa mémoire de traduction est un compartiment à part : un projet qui quitte un fournisseur automatique démarre donc vide, sauf s'il reprend des entrées avec `tmx export` avant la bascule et `tmx import` après. `verbatra init --provider none` le génère. Le flux complet est décrit sur [Flux 100 % humain](/docs/human-only-workflow).
 
 ## Ton et glossaire selon les fournisseurs
 

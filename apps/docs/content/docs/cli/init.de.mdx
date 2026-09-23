@@ -15,7 +15,7 @@ verbatra init [flags]
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | die Konfigurations- und Env-Dateien in dieses Verzeichnis schreiben |
-| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl` oder `google-translate`; fehlt er, wird er interaktiv abgefragt |
+| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` oder `none`; fehlt er, wird er interaktiv abgefragt |
 | `--source` | `<locale>` | `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
 | `--targets` | `<locales>` | `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
 | `--path` | `<pattern>` | `locales/{locale}.json` | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
@@ -23,6 +23,10 @@ verbatra init [flags]
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` oder `.env.example` überschreiben |
 
 Das Format ist kein Flag: `init` erkennt es an deinen Dependencies (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`). Ohne einen einzelnen eindeutigen Treffer fällt es auf `i18next-json` zurück und hinterlässt einen TODO-Kommentar, der jedes unterstützte Format auflistet. Ohne `--force` wird eine bestehende `verbatra.config.ts` oder `.env.example` übersprungen, nie überschrieben, und der Befehl ist trotzdem erfolgreich.
+
+`--provider none` legt eine [rein menschliche](/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Schlüssel gelesen wird.
+
+<AvailableFrom version="0.12.0" />
 
 ## Beispiele
 
@@ -32,6 +36,9 @@ verbatra init --provider gemini
 
 # non-interactive, accept all defaults
 verbatra init --provider deepl --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
 ```
 
 ## Exit-Codes

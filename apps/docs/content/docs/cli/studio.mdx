@@ -22,7 +22,9 @@ verbatra studio [flags]
 | `--allow-spend` | none | off | allow Studio to call a translation provider (retranslate a key, translate pending changes) |
 | `--expose-agent-tools` | none | off | register Studio's review actions as WebMCP tools so a browser AI agent can operate them |
 
-When the `--allow-spend` flag is absent, Studio reads the `VERBATRA_STUDIO_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, Studio never contacts a provider; local editing needs no flag.
+When the `--allow-spend` flag is absent, Studio reads the `VERBATRA_STUDIO_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, Studio never contacts a provider; local editing needs no flag. A config with `provider: { id: "none" }` disables machine translation by policy, and then Studio withholds provider spend even with `--allow-spend`: the Settings page says so instead of pointing at the flag.
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 `--expose-agent-tools` resolves the same way from `VERBATRA_STUDIO_AGENT_TOOLS`, with the same truthy set and the same flag-wins-over-variable rule. It is off by default. Spend from an agent requires both this flag and `--allow-spend`; neither implies the other. See [Operate Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
 

@@ -416,7 +416,7 @@ Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewR
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
-`@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`.
+`@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
 
 ## Inhalte in großen Mengen lesen
 
@@ -670,8 +670,22 @@ Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt)
 `providerTokenLimitKeys`, statt einen anzunehmen: Anthropic nennt ihn `maxTokens`, die anderen
 `maxOutputTokens`, das Schema validiert die Optionen jedes Providers strikt, und DeepL hat keinen
 Eintrag, weil es kein Token-Limit entgegennimmt. Der Typ `ScaffoldableProviderId` ist
-`Exclude<ProviderId, "openai-compatible">` und deckt damit die fünf gehosteten Provider ab;
+`Exclude<ProviderId, "openai-compatible" | "none">` und deckt damit die fünf gehosteten Provider ab;
 `openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende Umgebungsvariable hat.
+
+`scaffoldingMetadata.humanOnlyProviderId` ist `"none"`, die ID, die Maschinenübersetzung abschaltet. Sie hat keinen Eintrag in `providerEnv`, weil sie keinen Key liest.
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Gibt genau dann `false` zurück, wenn die Konfiguration `provider: { id: "none" }` setzt, den [rein menschlichen](/docs/human-only-workflow) Modus, in dem nie ein Provider erzeugt und kein API-Key gelesen wird. Eine Oberfläche, die kostenpflichtige Provider-Aktionen anbietet, liest es, um sie ganz wegzulassen. So halten Studio und der MCP-Server Ausgaben auch mit `--allow-spend` zurück.
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Nimmt die Konfiguration und eine kurze Beschreibung der Aktion und wirft unter `provider: { id: "none" }` einen `SdkError` mit `MACHINE_TRANSLATION_DISABLED`. Ruf es auf, bevor du `translate` in eine ausdrückliche Aktion "alles Ausstehende übersetzen" verpackst, damit diese Aktion genauso fehlschlägt wie `retranslateEntry`, statt still nur aus dem Translation Memory zu füllen.
 
 ## Format-Adapter
 
@@ -804,7 +818,7 @@ interface LocaleSummary {
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
-  unfilled: string[];            // import only: blank rows whose key still needs a translation
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -861,7 +875,7 @@ Die Teile, die du kennen solltest:
   exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte, und ein
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
-  (`csv` oder `tsv`) vorhanden.
+  (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen Eintrag hatte.
 
 ### budgetStanding
 
@@ -889,6 +903,7 @@ geworfen.
 | `UNKNOWN_LOCALE` | eine angefragte Locale gehört nicht zu den konfigurierten Ziel-Locales |
 | `UNKNOWN_KEY` | ein angefragter Key ist nicht in der Quell-Ressource (`keyValue`, `editEntry`, `retranslateEntry`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys |
+| `MACHINE_TRANSLATION_DISABLED` | die Konfiguration setzt `provider: { id: "none" }`, also wurde eine kostenpflichtige Provider-Aktion abgelehnt, bevor ein Provider gebaut wurde (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` und `watch` werfen ihn nie |
 | `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |
 | `SOURCE_INVALID` | die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters |
 | `LOCK_FILE_INVALID` | die Lock-Datei ist vorhanden, aber korrupt, übergroß oder in einer nicht unterstützten Version |
