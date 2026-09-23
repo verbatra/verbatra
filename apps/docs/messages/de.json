@@ -326,7 +326,7 @@
       },
       "s6": {
         "heading": "6. Schriften und Assets",
-        "body": "Schriftarten und Bilder, einschließlich der Avatare der Mitwirkenden auf der Startseite, werden selbst gehostet: Sie werden vom eigenen Server dieser Website ausgeliefert, sodass beim Laden einer Seite keine Anfragen an Google Fonts, GitHub oder andere Drittanbieter gestellt werden. Die Website bettet keine Status-Badges ein. Abgesehen vom oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte, -Bilder oder -Einbettungen geladen. Externe Websites wie GitHub oder npm werden erst kontaktiert, wenn du einem Link dorthin folgst."
+        "body": "Schriftarten und Bilder, einschließlich der Avatare der Mitwirkenden auf der Startseite, werden selbst gehostet und vom eigenen Server dieser Website ausgeliefert, sodass beim Laden einer Seite keine Anfragen an Google Fonts, GitHub oder andere Drittanbieter gestellt werden. Die Website bettet keine Status-Badges ein. Abgesehen vom oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte, -Bilder oder -Einbettungen geladen. Externe Websites wie GitHub oder npm werden erst kontaktiert, wenn du einem Link dorthin folgst."
       },
       "s7": {
         "heading": "7. GitHub und npm",
