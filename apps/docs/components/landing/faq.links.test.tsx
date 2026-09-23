@@ -6,13 +6,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const intl = vi.hoisted(() => ({ locale: "en" }));
+const TAG_BY_ITEM: Record<string, string> = { privacy: "dataHandling" };
 
 vi.mock("next-intl", () => ({
   useTranslations: () =>
     Object.assign((key: string) => key, {
       rich: (key: string, tags: Record<string, (chunks: ReactNode) => ReactNode>) => {
-        const tagName = key.split(".")[1] ?? "";
-        const tag = tags[tagName];
+        const itemId = key.split(".")[1] ?? "";
+        const tag = tags[TAG_BY_ITEM[itemId] ?? itemId];
         return tag ? tag("link text") : key;
       },
     }),
@@ -26,7 +27,7 @@ const { Faq } = await import("./faq");
 const ITEMS = [
   { id: "languages", question: "Which languages?", answer: "Any." },
   { id: "releases", question: "Where are the releases?", answer: "On GitHub." },
-  { id: "dataHandling", question: "Does it send my strings?", answer: "Only to the provider." },
+  { id: "privacy", question: "Does it send my strings?", answer: "Only to the provider." },
 ];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
