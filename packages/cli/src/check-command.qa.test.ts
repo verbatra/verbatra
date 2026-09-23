@@ -75,6 +75,17 @@ describe("run check --qa: SDK delegation", () => {
     expect(calls.check).toHaveLength(0);
   });
 
+  it("rejects --strict together with --severity error, which could never fail on a warning", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["check", "--qa", "--strict", "--severity", "error"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("[INVALID_QA_OPTION]");
+    expect(calls.check).toHaveLength(0);
+  });
+
   it("rejects an unknown severity as a usage error, in the JSON envelope too", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();

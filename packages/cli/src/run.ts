@@ -169,6 +169,12 @@ function parseQaSeverity(opts: CheckOpts): QaSeverity | undefined {
       `The --severity option takes ${QA_SEVERITIES.map((known) => `"${known}"`).join(" or ")}, got "${opts.severity}".`,
     );
   }
+  if (severity === "error" && opts.strict === true) {
+    throw new CliUsageError(
+      "INVALID_QA_OPTION",
+      "--strict fails the run on warnings, and --severity error reports none. Drop one of the two.",
+    );
+  }
   return severity;
 }
 

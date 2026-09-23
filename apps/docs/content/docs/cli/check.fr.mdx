@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | aucun | désactivé | signale aussi, par locale, chaque chaîne source traduite de plusieurs façons sous des clés différentes ; simple rapport, le code de sortie ne change jamais |
 | `--qa` | aucun | désactivé | lance aussi le [contrôle qualité](#contrôle-qualité) sur chaque traduction commitée ; sortie `1` en cas d'erreur |
 | `--severity` | `error` ou `warning` | `warning` | avec `--qa`, la gravité la plus basse signalée ; `error` ignore complètement les motifs de révision |
-| `--strict` | aucun | désactivé | avec `--qa`, sort aussi avec `1` quand le contrôle qualité signale un avertissement |
+| `--strict` | aucun | désactivé | avec `--qa`, sort aussi avec `1` quand le contrôle qualité signale un avertissement ; interdit avec `--severity error` |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de vérification sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 Une clé est manquante quand la source l'a et pas la cible ; obsolète quand la chaîne source a changé depuis sa dernière traduction. Une locale est synchronisée quand elle n'a ni l'un ni l'autre. Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien vérifier en silence, donc une coquille dans un nom de locale ne laisse jamais passer un contrôle CI. Tu veux les listes de clés derrière ces décomptes ? C'est [`verbatra diff`](/docs/cli/diff).
@@ -125,7 +125,7 @@ Quelques cas restent hors du contrôle : une clé que seule la cible possède (e
 | --- | --- |
 | `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète et, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement, avec `--strict`) |
 | `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement, avec `--strict`) ; le rapport est quand même affiché |
-| `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, ou `--severity` ou `--strict` sans `--qa`) |
+| `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, `--severity` ou `--strict` sans `--qa`, ou `--strict` avec `--severity error`) |
 
 La sortie `1` signifie "désynchronisé", pas un échec : l'exécution elle-même a réussi, le résultat n'est juste pas tout vert.
 

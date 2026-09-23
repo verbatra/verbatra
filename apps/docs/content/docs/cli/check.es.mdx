@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | ninguno | desactivado | además informa, por locale, de cada cadena de origen traducida de más de una forma bajo claves distintas; solo es un informe, nunca cambia el código de salida |
 | `--qa` | ninguno | desactivado | además ejecuta el [control de calidad](#control-de-calidad) sobre cada traducción confirmada; salida `1` ante un error |
 | `--severity` | `error` o `warning` | `warning` | con `--qa`, la severidad más baja que se informa; `error` omite por completo los motivos de revisión |
-| `--strict` | ninguno | desactivado | con `--qa`, sale también con `1` cuando el control de calidad informa de una advertencia |
+| `--strict` | ninguno | desactivado | con `--qa`, sale también con `1` cuando el control de calidad informa de una advertencia; no se admite junto con `--severity error` |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la comprobación bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 Una clave falta cuando el origen la tiene y el destino no; está obsoleta cuando la cadena de origen cambió desde la última vez que se tradujo. Un locale está sincronizado cuando no tiene ni lo uno ni lo otro. Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comprobar nada en silencio, así que una errata en un nombre de locale nunca deja pasar una puerta de CI. ¿Quieres las listas de claves detrás de los contadores? Eso es [`verbatra diff`](/docs/cli/diff).
@@ -125,7 +125,7 @@ Hay cosas que la comprobación deja fuera: una clave que solo tiene el destino (
 | --- | --- |
 | `0` | sincronizado: ningún locale tiene una clave faltante u obsoleta y, con `--qa`, ningún valor confirmado tiene un error (ni una advertencia, con `--strict`) |
 | `1` | desincronizado: al menos un locale tiene una clave faltante u obsoleta, o con `--qa` el control de calidad encontró un error (o una advertencia, con `--strict`); el informe se imprime igualmente |
-| `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido, un valor `--severity` desconocido, o `--severity` o `--strict` sin `--qa`) |
+| `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido, un valor `--severity` desconocido, `--severity` o `--strict` sin `--qa`, o `--strict` junto con `--severity error`) |
 
 El código de salida `1` significa "desincronizado", no un fallo: la ejecución en sí tuvo éxito, solo que el resultado no está todo en verde.
 

@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | none | off | also report, per locale, every source string translated more than one way under different keys; report only, it never changes the exit code |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
 | `--severity` | `error` or `warning` | `warning` | with `--qa`, the lowest severity to report; `error` skips the review reasons entirely |
-| `--strict` | none | off | with `--qa`, also exit `1` when the quality check reports a warning |
+| `--strict` | none | off | with `--qa`, also exit `1` when the quality check reports a warning; not allowed together with `--severity error` |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the check summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A key is missing when the source has it and the target does not; stale when the source string changed since it was last translated. A locale is in sync when it has neither. An empty or unknown `--locales` value is rejected with exit `2` rather than silently checking nothing, so a typo in a locale name never lets a CI gate pass. Want the actual key lists behind the counts? That is [`verbatra diff`](/docs/cli/diff).
@@ -125,7 +125,7 @@ A few things the check leaves alone: a key only the target has (it is orphaned, 
 | --- | --- |
 | `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning, with `--strict`) |
 | `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning, with `--strict`); the report is still printed |
-| `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, or `--severity` or `--strict` without `--qa`) |
+| `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa`, or `--strict` with `--severity error`) |
 
 Exit `1` means "out of sync", not a failure: the run itself succeeded, the result just is not all green.
 
