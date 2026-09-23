@@ -314,6 +314,45 @@ describe("translation-memory cache: fingerprint and gate", () => {
   });
 });
 
+describe("translation-memory cache: a hit is held to the target language's plural arms", () => {
+  const PLURAL = "{n, plural, one {# file} other {# files}}";
+  const RUSSIAN = "{n, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}";
+  const ENGLISH_SHAPED = "{n, plural, one {# файл} other {# файла}}";
+  const ruCfg = (): VerbatraConfig => cfg({ format: "next-intl-json", targetLocales: ["ru"] });
+
+  it("refuses a remembered Russian value with only one and other and sends the key to the provider", async () => {
+    const dir = await project({ a: PLURAL }, { ru: {} });
+    const russianStub = (): ReturnType<typeof makeStubProvider> =>
+      makeStubProvider({ translate: () => RUSSIAN });
+    await translate(
+      { config: ruCfg(), cwd: dir },
+      { createProvider: () => russianStub().provider },
+    );
+
+    const fingerprint = computeFingerprint(ruCfg());
+    const [hash] = localeCacheKeys(await loadCache(dir), fingerprint, "ru");
+    expect(hash).toBeDefined();
+    await writeFile(
+      cacheFilePath(dir),
+      `${JSON.stringify({ version: 1, entries: { [fingerprint]: { ru: { [hash as string]: ENGLISH_SHAPED } } } })}\n`,
+    );
+
+    await setSource(dir, { b: PLURAL });
+    const stub = russianStub();
+    const summary = await translate(
+      { config: ruCfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(stub.calls.map((call) => call.request.entries.map((entry) => entry.key))).toEqual([
+      ["b"],
+    ]);
+    expect(summary.locales[0]?.cacheHits).toEqual([]);
+    expect(summary.locales[0]?.translated).toEqual(["b"]);
+    expect((await readTarget(dir, "ru")).b).toBe(RUSSIAN);
+  });
+});
+
 describe("translation-memory cache: resilience", () => {
   it.each([
     ["unparseable", "{ not json"],

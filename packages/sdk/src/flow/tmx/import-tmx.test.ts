@@ -752,6 +752,30 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     expect(result.locales[0]?.rejected.icu).toBe(1);
   });
 
+  it("refuses a Russian plural that keeps the English arms and accepts one with the Russian arms", async () => {
+    const source = "{n, plural, one {# file} other {# files}}";
+    const dir = await project([
+      tu([
+        ["en", source],
+        ["ru", "{n, plural, one {# файл} other {# файла}}"],
+      ]),
+      tu([
+        ["en", "{n, plural, one {# folder} other {# folders}}"],
+        ["ru", "{n, plural, one {# папка} few {# папки} many {# папок} other {# папки}}"],
+      ]),
+    ]);
+
+    const result = await importTmx({
+      config: cfg({ format: "next-intl-json", targetLocales: ["ru"] }),
+      file: "memory.tmx",
+      cwd: dir,
+    });
+
+    expect(result.locales[0]?.rejected.icu).toBe(1);
+    expect(result.locales[0]?.rejected.placeholder).toBe(0);
+    expect(result.locales[0]?.added).toBe(1);
+  });
+
   it("refuses a blank translation of a source that has text", async () => {
     const dir = await project([
       tu([
