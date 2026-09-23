@@ -11,6 +11,7 @@ import {
   type BranchingElement,
   findMatchingBranching,
   findMatchingTag,
+  findUnconsumed,
   isBranching,
   isTag,
 } from "./compare.js";
@@ -102,7 +103,7 @@ function checkBranching(
   if (
     source.type === TYPE.plural &&
     target.type === TYPE.plural &&
-    source.pluralType === target.pluralType
+    kindOf(source) === kindOf(target)
   ) {
     checkPluralArms(source, target, lookup, problems);
   } else if (source.type === TYPE.select && target.type === TYPE.select) {
@@ -116,6 +117,22 @@ function checkBranching(
   }
 }
 
+function findPartner(
+  source: BranchingElement,
+  target: readonly MessageFormatElement[],
+  consumed: ReadonlySet<number>,
+): { readonly element: BranchingElement; readonly index: number } | undefined {
+  const sameKind = findUnconsumed(
+    target,
+    consumed,
+    (candidate): candidate is BranchingElement =>
+      isBranching(candidate) &&
+      candidate.value === source.value &&
+      kindOf(candidate) === kindOf(source),
+  );
+  return sameKind ?? findMatchingBranching(source, target, consumed);
+}
+
 function checkElements(
   source: readonly MessageFormatElement[],
   target: readonly MessageFormatElement[],
@@ -125,7 +142,7 @@ function checkElements(
   const consumed = new Set<number>();
   for (const element of source) {
     if (isBranching(element)) {
-      const found = findMatchingBranching(element, target, consumed);
+      const found = findPartner(element, target, consumed);
       if (found !== undefined) {
         consumed.add(found.index);
         checkBranching(element, found.element, lookup, problems);

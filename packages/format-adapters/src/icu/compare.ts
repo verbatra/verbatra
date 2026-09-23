@@ -56,7 +56,7 @@ function branchesByCategory(
   );
 }
 
-function findUnconsumed<T extends MessageFormatElement>(
+export function findUnconsumed<T extends MessageFormatElement>(
   target: readonly MessageFormatElement[],
   consumed: ReadonlySet<number>,
   isMatch: (candidate: MessageFormatElement) => candidate is T,

@@ -254,6 +254,24 @@ describe("compareIcuBranchArms: kind changes and edge cases", () => {
     ]);
   });
 
+  it("pairs each branch with the same-kind branch of its argument when the target swaps their order", () => {
+    const source =
+      "{n, plural, one {# file} other {# files}} {n, selectordinal, one {#st} other {#th}}";
+    const target = "{n, selectordinal, other {#.}} {n, plural, one {# Datei} other {# Dateien}}";
+
+    expect(compareIcuBranchArms(source, target, cldr("de"))).toEqual([]);
+  });
+
+  it("still reports a kind change when the argument has no same-kind branch left", () => {
+    const source =
+      "{n, plural, one {# file} other {# files}} {n, selectordinal, one {#st} other {#th}}";
+    const target = "{n, selectordinal, other {#.}} {n, selectordinal, other {#.}}";
+
+    expect(compareIcuBranchArms(source, target, cldr("de"))).toEqual([
+      "{n} plural: became a selectordinal",
+    ]);
+  });
+
   it("requires only other and accepts any CLDR keyword when the language has no plural rules", () => {
     const target = "{n, plural, one {# a} few {# b} other {# c}}";
 
