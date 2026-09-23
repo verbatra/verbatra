@@ -3,6 +3,7 @@ import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { detectLineTerminator, isEnoent, type LineTerminator } from "../shell.js";
+import { isAttachedTail } from "./attached-tail.js";
 import { extractAppleStringsPlaceholders } from "./placeholders.js";
 
 type Node =
@@ -21,7 +22,6 @@ type Node =
 
 const UNICODE_ESCAPE = /^[0-9a-fA-F]{4}$/;
 const TRAILING_BLOCK_COMMENT = /\/\*([\s\S]*?)\*\//g;
-const ATTACHED_TAIL = /^[ \t]*\r?\n?[ \t]*$/;
 
 function isInlineWhitespace(char: string | undefined): boolean {
   return char === " " || char === "\t" || char === "\r" || char === "\n";
@@ -195,7 +195,7 @@ function splitLeading(leading: string): LeadingSplit {
   }
   const commentEnd = lastMatch.index + lastMatch[0].length;
   const tail = leading.slice(commentEnd);
-  if (!ATTACHED_TAIL.test(tail)) {
+  if (!isAttachedTail(tail)) {
     return { alwaysPreserved: leading.slice(0, commentEnd), ownedByEntry: tail };
   }
   const inner = (lastMatch[1] ?? "").trim();
