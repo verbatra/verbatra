@@ -1,9 +1,11 @@
+import type { KeyProvenance } from "@verbatra/sdk";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
 import { deriveIntegrityPillView, type KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
 import { isRtlLocale } from "../client/locale-direction.js";
+import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { rpcClient } from "./api.js";
@@ -11,8 +13,9 @@ import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
 import { CommitList } from "./CommitList.js";
 import { DiffBadge } from "./DiffBadge.js";
+import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
-import { DrawerShell, Section } from "./ui.js";
+import { DetailList, DrawerShell, Section } from "./ui.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useHistoryList } from "./use-history-list.js";
@@ -32,6 +35,7 @@ type KeyValuesState =
       readonly kind: "loaded";
       readonly source: string | undefined;
       readonly targets: ReadonlyMap<string, string | undefined>;
+      readonly provenance: ReadonlyMap<string, KeyProvenance>;
     };
 
 function useKeyValues(
@@ -53,6 +57,7 @@ function useKeyValues(
       }
       let source: string | undefined;
       const targets = new Map<string, string | undefined>();
+      const provenance = new Map<string, KeyProvenance>();
       responses.forEach((response, index) => {
         const locale = localeList[index];
         if (locale === undefined || !response.ok) {
@@ -60,8 +65,11 @@ function useKeyValues(
         }
         source ??= response.result.source;
         targets.set(locale, response.result.target);
+        if (response.result.provenance !== undefined) {
+          provenance.set(locale, response.result.provenance);
+        }
       });
-      setState({ kind: "loaded", source, targets });
+      setState({ kind: "loaded", source, targets, provenance });
     });
     return () => {
       cancelled = true;
@@ -89,6 +97,24 @@ function LocaleValue({
     <p className="m-0 mt-2 break-words font-mono text-sm text-foreground" dir="auto">
       {value}
     </p>
+  );
+}
+
+function LocaleProvenance({
+  values,
+  locale,
+}: {
+  readonly values: KeyValuesState;
+  readonly locale: string;
+}): ReactNode {
+  const provenance = values.kind === "loaded" ? values.provenance.get(locale) : undefined;
+  if (provenance === undefined) {
+    return null;
+  }
+  return (
+    <div className="mt-2">
+      <DetailList items={provenanceDetailItems(provenance)} />
+    </div>
   );
 }
 
@@ -148,6 +174,9 @@ function LocaleBlock({
         ) : (
           <DiffBadge tone={row.status} />
         )}
+        <ProvenanceBadge
+          provenance={values.kind === "loaded" ? values.provenance.get(row.locale) : undefined}
+        />
         <IntegrityCell
           integrity={integrity}
           locale={row.locale}
@@ -161,6 +190,7 @@ function LocaleBlock({
         ) : null}
       </div>
       <LocaleValue values={values} locale={row.locale} />
+      <LocaleProvenance values={values} locale={row.locale} />
     </li>
   );
 }

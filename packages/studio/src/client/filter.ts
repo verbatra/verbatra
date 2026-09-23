@@ -1,3 +1,4 @@
+import type { KeyProvenance } from "@verbatra/sdk";
 export const MAX_RENDERED_KEYS = 500;
 
 export interface CappedKeyList {
@@ -9,6 +10,7 @@ export interface CappedKeyList {
 export interface KeyValuePair {
   readonly source?: string;
   readonly target?: string;
+  readonly provenance?: KeyProvenance;
 }
 
 function valueMatches(

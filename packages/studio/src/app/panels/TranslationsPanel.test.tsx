@@ -814,7 +814,51 @@ describe("TranslationsPanel locales section", () => {
       "2",
       "1",
       "7",
+      "Unavailable",
     ]);
+  });
+
+  it("summarizes who wrote each locale's current values in the lock file details", async () => {
+    const byOrigin = {
+      machine: 6,
+      memory: 0,
+      fuzzy: 0,
+      agent: 1,
+      human: 2,
+      import: 0,
+      unknown: 0,
+      unrecorded: 0,
+      external: 1,
+    };
+    stubSyncedPage({
+      "lock.state": {
+        ok: true,
+        result: {
+          exists: true,
+          version: 1,
+          locales: [
+            {
+              locale: "de",
+              keyCount: 10,
+              missing: 0,
+              stale: 0,
+              upToDate: 10,
+              provenance: {
+                byOrigin,
+                byReviewState: { unreviewed: 10, approved: 0, rejected: 0 },
+              },
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    const detail = view.getByText("summary", "Lock file details").parentElement;
+
+    expect(cellTexts(detail?.querySelector<HTMLElement>("tbody tr") ?? undefined).at(-1)).toBe(
+      "6 machine, 1 agent, 2 human, 1 edited outside verbatra",
+    );
   });
 
   it("explains the missing lock file instead of showing a lock column", async () => {
@@ -944,6 +988,36 @@ describe("TranslationsPanel key explorer", () => {
     typeInto(filterInput(view), "shipping");
 
     expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.body"]);
+  });
+
+  it("labels each listed key with the origin of its current value", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { changed: ["app.title", "app.body"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 0, stale: 2, upToDate: 8 }]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: {
+              "app.title": {
+                source: "Welcome",
+                target: "Willkommen",
+                provenance: { origin: "human", reviewState: "unreviewed" },
+              },
+              "app.body": { source: "Body", target: "Text" },
+            },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    expect(view.all("details ul button").map((button) => button.textContent)).toEqual([
+      "app.titleOrigin: Human",
+      "app.body",
+    ]);
   });
 
   it("still matches a query found in the key name when no value matches", async () => {
