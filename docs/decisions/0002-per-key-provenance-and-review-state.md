@@ -221,7 +221,8 @@ Because every record carries the hash of the value it describes, a record that h
 step with its file (a crash between the two writes, a run by an older CLI, a merge that took the
 locale file from one side and the provenance file from the other) reads as `external` rather than
 as a false attribution. A merge conflict in `verbatra.provenance.json` can therefore be resolved by
-taking either side: the wrong side can only cost information, never invent it.
+taking either side: the wrong side can only cost information, never invent it. The one exception is
+the size skip in Decision 8.
 
 ## Decision 5: review state machine
 
@@ -284,7 +285,7 @@ for a change an older reader would misinterpret. Within a version, change is add
 - **A newer version** is read as "no records" and is never overwritten, following the
   translation-memory precedent. `translate`, `watch`, and `importWorkbook` report the notice
   `PROVENANCE_VERSION_UNRECOGNIZED`; `editEntry` and `retranslateEntry`, which return no notices,
-  skip the record silently. The write itself proceeds: the lock and the locale files are still
+  skip the record silently, as they do when the file is too large (Decision 8). The write itself proceeds: the lock and the locale files are still
   written, and the values it writes will read as `external` to the newer CLI, which is honest.
 - **A corrupt file** (not JSON, wrong shape, oversized) fails every write with a new error code
   `PROVENANCE_FILE_INVALID`, like the lock, because silently treating it as empty and then writing
@@ -302,7 +303,8 @@ for a change an older reader would misinterpret. Within a version, change is add
 
 ## Decision 8: serialization
 
-Locales sorted, keys sorted, one record per line, fields in the fixed order `origin`, `provider`,
+Locales sorted, keys sorted (in JavaScript object order, as the lock file is: integer-like keys such
+as `"10"` first in ascending numeric order, then every other key in code-unit order), one record per line, fields in the fixed order `origin`, `provider`,
 `model`, `valueHash`, `reviewState`, `reviewer`, absent fields omitted, a trailing newline. One
 line per record keeps the file's diffs and conflicts line-shaped like the lock's: two branches that
 touch different keys do not conflict unless the keys are adjacent.
@@ -314,8 +316,20 @@ holds roughly 400,000 key-locale pairs and this one roughly 220,000 to 300,000, 
 the lock's limit can outgrow this file first. Because a file verbatra cannot read back would fail
 every later write, a writer never produces one: when the serialized file would exceed the bound, it
 keeps the previous file untouched and the run reports the notice `PROVENANCE_FILE_TOO_LARGE` for
-that locale. The values that locale wrote then read as `external` or `unrecorded`, which is a loss
-of information, never a false attribution.
+that locale. `editEntry` and `retranslateEntry`, which return no notices, skip the record silently,
+as they do for a newer file. The lock and the locale files are still written, so the run does not
+repeat paid work on the next attempt; holding the lock back instead would retranslate the same keys
+on every run.
+
+This is the one case where a record can outlive the value it was written for. A value that changed
+reads as `external` or `unrecorded`, which only loses information. But a key whose new value happens
+to equal the old one, or whose source changed while its value stayed the same, keeps its old record,
+review decision included, although a different write path produced it or the source it was reviewed
+against has changed. Two rules contain that: the approve and reject actions (Decision 5) must not
+report success for a decision they could not persist, and the review workflow must treat an
+approval as reset, not approved, for a key whose lock source hash changed since the approval was
+recorded while the file was over the bound. The size skip is otherwise a loss of information, never
+a false attribution.
 
 ## Decision 9: what the record is, and is not
 
