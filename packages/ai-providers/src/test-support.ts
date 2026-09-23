@@ -12,6 +12,7 @@ import type {
   GoogleTranslateClient,
   GoogleTranslateHttpResponse,
 } from "./google-translate/types.js";
+import { declaredKeyEnvVars } from "./key-env-vars.js";
 import type { OpenAiRequest } from "./openai/request.js";
 import type { OpenAiClient, OpenAiCompletion, OpenAiMessage } from "./openai/types.js";
 import type { PlaceholderExtractor } from "./provider.js";
@@ -198,4 +199,8 @@ export function googleTranslateStubClient(response: GoogleTranslateHttpResponse)
     },
   };
   return { client, calls };
+}
+
+export function resetDeclaredKeyEnvVars(): void {
+  declaredKeyEnvVars().clear();
 }

@@ -8,7 +8,7 @@ import {
   McpError,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { redact } from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import type { McpToolOutcome } from "./tools/define-tool.js";
@@ -57,6 +57,7 @@ function toOkResult(outcome: Extract<McpToolOutcome, { kind: "ok" }>): CallToolR
 }
 
 export function createMcpServer(options: McpServerOptions): Server {
+  declareProviderKeyEnvVar(options.config.config.provider);
   const manifest = readPackageManifest();
   const context = buildContext(options);
   const tools = buildToolRegistry(options.allowSpend ?? false);

@@ -1,4 +1,8 @@
+import { keyEnvVarNames } from "./key-env-vars.js";
+
 const REDACTED = "[REDACTED]";
+
+export const MIN_SCRUBBED_VALUE_LENGTH = 8;
 
 const KEY_PATTERNS: readonly RegExp[] = [
   /\bsk-[A-Za-z0-9_-]{8,}/g,
@@ -10,13 +14,33 @@ function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export function redact(text: string, secret = process.env.ANTHROPIC_API_KEY): string {
+function configuredKeyValues(): string[] {
+  const values = new Set<string>();
+  for (const name of keyEnvVarNames()) {
+    const value = process.env[name];
+    if (value !== undefined && value.length >= MIN_SCRUBBED_VALUE_LENGTH) {
+      values.add(value);
+    }
+  }
+  return [...values].sort((a, b) => b.length - a.length);
+}
+
+function scrubValues(text: string): string {
+  const values = configuredKeyValues();
+  if (values.length === 0) {
+    return text;
+  }
+  return text.replace(new RegExp(values.map(escapeForRegExp).join("|"), "g"), REDACTED);
+}
+
+function scrubPatterns(text: string): string {
   let out = text;
   for (const pattern of KEY_PATTERNS) {
     out = out.replace(pattern, REDACTED);
   }
-  if (secret !== undefined && secret.length > 0) {
-    out = out.replace(new RegExp(escapeForRegExp(secret), "g"), REDACTED);
-  }
   return out;
+}
+
+export function redactKeys(text: string): string {
+  return scrubPatterns(scrubValues(text));
 }

@@ -1,12 +1,5 @@
 import { ProviderError } from "./errors.js";
-
-export const PROVIDER_ENV = {
-  anthropic: "ANTHROPIC_API_KEY",
-  openai: "OPENAI_API_KEY",
-  gemini: "GEMINI_API_KEY",
-  deepl: "DEEPL_API_KEY",
-  "google-translate": "GOOGLE_TRANSLATE_API_KEY",
-} as const;
+import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 function readRequiredEnv(name: string): string {
   const value = process.env[name];
@@ -35,8 +28,6 @@ export function requireDeepLKey(): string {
 export function requireGoogleTranslateKey(): string {
   return readRequiredEnv(PROVIDER_ENV["google-translate"]);
 }
-
-export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";
 
 export const OPENAI_COMPATIBLE_KEY_PLACEHOLDER = "local";
 

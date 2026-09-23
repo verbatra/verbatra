@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  OPENAI_COMPATIBLE_ENV_VAR,
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
-  PROVIDER_ENV,
   requireAnthropicKey,
   requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
+import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 describe("PROVIDER_ENV", () => {
   it("maps every provider id to its canonical environment variable name", () => {

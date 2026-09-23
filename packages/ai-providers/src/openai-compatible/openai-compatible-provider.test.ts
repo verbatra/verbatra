@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { keyEnvVarNames } from "../key-env-vars.js";
 import { deriveJsonSchema, translationsResultSchema } from "../llm/schema.js";
 import type { OpenAiClient } from "../openai/types.js";
 import type { TranslateRequest } from "../provider.js";
+import { redactKeys } from "../redaction.js";
 import { ProviderRegistry } from "../registry.js";
 import {
   entry,
@@ -11,6 +13,7 @@ import {
   openAiResult,
   openAiStubClient,
   regexExtractor,
+  resetDeclaredKeyEnvVars,
 } from "../test-support.js";
 import { createOpenAiCompatibleProvider } from "./openai-compatible-provider.js";
 
@@ -188,8 +191,34 @@ describe("createOpenAiCompatibleProvider: keyless local usage", () => {
 });
 
 describe("createOpenAiCompatibleProvider: apiKeyEnvVar", () => {
+  beforeEach(() => {
+    resetDeclaredKeyEnvVars();
+  });
+
   afterEach(() => {
+    resetDeclaredKeyEnvVars();
     delete process.env.LM_STUDIO_KEY;
+  });
+
+  it("declares the named variable so its value is redacted, even with an injected client", () => {
+    process.env.LM_STUDIO_KEY = "fake-lm-studio-key";
+    const { client } = openAiStubClient(openAiCompletion({ content: "{}" }));
+    createOpenAiCompatibleProvider({ ...config, apiKeyEnvVar: "LM_STUDIO_KEY" }, { client });
+    expect(keyEnvVarNames()).toContain("LM_STUDIO_KEY");
+    expect(redactKeys("x fake-lm-studio-key")).toBe("x [REDACTED]");
+  });
+
+  it("declares the named variable before failing on a missing value", () => {
+    expect(() =>
+      createOpenAiCompatibleProvider({ ...config, apiKeyEnvVar: "LM_STUDIO_KEY" }),
+    ).toThrow(ProviderError);
+    expect(keyEnvVarNames()).toContain("LM_STUDIO_KEY");
+  });
+
+  it("declares nothing when no apiKeyEnvVar is named", () => {
+    const { client } = openAiStubClient(openAiCompletion({ content: "{}" }));
+    createOpenAiCompatibleProvider(config, { client });
+    expect(keyEnvVarNames()).not.toContain("LM_STUDIO_KEY");
   });
 
   it("throws a key-free MISSING_API_KEY at construction when the named variable is unset", () => {

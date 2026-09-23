@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadConfigWithMeta } from "./config/load-config.js";
 import { redact } from "./redact.js";
 
 describe("redact", () => {
@@ -73,5 +74,72 @@ describe("redact", () => {
 
       expect(redact("still plain text")).toBe("still plain text");
     });
+  });
+});
+
+describe("redact: a key read through a custom apiKeyEnvVar", () => {
+  const savedValues: Record<string, string | undefined> = {};
+  const names = ["SDK_REDACT_LOADED_KEY", "SDK_REDACT_SUMMARY_KEY", "SDK_REDACT_UNDECLARED_KEY"];
+
+  beforeEach(() => {
+    for (const name of names) {
+      savedValues[name] = process.env[name];
+    }
+  });
+
+  afterEach(() => {
+    for (const name of names) {
+      const value = savedValues[name];
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    }
+  });
+
+  function openAiCompatibleConfig(apiKeyEnvVar: string): unknown {
+    return {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: {
+        id: "openai-compatible",
+        options: {
+          baseUrl: "http://localhost:11434/v1",
+          model: "m",
+          maxOutputTokens: 256,
+          apiKeyEnvVar,
+        },
+      },
+    };
+  }
+
+  it("leaves an undeclared variable's unshaped value alone", () => {
+    process.env.SDK_REDACT_UNDECLARED_KEY = "fake undeclared key value";
+    expect(redact("value fake undeclared key value here")).toBe(
+      "value fake undeclared key value here",
+    );
+  });
+
+  it("scrubs the value once a config naming the variable is loaded", async () => {
+    process.env.SDK_REDACT_LOADED_KEY = "fake loaded key value";
+    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("SDK_REDACT_LOADED_KEY") });
+
+    const out = redact("glossary fake loaded key value, error: fake loaded key value");
+
+    expect(out).toBe("glossary [REDACTED], error: [REDACTED]");
+  });
+
+  it("scrubs the value inside a serialized run summary", async () => {
+    process.env.SDK_REDACT_SUMMARY_KEY = "fake summary key value";
+    await loadConfigWithMeta({ configOverride: openAiCompatibleConfig("SDK_REDACT_SUMMARY_KEY") });
+
+    const summary = JSON.stringify({
+      failed: [{ locale: "de", message: "boom fake summary key value" }],
+    });
+
+    expect(redact(summary)).not.toContain("fake summary key value");
   });
 });
