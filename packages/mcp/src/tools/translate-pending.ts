@@ -28,7 +28,9 @@ export const translatePendingTool = defineTool({
     "Translate every missing or stale key across every configured target locale in one run, " +
     "calling the configured translation provider and writing the resulting locale files. This " +
     "is the same operation the verbatra translate CLI command runs with no locale filter. Call " +
-    "status.diff first to see what this would change before running it. Calls a translation " +
+    "status.diff first to see what this would change before running it. Stale keys a person " +
+    "wrote, imported, or changed outside verbatra, and pinned keys, are left alone and listed " +
+    "under protected in each locale. Calls a translation " +
     "provider and spends against your API usage; only available when the server was started " +
     "with spending allowed and a translation provider is configured.",
   paramsSchema,

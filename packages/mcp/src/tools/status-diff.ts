@@ -35,6 +35,8 @@ export const statusDiffTool = defineTool({
     "Each locale also carries changedOrigins, the origin of every changed key's current value " +
     "(for example human, import, or external), so you can see whose work a re-translation would " +
     "replace; it is absent when verbatra.provenance.json is corrupt or from a newer verbatra. " +
+    "protected lists the missing and changed keys a translate run would leave alone for a " +
+    "person, under the config's humanEdits and pinnedKeys, with the same absence rule. " +
     "Pass locales to narrow the diff to a subset of configured target locales; omit it to diff " +
     "every configured target locale.",
   paramsSchema,
