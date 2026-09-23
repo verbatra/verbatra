@@ -6,6 +6,7 @@ import {
   EXCHANGE_FORMATS,
   type ExchangeFormat,
   type GenerateTypesInput,
+  isMachineTranslationEnabled,
   type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
@@ -204,9 +205,13 @@ function translateExitCode(summary: RunSummary): number {
   return code === 0 && unfilledKeyCount(summary) > 0 ? NEEDS_HUMAN_EXIT_CODE : code;
 }
 
-function renderNeedsHumanHint(summary: RunSummary, streams: Streams): void {
+function renderNeedsHumanHint(
+  config: TranslateInput["config"],
+  summary: RunSummary,
+  streams: Streams,
+): void {
   const count = unfilledKeyCount(summary);
-  if (count === 0) {
+  if (isMachineTranslationEnabled(config) || count === 0) {
     return;
   }
   streams.err(
@@ -460,7 +465,7 @@ export async function runTranslate(
               ? `${renderSuccessEnvelope("translate", summary)}\n`
               : `${renderHuman(summary)}\n`,
           );
-          renderNeedsHumanHint(summary, streams);
+          renderNeedsHumanHint(config, summary, streams);
           return translateExitCode(summary);
         },
         () => loadEnvFiles(cwd),

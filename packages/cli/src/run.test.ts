@@ -426,6 +426,8 @@ describe("run translate: progress reporting", () => {
   });
 });
 
+const humanOnlyConfig = async () => makeConfig({ provider: { id: "none", options: {} } });
+
 describe("run translate: exit codes", () => {
   it("all locales clean -> 0", async () => {
     const { deps } = recordingDeps({ translate: async () => makeSummary({ succeeded: ["de"] }) });
@@ -479,7 +481,7 @@ describe("run translate: exit codes", () => {
       locales: [makeLocale({ cacheHits: ["greeting"], unfilled: ["farewell", "thanks"] })],
       succeeded: ["de"],
     });
-    const { deps } = recordingDeps({ translate: async () => summary });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
     const cap = captureStreams();
 
     expect(await run(["translate"], deps, cap.streams)).toBe(3);
@@ -492,12 +494,25 @@ describe("run translate: exit codes", () => {
       locales: [makeLocale({ unfilled: ["farewell"] })],
       succeeded: ["de"],
     });
-    const { deps } = recordingDeps({ translate: async () => summary });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
     const cap = captureStreams();
 
     expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
     expect(parseEnvelope(cap.out().trim())).toMatchObject({ ok: true, command: "translate" });
     expect(cap.err()).toContain("1 key needs a human translation");
+  });
+
+  it("prints no human-only hint when the config names a translation provider", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    const cap = captureStreams();
+
+    await run(["translate"], deps, cap.streams);
+
+    expect(cap.err()).not.toContain("machine translation is disabled");
   });
 
   it("a failed locale outranks keys left for a human -> 1", async () => {

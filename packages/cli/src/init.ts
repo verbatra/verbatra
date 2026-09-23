@@ -12,7 +12,7 @@ import { readPackageManifest } from "./package-manifest.js";
 import { askLine, stdinIsTty } from "./prompt.js";
 import type { InitOpts, Streams } from "./types.js";
 
-const HUMAN_ONLY_PROVIDER = "none";
+const HUMAN_ONLY_PROVIDER = scaffoldingMetadata.humanOnlyProviderId;
 
 type InitProviderId = ScaffoldableProviderId | typeof HUMAN_ONLY_PROVIDER;
 
@@ -279,10 +279,7 @@ export async function runInit(
     targetLocales,
     format,
     files: { pattern: filesPattern },
-    provider:
-      provider === HUMAN_ONLY_PROVIDER
-        ? { id: provider }
-        : { id: provider, options: providerOptions },
+    provider: { id: provider, options: providerOptions },
   };
   const validated = verbatraConfigSchema.safeParse(candidate);
   if (!validated.success) {
