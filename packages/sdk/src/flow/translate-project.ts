@@ -705,7 +705,6 @@ export async function translate(
       source: source.resource,
       config,
       maxBatchSize,
-      suggestProtected: context.protection.humanEdits === "suggest",
     }),
   };
 

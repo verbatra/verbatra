@@ -226,6 +226,7 @@ export type {
   RunSummary,
   SdkNotice,
   SdkNoticeCode,
+  SuggestionStatus,
   TokenRunQuantity,
   UnpricedLocaleEstimate,
   UnpricedRunEstimate,

@@ -368,12 +368,36 @@ export interface ProtectedKey {
   /** Why it was protected. */
   readonly reason: ProtectionReason;
   /**
-   * The provider's translation of the current source text, present only under `humanEdits:
-   * "suggest"` and only when the provider returned a value that passed the integrity gate. It was
+   * A translation of the current source text, present only under `humanEdits: "suggest"` when
+   * {@link suggestionStatus} is `suggested`: the provider's answer, or an exact translation-memory
+   * entry for the same source text. A fuzzy memory match is never offered as a suggestion. It was
    * not written to the locale file.
    */
   readonly suggestion?: string;
+  /**
+   * What became of the suggestion for this key, present only for a key that was, or on a dry run
+   * would be, sent for one. See {@link SuggestionStatus}.
+   */
+  readonly suggestionStatus?: SuggestionStatus;
 }
+
+/**
+ * The outcome of asking for a suggestion for a {@link ProtectedKey} under `humanEdits: "suggest"`.
+ *
+ * - `planned`: a dry run; a live run would send the key to the provider.
+ * - `suggested`: a suggestion is in {@link ProtectedKey.suggestion}.
+ * - `integrity-mismatch`: the provider's answer failed the integrity gate and was dropped.
+ * - `provider-failure`: the provider returned nothing usable for the key.
+ * - `budget-withheld`: the key was never sent, because the token budget stopped the run.
+ *
+ * A failed suggestion never changes the locale's status: the key keeps its value either way.
+ */
+export type SuggestionStatus =
+  | "planned"
+  | "suggested"
+  | "integrity-mismatch"
+  | "provider-failure"
+  | "budget-withheld";
 
 /**
  * A key whose translation was reused from the translation memory even though its source string had

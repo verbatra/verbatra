@@ -287,15 +287,11 @@ export interface EstimateForRunInput {
   readonly source: LocaleResource;
   readonly config: VerbatraConfig;
   readonly maxBatchSize: number;
-  readonly suggestProtected?: boolean;
 }
 
-function sentKeys(input: EstimateForRunInput, summary: LocaleSummary): readonly string[] {
-  if (input.suggestProtected !== true) {
-    return summary.translated;
-  }
+function sentKeys(summary: LocaleSummary): readonly string[] {
   const suggested = summary.protected
-    .filter((entry) => entry.reason !== "pinned")
+    .filter((entry) => entry.suggestionStatus === "planned")
     .map((entry) => entry.key);
   return [...summary.translated, ...suggested];
 }
@@ -304,7 +300,7 @@ function entriesFor(source: LocaleResource, keys: readonly string[]): readonly T
   const entries: TranslationEntry[] = [];
   for (const key of keys) {
     const entry = source.entries.get(key);
-    /* v8 ignore next 3 -- a summary's translated keys come from the source-driven diff, so every one of them resolves to a source entry; this guard is purely defensive. */
+    /* v8 ignore next 3 -- a summary's translated keys and its planned suggestions both come from the source-driven diff, never from a generated plural form, so every one of them resolves to a source entry; this guard is purely defensive. */
     if (entry === undefined) {
       continue;
     }
@@ -349,7 +345,7 @@ export function estimateForRun(input: EstimateForRunInput): RunEstimate {
     ...(config.rates !== undefined ? { rates: config.rates } : {}),
     locales: input.summaries.map((summary) => ({
       locale: summary.locale,
-      entries: entriesFor(input.source, sentKeys(input, summary)),
+      entries: entriesFor(input.source, sentKeys(summary)),
       generatedEntries: generatedEntriesFor(input, summary),
     })),
   });

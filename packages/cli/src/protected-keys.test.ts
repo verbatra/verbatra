@@ -18,6 +18,7 @@ const protectedSummary = makeSummary({
       protected: [
         { key: "greeting", reason: "human", suggestion: "Hallo zusammen" },
         { key: "legal.terms", reason: "pinned" },
+        { key: "promo.banner", reason: "import", suggestionStatus: "provider-failure" },
       ],
     }),
   ],
@@ -42,11 +43,11 @@ describe("run translate: protected keys", () => {
     const code = await run(["translate"], deps, cap.streams);
 
     expect(code).toBe(0);
-    expect(cap.out()).toContain("2 protected");
+    expect(cap.out()).toContain("3 protected");
     expect(cap.out()).toContain(
-      'greeting (human, suggestion "Hallo zusammen"), legal.terms (pinned)',
+      'greeting (human, suggestion "Hallo zusammen"), legal.terms (pinned), promo.banner (import, suggestion provider-failure)',
     );
-    expect(cap.err()).toContain("2 protected keys were left for a person to review");
+    expect(cap.err()).toContain("3 protected keys were left for a person to review");
     expect(cap.err()).toContain("--include-human");
   });
 
