@@ -93,8 +93,12 @@ function stubReview(queue: ReviewQueueResult = QUEUE, snapshot = SNAPSHOT): void
   stubRpc({ "review.queue": queueAnswer(queue), "project.snapshot": snapshotAnswer(snapshot) });
 }
 
+function rowKeyOf(row: Element): string {
+  return row.querySelector("[data-row-key]")?.textContent ?? "";
+}
+
 function rowKeys(view: RenderResult): string[] {
-  return view.all("tbody tr").map((row) => row.querySelectorAll("td")[1]?.textContent ?? "");
+  return view.all("tbody tr").map(rowKeyOf);
 }
 
 function localeFilter(view: RenderResult): HTMLSelectElement {
@@ -114,9 +118,7 @@ function keyFilter(view: RenderResult): HTMLInputElement {
 }
 
 function rowAction(view: RenderResult, key: string, name: string): HTMLElement {
-  const row = view
-    .all("tbody tr")
-    .find((candidate) => candidate.querySelectorAll("td")[1]?.textContent === key);
+  const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === key);
   const button = [...(row?.querySelectorAll<HTMLElement>("button") ?? [])].find(
     (candidate) => candidate.textContent?.trim() === name,
   );
@@ -533,6 +535,83 @@ describe("ReviewPanel", () => {
     expect(view.query('[role="dialog"]')).toBeNull();
     expect(rpcCalls.slice(before).map((call) => call.method)).toContain("locale.values");
     expect(view.get('[role="alert"]').textContent).toContain("Could not reject cart.badge (fr)");
+  });
+
+  it("shows each row's current translation under its key, in full on hover", async () => {
+    stubDecisionReady();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+    const shown = row?.querySelector("[data-row-value]");
+
+    expect(shown?.textContent).toBe("Panier");
+    expect(shown?.getAttribute("title")).toBe("Panier");
+    expect(shown?.className).toContain("truncate");
+  });
+
+  it("says the translation is loading until the values arrive", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": () => new Promise(() => {}),
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(view.text()).toContain("Loading the current translation…");
+  });
+
+  it("marks the row busy while approving, Edit included, and announces it", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": () => new Promise(() => {}) });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+
+    for (const name of ["Edit", "Approve", "Reject…"]) {
+      expect((rowAction(view, "checkout.title", name) as HTMLButtonElement).disabled).toBe(true);
+    }
+    expect(view.text()).toContain("Approving…");
+  });
+
+  it("keeps the row busy until the queue reload after an approval has answered", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.approve": { ok: true, result: decided("de", "checkout.title", "approved") },
+      "review.queue": () => new Promise(() => {}),
+    });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect((rowAction(view, "checkout.title", "Edit") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("moves focus to the saved decision's status line", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.approve": { ok: true, result: decided("de", "checkout.title", "approved") },
+      "review.queue": queueAnswer(without("checkout.title")),
+    });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect(document.activeElement?.textContent).toContain("Approved checkout.title (de).");
+  });
+
+  it("frees the row again after a refusal that is not about a changed value", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": rpcError("LOCK_CONTENDED", "busy") });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect((rowAction(view, "checkout.title", "Edit") as HTMLButtonElement).disabled).toBe(false);
+    expect(view.get('[role="alert"]').textContent).toContain("Could not approve checkout.title");
   });
 
   it("asks for confirmation before rejecting, and cancelling calls nothing", async () => {

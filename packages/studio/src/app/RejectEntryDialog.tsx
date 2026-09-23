@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { ReactNode, RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   deriveReviewDecisionOutcome,
   isStaleValueOutcome,
@@ -28,6 +28,72 @@ export interface RejectEntryDialogProps {
   readonly onValueChanged: (message: string) => void;
 }
 
+function isRestoreFailure(state: RejectState): boolean {
+  return state.kind === "failed" && state.outcome.code === "REVIEW_RESTORE_FAILED";
+}
+
+function RejectStatus({
+  state,
+  statusRef,
+}: {
+  readonly state: RejectState;
+  readonly statusRef: RefObject<HTMLSpanElement | null>;
+}): ReactNode {
+  if (state.kind === "submitting") {
+    return (
+      <span
+        ref={statusRef}
+        tabIndex={-1}
+        className={actionStatusTextClassName(undefined)}
+        role="status"
+      >
+        Rejecting…
+      </span>
+    );
+  }
+  if (state.kind === "failed") {
+    return (
+      <span
+        ref={statusRef}
+        tabIndex={-1}
+        className={actionStatusTextClassName("failure")}
+        role="alert"
+      >
+        {isRestoreFailure(state) ? state.outcome.message : `Failed: ${state.outcome.message}`}
+      </span>
+    );
+  }
+  return null;
+}
+
+function RejectActions({
+  state,
+  onReject,
+  onClose,
+  statusRef,
+}: {
+  readonly state: RejectState;
+  readonly onReject: () => void;
+  readonly onClose: () => void;
+  readonly statusRef: RefObject<HTMLSpanElement | null>;
+}): ReactNode {
+  const submitting = state.kind === "submitting";
+  const restoreFailed = isRestoreFailure(state);
+  return (
+    <span className="flex flex-wrap items-center gap-3">
+      {restoreFailed ? null : (
+        <Button variant="danger" size="md" disabled={submitting} onClick={onReject}>
+          Reject and remove
+        </Button>
+      )}
+      <Button size="md" disabled={submitting} onClick={onClose}>
+        {restoreFailed ? "Close" : "Cancel"}
+      </Button>
+      <RejectStatus state={state} statusRef={statusRef} />
+    </span>
+  );
+}
+
 export function RejectEntryDialog({
   locale,
   keyName,
@@ -46,6 +112,12 @@ export function RejectEntryDialog({
     isOpen: true,
     onClose: closeUnlessSubmitting,
   });
+  const statusRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    if (state.kind !== "idle") {
+      statusRef.current?.focus();
+    }
+  }, [state]);
 
   async function handleReject(): Promise<void> {
     setState({ kind: "submitting" });
@@ -88,7 +160,7 @@ export function RejectEntryDialog({
         <ul className="m-0 list-disc space-y-1 ps-5 text-sm text-muted-foreground">
           <li>The translation is removed from the {locale} locale file.</li>
           <li>
-            The key counts as missing until the next <code>verbatra translate</code> run, or
+            The key counts as missing until the next <code>verbatra translate</code> run, or{" "}
             <strong>Translate pending changes across all locales</strong>, fills it again, or
             someone writes a new value.
           </li>
@@ -98,27 +170,12 @@ export function RejectEntryDialog({
           </li>
         </ul>
       </Section>
-      <span className="flex flex-wrap items-center gap-3">
-        <Button
-          variant="primary"
-          size="md"
-          disabled={state.kind === "submitting"}
-          onClick={() => void handleReject()}
-        >
-          Reject and remove
-        </Button>
-        <Button size="md" disabled={state.kind === "submitting"} onClick={onClose}>
-          Cancel
-        </Button>
-        {state.kind === "submitting" ? (
-          <span className={actionStatusTextClassName(undefined)}>Rejecting…</span>
-        ) : null}
-        {state.kind === "failed" ? (
-          <span className={actionStatusTextClassName("failure")} role="alert">
-            Failed: {state.outcome.message}
-          </span>
-        ) : null}
-      </span>
+      <RejectActions
+        state={state}
+        onReject={() => void handleReject()}
+        onClose={onClose}
+        statusRef={statusRef}
+      />
     </DrawerShell>
   );
 }

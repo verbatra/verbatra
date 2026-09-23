@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { RejectEntryDialog } from "./RejectEntryDialog.js";
-import { clickAsync, pressKey, render, rpcCalls, rpcError, stubRpc } from "./test-support.js";
+import {
+  clickAsync,
+  flush,
+  pressKey,
+  render,
+  rpcCalls,
+  rpcError,
+  stubRpc,
+} from "./test-support.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
@@ -114,5 +122,45 @@ describe("RejectEntryDialog", () => {
 
     expect(view.get('[role="alert"]').textContent).toContain("Failed: This locale's write lock");
     expect(onValueChanged).not.toHaveBeenCalled();
+  });
+
+  it("confirms with the danger button and separates the sentence around its action label", () => {
+    const { view } = renderDialog();
+
+    expect(view.getByText("button", "Reject and remove").className).toContain("bg-danger");
+    expect(view.text()).toContain("run, or Translate pending changes across all locales, fills");
+  });
+
+  it("keeps focus inside the dialog on the status while rejecting, then on the error", async () => {
+    let answer: (value: unknown) => void = () => {};
+    stubRpc({
+      "review.reject": () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const { view } = renderDialog();
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    expect(document.activeElement?.textContent).toBe("Rejecting…");
+
+    answer(rpcError("LOCK_CONTENDED", "busy"));
+    await flush();
+    expect(document.activeElement?.getAttribute("role")).toBe("alert");
+  });
+
+  it("offers only Close, without a Failed prefix, when the files could not be put back", async () => {
+    stubRpc({ "review.reject": rpcError("REVIEW_RESTORE_FAILED", "raw") });
+    const { view, onClose } = renderDialog();
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+
+    expect(view.query('button[class*="bg-danger"]')).toBeNull();
+    expect(view.all("button").map((button) => button.textContent)).toContain("Close");
+    const alert = view.get('[role="alert"]').textContent ?? "";
+    expect(alert.startsWith("Failed:")).toBe(false);
+    expect(alert).toContain("could not be put back");
+    await clickAsync(view.getByText("button", "Close"));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

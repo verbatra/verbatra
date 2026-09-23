@@ -1,6 +1,7 @@
 import type { ReviewReasonCode } from "@verbatra/sdk";
-import type { ChangeEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import type { ChangeEvent, ReactNode, RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isRtlLocale } from "../../client/locale-direction.js";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import {
   deriveReviewDecisionOutcome,
@@ -55,7 +56,7 @@ interface RowActions {
   readonly onApprove: (row: ReviewQueueRow, value: string) => void;
   readonly onReject: (target: RejectingTarget) => void;
   readonly currentValueOf: (row: ReviewQueueRow) => string | undefined;
-  readonly busy: ReadonlySet<string>;
+  readonly pending: ReadonlyMap<string, string>;
 }
 
 type DecisionNotice =
@@ -88,6 +89,36 @@ function ReasonChips({ reasons }: { readonly reasons: readonly ReviewReasonCode[
   );
 }
 
+function ReviewKeyCell({
+  row,
+  value,
+}: {
+  readonly row: ReviewQueueRow;
+  readonly value: string | undefined;
+}): ReactNode {
+  return (
+    <TableCell mono>
+      <span className="block" data-row-key="">
+        {row.key}
+      </span>
+      {value === undefined ? (
+        <span className="block font-sans text-xs text-muted-foreground">
+          Loading the current translation…
+        </span>
+      ) : (
+        <span
+          className="block max-w-md truncate text-xs text-muted-foreground"
+          dir={isRtlLocale(row.locale) ? "rtl" : undefined}
+          title={value}
+          data-row-value=""
+        >
+          {value}
+        </span>
+      )}
+    </TableCell>
+  );
+}
+
 function ReviewRow({
   row,
   capabilities,
@@ -98,17 +129,19 @@ function ReviewRow({
   readonly actions: RowActions;
 }): ReactNode {
   const value = actions.currentValueOf(row);
+  const pending = actions.pending.get(rowId(row));
   return (
     <TableRow>
       <TableCell mono>{row.locale}</TableCell>
-      <TableCell mono>{row.key}</TableCell>
+      <ReviewKeyCell row={row} value={value} />
       <TableCell>
         <ReasonChips reasons={row.reasons} />
       </TableCell>
       {capabilities?.writeToDisk === true ? (
         <TableCell>
           <ReviewRowActions
-            decisionDisabled={value === undefined || actions.busy.has(rowId(row))}
+            decisionDisabled={value === undefined}
+            {...(pending !== undefined ? { pendingLabel: pending } : {})}
             onApprove={() => {
               if (value !== undefined) {
                 actions.onApprove(row, value);
@@ -174,17 +207,25 @@ function noticeText(notice: DecisionNotice): string {
   return `Could not ${notice.action} ${target}: ${notice.message}`;
 }
 
-function DecisionStatus({ notice }: { readonly notice: DecisionNotice | null }): ReactNode {
-  if (notice === null) {
-    return null;
-  }
-  const failed = notice.kind === "failed";
+function DecisionStatus({
+  notice,
+  statusRef,
+}: {
+  readonly notice: DecisionNotice | null;
+  readonly statusRef: RefObject<HTMLParagraphElement | null>;
+}): ReactNode {
+  const failed = notice?.kind === "failed";
   return (
     <p
-      className={cn("mb-3", actionStatusTextClassName(failed ? "failure" : "success"))}
+      ref={statusRef}
+      tabIndex={-1}
+      className={cn(
+        "mb-3 min-h-4 focus-visible:outline-none",
+        actionStatusTextClassName(notice === null ? undefined : failed ? "failure" : "success"),
+      )}
       role={failed ? "alert" : "status"}
     >
-      {noticeText(notice)}
+      {notice === null ? null : noticeText(notice)}
     </p>
   );
 }
@@ -241,36 +282,42 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
 }
 
 function useDecisions(onDecided: () => void): {
-  readonly busy: ReadonlySet<string>;
+  readonly pending: ReadonlyMap<string, string>;
   readonly notice: DecisionNotice | null;
   readonly approve: (row: ReviewQueueRow, value: string) => void;
   readonly rejected: (target: EditingTarget) => void;
   readonly rejectStale: (target: EditingTarget, message: string) => void;
+  readonly reloaded: () => void;
 } {
-  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const [pending, setPending] = useState<ReadonlyMap<string, string>>(new Map());
+  const awaitingReload = useRef<Set<string>>(new Set());
   const [notice, setNotice] = useState<DecisionNotice | null>(null);
 
-  function setRowBusy(row: EditingTarget, isBusy: boolean): void {
-    setBusy((current) => {
-      const next = new Set(current);
-      if (isBusy) {
-        next.add(rowId(row));
-      } else {
+  function setRowPending(row: EditingTarget, label: string | undefined): void {
+    setPending((current) => {
+      const next = new Map(current);
+      if (label === undefined) {
         next.delete(rowId(row));
+      } else {
+        next.set(rowId(row), label);
       }
       return next;
     });
   }
 
+  function reloadThenSettle(row: EditingTarget): void {
+    awaitingReload.current.add(rowId(row));
+    onDecided();
+  }
+
   async function approve(row: ReviewQueueRow, value: string): Promise<void> {
-    setRowBusy(row, true);
+    setRowPending(row, "Approving…");
     const response = await rpcClient.call("review.approve", {
       locale: row.locale,
       key: row.key,
       expectedValue: value,
     });
     const outcome = deriveReviewDecisionOutcome(response);
-    setRowBusy(row, false);
     setNotice(
       outcome.kind === "success"
         ? { kind: "approved", locale: row.locale, key: row.key }
@@ -283,12 +330,29 @@ function useDecisions(onDecided: () => void): {
           },
     );
     if (outcome.kind === "success" || isStaleValueOutcome(outcome)) {
-      onDecided();
+      reloadThenSettle(row);
+    } else {
+      setRowPending(row, undefined);
     }
   }
 
+  const reloaded = useCallback((): void => {
+    const settled = awaitingReload.current;
+    if (settled.size === 0) {
+      return;
+    }
+    awaitingReload.current = new Set();
+    setPending((current) => {
+      const next = new Map(current);
+      for (const id of settled) {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
   return {
-    busy,
+    pending,
     notice,
     approve: (row, value) => void approve(row, value),
     rejected: (target) => {
@@ -299,6 +363,7 @@ function useDecisions(onDecided: () => void): {
       setNotice({ kind: "failed", action: "reject", ...target, message });
       onDecided();
     },
+    reloaded,
   };
 }
 
@@ -316,6 +381,18 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
   const values = useMemo(() => valuesIndex(localeValues), [localeValues]);
   const decisions = useDecisions(() => setReloadToken((current) => current + 1));
+  const statusRef = useRef<HTMLParagraphElement | null>(null);
+  const settleReload = decisions.reloaded;
+  useEffect(() => {
+    if (view.kind === "data") {
+      settleReload();
+    }
+  }, [view, settleReload]);
+  useEffect(() => {
+    if (decisions.notice !== null) {
+      statusRef.current?.focus();
+    }
+  }, [decisions.notice]);
 
   if (view.kind === "loading") {
     return (
@@ -345,13 +422,13 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     onApprove: decisions.approve,
     onReject: setRejecting,
     currentValueOf: (row) => reviewedValueFor(values, row),
-    busy: decisions.busy,
+    pending: decisions.pending,
   };
 
   return (
     <div>
       {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known queue." />}
-      <DecisionStatus notice={decisions.notice} />
+      <DecisionStatus notice={decisions.notice} statusRef={statusRef} />
       {rows.length === 0 ? (
         <EmptyState icon="review" title="All clear">
           Nothing to review right now.

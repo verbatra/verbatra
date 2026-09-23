@@ -89,4 +89,20 @@ describe("ReviewRowActions", () => {
     expect(spies.onReject).not.toHaveBeenCalled();
     expect(spies.onEdit).toHaveBeenCalledTimes(1);
   });
+
+  it("disables every action and announces the pending decision while a row is busy", () => {
+    const spies = handlers();
+    const view = render(<ReviewRowActions {...spies} pendingLabel="Approving…" />);
+
+    for (const name of ["Edit", "Approve", "Reject…"]) {
+      expect((view.getByText("button", name) as HTMLButtonElement).disabled).toBe(true);
+    }
+    expect(view.get('[role="status"]').textContent).toBe("Approving…");
+  });
+
+  it("wraps its actions onto a new line in a narrow cell", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(view.get("span").className).toContain("flex-wrap");
+  });
 });
