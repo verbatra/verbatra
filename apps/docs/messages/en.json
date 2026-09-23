@@ -346,7 +346,16 @@
       },
       "s4": {
         "heading": "4. Analytics",
-        "body": "We use Umami, a privacy-friendly analytics tool that we self-host. Umami is <strong>cookieless and does not collect personal data or use cross-site fingerprinting</strong>. It records only aggregated metrics such as page views, referrers, approximate country, and browser, operating system, and device type. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). You can read more about Umami in its <umami>documentation</umami>."
+        "body": "We use Umami, an open-source analytics tool that we host ourselves on the same server as this site (see section 3), so no analytics data is passed to a third party. When a page loads, the Umami script reads the page address and title, the referring page, your screen size and your browser language, and sends them to our Umami server. A few interactions are recorded as events as well: following an outbound link, copying an install command or prompt, and switching the language. Umami sets <strong>no cookies and writes nothing to your device</strong>; it only reads the opt-out setting described below. The Umami server processes your IP address and your browser's user-agent string transiently: it derives your approximate location (country, region and city) and your browser, operating system and device type from them, and it computes a pseudonymous session identifier by hashing them together with a salt that is rotated regularly. <strong>Your IP address and user-agent string themselves are not stored.</strong> Because the session identifier is derived from your IP address, this is pseudonymous rather than anonymous processing of personal data. We only look at the results in aggregate and do not try to identify individual visitors. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). The analytics records are stored in the Umami database on this server. If your browser sends a Do Not Track signal, the Umami script sends nothing. You can also opt out with the button below: it saves the entry umami.disabled in your browser's local storage, which stops the script from sending anything from this browser until you allow analytics again or clear the site's data. You can read more about Umami in its <umami>documentation</umami>.",
+        "optOut": {
+          "optOut": "Opt out of analytics",
+          "optIn": "Allow analytics again",
+          "statusPending": "The opt-out needs JavaScript. Without JavaScript, the analytics script does not run and nothing is counted.",
+          "statusCounted": "Your visits to this site are currently counted by Umami.",
+          "statusOptedOut": "You have opted out: your visits to this site are not counted in this browser.",
+          "statusDoNotTrack": "Your browser sends a Do Not Track signal, so your visits are not counted. You can also opt out explicitly.",
+          "statusUnavailable": "Your browser does not let this site use local storage, so the opt-out cannot be saved. Turn on Do Not Track in your browser to stop the counting instead."
+        }
       },
       "s5": {
         "heading": "5. Cookies",

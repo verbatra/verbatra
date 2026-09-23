@@ -82,6 +82,37 @@ const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
   fr: /n'est pas certifiée au titre de l'EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l'UE \(art\. 46, § 2, point c\) du RGPD\)/,
 };
 
+const UMAMI_NOT_STORED: Record<Locale, RegExp> = {
+  en: /Your IP address and user-agent string themselves are not stored\./,
+  de: /Deine IP-Adresse und deine User-Agent-Zeichenkette selbst werden nicht gespeichert\./,
+  es: /Tu dirección IP y tu cadena de user-agent en sí no se almacenan\./,
+  fr: /Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées\./,
+};
+
+const UMAMI_PSEUDONYMOUS: Record<Locale, RegExp> = {
+  en: /pseudonymous session identifier by hashing/,
+  de: /pseudonyme Sitzungskennung/,
+  es: /identificador de sesión seudónimo/,
+  fr: /identifiant de session pseudonyme/,
+};
+
+const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
+  en: /same server as this site \(see section 3\)/,
+  de: /demselben Server wie diese Seite hosten \(siehe Abschnitt 3\)/,
+  es: /mismo servidor que este sitio \(ver la sección 3\)/,
+  fr: /même serveur que ce site \(voir la section 3\)/,
+};
+
+const UMAMI_DEVICE_READS: Record<Locale, RegExp> = {
+  en: /screen size and your browser language/,
+  de: /Bildschirmgröße und deine Browsersprache/,
+  es: /tamaño de tu pantalla y el idioma de tu navegador/,
+  fr: /taille de ton écran et la langue de ton navigateur/,
+};
+
+const UMAMI_RETIRED_CLAIM =
+  /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
+
 function imprintFacts(): string[] {
   const source = readFileSync(IMPRINT_PAGE, "utf8")
     .replaceAll("&ouml;", "ö")
@@ -165,6 +196,27 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       byNumber(12)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
     ).not.toBeNull();
     expect(sectionText(doc, /^8\. /)).toMatch(OBJECTION_CROSS_REFERENCE[locale]);
+  });
+
+  it("describes what Umami reads and processes instead of claiming it collects no personal data", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+
+    expect(analytics).not.toMatch(UMAMI_RETIRED_CLAIM);
+    expect(analytics).toMatch(UMAMI_DEVICE_READS[locale]);
+    expect(analytics).toMatch(UMAMI_PSEUDONYMOUS[locale]);
+    expect(analytics).toMatch(UMAMI_NOT_STORED[locale]);
+    expect(analytics).toMatch(UMAMI_SAME_SERVER[locale]);
+    expect(analytics).toMatch(/Do[ -]Not[ -]Track/);
+  });
+
+  it("documents the umami.disabled opt-out and renders the control in the analytics section", async () => {
+    const doc = await renderPrivacy(locale);
+    const analytics = sectionNumbered(doc, 4);
+
+    expect(analytics?.textContent).toContain("umami.disabled");
+    expect(analytics?.querySelector("button")).not.toBeNull();
+    expect(analytics?.querySelector('[role="status"]')).not.toBeNull();
+    expect(doc.querySelectorAll("button")).toHaveLength(1);
   });
 
   it("states Arcjet's documented 30-day retention and links to its privacy documentation", async () => {
