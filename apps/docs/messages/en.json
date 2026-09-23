@@ -354,7 +354,7 @@
       },
       "s6": {
         "heading": "6. Fonts and assets",
-        "body": "Fonts are self-hosted: they are bundled at build time, so no requests are made to Google Fonts or any other third party when you load a page. The one exception is status badges: the home page and the testing page embed live badge images from GitHub, Codecov, and shields.io that show the current build, coverage, version, and license. Loading these images transmits your IP address to those providers, which act as independent controllers under their own privacy policies. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in showing accurate project status). Apart from these badges and the self-hosted Umami script described above, no third-party scripts or embeds load at runtime."
+        "body": "Fonts and images, including the contributor avatars on the home page, are self-hosted: they are served from this site's own server, so loading a page makes no request to Google Fonts, GitHub, or any other third party. The site embeds no status badges. Apart from the self-hosted Umami script described above, no third-party scripts, images, or embeds load at runtime. External sites such as GitHub or npm are only contacted when you follow a link to them."
       },
       "s7": {
         "heading": "7. GitHub and npm",

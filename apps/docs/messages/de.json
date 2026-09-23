@@ -326,7 +326,7 @@
       },
       "s6": {
         "heading": "6. Schriften und Assets",
-        "body": "Schriftarten werden selbst gehostet: Sie werden zur Build-Zeit gebündelt, sodass beim Laden einer Seite keine Anfragen an Google Fonts oder andere Drittanbieter gestellt werden. Die einzige Ausnahme sind Status-Badges: Die Startseite und die Testseite betten Live-Badge-Bilder von GitHub, Codecov und shields.io ein, die den aktuellen Build, die Abdeckung, die Version und die Lizenz anzeigen. Das Laden dieser Bilder übermittelt deine IP-Adresse an diese Anbieter, die als unabhängige Verantwortliche gemäß ihren eigenen Datenschutzrichtlinien handeln. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an der Anzeige eines genauen Projektstatus). Abgesehen von diesen Badges und dem oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte oder -Einbettungen geladen."
+        "body": "Schriftarten und Bilder, einschließlich der Avatare der Mitwirkenden auf der Startseite, werden selbst gehostet: Sie werden vom eigenen Server dieser Website ausgeliefert, sodass beim Laden einer Seite keine Anfragen an Google Fonts, GitHub oder andere Drittanbieter gestellt werden. Die Website bettet keine Status-Badges ein. Abgesehen vom oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte, -Bilder oder -Einbettungen geladen. Externe Websites wie GitHub oder npm werden erst kontaktiert, wenn du einem Link dorthin folgst."
       },
       "s7": {
         "heading": "7. GitHub und npm",

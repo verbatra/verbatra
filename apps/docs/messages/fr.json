@@ -326,7 +326,7 @@
       },
       "s6": {
         "heading": "6. Polices et ressources",
-        "body": "Les polices sont auto-hébergées : elles sont intégrées au moment de la compilation, donc aucune requête n'est faite à Google Fonts ou à toute autre tierce partie lorsque tu charges une page. La seule exception concerne les badges de statut : la page d'accueil et la page de test intègrent des images de badges en direct de GitHub, Codecov et shields.io qui affichent la compilation actuelle, la couverture, la version et la licence. Le chargement de ces images transmet ton adresse IP à ces fournisseurs, qui agissent en tant que responsables du traitement indépendants selon leurs propres politiques de confidentialité. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à afficher un statut de projet précis). En dehors de ces badges et du script Umami auto-hébergé décrit ci-dessus, aucun script ou élément intégré de tiers ne se charge à l'exécution."
+        "body": "Les polices et les images, y compris les avatars des contributeurs sur la page d'accueil, sont auto-hébergées : elles sont servies par le propre serveur de ce site, donc le chargement d'une page n'envoie aucune requête à Google Fonts, GitHub ou à toute autre tierce partie. Le site n'intègre aucun badge de statut. En dehors du script Umami auto-hébergé décrit ci-dessus, aucun script, image ou élément intégré de tiers ne se charge à l'exécution. Les sites externes comme GitHub ou npm ne sont contactés que lorsque tu suis un lien vers eux."
       },
       "s7": {
         "heading": "7. GitHub et npm",

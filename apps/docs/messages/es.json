@@ -326,7 +326,7 @@
       },
       "s6": {
         "heading": "6. Fuentes y recursos",
-        "body": "Las fuentes están autoalojadas: se empaquetan en el momento de la compilación, por lo que no se hace ninguna solicitud a Google Fonts ni a ningún otro tercero cuando cargas una página. La única excepción son las insignias de estado: la página de inicio y la página de pruebas incrustan imágenes de insignias en vivo de GitHub, Codecov y shields.io que muestran la compilación actual, la cobertura, la versión y la licencia. Cargar estas imágenes transmite tu dirección IP a esos proveedores, que actúan como responsables del tratamiento independientes bajo sus propias políticas de privacidad. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en mostrar un estado preciso del proyecto). Aparte de estas insignias y del script autoalojado de Umami descrito arriba, no se carga ningún script ni elemento incrustado de terceros en tiempo de ejecución."
+        "body": "Las fuentes y las imágenes, incluidos los avatares de los colaboradores de la página de inicio, están autoalojadas: se sirven desde el propio servidor de este sitio, por lo que cargar una página no hace ninguna solicitud a Google Fonts, GitHub ni a ningún otro tercero. El sitio no incrusta insignias de estado. Aparte del script autoalojado de Umami descrito arriba, no se carga ningún script, imagen ni elemento incrustado de terceros en tiempo de ejecución. Los sitios externos como GitHub o npm solo se contactan cuando sigues un enlace hacia ellos."
       },
       "s7": {
         "heading": "7. GitHub y npm",
