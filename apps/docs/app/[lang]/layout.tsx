@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/json-ld";
 import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
 import { i18nConfig } from "@/lib/layout.shared";
+import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, ogAlternateLocales, ogLocale, SITE_URL } from "@/lib/site";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 
@@ -100,8 +101,8 @@ export default async function Layout({
       className={`dark ${sans.variable} ${mono.variable} ${display.variable}`}
     >
       <head>
-        <link rel="preconnect" href="https://umami.kreitz-webdev.de" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://umami.kreitz-webdev.de" />
+        <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
       </head>
       <body className="flex flex-col min-h-screen">
         <JsonLd data={websiteLd({ lang: locale })} />
@@ -115,7 +116,7 @@ export default async function Layout({
         </NextIntlClientProvider>
         <Script
           defer
-          src="https://umami.kreitz-webdev.de/script.js"
+          src={`${UMAMI_ORIGIN}/script.js`}
           data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"
           data-do-not-track="true"
           strategy="afterInteractive"
