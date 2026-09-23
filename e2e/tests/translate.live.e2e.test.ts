@@ -50,7 +50,7 @@ describe.skipIf(provider === null)(`translate (live: ${provider?.id ?? "skipped"
     }
     if (verdict.kind === "throttled") {
       ctx.skip(
-        `The provider rate-limited the translate run, so the live translation path never executed: ${verdict.detail}`,
+        `The provider rate-limited, timed out, or was unavailable during the translate run, so the live translation path never executed: ${verdict.detail}`,
       );
     }
     expect(translated.exitCode).toBe(0);
