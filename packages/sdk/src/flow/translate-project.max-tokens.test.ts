@@ -28,19 +28,19 @@ describe("translate: per-run maxTokens", () => {
     const stub = makeStubProvider({ usage: USAGE_100 });
 
     const summary = await translate(
-      { config: cfg(), cwd: dir, maxTokens: 720 },
+      { config: cfg(), cwd: dir, maxTokens: 820 },
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget).toMatchObject({ maxTokens: 720, behavior: "stop", exceeded: true });
-    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(720);
+    expect(summary.budget).toMatchObject({ maxTokens: 820, behavior: "stop", exceeded: true });
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(820);
     expect(summary.partial).toEqual(["de"]);
     expect(summary.failed).toEqual(["fr"]);
     expect(stub.calls).toHaveLength(2);
     const notices = summary.locales.flatMap((locale) => locale.notices.map((n) => n.message));
     expect(notices.length).toBeGreaterThan(0);
     for (const message of notices) {
-      expect(message).toMatch(/(the run's|its) own budget of 720 tokens/);
+      expect(message).toMatch(/(the run's|its) own budget of 820 tokens/);
       expect(message).not.toContain("configured budget");
     }
   });
@@ -50,14 +50,14 @@ describe("translate: per-run maxTokens", () => {
     const stub = makeStubProvider({ usage: USAGE_100 });
 
     const summary = await translate(
-      { config: cfg({ maxTokens: 720, budgetBehavior: "warn" }), cwd: dir, maxTokens: 1_000_000 },
+      { config: cfg({ maxTokens: 820, budgetBehavior: "warn" }), cwd: dir, maxTokens: 1_000_000 },
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget).toMatchObject({ maxTokens: 720, behavior: "stop" });
+    expect(summary.budget).toMatchObject({ maxTokens: 820, behavior: "stop" });
     expect(stub.calls).toHaveLength(2);
     const notice = summary.locales[0]?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
-    expect(notice?.message).toContain("the configured budget of 720 tokens");
+    expect(notice?.message).toContain("the configured budget of 820 tokens");
   });
 
   it("applies the lower of the configured and the per-run ceiling", async () => {
@@ -65,11 +65,11 @@ describe("translate: per-run maxTokens", () => {
     const stub = makeStubProvider({ usage: USAGE_100 });
 
     const summary = await translate(
-      { config: cfg({ maxTokens: 100_000, budgetBehavior: "stop" }), cwd: dir, maxTokens: 720 },
+      { config: cfg({ maxTokens: 100_000, budgetBehavior: "stop" }), cwd: dir, maxTokens: 820 },
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget).toMatchObject({ maxTokens: 720, behavior: "stop" });
+    expect(summary.budget).toMatchObject({ maxTokens: 820, behavior: "stop" });
     expect(stub.calls).toHaveLength(2);
   });
 
@@ -90,7 +90,7 @@ describe("translate: per-run maxTokens", () => {
     const stub = makeStubProvider({ usage: USAGE_100 });
 
     const summary = await translate(
-      { config: cfg(), cwd: dir, locales: ["fr"], maxTokens: 720 },
+      { config: cfg(), cwd: dir, locales: ["fr"], maxTokens: 820 },
       { createProvider: () => stub.provider },
     );
 
@@ -100,7 +100,7 @@ describe("translate: per-run maxTokens", () => {
     expect(fr?.status).toBe("partial");
     expect([...(fr?.translated ?? [])].sort()).toEqual(["k0", "k1", "k2", "k3"]);
     expect(fr?.budgetWithheld).toEqual(["k4", "k5"]);
-    expect(summary.budget).toMatchObject({ maxTokens: 720, behavior: "stop", exceeded: true });
+    expect(summary.budget).toMatchObject({ maxTokens: 820, behavior: "stop", exceeded: true });
     await expect(readFile(join(dir, "locales", "de.json"), "utf8")).rejects.toThrow();
   });
 
@@ -130,7 +130,7 @@ describe("translate: per-run maxTokens", () => {
 
     await expect(
       translate(
-        { config: cfg(), cwd: dir, maxTokens: 720, concurrency: 2 },
+        { config: cfg(), cwd: dir, maxTokens: 820, concurrency: 2 },
         { createProvider: () => makeStubProvider().provider },
       ),
     ).rejects.toMatchObject({ code: "CONCURRENCY_BUDGET_CONFLICT" });
@@ -142,7 +142,7 @@ describe("translate: per-run maxTokens", () => {
     const summary = await translate({
       config: cfg(),
       cwd: dir,
-      maxTokens: 720,
+      maxTokens: 820,
       concurrency: 2,
       dryRun: true,
     });
