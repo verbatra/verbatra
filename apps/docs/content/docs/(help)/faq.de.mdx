@@ -141,6 +141,15 @@ Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys gen
 nicht in einer committeten Datei landen kann, und Fehlermeldungen nennen die Variable, aber nie
 einen Wert. Siehe [Provider](/docs/providers).
 
+## Schickt verbatra meine Strings irgendwohin?
+
+Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt.
+verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Mit
+`provider: { id: "none" }` verlässt gar nichts den Rechner, und ein selbst gehostetes
+`openai-compatible`-Modell hält die Strings in deinem Netz. Unter
+[Datenverarbeitung und Datenschutz](/docs/data-handling) findest du, was jeder Provider bekommt,
+die Aufbewahrungsbedingungen der Anbieter und eine Checkliste für ein AVV- oder NDA-Review.
+
 ## Was prüft verbatra doctor eigentlich?
 
 <AvailableFrom version="0.9.0" />

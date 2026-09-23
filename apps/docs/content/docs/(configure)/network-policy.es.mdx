@@ -4,7 +4,7 @@ description: Limita a qué hosts puede conectarse un proveedor de traducción, p
 ---
 <AvailableFrom version="0.12.0" />
 
-Un modelo autoalojado detrás de `openai-compatible` mantiene tus strings dentro de tu propia red, pero solo mientras cada ajuste siga siendo correcto. Una `baseUrl` mal escrita, un `OPENAI_BASE_URL` olvidado en la shell de alguien o un compañero que cambia el proveedor por uno alojado basta para enviar strings a un endpoint público. Una política de red hace explícita la regla: verbatra se niega a hablar con un host que la política no permite, y lo dice antes de que ninguna petición salga de la máquina.
+Un modelo autoalojado detrás de `openai-compatible` mantiene tus strings dentro de tu propia red, pero solo mientras cada ajuste siga siendo correcto. Una `baseUrl` mal escrita, un `OPENAI_BASE_URL` olvidado en la shell de alguien o un compañero que cambia el proveedor por uno alojado basta para enviar strings a un endpoint público. Una política de red hace explícita la regla: verbatra se niega a hablar con un host que la política no permite, y lo dice antes de que ninguna petición salga de la máquina. Qué contiene una petición y todo lo que verbatra mantiene en local está en [Tratamiento de datos y privacidad](/docs/data-handling).
 
 ## Configúrala
 

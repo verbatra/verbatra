@@ -144,6 +144,16 @@ travail (les vraies variables d'environnement gagnent). Le schéma de configurat
 inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les
 messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs](/docs/providers).
 
+## verbatra envoie-t-il mes textes quelque part ?
+
+Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit.
+verbatra n'a ni télémétrie, ni analytics, ni vérification de mise à jour. Avec
+`provider: { id: "none" }`, rien ne quitte la machine, et un modèle `openai-compatible`
+auto-hébergé garde les textes sur ton réseau. Voir
+[Traitement des données et confidentialité](/docs/data-handling) pour ce que reçoit chaque
+fournisseur, les conditions de conservation des éditeurs et une liste de contrôle pour une revue
+DPA ou NDA.
+
 ## Que vérifie réellement verbatra doctor ?
 
 <AvailableFrom version="0.9.0" />

@@ -141,6 +141,15 @@ rechaza las claves desconocidas precisamente para que un secreto no pueda acabar
 confirmado, y los mensajes de error nombran la variable pero nunca un valor. Consulta
 [Proveedores](/docs/providers).
 
+## ¿verbatra envía mis textos a algún sitio?
+
+Solo al proveedor de traducción que configures, y solo cuando un comando traduce. verbatra no
+tiene telemetría, ni analítica, ni comprobación de actualizaciones. Con `provider: { id: "none" }`
+no sale nada de la máquina, y un modelo `openai-compatible` autoalojado mantiene los textos en tu
+red. Consulta [Tratamiento de datos y privacidad](/docs/data-handling) para ver qué recibe cada
+proveedor, las condiciones de retención de cada empresa y una lista de comprobación para una
+revisión de DPA o NDA.
+
 ## ¿Qué comprueba realmente verbatra doctor?
 
 <AvailableFrom version="0.9.0" />

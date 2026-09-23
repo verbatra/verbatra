@@ -134,6 +134,14 @@ Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_AP
 environment variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
 file, and error messages name the variable but never a value. See [Providers](/docs/providers).
 
+## Does verbatra send my strings anywhere?
+
+Only to the translation provider you configure, and only when a command translates. verbatra has
+no telemetry, analytics, or update check. With `provider: { id: "none" }` nothing leaves the
+machine at all, and a self-hosted `openai-compatible` model keeps strings on your network. See
+[Data handling and privacy](/docs/data-handling) for what each provider receives, the vendors'
+retention terms, and a checklist for a DPA or NDA review.
+
 ## What does verbatra doctor actually check?
 
 <AvailableFrom version="0.9.0" />

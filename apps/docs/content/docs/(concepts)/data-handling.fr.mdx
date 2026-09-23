@@ -1,0 +1,192 @@
+---
+title: Traitement des données et confidentialité
+description: Ce que l'outil verbatra envoie hors de ta machine, à qui, et ce qu'il garde en local, pour qu'une revue sécurité ou juridique puisse le valider.
+---
+Cette page parle de l'outil verbatra : la CLI, le SDK, Studio et le serveur MCP qui tournent sur ta
+machine ou dans ta CI. Elle répond à la première question d'une revue sécurité ou juridique :
+qu'est-ce qui quitte la machine ? Le site que tu lis est un autre sujet, couvert par sa
+[politique de confidentialité](/privacy).
+
+## La réponse courte
+
+- **Pas de télémétrie.** verbatra n'a ni analytics, ni remontée d'usage, ni rapport de plantage,
+  ni vérification de mise à jour. Il ne contacte jamais de serveur verbatra, puisqu'il n'y en a
+  pas.
+- **Une seule destination sortante : ton fournisseur.** Les seules requêtes réseau de verbatra sont
+  les requêtes de traduction vers le fournisseur que tu as configuré, et seulement quand une
+  commande traduit vraiment. Avec `provider: { id: "none" }`, il n'en fait aucune.
+- **Seul ce qui doit être traduit est envoyé.** Les clés inchangées, déjà dans la mémoire de
+  traduction ou réservées à une personne n'atteignent jamais le fournisseur.
+- **Tout le reste reste en local.** Les fichiers de locale, le fichier de verrouillage, le fichier
+  de provenance, la mémoire de traduction et l'état d'exécution sont des fichiers de ton projet.
+  Studio n'écoute que sur `127.0.0.1`, et le serveur MCP parle par stdio, pas par un port réseau.
+- **Les clés d'API viennent uniquement de variables d'environnement** et n'apparaissent jamais dans
+  un message d'erreur.
+
+## Comment circulent les données
+
+```text
+ ton projet (disque local)                               fournisseur (seulement pour
+ +-----------------------------------------+             translate, watch, retranslate)
+ | fichiers de locale, verbatra.config.ts, |   HTTPS     +--------------------------+
+ | glossaire          -- lus par verbatra  |------------>| Anthropic / OpenAI /     |
+ |                                         |  textes     | Gemini / DeepL / Google  |
+ | verbatra.lock.json, provenance,         |  modifiés   | ou ton propre serveur    |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (openai-compatible)      |
+ |              -- écrits par verbatra     | traductions +--------------------------+
+ +-----------------------------------------+
+        |                        |
+        | 127.0.0.1 seulement    | stdio
+        v                        v
+  Studio dans ton navigateur  client MCP (ton agent IA)
+```
+
+La flèche vers le fournisseur est la seule qui franchit la frontière de ton réseau. Les deux
+flèches du bas restent sur ta machine, mais lis la section [Studio et MCP](#studio-et-mcp) : ce
+qu'un agent IA lit par ce biais part là où cet agent l'envoie.
+
+## Quand une requête est faite
+
+Peuvent appeler un fournisseur : `translate` et `watch`, le `retranslateEntry` du SDK, et les
+actions de retraduction et de traduction des clés en attente dans Studio et le serveur MCP. Studio
+et le serveur MCP ne proposent ces actions que si tu les lances avec `--allow-spend`. Tout le
+reste, dont `check`, `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
+`translate --dry-run` et `translate --estimate`, travaille sur des fichiers locaux et n'envoie
+rien.
+
+Une exécution de `translate` n'envoie que les clés absentes ou modifiées par rapport au
+[fichier de verrouillage](/docs/the-lock-file), moins toutes celles que la
+[mémoire de traduction](/docs/the-cache) couvre déjà. Les clés au contenu source identique ne sont
+envoyées qu'une fois.
+
+## Ce que reçoit chaque fournisseur
+
+| Fournisseur | Ce qui est envoyé | Où ça part |
+| --- | --- | --- |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pour chaque clé à traduire : le nom de la clé, le texte source, et la description ou le sens que ton fichier source porte pour elle (par exemple une `description` ARB, une note XLIFF ou un commentaire gettext). Par requête : les codes de locale source et cible (après ta [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms de langue en anglais, ton `tone`, le glossaire complet du projet, les catégories de pluriel de la langue cible quand le lot contient des clés au pluriel, les instructions fixes de verbatra, le nom du modèle et une limite de tokens en sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée pour `openai-compatible`. Une variable `*_BASE_URL` redirige les fournisseurs hébergés, voir [Politique réseau](/docs/network-policy#fournisseurs-hébergés). |
+| `deepl` | Le texte source de chaque clé sans placeholder, les codes de langue source et cible, un niveau de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId` si tu l'as défini. Pas de noms de clé, pas de descriptions et pas de termes de glossaire : les glossaires DeepL vivent dans ton compte DeepL. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui se termine par `:fx`. |
+| `google-translate` | Le texte source de chaque clé sans placeholder et les codes de langue source et cible. Pas de noms de clé, pas de descriptions, pas de glossaire. | `translation.googleapis.com` |
+| `none` | Rien. Aucun fournisseur n'est construit et aucune clé n'est lue. | Nulle part. |
+
+Les limites `maxLength` sont vérifiées sur ta machine et jamais envoyées. Le client HTTP de chaque
+fournisseur ajoute aussi ses en-têtes de requête habituels, qui nomment la bibliothèque cliente et
+sa version et, pour la plupart, ton système d'exploitation et ta version de Node.js. La requête
+porte ta clé d'API au fournisseur auquel elle appartient et à personne d'autre.
+
+Considère tout ce qui se trouve dans un texte source, une description ou le glossaire comme envoyé
+au fournisseur. Si un texte ne doit pas quitter ton réseau, il ne doit pas se trouver dans un
+fichier que verbatra traduit avec un fournisseur hébergé.
+
+## Conservation et traitement des données chez le fournisseur
+
+Ce qu'il advient de tes textes une fois arrivés dépend du fournisseur et de ton contrat avec lui,
+pas de verbatra. Les citations ci-dessous viennent de la page de chaque fournisseur, en septembre
+2026, et sont laissées dans leur anglais d'origine. Les conditions changent et ton contrat prime :
+prends ce tableau comme point de départ de ta revue et lis les pages liées.
+
+| Fournisseur | Ce que dit le fournisseur | Traitement des données |
+| --- | --- | --- |
+| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([conservation](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products (e.g. Claude for Work, Anthropic API, Claude Gov, etc.) to train our models" ([entraînement](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). La conservation zéro se négocie par organisation avec l'équipe commerciale d'Anthropic ([conservation zéro](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention et Modified Abuse Monitoring "are subject to prior approval by OpenAI", et `/v1/chat/completions`, le endpoint qu'appelle verbatra, y figure comme éligible ([your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
+| Gemini | Sur le niveau gratuit (Unpaid Services), "human reviewers may read, annotate, and process your API input and output", et les conditions disent "Do not submit sensitive, confidential, or personal information to the Unpaid Services". Sur les Paid Services, "Google doesn't use your prompts [...] or responses to improve our products" et les journalise "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy". Dans l'EEE, en Suisse et au Royaume-Uni, les conditions des Paid Services s'appliquent à tout usage, niveau gratuit compris ([Gemini API terms](https://ai.google.dev/gemini-api/terms)). Google décrit ce qu'une configuration sans conservation exclut sur sa page de [conservation zéro](https://ai.google.dev/gemini-api/docs/zdr) ; verbatra n'utilise ni le grounding ni le cache explicite. | [Processor terms](https://business.safety.google/processorterms/), que les Gemini API terms citent pour les Paid Services |
+| DeepL | Pour DeepL API Free, la [politique de confidentialité](https://www.deepl.com/en/privacy) applique la règle du service gratuit : "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Pour Pro, "your texts will not be used to improve the quality of our services", et "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auquel renvoient les [conditions DeepL Pro](https://www.deepl.com/en/pro-license) |
+| Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", et "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
+| openai-compatible | Ce que fait ton propre serveur. Un modèle que tu héberges toi-même garde les textes sur du matériel que tu contrôles. | Les tiennes |
+
+Deux conséquences, dites clairement : les niveaux gratuits de Gemini (hors EEE, Suisse et
+Royaume-Uni) et de DeepL peuvent utiliser ce que tu envoies pour améliorer les modèles du
+fournisseur, et aucun des fournisseurs hébergés n'offre la conservation zéro par défaut. Pour des
+textes confidentiels, utilise un niveau payant avec les conditions dont ton organisation a besoin,
+ton propre serveur, ou aucune traduction automatique.
+
+## Garder les textes en interne
+
+- **Pas de traduction automatique.** `provider: { id: "none" }` fait de verbatra un outil purement
+  local : les clés sont remplies depuis la mémoire de traduction, ou par des personnes via export
+  et import. Voir [Flux 100 % humain](/docs/human-only-workflow).
+- **Ton propre modèle.** `openai-compatible` envoie les requêtes à la `baseUrl` que tu définis,
+  par exemple Ollama, LM Studio ou vLLM sur ta machine ou ton réseau. Voir
+  [Fournisseurs](/docs/providers).
+- **Impose-le.** Une [politique réseau](/docs/network-policy) comme `local-only` fait refuser à
+  verbatra tout hôte de fournisseur hors de ton réseau avant l'envoi d'une requête, et
+  `VERBATRA_NETWORK_POLICY` la fixe depuis l'environnement pour que la config d'un dépôt ne puisse
+  pas l'assouplir.
+
+Les trois sont disponibles à partir de verbatra 0.12.0.
+
+## Ce qui est écrit en local
+
+| Fichier | Contient | Le commiter ? |
+| --- | --- | --- |
+| Tes fichiers de locale | les traductions | oui |
+| `verbatra.lock.json` | un hash de chaque texte source dont est issue une traduction | oui |
+| `verbatra.provenance.json` | par clé, le chemin d'écriture qui a produit la valeur (`machine`, `memory`, `human`, `import` et d'autres), le fournisseur et le modèle pour une sortie automatique, et si elle a été relue. Ni texte traduit ni horodatage. | oui |
+| `verbatra.cache.json` | la mémoire de traduction : le texte source et ses traductions, par fournisseur, modèle, ton et glossaire | non, `verbatra init` l'ajoute au `.gitignore` |
+| `.verbatra-local/run-status.json` | le résultat, les signalements de relecture et la consommation de tokens par locale de la dernière exécution | non, ignoré avec `.verbatra-local/` |
+| `.verbatra-local/pseudo/` | les pseudolocales générées | non |
+| `.env`, `.env.local` | tes clés d'API, si tu les y ranges | jamais, `verbatra init` ignore les deux |
+
+`verbatra init` écrit un `.env.example` sans aucune clé. `translate`, `watch`, `doctor`, `studio`
+et `mcp` lisent `.env` et `.env.local` dans le répertoire de travail sans écraser les variables déjà
+définies. Une clé n'est jamais lue depuis le fichier de config ni depuis un argument de ligne de
+commande.
+
+## Clés d'API
+
+Chaque fournisseur lit une variable d'environnement, listée sur
+[Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement). Chaque message d'erreur d'un
+fournisseur passe par un filtre qui remplace par `[REDACTED]` la valeur de chaque variable de clé
+que verbatra connaît, y compris celle que tu nommes avec `apiKeyEnvVar` pour `openai-compatible`,
+ainsi que tout ce qui ressemble à une clé d'API courante. Un message nomme la variable, jamais sa
+valeur.
+
+## Studio et MCP
+
+**Studio** est un serveur web sur ta propre machine. Il se lie à `127.0.0.1` et refuse de démarrer
+s'il se retrouve lié ailleurs, rejette toute requête dont le `Host` n'est pas `127.0.0.1` sur son
+port ou qui vient d'une autre `Origin`, et exige le jeton aléatoire qu'il affiche au démarrage. Sa
+Content-Security-Policy ne laisse le tableau de bord charger du code et des données que depuis ce
+même serveur, la page ne récupère donc rien sur internet. Il affiche les textes de ton projet dans
+ton navigateur et lit l'historique git du projet en exécutant `git log` en local.
+
+**Le serveur MCP** parle à son client par stdio et n'ouvre aucun port. Ses outils de lecture
+renvoient les textes, le glossaire et l'état de ton projet au client MCP connecté.
+
+C'est le point à peser avec soin : un client MCP, ou un agent de navigateur qui utilise
+`--expose-agent-tools` de Studio, est en général un assistant IA, et ce qu'il lit part vers le
+modèle derrière lui, aux conditions de ce fournisseur. verbatra ne peut ni le voir ni le
+restreindre. Ne connecte un agent que si son fournisseur est acceptable pour ces textes.
+
+## Traductions générées par IA et provenance
+
+L'article 50 du règlement européen sur l'IA (AI Act) fixe des obligations de transparence pour les
+systèmes d'IA qui génèrent du texte, dont, dans certains cas, le marquage de ces sorties comme
+générées artificiellement
+([AI Act Service Desk, article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
+S'il s'applique à ton produit et comment, c'est une question pour ton conseil juridique, pas une
+décision de verbatra.
+
+Ce que verbatra te donne, c'est une trace. Chaque valeur produite par un fournisseur est enregistrée
+avec l'origine `machine` dans `verbatra.provenance.json`, avec le fournisseur et le modèle, jusqu'à
+ce que la valeur soit réécrite. L'approbation ou le rejet d'un relecteur est noté à côté. Les
+valeurs venant de personnes (`human`, `import`) et de la mémoire de traduction (`memory`, `fuzzy`)
+sont enregistrées comme telles. Voir
+[La provenance de chaque valeur](/docs/the-lock-file#la-provenance-de-chaque-valeur).
+
+## Liste de contrôle pour une revue DPA ou NDA
+
+1. Décide si les textes peuvent quitter ton réseau. Sinon, utilise `provider: { id: "none" }` ou un
+   serveur `openai-compatible` auto-hébergé, et fixe `VERBATRA_NETWORK_POLICY=local-only` dans la
+   CI.
+2. Si un fournisseur hébergé est autorisé, choisis-le avec son niveau à partir du tableau
+   ci-dessus : un niveau payant, pas gratuit, pour tout ce qui est confidentiel.
+3. Signe les conditions de traitement des données du fournisseur, et demande la conservation zéro
+   si ta politique l'exige.
+4. Vérifie ce qu'envoient tes fichiers source : les noms de clé, les descriptions et commentaires,
+   ainsi que le glossaire partent vers les fournisseurs LLM à chaque requête.
+5. Garde les clés d'API dans le coffre de secrets de ta CI ou dans un `.env` ignoré, et lance
+   `verbatra doctor` pour confirmer le fournisseur, la variable de clé et la politique réseau.
+6. Décide quels agents IA, s'il y en a, peuvent se connecter à Studio ou au serveur MCP, aux
+   conditions de leur fournisseur.
+7. Commite `verbatra.provenance.json` pour que la trace des valeurs produites par machine voyage
+   avec ton code.

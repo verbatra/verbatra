@@ -6,7 +6,7 @@ verbatra ships six providers behind one interface: Anthropic, OpenAI, Gemini, an
 
 ## Which one should I pick?
 
-Any provider works with any format and command; the choice is about cost, quality, privacy, and how you get a key.
+Any provider works with any format and command; the choice is about cost, quality, privacy, and how you get a key. What each provider receives, and what its vendor says about retention and training, is on [Data handling and privacy](/docs/data-handling).
 
 - **Small or side project, want it free?** Use **Gemini**. It has a real free API tier, so you can translate a whole app at zero cost. Grab a key from [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`. The free tier is rate-limited (see the note below), which only matters on a large first-time run.
 - **Best translation quality for a production app?** Use **Anthropic** or **OpenAI**. Both are paid LLMs and read `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
