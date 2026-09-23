@@ -48,7 +48,7 @@ Une requête LLM transporte quatre choses. Une évolue avec ton nombre de clés,
 
 | Partie | Évolue avec | Taille approximative |
 | --- | --- | --- |
-| Règles système | rien : constant par requête | ~250 tokens |
+| Règles système | rien : constant par requête | ~350 tokens |
 | Schéma de sortie | rien : constant par requête | ~100 tokens |
 | Charge utile des items | clés du sous-lot, plus le glossaire et le ton | clé + valeur + ~21 caractères de JSON, par item |
 | Réponse | clés du sous-lot | clé + valeur traduite + ~21 caractères de JSON, par item |
@@ -150,10 +150,10 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 | | |
 | --- | --- |
-| Règles système | 250 |
+| Règles système | 350 |
 | Schéma de sortie | 100 |
 | (50 items x (20 + 40 + ~21 de JSON) caractères + ~50 d'enveloppe) / 4 | 1 038 |
-| **Total** | **~1 388** |
+| **Total** | **~1 488** |
 
 **Tokens de sortie par requête**
 
@@ -161,11 +161,11 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 **Totaux sur 3 locales**
 
-- Entrée : 24 x 1 388 = **~33 312 tokens**
+- Entrée : 24 x 1 488 = **~35 712 tokens**
 - Sortie : 24 x 1 280 = **~30 720 tokens**
-- Coût : (33 312 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0033 + $0.0123 = **environ 1,6 centime**
+- Coût : (35 712 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0036 + $0.0123 = **environ 1,6 centime**
 
-Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 350 = 8 400 des 33 312 tokens d'entrée, soit environ un quart. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
+Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 450 = 10 800 des 35 712 tokens d'entrée, soit environ 30 %. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
 
 ## La méthode exacte : calibrer sur une locale
 

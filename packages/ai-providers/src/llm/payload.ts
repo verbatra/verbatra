@@ -1,5 +1,5 @@
 import type { TranslationEntry } from "@verbatra/core";
-import type { Tone } from "../provider.js";
+import type { PluralCategories, Tone } from "../provider.js";
 import type { TranslationsResult } from "./schema.js";
 
 interface ItemPayload {
@@ -15,6 +15,7 @@ export interface DataPayloadInput {
   readonly entries: readonly TranslationEntry[];
   readonly glossary?: Readonly<Record<string, string>> | undefined;
   readonly tone?: Tone | undefined;
+  readonly pluralCategories?: PluralCategories | undefined;
 }
 
 export type TranslationItem = TranslationsResult["translations"][number];
@@ -34,6 +35,7 @@ export function buildDataPayload(data: DataPayloadInput): Record<string, unknown
     targetLocale: data.targetLocale,
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
     ...(data.glossary !== undefined ? { glossary: data.glossary } : {}),
+    ...(data.pluralCategories !== undefined ? { pluralCategories: data.pluralCategories } : {}),
     items: data.entries.map(toItem),
   };
 }

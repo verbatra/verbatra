@@ -213,7 +213,7 @@ describe("spend guarantee: plain translation", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 500,
+          maxTokens: 600,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -222,8 +222,8 @@ describe("spend guarantee: plain translation", () => {
     );
 
     expectEveryCallReserved();
-    expectCeilingHeldAtEveryCall(500);
-    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(500);
+    expectCeilingHeldAtEveryCall(600);
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(600);
     expect(summary.budget?.exceeded).toBe(true);
     expect(reserves().some((reserve) => !reserve.granted)).toBe(true);
   });

@@ -362,6 +362,31 @@ describe("runLlmTranslation: reviewFlags", () => {
   });
 });
 
+describe("runLlmTranslation: plural categories", () => {
+  it("sends the plural categories in the user-turn payload on the first call and the repair round", async () => {
+    const { mechanism, inputs } = sequencedMechanism([
+      { raw: rawResult([]) },
+      { raw: rawResult([{ key: "greeting", value: "Hallo {{name}}" }]) },
+    ]);
+    const pluralCategories = {
+      cardinal: ["one", "few", "many", "other"],
+      ordinal: ["other"],
+    } as const;
+
+    await runLlmTranslation(request({ targetLocale: "ru", pluralCategories }), mechanism, {
+      ru: "Russian",
+    });
+
+    for (const input of inputs) {
+      expect(JSON.parse(input.payloadJson)).toMatchObject({
+        targetLocale: "Russian",
+        pluralCategories,
+      });
+    }
+    expect(inputs).toHaveLength(2);
+  });
+});
+
 describe("runLlmTranslation: localeMap", () => {
   function payloadOf(input: LlmCompletionInput | undefined): Record<string, unknown> {
     return JSON.parse(input?.payloadJson ?? "{}") as Record<string, unknown>;

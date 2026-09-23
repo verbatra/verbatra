@@ -129,6 +129,23 @@ describe("createGoogleTranslateProvider: per-key integrity", () => {
 });
 
 describe("createGoogleTranslateProvider: placeholder-bearing entries are withheld", () => {
+  it("withholds an ICU plural even when the request names the target's plural categories", async () => {
+    const { client, calls } = googleTranslateStubClient(googleTranslateSuccess(["Frei"]));
+    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({
+        entries: [
+          entry("free", "Free"),
+          entry("files", "{n, plural, one {# file} other {# files}}", ["{n}"]),
+        ],
+        pluralCategories: { cardinal: ["one", "few", "many", "other"], ordinal: ["other"] },
+      }),
+    )) as GoogleTranslateResult;
+
+    expect(firstCallOf(calls).texts).toEqual(["Free"]);
+    expect(result.values.has("files")).toBe(false);
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
   it("translates only placeholder-free entries and withholds placeholder-bearing ones", async () => {
     const { client, calls } = googleTranslateStubClient(googleTranslateSuccess(["Frei"]));
     const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(

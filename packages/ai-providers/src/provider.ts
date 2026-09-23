@@ -1,5 +1,5 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
-import { translationEntrySchema } from "@verbatra/core";
+import type { PlaceholderIntegrityResult, PluralCategory, TranslationEntry } from "@verbatra/core";
+import { PLURAL_CATEGORIES, translationEntrySchema } from "@verbatra/core";
 import { z } from "zod";
 import { ProviderError } from "./errors.js";
 
@@ -38,6 +38,17 @@ export type PlaceholderComparator = (
 ) => PlaceholderIntegrityResult;
 
 /**
+ * The CLDR plural categories of a batch's target language, one list per rule type, each in CLDR
+ * order and each containing `other`.
+ */
+export interface PluralCategories {
+  /** The categories an ICU `plural` must carry in the target language. */
+  readonly cardinal: readonly PluralCategory[];
+  /** The categories an ICU `selectordinal` must carry in the target language. */
+  readonly ordinal: readonly PluralCategory[];
+}
+
+/**
  * A batch translation request. Format- and provider-neutral: it carries no prompt,
  * model, key, or other provider-specific field. The placeholder extractor is
  * mandatory and is checked before the data fields are parsed.
@@ -60,6 +71,14 @@ export interface TranslateRequest {
    * provider and never withholds a value.
    */
   readonly maxLength?: ReadonlyMap<string, number>;
+  /**
+   * Optional CLDR plural categories of the target language, set by the SDK for a batch in an ICU
+   * format that holds a `plural` or `selectordinal` value. An LLM provider sends them to the model
+   * as data, asking for exactly these arms instead of the source's; a machine-translation provider
+   * ignores them, since it never translates a value that carries ICU syntax. Validated as CLDR
+   * keywords only.
+   */
+  readonly pluralCategories?: PluralCategories;
   /** Mandatory placeholder extractor; the output integrity check runs against it. */
   readonly extractPlaceholders: PlaceholderExtractor;
   /**
@@ -269,6 +288,12 @@ const requestDataSchema = z.object({
   glossary: z.record(z.string(), z.string()).optional(),
   tone: z.enum(["formal", "informal", "neutral"]).optional(),
   maxLength: z.map(z.string().min(1), z.number().int().nonnegative()).optional(),
+  pluralCategories: z
+    .object({
+      cardinal: z.array(z.enum(PLURAL_CATEGORIES)).min(1),
+      ordinal: z.array(z.enum(PLURAL_CATEGORIES)).min(1),
+    })
+    .optional(),
 });
 
 export type ValidatedRequestData = z.infer<typeof requestDataSchema>;
