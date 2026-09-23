@@ -7,11 +7,11 @@ import { payloadContextOf } from "./estimate.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { readNotices } from "./notices.js";
 import {
-  type CldrPluralCategory,
   type PluralGenerationItem,
   planPluralGeneration,
   syntheticEntry,
 } from "./plural-categories.js";
+import type { CldrPluralCategory } from "./plural-rules.js";
 import type { LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
 import { createUsageAccumulator, foldUsage } from "./usage.js";

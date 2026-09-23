@@ -117,7 +117,7 @@ Désactivé par défaut. Quand il vaut true, les clés présentes dans un fichie
 
 ### generatePlurals
 
-Désactivé par défaut. Quand il vaut true, verbatra synthétise les formes plurielles CLDR qu'une langue cible exige mais que la source ne fournit pas (par exemple few et many pour le polonais). Pris en charge uniquement pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL, les formats non i18next et les langues cibles inconnues retombent sur l'avertissement de pluriel par locale. Il n'y a pas d'option CLI, donc règle ça dans la configuration ; l'entrée de `translate()` dans le SDK accepte une surcharge `generatePlurals` par exécution, qui prime.
+Désactivé par défaut. Quand il vaut true, verbatra synthétise les formes plurielles CLDR qu'une langue cible exige mais que la source ne fournit pas (par exemple few et many pour le polonais). Pris en charge uniquement pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL, les formats non i18next et les locales cibles pour lesquelles ICU n'a pas de règles de pluriel CLDR retombent sur l'avertissement de pluriel par locale ; pour une telle locale, verbatra suppose `one` et `other` pour les clés cardinales et `other` pour les clés ordinales. Les clés ordinales (`<key>_ordinal_<category>`) sont vérifiées et générées selon les règles ordinales CLDR, donc les ordinaux français n'ont besoin que de `one` et `other`. Il n'y a pas d'option CLI, donc règle ça dans la configuration ; l'entrée de `translate()` dans le SDK accepte une surcharge `generatePlurals` par exécution, qui prime.
 
 ### fuzzyCache
 

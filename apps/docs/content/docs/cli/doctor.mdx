@@ -32,8 +32,13 @@ verbatra doctor [flags]
 | Provider | the configured `provider.id` resolves to a provider factory |
 | API key environment variable | the variable that provider reads its key from is set |
 | Source locale file | the source locale file exists at its resolved path, is a regular file, and parses under the configured format |
+| Plural rules | always (informational): names the ICU and CLDR versions verbatra reads plural categories from, and any target locale ICU has no plural rules for |
 
-Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the four checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
+<AvailableFrom version="0.12.0" />
+
+The Plural rules check is informational and never fails: a target locale it names still translates, and its plural checks assume `one` and `other` for cardinal keys and `other` for ordinal keys. Ordinal keys (`<key>_ordinal_<category>`) are always checked against the CLDR ordinal rules, so French ordinals need only `one` and `other`.
+
+Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the five checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
 
 Four details are worth knowing:
 

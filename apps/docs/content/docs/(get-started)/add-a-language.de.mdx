@@ -52,7 +52,11 @@ Das ist das inkrementelle Verhalten in Aktion: Nur die neue Locale löst Provide
 
 ## Sprachen mit mehr Pluralkategorien
 
-Manche Sprachen brauchen mehr CLDR-Pluralkategorien, als deine Quelle hat. Englisch hat zwei (`one` und `other`); Polnisch, Arabisch und Russisch haben mehr. Standardmäßig übersetzt verbatra die Pluralformen, die es in der Quelle findet, und erfindet die zusätzlichen nicht: Der Lauf gelingt trotzdem und gibt pro Locale einen Hinweis aus (Code `PLURAL_CATEGORIES_INCOMPLETE`), der die fehlenden Kategorien nennt.
+Manche Sprachen brauchen mehr CLDR-Pluralkategorien, als deine Quelle hat. Englisch hat zwei (`one` und `other`); Polnisch und Tschechisch haben vier, Arabisch und Walisisch sechs, und Französisch, Spanisch, Italienisch und Portugiesisch brauchen zusätzlich `many`. Japanisch, Chinesisch und Koreanisch brauchen nur `other`. Standardmäßig übersetzt verbatra die Pluralformen, die es in der Quelle findet, und erfindet die zusätzlichen nicht: Der Lauf gelingt trotzdem und gibt pro Locale einen Hinweis aus (Code `PLURAL_CATEGORIES_INCOMPLETE`), der die fehlenden Kategorien nennt.
+
+<AvailableFrom version="0.12.0" />
+
+Welche Kategorien eine Sprache braucht, liest verbatra aus den CLDR-Pluralregeln in den ICU-Daten, die in Node.js eingebaut sind. So ist jede Sprache abgedeckt, die CLDR kennt, immer in CLDR-Reihenfolge (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) zeigt dir die verwendeten ICU- und CLDR-Versionen. i18next-Ordinal-Keys (`<key>_ordinal_<category>`) werden stattdessen gegen die CLDR-Ordinalregeln geprüft und generiert, französische Ordinalzahlen brauchen also nur `one` und `other`. Für eine Ziel-Locale, für die ICU keine Pluralregeln hat, nimmt verbatra bei Kardinal-Keys `one` und `other` an, bei Ordinal-Keys nur `other`, und `doctor` nennt die Locale.
 
 Damit verbatra die fehlenden Formen stattdessen synthetisiert, setze `generatePlurals: true` in deiner Konfiguration:
 
@@ -63,7 +67,7 @@ export default defineConfig({
 });
 ```
 
-Die Generierung wird nur für i18next-JSON-Projekte unterstützt, die ein LLM-Provider übersetzt; DeepL und Google Cloud Translation, die anderen Formate und unbekannte Zielsprachen fallen auf den Hinweis zurück und lassen den Lauf nie fehlschlagen. Generierte Formen werden wie jede Übersetzung auf Integrität geprüft und in der Lauf-Zusammenfassung getrennt von übersetzten Keys ausgewiesen.
+Die Generierung wird nur für i18next-JSON-Projekte unterstützt, die ein LLM-Provider übersetzt; DeepL und Google Cloud Translation, die anderen Formate und Ziel-Locales ohne Pluralregeln in ICU fallen auf den Hinweis zurück und lassen den Lauf nie fehlschlagen. Generierte Formen werden wie jede Übersetzung auf Integrität geprüft und in der Lauf-Zusammenfassung getrennt von übersetzten Keys ausgewiesen.
 
 ## Die Quell-Locale pflegen
 

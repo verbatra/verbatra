@@ -32,8 +32,13 @@ verbatra doctor [flags]
 | Provider | die konfigurierte `provider.id` zu einer Provider-Factory auflöst |
 | API key environment variable | die Variable gesetzt ist, aus der dieser Provider seinen Key liest |
 | Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad existiert, eine reguläre Datei ist und sich im konfigurierten Format parsen lässt |
+| Plural rules | immer (informativ): nennt die ICU- und CLDR-Versionen, aus denen verbatra die Pluralkategorien liest, und jede Ziel-Locale, für die ICU keine Pluralregeln hat |
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die vier Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung Plural rules ist rein informativ und schlägt nie fehl: Eine Ziel-Locale, die sie nennt, wird trotzdem übersetzt, und ihre Pluralprüfungen nehmen bei Kardinal-Keys `one` und `other` an, bei Ordinal-Keys `other`. Ordinal-Keys (`<key>_ordinal_<category>`) werden immer gegen die CLDR-Ordinalregeln geprüft, französische Ordinalzahlen brauchen also nur `one` und `other`.
+
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die fünf Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 
 Vier Details sind wichtig:
 

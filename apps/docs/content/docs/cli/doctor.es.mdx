@@ -32,8 +32,13 @@ verbatra doctor [flags]
 | Provider | el `provider.id` configurado resuelve a una fábrica de proveedores |
 | API key environment variable | la variable de la que ese proveedor lee su clave está definida |
 | Source locale file | el archivo del locale de origen existe en su ruta resuelta, es un archivo regular y se analiza con el formato configurado |
+| Plural rules | siempre (informativa): nombra las versiones de ICU y CLDR de las que verbatra lee las categorías de plural, y cualquier locale de destino para el que ICU no tiene reglas de plural |
 
-Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las cuatro comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
+<AvailableFrom version="0.12.0" />
+
+La comprobación Plural rules es informativa y nunca falla: un locale de destino que nombra se sigue traduciendo, y sus comprobaciones de plural suponen `one` y `other` en las claves cardinales y `other` en las ordinales. Las claves ordinales (`<key>_ordinal_<category>`) siempre se comprueban según las reglas ordinales CLDR, así que los ordinales en francés solo necesitan `one` y `other`.
+
+Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las cinco comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
 
 Cuatro detalles que conviene conocer:
 

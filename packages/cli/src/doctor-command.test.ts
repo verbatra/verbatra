@@ -1,7 +1,7 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { DoctorResult } from "@verbatra/sdk";
+import { type DoctorResult, doctor } from "@verbatra/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run } from "./run.js";
@@ -370,5 +370,37 @@ describe("run doctor --literals", () => {
     await run(["doctor", "--help"], recordingDeps().deps, cap.streams);
 
     expect(cap.out()).toContain("--literals");
+  });
+});
+
+describe("run doctor: the informational plural-rules check", () => {
+  it("names a target locale without plural rules yet still reports no problems and exits 0", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-plural-rules-"));
+    vi.stubEnv("ANTHROPIC_API_KEY", KEY_CANARY);
+    try {
+      await writeFile(
+        join(dir, ".verbatrarc.json"),
+        JSON.stringify({
+          sourceLocale: "en",
+          targetLocales: ["de", "tlh"],
+          format: "i18next-json",
+          files: { pattern: "locales/{locale}.json" },
+          provider: { id: "anthropic", options: { model: "claude-test", maxTokens: 1024 } },
+        }),
+        "utf8",
+      );
+      await mkdir(join(dir, "locales"));
+      await writeFile(join(dir, "locales", "en.json"), JSON.stringify({ hi: "Hi" }), "utf8");
+      const { deps } = recordingDeps({ doctor });
+      const cap = captureStreams();
+
+      const code = await run(["doctor", "--cwd", dir], deps, cap.streams);
+
+      expect(code).toBe(0);
+      expect(cap.out()).toMatch(/\[ok {2}\] Plural rules: .*"tlh"/);
+      expect(cap.out()).toContain("no problems found");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

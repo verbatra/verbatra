@@ -88,11 +88,12 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the four config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the five config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -382,7 +383,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(5);
+    expect(result.checks).toHaveLength(6);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -598,6 +599,31 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "provider",
       "api-key",
       "source-file",
+      "plural-rules",
     ]);
+  });
+});
+
+describe("doctor: the plural-rules check", () => {
+  it("names the ICU and CLDR versions the runtime derives plural categories from", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "cs"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(statusOf(result, "plural-rules")).toBe("pass");
+    expect(detailOf(result, "plural-rules")).toContain(`ICU ${process.versions.icu}`);
+    expect(detailOf(result, "plural-rules")).toContain("every target locale has CLDR plural rules");
+  });
+
+  it("lists a target locale ICU has no plural rules for without failing the run", async () => {
+    await writeConfig(validConfig({ targetLocales: ["de", "tlh"] }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "plural-rules")).toBe("pass");
+    expect(detailOf(result, "plural-rules")).toContain('"tlh"');
   });
 });

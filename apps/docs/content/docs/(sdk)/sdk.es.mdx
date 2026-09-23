@@ -236,6 +236,12 @@ sola llamada informa de cada problema independiente. La clave de API se comprueb
 La comprobación del archivo de origen lo lee y lo parsea en lugar de solo sondear su existencia, así
 que un directorio en su lugar, un archivo vacío y contenido malformado se informan todos aquí.
 
+<AvailableFrom version="0.12.0" />
+
+Una sexta comprobación, `plural-rules`, es informativa y siempre pasa: su detalle nombra las
+versiones de ICU y CLDR de las que el runtime deriva las categorías de plural de cada idioma de
+destino, y cualquier locale de destino para el que ICU no tiene reglas de plural.
+
 Entrada: `{ cwd?, configPath? }`. No necesita una configuración ya cargada: `doctor` la carga por sí
 mismo, así que un proyecto sin ninguna configuración sigue obteniendo un informe en lugar de un
 error lanzado.

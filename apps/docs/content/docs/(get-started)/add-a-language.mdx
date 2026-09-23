@@ -52,7 +52,11 @@ This is the incremental behavior at work: only the new locale triggers provider 
 
 ## Languages with more plural categories
 
-Some languages need more CLDR plural categories than your source has. English has two (`one` and `other`); Polish, Arabic, and Russian have more. By default verbatra translates the plural forms it finds in the source and does not invent the extras: the run still succeeds and emits a per-locale notice (code `PLURAL_CATEGORIES_INCOMPLETE`) naming the missing categories.
+Some languages need more CLDR plural categories than your source has. English has two (`one` and `other`); Polish and Czech have four, Arabic and Welsh six, and French, Spanish, Italian, and Portuguese add `many`. Japanese, Chinese, and Korean need only `other`. By default verbatra translates the plural forms it finds in the source and does not invent the extras: the run still succeeds and emits a per-locale notice (code `PLURAL_CATEGORIES_INCOMPLETE`) naming the missing categories.
+
+<AvailableFrom version="0.12.0" />
+
+verbatra reads which categories a language needs from the CLDR plural rules in the ICU data built into Node.js, so every language CLDR covers is handled, always in CLDR order (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) reports the ICU and CLDR versions in use. i18next ordinal keys (`<key>_ordinal_<category>`) are checked and generated against the CLDR ordinal rules instead, so French ordinals need only `one` and `other`. For a target locale ICU has no plural rules for, cardinal keys are assumed to need `one` and `other`, ordinal keys only `other`, and `doctor` names the locale.
 
 To have verbatra synthesize the missing forms instead, set `generatePlurals: true` in your config:
 
@@ -63,7 +67,7 @@ export default defineConfig({
 });
 ```
 
-Generation is supported for i18next-JSON projects translated by an LLM provider only; DeepL and Google Cloud Translation, the other formats, and unknown target languages fall back to the notice and never fail the run. Generated forms are integrity-checked like any translation and reported separately from translated keys in the run summary.
+Generation is supported for i18next-JSON projects translated by an LLM provider only; DeepL and Google Cloud Translation, the other formats, and target locales ICU has no plural rules for fall back to the notice and never fail the run. Generated forms are integrity-checked like any translation and reported separately from translated keys in the run summary.
 
 ## Maintaining the source locale
 
