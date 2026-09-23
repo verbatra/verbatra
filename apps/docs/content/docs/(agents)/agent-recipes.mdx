@@ -292,6 +292,8 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 They cover what an agent gets wrong without being told: which commands spend and which are free, that a dry run constructs no provider at all, what the lock file makes visible, and why a provider-spending tool can be missing from a tool list on purpose. Install only the surface you use; each document stands on its own. Swap the name after `--skill`, or repeat the flag to install more than one.
 
+In Claude Code, the verbatra plugin installs all three skills in one step, together with the verbatra MCP server with spending off and a hook that checks edited locale files. Install it per project with `claude plugin marketplace add verbatra/skills`, then `claude plugin install verbatra@verbatra --scope project`. What it starts, why the project scope, and how to turn spending on is in [Connect an MCP client](/docs/connect-an-mcp-client#the-verbatra-plugin). The skills-only install above keeps working without the server or the hook.
+
 ## Next
 
 - [CI and exit codes](/docs/ci-and-exit-codes): the envelope, the exit-code table, and every `result` shape in full.

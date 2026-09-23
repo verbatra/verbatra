@@ -292,6 +292,8 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 Sie decken ab, was ein Agent ohne Ansage falsch macht: welche Befehle Geld kosten und welche gratis sind, dass ein Dry Run überhaupt keinen Provider erzeugt, was die Lock-Datei sichtbar macht und warum ein Tool, das Provider-Budget ausgibt, absichtlich in einer Tool-Liste fehlen kann. Installiere nur die Oberfläche, die du nutzt; jedes Dokument steht für sich. Tausche den Namen hinter `--skill` aus oder wiederhole den Schalter, um mehrere zu installieren.
 
+In Claude Code installiert das verbatra-Plugin alle drei Skills in einem Schritt, zusammen mit dem verbatra-MCP-Server bei ausgeschalteten Ausgaben und einem Hook, der bearbeitete Locale-Dateien prüft. Installier es pro Projekt mit `claude plugin marketplace add verbatra/skills`, dann `claude plugin install verbatra@verbatra --scope project`. Was es startet, warum der Projekt-Scope und wie du Ausgaben einschaltest, steht unter [Einen MCP-Client verbinden](/docs/connect-an-mcp-client#das-verbatra-plugin). Die reine Skills-Installation oben funktioniert weiter, ohne Server und ohne Hook.
+
 ## Weiter
 
 - [CI und Exit-Codes](/docs/ci-and-exit-codes): der Envelope, die Exit-Code-Tabelle und jede `result`-Form vollständig.
