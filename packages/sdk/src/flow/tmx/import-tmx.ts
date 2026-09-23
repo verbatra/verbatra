@@ -73,11 +73,18 @@ export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
 export interface ImportTmxLocaleResult {
   /** The configured target locale, spelled as the config spells it. */
   readonly locale: string;
-  /** Units stored for the first time. */
+  /**
+   * Units stored for the first time. On a dry run, or when {@link ImportTmxResult.memoryWritable}
+   * is false, this counts what the file would have stored, and nothing was written.
+   */
   readonly added: number;
   /** Units the memory already held with the same translation, so nothing changed. */
   readonly unchanged: number;
-  /** Units that replaced a different existing translation, which needs `overwrite`. */
+  /**
+   * Units that replaced a different existing translation, which needs `overwrite`. Like
+   * {@link ImportTmxLocaleResult.added}, it counts what would have been replaced when nothing was
+   * written.
+   */
   readonly overwritten: number;
   /** Units refused because the memory already held a different translation and `overwrite` was off. */
   readonly kept: number;
@@ -155,7 +162,9 @@ export interface ImportTmxResult {
   readonly notImported: readonly TmxLanguageReport[];
   /**
    * Whether the memory file could be written. False when the project's cache was written by a newer
-   * build, which is left untouched rather than downgraded.
+   * build, which is left untouched rather than downgraded. The per-locale counts are still reported
+   * then, as on a dry run, so they describe what the file holds for this project rather than what
+   * was stored: when this is false, nothing was.
    */
   readonly memoryWritable: boolean;
 }

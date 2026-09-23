@@ -1040,6 +1040,26 @@ describe("importTmx refuses to touch a memory it cannot safely write", () => {
     expect(result.memoryWritable).toBe(false);
     expect(await readJsonFile(join(dir, CACHE_FILE_NAME))).toEqual(newer);
   });
+
+  it("still counts what would have landed, as a dry run does, rather than zeroing the counts", async () => {
+    const config = cfg();
+    const units = [
+      tu([
+        ["en", "Hello"],
+        ["de", "Hallo"],
+      ]),
+    ];
+    const blocked = await project(units);
+    await writeJsonFile(join(blocked, CACHE_FILE_NAME), { version: 99, entries: {}, sources: {} });
+    const rehearsed = await project(units);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: blocked });
+    const dryRun = await importTmx({ config, file: "memory.tmx", cwd: rehearsed, dryRun: true });
+
+    expect(result.memoryWritable).toBe(false);
+    expect(result.locales).toEqual(dryRun.locales);
+    expect(result.locales[0]).toMatchObject({ locale: "de", added: 1 });
+  });
 });
 
 describe("importTmx reports an unusable file as a structured error", () => {

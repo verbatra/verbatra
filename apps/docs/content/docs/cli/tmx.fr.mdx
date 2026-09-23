@@ -93,7 +93,7 @@ Importer deux fois le même fichier ne change donc rien la seconde fois, et n'é
 
 Les unités importées sont stockées sous l'empreinte de configuration actuelle du projet, la même clé qu'écrit une exécution réelle. C'est délibéré : une mémoire importée est réutilisée exactement quand la configuration qui la consommerait correspond, et cesse de correspondre dès que le fournisseur, le modèle, le ton ou le glossaire changent, ce qui est précisément la protection pour laquelle la couche d'empreinte existe. Réimporte le fichier après un tel changement.
 
-Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier dont la version plus récente devrait ensuite se méfier.
+Si le fichier de mémoire a été écrit par un verbatra plus récent que celui que tu exécutes, l'import le laisse intact et te le dit, au lieu d'écrire un fichier dont la version plus récente devrait ensuite se méfier. Les décomptes sont tout de même renvoyés, comme avec `--dry-run`, et montrent donc ce qui serait entré plutôt que ce qui est entré : rien n'est entré.
 
 ## Les unités importées et la réutilisation floue
 
@@ -113,6 +113,8 @@ Un caractère que XML 1.0 ne peut pas représenter du tout, comme un caractère 
 
 Une mémoire vide produit un fichier TMX valide et vide, pas une erreur.
 
+Le fichier n'est écrit qu'à l'intérieur du répertoire de travail. Avant toute lecture de la mémoire, un chemin d'export qui ne nomme aucun fichier (y compris quand il se termine par un séparateur de chemin, comme `out/`), qui sort du répertoire de travail ou qui nomme le répertoire de travail lui-même est refusé avec `TMX_OUTPUT_CONFLICT`, tout comme un chemin qui nomme un fichier dont le projet dépend : un fichier de locale configuré, le fichier de verrouillage, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire vers lequel pointe `glossary` dans ta configuration. Les noms sont comparés sans tenir compte de la casse, les mêmes vérifications sont refaites sur l'endroit où le chemin aboutit vraiment une fois les liens symboliques résolus, si bien qu'un répertoire lié ne peut porter le fichier ni hors du répertoire de travail ni sur un fichier protégé, et rien n'est écrit. Un chemin qui passe ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire n'est pas inscriptible, qu'un répertoire occupe déjà ce chemin ou que le disque est plein, l'exécution s'arrête avec `TMX_UNWRITABLE`, nomme le fichier et le code du système de fichiers, et sort en `2`.
+
 Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, car TMX n'admet pas d'unité sans segment source. Cela n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source ; elles sont laissées de côté et comptées, et se remplissent à mesure que des exécutions ultérieures retouchent ces chaînes.
 
 ## Codes de sortie
@@ -120,7 +122,7 @@ Une entrée dont la mémoire n'a pas le texte source ne peut pas être écrite, 
 | Code | Signification |
 | --- | --- |
 | `0` | le fichier a été lu ou écrit |
-| `2` | exécution impossible : une erreur de configuration, un fichier absent ou illisible, un fichier qui n'est pas du TMX valide, ou une erreur d'utilisation |
+| `2` | exécution impossible : une erreur de configuration, un fichier absent ou illisible, un fichier qui n'est pas du TMX valide, un chemin d'export refusé (`TMX_OUTPUT_CONFLICT`), un fichier d'export qui n'a pas pu être écrit (`TMX_UNWRITABLE`), ou une erreur d'utilisation |
 
 Un fichier surdimensionné, mal formé, qui n'est pas un document TMX ou qui déclare une entité XML est refusé avec une erreur structurée nommant ce qui a échoué. Quand le problème a un emplacement dans le fichier, le message indique aussi la ligne et la colonne et, à l'intérieur d'une unité de traduction, de quelle unité il s'agit (en comptant à partir de 1), si bien que `line 9, column 29, unit 2` te mène au deuxième `tu`. Le code de l'erreur est `SOURCE_INVALID` ; avec `--json`, le même message figure dans l'enveloppe d'erreur, et un appelant du SDK lit le même emplacement sous forme de données structurées avec `tmxErrorLocation(error)`, dont la `cause` sous-jacente est une erreur d'échange portant le code `TMX_INVALID`. Les déclarations d'entité et les sous-ensembles DTD internes sont refusés d'emblée, si bien que ni une référence d'entité externe ni une expansion sans borne ne sont jamais atteintes, et le simple doctype externe qu'écrivent les outils du monde réel est écarté plutôt que récupéré.
 

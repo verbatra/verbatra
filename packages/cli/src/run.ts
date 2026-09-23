@@ -673,14 +673,17 @@ async function runTmxExport(
   streams: Streams,
   context: CommandContext,
 ): Promise<number> {
-  return withWholeRunErrors(
-    deps,
+  return withLoadedRunErrors(
     context,
-    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-    async (config) => {
+    () =>
+      deps.loadConfigWithMeta(
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+      ),
+    async (loaded) => {
       const result = await deps.exportTmx({
-        config,
+        config: loaded.config,
         cwd,
+        ...configFilePaths(loaded),
         toolVersion: CLI_VERSION,
         ...(file !== undefined ? { out: file } : {}),
         ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
@@ -811,6 +814,16 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
   );
 }
 
+function configFilePaths(loaded: LoadedConfig): {
+  readonly configPath?: string;
+  readonly glossaryPath?: string;
+} {
+  return {
+    ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
+    ...(loaded.glossary.source === "file" ? { glossaryPath: loaded.glossary.path } : {}),
+  };
+}
+
 function typesInput(
   loaded: LoadedConfig,
   cwd: string,
@@ -819,7 +832,7 @@ function typesInput(
   return {
     config: loaded.config,
     cwd,
-    ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
+    ...configFilePaths(loaded),
     ...(opts.out !== undefined ? { out: opts.out } : {}),
     ...(opts.check === true ? { check: true } : {}),
   };

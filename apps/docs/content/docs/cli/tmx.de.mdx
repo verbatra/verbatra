@@ -93,7 +93,7 @@ Dieselbe Datei ein zweites Mal zu importieren, ändert deshalb nichts und schrei
 
 Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, demselben Key, den auch ein echter Lauf schreibt. Das ist Absicht: ein importierter Übersetzungsspeicher wird genau dann wiederverwendet, wenn die Konfiguration passt, die ihn verbrauchen würde, und hört auf zu passen, sobald sich Provider, Modell, Tonfall oder Glossar ändern. Genau dafür gibt es die Fingerprint-Schicht. Importiere die Datei nach so einer Änderung erneut.
 
-Wurde die Datei des Übersetzungsspeichers von einem neueren verbatra geschrieben als dem, das du ausführst, lässt der Import sie unangetastet und sagt es dir, statt eine Datei zu schreiben, der der neuere Build danach misstrauen müsste.
+Wurde die Datei des Übersetzungsspeichers von einem neueren verbatra geschrieben als dem, das du ausführst, lässt der Import sie unangetastet und sagt es dir, statt eine Datei zu schreiben, der der neuere Build danach misstrauen müsste. Die Zählungen werden trotzdem gemeldet, wie bei `--dry-run`, und zeigen also, was gelandet wäre, nicht was gelandet ist: gelandet ist nichts.
 
 ## Importierte Einheiten und unscharfe Wiederverwendung
 
@@ -113,6 +113,8 @@ Ein Zeichen, das XML 1.0 überhaupt nicht darstellen kann, etwa ein Steuerzeiche
 
 Ein leerer Übersetzungsspeicher ergibt eine gültige, leere TMX-Datei statt eines Fehlers.
 
+Die Datei wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor der Übersetzungsspeicher gelesen wird, wird ein Exportpfad mit `TMX_OUTPUT_CONFLICT` zurückgewiesen, wenn er keine Datei benennt (auch wenn er auf ein Pfadtrennzeichen endet wie `out/`), aus dem Arbeitsverzeichnis herausklettert oder das Arbeitsverzeichnis selbst benennt, und ebenso einer, der eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die Konfigurationsdatei, die der Lauf geladen hat, oder die Glossardatei, auf die `glossary` in deiner Konfiguration zeigt. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links wirklich landet, sodass ein verlinktes Verzeichnis die Datei weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann, und es wird nichts geschrieben. Ein Pfad, der diese Prüfungen besteht, kann trotzdem im Moment des Schreibens scheitern: Wenn das Verzeichnis nicht schreibbar ist, an dem Pfad schon ein Verzeichnis liegt oder die Platte voll ist, bricht der Lauf mit `TMX_UNWRITABLE` ab, nennt die Datei und den Dateisystem-Code und endet mit `2`.
+
 Ein Eintrag, zu dem der Übersetzungsspeicher keinen Quelltext hat, lässt sich nicht schreiben, denn TMX kennt keine Einheit ohne Quellsegment. Das passiert nur bei Einträgen, die aus einem Cache übernommen wurden, der noch vor dem Speichern des Quelltexts geschrieben wurde; sie werden ausgelassen und gezählt und füllen sich auf, sobald spätere Läufe diese Strings wieder anfassen.
 
 ## Exit-Codes
@@ -120,7 +122,7 @@ Ein Eintrag, zu dem der Übersetzungsspeicher keinen Quelltext hat, lässt sich 
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Datei wurde gelesen oder geschrieben |
-| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine fehlende oder unlesbare Datei, eine Datei, die kein gültiges TMX ist, oder ein Verwendungsfehler |
+| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine fehlende oder unlesbare Datei, eine Datei, die kein gültiges TMX ist, ein zurückgewiesener Exportpfad (`TMX_OUTPUT_CONFLICT`), eine Exportdatei, die nicht geschrieben werden konnte (`TMX_UNWRITABLE`), oder ein Verwendungsfehler |
 
 Eine Datei, die zu groß ist, fehlerhaft ist, kein TMX-Dokument ist oder eine XML-Entity deklariert, wird mit einem strukturierten Fehler abgelehnt, der benennt, was schiefging. Hat das Problem einen Ort in der Datei, nennt die Meldung auch Zeile und Spalte und, innerhalb einer Übersetzungseinheit, welche Einheit es war (ab 1 gezählt), sodass `line 9, column 29, unit 2` dich zum zweiten `tu` führt. Der Code des Fehlers ist `SOURCE_INVALID`; mit `--json` steht dieselbe Meldung im Fehler-Envelope, und wer das SDK aufruft, liest denselben Ort mit `tmxErrorLocation(error)` als strukturierte Daten aus, wobei die zugrunde liegende `cause` ein Exchange-Fehler mit dem Code `TMX_INVALID` ist. Entity-Deklarationen und interne DTD-Subsets werden rundweg abgelehnt, sodass weder eine externe Entity-Referenz noch eine unbegrenzte Expansion je erreicht wird, und die schlichte externe Doctype-Zeile, die echte Werkzeuge schreiben, wird verworfen statt geladen.
 

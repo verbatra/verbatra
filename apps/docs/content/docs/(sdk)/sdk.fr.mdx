@@ -146,18 +146,21 @@ avec leurs arguments signalés dans `unresolved` plutôt que déclarés en silen
 aucun. Les clés plurielles sœurs ne sont jamais fusionnées : chacune est déclarée à part, et celles
 que l'adaptateur a marquées au pluriel sont listées.
 
-Entrée : `{ config, cwd?, out?, configPath?, check? }`. `out` vaut par défaut `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`). Avant toute lecture ou écriture, `TYPES_OUTPUT_CONFLICT` refuse un `out`
-qui ne nomme aucun fichier, est absolu, sort de `cwd` avec `..` ou ne se termine pas par `.ts`,
-`.mts` ou `.cts`, ainsi qu'un `out` qui nomme un fichier de locale configuré, le fichier de
-verrouillage, le cache de mémoire de traduction, un fichier où verbatra cherche sa configuration, ou
-`configPath`, le fichier de configuration d'où `config` a été chargée ; les noms sont comparés sans
-tenir compte de la casse. Une exécution qui génère refuse aussi, avec le même code, de remplacer un
-fichier existant qui ne commence pas par la ligne d'en-tête qu'écrit verbatra, et laisse ce fichier
-intact. La liste complète se trouve sur la page de [`verbatra types`](/docs/cli/types). Avec
-`check`, rien n'est écrit du tout, rien n'est refusé à cause de son contenu, et l'exécution signale
-seulement si le fichier commité correspond toujours, ce qui est exactement la forme qu'attend un
-garde-fou de CI.
+Entrée : `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` vaut par défaut
+`DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Avant toute lecture ou écriture,
+`TYPES_OUTPUT_CONFLICT` refuse un `out` qui ne nomme aucun fichier (y compris un `out` terminé par
+un séparateur de chemin), est absolu, sort de `cwd` avec `..` ou ne se termine pas par `.ts`, `.mts`
+ou `.cts`, ainsi qu'un `out` qui nomme un fichier de locale configuré, le fichier de verrouillage,
+le cache de mémoire de traduction, un fichier où verbatra cherche sa configuration, `configPath`, le
+fichier de configuration d'où `config` a été chargée, ou `glossaryPath`, le fichier de glossaire
+qu'elle désigne ; les noms sont comparés sans tenir compte de la casse, et quand `deps.fs`
+implémente `realpath`, comme le fait la valeur par défaut, les mêmes vérifications sont refaites sur
+l'endroit où le chemin aboutit une fois les liens symboliques résolus. Une exécution qui génère
+refuse aussi, avec le même code, de remplacer un fichier existant qui ne commence pas par la ligne
+d'en-tête qu'écrit verbatra, et laisse ce fichier intact. La liste complète se trouve sur la page de
+[`verbatra types`](/docs/cli/types). Avec `check`, rien n'est écrit du tout, rien n'est refusé à
+cause de son contenu, et l'exécution signale seulement si le fichier commité correspond toujours, ce
+qui est exactement la forme qu'attend un garde-fou de CI.
 
 Renvoie un `GenerateTypesResult` : le `path` absolu, le `sourcePath` dont il a été construit,
 combien de `keys` ont été déclarées et combien d'entre elles prennent au moins un argument que
@@ -363,8 +366,10 @@ Face à des données abîmées, renvoie un rapport au lieu de lever : combien d'
 décompte par locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` et
 `rejected` par motif, plus les unités ignorées, sans segment source, ayant perdu leur balisage en
 ligne ou dont le texte `sub` a été laissé de côté (`subflowDroppedUnits`), et les étiquettes de
-langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut false quand le
-fichier de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact.
+langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut false quand le fichier
+de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact. Les décomptes
+par locale sont tout de même renvoyés, comme lors d'une exécution à blanc, donc `added` et
+`overwritten` décrivent ce qui serait entré ; avec `memoryWritable` à false, rien n'est entré.
 
 ### tmxErrorLocation
 
@@ -385,16 +390,25 @@ try {
 
 ### exportTmx
 
-Écrit la mémoire en TMX 1.4b. Entrée : `{ config, out?, cwd?, locales?, toolVersion? }`, où `out`
-vaut par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme constante. Seules les
-entrées sous l'empreinte de configuration actuelle sont écrites, c'est-à-dire l'ensemble qu'une
-exécution réutiliserait. Les étiquettes de langue sont écrites sous forme BCP 47 (`en_US` devient
-`en-US`), ce qui ne change pas l'indexation de la mémoire. Une mémoire vide produit un fichier
-valide et vide, pas une erreur. Renvoie `{ path, units, locales, withoutSource,
-illegalCharactersRemoved }` ; `withoutSource` compte les entrées laissées de côté parce que la
-mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit
-avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères
-que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
+Écrit la mémoire en TMX 1.4b. Entrée : `{ config, out?, cwd?, configPath?, glossaryPath?, locales?,
+toolVersion? }`, où `out` vaut par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme
+constante. Avant toute lecture de la mémoire, `TMX_OUTPUT_CONFLICT` refuse un `out` qui ne nomme
+aucun fichier (y compris un `out` terminé par un séparateur de chemin), qui tombe hors de `cwd` ou
+sur `cwd` lui-même, ou qui nomme un fichier de locale configuré, le fichier de verrouillage, le
+cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier
+`configPath` ou le fichier `glossaryPath`, sans tenir compte de la casse et, quand `deps.fs`
+implémente `realpath` comme la valeur par défaut, de nouveau une fois les liens symboliques résolus.
+Une écriture qui échoue, parce que le répertoire n'est pas inscriptible, qu'un répertoire occupe
+déjà ce chemin ou que le disque est plein, lève `TMX_UNWRITABLE` avec le fichier et le code du
+système de fichiers dans le message. Seules les entrées sous l'empreinte de configuration actuelle
+sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait. Les étiquettes de langue sont
+écrites sous forme BCP 47 (`en_US` devient `en-US`), ce qui ne change pas l'indexation de la
+mémoire. Une mémoire vide produit un fichier valide et vide, pas une erreur. Renvoie `{ path, units,
+locales, withoutSource, illegalCharactersRemoved }` ; `withoutSource` compte les entrées laissées de
+côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées
+héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et
+`illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été
+retirés du texte des segments.
 
 ## Config
 
@@ -530,6 +544,14 @@ Une implémentation doit respecter deux points du contrat. Les lectures sont bor
 
 `readDirectory` est optionnel, pour qu'une implémentation écrite avant l'extraction depuis le code continue de compiler. [`extract`](#extract) est le seul point d'entrée qui en a besoin, et signale son absence par `EXTRACT_FS_UNSUPPORTED`. Il liste les entrées immédiates d'un répertoire sous la forme `{ name, kind }`, où `kind` vaut `"file"`, `"directory"` ou `"other"`. Un lien symbolique relève de `"other"` : l'analyse ne le suit jamais, et c'est ce qui la maintient à l'intérieur des racines qu'on lui a données.
 
+`realpath` est lui aussi optionnel. Il résout tous les liens symboliques d'un chemin existant, et
+les gardes de sortie de [`generateTypes`](#generatetypes) et [`exportTmx`](#exporttmx) s'en servent
+pour voir où un chemin de sortie aboutit vraiment, si bien qu'un lien ne peut porter un fichier
+écrit ni hors de `cwd` ni sur un fichier dont le projet dépend. Sans lui, ces gardes comparent les
+chemins tels qu'ils sont écrits. Un lien au chemin de sortie dont la cible n'existe pas ne peut pas
+être résolu, donc les gardes supposent que `writeFile` remplace ce lien au lieu d'écrire à travers
+lui, comme le fait l'écriture atomique par défaut.
+
 La seule chose que `deps.fs` n'atteint pas est un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 
 ## Anatomie du RunSummary
@@ -615,8 +637,10 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `SOURCE_UNWRITABLE` | le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; `xliff` et `apple-xcstrings` l'atteignent quand aucun catalogue n'existe encore, car ni l'un ni l'autre n'est créé à partir de rien |
 | `EXTRACT_NOT_CONFIGURED` | `extract` a été appelé avec une config qui ne porte aucun bloc `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` a reçu un `deps.fs` qui n'implémente pas `readDirectory` : aucun fichier source ne peut donc être découvert |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier, est absolu, sort de `cwd` avec `..` ou ne se termine pas par `.ts`, `.mts` ou `.cts`, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, ou le fichier de configuration chargé par l'exécution ; une exécution qui génère refuse en plus de remplacer un fichier existant qui ne commence pas par la ligne d'en-tête de verbatra |
-| `TYPES_UNWRITABLE` | le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, ou le disque est plein) |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin), est absolu, sort de `cwd` avec `..` ou ne se termine pas par `.ts`, `.mts` ou `.cts`, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; une exécution qui génère refuse en plus de remplacer un fichier existant qui ne commence pas par la ligne d'en-tête de verbatra |
+| `TYPES_UNWRITABLE` | le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin) ou qui tombe hors de `cwd` ou sur `cwd` lui-même, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; refusé avant toute lecture de la mémoire |
+| `TMX_UNWRITABLE` | le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire n'est pas inscriptible, un répertoire occupe déjà ce chemin, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers |
 | `LOCALE_FAILED` | jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée |
 
 Deux exceptions à la règle de la classe d'erreur unique : `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue, et `runStatus` ne lève jamais. Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [CI et codes de sortie](/docs/ci-and-exit-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).
