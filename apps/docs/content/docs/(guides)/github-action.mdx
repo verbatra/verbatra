@@ -61,10 +61,21 @@ The action runs the CLI, and the CLI reads the provider's API key only from the 
 | `command` | no | `"translate"` | which verbatra command to run: `translate` (writes translations), `check` (read-only, exits `1` when any locale has missing or stale keys), or `diff` (read-only, exits `1` when any locale has pending changes). The read-only commands need no provider API key, so they work as a CI gate on a fork pull request. Anything outside this set fails the step |
 | `config-path` | no | `""` | explicit config file to load (maps to `--config`). Leaving it empty requires a recognized config file directly inside `working-directory`; the step fails before installing the CLI when none is found there. See [Config discovery](#config-discovery). |
 | `working-directory` | no | `""` | directory to resolve config and locale files against (maps to `--cwd`). Config lookup is strict: it looks only directly inside this directory, never a parent directory or the repository root. See [Config discovery](#config-discovery). |
-| `dry-run` | no | `"false"` | set to `"true"` to report what would change without calling a provider or writing (maps to `--dry-run`). Applies only when `command` is `translate`; combining it with `check` or `diff` fails the step, since those commands are already read-only |
+| `dry-run` | no | `"false"` | set to `"true"` to report what would change without calling a provider or writing (maps to `--dry-run`). Applies only when `command` is `translate`; combining it with `check` or `diff` fails the step, since those commands are already read-only. Must be `"true"` or `"false"`; any other value fails the step |
+| `qa` | no | `"false"` | set to `"true"` to also run the quality check over every committed translation (maps to `--qa`). Applies only when `command` is `check`; any other command fails the step. Needs `version` `0.12.0` or newer. Must be `"true"` or `"false"`; any other value fails the step. See [Checking translation quality](#checking-translation-quality) |
+| `qa-severity` | no | `""` | lowest quality-check severity to report, `error` or `warning` (maps to `--severity`). Empty reports both. Requires `qa` |
+| `qa-strict` | no | `"false"` | set to `"true"` to also fail the step when the quality check reports only warnings (maps to `--strict`). Requires `qa`. Must be `"true"` or `"false"`; any other value fails the step |
 | `node-version` | no | `"24"` | Node.js version to set up for running the CLI |
 
-The action defines no outputs. Its results are the annotations, the job summary, and the exit code.
+The `qa`, `qa-severity`, and `qa-strict` inputs, and the strict `"true"`/`"false"` check on `dry-run`, ship from the action release that supports verbatra 0.12.0. Setting `qa-severity` or `qa-strict` without `qa: "true"` fails the step.
+
+## Outputs
+
+| Output | Value |
+| --- | --- |
+| `needs-human` | `"true"` when `translate` exited `3` because machine translation is disabled by policy and keys are left for a person, otherwise `"false"`. See [Human-only mode](#human-only-mode) |
+
+The output ships from the action release that supports verbatra 0.12.0; earlier releases define no outputs. Everything else a run produces reaches you as annotations, the job summary, and the step's exit status.
 
 ## Config discovery
 
@@ -82,13 +93,54 @@ Here `apps/docs` is the root a config must exist in; a recognized config file di
 
 Set `config-path` to point at a config file outside this convention. A relative `config-path` still resolves against `working-directory`; an absolute `config-path` is used as-is. Once a config is confirmed, the action always passes it to the CLI explicitly with `--config <resolved-path>`.
 
+## Checking translation quality
+
+<AvailableFrom version="0.12.0" />
+
+Set `qa: "true"` together with `command: check` to run [`verbatra check --qa`](/docs/cli/check#quality-check), which runs the placeholder, markup, ICU, and plural checks and the review flags over every committed translation, including values typed by hand or merged from another tool. Like `check`, it is read-only, calls no provider, and needs no API key.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          qa: "true"
+```
+
+The action checks the pin before installing anything: `qa` with a `version` below `0.12.0` fails the step, and so does a prerelease such as `0.12.0-next.0`, because semver ranks a prerelease below its release and a prerelease is not guaranteed to carry the final `check --qa` contract. Pin the release.
+
+Each finding becomes one annotation titled `verbatra qa: <locale>`, carrying the reason code and the key: an error for a value the integrity gate would refuse (a broken placeholder, markup, or ICU message), a warning for a review reason. The step fails on any error finding, and with `qa-strict: "true"` on a warning too. Set `qa-severity: error` to report errors only. The CLI rejects any other `qa-severity` value, and `qa-severity: error` together with `qa-strict`, with exit `2`. Drift still fails the step as before, so the gate fails when a locale is out of date or a committed value is broken.
+
+The job summary adds `qa errors` and `qa warnings` columns to the per-locale table, the quality totals to the aggregate line, and a findings table (locale, key, severity, reason, details) with up to 1000 findings, which keeps the summary under GitHub's size limit. Source keys the quality check skipped because the source itself is not valid ICU are listed below it.
+
+## Human-only mode
+
+<AvailableFrom version="0.12.0" />
+
+A config with `provider: { id: "none" }` disables machine translation by policy (see [Human-only workflow](/docs/human-only-workflow)): `translate` fills keys only from exact translation-memory hits, reads no API key, and exits `3` when it leaves keys for a person. From the action release that supports verbatra 0.12.0, the action treats that exit as work for a person, not a failure. The step passes, each affected locale gets one `NEEDS_HUMAN` warning annotation naming its unfilled keys and the protected keys a person has to review, the job summary lists them under "Needs a human translation", and the `needs-human` output is `"true"`. Branch on the output to hand the keys off, for example with [`verbatra export`](/docs/cli/export):
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        id: verbatra
+        with:
+          version: 0.12.0
+      - if: steps.verbatra.outputs.needs-human == 'true'
+        run: echo "Some keys need a human translation; see the job summary."
+```
+
+Only `translate` gets this treatment. A partial or failed locale still exits `1` and fails the step, and an exit `3` from `check` or `diff` is not reinterpreted.
+
 ## What a run shows you
 
-**Annotations.** Under the default `translate` command, when the CLI exits `1` (some locales failed or came out partial), each locale whose status is `failed` becomes one error annotation titled `verbatra: <locale>`, carrying that locale's structured `[CODE] message`. A `partial` locale gets no annotation, so a run whose only problem is partial locales fails the step without any. Under `check`, a drifted locale is annotated `verbatra check: <locale>` instead; under `diff`, a locale with pending changes is annotated `verbatra diff: <locale>`. When the whole run fails before producing a summary, a single `verbatra` annotation carries the error line instead, whatever the command: the CLI's own error on exit `2`, or the action's own failure before the CLI ever ran (the `working-directory` does not exist, no config was found, or the npm install failed), which exits `1`.
+The partial-locale reporting and the annotation cap described here ship from the action release that supports verbatra 0.12.0. Earlier releases show a partial locale as `ok` in the status column, give it no annotation and no count of its own, and emit annotations without a cap.
 
-**Job summary.** Every run appends a Markdown summary to the job page, shaped to the command that ran. Under `translate`, it is a table with one row per locale (status, translated, unchanged, orphaned, invalid ICU, integrity withheld, provider failures, notices), an aggregate line, and a list of failed locales with their error codes; a dry run is labeled as such. The status column shows only `ok` or `failed`, so a partial locale reads `ok` there, and the aggregate line counts succeeded and failed locales without a partial count. Under `check`, it reports missing and stale key counts per locale. Under `diff`, it reports missing and changed keys per locale, plus orphaned keys called out separately, since those never fail the step on their own. A whole-run failure gets a short failure summary with the exit code and error detail, whatever the command.
+**Annotations.** Under the default `translate` command, when the CLI exits `1` (some locales failed or came out partial), each affected locale becomes one error annotation titled `verbatra: <locale>`. A `failed` locale carries its structured `[CODE] message`; a failed locale with no error of its own, because every key was withheld, is reported as `LOCALE_FAILED` and names the withheld keys. A `partial` locale gets a `LOCALE_PARTIAL` annotation naming how many keys were translated and which were withheld, grouped by cause (integrity, provider failure, budget), with the first ten keys per group and a count of the rest. Under `check`, a drifted locale is annotated `verbatra check: <locale>`, and with `qa` each quality finding adds its own annotation (see [Checking translation quality](#checking-translation-quality)); under `diff`, a locale with pending changes is annotated `verbatra diff: <locale>`. A `translate` exit `3` produces `NEEDS_HUMAN` warnings instead (see [Human-only mode](#human-only-mode)). When the whole run fails before producing a summary, a single `verbatra` annotation carries the error line instead, whatever the command: the CLI's own error on exit `2`, or the action's own failure before the CLI ever ran (the `working-directory` does not exist, no config was found, or the npm install failed), which exits `1`.
 
-**Exit behavior.** The action captures the CLI's stdout and exit code without bailing early, emits the annotations and summary, and only then exits with the CLI's own code. So the step fails on `1` or `2`, but never before you can see why. An invalid `version`, `command`, or `dry-run` input fails the step with exit `1` before anything is installed, as do the pre-CLI failures above. The [exit codes](/docs/ci-and-exit-codes) page spells out what each code means. If the internal exit-code wiring ever breaks, the action fails with `2` rather than reporting a false success.
+**Annotation cap.** GitHub shows at most 10 annotations of each severity per step ([annotation limits](https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md#limitations)), so the action emits at most 10 errors, 10 warnings, and 10 notices. Drift errors come first, then quality errors, then warnings. When it leaves any out, it adds one notice counting what it skipped. The annotations are a preview; the job summary is the full view.
+
+**Job summary.** Every run appends a Markdown summary to the job page, shaped to the command that ran. Under `translate`, it is a table with one row per locale (status, translated, unchanged, orphaned, invalid ICU, integrity withheld, provider failures, notices), an aggregate line, and lists of partial and failed locales; a dry run is labeled as such. The status column reads `ok`, `partial`, or `failed`, and the aggregate line counts each on its own, for example `3 locales: 1 succeeded, 1 partial, 1 failed`. Under "Partial locales", each partial locale is listed with its translated count and its withheld keys; under "Failed locales", each failed locale is listed with its error code, or with its withheld keys when it has no error of its own. Under `check`, it reports missing and stale key counts per locale, plus the quality columns and findings table with `qa`. Under `diff`, it reports missing and changed keys per locale, plus orphaned keys called out separately, since those never fail the step on their own. A whole-run failure gets a short failure summary with the exit code and error detail, whatever the command.
+
+**Exit behavior.** The action captures the CLI's stdout and exit code without bailing early, emits the annotations and summary, and only then exits with the CLI's own code. So the step fails on `1` or `2`, but never before you can see why. The one exception is a `translate` exit `3`, which passes the step (see [Human-only mode](#human-only-mode)). An invalid `version`, `command`, `dry-run`, `qa`, or `qa-strict` input fails the step with exit `1` before anything is installed, as do an input combination the action rejects (`dry-run` outside `translate`, `qa` outside `check` or below version `0.12.0`, `qa-severity` or `qa-strict` without `qa`) and the pre-CLI failures above. The [exit codes](/docs/ci-and-exit-codes) page spells out what each code means. If the internal exit-code wiring ever breaks, the action fails with `2` rather than reporting a false success.
 
 ## Persisting translations
 

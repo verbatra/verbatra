@@ -53,7 +53,7 @@ Nimm `check`, wenn der Exit-Code alles ist, was du brauchst. Nimm `diff`, wenn d
 
 <AvailableFrom version="0.12.0" />
 
-Drift ist nicht das Einzige, woran sich ein Gate lohnt. `verbatra check --qa` lässt zusätzlich das Integritäts-Gate und die Review-Flags über jede eingecheckte Übersetzung laufen. Ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder ICU-Plural-Zweigen, die nicht zu seiner Sprache passen, lässt den Job also mit Exit `1` scheitern. Ergänze `--strict`, damit auch Review-Warnungen wie `EQUALS_SOURCE` scheitern. Auch das ruft keinen Provider auf und braucht keinen Key. Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
+Drift ist nicht das Einzige, woran sich ein Gate lohnt. `verbatra check --qa` lässt zusätzlich das Integritäts-Gate und die Review-Flags über jede eingecheckte Übersetzung laufen. Ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder ICU-Plural-Zweigen, die nicht zu seiner Sprache passen, lässt den Job also mit Exit `1` scheitern. Ergänze `--strict`, damit auch Review-Warnungen wie `EQUALS_SOURCE` scheitern. Auch das ruft keinen Provider auf und braucht keinen Key. Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `command: check` und `qa: "true"` aus.
 
 Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch`, `export` und `tmx` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
 

@@ -61,10 +61,21 @@ Die Action führt die CLI aus, und die CLI liest den API-Schlüssel des Provider
 | `command` | nein | `"translate"` | welcher verbatra-Befehl ausgeführt wird: `translate` (schreibt Übersetzungen), `check` (nur lesend, endet mit `1`, wenn ein Locale fehlende oder veraltete Keys hat) oder `diff` (nur lesend, endet mit `1`, wenn ein Locale ausstehende Änderungen hat). Die nur lesenden Befehle brauchen keinen API-Schlüssel für den Provider und funktionieren daher als CI-Gate auf einem Fork-Pull-Request. Alles außerhalb dieser Menge lässt den Schritt fehlschlagen |
 | `config-path` | nein | `""` | explizit zu ladende Konfigurationsdatei (entspricht `--config`). Ein leerer Wert erfordert eine erkannte Konfigurationsdatei direkt in `working-directory`; der Schritt schlägt fehl, bevor die CLI installiert wird, wenn dort keine gefunden wird. Siehe [Konfigurationssuche](#konfigurationssuche). |
 | `working-directory` | nein | `""` | Verzeichnis, gegen das Konfiguration und Locale-Dateien aufgelöst werden (entspricht `--cwd`). Die Konfigurationssuche ist strikt: Sie sucht nur direkt in diesem Verzeichnis, nie in einem übergeordneten Verzeichnis oder im Repository-Root. Siehe [Konfigurationssuche](#konfigurationssuche). |
-| `dry-run` | nein | `"false"` | auf `"true"` setzen, um zu melden, was sich ändern würde, ohne einen Provider aufzurufen oder zu schreiben (entspricht `--dry-run`). Gilt nur, wenn `command` auf `translate` steht; die Kombination mit `check` oder `diff` lässt den Schritt fehlschlagen, da diese Befehle bereits nur lesend sind |
+| `dry-run` | nein | `"false"` | auf `"true"` setzen, um zu melden, was sich ändern würde, ohne einen Provider aufzurufen oder zu schreiben (entspricht `--dry-run`). Gilt nur, wenn `command` auf `translate` steht; die Kombination mit `check` oder `diff` lässt den Schritt fehlschlagen, da diese Befehle bereits nur lesend sind. Muss `"true"` oder `"false"` sein; jeder andere Wert lässt den Schritt fehlschlagen |
+| `qa` | nein | `"false"` | auf `"true"` setzen, um zusätzlich die Qualitätsprüfung über jede eingecheckte Übersetzung laufen zu lassen (entspricht `--qa`). Gilt nur, wenn `command` auf `check` steht; jeder andere Befehl lässt den Schritt fehlschlagen. Braucht `version` `0.12.0` oder neuer. Muss `"true"` oder `"false"` sein; jeder andere Wert lässt den Schritt fehlschlagen. Siehe [Übersetzungsqualität prüfen](#übersetzungsqualität-prüfen) |
+| `qa-severity` | nein | `""` | niedrigster Schweregrad der Qualitätsprüfung, der gemeldet wird, `error` oder `warning` (entspricht `--severity`). Leer meldet beide. Erfordert `qa` |
+| `qa-strict` | nein | `"false"` | auf `"true"` setzen, damit der Schritt auch fehlschlägt, wenn die Qualitätsprüfung nur Warnungen meldet (entspricht `--strict`). Erfordert `qa`. Muss `"true"` oder `"false"` sein; jeder andere Wert lässt den Schritt fehlschlagen |
 | `node-version` | nein | `"24"` | Node.js-Version, die zum Ausführen der CLI eingerichtet wird |
 
-Die Action definiert keine Outputs. Die Ergebnisse sind die Annotationen, die Job-Zusammenfassung und der Exit-Code.
+Die Eingaben `qa`, `qa-severity` und `qa-strict` sowie die strikte `"true"`/`"false"`-Prüfung für `dry-run` gibt es ab dem Action-Release, das verbatra 0.12.0 unterstützt. `qa-severity` oder `qa-strict` ohne `qa: "true"` lässt den Schritt fehlschlagen.
+
+## Outputs
+
+| Output | Wert |
+| --- | --- |
+| `needs-human` | `"true"`, wenn `translate` mit `3` endete, weil maschinelle Übersetzung per Richtlinie abgeschaltet ist und Keys für einen Menschen übrig bleiben, sonst `"false"`. Siehe [Rein menschlicher Modus](#rein-menschlicher-modus) |
+
+Den Output gibt es ab dem Action-Release, das verbatra 0.12.0 unterstützt; frühere Releases definieren keine Outputs. Alles andere, was ein Lauf erzeugt, erreicht dich als Annotationen, Job-Zusammenfassung und Exit-Status des Schritts.
 
 ## Konfigurationssuche
 
@@ -82,13 +93,54 @@ Hier ist `apps/docs` das Root, in dem eine Konfiguration existieren muss; eine e
 
 Setze `config-path`, um auf eine Konfigurationsdatei außerhalb dieser Konvention zu zeigen. Ein relativer `config-path` wird weiterhin gegen `working-directory` aufgelöst; ein absoluter `config-path` wird unverändert verwendet. Sobald eine Konfiguration bestätigt ist, übergibt die Action sie der CLI immer explizit mit `--config <resolved-path>`.
 
+## Übersetzungsqualität prüfen
+
+<AvailableFrom version="0.12.0" />
+
+Setze `qa: "true"` zusammen mit `command: check`, um [`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) auszuführen. Das lässt die Prüfungen für Platzhalter, Markup, ICU und Pluralformen sowie die Review-Flags über jede eingecheckte Übersetzung laufen, auch über von Hand getippte oder aus einem anderen Tool übernommene Werte. Wie `check` ist es nur lesend, ruft keinen Provider auf und braucht keinen API-Schlüssel.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          qa: "true"
+```
+
+Die Action prüft den Pin, bevor sie irgendetwas installiert: `qa` mit einer `version` unter `0.12.0` lässt den Schritt fehlschlagen, ebenso ein Prerelease wie `0.12.0-next.0`, weil Semver ein Prerelease unter sein Release einordnet und ein Prerelease den endgültigen Vertrag von `check --qa` nicht garantiert mitbringt. Pinne das Release.
+
+Jeder Befund wird zu einer Annotation mit dem Titel `verbatra qa: <locale>`, die den Reason-Code und den Key trägt: ein Fehler für einen Wert, den das Integritäts-Gate ablehnen würde (ein kaputter Platzhalter, kaputtes Markup oder eine kaputte ICU-Nachricht), eine Warnung für einen Review-Grund. Der Schritt schlägt bei jedem Fehler-Befund fehl, mit `qa-strict: "true"` auch bei einer Warnung. Setze `qa-severity: error`, um nur Fehler zu melden. Die CLI lehnt jeden anderen Wert für `qa-severity` sowie `qa-severity: error` zusammen mit `qa-strict` mit Exit `2` ab. Drift lässt den Schritt weiterhin fehlschlagen; das Gate scheitert also, wenn ein Locale veraltet oder ein eingecheckter Wert kaputt ist.
+
+Die Job-Zusammenfassung ergänzt die Tabelle pro Locale um die Spalten `qa errors` und `qa warnings`, die Summenzeile um die Summen der Qualitätsprüfung und fügt eine Befundtabelle (Locale, Key, Schweregrad, Grund, Details) mit bis zu 1000 Befunden hinzu, damit die Zusammenfassung unter GitHubs Größenlimit bleibt. Darunter stehen die Quell-Keys, die die Qualitätsprüfung übersprungen hat, weil schon die Quelle kein gültiges ICU ist.
+
+## Rein menschlicher Modus
+
+<AvailableFrom version="0.12.0" />
+
+Eine Konfiguration mit `provider: { id: "none" }` schaltet maschinelle Übersetzung per Richtlinie ab (siehe [Rein menschlicher Workflow](/docs/human-only-workflow)): `translate` füllt Keys nur aus exakten Treffern im Translation Memory, liest keinen API-Schlüssel und endet mit `3`, wenn es Keys für einen Menschen übrig lässt. Ab dem Action-Release, das verbatra 0.12.0 unterstützt, behandelt die Action diesen Exit als Arbeit für einen Menschen, nicht als Fehlschlag. Der Schritt ist erfolgreich, jedes betroffene Locale bekommt eine `NEEDS_HUMAN`-Warnung, die seine ungefüllten Keys und die geschützten Keys nennt, die ein Mensch prüfen muss, die Job-Zusammenfassung listet sie unter "Needs a human translation" auf, und der Output `needs-human` ist `"true"`. Verzweige auf diesen Output, um die Keys weiterzugeben, zum Beispiel mit [`verbatra export`](/docs/cli/export):
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        id: verbatra
+        with:
+          version: 0.12.0
+      - if: steps.verbatra.outputs.needs-human == 'true'
+        run: echo "Some keys need a human translation; see the job summary."
+```
+
+Das gilt nur für `translate`. Ein unvollständiges oder fehlgeschlagenes Locale endet weiterhin mit `1` und lässt den Schritt fehlschlagen, und ein Exit `3` von `check` oder `diff` wird nicht umgedeutet.
+
 ## Was ein Lauf dir zeigt
 
-**Annotationen.** Unter dem Standardbefehl `translate` wird, wenn die CLI mit `1` endet (einige Locales schlugen fehl oder blieben unvollständig), jedes Locale mit dem Status `failed` zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`, die dessen strukturierte `[CODE] message` trägt. Ein `partial`-Locale bekommt keine Annotation; ein Lauf, dessen einziges Problem unvollständige Locales sind, lässt den Schritt also ohne jede Annotation fehlschlagen. Unter `check` wird ein abweichendes Locale stattdessen als `verbatra check: <locale>` annotiert; unter `diff` wird ein Locale mit ausstehenden Änderungen als `verbatra diff: <locale>` annotiert. Wenn der ganze Lauf fehlschlägt, bevor eine Zusammenfassung entsteht, trägt stattdessen eine einzelne `verbatra`-Annotation die Fehlerzeile, unabhängig vom Befehl: den eigenen Fehler der CLI bei Exit `2` oder den eigenen Fehlschlag der Action, bevor die CLI überhaupt lief (das `working-directory` existiert nicht, keine Konfiguration wurde gefunden oder die npm-Installation schlug fehl), der mit `1` endet.
+Die Meldung unvollständiger Locales und die Begrenzung der Annotationen, wie hier beschrieben, gibt es ab dem Action-Release, das verbatra 0.12.0 unterstützt. Frühere Releases zeigen ein unvollständiges Locale in der Statusspalte als `ok`, geben ihm weder eine Annotation noch eine eigene Zahl und geben Annotationen ohne Obergrenze aus.
 
-**Job-Zusammenfassung.** Jeder Lauf hängt eine Markdown-Zusammenfassung an die Job-Seite an, deren Form vom ausgeführten Befehl abhängt. Unter `translate` ist es eine Tabelle mit einer Zeile pro Locale (Status, übersetzt, unverändert, verwaist, ungültiges ICU, wegen Integrität zurückgehalten, Provider-Fehlschläge, Hinweise), eine Summenzeile und eine Liste fehlgeschlagener Locales mit ihren Fehlercodes; ein Dry Run wird als solcher gekennzeichnet. Die Statusspalte zeigt nur `ok` oder `failed`, ein unvollständiges Locale erscheint dort also als `ok`, und die Summenzeile zählt erfolgreiche und fehlgeschlagene Locales ohne eigene Zahl für unvollständige. Unter `check` meldet sie fehlende und veraltete Keys pro Locale als Zahlen. Unter `diff` meldet sie fehlende und geänderte Keys pro Locale, dazu separat aufgeführte verwaiste Keys, da diese den Schritt nie für sich allein scheitern lassen. Ein Fehlschlag des gesamten Laufs bekommt eine kurze Fehlerzusammenfassung mit Exit-Code und Fehlerdetail, unabhängig vom Befehl.
+**Annotationen.** Unter dem Standardbefehl `translate` wird, wenn die CLI mit `1` endet (einige Locales schlugen fehl oder blieben unvollständig), jedes betroffene Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Ein `failed`-Locale trägt seine strukturierte `[CODE] message`; ein fehlgeschlagenes Locale ohne eigenen Fehler, weil jeder Key zurückgehalten wurde, wird als `LOCALE_FAILED` gemeldet und nennt die zurückgehaltenen Keys. Ein `partial`-Locale bekommt eine `LOCALE_PARTIAL`-Annotation, die nennt, wie viele Keys übersetzt wurden und welche zurückgehalten wurden, gruppiert nach Ursache (Integrität, Provider-Fehlschlag, Budget), mit den ersten zehn Keys pro Gruppe und der Zahl der übrigen. Unter `check` wird ein abweichendes Locale als `verbatra check: <locale>` annotiert, und mit `qa` bekommt jeder Qualitätsbefund eine eigene Annotation (siehe [Übersetzungsqualität prüfen](#übersetzungsqualität-prüfen)); unter `diff` wird ein Locale mit ausstehenden Änderungen als `verbatra diff: <locale>` annotiert. Ein `translate`-Exit `3` erzeugt stattdessen `NEEDS_HUMAN`-Warnungen (siehe [Rein menschlicher Modus](#rein-menschlicher-modus)). Wenn der ganze Lauf fehlschlägt, bevor eine Zusammenfassung entsteht, trägt stattdessen eine einzelne `verbatra`-Annotation die Fehlerzeile, unabhängig vom Befehl: den eigenen Fehler der CLI bei Exit `2` oder den eigenen Fehlschlag der Action, bevor die CLI überhaupt lief (das `working-directory` existiert nicht, keine Konfiguration wurde gefunden oder die npm-Installation schlug fehl), der mit `1` endet.
 
-**Exit-Verhalten.** Die Action fängt stdout und Exit-Code der CLI ab, ohne früh auszusteigen, gibt erst die Annotationen und die Zusammenfassung aus und endet dann mit dem Code der CLI. Der Schritt schlägt also bei `1` oder `2` fehl, aber nie, bevor du sehen kannst, warum. Eine ungültige Eingabe für `version`, `command` oder `dry-run` lässt den Schritt mit Exit `1` fehlschlagen, bevor irgendetwas installiert wird, ebenso wie die oben genannten Fehlschläge vor der CLI. Die Seite [Exit-Codes](/docs/ci-and-exit-codes) erklärt, was jeder Code bedeutet. Sollte die interne Exit-Code-Verdrahtung je brechen, schlägt die Action mit `2` fehl, statt einen falschen Erfolg zu melden.
+**Obergrenze für Annotationen.** GitHub zeigt höchstens 10 Annotationen pro Schweregrad und Schritt ([Annotationslimits](https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md#limitations)), deshalb gibt die Action höchstens 10 Fehler, 10 Warnungen und 10 Hinweise aus. Drift-Fehler kommen zuerst, dann Qualitätsfehler, dann Warnungen. Lässt sie welche weg, ergänzt sie einen Hinweis, der die ausgelassenen zählt. Die Annotationen sind eine Vorschau; die Job-Zusammenfassung ist die vollständige Ansicht.
+
+**Job-Zusammenfassung.** Jeder Lauf hängt eine Markdown-Zusammenfassung an die Job-Seite an, deren Form vom ausgeführten Befehl abhängt. Unter `translate` ist es eine Tabelle mit einer Zeile pro Locale (Status, übersetzt, unverändert, verwaist, ungültiges ICU, wegen Integrität zurückgehalten, Provider-Fehlschläge, Hinweise), eine Summenzeile und Listen der unvollständigen und fehlgeschlagenen Locales; ein Dry Run wird als solcher gekennzeichnet. Die Statusspalte zeigt `ok`, `partial` oder `failed`, und die Summenzeile zählt jeden Status einzeln, zum Beispiel `3 locales: 1 succeeded, 1 partial, 1 failed`. Unter "Partial locales" steht jedes unvollständige Locale mit seiner Zahl übersetzter Keys und seinen zurückgehaltenen Keys; unter "Failed locales" steht jedes fehlgeschlagene Locale mit seinem Fehlercode oder, wenn es keinen eigenen Fehler hat, mit seinen zurückgehaltenen Keys. Unter `check` meldet sie fehlende und veraltete Keys pro Locale als Zahlen, mit `qa` dazu die Qualitätsspalten und die Befundtabelle. Unter `diff` meldet sie fehlende und geänderte Keys pro Locale, dazu separat aufgeführte verwaiste Keys, da diese den Schritt nie für sich allein scheitern lassen. Ein Fehlschlag des gesamten Laufs bekommt eine kurze Fehlerzusammenfassung mit Exit-Code und Fehlerdetail, unabhängig vom Befehl.
+
+**Exit-Verhalten.** Die Action fängt stdout und Exit-Code der CLI ab, ohne früh auszusteigen, gibt erst die Annotationen und die Zusammenfassung aus und endet dann mit dem Code der CLI. Der Schritt schlägt also bei `1` oder `2` fehl, aber nie, bevor du sehen kannst, warum. Die einzige Ausnahme ist ein `translate`-Exit `3`, der den Schritt bestehen lässt (siehe [Rein menschlicher Modus](#rein-menschlicher-modus)). Eine ungültige Eingabe für `version`, `command`, `dry-run`, `qa` oder `qa-strict` lässt den Schritt mit Exit `1` fehlschlagen, bevor irgendetwas installiert wird, ebenso eine Kombination von Eingaben, die die Action ablehnt (`dry-run` außerhalb von `translate`, `qa` außerhalb von `check` oder unter Version `0.12.0`, `qa-severity` oder `qa-strict` ohne `qa`), und die oben genannten Fehlschläge vor der CLI. Die Seite [Exit-Codes](/docs/ci-and-exit-codes) erklärt, was jeder Code bedeutet. Sollte die interne Exit-Code-Verdrahtung je brechen, schlägt die Action mit `2` fehl, statt einen falschen Erfolg zu melden.
 
 ## Übersetzungen persistieren
 

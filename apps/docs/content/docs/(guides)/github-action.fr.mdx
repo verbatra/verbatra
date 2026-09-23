@@ -61,10 +61,21 @@ L'action lance la CLI, et la CLI lit la clé d'API du fournisseur uniquement dep
 | `command` | non | `"translate"` | quelle commande verbatra lancer : `translate` (écrit les traductions), `check` (lecture seule, sort avec le code `1` quand une locale a des clés manquantes ou obsolètes), ou `diff` (lecture seule, sort avec le code `1` quand une locale a des changements en attente). Les commandes en lecture seule n'ont besoin d'aucune clé d'API de fournisseur, elles fonctionnent donc comme contrôle CI sur une pull request venant d'un fork. Toute valeur en dehors de cet ensemble fait échouer l'étape |
 | `config-path` | non | `""` | fichier de config explicite à charger (correspond à `--config`). Le laisser vide exige un fichier de config reconnu directement dans `working-directory` ; l'étape échoue avant d'installer la CLI si aucun n'y est trouvé. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
 | `working-directory` | non | `""` | répertoire depuis lequel résoudre la config et les fichiers de locale (correspond à `--cwd`). La recherche de config est stricte : elle ne regarde que directement dans ce répertoire, jamais dans un répertoire parent ni dans la racine du dépôt. Voir [Découverte de la configuration](#découverte-de-la-configuration). |
-| `dry-run` | non | `"false"` | mets `"true"` pour rapporter ce qui changerait sans appeler de fournisseur ni écrire (correspond à `--dry-run`). S'applique seulement quand `command` vaut `translate` ; le combiner avec `check` ou `diff` fait échouer l'étape, puisque ces commandes sont déjà en lecture seule |
+| `dry-run` | non | `"false"` | mets `"true"` pour rapporter ce qui changerait sans appeler de fournisseur ni écrire (correspond à `--dry-run`). S'applique seulement quand `command` vaut `translate` ; le combiner avec `check` ou `diff` fait échouer l'étape, puisque ces commandes sont déjà en lecture seule. Doit valoir `"true"` ou `"false"` ; toute autre valeur fait échouer l'étape |
+| `qa` | non | `"false"` | mets `"true"` pour lancer aussi le contrôle qualité sur chaque traduction commitée (correspond à `--qa`). S'applique seulement quand `command` vaut `check` ; toute autre commande fait échouer l'étape. Nécessite `version` `0.12.0` ou plus récente. Doit valoir `"true"` ou `"false"` ; toute autre valeur fait échouer l'étape. Voir [Vérifier la qualité des traductions](#vérifier-la-qualité-des-traductions) |
+| `qa-severity` | non | `""` | gravité minimale du contrôle qualité à rapporter, `error` ou `warning` (correspond à `--severity`). Vide rapporte les deux. Nécessite `qa` |
+| `qa-strict` | non | `"false"` | mets `"true"` pour faire échouer l'étape aussi quand le contrôle qualité ne rapporte que des avertissements (correspond à `--strict`). Nécessite `qa`. Doit valoir `"true"` ou `"false"` ; toute autre valeur fait échouer l'étape |
 | `node-version` | non | `"24"` | version de Node.js à installer pour lancer la CLI |
 
-L'action ne définit aucune sortie. Ses résultats sont les annotations, le résumé de job et le code de sortie.
+Les entrées `qa`, `qa-severity` et `qa-strict`, ainsi que la vérification stricte de `"true"`/`"false"` sur `dry-run`, arrivent avec la version de l'action qui prend en charge verbatra 0.12.0. Définir `qa-severity` ou `qa-strict` sans `qa: "true"` fait échouer l'étape.
+
+## Sorties
+
+| Sortie | Valeur |
+| --- | --- |
+| `needs-human` | `"true"` quand `translate` est sortie avec `3` parce que la traduction automatique est désactivée par politique et que des clés restent pour une personne, sinon `"false"`. Voir [Mode humain uniquement](#mode-humain-uniquement) |
+
+Cette sortie arrive avec la version de l'action qui prend en charge verbatra 0.12.0 ; les versions précédentes ne définissent aucune sortie. Tout le reste de ce que produit une exécution te parvient sous forme d'annotations, du résumé de job et du statut de sortie de l'étape.
 
 ## Découverte de la configuration
 
@@ -82,13 +93,54 @@ Ici, `apps/docs` est la racine dans laquelle une config doit exister ; un fichie
 
 Définis `config-path` pour pointer vers un fichier de config en dehors de cette convention. Un `config-path` relatif continue de se résoudre par rapport à `working-directory` ; un `config-path` absolu est utilisé tel quel. Une fois la config confirmée, l'action la transmet toujours explicitement à la CLI avec `--config <resolved-path>`.
 
+## Vérifier la qualité des traductions
+
+<AvailableFrom version="0.12.0" />
+
+Mets `qa: "true"` avec `command: check` pour lancer [`verbatra check --qa`](/docs/cli/check#contrôle-qualité), qui passe les vérifications de placeholders, de balisage, d'ICU et de pluriels ainsi que les signalements de révision sur chaque traduction commitée, y compris les valeurs tapées à la main ou reprises d'un autre outil. Comme `check`, c'est en lecture seule, aucun fournisseur n'est appelé et aucune clé d'API n'est nécessaire.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          qa: "true"
+```
+
+L'action vérifie l'épinglage avant d'installer quoi que ce soit : `qa` avec une `version` inférieure à `0.12.0` fait échouer l'étape, tout comme une préversion telle que `0.12.0-next.0`, car semver classe une préversion sous sa version finale et une préversion ne garantit pas le contrat définitif de `check --qa`. Épingle la version finale.
+
+Chaque constat devient une annotation intitulée `verbatra qa: <locale>`, portant le code de motif et la clé : une erreur pour une valeur que la barrière d'intégrité refuserait (un placeholder, un balisage ou un message ICU cassé), un avertissement pour un motif de révision. L'étape échoue sur tout constat d'erreur et, avec `qa-strict: "true"`, aussi sur un avertissement. Mets `qa-severity: error` pour ne rapporter que les erreurs. La CLI rejette toute autre valeur de `qa-severity`, ainsi que `qa-severity: error` combiné avec `qa-strict`, avec la sortie `2`. La dérive fait toujours échouer l'étape, donc le contrôle échoue quand une locale n'est pas à jour ou qu'une valeur commitée est cassée.
+
+Le résumé de job ajoute les colonnes `qa errors` et `qa warnings` au tableau par locale, les totaux du contrôle qualité à la ligne d'agrégat, et un tableau des constats (locale, clé, gravité, motif, détails) avec jusqu'à 1000 constats, pour que le résumé reste sous la limite de taille de GitHub. En dessous figurent les clés source que le contrôle qualité a ignorées parce que la source elle-même n'est pas un ICU valide.
+
+## Mode humain uniquement
+
+<AvailableFrom version="0.12.0" />
+
+Une config avec `provider: { id: "none" }` désactive la traduction automatique par politique (voir [Flux 100 % humain](/docs/human-only-workflow)) : `translate` ne remplit des clés qu'à partir de correspondances exactes de la mémoire de traduction, ne lit aucune clé d'API et sort avec `3` quand il laisse des clés pour une personne. À partir de la version de l'action qui prend en charge verbatra 0.12.0, l'action traite cette sortie comme du travail pour une personne, pas comme un échec. L'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN` qui nomme ses clés non remplies et les clés protégées qu'une personne doit relire, le résumé de job les liste sous "Needs a human translation", et la sortie `needs-human` vaut `"true"`. Branche-toi sur cette sortie pour transmettre les clés, par exemple avec [`verbatra export`](/docs/cli/export) :
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        id: verbatra
+        with:
+          version: 0.12.0
+      - if: steps.verbatra.outputs.needs-human == 'true'
+        run: echo "Some keys need a human translation; see the job summary."
+```
+
+Seul `translate` bénéficie de ce traitement. Une locale partielle ou échouée sort toujours avec `1` et fait échouer l'étape, et une sortie `3` de `check` ou `diff` n'est pas réinterprétée.
+
 ## Ce qu'une exécution te montre
 
-**Annotations.** Sous la commande par défaut `translate`, quand la CLI sort avec le code `1` (certaines locales ont échoué ou sont ressorties partielles), chaque locale dont le statut est `failed` devient une annotation d'erreur intitulée `verbatra: <locale>`, portant le `[CODE] message` structuré de cette locale. Une locale `partial` ne reçoit aucune annotation, donc une exécution dont le seul problème est des locales partielles fait échouer l'étape sans aucune annotation. Sous `check`, une locale en dérive est annotée `verbatra check: <locale>` à la place ; sous `diff`, une locale avec des changements en attente est annotée `verbatra diff: <locale>`. Quand toute l'exécution échoue avant de produire un résumé, une seule annotation `verbatra` porte à la place la ligne d'erreur, quelle que soit la commande : l'erreur de la CLI elle-même en cas de sortie `2`, ou l'échec propre de l'action avant même que la CLI ne tourne (le `working-directory` n'existe pas, aucune config n'a été trouvée ou l'installation npm a échoué), qui sort avec `1`.
+Le rapport des locales partielles et le plafond d'annotations décrits ici arrivent avec la version de l'action qui prend en charge verbatra 0.12.0. Les versions précédentes affichent une locale partielle comme `ok` dans la colonne de statut, ne lui donnent ni annotation ni décompte propre, et émettent les annotations sans plafond.
 
-**Résumé de job.** Chaque exécution ajoute un résumé Markdown à la page du job, dont la forme dépend de la commande lancée. Sous `translate`, c'est un tableau avec une ligne par locale (statut, traduites, inchangées, orphelines, ICU invalide, retenues par la barrière d'intégrité, échecs du fournisseur, avis), une ligne d'agrégat et une liste des locales échouées avec leurs codes d'erreur ; un dry run est étiqueté comme tel. La colonne de statut n'affiche que `ok` ou `failed`, donc une locale partielle y apparaît comme `ok`, et la ligne d'agrégat compte les locales réussies et échouées sans décompte des partielles. Sous `check`, il rapporte le nombre de clés manquantes et obsolètes par locale. Sous `diff`, il rapporte les clés manquantes et modifiées par locale, avec les clés orphelines listées à part, puisqu'elles ne font jamais à elles seules échouer l'étape. Un échec global reçoit un court résumé d'échec avec le code de sortie et le détail de l'erreur, quelle que soit la commande.
+**Annotations.** Sous la commande par défaut `translate`, quand la CLI sort avec le code `1` (certaines locales ont échoué ou sont ressorties partielles), chaque locale concernée devient une annotation d'erreur intitulée `verbatra: <locale>`. Une locale `failed` porte son `[CODE] message` structuré ; une locale échouée sans erreur propre, parce que toutes ses clés ont été retenues, est rapportée comme `LOCALE_FAILED` et nomme les clés retenues. Une locale `partial` reçoit une annotation `LOCALE_PARTIAL` qui indique combien de clés ont été traduites et lesquelles ont été retenues, regroupées par cause (intégrité, échec du fournisseur, budget), avec les dix premières clés de chaque groupe et le nombre des autres. Sous `check`, une locale en dérive est annotée `verbatra check: <locale>` et, avec `qa`, chaque constat de qualité ajoute sa propre annotation (voir [Vérifier la qualité des traductions](#vérifier-la-qualité-des-traductions)) ; sous `diff`, une locale avec des changements en attente est annotée `verbatra diff: <locale>`. Une sortie `3` de `translate` produit à la place des avertissements `NEEDS_HUMAN` (voir [Mode humain uniquement](#mode-humain-uniquement)). Quand toute l'exécution échoue avant de produire un résumé, une seule annotation `verbatra` porte à la place la ligne d'erreur, quelle que soit la commande : l'erreur de la CLI elle-même en cas de sortie `2`, ou l'échec propre de l'action avant même que la CLI ne tourne (le `working-directory` n'existe pas, aucune config n'a été trouvée ou l'installation npm a échoué), qui sort avec `1`.
 
-**Comportement de sortie.** L'action capture le stdout et le code de sortie de la CLI sans s'interrompre prématurément, émet les annotations et le résumé, et sort seulement ensuite avec le code de la CLI. L'étape échoue donc sur `1` ou `2`, mais jamais avant que tu puisses voir pourquoi. Une entrée `version`, `command` ou `dry-run` invalide fait échouer l'étape avec le code `1` avant que quoi que ce soit ne soit installé, tout comme les échecs survenus avant la CLI décrits ci-dessus. La page [CI et codes de sortie](/docs/ci-and-exit-codes) détaille la signification de chaque code. Si le câblage interne du code de sortie casse un jour, l'action échoue avec le code `2` plutôt que de rapporter un faux succès.
+**Plafond d'annotations.** GitHub affiche au plus 10 annotations de chaque gravité par étape ([limites des annotations](https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md#limitations)), donc l'action émet au plus 10 erreurs, 10 avertissements et 10 avis. Les erreurs de dérive passent en premier, puis les erreurs de qualité, puis les avertissements. Quand elle en laisse de côté, elle ajoute un avis qui compte ce qu'elle a omis. Les annotations sont un aperçu ; le résumé de job est la vue complète.
+
+**Résumé de job.** Chaque exécution ajoute un résumé Markdown à la page du job, dont la forme dépend de la commande lancée. Sous `translate`, c'est un tableau avec une ligne par locale (statut, traduites, inchangées, orphelines, ICU invalide, retenues par la barrière d'intégrité, échecs du fournisseur, avis), une ligne d'agrégat et des listes des locales partielles et échouées ; un dry run est étiqueté comme tel. La colonne de statut affiche `ok`, `partial` ou `failed`, et la ligne d'agrégat compte chacun séparément, par exemple `3 locales: 1 succeeded, 1 partial, 1 failed`. Sous "Partial locales" figure chaque locale partielle avec son nombre de clés traduites et ses clés retenues ; sous "Failed locales", chaque locale échouée avec son code d'erreur ou, si elle n'a pas d'erreur propre, avec ses clés retenues. Sous `check`, il rapporte le nombre de clés manquantes et obsolètes par locale et, avec `qa`, les colonnes de qualité et le tableau des constats. Sous `diff`, il rapporte les clés manquantes et modifiées par locale, avec les clés orphelines listées à part, puisqu'elles ne font jamais à elles seules échouer l'étape. Un échec global reçoit un court résumé d'échec avec le code de sortie et le détail de l'erreur, quelle que soit la commande.
+
+**Comportement de sortie.** L'action capture le stdout et le code de sortie de la CLI sans s'interrompre prématurément, émet les annotations et le résumé, et sort seulement ensuite avec le code de la CLI. L'étape échoue donc sur `1` ou `2`, mais jamais avant que tu puisses voir pourquoi. La seule exception est une sortie `3` de `translate`, qui laisse l'étape réussir (voir [Mode humain uniquement](#mode-humain-uniquement)). Une entrée `version`, `command`, `dry-run`, `qa` ou `qa-strict` invalide fait échouer l'étape avec le code `1` avant que quoi que ce soit ne soit installé, tout comme une combinaison d'entrées que l'action rejette (`dry-run` hors de `translate`, `qa` hors de `check` ou sous la version `0.12.0`, `qa-severity` ou `qa-strict` sans `qa`) et les échecs survenus avant la CLI décrits ci-dessus. La page [CI et codes de sortie](/docs/ci-and-exit-codes) détaille la signification de chaque code. Si le câblage interne du code de sortie casse un jour, l'action échoue avec le code `2` plutôt que de rapporter un faux succès.
 
 ## Conserver les traductions
 
