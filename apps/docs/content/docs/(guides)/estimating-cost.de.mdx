@@ -48,14 +48,14 @@ Ein LLM-Request trägt vier Dinge. Eines skaliert mit deiner Key-Anzahl, und ein
 
 | Teil | Skaliert mit | Ungefähre Größe |
 | --- | --- | --- |
-| Systemregeln | nichts: konstant pro Request | ~450 Tokens |
+| Systemregeln | nichts: konstant pro Request | ~550 Tokens |
 | Ausgabeschema | nichts: konstant pro Request | ~100 Tokens |
 | Items-Payload | Keys im Sub-Batch, dazu Glossar und Tonfall | Key + Wert + ~21 Zeichen JSON, pro Item |
 | Antwort | Keys im Sub-Batch | Key + übersetzter Wert + ~21 Zeichen JSON, pro Item |
 
 Die Systemregeln sind eine Compile-Zeit-Konstante, in jedem Request identisch. Deshalb ist der Overhead pro Request bekannt und keine Schätzung. Die Items-Payload ist ein JSON-Objekt mit Quell- und Ziel-Locale, dem englischen Namen jeder Sprache (mit Schrift und Region, wenn der Code sie nennt), einem optionalen Tonfall und Glossar sowie einem Item pro Key mit `key`, `value` und optional `description` und `meaning`. Die Antwort wiederholt jeden Key neben seiner Übersetzung, die Ausgabegröße folgt der Eingabegröße also eng.
 
-Das Glossar wird dabei gern übersehen. Es wird vollständig in **jeden** Request serialisiert, nicht einmal pro Lauf. Ein Glossar mit 200 Begriffen und rund 6.000 Zeichen legt also auf jeden einzelnen Request etwa 1.500 Tokens drauf. Bei kleinen Sub-Batches kann das schwerer wiegen als die Keys selbst, ein weiterer Grund, warum die Batch-Größe zählt.
+Das Glossar wird dabei gern übersehen. Jeder Request enthält die Glossarbegriffe seiner Ziel-Locale vollständig (siehe [Glossar pro Locale](/docs/config-file#glossary)), nicht einmal pro Lauf. Ein Glossar mit 200 Begriffen und rund 6.000 Zeichen legt also auf jeden einzelnen Request etwa 1.500 Tokens drauf. Bei kleinen Sub-Batches kann das schwerer wiegen als die Keys selbst, ein weiterer Grund, warum die Batch-Größe zählt.
 
 Die Antwort ist der Teil, der sich nicht messen lässt, weil die Übersetzung noch nicht existiert. verbatra bemisst sie am Quellwert plus einem **Zuschlag von 50 Prozent**: Deutsch, Französisch und Russisch laufen regelmäßig ein Drittel bis die Hälfte länger als Englisch, und Antwort-Tokens sind auf jeder LLM-Preisliste die teure Hälfte. Eine Sprache, die über den Zuschlag hinauswächst, liefert mehr zurück, als die Schätzung vorhergesagt hat.
 
@@ -89,7 +89,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~38544 input + ~30720 output tokens
+  estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -150,10 +150,10 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 | | |
 | --- | --- |
-| Systemregeln | 450 |
+| Systemregeln | 550 |
 | Ausgabeschema | 100 |
 | (50 Items x (20 + 40 + ~21 JSON) Zeichen + ~172 Envelope) / 4 | 1.056 |
-| **Summe** | **~1.606** |
+| **Summe** | **~1.706** |
 
 **Ausgabe-Tokens pro Request**
 
@@ -161,11 +161,11 @@ Ersetze jede Annahme in diesem Block durch deine eigenen Zahlen.
 
 **Summen über 3 Locales**
 
-- Eingabe: 24 x 1.606 = **~38.544 Tokens**
+- Eingabe: 24 x 1.706 = **~40.944 Tokens**
 - Ausgabe: 24 x 1.280 = **~30.720 Tokens**
-- Kosten: (38.544 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0039 + $0.0123 = **etwa 1,6 Cent**
+- Kosten: (40.944 / 1.000.000 x $0.10) + (30.720 / 1.000.000 x $0.40) = $0.0041 + $0.0123 = **etwa 1,6 Cent**
 
-Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 550 = 13.200 der 38.544 Eingabe-Tokens aus, etwa ein Drittel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
+Beachte, wo der feste Overhead landet: Systemregeln und Schema machen 24 x 650 = 15.600 der 40.944 Eingabe-Tokens aus, etwa ein Drittel. Ein höheres `maxBatchSize` verteilt diese Konstante auf mehr Keys; ein niedrigeres (etwa um unter einem Rate-Limit zu bleiben) kostet proportional mehr.
 
 ## Die genaue Methode: an einem Locale kalibrieren
 

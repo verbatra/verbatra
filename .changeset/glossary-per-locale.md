@@ -17,7 +17,8 @@ keeps its translation-memory fingerprint. A request now carries only the terms o
 locale, and each locale's cache fingerprint covers only its own terms, so editing one locale's
 translation no longer invalidates the others. An LLM provider receives forbidden renderings,
 terms to keep and notes as data; DeepL and Google Cloud Translation report `GLOSSARY_IGNORED`
-for translations and kept terms they cannot apply.
+for translations and kept terms they cannot apply. The system rules that carry these instructions
+are longer, so `--estimate` now reserves 550 tokens per request for them instead of 450.
 
 `GLOSSARY_TERM_MISSED` is now checked against each locale's own translation and also covers a
 dropped do-not-translate term, the new `GLOSSARY_FORBIDDEN_TERM` review reason flags a forbidden

@@ -48,14 +48,14 @@ Une requête LLM transporte quatre choses. Une évolue avec ton nombre de clés,
 
 | Partie | Évolue avec | Taille approximative |
 | --- | --- | --- |
-| Règles système | rien : constant par requête | ~450 tokens |
+| Règles système | rien : constant par requête | ~550 tokens |
 | Schéma de sortie | rien : constant par requête | ~100 tokens |
 | Charge utile des items | clés du sous-lot, plus le glossaire et le ton | clé + valeur + ~21 caractères de JSON, par item |
 | Réponse | clés du sous-lot | clé + valeur traduite + ~21 caractères de JSON, par item |
 
 Les règles système sont une constante de compilation, identique à chaque requête : c'est pourquoi la surcharge par requête est connue plutôt que devinée. La charge utile des items est un objet JSON contenant la locale source et la locale cible, le nom anglais de chaque langue (avec son écriture et sa région quand le code les précise), un ton et un glossaire facultatifs, et un item par clé avec ses champs `key`, `value` et, facultativement, `description` et `meaning`. La réponse répète chaque clé à côté de sa traduction : la taille de sortie suit donc de près celle de l'entrée.
 
-Le glossaire est la partie qu'on oublie. Il est sérialisé en entier dans **chaque** requête, pas une fois par exécution : un glossaire de 200 termes et d'environ 6 000 caractères ajoute donc à peu près 1 500 tokens à chacune d'elles. Sur de petits sous-lots, cela peut peser plus lourd que les clés elles-mêmes, une raison de plus pour laquelle la taille du lot compte.
+Le glossaire est la partie qu'on oublie. **Chaque** requête porte en entier les termes du glossaire de sa locale cible (voir [Glossaire par locale](/docs/config-file#glossary)), pas une fois par exécution : un glossaire de 200 termes et d'environ 6 000 caractères ajoute donc à peu près 1 500 tokens à chacune d'elles. Sur de petits sous-lots, cela peut peser plus lourd que les clés elles-mêmes, une raison de plus pour laquelle la taille du lot compte.
 
 La réponse est la partie qu'on ne peut pas mesurer, puisque la traduction n'existe pas encore. verbatra la dimensionne à partir de la valeur source plus une **marge d'expansion de 50 %** : l'allemand, le français et le russe font couramment un tiers à une moitié de plus que l'anglais, et les tokens de sortie sont la moitié chère de toute grille tarifaire de LLM. Une langue qui dépasse la marge renverra plus que ce que l'estimation a prévu.
 
@@ -89,7 +89,7 @@ verbatra translate (dry run)
   de: 400 translated, 0 unchanged
   es: 400 translated, 0 unchanged
   fr: 400 translated, 0 unchanged
-  estimate: 1200 keys in 24 requests, ~38544 input + ~30720 output tokens
+  estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
@@ -150,10 +150,10 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 | | |
 | --- | --- |
-| Règles système | 450 |
+| Règles système | 550 |
 | Schéma de sortie | 100 |
 | (50 items x (20 + 40 + ~21 de JSON) caractères + ~172 d'enveloppe) / 4 | 1 056 |
-| **Total** | **~1 606** |
+| **Total** | **~1 706** |
 
 **Tokens de sortie par requête**
 
@@ -161,11 +161,11 @@ Remplace chaque hypothèse de ce bloc par tes propres nombres.
 
 **Totaux sur 3 locales**
 
-- Entrée : 24 x 1 606 = **~38 544 tokens**
+- Entrée : 24 x 1 706 = **~40 944 tokens**
 - Sortie : 24 x 1 280 = **~30 720 tokens**
-- Coût : (38 544 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0039 + $0.0123 = **environ 1,6 centime**
+- Coût : (40 944 / 1 000 000 x $0.10) + (30 720 / 1 000 000 x $0.40) = $0.0041 + $0.0123 = **environ 1,6 centime**
 
-Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 550 = 13 200 des 38 544 tokens d'entrée, soit environ un tiers. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
+Note où tombe la surcharge fixe : les règles système et le schéma représentent 24 x 650 = 15 600 des 40 944 tokens d'entrée, soit environ un tiers. Augmenter `maxBatchSize` répartit cette constante sur davantage de clés ; l'abaisser (pour rester sous une limite de débit, par exemple) coûte proportionnellement plus cher.
 
 ## La méthode exacte : calibrer sur une locale
 

@@ -27,7 +27,7 @@ import type {
 } from "./summary.js";
 
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
-export const ESTIMATED_SYSTEM_RULES_TOKENS = 450;
+export const ESTIMATED_SYSTEM_RULES_TOKENS = 550;
 export const ESTIMATED_RESPONSE_SCHEMA_TOKENS = 100;
 export const ESTIMATED_TRANSLATION_EXPANSION = 1.5;
 
