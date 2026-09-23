@@ -186,7 +186,9 @@ comes from:
   a visible frame at phone width. Inline code in cells never wraps.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the
   same `LINK_CLASS` the landing rows use. Heading anchors are explicitly exempt so a
-  section title never renders as a link.
+  section title never renders as a link. `.vk-prose-link` shares that exact rule in
+  `app/global.css`, for a link that must look like a prose link inside a `not-prose` block
+  (the contact form's privacy notice); use it rather than restating the declarations.
 - **Page actions**: every non-home docs page renders Fumadocs' `MarkdownCopyButton` and
   `ViewOptionsPopover` under the description, fed by `app/[lang]/docs.mdx/[[...slug]]/route.ts`,
   which serves the processed Markdown of the page in its own locale. Keep that route in step
