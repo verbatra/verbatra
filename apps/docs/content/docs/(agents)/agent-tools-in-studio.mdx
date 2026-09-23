@@ -41,9 +41,9 @@ Then open the printed loopback URL in your WebMCP-capable browser. The agent on 
 
 ## The tool catalog
 
-With the opt-in on, Studio registers fifteen tools, one per dashboard action. Without `--allow-spend` it registers thirteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
+With the opt-in on, Studio registers sixteen tools. Without `--allow-spend` it registers fourteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
 
-### Read tools (eleven)
+### Read tools (twelve)
 
 Inspect project state without changing anything. These are marked read-only.
 
@@ -60,6 +60,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_usage_summary` | the last run's token usage and budget |
 | `verbatra_key_value` | the source and target values for one key and locale |
 | `verbatra_locale_values` | the source and target values for every key across every target locale |
+| `verbatra_translation_estimate` | what `verbatra_translation_translatePending` would send and cost, optionally for a subset of `locales`, without calling a provider |
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -90,6 +91,10 @@ These call a translation provider and are registered only when Studio also runs 
 - `verbatra_translation_retranslateEntry`: retranslate one key and locale.
 - `verbatra_translation_translatePending`: translate everything currently pending.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_translatePending` takes two optional parameters. `locales` narrows the run to those configured target locales and leaves the others untouched; an unknown locale is refused with `UNKNOWN_LOCALE` before anything is spent. `maxTokens` is a hard token ceiling for the call, the same as [`verbatra translate --max-tokens`](/docs/cli/translate): a request that would pass it is withheld rather than sent, and when the config also sets `maxTokens` the lower of the two applies. Ask for the figure first with `verbatra_translation_estimate`, which returns the same result as `translate --estimate --json`, is registered with or without `--allow-spend`, and never calls a provider. See [Estimating cost](/docs/estimating-cost).
+
 Both run their results through the integrity gate before anything reaches disk, and both are subject to Studio's existing rate limits (retranslate at 20 per rolling minute, translate-pending at 5 per rolling minute plus a single-concurrent guard). `verbatra_translation_retranslateEntry` also carries the same per-entry guard as editing: a concurrent second call for the same locale and key is rejected with `ALREADY_IN_PROGRESS` (HTTP 409). Without `--allow-spend`, they are absent from the tool set and the server does not register the underlying endpoints at all, so spend you did not grant at startup cannot be reached from an agent.
 
 ### When a call fails
@@ -107,7 +112,7 @@ Registration has three possible outcomes, and only one of them is a problem.
 
 **Nothing attempted, nothing reported.** When `document.modelContext` is absent (a browser without WebMCP, or Chrome without the flag) or when you did not opt in, Studio attempts no registration at all. The dashboard is unchanged and the console stays quiet. That is the designed no-op, not a failure.
 
-**Thirteen tools and no notice.** Without `--allow-spend`, Studio attempts thirteen registrations rather than fifteen: the two spend tools are skipped before they are ever attempted. Thirteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
+**Fourteen tools and no notice.** Without `--allow-spend`, Studio attempts fourteen registrations rather than sixteen: the two spend tools are skipped before they are ever attempted. Fourteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
 
 **The notice.** If Studio attempted a registration and the browser rejected it, the dashboard renders a warning at the top of the content area, on every view:
 
@@ -124,10 +129,10 @@ A failing tool never cancels the ones after it, so every tool that did register 
 Studio writes one aggregate line at error level, not one line per tool, because a shared cause fails every tool identically:
 
 ```text
-Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 16 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-The first sentence gives how many of the attempted registrations failed, and out of how many attempts: fifteen here, because this session was started with `--allow-spend`, and thirteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
+The first sentence gives how many of the attempted registrations failed, and out of how many attempts: sixteen here, because this session was started with `--allow-spend`, and fourteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
 
 A pass that never reached the per-tool loop reports a different line and does not raise the notice:
 

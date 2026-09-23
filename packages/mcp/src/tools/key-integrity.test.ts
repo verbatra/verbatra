@@ -141,7 +141,7 @@ describe("key.integrity", () => {
 
   it("names inline markup beside placeholders and ICU as drift it reports", () => {
     expect(keyIntegrityTool.description).toMatch(
-      /^Report one key's placeholder, inline markup, and ICU drift against the lock-file baseline, per target locale\. /,
+      /^Reports one key's placeholder, inline markup, and ICU drift against the lock-file baseline, per target locale\. /,
     );
   });
 });

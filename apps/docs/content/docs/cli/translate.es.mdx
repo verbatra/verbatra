@@ -21,6 +21,7 @@ verbatra translate [flags]
 | `--prune` | ninguno | la opción `prune` de la configuración, si no, desactivado | elimina del archivo escrito y del bloqueo las claves huérfanas (en un archivo de destino pero ausentes del origen) |
 | `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos (un valor como `60s`, `0` o `-1` es un error de uso, salida `2`) |
 | `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez; debe ser un entero positivo |
+| `--max-tokens` | `<n>` | el `maxTokens` de la configuración | un techo duro de tokens solo para esta ejecución; cuando la configuración también fija `maxTokens`, se aplica el menor de los dos; debe ser un entero positivo (un valor como `10k` o `0` es un error de uso, salida `2`) |
 | `--no-cache` | ninguno | desactivado (caché activada) | omite la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`) para esta ejecución |
 | `--include-human` | ninguno | desactivado | retraduce también, solo en esta ejecución, las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra (`humanEdits: "overwrite"`); las [claves fijadas](/docs/protecting-human-translations#fijar-claves) no se tocan |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la ejecución bajo `result` (la [forma `RunSummary`](/docs/sdk)), o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
@@ -42,7 +43,11 @@ En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none"
 
 `--lock-timeout` ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que la ejecución falle con `LOCK_CONTENDED`: súbelo cuando otra ejecución retiene el bloqueo legítimamente un rato, bájalo para fallar rápido en CI.
 
-`--concurrency` traduce varios locales de destino en paralelo para terminar antes un proyecto grande. Se rechaza con salida `2` cuando la configuración fija un presupuesto `maxTokens`, porque el techo seguiría vigente, pero qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen, así que el mismo proyecto no produciría dos veces la misma ejecución (un dry run queda exento). Si un error de toda la ejecución (en la práctica, un archivo de bloqueo corrupto) aflora cuando ya hay locales en marcha, no se arranca ningún locale más, y los que están en vuelo terminan y liberan sus bloqueos de escritura antes de que el comando salga con `2`, así que la ejecución no deja atrás ningún bloqueo que la siguiente tenga que esperar. A medida que avanza una ejecución, el progreso se imprime en stderr (una línea por inicio de locale, sublote del proveedor y fin de locale), así que el stdout de una ejecución con `--json` sigue siendo un único resumen limpio. `--no-cache` se salta la [caché de memoria de traducción](/docs/the-cache) para la ejecución, haciendo exactamente las llamadas al proveedor que haría sin caché presente.
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` limita lo que puede gastar una ejecución sin tocar la configuración. Siempre es un tope duro: una petición al proveedor que superaría el techo se retiene en lugar de enviarse, diga lo que diga `budgetBehavior`, y sus claves aparecen como `budgetWithheld` en el resumen. El techo se cuenta igual que un [presupuesto `maxTokens`](/docs/config-file#maxtokens-y-budgetbehavior) configurado. Cuando la configuración también fija `maxTokens`, se aplica el menor de los dos, así que el flag puede endurecer el presupuesto pero nunca relajarlo. Una ejecución que el techo dejó a medias sale con `1`, como siempre ocurre con un locale que quedó parcial. Ejecuta antes `--estimate` para elegir una cifra sensata.
+
+`--concurrency` traduce varios locales de destino en paralelo para terminar antes un proyecto grande. Se rechaza con salida `2` cuando se aplica un presupuesto de tokens, sea el `maxTokens` de la configuración o `--max-tokens`, porque el techo seguiría vigente, pero qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen, así que el mismo proyecto no produciría dos veces la misma ejecución (un dry run queda exento). Si un error de toda la ejecución (en la práctica, un archivo de bloqueo corrupto) aflora cuando ya hay locales en marcha, no se arranca ningún locale más, y los que están en vuelo terminan y liberan sus bloqueos de escritura antes de que el comando salga con `2`, así que la ejecución no deja atrás ningún bloqueo que la siguiente tenga que esperar. A medida que avanza una ejecución, el progreso se imprime en stderr (una línea por inicio de locale, sublote del proveedor y fin de locale), así que el stdout de una ejecución con `--json` sigue siendo un único resumen limpio. `--no-cache` se salta la [caché de memoria de traducción](/docs/the-cache) para la ejecución, haciendo exactamente las llamadas al proveedor que haría sin caché presente.
 
 ## Ejemplos
 
@@ -58,6 +63,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# stop before the run passes 50000 tokens
+verbatra translate --max-tokens 50000
 
 # also retranslate stale keys a person wrote
 verbatra translate --include-human

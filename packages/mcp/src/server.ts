@@ -11,16 +11,19 @@ import {
 import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
+import { MCP_SERVER_INSTRUCTIONS } from "./server-instructions.js";
 import type { McpToolOutcome } from "./tools/define-tool.js";
 import { editEntryTool } from "./tools/edit-entry.js";
 import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
 import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
+import { translatePendingTool } from "./tools/translate-pending.js";
 import type { McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
   retranslateEntryTool.name,
   editEntryTool.name,
+  translatePendingTool.name,
 ]);
 
 const ALREADY_IN_PROGRESS_MESSAGE =
@@ -49,11 +52,10 @@ function toFailureResult(message: string): CallToolResult {
 
 function toOkResult(outcome: Extract<McpToolOutcome, { kind: "ok" }>): CallToolResult {
   const text = redact(JSON.stringify(outcome.result));
-  const content: CallToolResult["content"] = [{ type: "text", text }];
-  if (outcome.structuredContent !== undefined) {
-    return { content, structuredContent: JSON.parse(text) as Record<string, unknown> };
-  }
-  return { content };
+  return {
+    content: [{ type: "text", text }],
+    structuredContent: JSON.parse(text) as Record<string, unknown>,
+  };
 }
 
 export function createMcpServer(options: McpServerOptions): Server {
@@ -68,7 +70,7 @@ export function createMcpServer(options: McpServerOptions): Server {
 
   const server = new Server(
     { name: manifest.name, version: manifest.version },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {} }, instructions: MCP_SERVER_INSTRUCTIONS },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -77,9 +79,7 @@ export function createMcpServer(options: McpServerOptions): Server {
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema as unknown as Tool["inputSchema"],
-        ...(tool.outputSchema !== undefined
-          ? { outputSchema: tool.outputSchema as unknown as Tool["outputSchema"] }
-          : {}),
+        outputSchema: tool.outputSchema as unknown as Tool["outputSchema"],
         annotations: tool.annotations,
       }),
     ),

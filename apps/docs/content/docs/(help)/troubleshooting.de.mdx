@@ -230,7 +230,7 @@ durch einen Skalar. Ist die Datei deine Quell-Locale, erscheint der Fehler umhü
 token usage (N) reached the configured budget of M tokens (behavior: warn)`. Unter
 `budgetBehavior: "stop"` lautet er `The run's next provider request was projected at P tokens on
 top of the N already counted, which would have crossed the configured budget of M tokens, so it was
-withheld rather than sent`, und Keys erscheinen außerdem unter `budgetWithheld`.
+withheld rather than sent`, und Keys erscheinen außerdem unter `budgetWithheld`. Kam die Obergrenze vom Lauf selbst (`--max-tokens` oder der `maxTokens`-Input des SDK oder eines Agent-Tools), nennen die Meldungen das eigene Budget des Laufs (`own budget`) statt des konfigurierten; erhöhe oder entferne dann diesen Wert für den Lauf, nicht den in der Konfiguration.
 
 **Ursache**: Der Lauf hat seine konfigurierte `maxTokens`-Obergrenze erreicht. Mit `"warn"` (dem
 Default) läuft der Lauf unverändert weiter und ändert den Exit-Code nicht; mit `"stop"` wird die

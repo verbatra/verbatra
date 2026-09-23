@@ -81,6 +81,7 @@ const translateOptsSchema = sharedCommandOptsSchema.extend({
   cache: z.boolean().optional(),
   estimate: z.boolean().optional(),
   includeHuman: z.boolean().optional(),
+  maxTokens: z.string().optional(),
 });
 
 const watchOptsSchema = sharedCommandOptsSchema.extend({
@@ -461,19 +462,31 @@ function parseConcurrency(value: string | undefined): number | undefined {
   });
 }
 
+function parseMaxTokens(value: string | undefined): number | undefined {
+  return parsePositiveIntegerOption(value, {
+    code: "INVALID_MAX_TOKENS",
+    describe: `--max-tokens option must be a positive whole number no greater than ${Number.MAX_SAFE_INTEGER}`,
+    min: 1,
+    max: Number.MAX_SAFE_INTEGER,
+  });
+}
+
 interface ParsedTranslateOpts extends z.infer<typeof translateOptsSchema> {
   readonly lockAcquireTimeoutMs?: number;
   readonly concurrencyValue?: number;
+  readonly maxTokensValue?: number;
 }
 
 function parseTranslateCommandOpts(rawOpts: unknown): ParsedTranslateOpts {
   const opts = parseLocaleCommandOpts(translateOptsSchema, rawOpts);
   const lockAcquireTimeoutMs = parseLockTimeout(opts.lockTimeout);
   const concurrencyValue = parseConcurrency(opts.concurrency);
+  const maxTokensValue = parseMaxTokens(opts.maxTokens);
   return {
     ...opts,
     ...(lockAcquireTimeoutMs !== undefined ? { lockAcquireTimeoutMs } : {}),
     ...(concurrencyValue !== undefined ? { concurrencyValue } : {}),
+    ...(maxTokensValue !== undefined ? { maxTokensValue } : {}),
   };
 }
 
@@ -511,6 +524,7 @@ function buildTranslateInput(
     ...(opts.cache === false ? { cache: false } : {}),
     ...(opts.estimate === true ? { estimate: true } : {}),
     ...(opts.includeHuman === true ? { humanEdits: "overwrite" as const } : {}),
+    ...(opts.maxTokensValue !== undefined ? { maxTokens: opts.maxTokensValue } : {}),
   };
 }
 
@@ -1005,6 +1019,10 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "how many target locales to translate at once (default 1; not allowed with a maxTokens budget)",
     )
     .option(
+      "--max-tokens <n>",
+      "hard token ceiling for this run; the lower of this and the config's maxTokens applies",
+    )
+    .option(
       "--no-cache",
       "bypass the local translation-memory cache (verbatra.cache.json) for this run",
     )
@@ -1032,6 +1050,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra translate --prune --dry-run  preview the keys that would be pruned",
         "  $ verbatra translate --json          machine-readable summary on stdout",
         "  $ verbatra translate --estimate      size and price the run without spending anything",
+        "  $ verbatra translate --max-tokens 50000  stop before the run passes 50000 tokens",
         "  $ verbatra translate --include-human retranslate stale keys a person wrote, too",
         "",
         "Stale keys a person wrote or imported are kept and reported as protected, unless the",

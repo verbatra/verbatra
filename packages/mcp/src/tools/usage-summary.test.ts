@@ -49,7 +49,6 @@ describe("usage.summary", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { available: false },
-      structuredContent: { available: false },
     });
   });
 
@@ -75,19 +74,6 @@ describe("usage.summary", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: {
-        available: true,
-        generatedAt: "2026-01-01T00:00:00.000Z",
-        usage: { inputTokens: 100, outputTokens: 50 },
-        budget: {
-          maxTokens: 1000,
-          behavior: "warn",
-          supported: true,
-          tokensUsed: 150,
-          exceeded: false,
-          standing: "within",
-        },
-      },
-      structuredContent: {
         available: true,
         generatedAt: "2026-01-01T00:00:00.000Z",
         usage: { inputTokens: 100, outputTokens: 50 },
@@ -131,7 +117,6 @@ describe("usage.summary", () => {
       expect(outcome).toMatchObject({
         kind: "ok",
         result: { budget: { standing } },
-        structuredContent: { budget: { standing } },
       });
     },
   );

@@ -148,15 +148,16 @@ describe("createMcpServer: tools/call", () => {
     });
   });
 
-  it("returns content with no structuredContent for a tool that declares no outputSchema", async () => {
+  it("returns the same JSON as text content and as structuredContent", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
 
     const result = await client.callTool({ name: "status.check", arguments: {} });
 
     expect(result.isError).toBeUndefined();
-    expect(result.structuredContent).toBeUndefined();
-    expect(result.content).toBeDefined();
+    const [content] = result.content as Array<{ type: string; text: string }>;
+    expect(result.structuredContent).toEqual(JSON.parse(content?.text ?? "null"));
+    expect(result.structuredContent).toMatchObject({ inSync: false });
   });
 
   it("returns isError: true, not a JSON-RPC error, when a tool's handler throws", async () => {

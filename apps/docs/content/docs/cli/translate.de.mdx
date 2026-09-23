@@ -21,6 +21,7 @@ verbatra translate [flags]
 | `--prune` | keins | die `prune`-Option der Konfiguration, sonst aus | verwaiste Keys (in einer Zieldatei, aber nicht in der Quelle) aus der geschriebenen Datei und dem Lock entfernen |
 | `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit sein (ein Wert wie `60s`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
 | `--concurrency` | `<n>` | `1` | bis zu `n` Ziel-Locales gleichzeitig übersetzen; muss eine positive Ganzzahl sein |
+| `--max-tokens` | `<n>` | das `maxTokens` der Konfiguration | eine harte Token-Obergrenze nur für diesen Lauf; setzt die Konfiguration ebenfalls `maxTokens`, gilt der niedrigere der beiden Werte; muss eine positive Ganzzahl sein (ein Wert wie `10k` oder `0` ist ein Nutzungsfehler, Exit `2`) |
 | `--no-cache` | keins | aus (Cache an) | den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) für diesen Lauf umgehen |
 | `--include-human` | keins | aus | für diesen Lauf auch veraltete Keys neu übersetzen, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat (`humanEdits: "overwrite"`); [gepinnte Keys](/docs/protecting-human-translations#keys-pinnen) bleiben unangetastet |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Lauf-Zusammenfassung unter `result` trägt (die [`RunSummary`-Form](/docs/sdk)), oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
@@ -42,7 +43,11 @@ In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id
 
 `--lock-timeout` stellt ein, wie lange eine Locale auf eine umkämpfte [Schreibsperre](/docs/the-lock-file) wartet, bevor der Lauf mit `LOCK_CONTENDED` scheitert: erhöhe es, wenn ein anderer Lauf die Sperre berechtigt eine Weile hält, senke es, um in CI schnell zu scheitern.
 
-`--concurrency` übersetzt mehrere Ziel-Locales parallel, um ein großes Projekt schneller abzuschließen. Es wird mit Exit `2` abgelehnt, wenn die Konfiguration ein `maxTokens`-Budget setzt, weil die Obergrenze zwar weiterhin gälte, aber davon abhinge, in welcher Reihenfolge sich die Locales verschränken, welche von ihnen ihre restliche Arbeit verliert; dasselbe Projekt ergäbe also nicht zweimal denselben Lauf (ein Dry Run ist ausgenommen). Taucht ein Fehler des gesamten Laufs (in der Praxis eine beschädigte Lock-Datei) auf, während bereits Locales laufen, wird keine weitere Locale mehr gestartet, und die laufenden schließen ab und geben ihre Schreibsperren frei, bevor der Befehl mit Exit `2` endet; der Lauf lässt also keine Sperre zurück, auf die der nächste warten müsste. Während ein Lauf fortschreitet, wird der Fortschritt auf stderr ausgegeben (eine Zeile pro Locale-Start, Provider-Sub-Batch und Locale-Ende), sodass stdout bei einem `--json`-Lauf eine einzige saubere Zusammenfassung bleibt. `--no-cache` überspringt den [Übersetzungsspeicher-Cache](/docs/the-cache) für den Lauf und macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde.
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` begrenzt, was ein einzelner Lauf ausgeben darf, ohne dass du die Konfiguration anfasst. Es ist immer ein harter Stopp: Eine Provider-Anfrage, die die Obergrenze überschreiten würde, wird zurückgehalten statt gesendet, egal was `budgetBehavior` sagt, und ihre Keys stehen in der Zusammenfassung als `budgetWithheld`. Die Obergrenze wird genauso gezählt wie ein konfiguriertes [`maxTokens`-Budget](/docs/config-file#maxtokens-und-budgetbehavior). Setzt die Konfiguration ebenfalls `maxTokens`, gilt der niedrigere der beiden Werte, das Flag kann das Budget also verschärfen, aber nie lockern. Ein Lauf, den die Obergrenze abgebrochen hat, endet mit Exit `1`, wie es eine teilweise übersetzte Locale immer tut. Führe vorher `--estimate` aus, um eine sinnvolle Zahl zu wählen.
+
+`--concurrency` übersetzt mehrere Ziel-Locales parallel, um ein großes Projekt schneller abzuschließen. Es wird mit Exit `2` abgelehnt, wenn ein Token-Budget gilt, aus dem `maxTokens` der Konfiguration oder aus `--max-tokens`, weil die Obergrenze zwar weiterhin gälte, aber davon abhinge, in welcher Reihenfolge sich die Locales verschränken, welche von ihnen ihre restliche Arbeit verliert; dasselbe Projekt ergäbe also nicht zweimal denselben Lauf (ein Dry Run ist ausgenommen). Taucht ein Fehler des gesamten Laufs (in der Praxis eine beschädigte Lock-Datei) auf, während bereits Locales laufen, wird keine weitere Locale mehr gestartet, und die laufenden schließen ab und geben ihre Schreibsperren frei, bevor der Befehl mit Exit `2` endet; der Lauf lässt also keine Sperre zurück, auf die der nächste warten müsste. Während ein Lauf fortschreitet, wird der Fortschritt auf stderr ausgegeben (eine Zeile pro Locale-Start, Provider-Sub-Batch und Locale-Ende), sodass stdout bei einem `--json`-Lauf eine einzige saubere Zusammenfassung bleibt. `--no-cache` überspringt den [Übersetzungsspeicher-Cache](/docs/the-cache) für den Lauf und macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde.
 
 ## Beispiele
 
@@ -58,6 +63,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# stop before the run passes 50000 tokens
+verbatra translate --max-tokens 50000
 
 # also retranslate stale keys a person wrote
 verbatra translate --include-human
