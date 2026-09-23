@@ -14,9 +14,11 @@ user-invocable: false
 ## Overview
 
 apps/docs embeds a single self-hosted Umami tracker in the root layout
-(apps/docs/app/[lang]/layout.tsx). It is cookieless, collects no personal data, and
-needs no consent banner (see apps/docs/messages/en.json, legal.privacy.s5/s6 for the
-GDPR basis already documented on /privacy). This skill covers the one file that
+(apps/docs/app/[lang]/layout.tsx). It sets no cookies, but it is not free of personal
+data: the Umami server derives a pseudonymous session hash and an approximate location
+from the visitor's IP address and user agent. The privacy page describes exactly what it
+reads and processes in legal.privacy.s4 (apps/docs/messages/*.json) and renders the
+opt-out control there. This skill covers the one file that
 holds the embed, verifying a website ID or host change, and the pattern for adding
 new tracked events.
 
@@ -41,6 +43,12 @@ this skill's concern).
   Umami: it loads after hydration, so it never blocks the first paint or
   interactivity, and Umami has no reason to load before interactive (unlike, say, a
   consent-gating script).
+- **Do Not Track** - the Script carries data-do-not-track="true", so the tracker sends
+  nothing when the browser signals Do Not Track. Keep it; the privacy page promises it
+  and app/[lang]/layout.test.tsx fails without it.
+- **Opt-out** - the tracker sends nothing while localStorage holds the key
+  umami.disabled (any value). components/analytics-opt-out.tsx sets and clears it
+  through the helpers in lib/umami.ts; do not write the key anywhere else.
 - **Automatic SPA tracking** - Umami's tracker watches pushState/replaceState/popstate
   and sends a pageview on every client-side route change automatically. Do not add a
   manual umami.track() call on route change; that produces duplicate pageviews.
@@ -59,7 +67,7 @@ this skill's concern).
 | Add a declarative click event      | data-umami-event="..." on the target element's JSX           |
 | Add a dynamic/typed event          | window.umami?.track("name", { ... }) inside the onClick handler |
 | Verify the tracker loaded          | open the deployed page, check Network for a script.js request to the self-hosted host, then check the Umami dashboard's Realtime view for a session |
-| Privacy policy wording for Umami   | apps/docs/messages/{en,de,es,fr}.json, legal.privacy.s5.body (update all four locales together, per docs.md) |
+| Privacy policy wording for Umami   | apps/docs/messages/{en,de,es,fr}.json, legal.privacy.s4 (update all four locales together, per docs.md) |
 
 ## Common Mistakes
 
