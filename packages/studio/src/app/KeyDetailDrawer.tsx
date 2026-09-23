@@ -15,7 +15,7 @@ import { CommitList } from "./CommitList.js";
 import { DiffBadge } from "./DiffBadge.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
-import { DetailList, DrawerShell, Section } from "./ui.js";
+import { DetailList, DrawerShell, MonoValue, Section } from "./ui.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useHistoryList } from "./use-history-list.js";
@@ -111,9 +111,16 @@ function LocaleProvenance({
   if (provenance === undefined) {
     return null;
   }
+  const items: ReadonlyArray<readonly [string, ReactNode]> = [
+    ["Origin", <ProvenanceBadge key="origin" provenance={provenance} />],
+    ...provenanceDetailItems(provenance).map(
+      ({ label, value, identifier }) =>
+        [label, identifier ? <MonoValue key={label}>{value}</MonoValue> : value] as const,
+    ),
+  ];
   return (
     <div className="mt-2">
-      <DetailList items={provenanceDetailItems(provenance)} />
+      <DetailList items={items} />
     </div>
   );
 }
@@ -174,9 +181,6 @@ function LocaleBlock({
         ) : (
           <DiffBadge tone={row.status} />
         )}
-        <ProvenanceBadge
-          provenance={values.kind === "loaded" ? values.provenance.get(row.locale) : undefined}
-        />
         <IntegrityCell
           integrity={integrity}
           locale={row.locale}

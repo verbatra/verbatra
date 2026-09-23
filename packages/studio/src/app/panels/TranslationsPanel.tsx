@@ -13,7 +13,7 @@ import { filterAndCapKeys, type KeyValuePair, MAX_RENDERED_KEYS } from "../../cl
 import { isRtlLocale } from "../../client/locale-direction.js";
 import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values.js";
-import { provenanceSummaryText } from "../../client/provenance-view.js";
+import { provenanceSummaryParts } from "../../client/provenance-view.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
@@ -49,7 +49,7 @@ import {
 } from "../Table.js";
 import { Tabs } from "../Tabs.js";
 import { Toolbar } from "../Toolbar.js";
-import { PageSection } from "../ui.js";
+import { MonoValue, PageSection } from "../ui.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
@@ -307,7 +307,9 @@ function KeyList({
             >
               <span className="flex flex-wrap items-center gap-2">
                 <span className="min-w-0 break-all">{key}</span>
-                <ProvenanceBadge provenance={values.get(key)?.provenance} />
+                {tone === "changed" ? (
+                  <ProvenanceBadge provenance={values.get(key)?.provenance} />
+                ) : null}
               </span>
             </button>
           </li>
@@ -489,6 +491,22 @@ function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: Lock
   );
 }
 
+function ProvenanceCounts({
+  summary,
+}: {
+  readonly summary: LockLocaleState["provenance"];
+}): ReactNode {
+  return (
+    <ul className="m-0 flex min-w-[160px] list-none flex-wrap gap-x-3 gap-y-0.5 p-0">
+      {provenanceSummaryParts(summary).map((part) => (
+        <li key={part} className="whitespace-nowrap">
+          {part}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] }): ReactNode {
   return (
     <AccordionItem
@@ -502,8 +520,8 @@ function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] 
     >
       <p className="mb-3 text-sm text-muted-foreground">
         The lock file&apos;s own record: keys per recorded locale, and drift measured against the
-        current files. Provenance counts who wrote each current value, from
-        verbatra.provenance.json.
+        current files. Provenance counts who wrote each current value, from{" "}
+        <MonoValue>verbatra.provenance.json</MonoValue>.
       </p>
       <div className="overflow-x-auto">
         <Table>
@@ -525,7 +543,9 @@ function LockDetail({ locales }: { readonly locales: readonly LockLocaleState[] 
                 <TableCell numeric>{locale.missing}</TableCell>
                 <TableCell numeric>{locale.stale}</TableCell>
                 <TableCell numeric>{locale.upToDate}</TableCell>
-                <TableCell>{provenanceSummaryText(locale.provenance)}</TableCell>
+                <TableCell>
+                  <ProvenanceCounts summary={locale.provenance} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -856,9 +856,14 @@ describe("TranslationsPanel locales section", () => {
 
     const detail = view.getByText("summary", "Lock file details").parentElement;
 
-    expect(cellTexts(detail?.querySelector<HTMLElement>("tbody tr") ?? undefined).at(-1)).toBe(
-      "6 machine, 1 agent, 2 human, 1 edited outside verbatra",
-    );
+    const items = [...(detail?.querySelectorAll("tbody tr td:last-child li") ?? [])];
+    expect(items.map((item) => item.textContent)).toEqual([
+      "6 machine",
+      "1 agent",
+      "2 human",
+      "1 edited outside verbatra",
+    ]);
+    expect(items.every((item) => item.className.includes("whitespace-nowrap"))).toBe(true);
   });
 
   it("explains the missing lock file instead of showing a lock column", async () => {
@@ -1018,6 +1023,31 @@ describe("TranslationsPanel key explorer", () => {
       "app.title Origin: Human. Written by a person.",
       "app.body",
     ]);
+  });
+
+  it("labels only changed keys, not orphaned ones, matching the lock file's counts", async () => {
+    stubPage({
+      "status.diff": diffResult([localeDiff("de", { orphaned: ["app.old"] })]),
+      "status.check": checkResult([{ locale: "de", missing: 0, stale: 0, upToDate: 10 }]),
+      "locale.values": {
+        ok: true,
+        result: [
+          {
+            locale: "de",
+            values: {
+              "app.old": {
+                target: "Veraltet",
+                provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+              },
+            },
+          },
+        ],
+      },
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+
+    expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.old"]);
   });
 
   it("still matches a query found in the key name when no value matches", async () => {

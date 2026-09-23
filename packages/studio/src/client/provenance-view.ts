@@ -80,29 +80,37 @@ export function provenanceBadgeView(
   return provenance === undefined ? null : ORIGIN_VIEWS[provenance.origin];
 }
 
-export function provenanceDetailItems(
-  provenance: KeyProvenance,
-): ReadonlyArray<readonly [string, string]> {
-  const items: [string, string][] = [];
+export interface ProvenanceDetailItem {
+  readonly label: string;
+  readonly value: string;
+  readonly identifier: boolean;
+}
+
+export function provenanceDetailItems(provenance: KeyProvenance): readonly ProvenanceDetailItem[] {
+  const items: ProvenanceDetailItem[] = [];
   if (provenance.provider !== undefined) {
-    items.push(["Provider", provenance.provider]);
+    items.push({ label: "Provider", value: provenance.provider, identifier: true });
   }
   if (provenance.model !== undefined) {
-    items.push(["Model", provenance.model]);
+    items.push({ label: "Model", value: provenance.model, identifier: true });
   }
-  items.push(["Review", REVIEW_LABELS[provenance.reviewState]]);
+  items.push({
+    label: "Review",
+    value: REVIEW_LABELS[provenance.reviewState],
+    identifier: false,
+  });
   if (provenance.reviewer !== undefined) {
-    items.push(["Reviewer", provenance.reviewer]);
+    items.push({ label: "Reviewer", value: provenance.reviewer, identifier: false });
   }
   return items;
 }
 
-export function provenanceSummaryText(summary: ProvenanceSummary | undefined): string {
+export function provenanceSummaryParts(summary: ProvenanceSummary | undefined): readonly string[] {
   if (summary === undefined) {
-    return "Unavailable";
+    return ["Unavailable"];
   }
   const parts = ORIGIN_ORDER.filter((origin) => summary.byOrigin[origin] > 0).map(
     (origin) => `${summary.byOrigin[origin]} ${ORIGIN_VIEWS[origin].label.toLowerCase()}`,
   );
-  return parts.length === 0 ? "No values" : parts.join(", ");
+  return parts.length === 0 ? ["No values"] : parts;
 }

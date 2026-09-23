@@ -4,7 +4,7 @@ import {
   ORIGIN_ORDER,
   provenanceBadgeView,
   provenanceDetailItems,
-  provenanceSummaryText,
+  provenanceSummaryParts,
 } from "./provenance-view.js";
 
 function summary(byOrigin: Partial<Record<KeyOrigin, number>>): ProvenanceSummary {
@@ -53,39 +53,42 @@ describe("provenanceDetailItems", () => {
         reviewer: "mk",
       }),
     ).toEqual([
-      ["Provider", "anthropic"],
-      ["Model", "claude-x"],
-      ["Review", "Approved"],
-      ["Reviewer", "mk"],
+      { label: "Provider", value: "anthropic", identifier: true },
+      { label: "Model", value: "claude-x", identifier: true },
+      { label: "Review", value: "Approved", identifier: false },
+      { label: "Reviewer", value: "mk", identifier: false },
     ]);
   });
 
   it("leaves out fields the record does not carry", () => {
     expect(provenanceDetailItems({ origin: "human", reviewState: "unreviewed" })).toEqual([
-      ["Review", "Not reviewed"],
+      { label: "Review", value: "Not reviewed", identifier: false },
     ]);
   });
 
   it("names a rejected value", () => {
-    expect(provenanceDetailItems({ origin: "import", reviewState: "rejected" })).toContainEqual([
-      "Review",
-      "Rejected",
-    ]);
+    expect(provenanceDetailItems({ origin: "import", reviewState: "rejected" })).toContainEqual({
+      label: "Review",
+      value: "Rejected",
+      identifier: false,
+    });
   });
 });
 
-describe("provenanceSummaryText", () => {
+describe("provenanceSummaryParts", () => {
   it("says the counts are unavailable when the server left them out", () => {
-    expect(provenanceSummaryText(undefined)).toBe("Unavailable");
+    expect(provenanceSummaryParts(undefined)).toEqual(["Unavailable"]);
   });
 
   it("says there are no values for an empty locale", () => {
-    expect(provenanceSummaryText(summary({}))).toBe("No values");
+    expect(provenanceSummaryParts(summary({}))).toEqual(["No values"]);
   });
 
-  it("lists the non-zero origins in display order", () => {
-    expect(provenanceSummaryText(summary({ human: 2, machine: 12, external: 1 }))).toBe(
-      "12 machine, 2 human, 1 edited outside verbatra",
-    );
+  it("lists the non-zero origins in display order, one part each", () => {
+    expect(provenanceSummaryParts(summary({ human: 2, machine: 12, external: 1 }))).toEqual([
+      "12 machine",
+      "2 human",
+      "1 edited outside verbatra",
+    ]);
   });
 });
