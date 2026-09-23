@@ -328,7 +328,8 @@ review decision included, although a different write path produced it or the sou
 against has changed. Two rules contain that: the approve and reject actions (Decision 5) must not
 report success for a decision they could not persist, and the review workflow must treat an
 approval as reset, not approved, for a key whose lock source hash changed since the approval was
-recorded while the file was over the bound. The size skip is otherwise a loss of information, never
+recorded while the file was over the bound, which means an approval records the source hash it was
+given against, an additive field under Decision 7. The size skip is otherwise a loss of information, never
 a false attribution.
 
 ## Decision 9: what the record is, and is not
