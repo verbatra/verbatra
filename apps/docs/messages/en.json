@@ -378,7 +378,7 @@
       },
       "s11": {
         "heading": "12. Contact form",
-        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
+        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are not stored anywhere beyond the operator's inbox. They are deleted once your inquiry has been fully handled, unless statutory retention duties under German commercial or tax law (the Commercial Code, HGB, or the Fiscal Code, AO) require us to keep them longer; in that case they are deleted when that retention period ends."
       },
       "s12": {
         "heading": "13. AI-assisted translation",
@@ -401,6 +401,7 @@
       },
       "title": "Contact",
       "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the Imprint.",
+      "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled, unless we are legally required to keep them. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Your name",

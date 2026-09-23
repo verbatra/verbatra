@@ -19,7 +19,7 @@ function render(): HTMLDivElement {
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<ContactForm />);
+    root.render(<ContactForm privacyNotice={<a href="/privacy#contact-form">privacy notice</a>} />);
   });
   mounted = { container, root };
   return container;
@@ -68,6 +68,16 @@ afterEach(() => {
 });
 
 describe("ContactForm", () => {
+  it("shows the privacy notice it is given directly below the submit button", () => {
+    const container = render();
+    const notice = container.querySelector('button[type="submit"]')?.nextElementSibling;
+
+    expect(notice?.tagName).toBe("P");
+    expect(notice?.querySelector('a[href="/privacy#contact-form"]')?.textContent).toBe(
+      "privacy notice",
+    );
+  });
+
   it("renders a labeled field for name, email, and message", () => {
     const container = render();
     expect(field(container, "name").tagName).toBe("INPUT");

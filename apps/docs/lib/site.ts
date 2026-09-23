@@ -11,6 +11,8 @@ export const MCP_VERSION = versionData.mcpVersion;
 
 export const LEGAL_LAST_UPDATED = "2026-09-23";
 
+export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";
+
 export function localeAlternates(locale: Locale, path: string) {
   const languages: Record<string, string> = {};
   for (const lang of i18n.languages) {
