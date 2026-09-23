@@ -78,6 +78,45 @@ describe("keyProvenance", () => {
   });
 });
 
+describe("keyProvenance: an approval is tied to the source it was given against", () => {
+  const approved: ProvenanceRecord = {
+    origin: "machine",
+    valueHash: valueHash("Hallo"),
+    reviewState: "approved",
+    reviewer: "mk",
+    reviewedSourceHash: "source-a",
+  };
+
+  it("stays approved while the lock entry still names that source", () => {
+    expect(keyProvenance(approved, "Hallo", "source-a")).toEqual({
+      origin: "machine",
+      reviewState: "approved",
+      reviewer: "mk",
+    });
+  });
+
+  it("reads as unreviewed, without its reviewer, once the lock entry names another source", () => {
+    expect(keyProvenance(approved, "Hallo", "source-b")).toEqual({
+      origin: "machine",
+      reviewState: "unreviewed",
+    });
+  });
+
+  it("stays approved when the caller has no lock entry to compare against", () => {
+    expect(keyProvenance(approved, "Hallo").reviewState).toBe("approved");
+  });
+
+  it("stays approved when the record carries no source hash", () => {
+    const { reviewedSourceHash: _omitted, ...legacy } = approved;
+    expect(keyProvenance(legacy, "Hallo", "source-b").reviewState).toBe("approved");
+  });
+
+  it("keeps a rejection whatever the source hash", () => {
+    const rejected: ProvenanceRecord = { ...approved, reviewState: "rejected" };
+    expect(keyProvenance(rejected, "Hallo", "source-b").reviewState).toBe("rejected");
+  });
+});
+
 describe("summarizeProvenance and originsOf", () => {
   const records = new Map<string, ProvenanceRecord>([
     ["a", { origin: "machine", valueHash: valueHash("A") }],

@@ -5,7 +5,10 @@ import type { RefreshableView } from "../client/state.js";
 import { applyRefreshOutcome } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
-export function useReviewQueue(refreshToken?: unknown): RefreshableView<ReviewQueueData> {
+export function useReviewQueue(
+  refreshToken?: unknown,
+  reloadToken?: unknown,
+): RefreshableView<ReviewQueueData> {
   const [view, setView] = useState<RefreshableView<ReviewQueueData>>({ kind: "loading" });
 
   useEffect(() => {
@@ -20,7 +23,7 @@ export function useReviewQueue(refreshToken?: unknown): RefreshableView<ReviewQu
     return () => {
       cancelled = true;
     };
-  }, [refreshToken]);
+  }, [refreshToken, reloadToken]);
 
   return view;
 }

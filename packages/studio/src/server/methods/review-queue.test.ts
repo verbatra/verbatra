@@ -36,9 +36,17 @@ describe("reviewQueueHandler", () => {
     }
   });
 
-  it("passes through the persisted needsReview entries per locale, unmodified", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+  it("passes through the flagged entries that still have an undecided translation", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      { greeting: "hello", farewell: "bye" },
+    );
     try {
+      await writeFile(
+        join(project.root, "locales", "de.json"),
+        `${JSON.stringify({ greeting: "hallo", farewell: "tschuss" })}\n`,
+        "utf8",
+      );
       await writeRunStatusFile(project, {
         version: 1,
         generatedAt: "2026-07-16T00:00:00.000Z",
@@ -65,8 +73,16 @@ describe("reviewQueueHandler", () => {
             locale: "de",
             status: "succeeded",
             needsReview: [
-              { key: "greeting", reasons: ["EQUALS_SOURCE"] },
-              { key: "farewell", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
+              {
+                key: "greeting",
+                reasons: ["EQUALS_SOURCE"],
+                provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+              },
+              {
+                key: "farewell",
+                reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"],
+                provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+              },
             ],
           },
         ],

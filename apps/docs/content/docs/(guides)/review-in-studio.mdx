@@ -43,7 +43,7 @@ Click any key to open its detail view: the source text, the per-locale values, e
 
 The integrity indicator has one more defect state, **Inline markup mismatch**: the translation's HTML or XML tags differ from the source's, and the indicator names the tags behind it, `-` for one the translation dropped and `+` for one it added.
 
-Values in a right-to-left locale (Arabic, Hebrew, Persian, Urdu) render right to left throughout the explorer and the detail view.
+Values in a right-to-left locale (Arabic, Hebrew, Persian, Urdu) render right to left throughout the explorer and the detail view. What verbatra does, and does not do, for right-to-left text is on [Language support](/docs/language-support#right-to-left-languages).
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -74,10 +74,16 @@ The length budget and cache reuse reasons carry the labels **Over length budget*
 Filter by locale, or by a substring of a row's key, source text, or target text; the filter bar counts the matching entries as you type, and when nothing matches, **Clear filters** resets both. Then work the rows:
 
 - **Edit** opens the same integrity-gated editor as the Translations page. An accepted edit clears the row from the queue.
-- **Approve** dismisses the row as "looked at, fine as is".
-- **Reject** dismisses the row too; pair it with an edit or a retranslate when the value actually needs to change.
+- **Approve** records that you looked at the value and accept it as it stands.
+- **Reject** removes the value so it gets replaced; it asks for confirmation first.
 
-Approve and Reject hide the row only in the open tab's memory and write nothing to disk: the row stays hidden across live refreshes, but reloading the tab brings it back. The durable ways to clear a flag are fixing the value or re-running a translation.
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Both decisions are saved in [`verbatra.provenance.json`](/docs/the-lock-file#review-decisions), so they survive a reload and reach your teammates once you commit the file. The queue only lists entries nobody has decided on yet: a row leaves it once its value is approved, rejected, or rewritten by a person (an edit made through the agent tools stays listed, because it still needs a person's look). A line above the table confirms each saved decision.
+
+Each row shows the key's current translation under the key (hover it for the full text), and each decision applies to exactly that text. If the value changed since the page loaded, for example because a run rewrote it, the decision is refused and nothing is saved; look at the current value and decide again. An approval also needs the value to be up to date with its source: after a source edit, fix or retranslate the value instead.
+
+Reject removes the translation from the locale file and drops its [lock file](/docs/the-lock-file) entry, so the key counts as missing: `verbatra check` reports it, and the next `verbatra translate` run or **Translate pending changes across all locales** fills it again. Until then your app shows its fallback for that key. With the provider `none`, the key stays missing until someone writes a new value. The rejected text is also dropped from this machine's translation memory, so the next run does not put it straight back. Commit the locale file, the lock file, and the provenance file together; if a rejection fails partway, Studio restores the files on failure. A format that cannot drop a single translation, XLIFF or Flutter ARB, refuses the rejection and leaves the file as it was; edit the value instead.
 
 Review flags are advisory, distinct from the hard integrity gate; see [Translation safety](/docs/translation-safety) for what each reason means.
 

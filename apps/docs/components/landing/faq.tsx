@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { i18n, isLocale, localizedPath } from "@/lib/i18n";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import type { FaqItem } from "@/lib/structured-data";
 import { RELEASES_URL } from "./links";
@@ -13,18 +14,31 @@ const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export type FaqEntry = FaqItem & { id: string };
 
-const answerTags = {
-  releases: (chunks: ReactNode) => (
-    <a
-      href={RELEASES_URL}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]"
-    >
-      {chunks}
-    </a>
-  ),
-};
+const ANSWER_LINK_CLASS =
+  "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
+
+const LANGUAGE_SUPPORT_PATH = "/docs/language-support";
+
+function answerTags(locale: string) {
+  const docsLocale = isLocale(locale) ? locale : i18n.defaultLanguage;
+  return {
+    releases: (chunks: ReactNode) => (
+      <a
+        href={RELEASES_URL}
+        target="_blank"
+        rel="noreferrer noopener"
+        className={ANSWER_LINK_CLASS}
+      >
+        {chunks}
+      </a>
+    ),
+    languages: (chunks: ReactNode) => (
+      <a href={localizedPath(docsLocale, LANGUAGE_SUPPORT_PATH)} className={ANSWER_LINK_CLASS}>
+        {chunks}
+      </a>
+    ),
+  };
+}
 
 function FaqRow({
   item,
@@ -40,6 +54,7 @@ function FaqRow({
   reduced: boolean;
 }): ReactNode {
   const t = useTranslations("landing.faq");
+  const locale = useLocale();
   const panelId = `faq-panel-${index}`;
   const buttonId = `faq-button-${index}`;
   return (
@@ -78,7 +93,7 @@ function FaqRow({
         transition={reduced ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
       >
         <p className="max-w-[68ch] pb-5 text-[15px] leading-relaxed text-fd-muted-foreground">
-          {t.rich(`items.${item.id}.answer`, answerTags)}
+          {t.rich(`items.${item.id}.answer`, answerTags(locale))}
         </p>
       </motion.section>
     </div>

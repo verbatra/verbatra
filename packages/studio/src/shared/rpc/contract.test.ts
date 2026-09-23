@@ -17,10 +17,12 @@ const EXPECTED_METHOD_NAMES = [
   "locale.values",
   "translation.translatePending",
   "usage.summary",
+  "review.approve",
+  "review.reject",
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the fifteen agreed method names, no more, no fewer", () => {
+  it("contains exactly the seventeen agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -61,6 +63,16 @@ describe("rpcParamsSchemas", () => {
     ["locale.values", {}, { extra: true }],
     ["translation.translatePending", {}, { locale: "de" }],
     ["usage.summary", {}, { extra: true }],
+    [
+      "review.approve",
+      { locale: "de", key: "greeting", expectedValue: "Hallo" },
+      { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "mk" },
+    ],
+    [
+      "review.reject",
+      { locale: "de", key: "greeting", expectedValue: "" },
+      { locale: "de", key: "greeting" },
+    ],
   ] as const)("%s accepts a valid shape and rejects an invalid shape", (method, valid, invalid) => {
     const schema = rpcParamsSchemas[method];
     expect(schema.safeParse(valid).success).toBe(true);

@@ -5,20 +5,32 @@ export function ReviewRowActions({
   onApprove,
   onReject,
   onEdit,
+  decisionDisabled = false,
+  pendingLabel,
 }: {
   readonly onApprove: () => void;
   readonly onReject: () => void;
   readonly onEdit: () => void;
+  readonly decisionDisabled?: boolean;
+  readonly pendingLabel?: string;
 }): ReactNode {
+  const busy = pendingLabel !== undefined;
   return (
-    <span className="ms-2 inline-flex items-center gap-2">
-      <Button onClick={onEdit}>Edit</Button>
-      <Button className="text-success" onClick={onApprove}>
+    <span className="ms-2 inline-flex flex-wrap items-center gap-2">
+      <Button onClick={onEdit} disabled={busy}>
+        Edit
+      </Button>
+      <Button className="text-success" onClick={onApprove} disabled={busy || decisionDisabled}>
         Approve
       </Button>
-      <Button className="text-danger" onClick={onReject}>
-        Reject
+      <Button className="text-danger" onClick={onReject} disabled={busy || decisionDisabled}>
+        Reject…
       </Button>
+      {busy ? (
+        <span className="text-xs text-muted-foreground" role="status">
+          {pendingLabel}
+        </span>
+      ) : null}
     </span>
   );
 }

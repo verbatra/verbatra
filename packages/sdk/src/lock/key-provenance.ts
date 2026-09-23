@@ -66,23 +66,40 @@ function storedOrigin(origin: string): ProvenanceOrigin {
   return STORED_ORIGINS.has(origin) ? (origin as ProvenanceOrigin) : "unknown";
 }
 
-function reviewStateOf(state: string | undefined): KeyReviewState {
-  return state === "approved" || state === "rejected" ? state : "unreviewed";
+function reviewStateOf(record: ProvenanceRecord, sourceHash: string | undefined): KeyReviewState {
+  const state = record.reviewState;
+  if (state === "rejected") {
+    return state;
+  }
+  if (state !== "approved") {
+    return "unreviewed";
+  }
+  const reviewedAgainst = record.reviewedSourceHash;
+  return reviewedAgainst === undefined || sourceHash === undefined || reviewedAgainst === sourceHash
+    ? "approved"
+    : "unreviewed";
 }
 
-export function keyProvenance(record: ProvenanceRecord | undefined, value: string): KeyProvenance {
+export function keyProvenance(
+  record: ProvenanceRecord | undefined,
+  value: string,
+  sourceHash?: string,
+): KeyProvenance {
   if (record === undefined) {
     return UNRECORDED;
   }
   if (record.valueHash !== valueHash(value)) {
     return EXTERNAL;
   }
+  const reviewState = reviewStateOf(record, sourceHash);
   return {
     origin: storedOrigin(record.origin),
     ...(record.provider !== undefined ? { provider: record.provider } : {}),
     ...(record.model !== undefined ? { model: record.model } : {}),
-    reviewState: reviewStateOf(record.reviewState),
-    ...(record.reviewer !== undefined ? { reviewer: record.reviewer } : {}),
+    reviewState,
+    ...(record.reviewer !== undefined && reviewState !== "unreviewed"
+      ? { reviewer: record.reviewer }
+      : {}),
   };
 }
 

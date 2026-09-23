@@ -64,6 +64,15 @@ serveurs locaux n'ont besoin d'aucune clé d'API : quand ni une variable nommée
 ni `OPENAI_COMPATIBLE_API_KEY` n'est définie, verbatra envoie le placeholder fixe `"local"`. Si
 ton serveur a besoin d'une clé, nomme sa variable d'environnement avec `apiKeyEnvVar`.
 
+## Quelles langues verbatra prend-il en charge ?
+
+Toutes celles que ton fournisseur prend en charge. verbatra lui-même accepte n'importe quel code
+de locale BCP 47 valide, comme `pt-BR`, `sr-Latn` ou `zh-Hant`, et lit les règles de pluriel dans
+CLDR. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n'en
+ont pas. [Prise en charge des langues](/docs/language-support) donne la liste de chaque
+fournisseur, le code que chacun reçoit, et la façon dont sont traités les écritures, les variantes
+régionales et le texte de droite à gauche.
+
 ## Comment les clés gardent-elles leur ordre ?
 
 Les adaptateurs de la famille JSON, YAML et ARB font l'aller-retour des fichiers exactement dans

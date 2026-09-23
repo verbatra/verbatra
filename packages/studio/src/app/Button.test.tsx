@@ -59,6 +59,13 @@ describe("Button", () => {
     expect(ghost.get("button").className).toContain("text-sm");
   });
 
+  it("fills the danger variant with the paired danger tokens", () => {
+    const danger = render(<Button variant="danger">Remove</Button>);
+
+    expect(danger.get("button").className).toContain("bg-danger");
+    expect(danger.get("button").className).toContain("text-danger-foreground");
+  });
+
   it("merges a caller className onto the variant classes", () => {
     const view = render(<Button className="text-danger">Reject</Button>);
 

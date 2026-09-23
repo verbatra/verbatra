@@ -10,6 +10,7 @@ import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import { PROJECT_SNAPSHOT_METHOD, type StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
@@ -24,6 +25,7 @@ import { keyValueHandler } from "./methods/key-value.js";
 import { localeValuesHandler } from "./methods/locale-values.js";
 import { lockStateHandler } from "./methods/lock.js";
 import { retranslateEntryHandler } from "./methods/retranslate-entry.js";
+import { reviewApproveHandler, reviewRejectHandler } from "./methods/review-decision.js";
 import { reviewQueueHandler } from "./methods/review-queue.js";
 import { snapshotHandler } from "./methods/snapshot.js";
 import { translatePendingHandler } from "./methods/translate-pending.js";
@@ -64,6 +66,8 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [EDIT_ENTRY_METHOD]: editEntryHandler,
     [KEY_VALUE_METHOD]: keyValueHandler,
     [GLOSSARY_WRITE_METHOD]: glossaryWriteHandler,
+    [REVIEW_APPROVE_METHOD]: reviewApproveHandler,
+    [REVIEW_REJECT_METHOD]: reviewRejectHandler,
     ...(capabilities.spend
       ? {
           [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,

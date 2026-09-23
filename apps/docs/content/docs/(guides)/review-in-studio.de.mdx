@@ -43,7 +43,7 @@ Klicke auf einen beliebigen Key, um seine Detailansicht zu öffnen: der Quelltex
 
 Die Integritätsanzeige hat einen weiteren Defektzustand, **Inline markup mismatch**: Die HTML- oder XML-Tags der Übersetzung weichen von denen der Quelle ab, und die Anzeige nennt die betroffenen Tags, `-` für einen, den die Übersetzung weggelassen hat, und `+` für einen, den sie hinzugefügt hat.
 
-Werte in einem Rechts-nach-links-Locale (Arabisch, Hebräisch, Persisch, Urdu) werden im gesamten Explorer und in der Detailansicht von rechts nach links dargestellt.
+Werte in einem Rechts-nach-links-Locale (Arabisch, Hebräisch, Persisch, Urdu) werden im gesamten Explorer und in der Detailansicht von rechts nach links dargestellt. Was verbatra für Rechts-nach-links-Text tut und was nicht, steht unter [Sprachunterstützung](/docs/language-support#sprachen-die-von-rechts-nach-links-laufen).
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -74,10 +74,16 @@ Die Gründe zum Längenbudget und zur Cache-Wiederverwendung tragen die Beschrif
 Filtere nach Locale oder nach einem Teilstring aus dem Key, dem Quelltext oder dem Zieltext einer Zeile; die Filterleiste zählt die passenden Einträge schon beim Tippen, und wenn nichts passt, setzt **Clear filters** beides zurück. Dann arbeite die Zeilen ab:
 
 - **Edit** öffnet denselben integritätsgesicherten Editor wie die Seite Translations. Eine akzeptierte Bearbeitung entfernt die Zeile aus der Warteschlange.
-- **Approve** verwirft die Zeile als "angesehen, passt so".
-- **Reject** verwirft die Zeile ebenfalls; kombiniere es mit einer Bearbeitung oder einer Neuübersetzung, wenn sich der Wert wirklich ändern muss.
+- **Approve** hält fest, dass du dir den Wert angesehen hast und ihn so übernimmst.
+- **Reject** entfernt den Wert, damit er ersetzt wird; vorher fragt Studio nach einer Bestätigung.
 
-Approve und Reject verbergen die Zeile nur im Speicher des offenen Tabs und schreiben nichts auf die Platte: Die Zeile bleibt über Live-Refreshes hinweg verborgen, aber ein Neuladen des Tabs bringt sie zurück. Die dauerhaften Wege, ein Flag loszuwerden, sind den Wert zu korrigieren oder eine Übersetzung neu laufen zu lassen.
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Beide Entscheidungen werden in [`verbatra.provenance.json`](/docs/the-lock-file#review-entscheidungen) gespeichert. Sie überstehen also ein Neuladen und erreichen dein Team, sobald du die Datei committest. Die Queue listet nur Einträge, über die noch niemand entschieden hat: Eine Zeile verschwindet, sobald ihr Wert freigegeben, abgelehnt oder von einer Person neu geschrieben wurde (eine Bearbeitung über die Agent-Tools bleibt gelistet, weil sie noch einen Blick von einer Person braucht). Eine Zeile über der Tabelle bestätigt jede gespeicherte Entscheidung.
+
+Jede Zeile zeigt unter dem Key die aktuelle Übersetzung (fahre darüber für den vollen Text), und jede Entscheidung gilt für genau diesen Text. Hat sich der Wert seit dem Laden der Seite geändert, etwa weil ein Lauf ihn neu geschrieben hat, wird die Entscheidung abgelehnt und nichts gespeichert; sieh dir den aktuellen Wert an und entscheide neu. Eine Freigabe setzt außerdem voraus, dass der Wert zu seinem Quelltext passt: Nach einer Änderung am Quelltext korrigierst du den Wert oder übersetzt ihn neu.
+
+Reject entfernt die Übersetzung aus der Locale-Datei und löscht ihren Eintrag in der [Lock-Datei](/docs/the-lock-file), sodass der Key als fehlend zählt: `verbatra check` meldet ihn, und der nächste Lauf von `verbatra translate` oder **Translate pending changes across all locales** füllt ihn wieder. Bis dahin zeigt deine App für diesen Key ihren Fallback. Mit dem Provider `none` bleibt der Key fehlend, bis jemand einen neuen Wert schreibt. Der abgelehnte Text wird außerdem aus dem Translation Memory auf diesem Rechner entfernt, damit der nächste Lauf ihn nicht gleich wieder einsetzt. Committe die Locale-Datei, die Lock-Datei und die Provenance-Datei zusammen; schlägt ein Reject mittendrin fehl, stellt Studio die Dateien bei einem Fehler wieder her. Ein Format, das keine einzelne Übersetzung entfernen kann, XLIFF oder Flutter ARB, lehnt das Reject ab und lässt die Datei unverändert; bearbeite den Wert stattdessen.
 
 Review-Flags sind Hinweise, getrennt vom harten Integritäts-Gate; was jeder Grund bedeutet, steht in [Übersetzungssicherheit](/docs/translation-safety).
 
