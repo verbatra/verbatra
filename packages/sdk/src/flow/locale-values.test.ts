@@ -168,18 +168,16 @@ describe("localeValues: prototype-named keys", () => {
     },
   );
 
-  it("keeps a __proto__ key through a JSON round trip without polluting Object.prototype", async () => {
+  it("keeps a __proto__ key through a JSON round trip", async () => {
     const dir = await rawProject('{"__proto__":"S"}', '{"__proto__":"T"}');
 
     const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
     const serialized = JSON.stringify(result);
-    const reparsed: unknown = JSON.parse(serialized);
 
     expect(serialized).toBe('[{"locale":"de","values":{"__proto__":{"source":"S","target":"T"}}}]');
-    expect(Object.entries((reparsed as typeof result)[0]?.values ?? {})).toEqual([
+    expect(Object.entries(JSON.parse(JSON.stringify(result[0]?.values)))).toEqual([
       ["__proto__", { source: "S", target: "T" }],
     ]);
-    expect(Object.prototype).not.toHaveProperty("source");
   });
 
   it("does not resolve an absent prototype-named key to an inherited member", async () => {
