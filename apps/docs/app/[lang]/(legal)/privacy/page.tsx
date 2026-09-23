@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CALLOUT_CLASS } from "@/components/mdx";
-import { i18n, toLocale } from "@/lib/i18n";
+import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
 
 const UMAMI_DOCS = "https://umami.is/docs/";
@@ -35,7 +35,7 @@ const SECTION_KEYS = [
   "s12",
 ] as const;
 
-const linkTags = {
+const linkTagsFor = (locale: Locale) => ({
   email: (chunks: ReactNode) => <a href={CONTACT_MAILTO}>{chunks}</a>,
   umami: (chunks: ReactNode) => <a href={UMAMI_DOCS}>{chunks}</a>,
   repo: (chunks: ReactNode) => <a href={GITHUB_REPO}>{chunks}</a>,
@@ -43,11 +43,11 @@ const linkTags = {
   npm: (chunks: ReactNode) => <a href={NPM_SCOPE}>{chunks}</a>,
   npmprivacy: (chunks: ReactNode) => <a href={NPM_PRIVACY}>{chunks}</a>,
   contabo: (chunks: ReactNode) => <a href={CONTABO_URL}>{chunks}</a>,
-  contact: (chunks: ReactNode) => <a href="/contact">{chunks}</a>,
-  imprint: (chunks: ReactNode) => <a href="/imprint">{chunks}</a>,
+  contact: (chunks: ReactNode) => <a href={localizedPath(locale, "/contact")}>{chunks}</a>,
+  imprint: (chunks: ReactNode) => <a href={localizedPath(locale, "/imprint")}>{chunks}</a>,
   lfdi: (chunks: ReactNode) => <a href={SUPERVISORY_AUTHORITY_URL}>{chunks}</a>,
   strong: (chunks: ReactNode) => <strong>{chunks}</strong>,
-};
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -68,6 +68,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
   const isAuthoritative = locale === i18n.defaultLanguage;
+  const linkTags = linkTagsFor(locale);
 
   const lastUpdated = (
     <p>

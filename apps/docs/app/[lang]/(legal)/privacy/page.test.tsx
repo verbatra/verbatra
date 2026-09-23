@@ -35,6 +35,32 @@ function sectionText(doc: Document, heading: RegExp): string {
   return h2?.closest("section")?.textContent?.replace(/\s+/g, " ") ?? "";
 }
 
+function expectedHref(locale: Locale, path: string): string {
+  return locale === "en" ? path : `/${locale}${path}`;
+}
+
+function sectionNumbered(doc: Document, n: number): Element | null {
+  return (
+    Array.from(doc.querySelectorAll("h2"))
+      .find((node) => node.textContent?.startsWith(`${n}. `))
+      ?.closest("section") ?? null
+  );
+}
+
+const NO_DPO_PHRASE: Record<Locale, RegExp> = {
+  en: /No data protection officer has been appointed/,
+  de: /Ein Datenschutzbeauftragter ist nicht benannt/,
+  es: /No se ha designado un delegado de protección de datos/,
+  fr: /Aucun délégué à la protection des données n'a été désigné/,
+};
+
+const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
+  en: /\bsection 9\b/,
+  de: /\bAbschnitt 9\b/,
+  es: /\bsección 9\b/,
+  fr: /\bsection 9\b/,
+};
+
 function imprintFacts(): string[] {
   const source = readFileSync(IMPRINT_PAGE, "utf8")
     .replaceAll("&ouml;", "ö")
@@ -61,12 +87,15 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     for (const fact of imprintFacts()) {
       expect(controller).toContain(fact);
     }
-    expect(doc.querySelector('section a[href="/imprint"]')).not.toBeNull();
+    expect(
+      sectionNumbered(doc, 1)?.querySelector(`a[href="${expectedHref(locale, "/imprint")}"]`),
+    ).not.toBeNull();
   });
 
   it("states that no data protection officer is appointed", async () => {
     const controller = sectionText(await renderPrivacy(locale), /^1\. /);
 
+    expect(controller).toMatch(NO_DPO_PHRASE[locale]);
     expect(controller).toMatch(/Art\. 37|art\. 37/);
     expect(controller).toMatch(/§ 38 (de la )?BDSG/);
   });
@@ -80,7 +109,9 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     );
     expect(rights).toContain("Heilbronner Straße 35, 70191 Stuttgart");
     expect(
-      doc.querySelector('a[href="https://www.baden-wuerttemberg.datenschutz.de"]'),
+      sectionNumbered(doc, 8)?.querySelector(
+        'a[href="https://www.baden-wuerttemberg.datenschutz.de"]',
+      ),
     ).not.toBeNull();
     expect(rights).toMatch(/Art\. 77|art\. 77/);
   });
@@ -101,10 +132,7 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
   it("keeps the section numbers the right to object refers to pointing at the right sections", async () => {
     const doc = await renderPrivacy(locale);
     const objection = sectionText(doc, /^9\. /);
-    const byNumber = (n: number) =>
-      Array.from(doc.querySelectorAll("h2"))
-        .find((node) => node.textContent?.startsWith(`${n}. `))
-        ?.closest("section");
+    const byNumber = (n: number) => sectionNumbered(doc, n);
 
     expect(objection).toMatch(/3, 4,? (and|und|y|et) 12/);
     for (const n of [3, 4, 12]) {
@@ -112,7 +140,9 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
         /6(\(1\)\(f\)| Abs\. 1 lit\. f|\.1\.f\)|, § 1, point f\))/,
       );
     }
-    expect(byNumber(12)?.querySelector('a[href="/contact"]')).not.toBeNull();
-    expect(sectionText(doc, /^8\. /)).toMatch(/9/);
+    expect(
+      byNumber(12)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
+    ).not.toBeNull();
+    expect(sectionText(doc, /^8\. /)).toMatch(OBJECTION_CROSS_REFERENCE[locale]);
   });
 });
