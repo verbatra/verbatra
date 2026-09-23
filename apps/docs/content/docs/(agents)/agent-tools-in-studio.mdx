@@ -73,6 +73,10 @@ Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values
 
 An edit through `verbatra_translation_editEntry` is recorded with the origin `agent` in `verbatra.provenance.json`, while an edit from the dashboard's own dialog is recorded as `human`. The tool sets this itself; an agent cannot choose it.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_retranslateEntry` refuses a key whose value a person wrote, imported, or changed outside verbatra with `KEY_PROTECTED`, and a pinned key with `KEY_PINNED`; the agent cannot override either. `verbatra_translation_editEntry` refuses a pinned key. In the dashboard, a person who retranslates such a key is asked first and can choose **Replace anyway**. See [Protecting human translations](/docs/protecting-human-translations).
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` adds, replaces, or removes one glossary term, and returns the glossary as it now stands. It works only on a file-backed glossary: a glossary written inline in the config, or no glossary at all, is refused rather than converted, and no parameter names a file, since the target comes from the loaded config alone. Like editing, it spends nothing and is registered without `--allow-spend`. It is rate limited at 20 writes per rolling minute.
