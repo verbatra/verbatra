@@ -53,7 +53,7 @@ Usa `check` cuando el código de salida sea todo lo que necesitas. Usa `diff` cu
 
 <AvailableFrom version="0.12.0" />
 
-La deriva no es lo único que merece una puerta. `verbatra check --qa` también ejecuta la puerta de integridad y las señales de revisión sobre cada traducción confirmada, así que un valor editado a mano con un marcador roto, marcado roto o ramas de plural ICU que no encajan con su idioma hace fallar el job con la salida `1`. Añade `--strict` para fallar también con advertencias de revisión como `EQUALS_SOURCE`. Tampoco llama a ningún proveedor, así que no necesita clave. Consulta [el control de calidad](/docs/cli/check#control-de-calidad).
+La deriva no es lo único que merece una puerta. `verbatra check --qa` también ejecuta la puerta de integridad y las señales de revisión sobre cada traducción confirmada, así que un valor editado a mano con un marcador roto, marcado roto o ramas de plural ICU que no encajan con su idioma hace fallar el job con la salida `1`. Añade `--strict` para fallar también con advertencias de revisión como `EQUALS_SOURCE`. Tampoco llama a ningún proveedor, así que no necesita clave. Consulta [el control de calidad](/docs/cli/check#control-de-calidad). La [GitHub Action](/docs/github-action#comprobar-la-calidad-de-la-traducción) ejecuta la misma puerta con `command: check` y `qa: "true"`.
 
 Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` sin ningún locale válido es un error de uso y sale con `2`, así que una errata nunca puede poner la puerta en verde. `translate`, `watch`, `export` y `tmx` aceptan el mismo flag, que es como traduces un locale cada vez contra un proveedor con límite de tasa.
 
