@@ -6,6 +6,7 @@
     "github-action",
     "manual-translation",
     "human-only-workflow",
+    "protecting-human-translations",
     "review-in-studio",
     "custom-format-adapters"
   ]

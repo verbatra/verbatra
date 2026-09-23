@@ -1,0 +1,112 @@
+---
+title: Proteger traducciones humanas
+description: Conserva las cadenas que escribió un traductor cuando cambia el texto de origen, recibe una sugerencia automática en lugar de una sobrescritura y fija claves que ninguna máquina puede tocar.
+---
+<AvailableFrom version="0.12.0" />
+
+El trabajo de un traductor está al día hasta que cambia el texto de origen. Entonces la clave queda
+obsoleta, y una ejecución automática normal traduciría encima. En textos legales, de marketing o de
+marca por los que alguien cobró, eso destruye el trabajo sin avisar. verbatra lo conserva.
+
+## Qué está protegido
+
+verbatra sabe quién escribió cada valor gracias a `verbatra.provenance.json` (consulta
+[El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor)). Cuando cambia
+el texto de origen de una clave, `translate` y `watch` dejan su valor en paz si ese valor vino de
+una persona:
+
+| Origen | De dónde vino el valor |
+| --- | --- |
+| `human` | la edición de una persona, por ejemplo en el diálogo de edición de Studio |
+| `import` | una fila importada de una entrega de traducción con `verbatra import` |
+| `external` | un cambio hecho fuera de verbatra, como un traductor que modifica el archivo de locale en un pull request |
+
+La salida automática (`machine`, `memory`, `fuzzy`) y las ediciones de agentes (`agent`) se
+retraducen como siempre. También un valor sin registro (`unrecorded`): un proyecto que ya usaba
+verbatra antes de la procedencia sigue traduciendo como antes, y sus valores quedan protegidos en
+cuanto una persona los edita o los importa. Un valor que un revisor rechazó nunca está protegido,
+porque rechazado significa «reemplázalo».
+
+## Qué hace una ejecución con una clave protegida
+
+La clave no se envía al proveedor. Su valor se queda en el archivo de locale y su línea base en el
+archivo de bloqueo no avanza, así que sigue obsoleta y visible:
+
+- `verbatra translate --dry-run` la lista como protegida, no como pendiente de traducir.
+- `verbatra translate` la lista como protegida, traduce todo lo demás y muestra un aviso en stderr.
+  La ejecución termina igualmente con `0`.
+- `verbatra check` la cuenta como obsoleta (con la parte protegida entre paréntesis) y termina con
+  `1`, así una puerta de CI muestra que una persona tiene trabajo pendiente.
+- `verbatra diff` la lista bajo `protected`, y `diff --json` incluye un array `protected`.
+- `verbatra export` se la pasa al traductor con el estado `changed`, como cualquier clave obsoleta.
+
+```bash
+verbatra translate --dry-run
+#   de: 1 translated, 12 unchanged, 1 protected
+#     protected:       checkout.terms (import)
+```
+
+## Resolver una clave protegida
+
+Una clave protegida deja de estar obsoleta en cuanto una persona decide qué debe decir:
+
+- Edítala en Studio, o conserva el texto y guárdalo sin cambios. En ambos casos el valor queda
+  registrado como `human` frente al nuevo texto de origen.
+- Expórtala, deja que el traductor la actualice e importa la entrega.
+- Retradúcela a propósito: `verbatra translate --include-human` para una ejecución, o
+  `retranslateEntry` con `includeHuman: true` desde el SDK.
+
+## Sugerencias en lugar de sobrescrituras
+
+Con `humanEdits: "suggest"` en la configuración, una clave protegida se envía igualmente al
+proveedor, pero la respuesta es solo una sugerencia. Aparece junto a la clave en el resumen de la
+ejecución y se guarda en la memoria de traducción; nunca se escribe en el archivo de locale. La
+siguiente ejecución sirve la misma sugerencia desde la memoria sin volver a pagar.
+`translate --estimate` cuenta estas claves, porque se envían. En un proyecto solo humano
+(`provider: { id: "none" }`) no hay proveedor al que preguntar, así que `suggest` se comporta como
+`protect`.
+
+```ts
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+Para volver a retraducirlo todo, pon `humanEdits: "overwrite"`, que es como se comportaba verbatra
+antes de que existiera la protección.
+
+## Fijar claves
+
+Algunas claves nunca se deben tocar automáticamente, sea cual sea el ajuste: una marca, un aviso
+legal. Enuméralas en `pinnedKeys`, donde `*` coincide con cualquier secuencia de caracteres:
+
+```ts
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+Una clave fijada nunca se traduce, sugiere ni retraduce, ni siquiera cuando falta y ni siquiera con
+`--include-human`. Aparece como protegida con el motivo `pinned` hasta que una persona la rellena.
+Un agente de IA no puede editarla desde el servidor MCP ni desde las herramientas de agente de
+Studio; una persona sí.
+
+## Agentes
+
+La herramienta MCP `translation.retranslateEntry` rechaza un valor protegido con `KEY_PROTECTED` y
+una clave fijada con `KEY_PINNED`, y no ofrece forma de forzarlo: reemplazar el trabajo de una
+persona es una decisión que toma una persona. `translation.translatePending` deja en paz las claves
+protegidas y las lista. Un agente todavía puede escribir un valor con `translation.editEntry` si la
+clave no está fijada; ese valor se registra como `agent`, así que nunca pasa por trabajo de una
+persona.
+
+## Casos especiales
+
+- **Un archivo de procedencia de un verbatra más nuevo.** El origen de cada valor no se puede leer,
+  así que toda clave obsoleta con valor queda protegida hasta que actualices.
+- **Un archivo de procedencia dañado.** Un dry run falla con `PROVENANCE_FILE_INVALID`, igual que
+  una ejecución real. `check` y `diff` siguen funcionando y omiten sus campos `protected`.
+- **Proyectos solo humanos.** Las claves protegidas cuentan para el código de salida `3`, como las
+  claves que la memoria de traducción no pudo rellenar: ambas necesitan a una persona.

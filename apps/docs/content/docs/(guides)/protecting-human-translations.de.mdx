@@ -1,0 +1,114 @@
+---
+title: Menschliche Übersetzungen schützen
+description: Behalte die Strings, die ein Übersetzer geschrieben hat, wenn sich der Quelltext ändert, hol dir einen maschinellen Vorschlag statt eines Überschreibens und pinne Keys, die keine Maschine anfassen darf.
+---
+<AvailableFrom version="0.12.0" />
+
+Die Arbeit eines Übersetzers ist aktuell, bis sich der Quelltext ändert. Dann ist der Key veraltet,
+und ein normaler maschineller Lauf würde darüber übersetzen. Bei Rechts-, Marketing- oder
+Markentexten, für die jemand bezahlt wurde, zerstört das die Arbeit stillschweigend. verbatra
+behält sie stattdessen.
+
+## Was geschützt ist
+
+verbatra weiß aus `verbatra.provenance.json`, wer welchen Wert geschrieben hat (siehe
+[Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)). Wenn sich der
+Quelltext eines Keys ändert, lassen `translate` und `watch` seinen Wert in Ruhe, wenn er von einem
+Menschen stammt:
+
+| Herkunft | Woher der Wert kam |
+| --- | --- |
+| `human` | die Bearbeitung durch einen Menschen, zum Beispiel im Bearbeiten-Dialog von Studio |
+| `import` | eine Zeile, die mit `verbatra import` aus einem Übersetzer-Handoff importiert wurde |
+| `external` | eine Änderung außerhalb von verbatra, etwa ein Übersetzer, der die Locale-Datei in einem Pull Request ändert |
+
+Maschinelle Ergebnisse (`machine`, `memory`, `fuzzy`) und Bearbeitungen durch Agenten (`agent`)
+werden wie gewohnt neu übersetzt. Ebenso ein Wert ohne Eintrag (`unrecorded`): Ein Projekt, das
+verbatra schon vor der Provenienz benutzt hat, übersetzt weiter wie bisher, und seine Werte werden
+geschützt, sobald ein Mensch sie bearbeitet oder importiert. Ein Wert, den ein Reviewer abgelehnt
+hat, ist nie geschützt, denn abgelehnt heißt „ersetzen“.
+
+## Was ein Lauf mit einem geschützten Key macht
+
+Der Key geht nicht an den Provider. Sein Wert bleibt in der Locale-Datei, und seine Baseline in der
+Lock-Datei wird nicht weitergesetzt, also bleibt er veraltet und sichtbar:
+
+- `verbatra translate --dry-run` listet ihn als geschützt, nicht als zu übersetzen.
+- `verbatra translate` listet ihn als geschützt, übersetzt alles andere und gibt einen Hinweis auf
+  stderr aus. Der Lauf endet trotzdem mit `0`.
+- `verbatra check` zählt ihn als veraltet (mit dem geschützten Anteil in Klammern) und endet mit
+  `1`, sodass ein CI-Gate zeigt, dass ein Mensch etwas zu tun hat.
+- `verbatra diff` listet ihn unter `protected`, und `diff --json` enthält ein Array `protected`.
+- `verbatra export` gibt ihn wie jeden veralteten Key mit dem Status `changed` an den Übersetzer.
+
+```bash
+verbatra translate --dry-run
+#   de: 1 translated, 12 unchanged, 1 protected
+#     protected:       checkout.terms (import)
+```
+
+## Einen geschützten Key auflösen
+
+Ein geschützter Key ist nicht mehr veraltet, sobald ein Mensch entscheidet, was er sagen soll:
+
+- Bearbeite ihn in Studio, oder behalte den Text und speichere ihn unverändert. In beiden Fällen
+  wird der Wert gegen den neuen Quelltext als `human` festgehalten.
+- Exportiere ihn, lass den Übersetzer ihn aktualisieren und importiere den Handoff.
+- Übersetze ihn bewusst neu: `verbatra translate --include-human` für einen Lauf, oder
+  `retranslateEntry` mit `includeHuman: true` aus dem SDK.
+
+## Vorschläge statt Überschreiben
+
+Mit `humanEdits: "suggest"` in der Konfiguration geht ein geschützter Key trotzdem an den Provider,
+aber die Antwort ist nur ein Vorschlag. Sie erscheint in der Laufübersicht neben dem Key und landet
+im Translation Memory; in die Locale-Datei wird sie nie geschrieben. Der nächste Lauf liefert
+denselben Vorschlag aus dem Memory, ohne erneut zu zahlen. `translate --estimate` zählt diese Keys
+mit, weil sie gesendet werden. In einem rein menschlichen Projekt (`provider: { id: "none" }`) gibt
+es keinen Provider zum Fragen, dort verhält sich `suggest` wie `protect`.
+
+```ts
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+Um wieder alles neu zu übersetzen, setz `humanEdits: "overwrite"`. So hat verbatra sich verhalten,
+bevor es den Schutz gab.
+
+## Keys pinnen
+
+Manche Keys dürfen überhaupt nie maschinell angefasst werden, egal bei welcher Einstellung: eine
+Marke, ein rechtlicher Hinweis. Liste sie in `pinnedKeys`, wobei `*` auf eine beliebige
+Zeichenfolge passt:
+
+```ts
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+Ein gepinnter Key wird nie übersetzt, vorgeschlagen oder neu übersetzt, auch nicht, wenn er fehlt,
+und auch nicht mit `--include-human`. Er wird mit dem Grund `pinned` als geschützt gelistet, bis ein
+Mensch ihn füllt. Ein KI-Agent kann ihn weder über den MCP-Server noch über die Agenten-Tools von
+Studio bearbeiten; ein Mensch schon.
+
+## Agenten
+
+Das MCP-Tool `translation.retranslateEntry` lehnt einen geschützten Wert mit `KEY_PROTECTED` und
+einen gepinnten Key mit `KEY_PINNED` ab und bietet keine Übersteuerung: Die Arbeit eines Menschen zu
+ersetzen, ist eine Entscheidung für einen Menschen. `translation.translatePending` lässt geschützte
+Keys in Ruhe und listet sie. Ein Agent kann mit `translation.editEntry` weiterhin einen Wert
+schreiben, solange der Key nicht gepinnt ist; dieser Wert wird als `agent` festgehalten und geht
+also nie als Arbeit eines Menschen durch.
+
+## Sonderfälle
+
+- **Eine Provenienz-Datei von einem neueren verbatra.** Die Herkunft der Werte lässt sich nicht
+  lesen, also ist jeder veraltete Key mit Wert geschützt, bis du aktualisierst.
+- **Eine beschädigte Provenienz-Datei.** Ein Dry Run schlägt mit `PROVENANCE_FILE_INVALID` fehl,
+  genau wie ein echter Lauf. `check` und `diff` funktionieren weiter und lassen ihre Felder
+  `protected` weg.
+- **Rein menschliche Projekte.** Geschützte Keys zählen zum Exit-Code `3`, wie Keys, die das
+  Translation Memory nicht füllen konnte: Beide brauchen einen Menschen.

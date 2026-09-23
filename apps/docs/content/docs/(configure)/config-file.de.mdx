@@ -51,6 +51,8 @@ Wenn du die Konfiguration in TypeScript schreibst, bietet dein Editor für `opti
 | `prune` | Boolean | `false` | Entfernt verwaiste Keys aus Zieldateien und der Lock-Datei. |
 | `generatePlurals` | Boolean | `false` | Synthetisiert die CLDR-Pluralformen, die eine Zielsprache braucht. |
 | `fuzzyCache` | Objekt | aus | Verwendet eine Übersetzung für einen nur leicht geänderten Quellstring wieder. |
+| `humanEdits` | `"protect"`, `"suggest"` oder `"overwrite"` | `"protect"` | Was ein Lauf mit einem veralteten Key macht, dessen Wert ein Mensch geschrieben hat. |
+| `pinnedKeys` | String-Array | keiner | Key-Muster, die kein maschineller Schreibvorgang je anfasst. |
 | `maxBatchSize` | positive Ganzzahl | `50` | Die maximale Zahl von Einträgen in einer einzelnen Provider-Anfrage. |
 | `maxLength` | Objekt | keines | Maximale Längen pro Key für übersetzte Werte, gezählt in Graphemclustern. |
 | `maxTokens` | positive Ganzzahl | keines | Ein Token-Budget für den ganzen Lauf über alle Provider-Aufrufe. |
@@ -133,6 +135,18 @@ Standardmäßig aus. Wenn true, synthetisiert verbatra die CLDR-Pluralformen, di
 <AvailableFrom version="0.11.0" />
 
 Aus, solange du es nicht setzt. `fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelltext sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, statt zum Provider zu gehen, sofern beide mindestens `threshold` ähnlich sind. `threshold` ist ein Ähnlichkeitsverhältnis von `0.5` bis `1` und steht standardmäßig auf `0.9`. Eine Wiederverwendung wird getrennt von einem exakten Cache-Treffer ausgewiesen, wird immer mit dem Grund `FUZZY_CACHE_REUSE` zum Review markiert, durchläuft dieselben Integritätsprüfungen wie jeder andere Kandidatenwert und wird nie in den Cache zurückgeschrieben. Ein Eintrag, dessen Zahlzeichen vom aktuellen Quelltext abweichen, wird abgelehnt, ganz gleich wie er bewertet wird. Ein wiederverwendeter Key wird geschrieben, aber nicht gelockt, bleibt also geändert und wird bei jedem späteren Lauf erneut angeboten, bis eine echte Übersetzung landet. `threshold` steuert, wie viel du beim Provider sparst, nicht wie sicher die Wiederverwendung ist; warum das so ist, steht unter [Der Cache](/docs/the-cache), und schalte das nicht ein, wenn niemand die Review-Warteschlange abarbeitet. Nur Konfiguration: Es gibt kein CLI-Flag, `--no-cache` umgeht es aber zusammen mit dem restlichen Cache.
+
+### humanEdits und pinnedKeys
+
+<AvailableFrom version="0.12.0" />
+
+`humanEdits` legt fest, was `translate` und `watch` mit einem veralteten Key machen, dessen aktuellen Wert ein Mensch geschrieben hat: über den Bearbeiten-Dialog in Studio (Herkunft `human`), über einen importierten Übersetzer-Handoff (`import`) oder indem jemand die Locale-Datei außerhalb von verbatra bearbeitet hat (`external`). Die Herkunft kommt aus `verbatra.provenance.json`, siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
+- `"protect"`, der Default, behält den Wert. Der Key geht nicht an den Provider, bleibt in `verbatra check` veraltet und wird als geschützt gelistet, bis ein Mensch ihn bearbeitet, importiert oder bewusst neu übersetzt.
+- `"suggest"` behält den Wert ebenfalls, fragt aber trotzdem den Provider. Die Antwort erscheint als Vorschlag und landet im Translation Memory; in die Locale-Datei wird sie nie geschrieben.
+- `"overwrite"` übersetzt den Key neu wie jeden anderen veralteten Key, so wie verbatra sich vor dieser Einstellung verhalten hat. `verbatra translate --include-human` macht dasselbe für einen einzelnen Lauf.
+
+`pinnedKeys` listet Key-Muster, bei denen `*` auf eine beliebige Zeichenfolge passt, für Keys, die in keiner Ziel-Locale je maschinell angefasst werden dürfen, etwa `["legal.*", "brand.name"]`. Ein gepinnter Key wird nie übersetzt, vorgeschlagen oder neu übersetzt, egal was `humanEdits` oder `--include-human` sagt, und ein KI-Agent kann ihn nicht bearbeiten. Ein Mensch kann es weiterhin. Ein Wert ohne Provenienz-Eintrag (`unrecorded`) ist nicht geschützt, damit ein Projekt, das verbatra schon vor der Provenienz benutzt hat, weiter übersetzt. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ### maxBatchSize
 

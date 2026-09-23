@@ -1,0 +1,115 @@
+---
+title: Protéger les traductions humaines
+description: Garde les chaînes écrites par un traducteur quand le texte source change, reçois une suggestion automatique au lieu d'un écrasement et épingle les clés qu'aucune machine ne doit toucher.
+---
+<AvailableFrom version="0.12.0" />
+
+Le travail d'un traducteur est à jour jusqu'à ce que le texte source change. La clé devient alors
+obsolète, et une exécution automatique ordinaire traduirait par-dessus. Pour des textes juridiques,
+marketing ou de marque que quelqu'un a été payé pour écrire, cela détruit le travail sans bruit.
+verbatra le garde.
+
+## Ce qui est protégé
+
+verbatra sait qui a écrit chaque valeur grâce à `verbatra.provenance.json` (voir
+[Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur)). Quand le texte
+source d'une clé change, `translate` et `watch` laissent sa valeur tranquille si elle vient d'une
+personne :
+
+| Origine | D'où vient la valeur |
+| --- | --- |
+| `human` | la modification d'une personne, par exemple dans la boîte d'édition de Studio |
+| `import` | une ligne importée d'un livrable de traduction avec `verbatra import` |
+| `external` | une modification faite hors de verbatra, comme un traducteur qui change le fichier de locale dans une pull request |
+
+La sortie automatique (`machine`, `memory`, `fuzzy`) et les modifications d'agents (`agent`) sont
+retraduites comme d'habitude. De même pour une valeur sans enregistrement (`unrecorded`) : un projet
+qui utilisait verbatra avant la provenance continue de traduire comme avant, et ses valeurs
+deviennent protégées dès qu'une personne les modifie ou les importe. Une valeur qu'un relecteur a
+rejetée n'est jamais protégée, car rejetée veut dire « à remplacer ».
+
+## Ce que fait une exécution d'une clé protégée
+
+La clé n'est pas envoyée au fournisseur. Sa valeur reste dans le fichier de locale, et sa référence
+dans le fichier de verrouillage n'avance pas, donc elle reste obsolète et visible :
+
+- `verbatra translate --dry-run` la liste comme protégée, pas comme à traduire.
+- `verbatra translate` la liste comme protégée, traduit tout le reste et affiche un avertissement
+  sur stderr. L'exécution se termine quand même avec `0`.
+- `verbatra check` la compte comme obsolète (avec la part protégée entre parenthèses) et se termine
+  avec `1`, pour qu'une porte de CI montre qu'une personne a du travail.
+- `verbatra diff` la liste sous `protected`, et `diff --json` contient un tableau `protected`.
+- `verbatra export` la transmet au traducteur avec le statut `changed`, comme toute clé obsolète.
+
+```bash
+verbatra translate --dry-run
+#   de: 1 translated, 12 unchanged, 1 protected
+#     protected:       checkout.terms (import)
+```
+
+## Résoudre une clé protégée
+
+Une clé protégée n'est plus obsolète dès qu'une personne décide de ce qu'elle doit dire :
+
+- Modifie-la dans Studio, ou garde le texte et enregistre-le tel quel. Dans les deux cas, la valeur
+  est enregistrée comme `human` pour le nouveau texte source.
+- Exporte-la, laisse le traducteur la mettre à jour et importe le livrable.
+- Retraduis-la volontairement : `verbatra translate --include-human` pour une exécution, ou
+  `retranslateEntry` avec `includeHuman: true` depuis le SDK.
+
+## Des suggestions plutôt que des écrasements
+
+Avec `humanEdits: "suggest"` dans la configuration, une clé protégée est quand même envoyée au
+fournisseur, mais la réponse n'est qu'une suggestion. Elle s'affiche à côté de la clé dans le
+résumé de l'exécution et est gardée dans la mémoire de traduction ; elle n'est jamais écrite dans le
+fichier de locale. L'exécution suivante sert la même suggestion depuis la mémoire sans payer à
+nouveau. `translate --estimate` compte ces clés, puisqu'elles sont envoyées. Dans un projet
+uniquement humain (`provider: { id: "none" }`), il n'y a pas de fournisseur à interroger, donc
+`suggest` se comporte comme `protect`.
+
+```ts
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+Pour tout retraduire à nouveau, mets `humanEdits: "overwrite"`, c'est le comportement de verbatra
+avant l'existence de la protection.
+
+## Épingler des clés
+
+Certaines clés ne doivent jamais être touchées par une machine, quel que soit le réglage : une
+marque, une mention légale. Liste-les dans `pinnedKeys`, où `*` correspond à n'importe quelle suite
+de caractères :
+
+```ts
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+Une clé épinglée n'est jamais traduite, suggérée ni retraduite, même quand elle manque et même avec
+`--include-human`. Elle apparaît comme protégée avec le motif `pinned` jusqu'à ce qu'une personne la
+remplisse. Un agent IA ne peut pas la modifier via le serveur MCP ni via les outils d'agent de
+Studio ; une personne le peut.
+
+## Agents
+
+L'outil MCP `translation.retranslateEntry` refuse une valeur protégée avec `KEY_PROTECTED` et une
+clé épinglée avec `KEY_PINNED`, sans moyen de forcer : remplacer le travail d'une personne est une
+décision qui revient à une personne. `translation.translatePending` laisse les clés protégées
+tranquilles et les liste. Un agent peut toujours écrire une valeur avec `translation.editEntry` si
+la clé n'est pas épinglée ; cette valeur est enregistrée comme `agent`, elle ne passe donc jamais
+pour le travail d'une personne.
+
+## Cas particuliers
+
+- **Un fichier de provenance d'un verbatra plus récent.** L'origine des valeurs ne peut pas être
+  lue, donc toute clé obsolète qui a une valeur est protégée jusqu'à ta mise à jour.
+- **Un fichier de provenance corrompu.** Un dry run échoue avec `PROVENANCE_FILE_INVALID`,
+  exactement comme une vraie exécution. `check` et `diff` continuent de fonctionner et omettent
+  leurs champs `protected`.
+- **Projets uniquement humains.** Les clés protégées comptent pour le code de sortie `3`, comme les
+  clés que la mémoire de traduction n'a pas pu remplir : les deux ont besoin d'une personne.
