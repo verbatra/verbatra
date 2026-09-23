@@ -1,5 +1,11 @@
-import { runStatus } from "@verbatra/sdk";
+import { reviewQueue } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
 
 export const reviewQueueHandler: RpcHandler<"review.queue"> = async (_params, deps) =>
-  runStatus({ cwd: deps.projectRoot });
+  reviewQueue(
+    { config: deps.config.config, cwd: deps.projectRoot },
+    {
+      ...(deps.fs !== undefined ? { fs: deps.fs } : {}),
+      ...(deps.adapterRegistry !== undefined ? { adapterRegistry: deps.adapterRegistry } : {}),
+    },
+  );

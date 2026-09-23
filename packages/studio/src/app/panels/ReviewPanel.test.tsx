@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { KeyValueResult } from "../../shared/rpc/key-value.js";
 import type { LocaleValuesResult } from "../../shared/rpc/locale-values.js";
+import type { ReviewDecisionResult } from "../../shared/rpc/review-decision.js";
 import type { ReviewQueueResult } from "../../shared/rpc/review-queue.js";
 import type { ProjectSnapshotResult } from "../../shared/rpc/snapshot.js";
 import type { RenderResult } from "../test-support.js";
@@ -128,6 +129,35 @@ function rowAction(view: RenderResult, key: string, name: string): HTMLElement {
 async function openEditor(view: RenderResult, key: string): Promise<void> {
   stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
   await clickAsync(rowAction(view, key, "Edit"));
+}
+
+function stubDecisionReady(): void {
+  stubRpc({
+    "review.queue": queueAnswer(QUEUE),
+    "project.snapshot": snapshotAnswer(SNAPSHOT),
+    "locale.values": { ok: true, result: LOCALE_VALUES },
+  });
+}
+
+function without(key: string): ReviewQueueResult {
+  if (!QUEUE.available) {
+    return QUEUE;
+  }
+  return {
+    ...QUEUE,
+    locales: QUEUE.locales.map((locale) => ({
+      ...locale,
+      needsReview: locale.needsReview.filter((entry) => entry.key !== key),
+    })),
+  };
+}
+
+function decided(
+  locale: string,
+  key: string,
+  reviewState: "approved" | "rejected",
+): ReviewDecisionResult {
+  return { locale, key, provenance: { origin: "machine", reviewState } };
 }
 
 describe("ReviewPanel", () => {
@@ -397,37 +427,113 @@ describe("ReviewPanel", () => {
     expect(keyFilter(view).value).toBe("");
   });
 
-  it("hides an approved row for the rest of the session without calling the server", async () => {
-    stubReview();
+  it("disables approve and reject until the row's current translation is known", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": () => new Promise(() => {}),
+    });
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const before = rpcCalls.length;
-    await clickAsync(rowAction(view, "checkout.title", "Approve"));
 
-    expect(rowKeys(view)).toEqual(["checkout.subtitle", "cart.badge"]);
-    expect(rpcCalls).toHaveLength(before);
+    expect((rowAction(view, "cart.badge", "Approve") as HTMLButtonElement).disabled).toBe(true);
+    expect((rowAction(view, "cart.badge", "Reject…") as HTMLButtonElement).disabled).toBe(true);
+    expect((rowAction(view, "cart.badge", "Edit") as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("hides a rejected row for the rest of the session without calling the server", async () => {
-    stubReview();
-
+  it("saves an approval against the value on screen and drops the row once the queue reloads", async () => {
+    stubDecisionReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const before = rpcCalls.length;
-    await clickAsync(rowAction(view, "cart.badge", "Reject"));
+    stubRpc({
+      "review.approve": { ok: true, result: decided("de", "checkout.title", "approved") },
+      "review.queue": queueAnswer(without("checkout.title")),
+    });
 
-    expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle"]);
-    expect(rpcCalls).toHaveLength(before);
-  });
-
-  it("keeps an actioned row hidden across a live-refresh re-fetch", async () => {
-    stubReview();
-
-    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     await clickAsync(rowAction(view, "checkout.title", "Approve"));
-    view.rerender(<ReviewPanel refreshToken={1} />);
     await flush();
 
+    expect(rpcCalls.find((call) => call.method === "review.approve")).toEqual({
+      method: "review.approve",
+      params: { locale: "de", key: "checkout.title", expectedValue: "Kasse" },
+    });
     expect(rowKeys(view)).toEqual(["checkout.subtitle", "cart.badge"]);
+    expect(view.get('[role="status"]').textContent).toBe(
+      "Approved checkout.title (de). The decision is saved in verbatra.provenance.json.",
+    );
+  });
+
+  it("keeps the row and names the reason when the approval is refused", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": rpcError("REVIEW_VALUE_CHANGED", "changed") });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect(rowKeys(view)).toHaveLength(3);
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "Could not approve checkout.title (de): This translation changed since the queue was loaded",
+    );
+    expect((rowAction(view, "checkout.title", "Approve") as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it("asks for confirmation before rejecting, and cancelling calls nothing", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const before = rpcCalls.length;
+
+    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+
+    const dialog = view.get('[role="dialog"]');
+    expect(dialog.getAttribute("aria-label")).toBe("Reject cart.badge in fr");
+    expect(dialog.textContent).toContain("Panier");
+    expect(dialog.textContent).toContain("The translation is removed from the fr locale file.");
+
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls).toHaveLength(before);
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("rejects the value on screen once confirmed, closes the dialog, and reloads the queue", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+    stubRpc({
+      "review.reject": { ok: true, result: decided("fr", "cart.badge", "rejected") },
+      "review.queue": queueAnswer(without("cart.badge")),
+    });
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(rpcCalls.find((call) => call.method === "review.reject")).toEqual({
+      method: "review.reject",
+      params: { locale: "fr", key: "cart.badge", expectedValue: "Panier" },
+    });
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle"]);
+    expect(view.get('[role="status"]').textContent).toBe(
+      "Rejected cart.badge (fr). Its translation was removed and the decision is saved in verbatra.provenance.json.",
+    );
+  });
+
+  it("keeps the reject dialog open with the reason when the rejection fails", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+    stubRpc({ "review.reject": rpcError("REVIEW_REJECT_UNSUPPORTED", "unsupported") });
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(view.get('[role="dialog"]').textContent).toContain(
+      "Failed: This project's file format cannot drop a single translation",
+    );
+    expect(rowKeys(view)).toHaveLength(3);
   });
 
   it("opens the editor for the row that was clicked", async () => {

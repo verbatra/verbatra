@@ -29,6 +29,12 @@ import {
   retranslateEntryParamsSchema,
 } from "./retranslate-entry.js";
 import {
+  REVIEW_APPROVE_METHOD,
+  REVIEW_REJECT_METHOD,
+  type ReviewDecisionResult,
+  reviewDecisionParamsSchema,
+} from "./review-decision.js";
+import {
   REVIEW_QUEUE_METHOD,
   type ReviewQueueResult,
   reviewQueueParamsSchema,
@@ -60,6 +66,8 @@ export const rpcParamsSchemas = {
   [KEY_INTEGRITY_METHOD]: keyIntegrityParamsSchema,
   [RETRANSLATE_ENTRY_METHOD]: retranslateEntryParamsSchema,
   [REVIEW_QUEUE_METHOD]: reviewQueueParamsSchema,
+  [REVIEW_APPROVE_METHOD]: reviewDecisionParamsSchema,
+  [REVIEW_REJECT_METHOD]: reviewDecisionParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
@@ -82,6 +90,8 @@ export interface RpcResultMap {
   readonly [KEY_INTEGRITY_METHOD]: KeyIntegrityResult;
   readonly [RETRANSLATE_ENTRY_METHOD]: RetranslateEntryResult;
   readonly [REVIEW_QUEUE_METHOD]: ReviewQueueResult;
+  readonly [REVIEW_APPROVE_METHOD]: ReviewDecisionResult;
+  readonly [REVIEW_REJECT_METHOD]: ReviewDecisionResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;

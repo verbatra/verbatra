@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { RpcCallResult, RpcClient } from "../client/rpc-client.js";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { agentEditEntryParamsSchema } from "../shared/rpc/edit-entry.js";
+import { HUMAN_ONLY_METHOD_NAMES } from "../shared/rpc/review-decision.js";
 import type { ProjectSnapshotResult } from "../shared/rpc/snapshot.js";
 import { type ModelContext, registerAgentTools, type WebMcpTool } from "./register-tools.js";
 import type { AgentToolsRegistration } from "./registration-report.js";
@@ -11,6 +12,10 @@ interface RecordedCall {
   readonly method: string;
   readonly params: unknown;
 }
+
+const HUMAN_ONLY: ReadonlySet<string> = new Set(HUMAN_ONLY_METHOD_NAMES);
+
+const AGENT_METHOD_NAMES = RPC_METHOD_NAMES.filter((method) => !HUMAN_ONLY.has(method));
 
 const READ_TOOLS = [
   "project.snapshot",
@@ -423,9 +428,24 @@ function schemaParamNames(method: RpcMethodName): Set<string> {
 async function describedTools(): Promise<ReadonlyMap<RpcMethodName, string>> {
   const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
   return new Map(
-    RPC_METHOD_NAMES.map((method) => [method, toolByName(tools, expectedName(method)).description]),
+    AGENT_METHOD_NAMES.map((method) => [
+      method,
+      toolByName(tools, expectedName(method)).description,
+    ]),
   );
 }
+
+describe("registerAgentTools: review decisions stay with a person", () => {
+  it("never registers approve or reject, even with every capability granted", async () => {
+    const { tools, registration } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const names = tools.map((tool) => tool.name);
+
+    expect(names).not.toContain("verbatra_review_approve");
+    expect(names).not.toContain("verbatra_review_reject");
+    expect(names).toHaveLength(RPC_METHOD_NAMES.length - HUMAN_ONLY_METHOD_NAMES.length);
+    expect(registration.attempted).toBe(names.length);
+  });
+});
 
 describe("registerAgentTools tool descriptions", () => {
   it("gives every tool at least three whole sentences", async () => {
