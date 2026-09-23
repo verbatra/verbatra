@@ -8,8 +8,6 @@ const linkTags = {
   link: (chunks: ReactNode) => <a href="/contact">{chunks}</a>,
 };
 
-const ODR = "https://ec.europa.eu/consumers/odr/";
-
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
@@ -102,12 +100,10 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         Inhalte umgehend entfernen.
       </p>
 
-      <h2>EU-Streitschlichtung</h2>
+      <h2>Verbraucherstreitbeilegung</h2>
       <p>
-        Die Europ&auml;ische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS)
-        bereit: <a href={ODR}>https://ec.europa.eu/consumers/odr/</a>. Unsere E-Mail-Adresse finden
-        Sie oben im Impressum. Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren
-        vor einer Verbraucherschlichtungsstelle teilzunehmen.
+        Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer
+        Verbraucherschlichtungsstelle teilzunehmen.
       </p>
     </main>
   );

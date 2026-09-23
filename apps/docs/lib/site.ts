@@ -9,7 +9,7 @@ export const STUDIO_VERSION = versionData.studioVersion;
 
 export const MCP_VERSION = versionData.mcpVersion;
 
-export const LEGAL_LAST_UPDATED = "2026-09-01";
+export const LEGAL_LAST_UPDATED = "2026-09-23";
 
 export function localeAlternates(locale: Locale, path: string) {
   const languages: Record<string, string> = {};
