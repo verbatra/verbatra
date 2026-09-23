@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ValidatedRequestData } from "../provider.js";
 import { entry } from "../test-support.js";
-import { buildDataPayload, dataPayloadCharacters, resultPayloadCharacters } from "./payload.js";
+import {
+  buildDataPayload,
+  type DataPayloadInput,
+  dataPayloadCharacters,
+  resultPayloadCharacters,
+} from "./payload.js";
 
-function data(overrides: Partial<ValidatedRequestData> = {}): ValidatedRequestData {
+function data(overrides: Partial<DataPayloadInput> = {}): DataPayloadInput {
   return {
     sourceLocale: "en",
     targetLocale: "de",
@@ -76,8 +80,11 @@ describe("dataPayloadCharacters", () => {
 
   it("counts the exact bytes of the wire payload, written out independently", () => {
     expect(dataPayloadCharacters(data())).toBe(
-      '{"sourceLocale":"en","targetLocale":"de","items":[{"key":"greeting","value":"Hello"}]}'
-        .length,
+      (
+        '{"sourceLocale":"en","targetLocale":"de",' +
+        '"sourceLanguage":{"name":"English"},"targetLanguage":{"name":"German"},' +
+        '"items":[{"key":"greeting","value":"Hello"}]}'
+      ).length,
     );
   });
 
@@ -173,8 +180,67 @@ describe("buildDataPayload: optional plural categories", () => {
     expect(Object.keys(payload)).toEqual([
       "sourceLocale",
       "targetLocale",
+      "sourceLanguage",
+      "targetLanguage",
       "pluralCategories",
       "items",
     ]);
+  });
+});
+
+describe("buildDataPayload: language names as data", () => {
+  it.each([
+    ["en", { name: "English" }],
+    ["sr-Latn", { name: "Serbian (Latin)", script: "Latin" }],
+    ["sr-Cyrl", { name: "Serbian (Cyrillic)", script: "Cyrillic" }],
+    [
+      "zh-Hant-TW",
+      { name: "Chinese (Traditional, Taiwan)", script: "Traditional", region: "Taiwan" },
+    ],
+    [
+      "zh-Hant-HK",
+      {
+        name: "Chinese (Traditional, Hong Kong SAR China)",
+        script: "Traditional",
+        region: "Hong Kong SAR China",
+      },
+    ],
+    ["pt-BR", { name: "Portuguese (Brazil)", region: "Brazil" }],
+    ["pt-PT", { name: "Portuguese (Portugal)", region: "Portugal" }],
+    ["es-419", { name: "Spanish (Latin America)", region: "Latin America" }],
+    ["ckb", { name: "Central Kurdish" }],
+    ["fil", { name: "Filipino" }],
+    ["yue", { name: "Cantonese" }],
+  ])("sends %s with its target language names", (targetLocale, targetLanguage) => {
+    expect(buildDataPayload(data({ targetLocale }))).toEqual({
+      sourceLocale: "en",
+      targetLocale,
+      sourceLanguage: { name: "English" },
+      targetLanguage,
+      items: [{ key: "greeting", value: "Hello" }],
+    });
+  });
+
+  it.each(["qaa", "x-private"])(
+    "omits the names of %s, which has no known language, and keeps its code",
+    (targetLocale) => {
+      const payload = buildDataPayload(data({ targetLocale }));
+      expect(payload.targetLocale).toBe(targetLocale);
+      expect(payload).not.toHaveProperty("targetLanguage");
+    },
+  );
+
+  it("names the configured locale while sending the mapped code", () => {
+    const payload = buildDataPayload(
+      data({ targetLocale: "sr-Latn", localeMap: { "sr-Latn": "Serbian written in Latin" } }),
+    );
+    expect(payload.targetLocale).toBe("Serbian written in Latin");
+    expect(payload.targetLanguage).toEqual({ name: "Serbian (Latin)", script: "Latin" });
+  });
+
+  it("counts the names in the measured payload, so an estimate reserves tokens for them", () => {
+    const named = dataPayloadCharacters(data({ targetLocale: "zh-Hant-TW" }));
+    const unnamed = dataPayloadCharacters(data({ targetLocale: "qaa" }));
+    expect(named).toBeGreaterThan(unnamed + "zh-Hant-TW".length - "qaa".length);
   });
 });

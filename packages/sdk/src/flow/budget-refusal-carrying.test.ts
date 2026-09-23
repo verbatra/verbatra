@@ -40,7 +40,7 @@ const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({
     targetLocales: LOCALES,
     maxBatchSize: 1,
-    maxTokens: 600,
+    maxTokens: 720,
     budgetBehavior: "stop",
     ...overrides,
   });
@@ -145,7 +145,7 @@ describe("budget refusal carrying: a later locale that starts already stopped", 
       expect(budgetMessages(split.refusing)).toEqual([
         `The run's next provider request was projected at ${projection} tokens on top of the ` +
           `${countedBeforeRefusal} already counted, which would have crossed the configured budget ` +
-          "of 600 tokens, so it was withheld rather than sent (behavior: stop).",
+          "of 720 tokens, so it was withheld rather than sent (behavior: stop).",
       ]);
     },
   );

@@ -52,7 +52,8 @@ deterministic test joins the required gate automatically.
 
 - **Live tier** (`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`; `npm test`
   runs it alongside the no-key tier): real `translate` and `watch` against a live provider.
-  `translate` fills a missing key and leaves the project in sync; `watch` translates on startup,
+  `translate` fills a missing key and leaves the project in sync, and on an LLM provider writes
+  `sr-Latn` in Latin rather than Cyrillic script; `watch` translates on startup,
   again on a source change, and stops on interrupt. It needs `E2E_PROVIDER` (default `gemini`) and
   the matching API key, and skips otherwise. `.github/workflows/e2e-live.yml` runs it on a nightly
   schedule, on push to `main`, and on manual dispatch only, never on a pull request, with the key

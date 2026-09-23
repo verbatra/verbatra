@@ -64,3 +64,54 @@ describe.skipIf(provider === null)(`translate (live: ${provider?.id ?? "skipped"
     expect(checked.exitCode).toBe(0);
   });
 });
+
+const LLM_PROVIDERS: ReadonlySet<string> = new Set(["anthropic", "openai", "gemini"]);
+const SERBIAN_LATIN_TARGET: RunTarget = { locale: "sr-Latn", key: "farewell" };
+const CYRILLIC = /\p{Script=Cyrillic}/u;
+const LATIN = /\p{Script=Latin}/u;
+
+describe.skipIf(provider === null || !LLM_PROVIDERS.has(provider.id))(
+  `translate into a named script (live: ${provider?.id ?? "skipped"})`,
+  () => {
+    let consumer: Consumer;
+
+    beforeAll(async () => {
+      consumer = await readSharedConsumer();
+    }, 180_000);
+
+    it("writes sr-Latn in Latin script, not Cyrillic", async (ctx) => {
+      if (provider === null) {
+        return;
+      }
+      const dir = join(consumer.dir, "translate-live-sr-latn");
+      await mkdir(dir, { recursive: true });
+      await writeFileIn(
+        dir,
+        "verbatra.config.ts",
+        `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["sr-Latn"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: ${providerConfigBlock(provider)},\n});\n`,
+      );
+      await writeJsonIn(dir, "locales/en.json", {
+        farewell: "Goodbye, see you tomorrow at the station",
+      });
+
+      const translated = await runVerbatra(consumer, ["translate", "--json", "--cwd", dir], {
+        env: { [provider.envVar]: provider.key },
+      });
+      const verdict = classifyLiveRun(translated, SERBIAN_LATIN_TARGET);
+      if (verdict.kind === "failed") {
+        expect.fail(`translate did not deliver "${SERBIAN_LATIN_TARGET.key}": ${verdict.detail}`);
+      }
+      if (verdict.kind === "throttled") {
+        ctx.skip(
+          `The provider rate-limited, timed out, or was unavailable during the translate run, so the live translation path never executed: ${verdict.detail}`,
+        );
+      }
+      expect(translated.exitCode).toBe(0);
+
+      const serbian = await readJsonIn<Record<string, string>>(dir, "locales/sr-Latn.json");
+      const farewell = serbian.farewell ?? "";
+      expect(farewell).toMatch(LATIN);
+      expect(farewell).not.toMatch(CYRILLIC);
+    });
+  },
+);

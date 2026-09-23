@@ -1,5 +1,7 @@
 import type { TranslationEntry } from "@verbatra/core";
+import { type LocaleMap, resolveProviderLocale } from "../locale-map.js";
 import type { PluralCategories, Tone } from "../provider.js";
+import { localeNamesOf } from "./locale-names.js";
 import type { TranslationsResult } from "./schema.js";
 
 interface ItemPayload {
@@ -16,6 +18,7 @@ export interface DataPayloadInput {
   readonly glossary?: Readonly<Record<string, string>> | undefined;
   readonly tone?: Tone | undefined;
   readonly pluralCategories?: PluralCategories | undefined;
+  readonly localeMap?: LocaleMap | undefined;
 }
 
 export type TranslationItem = TranslationsResult["translations"][number];
@@ -29,10 +32,20 @@ function toItem(entry: TranslationEntry): ItemPayload {
   };
 }
 
+function languageField(
+  field: "sourceLanguage" | "targetLanguage",
+  locale: string,
+): Record<string, unknown> {
+  const names = localeNamesOf(locale);
+  return names === undefined ? {} : { [field]: names };
+}
+
 export function buildDataPayload(data: DataPayloadInput): Record<string, unknown> {
   return {
-    sourceLocale: data.sourceLocale,
-    targetLocale: data.targetLocale,
+    sourceLocale: resolveProviderLocale(data.sourceLocale, data.localeMap),
+    targetLocale: resolveProviderLocale(data.targetLocale, data.localeMap),
+    ...languageField("sourceLanguage", data.sourceLocale),
+    ...languageField("targetLanguage", data.targetLocale),
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
     ...(data.glossary !== undefined ? { glossary: data.glossary } : {}),
     ...(data.pluralCategories !== undefined ? { pluralCategories: data.pluralCategories } : {}),
