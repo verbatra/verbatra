@@ -163,6 +163,26 @@ const RETIRED_SHORT_PERIOD_CLAIM =
 const UMAMI_RETIRED_CLAIM =
   /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
 
+const AI_TRANSLATION_PIPELINE: Record<Locale, RegExp> = {
+  en: /machine-translated into German, Spanish, and French by verbatra with Google's Gemini/,
+  de: /von verbatra mit dem Sprachmodell Gemini von Google maschinell/,
+  es: /verbatra traduce automáticamente .* con el modelo de lenguaje Gemini de Google/,
+  fr: /traduits automatiquement .* par verbatra avec le modèle de langage Gemini de Google/,
+};
+
+const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
+  en: /checked on a best-effort basis: not every translated text is reviewed by a person/,
+  de: /nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird .* von einem Menschen/,
+  es: /se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona/,
+  fr: /vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne/,
+};
+
+const RETIRED_REVIEW_CLAIM =
+  /reviewed before publication|vor der Veröffentlichung geprüft|se revisa antes de publicarse|relu avant sa publication/;
+
+const RETIRED_NO_LEGAL_DUTY_CLAIM =
+  /not because a specific legal disclosure requirement|nicht weil dafür eine bestimmte gesetzliche|no porque se aplique una obligación legal|non parce qu'une obligation légale/;
+
 function imprintFacts(): string[] {
   const source = readFileSync(IMPRINT_PAGE, "utf8")
     .replaceAll("&ouml;", "ö")
@@ -326,6 +346,18 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(contactForm).toMatch(ARCJET_SAFEGUARD[locale]);
     expect(
       sectionNumbered(doc, 12)?.querySelector('a[href="mailto:info@kreitz-webdev.de"]'),
+    ).not.toBeNull();
+  });
+  it("describes the actual translation process without claiming a review of every text", async () => {
+    const doc = await renderPrivacy(locale);
+    const aiTranslation = sectionText(doc, /^13\. /);
+
+    expect(aiTranslation).toMatch(AI_TRANSLATION_PIPELINE[locale]);
+    expect(aiTranslation).toMatch(AI_TRANSLATION_BEST_EFFORT[locale]);
+    expect(aiTranslation).not.toMatch(RETIRED_REVIEW_CLAIM);
+    expect(aiTranslation).not.toMatch(RETIRED_NO_LEGAL_DUTY_CLAIM);
+    expect(
+      sectionNumbered(doc, 13)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
     ).not.toBeNull();
   });
 });
