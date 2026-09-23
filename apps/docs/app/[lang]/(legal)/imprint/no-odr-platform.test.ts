@@ -27,8 +27,13 @@ describe("imprint: retired EU ODR platform", () => {
   });
 
   it("keeps the consumer dispute resolution statement on the imprint page", () => {
-    const page = readFileSync(join(DOCS_ROOT, "app/[lang]/(legal)/imprint/page.tsx"), "utf8");
+    const page = readFileSync(
+      join(DOCS_ROOT, "app/[lang]/(legal)/imprint/page.tsx"),
+      "utf8",
+    ).replace(/\s+/g, " ");
     expect(page).toContain("<h2>Verbraucherstreitbeilegung</h2>");
-    expect(page).toContain("nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren");
+    expect(page).toContain(
+      "Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.",
+    );
   });
 });
