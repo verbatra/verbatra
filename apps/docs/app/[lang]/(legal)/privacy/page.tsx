@@ -1,6 +1,8 @@
+import { CalloutContainer } from "fumadocs-ui/components/callout";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { CALLOUT_CLASS } from "@/components/mdx";
 import { i18n, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
 
@@ -12,6 +14,10 @@ const NPM_SCOPE = "https://www.npmjs.com/search?q=%40verbatra";
 const NPM_PRIVACY = "https://docs.npmjs.com/policies/privacy";
 const CONTABO_URL = "https://contabo.com/de/";
 const CONTACT_MAILTO = "mailto:info@kreitz-webdev.de";
+const SUPERVISORY_AUTHORITY_URL = "https://www.baden-wuerttemberg.datenschutz.de";
+
+const OBJECTION_KEY = "objection";
+const OBJECTION_HEADING_ID = "right-to-object";
 
 const SECTION_KEYS = [
   "s1",
@@ -22,6 +28,7 @@ const SECTION_KEYS = [
   "s6",
   "s7",
   "s8",
+  OBJECTION_KEY,
   "s9",
   "s10",
   "s11",
@@ -37,6 +44,8 @@ const linkTags = {
   npmprivacy: (chunks: ReactNode) => <a href={NPM_PRIVACY}>{chunks}</a>,
   contabo: (chunks: ReactNode) => <a href={CONTABO_URL}>{chunks}</a>,
   contact: (chunks: ReactNode) => <a href="/contact">{chunks}</a>,
+  imprint: (chunks: ReactNode) => <a href="/imprint">{chunks}</a>,
+  lfdi: (chunks: ReactNode) => <a href={SUPERVISORY_AUTHORITY_URL}>{chunks}</a>,
   strong: (chunks: ReactNode) => <strong>{chunks}</strong>,
 };
 
@@ -79,12 +88,23 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
         </p>
       )}
 
-      {SECTION_KEYS.map((key) => (
-        <section key={key}>
-          <h2>{t(`${key}.heading`)}</h2>
-          <p>{t.rich(`${key}.body`, linkTags)}</p>
-        </section>
-      ))}
+      {SECTION_KEYS.map((key) =>
+        key === OBJECTION_KEY ? (
+          <section key={key} aria-labelledby={OBJECTION_HEADING_ID}>
+            <CalloutContainer type="info" className={CALLOUT_CLASS}>
+              <h2 id={OBJECTION_HEADING_ID} className="mt-0">
+                {t(`${key}.heading`)}
+              </h2>
+              <p className="mb-0">{t.rich(`${key}.body`, linkTags)}</p>
+            </CalloutContainer>
+          </section>
+        ) : (
+          <section key={key}>
+            <h2>{t(`${key}.heading`)}</h2>
+            <p>{t.rich(`${key}.body`, linkTags)}</p>
+          </section>
+        ),
+      )}
 
       {lastUpdated}
     </main>

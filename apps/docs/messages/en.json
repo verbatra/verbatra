@@ -334,7 +334,7 @@
       "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>info@kreitz-webdev.de</email>."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>imprint</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."
       },
       "s2": {
         "heading": "2. Overview",
@@ -362,22 +362,26 @@
       },
       "s8": {
         "heading": "8. Your rights",
-        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR). You also have the right to lodge a complaint with a supervisory authority. To exercise any of these rights, contact us using the details below."
+        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR); the right to object is set out separately in section 9. You also have the right to lodge a complaint with a supervisory authority (Art. 77 GDPR). The supervisory authority responsible for us is \"Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg\" (the State Commissioner for Data Protection and Freedom of Information of Baden-Württemberg), Heilbronner Straße 35, 70191 Stuttgart, Germany, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. To exercise any of these rights, contact us using the details below."
+      },
+      "objection": {
+        "heading": "9. Right to object (Art. 21 GDPR)",
+        "body": "Where we process your personal data on the basis of Art. 6(1)(f) GDPR (legitimate interests), as described in sections 3, 4, and 12, <strong>you have the right to object to that processing at any time</strong>, on grounds relating to your particular situation. If you object, we will no longer process the personal data concerned unless we can demonstrate compelling legitimate grounds for the processing that override your interests, rights, and freedoms, or the processing serves the establishment, exercise, or defence of legal claims. An informal message to <email>info@kreitz-webdev.de</email> is enough to object."
       },
       "s9": {
-        "heading": "9. Contact",
+        "heading": "10. Contact",
         "body": "For any privacy-related questions or requests, email <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Changes to this policy",
+        "heading": "11. Changes to this policy",
         "body": "We may update this privacy policy as the site evolves or as legal requirements change. The date below reflects the most recent revision."
       },
       "s11": {
-        "heading": "11. Contact form",
+        "heading": "12. Contact form",
         "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
       },
       "s12": {
-        "heading": "12. AI-assisted translation",
+        "heading": "13. AI-assisted translation",
         "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself: the interface text is translated into German, Spanish, and French with the help of AI language models. The longer documentation pages are AI-translated too, in a separate step outside that automated pipeline. Translated content is reviewed before publication. We note this here voluntarily, for transparency, not because a specific legal disclosure requirement applies to it."
       }
     },
