@@ -12,7 +12,8 @@
     "postinstall": "fumadocs-mdx",
     "i18n": "verbatra translate",
     "studio": "verbatra studio",
-    "screenshots": "node scripts/capture-studio.mjs"
+    "screenshots": "node scripts/capture-studio.mjs",
+    "contributors": "node --experimental-strip-types scripts/refresh-contributors.mjs"
   },
   "dependencies": {
     "@arcjet/next": "1.13.0",

@@ -1,9 +1,10 @@
 import { SiNpm } from "@icons-pack/react-simple-icons";
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
-import { fetchContributors, type GithubContributor } from "@/lib/contributors";
+import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
@@ -147,7 +148,7 @@ function ContributorsRow({
   title,
   ariaFor,
 }: {
-  contributors: ReadonlyArray<GithubContributor>;
+  contributors: ReadonlyArray<Contributor>;
   title: string;
   ariaFor: (login: string) => string;
 }): ReactNode {
@@ -169,15 +170,12 @@ function ContributorsRow({
               data-umami-event="outbound-link"
               data-umami-event-target="contributor"
             >
-              {/* biome-ignore lint/performance/noImgElement: contributor avatar URLs come from the GitHub API at build/ISR time and are not known to next/image's static remotePatterns allowlist. */}
-              <img
-                src={contributor.avatarUrl}
+              <Image
+                src={contributor.avatarPath}
                 alt={ariaFor(contributor.login)}
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full"
-                loading="lazy"
-                decoding="async"
               />
             </a>
           </li>
@@ -188,10 +186,7 @@ function ContributorsRow({
 }
 
 export async function FullFooter(): Promise<ReactNode> {
-  const [t, contributors] = await Promise.all([
-    getTranslations("landing.footer"),
-    fetchContributors(),
-  ]);
+  const t = await getTranslations("landing.footer");
   return (
     <footer
       className="relative overflow-hidden"
@@ -309,7 +304,7 @@ export async function FullFooter(): Promise<ReactNode> {
           })}
         </div>
         <ContributorsRow
-          contributors={contributors}
+          contributors={CONTRIBUTORS}
           title={t("contributorsTitle")}
           ariaFor={(login) => t("contributorAria", { name: login })}
         />
