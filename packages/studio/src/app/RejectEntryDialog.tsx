@@ -89,8 +89,8 @@ export function RejectEntryDialog({
           <li>The translation is removed from the {locale} locale file.</li>
           <li>
             The key counts as missing until the next <code>verbatra translate</code> run, or
-            <strong>Translate pending changes</strong>, fills it again, or someone writes a new
-            value.
+            <strong>Translate pending changes across all locales</strong>, fills it again, or
+            someone writes a new value.
           </li>
           <li>
             The rejection is saved to <code>verbatra.provenance.json</code>. Commit it with the
