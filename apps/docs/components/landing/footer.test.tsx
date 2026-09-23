@@ -57,6 +57,32 @@ describe("FullFooter", () => {
     }
   });
 
+  it.each([
+    ["en", ""],
+    ["de", "/de"],
+    ["es", "/es"],
+    ["fr", "/fr"],
+  ])("keeps the %s reader's locale in the docs links", async (locale, prefix) => {
+    localeState.current = locale;
+    try {
+      const doc = await renderFooter();
+      const hrefs = Array.from(doc.querySelectorAll("a"))
+        .map((link) => link.getAttribute("href") ?? "")
+        .filter((href) => href.startsWith("/"));
+      const docsLinks = hrefs.filter((href) => /^\/([a-z]{2}\/)?docs(\/|$)/.test(href));
+
+      expect(docsLinks.length).toBe(11);
+      for (const href of docsLinks) {
+        expect(href.startsWith(`${prefix}/docs`)).toBe(true);
+      }
+      expect(hrefs).toEqual(
+        expect.arrayContaining(["/llms.txt", "/llms-full.txt", "/.well-known/ai.txt"]),
+      );
+    } finally {
+      localeState.current = "en";
+    }
+  });
+
   it("never points an image at a third-party host", async () => {
     const urls = imageUrls(await renderFooter());
 
