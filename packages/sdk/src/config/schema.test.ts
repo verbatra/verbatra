@@ -289,3 +289,23 @@ describe("verbatraConfigSchema: format identity", () => {
     expect(verbatraConfigSchema.safeParse(withFormat("custom:")).success).toBe(false);
   });
 });
+
+describe("verbatraConfigSchema: humanEdits and pinnedKeys", () => {
+  it.each(["protect", "suggest", "overwrite"])("accepts humanEdits %s", (humanEdits) => {
+    expect(verbatraConfigSchema.safeParse({ ...baseConfig(), humanEdits }).success).toBe(true);
+  });
+
+  it("rejects an unknown humanEdits policy", () => {
+    expect(verbatraConfigSchema.safeParse({ ...baseConfig(), humanEdits: "keep" }).success).toBe(
+      false,
+    );
+  });
+
+  it("accepts key patterns and rejects an empty one", () => {
+    const valid = verbatraConfigSchema.safeParse(baseConfig({ pinnedKeys: ["legal.*", "brand"] }));
+    const empty = verbatraConfigSchema.safeParse(baseConfig({ pinnedKeys: [""] }));
+
+    expect(valid.success).toBe(true);
+    expect(empty.success).toBe(false);
+  });
+});

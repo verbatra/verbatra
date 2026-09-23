@@ -32,6 +32,7 @@ export interface PluralGenerationContext {
   readonly tone: Tone | undefined;
   readonly baseline: ReadonlyMap<string, string>;
   readonly targetKeys: ReadonlySet<string>;
+  readonly skip?: ReadonlySet<string>;
   readonly maxBatchSize: number;
   readonly budget: BudgetTracker;
 }
@@ -104,12 +105,15 @@ export interface PendingPluralInput {
   readonly format: string;
   readonly baseline: ReadonlyMap<string, string>;
   readonly targetKeys: ReadonlySet<string>;
+  readonly skip?: ReadonlySet<string>;
 }
 
 export function pendingPluralForms(input: PendingPluralInput): readonly PluralGenerationItem[] {
   const plan = planPluralGeneration(input.source, input.targetLocale, input.format);
   const candidates = plan.items.filter(
-    (item) => !isAdopted(item, input.targetKeys, input.baseline),
+    (item) =>
+      !isAdopted(item, input.targetKeys, input.baseline) &&
+      input.skip?.has(item.targetKey) !== true,
   );
   return staleItems(candidates, input.baseline);
 }

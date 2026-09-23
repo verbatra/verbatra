@@ -30,6 +30,7 @@ function succeededLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummary 
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     ...overrides,

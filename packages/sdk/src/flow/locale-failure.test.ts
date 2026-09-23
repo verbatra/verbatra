@@ -20,6 +20,7 @@ function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSum
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
   };
@@ -55,6 +56,7 @@ describe("failureSummary", () => {
       notices: [],
       needsReview: [],
       unfilled: [],
+      protected: [],
       malformedRows: [],
       duplicateKeys: [],
       error: { code: "ADAPTER_WRITE", message: "nope" },

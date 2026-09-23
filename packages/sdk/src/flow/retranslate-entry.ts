@@ -18,6 +18,13 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import {
+  assertNotPinned,
+  assertNotProtected,
+  protectionFor,
+  protectionPolicy,
+  readProvenanceView,
+} from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { buildTranslateRequest } from "./translate-request.js";
@@ -33,6 +40,13 @@ export interface RetranslateEntryInput {
   readonly locale: string;
   /** The key to retranslate. Must exist in the source resource. */
   readonly key: string;
+  /**
+   * Replace the key's value even when a person wrote it: its origin is `human` or `import`, or it
+   * changed outside verbatra. Without it such a key is refused with `KEY_PROTECTED`, unless the
+   * config sets `humanEdits: "overwrite"`. A key matching `pinnedKeys` is refused whatever this
+   * says. Defaults to false.
+   */
+  readonly includeHuman?: boolean;
 }
 
 /** Injectable dependencies for {@link retranslateEntry}. Every field has a working default. */
@@ -135,6 +149,12 @@ function machinePending(value: string, config: VerbatraConfig): PendingProvenanc
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
+ * @throws {@link SdkError} `KEY_PINNED`: the key matches the config's `pinnedKeys`. Thrown before
+ * the provider is constructed.
+ * @throws {@link SdkError} `KEY_PROTECTED`: the key's current value was written by a person, imported,
+ * or changed outside verbatra (or its origin cannot be read because the provenance file is from a
+ * newer verbatra), and neither `includeHuman` nor `humanEdits: "overwrite"` was set. Thrown inside
+ * the write lock, before the provider is called.
  * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the provider could not be constructed,
  * most often because its API key environment variable is unset.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
@@ -180,11 +200,19 @@ export async function retranslateEntry(
     );
   }
 
+  const policy = protectionPolicy(config, input.includeHuman === true ? "overwrite" : undefined);
+  assertNotPinned(policy, input.key);
   const provider = selectProvider(config.provider, deps.createProvider);
   await assertProvenanceReadable(cwd, fs);
 
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
     const target = await readTarget(cwd, config, adapter, fs, locale);
+    const provenance = await readProvenanceView(policy, cwd, fs, locale);
+    assertNotProtected(
+      protectionFor(policy, provenance, input.key, target.entries.get(input.key)?.value),
+      input.key,
+      locale,
+    );
 
     const result = await provider.translateBatch(
       buildTranslateRequest(

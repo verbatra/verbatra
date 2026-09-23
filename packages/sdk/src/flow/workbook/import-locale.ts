@@ -184,6 +184,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
       buckets.blankDrifted.size > 0 ? [blankRowBaselineNotice(buckets.blankDrifted.size)] : [],
     needsReview: [],
     unfilled: [...new Set(buckets.unfilled)].sort(),
+    protected: [],
     malformedRows: params.malformedRows,
     duplicateKeys: params.duplicateKeys,
   };

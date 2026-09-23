@@ -108,7 +108,7 @@ describe("provenance lifecycle: review decisions and records across later writes
     });
 
     const summary = await translate(
-      { config: cfg(), cwd: dir },
+      { config: cfg({ humanEdits: "overwrite" }), cwd: dir },
       { createProvider: () => makeStubProvider({ missingValues: new Set(["greeting"]) }).provider },
     );
 
@@ -174,7 +174,7 @@ describe("provenance: single-key writers check the file before anything else", (
       value: "Servus",
     });
     const retranslated = await retranslateEntry(
-      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting", includeHuman: true },
       { createProvider: stubCreate },
     );
 

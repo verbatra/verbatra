@@ -287,6 +287,17 @@ export interface EstimateForRunInput {
   readonly source: LocaleResource;
   readonly config: VerbatraConfig;
   readonly maxBatchSize: number;
+  readonly suggestProtected?: boolean;
+}
+
+function sentKeys(input: EstimateForRunInput, summary: LocaleSummary): readonly string[] {
+  if (input.suggestProtected !== true) {
+    return summary.translated;
+  }
+  const suggested = summary.protected
+    .filter((entry) => entry.reason !== "pinned")
+    .map((entry) => entry.key);
+  return [...summary.translated, ...suggested];
 }
 
 function entriesFor(source: LocaleResource, keys: readonly string[]): readonly TranslationEntry[] {
@@ -338,7 +349,7 @@ export function estimateForRun(input: EstimateForRunInput): RunEstimate {
     ...(config.rates !== undefined ? { rates: config.rates } : {}),
     locales: input.summaries.map((summary) => ({
       locale: summary.locale,
-      entries: entriesFor(input.source, summary.translated),
+      entries: entriesFor(input.source, sentKeys(input, summary)),
       generatedEntries: generatedEntriesFor(input, summary),
     })),
   });

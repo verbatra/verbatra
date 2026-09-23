@@ -13,6 +13,7 @@ import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { assertNotPinned, protectionPolicy } from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { writeTargetResource } from "./write-target.js";
@@ -117,6 +118,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
+ * @throws {@link SdkError} `KEY_PINNED`: `actor` is `agent` and the key matches the config's
+ * `pinnedKeys`. A person's edit of a pinned key is accepted.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
  * the timeout elapsed.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
@@ -156,6 +159,9 @@ export async function editEntry(
     );
   }
 
+  if (input.actor === "agent") {
+    assertNotPinned(protectionPolicy(config), input.key);
+  }
   await assertProvenanceReadable(cwd, fs);
 
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {

@@ -57,12 +57,15 @@ import {
   type PluralGenerationResult,
   pendingPluralForms,
 } from "./plural-generation.js";
+import { type ProtectionPolicy, type ProvenanceView, protectedKeys } from "./protection.js";
 import { readTargetResource } from "./read-target.js";
 import type {
   FuzzyCacheHit,
   LocaleNotice,
   LocaleSummary,
   NeedsReviewEntry,
+  ProtectedKey,
+  ProtectionReason,
   UsageSummary,
 } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
@@ -103,6 +106,10 @@ export interface LocaleRunParams {
   };
   readonly budget: BudgetTracker;
   readonly machine?: MachineAttribution;
+  readonly protection?: {
+    readonly policy: ProtectionPolicy;
+    readonly provenance: ProvenanceView;
+  };
   readonly onProgress?: ProgressListener;
 }
 
@@ -434,7 +441,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const pruned: readonly string[] = params.prune ? orphaned : [];
 
   const invalidIcu = new Set(params.sourceInvalidIcuKeys);
-  const candidates = [...diff.missing, ...diff.changed];
+  const protection = planProtection(params, target, [...diff.missing, ...diff.changed], invalidIcu);
+  const candidates = [...diff.missing, ...diff.changed].filter((key) => !protection.held.has(key));
   const toTranslate = candidates.filter((key) => !invalidIcu.has(key));
   const invalidIcuSource = candidates.filter((key) => invalidIcu.has(key));
 
@@ -446,7 +454,11 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
 
   if (params.mode.kind === "plan") {
-    const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
+    const planned = plannedGenerationKeys(
+      params,
+      new Set(target.entries.keys()),
+      protection.heldForms,
+    );
     const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
       (key) => !pruned.includes(key),
     );
@@ -456,7 +468,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         unchanged: diff.unchanged,
         orphaned,
         invalidIcuSource,
-        translated: toTranslate,
+        translated: toTranslate.filter((key) => !protection.suggest.has(key)),
         cacheHits: [],
         fuzzyHits: [],
         generated: planned,
@@ -465,6 +477,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         budgetWithheld: [],
         pruned,
         notices: generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices,
+        protected: protectedEntries(protection.reasons, new Map()),
       }),
       lockEntries: {},
       provenance: { records: new Map() },
@@ -495,6 +508,12 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     budgetWithheld,
     reviewFlags,
   });
+  const cacheAdditions = collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys);
+  const suggestions = divertSuggestions(protection.suggest, accepted, reviewFlags, [
+    integrityMismatches,
+    providerFailures,
+    budgetWithheld,
+  ]);
 
   const merged = new Map(target.entries);
   for (const key of pruned) {
@@ -507,7 +526,12 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     }
   }
 
-  const generation = await runGeneration(params, provider, new Set(target.entries.keys()));
+  const generation = await runGeneration(
+    params,
+    provider,
+    new Set(target.entries.keys()),
+    protection.heldForms,
+  );
   for (const form of generation.accepted) {
     merged.set(form.targetKey, { ...form.entry, namespace: target.namespace });
   }
@@ -554,6 +578,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...budgetWithheld,
     ...fuzzyKeys,
     ...unfilled,
+    ...protection.reasons.keys(),
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {
@@ -563,10 +588,12 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       orphaned,
       invalidIcuSource,
       translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
-      cacheHits: [...cacheHitKeys].filter((key) => !fuzzyKeys.has(key)).sort(),
-      fuzzyHits: [...partition.fuzzy.values()].sort((left, right) =>
-        left.key.localeCompare(right.key),
-      ),
+      cacheHits: [...cacheHitKeys]
+        .filter((key) => !fuzzyKeys.has(key) && !protection.suggest.has(key))
+        .sort(),
+      fuzzyHits: [...partition.fuzzy.values()]
+        .filter((hit) => !protection.suggest.has(hit.key))
+        .sort((left, right) => left.key.localeCompare(right.key)),
       generated: generation.accepted.map((form) => form.targetKey).sort(),
       integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
       providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
@@ -575,12 +602,117 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       notices,
       unfilled,
       needsReview: needsReviewFor(accepted.keys(), reviewFlags),
+      protected: protectedEntries(protection.reasons, suggestions),
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
     lockEntries: computeLockEntries(params, merged, withheld, generation.accepted),
     provenance: settleProvenance(pending, written, new Set(merged.keys())),
-    cacheAdditions: collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys),
+    cacheAdditions,
   };
+}
+
+interface ProtectionPlan {
+  readonly reasons: ReadonlyMap<string, ProtectionReason>;
+  readonly held: ReadonlySet<string>;
+  readonly suggest: ReadonlySet<string>;
+  readonly heldForms: ReadonlySet<string>;
+}
+
+const NO_PROTECTION: ProtectionPlan = {
+  reasons: new Map(),
+  held: new Set(),
+  suggest: new Set(),
+  heldForms: new Set(),
+};
+
+function suggestsFor(params: LocaleRunParams, policy: ProtectionPolicy): boolean {
+  return policy.humanEdits === "suggest" && params.mode.kind !== "memory-only";
+}
+
+function planProtection(
+  params: LocaleRunParams,
+  target: LocaleResource,
+  candidates: readonly string[],
+  invalidIcu: ReadonlySet<string>,
+): ProtectionPlan {
+  const protection = params.protection;
+  if (protection === undefined) {
+    return NO_PROTECTION;
+  }
+  const { policy, provenance } = protection;
+  const reasons = protectedKeys(policy, provenance, target, candidates);
+  const suggesting = suggestsFor(params, policy);
+  const suggest = new Set<string>();
+  const held = new Set<string>();
+  for (const [key, reason] of reasons) {
+    if (suggesting && reason !== "pinned" && !invalidIcu.has(key)) {
+      suggest.add(key);
+    } else {
+      held.add(key);
+    }
+  }
+  const forms = protectedKeys(policy, provenance, target, pendingFormKeys(params, target));
+  for (const [key, reason] of forms) {
+    reasons.set(key, reason);
+  }
+  return { reasons, held, suggest, heldForms: new Set(forms.keys()) };
+}
+
+function pendingFormKeys(params: LocaleRunParams, target: LocaleResource): readonly string[] {
+  if (!generationEnabled(params)) {
+    return [];
+  }
+  return pendingPluralForms({
+    source: params.source,
+    targetLocale: params.targetLocale,
+    format: params.format,
+    baseline: params.baseline,
+    targetKeys: new Set(target.entries.keys()),
+  }).map((item) => item.targetKey);
+}
+
+function dropKeys(list: string[], keys: ReadonlySet<string>): void {
+  const kept = list.filter((key) => !keys.has(key));
+  list.length = 0;
+  for (const key of kept) {
+    list.push(key);
+  }
+}
+
+function divertSuggestions(
+  suggest: ReadonlySet<string>,
+  accepted: Map<string, Accepted>,
+  reviewFlags: Map<string, ReviewFlag>,
+  failureLists: readonly string[][],
+): ReadonlyMap<string, string> {
+  const suggestions = new Map<string, string>();
+  if (suggest.size === 0) {
+    return suggestions;
+  }
+  for (const key of suggest) {
+    const hit = accepted.get(key);
+    if (hit !== undefined) {
+      suggestions.set(key, hit.value);
+    }
+    accepted.delete(key);
+    reviewFlags.delete(key);
+  }
+  for (const list of failureLists) {
+    dropKeys(list, suggest);
+  }
+  return suggestions;
+}
+
+function protectedEntries(
+  reasons: ReadonlyMap<string, ProtectionReason>,
+  suggestions: ReadonlyMap<string, string>,
+): readonly ProtectedKey[] {
+  const entries: ProtectedKey[] = [];
+  for (const [key, reason] of reasons) {
+    const suggestion = suggestions.get(key);
+    entries.push(suggestion === undefined ? { key, reason } : { key, reason, suggestion });
+  }
+  return entries.sort((a, b) => (a.key < b.key ? -1 : 1));
 }
 
 const NO_GENERATION_RESULT: PluralGenerationResult = {
@@ -606,6 +738,7 @@ function generationEnabled(params: LocaleRunParams): boolean {
 function plannedGenerationKeys(
   params: LocaleRunParams,
   targetKeys: ReadonlySet<string>,
+  skip: ReadonlySet<string>,
 ): readonly string[] {
   if (!generationEnabled(params)) {
     return [];
@@ -616,6 +749,7 @@ function plannedGenerationKeys(
     format: params.format,
     baseline: params.baseline,
     targetKeys,
+    skip,
   })
     .map((item) => item.targetKey)
     .sort();
@@ -625,6 +759,7 @@ async function runGeneration(
   params: LocaleRunParams,
   provider: TranslationProvider | undefined,
   targetKeys: ReadonlySet<string>,
+  skip: ReadonlySet<string>,
 ): Promise<PluralGenerationResult> {
   if (provider === undefined || !generationEnabled(params)) {
     return NO_GENERATION_RESULT;
@@ -641,6 +776,7 @@ async function runGeneration(
     tone: params.tone,
     baseline: params.baseline,
     targetKeys,
+    skip,
     maxBatchSize: params.maxBatchSize,
     budget: params.budget,
   });
@@ -697,6 +833,7 @@ interface SummaryParts {
   readonly usage?: UsageSummary;
   readonly needsReview?: readonly NeedsReviewEntry[];
   readonly unfilled?: readonly string[];
+  readonly protected: readonly ProtectedKey[];
 }
 
 function baseSummary(parts: SummaryParts): LocaleSummary {
@@ -717,6 +854,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     notices: parts.notices,
     needsReview: parts.needsReview ?? [],
     unfilled: parts.unfilled ?? [],
+    protected: parts.protected,
     malformedRows: [],
     duplicateKeys: [],
     ...(parts.usage !== undefined ? { usage: parts.usage } : {}),

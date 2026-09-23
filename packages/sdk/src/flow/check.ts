@@ -15,6 +15,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
 import { diffLocales, type LocaleDiffResult } from "./diff-locales.js";
+import { reportedProtectedKeys } from "./protection.js";
 
 /** One locale's counts in a {@link CheckSummary}. */
 export interface LocaleCheckSummary {
@@ -34,6 +35,14 @@ export interface LocaleCheckSummary {
    * corrupt or was written by a newer verbatra, since a report never fails over it.
    */
   readonly provenance?: ProvenanceSummary;
+  /**
+   * How many of the missing and stale keys a {@link translate} run would leave alone under the
+   * config's `humanEdits` and `pinnedKeys`, because a person wrote, imported, or changed their
+   * value, or because they are pinned. They still count as missing or stale, so `inSync` stays
+   * false until a person resolves them. Absent when the provenance file is corrupt or was written
+   * by a newer verbatra.
+   */
+  readonly protected?: number;
   /**
    * Every source string this locale translates more than one way under different keys, present only
    * when {@link CheckInput.consistency} is true (an empty array then means the locale is
@@ -94,9 +103,12 @@ function consistencyOptions(format: FormatId): InconsistentTranslationsOptions {
 }
 
 function toCheckSummary(
-  { locale, diff, source, target, provenance }: LocaleDiffResult,
+  config: VerbatraConfig,
+  result: LocaleDiffResult,
   consistency: InconsistentTranslationsOptions | undefined,
 ): LocaleCheckSummary {
+  const { locale, diff, source, target, provenance } = result;
+  const protectedKeys = reportedProtectedKeys(config, result);
   return {
     locale,
     missing: diff.missing.length,
@@ -106,6 +118,7 @@ function toCheckSummary(
     ...(provenance !== undefined
       ? { provenance: summarizeProvenance(provenance, source, target) }
       : {}),
+    ...(protectedKeys !== undefined ? { protected: protectedKeys.length } : {}),
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(
@@ -164,6 +177,6 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   const results = await diffLocales(input, deps);
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
-  const locales = results.map((result) => toCheckSummary(result, consistency));
+  const locales = results.map((result) => toCheckSummary(input.config, result, consistency));
   return { inSync: locales.every((entry) => entry.inSync), locales };
 }

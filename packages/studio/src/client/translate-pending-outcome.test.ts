@@ -20,6 +20,7 @@ function locale(overrides: Partial<LocaleSummary> & { readonly locale: string })
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     ...overrides,
