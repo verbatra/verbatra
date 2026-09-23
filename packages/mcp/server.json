@@ -1,0 +1,70 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.verbatra/verbatra",
+  "title": "verbatra",
+  "description": "Translation status, glossary, and editing tools for a verbatra i18n project, over stdio.",
+  "websiteUrl": "https://verbatra.kreitz-webdev.de/docs/cli/mcp",
+  "repository": {
+    "url": "https://github.com/verbatra/verbatra",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "version": "0.2.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@verbatra/mcp",
+      "version": "0.2.2",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "VERBATRA_MCP_ALLOW_SPEND",
+          "description": "Set to true to advertise the two provider-calling tools, the same as --allow-spend.",
+          "format": "boolean",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "description": "API key for the anthropic provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "description": "API key for the openai provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "description": "API key for the gemini provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "DEEPL_API_KEY",
+          "description": "API key for the deepl provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "GOOGLE_TRANSLATE_API_KEY",
+          "description": "API key for the google-translate provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "OPENAI_COMPATIBLE_API_KEY",
+          "description": "API key for the openai-compatible provider, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

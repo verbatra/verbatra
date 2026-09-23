@@ -35,6 +35,7 @@
     "test:scripts": "vitest run --dir scripts",
     "typecheck:configs": "tsc -p tsconfig.configs.json",
     "changeset": "changeset",
+    "version-packages": "changeset version && node scripts/mcp-server-json.mjs sync",
     "release": "changeset publish"
   },
   "devDependencies": {
