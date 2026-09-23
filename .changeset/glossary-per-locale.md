@@ -30,5 +30,5 @@ Breaking for SDK callers: `readGlossaryFile` and `updateGlossaryTerm` now return
 `Glossary` instead of a flat term map, `updateGlossaryTerm` also takes `locale`, `forbidden`,
 `note`, `partOfSpeech`, `caseSensitive` and `doNotTranslate`, its `translation: null` now removes
 only the shared translation and drops the term once nothing else is left, and
-`TranslateRequest.glossary`, seen by a custom provider, is now a `LocaleGlossary`. New exports: `glossaryForLocale`,
-`normalizeGlossary`, `sharedGlossaryTranslations` and the glossary types.
+`TranslateRequest.glossary`, seen by a custom provider, is now a `LocaleGlossary`. New exports:
+`glossaryForLocale`, `normalizeGlossary`, `sharedGlossaryTranslations` and the glossary types.

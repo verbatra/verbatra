@@ -148,7 +148,7 @@ With more than one target language, one translation per term is not enough. A ve
 
 Each term needs a `target`, a `targets` entry, or a `forbidden` list. A term may not forbid its own translation, name a locale twice, or also appear in `doNotTranslate`. A translation request only carries the terms of its own target locale, and each locale's [cache](/docs/the-cache) fingerprint covers only those, so editing the German translation leaves cached French translations in place.
 
-A version 1 file keeps working unchanged, with the same cache fingerprint. It is rewritten as version 2 only when a per-locale edit, a forbidden rendering, a note, or a do-not-translate term is saved to it from Studio, the MCP server, or `updateGlossaryTerm`; every existing term then keeps its translation as `target`.
+A version 1 file keeps working unchanged, with the same cache fingerprint. It is rewritten as version 2 only when the SDK's [`updateGlossaryTerm`](/docs/sdk#updateglossaryterm) saves an edit version 1 cannot express: a per-locale translation (`locale`), forbidden renderings (`forbidden`), a `note`, a `partOfSpeech`, `caseSensitive`, or a `doNotTranslate` term. Every existing term then keeps its translation as `target`. Editing a translation for every locale keeps the file version 1.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 

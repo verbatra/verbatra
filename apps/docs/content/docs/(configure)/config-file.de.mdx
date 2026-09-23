@@ -149,7 +149,7 @@ Bei mehr als einer Zielsprache reicht eine Übersetzung pro Begriff nicht. Ein G
 
 Jeder Begriff braucht ein `target`, einen Eintrag in `targets` oder eine `forbidden`-Liste. Ein Begriff darf seine eigene Übersetzung nicht verbieten, keine Locale doppelt nennen und nicht zusätzlich in `doNotTranslate` stehen. Eine Übersetzungsanfrage enthält nur die Begriffe ihrer eigenen Ziel-Locale, und der [Cache](/docs/the-cache)-Fingerprint jeder Locale deckt nur diese ab. Änderst du die deutsche Übersetzung, bleiben gecachte französische Übersetzungen also erhalten.
 
-Eine Datei der Version 1 funktioniert unverändert weiter, mit demselben Cache-Fingerprint. Sie wird erst dann als Version 2 neu geschrieben, wenn Studio, der MCP-Server oder `updateGlossaryTerm` eine Änderung pro Locale, eine verbotene Wiedergabe, eine Notiz oder einen Begriff für `doNotTranslate` darin speichert; jeder bestehende Begriff behält seine Übersetzung dann als `target`.
+Eine Datei der Version 1 funktioniert unverändert weiter, mit demselben Cache-Fingerprint. Sie wird erst dann als Version 2 neu geschrieben, wenn [`updateGlossaryTerm`](/docs/sdk#updateglossaryterm) aus dem SDK eine Änderung speichert, die Version 1 nicht ausdrücken kann: eine Übersetzung pro Locale (`locale`), verbotene Wiedergaben (`forbidden`), eine `note`, eine `partOfSpeech`, `caseSensitive` oder einen Begriff für `doNotTranslate`. Jeder bestehende Begriff behält seine Übersetzung dann als `target`. Eine Übersetzung für alle Locales zu ändern lässt die Datei bei Version 1.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 

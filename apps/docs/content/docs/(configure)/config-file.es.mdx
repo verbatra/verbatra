@@ -148,7 +148,7 @@ Con más de un idioma de destino, una sola traducción por término no basta. Un
 
 Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`. Un término no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. Una petición de traducción solo lleva los términos de su propio locale de destino, y la huella de [caché](/docs/the-cache) de cada locale solo cubre esos, así que editar la traducción alemana deja en su sitio las traducciones francesas en caché.
 
-Un archivo de la versión 1 sigue funcionando sin cambios, con la misma huella de caché. Solo se reescribe como versión 2 cuando Studio, el servidor MCP o `updateGlossaryTerm` guardan en él un cambio por locale, una traducción prohibida, una nota o un término de `doNotTranslate`; cada término existente conserva entonces su traducción como `target`.
+Un archivo de la versión 1 sigue funcionando sin cambios, con la misma huella de caché. Solo se reescribe como versión 2 cuando [`updateGlossaryTerm`](/docs/sdk#updateglossaryterm) del SDK guarda un cambio que la versión 1 no puede expresar: una traducción por locale (`locale`), traducciones prohibidas (`forbidden`), una `note`, una `partOfSpeech`, `caseSensitive` o un término de `doNotTranslate`. Cada término existente conserva entonces su traducción como `target`. Editar una traducción para todos los locales deja el archivo en la versión 1.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
