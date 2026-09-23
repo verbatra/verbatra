@@ -93,6 +93,10 @@ Si ya invocas todo a través de la CLI de `verbatra`, ejecútalo como subcomando
 
 Los dos escritores de entradas, `translation.editEntry` y `translation.retranslateEntry`, están además protegidos por herramienta, locale y clave: mientras una llamada para una entrada sigue en curso, una segunda llamada a la misma herramienta que nombre el mismo `locale` y la misma `key` no se encola ni se ejecuta en paralelo. Recibe un resultado `isError` cuyo texto indica que ya hay una llamada equivalente en curso, así que dos agentes (o un agente que reintenta) no pueden competir por la misma entrada a través de la misma herramienta. Las llamadas para otras claves u otros locales siguen ejecutándose a la vez. `translation.translatePending` no tiene esa protección.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Un valor escrito mediante `translation.editEntry` queda registrado con el origen `agent` en `verbatra.provenance.json`, para que nunca se confunda con la edición de una persona. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
 ### Entradas y resultados
 
 - `status.check`, `status.diff` y `key.integrity` aceptan un array `locales` opcional (con al menos una entrada) que limita el resultado a esos locales; `key.integrity` también recibe la `key` que se va a comprobar.

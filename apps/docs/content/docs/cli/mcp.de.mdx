@@ -93,6 +93,10 @@ Rufst du bereits alles über die `verbatra`-CLI auf, starte es stattdessen als U
 
 Die beiden Eintrags-Schreiber, `translation.editEntry` und `translation.retranslateEntry`, sind zusätzlich pro Tool, Locale und Key abgesichert: Während ein Aufruf für einen Eintrag noch läuft, wird ein zweiter Aufruf desselben Tools mit demselben `locale` und `key` weder eingereiht noch parallel ausgeführt. Er bekommt ein `isError`-Ergebnis, dessen Text sagt, dass bereits ein passender Aufruf läuft, damit zwei Agenten (oder ein Agent, der es erneut versucht) nicht über dasselbe Tool in ein Wettrennen um denselben Eintrag geraten. Aufrufe für andere Keys oder andere Locales laufen weiterhin parallel. `translation.translatePending` hat keine solche Sperre.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Ein über `translation.editEntry` geschriebener Wert wird in `verbatra.provenance.json` mit der Herkunft `agent` festgehalten, damit er nie mit der Bearbeitung einer Person verwechselt wird. Siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
 ### Inputs und Ergebnisse
 
 - `status.check`, `status.diff` und `key.integrity` nehmen ein optionales `locales`-Array (mindestens ein Eintrag), das das Ergebnis auf diese Locales eingrenzt; `key.integrity` nimmt außerdem den zu prüfenden `key`.

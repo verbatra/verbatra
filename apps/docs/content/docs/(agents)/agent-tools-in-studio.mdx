@@ -65,6 +65,10 @@ Inspect project state without changing anything. These are marked read-only.
 
 `verbatra_translation_editEntry` edits one locale's value in place. It goes through the same integrity gate as every other verbatra write: a value that fails any of its checks is rejected and nothing is written. An accepted edit writes the locale file and advances the key's lock entry, exactly as a dashboard edit does. Editing needs no spend flag; it touches only your local files and never calls a provider, but it is not ungated: it is rate limited at 20 edits per rolling minute, and a second call for the same locale and key while one is still in flight is rejected with `ALREADY_IN_PROGRESS` (HTTP 409) rather than queued, so two callers cannot race on one entry.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+An edit through `verbatra_translation_editEntry` is recorded with the origin `agent` in `verbatra.provenance.json`, while an edit from the dashboard's own dialog is recorded as `human`. The tool sets this itself; an agent cannot choose it.
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` adds, replaces, or removes one glossary term, and returns the glossary as it now stands. It works only on a file-backed glossary: a glossary written inline in the config, or no glossary at all, is refused rather than converted, and no parameter names a file, since the target comes from the loaded config alone. Like editing, it spends nothing and is registered without `--allow-spend`. It is rate limited at 20 writes per rolling minute.

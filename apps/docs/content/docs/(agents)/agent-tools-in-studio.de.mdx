@@ -65,6 +65,10 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 
 `verbatra_translation_editEntry` bearbeitet den Wert einer Locale an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dieselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht in einen Wettlauf um einen Eintrag geraten.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Eine Bearbeitung über `verbatra_translation_editEntry` wird in `verbatra.provenance.json` mit der Herkunft `agent` festgehalten, eine Bearbeitung aus dem Dialog des Dashboards dagegen als `human`. Das Tool setzt das selbst; ein Agent kann es nicht wählen.
+
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` fügt einen Glossarbegriff hinzu, ersetzt ihn oder entfernt ihn und gibt das Glossar in seinem neuen Stand zurück. Es arbeitet nur mit einem dateibasierten Glossar: ein inline in der Konfiguration geschriebenes Glossar, oder gar keines, wird abgelehnt statt umgewandelt, und kein Parameter nennt eine Datei, denn das Ziel stammt allein aus der geladenen Konfiguration. Wie das Bearbeiten gibt es nichts aus und wird ohne `--allow-spend` registriert. Es ist auf 20 Schreibvorgänge pro gleitender Minute begrenzt.

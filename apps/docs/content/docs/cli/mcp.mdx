@@ -93,6 +93,10 @@ If you already invoke everything through the `verbatra` CLI, run it as a subcomm
 
 The two entry writers, `translation.editEntry` and `translation.retranslateEntry`, are additionally guarded per tool, locale, and key: while one call for a given entry is still running, a second call to the same tool naming the same `locale` and `key` is not queued or run alongside it. It gets an `isError` result whose text says a matching call is already in progress, so two agents (or one agent retrying) cannot race on the same entry through the same tool. Calls for different keys or different locales still run concurrently. `translation.translatePending` has no such guard.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+A value written through `translation.editEntry` is recorded with the origin `agent` in `verbatra.provenance.json`, so it is never mistaken for a person's edit. See [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).
+
 ### Inputs and results
 
 - `status.check`, `status.diff`, and `key.integrity` take an optional `locales` array (at least one entry) that narrows the result to those locales; `key.integrity` also takes the `key` to check.
