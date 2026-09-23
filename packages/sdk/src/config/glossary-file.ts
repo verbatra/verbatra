@@ -9,6 +9,8 @@ import {
   glossaryDefinitionSchema,
   normalizeGlossary,
   rawLocaleKeyIssues,
+  type Version1Entries,
+  version1Entries,
 } from "./glossary.js";
 import {
   applyEdit,
@@ -17,7 +19,6 @@ import {
   type GlossaryEdit,
   isVersion1Edit,
   toDefinition,
-  type Version1Entries,
 } from "./glossary-edit.js";
 import type { GlossaryProvenance } from "./resolve-glossary.js";
 
@@ -57,17 +58,6 @@ function isPlainObject(value: unknown): value is Readonly<Record<string, unknown
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function version1Entries(parsed: Readonly<Record<string, unknown>>): Version1Entries | undefined {
-  const entries: (readonly [string, string])[] = [];
-  for (const [term, translation] of Object.entries(parsed)) {
-    if (typeof translation !== "string") {
-      return undefined;
-    }
-    entries.push([term, translation]);
-  }
-  return entries;
-}
-
 function parseDefinition(
   parsed: Readonly<Record<string, unknown>>,
   path: string,
@@ -93,7 +83,7 @@ function parseContent(parsed: unknown, path: string): GlossaryContent {
     }
     return { version: 2, definition: parseDefinition(parsed, path) };
   }
-  const entries = isPlainObject(parsed) ? version1Entries(parsed) : undefined;
+  const entries = version1Entries(parsed);
   if (entries === undefined) {
     throw new SdkError(
       "CONFIG_INVALID",

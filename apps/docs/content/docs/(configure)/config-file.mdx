@@ -112,6 +112,8 @@ export default defineConfig({
 
 The two forms are mutually exclusive; there is no merge between them. A relative file path resolves against the directory of the loaded config file, or against the working directory when the config is passed as an in-memory override. The file must be UTF-8 encoded and no larger than 1 MiB, and it is read once when the config loads: verbatra does not watch it for changes, so edit it and restart to pick up an update. A missing file, invalid JSON, or a value that is neither a flat string map nor a valid version 2 glossary fails config loading with `CONFIG_INVALID`, naming the resolved path and, for version 2, the field at fault.
 
+A term named `__proto__` works in a glossary file and in a JSON or YAML config. In a `verbatra.config.ts` object literal, JavaScript itself turns `__proto__` into the object's prototype before verbatra sees it, so keep such a term in a glossary file.
+
 #### Per-locale glossary (version 2)
 
 <AvailableFrom version="0.12.0" />

@@ -219,3 +219,69 @@ describe("loadConfigWithMeta: an inline version 2 glossary", () => {
     ).rejects.toMatchObject({ code: "CONFIG_INVALID" });
   });
 });
+
+describe("loadConfigWithMeta: an inline version 1 glossary in a JSON config", () => {
+  it("keeps a term named __proto__ as a term", async () => {
+    const dir = await makeTempDir();
+    await writeFile(
+      join(dir, ".verbatrarc.json"),
+      JSON.stringify({ ...baseConfig(), glossary: { Save: "Speichern" } }).replace(
+        '"glossary":{',
+        '"glossary":{"__proto__":"Prototyp",',
+      ),
+      "utf8",
+    );
+
+    const loaded = await loadConfigWithMeta({ cwd: dir });
+
+    expect(Object.entries(loaded.config.glossary ?? {})).toEqual([
+      ["__proto__", "Prototyp"],
+      ["Save", "Speichern"],
+    ]);
+    expect(Object.prototype).not.toHaveProperty("Save");
+  });
+
+  it("keeps a term named __proto__ in a YAML config too", async () => {
+    const dir = await makeTempDir();
+    await writeFile(
+      join(dir, ".verbatrarc.yaml"),
+      [
+        "sourceLocale: en",
+        "targetLocales: [de]",
+        "format: i18next-json",
+        "files:",
+        '  pattern: "locales/{locale}.json"',
+        "provider:",
+        "  id: deepl",
+        "  options: {}",
+        "glossary:",
+        "  __proto__: Prototyp",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const loaded = await loadConfigWithMeta({ cwd: dir });
+
+    expect(Object.entries(loaded.config.glossary ?? {})).toEqual([["__proto__", "Prototyp"]]);
+  });
+
+  it("refuses a __proto__ term whose translation is not a string", async () => {
+    const dir = await makeTempDir();
+    await writeFile(
+      join(dir, ".verbatrarc.json"),
+      JSON.stringify({ ...baseConfig(), glossary: { Save: "Speichern" } }).replace(
+        '"glossary":{',
+        '"glossary":{"__proto__":5,',
+      ),
+      "utf8",
+    );
+
+    await expect(loadConfigWithMeta({ cwd: dir })).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      message: expect.stringContaining(
+        "glossary: must be a flat object of string keys to string values",
+      ),
+    });
+  });
+});

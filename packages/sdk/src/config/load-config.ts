@@ -6,6 +6,7 @@ import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import type { z } from "zod";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { isGlossaryDefinition, version1Entries } from "./glossary.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
 import { declareProviderKeyEnvVar } from "./provider-key-env.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
@@ -145,7 +146,24 @@ function parseConfig(input: unknown): ParsedVerbatraConfig {
       `The verbatra configuration is invalid: ${formatIssues(parsed.error)}`,
     );
   }
-  return parsed.data;
+  return withInlineVersion1Glossary(parsed.data, input);
+}
+
+function withInlineVersion1Glossary(
+  parsed: ParsedVerbatraConfig,
+  input: unknown,
+): ParsedVerbatraConfig {
+  if (typeof parsed.glossary !== "object" || isGlossaryDefinition(parsed.glossary)) {
+    return parsed;
+  }
+  const entries = version1Entries((input as { readonly glossary?: unknown }).glossary);
+  if (entries === undefined) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      "The verbatra configuration is invalid: glossary: must be a flat object of string keys to string values",
+    );
+  }
+  return { ...parsed, glossary: Object.fromEntries(entries) };
 }
 
 async function finalizeConfig(

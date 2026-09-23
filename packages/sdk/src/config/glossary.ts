@@ -74,6 +74,8 @@ export interface GlossaryDefinition {
  */
 export type GlossaryInput = Readonly<Record<string, string>> | GlossaryDefinition;
 
+export type Version1Entries = readonly (readonly [string, string])[];
+
 /** One term of a {@link Glossary}, with every default filled in. */
 export interface GlossaryTerm {
   /** The source-language term. */
@@ -274,6 +276,21 @@ function recordOf(value: unknown): Readonly<Record<string, unknown>> | undefined
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Readonly<Record<string, unknown>>)
     : undefined;
+}
+
+export function version1Entries(value: unknown): Version1Entries | undefined {
+  const record = recordOf(value);
+  if (record === undefined) {
+    return undefined;
+  }
+  const entries: (readonly [string, string])[] = [];
+  for (const [term, translation] of Object.entries(record)) {
+    if (typeof translation !== "string") {
+      return undefined;
+    }
+    entries.push([term, translation]);
+  }
+  return entries;
 }
 
 export function rawLocaleKeyIssues(definition: unknown): readonly GlossaryIssue[] {

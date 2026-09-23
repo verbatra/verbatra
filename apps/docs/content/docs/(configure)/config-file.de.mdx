@@ -113,6 +113,8 @@ export default defineConfig({
 
 Die beiden Formen schließen einander aus; es gibt keinen Merge zwischen ihnen. Ein relativer Dateipfad wird gegen das Verzeichnis der geladenen Konfigurationsdatei aufgelöst, oder gegen das Arbeitsverzeichnis, wenn die Konfiguration als In-Memory-Override übergeben wird. Die Datei muss UTF-8-kodiert und höchstens 1 MiB groß sein, und sie wird einmal beim Laden der Konfiguration gelesen: verbatra beobachtet sie nicht auf Änderungen, also bearbeite sie und starte neu, damit ein Update greift. Eine fehlende Datei, ungültiges JSON oder ein Wert, der weder eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist, lässt das Laden der Konfiguration mit `CONFIG_INVALID` fehlschlagen und nennt den aufgelösten Pfad sowie bei Version 2 das fehlerhafte Feld.
 
+Ein Begriff namens `__proto__` funktioniert in einer Glossardatei und in einer JSON- oder YAML-Konfiguration. In einem Objektliteral in `verbatra.config.ts` macht JavaScript selbst aus `__proto__` den Prototyp des Objekts, bevor verbatra es sieht. Leg einen solchen Begriff deshalb in eine Glossardatei.
+
 #### Glossar pro Locale (Version 2)
 
 <AvailableFrom version="0.12.0" />

@@ -7,10 +7,9 @@ import {
   glossaryDefinitionSchema,
   isEmptyTerm,
   localeKey,
+  type Version1Entries,
 } from "./glossary.js";
 import { localeCodeSchema } from "./locale-code.js";
-
-export type Version1Entries = readonly (readonly [string, string])[];
 
 export interface GlossaryEdit {
   readonly term: string;

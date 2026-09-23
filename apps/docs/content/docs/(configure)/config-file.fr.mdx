@@ -113,6 +113,8 @@ export default defineConfig({
 
 Les deux formes sont mutuellement exclusives ; il n'y a pas de fusion entre elles. Un chemin de fichier relatif se résout par rapport au répertoire du fichier de configuration chargé, ou par rapport au répertoire de travail quand la configuration est passée comme surcharge en mémoire. Le fichier doit être encodé en UTF-8 et ne pas dépasser 1 MiB, et il est lu une fois au chargement de la configuration : verbatra ne le surveille pas, donc modifie-le et redémarre pour prendre en compte une mise à jour. Un fichier absent, un JSON invalide ou une valeur qui n'est ni une table plate de chaînes ni un glossaire version 2 valide fait échouer le chargement de la configuration avec `CONFIG_INVALID`, en nommant le chemin résolu et, pour la version 2, le champ en faute.
 
+Un terme nommé `__proto__` fonctionne dans un fichier de glossaire et dans une configuration JSON ou YAML. Dans un littéral d'objet de `verbatra.config.ts`, JavaScript lui-même transforme `__proto__` en prototype de l'objet avant que verbatra ne le voie : garde donc un tel terme dans un fichier de glossaire.
+
 #### Glossaire par locale (version 2)
 
 <AvailableFrom version="0.12.0" />

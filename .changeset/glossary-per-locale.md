@@ -26,6 +26,9 @@ rendering, and `EQUALS_SOURCE` no longer flags a source made only of terms to ke
 `translate`, `retranslateEntry`, `exportWorkbook` and `check --qa`. Term matching folds case by
 each locale's rules.
 
+A glossary term named `__proto__` is no longer dropped: a glossary file and an inline glossary in a
+JSON or YAML config keep it, and editing another term no longer deletes it from the file.
+
 Breaking for SDK callers: `readGlossaryFile` and `updateGlossaryTerm` now return the normalized
 `Glossary` instead of a flat term map, `updateGlossaryTerm` also takes `locale`, `forbidden`,
 `note`, `partOfSpeech`, `caseSensitive` and `doNotTranslate`, its `translation: null` now removes

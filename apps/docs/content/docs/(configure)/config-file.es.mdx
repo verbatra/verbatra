@@ -112,6 +112,8 @@ export default defineConfig({
 
 Las dos formas son mutuamente excluyentes; no hay fusión entre ellas. Una ruta de archivo relativa se resuelve contra el directorio del archivo de configuración cargado, o contra el directorio de trabajo cuando la configuración se pasa como override en memoria. El archivo debe estar codificado en UTF-8 y no superar 1 MiB, y se lee una vez cuando la configuración carga: verbatra no lo vigila en busca de cambios, así que edítalo y reinicia para recoger una actualización. Un archivo ausente, JSON inválido o un valor que no sea ni un mapa plano de strings ni un glosario válido de la versión 2 hace fallar la carga de la configuración con `CONFIG_INVALID`, nombrando la ruta resuelta y, en la versión 2, el campo con el error.
 
+Un término llamado `__proto__` funciona en un archivo de glosario y en una configuración JSON o YAML. En un literal de objeto de `verbatra.config.ts`, el propio JavaScript convierte `__proto__` en el prototipo del objeto antes de que verbatra lo vea, así que pon ese término en un archivo de glosario.
+
 #### Glosario por locale (versión 2)
 
 <AvailableFrom version="0.12.0" />
