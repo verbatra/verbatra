@@ -71,7 +71,13 @@ describe("judgeProviderEndpoint: hosted providers", () => {
 describe("judgeProviderEndpoint: openai-compatible", () => {
   const target = (baseUrl: string) => ({ id: "openai-compatible" as const, baseUrl });
 
-  it.each(["http://localhost:11434/v1", "http://[::1]:8080", "http://192.168.1.5:8000/v1"])(
+  it("defers localhost to the request-time check, which requires loopback addresses", () => {
+    expect(
+      judgeProviderEndpoint(LOCAL_ONLY, target("http://localhost:11434/v1"), {}),
+    ).toMatchObject({ kind: "permitted", deferred: true });
+  });
+
+  it.each(["http://127.0.0.1:11434/v1", "http://[::1]:8080", "http://192.168.1.5:8000/v1"])(
     "permits the local base URL %s",
     (baseUrl) => {
       expect(judgeProviderEndpoint(LOCAL_ONLY, target(baseUrl), {})).toMatchObject({

@@ -18,7 +18,7 @@ export type EnvironmentRule =
   | { readonly kind: "rule"; readonly rule: NetworkRule }
   | { readonly kind: "invalid"; readonly message: string };
 
-function readTrimmed(env: EnvironmentSource, name: string): string | undefined {
+export function readTrimmed(env: EnvironmentSource, name: string): string | undefined {
   const value = env[name]?.trim();
   return value === undefined || value.length === 0 ? undefined : value;
 }

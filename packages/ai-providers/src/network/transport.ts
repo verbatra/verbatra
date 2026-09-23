@@ -13,10 +13,20 @@ export interface ProviderNetwork {
   readonly deps?: GuardedFetchDeps;
 }
 
+export type RunCall = <T>(call: () => Promise<T>) => Promise<T>;
+
+export interface ClientTransport<Options> {
+  readonly options: Options;
+  readonly run: RunCall;
+}
+
 export interface PinnedTransport {
   readonly baseUrl: string;
   readonly fetch: FetchLike;
+  readonly run: RunCall;
 }
+
+const unrestricted: RunCall = (call) => call();
 
 export function pinnedTransport(
   target: EndpointTarget,
@@ -25,25 +35,43 @@ export function pinnedTransport(
   if (network === undefined) {
     return undefined;
   }
+  const guarded = createGuardedFetch(network.policy, network.deps);
   return {
     baseUrl: resolveProviderEndpoint(target, network.env).url,
-    fetch: createGuardedFetch(network.policy, network.deps),
+    fetch: guarded.fetch,
+    run: guarded.run,
   };
 }
 
 export function openAiStyleTransport(
   target: EndpointTarget,
   network: ProviderNetwork | undefined,
-): { baseURL?: string; fetch?: FetchLike } {
+): ClientTransport<{ baseURL?: string; fetch?: FetchLike }> {
   const pinned = pinnedTransport(target, network);
-  return pinned === undefined ? {} : { baseURL: pinned.baseUrl, fetch: pinned.fetch };
+  return pinned === undefined
+    ? { options: {}, run: unrestricted }
+    : { options: { baseURL: pinned.baseUrl, fetch: pinned.fetch }, run: pinned.run };
 }
 
-export function geminiTransport(network: ProviderNetwork | undefined): {
-  httpOptions?: { baseUrl: string; fetch: FetchLike };
-} {
+export function geminiTransport(
+  network: ProviderNetwork | undefined,
+): ClientTransport<{ httpOptions?: { baseUrl: string; fetch: FetchLike } }> {
   const pinned = pinnedTransport({ id: "gemini" }, network);
   return pinned === undefined
-    ? {}
-    : { httpOptions: { baseUrl: pinned.baseUrl, fetch: pinned.fetch } };
+    ? { options: {}, run: unrestricted }
+    : {
+        options: { httpOptions: { baseUrl: pinned.baseUrl, fetch: pinned.fetch } },
+        run: pinned.run,
+      };
+}
+
+export function fetchTransport(
+  target: EndpointTarget,
+  network: ProviderNetwork | undefined,
+  fallback: FetchLike,
+): ClientTransport<FetchLike> {
+  const pinned = pinnedTransport(target, network);
+  return pinned === undefined
+    ? { options: fallback, run: unrestricted }
+    : { options: pinned.fetch, run: pinned.run };
 }

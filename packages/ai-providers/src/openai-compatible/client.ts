@@ -10,23 +10,27 @@ export function createDefaultClient(
   config: OpenAiCompatibleConfig,
   network?: ProviderNetwork,
 ): OpenAiClient {
+  const transport = openAiStyleTransport(
+    { id: "openai-compatible", baseUrl: config.baseUrl },
+    network,
+  );
   const sdk = new OpenAI({
     apiKey: resolveOpenAiCompatibleKey(config.apiKeyEnvVar),
     baseURL: config.baseUrl,
     logLevel: "off",
-    ...openAiStyleTransport({ id: "openai-compatible", baseUrl: config.baseUrl }, network),
+    ...transport.options,
   });
   return {
     chat: {
       completions: {
-        create: async (
-          body: OpenAiRequest,
-          options?: OpenAiCallOptions,
-        ): Promise<OpenAiCompletion> =>
-          (await sdk.chat.completions.create(
-            toMutableRequest(body),
-            options,
-          )) as unknown as OpenAiCompletion,
+        create: (body: OpenAiRequest, options?: OpenAiCallOptions): Promise<OpenAiCompletion> =>
+          transport.run(
+            async () =>
+              (await sdk.chat.completions.create(
+                toMutableRequest(body),
+                options,
+              )) as unknown as OpenAiCompletion,
+          ),
       },
     },
   };

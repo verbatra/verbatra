@@ -69,9 +69,30 @@ describe("proxiesInEffect", () => {
     ALL_PROXY: "http://[",
   };
 
-  it("ignores proxy variables for fetch unless NODE_USE_ENV_PROXY is 1", () => {
-    expect(proxiesInEffect("fetch", proxyEnv)).toEqual([]);
-    expect(proxiesInEffect("fetch", { ...proxyEnv, NODE_USE_ENV_PROXY: "0" })).toEqual([]);
+  it("ignores proxy variables for fetch unless Node's env proxy is switched on", () => {
+    expect(proxiesInEffect("fetch", proxyEnv, [])).toEqual([]);
+    expect(proxiesInEffect("fetch", { ...proxyEnv, NODE_USE_ENV_PROXY: "0" }, [])).toEqual([]);
+    expect(
+      proxiesInEffect("fetch", { ...proxyEnv, NODE_OPTIONS: "--use-env-proxy-x" }, []),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["NODE_USE_ENV_PROXY=1", { NODE_USE_ENV_PROXY: "1" }, []],
+    [
+      "--use-env-proxy in NODE_OPTIONS",
+      { NODE_OPTIONS: "--max-old-space-size=512 --use-env-proxy" },
+      [],
+    ],
+    ["--use-env-proxy in execArgv", {}, ["--use-env-proxy"]],
+  ])("detects the env proxy for fetch through %s", (_, extra, execArgv) => {
+    expect(proxiesInEffect("fetch", { ...proxyEnv, ...extra }, execArgv)).toHaveLength(3);
+  });
+
+  it("reads the running process's execArgv by default", () => {
+    expect(proxiesInEffect("fetch", proxyEnv)).toEqual(
+      process.execArgv.includes("--use-env-proxy") ? expect.any(Array) : [],
+    );
   });
 
   it("lists every set proxy variable for axios, and for fetch when switched on", () => {
@@ -80,8 +101,10 @@ describe("proxiesInEffect", () => {
       { variable: "http_proxy", host: "10.0.0.9" },
       { variable: "ALL_PROXY", host: undefined },
     ];
-    expect(proxiesInEffect("axios", proxyEnv)).toEqual(expected);
-    expect(proxiesInEffect("fetch", { ...proxyEnv, NODE_USE_ENV_PROXY: "1" })).toEqual(expected);
+    expect(proxiesInEffect("axios", proxyEnv, [])).toEqual(expected);
+    expect(proxiesInEffect("fetch", { ...proxyEnv, NODE_USE_ENV_PROXY: "1" }, [])).toEqual(
+      expected,
+    );
   });
 
   it("treats a proxy URL without a host as unparseable", () => {

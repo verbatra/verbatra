@@ -1,5 +1,6 @@
 import { requireGoogleTranslateKey } from "../env.js";
-import { type ProviderNetwork, pinnedTransport } from "../network/transport.js";
+import type { FetchLike } from "../network/guarded-fetch.js";
+import { fetchTransport, type ProviderNetwork } from "../network/transport.js";
 import { GOOGLE_TRANSLATE_ENDPOINT } from "./endpoint.js";
 import type {
   GoogleTranslateClient,
@@ -7,7 +8,7 @@ import type {
   GoogleTranslateHttpResponse,
 } from "./types.js";
 
-const globalFetch = (input: string, init: RequestInit): Promise<Response> => fetch(input, init);
+const globalFetch: FetchLike = (input, init) => fetch(input, init);
 
 async function parseJsonBody(response: Response): Promise<unknown> {
   try {
@@ -19,30 +20,27 @@ async function parseJsonBody(response: Response): Promise<unknown> {
 
 export function createDefaultClient(network?: ProviderNetwork): GoogleTranslateClientBundle {
   const apiKey = requireGoogleTranslateKey();
-  const send = pinnedTransport({ id: "google-translate" }, network)?.fetch ?? globalFetch;
+  const transport = fetchTransport({ id: "google-translate" }, network, globalFetch);
+  const send = transport.options;
   const client: GoogleTranslateClient = {
-    translate: async (
-      texts,
-      sourceLang,
-      targetLang,
-      signal,
-    ): Promise<GoogleTranslateHttpResponse> => {
-      const response = await send(
-        `${GOOGLE_TRANSLATE_ENDPOINT}?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            q: texts,
-            source: sourceLang,
-            target: targetLang,
-            format: "text",
-          }),
-          signal,
-        },
-      );
-      return { status: response.status, body: await parseJsonBody(response) };
-    },
+    translate: (texts, sourceLang, targetLang, signal): Promise<GoogleTranslateHttpResponse> =>
+      transport.run(async () => {
+        const response = await send(
+          `${GOOGLE_TRANSLATE_ENDPOINT}?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              q: texts,
+              source: sourceLang,
+              target: targetLang,
+              format: "text",
+            }),
+            signal,
+          },
+        );
+        return { status: response.status, body: await parseJsonBody(response) };
+      }),
   };
   return { client };
 }

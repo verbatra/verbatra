@@ -7,15 +7,19 @@ import { withGeminiRetry } from "./retry.js";
 import type { GeminiClient, GeminiResponse } from "./types.js";
 
 export function createDefaultClient(network?: ProviderNetwork): GeminiClient {
-  const ai = new GoogleGenAI({ apiKey: requireGeminiKey(), ...geminiTransport(network) });
+  const transport = geminiTransport(network);
+  const ai = new GoogleGenAI({ apiKey: requireGeminiKey(), ...transport.options });
   return {
     models: {
       generateContent: (request: GeminiRequest): Promise<GeminiResponse> =>
         withGeminiRetry(
-          async () =>
-            (await ai.models.generateContent(
-              toMutableRequest(request),
-            )) as unknown as GeminiResponse,
+          () =>
+            transport.run(
+              async () =>
+                (await ai.models.generateContent(
+                  toMutableRequest(request),
+                )) as unknown as GeminiResponse,
+            ),
           request.config.abortSignal,
         ),
     },

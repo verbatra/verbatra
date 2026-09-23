@@ -48,8 +48,12 @@ afterEach(() => {
   }
 });
 
-function network(send: FetchLike, env: ProviderNetwork["env"] = {}): ProviderNetwork {
-  return { policy: LOCAL_ONLY, env, deps: { fetch: send, lookup: async () => ["203.0.113.5"] } };
+function network(
+  send: FetchLike,
+  env: ProviderNetwork["env"] = {},
+  lookup = vi.fn(async () => ["203.0.113.5"]),
+): ProviderNetwork {
+  return { policy: LOCAL_ONLY, env, deps: { fetch: send, lookup } };
 }
 
 async function failure(provider: TranslationProvider): Promise<ProviderError> {
@@ -63,33 +67,78 @@ function urlOf(send: ReturnType<typeof vi.fn<FetchLike>>): string {
   return input instanceof Request ? input.url : String(input);
 }
 
-describe("the network policy inside the real SDK clients", () => {
-  it("blocks a hosted provider's pinned endpoint before any request is sent", async () => {
-    const send = vi.fn<FetchLike>();
-    const provider = createAnthropicProvider(
-      { model: "claude-sonnet-4-5", maxTokens: 64 },
-      { network: network(send) },
-    );
-    const error = await failure(provider);
-    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
-    expect(error.message).toContain("The request to api.anthropic.com was blocked");
-    expect(send).not.toHaveBeenCalled();
-  }, 15_000);
+const builders: ReadonlyArray<
+  readonly [string, (network: ProviderNetwork) => TranslationProvider]
+> = [
+  [
+    "anthropic",
+    (net) =>
+      createAnthropicProvider({ model: "claude-sonnet-4-5", maxTokens: 64 }, { network: net }),
+  ],
+  [
+    "openai",
+    (net) => createOpenAiProvider({ model: "gpt-5-mini", maxOutputTokens: 64 }, { network: net }),
+  ],
+  [
+    "openai-compatible",
+    (net) =>
+      createOpenAiCompatibleProvider(
+        { baseUrl: "http://llm.internal:1234/v1", model: "local", maxOutputTokens: 64 },
+        { network: net },
+      ),
+  ],
+  [
+    "gemini",
+    (net) =>
+      createGeminiProvider({ model: "gemini-2.5-flash", maxOutputTokens: 64 }, { network: net }),
+  ],
+  ["google-translate", (net) => createGoogleTranslateProvider({}, { network: net })],
+];
 
-  it("stops a redirect from a local server to a public host", async () => {
-    const send = vi.fn<FetchLike>(
-      async () =>
-        new Response(null, { status: 308, headers: { location: "https://collector.example/x" } }),
-    );
-    const provider = createOpenAiCompatibleProvider(
-      { baseUrl: "http://127.0.0.1:1234/v1", model: "local", maxOutputTokens: 64 },
-      { network: network(send) },
-    );
-    const error = await failure(provider);
-    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
-    expect(error.message).toContain("collector.example");
-    expect(urlOf(send)).toBe("http://127.0.0.1:1234/v1/chat/completions");
-  }, 15_000);
+describe("the network policy inside the real SDK clients", () => {
+  it.each(builders)(
+    "%s: a refused host fails once with NETWORK_POLICY_VIOLATION and is never retried",
+    async (_, build) => {
+      const send = vi.fn<FetchLike>();
+      const lookup = vi.fn(async () => ["203.0.113.5"]);
+      const error = await failure(build(network(send, {}, lookup)));
+      expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
+      expect(error.message).toContain("was blocked");
+      expect(error.message).not.toContain("test-key-value");
+      expect(lookup).toHaveBeenCalledTimes(1);
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(builders)(
+    "%s: a cross-origin redirect is refused after exactly one request",
+    async (_, build) => {
+      const send = vi.fn<FetchLike>(
+        async () =>
+          new Response(null, { status: 308, headers: { location: "https://collector.example/x" } }),
+      );
+      const lookup = vi.fn(async () => ["10.0.0.9"]);
+      const env = {
+        ANTHROPIC_BASE_URL: "http://llm.internal:1234",
+        OPENAI_BASE_URL: "http://llm.internal:1234/v1",
+        GOOGLE_GEMINI_BASE_URL: "http://llm.internal:1234",
+      };
+      const policy: NetworkPolicy = {
+        rules: [
+          {
+            source: "config",
+            policy: "local-only",
+            allowedHosts: ["translation.googleapis.com"],
+          },
+        ],
+      };
+      const error = await failure(build({ policy, env, deps: { fetch: send, lookup } }));
+      expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
+      expect(error.message).toContain("collector.example");
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls.every(([input]) => !String(input).includes("collector"))).toBe(true);
+    },
+  );
 
   it("pins the OpenAI base URL resolved at check time", async () => {
     const send = vi.fn<FetchLike>(async () => new Response("{}", { status: 400 }));
@@ -101,7 +150,7 @@ describe("the network policy inside the real SDK clients", () => {
     expect(urlOf(send)).toBe("http://10.0.0.8:9000/v1/chat/completions");
   });
 
-  it("routes Gemini through the guarded fetch", async () => {
+  it("pins the Gemini base URL resolved at check time", async () => {
     const send = vi.fn<FetchLike>(async () => new Response("{}", { status: 400 }));
     const provider = createGeminiProvider(
       { model: "gemini-2.5-flash", maxOutputTokens: 64 },
@@ -109,15 +158,5 @@ describe("the network policy inside the real SDK clients", () => {
     );
     await failure(provider);
     expect(urlOf(send).startsWith("http://127.0.0.1:7000/")).toBe(true);
-  });
-
-  it("routes Google Cloud Translation through the guarded fetch", async () => {
-    const send = vi.fn<FetchLike>();
-    const provider = createGoogleTranslateProvider({}, { network: network(send) });
-    const error = await failure(provider);
-    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
-    expect(error.message).not.toContain("test-key-value");
-    expect(error.message).not.toContain("/language/translate");
-    expect(send).not.toHaveBeenCalled();
   });
 });

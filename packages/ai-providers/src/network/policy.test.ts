@@ -69,16 +69,23 @@ describe("judgeHost: local-only classifies addresses", () => {
   });
 
   it.each(["localhost", "LOCALHOST", "localhost.", "ollama.localhost", "a.b.localhost"])(
-    "permits the loopback name %s without resolving it",
+    "resolves the loopback name %s and requires loopback addresses",
     (host) => {
-      expect(judgeHost(LOCAL_ONLY, host).verdict).toBe("permitted");
+      const judgement = judgeHost(LOCAL_ONLY, host, true);
+      expect(judgement.verdict).toBe("resolve");
+      expect(judgement.resolveFor).toEqual([{ rule: rule("local-only"), loopbackOnly: true }]);
     },
   );
+
+  it("strips an IPv6 zone id before classifying", () => {
+    expect(judgeHost(LOCAL_ONLY, "fe80::1%en0").verdict).toBe("refused");
+    expect(judgeHost(LOCAL_ONLY, "[::1%lo0]").verdict).toBe("permitted");
+  });
 
   it("defers any other name to resolution", () => {
     const judgement = judgeHost(LOCAL_ONLY, "llm.internal");
     expect(judgement.verdict).toBe("resolve");
-    expect(judgement.resolveFor).toEqual([rule("local-only")]);
+    expect(judgement.resolveFor).toEqual([{ rule: rule("local-only"), loopbackOnly: false }]);
   });
 
   it("refuses a known public name outright instead of resolving it", () => {
@@ -118,6 +125,9 @@ describe("judgeHost: allowedHosts", () => {
   it("refuses a loopback address under allowlist unless it is listed", () => {
     expect(judgeHost(only(rule("allowlist", ["gpu.lan"])), "127.0.0.1").verdict).toBe("refused");
     expect(judgeHost(only(rule("allowlist", ["gpu.lan"])), "localhost").verdict).toBe("refused");
+    expect(judgeHost(only(rule("allowlist", ["localhost"])), "localhost").verdict).toBe(
+      "permitted",
+    );
   });
 
   it("refuses an unlisted name under allowlist without subnets, and resolves it with subnets", () => {
@@ -155,7 +165,18 @@ describe("judgeHost: combined rules", () => {
 });
 
 describe("findRefusingRule", () => {
-  const rules = [rule("local-only")];
+  const rules = [{ rule: rule("local-only"), loopbackOnly: false }];
+  const loopbackOnly = [{ rule: rule("local-only"), loopbackOnly: true }];
+
+  it("requires loopback for a localhost name", () => {
+    expect(findRefusingRule(loopbackOnly, ["127.0.0.1", "::1"])).toBeUndefined();
+    expect(findRefusingRule(loopbackOnly, ["127.0.0.1", "10.0.0.1"])).toEqual(rule("local-only"));
+    expect(findRefusingRule(loopbackOnly, ["203.0.113.10"])).toEqual(rule("local-only"));
+  });
+
+  it("refuses a zone-scoped link-local answer", () => {
+    expect(findRefusingRule(rules, ["fe80::1%en0"])).toEqual(rule("local-only"));
+  });
 
   it("accepts a name whose every address is local", () => {
     expect(findRefusingRule(rules, ["10.1.2.3", "::1"])).toBeUndefined();

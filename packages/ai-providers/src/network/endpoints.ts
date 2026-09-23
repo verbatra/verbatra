@@ -1,6 +1,6 @@
 import { GOOGLE_TRANSLATE_ENDPOINT } from "../google-translate/endpoint.js";
 import { PROVIDER_ENV } from "../key-env-vars.js";
-import type { EnvironmentSource } from "./environment-rule.js";
+import { type EnvironmentSource, readTrimmed } from "./environment-rule.js";
 
 export type EndpointTarget =
   | { readonly id: "anthropic" | "openai" | "gemini" | "deepl" | "google-translate" }
@@ -23,11 +23,6 @@ export const DEEPL_BASE_URL = "https://api.deepl.com";
 export const DEEPL_FREE_BASE_URL = "https://api-free.deepl.com";
 
 const GEMINI_VERTEX_SWITCHES = ["GOOGLE_GENAI_USE_VERTEXAI", "GOOGLE_GENAI_USE_ENTERPRISE"];
-
-function readTrimmed(env: EnvironmentSource, name: string): string | undefined {
-  const value = env[name]?.trim();
-  return value === undefined || value.length === 0 ? undefined : value;
-}
 
 function fetchEndpoint(
   env: EnvironmentSource,
@@ -93,6 +88,17 @@ const PROXY_ENV_VARS = [
 
 export const NODE_PROXY_SWITCH = "NODE_USE_ENV_PROXY";
 
+export const NODE_PROXY_FLAG = "--use-env-proxy";
+
+export function fetchUsesEnvProxy(env: EnvironmentSource, execArgv: readonly string[]): boolean {
+  const nodeOptions = readTrimmed(env, "NODE_OPTIONS")?.split(/\s+/) ?? [];
+  return (
+    readTrimmed(env, NODE_PROXY_SWITCH) === "1" ||
+    nodeOptions.includes(NODE_PROXY_FLAG) ||
+    execArgv.includes(NODE_PROXY_FLAG)
+  );
+}
+
 export interface ProxyInEffect {
   readonly variable: string;
   readonly host: string | undefined;
@@ -111,8 +117,9 @@ function proxyHost(value: string): string | undefined {
 export function proxiesInEffect(
   transport: EndpointTransport,
   env: EnvironmentSource,
+  execArgv: readonly string[] = process.execArgv,
 ): readonly ProxyInEffect[] {
-  if (transport === "fetch" && readTrimmed(env, NODE_PROXY_SWITCH) !== "1") {
+  if (transport === "fetch" && !fetchUsesEnvProxy(env, execArgv)) {
     return [];
   }
   return PROXY_ENV_VARS.flatMap((variable) => {

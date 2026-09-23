@@ -29,10 +29,17 @@ export interface NetworkPolicy {
 
 export type HostVerdict = "permitted" | "refused" | "resolve";
 
+type RuleVerdict = HostVerdict | "resolve-loopback";
+
+export interface ResolveRequirement {
+  readonly rule: NetworkRule;
+  readonly loopbackOnly: boolean;
+}
+
 export interface HostJudgement {
   readonly verdict: HostVerdict;
   readonly refusedBy?: NetworkRule;
-  readonly resolveFor: readonly NetworkRule[];
+  readonly resolveFor: readonly ResolveRequirement[];
 }
 
 type Address = { readonly address: string; readonly family: "ipv4" | "ipv6" };
@@ -54,6 +61,10 @@ for (const subnet of LOCAL_SUBNETS) {
   LOCAL_ADDRESSES.addSubnet(address, Number(prefix), subnet.family);
 }
 
+const LOOPBACK_ADDRESSES = new BlockList();
+LOOPBACK_ADDRESSES.addSubnet("127.0.0.0", 8, "ipv4");
+LOOPBACK_ADDRESSES.addAddress("::1", "ipv6");
+
 const MAPPED_HEX = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/;
 
 function hexPairToIpv4(high: string, low: string): string {
@@ -61,8 +72,13 @@ function hexPairToIpv4(high: string, low: string): string {
   return [24, 16, 8, 0].map((shift) => (value >>> shift) & 0xff).join(".");
 }
 
+function withoutZone(address: string): string {
+  const zone = address.indexOf("%");
+  return zone === -1 ? address : address.slice(0, zone);
+}
+
 export function toAddress(raw: string): Address | undefined {
-  const bare = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw;
+  const bare = withoutZone(raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw);
   if (isIPv4(bare)) {
     return { address: bare, family: "ipv4" };
   }
@@ -88,6 +104,10 @@ export function isLocalAddress(address: Address): boolean {
   return LOCAL_ADDRESSES.check(address.address, address.family);
 }
 
+function isLoopbackAddress(address: Address): boolean {
+  return LOOPBACK_ADDRESSES.check(address.address, address.family);
+}
+
 function isLocalName(name: string): boolean {
   return name === "localhost" || name.endsWith(".localhost");
 }
@@ -99,7 +119,19 @@ interface CompiledRule {
   readonly hasSubnets: boolean;
 }
 
+const compiledRules = new WeakMap<NetworkRule, CompiledRule>();
+
 function compileRule(rule: NetworkRule): CompiledRule {
+  const cached = compiledRules.get(rule);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const compiled = buildCompiledRule(rule);
+  compiledRules.set(rule, compiled);
+  return compiled;
+}
+
+function buildCompiledRule(rule: NetworkRule): CompiledRule {
   const entries = rule.allowedHosts
     .map(parseAllowedHost)
     .filter((entry): entry is AllowedHost => entry !== undefined);
@@ -130,12 +162,12 @@ function addressAllowed(compiled: CompiledRule, address: Address): boolean {
   );
 }
 
-function judgeName(compiled: CompiledRule, name: string, knownPublic: boolean): HostVerdict {
+function judgeName(compiled: CompiledRule, name: string, knownPublic: boolean): RuleVerdict {
   if (nameAllowed(compiled, name)) {
     return "permitted";
   }
   if (compiled.rule.policy === "local-only" && isLocalName(name)) {
-    return "permitted";
+    return "resolve-loopback";
   }
   if (knownPublic || (compiled.rule.policy === "allowlist" && !compiled.hasSubnets)) {
     return "refused";
@@ -147,7 +179,7 @@ function judgeUnderRule(
   compiled: CompiledRule,
   host: ParsedHost,
   knownPublic: boolean,
-): HostVerdict {
+): RuleVerdict {
   if (compiled.rule.policy === "any") {
     return "permitted";
   }
@@ -167,34 +199,36 @@ export function judgeHost(
   knownPublic = false,
 ): HostJudgement {
   const host = parseHost(hostname);
-  const resolveFor: NetworkRule[] = [];
+  const resolveFor: ResolveRequirement[] = [];
   for (const rule of policy.rules) {
     const verdict = judgeUnderRule(compileRule(rule), host, knownPublic);
     if (verdict === "refused") {
       return { verdict, refusedBy: rule, resolveFor: [] };
     }
-    if (verdict === "resolve") {
-      resolveFor.push(rule);
+    if (verdict !== "permitted") {
+      resolveFor.push({ rule, loopbackOnly: verdict === "resolve-loopback" });
     }
   }
   return { verdict: resolveFor.length > 0 ? "resolve" : "permitted", resolveFor };
 }
 
+function satisfies(requirement: ResolveRequirement, address: Address): boolean {
+  return requirement.loopbackOnly
+    ? isLoopbackAddress(address)
+    : addressAllowed(compileRule(requirement.rule), address);
+}
+
 export function findRefusingRule(
-  rules: readonly NetworkRule[],
+  requirements: readonly ResolveRequirement[],
   resolved: readonly string[],
 ): NetworkRule | undefined {
   const addresses = resolved
     .map(toAddress)
     .filter((address): address is Address => address !== undefined);
-  return rules.find((rule) => {
-    const compiled = compileRule(rule);
-    return (
-      addresses.length === 0 ||
-      addresses.length !== resolved.length ||
-      !addresses.every((address) => addressAllowed(compiled, address))
-    );
-  });
+  const complete = addresses.length > 0 && addresses.length === resolved.length;
+  return requirements.find(
+    (requirement) => !complete || !addresses.every((address) => satisfies(requirement, address)),
+  )?.rule;
 }
 
 export function describeRule(rule: NetworkRule): string {

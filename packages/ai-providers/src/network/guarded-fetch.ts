@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { lookup } from "node:dns/promises";
 import {
   describeRule,
@@ -21,9 +22,18 @@ export interface GuardedFetchDeps {
   readonly lookup?: LookupAddresses;
 }
 
+export interface GuardedFetch {
+  readonly fetch: FetchLike;
+  readonly run: <T>(call: () => Promise<T>) => Promise<T>;
+}
+
 export const MAX_FOLLOWED_REDIRECTS = 5;
 
+export const REFUSED_RESPONSE_STATUS = 400;
+
 const FOLLOWED_REDIRECT_STATUSES: ReadonlySet<number> = new Set([307, 308]);
+
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308]);
 
 export class NetworkPolicyViolation extends Error {
   readonly host: string;
@@ -35,67 +45,134 @@ export class NetworkPolicyViolation extends Error {
   }
 }
 
+interface CallSlot {
+  violation?: NetworkPolicyViolation;
+}
+
 const defaultFetch: FetchLike = (input, init) => fetch(input, init);
 
 const defaultLookup: LookupAddresses = async (hostname) =>
   (await lookup(hostname, { all: true, verbatim: true })).map((entry) => entry.address);
 
-function refusal(host: string, rule: NetworkRule, detail: string): NetworkPolicyViolation {
-  return new NetworkPolicyViolation(
-    host,
-    `The request to ${host} was blocked: ${detail} is not permitted by ${describeRule(rule)}.`,
-  );
+function blocked(host: string, detail: string): NetworkPolicyViolation {
+  return new NetworkPolicyViolation(host, `The request to ${host} was blocked: ${detail}.`);
 }
 
-async function assertPermitted(
+function refusal(host: string, rule: NetworkRule, subject: string): NetworkPolicyViolation {
+  return blocked(host, `${subject} is not permitted by ${describeRule(rule)}`);
+}
+
+async function checkUrl(
   policy: NetworkPolicy,
   url: URL,
   resolve: LookupAddresses,
-): Promise<void> {
+): Promise<NetworkPolicyViolation | undefined> {
   const judgement = judgeHost(policy, url.hostname);
   if (judgement.refusedBy !== undefined) {
-    throw refusal(url.host, judgement.refusedBy, "this host");
+    return refusal(url.host, judgement.refusedBy, "this host");
   }
   if (judgement.verdict !== "resolve") {
-    return;
+    return undefined;
   }
-  const addresses = await resolve(url.hostname);
-  const refusedBy = findRefusingRule(judgement.resolveFor, addresses);
-  if (refusedBy !== undefined) {
-    throw refusal(url.host, refusedBy, "an address this host resolves to");
-  }
+  const refusedBy = findRefusingRule(judgement.resolveFor, await resolve(url.hostname));
+  return refusedBy === undefined
+    ? undefined
+    : refusal(url.host, refusedBy, "an address this host resolves to");
 }
 
 function requestUrl(input: string | URL | Request): URL {
   return new URL(input instanceof Request ? input.url : input);
 }
 
-function followTarget(response: Response, current: URL): URL | undefined {
-  if (!FOLLOWED_REDIRECT_STATUSES.has(response.status)) {
-    return undefined;
-  }
+type RedirectStep =
+  | { readonly kind: "none" }
+  | { readonly kind: "follow"; readonly next: URL }
+  | { readonly kind: "refuse"; readonly violation: NetworkPolicyViolation };
+
+function redirectStep(response: Response, current: URL, followable: boolean): RedirectStep {
   const location = response.headers.get("location");
-  return location === null ? undefined : new URL(location, current);
+  if (!REDIRECT_STATUSES.has(response.status) || location === null) {
+    return { kind: "none" };
+  }
+  const next = new URL(location, current);
+  if (next.origin !== current.origin) {
+    return {
+      kind: "refuse",
+      violation: blocked(
+        current.host,
+        `it redirected to ${next.host}, and a restrictive network policy follows no redirect to another origin`,
+      ),
+    };
+  }
+  return followable && FOLLOWED_REDIRECT_STATUSES.has(response.status)
+    ? { kind: "follow", next }
+    : { kind: "none" };
 }
 
-export function createGuardedFetch(policy: NetworkPolicy, deps: GuardedFetchDeps = {}): FetchLike {
+function refusedResponse(violation: NetworkPolicyViolation): Response {
+  return new Response(
+    JSON.stringify({ error: { type: "network_policy_violation", message: violation.message } }),
+    {
+      status: REFUSED_RESPONSE_STATUS,
+      headers: { "content-type": "application/json", "x-should-retry": "false" },
+    },
+  );
+}
+
+export function createGuardedFetch(
+  policy: NetworkPolicy,
+  deps: GuardedFetchDeps = {},
+): GuardedFetch {
   const send = deps.fetch ?? defaultFetch;
   const resolve = deps.lookup ?? defaultLookup;
-  return async (input, init) => {
+  const calls = new AsyncLocalStorage<CallSlot>();
+
+  function refuse(violation: NetworkPolicyViolation): Response {
+    const slot = calls.getStore();
+    if (slot === undefined) {
+      throw violation;
+    }
+    slot.violation = violation;
+    return refusedResponse(violation);
+  }
+
+  const guardedFetch: FetchLike = async (input, init) => {
     let url = requestUrl(input);
     let target: string | URL | Request = input;
     for (let hop = 0; ; hop += 1) {
-      await assertPermitted(policy, url, resolve);
+      const violation = await checkUrl(policy, url, resolve);
+      if (violation !== undefined) {
+        return refuse(violation);
+      }
       const response = await send(target, { ...init, redirect: "manual" });
-      const next = input instanceof Request ? undefined : followTarget(response, url);
-      if (next === undefined || hop >= MAX_FOLLOWED_REDIRECTS) {
+      const followable = !(input instanceof Request) && hop < MAX_FOLLOWED_REDIRECTS;
+      const step = redirectStep(response, url, followable);
+      if (step.kind === "none") {
         return response;
       }
       await response.body?.cancel();
-      url = next;
-      target = next.href;
+      if (step.kind === "refuse") {
+        return refuse(step.violation);
+      }
+      url = step.next;
+      target = step.next.href;
     }
   };
+
+  const run = async <T>(call: () => Promise<T>): Promise<T> => {
+    const slot: CallSlot = {};
+    try {
+      const result = await calls.run(slot, call);
+      if (slot.violation !== undefined) {
+        throw slot.violation;
+      }
+      return result;
+    } catch (error) {
+      throw slot.violation ?? error;
+    }
+  };
+
+  return { fetch: guardedFetch, run };
 }
 
 export function findNetworkPolicyViolation(error: unknown): NetworkPolicyViolation | undefined {
