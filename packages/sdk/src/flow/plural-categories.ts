@@ -140,6 +140,7 @@ export function pluralIncompleteNotice(targetLocale: string): SdkNotice {
 export interface PluralGenerationItem {
   readonly targetKey: string;
   readonly category: CldrPluralCategory;
+  readonly ruleType: PluralRuleType;
   readonly sourceEntry: TranslationEntry;
   readonly governingEntries: readonly TranslationEntry[];
 }
@@ -154,16 +155,12 @@ function representativeEntry(
   return group.get("other") ?? group.get("one") ?? [...group.values()][0];
 }
 
-function ordinalLabel(targetKey: string): string {
-  return ruleTypeOf(pluralBaseKey(targetKey) ?? targetKey) === "ordinal" ? "ordinal " : "";
-}
-
 export function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
   return {
     ...item.sourceEntry,
     key: item.targetKey,
     isPlural: true,
-    meaning: `CLDR ${ordinalLabel(item.targetKey)}plural category "${item.category}"`,
+    meaning: `CLDR ${item.ruleType === "ordinal" ? "ordinal " : ""}plural category "${item.category}"`,
   };
 }
 
@@ -191,13 +188,15 @@ export function planPluralGeneration(
       continue;
     }
     const governingEntries = [...group.values()];
-    for (const category of required[ruleTypeOf(baseKey)]) {
+    const ruleType = ruleTypeOf(baseKey);
+    for (const category of required[ruleType]) {
       if (group.has(category)) {
         continue;
       }
       items.push({
         targetKey: makePluralKey(baseKey, category),
         category,
+        ruleType,
         sourceEntry: representative,
         governingEntries,
       });

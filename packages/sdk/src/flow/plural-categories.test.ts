@@ -265,3 +265,17 @@ describe("plural categories: i18next ordinal keys follow ordinal rules", () => {
     ).toBe(true);
   });
 });
+
+describe("plural categories: only an _ordinal base-key suffix selects ordinal rules", () => {
+  it.each([
+    ["coordinal_one", "cardinal"],
+    ["a.ordinal_one", "cardinal"],
+    ["a.place_ordinal_one", "ordinal"],
+  ])("treats %s as a %s group", (key, ruleType) => {
+    const plan = planPluralGeneration(source([key]), "fr", "i18next-json");
+    expect(new Set(plan.items.map((item) => item.ruleType))).toEqual(new Set([ruleType]));
+    expect(plan.items.map((item) => item.category)).toEqual(
+      ruleType === "ordinal" ? ["other"] : ["many", "other"],
+    );
+  });
+});
