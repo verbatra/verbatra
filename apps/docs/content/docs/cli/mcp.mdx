@@ -110,6 +110,10 @@ A value written through `translation.editEntry` is recorded with the origin `age
 
 The inline markup checks in `key.integrity` (`markupMatches`, `markupDetails`) and in `translation.editEntry` (the `markup` reason), a `custom:` format id in `project.snapshot`, and `budget.standing` in `usage.summary` arrived in this release.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`key.value` also returns `provenance` whenever `target` is present: `origin`, `provider` and `model` for machine output, `reviewState`, and `reviewer` when one was recorded. Each `lock.state` and `status.check` locale carries `provenance` counts (`byOrigin`, `byReviewState`), and each `status.diff` locale carries `changedOrigins`, the origin of every changed key's current value. All of them are left out when `verbatra.provenance.json` is corrupt or was written by a newer verbatra; see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
+
 ## Secret redaction
 
 Every tool result and every log line passes through the same secret-redaction pass Studio uses: a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it ever reaches the client or stderr. `glossary.get` and `glossary.write` also report which terms were redacted, so you can tell a scrubbed placeholder apart from the real text and never write it back.

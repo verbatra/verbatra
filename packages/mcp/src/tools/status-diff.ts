@@ -32,6 +32,9 @@ export const statusDiffTool = defineTool({
     "List, per target locale, the exact keys that would be added, re-translated, or orphaned by " +
     "the next translate run, without writing anything or calling a provider. Use this to preview " +
     "what a translate or translation.translatePending call would change before spending on it. " +
+    "Each locale also carries changedOrigins, the origin of every changed key's current value " +
+    "(for example human, import, or external), so you can see whose work a re-translation would " +
+    "replace; it is absent when verbatra.provenance.json is corrupt or from a newer verbatra. " +
     "Pass locales to narrow the diff to a subset of configured target locales; omit it to diff " +
     "every configured target locale.",
   paramsSchema,

@@ -639,3 +639,52 @@ describe("KeyDetailDrawer", () => {
     });
   });
 });
+
+describe("KeyDetailDrawer: provenance", () => {
+  it("shows the origin badge and the full record for a locale whose value has one", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": {
+        ok: true,
+        result: {
+          source: "Hello",
+          target: "Hallo",
+          provenance: {
+            origin: "machine",
+            provider: "anthropic",
+            model: "claude-sonnet-4-5",
+            reviewState: "unreviewed",
+          },
+        },
+      },
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    const block = localeBlocks(view)[0];
+
+    expect(block?.querySelectorAll("dt")).toHaveLength(4);
+    expect(block?.querySelector("dd")?.textContent).toBe(
+      " Origin: Machine. Written by a translation provider.",
+    );
+    expect(block?.querySelector("dd:nth-of-type(2) .font-mono")?.textContent).toBe("anthropic");
+    const terms = [...(block?.querySelectorAll("dt") ?? [])].map((node) => node.textContent);
+    const details = [...(block?.querySelectorAll("dd") ?? [])].map((node) => node.textContent);
+    expect(terms).toEqual(["Origin", "Provider", "Model", "Review"]);
+    expect(details.slice(1)).toEqual(["anthropic", "claude-sonnet-4-5", "Not reviewed"]);
+  });
+
+  it("shows no provenance for a locale the server reported none for", async () => {
+    stubBackground();
+    stubRpc({ "key.value": value("Hello", "Hallo") });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+    const block = localeBlocks(view)[0];
+
+    expect(block?.textContent).not.toContain("Origin:");
+    expect(block?.querySelector("dl")).toBeNull();
+  });
+});

@@ -110,6 +110,10 @@ Une valeur écrite via `translation.editEntry` est enregistrée avec l'origine `
 
 Les contrôles de balisage en ligne dans `key.integrity` (`markupMatches`, `markupDetails`) et dans `translation.editEntry` (la raison `markup`), un id de format `custom:` dans `project.snapshot` et `budget.standing` dans `usage.summary` sont arrivés avec cette version.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`key.value` renvoie aussi `provenance` dès que `target` est présent : `origin`, `provider` et `model` pour la traduction automatique, `reviewState` et `reviewer` quand un relecteur a été enregistré. Chaque locale de `lock.state` et `status.check` porte des comptes `provenance` (`byOrigin`, `byReviewState`), et chaque locale de `status.diff` porte `changedOrigins`, l'origine de la valeur actuelle de chaque clé modifiée. Tous sont omis quand `verbatra.provenance.json` est corrompu ou écrit par un verbatra plus récent ; ce que signifie chaque origine est expliqué dans [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur).
+
 ## Expurgation des secrets
 
 Chaque résultat d'outil et chaque ligne de log passe par la même expurgation des secrets que Studio utilise : une valeur ayant la forme d'une clé d'API de fournisseur, ou la valeur exacte actuelle d'une variable d'environnement de fournisseur configurée, est remplacée par `[REDACTED]` avant même d'atteindre le client ou stderr. `glossary.get` et `glossary.write` signalent aussi quels termes ont été expurgés, pour que tu puisses distinguer un placeholder expurgé du vrai texte et ne jamais le réécrire.

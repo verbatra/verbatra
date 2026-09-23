@@ -1,3 +1,4 @@
+import type { KeyProvenance } from "@verbatra/sdk";
 import { z } from "zod";
 
 export const KEY_VALUE_METHOD = "key.value";
@@ -12,4 +13,5 @@ export type KeyValueParams = z.infer<typeof keyValueParamsSchema>;
 export interface KeyValueResult {
   readonly source: string;
   readonly target?: string;
+  readonly provenance?: KeyProvenance;
 }

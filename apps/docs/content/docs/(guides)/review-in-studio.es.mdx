@@ -45,6 +45,10 @@ El indicador de integridad tiene un estado de defecto más, **Inline markup mism
 
 Los valores de un locale de derecha a izquierda (árabe, hebreo, persa, urdu) se muestran de derecha a izquierda en todo el explorador y en la vista de detalle.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Studio también muestra quién escribió cada valor, leído de [`verbatra.provenance.json`](/docs/the-lock-file#procedencia-quién-escribió-cada-valor). En la vista de lista, cada clave cambiada lleva una insignia de origen: **Machine**, **Memory**, **Fuzzy match**, **Agent**, **Human**, **Import**, **Unknown**, **Unrecorded** cuando todavía no se registró nada para el valor, o **Edited outside verbatra** cuando el valor cambió desde que se registró. La insignia nombra el origen con texto, así que no depende del color. La vista de detalle enumera el registro completo de cada locale (primero la insignia de origen, proveedor y modelo para la traducción automática, y estado de revisión), y **Lock file details** gana una columna **Provenance** que cuenta los valores de cada locale por origen, o **Unavailable** cuando el archivo está corrupto o lo escribió un verbatra más nuevo. Una edición guardada desde el editor se registra como **Human**; una hecha con las herramientas de agente de Studio, como **Agent**. Cada vista se actualiza en vivo cuando cambia el archivo de procedencia.
+
 ### Edita con la puerta de integridad
 
 El editor muestra la cadena de origen y un área de texto prellenada con la traducción actual. Guardar envía el valor por la misma puerta que cualquier otra escritura de verbatra: un valor que no supera alguna de las comprobaciones de integridad se rechaza con el motivo nombrado y **no se escribe nada**. Vaciar una traducción no es algo que una edición pueda expresar, así que un valor vacío también se rechaza; el centinela `[[CLEAR]]` del libro es la forma admitida de vaciar una clave. Una edición aceptada escribe el archivo de locale y avanza la entrada del bloqueo de esa clave, exactamente como una fila de importación aceptada.

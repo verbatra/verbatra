@@ -110,6 +110,10 @@ Un valor escrito mediante `translation.editEntry` queda registrado con el origen
 
 Las comprobaciones de marcado en línea en `key.integrity` (`markupMatches`, `markupDetails`) y en `translation.editEntry` (el motivo `markup`), un id de formato `custom:` en `project.snapshot` y `budget.standing` en `usage.summary` llegaron en esta versión.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`key.value` también devuelve `provenance` siempre que `target` está presente: `origin`, `provider` y `model` para la traducción automática, `reviewState` y `reviewer` cuando se registró uno. Cada locale de `lock.state` y `status.check` lleva contadores `provenance` (`byOrigin`, `byReviewState`), y cada locale de `status.diff` lleva `changedOrigins`, el origen del valor actual de cada clave cambiada. Todos se omiten cuando `verbatra.provenance.json` está corrupto o lo escribió un verbatra más nuevo; qué significa cada origen está en [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
 ## Redacción de secretos
 
 Cada resultado de herramienta y cada línea de log pasa por la misma redacción de secretos que usa Studio: un valor con forma de clave de API de proveedor, o el valor exacto actual de una variable de entorno de proveedor configurada, se reemplaza por `[REDACTED]` antes de llegar siquiera al cliente o a stderr. `glossary.get` y `glossary.write` también informan de qué términos se redactaron, así que puedes distinguir un placeholder redactado del texto real y no volver a escribirlo nunca.

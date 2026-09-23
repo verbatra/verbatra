@@ -110,6 +110,10 @@ Ein über `translation.editEntry` geschriebener Wert wird in `verbatra.provenanc
 
 Die Inline-Markup-Prüfungen in `key.integrity` (`markupMatches`, `markupDetails`) und in `translation.editEntry` (der Grund `markup`), eine `custom:`-Format-ID in `project.snapshot` und `budget.standing` in `usage.summary` kamen mit diesem Release.
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`key.value` liefert außerdem `provenance`, sobald `target` vorhanden ist: `origin`, `provider` und `model` bei Maschinenübersetzung, `reviewState` und `reviewer`, falls einer festgehalten wurde. Jede Locale von `lock.state` und `status.check` trägt `provenance`-Zähler (`byOrigin`, `byReviewState`), und jede Locale von `status.diff` trägt `changedOrigins`, die Herkunft des aktuellen Werts jedes geänderten Keys. Alle fehlen, wenn `verbatra.provenance.json` beschädigt ist oder von einem neueren verbatra stammt; was jede Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
 ## Secrets werden geschwärzt
 
 Jedes Tool-Ergebnis und jede Log-Zeile durchläuft dasselbe Schwärzen von Secrets, das auch Studio verwendet: Ein Wert, der wie ein Provider-API-Key aussieht, oder der exakte aktuelle Wert einer konfigurierten Provider-Umgebungsvariable, wird durch `[REDACTED]` ersetzt, bevor er den Client oder stderr überhaupt erreicht. `glossary.get` und `glossary.write` melden zudem, welche Begriffe geschwärzt wurden, sodass du einen geschwärzten Platzhalter vom echten Text unterscheiden kannst und ihn nicht versehentlich zurückschreibst.

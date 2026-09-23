@@ -45,6 +45,10 @@ L'indicateur d'intégrité a un état de défaut de plus, **Inline markup mismat
 
 Les valeurs d'une locale qui s'écrit de droite à gauche (arabe, hébreu, persan, ourdou) s'affichent de droite à gauche dans tout l'explorateur et dans la vue détaillée.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Studio montre aussi qui a écrit chaque valeur, lu dans [`verbatra.provenance.json`](/docs/the-lock-file#la-provenance-de-chaque-valeur). Dans la vue en liste, chaque clé modifiée porte un badge d'origine : **Machine**, **Memory**, **Fuzzy match**, **Agent**, **Human**, **Import**, **Unknown**, **Unrecorded** quand rien n'a encore été enregistré pour la valeur, ou **Edited outside verbatra** quand la valeur a changé depuis son enregistrement. Le badge nomme l'origine en texte, il ne dépend donc pas de la couleur. La vue détaillée liste l'enregistrement complet de chaque locale (le badge d'origine d'abord, fournisseur et modèle pour la traduction automatique, et état de relecture), et **Lock file details** gagne une colonne **Provenance** qui compte les valeurs de chaque locale par origine, ou **Unavailable** quand le fichier est corrompu ou écrit par un verbatra plus récent. Une modification enregistrée depuis l'éditeur est enregistrée comme **Human** ; une modification faite via les outils d'agent de Studio, comme **Agent**. Chaque vue se met à jour en direct quand le fichier de provenance change.
+
 ### Modifier avec la barrière d'intégrité
 
 L'éditeur montre la chaîne source et une zone de texte préremplie avec la traduction actuelle. Enregistrer soumet la valeur à la même barrière que toute autre écriture verbatra : une valeur qui échoue à l'un des contrôles d'intégrité est rejetée avec la raison nommée et **rien n'est écrit**. Vider une traduction n'est pas quelque chose qu'une modification peut exprimer, donc une valeur vide est refusée elle aussi ; la sentinelle `[[CLEAR]]` du classeur est le moyen pris en charge pour vider une clé. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de la clé dans le fichier de verrouillage, exactement comme une ligne d'import acceptée.

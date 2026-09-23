@@ -77,6 +77,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Use it for a fast answer to how far a project has drifted before deciding whether any translation work is needed. " +
       "Do not use it when you need the affected key names, which only verbatra_status_diff returns. " +
       "The optional `locales` parameter narrows the report to the named target locales, an omitted `locales` covers every configured target locale, and an explicitly empty array is rejected as invalid params. " +
+      "Each locale also carries the counts of who wrote its current values, by origin and by review state, read from the project's provenance file and left out when that file is corrupt or from a newer verbatra. " +
       "Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: false,
@@ -88,6 +89,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Use it after verbatra_status_check when you need the actual keys behind the counts, for instance to pick one key to inspect or fix. " +
       "Do not use it as a content view: it returns key names, never translated values, and the lists are uncapped, so a large project returns a large result. " +
       "The optional `locales` parameter narrows the report to the named target locales, an omitted `locales` covers every configured target locale, and an explicitly empty array is rejected as invalid params. " +
+      "Each locale also names the origin of every changed key's current value, one of machine, memory, fuzzy, agent, human, import, unknown, unrecorded, or external, so you can see whose work a re-translation would replace; that is left out when the provenance file is corrupt or from a newer verbatra. " +
       "Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
@@ -122,6 +124,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Reads the lock file: whether one exists at all and, when it does, its version and the per locale count of keys that are missing, stale, or up to date against the recorded baseline. " +
       "Use it to tell a project that has never been translated, which has no lock file, from one whose recorded baseline has drifted. " +
       "Do not confuse it with verbatra_status_check, which compares the locale files themselves rather than the recorded lock baseline. " +
+      "Each locale also carries the counts of who wrote its current values, by origin and by review state, over the keys present in both the source and that locale, read from the project's provenance file and left out when that file is corrupt or from a newer verbatra. " +
       "Takes no parameters. Read-only: it reads the lock and locale files fresh on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: false,
@@ -179,6 +182,8 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Do not use it for bulk reads: it answers for a single pair per call, and verbatra_locale_values is the bulk equivalent. " +
       "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source, and an unknown locale or key is answered as an error rather than an empty result. " +
       "An absent target value means the key does not exist in that locale yet, while an empty string is a real stored value. " +
+      "When the target value exists, the result also carries provenance, which says who wrote it: origin is one of machine, memory, fuzzy, agent, human, import, unknown, unrecorded when nothing was recorded, or external when the value was edited outside verbatra since; provider and model name the machine translation that produced it; reviewState is unreviewed, approved, or rejected; and reviewer names who reviewed it, when recorded. " +
+      "Provenance is left out when the project's provenance file is corrupt or from a newer verbatra. " +
       "Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
@@ -190,6 +195,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Use it when you need translation content in bulk, for instance to search or scan values rather than key names, since verbatra_key_value only answers for one key at a time. " +
       "Do not use it to change anything: it is read-only and its result can be large on a project with many keys and locales. " +
       "An absent target value means the key has not been translated in that locale yet; an absent source value means the key is orphaned, present in the target locale but no longer in the source. " +
+      "Every present target value also carries who wrote it, the same provenance verbatra_key_value reports. " +
       "Takes no parameters. Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
