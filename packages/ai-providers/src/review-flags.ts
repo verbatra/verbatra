@@ -4,16 +4,12 @@ import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js
 const LENGTH_RATIO_MIN = 0.35;
 const LENGTH_RATIO_MAX = 3.0;
 const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
-const LATIN_EQUIVALENT_DENSITY = 1;
-const SCRIPT_CHARACTER_DENSITY: Readonly<Record<string, number>> = {
-  Hani: 0.3,
-  Hanb: 0.3,
-  Hans: 0.3,
-  Hant: 0.3,
-  Jpan: 0.4,
-  Kore: 0.55,
-};
-const localeDensityCache = new Map<string, number>();
+const LATIN_GRAPHEME_WEIGHT = 1;
+const SCRIPT_GRAPHEME_WEIGHTS: readonly (readonly [RegExp, number])[] = [
+  [/^\p{Script=Han}/u, 3.5],
+  [/^[\p{Script=Hiragana}\p{Script=Katakana}]/u, 1.5],
+  [/^\p{Script=Hangul}/u, 2],
+];
 
 const UNICODE_LETTER = /\p{L}/u;
 
@@ -49,40 +45,33 @@ function graphemeLength(value: string): number {
   return count;
 }
 
-function scriptOf(locale: string): string | undefined {
-  try {
-    return new Intl.Locale(locale).maximize().script;
-  } catch {
-    return undefined;
+function graphemeWeight(grapheme: string): number {
+  for (const [script, weight] of SCRIPT_GRAPHEME_WEIGHTS) {
+    if (script.test(grapheme)) {
+      return weight;
+    }
   }
+  return LATIN_GRAPHEME_WEIGHT;
 }
 
-function characterDensity(locale: string): number {
-  const cached = localeDensityCache.get(locale);
-  if (cached !== undefined) {
-    return cached;
+export function latinEquivalentLength(value: string): number {
+  let length = 0;
+  for (const { segment } of GRAPHEME_SEGMENTER.segment(value)) {
+    length += graphemeWeight(segment);
   }
-  const script = scriptOf(locale);
-  const density =
-    (script !== undefined ? SCRIPT_CHARACTER_DENSITY[script] : undefined) ??
-    LATIN_EQUIVALENT_DENSITY;
-  localeDensityCache.set(locale, density);
-  return density;
+  return length;
 }
 
 function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
   return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
-function isLengthRatioOutlier(input: ReviewFlagInput): boolean {
-  const normalizedSource =
-    graphemeLength(input.sourceValue.trim()) / characterDensity(input.sourceLocale);
-  if (normalizedSource < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
+function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
+  const sourceLength = latinEquivalentLength(sourceValue.trim());
+  if (sourceLength < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
     return false;
   }
-  const normalizedTranslated =
-    graphemeLength(input.translatedValue.trim()) / characterDensity(input.targetLocale);
-  const ratio = normalizedTranslated / normalizedSource;
+  const ratio = latinEquivalentLength(translatedValue.trim()) / sourceLength;
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
@@ -147,7 +136,7 @@ function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
 
 export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
   const reasons: ReviewReasonCode[] = [];
-  if (isLengthRatioOutlier(input)) {
+  if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
     reasons.push("LENGTH_RATIO_OUTLIER");
   }
   if (exceedsMaxLength(input.translatedValue, input.maxLength)) {

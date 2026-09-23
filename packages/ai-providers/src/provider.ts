@@ -125,9 +125,10 @@ export interface ProviderNotice {
  * the SDK from where the value came, the second from the batch's notices.
  *
  * - `LENGTH_RATIO_OUTLIER`: the translated value's length is far shorter or longer than the source's.
- *   Both trimmed values are measured in grapheme clusters and scaled by the typical character
- *   density of their locale's script (Han, Japanese and Hangul text runs far shorter than Latin
- *   text), so a correct translation between scripts is not flagged for its script alone. Only
+ *   Both trimmed values are measured in grapheme clusters, each weighted by its own script so the
+ *   length is Latin-equivalent: a Han character counts 3.5, a Hiragana or Katakana character 1.5, a
+ *   Hangul syllable 2, and anything else 1. A correct translation between scripts, including
+ *   mixed text with placeholders or URLs, is therefore not flagged for its script alone. Only
  *   considered once the trimmed source is long enough for the ratio to mean anything. Relative to
  *   the source; contrast `MAX_LENGTH_EXCEEDED`.
  * - `MAX_LENGTH_EXCEEDED`: the translated value is longer than the absolute budget configured for
