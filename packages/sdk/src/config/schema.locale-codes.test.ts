@@ -1,4 +1,6 @@
+import { relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { LOCALE_STYLES } from "../locale-path/style.js";
 import { baseConfig } from "../test-support.js";
 import { type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
@@ -72,7 +74,9 @@ describe("verbatraConfigSchema: invalid locale codes", () => {
   it.each([
     ["en_US", "en-US"],
     ["pt_BR", "pt-BR"],
-    ["zh_hant_tw", "zh-Hant-TW"],
+    ["pt_br", "pt-br"],
+    ["zh_hant_tw", "zh-hant-tw"],
+    ["es_419", "es-419"],
   ])(
     "rejects the underscore spelling %s with a hint towards %s and the posix style",
     (locale, hyphenated) => {
@@ -85,11 +89,14 @@ describe("verbatraConfigSchema: invalid locale codes", () => {
     },
   );
 
-  it("gives no hint for an underscore spelling that stays invalid once hyphenated", () => {
-    expect(issuesFor(baseConfig({ targetLocales: ["x_y"] }))).toEqual([
-      { path: "targetLocales.0", message: '"x_y" is not a valid BCP 47 locale code' },
-    ]);
-  });
+  it.each(["x_y", "german_DE", "de_1996_1996"])(
+    "gives no hint for %s, whose hyphenated form would still fail the schema",
+    (locale) => {
+      expect(issuesFor(baseConfig({ targetLocales: [locale] }))).toEqual([
+        { path: "targetLocales.0", message: `"${locale}" is not a valid BCP 47 locale code` },
+      ]);
+    },
+  );
 
   it("rejects an invalid source locale under its own field", () => {
     expect(issuesFor(baseConfig({ sourceLocale: "x" }))).toEqual([
@@ -154,4 +161,37 @@ describe("verbatraConfigSchema: locale codes unsafe as object keys", () => {
       { path: "targetLocales.1", message: '"valueOf" is not a valid BCP 47 locale code' },
     ]);
   });
+});
+
+function hintedCode(locale: string): string {
+  const [issue] = issuesFor(baseConfig({ targetLocales: [locale] }));
+  const hinted = /write "([^"]+)" and set files\.localeStyle to "posix"/.exec(issue?.message ?? "");
+  if (hinted?.[1] === undefined) {
+    throw new Error(`no hint for ${locale}`);
+  }
+  return hinted[1];
+}
+
+function relativePath(config: VerbatraConfig, locale: string): string {
+  const cwd = resolve("/projects/app");
+  return relative(cwd, createLocalePathResolver(cwd, config).pathFor(locale)).replaceAll("\\", "/");
+}
+
+describe("verbatraConfigSchema: the underscore hint keeps every file where it was", () => {
+  it.each(["pt_BR", "pt_br", "zh_Hant_TW", "es_419", "sr_Latn"])(
+    "the hint for %s resolves under the posix style to the path the old code resolved to",
+    (locale) => {
+      const pattern = "locales/{locale}/messages.json";
+      const hinted = hintedCode(locale);
+      const migrated = baseConfig({
+        targetLocales: [hinted],
+        files: { pattern, localeStyle: "posix" },
+      });
+      const previous = baseConfig({ targetLocales: [locale], files: { pattern } });
+
+      expect(issuesFor(migrated)).toEqual([]);
+      expect(relativePath(migrated, hinted)).toBe(relativePath(previous, locale));
+      expect(relativePath(migrated, hinted)).toBe(`locales/${locale}/messages.json`);
+    },
+  );
 });

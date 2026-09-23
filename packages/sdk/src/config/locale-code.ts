@@ -11,14 +11,16 @@ function canonicalLocaleCode(code: string): string | undefined {
   }
 }
 
+function isValidLocaleCode(code: string): boolean {
+  return LOCALE_CODE_PATTERN.test(code) && canonicalLocaleCode(code) !== undefined;
+}
+
 function underscoreHint(code: string): string {
-  if (!code.includes("_")) {
+  const hyphenated = code.replaceAll("_", "-");
+  if (hyphenated === code || !isValidLocaleCode(hyphenated)) {
     return "";
   }
-  const hyphenated = canonicalLocaleCode(code.replaceAll("_", "-"));
-  return hyphenated === undefined
-    ? ""
-    : `; write "${hyphenated}" and set files.localeStyle to "posix" to keep underscores in file names`;
+  return `; write "${hyphenated}" and set files.localeStyle to "posix" to keep underscores in file names`;
 }
 
 function invalidMessage(code: string): string {
