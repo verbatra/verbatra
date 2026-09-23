@@ -1,5 +1,6 @@
 import type { Usage } from "@verbatra/ai-providers";
 import type { TranslationEntry } from "@verbatra/core";
+import { SdkError } from "../errors.js";
 import { type PayloadContext, quantifyBatch } from "./estimate.js";
 import type { BudgetBehavior, RunBudget, SdkNotice } from "./summary.js";
 import { countableUsage } from "./usage.js";
@@ -24,6 +25,40 @@ export interface BudgetDecision {
 }
 
 const UNBUDGETED: BudgetReservation = { projected: 0 };
+
+export interface RunBudgetSettings {
+  readonly maxTokens: number | undefined;
+  readonly behavior: BudgetBehavior;
+}
+
+export interface ConfiguredBudget {
+  readonly maxTokens?: number | undefined;
+  readonly budgetBehavior?: BudgetBehavior | undefined;
+}
+
+function assertValidMaxTokensOverride(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new SdkError(
+      "MAX_TOKENS_INVALID",
+      `The maxTokens option must be a whole number of at least 1, got ${value}.`,
+    );
+  }
+}
+
+export function resolveRunBudget(
+  configured: ConfiguredBudget,
+  defaultBehavior: BudgetBehavior,
+  override: number | undefined,
+): RunBudgetSettings {
+  const behavior = configured.budgetBehavior ?? defaultBehavior;
+  if (override === undefined) {
+    return { maxTokens: configured.maxTokens, behavior };
+  }
+  assertValidMaxTokensOverride(override);
+  const maxTokens =
+    configured.maxTokens === undefined ? override : Math.min(configured.maxTokens, override);
+  return { maxTokens, behavior: "stop" };
+}
 
 export function createBudgetTracker(
   maxTokens: number | undefined,

@@ -21,6 +21,7 @@ verbatra translate [flags]
 | `--prune` | aucun | l'option `prune` de la config, sinon désactivé | supprime les clés orphelines (présentes dans un fichier cible mais absentes de la source) du fichier écrit et du verrou |
 | `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité (une valeur comme `60s`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; doit être un entier positif |
+| `--max-tokens` | `<n>` | le `maxTokens` de la config | un plafond de tokens strict pour cette seule exécution ; quand la config fixe aussi `maxTokens`, le plus bas des deux s'applique ; doit être un entier positif (une valeur comme `10k` ou `0` est une erreur d'usage, code `2`) |
 | `--no-cache` | aucun | désactivé (cache activé) | contourne le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`) pour cette exécution |
 | `--include-human` | aucun | désactivé | retraduit aussi, pour cette exécution seulement, les clés obsolètes dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne (`humanEdits: "overwrite"`) ; les [clés épinglées](/docs/protecting-human-translations#épingler-des-clés) restent intactes |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la [forme `RunSummary`](/docs/sdk)), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
@@ -42,7 +43,11 @@ Dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none
 
 `--lock-timeout` règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que l'exécution n'échoue avec `LOCK_CONTENDED` : augmente-le quand une autre exécution détient légitimement le verrou un moment, baisse-le pour échouer vite en CI.
 
-`--concurrency` traduit plusieurs locales cibles en parallèle pour terminer plus vite un gros projet. Il est refusé avec le code `2` quand la config fixe un budget `maxTokens`, car le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution (un dry run est exempté). Si une erreur globale (en pratique un fichier de verrouillage corrompu) surgit alors que des locales tournent déjà, aucune autre locale n'est démarrée, et celles en cours terminent et libèrent leurs verrous d'écriture avant que la commande ne sorte avec le code `2`, donc l'exécution ne laisse derrière elle aucun verrou que la suivante devrait attendre. À mesure qu'une exécution avance, la progression est affichée sur stderr (une ligne par démarrage de locale, sous-lot du fournisseur et fin de locale), donc le stdout d'une exécution `--json` reste un unique résumé propre. `--no-cache` saute le [cache de mémoire de traduction](/docs/the-cache) pour l'exécution, en faisant exactement les appels au fournisseur qu'il ferait si aucun cache n'était présent.
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` plafonne ce qu'une exécution peut dépenser sans toucher à la config. C'est toujours un arrêt strict : une requête au fournisseur qui dépasserait le plafond est retenue au lieu d'être envoyée, quoi que dise `budgetBehavior`, et ses clés sont listées sous `budgetWithheld` dans le résumé. Le plafond est compté de la même façon qu'un [budget `maxTokens`](/docs/config-file#maxtokens-et-budgetbehavior) configuré. Quand la config fixe aussi `maxTokens`, le plus bas des deux s'applique, donc l'option peut resserrer le budget mais jamais l'assouplir. Une exécution que le plafond a interrompue sort avec le code `1`, comme le fait toujours une locale restée partielle. Lance d'abord `--estimate` pour choisir un chiffre raisonnable.
+
+`--concurrency` traduit plusieurs locales cibles en parallèle pour terminer plus vite un gros projet. Il est refusé avec le code `2` dès qu'un budget de tokens s'applique, via le `maxTokens` de la config ou via `--max-tokens`, car le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution (un dry run est exempté). Si une erreur globale (en pratique un fichier de verrouillage corrompu) surgit alors que des locales tournent déjà, aucune autre locale n'est démarrée, et celles en cours terminent et libèrent leurs verrous d'écriture avant que la commande ne sorte avec le code `2`, donc l'exécution ne laisse derrière elle aucun verrou que la suivante devrait attendre. À mesure qu'une exécution avance, la progression est affichée sur stderr (une ligne par démarrage de locale, sous-lot du fournisseur et fin de locale), donc le stdout d'une exécution `--json` reste un unique résumé propre. `--no-cache` saute le [cache de mémoire de traduction](/docs/the-cache) pour l'exécution, en faisant exactement les appels au fournisseur qu'il ferait si aucun cache n'était présent.
 
 ## Exemples
 
@@ -58,6 +63,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# stop before the run passes 50000 tokens
+verbatra translate --max-tokens 50000
 
 # also retranslate stale keys a person wrote
 verbatra translate --include-human

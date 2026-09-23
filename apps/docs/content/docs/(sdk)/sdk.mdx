@@ -46,7 +46,7 @@ The one-shot flow: read the source, diff each target locale against the lock bas
 missing and changed keys to the provider, run the integrity checks, write the
 locale files, and update the lock. Use it for scripts, build steps, and CI jobs.
 
-Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, maxTokens?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` restricts the run to a subset of the configured target locales, exactly as on `check`
   and `diff`. A locale that is not configured throws `UNKNOWN_LOCALE` before anything is read or
@@ -60,7 +60,7 @@ Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, 
   lock. `generatePlurals` synthesizes missing CLDR plural forms (i18next-JSON with an LLM provider
   only). Both default to off; when set, each overrides the matching config option for that run.
 - `concurrency` runs up to that many target locales at once (default 1, strictly serial). A value
-  below 1 throws `CONCURRENCY_INVALID`; on a live run a value above 1 with `maxTokens` configured
+  below 1 throws `CONCURRENCY_INVALID`; on a live run a value above 1 with a `maxTokens` budget
   throws `CONCURRENCY_BUDGET_CONFLICT` (a dry run is exempt). A whole-run error raised once locales
   are already running stops any further locale from being started, and the locales in flight finish
   and release their write locks before `translate` rejects, so the rejection arrives after the
@@ -73,7 +73,12 @@ Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, 
   sub-batch), and `onLockWait` fires while a locale's write lock is contended. Both are
   notification callbacks; the SDK writes no output itself. `lockAcquireTimeoutMs` overrides how long
   a contended write lock retries before failing with `LOCK_CONTENDED`.
-- `maxBatchSize`, `maxTokens`, and `budgetBehavior` are config-only; there is no per-run override.
+- `maxTokens` (from 0.12.0) sets a token ceiling for this run alone (the CLI's `--max-tokens`). It always acts as
+  `budgetBehavior: "stop"`, and when the config also sets `maxTokens` the lower of the two applies, so
+  it can tighten the configured budget but never loosen it. A value that is not a whole number of at
+  least 1 throws `MAX_TOKENS_INVALID`, and like a configured budget it cannot be combined with a
+  `concurrency` above 1 on a live run.
+- `maxBatchSize` and `budgetBehavior` are config-only; there is no per-run override.
 
 Returns a `RunSummary` (see [its anatomy below](#the-runsummary-anatomy)). Whole-run problems throw
 an `SdkError`; a single locale failing never throws and lands as `status: "failed"` on that
@@ -1008,6 +1013,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `LOCALE_PATH_COLLISION` | two configured locales resolve to the same absolute file path |
 | `CONCURRENCY_INVALID` | `concurrency` was set but is not an integer of at least 1; raised before any locale runs |
 | `CONCURRENCY_BUDGET_CONFLICT` | a live run set `concurrency` above 1 while `maxTokens` is configured; raised before any provider call (a dry run is exempt) |
+| `MAX_TOKENS_INVALID` | `translate`'s per-run `maxTokens` was set but is not a whole number of at least 1; raised before anything is read or spent |
 | `TARGET_UNWRITABLE` | a target locale file could not be written (its directory is not writable, does not exist, is read-only, or is out of space); the message names the target file and the file-system code, never the internal temporary file the atomic write uses |
 | `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` was asked for a pseudolocale that names a configured locale, or for an output path that would write onto a configured locale file; refused before anything is read or written |
 | `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |

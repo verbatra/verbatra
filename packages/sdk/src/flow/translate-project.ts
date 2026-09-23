@@ -50,7 +50,7 @@ import {
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import type { BudgetTracker } from "./budget.js";
-import { createBudgetTracker, toBudgetSummary } from "./budget.js";
+import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
@@ -127,9 +127,9 @@ export interface TranslateInput {
   readonly lockAcquireTimeoutMs?: number;
   /**
    * How many locales to run at once. Must be an integer of at least 1; defaults to 1. On a live
-   * run it cannot be combined with a configured token budget: the ceiling would still hold, but
-   * which locale loses its remaining work would depend on the order the locales interleave, so the
-   * run would not be reproducible.
+   * run it cannot be combined with a token budget, configured or passed as `maxTokens`: the
+   * ceiling would still hold, but which locale loses its remaining work would depend on the order
+   * the locales interleave, so the run would not be reproducible.
    */
   readonly concurrency?: number;
   /**
@@ -145,6 +145,15 @@ export interface TranslateInput {
    * Keys matching the config's `pinnedKeys` stay protected whatever this says.
    */
   readonly humanEdits?: HumanEditsPolicy;
+  /**
+   * A token ceiling for this run alone, as the CLI's `--max-tokens` flag sets it. It is always a
+   * hard stop: a provider request that would pass it is withheld rather than sent, whatever the
+   * config's `budgetBehavior` says, and its keys are listed in
+   * {@link LocaleSummary.budgetWithheld}. When the config also sets `maxTokens`, the lower of the
+   * two applies, so this can tighten the configured budget but never loosen it. Must be a whole
+   * number of at least 1. Defaults to the config's `maxTokens` and `budgetBehavior` alone.
+   */
+  readonly maxTokens?: number;
 }
 
 /** Injectable dependencies for {@link translate}. Every field has a working default. */
@@ -464,10 +473,10 @@ function resolveConcurrency(value: number | undefined): number {
 export function resolveRunConcurrency(
   value: number | undefined,
   dryRun: boolean,
-  config: VerbatraConfig,
+  maxTokens: number | undefined,
 ): number {
   const concurrency = resolveConcurrency(value);
-  if (!dryRun && concurrency > 1 && config.maxTokens !== undefined) {
+  if (!dryRun && concurrency > 1 && maxTokens !== undefined) {
     throw new SdkError(
       "CONCURRENCY_BUDGET_CONFLICT",
       "A token budget (maxTokens) and concurrency greater than 1 cannot be combined on a live run: " +
@@ -593,7 +602,8 @@ function estimateFields(
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: a live run combined a `concurrency` above
- * 1 with a configured token budget. A dry run is exempt.
+ * 1 with a token budget, configured or passed as `maxTokens`. A dry run is exempt.
+ * @throws {@link SdkError} `MAX_TOKENS_INVALID`: `maxTokens` is not a whole number of at least 1.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
@@ -646,15 +656,13 @@ export async function translate(
   const estimateRequested = input.estimate ?? false;
   const dryRun = resolveDryRun(input);
   const targetLocales = selectLocales(config, input.locales);
-  const concurrency = resolveRunConcurrency(input.concurrency, dryRun, config);
+  const runBudget = resolveRunBudget(config, DEFAULT_BUDGET_BEHAVIOR, input.maxTokens);
+  const concurrency = resolveRunConcurrency(input.concurrency, dryRun, runBudget.maxTokens);
   const prune = input.prune ?? config.prune ?? false;
   const generatePlurals = input.generatePlurals ?? config.generatePlurals ?? false;
   const maxBatchSize = config.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
   const fs = deps.fs ?? defaultFs;
-  const budget = createBudgetTracker(
-    config.maxTokens,
-    config.budgetBehavior ?? DEFAULT_BUDGET_BEHAVIOR,
-  );
+  const budget = createBudgetTracker(runBudget.maxTokens, runBudget.behavior);
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
