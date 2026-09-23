@@ -112,9 +112,53 @@ demasiado grande o con una versión no soportada hace fallar la ejecución con `
 lugar de sobrescribirse en silencio, para que puedas inspeccionarlo o restaurarlo en vez de perder
 la línea base.
 
+## Procedencia: quién escribió cada valor
+
+<AvailableFrom version="0.12.0" />
+
+Junto al archivo de bloqueo, verbatra mantiene `verbatra.provenance.json`. Donde el archivo de
+bloqueo registra de qué texto de origen salió una traducción, el archivo de procedencia registra qué
+vía de escritura produjo el valor que está ahora en el archivo de locale y si alguien lo revisó. Es
+un archivo aparte a propósito: el formato y la versión del archivo de bloqueo no cambian, así que un
+verbatra más antiguo, por ejemplo uno fijado en una acción de CI, sigue leyendo el archivo de
+bloqueo y simplemente ignora el de procedencia.
+
+Cada registro nombra un origen:
+
+| Origen | Lo escribe |
+| --- | --- |
+| `machine` | una respuesta del proveedor en `translate` o `watch` (incluidas las formas plurales que genera el proveedor) y una retraducción de una sola clave, con el proveedor configurado y, si lo tiene, el modelo |
+| `memory` | un acierto exacto de la memoria de traducción, incluido cada valor que rellena una ejecución solo humana (proveedor `none`) |
+| `fuzzy` | un acierto aproximado de la memoria de traducción |
+| `human` | un valor que una persona escribió mediante `editEntry` del SDK, como hace el diálogo de edición de Studio |
+| `agent` | un valor que un agente de IA escribió mediante `editEntry` con `actor: "agent"` |
+| `import` | una fila aceptada de `verbatra import` |
+
+Al leer los archivos se derivan dos orígenes más, que no se guardan. `unrecorded` es un valor sin
+registro; ahí empieza cada clave de un proyecto después de actualizar. `external` es un valor que
+ya no coincide con su registro porque algo fuera de verbatra lo cambió: alguien que edita el
+archivo de locale en un pull request, un verbatra más antiguo o un merge. Cada registro lleva un
+hash del valor que describe; así se detecta un registro obsoleto en lugar de fiarse de él.
+`check --json`, `diff --json` y las lecturas de claves del SDK informan estos orígenes
+interpretados; los campos están en la [referencia del SDK](/docs/sdk#loadprovenance).
+
+El archivo no contiene texto traducido ni marcas de tiempo, y sus registros están ordenados, uno por
+línea, así que una ejecución que no cambia nada lo deja idéntico byte a byte y dos ramas que tocan
+claves distintas rara vez entran en conflicto. Si ocurre, quédate con cualquiera de los dos lados:
+un registro que no coincide con el valor de al lado se lee como `external`, así que la elección
+equivocada solo pierde información y nunca atribuye el valor a quien no lo escribió. Una escritura
+que deja sin cambios un valor y su texto de origen conserva el registro tal cual; cualquier otra lo
+sustituye por uno nuevo, sin revisar.
+
+Un archivo de procedencia corrupto hace fallar la ejecución con `PROVENANCE_FILE_INVALID` en lugar
+de sobrescribirse. Uno escrito por un verbatra más nuevo se deja intacto y la ejecución informa el
+aviso `PROVENANCE_VERSION_UNRECOGNIZED`. El registro dice qué vía de escritura de verbatra produjo
+un valor; no es a prueba de manipulaciones, porque quien puede editar los archivos de locale también
+puede editarlo a él.
+
 ## Confírmalo
 
-Confirma `verbatra.lock.json` junto a tus archivos de locale. Es la línea base compartida contra la
+Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale. Es la línea base compartida contra la
 que hacen diff tus compañeros y tu CI; mantenerlo en control de versiones es lo que hace que las
 ejecuciones incrementales sean reproducibles entre máquinas. Nunca lo edites a mano.
 

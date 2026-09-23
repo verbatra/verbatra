@@ -192,7 +192,7 @@ Input: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` defau
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Before anything is read or written,
 `TYPES_OUTPUT_CONFLICT` refuses an `out` that names no file (including one ending in a path
 separator), is absolute, climbs out of `cwd` with `..`, or does not end in `.ts`, `.mts` or `.cts`,
-and one naming a configured locale file, the lock file, the translation-memory cache, a file
+and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file
 verbatra searches for its configuration, `configPath`, the configuration file `config` was loaded
 from, or `glossaryPath`, the glossary file it names; names are compared case-insensitively, and when
 `deps.fs` implements `realpath`, as the default does, the same checks run again on where the path
@@ -276,6 +276,12 @@ whose description, meaning, plural flag, or gettext `msgctxt` differ are never g
 forms stored under their own keys are compared per form. It is a report only: it never changes
 `inSync`, a count, or any file, and it calls no provider.
 
+<AvailableFrom version="0.12.0" />
+
+Each `LocaleCheckSummary` also carries `provenance`: counts `byOrigin` and `byReviewState` over the
+keys the locale has a value for, read from `verbatra.provenance.json`. See
+[The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
+
 ### diff
 
 The detailed sibling of `check`: the same computation, but it returns the key lists per locale
@@ -295,6 +301,12 @@ keys](/docs/cli/diff#unused-source-keys) for every reason. The report never flip
 `hasPendingChanges`.
 
 Input: `{ config, cwd?, locales?, unused? }`. Returns a `DiffSummary`.
+
+<AvailableFrom version="0.12.0" />
+
+Each `LocaleDiff` also carries `changedOrigins`, the interpreted origin of each `changed` key's
+current value (for example `machine`, `human`, or `external`), so you can see whose work a
+retranslation would replace before you run it.
 
 ### keyIntegrity
 
@@ -319,6 +331,8 @@ empty but present lock file" stay distinguishable. When the file is absent the r
 
 Input: `{ config, cwd?, locales? }`. Returns a `LockStateResult`.
 
+Each locale also carries the same `provenance` counts `check` reports.
+
 ### loadLockFile
 
 Reads the lock file itself (`verbatra.lock.json`, also exported as `LOCK_FILE_NAME`) and returns
@@ -327,6 +341,20 @@ they were last translated from. A missing file degrades to an empty lock, the sa
 behavior `translate` relies on; use `lockState` when you need to distinguish absence.
 
 Input: `{ cwd? }`. No config needed. Returns a `LockFile`.
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+Reads the provenance file itself (`verbatra.provenance.json`, also exported as
+`PROVENANCE_FILE_NAME`) and returns its stored shape: `{ version, locales }`, where each locale maps
+keys to a record `{ origin, provider?, model?, valueHash, reviewState?, reviewer? }`. It holds no
+translated text. A missing file, or one written by a newer verbatra, reads as empty; a corrupt one
+throws `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff`, and `lockState`
+already report the interpreted view (`KeyProvenance`), which also tells a value with no record
+(`unrecorded`) from one edited outside verbatra since it was recorded (`external`).
+
+Input: `{ cwd? }`. No config needed. Returns a `ProvenanceFile`.
 
 ### runStatus
 
@@ -358,6 +386,9 @@ Read-only.
 Input: `{ config, cwd?, locale, key }`. Returns `{ source, target? }`; `target` is absent exactly
 when the key does not yet exist in that locale.
 
+When `target` is present the result also carries `provenance`, the key's interpreted
+`KeyProvenance`: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
 ### editEntry
 
 Writes one human-typed correction for one key and locale. The candidate value passes the same
@@ -375,6 +406,10 @@ lookup from it rather than retyping the members. A `markup` refusal also carries
 behind it, each prefixed with `-` for one the source had and the candidate dropped or `+` for one
 the candidate invented.
 
+The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
+`actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface
+asserts it and nothing verifies it.
+
 ### retranslateEntry
 
 Re-runs the provider for exactly one key and locale: a single-entry call through the same provider
@@ -386,6 +421,9 @@ review reason codes, if any, that apply to the new value) or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Unlike `translate`, a provider failure here throws: a `ProviderError` from `@verbatra/ai-providers`
 with a stable code such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
+
+The new value is recorded in `verbatra.provenance.json` as `machine`, with the configured provider
+and model.
 
 ## Bulk content reads
 
@@ -404,6 +442,8 @@ Returns an array of `{ locale, values }`, one entry per locale, where `values` m
 yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
 the source. `values` has no prototype, so every key, including one named `__proto__` or
 `constructor`, is an own property, and a key absent from the catalog reads as `undefined`.
+
+Each pair with a `target` also carries `provenance`, the same `KeyProvenance` `keyValue` reports.
 
 ## Locale-file snapshots
 
@@ -537,7 +577,7 @@ Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, gl
 locales?, toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`),
 exported as a constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names
 no file (including one ending in a path separator), resolves outside `cwd` or to `cwd` itself, or
-names a configured locale file, the lock file, the translation-memory cache, a file verbatra
+names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra
 searches for its configuration, the `configPath` file, or the `glossaryPath` file, compared
 case-insensitively and, when `deps.fs` implements `realpath` as the default does, again after
 symbolic links are resolved. A write that fails, because the directory is not writable, a directory
@@ -794,7 +834,8 @@ The parts worth knowing:
   [Review in Studio](/docs/review-in-studio) for working the queue.
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
-  `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, and `CACHE_VERSION_UNRECOGNIZED`. The
+  `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`, and
+  `PROVENANCE_VERSION_UNRECOGNIZED`. The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.
 - **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
@@ -855,6 +896,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |
+| `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; one from a newer verbatra is left untouched and reported as the notice `PROVENANCE_VERSION_UNRECOGNIZED` instead |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written (`updateGlossaryTerm`) |
@@ -867,9 +909,9 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |
 | `EXTRACT_NOT_CONFIGURED` | `extract` was called with a config that carries no `extract` block |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
 | `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space); the message names the file and the file-system code |
-| `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read |
 | `TMX_UNWRITABLE` | the TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 

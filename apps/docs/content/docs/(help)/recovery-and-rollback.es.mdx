@@ -16,6 +16,13 @@ reversión:
 - los archivos de locale de destino, uno por locale, en la ruta de tu `files.pattern`
 - `verbatra.lock.json`, un hash de contenido del origen por cada clave traducida
 
+<AvailableFrom version="0.12.0" />
+
+También escribe `verbatra.provenance.json`, que registra qué vía de escritura produjo cada valor.
+Restáuralo en la misma operación que los otros dos, como hacen los comandos de abajo. Olvidarlo no
+rompe nada: un registro que ya no coincide con su valor se lee como `external`, así que una
+discrepancia solo pierde información y nunca atribuye el valor a quien no lo escribió.
+
 Lo demás que escribe es estado auxiliar regenerable que nunca restauras: `verbatra.cache.json` y el
 directorio `.verbatra-local/`, ambos excluidos de git. Una ejecución también puede añadir esas
 entradas a un `.gitignore` existente al que le falten, lo cual es mantenimiento puntual y no parte
@@ -30,7 +37,7 @@ ningún archivo parcial que reparar.
 Si la ejecución todavía no está confirmada, descarta ambos archivos juntos:
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json
+git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
 ```
 
 Si la ejecución ya está confirmada, revierte esa confirmación:

@@ -111,9 +111,54 @@ auf einer nicht unterstützten Version ist, lässt den Lauf mit `LOCK_FILE_INVAL
 statt still überschrieben zu werden, damit du sie untersuchen oder wiederherstellen kannst, statt
 die Baseline zu verlieren.
 
+## Herkunft: wer welchen Wert geschrieben hat
+
+<AvailableFrom version="0.12.0" />
+
+Neben der Lock-Datei führt verbatra `verbatra.provenance.json`. Wo die Lock-Datei festhält, aus
+welchem Quelltext eine Übersetzung stammt, hält die Herkunftsdatei fest, welcher Schreibweg den Wert
+erzeugt hat, der jetzt in der Locale-Datei steht, und ob ihn jemand geprüft hat. Sie ist bewusst
+eine eigene Datei: Format und Version der Lock-Datei bleiben unverändert, sodass ein älteres
+verbatra, etwa eines, das in einer CI-Action fest eingestellt ist, die Lock-Datei weiter liest und
+die Herkunftsdatei einfach ignoriert.
+
+Jeder Eintrag nennt eine Herkunft:
+
+| Herkunft | Geschrieben von |
+| --- | --- |
+| `machine` | einer Provider-Antwort in `translate` oder `watch` (vom Provider erzeugte Pluralformen eingeschlossen) und einer Neuübersetzung eines einzelnen Keys, mit dem konfigurierten Provider und, falls vorhanden, dem Modell |
+| `memory` | einem exakten Treffer im Übersetzungsspeicher, einschließlich jedes Werts, den ein reiner Human-Lauf (Provider `none`) füllt |
+| `fuzzy` | einem unscharfen Treffer im Übersetzungsspeicher |
+| `human` | einem Wert, den eine Person über `editEntry` im SDK geschrieben hat, so wie es der Bearbeiten-Dialog in Studio tut |
+| `agent` | einem Wert, den ein KI-Agent über `editEntry` mit `actor: "agent"` geschrieben hat |
+| `import` | einer übernommenen Zeile aus `verbatra import` |
+
+Beim Lesen kommen zwei weitere Herkünfte hinzu, die abgeleitet und nicht gespeichert werden.
+`unrecorded` ist ein Wert ohne Eintrag; dort beginnt nach dem Update jeder Key eines Projekts.
+`external` ist ein Wert, der nicht mehr zu seinem Eintrag passt, weil etwas außerhalb von verbatra
+ihn geändert hat: jemand, der die Locale-Datei in einem Pull Request bearbeitet, ein älteres
+verbatra oder ein Merge. Jeder Eintrag trägt einen Hash des Werts, den er beschreibt; so wird ein
+veralteter Eintrag erkannt, statt ihm zu vertrauen. `check --json`, `diff --json` sowie die
+Key-Abfragen des SDK melden diese ausgewerteten Herkünfte; die Felder stehen in der
+[SDK-Referenz](/docs/sdk#loadprovenance).
+
+Die Datei enthält keinen übersetzten Text und keine Zeitstempel, und ihre Einträge sind sortiert,
+ein Eintrag pro Zeile. Ein Lauf, der nichts ändert, lässt sie daher Byte für Byte gleich, und zwei
+Branches, die verschiedene Keys anfassen, geraten selten in Konflikt. Passiert es doch, nimm eine
+der beiden Seiten: Ein Eintrag, der nicht zum Wert daneben passt, liest sich als `external`, sodass
+die falsche Wahl nur Information kostet und nie den falschen Urheber nennt. Ein Schreibvorgang, der
+einen Wert und seinen Quelltext unverändert lässt, behält den Eintrag, wie er ist; jeder andere
+ersetzt ihn durch einen neuen, ungeprüften.
+
+Eine beschädigte Herkunftsdatei lässt den Lauf mit `PROVENANCE_FILE_INVALID` fehlschlagen, statt
+überschrieben zu werden. Eine, die ein neueres verbatra geschrieben hat, bleibt unangetastet, und
+der Lauf meldet die Notice `PROVENANCE_VERSION_UNRECOGNIZED`. Der Eintrag sagt, welcher Schreibweg
+von verbatra einen Wert erzeugt hat; fälschungssicher ist er nicht, denn wer die Locale-Dateien
+bearbeiten kann, kann auch ihn bearbeiten.
+
 ## Committe sie
 
-Committe `verbatra.lock.json` zusammen mit deinen Locale-Dateien. Diese Datei ist die gemeinsame
+Committe `verbatra.lock.json` und `verbatra.provenance.json` zusammen mit deinen Locale-Dateien. Diese Datei ist die gemeinsame
 Baseline, mit der deine Teamkollegen und deine CI vergleichen; sie in der Versionskontrolle zu
 halten, macht inkrementelle Läufe über Maschinen hinweg reproduzierbar. Bearbeite sie nie von Hand.
 

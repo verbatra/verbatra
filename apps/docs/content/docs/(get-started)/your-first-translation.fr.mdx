@@ -124,7 +124,7 @@ verbatra lit la locale source, voit que chaque clé manque dans `de`, les envoie
 
 ## Ce qui vient de se passer
 
-Trois choses sont maintenant sur le disque :
+Quatre choses sont maintenant sur le disque :
 
 - `locales/de.json` : le fichier de la locale cible. Il a les mêmes clés que ta source, dans le même ordre de document, et `{{name}}` a survécu intact à la traduction ; un résultat qui l'aurait perdu aurait été écarté, pas écrit.
 - `verbatra.lock.json` : le fichier de verrouillage. Pour chaque locale cible, il associe chaque clé traduite au hash de la chaîne source dont cette traduction provient :
@@ -141,12 +141,13 @@ Trois choses sont maintenant sur le disque :
   }
   ```
 
+- `verbatra.provenance.json` : le fichier de provenance. Pour chaque clé traduite, il enregistre quel chemin d'écriture a produit la valeur (ici `machine`, avec ton fournisseur et ton modèle), pour qu'une exécution ultérieure, `check --json` et `diff --json` distinguent la traduction automatique du travail humain. Voir [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur).
 - `.verbatra-local/` : l'état propre au processus (l'instantané de statut d'exécution et les verrous d'écriture par locale). `init` l'a ajouté au `.gitignore` ; ne le commite jamais.
 
 Le fichier de verrouillage est la référence de chaque exécution future. Relance `verbatra translate` sans rien modifier et rien n'est envoyé : chaque clé est déjà à jour. Modifie une seule chaîne source et seule cette clé est retraduite.
 
 <Callout title="Commite le fichier de verrouillage">
-Commite `verbatra.lock.json` avec tes fichiers de locale, pour que chaque machine et ta CI comparent avec la même référence. Voir [Le fichier de verrouillage](/docs/the-lock-file).
+Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale, pour que chaque machine et ta CI comparent avec la même référence. Voir [Le fichier de verrouillage](/docs/the-lock-file).
 </Callout>
 
 ## Ensuite

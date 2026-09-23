@@ -16,6 +16,14 @@ se soucier :
 - les fichiers de locale cibles, un par locale, au chemin de ton `files.pattern`
 - `verbatra.lock.json`, un hash de contenu source par clé traduite
 
+<AvailableFrom version="0.12.0" />
+
+Elle écrit aussi `verbatra.provenance.json`, qui enregistre quel chemin d'écriture a produit chaque
+valeur. Restaure-le dans la même opération que les deux autres, comme le font les commandes
+ci-dessous. L'oublier ne casse rien : un enregistrement qui ne correspond plus à sa valeur se lit
+comme `external`, si bien qu'un écart ne fait que perdre de l'information et n'attribue jamais la
+valeur au mauvais auteur.
+
 Le reste de ce qu'elle écrit est un état annexe régénérable que tu ne restaures jamais :
 `verbatra.cache.json` et le répertoire `.verbatra-local/`, tous deux ignorés par git. Une exécution
 peut aussi ajouter ces entrées à un `.gitignore` existant auquel elles manquent, ce qui relève de
@@ -30,7 +38,7 @@ Il n'y a aucun fichier partiel à réparer.
 Si l'exécution n'est pas encore commitée, jette les deux fichiers ensemble :
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json
+git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
 ```
 
 Si l'exécution est déjà commitée, annule ce commit :

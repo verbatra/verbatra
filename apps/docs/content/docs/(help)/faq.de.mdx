@@ -102,6 +102,10 @@ nicht `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; `verb
 alle vier in `.gitignore` ein, und `translate`, `watch`, `import`, `tmx import` und `pseudo` ergänzen einen
 vorhandenen `.gitignore`, dem einer davon fehlt. Siehe [Die Lock-Datei](/docs/the-lock-file).
 
+Committe auch `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat: Sie hält fest, ob
+jeder Wert von einem Provider, aus dem Übersetzungsspeicher, von einer Person oder aus einem Import
+stammt, und wird genauso geteilt.
+
 ## Wie übersetze ich alles neu?
 
 Die Lock-Datei zu löschen, tut es nicht: Ohne Baseline zählen Keys, die in Quelle und Ziel

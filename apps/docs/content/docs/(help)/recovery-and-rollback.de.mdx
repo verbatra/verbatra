@@ -16,6 +16,13 @@ kümmern muss:
 - die Ziel-Locale-Dateien, eine pro Locale, unter dem Pfad deines `files.pattern`
 - `verbatra.lock.json`, ein Quell-Content-Hash pro übersetztem Key
 
+<AvailableFrom version="0.12.0" />
+
+Außerdem schreibt er `verbatra.provenance.json`, die festhält, welcher Schreibweg jeden Wert erzeugt
+hat. Stelle sie im selben Schritt wie die beiden anderen wieder her, wie es die Befehle unten tun.
+Vergisst du sie, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, liest sich
+als `external`, sodass eine Abweichung nur Information kostet und nie den falschen Urheber nennt.
+
 Alles Weitere, was er schreibt, ist regenerierbarer Zustand in Nebendateien, den du nie
 wiederherstellst: `verbatra.cache.json` und das Verzeichnis `.verbatra-local/`, beide gitignoriert.
 Ein Lauf kann diese Einträge außerdem einer vorhandenen `.gitignore` hinzufügen, der sie fehlen; das
@@ -30,7 +37,7 @@ keine unvollständige Datei zu reparieren.
 Wenn der Lauf noch nicht committet ist, verwirf beide Dateien gemeinsam:
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json
+git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
 ```
 
 Wenn der Lauf bereits committet ist, mache diesen Commit rückgängig:

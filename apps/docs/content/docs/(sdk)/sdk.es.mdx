@@ -204,7 +204,7 @@ Entrada: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` tom
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Antes de leer o escribir nada, `TYPES_OUTPUT_CONFLICT`
 rechaza un `out` que no nombra ningún archivo (también uno que termina en un separador de ruta), es
 absoluto, se sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y uno que nombra un
-archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo
+archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo
 donde verbatra busca su configuración, `configPath`, el archivo de configuración desde el que se
 cargó `config`, o `glossaryPath`, el archivo de glosario al que apunta; los nombres se comparan sin
 distinguir mayúsculas de minúsculas, y cuando `deps.fs` implementa `realpath`, como hace el valor
@@ -295,6 +295,12 @@ del principio y del final, las claves con distinta descripción, significado, ma
 comparan forma por forma. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
 no llama a ningún proveedor.
 
+<AvailableFrom version="0.12.0" />
+
+Cada `LocaleCheckSummary` lleva además `provenance`: contadores `byOrigin` y `byReviewState` sobre
+las claves para las que el locale tiene un valor, leídos de `verbatra.provenance.json`. Qué
+significa cada origen está en [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
 ### diff
 
 El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de claves por locale
@@ -314,6 +320,12 @@ alcanzar un literal de plantilla con cabecera estática, a `possiblyDynamic`. Su
 uso](/docs/cli/diff#claves-de-origen-sin-uso). El informe nunca activa `hasPendingChanges`.
 
 Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
+
+<AvailableFrom version="0.12.0" />
+
+Cada `LocaleDiff` lleva además `changedOrigins`, el origen interpretado del valor actual de cada
+clave `changed` (por ejemplo `machine`, `human` o `external`), para que veas antes de ejecutar qué
+trabajo reemplazaría una retraducción.
 
 ### keyIntegrity
 
@@ -339,6 +351,8 @@ distinguibles. Cuando el archivo está ausente el resultado es `{ exists: false 
 
 Entrada: `{ config, cwd?, locales? }`. Devuelve un `LockStateResult`.
 
+Cada locale lleva además los mismos contadores `provenance` que informa `check`.
+
 ### loadLockFile
 
 Lee el propio archivo de bloqueo (`verbatra.lock.json`, exportado también como `LOCK_FILE_NAME`) y
@@ -348,6 +362,21 @@ vacío, el mismo comportamiento de primera ejecución en el que se apoya `transl
 cuando necesites distinguir la ausencia.
 
 Entrada: `{ cwd? }`. No necesita configuración. Devuelve un `LockFile`.
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+Lee el propio archivo de procedencia (`verbatra.provenance.json`, también exportado como
+`PROVENANCE_FILE_NAME`) y devuelve su forma guardada: `{ version, locales }`, donde cada locale
+asigna a cada clave un registro `{ origin, provider?, model?, valueHash, reviewState?, reviewer? }`.
+No contiene texto traducido. Un archivo ausente, o uno escrito por un verbatra más nuevo, se lee
+como vacío; uno corrupto lanza `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`,
+`diff` y `lockState` ya informan la vista interpretada (`KeyProvenance`), que además distingue un
+valor sin registro (`unrecorded`) de uno editado fuera de verbatra desde que se registró
+(`external`).
+
+Entrada: `{ cwd? }`. No necesita configuración. Devuelve un `ProvenanceFile`.
 
 ### runStatus
 
@@ -381,6 +410,9 @@ Solo lectura.
 Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ source, target? }`; `target` está ausente
 exactamente cuando la clave todavía no existe en ese locale.
 
+Cuando `target` está presente, el resultado lleva además `provenance`, la `KeyProvenance`
+interpretada de la clave: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
 ### editEntry
 
 Escribe una corrección tecleada por un humano para una clave y un locale. El valor candidato pasa por la
@@ -398,6 +430,10 @@ construye cualquier esquema en tiempo de ejecución o tabla exhaustiva a partir 
 reescribir sus miembros. Un rechazo `markup` lleva además `details`, las etiquetas causantes, cada
 una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
 
+El valor escrito queda registrado en `verbatra.provenance.json` con el origen `human`. Pasa
+`actor: "agent"` cuando lo escribió un agente de IA, para que el registro lo diga; lo afirma la
+superficie que llama y nada lo verifica.
+
 ### retranslateEntry
 
 Vuelve a ejecutar el proveedor para exactamente una clave y un locale: una llamada de una sola entrada a
@@ -409,6 +445,9 @@ códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de
 `@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
+
+El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el proveedor y el
+modelo configurados.
 
 ## Lecturas de contenido en bloque
 
@@ -429,6 +468,8 @@ se ha traducido en ese locale; un `source` ausente significa que la clave está 
 en el locale de destino pero ya no en el origen. `values` no tiene prototipo: cada clave, incluida
 una llamada `__proto__` o `constructor`, es una propiedad propia, y una clave que no está en el
 catálogo se lee como `undefined`.
+
+Cada par con un `target` lleva además `provenance`, la misma `KeyProvenance` que informa `keyValue`.
 
 ## Instantáneas de archivos de locale
 
@@ -840,8 +881,8 @@ Las partes que conviene conocer:
   [Revisión en Studio](/docs/review-in-studio) para trabajar la cola.
 - **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo, una
   degradación de DeepL) y avisos del SDK con los códigos `PLURAL_CATEGORIES_INCOMPLETE`,
-  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED` y
-  `CACHE_VERSION_UNRECOGNIZED`. El aviso de caché es de toda la ejecución (un solo archivo, compartido
+  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
+  `CACHE_VERSION_UNRECOGNIZED` y `PROVENANCE_VERSION_UNRECOGNIZED`. El aviso de caché es de toda la ejecución (un solo archivo, compartido
   por cada locale), así que se adjunta a cada locale de la ejecución.
 - **usage** es `undefined`, nunca un cero inventado, siempre que nada en ese ámbito informara de uso:
   un dry run nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
@@ -903,6 +944,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `SOURCE_UNREADABLE` | el archivo del locale de origen no existe |
 | `SOURCE_INVALID` | el archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador |
 | `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida |
+| `PROVENANCE_FILE_INVALID` | el archivo de procedencia está presente pero corrupto, es demasiado grande o tiene una forma incorrecta; uno de un verbatra más nuevo se deja intacto y se informa en su lugar con el aviso `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `LOCK_CONTENDED` | el bloqueo de escritura de un locale no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir (`updateGlossaryTerm`) |
@@ -915,9 +957,9 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
 | `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
 | `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
-| `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria |
 | `TMX_UNWRITABLE` | el archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
