@@ -16,7 +16,6 @@ export {
   type DeepLDeps,
 } from "./deepl/deepl-provider.js";
 export type { DeepLTranslateResult } from "./deepl/types.js";
-export { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./env.js";
 export { ProviderError, type ProviderErrorCode } from "./errors.js";
 export {
   type GeminiConfig,
@@ -36,6 +35,7 @@ export {
   type GoogleTranslateDeps,
 } from "./google-translate/google-translate-provider.js";
 export type { GoogleTranslateResult } from "./google-translate/types.js";
+export { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 export {
   type DataPayloadInput,
   dataPayloadCharacters,
@@ -74,7 +74,7 @@ export type {
   Usage,
 } from "./provider.js";
 export { REVIEW_REASON_CODES } from "./provider.js";
-export { redact } from "./redaction.js";
+export { redact, redactKeys } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
 export { computeReviewFlags, type ReviewFlagInput } from "./review-flags.js";
 export { SCAFFOLD_MODELS, SCAFFOLD_TOKEN_LIMIT_KEYS } from "./scaffold.js";

@@ -7,6 +7,7 @@ import type { z } from "zod";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
+import { declareProviderKeyEnvVar } from "./provider-key-env.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
 import { type VerbatraConfig, type VerbatraConfigInput, verbatraConfigSchema } from "./schema.js";
 
@@ -153,6 +154,7 @@ async function finalizeConfig(
   fs: SdkFs,
 ): Promise<{ config: VerbatraConfig; glossary: GlossaryProvenance }> {
   const { glossary: glossaryInput, ...rest } = parsed;
+  declareProviderKeyEnvVar(rest.provider);
   const resolved = await resolveGlossary(glossaryInput, baseDir, fs);
   const config: VerbatraConfig = {
     ...rest,

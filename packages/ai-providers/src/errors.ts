@@ -1,4 +1,4 @@
-import { redact } from "./redaction.js";
+import { redactKeys } from "./redaction.js";
 
 export type ProviderErrorCode =
   | "MISSING_API_KEY"
@@ -17,7 +17,7 @@ export class ProviderError extends Error {
   readonly code: ProviderErrorCode;
 
   constructor(code: ProviderErrorCode, message: string) {
-    super(redact(message, ""));
+    super(redactKeys(message));
     this.name = "ProviderError";
     this.code = code;
   }

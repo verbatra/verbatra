@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PROVIDER_ENV } from "../env.js";
 import type { ProviderCallContext } from "../guard.js";
+import { PROVIDER_ENV } from "../key-env-vars.js";
 import { requestTimeoutConfigSchema } from "../request-timeout-config.js";
 
 const HOSTED_PROVIDER_ENV_VARS: ReadonlySet<string> = new Set(

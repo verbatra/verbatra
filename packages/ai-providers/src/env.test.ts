@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  OPENAI_COMPATIBLE_ENV_VAR,
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
-  PROVIDER_ENV,
   requireAnthropicKey,
   requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
+import { keyEnvVarNames, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 describe("PROVIDER_ENV", () => {
   it("maps every provider id to its canonical environment variable name", () => {
@@ -165,6 +164,17 @@ describe("resolveOpenAiCompatibleKey", () => {
   it("throws MISSING_API_KEY when the named variable is set but empty (no silent fallback)", () => {
     process.env.MY_CUSTOM_LOCAL_KEY = "";
     expect(() => resolveOpenAiCompatibleKey("MY_CUSTOM_LOCAL_KEY")).toThrow(ProviderError);
+  });
+
+  it("declares a named apiKeyEnvVar as a key variable once it is read", () => {
+    process.env.MY_CUSTOM_LOCAL_KEY = "named-value";
+    resolveOpenAiCompatibleKey("MY_CUSTOM_LOCAL_KEY");
+    expect(keyEnvVarNames()).toContain("MY_CUSTOM_LOCAL_KEY");
+  });
+
+  it("declares a named apiKeyEnvVar even when it is unset, before throwing", () => {
+    expect(() => resolveOpenAiCompatibleKey("MY_UNSET_DECLARED_KEY")).toThrow(ProviderError);
+    expect(keyEnvVarNames()).toContain("MY_UNSET_DECLARED_KEY");
   });
 
   it("never reads OPENAI_API_KEY at any tier", () => {

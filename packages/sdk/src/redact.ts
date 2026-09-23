@@ -1,34 +1,4 @@
-const REDACTED = "[REDACTED]";
-
-const KEY_PATTERNS: readonly RegExp[] = [
-  /\bsk-[A-Za-z0-9_-]{8,}/g,
-  /AIza[0-9A-Za-z_-]{35}/g,
-  /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?::fx)?/g,
-];
-
-const PROVIDER_ENV_VAR_NAMES = [
-  "ANTHROPIC_API_KEY",
-  "OPENAI_API_KEY",
-  "GEMINI_API_KEY",
-  "DEEPL_API_KEY",
-  "GOOGLE_TRANSLATE_API_KEY",
-  "OPENAI_COMPATIBLE_API_KEY",
-] as const;
-
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function scrubConfiguredEnvValues(text: string): string {
-  let out = text;
-  for (const name of PROVIDER_ENV_VAR_NAMES) {
-    const value = process.env[name];
-    if (value !== undefined && value.length > 0) {
-      out = out.replace(new RegExp(escapeForRegExp(value), "g"), REDACTED);
-    }
-  }
-  return out;
-}
+import { redactKeys } from "@verbatra/ai-providers";
 
 /**
  * Scrubs provider API key shapes and any currently configured provider environment variable value
@@ -38,10 +8,11 @@ function scrubConfiguredEnvValues(text: string): string {
  * keys, Gemini-style `AIza` keys, and hex UUID-shaped keys, with or without a `:fx` suffix), and an
  * exact-value scrub of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
  * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` currently holds in
- * the process environment. Use this on any text a surface returns to a caller that did not itself
- * generate that text, such as a file path, a config value, or an upstream error message, so a key
- * value already present in the environment or written by a user can never reach an agent, a
- * browser tab, or a log line.
+ * the process environment, plus the variable an `openai-compatible` provider names through
+ * `apiKeyEnvVar` once {@link loadConfig} has loaded a config declaring it or that provider has been
+ * built. Use this on any text a surface returns to a caller that did not itself generate that text,
+ * such as a file path, a config value, or an upstream error message, so a key value already present
+ * in the environment or written by a user can never reach an agent, a browser tab, or a log line.
  *
  * @param text - The text to scrub.
  * @returns The same text with every matching key shape and configured key value replaced by
@@ -56,9 +27,5 @@ function scrubConfiguredEnvValues(text: string): string {
  * ```
  */
 export function redact(text: string): string {
-  let out = text;
-  for (const pattern of KEY_PATTERNS) {
-    out = out.replace(pattern, REDACTED);
-  }
-  return scrubConfiguredEnvValues(out);
+  return redactKeys(text);
 }

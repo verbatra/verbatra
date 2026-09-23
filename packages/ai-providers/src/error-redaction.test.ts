@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAnthropicProvider } from "./anthropic/anthropic-provider.js";
 import type { MessagesClient } from "./anthropic/types.js";
 import { ProviderError } from "./errors.js";
+import { declareKeyEnvVar } from "./key-env-vars.js";
 import type { TranslateRequest } from "./provider.js";
 import { entry, regexExtractor, stubClient, toolMessage } from "./test-support.js";
 
@@ -139,17 +140,30 @@ describe("ProviderError constructor scrubs key shapes as a defense-in-depth back
     expect(error.message).toContain("[REDACTED]");
   });
 
-  it("does not couple the scrub to ANTHROPIC_API_KEY (env default is not re-applied)", () => {
-    const saved = process.env.ANTHROPIC_API_KEY;
-    process.env.ANTHROPIC_API_KEY = "envonlysecret";
+  it.each([
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPL_API_KEY",
+    "GOOGLE_TRANSLATE_API_KEY",
+    "OPENAI_COMPATIBLE_API_KEY",
+    "MY_LOCAL_KEY",
+  ])("scrubs the exact value of %s, built-in or declared through apiKeyEnvVar", (name) => {
+    declareKeyEnvVar("MY_LOCAL_KEY");
+    const saved = process.env[name];
+    process.env[name] = "fake-unshaped-key-value";
     try {
-      const error = new ProviderError("PROVIDER_ERROR", "carrying envonlysecret verbatim");
-      expect(error.message).toContain("envonlysecret");
+      const error = new ProviderError(
+        "PROVIDER_ERROR",
+        "carrying fake-unshaped-key-value verbatim",
+      );
+      expect(error.message).not.toContain("fake-unshaped-key-value");
+      expect(error.message).toBe("carrying [REDACTED] verbatim");
     } finally {
       if (saved === undefined) {
-        delete process.env.ANTHROPIC_API_KEY;
+        delete process.env[name];
       } else {
-        process.env.ANTHROPIC_API_KEY = saved;
+        process.env[name] = saved;
       }
     }
   });

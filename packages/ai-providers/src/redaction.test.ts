@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { redact } from "./redaction.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { declareKeyEnvVar } from "./key-env-vars.js";
+import { redact, redactKeys } from "./redaction.js";
 
 describe("redact", () => {
   it("removes OpenAI sk- key tokens", () => {
@@ -96,5 +97,55 @@ describe("redact", () => {
     const out = redact(nearMiss, undefined);
     expect(Date.now() - start).toBeLessThan(1000);
     expect(out).toBe(nearMiss);
+  });
+});
+
+describe("redactKeys", () => {
+  const NAMES = ["REDACT_KEYS_CUSTOM", "OPENAI_COMPATIBLE_API_KEY"];
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const name of NAMES) {
+      saved[name] = process.env[name];
+      delete process.env[name];
+    }
+  });
+
+  afterEach(() => {
+    for (const name of NAMES) {
+      const value = saved[name];
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    }
+  });
+
+  it("scrubs key shapes even with no key variable set", () => {
+    expect(redactKeys("token sk-ABCDEFGH1234567890 here")).toBe("token [REDACTED] here");
+  });
+
+  it("leaves the value of an undeclared variable alone", () => {
+    process.env.REDACT_KEYS_CUSTOM = "fake-undeclared-value";
+    expect(redactKeys("x fake-undeclared-value")).toBe("x fake-undeclared-value");
+  });
+
+  it("scrubs the value of a declared variable", () => {
+    declareKeyEnvVar("REDACT_KEYS_CUSTOM");
+    process.env.REDACT_KEYS_CUSTOM = "fake-declared-value";
+    expect(redactKeys("x fake-declared-value y")).toBe("x [REDACTED] y");
+  });
+
+  it("scrubs a whole value that embeds a key shape, leaving no fragment behind", () => {
+    process.env.OPENAI_COMPATIBLE_API_KEY = "prefix-sk-ABCDEFGH12345678";
+    expect(redactKeys("k=prefix-sk-ABCDEFGH12345678")).toBe("k=[REDACTED]");
+  });
+
+  it("scrubs the longer of two overlapping values whole", () => {
+    declareKeyEnvVar("REDACT_KEYS_CUSTOM");
+    process.env.OPENAI_COMPATIBLE_API_KEY = "fake-short";
+    process.env.REDACT_KEYS_CUSTOM = "fake-short-and-longer";
+    expect(redactKeys("a fake-short-and-longer b fake-short")).toBe("a [REDACTED] b [REDACTED]");
   });
 });
