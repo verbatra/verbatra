@@ -63,6 +63,15 @@ servidores locales no necesitan clave de API: cuando ni una variable nombrada po
 `OPENAI_COMPATIBLE_API_KEY` están definidas, verbatra envía el placeholder fijo `"local"`. Si tu
 servidor sí necesita una clave, nombra su variable de entorno con `apiKeyEnvVar`.
 
+## ¿Qué idiomas admite verbatra?
+
+Cualquier idioma que admita tu proveedor. verbatra en sí acepta cualquier código de locale BCP 47
+válido, como `pt-BR`, `sr-Latn` o `zh-Hant`, y lee las reglas de plural de CLDR. DeepL y Google
+Cloud Translation tienen listas de idiomas fijas; los proveedores LLM, ninguna. En
+[Soporte de idiomas](/docs/language-support) tienes la lista de cada proveedor, el código que
+recibe cada uno y cómo se tratan las escrituras, las variantes regionales y el texto de derecha a
+izquierda.
+
 ## ¿Cómo conservan las claves su orden?
 
 Los adaptadores de la familia JSON, YAML y ARB hacen el ciclo de ida y vuelta de los archivos en el
