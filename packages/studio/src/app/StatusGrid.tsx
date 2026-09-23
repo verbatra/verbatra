@@ -121,7 +121,7 @@ function GridCell({
         onFocus={() => onFocusCell(row, col)}
         onKeyDown={handleKeyDown}
         onClick={() => onActivate(keyName)}
-        aria-label={`${keyName} in ${localeName}: ${status}`}
+        aria-label={`${keyName} in ${localeName}: ${status === "protected" ? "needs review" : status}`}
       >
         {status === "in-sync" ? <Badge tone="success">In sync</Badge> : <DiffBadge tone={status} />}
       </button>

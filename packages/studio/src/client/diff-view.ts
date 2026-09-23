@@ -2,7 +2,7 @@ import type { RpcResultFor } from "../shared/rpc/contract.js";
 
 export type DiffLocale = RpcResultFor<"status.diff">["locales"][number];
 
-export type KeyLocaleStatus = "missing" | "changed" | "orphaned" | "in-sync";
+export type KeyLocaleStatus = "missing" | "changed" | "orphaned" | "protected" | "in-sync";
 
 export interface KeyLocaleStatusRow {
   readonly locale: string;
@@ -10,6 +10,9 @@ export interface KeyLocaleStatusRow {
 }
 
 function statusForLocale(locale: DiffLocale, key: string): KeyLocaleStatus {
+  if (locale.protected?.includes(key) === true) {
+    return "protected";
+  }
   if (locale.missing.includes(key)) {
     return "missing";
   }

@@ -19,6 +19,10 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
     "verbatra.provenance.json is corrupt, oversized, or not shaped as verbatra expects, so nothing was written. Restore it from version control and try again.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
   UNKNOWN_KEY: "The requested key was not found in the source resource. It may have been removed.",
+  KEY_PROTECTED:
+    "A person wrote, imported, or changed this value outside verbatra, so it is not retranslated without an explicit override.",
+  KEY_PINNED:
+    "This key matches the config's pinnedKeys, so no machine translation or agent edit may change it.",
   LOCK_CONTENDED:
     "This locale's write lock is held by another process. Wait a moment and try again.",
   GLOSSARY_NOT_FILE_BACKED:

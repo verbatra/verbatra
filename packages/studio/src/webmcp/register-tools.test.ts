@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { RpcCallResult, RpcClient } from "../client/rpc-client.js";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { agentEditEntryParamsSchema } from "../shared/rpc/edit-entry.js";
+import { agentRetranslateEntryParamsSchema } from "../shared/rpc/retranslate-entry.js";
 import type { ProjectSnapshotResult } from "../shared/rpc/snapshot.js";
 import { type ModelContext, registerAgentTools, type WebMcpTool } from "./register-tools.js";
 import type { AgentToolsRegistration } from "./registration-report.js";
@@ -296,8 +297,8 @@ describe("registerAgentTools annotations and input schema", () => {
   it("derives each tool's inputSchema from the injected params schema", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
 
-    expect(toolByName(tools, expectedName("translation.retranslateEntry")).inputSchema).toEqual(
-      z.toJSONSchema(rpcParamsSchemas["translation.retranslateEntry"]),
+    expect(toolByName(tools, expectedName("key.value")).inputSchema).toEqual(
+      z.toJSONSchema(rpcParamsSchemas["key.value"]),
     );
     expect(toolByName(tools, expectedName("project.snapshot")).inputSchema).toEqual(
       z.toJSONSchema(rpcParamsSchemas["project.snapshot"]),
@@ -412,8 +413,11 @@ function backtickedTokens(description: string): Set<string> {
 }
 
 function schemaParamNames(method: RpcMethodName): Set<string> {
-  const agentSchema =
-    method === "translation.editEntry" ? agentEditEntryParamsSchema : rpcParamsSchemas[method];
+  const agentSchemas: Partial<Record<RpcMethodName, z.ZodType>> = {
+    "translation.editEntry": agentEditEntryParamsSchema,
+    "translation.retranslateEntry": agentRetranslateEntryParamsSchema,
+  };
+  const agentSchema = agentSchemas[method] ?? rpcParamsSchemas[method];
   const schema = z.toJSONSchema(agentSchema) as {
     readonly properties?: Readonly<Record<string, unknown>>;
   };
@@ -510,7 +514,10 @@ describe("registerAgentTools execute delegation", () => {
 
     const cases = [
       { method: "key.value", params: { locale: "de", key: "greeting" } },
-      { method: "translation.retranslateEntry", params: { locale: "de", key: "greeting" } },
+      {
+        method: "translation.retranslateEntry",
+        params: { locale: "de", key: "greeting", includeHuman: false },
+      },
     ];
 
     for (const { method, params } of cases) {
@@ -559,5 +566,29 @@ describe("registerAgentTools: the editEntry tool records an agent author", () =>
     expect(calls.filter((call) => call.method === "translation.editEntry").at(0)?.params).toBe(
       null,
     );
+  });
+});
+
+describe("registerAgentTools: the retranslateEntry tool never overrides a person's work", () => {
+  it("hides includeHuman from the agent's input schema", async () => {
+    const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+    expect(
+      JSON.stringify(toolByName(tools, expectedName("translation.retranslateEntry")).inputSchema),
+    ).not.toContain("includeHuman");
+  });
+
+  it("always sends includeHuman false, even when the agent asks for true", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+    await toolByName(tools, expectedName("translation.retranslateEntry")).execute({
+      locale: "de",
+      key: "greeting",
+      includeHuman: true,
+    });
+
+    expect(
+      calls.filter((call) => call.method === "translation.retranslateEntry").at(0)?.params,
+    ).toEqual({ locale: "de", key: "greeting", includeHuman: false });
   });
 });

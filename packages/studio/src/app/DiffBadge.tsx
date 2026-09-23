@@ -2,18 +2,20 @@ import type { ReactNode } from "react";
 import { cn } from "./lib/cn.js";
 import { pillClassName, pillDotClassName } from "./ui.js";
 
-export type DiffTone = "missing" | "changed" | "orphaned";
+export type DiffTone = "missing" | "changed" | "orphaned" | "protected";
 
 const DIFF_LABEL: Readonly<Record<DiffTone, string>> = {
   missing: "Missing",
   changed: "Changed",
   orphaned: "Orphaned",
+  protected: "Needs review",
 };
 
 const DIFF_TONE_CLASSES: Readonly<Record<DiffTone, string>> = {
   missing: "bg-diff-new-soft text-diff-new",
   changed: "bg-diff-changed-soft text-diff-changed",
   orphaned: "bg-diff-orphaned-soft text-diff-orphaned",
+  protected: "bg-warning-soft text-warning",
 };
 
 export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
