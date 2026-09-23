@@ -11,6 +11,7 @@ import {
   googleTranslateConfigSchema,
   openAiCompatibleConfigSchema,
   openAiConfigSchema,
+  type ProviderNetwork,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import { z } from "zod";
@@ -87,16 +88,23 @@ export type MachineProviderId = MachineProviderConfig["id"];
 type ProviderFactories = {
   [K in MachineProviderId]: (
     options: Extract<MachineProviderConfig, { id: K }>["options"],
+    network: ProviderNetwork | undefined,
   ) => TranslationProvider;
 };
 
+function networkDeps(network: ProviderNetwork | undefined): { network?: ProviderNetwork } {
+  return network === undefined ? {} : { network };
+}
+
 const providerFactories: ProviderFactories = {
-  anthropic: (options) => createAnthropicProvider(options),
-  openai: (options) => createOpenAiProvider(options),
-  gemini: (options) => createGeminiProvider(options),
+  anthropic: (options, network) => createAnthropicProvider(options, networkDeps(network)),
+  openai: (options, network) => createOpenAiProvider(options, networkDeps(network)),
+  gemini: (options, network) => createGeminiProvider(options, networkDeps(network)),
   deepl: (options) => createDeepLProvider(options),
-  "google-translate": (options) => createGoogleTranslateProvider(options),
-  "openai-compatible": (options) => createOpenAiCompatibleProvider(options),
+  "google-translate": (options, network) =>
+    createGoogleTranslateProvider(options, networkDeps(network)),
+  "openai-compatible": (options, network) =>
+    createOpenAiCompatibleProvider(options, networkDeps(network)),
 };
 
 export const PROVIDER_IDS = Object.keys(providerFactories) as readonly MachineProviderId[];
@@ -118,12 +126,16 @@ export function machineTranslationDisabledError(action: string): SdkError {
   );
 }
 
-export function buildProvider(config: ProviderConfig): TranslationProvider {
+export function buildProvider(
+  config: ProviderConfig,
+  context?: { readonly network: ProviderNetwork },
+): TranslationProvider {
   if (!isMachineProvider(config)) {
     throw machineTranslationDisabledError("constructing a translation provider");
   }
   const create = providerFactories[config.id] as (
     options: MachineProviderConfig["options"],
+    network: ProviderNetwork | undefined,
   ) => TranslationProvider;
-  return create(config.options);
+  return create(config.options, context?.network);
 }

@@ -8,15 +8,22 @@ import {
 import { NETWORK_POLICY_ENV_VAR } from "./environment-rule.js";
 import type { NetworkPolicyMode } from "./network-config.js";
 
+/** Where a {@link NetworkRule} came from: the config's `network` block or `VERBATRA_NETWORK_POLICY`. */
 export type NetworkRuleSource = "config" | "environment";
 
+/** One source's network policy. */
 export interface NetworkRule {
+  /** Where the rule was set. */
   readonly source: NetworkRuleSource;
+  /** The policy that source sets. */
   readonly policy: NetworkPolicyMode;
+  /** Host names, `*.suffix` wildcards, IP addresses, or CIDR ranges the source also permits. */
   readonly allowedHosts: readonly string[];
 }
 
+/** The effective network policy: a host is permitted only when every rule permits it. */
 export interface NetworkPolicy {
+  /** The rules from each source that sets one. No rule means every host is permitted. */
   readonly rules: readonly NetworkRule[];
 }
 

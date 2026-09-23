@@ -3,9 +3,13 @@ import type { EnvironmentSource } from "./environment-rule.js";
 import { createGuardedFetch, type FetchLike, type GuardedFetchDeps } from "./guarded-fetch.js";
 import type { NetworkPolicy } from "./policy.js";
 
+/** What a built-in provider needs to enforce the network policy on its own requests. */
 export interface ProviderNetwork {
+  /** The effective policy every request and redirect is checked against. */
   readonly policy: NetworkPolicy;
+  /** The environment the provider's endpoint was resolved from, so it is pinned to that host. */
   readonly env: EnvironmentSource;
+  /** Test overrides for sending and resolving. */
   readonly deps?: GuardedFetchDeps;
 }
 

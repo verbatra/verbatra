@@ -10,6 +10,7 @@ export const NETWORK_POLICY_ENV_VAR = "VERBATRA_NETWORK_POLICY";
 
 export const NETWORK_ALLOWED_HOSTS_ENV_VAR = "VERBATRA_NETWORK_ALLOWED_HOSTS";
 
+/** A read-only view of environment variables, such as `process.env`. */
 export type EnvironmentSource = Readonly<Record<string, string | undefined>>;
 
 export type EnvironmentRule =

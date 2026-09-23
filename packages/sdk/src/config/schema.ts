@@ -1,3 +1,4 @@
+import { networkConfigSchema } from "@verbatra/ai-providers";
 import { formatIdSchema } from "@verbatra/core";
 import { z } from "zod";
 import { LOCALE_TOKEN } from "../locale-path/pattern.js";
@@ -99,6 +100,7 @@ export const verbatraConfigSchema = z
     extract: extractionConfigSchema.optional(),
     humanEdits: humanEditsSchema.optional(),
     pinnedKeys: pinnedKeysSchema.optional(),
+    network: networkConfigSchema.optional(),
   })
   .refine(
     (config) => {

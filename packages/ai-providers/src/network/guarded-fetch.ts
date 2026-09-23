@@ -7,12 +7,17 @@ import {
   type NetworkRule,
 } from "./policy.js";
 
+/** The shape of the global `fetch`. */
 export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
+/** Resolves a host name to every address it answers with. */
 export type LookupAddresses = (hostname: string) => Promise<readonly string[]>;
 
+/** Overrides for the policy-checking fetch, for tests. */
 export interface GuardedFetchDeps {
+  /** Sends a checked request. Defaults to the global `fetch`. */
   readonly fetch?: FetchLike;
+  /** Resolves a host name before it is checked. Defaults to `dns.lookup` with every address. */
   readonly lookup?: LookupAddresses;
 }
 
