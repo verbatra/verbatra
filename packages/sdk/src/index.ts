@@ -118,6 +118,7 @@ export {
   doctor,
 } from "./flow/doctor.js";
 export {
+  type EditEntryActor,
   type EditEntryDeps,
   type EditEntryInput,
   type EditEntryResult,
@@ -286,17 +287,35 @@ export {
   type LocalePathResolverConfig,
 } from "./locale-path/resolver.js";
 export type { LocaleStyle } from "./locale-path/style.js";
+export type {
+  KeyOrigin,
+  KeyProvenance,
+  KeyReviewState,
+  ProvenanceSummary,
+} from "./lock/key-provenance.js";
 export {
   type LoadLockFileDeps,
   type LoadLockFileInput,
   loadLockFile,
 } from "./lock/load-lock-file.js";
+export {
+  type LoadProvenanceDeps,
+  type LoadProvenanceInput,
+  loadProvenance,
+} from "./lock/load-provenance.js";
 export type {
   LockHolder,
   LockWaitEvent,
   LockWaitListener,
 } from "./lock/locale-write-lock.js";
 export { LOCK_FILE_NAME } from "./lock/lock-file.js";
+export {
+  PROVENANCE_FILE_NAME,
+  type ProvenanceFile,
+  type ProvenanceOrigin,
+  type ProvenanceRecord,
+  type ProvenanceReviewState,
+} from "./lock/provenance-file.js";
 export type { LockFile } from "./lock/types.js";
 export type {
   LocaleFinishedEvent,

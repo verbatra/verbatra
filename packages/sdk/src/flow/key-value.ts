@@ -2,6 +2,7 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { type KeyProvenance, keyProvenance, readLocaleProvenance } from "../lock/key-provenance.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { selectLocales } from "./select-locales.js";
@@ -33,6 +34,11 @@ export interface KeyValueResult {
   readonly source: string;
   /** The key's text in the requested target locale, or absent when it has not been translated yet. */
   readonly target?: string;
+  /**
+   * The provenance of the current translation, read from the provenance file. Absent when
+   * `target` is.
+   */
+  readonly provenance?: KeyProvenance;
 }
 
 /**
@@ -61,6 +67,8 @@ export interface KeyValueResult {
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong.
  */
 export async function keyValue(
   input: KeyValueInput,
@@ -88,9 +96,13 @@ export async function keyValue(
 
   const target = await readTarget(cwd, config, adapter, fs, locale);
   const targetEntry = target.entries.get(input.key);
-
+  if (targetEntry === undefined) {
+    return { source: sourceEntry.value };
+  }
+  const records = (await readLocaleProvenance(cwd, fs))(locale);
   return {
     source: sourceEntry.value,
-    ...(targetEntry !== undefined ? { target: targetEntry.value } : {}),
+    target: targetEntry.value,
+    provenance: keyProvenance(records.get(input.key), targetEntry.value),
   };
 }

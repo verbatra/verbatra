@@ -35,7 +35,7 @@ describe("keyValueHandler", () => {
 
       const result = await keyValueHandler({ locale: "de", key: "greeting" }, deps(project));
 
-      expect(result).toEqual({ source: "hello", target: "hallo" });
+      expect(result).toMatchObject({ source: "hello", target: "hallo" });
     } finally {
       await project.cleanup();
     }
@@ -84,7 +84,7 @@ describe("keyValueHandler", () => {
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
       const second = await keyValueHandler({ locale: "de", key: "greeting" }, deps(project));
-      expect(second).toEqual({ source: "hello", target: "hallo" });
+      expect(second).toMatchObject({ source: "hello", target: "hallo" });
     } finally {
       await project.cleanup();
     }

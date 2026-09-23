@@ -24,6 +24,10 @@ const REFUSAL_SCENARIOS: Readonly<Record<TypesOutputRefusal, RefusalScenario>> =
   "not-typescript": { input: { out: "types.txt" }, why: "is not a TypeScript file" },
   "locale-file": { input: { out: "locales/en.json" }, why: 'is the locale file for "en".' },
   "lock-file": { input: { out: "verbatra.lock.json" }, why: "is the lock file" },
+  "provenance-file": {
+    input: { out: "verbatra.provenance.json" },
+    why: "is the provenance file",
+  },
   "translation-memory-cache": {
     input: { out: "verbatra.cache.json" },
     why: "is the translation-memory cache.",

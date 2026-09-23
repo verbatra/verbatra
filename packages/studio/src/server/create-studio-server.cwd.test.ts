@@ -37,7 +37,7 @@ describe("startStudioServer: cwd option", () => {
           const body = (await response.json()) as RpcEnvelope;
 
           expect(body.ok).toBe(true);
-          expect(body.result).toEqual({
+          expect(body.result).toMatchObject({
             inSync: false,
             locales: [{ locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false }],
           });

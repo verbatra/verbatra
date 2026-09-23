@@ -59,7 +59,7 @@ describe("lockStateHandler", () => {
         throw new Error("expected exists: true");
       }
       expect(result.version).toBe(1);
-      expect(result.locales).toEqual([
+      expect(result.locales).toMatchObject([
         { locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 1 },
       ]);
     } finally {
@@ -86,7 +86,7 @@ describe("lockStateHandler", () => {
       if (!result.exists) {
         throw new Error("expected exists: true");
       }
-      expect(result.locales).toEqual([
+      expect(result.locales).toMatchObject([
         { locale: "de", keyCount: 0, missing: 1, stale: 0, upToDate: 1 },
         { locale: "fr", keyCount: 2, missing: 0, stale: 2, upToDate: 0 },
       ]);
@@ -105,7 +105,7 @@ describe("lockStateHandler", () => {
       await writeLock(project, { version: 1, locales: {} });
 
       const second = await lockStateHandler({}, deps(project));
-      expect(second).toEqual({
+      expect(second).toMatchObject({
         exists: true,
         version: 1,
         locales: [{ locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 1 }],

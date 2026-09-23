@@ -19,13 +19,16 @@ import type { ProviderId } from "../config/provider-config.js";
  *   ceiling is withheld before it is sent, and so is every request after it.
  * - `CACHE_VERSION_UNRECOGNIZED`: the translation memory is at a version this release does not
  *   understand, so the run used no cache and left the file untouched.
+ * - `PROVENANCE_VERSION_UNRECOGNIZED`: the provenance file was written by a newer verbatra, so the
+ *   run left it untouched and recorded no provenance for the values it wrote.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
   | "SUB_BATCH_FAILED"
   | "BLANK_ROW_BASELINE_RETAINED"
   | "BUDGET_TOKENS_EXCEEDED"
-  | "CACHE_VERSION_UNRECOGNIZED";
+  | "CACHE_VERSION_UNRECOGNIZED"
+  | "PROVENANCE_VERSION_UNRECOGNIZED";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is

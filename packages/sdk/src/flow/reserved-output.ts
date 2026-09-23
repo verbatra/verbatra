@@ -5,11 +5,13 @@ import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
+import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
 import { escapesWorkingDirectory } from "./write-target.js";
 
 export type ReservedPathKind =
   | "locale-file"
   | "lock-file"
+  | "provenance-file"
   | "translation-memory-cache"
   | "config-search-place"
   | "loaded-config"
@@ -42,6 +44,11 @@ export function reservedProjectPaths(input: ReservedPathsInput): Map<string, Res
     resolve(cwd, LOCK_FILE_NAME),
     "lock-file",
     "the lock file, which holds the translation baseline",
+  );
+  claim(
+    resolve(cwd, PROVENANCE_FILE_NAME),
+    "provenance-file",
+    "the provenance file, which records who produced each translation",
   );
   claim(resolve(cwd, CACHE_FILE_NAME), "translation-memory-cache", "the translation-memory cache");
   for (const place of CONFIG_SEARCH_PLACES) {

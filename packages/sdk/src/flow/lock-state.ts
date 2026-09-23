@@ -2,6 +2,11 @@ import { type DiffResult, diffResources } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import {
+  type ProvenanceSummary,
+  readLocaleProvenance,
+  summarizeProvenance,
+} from "../lock/key-provenance.js";
 import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
@@ -20,6 +25,11 @@ export interface LockLocaleState {
   readonly stale: number;
   /** Number of keys whose translation still matches the recorded baseline. */
   readonly upToDate: number;
+  /**
+   * Counts by origin and review state over the keys this locale has a value for, read from the
+   * provenance file. See {@link KeyProvenance} for what each origin means.
+   */
+  readonly provenance?: ProvenanceSummary;
 }
 
 /**
@@ -92,6 +102,8 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
@@ -115,6 +127,7 @@ export async function lockState(
   }
 
   const lock = await readLockFile(path, fs);
+  const provenanceFor = await readLocaleProvenance(cwd, fs);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const source = await readSource(config, cwd, fs, adapter);
 
@@ -123,7 +136,10 @@ export async function lockState(
       const target = await readTarget(cwd, config, adapter, fs, locale);
       const baseline = baselineFor(lock, locale);
       const diff = diffResources(source.resource, target, { baseline });
-      return toLockLocaleState(locale, baseline.size, diff);
+      return {
+        ...toLockLocaleState(locale, baseline.size, diff),
+        provenance: summarizeProvenance(provenanceFor(locale), source.resource, target),
+      };
     }),
   );
 

@@ -5,6 +5,8 @@ import { makeTempDir, writeJsonFile } from "../test-support.js";
 import { loadLockFile } from "./load-lock-file.js";
 import { updateLockFileLocale } from "./lock-file.js";
 
+const NO_PROVENANCE = { records: new Map() };
+
 describe("loadLockFile", () => {
   it("degrades a missing lock-file to an empty lock, mirroring readLockFile", async () => {
     const dir = await makeTempDir();
@@ -14,10 +16,16 @@ describe("loadLockFile", () => {
 
   it("reads an existing lock-file's recorded entries", async () => {
     const dir = await makeTempDir();
-    await updateLockFileLocale(dir, defaultFs, "de", {
-      mode: "replace",
-      entries: { greeting: "abc" },
-    });
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      {
+        mode: "replace",
+        entries: { greeting: "abc" },
+      },
+      NO_PROVENANCE,
+    );
 
     const result = await loadLockFile({ cwd: dir });
     expect(result.locales.de).toEqual({ greeting: "abc" });

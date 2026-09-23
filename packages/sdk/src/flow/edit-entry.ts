@@ -8,6 +8,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
+import { settleProvenance } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -27,7 +28,16 @@ export interface EditEntryInput {
   readonly key: string;
   /** The new translation. It is accepted only if it passes the integrity gate. */
   readonly value: string;
+  /**
+   * Who wrote the value, recorded as its origin in the provenance file: `human` for a person,
+   * `agent` for an AI agent acting through a tool. Defaults to `human`. The calling surface asserts
+   * it; nothing verifies it.
+   */
+  readonly actor?: EditEntryActor;
 }
+
+/** Who wrote a value passed to {@link editEntry}. */
+export type EditEntryActor = "human" | "agent";
 
 /** Injectable dependencies for {@link editEntry}. Every field has a working default. */
 export interface EditEntryDeps {
@@ -82,6 +92,8 @@ export type EditEntryResult =
  * and feeds the translation memory, which means a later run treats the key as up to date and
  * reuses the edited text rather than paying the provider to translate it again. No review reason
  * is computed for a hand-edited value, so a configured `maxLength` budget is not checked here.
+ * The provenance file records the value with the origin named by `actor`, `human` unless told
+ * otherwise, and any earlier review decision on the key is cleared.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.
@@ -111,6 +123,8 @@ export type EditEntryResult =
  * internal temporary file.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
@@ -162,10 +176,16 @@ export async function editEntry(
       cwd,
     );
 
-    await updateLockFileLocale(cwd, fs, locale, {
-      mode: "merge",
-      entries: { [input.key]: contentHash(sourceEntry) },
-    });
+    await updateLockFileLocale(
+      cwd,
+      fs,
+      locale,
+      { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
+      settleProvenance(
+        new Map([[input.key, { origin: input.actor ?? "human", value: input.value }]]),
+        await readTarget(cwd, config, adapter, fs, locale),
+      ),
+    );
 
     await feedTranslationMemory(
       cwd,

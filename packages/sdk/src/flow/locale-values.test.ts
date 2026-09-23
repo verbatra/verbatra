@@ -35,7 +35,7 @@ describe("localeValues", () => {
 
     const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(result).toEqual([
+    expect(result).toMatchObject([
       {
         locale: "de",
         values: {
@@ -51,7 +51,7 @@ describe("localeValues", () => {
 
     const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(result[0]?.values).toEqual({
+    expect(result[0]?.values).toMatchObject({
       a: { source: "A", target: "Aa" },
       b: { source: "B" },
     });
@@ -62,7 +62,7 @@ describe("localeValues", () => {
 
     const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(result[0]?.values.legacy).toEqual({ target: "old" });
+    expect(result[0]?.values.legacy).toMatchObject({ target: "old" });
   });
 
   it("covers every requested target locale in one call", async () => {
@@ -71,8 +71,8 @@ describe("localeValues", () => {
     const result = await localeValues({ config: cfg(), cwd: dir });
 
     expect(result.map((entry) => entry.locale)).toEqual(["de", "fr"]);
-    expect(result[0]?.values).toEqual({ a: { source: "A", target: "Aa" } });
-    expect(result[1]?.values).toEqual({ a: { source: "A", target: "Af" } });
+    expect(result[0]?.values).toMatchObject({ a: { source: "A", target: "Aa" } });
+    expect(result[1]?.values).toMatchObject({ a: { source: "A", target: "Af" } });
   });
 
   it("honors a valid locales subset and preserves config order", async () => {
@@ -114,7 +114,7 @@ describe("localeValues", () => {
     try {
       process.chdir(dir);
       const result = await localeValues({ config: cfg({ targetLocales: ["de"] }) });
-      expect(result[0]?.values).toEqual({ a: { source: "A", target: "Aa" } });
+      expect(result[0]?.values).toMatchObject({ a: { source: "A", target: "Aa" } });
     } finally {
       process.chdir(previous);
     }
@@ -161,7 +161,7 @@ describe("localeValues: prototype-named keys", () => {
       const values = result[0]?.values ?? {};
 
       expect(Object.keys(values).sort()).toEqual([key, "a"].sort());
-      expect(Object.getOwnPropertyDescriptor(values, key)?.value).toEqual({
+      expect(Object.getOwnPropertyDescriptor(values, key)?.value).toMatchObject({
         source: "S",
         target: "T",
       });
@@ -174,9 +174,18 @@ describe("localeValues: prototype-named keys", () => {
     const result = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
     const serialized = JSON.stringify(result);
 
-    expect(serialized).toBe('[{"locale":"de","values":{"__proto__":{"source":"S","target":"T"}}}]');
+    expect(serialized).toBe(
+      '[{"locale":"de","values":{"__proto__":{"source":"S","target":"T","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]',
+    );
     expect(Object.entries(JSON.parse(JSON.stringify(result[0]?.values)))).toEqual([
-      ["__proto__", { source: "S", target: "T" }],
+      [
+        "__proto__",
+        {
+          source: "S",
+          target: "T",
+          provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+        },
+      ],
     ]);
   });
 

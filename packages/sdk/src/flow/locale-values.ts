@@ -3,6 +3,8 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import { type KeyProvenance, keyProvenance, readLocaleProvenance } from "../lock/key-provenance.js";
+import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
@@ -14,6 +16,11 @@ export interface KeyValuePair {
   readonly source?: string;
   /** The key's text in this target locale, absent when the key has not been translated yet. */
   readonly target?: string;
+  /**
+   * The provenance of the current translation, read from the provenance file. Absent when
+   * `target` is.
+   */
+  readonly provenance?: KeyProvenance;
 }
 
 /** One target locale's current source and target text for every key, as returned by {@link localeValues}. */
@@ -46,7 +53,11 @@ export interface LocaleValuesDeps {
   readonly fs?: SdkFs;
 }
 
-function mergeValues(source: LocaleResource, target: LocaleResource): Record<string, KeyValuePair> {
+function mergeValues(
+  source: LocaleResource,
+  target: LocaleResource,
+  records: ReadonlyMap<string, ProvenanceRecord>,
+): Record<string, KeyValuePair> {
   const keys = new Set([...source.entries.keys(), ...target.entries.keys()]);
   const values: Record<string, KeyValuePair> = Object.create(null);
   for (const key of keys) {
@@ -54,7 +65,12 @@ function mergeValues(source: LocaleResource, target: LocaleResource): Record<str
     const targetEntry = target.entries.get(key);
     values[key] = {
       ...(sourceEntry !== undefined ? { source: sourceEntry.value } : {}),
-      ...(targetEntry !== undefined ? { target: targetEntry.value } : {}),
+      ...(targetEntry !== undefined
+        ? {
+            target: targetEntry.value,
+            provenance: keyProvenance(records.get(key), targetEntry.value),
+          }
+        : {}),
     };
   }
   return values;
@@ -91,6 +107,8 @@ function mergeValues(source: LocaleResource, target: LocaleResource): Record<str
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong.
  *
  * @example
  * ```ts
@@ -120,6 +138,7 @@ export async function localeValues(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
+  const provenanceFor = await readLocaleProvenance(cwd, fs);
 
   return Promise.all(
     selectLocales(config, input.locales).map(async (locale) => {
@@ -130,7 +149,7 @@ export async function localeValues(
         adapter,
         fs,
       });
-      return { locale, values: mergeValues(source.resource, target) };
+      return { locale, values: mergeValues(source.resource, target, provenanceFor(locale)) };
     }),
   );
 }

@@ -45,7 +45,7 @@ describe("check", () => {
 
     expect(summary.inSync).toBe(true);
     expect(summary.locales.map((l) => l.locale)).toEqual(["de", "fr"]);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 0,
       stale: 0,
@@ -60,14 +60,14 @@ describe("check", () => {
     const summary = await check({ config: cfg(), cwd: dir });
 
     expect(summary.inSync).toBe(false);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 1,
       stale: 0,
       upToDate: 1,
       inSync: false,
     });
-    expect(summary.locales[1]).toEqual({
+    expect(summary.locales[1]).toMatchObject({
       locale: "fr",
       missing: 2,
       stale: 0,
@@ -86,7 +86,7 @@ describe("check", () => {
     const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
     expect(summary.inSync).toBe(false);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 0,
       stale: 1,
@@ -104,7 +104,7 @@ describe("check", () => {
 
     const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: 1,
       stale: 1,
@@ -211,7 +211,7 @@ describe("check with consistency", () => {
     const summary = await check({ config: cfg(), cwd: dir, consistency: true });
 
     expect(summary.inSync).toBe(true);
-    expect(summary.locales).toEqual([
+    expect(summary.locales).toMatchObject([
       {
         locale: "de",
         missing: 0,

@@ -3,7 +3,9 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import { readLocaleProvenance } from "../lock/key-provenance.js";
 import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
+import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
@@ -14,6 +16,7 @@ export interface LocaleDiffResult {
   readonly diff: DiffResult;
   readonly source: LocaleResource;
   readonly target: LocaleResource;
+  readonly provenance: ReadonlyMap<string, ProvenanceRecord>;
 }
 
 export interface DiffLocalesInput {
@@ -60,6 +63,7 @@ export async function diffLocalesWithSource(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readLockFile(lockFilePath(cwd), fs);
+  const provenanceFor = await readLocaleProvenance(cwd, fs);
 
   const results = await Promise.all(
     selectLocales(config, input.locales).map(async (locale) => {
@@ -71,7 +75,7 @@ export async function diffLocalesWithSource(
         fs,
       });
       const diff = diffResources(source.resource, target, { baseline: baselineFor(lock, locale) });
-      return { locale, diff, source: source.resource, target };
+      return { locale, diff, source: source.resource, target, provenance: provenanceFor(locale) };
     }),
   );
   return { source: source.resource, results };

@@ -53,6 +53,12 @@
  *   {@link diff}, {@link keyIntegrity}, {@link lockState}, {@link loadLockFile},
  *   {@link exportWorkbook}, {@link importWorkbook}, {@link editEntry}, and
  *   {@link retranslateEntry}.
+ * - `PROVENANCE_FILE_INVALID`: the provenance file (`verbatra.provenance.json`) exists but is
+ *   corrupt, oversized, or structurally wrong. A file from a newer verbatra is not this error: it is
+ *   left untouched and reported as the notice `PROVENANCE_VERSION_UNRECOGNIZED`. Thrown wherever the
+ *   provenance file is read or updated: {@link translate}, {@link check}, {@link diff},
+ *   {@link lockState}, {@link keyValue}, {@link localeValues}, {@link loadProvenance},
+ *   {@link importWorkbook}, {@link editEntry}, and {@link retranslateEntry}.
  * - `LOCK_CONTENDED`: a write lock could not be acquired before its timeout elapsed, because
  *   another process holds it or a killed process left the lock file behind. The message
  *   names the lock file's path. Thrown by {@link editEntry} and {@link retranslateEntry}, which
@@ -104,8 +110,8 @@
  * - `TYPES_OUTPUT_CONFLICT`: {@link generateTypes} refused its output path. Before anything is
  *   read or written, it refuses a path that names no file, is absolute, climbs out of the working
  *   directory, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale
- *   file, the lock file, the translation-memory cache, a file verbatra searches for its
- *   configuration, the configuration file the run loaded, or the glossary file the config names,
+ *   file, the lock file, the provenance file, the translation-memory cache, a file verbatra
+ *   searches for its configuration, the configuration file the run loaded, or the glossary file the config names,
  *   compared case-insensitively and, through a file-system port that implements `realpath`, again
  *   after symbolic links are resolved. A generating run, never a `check` run, also refuses to
  *   replace an existing file there that does not begin with the header line verbatra writes, and
@@ -116,10 +122,10 @@
  * - `TMX_OUTPUT_CONFLICT`: {@link exportTmx} refused its output path. Before the memory is read
  *   or anything is written, it refuses a path that names no file or resolves outside the working
  *   directory or to the working directory itself, and one naming a configured locale file, the
- *   lock file, the translation-memory cache, a file verbatra searches for its configuration, the
- *   configuration file the run loaded, or the glossary file the config names, compared
- *   case-insensitively and, through a file-system port that implements `realpath`, again after
- *   symbolic links are resolved.
+ *   lock file, the provenance file, the translation-memory cache, a file verbatra searches for its
+ *   configuration, the configuration file the run loaded, or the glossary file the config names,
+ *   compared case-insensitively and, through a file-system port that implements `realpath`, again
+ *   after symbolic links are resolved.
  * - `TMX_UNWRITABLE`: the TMX file {@link exportTmx} produces could not be written, because its
  *   directory is not writable, a directory already sits at that path, or the disk is out of space.
  *   The message names the file relative to `cwd` and the underlying file-system code.
@@ -137,6 +143,7 @@ export type SdkErrorCode =
   | "SOURCE_UNREADABLE"
   | "SOURCE_INVALID"
   | "LOCK_FILE_INVALID"
+  | "PROVENANCE_FILE_INVALID"
   | "LOCK_CONTENDED"
   | "GLOSSARY_NOT_FILE_BACKED"
   | "GLOSSARY_UNWRITABLE"

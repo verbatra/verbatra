@@ -34,7 +34,7 @@ describe("statusCheckHandler", () => {
       const result = await statusCheckHandler({}, deps(project));
 
       expect(result.inSync).toBe(true);
-      expect(result.locales).toEqual([
+      expect(result.locales).toMatchObject([
         { locale: "de", missing: 0, stale: 0, upToDate: 0, inSync: true },
       ]);
     } finally {
@@ -48,7 +48,7 @@ describe("statusCheckHandler", () => {
       const result = await statusCheckHandler({}, deps(project));
 
       expect(result.inSync).toBe(false);
-      expect(result.locales).toEqual([
+      expect(result.locales).toMatchObject([
         { locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false },
       ]);
     } finally {
@@ -67,7 +67,7 @@ describe("statusCheckHandler", () => {
       const result = await statusCheckHandler({}, deps(project));
 
       expect(result.inSync).toBe(false);
-      expect(result.locales).toEqual([
+      expect(result.locales).toMatchObject([
         { locale: "de", missing: 1, stale: 0, upToDate: 1, inSync: false },
       ]);
     } finally {
@@ -111,14 +111,14 @@ describe("statusCheckHandler", () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
       const first = await statusCheckHandler({}, deps(project));
-      expect(first.locales).toEqual([
+      expect(first.locales).toMatchObject([
         { locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false },
       ]);
 
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
       const second = await statusCheckHandler({}, deps(project));
-      expect(second.locales).toEqual([
+      expect(second.locales).toMatchObject([
         { locale: "de", missing: 0, stale: 0, upToDate: 1, inSync: true },
       ]);
     } finally {

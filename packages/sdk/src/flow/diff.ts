@@ -3,6 +3,7 @@ import type { SourceExtractor, SourceFramework } from "@verbatra/extract";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
+import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
 import { diffLocalesWithSource } from "./diff-locales.js";
 import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 
@@ -24,6 +25,12 @@ export interface LocaleDiff {
    * because they need no translation work.
    */
   readonly hasPendingChanges: boolean;
+  /**
+   * The interpreted origin of each `changed` key's current value, read from the provenance file,
+   * so a caller can see before a run whose work a retranslation would replace. See
+   * {@link KeyOrigin}.
+   */
+  readonly changedOrigins?: Readonly<Record<string, KeyOrigin>>;
 }
 
 /** The result of {@link diff}: per-locale key lists plus one project-wide verdict. */
@@ -126,11 +133,16 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);
-  const locales = results.map(({ locale, diff: result }) => toLocaleDiff(locale, result));
+  const locales = results.map(({ locale, diff: result, target, provenance }) => ({
+    ...toLocaleDiff(locale, result),
+    changedOrigins: originsOf(provenance, target, result.changed),
+  }));
   const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
   if (input.unused !== true) {
     return summary;

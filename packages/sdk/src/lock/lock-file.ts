@@ -4,6 +4,7 @@ import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { sortRecordKeys } from "../record-utils.js";
 import { withLockFileGuard } from "./locale-write-lock.js";
+import { type ProvenancePatch, writeProvenanceLocale } from "./provenance-file.js";
 import type { LockEntries, LockFile } from "./types.js";
 
 /**
@@ -101,16 +102,29 @@ function applyLockLocalePatch(
   return { ...currentEntries, ...patch.entries };
 }
 
+function hashAt(entries: LockEntries | undefined, key: string): string | undefined {
+  return entries !== undefined && Object.hasOwn(entries, key) ? entries[key] : undefined;
+}
+
 export async function updateLockFileLocale(
   cwd: string,
   fs: SdkFs,
   locale: string,
   patch: LockLocalePatch,
+  provenance: ProvenancePatch,
 ): Promise<LockFile> {
   return withLockFileGuard(cwd, fs, async () => {
     const path = lockFilePath(cwd);
     const lock = parseLockFileRead(await fs.readFileBounded(path, MAX_LOCK_FILE_BYTES), path);
-    const nextEntries = applyLockLocalePatch(lock.locales[locale], patch);
+    const priorEntries = Object.hasOwn(lock.locales, locale) ? lock.locales[locale] : undefined;
+    const nextEntries = applyLockLocalePatch(priorEntries, patch);
+    await writeProvenanceLocale(
+      cwd,
+      fs,
+      locale,
+      provenance,
+      (key) => hashAt(priorEntries, key) === hashAt(nextEntries, key),
+    );
     const next = updateLockLocale(lock, locale, nextEntries);
     await fs.writeFile(path, serializeLockFile(next));
     return next;
