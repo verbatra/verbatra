@@ -19,3 +19,9 @@ without CLDR plural rules only needs `other`. Pseudolocalization is exempt. Deep
 Translation keep withholding ICU values. Format adapters gain an optional `compareBranchArms` hook
 (both factories accept it), and the per-request system-rule allowance in cost estimates and the
 token budget rises from 250 to 350 tokens.
+
+Upgrading: a stored value that kept the source's arms is now withheld when it is offered again, and
+its key is sent to the provider and paid for again. This covers exact and fuzzy translation-memory
+hits, duplicate-content reuse, and workbook or TMX imports. The most common case is a French,
+Spanish, Italian or Portuguese plural without the CLDR `many` arm. Values already in a locale file
+stay until their source changes.

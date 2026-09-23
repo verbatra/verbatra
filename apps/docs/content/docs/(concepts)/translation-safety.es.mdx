@@ -10,14 +10,15 @@ ruta de error. Esta página cubre cada capa de ese modelo.
 ## Cadenas no confiables y la frontera contra la inyección de prompts
 
 verbatra nunca deja que una cadena traducible actúe como una instrucción para la IA. Una cadena
-traducible puede contener texto que parece una instrucción (una cadena de UI que dice
-literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable.
-Las reglas de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la
-entrada variable, las entradas a traducir junto con tu glosario y tono y, para un plural ICU, las categorías de plural del idioma de destino, viaja solo en la carga JSON
-de datos del turno de usuario, nunca insertada en el canal de instrucciones. La salida del
-proveedor está restringida a un esquema y se valida como datos: una respuesta malformada falla, y
-una respuesta que contiene una clave que nunca se pidió hace fallar el sublote entero, porque no
-hay una aceptación parcial segura alrededor de contenido inventado.
+traducible puede contener texto que parece una instrucción (una cadena de UI que dice literalmente
+"ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable. Las reglas
+de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la entrada
+variable, las entradas a traducir junto con tu glosario y tono y, para un plural ICU, las categorías
+de plural del idioma de destino, viaja solo en la carga JSON de datos del turno de usuario, nunca
+insertada en el canal de instrucciones. La salida del proveedor está restringida a un esquema y se
+valida como datos: una respuesta malformada falla, y una respuesta que contiene una clave que nunca
+se pidió hace fallar el sublote entero, porque no hay una aceptación parcial segura alrededor de
+contenido inventado.
 
 ## La puerta de integridad
 

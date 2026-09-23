@@ -13,10 +13,11 @@ verbatra never lets a translatable string act like an instruction to the AI. A t
 can contain text that looks like an instruction (a UI string that literally reads "ignore your
 instructions"), so verbatra treats every one as untrusted input. The system rules sent to an LLM
 provider are compile-time constants. All variable input, the entries to translate along with your
-glossary and tone, and for an ICU plural the target language's plural categories, travels only in the user-turn JSON data payload, never spliced into the
-instruction channel. Provider output is constrained to a schema and validated as data: a malformed
-response fails, and a response containing a key that was never requested fails the whole
-sub-batch, because there is no safe partial accept around invented content.
+glossary and tone, and for an ICU plural the target language's plural categories, travels only in
+the user-turn JSON data payload, never spliced into the instruction channel. Provider output is
+constrained to a schema and validated as data: a malformed response fails, and a response containing
+a key that was never requested fails the whole sub-batch, because there is no safe partial accept
+around invented content.
 
 ## The integrity gate
 

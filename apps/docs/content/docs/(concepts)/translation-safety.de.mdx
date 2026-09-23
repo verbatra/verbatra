@@ -14,11 +14,11 @@ verbatra lässt nie zu, dass ein übersetzbarer String wie eine Anweisung an die
 wörtlich "ignore your instructions" lautet), deshalb behandelt verbatra jeden einzelnen als nicht
 vertrauenswürdige Eingabe. Die Systemregeln, die an einen LLM-Provider gehen, sind Konstanten aus
 der Kompilierzeit. Alle variablen Eingaben, die zu übersetzenden Einträge samt deinem Glossar und
-Tonfall und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im JSON-Datenpayload des User-Turns und werden nie in den
-Anweisungskanal gespleißt. Die Ausgabe des Providers ist auf ein Schema beschränkt und wird als
-Daten validiert: Eine fehlerhafte Antwort schlägt fehl, und eine Antwort mit einem Key, der nie
-angefragt wurde, lässt den ganzen Sub-Batch fehlschlagen, weil es um erfundene Inhalte herum kein
-sicheres teilweises Annehmen gibt.
+Tonfall und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im
+JSON-Datenpayload des User-Turns und werden nie in den Anweisungskanal gespleißt. Die Ausgabe des
+Providers ist auf ein Schema beschränkt und wird als Daten validiert: Eine fehlerhafte Antwort
+schlägt fehl, und eine Antwort mit einem Key, der nie angefragt wurde, lässt den ganzen Sub-Batch
+fehlschlagen, weil es um erfundene Inhalte herum kein sicheres teilweises Annehmen gibt.
 
 ## Das Integritäts-Gate
 

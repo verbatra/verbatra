@@ -11,14 +11,15 @@ modèle.
 ## Chaînes non fiables et frontière contre l'injection de prompt
 
 verbatra ne laisse jamais une chaîne traduisible agir comme une instruction adressée à l'IA. Une
-chaîne traduisible peut contenir du texte qui ressemble à une instruction (une chaîne d'UI qui
-dit littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une
-entrée non fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
+chaîne traduisible peut contenir du texte qui ressemble à une instruction (une chaîne d'UI qui dit
+littéralement "ignore your instructions"), donc verbatra traite chacune d'elles comme une entrée non
+fiable. Les règles système envoyées à un fournisseur LLM sont des constantes fixées à la
 compilation. Toute entrée variable, les entrées à traduire ainsi que le glossaire et le ton que tu
-as définis et, pour un pluriel ICU, les catégories de pluriel de la langue cible, voyage uniquement dans la charge utile JSON du tour utilisateur, jamais insérée dans le
-canal d'instructions. La sortie du fournisseur est contrainte à un schéma et validée comme des données :
-une réponse malformée échoue, et une réponse contenant une clé jamais demandée fait échouer le
-sous-lot entier, parce qu'il n'existe pas d'acceptation partielle sûre autour de contenu inventé.
+as définis et, pour un pluriel ICU, les catégories de pluriel de la langue cible, voyage uniquement
+dans la charge utile JSON du tour utilisateur, jamais insérée dans le canal d'instructions. La
+sortie du fournisseur est contrainte à un schéma et validée comme des données : une réponse
+malformée échoue, et une réponse contenant une clé jamais demandée fait échouer le sous-lot entier,
+parce qu'il n'existe pas d'acceptation partielle sûre autour de contenu inventé.
 
 ## La barrière d'intégrité
 

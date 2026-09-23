@@ -75,6 +75,9 @@ in which such a value is written and merely flagged.
   CLDR `many` arm or a Japanese plural with a `one` arm, is refused when it is next offered for
   writing: a translation-memory hit or an import of it is withheld and the key is translated
   again. Values already in a locale file are not rewritten until their source changes.
+- A model answer with the wrong arms gets no repair round. The LLM layer repairs only keys the
+  response left out; a returned value that fails the arm rule is withheld as an integrity mismatch,
+  its tokens are already spent, and the key is sent and billed again on the next run.
 - `select` arm sets are now enforced. A translation that drops or invents a `select` arm is
   refused where it used to be written.
 - The arm rule depends on the CLDR data of the Node.js runtime's ICU build; `verbatra doctor`
