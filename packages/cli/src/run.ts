@@ -1394,17 +1394,34 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "write the config and env files to this directory")
     .option(
       "--provider <id>",
-      "translation provider to use: anthropic, openai, gemini, deepl, google-translate, or " +
-        "none to disable machine translation (required unless prompted)",
+      "translation provider to use: anthropic, openai, gemini, deepl, google-translate, " +
+        "openai-compatible, or none to disable machine translation (required unless prompted)",
     )
-    .option("--source <locale>", "locale your source strings are written in (default en)")
-    .option("--targets <locales>", "comma-separated locales to translate into (default de)")
+    .option(
+      "--format <id>",
+      "locale file format (default: detected from your locale files and dependencies)",
+    )
+    .option(
+      "--source <locale>",
+      "locale your source strings are written in (default: detected, else en)",
+    )
+    .option(
+      "--targets <locales>",
+      "comma-separated locales to translate into (default: detected, else de)",
+    )
     .option(
       "--path <pattern>",
-      "locale file pattern containing the {locale} token (default locales/{locale}.json)",
+      "locale file pattern containing the {locale} token (default: detected, else locales/{locale}.json)",
     )
-    .option("--yes", "skip prompts and accept the defaults")
-    .option("--force", "overwrite an existing config or .env.example")
+    .option("--model <name>", "model to use (required for openai-compatible)")
+    .option("--base-url <url>", "server URL for openai-compatible (required for it)")
+    .option(
+      "--api-key-env-var <name>",
+      "environment variable openai-compatible reads its key from (never the key itself)",
+    )
+    .option("--yes", "skip prompts and accept the defaults for anything not passed or detected")
+    .option("--force", "overwrite an existing verbatra.config.ts that differs")
+    .option("--json", "print one JSON document describing what was written; never prompts")
     .action(async (opts: InitOpts) => {
       ctx.setCode(await runInit(opts, ctx.streams));
     })
@@ -1414,8 +1431,9 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "",
         "Examples:",
         "  $ verbatra init --provider anthropic        create config + .env example, prompting for the rest",
-        "  $ verbatra init --provider deepl --yes      non-interactive, accept all defaults",
-        "  $ verbatra init --provider google-translate --yes  non-interactive, accept all defaults",
+        "  $ verbatra init --provider deepl --yes      non-interactive, detect or default the rest",
+        "  $ verbatra init --provider gemini --format yaml --path 'i18n/{locale}.yml' --yes --json",
+        "  $ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes",
         "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
       ].join("\n"),
     );

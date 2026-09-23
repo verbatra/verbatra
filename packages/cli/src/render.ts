@@ -40,12 +40,25 @@ import {
 export interface RenderableError {
   readonly code: string;
   readonly message: string;
+  readonly candidates?: readonly string[];
+}
+
+function candidatesOf(error: Error): readonly string[] | undefined {
+  const candidates = (error as { candidates?: unknown }).candidates;
+  return Array.isArray(candidates) && candidates.every((entry) => typeof entry === "string")
+    ? candidates
+    : undefined;
 }
 
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
     const code = (error as { code?: unknown }).code;
-    return { code: typeof code === "string" ? code : "CLI_ERROR", message: error.message };
+    const candidates = candidatesOf(error);
+    return {
+      code: typeof code === "string" ? code : "CLI_ERROR",
+      message: error.message,
+      ...(candidates === undefined ? {} : { candidates }),
+    };
   }
   return { code: "CLI_ERROR", message: String(error) };
 }

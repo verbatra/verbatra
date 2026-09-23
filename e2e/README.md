@@ -46,7 +46,10 @@ deterministic test joins the required gate automatically.
   makes any network call fatal), and protection of human work
   (`tests/protect-human.e2e.test.ts`: an imported value whose source changed is listed as
   protected by `translate --dry-run`, not as to translate, is counted by `check` and `diff`, and is
-  planned for translation again only with `--include-human`). It makes no provider call and no network request, so it is
+  planned for translation again only with `--include-human`), and `init` for agents
+  (`tests/init-for-agents.e2e.test.ts`: a flags-only `init --json` whose config `doctor` passes
+  with no hand edit, detection of an existing YAML layout, a `CONFIG_EXISTS` refusal on a second
+  run, and the `FORMAT_AMBIGUOUS` and `MISSING_OPTIONS` error envelopes). It makes no provider call and no network request, so it is
   deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in

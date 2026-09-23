@@ -14,7 +14,9 @@ function appendEntries(path: string, content: string, entries: readonly string[]
   appendFileSync(path, `${prefix}${entries.join("\n")}\n`);
 }
 
-export function ensureGitignore(cwd: string, streams: Streams): void {
+export type GitignoreAction = "created" | "updated" | "unchanged";
+
+export function ensureGitignore(cwd: string, streams: Streams): GitignoreAction {
   const gitignorePath = resolve(cwd, ".gitignore");
   if (!existsSync(gitignorePath)) {
     writeFileSync(
@@ -22,16 +24,17 @@ export function ensureGitignore(cwd: string, streams: Streams): void {
       `# Local environment files (never commit real keys)\n${GITIGNORE_ENTRIES.join("\n")}\n`,
     );
     streams.out(`created .gitignore (${GITIGNORE_ENTRIES.join(", ")})\n`);
-    return;
+    return "created";
   }
   const content = readFileSync(gitignorePath, "utf8");
   const missing = missingEntries(content);
   if (missing.length === 0) {
     streams.out(`.gitignore already ignores ${GITIGNORE_ENTRIES.join(", ")}\n`);
-    return;
+    return "unchanged";
   }
   appendEntries(gitignorePath, content, missing);
   streams.out(`updated .gitignore (added ${missing.join(", ")})\n`);
+  return "updated";
 }
 
 export function appendMissingGitignoreEntries(cwd: string, dryRun = false): void {
