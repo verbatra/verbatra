@@ -64,6 +64,15 @@ Server brauchen keinen API-Schlüssel: Wenn weder eine über `apiKeyEnvVar` bena
 `OPENAI_COMPATIBLE_API_KEY` gesetzt ist, sendet verbatra den festen Platzhalter `"local"`. Braucht
 dein Server doch einen API-Schlüssel, benenne seine Umgebungsvariable mit `apiKeyEnvVar`.
 
+## Welche Sprachen unterstützt verbatra?
+
+Jede Sprache, die dein Provider unterstützt. verbatra selbst akzeptiert jeden gültigen
+BCP-47-Locale-Code, etwa `pt-BR`, `sr-Latn` oder `zh-Hant`, und liest die Pluralregeln aus CLDR.
+DeepL und Google Cloud Translation haben feste Sprachlisten, die LLM-Provider keine. Unter
+[Sprachunterstützung](/docs/language-support) findest du die Liste jedes Anbieters, den Code, den
+jeder Provider bekommt, und wie Schriften, regionale Varianten und Rechts-nach-links-Text
+behandelt werden.
+
 ## Wie behalten Keys ihre Reihenfolge?
 
 Die Adapter der JSON-Familie, von YAML und von ARB tragen Dateien exakt in Dokumentreihenfolge
