@@ -22,14 +22,15 @@ pnpm takes one extra step. `pnpm add -D @verbatra/cli` installs correctly but ex
 npx verbatra init --provider gemini
 ```
 
-With a terminal attached, `init` prompts for anything you did not pass as a flag, each with a default:
+`init` first looks at the locale files already in your project and detects their format, path pattern, and locales. With a terminal attached, it then prompts for anything you did not pass as a flag, suggesting what it detected or else a default:
 
-- the provider: one of `anthropic`, `openai`, `gemini`, `deepl`, or `google-translate` (flag `--provider`, the only input without a default)
+- the provider: one of `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, or `none` (flag `--provider`, the only input without a default)
+- the locale file format, default `i18next-json` (`--format`)
 - the source locale, default `en` (`--source`)
 - the target locales, comma-separated, default `de` (`--targets`)
 - the locale file pattern, default `locales/{locale}.json` (`--path`)
 
-Pass `--yes` to skip the prompts and take the defaults. Without a terminal (in CI, for example) `init` never prompts; it uses the defaults and only requires `--provider`.
+Pass `--yes` to skip the prompts and take the detected values or the defaults. Without a terminal (in CI, for example) `init` never prompts: a value it could neither detect nor default under `--yes` makes it exit `2` with `MISSING_OPTIONS`, naming the flags to pass.
 
 `init` writes three things:
 
@@ -37,7 +38,7 @@ Pass `--yes` to skip the prompts and take the defaults. Without a terminal (in C
 - `.env.example`: names the provider's key variable, never a key value
 - `.gitignore` entries for `.env`, `.env.local`, `.verbatra-local/`, and `verbatra.cache.json`, created or appended so a real key, local state, or the regenerable cache never lands in a commit
 
-Re-running `init` skips files that already exist; `--force` overwrites them. It also pre-fills `format` by looking at your dependencies: a project using i18next, vue-i18n, next-intl, or `@ngx-translate/core` gets the matching JSON format, anything else defaults to `i18next-json` with a TODO comment to change it. For Gemini the scaffold looks like this:
+Re-running `init` with the same answers changes nothing. A `verbatra.config.ts` with different content is refused unless you pass `--force`, and an existing `.env.example` only gets the key variable appended when it is missing. When the project has no locale file yet, `format` comes from your dependencies (i18next, vue-i18n, next-intl, or `@ngx-translate/core` pick the matching JSON format), and otherwise defaults to `i18next-json` with a TODO comment to change it. [verbatra init](/docs/cli/init#detection) has the details. For Gemini in an empty project the scaffold looks like this:
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

@@ -28,7 +28,7 @@ Cuatro palancas, todas libres de llamadas al proveedor hasta que tú decidas lo 
 Un ejemplo resuelto, para poner un orden de magnitud. Un proyecto con 400 claves a traducir a 3
 locales, con el `maxBatchSize` por defecto de 50, envía 8 peticiones por locale, 24 en total. A
 razón de unos 4 caracteres por token, con valores de origen de 40 caracteres y nombres de clave de 20,
-eso son unos 38.500 tokens de entrada y 30.700 de salida, es decir unos 69.000 tokens para toda la
+eso son unos 40.900 tokens de entrada y 30.700 de salida, es decir unos 71.700 tokens para toda la
 ejecución. En `gemini-2.5-flash`, con una tarifa ilustrativa de $0.10 por millón de tokens de
 entrada y $0.40 por millón de tokens de salida, salen unos 1,6 centavos.
 
@@ -40,7 +40,7 @@ un precio citado: consulta la tarifa real en la página de precios de tu proveed
 no sigue las tarifas de los proveedores y estas cambian.
 
 Dos cosas pesan en la factura real más que el número de claves. Cada petición lleva una sobrecarga
-constante de unos 550 tokens (las reglas del sistema fijas y el esquema de salida), así que un
+constante de unos 650 tokens (las reglas del sistema fijas y el esquema de salida), así que un
 `maxBatchSize` mayor reparte esa constante entre más claves y uno menor cuesta proporcionalmente
 más. Y esa cifra es solo el coste de la primera ejecución: las ejecuciones son incrementales, así
 que en el día a día pagas por el puñado de cadenas que cambiaste, no por el archivo entero. DeepL no

@@ -778,31 +778,84 @@ woher die Konfiguration kam.
 
 <AvailableFrom version="0.9.0" />
 
-Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als flache Begriffszuordnung
-zurück. Nimmt `{ glossary }`, die `GlossaryProvenance` aus `loadConfigWithMeta`, sodass die gelesene
-Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es nicht. Nutze es in einem
-lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist, und nicht so, wie es beim
-Laden der Konfiguration war.
+Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als normalisiertes `Glossary`
+zurück: `{ version, terms, doNotTranslate }`, wobei `version` für eine flache Begriffszuordnung `1`
+und für ein [Glossar pro Locale](/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
+optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
+`partOfSpeech` trägt. Nimmt `{ glossary }`, die `GlossaryProvenance` aus `loadConfigWithMeta`,
+sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
+nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist,
+und nicht so, wie es beim Laden der Konfiguration war.
 
 Wirft `GLOSSARY_NOT_FILE_BACKED`, wenn das Glossar inline oder gar nicht vorhanden ist, und
-`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist oder
-keine flache String-Zuordnung ist.
+`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist, weder
+eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist oder eine andere Version
+angibt.
+
+<AvailableFrom version="0.12.0" />
+
+Bis 0.11 gab es die flache Begriffszuordnung selbst zurück.
 
 ### updateGlossaryTerm
 
 <AvailableFrom version="0.9.0" />
 
-Fügt genau einen Begriff zu einem dateibasierten Glossar hinzu, ersetzt ihn oder entfernt ihn, und
-gibt das Glossar in seinem neuen Stand zurück. Nimmt `{ glossary, cwd?, term, translation }`, wobei
-`translation` der neue Text ist oder `null`, um den Begriff zu entfernen. Der Rest der Datei behält
-seine Key-Reihenfolge und seine Einrückung, der Schreibvorgang ist atomar, und das gesamte
-Lesen, Ändern und Schreiben läuft unter einer projektweiten Glossarsperre, sodass zwei gleichzeitige
-Änderungen serialisiert statt verschränkt werden.
+Fügt genau einen Begriff zu einem dateibasierten Glossar hinzu, ändert ihn oder entfernt ihn, und
+gibt das normalisierte Glossar in seinem neuen Stand zurück. Nimmt
+`{ glossary, cwd?, term, translation }`, wobei `translation` der neue Text ist oder `null`, um den
+Begriff zu entfernen. Der Rest der Datei behält seine Key-Reihenfolge und seine Einrückung, der
+Schreibvorgang ist atomar, und das gesamte Lesen, Ändern und Schreiben läuft unter einer
+projektweiten Glossarsperre, sodass zwei gleichzeitige Änderungen serialisiert statt verschränkt
+werden.
 
-Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: es liegt in
-einem ausführbaren Konfigurationsmodul. Ein leerer Begriff oder eine leere Übersetzung, und eine
-Änderung, deren Ergebnis die Glossargrenze von 1 MiB überschreiten würde, werden mit
-`CONFIG_INVALID` abgelehnt; ein fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`.
+<AvailableFrom version="0.12.0" />
+
+Es nimmt außerdem `locale` (dann ist `translation` die eigene Übersetzung dieser Locale und `null`
+entfernt nur sie), `forbidden` (die Wiedergaben, die `locale` nie verwenden darf; `null` oder `[]`
+entfernt sie), `note`, `partOfSpeech` (jeweils `null` zum Entfernen), `caseSensitive` und
+`doNotTranslate` (`true` nimmt den Begriff in die unübersetzten Begriffe auf, `false` entfernt ihn;
+es lässt sich nicht mit den Begriffsfeldern kombinieren). Eine Datei der Version 1 bleibt Version 1,
+solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfernt; jede andere
+Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
+`target` behält. `translation: null` ohne `locale` entfernt jetzt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
+
+Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
+einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die nichts ändert oder
+`doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
+Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
+die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
+fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Löst den Teil eines Glossars auf, der für eine Ziel-Locale gilt:
+`glossaryForLocale(config.glossary, "de")` gibt `{ terms, doNotTranslate }` zurück, jeden Begriff
+mit dem `target` der Locale (ihr eigener Eintrag, dann der ihrer Basissprache, dann der gemeinsame),
+seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`, oder `undefined`,
+wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
+`TranslateRequest.glossary`, und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
+dieser Locale.
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Wandelt ein Glossar in beiden Formen, eine flache Zuordnung der Version 1 oder eine Definition der
+Version 2, in das normalisierte `Glossary` um, das `readGlossaryFile` zurückgibt, mit allen
+Standardwerten. Nutze es, um ein Inline-Glossar genauso anzuzeigen wie ein dateibasiertes. Es
+validiert nicht erneut; das hat `loadConfig` schon getan.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Bildet ein normalisiertes `Glossary` auf eine flache Zuordnung ab: jeder Begriff mit einem
+gemeinsamen `target` zu dieser Übersetzung, in Glossarreihenfolge. Übersetzungen pro Locale,
+verbotene Wiedergaben und Begriffe aus `doNotTranslate` fehlen darin, nutze es also nur dort, wo
+ein Verbraucher nichts als eine flache Begriffszuordnung zeigen kann. Ein Begriff namens
+`__proto__` bleibt ein eigener Key.
 
 ### defineConfig
 
@@ -835,6 +888,27 @@ Eintrag, weil es kein Token-Limit entgegennimmt. Der Typ `ScaffoldableProviderId
 `openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende Umgebungsvariable hat.
 
 `scaffoldingMetadata.humanOnlyProviderId` ist `"none"`, die ID, die Maschinenübersetzung abschaltet. Sie hat keinen Eintrag in `providerEnv`, weil sie keinen Key liest.
+
+`scaffoldingMetadata.openAiCompatibleKeyEnv` ist `"OPENAI_COMPATIBLE_API_KEY"`, die Variable, die ein `openai-compatible`-Provider liest, wenn seine Optionen kein `apiKeyEnvVar` nennen. `scaffoldingMetadata.configSearchPlaces` listet jeden Dateinamen, unter dem `loadConfig` nach einer Konfiguration sucht, in der Reihenfolge, in der es sie prüft; ein Generator, der `verbatra.config.ts` schreibt, sollte ablehnen, wenn eine andere davon schon existiert, weil die zuerst gefundene gewinnt.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Erkennt Format und Layout der Locale-Dateien eines Projekts anhand seiner Dateien, so wie `verbatra init` es tut, bevor es eine Konfiguration schreibt. Es schreibt nichts und ruft keinen Provider auf. Es durchsucht das Verzeichnis (versteckte Verzeichnisse, `node_modules` und Build-Ausgabe ausgenommen, mit begrenzter Tiefe und Eintragszahl) nach Dateien, die ein registrierter Adapter beansprucht, findet in jeder das Pfadsegment, das ein Locale ausschreibt, und behält das Dateimuster, das die meisten Locales abdeckt. Das Format ist dasjenige, dessen Adapter mit `canHandle` jede gefundene Datei anhand ihres Inhalts beansprucht; bei JSON, wo das jeder JSON-Adapter tut, entscheidet eine einzelne passende i18n-Bibliothek in `package.json`.
+
+```ts
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Es wirft nie wegen einer fehlenden, unlesbaren oder fehlerhaften Datei; es meldet stattdessen weniger. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; das Quell-Locale bleibt dann offen statt geraten zu werden, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
 
 ### isMachineTranslationEnabled
 
@@ -1002,7 +1076,7 @@ Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
   haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`,
-  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
+  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
   `FUZZY_CACHE_REUSE`. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jedes
   Laufzeitschema und jede vollständige Zuordnung daraus, statt die Mitglieder abzutippen. Ein
   Review-Flag ist nur ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in

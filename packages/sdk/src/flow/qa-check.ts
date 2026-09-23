@@ -1,6 +1,7 @@
 import { computeReviewFlags, type ReviewReasonCode } from "@verbatra/ai-providers";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { glossaryForLocale } from "../config/glossary.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -166,7 +167,7 @@ function findingsFor(context: QaContext, locale: string, pair: QaPair): readonly
     sourceLocale: context.config.sourceLocale,
     targetLocale: locale,
     integrity: gate.integrity,
-    glossary: context.config.glossary,
+    glossary: glossaryForLocale(context.config.glossary, locale),
     maxLength: context.maxLength?.get(pair.sourceEntry.key),
   });
   return (flag?.reasons ?? []).map((reason) => ({ key: pair.key, severity: "warning", reason }));

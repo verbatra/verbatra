@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entry } from "../test-support.js";
+import { entry, termGlossary } from "../test-support.js";
 import {
   buildDataPayload,
   type DataPayloadInput,
@@ -36,9 +36,11 @@ describe("buildDataPayload: optional tone and glossary", () => {
   });
 
   it("includes glossary when present and omits it when absent", () => {
-    expect(buildDataPayload(data({ glossary: { Hello: "Hallo" } })).glossary).toEqual({
-      Hello: "Hallo",
-    });
+    expect(buildDataPayload(data({ glossary: termGlossary({ Hello: "Hallo" }) })).glossary).toEqual(
+      {
+        Hello: "Hallo",
+      },
+    );
     expect(buildDataPayload(data())).not.toHaveProperty("glossary");
   });
 });
@@ -107,7 +109,7 @@ describe("dataPayloadCharacters", () => {
       Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
     );
 
-    expect(dataPayloadCharacters(data({ glossary }))).toBeGreaterThan(
+    expect(dataPayloadCharacters(data({ glossary: termGlossary(glossary) }))).toBeGreaterThan(
       dataPayloadCharacters(data()) + JSON.stringify(glossary).length,
     );
   });
@@ -242,5 +244,65 @@ describe("buildDataPayload: language names as data", () => {
     const named = dataPayloadCharacters(data({ targetLocale: "zh-Hant-TW" }));
     const unnamed = dataPayloadCharacters(data({ targetLocale: "qaa" }));
     expect(named).toBeGreaterThan(unnamed + "zh-Hant-TW".length - "qaa".length);
+  });
+});
+
+describe("buildDataPayload: locale glossary fields", () => {
+  const glossary = {
+    terms: [
+      {
+        source: "Dashboard",
+        target: "Übersicht",
+        forbidden: ["Instrumententafel"],
+        caseSensitive: false,
+        note: "The start page after sign-in",
+        partOfSpeech: "noun",
+      },
+      { source: "Board", forbidden: ["Brett"], caseSensitive: true },
+      { source: "Save", target: "Speichern", forbidden: [], caseSensitive: false },
+      { source: "Plan", target: "Tarif", forbidden: [], caseSensitive: false, note: "Pricing" },
+    ],
+    doNotTranslate: [{ term: "verbatra", caseSensitive: true }],
+  };
+
+  it("sends required translations, forbidden renderings, notes and kept terms as separate data", () => {
+    const payload = buildDataPayload(data({ glossary }));
+    expect(payload.glossary).toEqual({ Dashboard: "Übersicht", Save: "Speichern", Plan: "Tarif" });
+    expect(payload.forbiddenTranslations).toEqual({
+      Dashboard: ["Instrumententafel"],
+      Board: ["Brett"],
+    });
+    expect(payload.glossaryNotes).toEqual({
+      Dashboard: { note: "The start page after sign-in", partOfSpeech: "noun" },
+      Plan: { note: "Pricing" },
+    });
+    expect(payload.doNotTranslate).toEqual(["verbatra"]);
+  });
+
+  it("sends a glossary of plain required translations exactly as a term map, with no other field", () => {
+    const payload = buildDataPayload(
+      data({ glossary: termGlossary({ Save: "Speichern", Open: "Öffnen" }) }),
+    );
+    expect(payload.glossary).toEqual({ Save: "Speichern", Open: "Öffnen" });
+    expect(payload).not.toHaveProperty("forbiddenTranslations");
+    expect(payload).not.toHaveProperty("glossaryNotes");
+    expect(payload).not.toHaveProperty("doNotTranslate");
+  });
+
+  it("omits every glossary field for an empty glossary", () => {
+    const payload = buildDataPayload(data({ glossary: { terms: [], doNotTranslate: [] } }));
+    expect(payload).not.toHaveProperty("glossary");
+    expect(payload).not.toHaveProperty("doNotTranslate");
+  });
+
+  it("keeps a term named __proto__ as data in the serialized payload", () => {
+    const serialized = JSON.stringify(
+      buildDataPayload(
+        data({ glossary: termGlossary(Object.fromEntries([["__proto__", "Prototyp"]])) }),
+      ),
+    );
+    expect(JSON.parse(serialized).glossary).toEqual(
+      Object.fromEntries([["__proto__", "Prototyp"]]),
+    );
   });
 });

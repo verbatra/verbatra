@@ -206,3 +206,43 @@ describe("glossaryWriteHandler", () => {
     expect(store.get("/project/glossary.json")).toContain("sk-abcdEFGH12345678");
   });
 });
+
+describe("glossary handlers on a version 2 glossary", () => {
+  const V2 = JSON.stringify({
+    version: 2,
+    terms: [
+      { source: "Dashboard", target: "Dashboard", targets: { de: "Übersicht" } },
+      { source: "Save", target: "Speichern" },
+    ],
+  });
+
+  it("lists the shared translations of an inline version 2 glossary", async () => {
+    const result = await glossaryGetHandler(
+      {},
+      deps({
+        config: baseStudioConfig({
+          glossary: { version: 2, terms: [{ source: "Save", target: "Speichern" }] },
+        }),
+        source: { kind: "override" },
+        glossary: { source: "inline" },
+      }),
+    );
+
+    expect(result.entries).toEqual({ Save: "Speichern" });
+  });
+
+  it("clears only the shared translation for null and keeps a term that still has others", async () => {
+    const store = new Map([["/project/glossary.json", V2]]);
+
+    const result = await glossaryWriteHandler(
+      { term: "Dashboard", translation: null },
+      deps(fileBacked({}), "/project", fakeGlossaryFs(store)),
+    );
+
+    expect(result.entries).toEqual({ Save: "Speichern" });
+    expect(JSON.parse(store.get("/project/glossary.json") ?? "{}").terms).toEqual([
+      { source: "Dashboard", targets: { de: "Übersicht" } },
+      { source: "Save", target: "Speichern" },
+    ]);
+  });
+});

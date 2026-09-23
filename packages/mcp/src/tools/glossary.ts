@@ -1,4 +1,10 @@
-import { readGlossaryFile, redact, updateGlossaryTerm } from "@verbatra/sdk";
+import {
+  normalizeGlossary,
+  readGlossaryFile,
+  redact,
+  sharedGlossaryTranslations,
+  updateGlossaryTerm,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { resolveGlossaryProvenance } from "./config-projection.js";
@@ -30,12 +36,15 @@ const glossaryWriteParamsSchema = z.strictObject({
 
 async function currentEntries(context: McpToolContext): Promise<Readonly<Record<string, string>>> {
   if (context.config.glossary.source === "file") {
-    return readGlossaryFile(
-      { glossary: context.config.glossary },
-      context.fs !== undefined ? { fs: context.fs } : {},
+    return sharedGlossaryTranslations(
+      await readGlossaryFile(
+        { glossary: context.config.glossary },
+        context.fs !== undefined ? { fs: context.fs } : {},
+      ),
     );
   }
-  return context.config.config.glossary ?? {};
+  const inline = context.config.config.glossary;
+  return inline === undefined ? {} : sharedGlossaryTranslations(normalizeGlossary(inline));
 }
 
 function buildResult(
@@ -78,7 +87,7 @@ async function glossaryWrite(
     },
     context.fs !== undefined ? { fs: context.fs } : {},
   );
-  return buildResult(context, entries);
+  return buildResult(context, sharedGlossaryTranslations(entries));
 }
 
 export const glossaryGetTool = defineTool({
@@ -105,7 +114,8 @@ export const glossaryWriteTool = defineTool({
   name: "glossary.write",
   description:
     "Add, replace, or remove one glossary term. Pass translation as a non-empty string to set or " +
-    "replace the term, or null to remove it. Writes to the glossary file the config points at " +
+    "replace the term, or null to clear its shared translation; the term is removed once nothing " +
+    "else is left. Writes to the glossary file the config points at " +
     "and returns the full glossary afterward, in the same redacted shape glossary.get returns. " +
     "It needs a file-backed glossary: an inline glossary or a config without one fails with " +
     "GLOSSARY_NOT_FILE_BACKED. This changes what a future translation of any key " +

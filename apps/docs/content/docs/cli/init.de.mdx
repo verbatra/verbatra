@@ -1,8 +1,8 @@
 ---
 title: verbatra init
-description: Lege eine verbatra-Konfiguration und ein .env-Beispiel für dieses Projekt an.
+description: Lege eine verbatra-Konfiguration und ein .env-Beispiel für dieses Projekt an, erkannt aus deinen Locale-Dateien, interaktiv oder vollständig unbeaufsichtigt.
 ---
-Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts` und eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und stellt sicher, dass `.gitignore` die Einträge `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` abdeckt. Wenn stdin ein Terminal ist und `--yes` fehlt, fragt der Befehl alles ab, was du nicht als Flag übergeben hast; sonst nimmt er die Standardwerte und läuft damit unbeaufsichtigt in CI.
+Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts` und eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und stellt sicher, dass `.gitignore` die Einträge `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` abdeckt. Der Befehl sieht sich zuerst die Locale-Dateien an, die schon im Projekt liegen, deshalb ist der Provider in den meisten Projekten das Einzige, was du ihm sagen musst.
 
 ## Synopsis
 
@@ -14,28 +14,115 @@ verbatra init [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | die Konfigurations- und Env-Dateien in dieses Verzeichnis schreiben |
-| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` oder `none`; fehlt er, wird er interaktiv abgefragt |
-| `--source` | `<locale>` | `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
-| `--targets` | `<locales>` | `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
-| `--path` | `<pattern>` | `locales/{locale}.json` | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
-| `--yes` | keins | aus | Abfragen überspringen und die Standardwerte übernehmen |
-| `--force` | keins | aus | eine bestehende `verbatra.config.ts` oder `.env.example` überschreiben |
+| `--cwd` | `<path>` | aktuelles Verzeichnis | dieses Verzeichnis durchsuchen und die Konfigurations- und Env-Dateien hineinschreiben |
+| `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` oder `none` |
+| `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/docs/formats) |
+| `--source` | `<locale>` | erkannt, sonst `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
+| `--targets` | `<locales>` | erkannt, sonst `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
+| `--path` | `<pattern>` | erkannt, sonst `locales/{locale}.json` | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
+| `--model` | `<name>` | der Standard des Scaffolds | das Modell; erforderlich für `openai-compatible`, optional für `anthropic`, `openai` und `gemini` |
+| `--base-url` | `<url>` | keiner | die Server-URL; nur für `openai-compatible` und dort erforderlich |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | die Umgebungsvariable, aus der `openai-compatible` seinen Key liest; nur für `openai-compatible` |
+| `--yes` | keins | aus | nie nachfragen und für alles, was weder übergeben noch erkannt wurde, den Standardwert nehmen |
+| `--force` | keins | aus | eine bestehende `verbatra.config.ts` mit abweichendem Inhalt überschreiben |
+| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) ausgeben, der beschreibt, was geschrieben wurde; fragt nie nach |
 
-Das Format ist kein Flag: `init` erkennt es an deinen Dependencies (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`). Ohne einen einzelnen eindeutigen Treffer fällt es auf `i18next-json` zurück und hinterlässt einen TODO-Kommentar, der jedes unterstützte Format auflistet. Ohne `--force` wird eine bestehende `verbatra.config.ts` oder `.env.example` übersprungen, nie überschrieben, und der Befehl ist trotzdem erfolgreich.
+Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen.
+
+<AvailableFrom version="0.12.0" />
+
+## Erkennung
+
+`init` durchsucht das Verzeichnis nach Dateien, die ein Format-Adapter beansprucht, überspringt dabei versteckte Verzeichnisse, `node_modules` und übliche Build-Ausgabe und findet den Teil jedes Pfads, der ein Locale ausschreibt: einen Dateinamen wie `de.json`, `messages_pt_BR.properties` oder `app_en.arb` oder ein Verzeichnis wie `locales/de/`, `de.lproj/` oder Androids `values-de/`. Das Dateimuster, das die meisten Locales abdeckt, gewinnt, und daraus ergeben sich:
+
+- `format`: das eine Format, dessen Adapter jede gefundene Datei liest. Jeder JSON-Adapter liest `.json`, deshalb entscheidet bei JSON-Dateien eine einzelne passende Dependency in `package.json` (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`).
+- `files.pattern` und `files.localeStyle`: `posix`, wenn die Dateien `pt_BR` schreiben, `android` für `values-*`-Verzeichnisse, sonst `literal`.
+- `sourceLocale`: die Quellsprache eines `.xcstrings`-Katalogs, sonst `en` oder das einzige gefundene `en-*`-Locale, sonst das einzige gefundene Locale.
+- `targetLocales`: jedes andere gefundene Locale.
+
+Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` neben `messages_de.properties`, `Strings.resx` neben `Strings.de.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra liest die Quelle aus der Datei, die das Muster für das Quell-Locale benennt, und kann nicht auf eine solche Datei zeigen. Deshalb rät `init` das Quell-Locale in diesem Fall nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte sagen dir, in welche Datei du die Basisdatei umbenennen oder kopieren sollst.
+
+Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format. `--format`, `--path` und `--source` grenzen die Erkennung ein, statt von ihr überschrieben zu werden, `--format yaml` sieht sich also nur YAML-Dateien an.
+
+`init` rät nie zwischen Gleichwertigen. Lesen mehrere Formate die Dateien (zum Beispiel reines JSON ohne i18n-Dependency), endet es mit `2` und `FORMAT_AMBIGUOUS`, und liegen mehrere Dateimuster gleichauf (eine Datei pro Namespace, etwa `locales/{locale}/common.json` und `locales/{locale}/auth.json`), endet es mit `2` und `LAYOUT_AMBIGUOUS`. Beide listen die Kandidaten auf; übergib `--format` oder `--path`, um einen zu wählen. Am Terminal fragt es stattdessen nach und schlägt den ersten Kandidaten vor.
+
+## Unbeaufsichtigte Läufe
+
+Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` mit einem Standardwert gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. Ein Fehler wegen einer Mehrdeutigkeit oder eines ungültigen Flags listet zusätzlich die noch fehlenden Flags auf, sodass ein einziger Lauf einem Agenten alles sagt, was er übergeben muss. `--provider` hat keinen Standardwert, und für `openai-compatible` haben auch `--base-url` und `--model` keinen, die brauchst du also immer. Diesen Befehl führt ein Agent aus:
+
+```bash
+npx verbatra init --provider gemini --yes --json
+```
+
+Mit `--json` steht auf stdout genau ein Envelope. Sein `result`:
+
+```ts
+interface InitResult {
+  configPath: string;                  // absolute path of verbatra.config.ts
+  files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  config: {                            // the config that was validated and written
+    sourceLocale: string;
+    targetLocales: string[];
+    format: string;
+    files: { pattern: string; localeStyle?: "posix" | "android" };
+    provider: { id: string; options: Record<string, unknown> };
+  };
+  sources: {                           // where each value came from
+    provider: "flag" | "prompt";
+    format: "flag" | "prompt" | "files" | "dependencies" | "default";
+    pattern: "flag" | "prompt" | "detected" | "default";
+    sourceLocale: "flag" | "prompt" | "detected" | "default";
+    targetLocales: "flag" | "prompt" | "detected" | "default";
+  };
+  apiKeyEnvVar: string | null;         // the variable to set; null for provider none
+  detection: {
+    format: { id: string; from: "input" | "files" | "dependencies" } | null;
+    layout: {
+      pattern: string;
+      localeStyle: "literal" | "posix" | "android";
+      locales: string[];
+      sourceLocale: string | null;
+      unqualifiedSourceFile: string | null;
+      files: string[];
+    } | null;
+    ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
+    confidence: "high" | "medium" | "low" | "none";
+    reasons: string[];                 // one sentence per decision or doubt
+  };
+  nextSteps: { description: string; command: string | null }[];
+}
+```
+
+`confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle anzunehmen), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen Befehlen, die als Nächstes auszuführen sind, etwa `npx verbatra doctor`.
+
+Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich ein `candidates`-Array mit den Werten, aus denen du wählst. Jeder Verwendungsfehler, der Flags unbeantwortet lässt, trägt außerdem ein `missing`-Array, das sie nennt, etwa `"--source <locale>"`.
+
+## Provider
 
 `--provider none` legt eine [rein menschliche](/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Schlüssel gelesen wird.
 
-<AvailableFrom version="0.12.0" />
+`--provider openai-compatible` setzt einen lokalen oder selbst gehosteten Server aus `--base-url` und `--model` auf, mit `maxOutputTokens: 4096`. Sein Key ist optional: Ein Server, der keinen braucht, lässt `OPENAI_COMPATIBLE_API_KEY` ungesetzt, und für einen, der einen braucht, nennt `--api-key-env-var` eine andere Variable. `init` schreibt den Namen dieser Variable in die Konfiguration und in `.env.example`, nie einen Wert, und lehnt eine Basis-URL mit Zugangsdaten, Query-String oder Fragment ab, etwa `https://user:key@host` oder `https://host/v1?api-key=...`, über die ein Key in der eingecheckten Konfiguration landen könnte. `--api-key-env-var` erwartet einen Namen in Großbuchstaben wie `LLM_API_KEY`, und ein abgelehnter Wert wird nie wiederholt, falls es der Key selbst war.
+
+## Bestehende Dateien
+
+Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich, du kannst es also gefahrlos wiederholen. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`. Eine andere verbatra-Konfiguration im selben Verzeichnis (zum Beispiel eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` mit `CONFIG_EXISTS` abgelehnt, weil sie vor `verbatra.config.ts` gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben.
+
+Eine bestehende `.env.example` bleibt, wie sie ist; nennt sie die Key-Variable noch nicht, wird genau diese eine Zeile angehängt. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
 
 ## Beispiele
 
 ```bash
-# create config + .env example, prompting for the rest
+# prompt for anything not passed or detected
 verbatra init --provider gemini
 
-# non-interactive, accept all defaults
-verbatra init --provider deepl --yes
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes
@@ -45,11 +132,12 @@ verbatra init --provider none --yes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | Dateien geschrieben oder gefahrlos übersprungen, weil sie schon existieren |
-| `2` | ein fehlender oder unbekannter `--provider`, ein ungültiges Scaffold oder ein Verwendungsfehler |
+| `0` | Dateien geschrieben oder schon auf dem aktuellen Stand |
+| `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
 
 ## Siehe auch
 
+- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai) ist der Agenten-Prompt, der auf diesem Befehl aufbaut.
 - [Deine erste Übersetzung](/docs/your-first-translation) führt von init bis zum ersten Lauf.
 - [Konfigurationsdatei](/docs/config-file) dokumentiert jeden Key, den das Scaffold setzt.
 - [Provider](/docs/providers) behandelt die Provider-Optionen und API-Key-Variablen.

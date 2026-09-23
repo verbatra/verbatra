@@ -46,7 +46,7 @@ When you author the config in TypeScript, your editor offers the selected provid
 | `files.pattern` | string | required | The path to each locale file, with a `{locale}` token. |
 | `files.localeStyle` | `"literal"`, `"posix"`, or `"android"` | `"literal"` | How the `{locale}` token is spelled for each locale. |
 | `provider` | object | required | The translation provider, selected by `id`. |
-| `glossary` | object or string | none | Source terms to preferred target terms, inline or as a JSON file path. |
+| `glossary` | object or string | none | Terms with fixed translations, forbidden renderings, and terms to keep untranslated, inline or as a JSON file path. |
 | `tone` | `"formal"`, `"informal"`, or `"neutral"` | none | The register translations should use. |
 | `prune` | boolean | `false` | Remove orphaned keys from target files and the lock. |
 | `generatePlurals` | boolean | `false` | Synthesize the CLDR plural forms a target language needs. |
@@ -98,7 +98,7 @@ An object selected by `id`: `anthropic`, `openai`, `gemini`, `deepl`, `google-tr
 
 ### glossary
 
-A map of source terms to preferred target terms, either inline or as a path to a JSON file holding the same shape (a flat object of string keys to string values):
+Terms that must be translated a fixed way, either inline or as a path to a JSON file holding the same shape. The simplest form (version 1) is a flat object of source terms to the translation every target locale uses:
 
 ```ts
 export default defineConfig({
@@ -110,13 +110,53 @@ export default defineConfig({
 });
 ```
 
-The two forms are mutually exclusive; there is no merge between them. A relative file path resolves against the directory of the loaded config file, or against the working directory when the config is passed as an in-memory override. The file must be UTF-8 encoded and no larger than 1 MiB, and it is read once when the config loads: verbatra does not watch it for changes, so edit it and restart to pick up an update. A missing file, invalid JSON, or a value that is not a flat string map fails config loading with `CONFIG_INVALID`, naming the resolved path.
+The two forms are mutually exclusive; there is no merge between them. A relative file path resolves against the directory of the loaded config file, or against the working directory when the config is passed as an in-memory override. The file must be UTF-8 encoded and no larger than 1 MiB, and it is read once when the config loads: verbatra does not watch it for changes, so edit it and restart to pick up an update. A missing file, invalid JSON, or a value that is neither a flat string map nor a valid version 2 glossary fails config loading with `CONFIG_INVALID`, naming the resolved path and, for version 2, the field at fault.
+
+A term named `__proto__` works in a glossary file and in a JSON or YAML config. In a `verbatra.config.ts` object literal, JavaScript itself turns `__proto__` into the object's prototype before verbatra sees it, so keep such a term in a glossary file.
+
+#### Per-locale glossary (version 2)
+
+<AvailableFrom version="0.12.0" />
+
+With more than one target language, one translation per term is not enough. A version 2 glossary gives each term its own translation per locale, rules out wrong renderings, and lists terms such as brand names that must stay as written:
+
+```json title="glossary.json"
+{
+  "version": 2,
+  "terms": [
+    {
+      "source": "Dashboard",
+      "targets": { "de": "Übersicht", "fr": "Tableau de bord" },
+      "forbidden": { "de": ["Instrumententafel"] },
+      "note": "The start page after sign-in",
+      "partOfSpeech": "noun"
+    },
+    { "source": "Sign in", "target": "Anmelden", "caseSensitive": true }
+  ],
+  "doNotTranslate": ["verbatra", { "term": "Acme", "caseSensitive": false }]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `version` | Always `2`. It is what tells a version 2 glossary apart from a flat map, so it is required. Any other number fails with `CONFIG_INVALID`. |
+| `terms[].source` | The source-language term. Each term appears once. |
+| `terms[].target` | The translation for every locale that has no entry of its own in `targets`. |
+| `terms[].targets` | Translations per locale. A locale uses its own entry, then its base language's (`de` also covers `de-AT`), then `target`. Codes are compared in canonical form, ignoring case. |
+| `terms[].forbidden` | Renderings a locale must never use. A regional locale is held to its own list and its base language's. |
+| `terms[].caseSensitive` | Match the term, its translations and its forbidden renderings with case. Defaults to `false`. |
+| `terms[].note`, `terms[].partOfSpeech` | Free-text context for the term, sent to an LLM provider as data. |
+| `doNotTranslate` | Terms to copy into every translation untranslated. A bare string must also keep its letter case; `{ "term", "caseSensitive": false }` may change it. |
+
+Each term needs a `target`, a `targets` entry, or a `forbidden` list. A term may not forbid its own translation, name a locale twice, or also appear in `doNotTranslate`. A translation request only carries the terms of its own target locale, and each locale's [cache](/docs/the-cache) fingerprint covers only those, so editing the German translation leaves cached French translations in place.
+
+A version 1 file keeps working unchanged, with the same cache fingerprint. It is rewritten as version 2 only when the SDK's [`updateGlossaryTerm`](/docs/sdk#updateglossaryterm) saves an edit version 1 cannot express: a per-locale translation (`locale`), forbidden renderings (`forbidden`), a `note`, a `partOfSpeech`, `caseSensitive`, or a `doNotTranslate` term. Every existing term then keeps its translation as `target`. Editing a translation for every locale keeps the file version 1.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 The two forms also differ in who can change them. Only the file form can be edited from [Verbatra Studio](/docs/review-in-studio), which rewrites that JSON file one term at a time and never touches your config module; an inline glossary stays read-only there, because it lives inside executable code. Prefer the file form if you want to manage terms from the dashboard.
 
-How the glossary is applied depends on the provider: the LLM providers receive the resolved map with the request and are instructed to treat its terms as binding, while DeepL ignores a term map and applies a glossary configured by id instead. See [Providers](/docs/providers).
+How the glossary is applied depends on the provider: the LLM providers receive the locale's terms with the request and are instructed to treat its translations as binding, never use a forbidden rendering, and keep do-not-translate terms as written, while DeepL and Google Cloud Translation cannot apply them. Every provider's output is checked against the glossary afterwards and flagged for review (`GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`); see [Translation safety](/docs/translation-safety#review-flags) and [Providers](/docs/providers).
 
 ### tone
 
@@ -329,7 +369,7 @@ Two of the discovery places cannot be served. The `"verbatra"` property inside `
 
 ### What the document cannot check
 
-The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Six rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
+The document carries every key, its type, its enum values, which keys are required, the `{locale}` token rule on `files.pattern`, the locale code grammar on `sourceLocale` and `targetLocales`, and the rejection of unknown keys. Seven rules are enforced at runtime but have no expression in JSON Schema draft 2020-12, so an editor stays silent about them and verbatra reports them when the config loads:
 
 - `targetLocales` must not include `sourceLocale`. Comparing two sibling values has no vocabulary in the draft.
 - `targetLocales` must not contain two locales that differ only in case.
@@ -337,8 +377,9 @@ The document carries every key, its type, its enum values, which keys are requir
 - Every key of `provider.options.localeMap` must be `sourceLocale` or one of `targetLocales`. Like the first rule, this compares a value with its siblings.
 - `provider.options.apiKeyEnvVar` (openai-compatible only) must not name a hosted provider's environment variable. Expressing it would hard-code the hosted variable names into a shipped document, which would then drift from the code that owns them.
 - An entry of `network.allowedHosts` must be a valid address or range, not only match the pattern: the pattern cannot see an IPv4 octet above 255, a CIDR prefix longer than the address, or malformed IPv6.
+- An inline version 2 `glossary` must not repeat a term, must give each term a translation or a forbidden rendering, must not forbid a term's own translation or name a locale twice, and must not list a glossary term in `doNotTranslate`. Each rule compares entries with each other.
 
-That is the complete list. A config the editor shows as clean can still fail one of these six, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
+That is the complete list. A config the editor shows as clean can still fail one of these seven, so a green editor is a fast first pass, not a substitute for running `verbatra check`.
 
 ## The working directory and .env
 

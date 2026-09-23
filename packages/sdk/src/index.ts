@@ -1,4 +1,10 @@
-export { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-providers";
+export {
+  type DoNotTranslateTerm,
+  type LocaleGlossary,
+  type LocaleGlossaryTerm,
+  REVIEW_REASON_CODES,
+  type ReviewReasonCode,
+} from "@verbatra/ai-providers";
 export {
   type CustomFormatId,
   type FormatId,
@@ -64,6 +70,17 @@ export type { TranslationMemory } from "./cache/types.js";
 export { defineConfig } from "./config/define-config.js";
 export type { ExtractionConfig } from "./config/extraction-config.js";
 export {
+  type Glossary,
+  type GlossaryDefinition,
+  type GlossaryDoNotTranslateDefinition,
+  type GlossaryInput,
+  type GlossaryTerm,
+  type GlossaryTermDefinition,
+  glossaryForLocale,
+  normalizeGlossary,
+  sharedGlossaryTranslations,
+} from "./config/glossary.js";
+export {
   type GlossaryFileDeps,
   type GlossaryFileInput,
   readGlossaryFile,
@@ -97,6 +114,17 @@ export {
   type VerbatraConfigInput,
   verbatraConfigSchema,
 } from "./config/schema.js";
+export {
+  type DetectedFormat,
+  type DetectedFormatSource,
+  type DetectedLocaleLayout,
+  type DetectionAmbiguity,
+  type DetectionConfidence,
+  type DetectProjectDeps,
+  type DetectProjectInput,
+  detectProject,
+  type ProjectDetection,
+} from "./detection/detect-project.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
 export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {

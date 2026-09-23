@@ -971,6 +971,59 @@ describe("run: init command", () => {
   });
 });
 
+describe("run: init command for agents", () => {
+  it("maps the openai-compatible flags and --json onto init", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "verbatra-init-run-json-"));
+    try {
+      const { deps } = recordingDeps();
+      const cap = captureStreams();
+      const code = await run(
+        [
+          "init",
+          "--provider",
+          "openai-compatible",
+          "--base-url",
+          "http://localhost:11434/v1",
+          "--model",
+          "llama3.1",
+          "--api-key-env-var",
+          "LOCAL_LLM_KEY",
+          "--format",
+          "yaml",
+          "--source",
+          "en",
+          "--targets",
+          "de",
+          "--path",
+          "i18n/{locale}.yml",
+          "--json",
+          "--cwd",
+          dir,
+        ],
+        deps,
+        cap.streams,
+      );
+      expect(code).toBe(0);
+      expect(parseEnvelope(cap.out())).toMatchObject({
+        ok: true,
+        command: "init",
+        result: {
+          apiKeyEnvVar: "LOCAL_LLM_KEY",
+          config: {
+            format: "yaml",
+            provider: {
+              id: "openai-compatible",
+              options: { baseUrl: "http://localhost:11434/v1", model: "llama3.1" },
+            },
+          },
+        },
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("run: the --json error envelope for a commander usage error", () => {
   it("emits one error envelope naming the resolved command for an unknown option", async () => {
     const { deps } = recordingDeps();

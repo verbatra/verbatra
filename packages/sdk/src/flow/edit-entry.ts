@@ -1,6 +1,6 @@
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
@@ -204,7 +204,7 @@ export async function editEntry(
     await feedTranslationMemory(
       cwd,
       fs,
-      computeFingerprint(config),
+      fingerprintsFor(config),
       new Map([
         [
           locale,

@@ -1,5 +1,5 @@
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import { type FingerprintFor, fingerprintsFor } from "../cache/fingerprint.js";
 import {
   additionsToRecord,
   applyAdditions,
@@ -9,6 +9,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import { isMachineProvider } from "../config/provider-config.js";
@@ -182,7 +183,7 @@ async function recordRunStatus(
 
 interface RunCacheState {
   readonly memory: TranslationMemory;
-  readonly fingerprint: string;
+  readonly fingerprintFor: FingerprintFor;
   readonly fuzzy?: { readonly threshold: number };
   readonly additions: Map<string, Record<string, CacheAddition>>;
   readonly writable: boolean;
@@ -202,7 +203,7 @@ async function createRunCacheState(
   return {
     memory,
     writable,
-    fingerprint: computeFingerprint(config),
+    fingerprintFor: fingerprintsFor(config),
     additions: new Map(),
     ...(config.fuzzyCache?.enabled === true
       ? { fuzzy: { threshold: config.fuzzyCache.threshold ?? DEFAULT_FUZZY_THRESHOLD } }
@@ -236,7 +237,7 @@ async function recordCacheAdditions(
     return;
   }
   try {
-    const merged = applyAdditions(cache.memory, cache.fingerprint, cache.additions);
+    const merged = applyAdditions(cache.memory, cache.fingerprintFor, cache.additions);
     await writeTranslationMemory(cacheFilePath(cwd), merged, fs);
   } catch {}
 }
@@ -283,7 +284,7 @@ async function buildLocaleRunParams(
     sourceLocale: context.config.sourceLocale,
     targetLocale,
     format: context.config.format,
-    glossary: context.config.glossary,
+    glossary: glossaryForLocale(context.config.glossary, targetLocale),
     maxLength: toMaxLengthMap(context.config.maxLength),
     tone: context.config.tone,
     prune: context.prune,
@@ -297,7 +298,7 @@ async function buildLocaleRunParams(
       ? {
           cache: {
             snapshot: context.cache.memory,
-            fingerprint: context.cache.fingerprint,
+            fingerprint: context.cache.fingerprintFor(targetLocale),
             ...(context.cache.fuzzy !== undefined ? { fuzzy: context.cache.fuzzy } : {}),
           },
         }

@@ -332,10 +332,16 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
   besser als gar keine Übersetzung.
 - `EQUALS_SOURCE`: Die Übersetzung ist wortwörtlich mit der Quelle identisch, obwohl sich die
   Ziel-Locale von der Quell-Locale unterscheidet, und die Quelle hatte tatsächlich übersetzbaren
-  Text.
-- `GLOSSARY_TERM_MISSED`: Ein konfigurierter Glossarbegriff kommt in der Quelle vor, aber sein
-  zugeordneter Zielbegriff fehlt in der Übersetzung. Der Abgleich ignoriert Groß- und
-  Kleinschreibung, und beide Seiten werden bewusst unterschiedlich streng behandelt. Die Quellseite
+  Text. Eine Quelle, die nur aus Begriffen aus `doNotTranslate` oder aus Begriffen besteht, deren
+  Übersetzung der Begriff selbst ist, wird nicht markiert, denn sie zu übernehmen ist das richtige
+  Ergebnis.
+- `GLOSSARY_TERM_MISSED`: Ein Glossarbegriff kommt in der Quelle vor, aber seine Übersetzung für
+  die Ziel-Locale fehlt in der Übersetzung, oder ein Begriff aus `doNotTranslate` fehlt oder wurde
+  verändert. Jede Locale wird gegen ihre eigene Übersetzung aus einem
+  [Glossar pro Locale](/docs/config-file#glossary) geprüft, Deutsch also nie
+  gegen den französischen Begriff. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der
+  Begriff ist `caseSensitive`, richtet sich dabei nach den Regeln der jeweiligen Locale (auch
+  beim türkischen `İ`), und beide Seiten werden bewusst unterschiedlich streng behandelt. Die Quellseite
   verlangt ein ganzes Wort, deshalb zählt der Begriff `AI` innerhalb von `Airport` nicht als
   vorhanden und kann keine Erwartung wecken, die niemand vorgegeben hat. Die Zielseite verlangt nur,
   dass der Begriff irgendwo in der Übersetzung auftaucht, denn ein übersetzter Begriff verschmilzt
@@ -344,6 +350,12 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
   die du ein Glossar führst, korrekte Übersetzungen markieren. Auch ein Quellbegriff in einer
   Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) hat keine Wortgrenze und fällt deshalb auf
   dieselbe Regel des bloßen Enthaltenseins zurück.
+- `GLOSSARY_FORBIDDEN_TERM`: Die Übersetzung verwendet eine Wiedergabe, die die `forbidden`-Liste
+  des Glossars für die Ziel-Locale ausschließt. Abgeglichen wird als ganzes Wort, bei Schriften
+  ohne Worttrenner als bloßes Enthaltensein. Eine gebeugte oder zusammengesetzte Form wird also nur
+  erkannt, wenn du sie ebenfalls auflistest. Eine Wiedergabe, die schon in der Quelle steht, wird
+  nicht markiert, weil die Übersetzung sie zitieren darf. Wie jeder Grund hier markiert er, statt
+  zu blockieren.
 - `INTEGRITY_REORDERED`: Die Platzhaltermenge stimmte exakt überein, landete aber in einer anderen
   Reihenfolge als in der Quelle. Feuert nur auf einer Übersetzung, die das Gate bereits akzeptiert
   hat.

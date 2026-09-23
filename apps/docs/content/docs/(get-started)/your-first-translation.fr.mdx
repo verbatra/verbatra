@@ -22,14 +22,15 @@ pnpm demande une étape de plus. `pnpm add -D @verbatra/cli` installe correcteme
 npx verbatra init --provider gemini
 ```
 
-Avec un terminal attaché, `init` demande tout ce que tu n'as pas passé en option, chaque question avec une valeur par défaut :
+`init` regarde d'abord les fichiers de locale déjà présents dans ton projet et détecte leur format, leur motif de chemin et leurs locales. Avec un terminal attaché, il demande ensuite tout ce que tu n'as pas passé en option, en proposant ce qu'il a détecté ou sinon une valeur par défaut :
 
-- le fournisseur : `anthropic`, `openai`, `gemini`, `deepl` ou `google-translate` (option `--provider`, la seule entrée sans défaut)
+- le fournisseur : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` ou `none` (option `--provider`, la seule entrée sans défaut)
+- le format des fichiers de locale, par défaut `i18next-json` (`--format`)
 - la locale source, par défaut `en` (`--source`)
 - les locales cibles, séparées par des virgules, par défaut `de` (`--targets`)
 - le motif des fichiers de locale, par défaut `locales/{locale}.json` (`--path`)
 
-Passe `--yes` pour sauter les questions et prendre les valeurs par défaut. Sans terminal (en CI, par exemple) `init` ne demande jamais rien ; il utilise les défauts et n'exige que `--provider`.
+Passe `--yes` pour sauter les questions et prendre les valeurs détectées ou les défauts. Sans terminal (en CI, par exemple) `init` ne demande jamais rien : une valeur qu'il n'a pu ni détecter ni prendre par défaut sous `--yes` le fait sortir avec le code `2` et `MISSING_OPTIONS`, en nommant les options à passer.
 
 `init` écrit trois choses :
 
@@ -37,7 +38,7 @@ Passe `--yes` pour sauter les questions et prendre les valeurs par défaut. Sans
 - `.env.example` : nomme la variable de clé du fournisseur, jamais une valeur de clé
 - des entrées `.gitignore` pour `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`, créées ou ajoutées pour qu'une vraie clé, l'état local ou le cache régénérable ne finisse jamais dans un commit
 
-Relancer `init` saute les fichiers qui existent déjà ; `--force` les écrase. Il pré-remplit aussi `format` en regardant tes dépendances : un projet utilisant i18next, vue-i18n, next-intl ou `@ngx-translate/core` reçoit le format JSON correspondant, tout le reste prend `i18next-json` par défaut avec un commentaire TODO pour le changer. Pour Gemini, le fichier généré ressemble à ceci :
+Relancer `init` avec les mêmes réponses ne change rien. Un `verbatra.config.ts` au contenu différent est refusé sauf si tu passes `--force`, et un `.env.example` existant reçoit seulement la variable de clé en fin de fichier quand elle y manque. Quand le projet n'a encore aucun fichier de locale, `format` vient de tes dépendances (i18next, vue-i18n, next-intl ou `@ngx-translate/core` choisissent le format JSON correspondant), et sinon prend `i18next-json` par défaut avec un commentaire TODO pour le changer. [verbatra init](/docs/cli/init#détection) donne les détails. Pour Gemini dans un projet vide, le fichier généré ressemble à ceci :
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

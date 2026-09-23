@@ -42,7 +42,7 @@ Necesitas Node.js `>=22.14.0`.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
 - `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para usarlo con pipes.
   - Decide según su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
-  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` y `tmx`; `init`, `studio` y `mcp` no.
+  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` e `init`; `studio` y `mcp` no.
   - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 

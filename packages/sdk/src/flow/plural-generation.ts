@@ -1,4 +1,9 @@
-import type { Tone, TranslateResult, TranslationProvider } from "@verbatra/ai-providers";
+import type {
+  LocaleGlossary,
+  Tone,
+  TranslateResult,
+  TranslationProvider,
+} from "@verbatra/ai-providers";
 import {
   contentHash,
   type LocaleResource,
@@ -27,7 +32,7 @@ export interface PluralGenerationContext {
   readonly format: string;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider;
-  readonly glossary: Readonly<Record<string, string>> | undefined;
+  readonly glossary: LocaleGlossary | undefined;
   readonly maxLength: ReadonlyMap<string, number> | undefined;
   readonly tone: Tone | undefined;
   readonly baseline: ReadonlyMap<string, string>;

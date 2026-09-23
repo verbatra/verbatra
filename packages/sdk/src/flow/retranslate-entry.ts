@@ -1,8 +1,9 @@
 import { ProviderError, type ReviewReasonCode } from "@verbatra/ai-providers";
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { glossaryForLocale } from "../config/glossary.js";
 import { assertMachineTranslationEnabled } from "../config/machine-translation.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -230,7 +231,7 @@ export async function retranslateEntry(
           sourceLocale: config.sourceLocale,
           targetLocale: locale,
           adapter,
-          glossary: config.glossary,
+          glossary: glossaryForLocale(config.glossary, locale),
           maxLength: toMaxLengthMap(config.maxLength),
           tone: config.tone,
         },
@@ -279,7 +280,7 @@ export async function retranslateEntry(
     await feedTranslationMemory(
       cwd,
       fs,
-      computeFingerprint(config),
+      fingerprintsFor(config),
       new Map([
         [
           locale,

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir, readTextFile } from "../test-support.js";
+import type { Glossary } from "./glossary.js";
 import {
   type GlossaryFileDeps,
   MAX_GLOSSARY_FILE_BYTES,
@@ -18,6 +19,10 @@ async function seedGlossary(content: string): Promise<{ cwd: string; path: strin
   const path = join(cwd, "glossary.json");
   await writeFile(path, content, "utf8");
   return { cwd, path };
+}
+
+function termMap(glossary: Glossary): Record<string, string | undefined> {
+  return Object.fromEntries(glossary.terms.map((term) => [term.source, term.target]));
 }
 
 function fileProvenance(path: string): GlossaryProvenance {
@@ -41,8 +46,8 @@ describe("readGlossaryFile", () => {
     await writeFile(path, '{\n  "brand": "Verbatra",\n  "cli": "CLI"\n}\n', "utf8");
     const second = await readGlossaryFile({ glossary: fileProvenance(path) });
 
-    expect(first).toEqual({ brand: "Verbatra" });
-    expect(second).toEqual({ brand: "Verbatra", cli: "CLI" });
+    expect(termMap(first)).toEqual({ brand: "Verbatra" });
+    expect(termMap(second)).toEqual({ brand: "Verbatra", cli: "CLI" });
   });
 
   it("refuses an inline glossary with GLOSSARY_NOT_FILE_BACKED", async () => {
@@ -96,7 +101,7 @@ describe("updateGlossaryTerm", () => {
       translation: "SDK",
     });
 
-    expect(Object.keys(entries)).toEqual(["brand", "cli", "sdk"]);
+    expect(Object.keys(termMap(entries))).toEqual(["brand", "cli", "sdk"]);
     expect(await readTextFile(path)).toBe(
       '{\n  "brand": "Verbatra",\n  "cli": "CLI",\n  "sdk": "SDK"\n}\n',
     );
@@ -114,8 +119,8 @@ describe("updateGlossaryTerm", () => {
       translation: "Kommandozeile",
     });
 
-    expect(Object.keys(entries)).toEqual(["brand", "cli", "sdk"]);
-    expect(entries.cli).toBe("Kommandozeile");
+    expect(Object.keys(termMap(entries))).toEqual(["brand", "cli", "sdk"]);
+    expect(termMap(entries).cli).toBe("Kommandozeile");
   });
 
   it("removes a term when the translation is null", async () => {
@@ -128,7 +133,7 @@ describe("updateGlossaryTerm", () => {
       translation: null,
     });
 
-    expect(entries).toEqual({ brand: "Verbatra" });
+    expect(termMap(entries)).toEqual({ brand: "Verbatra" });
     expect(await readTextFile(path)).toBe('{\n  "brand": "Verbatra"\n}\n');
   });
 
@@ -143,7 +148,7 @@ describe("updateGlossaryTerm", () => {
       translation: null,
     });
 
-    expect(entries).toEqual({ brand: "Verbatra" });
+    expect(termMap(entries)).toEqual({ brand: "Verbatra" });
     expect(await readTextFile(path)).toBe(content);
   });
 

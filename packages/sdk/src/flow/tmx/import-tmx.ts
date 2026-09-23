@@ -8,7 +8,7 @@ import {
   type TmxUnit,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../../cache/fingerprint.js";
+import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js";
 import {
   applyAdditions,
   cacheFilePath,
@@ -357,7 +357,7 @@ function decide(
 
 interface ApplyContext {
   readonly memory: TranslationMemory;
-  readonly fingerprint: string;
+  readonly fingerprintFor: FingerprintFor;
   readonly adapter: FormatAdapter;
   readonly overwrite: boolean;
 }
@@ -377,7 +377,7 @@ function applyTranslation(
     return;
   }
   const hash = contentHash(sourceEntry);
-  const existing = ctx.memory.entries[ctx.fingerprint]?.[locale]?.[hash];
+  const existing = ctx.memory.entries[ctx.fingerprintFor(locale)]?.[locale]?.[hash];
   const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
   tally[decision] += 1;
   if (STAGED.has(decision)) {
@@ -575,8 +575,13 @@ export async function importTmx(
   const document = parse(await readTmxText(file, fs), file);
 
   const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
-  const fingerprint = computeFingerprint(input.config);
-  const ctx: ApplyContext = { memory, fingerprint, adapter, overwrite: input.overwrite ?? false };
+  const fingerprintFor = fingerprintsFor(input.config);
+  const ctx: ApplyContext = {
+    memory,
+    fingerprintFor,
+    adapter,
+    overwrite: input.overwrite ?? false,
+  };
   const census = new LanguageCensus();
   const tallies = new Map<string, LocaleTally>(locales.map((locale) => [locale, emptyTally()]));
 
@@ -594,7 +599,7 @@ export async function importTmx(
   if (!dryRun && writable && byLocale.size > 0) {
     await writeTranslationMemory(
       cacheFilePath(cwd),
-      applyAdditions(memory, fingerprint, byLocale),
+      applyAdditions(memory, fingerprintFor, byLocale),
       fs,
     );
   }

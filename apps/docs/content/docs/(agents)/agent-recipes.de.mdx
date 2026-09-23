@@ -25,13 +25,13 @@ Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JS
 | [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
 | [`types`](/docs/cli/types) | ja | den Pfad der Deklaration, die Anzahl der Keys, wie viele Keys Argumente nehmen, die Keys, deren Argumente nicht bestimmt werden konnten, und ob die Datei geschrieben wurde |
 | [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
-| [`init`](/docs/cli/init) | nein | |
+| [`init`](/docs/cli/init) | ja | den Konfigurationspfad, jede geschriebene Datei und was mit ihr passiert ist, die Konfiguration, die Erkennung und die nächsten Befehle |
 | [`studio`](/docs/cli/studio) | nein | |
 | [`mcp`](/docs/cli/mcp) | nein | |
 
-`init` legt interaktiv ein Projekt an, und `studio` und `mcp` sind langlaufende Server, deshalb hat keiner der drei einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen elf erreichbar.
+`studio` und `mcp` sind langlaufende Server, deshalb hat keiner der beiden einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen zwölf erreichbar.
 
-`doctor` kam in 0.9.0 dazu, `tmx`, `pseudo`, `types` und `extract` in 0.11.0.
+`doctor` kam in 0.9.0 dazu, `tmx`, `pseudo`, `types` und `extract` in 0.11.0 und `init` in 0.12.0.
 
 <AvailableFrom version="0.11.0" />
 

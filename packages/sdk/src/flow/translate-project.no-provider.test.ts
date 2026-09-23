@@ -57,7 +57,11 @@ async function seedMemory(
     }),
   );
   const { memory } = await readTranslationMemory(cacheFilePath(dir), defaultFs);
-  const merged = applyAdditions(memory, computeFingerprint(config), new Map([["de", additions]]));
+  const merged = applyAdditions(
+    memory,
+    (locale) => computeFingerprint(config, locale),
+    new Map([["de", additions]]),
+  );
   await writeTranslationMemory(cacheFilePath(dir), merged, defaultFs);
 }
 

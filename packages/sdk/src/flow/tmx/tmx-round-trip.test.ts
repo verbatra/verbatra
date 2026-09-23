@@ -43,7 +43,7 @@ async function memoryOf(dir: string): Promise<TranslationMemory> {
 }
 
 function bucketOf(memory: TranslationMemory, config: VerbatraConfig, locale: string) {
-  return memory.entries[computeFingerprint(config)]?.[locale] ?? {};
+  return memory.entries[computeFingerprint(config, "de")]?.[locale] ?? {};
 }
 
 describe("a memory survives being exported to TMX and imported back", () => {

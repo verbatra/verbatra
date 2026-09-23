@@ -1,4 +1,11 @@
-import { type GlossaryFileDeps, readGlossaryFile, redact, updateGlossaryTerm } from "@verbatra/sdk";
+import {
+  type GlossaryFileDeps,
+  normalizeGlossary,
+  readGlossaryFile,
+  redact,
+  sharedGlossaryTranslations,
+  updateGlossaryTerm,
+} from "@verbatra/sdk";
 import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import { projectGlossaryIndicator } from "../projection.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
@@ -9,9 +16,12 @@ function fsDeps(deps: RpcHandlerDeps): GlossaryFileDeps {
 
 async function currentEntries(deps: RpcHandlerDeps): Promise<Readonly<Record<string, string>>> {
   if (deps.config.glossary.source === "file") {
-    return readGlossaryFile({ glossary: deps.config.glossary }, fsDeps(deps));
+    return sharedGlossaryTranslations(
+      await readGlossaryFile({ glossary: deps.config.glossary }, fsDeps(deps)),
+    );
   }
-  return deps.config.config.glossary ?? {};
+  const inline = deps.config.config.glossary;
+  return inline === undefined ? {} : sharedGlossaryTranslations(normalizeGlossary(inline));
 }
 
 function buildResult(
@@ -47,5 +57,5 @@ export const glossaryWriteHandler: RpcHandler<"glossary.write"> = async (params,
     },
     fsDeps(deps),
   );
-  return buildResult(deps, entries);
+  return buildResult(deps, sharedGlossaryTranslations(entries));
 };

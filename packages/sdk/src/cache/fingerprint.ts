@@ -1,4 +1,6 @@
+import type { LocaleGlossary } from "@verbatra/ai-providers";
 import { stableStringHash } from "@verbatra/core";
+import { glossaryForLocale } from "../config/glossary.js";
 import type { MachineProviderConfig, ProviderConfig } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { sortRecordKeys } from "../record-utils.js";
@@ -17,15 +19,51 @@ function fingerprintLocaleMap(provider: MachineProviderConfig): Record<string, s
   return sortRecordKeys(localeMap);
 }
 
-function sortGlossary(
-  glossary: Readonly<Record<string, string>> | undefined,
-): Record<string, string> {
-  return glossary === undefined ? {} : sortRecordKeys(glossary);
+function isTermMapOnly(glossary: LocaleGlossary): boolean {
+  return (
+    glossary.doNotTranslate.length === 0 &&
+    glossary.terms.every(
+      (term) =>
+        term.target !== undefined &&
+        term.forbidden.length === 0 &&
+        term.note === undefined &&
+        term.partOfSpeech === undefined,
+    )
+  );
+}
+
+function byCodeUnit(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function canonicalGlossary(glossary: LocaleGlossary | undefined): unknown {
+  if (glossary === undefined) {
+    return {};
+  }
+  if (isTermMapOnly(glossary)) {
+    return sortRecordKeys(
+      Object.fromEntries(glossary.terms.map(({ source, target }) => [source, target])),
+    );
+  }
+  return {
+    terms: [...glossary.terms]
+      .sort((a, b) => byCodeUnit(a.source, b.source))
+      .map(({ source, target, forbidden, note, partOfSpeech }) => ({
+        source,
+        target: target ?? null,
+        forbidden: [...forbidden].sort(byCodeUnit),
+        note: note ?? null,
+        partOfSpeech: partOfSpeech ?? null,
+      })),
+    doNotTranslate: glossary.doNotTranslate.map(({ term }) => term).sort(byCodeUnit),
+  };
 }
 
 const HUMAN_ONLY_CANONICAL = JSON.stringify({ provider: "none" });
 
-export function computeFingerprint(config: VerbatraConfig): string {
+export type FingerprintFor = (locale: string) => string;
+
+export function computeFingerprint(config: VerbatraConfig, locale: string): string {
   if (config.provider.id === "none") {
     return stableStringHash(HUMAN_ONLY_CANONICAL);
   }
@@ -34,8 +72,21 @@ export function computeFingerprint(config: VerbatraConfig): string {
     provider: config.provider.id,
     model: fingerprintModel(config.provider),
     tone: config.tone ?? null,
-    glossary: sortGlossary(config.glossary),
+    glossary: canonicalGlossary(glossaryForLocale(config.glossary, locale)),
     ...(localeMap !== undefined ? { localeMap } : {}),
   });
   return stableStringHash(canonical);
+}
+
+export function fingerprintsFor(config: VerbatraConfig): FingerprintFor {
+  const cache = new Map<string, string>();
+  return (locale) => {
+    const known = cache.get(locale);
+    if (known !== undefined) {
+      return known;
+    }
+    const fingerprint = computeFingerprint(config, locale);
+    cache.set(locale, fingerprint);
+    return fingerprint;
+  };
 }

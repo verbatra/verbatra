@@ -11,7 +11,7 @@ import {
   type WorkbookSheet,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../../cache/fingerprint.js";
+import { fingerprintsFor } from "../../cache/fingerprint.js";
 import { feedTranslationMemory } from "../../cache/translation-memory.js";
 import type { CacheAddition } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
@@ -552,7 +552,7 @@ export async function importWorkbook(
   summaries.push(...absentLocaleFailures(expectedLocales, data.sheets, format, staleLocales));
 
   if (!dryRun) {
-    await feedTranslationMemory(cwd, fs, computeFingerprint(config), cacheAdditions);
+    await feedTranslationMemory(cwd, fs, fingerprintsFor(config), cacheAdditions);
   }
 
   const locales = withNewerProvenanceNotice(summaries, newerProvenance);

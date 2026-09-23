@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ProviderError } from "../errors.js";
 import type { TranslateRequest, Usage } from "../provider.js";
-import { entry, regexExtractor } from "../test-support.js";
+import { entry, regexExtractor, termGlossary } from "../test-support.js";
 import type { LlmCompletionInput, LlmMechanism } from "./run.js";
 import { runLlmTranslation } from "./run.js";
 
@@ -109,7 +109,7 @@ describe("runLlmTranslation: untrusted-input boundary", () => {
     await runLlmTranslation(
       request({
         entries: [entry("a", hostile, [])],
-        glossary: { Hello: "Hi" },
+        glossary: termGlossary({ Hello: "Hi" }),
         tone: "formal",
       }),
       mechanism,
@@ -348,7 +348,7 @@ describe("runLlmTranslation: reviewFlags", () => {
     const result = await runLlmTranslation(
       request({
         entries: [entry("a", "Click Save to continue", [])],
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
       mechanism,
     );

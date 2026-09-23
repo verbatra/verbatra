@@ -298,9 +298,15 @@ carries one or more reason codes:
   an over-budget translation is still written and still locked, because a correct translation that
   overruns a layout budget beats no translation at all.
 - `EQUALS_SOURCE`: the translation equals the source verbatim although the target locale differs
-  from the source locale, and the source actually had translatable text.
-- `GLOSSARY_TERM_MISSED`: a configured glossary term occurs in the source but its mapped target
-  term is absent from the translation. Matching is case-insensitive, and the two sides are held to
+  from the source locale, and the source actually had translatable text. A source made only of
+  glossary `doNotTranslate` terms, or of terms whose translation is the term itself, is not
+  flagged, since copying it is the correct result.
+- `GLOSSARY_TERM_MISSED`: a glossary term occurs in the source but its translation for the target
+  locale is absent from the translation, or a `doNotTranslate` term from the source is missing or
+  altered. Each locale is checked against its own translation from a
+  [per-locale glossary](/docs/config-file#glossary), so German is never held to
+  the French term. Matching ignores case unless the term is `caseSensitive`, folds case by each
+  locale's rules (Turkish `İ` included), and the two sides are held to
   different standards on purpose. The source side requires a whole word, so the term `AI` is not
   counted as present inside `Airport` and cannot raise an expectation nobody was given. The target
   side only requires the term to appear somewhere in the translation, because a translated term
@@ -309,6 +315,11 @@ carries one or more reason codes:
   of the languages you would keep a glossary for. A source term written in a script without word
   separators (Han, kana, Thai and similar) has no boundary to anchor to either, so it falls back to
   the same containment rule.
+- `GLOSSARY_FORBIDDEN_TERM`: the translation uses a rendering the glossary's `forbidden` list rules
+  out for the target locale. It is matched as a whole word, falling back to containment for
+  scripts without word separators, so an inflected or compounded form is only caught when you list
+  it too. A rendering the source itself contains is not flagged, since the translation may quote
+  it. Like every reason here it flags rather than blocks.
 - `INTEGRITY_REORDERED`: the placeholder set matched exactly but landed in a different order than
   the source. Only ever fires on a translation the gate already accepted.
 - `PROVIDER_DEGRADED`: the batch this key came from was gracefully degraded by the provider (a

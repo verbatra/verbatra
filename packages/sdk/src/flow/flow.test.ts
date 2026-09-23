@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import {
   baseConfig,
+  localeGlossaryOf,
   makeFakeFs,
   makeStubProvider,
   makeTempDir,
@@ -356,7 +357,7 @@ describe("translate: glossary routing and notices", () => {
       { config: cfg({ glossary: { hello: "hallo" } }), cwd: dir },
       { createProvider: () => stub.provider },
     );
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "hallo" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "hallo" }));
   });
 
   it("surfaces provider notices (e.g. DeepL GLOSSARY_IGNORED) to the caller", async () => {
@@ -369,7 +370,7 @@ describe("translate: glossary routing and notices", () => {
       { config: cfg({ glossary: { hello: "hallo" } }), cwd: dir },
       { createProvider: () => stub.provider },
     );
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "hallo" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "hallo" }));
     expect(summary.locales[0]?.notices.map((n) => n.code)).toContain("GLOSSARY_IGNORED");
   });
 });

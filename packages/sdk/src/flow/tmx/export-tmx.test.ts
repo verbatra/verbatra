@@ -31,7 +31,7 @@ async function withMemory(
   const dir = await makeTempDir();
   await writeJsonFile(join(dir, CACHE_FILE_NAME), {
     version: 2,
-    entries: { [computeFingerprint(config)]: entries },
+    entries: { [computeFingerprint(config, "de")]: entries },
     sources,
   });
   return dir;
@@ -242,7 +242,7 @@ describe("exportTmx writes BCP 47 language tags however the config spells its lo
     expect(imported.unmatchedLanguages).toEqual([]);
     expect(imported.locales).toEqual([expect.objectContaining({ locale: "pt_BR", added: 1 })]);
     const memory = JSON.parse(await readFile(join(fresh, CACHE_FILE_NAME), "utf8"));
-    expect(memory.entries[computeFingerprint(config)]).toEqual({
+    expect(memory.entries[computeFingerprint(config, "de")]).toEqual({
       pt_BR: { [hashOf("Save")]: "Salvar" },
     });
     expect(memory.sources).toEqual({ [hashOf("Save")]: "Save" });

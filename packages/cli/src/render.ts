@@ -40,12 +40,29 @@ import {
 export interface RenderableError {
   readonly code: string;
   readonly message: string;
+  readonly candidates?: readonly string[];
+  readonly missing?: readonly string[];
+}
+
+function stringListOf(
+  error: Error,
+  field: "candidates" | "missing",
+): readonly string[] | undefined {
+  const list = (error as Partial<Record<typeof field, unknown>>)[field];
+  return Array.isArray(list) && list.every((entry) => typeof entry === "string") ? list : undefined;
 }
 
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
     const code = (error as { code?: unknown }).code;
-    return { code: typeof code === "string" ? code : "CLI_ERROR", message: error.message };
+    const candidates = stringListOf(error, "candidates");
+    const missing = stringListOf(error, "missing");
+    return {
+      code: typeof code === "string" ? code : "CLI_ERROR",
+      message: error.message,
+      ...(candidates === undefined ? {} : { candidates }),
+      ...(missing === undefined ? {} : { missing }),
+    };
   }
   return { code: "CLI_ERROR", message: String(error) };
 }

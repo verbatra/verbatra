@@ -16,9 +16,9 @@ El código de salida es el contrato sobre el que tu paso de CI toma su decisión
 
 | Código | Significado |
 | --- | --- |
-| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `types` generó su declaración, `export` escribió su libro, `tmx` importó o exportó su memoria de traducción, `init` preparó el proyecto, `watch`, `studio` o `mcp` se detuvo limpiamente, o se imprimió `--help` o `--version` |
+| `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `types` generó su declaración, `export` escribió su libro, `tmx` importó o exportó su memoria de traducción, `init` preparó el proyecto o lo encontró ya al día, `watch`, `studio` o `mcp` se detuvo limpiamente, o se imprimió `--help` o `--version` |
 | `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado (o, con `--qa`, una traducción confirmada con un error de integridad o, con `--strict`, con una advertencia de revisión), `diff` encontró una clave ausente o cambiada (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró al menos una comprobación fallida, `types --check` encontró que la declaración confirmada está desactualizada, o `studio` o `mcp` falló al apagar su servidor |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración incorrecta, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` sin un proveedor que pueda resolver o incapaz de generar una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración incorrecta, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` al que le falta un flag que necesita, que encuentra varios formatos o patrones de archivo que encajan, que se niega a sobrescribir una configuración existente o que es incapaz de generar una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
 | `3` | `translate` en un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) terminó sin errores, pero dejó claves para una traducción humana |
 | `130` | `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
 
@@ -59,12 +59,20 @@ Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` 
 
 ## Salida JSON
 
-Once comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types` y `extract`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que decides según un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
+Doce comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` e `init`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que decides según un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
 
 ```ts
 type Envelope<TResult> =
   | { ok: true; version: 1; command: string; result: TResult }
-  | { ok: false; version: 1; command: string | null; code: string; message: string };
+  | {
+      ok: false;
+      version: 1;
+      command: string | null;
+      code: string;
+      message: string;
+      candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
+    };
 ```
 
 `version` es la versión de esta forma de envoltorio, no la versión del paquete. Es un entero, así que lo comparas con `===` en lugar de analizar un rango, y solo cambia cuando un campo existente cambia de significado o desaparece. Pueden aparecer campos nuevos sin incrementarla, así que ignora los que no reconozcas.
@@ -75,7 +83,7 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 { "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
 ```
 
-`command` es `null` solo cuando el fallo ocurrió antes de resolver un subcomando.
+`command` es `null` solo cuando el fallo ocurrió antes de resolver un subcomando. `candidates` aparece solo en un error que te pide elegir, como `FORMAT_AMBIGUOUS` de `init`, y lista los valores entre los que elegir. `missing` aparece en un error de uso de `init` que deja flags sin responder y nombra cada flag que aún tienes que pasar.
 
 Un error de uso lleva uno de estos códigos:
 
@@ -86,7 +94,13 @@ Un error de uso lleva uno de estos códigos:
 | `INVALID_QA_OPTION` | `check` recibió `--severity` o `--strict` sin `--qa`, o `--strict` junto con `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` no es ni `error` ni `warning` |
 | `INVALID_LOCALE` | `pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones |
-| `INVALID_FORMAT` | `--format` en `export` o `import` no nombra ningún formato de entrega admitido |
+| `INVALID_FORMAT` | `--format` en `export` o `import` no nombra ningún formato de entrega admitido, o `--format` en `init` no nombra ningún formato de archivo de locale admitido |
+| `MISSING_OPTIONS` | `init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta |
+| `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |
+| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, o `--base-url` incluye credenciales, una query string o un fragmento |
+| `FORMAT_AMBIGUOUS` | `init` encontró varios formatos que leen los archivos de locale; `candidates` los lista |
+| `LAYOUT_AMBIGUOUS` | `init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista |
+| `CONFIG_EXISTS` | `init` sobrescribiría un `verbatra.config.ts` distinto sin `--force`, u otro archivo de configuración de verbatra del directorio se leería antes |
 | `INVALID_DIRECTION` | `tmx` recibió una dirección distinta de `import` o `export`, o `tmx export` recibió un flag exclusivo de la importación (`--dry-run`, `--overwrite`) |
 | `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
 | `INVALID_DEBOUNCE` | `watch --debounce` no es un número entero de milisegundos de 1 a 60000 |
@@ -96,7 +110,7 @@ Un error de uso lleva uno de estos códigos:
 
 `CLI_ERROR` es el código de reserva para un fallo que no traía código propio.
 
-Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Dos clases de fallo no siguen esa gramática, porque ocurren antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, e `init` rechaza un proveedor ausente con `verbatra: --provider is required (...)`, con prefijo pero sin código. Ambos salen con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada no encajará con ninguno de los dos y fallará en silencio. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
+Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Una clase de fallo no sigue esa gramática, porque ocurre antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, y sale con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada lo pasará por alto en silencio. `init` sigue la gramática estructurada desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
 
 El resto de esta sección describe el `result` que cada comando pone dentro de un envoltorio de éxito.
 
@@ -165,6 +179,8 @@ interface LocaleDiff {
   locales: { locale: string; rows: number }[];
 }
 ```
+
+`verbatra init --json` lleva lo que escribió: la ruta de la configuración, cada archivo y lo que le pasó, la propia configuración, de dónde salió cada valor, la detección con su confianza y sus motivos, y los siguientes comandos que ejecutar. La forma completa está en [verbatra init](/docs/cli/init#ejecuciones-desatendidas).
 
 `verbatra doctor --json` lleva el informe de la configuración del proyecto. El `ok` de nivel superior es true exactamente cuando el comando sale con `0`:
 

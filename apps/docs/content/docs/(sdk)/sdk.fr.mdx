@@ -511,17 +511,43 @@ Le même chargement, plus la provenance : renvoie `{ config, source, glossary }`
 
 <AvailableFrom version="0.9.0" />
 
-Lit un glossaire stocké dans un fichier directement depuis le disque et le renvoie sous forme de table plate de termes. Prend `{ glossary }`, la `GlossaryProvenance` renvoyée par `loadConfigWithMeta`, si bien que le fichier lu est toujours celui que la config nomme ; il n'y a aucun argument de chemin. Utilise-le dans un outil de longue durée qui doit montrer le glossaire tel qu'il est maintenant, et non tel qu'il était au chargement de la config.
+Lit un glossaire stocké dans un fichier directement depuis le disque et le renvoie sous forme de `Glossary` normalisé : `{ version, terms, doNotTranslate }`, où `version` vaut `1` pour une table plate de termes et `2` pour un [glossaire par locale](/docs/config-file#glossary), et où chaque terme porte `source`, un `target` facultatif, `targets`, `forbidden`, `caseSensitive`, et en option `note` et `partOfSpeech`. Prend `{ glossary }`, la `GlossaryProvenance` renvoyée par `loadConfigWithMeta`, si bien que le fichier lu est toujours celui que la config nomme ; il n'y a aucun argument de chemin. Utilise-le dans un outil de longue durée qui doit montrer le glossaire tel qu'il est maintenant, et non tel qu'il était au chargement de la config.
 
-Lève `GLOSSARY_NOT_FILE_BACKED` quand le glossaire est inline ou absent, et `CONFIG_INVALID` quand le fichier est manquant, trop volumineux, non UTF-8, invalide en JSON ou n'est pas une table plate de chaînes.
+Lève `GLOSSARY_NOT_FILE_BACKED` quand le glossaire est inline ou absent, et `CONFIG_INVALID` quand le fichier est manquant, trop volumineux, non UTF-8, invalide en JSON, n'est ni une table plate de chaînes ni un glossaire version 2 valide, ou déclare une autre version.
+
+<AvailableFrom version="0.12.0" />
+
+Jusqu'à la 0.11, il renvoyait la table plate de termes elle-même.
 
 ### updateGlossaryTerm
 
 <AvailableFrom version="0.9.0" />
 
-Ajoute, remplace ou supprime exactement un terme d'un glossaire stocké dans un fichier et renvoie le glossaire tel qu'il est désormais. Prend `{ glossary, cwd?, term, translation }`, où `translation` est le nouveau texte ou `null` pour supprimer le terme. Le reste du fichier garde son ordre de clés et son indentation, l'écriture est atomique, et tout le cycle lecture, modification, écriture se déroule sous un verrou de glossaire valable pour le projet entier : deux modifications simultanées sont donc sérialisées plutôt qu'entrelacées.
+Ajoute, modifie ou supprime exactement un terme d'un glossaire stocké dans un fichier et renvoie le glossaire normalisé tel qu'il est désormais. Prend `{ glossary, cwd?, term, translation }`, où `translation` est le nouveau texte ou `null` pour supprimer le terme. Le reste du fichier garde son ordre de clés et son indentation, l'écriture est atomique, et tout le cycle lecture, modification, écriture se déroule sous un verrou de glossaire valable pour le projet entier : deux modifications simultanées sont donc sérialisées plutôt qu'entrelacées.
 
-Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que converti : il vit dans un module de config exécutable. Un terme ou une traduction vide, ainsi qu'une modification dont le résultat dépasserait la limite de 1 Mio du glossaire, sont refusés avec `CONFIG_INVALID` ; une écriture en échec donne `GLOSSARY_UNWRITABLE`.
+<AvailableFrom version="0.12.0" />
+
+Il prend aussi `locale` (`translation` est alors la traduction propre à cette locale et `null` ne supprime qu'elle), `forbidden` (les traductions que `locale` ne doit jamais utiliser ; `null` ou `[]` les supprime), `note`, `partOfSpeech` (chacun `null` pour le supprimer), `caseSensitive` et `doNotTranslate` (`true` ajoute le terme aux termes à ne pas traduire, `false` l'en retire ; il ne se combine pas avec les champs du terme). Un fichier version 1 reste en version 1 tant qu'une modification ne fait que définir ou supprimer une traduction pour toutes les locales ; toute autre modification le réécrit en version 2, chaque terme existant gardant sa traduction comme `target`. `translation: null` sans `locale` ne supprime désormais que la traduction partagée ; le terme lui-même est supprimé dès qu'il n'a plus ni traduction ni traduction interdite, donc aussitôt pour un terme version 1.
+
+Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que converti : il vit dans un module de config exécutable. Un champ vide, une modification qui ne change rien ou qui mélange `doNotTranslate` avec les champs du terme, des traductions interdites sans locale, une locale invalide, une modification qui laisserait un glossaire invalide et une modification dont le résultat dépasserait la limite de 1 Mio du glossaire sont refusés avec `CONFIG_INVALID` ; une écriture en échec donne `GLOSSARY_UNWRITABLE`.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme `TranslateRequest.glossary`, et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Convertit un glossaire sous l'une ou l'autre forme, une table plate version 1 ou une définition version 2, en `Glossary` normalisé tel que le renvoie `readGlossaryFile`, avec toutes les valeurs par défaut remplies. Utilise-le pour afficher un glossaire inline de la même façon qu'un glossaire stocké dans un fichier. Il ne revalide pas ; `loadConfig` l'a déjà fait.
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Projette un `Glossary` normalisé sur une table plate de chaque terme doté d'un `target` partagé vers cette traduction, dans l'ordre du glossaire. Les traductions par locale, les traductions interdites et les termes de `doNotTranslate` en sont exclus : utilise-le seulement là où un consommateur ne peut afficher qu'une table plate de termes. Un terme nommé `__proto__` reste une clé propre.
 
 ### defineConfig
 
@@ -536,6 +562,27 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "none">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
 
 `scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
+
+`scaffoldingMetadata.openAiCompatibleKeyEnv` vaut `"OPENAI_COMPATIBLE_API_KEY"`, la variable que lit un fournisseur `openai-compatible` quand ses options ne nomment aucun `apiKeyEnvVar`. `scaffoldingMetadata.configSearchPlaces` liste chaque nom de fichier où `loadConfig` cherche une config, dans l'ordre où il les vérifie ; un générateur qui écrit `verbatra.config.ts` devrait refuser quand un autre d'entre eux existe déjà, puisque le premier trouvé l'emporte.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Détecte le format et l'organisation des fichiers de locale d'un projet à partir de ses fichiers, comme le fait `verbatra init` avant d'écrire une config. Il n'écrit rien et n'appelle aucun fournisseur. Il parcourt le répertoire (en sautant les répertoires cachés, `node_modules` et les sorties de build, dans une profondeur et un nombre d'entrées bornés) à la recherche de fichiers revendiqués par un adaptateur enregistré, trouve dans chacun le segment de chemin qui écrit une locale, et garde le motif de fichier qui couvre le plus de locales. Le format est celui dont le `canHandle` de l'adaptateur revendique chaque fichier trouvé compte tenu de son contenu ; pour le JSON, où tous les adaptateurs JSON le font, une seule bibliothèque i18n correspondante dans `package.json` tranche.
+
+```ts
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+Le résultat porte `format` (avec `from` : `input`, `files` ou `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (chacune avec un `subject` valant `format` ou `layout` et ses `candidates`), une `confidence` valant `high`, `medium`, `low` ou `none`, et `reasons`, une phrase par décision. Les égalités sont signalées comme ambiguïtés, jamais devinées. Les entrées optionnelles `format`, `pattern` et `sourceLocale` restreignent la recherche, et `deps.fs` et `deps.adapterRegistry` remplacent le système de fichiers et les adaptateurs : les fichiers d'un adaptateur tiers sont donc détectés aussi. Il ne lève jamais d'erreur pour un fichier manquant, illisible ou malformé ; il en rapporte moins à la place. `layout.unqualifiedSourceFile` nomme un fichier à côté du layout qui contient des chaînes sous aucun nom de locale, comme `messages.properties` ou un modèle gettext `.pot` ; la locale source reste alors ouverte au lieu d'être devinée, puisque la source est lue depuis le fichier que le motif nomme pour elle.
 
 ### isMachineTranslationEnabled
 
@@ -682,7 +729,7 @@ interface LocaleSummary {
 
 Les parties à connaître :
 
-- **needsReview** liste les clés acceptées et écrites que les heuristiques de révision ont signalées, chacune avec ses codes de raison : `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` et `FUZZY_CACHE_REUSE`. L'ensemble est livré sous forme du tuple `REVIEW_REASON_CODES` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un signalement de révision est consultatif et ne retient jamais une clé, donc une clé n'apparaît jamais à la fois dans `needsReview` et `integrityMismatches`. Voir [Sûreté de la traduction](/docs/translation-safety) pour la signification de chaque code et [Réviser les traductions dans Studio](/docs/review-in-studio) pour traiter la file.
+- **needsReview** liste les clés acceptées et écrites que les heuristiques de révision ont signalées, chacune avec ses codes de raison : `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` et `FUZZY_CACHE_REUSE`. L'ensemble est livré sous forme du tuple `REVIEW_REASON_CODES` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un signalement de révision est consultatif et ne retient jamais une clé, donc une clé n'apparaît jamais à la fois dans `needsReview` et `integrityMismatches`. Voir [Sûreté de la traduction](/docs/translation-safety) pour la signification de chaque code et [Réviser les traductions dans Studio](/docs/review-in-studio) pour traiter la file.
 - **notices** vivent par locale, jamais au premier niveau. On y trouve les avis de fournisseur (par exemple une dégradation DeepL) et les avis du SDK avec les codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED` et `PROVENANCE_FILE_TOO_LARGE` (enregistrer une locale aurait fait dépasser à `verbatra.provenance.json` la taille que verbatra relit, le fichier a donc été laissé tel quel). L'avis de cache concerne toute l'exécution (un seul fichier, partagé par chaque locale), il est donc attaché à chaque locale de l'exécution.
 - **usage** est `undefined`, jamais un zéro fabriqué, dès que rien dans ce périmètre n'a rapporté d'usage : un dry run n'appelle jamais de fournisseur, et DeepL ne rapporte jamais de tokens. `RunSummary.usage` est la somme sur les locales.
 - **budget** n'apparaît que quand `maxTokens` est configuré : `{ maxTokens, behavior, supported, tokensUsed, exceeded }`. `supported` indique si `tokensUsed` est entièrement l'usage rapporté par le fournisseur lui-même ; il vaut `false` dès qu'une requête revient sans chiffre exploitable, et le total est alors en partie la projection de verbatra, comptée et appliquée de la même façon. Un dry run le rapporte avec `tokensUsed: 0`, puisque rien n'a été envoyé. Sous `behavior: "stop"`, le plafond est vérifié avant chaque requête que l'exécution envoie, y compris chaque moitié d'une requête redécoupée, donc `tokensUsed` finit au plafond ou en dessous, à un résidu près : la dernière requête admise est réconciliée avec ce que le fournisseur a rapporté, ce qui peut pousser le total au-dessus du plafond après coup. Plus rien n'est envoyé ensuite. Deux choses échappent à ce qu'une réservation peut borner, car elles se produisent à l'intérieur d'une requête déjà admise : la couche fournisseur envoie une requête de réparation qui lui est propre quand des clés manquent, donc un lot admis peut coûter jusqu'à près du double de sa projection, et le compte ne vaut que ce que rapporte le fournisseur. Les deux arrivent à la réconciliation, et plus rien n'est admis ensuite. Le budget borne un appel à `translate` : `watch` en démarre un neuf par exécution, et `retranslateEntry` n'est pas couvert du tout.

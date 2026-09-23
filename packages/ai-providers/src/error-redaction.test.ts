@@ -9,6 +9,7 @@ import {
   regexExtractor,
   resetDeclaredKeyEnvVars,
   stubClient,
+  termGlossary,
   toolMessage,
 } from "./test-support.js";
 
@@ -23,7 +24,7 @@ function contentRequest(overrides: Partial<TranslateRequest> = {}): TranslateReq
     sourceLocale: "en",
     targetLocale: "de",
     entries: [entry(CONTENT, CONTENT, [], { description: CONTENT, meaning: CONTENT })],
-    glossary: { [CONTENT]: CONTENT },
+    glossary: termGlossary({ [CONTENT]: CONTENT }),
     extractPlaceholders: regexExtractor,
     ...overrides,
   };

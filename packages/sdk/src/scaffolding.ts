@@ -1,12 +1,19 @@
-import { PROVIDER_ENV, SCAFFOLD_MODELS, SCAFFOLD_TOKEN_LIMIT_KEYS } from "@verbatra/ai-providers";
+import {
+  OPENAI_COMPATIBLE_ENV_VAR,
+  PROVIDER_ENV,
+  SCAFFOLD_MODELS,
+  SCAFFOLD_TOKEN_LIMIT_KEYS,
+} from "@verbatra/ai-providers";
 import { SUPPORTED_FORMATS } from "@verbatra/core";
+import { CONFIG_SEARCH_PLACES } from "./config/load-config.js";
 import type { ProviderId } from "./config/provider-config.js";
 
 /**
- * A translation provider that project scaffolding can offer out of the box, each with an API key
- * variable in {@link scaffoldingMetadata}. It excludes `openai-compatible`, which needs a `baseUrl`
- * and a model name that only the user can supply, so there is nothing sensible to prefill, and
- * `none`, which disables machine translation and so reads no API key at all.
+ * A translation provider that project scaffolding can offer with nothing but its id, each with an
+ * API key variable in {@link scaffoldingMetadata}. It excludes `openai-compatible`, which needs a
+ * `baseUrl` and a model name that only the user can supply and whose key variable is optional and
+ * configurable (see `openAiCompatibleKeyEnv`), and `none`, which disables machine translation and
+ * so reads no API key at all.
  */
 export type ScaffoldableProviderId = Exclude<ProviderId, "openai-compatible" | "none">;
 
@@ -55,4 +62,16 @@ export const scaffoldingMetadata = {
    * provider block takes no options.
    */
   humanOnlyProviderId: "none" satisfies ProviderId,
+  /**
+   * The environment variable an `openai-compatible` provider reads its key from when its options
+   * name no `apiKeyEnvVar`. A local server that needs no key can leave it unset.
+   */
+  openAiCompatibleKeyEnv: OPENAI_COMPATIBLE_ENV_VAR,
+  /**
+   * Every file name, relative to the project directory, that {@link loadConfig} searches for a
+   * config, in the order it checks them. `package.json` counts only when it has a `verbatra`
+   * property. A generator that writes `verbatra.config.ts` should refuse when another of these
+   * already exists, since the one found first wins.
+   */
+  configSearchPlaces: CONFIG_SEARCH_PLACES as readonly string[],
 } as const;

@@ -127,10 +127,11 @@ Utilise `--include-unchanged` quand un traducteur veut le contexte complet d'une
 - `length-ratio-outlier` : la traduction est bien plus courte ou plus longue que sa source.
 - `max-length-exceeded` : la traduction est plus longue que le budget configuré pour sa clé.
 - `equals-source` : la traduction est identique à la source.
-- `glossary-term-missed` : un terme du glossaire configuré n'est pas arrivé dans la traduction.
+- `glossary-term-missed` : la traduction d'un terme du glossaire pour cette locale, ou un terme de `doNotTranslate`, n'est pas arrivée dans la traduction.
+- `glossary-forbidden-term` : la traduction utilise une traduction que le glossaire interdit pour cette locale.
 - `integrity-reordered` : les placeholders correspondent mais ont atterri dans un ordre différent de la source.
 
-Deux autres raisons complètent l'ensemble de sept, et toutes deux n'existent qu'au moment d'un `translate` : `provider-degraded` (un avis de formalité dégradée ou de glossaire ignoré sur le lot d'où vient une clé) et `fuzzy-cache-reuse` (la valeur a été réutilisée depuis la mémoire de traduction pour une source antérieure presque identique, modifiée depuis). L'export recalcule les colonnes à partir des seules valeurs source et cible, donc ni l'une ni l'autre n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les contrôles d'intégrité stricts.
+Deux autres raisons complètent l'ensemble de huit, et toutes deux n'existent qu'au moment d'un `translate` : `provider-degraded` (un avis de formalité dégradée ou de glossaire ignoré sur le lot d'où vient une clé) et `fuzzy-cache-reuse` (la valeur a été réutilisée depuis la mémoire de traduction pour une source antérieure presque identique, modifiée depuis). L'export recalcule les colonnes à partir des seules valeurs source et cible, donc ni l'une ni l'autre n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les contrôles d'intégrité stricts.
 
 ## Depuis le SDK
 

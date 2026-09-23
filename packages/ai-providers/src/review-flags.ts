@@ -1,4 +1,5 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import { type DoNotTranslateTerm, foldGlossaryCase, type LocaleGlossary } from "./glossary.js";
 import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js";
 
 const LENGTH_RATIO_MIN = 0.35;
@@ -33,7 +34,7 @@ export interface ReviewFlagInput {
   readonly sourceLocale: string;
   readonly targetLocale: string;
   readonly integrity: PlaceholderIntegrityResult;
-  readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly glossary?: LocaleGlossary | undefined;
   readonly maxLength?: number | undefined;
 }
 
@@ -75,13 +76,48 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
+function removeWholeTerms(text: string, term: string): string {
+  let remaining = text;
+  for (const index of wholeTermIndices(text, term).reverse()) {
+    remaining = `${remaining.slice(0, index)} ${remaining.slice(index + term.length)}`;
+  }
+  return remaining;
+}
+
+function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
+  if (glossary === undefined) {
+    return [];
+  }
+  const identities = glossary.terms
+    .filter((term) => term.target === term.source)
+    .map(({ source, caseSensitive }) => ({ term: source, caseSensitive }));
+  return [...glossary.doNotTranslate, ...identities];
+}
+
+function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
+  const fixed = fixedTermsOf(input.glossary);
+  if (fixed.length === 0) {
+    return false;
+  }
+  let remaining = input.sourceValue;
+  for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
+    remaining = removeWholeTerms(remaining, term);
+  }
+  remaining = foldGlossaryCase(remaining, input.sourceLocale, false);
+  for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
+    remaining = removeWholeTerms(remaining, foldGlossaryCase(term, input.sourceLocale, false));
+  }
+  return !UNICODE_LETTER.test(remaining);
+}
+
 function isEqualsSource(input: ReviewFlagInput): boolean {
   const trimmedSource = input.sourceValue.trim();
   const trimmedTranslated = input.translatedValue.trim();
   return (
     trimmedTranslated === trimmedSource &&
     input.targetLocale !== input.sourceLocale &&
-    UNICODE_LETTER.test(trimmedSource)
+    UNICODE_LETTER.test(trimmedSource) &&
+    !consistsOfFixedTerms(input)
   );
 }
 
@@ -94,9 +130,10 @@ function isFollowedByWordCharacter(text: string, index: number): boolean {
   return WORD_JOINING_AT_START.test(text.slice(index, index + MAX_CODE_UNITS_PER_CODE_POINT));
 }
 
-function occursAsWholeTerm(text: string, term: string): boolean {
+function wholeTermIndices(text: string, term: string): number[] {
+  const indices: number[] = [];
   if (term === "") {
-    return false;
+    return indices;
   }
   const guardStart = WORD_JOINING_AT_START.test(term);
   const guardEnd = WORD_JOINING_AT_END.test(term);
@@ -104,30 +141,70 @@ function occursAsWholeTerm(text: string, term: string): boolean {
     const blockedStart = guardStart && isPrecededByWordCharacter(text, index);
     const blockedEnd = guardEnd && isFollowedByWordCharacter(text, index + term.length);
     if (!blockedStart && !blockedEnd) {
-      return true;
+      indices.push(index);
     }
   }
-  return false;
+  return indices;
+}
+
+function occursAsWholeTerm(text: string, term: string): boolean {
+  return wholeTermIndices(text, term).length > 0;
+}
+
+interface ExpectedTerm {
+  readonly source: string;
+  readonly target: string;
+  readonly caseSensitive: boolean;
+}
+
+function expectedTermsOf(glossary: LocaleGlossary): readonly ExpectedTerm[] {
+  const expected: ExpectedTerm[] = [];
+  for (const { source, target, caseSensitive } of glossary.terms) {
+    if (target !== undefined && target !== "") {
+      expected.push({ source, target, caseSensitive });
+    }
+  }
+  for (const { term, caseSensitive } of glossary.doNotTranslate) {
+    expected.push({ source: term, target: term, caseSensitive });
+  }
+  return expected;
 }
 
 function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
-  const glossary = input.glossary;
-  if (glossary === undefined || Object.keys(glossary).length === 0) {
+  if (input.glossary === undefined) {
     return false;
   }
-  const sourceLower = input.sourceValue.toLowerCase();
-  const translatedLower = input.translatedValue.toLowerCase();
-  for (const [sourceTerm, targetTerm] of Object.entries(glossary)) {
-    if (targetTerm === "") {
-      continue;
-    }
-    const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
-    const targetHit = translatedLower.includes(targetTerm.toLowerCase());
-    if (sourceHit && !targetHit) {
-      return true;
-    }
+  return expectedTermsOf(input.glossary).some(({ source, target, caseSensitive }) => {
+    const sourceHit = occursAsWholeTerm(
+      foldGlossaryCase(input.sourceValue, input.sourceLocale, caseSensitive),
+      foldGlossaryCase(source, input.sourceLocale, caseSensitive),
+    );
+    return (
+      sourceHit &&
+      !foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive).includes(
+        foldGlossaryCase(target, input.targetLocale, caseSensitive),
+      )
+    );
+  });
+}
+
+function isForbiddenTermUsed(input: ReviewFlagInput): boolean {
+  if (input.glossary === undefined) {
+    return false;
   }
-  return false;
+  return input.glossary.terms.some(({ forbidden, caseSensitive }) =>
+    forbidden.some(
+      (rendering) =>
+        occursAsWholeTerm(
+          foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive),
+          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
+        ) &&
+        !occursAsWholeTerm(
+          foldGlossaryCase(input.sourceValue, input.targetLocale, caseSensitive),
+          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
+        ),
+    ),
+  );
 }
 
 function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
@@ -148,6 +225,9 @@ export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefin
   if (isGlossaryTermMissed(input)) {
     reasons.push("GLOSSARY_TERM_MISSED");
   }
+  if (isForbiddenTermUsed(input)) {
+    reasons.push("GLOSSARY_FORBIDDEN_TERM");
+  }
   if (isIntegrityReordered(input.integrity)) {
     reasons.push("INTEGRITY_REORDERED");
   }
@@ -160,7 +240,7 @@ export function buildEntryReviewFlags(
   integrity: ReadonlyMap<string, PlaceholderIntegrityResult>,
   sourceLocale: string,
   targetLocale: string,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: ReadonlyMap<string, number> | undefined,
 ): Map<string, ReviewFlag> {
   const reviewFlags = new Map<string, ReviewFlag>();

@@ -1,4 +1,5 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import type { ProviderNetwork } from "../network/transport.js";
@@ -70,8 +71,7 @@ async function translate(
   const data = validateRequest(request);
   const languages = resolveGoogleLanguages(config, data);
   const { protectable, unprotectable } = partitionByPlaceholders(data.entries);
-  const genericGlossarySupplied =
-    request.glossary !== undefined && Object.keys(request.glossary).length > 0;
+  const genericGlossarySupplied = appliesTerms(data.glossary);
   const notices = buildTranslateNotices({
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
     genericGlossarySupplied,
@@ -95,7 +95,7 @@ async function translate(
       integrity,
       data.sourceLocale,
       data.targetLocale,
-      request.glossary,
+      data.glossary,
       data.maxLength,
     ),
     notices,

@@ -101,7 +101,7 @@ provider: {
 
 DeepL stuft kontrolliert herab, statt fehlzuschlagen, wenn es eine Einstellung nicht einhalten kann, und meldet jede Herabstufung als Hinweis zum Lauf:
 
-- Eine konfigurierte `glossary`-Begriffszuordnung wird nicht angewendet (DeepL nutzt nur eine vorab angelegte Glossar-Id), gemeldet als `GLOSSARY_IGNORED`.
+- Eine konfigurierte `glossary`-Übersetzung oder ein Begriff aus `doNotTranslate` für die Ziel-Locale wird nicht angewendet (DeepL nutzt nur eine vorab angelegte Glossar-Id), gemeldet als `GLOSSARY_IGNORED`. Verbotene Wiedergaben allein lösen keinen Hinweis aus: Sie werden nach der Übersetzung geprüft, nie angewendet.
 - `tone` wird auf DeepLs Formalität abgebildet: `formal` wird formeller, `informal` wird informeller, `neutral` oder ein fehlender Tonfall wird weggelassen. Mit einem Key aus dem kostenlosen Kontingent wird Formalität nicht unterstützt, ein nicht-standardmäßiger Tonfall fällt also auf den Default zurück, gemeldet als `FORMALITY_DOWNGRADED`.
 
 <Callout title="DeepL und Platzhalter">
@@ -126,7 +126,7 @@ Dieser Provider zielt auf die Basic-Stufe (v2) von Cloud Translation, authentifi
 Cloud Translation hat auf der Basic-Stufe keine Formalitätseinstellung und kein generisches Glossar, ein konfigurierter `tone` oder `glossary` wird also nie angewendet. Beides wird als Hinweis gemeldet statt still verworfen:
 
 - `tone` meldet immer `FORMALITY_DOWNGRADED`, wenn es auf `formal` oder `informal` gesetzt ist; `neutral` oder ein fehlender Tonfall wird weggelassen.
-- Eine mitgegebene `glossary`-Begriffszuordnung meldet immer `GLOSSARY_IGNORED`.
+- Eine `glossary`-Übersetzung oder ein Begriff aus `doNotTranslate` für die Ziel-Locale meldet immer `GLOSSARY_IGNORED`.
 
 <Callout title="Google Cloud Translation und Platzhalter">
 Wie DeepL kann Google Cloud Translation Platzhalter oder ICU-Tokens nicht erhalten, deshalb sendet es Strings, die welche enthalten, gar nicht erst: Diese Einträge werden zurückgehalten (unübersetzt gelassen) und mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis gemeldet. Platzhalterfreie Strings werden normal übersetzt. Um Strings mit Platzhaltern zu übersetzen, nimm einen LLM-Provider (Anthropic, OpenAI, Gemini oder openai-compatible).
@@ -201,8 +201,8 @@ Ein schlechtes lokales Modell schlägt laut fehl, nicht still: verbatra validier
 
 `openai-compatible` fordert dasselbe strikte, schemagebundene Antwortformat an wie der gehostete `openai`-Provider. Der eine Unterschied liegt auf dem Rückweg: Lokale und kleinere Modelle verpacken eine ansonsten korrekte Antwort eher in umgebende Prosa oder einen Markdown-Code-Fence, obwohl sie darum gebeten wurden, das zu lassen, deshalb extrahiert `openai-compatible` vor dem Parsen das erste balancierte JSON-Objekt an beliebiger Stelle der Antwort, was der gehostete Provider nicht tut. Seine Ausgabe durchläuft trotzdem exakt dieselbe Schemavalidierung und dieselben Integritätsprüfungen wie bei jedem anderen Provider: Die Ausgabe eines lokalen Modells ist nicht vertrauenswürdige Eingabe, und eine fehlerhafte Antwort oder eine mit abweichenden Platzhaltern wird genauso abgelehnt.
 
-<Callout title="Nicht in verbatra init">
-`verbatra init` bietet `openai-compatible` beim Scaffolding nicht als Option an, weil es keine einzelne erforderliche Umgebungsvariable gibt, nach der es fragen könnte. Füge den Provider-Block oben von Hand in deine Konfiguration ein; alles andere auf dieser Seite (Glossar, Tonfall, Ausgabe-Token-Limits) gilt für ihn wie für jeden LLM-Provider.
+<Callout title="Mit verbatra init anlegen">
+`verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block für dich, mit `maxOutputTokens: 4096`. Füge `--api-key-env-var <NAME>` hinzu, wenn der Server einen Key unter einer eigenen Variable braucht; `init` schreibt nur den Namen der Variable, nie einen Wert. Siehe [verbatra init](/docs/cli/init#provider). Alles andere auf dieser Seite (Glossar, Tonfall, Ausgabe-Token-Limits) gilt für ihn wie für jeden LLM-Provider.
 </Callout>
 
 ## none
@@ -222,7 +222,7 @@ provider: { id: "none" }
 Die optionalen Konfigurationsfelder `tone` und `glossary` (siehe [Konfigurationsdatei](/docs/config-file)) werden pro Provider angewendet:
 
 - **Tonfall.** Die LLM-Provider (Anthropic, OpenAI, Gemini und openai-compatible) erhalten den Tonfall mit der Anfrage und werden angewiesen, ihn einzuhalten. DeepL bildet ihn auf Formalität ab, mit der oben beschriebenen Herabstufung im kostenlosen Kontingent. Google Cloud Translation hat gar keine Formalitätskontrolle, ein nicht-neutraler Tonfall meldet also immer `FORMALITY_DOWNGRADED`.
-- **Glossar.** Die LLM-Provider erhalten die Begriffszuordnung und werden angewiesen, ihre Begriffe als bindend zu behandeln. DeepL ignoriert eine Begriffszuordnung (mit einem `GLOSSARY_IGNORED`-Hinweis) und wendet nur seine native `glossaryId` an. Google Cloud Translation hat in v1 gar kein Glossar, eine mitgegebene Begriffszuordnung meldet also immer `GLOSSARY_IGNORED`.
+- **Glossar.** Jede Anfrage enthält nur die Glossarbegriffe ihrer eigenen Ziel-Locale. Die LLM-Provider erhalten die Übersetzungen, die `forbidden`-Wiedergaben, die Begriffe aus `doNotTranslate` und die Notizen als Daten und werden angewiesen, die Übersetzungen als bindend zu behandeln, nie eine verbotene Wiedergabe zu verwenden und Begriffe aus `doNotTranslate` wörtlich zu übernehmen. DeepL kann sie nicht anwenden (mit einem `GLOSSARY_IGNORED`-Hinweis) und wendet nur seine native `glossaryId` an. Google Cloud Translation hat in v1 gar kein Glossar, eine Übersetzung oder ein Begriff aus `doNotTranslate` meldet also immer `GLOSSARY_IGNORED`. Egal bei welchem Provider wird die Ausgabe gegen die Begriffe der Locale geprüft und zur Prüfung mit `GLOSSARY_TERM_MISSED` oder `GLOSSARY_FORBIDDEN_TERM` markiert.
 
 ## Verhalten, das jeder Provider teilt
 
