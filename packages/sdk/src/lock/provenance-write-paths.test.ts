@@ -218,6 +218,7 @@ describe("provenance: the set of SDK functions that write a locale file is close
     ["flow/edit-entry.ts", "editEntry"],
     ["flow/retranslate-entry.ts", "retranslateEntry"],
     ["flow/workbook/import-workbook.ts", "importWorkbook"],
+    ["flow/review-decision.ts", "rejectEntry"],
   ]);
   const WRITERS_WITHOUT_PROVENANCE = new Set(["flow/write-target.ts", "flow/pseudo.ts"]);
 

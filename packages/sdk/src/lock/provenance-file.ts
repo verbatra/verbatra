@@ -55,6 +55,11 @@ export interface ProvenanceRecord {
   readonly reviewState?: string;
   /** Free text naming the reviewer, present only when one was supplied. */
   readonly reviewer?: string;
+  /**
+   * The lock-file source hash an approval was given against. An approval whose hash no longer
+   * matches the key's lock entry reads as unreviewed.
+   */
+  readonly reviewedSourceHash?: string;
 }
 
 /**
@@ -91,9 +96,16 @@ const RECORD_FIELD_ORDER = [
   "valueHash",
   "reviewState",
   "reviewer",
+  "reviewedSourceHash",
 ] as const;
 
-const OPTIONAL_STRING_FIELDS = ["provider", "model", "reviewState", "reviewer"] as const;
+const OPTIONAL_STRING_FIELDS = [
+  "provider",
+  "model",
+  "reviewState",
+  "reviewer",
+  "reviewedSourceHash",
+] as const;
 
 export function emptyProvenance(): ProvenanceFile {
   return { version: CURRENT_PROVENANCE_VERSION, locales: Object.create(null) };
@@ -284,6 +296,60 @@ export function localeRecords(
 }
 
 export type ProvenanceWriteOutcome = "written" | "unchanged" | "newer-version" | "too-large";
+
+function withRecord(
+  file: ProvenanceFile,
+  locale: string,
+  key: string,
+  record: ProvenanceRecord,
+): ProvenanceFile {
+  const entries = nullPrototypeCopy(
+    { ...ownValue(file.locales, locale) },
+    (value) => value as ProvenanceRecord,
+  );
+  Object.defineProperty(entries, key, {
+    value: record,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+  return withLocaleRecords(file, locale, entries);
+}
+
+export type ProvenanceRecordPlan =
+  | {
+      readonly kind: "write";
+      readonly path: string;
+      readonly content: string;
+      readonly record: ProvenanceRecord;
+    }
+  | { readonly kind: "unchanged"; readonly record: ProvenanceRecord }
+  | { readonly kind: "newer-version" }
+  | { readonly kind: "too-large" };
+
+export async function planProvenanceRecord(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+  key: string,
+  build: (prior: ProvenanceRecord | undefined) => ProvenanceRecord,
+  maxBytes: number = MAX_PROVENANCE_FILE_BYTES,
+): Promise<ProvenanceRecordPlan> {
+  const path = provenanceFilePath(cwd);
+  const { file, writable } = await readProvenanceFile(path, fs);
+  if (!writable) {
+    return { kind: "newer-version" };
+  }
+  const record = build(ownValue(ownValue(file.locales, locale), key));
+  const content = serializeProvenanceFile(withRecord(file, locale, key, record));
+  if (content === serializeProvenanceFile(file)) {
+    return { kind: "unchanged", record };
+  }
+  if (Buffer.byteLength(content, "utf8") > maxBytes) {
+    return { kind: "too-large" };
+  }
+  return { kind: "write", path, content, record };
+}
 
 export async function writeProvenanceLocale(
   cwd: string,

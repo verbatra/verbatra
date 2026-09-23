@@ -94,7 +94,13 @@ function serializeLockFile(lock: LockFile): string {
 
 export type LockLocalePatch =
   | { readonly mode: "replace"; readonly entries: LockEntries }
-  | { readonly mode: "merge"; readonly entries: LockEntries };
+  | { readonly mode: "merge"; readonly entries: LockEntries }
+  | { readonly mode: "remove"; readonly keys: readonly string[] };
+
+function withoutKeys(entries: LockEntries | undefined, keys: readonly string[]): LockEntries {
+  const removed = new Set(keys);
+  return Object.fromEntries(Object.entries(entries ?? {}).filter(([key]) => !removed.has(key)));
+}
 
 function applyLockLocalePatch(
   currentEntries: LockEntries | undefined,
@@ -102,6 +108,9 @@ function applyLockLocalePatch(
 ): LockEntries {
   if (patch.mode === "replace") {
     return patch.entries;
+  }
+  if (patch.mode === "remove") {
+    return withoutKeys(currentEntries, patch.keys);
   }
   return { ...currentEntries, ...patch.entries };
 }
