@@ -13,3 +13,6 @@ a subset of locales. It is always listed, calls no provider, and makes no networ
 target locales, and an optional `maxTokens` hard ceiling for the call; the lower of it and the
 config's `maxTokens` applies. The server instructions now recommend an estimate before any spend
 call.
+
+`translation.translatePending` is now also guarded as a whole: while one run is in progress, a
+second call is refused as already in progress, whatever `locales` it names.

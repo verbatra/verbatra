@@ -17,11 +17,13 @@ import { editEntryTool } from "./tools/edit-entry.js";
 import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
 import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
+import { translatePendingTool } from "./tools/translate-pending.js";
 import type { McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
   retranslateEntryTool.name,
   editEntryTool.name,
+  translatePendingTool.name,
 ]);
 
 const ALREADY_IN_PROGRESS_MESSAGE =
