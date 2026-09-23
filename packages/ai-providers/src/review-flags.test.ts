@@ -34,7 +34,7 @@ describe("computeReviewFlags: clean input", () => {
 });
 
 describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
-  it("is skipped when the trimmed source is under 12 UTF-16 code units", () => {
+  it("is skipped when the trimmed source is under 12 grapheme clusters", () => {
     const flag = computeReviewFlags(input({ sourceValue: "short sourc", translatedValue: "x" }));
     expect(flag).toBeUndefined();
   });
@@ -71,6 +71,142 @@ describe("computeReviewFlags: LENGTH_RATIO_OUTLIER", () => {
     expect(translated.length / source.length).toBeGreaterThan(3.0);
     const flag = computeReviewFlags(input({ sourceValue: source, translatedValue: translated }));
     expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+});
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER grapheme counting", () => {
+  it("counts an emoji with a skin-tone modifier as one character", () => {
+    const translated = "\u{1F44D}\u{1F3FD}".repeat(39);
+    expect(translated.length).toBeGreaterThan(39 * 3);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("counts an astral-plane character as one character", () => {
+    const translated = "\u{20000}".repeat(6);
+    expect(translated.length).toBe(12);
+    const flag = computeReviewFlags(
+      input({ sourceValue: "12345678901234567890", translatedValue: translated }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("counts a base letter with a combining mark as one character", () => {
+    const translated = "e\u0301".repeat(39);
+    expect(translated.length).toBe(78);
+    expect(
+      computeReviewFlags(input({ sourceValue: "1234567890123", translatedValue: translated })),
+    ).toBeUndefined();
+  });
+
+  it("does not open the ratio on a source of 12 code units but fewer graphemes", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "e\u0301".repeat(6), translatedValue: "x" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+});
+
+describe("computeReviewFlags: LENGTH_RATIO_OUTLIER script density", () => {
+  const source = "Your changes have been saved successfully.";
+
+  it.each([
+    ["ja", "変更が正常に保存されました。"],
+    ["zh", "变更已成功保存。"],
+    ["zh-TW", "變更已成功儲存。"],
+    ["ko", "변경 사항이 성공적으로 저장되었습니다."],
+  ])("does not flag a correct en to %s translation", (targetLocale, translatedValue) => {
+    expect(
+      computeReviewFlags(input({ sourceValue: source, translatedValue, targetLocale })),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    ["ja", "変更"],
+    ["zh", "变"],
+    ["ko", "변경"],
+  ])("still flags a truncated en to %s translation", (targetLocale, translatedValue) => {
+    const flag = computeReviewFlags(input({ sourceValue: source, translatedValue, targetLocale }));
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("still flags an en to ja translation far longer than its source", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "Save your changes",
+        translatedValue: "あ".repeat(21),
+        targetLocale: "ja",
+      }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("does not flag a correct ja to en translation that expands in the Latin script", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "変更が正常に保存されました。",
+        translatedValue: "All of your changes have been saved successfully.",
+        sourceLocale: "ja",
+        targetLocale: "en",
+      }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it("still flags a truncated ja to en translation", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: "変更が正常に保存されました。",
+        translatedValue: "Saved",
+        sourceLocale: "ja",
+        targetLocale: "en",
+      }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("skips a Han source too short for the ratio once scaled to Latin length", () => {
+    const flag = computeReviewFlags(
+      input({ sourceValue: "保存", translatedValue: "x", sourceLocale: "zh", targetLocale: "en" }),
+    );
+    expect(flag).toBeUndefined();
+  });
+
+  it.each([
+    ["sr-Latn", "Vaše izmene su uspešno sačuvane."],
+    ["sr-Cyrl", "Ваше измене су успешно сачуване."],
+    ["sr", "Ваше измене су успешно сачуване."],
+  ])("treats en to %s as the same density as Latin", (targetLocale, translatedValue) => {
+    expect(
+      computeReviewFlags(input({ sourceValue: source, translatedValue, targetLocale })),
+    ).toBeUndefined();
+    const flag = computeReviewFlags(
+      input({ sourceValue: source, translatedValue: translatedValue.slice(0, 5), targetLocale }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("falls back to Latin density for a locale tag Intl cannot parse", () => {
+    const flag = computeReviewFlags(
+      input({
+        sourceValue: source,
+        translatedValue: "変更が正常に保存されました。",
+        targetLocale: "not a locale",
+      }),
+    );
+    expect(flag?.reasons).toEqual(["LENGTH_RATIO_OUTLIER"]);
+  });
+
+  it("gives the same result for a repeated locale", () => {
+    const first = computeReviewFlags(
+      input({ sourceValue: source, translatedValue: "变更已成功保存。", targetLocale: "zh-Hans" }),
+    );
+    const second = computeReviewFlags(
+      input({ sourceValue: source, translatedValue: "变更已成功保存。", targetLocale: "zh-Hans" }),
+    );
+    expect(first).toBeUndefined();
+    expect(second).toBeUndefined();
   });
 });
 

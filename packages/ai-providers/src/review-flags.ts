@@ -4,6 +4,16 @@ import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js
 const LENGTH_RATIO_MIN = 0.35;
 const LENGTH_RATIO_MAX = 3.0;
 const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
+const LATIN_EQUIVALENT_DENSITY = 1;
+const SCRIPT_CHARACTER_DENSITY: Readonly<Record<string, number>> = {
+  Hani: 0.3,
+  Hanb: 0.3,
+  Hans: 0.3,
+  Hant: 0.3,
+  Jpan: 0.4,
+  Kore: 0.55,
+};
+const localeDensityCache = new Map<string, number>();
 
 const UNICODE_LETTER = /\p{L}/u;
 
@@ -39,16 +49,40 @@ function graphemeLength(value: string): number {
   return count;
 }
 
+function scriptOf(locale: string): string | undefined {
+  try {
+    return new Intl.Locale(locale).maximize().script;
+  } catch {
+    return undefined;
+  }
+}
+
+function characterDensity(locale: string): number {
+  const cached = localeDensityCache.get(locale);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const script = scriptOf(locale);
+  const density =
+    (script !== undefined ? SCRIPT_CHARACTER_DENSITY[script] : undefined) ??
+    LATIN_EQUIVALENT_DENSITY;
+  localeDensityCache.set(locale, density);
+  return density;
+}
+
 function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
   return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
-function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
-  const trimmedSource = sourceValue.trim();
-  if (trimmedSource.length < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
+function isLengthRatioOutlier(input: ReviewFlagInput): boolean {
+  const normalizedSource =
+    graphemeLength(input.sourceValue.trim()) / characterDensity(input.sourceLocale);
+  if (normalizedSource < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
     return false;
   }
-  const ratio = translatedValue.trim().length / trimmedSource.length;
+  const normalizedTranslated =
+    graphemeLength(input.translatedValue.trim()) / characterDensity(input.targetLocale);
+  const ratio = normalizedTranslated / normalizedSource;
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
@@ -113,7 +147,7 @@ function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
 
 export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
   const reasons: ReviewReasonCode[] = [];
-  if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
+  if (isLengthRatioOutlier(input)) {
     reasons.push("LENGTH_RATIO_OUTLIER");
   }
   if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
