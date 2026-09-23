@@ -568,10 +568,9 @@ describe("ReviewPanel", () => {
 
     await clickAsync(rowAction(view, "checkout.title", "Approve"));
 
-    for (const name of ["Edit", "Approve", "Reject…"]) {
+    for (const name of ["Edit", "Approving…", "Reject…"]) {
       expect((rowAction(view, "checkout.title", name) as HTMLButtonElement).disabled).toBe(true);
     }
-    expect(view.text()).toContain("Approving…");
   });
 
   it("keeps the row busy until the queue reload after an approval has answered", async () => {
@@ -654,6 +653,21 @@ describe("ReviewPanel", () => {
     expect(view.get('[role="status"]').textContent).toBe(
       "Rejected cart.badge (fr). Its translation was removed and the decision is saved in verbatra.provenance.json.",
     );
+  });
+
+  it("moves focus to the page status after a rejection, not back to the removed row", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+    stubRpc({
+      "review.reject": { ok: true, result: decided("fr", "cart.badge", "rejected") },
+      "review.queue": queueAnswer(without("cart.badge")),
+    });
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(document.activeElement?.textContent).toContain("Rejected cart.badge (fr).");
   });
 
   it("keeps the reject dialog open with the reason when the rejection fails", async () => {

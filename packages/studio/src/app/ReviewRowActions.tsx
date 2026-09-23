@@ -16,21 +16,23 @@ export function ReviewRowActions({
 }): ReactNode {
   const busy = pendingLabel !== undefined;
   return (
-    <span className="ms-2 inline-flex flex-wrap items-center gap-2">
+    <span className="ms-2 inline-flex items-center gap-2 whitespace-nowrap">
       <Button onClick={onEdit} disabled={busy}>
         Edit
       </Button>
-      <Button className="text-success" onClick={onApprove} disabled={busy || decisionDisabled}>
-        Approve
+      <Button
+        className="min-w-[5.75rem] text-success"
+        onClick={onApprove}
+        disabled={busy || decisionDisabled}
+      >
+        {busy ? pendingLabel : "Approve"}
       </Button>
       <Button className="text-danger" onClick={onReject} disabled={busy || decisionDisabled}>
         Reject…
       </Button>
-      {busy ? (
-        <span className="text-xs text-muted-foreground" role="status">
-          {pendingLabel}
-        </span>
-      ) : null}
+      <span className="sr-only" role="status">
+        {busy ? pendingLabel : ""}
+      </span>
     </span>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { rpcClient } from "./api.js";
 import { Button } from "./Button.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
+import { cn } from "./lib/cn.js";
 import { DrawerShell, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
@@ -28,6 +29,9 @@ export interface RejectEntryDialogProps {
   readonly onValueChanged: (message: string) => void;
 }
 
+const STATUS_FOCUS_CLASSNAME =
+  "rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
 function isRestoreFailure(state: RejectState): boolean {
   return state.kind === "failed" && state.outcome.code === "REVIEW_RESTORE_FAILED";
 }
@@ -44,7 +48,7 @@ function RejectStatus({
       <span
         ref={statusRef}
         tabIndex={-1}
-        className={actionStatusTextClassName(undefined)}
+        className={cn(STATUS_FOCUS_CLASSNAME, actionStatusTextClassName(undefined))}
         role="status"
       >
         Rejecting…
@@ -56,7 +60,7 @@ function RejectStatus({
       <span
         ref={statusRef}
         tabIndex={-1}
-        className={actionStatusTextClassName("failure")}
+        className={cn(STATUS_FOCUS_CLASSNAME, actionStatusTextClassName("failure"))}
         role="alert"
       >
         {isRestoreFailure(state) ? state.outcome.message : `Failed: ${state.outcome.message}`}
@@ -108,9 +112,11 @@ export function RejectEntryDialog({
       onClose();
     }
   };
+  const rejected = useRef(false);
   const containerRef = useDialogA11y<HTMLDivElement>({
     isOpen: true,
     onClose: closeUnlessSubmitting,
+    shouldRestoreFocus: () => !rejected.current,
   });
   const statusRef = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
@@ -128,6 +134,7 @@ export function RejectEntryDialog({
     });
     const outcome = deriveReviewDecisionOutcome(response);
     if (outcome.kind === "success") {
+      rejected.current = true;
       onRejected();
       return;
     }
