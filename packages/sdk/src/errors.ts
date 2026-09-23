@@ -104,6 +104,14 @@
  *   not begin with the header line verbatra writes, and leaves that file untouched.
  * - `TYPES_UNWRITABLE`: the declaration file {@link generateTypes} produces could not be written,
  *   because its directory is not writable, does not exist, or the disk is out of space.
+ * - `TMX_OUTPUT_CONFLICT`: {@link exportTmx} refused its output path. Before the memory is read
+ *   or anything is written, it refuses a path that names no file or resolves outside the working
+ *   directory or to the working directory itself, and one naming a configured locale file, the
+ *   lock file, the translation-memory cache, a file verbatra searches for its configuration, or the
+ *   configuration file the run loaded, compared case-insensitively.
+ * - `TMX_UNWRITABLE`: the TMX file {@link exportTmx} produces could not be written, because its
+ *   directory is not writable, a directory already sits at that path, or the disk is out of space.
+ *   The message names the file relative to `cwd` and the underlying file-system code.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -131,6 +139,8 @@ export type SdkErrorCode =
   | "EXTRACT_FS_UNSUPPORTED"
   | "TYPES_OUTPUT_CONFLICT"
   | "TYPES_UNWRITABLE"
+  | "TMX_OUTPUT_CONFLICT"
+  | "TMX_UNWRITABLE"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

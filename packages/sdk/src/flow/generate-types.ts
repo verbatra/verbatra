@@ -1,13 +1,10 @@
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { FormatId, TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
-import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
-import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
-import { LOCK_FILE_NAME } from "../lock/lock-file.js";
+import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import {
   describeIcuMessageArguments,
@@ -15,6 +12,7 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
+import { type ReservedPath, reservedPathAt, reservedProjectPaths } from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
   type DeclaredMessage,
@@ -144,48 +142,7 @@ function refuseOutput(requested: string, refusal: TypesOutputRefusal, why: strin
   );
 }
 
-interface ReservedPath {
-  readonly refusal: TypesOutputRefusal;
-  readonly what: string;
-}
-
 const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
-
-function reservedPaths(
-  cwd: string,
-  input: GenerateTypesInput,
-  resolver: LocalePathResolver,
-): Map<string, ReservedPath> {
-  const { config } = input;
-  const reserved = new Map<string, ReservedPath>();
-  const claim = (path: string, refusal: TypesOutputRefusal, what: string): void => {
-    reserved.set(path.toLowerCase(), { refusal, what });
-  };
-  for (const locale of [config.sourceLocale, ...config.targetLocales]) {
-    claim(resolver.pathFor(locale), "locale-file", `the locale file for "${locale}"`);
-  }
-  claim(
-    resolve(cwd, LOCK_FILE_NAME),
-    "lock-file",
-    "the lock file, which holds the translation baseline",
-  );
-  claim(resolve(cwd, CACHE_FILE_NAME), "translation-memory-cache", "the translation-memory cache");
-  for (const place of CONFIG_SEARCH_PLACES) {
-    claim(
-      resolve(cwd, place),
-      "config-search-place",
-      "a file verbatra loads its configuration from",
-    );
-  }
-  if (input.configPath !== undefined) {
-    claim(
-      resolve(cwd, input.configPath),
-      "loaded-config",
-      "the configuration file this run loaded",
-    );
-  }
-  return reserved;
-}
 
 function resolveOutputPath(
   cwd: string,
@@ -203,9 +160,9 @@ function resolveOutputPath(
   if (escapesWorkingDirectory(relative(cwd, outputPath))) {
     refuseOutput(requested, "outside-working-directory", "is not inside the working directory.");
   }
-  const claimed = reserved.get(outputPath.toLowerCase());
+  const claimed = reservedPathAt(reserved, outputPath);
   if (claimed !== undefined) {
-    refuseOutput(requested, claimed.refusal, `is ${claimed.what}.`);
+    refuseOutput(requested, claimed.kind, `is ${claimed.what}.`);
   }
   const name = basename(requested).toLowerCase();
   if (!TYPESCRIPT_EXTENSIONS.some((extension) => name.endsWith(extension))) {
@@ -376,7 +333,13 @@ export async function generateTypes(
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = resolveOutputPath(cwd, input.out, reservedPaths(cwd, input, resolver));
+  const reserved = reservedProjectPaths({
+    cwd,
+    config,
+    resolver,
+    ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+  });
+  const outputPath = resolveOutputPath(cwd, input.out, reserved);
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);

@@ -34,11 +34,20 @@ function fsErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
-export function targetUnwritableMessage(targetPath: string, cwd: string, error: unknown): string {
+export function unwritableFileMessage(
+  what: string,
+  targetPath: string,
+  cwd: string,
+  error: unknown,
+): string {
   const code = fsErrorCode(error);
   const remedy = (code === undefined ? undefined : REMEDY_BY_CODE[code]) ?? DEFAULT_REMEDY;
   const detail = code === undefined ? "" : ` (${code})`;
-  return `Could not write the locale file ${displayPath(targetPath, cwd)}${detail}. ${remedy}`;
+  return `Could not write ${what} ${displayPath(targetPath, cwd)}${detail}. ${remedy}`;
+}
+
+export function targetUnwritableMessage(targetPath: string, cwd: string, error: unknown): string {
+  return unwritableFileMessage("the locale file", targetPath, cwd, error);
 }
 
 export async function writeTargetResource(

@@ -645,14 +645,17 @@ async function runTmxExport(
   streams: Streams,
   context: CommandContext,
 ): Promise<number> {
-  return withWholeRunErrors(
-    deps,
+  return withLoadedRunErrors(
     context,
-    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-    async (config) => {
+    () =>
+      deps.loadConfigWithMeta(
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+      ),
+    async (loaded) => {
       const result = await deps.exportTmx({
-        config,
+        config: loaded.config,
         cwd,
+        ...(loaded.source.kind === "override" ? {} : { configPath: loaded.source.filepath }),
         toolVersion: CLI_VERSION,
         ...(file !== undefined ? { out: file } : {}),
         ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
