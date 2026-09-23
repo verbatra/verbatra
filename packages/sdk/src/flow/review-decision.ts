@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { relative, sep } from "node:path";
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
@@ -287,6 +288,67 @@ async function restoreProvenance(context: ReviewContext, before: BoundedFileRead
   throw new Error("no copy of the provenance file was kept");
 }
 
+async function localeFileUnchanged(
+  context: ReviewContext,
+  path: string,
+  snapshot: Uint8Array,
+): Promise<boolean> {
+  try {
+    const now = await context.fs.readBytesBounded(path, MAX_TARGET_SNAPSHOT_BYTES);
+    return now.kind === "ok" && Buffer.from(now.bytes).equals(Buffer.from(snapshot));
+  } catch {
+    return false;
+  }
+}
+
+async function provenanceFileUnchanged(
+  context: ReviewContext,
+  before: BoundedFileRead,
+): Promise<boolean> {
+  try {
+    const now = await context.fs.readFileBounded(
+      provenanceFilePath(context.cwd),
+      MAX_PROVENANCE_FILE_BYTES,
+    );
+    return before.kind === "ok"
+      ? now.kind === "ok" && now.content === before.content
+      : now.kind === before.kind;
+  } catch {
+    return false;
+  }
+}
+
+async function restoreLocaleFile(
+  context: ReviewContext,
+  path: string,
+  snapshot: Uint8Array,
+): Promise<boolean> {
+  if (await localeFileUnchanged(context, path, snapshot)) {
+    return true;
+  }
+  try {
+    await context.fs.writeBytes(path, snapshot);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function restoreProvenanceFile(
+  context: ReviewContext,
+  before: BoundedFileRead,
+): Promise<boolean> {
+  if (await provenanceFileUnchanged(context, before)) {
+    return true;
+  }
+  try {
+    await restoreProvenance(context, before);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function restoreAfterFailedReject(
   context: ReviewContext,
   path: string,
@@ -295,14 +357,10 @@ async function restoreAfterFailedReject(
   failure: unknown,
 ): Promise<never> {
   const unrestored: string[] = [];
-  try {
-    await context.fs.writeBytes(path, snapshot);
-  } catch {
+  if (!(await restoreLocaleFile(context, path, snapshot))) {
     unrestored.push(displayPath(context, path));
   }
-  try {
-    await restoreProvenance(context, provenanceBefore);
-  } catch {
+  if (!(await restoreProvenanceFile(context, provenanceBefore))) {
     unrestored.push(displayPath(context, provenanceFilePath(context.cwd)));
   }
   if (unrestored.length === 0) {
@@ -491,10 +549,10 @@ export async function approveEntry(
  * @throws {@link SdkError} `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps the translation
  * when the file is written without it, as XLIFF and Flutter ARB do, or the locale file is too large
  * to keep a copy to restore. The locale file is left as it was and nothing else is written.
- * @throws {@link SdkError} `REVIEW_RESTORE_FAILED`: a step failed after the locale file was
- * rewritten, and restoring the locale file or the provenance file failed too. The message names the
+ * @throws {@link SdkError} `REVIEW_RESTORE_FAILED`: a step failed after the locale file or the
+ * provenance file changed, and putting a changed file back failed too. The message names the
  * original failure and the files that may no longer match the lock-file; the original error is the
- * `cause`.
+ * `cause`. A failure that changed no file is thrown as is.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or

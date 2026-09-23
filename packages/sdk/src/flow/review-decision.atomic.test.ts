@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { cacheFilePath } from "../cache/translation-memory.js";
@@ -261,5 +261,21 @@ describe("rejectEntry: a failure leaves every file as it was", () => {
     expect(error).toMatchObject({ code: "REVIEW_RESTORE_FAILED" });
     expect((error as Error).message).toContain("so verbatra.provenance.json may not match");
     expect(await readFile(p.targetPath)).toEqual(p.before.target);
+  });
+
+  it("throws the original error, not a restore failure, when the write fails before changing anything", async () => {
+    const p = await project();
+    const locales = join(p.dir, "locales");
+    await chmod(locales, 0o500);
+    try {
+      const error = await reject(p).catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({ code: "TARGET_UNWRITABLE" });
+      expect((error as Error).message).toContain("EACCES");
+    } finally {
+      await chmod(locales, 0o700);
+    }
+
+    await expectUntouched(p);
   });
 });
