@@ -47,7 +47,7 @@ export function readAnalyticsPreference(): AnalyticsPreference {
   const storage = localStorageOrNull();
   if (!storage) return "unavailable";
   try {
-    if (storage.getItem(UMAMI_OPT_OUT_KEY) !== null) return "opted-out";
+    if (storage.getItem(UMAMI_OPT_OUT_KEY)) return "opted-out";
   } catch {
     return "unavailable";
   }

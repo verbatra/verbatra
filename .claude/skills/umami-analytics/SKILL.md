@@ -47,7 +47,7 @@ this skill's concern).
   nothing when the browser signals Do Not Track. Keep it; the privacy page promises it
   and app/[lang]/layout.test.tsx fails without it.
 - **Opt-out** - the tracker sends nothing while localStorage holds the key
-  umami.disabled (any value). components/analytics-opt-out.tsx sets and clears it
+  umami.disabled with any non-empty value. components/analytics-opt-out.tsx sets and clears it
   through the helpers in lib/umami.ts; do not write the key anywhere else.
 - **Automatic SPA tracking** - Umami's tracker watches pushState/replaceState/popstate
   and sends a pageview on every client-side route change automatically. Do not add a

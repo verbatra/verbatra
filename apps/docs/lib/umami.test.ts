@@ -72,10 +72,16 @@ describe("analytics preference", () => {
     expect(window.localStorage.getItem(UMAMI_OPT_OUT_KEY)).toBeNull();
   });
 
-  it("treats any stored value as an opt-out, as the tracker does", () => {
+  it("treats any non-empty stored value as an opt-out, as the tracker does", () => {
     window.localStorage.setItem(UMAMI_OPT_OUT_KEY, "0");
 
     expect(readAnalyticsPreference()).toBe("opted-out");
+  });
+
+  it("treats an empty stored value as no opt-out, because the tracker ignores it", () => {
+    window.localStorage.setItem(UMAMI_OPT_OUT_KEY, "");
+
+    expect(readAnalyticsPreference()).toBe("counted");
   });
 
   it.each([
