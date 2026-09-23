@@ -48,12 +48,14 @@ export const retranslateEntryTool = defineTool({
     "locale and the required key parameter must exist in the source. A rejected result is " +
     "returned as accepted: false with a reason and writes nothing. An accepted result may " +
     "still carry reviewReasons flagging it for a person (for example a length outlier or a " +
-    "missed glossary term) even though it was written. A key whose value a person wrote, " +
-    "imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key " +
-    "matching the config's pinnedKeys with KEY_PINNED; leave those for a person. Cost: " +
-    "calls a translation provider and bills your API usage on every call, and it is outside " +
-    "the per-run token budget. Only listed when the server was started with spending " +
-    "allowed and a translation provider is configured; ask the user before calling it.",
+    "missed glossary term) even though it was written. A key matching the config's " +
+    "pinnedKeys is always refused with KEY_PINNED. A key whose value a person wrote, " +
+    "imported, or changed outside verbatra is refused with KEY_PROTECTED unless " +
+    "project.snapshot reports humanEdits: overwrite, in which case it is replaced like any " +
+    "other key. Leave refused keys for a person. Cost: calls a translation provider and " +
+    "bills your API usage on every call, and it is outside the per-run token budget. Only " +
+    "listed when the server was started with spending allowed and a translation provider is " +
+    "configured; ask the user before calling it.",
   paramsSchema,
   outputSchema: retranslateEntryResultSchema,
   annotations: {

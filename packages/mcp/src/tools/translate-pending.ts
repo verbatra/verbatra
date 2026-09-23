@@ -90,13 +90,16 @@ export const translatePendingTool = defineTool({
     "would change and the user has explicitly agreed to spend. Do not retry it as though it " +
     "were free: it is not idempotent and bills again for whatever is still pending, and a " +
     "run that fails partway can leave some locales written and others untouched. It deletes " +
-    "orphaned keys when the config sets prune; no tool here reports that setting, so check " +
-    "the config or ask the user first. Stale keys a person wrote, imported, or changed " +
-    "outside verbatra, and pinned keys, are left alone and listed under protected in each " +
-    "locale. Check failed and partial before treating the run as clean, then read " +
-    "review.queue for what needs a person. Cost: calls a translation provider and bills " +
-    "your API usage, within the config's token budget when one is set. Only listed when the " +
-    "server was started with spending allowed and a translation provider is configured.",
+    "orphaned keys when project.snapshot reports prune: true; say so to the user before " +
+    "running it. Pinned keys are always left alone. Stale keys a person wrote, imported, or " +
+    "changed outside verbatra are left alone too, and listed under protected in each " +
+    "locale, unless project.snapshot reports humanEdits: overwrite, in which case they are " +
+    "retranslated like any other key; under humanEdits: suggest they are also sent to the " +
+    "provider for a suggestion that is reported but never written. Check failed and partial " +
+    "before treating the run as clean, then read review.queue for what needs a person. " +
+    "Cost: calls a translation provider and bills your API usage, within the config's token " +
+    "budget when one is set. Only listed when the server was started with spending allowed " +
+    "and a translation provider is configured.",
   paramsSchema,
   outputSchema: translatePendingResultSchema,
   annotations: {

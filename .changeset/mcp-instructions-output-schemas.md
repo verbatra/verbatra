@@ -13,3 +13,5 @@ not name, so a later field never breaks a client, while a missing or mistyped fi
 `OUTPUT_SCHEMA_MISMATCH` instead of being sent. Tool descriptions now say when to use each tool,
 what it costs, and what it never does, and `translation.editEntry`,
 `translation.retranslateEntry`, and `translation.translatePending` are annotated as destructive.
+`project.snapshot` also reports the effective `humanEdits` policy and `prune` setting, and a
+mismatch from a tool that writes says its changes were applied and must not be retried.
