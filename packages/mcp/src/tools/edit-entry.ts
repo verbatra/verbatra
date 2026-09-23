@@ -30,6 +30,7 @@ async function editKeyEntry(
       locale: params.locale,
       key: params.key,
       value: params.value,
+      actor: "agent",
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),
@@ -47,7 +48,8 @@ export const editEntryTool = defineTool({
     "The value is accepted only if it passes the integrity gate (it carries the source's " +
     "placeholders, parses as valid ICU, and is not empty or degenerate); a rejection is returned " +
     "as accepted: false with a reason, not an error, so you can see why and retry with a " +
-    "corrected value. Writes the locale file on disk when accepted.",
+    "corrected value. Writes the locale file on disk when accepted, and records the value's " +
+    "origin as agent in verbatra.provenance.json.",
   paramsSchema,
   outputSchema: editEntryResultSchema,
   annotations: {

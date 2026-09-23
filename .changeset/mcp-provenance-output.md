@@ -1,9 +1,10 @@
 ---
-"@verbatra/mcp": patch
+"@verbatra/mcp": minor
 ---
 
-Accept the new provenance fields in the `key.value` and `lock.state` output schemas.
+Record values written through `translation.editEntry` as agent-authored.
 
-Previously both tools declared strict output schemas, so the provenance an updated SDK adds to
-their results would have failed schema validation. `key.value` now allows an optional
-`provenance` object and each `lock.state` locale an optional `provenance` summary.
+Previously an edit through the MCP server was indistinguishable from one a person made. It is now
+recorded with the origin `agent` in `verbatra.provenance.json`. The `key.value` and `lock.state`
+output schemas also accept the provenance fields the SDK now reports, which their strict schemas
+would otherwise have rejected.
