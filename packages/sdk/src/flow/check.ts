@@ -7,6 +7,7 @@ import {
 import {
   type AdapterRegistry,
   androidPluralCategoryOf,
+  type FormatAdapter,
   gettextKeyContext,
   gettextKeyPluralIndex,
   pluralCategoryOf,
@@ -14,8 +15,16 @@ import {
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
-import { diffLocales, type LocaleDiffResult } from "./diff-locales.js";
+import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
 import { reportedProtectedKeys } from "./protection.js";
+import {
+  type CheckQaSummary,
+  createQaContext,
+  type LocaleQaReport,
+  type QaSeverity,
+  qaLocale,
+  totalQa,
+} from "./qa-check.js";
 
 /** One locale's counts in a {@link CheckSummary}. */
 export interface LocaleCheckSummary {
@@ -49,6 +58,12 @@ export interface LocaleCheckSummary {
    * consistent). This is a report and nothing more: it never changes `inSync` or any count.
    */
   readonly inconsistencies?: readonly InconsistencyGroup[];
+  /**
+   * The quality check of every committed value in this locale, present only when
+   * {@link CheckInput.qa} is true. It never changes `inSync` or any count; a CI gate reads the
+   * project-wide {@link CheckSummary.qa} totals instead.
+   */
+  readonly qa?: LocaleQaReport;
 }
 
 /** The result of {@link check}: per-locale counts plus one project-wide verdict. */
@@ -57,6 +72,12 @@ export interface CheckSummary {
   readonly inSync: boolean;
   /** Per-locale counts, in configured target order. */
   readonly locales: readonly LocaleCheckSummary[];
+  /**
+   * Quality-check totals across every reported locale, present only when {@link CheckInput.qa} is
+   * true. A CI gate that runs the quality check fails the build when `errors` is above zero, and,
+   * in a strict mode, when `warnings` is too.
+   */
+  readonly qa?: CheckQaSummary;
 }
 
 /** Input for {@link check}. */
@@ -72,6 +93,19 @@ export interface CheckInput {
    * (see {@link LocaleCheckSummary.inconsistencies}). Defaults to false.
    */
   readonly consistency?: boolean;
+  /**
+   * Also run the quality check over every committed value (see {@link LocaleCheckSummary.qa}):
+   * the write-time integrity gate, whose refusals are reported as errors, and the review reasons
+   * a translation run computes, reported as warnings. Keyless: no provider is called and nothing is
+   * written. Defaults to false.
+   */
+  readonly qa?: boolean;
+  /**
+   * The lowest severity the quality check reports. `error` skips the review reasons entirely, so
+   * only integrity failures are reported. Ignored unless {@link CheckInput.qa} is true. Defaults to
+   * `warning`.
+   */
+  readonly qaSeverity?: QaSeverity;
 }
 
 /** Injectable dependencies for {@link check}. Every field has a working default. */
@@ -106,6 +140,7 @@ function toCheckSummary(
   config: VerbatraConfig,
   result: LocaleDiffResult,
   consistency: InconsistentTranslationsOptions | undefined,
+  qa: LocaleQaReport | undefined,
 ): LocaleCheckSummary {
   const { locale, diff, source, target, provenance } = result;
   return {
@@ -128,7 +163,26 @@ function toCheckSummary(
           ),
         }
       : {}),
+    ...(qa !== undefined ? { qa } : {}),
   };
+}
+
+function qaReports(
+  input: CheckInput,
+  adapter: FormatAdapter,
+  sourceInvalidIcuKeys: readonly string[],
+  results: readonly LocaleDiffResult[],
+): readonly LocaleQaReport[] | undefined {
+  if (input.qa !== true) {
+    return undefined;
+  }
+  const context = createQaContext(
+    input.config,
+    adapter,
+    input.qaSeverity ?? "warning",
+    sourceInvalidIcuKeys,
+  );
+  return results.map((result) => qaLocale(context, result.locale, result.source, result.target));
 }
 
 /**
@@ -173,9 +227,15 @@ function toCheckSummary(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  */
 export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<CheckSummary> {
-  const results = await diffLocales(input, deps);
+  const { results, adapter, sourceInvalidIcuKeys } = await diffLocalesWithSource(input, deps);
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
-  const locales = results.map((result) => toCheckSummary(input.config, result, consistency));
-  return { inSync: locales.every((entry) => entry.inSync), locales };
+  const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results);
+  const locales = results.map((result, index) =>
+    toCheckSummary(input.config, result, consistency, qa?.[index]),
+  );
+  const inSync = locales.every((entry) => entry.inSync);
+  return qa === undefined
+    ? { inSync, locales }
+    : { inSync, locales, qa: totalQa(qa, sourceInvalidIcuKeys) };
 }

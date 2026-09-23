@@ -17,11 +17,13 @@ import {
   type LiteralScan,
   type LocaleCheckSummary,
   type LocaleDiff,
+  type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
   type ProgressEvent,
   type ProtectedKey,
   type PseudolocalizeResult,
+  type QaFinding,
   type RunBudget,
   type RunEstimate,
   type RunSummary,
@@ -273,9 +275,69 @@ export function renderCheckHuman(summary: CheckSummary): string {
   const overall = summary.inSync
     ? "all locales in sync"
     : "out of sync (run verbatra translate to update)";
-  return ["verbatra check", ...localeLines, overall, ...renderConsistencyReport(summary)].join(
-    "\n",
-  );
+  return [
+    "verbatra check",
+    ...localeLines,
+    overall,
+    ...renderConsistencyReport(summary),
+    ...renderQaReport(summary),
+  ].join("\n");
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function renderFindingReason(finding: QaFinding): string {
+  const details =
+    finding.severity === "error" && finding.details !== undefined
+      ? ` (${finding.details.map(neutralizeControlCharacters).join(", ")})`
+      : "";
+  return `${finding.reason}${details}`;
+}
+
+function renderKeyFindings(findings: readonly QaFinding[]): readonly string[] {
+  const byKey = new Map<string, QaFinding[]>();
+  for (const finding of findings) {
+    const group = byKey.get(finding.key) ?? [];
+    group.push(finding);
+    byKey.set(finding.key, group);
+  }
+  return [...byKey].map(([key, group]) => {
+    const severity = group.some((finding) => finding.severity === "error") ? "error" : "warning";
+    return `    ${neutralizeControlCharacters(key)}: ${severity} ${group.map(renderFindingReason).join(", ")}`;
+  });
+}
+
+function renderLocaleQa(locale: string, report: LocaleQaReport): readonly string[] {
+  const checked = plural(report.checked, "value");
+  if (report.findings.length === 0) {
+    return [`  ${locale}: clean, ${checked} checked`];
+  }
+  return [
+    `  ${locale}: ${plural(report.errors, "error")}, ${plural(report.warnings, "warning")} in ${checked} checked`,
+    ...renderKeyFindings(report.findings),
+  ];
+}
+
+function renderQaReport(summary: CheckSummary): readonly string[] {
+  const totals = summary.qa;
+  if (totals === undefined) {
+    return [];
+  }
+  const skipped =
+    totals.invalidSourceKeys.length > 0
+      ? [
+          `  skipped, source is not valid ICU: ${totals.invalidSourceKeys.map(neutralizeControlCharacters).join(", ")}`,
+        ]
+      : [];
+  return [
+    `qa: ${plural(totals.errors, "error")}, ${plural(totals.warnings, "warning")}`,
+    ...summary.locales.flatMap((locale) =>
+      locale.qa === undefined ? [] : renderLocaleQa(locale.locale, locale.qa),
+    ),
+    ...skipped,
+  ];
 }
 
 function quoted(text: string): string {

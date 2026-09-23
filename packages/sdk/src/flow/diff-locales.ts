@@ -48,6 +48,8 @@ export async function readTarget(
 
 export interface LocaleDiffsWithSource {
   readonly source: LocaleResource;
+  readonly sourceInvalidIcuKeys: readonly string[];
+  readonly adapter: FormatAdapter;
   readonly results: readonly LocaleDiffResult[];
 }
 
@@ -78,12 +80,10 @@ export async function diffLocalesWithSource(
       return { locale, diff, source: source.resource, target, provenance: provenanceFor?.(locale) };
     }),
   );
-  return { source: source.resource, results };
-}
-
-export async function diffLocales(
-  input: DiffLocalesInput,
-  deps: DiffLocalesDeps = {},
-): Promise<readonly LocaleDiffResult[]> {
-  return (await diffLocalesWithSource(input, deps)).results;
+  return {
+    source: source.resource,
+    sourceInvalidIcuKeys: source.invalidIcuKeys,
+    adapter,
+    results,
+  };
 }

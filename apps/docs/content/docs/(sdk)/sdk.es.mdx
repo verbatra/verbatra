@@ -286,7 +286,7 @@ de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
 (el origen cambió desde la última traducción) y `upToDate`. Úsalo como puerta de CI.
 
-Entrada: `{ config, cwd?, locales?, consistency? }`. Devuelve un `CheckSummary` cuyo `inSync` es true
+Entrada: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Devuelve un `CheckSummary` cuyo `inSync` es true
 exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 
 <AvailableFrom version="0.11.0" />
@@ -312,6 +312,19 @@ el archivo está corrupto o lo escribió un verbatra más nuevo.
 <AvailableFrom version="0.12.0" />
 
 Cada `LocaleCheckSummary` lleva además `protected`: cuántas de sus claves ausentes y obsoletas dejaría una ejecución de `translate` para una persona según el `humanEdits` y los `pinnedKeys` de la configuración. Siguen contando como ausentes u obsoletas, así que `inSync` sigue en false hasta que una persona las resuelva. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo se cuentan las claves fijadas.
+
+<AvailableFrom version="0.12.0" />
+
+Con `qa: true`, `check` también ejecuta el control de calidad sobre cada valor confirmado, sin
+clave y sin escribir nada: cada `LocaleCheckSummary` lleva un informe `qa` de
+`{ checked, errors, warnings, findings }`, y el resumen lleva los totales `qa` de
+`{ errors, warnings, invalidSourceKeys }`. Un hallazgo es `{ key, severity: "error", reason, details? }`
+para un valor que la puerta de integridad rechazaría (`reason` de `INTEGRITY_GATE_REASONS`), o
+`{ key, severity: "warning", reason }` para un valor que pasa pero lleva un motivo de revisión de
+`REVIEW_REASON_CODES`. `qaSeverity: "error"` omite los motivos de revisión. Las severidades se
+publican como la tupla `QA_SEVERITIES` (`"error"`, `"warning"`). El informe nunca cambia `inSync`;
+una puerta de CI lee `qa.errors`, y `qa.warnings` para una puerta estricta. Consulta
+[el control de calidad](/docs/cli/check#control-de-calidad) para ver qué valores se comprueban.
 
 ### diff
 
@@ -460,8 +473,9 @@ escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un orige
 una edición no puede expresar el vaciado de una clave, así que usa para eso el centinela `[[CLEAR]]`
 del libro. El conjunto de motivos se publica como la tupla `INTEGRITY_GATE_REASONS`, así que
 construye cualquier esquema en tiempo de ejecución o tabla exhaustiva a partir de ella en lugar de
-reescribir sus miembros. Un rechazo `markup` lleva además `details`, las etiquetas causantes, cada
-una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+reescribir sus miembros. Un rechazo `placeholder` o `markup` lleva además
+`details`: los marcadores o etiquetas causantes, cada uno con `-` si el origen lo tenía y la
+candidata lo perdió o `+` si la candidata lo inventó.
 
 El valor escrito queda registrado en `verbatra.provenance.json` con el origen `human`. Pasa
 `actor: "agent"` cuando lo escribió un agente de IA, para que el registro lo diga; lo afirma la

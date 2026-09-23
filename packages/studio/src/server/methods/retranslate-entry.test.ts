@@ -133,7 +133,12 @@ describe("retranslateEntryHandler", () => {
         deps(project, droppingProvider),
       );
 
-      expect(result).toEqual({ accepted: false, reason: "placeholder", value: "Hallo" });
+      expect(result).toEqual({
+        accepted: false,
+        reason: "placeholder",
+        details: ["-{{name}}"],
+        value: "Hallo",
+      });
     } finally {
       await project.cleanup();
     }

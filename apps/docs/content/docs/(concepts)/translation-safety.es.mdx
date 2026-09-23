@@ -137,6 +137,8 @@ traducir todo valor ICU (el aviso `PLACEHOLDER_UNSUPPORTED`). Un valor de destin
 esta comprobación, por ejemplo un plural francés sin la rama CLDR `many`, se queda en el archivo
 hasta que cambie su origen; cuando se vuelve a ofrecer una copia de él desde la caché o una
 importación, se rechaza y la clave se traduce de nuevo.
+[`verbatra check --qa`](/docs/cli/check#control-de-calidad) encuentra un valor así sin esperar a
+que eso ocurra.
 
 ### Paridad del marcado en línea
 
@@ -422,3 +424,11 @@ integridad, fallos de proveedor, claves retenidas por presupuesto, claves de ori
 inválido, señales de revisión y avisos. Nada se oculta, y el fallo de un locale nunca detiene a los
 demás. Consulta [Cómo funciona](/docs/how-it-works) para ver dónde se sitúa cada comprobación en la
 canalización.
+
+<AvailableFrom version="0.12.0" />
+
+La puerta y las señales de revisión también se aplican a lo que ya está confirmado:
+[`verbatra check --qa`](/docs/cli/check#control-de-calidad) comprueba cada valor de destino de tus
+archivos de locale, llegue como llegue, informa de un rechazo de la puerta como error y de un motivo
+de revisión como advertencia, y sale con `1` ante un error, así que una traducción editada a mano
+puede frenar un pull request sin ninguna llamada a un proveedor.

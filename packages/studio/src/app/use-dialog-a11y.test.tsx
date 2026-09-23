@@ -8,11 +8,22 @@ interface DialogProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly attachRef?: boolean;
+  readonly shouldRestoreFocus?: () => boolean;
   readonly children?: ReactNode;
 }
 
-function Dialog({ isOpen, onClose, attachRef = true, children }: DialogProps): ReactNode {
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen, onClose });
+function Dialog({
+  isOpen,
+  onClose,
+  attachRef = true,
+  shouldRestoreFocus,
+  children,
+}: DialogProps): ReactNode {
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen,
+    onClose,
+    ...(shouldRestoreFocus !== undefined ? { shouldRestoreFocus } : {}),
+  });
   return (
     <div ref={attachRef ? containerRef : null} data-testid="dialog">
       {children}
@@ -186,6 +197,23 @@ describe("useDialogA11y", () => {
     view.unmount();
 
     expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it("leaves focus alone on unmount when the caller says not to restore it", () => {
+    const opener = document.createElement("button");
+    opener.type = "button";
+    document.body.appendChild(opener);
+    opener.focus();
+    const view = render(
+      <Dialog isOpen onClose={vi.fn()} shouldRestoreFocus={() => false}>
+        {CONTENT}
+      </Dialog>,
+    );
+
+    view.unmount();
+
+    expect(document.activeElement).not.toBe(opener);
     opener.remove();
   });
 

@@ -201,7 +201,7 @@ Entrée : `{ config, cwd?, dryRun? }`, où `config.extract` nomme le framework e
 
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme garde-fou de CI.
 
-Entrée : `{ config, cwd?, locales?, consistency? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
+Entrée : `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
 
 <AvailableFrom version="0.11.0" />
 
@@ -214,6 +214,19 @@ Chaque `LocaleCheckSummary` porte aussi `provenance` : des comptes `byOrigin` et
 <AvailableFrom version="0.12.0" />
 
 Chaque `LocaleCheckSummary` porte aussi `protected` : combien de ses clés manquantes et obsolètes une exécution de `translate` laisserait à une personne selon le `humanEdits` et les `pinnedKeys` de la config. Elles comptent toujours comme manquantes ou obsolètes, donc `inSync` reste à false jusqu'à ce qu'une personne les résolve. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées sont comptées.
+
+<AvailableFrom version="0.12.0" />
+
+Avec `qa: true`, `check` lance aussi le contrôle qualité sur chaque valeur commitée, sans clé et
+sans rien écrire : chaque `LocaleCheckSummary` porte un rapport `qa` de
+`{ checked, errors, warnings, findings }`, et le résumé porte les totaux `qa` de
+`{ errors, warnings, invalidSourceKeys }`. Un constat vaut `{ key, severity: "error", reason, details? }`
+pour une valeur que la barrière d'intégrité refuserait (`reason` issu de `INTEGRITY_GATE_REASONS`),
+ou `{ key, severity: "warning", reason }` pour une valeur qui passe mais porte un motif de révision
+issu de `REVIEW_REASON_CODES`. `qaSeverity: "error"` ignore les motifs de révision. Les gravités
+sont publiées sous la forme du tuple `QA_SEVERITIES` (`"error"`, `"warning"`). Le rapport ne change
+jamais `inSync` ; un contrôle CI lit `qa.errors`, et `qa.warnings` pour un contrôle strict. Voir
+[le contrôle qualité](/docs/cli/check#contrôle-qualité) pour savoir quelles valeurs sont vérifiées.
 
 ### diff
 
@@ -291,7 +304,7 @@ Quand `target` est présent, le résultat porte aussi `provenance`, la `KeyProve
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `markup` porte en plus `details`, les balises en cause, chacune préfixée de `-` pour une balise que la source avait et que la valeur candidate a supprimée, ou de `+` pour une balise que la valeur candidate a inventée.
+Entrée : `{ config, cwd?, locale, key, value }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `placeholder` ou `markup` porte en plus `details` : les placeholders ou balises en cause, chacun préfixé de `-` pour un élément que la source avait et que la valeur candidate a supprimé, ou de `+` pour un élément que la valeur candidate a inventé.
 
 La valeur écrite est enregistrée dans `verbatra.provenance.json` avec l'origine `human`. Passe `actor: "agent"` quand un agent d'IA l'a écrite, pour que l'enregistrement le dise ; c'est la surface appelante qui l'affirme et rien ne le vérifie. Le fichier de provenance est vérifié avant que la valeur ne passe le contrôle : un fichier corrompu lève `PROVENANCE_FILE_INVALID` et rien n'est écrit, et celui d'un verbatra plus récent, ou celui que l'enregistrement ferait dépasser la taille que verbatra relit, est laissé intact pendant que la valeur est écrite sans enregistrement.
 
