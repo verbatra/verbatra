@@ -66,6 +66,15 @@ describe("buildToolRegistry", () => {
     }
   });
 
+  it("lets every outputSchema tolerate unknown properties while every inputSchema rejects them", () => {
+    for (const tool of buildToolRegistry(true)) {
+      expect(JSON.stringify(tool.outputSchema), tool.name).not.toContain(
+        '"additionalProperties":false',
+      );
+      expect(tool.inputSchema.additionalProperties, tool.name).toBe(false);
+    }
+  });
+
   it("marks exactly the tools that overwrite existing values as destructive", () => {
     const destructive = buildToolRegistry(true)
       .filter((tool) => tool.annotations.destructiveHint)

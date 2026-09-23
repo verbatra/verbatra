@@ -9,7 +9,7 @@ const paramsSchema = z.strictObject({
   key: z.string().min(1),
 });
 
-const keyValueResultSchema = z.strictObject({
+const keyValueResultSchema = z.object({
   source: z.string(),
   target: z.string().optional(),
   provenance: keyProvenanceSchema.optional(),

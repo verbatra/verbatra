@@ -72,6 +72,45 @@ describe("defineTool", () => {
     });
   });
 
+  it("accepts and passes through a handler result carrying properties the outputSchema does not name", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema: z.strictObject({ greeting: z.string() }),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => ({ greeting: "hi", addedLater: true }) as { greeting: string },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
+    expect(outcome).toEqual({ kind: "ok", result: { greeting: "hi", addedLater: true } });
+    expect(tool.outputSchema).not.toHaveProperty("additionalProperties");
+  });
+
+  it("keeps additionalProperties false on the input schema", () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async (params) => ({ greeting: `hi ${params.name}` }),
+    });
+
+    expect(tool.inputSchema.additionalProperties).toBe(false);
+  });
+
   it("names the root when a handler result breaks the outputSchema at its top level", async () => {
     const tool = defineTool({
       name: "test.tool",

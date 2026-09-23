@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const localeDiffSchema = z.strictObject({
+const localeDiffSchema = z.object({
   locale: z.string(),
   missing: z.array(z.string()).readonly(),
   changed: z.array(z.string()).readonly(),
@@ -18,7 +18,7 @@ const localeDiffSchema = z.strictObject({
   protected: z.array(z.string()).readonly().optional(),
 });
 
-const statusDiffResultSchema = z.strictObject({
+const statusDiffResultSchema = z.object({
   hasPendingChanges: z.boolean(),
   locales: z.array(localeDiffSchema).readonly(),
 });

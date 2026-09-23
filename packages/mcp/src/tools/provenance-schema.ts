@@ -15,7 +15,7 @@ const KEY_ORIGINS = [
 const REVIEW_STATES = ["unreviewed", "approved", "rejected"] as const;
 
 const countsOf = <const T extends readonly string[]>(names: T) =>
-  z.strictObject(
+  z.object(
     Object.fromEntries(names.map((name) => [name, z.number()])) as {
       [K in T[number]]: z.ZodNumber;
     },
@@ -23,7 +23,7 @@ const countsOf = <const T extends readonly string[]>(names: T) =>
 
 export const keyOriginSchema = z.enum(KEY_ORIGINS);
 
-export const keyProvenanceSchema = z.strictObject({
+export const keyProvenanceSchema = z.object({
   origin: keyOriginSchema,
   provider: z.string().optional(),
   model: z.string().optional(),
@@ -31,7 +31,7 @@ export const keyProvenanceSchema = z.strictObject({
   reviewer: z.string().optional(),
 });
 
-export const provenanceSummarySchema = z.strictObject({
+export const provenanceSummarySchema = z.object({
   byOrigin: countsOf(KEY_ORIGINS),
   byReviewState: countsOf(REVIEW_STATES),
 });

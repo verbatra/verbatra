@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const keyIntegrityEntrySchema = z.strictObject({
+const keyIntegrityEntrySchema = z.object({
   hasPlaceholders: z.boolean(),
   matches: z.boolean(),
   missing: z.array(z.string()).readonly(),
@@ -18,12 +18,12 @@ const keyIntegrityEntrySchema = z.strictObject({
   markupDetails: z.array(z.string()).readonly(),
 });
 
-const keyIntegrityLocaleSchema = z.strictObject({
+const keyIntegrityLocaleSchema = z.object({
   locale: z.string(),
   entries: z.array(keyIntegrityEntrySchema),
 });
 
-const keyIntegrityResultSchema = z.strictObject({
+const keyIntegrityResultSchema = z.object({
   locales: z.array(keyIntegrityLocaleSchema),
 });
 

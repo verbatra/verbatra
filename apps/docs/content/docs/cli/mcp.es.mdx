@@ -146,7 +146,7 @@ Cada herramienta declara ahora un `outputSchema`, incluidas las cinco que antes 
 - `review.queue` devuelve `available` y, cuando existe un estado de ejecución, su `version`, `generatedAt`, los opcionales `usage` y `budget`, y por locale `status`, las entradas de `needsReview` (`key`, `reasons`, `provenance` opcional) y los `fuzzyHits` opcionales.
 - `translation.translatePending` devuelve el resumen de la ejecución: `dryRun`, los resultados por locale, las listas de locales `succeeded`, `partial` y `failed`, y los opcionales `usage` y `budget`.
 
-Un resultado que no coincide con su esquema nunca se envía: la llamada falla con `OUTPUT_SCHEMA_MISMATCH` y nombra el campo. Las anotaciones de las herramientas marcan `translation.editEntry`, `translation.retranslateEntry` y `translation.translatePending` como destructivas, junto con `glossary.write`, porque cada una puede sobrescribir un valor existente.
+Los esquemas de salida nombran los campos en los que un cliente puede confiar, pero admiten propiedades adicionales, así que un verbatra más nuevo puede añadir un campo sin romper un cliente que valida los resultados; las entradas de las herramientas siguen rechazando propiedades desconocidas. Un resultado con un campo que falta o tiene un tipo incorrecto nunca se envía: la llamada falla con `OUTPUT_SCHEMA_MISMATCH` y nombra el campo. Las anotaciones de las herramientas marcan `translation.editEntry`, `translation.retranslateEntry` y `translation.translatePending` como destructivas, junto con `glossary.write`, porque cada una puede sobrescribir un valor existente.
 
 ## Redacción de secretos
 

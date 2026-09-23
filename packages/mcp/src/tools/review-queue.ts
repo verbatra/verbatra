@@ -12,7 +12,7 @@ import {
 
 const paramsSchema = z.strictObject({});
 
-const reviewQueueLocaleSchema = z.strictObject({
+const reviewQueueLocaleSchema = z.object({
   locale: z.string(),
   status: localeRunStatusSchema,
   needsReview: z.array(reviewQueueEntrySchema).readonly(),
@@ -20,7 +20,7 @@ const reviewQueueLocaleSchema = z.strictObject({
   usage: usageSchema.optional(),
 });
 
-const reviewQueueResultSchema = z.strictObject({
+const reviewQueueResultSchema = z.object({
   available: z.boolean(),
   version: z.number().optional(),
   generatedAt: z.string().optional(),

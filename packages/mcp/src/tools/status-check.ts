@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const localeCheckSchema = z.strictObject({
+const localeCheckSchema = z.object({
   locale: z.string(),
   missing: z.number(),
   stale: z.number(),
@@ -18,7 +18,7 @@ const localeCheckSchema = z.strictObject({
   protected: z.number().optional(),
 });
 
-const statusCheckResultSchema = z.strictObject({
+const statusCheckResultSchema = z.object({
   inSync: z.boolean(),
   locales: z.array(localeCheckSchema).readonly(),
 });

@@ -46,10 +46,24 @@ function formatValidationError(error: z.ZodError): string {
   return `Invalid input for field "${issuePath(issue)}": ${issue.message}`;
 }
 
-function formatOutputMismatch(toolName: string, error: z.ZodError): string {
-  const issue = error.issues[0];
-  /* v8 ignore next -- a ZodError from a failed safeParse always carries at least one issue. */
-  const at = issue === undefined ? "(root)" : issuePath(issue);
+function allowUnknownProperties(context: {
+  readonly jsonSchema: { additionalProperties?: unknown };
+}): void {
+  if (context.jsonSchema.additionalProperties === false) {
+    delete context.jsonSchema.additionalProperties;
+  }
+}
+
+function outputMismatch(schema: z.ZodType, result: unknown): z.core.$ZodIssue | undefined {
+  const parsed = schema.safeParse(result);
+  if (parsed.success) {
+    return undefined;
+  }
+  return parsed.error.issues.find((issue) => issue.code !== "unrecognized_keys");
+}
+
+function formatOutputMismatch(toolName: string, issue: z.core.$ZodIssue): string {
+  const at = issuePath(issue);
   return `OUTPUT_SCHEMA_MISMATCH: the result of "${toolName}" does not match its output schema at "${at}".`;
 }
 
@@ -86,7 +100,9 @@ export function defineTool<Params, Result extends object>(
   config: McpToolConfig<Params, Result>,
 ): RegisteredMcpTool {
   const inputSchema = z.toJSONSchema(config.paramsSchema) as Readonly<Record<string, unknown>>;
-  const outputSchema = z.toJSONSchema(config.outputSchema) as Readonly<Record<string, unknown>>;
+  const outputSchema = z.toJSONSchema(config.outputSchema, {
+    override: allowUnknownProperties,
+  }) as Readonly<Record<string, unknown>>;
 
   return {
     name: config.name,
@@ -105,9 +121,9 @@ export function defineTool<Params, Result extends object>(
       } catch (error) {
         return { kind: "error", message: describeToolError(error, context.cwd) };
       }
-      const conforms = config.outputSchema.safeParse(result);
-      if (!conforms.success) {
-        return { kind: "error", message: formatOutputMismatch(config.name, conforms.error) };
+      const mismatch = outputMismatch(config.outputSchema, result);
+      if (mismatch !== undefined) {
+        return { kind: "error", message: formatOutputMismatch(config.name, mismatch) };
       }
       return { kind: "ok", result };
     },

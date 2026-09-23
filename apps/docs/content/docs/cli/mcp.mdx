@@ -146,7 +146,7 @@ Every tool now declares an `outputSchema`, including the five that had none befo
 - `review.queue` returns `available` and, when a run status exists, its `version`, `generatedAt`, optional `usage` and `budget`, and per-locale `status`, `needsReview` entries (`key`, `reasons`, optional `provenance`), and optional `fuzzyHits`.
 - `translation.translatePending` returns the run summary: `dryRun`, per-locale outcomes, the `succeeded`, `partial`, and `failed` locale lists, and the optional `usage` and `budget`.
 
-A result that does not match its schema is never sent: the call fails with `OUTPUT_SCHEMA_MISMATCH` naming the field instead. The tool annotations mark `translation.editEntry`, `translation.retranslateEntry`, and `translation.translatePending` as destructive, alongside `glossary.write`, since each can overwrite an existing value.
+Output schemas name the fields a client can rely on but allow extra properties, so a newer verbatra can add a field without breaking a client that validates results; tool inputs still reject unknown properties. A result with a missing or mistyped field is never sent: the call fails with `OUTPUT_SCHEMA_MISMATCH` naming the field instead. The tool annotations mark `translation.editEntry`, `translation.retranslateEntry`, and `translation.translatePending` as destructive, alongside `glossary.write`, since each can overwrite an existing value.
 
 ## Secret redaction
 

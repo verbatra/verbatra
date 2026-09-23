@@ -3,9 +3,9 @@ import { type GlossaryProvenance, type LoadedConfig, redact } from "@verbatra/sd
 import { z } from "zod";
 
 export const glossaryProvenanceSchema = z.discriminatedUnion("source", [
-  z.strictObject({ source: z.literal("none") }),
-  z.strictObject({ source: z.literal("inline") }),
-  z.strictObject({ source: z.literal("file"), path: z.string() }),
+  z.object({ source: z.literal("none") }),
+  z.object({ source: z.literal("inline") }),
+  z.object({ source: z.literal("file"), path: z.string() }),
 ]);
 
 export function resolveConfigSource(source: LoadedConfig["source"], cwd: string): string {

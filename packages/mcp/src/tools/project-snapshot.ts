@@ -10,12 +10,12 @@ import { defineTool } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({});
 
-const projectSnapshotResultSchema = z.strictObject({
+const projectSnapshotResultSchema = z.object({
   sourceLocale: z.string(),
   targetLocales: z.array(z.string()).readonly(),
   format: z.string(),
-  files: z.strictObject({ pattern: z.string() }),
-  provider: z.strictObject({ id: z.string() }),
+  files: z.object({ pattern: z.string() }),
+  provider: z.object({ id: z.string() }),
   configSource: z.string(),
   glossary: glossaryProvenanceSchema,
 });

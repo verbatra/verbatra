@@ -146,7 +146,7 @@ Jedes Tool deklariert jetzt ein `outputSchema`, auch die fünf, die vorher keins
 - `review.queue` liefert `available` und, wenn ein Laufstatus existiert, dessen `version`, `generatedAt`, die optionalen `usage` und `budget` sowie pro Locale `status`, die Einträge in `needsReview` (`key`, `reasons`, optional `provenance`) und die optionalen `fuzzyHits`.
 - `translation.translatePending` liefert die Laufzusammenfassung: `dryRun`, die Ergebnisse pro Locale, die Locale-Listen `succeeded`, `partial` und `failed` sowie die optionalen `usage` und `budget`.
 
-Ein Ergebnis, das nicht zu seinem Schema passt, wird nie gesendet: Der Aufruf schlägt stattdessen mit `OUTPUT_SCHEMA_MISMATCH` fehl und nennt das Feld. Die Tool-Annotationen markieren `translation.editEntry`, `translation.retranslateEntry` und `translation.translatePending` neben `glossary.write` als destruktiv, weil jedes davon einen vorhandenen Wert überschreiben kann.
+Output-Schemas nennen die Felder, auf die sich ein Client verlassen kann, erlauben aber zusätzliche Eigenschaften, sodass ein neueres verbatra ein Feld ergänzen kann, ohne einen Client zu brechen, der Ergebnisse validiert; Tool-Inputs lehnen unbekannte Eigenschaften weiterhin ab. Ein Ergebnis mit einem fehlenden oder falsch typisierten Feld wird nie gesendet: Der Aufruf schlägt stattdessen mit `OUTPUT_SCHEMA_MISMATCH` fehl und nennt das Feld. Die Tool-Annotationen markieren `translation.editEntry`, `translation.retranslateEntry` und `translation.translatePending` neben `glossary.write` als destruktiv, weil jedes davon einen vorhandenen Wert überschreiben kann.
 
 ## Secrets werden geschwärzt
 

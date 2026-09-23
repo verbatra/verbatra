@@ -14,7 +14,7 @@ const paramsSchema = z.strictObject({});
 
 const keyListSchema = z.array(z.string()).readonly();
 
-const protectedKeySchema = z.strictObject({
+const protectedKeySchema = z.object({
   key: z.string(),
   reason: z.enum(["human", "import", "external", "pinned"]),
   suggestion: z.string().optional(),
@@ -23,7 +23,7 @@ const protectedKeySchema = z.strictObject({
     .optional(),
 });
 
-const localeSummarySchema = z.strictObject({
+const localeSummarySchema = z.object({
   locale: z.string(),
   status: localeRunStatusSchema,
   translated: keyListSchema,
@@ -38,20 +38,20 @@ const localeSummarySchema = z.strictObject({
   generated: keyListSchema,
   budgetWithheld: keyListSchema,
   usage: usageSchema.optional(),
-  notices: z.array(z.strictObject({ code: z.string(), message: z.string() })).readonly(),
+  notices: z.array(z.object({ code: z.string(), message: z.string() })).readonly(),
   needsReview: z.array(needsReviewEntrySchema).readonly(),
   unfilled: keyListSchema,
   protected: z.array(protectedKeySchema).readonly(),
   malformedRows: z
-    .array(z.strictObject({ row: z.number(), line: z.number().optional(), column: z.string() }))
+    .array(z.object({ row: z.number(), line: z.number().optional(), column: z.string() }))
     .readonly(),
   duplicateKeys: z
-    .array(z.strictObject({ key: z.string(), row: z.number(), line: z.number().optional() }))
+    .array(z.object({ key: z.string(), row: z.number(), line: z.number().optional() }))
     .readonly(),
-  error: z.strictObject({ code: z.string(), message: z.string() }).optional(),
+  error: z.object({ code: z.string(), message: z.string() }).optional(),
 });
 
-const translatePendingResultSchema = z.strictObject({
+const translatePendingResultSchema = z.object({
   dryRun: z.boolean(),
   locales: z.array(localeSummarySchema).readonly(),
   succeeded: keyListSchema,

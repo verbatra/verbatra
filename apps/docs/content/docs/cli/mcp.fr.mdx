@@ -146,7 +146,7 @@ Chaque outil déclare désormais un `outputSchema`, y compris les cinq qui n'en 
 - `review.queue` renvoie `available` et, quand un statut d'exécution existe, sa `version`, `generatedAt`, les champs optionnels `usage` et `budget`, et par locale `status`, les entrées de `needsReview` (`key`, `reasons`, `provenance` optionnel) et les `fuzzyHits` optionnels.
 - `translation.translatePending` renvoie le résumé de l'exécution : `dryRun`, les résultats par locale, les listes de locales `succeeded`, `partial` et `failed`, et les champs optionnels `usage` et `budget`.
 
-Un résultat non conforme à son schéma n'est jamais envoyé : l'appel échoue avec `OUTPUT_SCHEMA_MISMATCH` en nommant le champ. Les annotations des outils marquent `translation.editEntry`, `translation.retranslateEntry` et `translation.translatePending` comme destructifs, aux côtés de `glossary.write`, car chacun peut écraser une valeur existante.
+Les schémas de sortie nomment les champs sur lesquels un client peut compter mais acceptent des propriétés supplémentaires, pour qu'un verbatra plus récent puisse ajouter un champ sans casser un client qui valide les résultats ; les entrées des outils rejettent toujours les propriétés inconnues. Un résultat avec un champ manquant ou mal typé n'est jamais envoyé : l'appel échoue avec `OUTPUT_SCHEMA_MISMATCH` en nommant le champ. Les annotations des outils marquent `translation.editEntry`, `translation.retranslateEntry` et `translation.translatePending` comme destructifs, aux côtés de `glossary.write`, car chacun peut écraser une valeur existante.
 
 ## Expurgation des secrets
 

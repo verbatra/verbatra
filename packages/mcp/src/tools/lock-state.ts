@@ -6,7 +6,7 @@ import { provenanceSummarySchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({});
 
-const lockLocaleStateSchema = z.strictObject({
+const lockLocaleStateSchema = z.object({
   locale: z.string(),
   keyCount: z.number(),
   missing: z.number(),
