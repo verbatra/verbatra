@@ -1,9 +1,10 @@
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readContributors } from "./contributors";
 import {
+  AVATAR_MAX_BYTES,
   avatarDownloadUrl,
   CONTRIBUTORS_URL,
   parseContributors,
@@ -14,7 +15,6 @@ const USER_ENTRY = {
   login: "mariokreitz",
   avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
   html_url: "https://github.com/mariokreitz",
-  contributions: 120,
   type: "User",
 };
 
@@ -22,7 +22,6 @@ const BOT_ENTRY = {
   login: "dependabot-bot",
   avatar_url: "https://avatars.githubusercontent.com/in/29110?v=4",
   html_url: "https://github.com/apps/dependabot",
-  contributions: 4,
   type: "Bot",
 };
 
@@ -54,9 +53,11 @@ describe("parseContributors", () => {
 
   it.each([
     { login: "incomplete" },
-    { ...USER_ENTRY, login: "../escape" },
     { ...USER_ENTRY, avatar_url: "not a url" },
-  ])("skips the malformed or unsafe entry %j", (entry) => {
+    { ...USER_ENTRY, avatar_url: "https://evil.test/u/1" },
+    { ...USER_ENTRY, avatar_url: "http://avatars.githubusercontent.com/u/1" },
+    { ...USER_ENTRY, avatar_url: "https://avatars.githubusercontent.com.evil.test/u/1" },
+  ])("skips the malformed or off-host entry %j", (entry) => {
     expect(parseContributors([entry, USER_ENTRY]).map((c) => c.login)).toEqual(["mariokreitz"]);
   });
 
@@ -99,6 +100,7 @@ describe("refreshContributors", () => {
     const contributors = await refreshContributors({
       avatarDir,
       manifestPath,
+      validate: readContributors,
       fetch: fetchMock as typeof fetch,
     });
 
@@ -121,6 +123,7 @@ describe("refreshContributors", () => {
     await refreshContributors({
       avatarDir,
       manifestPath,
+      validate: readContributors,
       fetch: (async () => jsonResponse([])) as typeof fetch,
     });
     await writeFile(join(avatarDir, "stale.png"), AVATAR_BYTES);
@@ -128,6 +131,7 @@ describe("refreshContributors", () => {
     await refreshContributors({
       avatarDir,
       manifestPath,
+      validate: readContributors,
       fetch: (async () => jsonResponse([])) as typeof fetch,
     });
 
@@ -137,10 +141,16 @@ describe("refreshContributors", () => {
   it("sends a Bearer Authorization header only when a token is given", async () => {
     const fetchMock = vi.fn(async () => jsonResponse([]));
 
-    await refreshContributors({ avatarDir, manifestPath, fetch: fetchMock as typeof fetch });
     await refreshContributors({
       avatarDir,
       manifestPath,
+      validate: readContributors,
+      fetch: fetchMock as typeof fetch,
+    });
+    await refreshContributors({
+      avatarDir,
+      manifestPath,
+      validate: readContributors,
       token: "test-token",
       fetch: fetchMock as typeof fetch,
     });
@@ -159,6 +169,7 @@ describe("refreshContributors", () => {
       refreshContributors({
         avatarDir,
         manifestPath,
+        validate: readContributors,
         fetch: (async () => jsonResponse({}, 503)) as typeof fetch,
       }),
     ).rejects.toThrow("status 503");
@@ -167,6 +178,20 @@ describe("refreshContributors", () => {
 
   it.each([
     { response: () => imageResponse("image/png", 404), message: "status 404" },
+    {
+      response: () =>
+        new Response(new Uint8Array(AVATAR_MAX_BYTES + 1), {
+          headers: { "content-type": "image/png" },
+        }),
+      message: `exceeds ${AVATAR_MAX_BYTES} bytes`,
+    },
+    {
+      response: () =>
+        new Response(new Uint8Array(1), {
+          headers: { "content-type": "image/png", "content-length": String(AVATAR_MAX_BYTES + 1) },
+        }),
+      message: `exceeds ${AVATAR_MAX_BYTES} bytes`,
+    },
     { response: () => imageResponse("image/svg+xml"), message: "unsupported content type" },
     {
       response: () => new Response(AVATAR_BYTES, { status: 200 }),
@@ -178,8 +203,55 @@ describe("refreshContributors", () => {
     );
 
     await expect(
-      refreshContributors({ avatarDir, manifestPath, fetch: fetchMock as typeof fetch }),
+      refreshContributors({
+        avatarDir,
+        manifestPath,
+        validate: readContributors,
+        fetch: fetchMock as typeof fetch,
+      }),
     ).rejects.toThrow(c.message);
     await expect(readFile(manifestPath, "utf8")).rejects.toThrow();
+  });
+
+  it("validates the manifest before touching the existing avatars or manifest", async () => {
+    await mkdir(avatarDir, { recursive: true });
+    await writeFile(join(avatarDir, "kept.png"), AVATAR_BYTES);
+    await writeFile(manifestPath, "[]\n");
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url) === CONTRIBUTORS_URL
+        ? jsonResponse([{ ...USER_ENTRY, login: "../escape" }])
+        : imageResponse("image/png"),
+    );
+
+    await expect(
+      refreshContributors({
+        avatarDir,
+        manifestPath,
+        validate: readContributors,
+        fetch: fetchMock as typeof fetch,
+      }),
+    ).rejects.toThrow();
+
+    expect(await readdir(avatarDir)).toEqual(["kept.png"]);
+    expect(await readFile(manifestPath, "utf8")).toBe("[]\n");
+  });
+
+  it("swaps the avatar directory in place without leaving staging directories", async () => {
+    await mkdir(avatarDir, { recursive: true });
+    await writeFile(join(avatarDir, "old.png"), AVATAR_BYTES);
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url) === CONTRIBUTORS_URL ? jsonResponse([USER_ENTRY]) : imageResponse("image/png"),
+    );
+
+    await refreshContributors({
+      avatarDir,
+      manifestPath,
+      validate: readContributors,
+      fetch: fetchMock as typeof fetch,
+    });
+
+    expect(await readdir(avatarDir)).toEqual(["mariokreitz.png"]);
+    expect((await readdir(join(dir, "public"))).sort()).toEqual(["contributors"]);
+    expect((await readdir(dir)).sort()).toEqual(["contributors.json", "public"]);
   });
 });

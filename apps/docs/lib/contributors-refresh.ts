@@ -1,10 +1,11 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import type { Contributor } from "./contributors";
 
 export const CONTRIBUTORS_URL = "https://api.github.com/repos/verbatra/verbatra/contributors";
 export const CONTRIBUTORS_CAP = 24;
+export const AVATAR_MAX_BYTES = 256 * 1024;
 const AVATAR_PIXELS = 64;
 const AVATAR_EXTENSIONS: Readonly<Record<string, string>> = {
   "image/png": "png",
@@ -13,8 +14,8 @@ const AVATAR_EXTENSIONS: Readonly<Record<string, string>> = {
 };
 
 const githubContributorSchema = z.object({
-  login: z.string().regex(/^[A-Za-z0-9-]+$/),
-  avatar_url: z.url(),
+  login: z.string(),
+  avatar_url: z.string().regex(/^https:\/\/avatars\.githubusercontent\.com\//),
   html_url: z.string(),
   type: z.string(),
 });
@@ -28,12 +29,13 @@ export type ContributorSource = {
 export type RefreshContributorsOptions = {
   avatarDir: string;
   manifestPath: string;
+  validate: (data: unknown) => Contributor[];
   token?: string | undefined;
   cap?: number;
   fetch?: typeof fetch;
 };
 
-type DownloadedAvatar = { contributor: Contributor; bytes: Uint8Array; fileName: string };
+type DownloadedAvatar = { fileName: string; bytes: Uint8Array };
 
 export function parseContributors(
   data: unknown,
@@ -71,6 +73,27 @@ function githubHeaders(token: string | undefined): Record<string, string> {
   return headers;
 }
 
+async function readCappedBody(response: Response, login: string): Promise<Uint8Array> {
+  const tooLarge = new Error(`Avatar for ${login} exceeds ${AVATAR_MAX_BYTES} bytes`);
+  if (Number(response.headers.get("content-length") ?? 0) > AVATAR_MAX_BYTES) throw tooLarge;
+  if (response.body === null) return new Uint8Array();
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for await (const chunk of response.body) {
+    total += chunk.byteLength;
+    if (total > AVATAR_MAX_BYTES) throw tooLarge;
+    chunks.push(chunk);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 async function downloadAvatar(
   source: ContributorSource,
   doFetch: typeof fetch,
@@ -84,16 +107,35 @@ async function downloadAvatar(
   if (extension === undefined) {
     throw new Error(`Avatar for ${source.login} has unsupported content type "${contentType}"`);
   }
-  const fileName = `${source.login}.${extension}`;
   return {
-    fileName,
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    contributor: {
-      login: source.login,
-      avatarPath: `/contributors/${fileName}`,
-      profileUrl: source.profileUrl,
-    },
+    fileName: `${source.login}.${extension}`,
+    bytes: await readCappedBody(response, source.login),
   };
+}
+
+async function replaceDirectory(
+  target: string,
+  files: ReadonlyArray<DownloadedAvatar>,
+): Promise<void> {
+  const staging = `${target}.staging`;
+  const previous = `${target}.previous`;
+  await rm(staging, { recursive: true, force: true });
+  await rm(previous, { recursive: true, force: true });
+  await mkdir(staging, { recursive: true });
+  for (const file of files) {
+    await writeFile(join(staging, file.fileName), file.bytes);
+  }
+  await rename(target, previous).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+  });
+  await rename(staging, target);
+  await rm(previous, { recursive: true, force: true });
+}
+
+async function replaceFile(target: string, content: string): Promise<void> {
+  const staging = `${target}.staging`;
+  await writeFile(staging, content);
+  await rename(staging, target);
 }
 
 export async function refreshContributors(
@@ -107,16 +149,19 @@ export async function refreshContributors(
   const sources = parseContributors(await response.json(), options.cap ?? CONTRIBUTORS_CAP);
 
   const avatars: DownloadedAvatar[] = [];
+  const entries: Contributor[] = [];
   for (const source of sources) {
-    avatars.push(await downloadAvatar(source, doFetch));
+    const avatar = await downloadAvatar(source, doFetch);
+    avatars.push(avatar);
+    entries.push({
+      login: source.login,
+      avatarPath: `/contributors/${avatar.fileName}`,
+      profileUrl: source.profileUrl,
+    });
   }
+  const contributors = options.validate(entries);
 
-  await rm(options.avatarDir, { recursive: true, force: true });
-  await mkdir(options.avatarDir, { recursive: true });
-  for (const avatar of avatars) {
-    await writeFile(join(options.avatarDir, avatar.fileName), avatar.bytes);
-  }
-  const contributors = avatars.map((avatar) => avatar.contributor);
-  await writeFile(options.manifestPath, `${JSON.stringify(contributors, null, 2)}\n`);
+  await replaceDirectory(options.avatarDir, avatars);
+  await replaceFile(options.manifestPath, `${JSON.stringify(contributors, null, 2)}\n`);
   return contributors;
 }

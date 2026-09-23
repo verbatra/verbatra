@@ -1,7 +1,7 @@
 import { z } from "zod";
-import manifest from "./contributors.json";
+import manifest from "./contributors.json" with { type: "json" };
 
-const contributorSchema = z.strictObject({
+export const contributorSchema = z.strictObject({
   login: z.string().regex(/^[A-Za-z0-9-]+$/),
   avatarPath: z.string().regex(/^\/contributors\/[A-Za-z0-9-]+\.(png|jpg|webp)$/),
   profileUrl: z.string().regex(/^https:\/\/github\.com\/[A-Za-z0-9-]+$/),
