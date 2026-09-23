@@ -5,9 +5,6 @@ import { ContactForm } from "@/components/contact-form";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
 
-const NOTICE_LINK_CLASS =
-  "font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]";
-
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
@@ -29,7 +26,7 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
   const privacyHref = `${localizedPath(locale, "/privacy")}#${PRIVACY_CONTACT_FORM_ANCHOR}`;
   const privacyNotice = t.rich("privacyNotice", {
     privacy: (chunks: ReactNode) => (
-      <a href={privacyHref} className={NOTICE_LINK_CLASS}>
+      <a href={privacyHref} className="vk-prose-link">
         {chunks}
       </a>
     ),

@@ -97,7 +97,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
         key === OBJECTION_KEY ? (
           <section key={key} aria-labelledby={OBJECTION_HEADING_ID}>
             <CalloutContainer type="info" className={CALLOUT_CLASS}>
-              <h2 id={OBJECTION_HEADING_ID} className="mt-0">
+              <h2 id={OBJECTION_HEADING_ID} className="mt-0 scroll-mt-24">
                 {t(`${key}.heading`)}
               </h2>
               <p className="mb-0">{t.rich(`${key}.body`, linkTags)}</p>

@@ -35,7 +35,8 @@
   --tw-prose-links: hsl(258 47% 74%);
 }
 
-.prose :where(a):not(:where(.not-prose, .not-prose *)) {
+.prose :where(a):not(:where(.not-prose, .not-prose *)),
+.vk-prose-link {
   color: var(--accent);
   font-weight: 500;
   text-decoration-line: underline;
@@ -44,7 +45,8 @@
   transition: text-decoration-color var(--duration-base) var(--ease-out);
 }
 
-.prose :where(a):not(:where(.not-prose, .not-prose *)):hover {
+.prose :where(a):not(:where(.not-prose, .not-prose *)):hover,
+.vk-prose-link:hover {
   text-decoration-color: var(--accent);
 }
 

@@ -64,6 +64,7 @@ describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
     expect(notice?.textContent).toMatch(NOTICE_DELETION[locale]);
     expect(link?.getAttribute("href")).toBe(`${privacyPath(locale)}#contact-form`);
     expect(link?.textContent?.trim()).not.toBe("");
+    expect(link?.className).toBe("vk-prose-link");
   });
 
   it("points at a privacy policy section that exists and covers the contact form", async () => {
