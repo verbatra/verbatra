@@ -17,7 +17,9 @@ Four levers, all free of a provider call until you decide otherwise:
   happens when it is reached: `"warn"` (default) flags it and continues, `"stop"` withholds every
   key not yet attempted; withheld keys are retried automatically next run.
 - Gemini has a real free API tier, and the `openai-compatible` provider runs against a local
-  model at zero API cost.
+  model at zero API cost. Outside the EEA, Switzerland and the UK, Google may use free-tier
+  requests to improve its products, so keep confidential strings off it; see
+  [Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms).
 
 ## What does a run actually cost?
 
@@ -51,7 +53,9 @@ Gemini: it has a free API tier, so you can translate a whole project at no cost,
 later means editing one `id` in the config. Anthropic and OpenAI are the paid-LLM quality picks,
 DeepL and Google Cloud Translation are the dedicated machine-translation options, and
 `openai-compatible` keeps everything on your own hardware. See [Providers](/docs/providers) for
-the full comparison.
+the full comparison. Keep confidential strings off Gemini's free tier: outside the EEA, Switzerland
+and the UK, Google may use free-tier requests to improve its products. See
+[Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms).
 
 ## Can I run a local model?
 

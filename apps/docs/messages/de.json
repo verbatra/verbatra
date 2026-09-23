@@ -108,7 +108,7 @@
         },
         "cost": {
           "question": "Was kostet verbatra?",
-          "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben."
+          "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; Details stehen auf der <dataHandling>Seite zur Datenverarbeitung</dataHandling>."
         }
       }
     },

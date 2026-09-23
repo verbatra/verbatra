@@ -108,7 +108,7 @@
         },
         "cost": {
           "question": "¿Cuánto cuesta verbatra?",
-          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI."
+          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI. Fuera del EEE, Suiza y el Reino Unido, Google puede usar las peticiones del nivel gratuito para mejorar sus productos, así que deja los textos confidenciales en un nivel de pago o en un modelo local; la <dataHandling>página de tratamiento de datos</dataHandling> tiene los detalles."
         }
       }
     },

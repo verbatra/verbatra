@@ -136,7 +136,7 @@
         },
         "cost": {
           "question": "What does verbatra cost?",
-          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model."
+          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
         }
       }
     },
