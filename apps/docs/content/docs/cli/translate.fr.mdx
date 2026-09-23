@@ -22,6 +22,7 @@ verbatra translate [flags]
 | `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité (une valeur comme `60s`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; doit être un entier positif |
 | `--no-cache` | aucun | désactivé (cache activé) | contourne le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`) pour cette exécution |
+| `--include-human` | aucun | désactivé | retraduit aussi, pour cette exécution seulement, les clés obsolètes dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne (`humanEdits: "overwrite"`) ; les [clés épinglées](/docs/protecting-human-translations#épingler-des-clés) restent intactes |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la [forme `RunSummary`](/docs/sdk)), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 | `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et ce qu'elle coûterait, puis se termine sans appeler de fournisseur ; implique `--dry-run`, aucune clé d'API n'est donc requise |
 
@@ -57,6 +58,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# also retranslate stale keys a person wrote
+verbatra translate --include-human
 ```
 
 ## Codes de sortie
@@ -73,6 +77,10 @@ verbatra translate --estimate
 Une locale qui échoue n'est pas fatale : l'exécution se termine, sort avec `1`, et le détail par locale se trouve dans le résumé. Une locale **partielle** sort avec `1` elle aussi. C'est une locale dont le fichier a été écrit mais où des clés manquent encore, typiquement parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction, et la livrer comme un succès laisserait passer inaperçu un fichier à moitié traduit dans ton dépôt.
 
 La sortie `3` n'existe que dans un projet [100 % humain](/docs/human-only-workflow). Aucun fournisseur n'y est appelé : les clés que couvre la mémoire de traduction sont écrites, et toute autre clé manquante ou modifiée est listée comme `unfilled` sans être touchée. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Confie les clés `unfilled` à un humain avec [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
+
+Les clés obsolètes dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne sont gardées par défaut : elles sont listées comme `protected`, ne sont pas envoyées au fournisseur et restent obsolètes pour `verbatra check`. Une ligne sur stderr indique combien il en reste. Elles ne changent pas le code de sortie, sauf dans un projet 100 % humain, où elles comptent pour la sortie `3` comme les clés `unfilled`. `--include-human` les retraduit pour une exécution. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
 
 <AvailableFrom version="0.12.0" />
 

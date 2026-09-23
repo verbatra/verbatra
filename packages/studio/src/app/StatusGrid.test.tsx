@@ -113,6 +113,17 @@ describe("StatusGrid", () => {
     expect(cellFor(view, "a.missing in fr: in-sync").textContent).toBe("In sync");
   });
 
+  it("labels a protected key as needing review, in words as well as color", async () => {
+    stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
+    const protectedDiff = { ...localeDiff("de", [], ["b.changed"]), protected: ["b.changed"] };
+
+    const view = await renderAsync(
+      <StatusGrid locales={[protectedDiff]} refreshToken={0} onSelectKey={vi.fn()} />,
+    );
+
+    expect(cellFor(view, "b.changed in de: needs review").textContent).toBe("Needs review");
+  });
+
   it("shows a loading note per locale header while the coverage call is still open", () => {
     stubRpc({ "status.check": () => new Promise(() => {}) });
 

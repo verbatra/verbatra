@@ -32,6 +32,7 @@ interface KeyLists {
   readonly missing?: readonly string[];
   readonly changed?: readonly string[];
   readonly orphaned?: readonly string[];
+  readonly protected?: readonly string[];
 }
 
 function localeDiff(locale: string, lists: KeyLists = {}): DiffLocale {
@@ -44,6 +45,7 @@ function localeDiff(locale: string, lists: KeyLists = {}): DiffLocale {
     changed,
     orphaned,
     hasPendingChanges: missing.length > 0 || changed.length > 0,
+    ...(lists.protected !== undefined ? { protected: lists.protected } : {}),
   };
 }
 
@@ -944,6 +946,26 @@ describe("TranslationsPanel key explorer", () => {
       "app.cta",
       "app.legacy",
     ]);
+  });
+
+  it("lists the keys a run would leave for a person under Needs review, with a count", async () => {
+    stubPage({
+      "status.diff": diffResult([
+        localeDiff("de", { changed: ["app.cta", "app.terms"], protected: ["app.terms"] }),
+      ]),
+      "status.check": checkResult([{ locale: "de", missing: 0, stale: 2, upToDate: 8 }]),
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    await switchToList(view);
+
+    expect(view.all("h4").map((heading) => heading.textContent)).toEqual([
+      "Missing(0)",
+      "Changed(2)",
+      "Orphaned(0)",
+      "Needs review(1)",
+    ]);
+    expect(view.get("details summary").textContent).toContain("1 need review");
   });
 
   it("narrows every list to the keys matching the filter", async () => {

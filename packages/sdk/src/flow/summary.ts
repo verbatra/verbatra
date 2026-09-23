@@ -346,6 +346,60 @@ export interface NeedsReviewEntry {
 }
 
 /**
+ * Why a run left a key alone instead of translating it.
+ *
+ * - `human`: the value was written by a person, through the Studio edit dialog or an SDK edit.
+ * - `import`: the value came from an imported translator handoff.
+ * - `external`: the value was changed outside verbatra since it was recorded, for instance by a
+ *   translator editing the locale file directly, or the provenance file was written by a newer
+ *   verbatra so the value's origin cannot be read.
+ * - `pinned`: the key matches the config's `pinnedKeys`, so no machine write touches it.
+ */
+export type ProtectionReason = "human" | "import" | "external" | "pinned";
+
+/**
+ * A key a run did not translate because its value is protected: a person's work on a key whose
+ * source changed, or a pinned key. Its value and its lock-file baseline were left as they were, so
+ * the key stays stale until a person edits, imports, or deliberately retranslates it.
+ */
+export interface ProtectedKey {
+  /** The protected key. */
+  readonly key: string;
+  /** Why it was protected. */
+  readonly reason: ProtectionReason;
+  /**
+   * A translation of the current source text, present only under `humanEdits: "suggest"` when
+   * {@link suggestionStatus} is `suggested`: the provider's answer, or an exact translation-memory
+   * entry for the same source text. A fuzzy memory match is never offered as a suggestion. It was
+   * not written to the locale file.
+   */
+  readonly suggestion?: string;
+  /**
+   * What became of the suggestion for this key, present only for a key that was, or on a dry run
+   * would be, sent for one. See {@link SuggestionStatus}.
+   */
+  readonly suggestionStatus?: SuggestionStatus;
+}
+
+/**
+ * The outcome of asking for a suggestion for a {@link ProtectedKey} under `humanEdits: "suggest"`.
+ *
+ * - `planned`: a dry run; a live run would send the key to the provider.
+ * - `suggested`: a suggestion is in {@link ProtectedKey.suggestion}.
+ * - `integrity-mismatch`: the provider's answer failed the integrity gate and was dropped.
+ * - `provider-failure`: the provider returned nothing usable for the key.
+ * - `budget-withheld`: the key was never sent, because the token budget stopped the run.
+ *
+ * A failed suggestion never changes the locale's status: the key keeps its value either way.
+ */
+export type SuggestionStatus =
+  | "planned"
+  | "suggested"
+  | "integrity-mismatch"
+  | "provider-failure"
+  | "budget-withheld";
+
+/**
  * A key whose translation was reused from the translation memory even though its source string had
  * changed, because the earlier source it was translated from is close enough to the current one.
  *
@@ -477,6 +531,13 @@ export interface LocaleSummary {
    * lists the same keys a live run would.
    */
   readonly unfilled: readonly string[];
+  /**
+   * Keys left alone because their value is protected (see {@link ProtectedKey}), sorted by key.
+   * They are not in {@link translated}, do not change the locale's status, and stay stale for
+   * {@link check}. Always empty for {@link importWorkbook}, and for a {@link translate} run under
+   * `humanEdits: "overwrite"` with no `pinnedKeys`.
+   */
+  readonly protected: readonly ProtectedKey[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */
   readonly malformedRows: readonly MalformedRowReport[];
   /** Repeated keys from an imported handoff. Always empty for a {@link translate} run. */

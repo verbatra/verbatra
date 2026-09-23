@@ -33,6 +33,7 @@ Algunos casos límite que conviene conocer:
 - `export` no tiene modo de fallo por locale: sale con `0` o `2`, nunca con `1`.
 - `doctor` lee una configuración rota de forma distinta al resto de comandos: una configuración que la búsqueda no encuentra, o una que no supera la validación, es una comprobación fallida y da `1`, porque informar precisamente de eso es el trabajo del comando. Sale con `2` solo cuando no puede ejecutarse en absoluto, por ejemplo con una ruta `--config` explícita que no existe.
 - Hay un modo de fallo que queda fuera del contrato: un fallo de análisis que no es un error de uso se vuelve a lanzar, y el binario no lo captura, así que se aplica el comportamiento por defecto de Node ante un rechazo no gestionado en lugar de cualquiera de los cinco códigos.
+- Una clave [protegida](/docs/protecting-human-translations) (un valor obsoleto que escribió, importó o cambió una persona fuera de verbatra, o una clave fijada) no cambia el código de salida de `translate` en un proyecto con proveedor: sale con `0` e indica en stderr cuántas claves dejó. `check` sigue saliendo con `1` por ella, porque la clave sigue obsoleta hasta que una persona la resuelva. En un proyecto solo humano cuenta para la salida `3`.
 
 ## check o diff: elegir la puerta
 

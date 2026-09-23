@@ -97,6 +97,10 @@ Los dos escritores de entradas, `translation.editEntry` y `translation.retransla
 
 Un valor escrito mediante `translation.editEntry` queda registrado con el origen `agent` en `verbatra.provenance.json`, para que nunca se confunda con la edición de una persona. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.retranslateEntry` rechaza con `KEY_PROTECTED` una clave cuyo valor escribió, importó o cambió una persona fuera de verbatra, y con `KEY_PINNED` una clave que coincide con los `pinnedKeys` de la configuración; no hay forma de forzarlo, así que reemplazar el trabajo de una persona sigue siendo decisión de una persona. `translation.editEntry` rechaza una clave fijada con `KEY_PINNED`. `translation.translatePending` deja en paz esas claves y las lista bajo `protected`, y `status.check` y `status.diff` las indican como `protected`. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
 ### Entradas y resultados
 
 - `status.check`, `status.diff` y `key.integrity` aceptan un array `locales` opcional (con al menos una entrada) que limita el resultado a esos locales; `key.integrity` también recibe la `key` que se va a comprobar.

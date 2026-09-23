@@ -11,6 +11,7 @@ export const retranslateEntryHandler: RpcHandler<"translation.retranslateEntry">
       cwd: deps.projectRoot,
       locale: params.locale,
       key: params.key,
+      ...(params.includeHuman === true ? { includeHuman: true } : {}),
     },
     {
       ...(deps.fs !== undefined ? { fs: deps.fs } : {}),

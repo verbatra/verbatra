@@ -70,6 +70,7 @@ export {
   type UpdateGlossaryTermInput,
   updateGlossaryTerm,
 } from "./config/glossary-file.js";
+export type { HumanEditsPolicy } from "./config/human-edits.js";
 export {
   type ConfigSource,
   type LoadConfigOptions,
@@ -217,12 +218,15 @@ export type {
   NeedsReviewEntry,
   PricedLocaleEstimate,
   PricedRunEstimate,
+  ProtectedKey,
+  ProtectionReason,
   RunBudget,
   RunEstimate,
   RunEstimateQuantity,
   RunSummary,
   SdkNotice,
   SdkNoticeCode,
+  SuggestionStatus,
   TokenRunQuantity,
   UnpricedLocaleEstimate,
   UnpricedRunEstimate,

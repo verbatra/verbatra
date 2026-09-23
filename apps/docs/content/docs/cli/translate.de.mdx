@@ -22,6 +22,7 @@ verbatra translate [flags]
 | `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit sein (ein Wert wie `60s`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
 | `--concurrency` | `<n>` | `1` | bis zu `n` Ziel-Locales gleichzeitig übersetzen; muss eine positive Ganzzahl sein |
 | `--no-cache` | keins | aus (Cache an) | den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) für diesen Lauf umgehen |
+| `--include-human` | keins | aus | für diesen Lauf auch veraltete Keys neu übersetzen, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat (`humanEdits: "overwrite"`); [gepinnte Keys](/docs/protecting-human-translations#keys-pinnen) bleiben unangetastet |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Lauf-Zusammenfassung unter `result` trägt (die [`RunSummary`-Form](/docs/sdk)), oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 | `--estimate` | keins | aus | schätzen, was der Lauf senden und was er kosten würde, und sich dann beenden, ohne einen Provider aufzurufen; impliziert `--dry-run`, es wird also kein API-Key gebraucht |
 
@@ -57,6 +58,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# also retranslate stale keys a person wrote
+verbatra translate --include-human
 ```
 
 ## Exit-Codes
@@ -73,6 +77,10 @@ verbatra translate --estimate
 Eine fehlschlagende Locale ist nicht fatal: der Lauf läuft zu Ende, endet mit `1`, und das Detail pro Locale steht in der Zusammenfassung. Eine **unvollständige** Locale endet ebenfalls mit `1`. Das ist eine Locale, deren Datei geschrieben wurde, der aber weiterhin Keys fehlen, typischerweise weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat; sie als Erfolg auszuliefern, würde eine halb übersetzte Datei unbemerkt in deinem Repository liegen lassen.
 
 Exit-Code `3` gibt es nur in einem [rein menschlichen](/docs/human-only-workflow) Projekt. Dort wird kein Provider aufgerufen: Keys, die das Translation Memory abdeckt, werden geschrieben, und jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet und nicht angefasst. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Gib die `unfilled`-Keys mit [`verbatra export`](/docs/cli/export) weiter.
+
+<AvailableFrom version="0.12.0" />
+
+Veraltete Keys, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, bleiben standardmäßig erhalten: Sie werden als `protected` gelistet, gehen nicht an den Provider und bleiben für `verbatra check` veraltet. Eine Zeile auf stderr sagt, wie viele übrig blieben. Am Exit-Code ändern sie nichts, außer in einem rein menschlichen Projekt, wo sie wie `unfilled`-Keys zum Exit `3` zählen. `--include-human` übersetzt sie für einen Lauf neu. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 <AvailableFrom version="0.12.0" />
 

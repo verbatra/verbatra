@@ -31,6 +31,11 @@
  *   read or spent, and {@link watch} once at startup, before any watching begins.
  * - `UNKNOWN_KEY`: the requested key is not present in the source resource. Thrown by
  *   {@link keyValue}, {@link editEntry}, and {@link retranslateEntry}.
+ * - `KEY_PROTECTED`: {@link retranslateEntry} refused to replace a value a person wrote, imported,
+ *   or changed outside verbatra, because neither its `includeHuman` input nor the config's
+ *   `humanEdits: "overwrite"` allowed it.
+ * - `KEY_PINNED`: the key matches the config's `pinnedKeys`, so a machine write was refused. Thrown
+ *   by {@link retranslateEntry}, and by {@link editEntry} for an `agent` actor.
  * - `PROVIDER_CONSTRUCTION_FAILED`: the provider factory threw. Wraps the provider's own error,
  *   including a missing `*_API_KEY` environment variable. Thrown by a non-dry-run
  *   {@link translate} and by {@link retranslateEntry}.
@@ -140,6 +145,8 @@ export type SdkErrorCode =
   | "UNKNOWN_FORMAT"
   | "UNKNOWN_LOCALE"
   | "UNKNOWN_KEY"
+  | "KEY_PROTECTED"
+  | "KEY_PINNED"
   | "PROVIDER_CONSTRUCTION_FAILED"
   | "MACHINE_TRANSLATION_DISABLED"
   | "SOURCE_UNREADABLE"

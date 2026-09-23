@@ -49,7 +49,7 @@ fehlenden und geänderten Keys an den Provider schicken, die Integritätsprüfun
 Locale-Dateien schreiben und das Lock aktualisieren. Nutze ihn für Skripte, Build-Schritte und
 CI-Jobs.
 
-Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 
 - `locales` schränkt den Lauf auf eine Teilmenge der konfigurierten Ziel-Locales ein, genau wie bei
   `check` und `diff`. Eine nicht konfigurierte Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas
@@ -74,6 +74,7 @@ Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
 - `cache` ist standardmäßig true und verwendet den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache)
   (`verbatra.cache.json`, ebenfalls exportiert als `CACHE_FILE_NAME`) wieder; setze ihn auf false, um
   den Cache für den Lauf zu umgehen (das `--no-cache` der CLI).
+- `humanEdits` übersteuert das `humanEdits` der Konfiguration für diesen Lauf: `"overwrite"` übersetzt auch veraltete Keys neu, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat (das `--include-human` der CLI). Standardmäßig bleiben solche Keys erhalten und werden in `LocaleSummary.protected` gelistet; Keys, die auf `pinnedKeys` passen, bleiben geschützt, egal was hier steht. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations). Ein Dry Run liest jetzt auch `verbatra.provenance.json`, außer `humanEdits` ergibt `"overwrite"`.
 - `onProgress` wird aufgerufen, während der Lauf fortschreitet (pro Locale-Start und -Ende sowie pro
   Provider-Sub-Batch), und `onLockWait` feuert, während die Schreibsperre einer Locale umkämpft
   ist. Beides sind Benachrichtigungs-Callbacks; das SDK gibt selbst nichts aus. `lockAcquireTimeoutMs`
@@ -315,6 +316,10 @@ Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer
 Dieses und jedes andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die
 Datei beschädigt ist oder von einem neueren verbatra stammt.
 
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer fehlenden und veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde. Sie zählen weiter als fehlend oder veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
+
 ### diff
 
 Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
@@ -341,6 +346,10 @@ Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
 Jedes `LocaleDiff` trägt außerdem `changedOrigins`, die ausgewertete Herkunft des aktuellen Werts
 jedes `changed`-Keys (etwa `machine`, `human` oder `external`), damit du vor einem Lauf siehst,
 wessen Arbeit eine Neuübersetzung ersetzen würde.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend. Ist die Provenienz-Datei nicht lesbar, werden nur gepinnte Keys gelistet.
 
 ### keyIntegrity
 
@@ -454,6 +463,10 @@ der Wert das Gate durchläuft: Eine beschädigte wirft `PROVENANCE_FILE_INVALID`
 geschrieben, eine von einem neueren verbatra, oder eine, die der Eintrag über die Größe wachsen
 ließe, die verbatra zurückliest, bleibt unangetastet und der Wert wird ohne Eintrag geschrieben.
 
+<AvailableFrom version="0.12.0" />
+
+Mit `actor: "agent"` wirft ein Key, der auf die `pinnedKeys` der Konfiguration passt, `KEY_PINNED`, bevor etwas gelesen oder geschrieben wird. Die Bearbeitung eines gepinnten Keys durch einen Menschen wird angenommen.
+
 ### retranslateEntry
 
 Lässt den Provider für genau einen Key und eine Locale neu laufen: ein Einzeleintrag-Aufruf durch
@@ -461,7 +474,7 @@ denselben Provider-Pfad, den `translate` nutzt, abgesichert durch dieselben
 Integritätsprüfungen. Bei Annahme schreibt es die Locale-Datei und den Lock-Eintrag nur für diesen
 Key.
 
-Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
+Eingabe: `{ config, cwd?, locale, key, includeHuman? }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
@@ -470,6 +483,10 @@ Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderErro
 Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit dem konfigurierten
 Provider und Modell. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
 Provider aufgerufen wird.
+
+<AvailableFrom version="0.12.0" />
+
+Ein Key, dessen aktuellen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, wirft `KEY_PROTECTED` innerhalb der Schreibsperre, bevor der Provider aufgerufen wird, außer du übergibst `includeHuman: true` oder die Konfiguration setzt `humanEdits: "overwrite"`. Stammt die Provenienz-Datei von einem neueren verbatra, zählt jeder vorhandene Wert als geschützt. Ein Key, der auf `pinnedKeys` passt, wirft `KEY_PINNED`, bevor der Provider gebaut wird, auch mit `includeHuman`.
 
 ## Inhalte in großen Mengen lesen
 
@@ -894,6 +911,7 @@ interface LocaleSummary {
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
   malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
   duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
@@ -953,6 +971,7 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
   (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ### budgetStanding
 
@@ -979,6 +998,8 @@ geworfen.
 | `UNKNOWN_FORMAT` | für das konfigurierte Format ist kein Adapter registriert; geworfen, bevor irgendeine Datei gelesen wird |
 | `UNKNOWN_LOCALE` | eine angefragte Locale gehört nicht zu den konfigurierten Ziel-Locales |
 | `UNKNOWN_KEY` | ein angefragter Key ist nicht in der Quell-Ressource (`keyValue`, `editEntry`, `retranslateEntry`) |
+| `KEY_PROTECTED` | `retranslateEntry` hat es abgelehnt, einen Wert zu ersetzen, den ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, weil weder `includeHuman` noch `humanEdits: "overwrite"` es erlaubt hat |
+| `KEY_PINNED` | der Key passt auf die `pinnedKeys` der Konfiguration, also wurde ein maschineller Schreibvorgang abgelehnt (`retranslateEntry` und `editEntry` mit `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys |
 | `MACHINE_TRANSLATION_DISABLED` | die Konfiguration setzt `provider: { id: "none" }`, also wurde eine kostenpflichtige Provider-Aktion abgelehnt, bevor ein Provider gebaut wurde (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` und `watch` werfen ihn nie |
 | `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |

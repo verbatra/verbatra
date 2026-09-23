@@ -307,7 +307,7 @@ function KeyList({
             >
               <span className="flex flex-wrap items-center gap-2">
                 <span className="min-w-0 break-all">{key}</span>
-                {tone === "changed" ? (
+                {tone === "changed" || tone === "protected" ? (
                   <ProvenanceBadge provenance={values.get(key)?.provenance} />
                 ) : null}
               </span>
@@ -332,6 +332,9 @@ function LocaleSectionCounts({ locale }: { readonly locale: DiffLocale }): React
     <span className="text-xs text-muted-foreground">
       {locale.missing.length} missing &middot; {locale.changed.length} changed &middot;{" "}
       {locale.orphaned.length} orphaned
+      {locale.protected !== undefined && locale.protected.length > 0 ? (
+        <> &middot; {locale.protected.length} need review</>
+      ) : null}
     </span>
   );
 }
@@ -388,6 +391,15 @@ function LocaleSection({
         values={values}
         onSelectKey={onSelectKey}
       />
+      {locale.protected !== undefined && locale.protected.length > 0 ? (
+        <KeyList
+          tone="protected"
+          keys={locale.protected}
+          query={query}
+          values={values}
+          onSelectKey={onSelectKey}
+        />
+      ) : null}
     </AccordionItem>
   );
 }

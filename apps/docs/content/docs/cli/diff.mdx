@@ -94,6 +94,12 @@ verbatra diff --json
 verbatra diff --unused
 ```
 
+## Protected keys
+
+<AvailableFrom version="0.12.0" />
+
+The missing and changed keys a `translate` run would leave for a person, because a person wrote, imported, or changed their value outside verbatra or because they match `pinnedKeys`, are listed again under `protected` (see [Protecting human translations](/docs/protecting-human-translations)). They stay in `re-translate` and `add` too, since they are still pending. `--json` carries them as a `protected` array on each locale; when `verbatra.provenance.json` is corrupt or from a newer verbatra, only pinned keys are listed.
+
 ## Exit codes
 
 | Code | Meaning |

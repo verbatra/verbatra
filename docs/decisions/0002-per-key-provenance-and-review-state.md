@@ -408,7 +408,21 @@ Specified here, delivered later:
   read, preserved, and reported.
 - The Studio origin badge, the key-drawer record, the lock-card counts, and watching
   `verbatra.provenance.json` for live refresh (Decision 10).
-- Protecting human values and machine-translation markers in exports (Decision 11).
+- Machine-translation markers in exports (Decision 11).
+
+Delivered since:
+
+- Protecting human values (Decision 11). A stale key whose effective origin is `human`, `import`,
+  or `external` is left out of a run, keeps its value and its lock hash, and is reported in
+  `LocaleSummary.protected`; `unrecorded`, `agent`, and machine-class values are not protected,
+  and neither is a `rejected` value. A provenance file from a newer version protects every stale
+  key with a value, since no origin can be read. The config's `humanEdits` (`protect`, the
+  default, `suggest`, or `overwrite`) and `translate --include-human` choose the policy, and
+  `pinnedKeys` names keys no machine write touches. A `suggest` answer is returned on the run
+  summary and fed to the translation memory, never stored in this file. `retranslateEntry` refuses
+  a protected value (`KEY_PROTECTED`) unless the caller overrides, and a pinned key (`KEY_PINNED`)
+  always; `editEntry` refuses a pinned key for the `agent` actor. `check` and `diff` report the
+  protected keys.
 
 ## Deferred
 

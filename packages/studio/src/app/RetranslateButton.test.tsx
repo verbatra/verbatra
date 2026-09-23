@@ -96,4 +96,33 @@ describe("RetranslateButton", () => {
 
     expect(rpcCalls).toHaveLength(2);
   });
+
+  it("explains a refusal to replace a person's value and offers to replace it anyway", async () => {
+    stubRpc({
+      [METHOD]: (params) =>
+        Promise.resolve(
+          (params as { readonly includeHuman?: boolean }).includeHuman === true
+            ? { ok: true, result: { accepted: true } }
+            : rpcError("KEY_PROTECTED", "protected"),
+        ),
+    });
+    const view = mount();
+
+    await clickAsync(view.get("button"));
+
+    expect(view.getByText("span", "A person wrote this value.").className).toContain(
+      "text-muted-foreground",
+    );
+    const replace = view.all("button").find((button) => button.textContent === "Replace anyway");
+    if (replace === undefined) {
+      throw new Error("no Replace anyway button");
+    }
+    await clickAsync(replace);
+
+    expect(rpcCalls.at(-1)).toEqual({
+      method: METHOD,
+      params: { locale: "de", key: "app.title", includeHuman: true },
+    });
+    expect(view.getByText("span", "Retranslated").className).toContain("text-success");
+  });
 });

@@ -32,6 +32,7 @@ function runSummary(): RunSummary {
         notices: [],
         needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }],
         unfilled: [],
+        protected: [],
         malformedRows: [],
         duplicateKeys: [],
       },

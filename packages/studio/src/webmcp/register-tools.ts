@@ -11,7 +11,10 @@ import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
-import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import {
+  agentRetranslateEntryParamsSchema,
+  RETRANSLATE_ENTRY_METHOD,
+} from "../shared/rpc/retranslate-entry.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import { PROJECT_SNAPSHOT_METHOD } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
@@ -209,6 +212,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "The required `locale` parameter must be a configured target locale, the required `key` parameter must exist in the source, and the required `value` parameter is the replacement text, capped at 20000 characters. " +
       "The value is checked for placeholder and ICU integrity before anything is written, so a rejected value is returned with its reason and nothing is written, while an accepted value is written to the target locale file and its lock entry immediately, replacing the previous value with no undo on this surface. " +
       "The value is recorded as written by an agent in the project's provenance file. " +
+      "A key matching the config's pinnedKeys is refused with KEY_PINNED: it is reserved for a person. " +
       "This tool is always registered: local editing needs no capability flag and is never gated behind the spend flag.",
     readOnlyHint: false,
     untrustedContentHint: true,
@@ -222,10 +226,12 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Do not call it to preview or to retry blindly: the provider is billed before the integrity check runs, so a rejected result still costs money while writing nothing, and the call is not idempotent, since every call is billed again and can return different text. " +
       "The write cannot be undone through this surface: the previous value is replaced, and only verbatra_translation_editEntry can restore it, and only if you read it with verbatra_key_value first. " +
       "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source. " +
+      "A key whose value a person wrote, imported, or changed outside verbatra is refused with KEY_PROTECTED, and a key matching the config's pinnedKeys with KEY_PINNED; leave those for a person. " +
       "It is registered only when the server was started with the spend capability granted.",
     readOnlyHint: false,
     untrustedContentHint: true,
     spendGated: true,
+    agentInput: { schema: agentRetranslateEntryParamsSchema, stamp: { includeHuman: false } },
   },
   [TRANSLATE_PENDING_METHOD]: {
     description:
@@ -233,6 +239,7 @@ const TOOL_DESCRIPTORS: Record<RpcMethodName, ToolDescriptor> = {
       "Use it only to bring a whole project current when many keys are pending and the cost is acceptable. " +
       "Do not use it for a single key, where verbatra_translation_retranslateEntry is far cheaper, and do not retry it as though it were free: the call is not idempotent, since a second run bills again for whatever is still pending and can return different text. " +
       "The writes cannot be undone through this surface, and the run is not all or nothing, so a run that fails partway can leave some locales already written and others untouched. " +
+      "Stale keys a person wrote, imported, or changed outside verbatra, and pinned keys, are left alone and listed under protected in each locale. " +
       "It takes no parameters, because source drift can affect every target locale at once, and only one run may be in flight at a time, so a second concurrent call is refused rather than queued. " +
       "It is registered only when the server was started with the spend capability granted.",
     readOnlyHint: false,

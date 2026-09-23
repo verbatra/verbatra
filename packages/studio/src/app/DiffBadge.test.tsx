@@ -9,6 +9,7 @@ const TONE_EXPECTATIONS: Readonly<
   missing: { label: "Missing", bg: "bg-diff-new-soft" },
   changed: { label: "Changed", bg: "bg-diff-changed-soft" },
   orphaned: { label: "Orphaned", bg: "bg-diff-orphaned-soft" },
+  protected: { label: "Needs review", bg: "bg-warning-soft" },
 };
 
 const TONES = Object.keys(TONE_EXPECTATIONS) as readonly DiffTone[];
@@ -20,7 +21,7 @@ describe("DiffBadge", () => {
     expect(view.text()).toBe(TONE_EXPECTATIONS[tone].label);
   });
 
-  it.each(TONES)("styles the %s tone from the diff token family", (tone) => {
+  it.each(TONES)("styles the %s tone from its own token pair", (tone) => {
     const view = render(<DiffBadge tone={tone} />);
 
     expect(view.get("span").className).toContain(TONE_EXPECTATIONS[tone].bg);

@@ -20,6 +20,7 @@ import {
   type LocaleSummary,
   type LockWaitEvent,
   type ProgressEvent,
+  type ProtectedKey,
   type PseudolocalizeResult,
   type RunBudget,
   type RunEstimate,
@@ -177,6 +178,17 @@ function renderFuzzyHit(hit: FuzzyCacheHit): string {
   return `${hit.key} (${percent}% like "${previewSource(hit.previousSource)}")`;
 }
 
+function renderSuggestion(entry: ProtectedKey): string {
+  if (entry.suggestion !== undefined) {
+    return `, suggestion "${preview(entry.suggestion, FUZZY_SOURCE_PREVIEW)}"`;
+  }
+  return entry.suggestionStatus === undefined ? "" : `, suggestion ${entry.suggestionStatus}`;
+}
+
+function renderProtectedKey(entry: ProtectedKey): string {
+  return `${entry.key} (${entry.reason}${renderSuggestion(entry)})`;
+}
+
 function renderPosition(at: { readonly row: number; readonly line?: number }): string {
   return at.line === undefined ? `row ${at.row}` : `row ${at.row}, line ${at.line}`;
 }
@@ -190,6 +202,7 @@ function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
       locale.notices.map((notice) => `[${notice.code}] ${notice.message}`),
     ),
     renderDetailGroup("unfilled", locale.unfilled),
+    renderDetailGroup("protected", locale.protected.map(renderProtectedKey)),
     renderDetailGroup(
       "malformed",
       locale.malformedRows.map((problem) => `${renderPosition(problem)} (${problem.column})`),
@@ -219,6 +232,7 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
     [locale.providerFailures.length, "provider-failed", false],
     [locale.budgetWithheld.length, "budget-withheld", false],
     [locale.unfilled.length, "unfilled", false],
+    [locale.protected.length, "protected", false],
     [locale.malformedRows.length, "malformed-rows", false],
     [locale.duplicateKeys.length, "duplicate-keys", false],
     [locale.needsReview.length, "needs-review", false],
@@ -245,10 +259,14 @@ export function renderExportHuman(result: ExportWorkbookResult): string {
   ].join("\n");
 }
 
+function renderProtectedCount(count: number | undefined): string {
+  return count === undefined || count === 0 ? "" : ` (${count} protected)`;
+}
+
 export function renderCheckHuman(summary: CheckSummary): string {
   const localeLines = summary.locales.map(
     (l) =>
-      `  ${l.locale}: ${l.missing} missing, ${l.stale} stale, ${l.upToDate} up-to-date (${
+      `  ${l.locale}: ${l.missing} missing, ${l.stale} stale${renderProtectedCount(l.protected)}, ${l.upToDate} up-to-date (${
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
@@ -373,6 +391,7 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
     renderDiffGroup("add", locale.missing),
     renderDiffGroup("re-translate", locale.changed),
     renderDiffGroup("orphaned", locale.orphaned),
+    renderDiffGroup("protected", locale.protected ?? []),
   ].filter((line): line is string => line !== undefined);
   return [header, ...groups];
 }

@@ -1,0 +1,113 @@
+---
+title: Protecting human translations
+description: Keep the strings a translator wrote when the source text changes, get a machine suggestion instead of an overwrite, and pin keys no machine may touch.
+---
+<AvailableFrom version="0.12.0" />
+
+A translator's work is up to date until the source text changes. Then the key is stale, and a
+plain machine run would translate over it. For legal, marketing, or brand copy that someone was
+paid to write, that silently destroys the work. verbatra keeps it instead.
+
+## What is protected
+
+verbatra knows who wrote each value from `verbatra.provenance.json` (see
+[The lock file](/docs/the-lock-file#provenance-who-wrote-each-value)). When a key's source text
+changes, `translate` and `watch` leave its value alone if that value came from a person:
+
+| Origin | Where the value came from |
+| --- | --- |
+| `human` | a person's edit, for example in the Studio edit dialog |
+| `import` | a row imported from a translator handoff with `verbatra import` |
+| `external` | an edit made outside verbatra, such as a translator changing the locale file in a pull request |
+
+Machine output (`machine`, `memory`, `fuzzy`) and agent edits (`agent`) are retranslated as usual.
+So is a value with no record yet (`unrecorded`): a project that used verbatra before provenance
+existed keeps translating as before, and its values become protected once a person edits or
+imports them. A value a reviewer rejected is never protected, since rejected means "replace it".
+
+## What a run does with a protected key
+
+The key is not sent to the provider. Its value stays in the locale file, and its lock-file
+baseline is not advanced, so it stays stale and stays visible:
+
+- `verbatra translate --dry-run` lists it as protected, not as to translate.
+- `verbatra translate` lists it as protected, translates everything else, and prints a hint on
+  stderr. The run still exits `0`.
+- `verbatra check` counts it as stale (with the protected share in brackets) and exits `1`, so a
+  CI gate shows that a person has work to do.
+- `verbatra diff` lists it under `protected`, and `diff --json` carries a `protected` array.
+- `verbatra export` hands it to the translator with the status `changed`, like any stale key.
+
+```bash
+verbatra translate --dry-run
+#   de: 1 translated, 12 unchanged, 1 protected
+#     protected:       checkout.terms (import)
+```
+
+## Resolving a protected key
+
+A protected key stops being stale as soon as a person decides what it should say:
+
+- Edit it in Studio, or keep the text and save it unchanged. Either way the value is recorded as
+  `human` against the new source text.
+- Export it, let the translator update it, and import the handoff.
+- Retranslate it on purpose: `verbatra translate --include-human` for one run, or
+  `retranslateEntry` with `includeHuman: true` from the SDK.
+
+## Suggestions instead of overwrites
+
+With `humanEdits: "suggest"` in the config, a protected key is still sent to the provider, but the
+answer is only a suggestion. An exact translation-memory entry for the new text can serve as one too, but a fuzzy match never does. The suggestion appears next to the key in the run summary, with a `suggestionStatus` that says whether it arrived or why not (refused by the integrity gate, a provider failure, or withheld by the token budget), and is kept in the
+translation memory; it is never written to the locale file. The next run serves the same
+suggestion from the memory without paying again. `translate --estimate` counts these keys, since
+they are sent. In a human-only project (`provider: { id: "none" }`) there is no provider to ask, so
+`suggest` behaves like `protect`.
+
+```ts
+export default defineConfig({
+  // ...
+  humanEdits: "suggest",
+});
+```
+
+To go back to retranslating everything, set `humanEdits: "overwrite"`, which is how verbatra
+behaved before protection existed.
+
+## Pinning keys
+
+Some keys must never be machine-touched at all, whatever the setting: a trademark, a legal
+disclaimer. List them in `pinnedKeys`, where `*` matches any run of characters:
+
+```ts
+export default defineConfig({
+  // ...
+  pinnedKeys: ["legal.*", "brand.name"],
+});
+```
+
+A pinned key is never translated, suggested, or retranslated, even when it is missing and even with
+`--include-human`. It is listed as protected with the reason `pinned` until a person fills it. An
+AI agent cannot edit it through the MCP server or Studio's agent tools; a person can.
+
+## Agents
+
+The MCP tool `translation.retranslateEntry` refuses a protected value with `KEY_PROTECTED` and a
+pinned key with `KEY_PINNED`, and offers no override: replacing a person's work is a decision for a
+person. `translation.translatePending` leaves protected keys alone and lists them. An agent can
+still write a value with `translation.editEntry` unless the key is pinned; that value is recorded
+as `agent`, so it never passes for a person's work.
+
+## In Studio
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+The Translations page marks a protected key as **Needs review** in the key grid and lists it in its own group in the per-locale lists, with the origin of its current value next to it. Open the key to edit it, or save it unchanged to keep the text. When a person retranslates a protected key from the key drawer, Studio says that a person wrote the value and offers **Replace anyway**, which retranslates it deliberately.
+
+## Edge cases
+
+- **A provenance file from a newer verbatra.** The origin of each value cannot be read, so every
+  stale key with a value is protected until you upgrade.
+- **A corrupt provenance file.** A dry run fails with `PROVENANCE_FILE_INVALID`, exactly as a live
+  run does. `check` and `diff` keep working and list only pinned keys as protected, since no origin can be read.
+- **Human-only projects.** Protected keys count toward exit code `3`, like keys the translation
+  memory could not fill: both need a person.

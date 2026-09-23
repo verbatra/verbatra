@@ -22,6 +22,7 @@ verbatra translate [flags]
 | `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock before failing; must be a bare positive integer of seconds (a value like `60s`, `0`, or `-1` is a usage error, exit `2`) |
 | `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once; must be a positive integer |
 | `--no-cache` | none | off (cache on) | bypass the local [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) for this run |
+| `--include-human` | none | off | also retranslate stale keys whose value a person wrote, imported, or changed outside verbatra, for this run only (`humanEdits: "overwrite"`); [pinned keys](/docs/protecting-human-translations#pinning-keys) stay untouched |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the run summary under `result` (the [`RunSummary` shape](/docs/sdk)), or the error code on a failed run; the human-readable error line still goes to stderr |
 | `--estimate` | none | off | estimate what the run would send and what it would cost, then exit without calling a provider; implies `--dry-run`, so no API key is needed |
 
@@ -57,6 +58,9 @@ verbatra translate --locales de
 
 # size and price the run without spending anything
 verbatra translate --estimate
+
+# also retranslate stale keys a person wrote
+verbatra translate --include-human
 ```
 
 ## Exit codes
@@ -73,6 +77,10 @@ verbatra translate --estimate
 One locale failing is not fatal: the run finishes, exits `1`, and the per-locale detail sits in the summary. A **partial** locale exits `1` as well. That is a locale whose file was written but still has keys missing, typically because a provider sub-batch failed or the integrity gate refused a translation, and shipping it as a success would leave a half-translated file in your repository unnoticed.
 
 Exit `3` only happens in a [human-only](/docs/human-only-workflow) project. No provider is called there: keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and left untouched. A failed or partial locale still wins and exits `1`. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+
+<AvailableFrom version="0.12.0" />
+
+Stale keys whose value a person wrote, imported, or changed outside verbatra are kept by default: they are listed as `protected`, are not sent to the provider, and stay stale for `verbatra check`. A line on stderr says how many were left. They do not change the exit code, except in a human-only project, where they count toward exit `3` like `unfilled` keys. `--include-human` retranslates them for one run. See [Protecting human translations](/docs/protecting-human-translations).
 
 <AvailableFrom version="0.12.0" />
 

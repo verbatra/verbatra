@@ -26,6 +26,7 @@ function succeededLocale(): LocaleSummary {
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
   };

@@ -303,6 +303,10 @@ if (retry.accepted) {
 
 Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
 
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` lève `KEY_PROTECTED` pour une valeur écrite, importée ou modifiée hors de verbatra par une personne, sauf si tu passes `includeHuman: true`, et `KEY_PINNED` pour une clé qui correspond aux `pinnedKeys` de la config, que `editEntry` lève aussi avec `actor: "agent"`. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+
 ## Lire toutes les valeurs en bloc
 
 <AvailableFrom version="0.10.0" />

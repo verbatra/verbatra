@@ -321,6 +321,13 @@ An unknown locale or key throws `UNKNOWN_LOCALE` or `UNKNOWN_KEY`, and `retransl
 the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails. See
 [Review in Studio](/docs/review-in-studio) for the same seams behind a UI.
 
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` throws `KEY_PROTECTED` for a value a person wrote, imported, or changed outside
+verbatra, unless you pass `includeHuman: true`, and `KEY_PINNED` for a key matching the config's
+`pinnedKeys`, which `editEntry` also throws for `actor: "agent"`. See
+[Protecting human translations](/docs/protecting-human-translations).
+
 ## Read every value in bulk
 
 <AvailableFrom version="0.10.0" />

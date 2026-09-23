@@ -33,6 +33,7 @@ Einige Randfälle, die du kennen solltest:
 - `export` hat keinen Fehlermodus pro Locale: Der Befehl endet mit `0` oder `2`, nie mit `1`.
 - `doctor` liest eine kaputte Konfiguration anders als jeder andere Befehl: Eine Konfiguration, die die Suche nicht findet, oder eine, die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung und Exit `1`, denn genau das zu melden ist die Aufgabe des Befehls. Exit `2` gibt es nur, wenn er überhaupt nicht laufen kann, etwa bei einem explizit angegebenen `--config`-Pfad, der nicht existiert.
 - Ein Fehlermodus liegt außerhalb des Vertrags: ein Parse-Fehler, der kein Verwendungsfehler ist, wird weitergeworfen, und das Binary fängt ihn nicht ab. Damit greift Nodes Standardverhalten für eine unbehandelte Rejection statt eines der fünf Codes.
+- Ein [geschützter](/docs/protecting-human-translations) Key (ein veralteter Wert, den ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, oder ein gepinnter Key) ändert den Exit-Code von `translate` in einem Projekt mit Provider nicht: Der Befehl endet mit `0` und sagt auf stderr, wie viele Keys er übrig gelassen hat. `check` endet dafür trotzdem mit `1`, weil der Key veraltet bleibt, bis ein Mensch ihn auflöst. In einem rein menschlichen Projekt zählt er zum Exit `3`.
 
 ## check oder diff: das Gate wählen
 

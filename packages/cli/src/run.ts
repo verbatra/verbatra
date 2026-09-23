@@ -77,6 +77,7 @@ const translateOptsSchema = sharedCommandOptsSchema.extend({
   concurrency: z.string().optional(),
   cache: z.boolean().optional(),
   estimate: z.boolean().optional(),
+  includeHuman: z.boolean().optional(),
 });
 
 const watchOptsSchema = sharedCommandOptsSchema.extend({
@@ -196,13 +197,22 @@ function runExitCode(summary: {
 
 const NEEDS_HUMAN_EXIT_CODE = 3;
 
-function unfilledKeyCount(summary: RunSummary): number {
-  return summary.locales.reduce((total, locale) => total + locale.unfilled.length, 0);
+function protectedKeyCount(summary: RunSummary): number {
+  return summary.locales.reduce((total, locale) => total + locale.protected.length, 0);
 }
 
-function translateExitCode(summary: RunSummary): number {
+function needsHumanKeyCount(config: TranslateInput["config"], summary: RunSummary): number {
+  const unfilled = summary.locales.reduce((total, locale) => total + locale.unfilled.length, 0);
+  return isMachineTranslationEnabled(config) ? unfilled : unfilled + protectedKeyCount(summary);
+}
+
+function translateExitCode(config: TranslateInput["config"], summary: RunSummary): number {
   const code = runExitCode(summary);
-  return code === 0 && unfilledKeyCount(summary) > 0 ? NEEDS_HUMAN_EXIT_CODE : code;
+  return code === 0 && needsHumanKeyCount(config, summary) > 0 ? NEEDS_HUMAN_EXIT_CODE : code;
+}
+
+function keysPhrase(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function renderNeedsHumanHint(
@@ -210,12 +220,26 @@ function renderNeedsHumanHint(
   summary: RunSummary,
   streams: Streams,
 ): void {
-  const count = unfilledKeyCount(summary);
-  if (isMachineTranslationEnabled(config) || count === 0) {
+  if (isMachineTranslationEnabled(config)) {
+    renderProtectedHint(summary, streams);
+    return;
+  }
+  const count = needsHumanKeyCount(config, summary);
+  if (count === 0) {
     return;
   }
   streams.err(
-    `verbatra: machine translation is disabled by policy; ${count} ${count === 1 ? "key needs" : "keys need"} a human translation (hand them off with verbatra export)\n`,
+    `verbatra: machine translation is disabled by policy; ${keysPhrase(count, "key needs", "keys need")} a human translation (hand them off with verbatra export)\n`,
+  );
+}
+
+function renderProtectedHint(summary: RunSummary, streams: Streams): void {
+  const count = protectedKeyCount(summary);
+  if (count === 0) {
+    return;
+  }
+  streams.err(
+    `verbatra: ${keysPhrase(count, "protected key was", "protected keys were")} left for a person to review (hand them off with verbatra export, or retranslate with --include-human)\n`,
   );
 }
 
@@ -439,6 +463,7 @@ function buildTranslateInput(
     ...(opts.concurrencyValue !== undefined ? { concurrency: opts.concurrencyValue } : {}),
     ...(opts.cache === false ? { cache: false } : {}),
     ...(opts.estimate === true ? { estimate: true } : {}),
+    ...(opts.includeHuman === true ? { humanEdits: "overwrite" as const } : {}),
   };
 }
 
@@ -466,7 +491,7 @@ export async function runTranslate(
               : `${renderHuman(summary)}\n`,
           );
           renderNeedsHumanHint(config, summary, streams);
-          return translateExitCode(summary);
+          return translateExitCode(config, summary);
         },
         () => loadEnvFiles(cwd),
       );
@@ -930,6 +955,10 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "--no-cache",
       "bypass the local translation-memory cache (verbatra.cache.json) for this run",
     )
+    .option(
+      "--include-human",
+      "also retranslate stale keys a person wrote or imported (humanEdits: overwrite for this run)",
+    )
     .option("--json", "print the run summary as JSON")
     .option(
       "--estimate",
@@ -950,6 +979,11 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra translate --prune --dry-run  preview the keys that would be pruned",
         "  $ verbatra translate --json          machine-readable summary on stdout",
         "  $ verbatra translate --estimate      size and price the run without spending anything",
+        "  $ verbatra translate --include-human retranslate stale keys a person wrote, too",
+        "",
+        "Stale keys a person wrote or imported are kept and reported as protected, unless the",
+        'config sets humanEdits: "overwrite" or --include-human is passed. pinnedKeys are never',
+        "machine-translated.",
         "",
         'With provider "none", keys are filled from the translation memory only; the run exits 3',
         "when any key still needs a human translation.",
