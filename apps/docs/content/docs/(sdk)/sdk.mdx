@@ -824,7 +824,7 @@ The parts worth knowing:
   translation at import time (whether it was exported as `new` or as `changed`), a workbook row the
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
-  import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no entry for.
+  import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no exact entry for, and **fuzzyHits** stays empty because fuzzy reuse is never applied there.
 
 ### budgetStanding
 

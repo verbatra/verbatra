@@ -110,6 +110,7 @@ export const verbatraConfigSchema = z
  */
 export type VerbatraConfigInput = z.input<typeof verbatraConfigSchema>;
 
+/** A config after schema parsing and before glossary resolution, with every default filled in. */
 export type ParsedVerbatraConfig = z.infer<typeof verbatraConfigSchema>;
 
 /**
