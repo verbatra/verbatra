@@ -69,7 +69,7 @@ describe("gateCandidateValue: placeholder-only formats", () => {
       adapter,
       "de",
     );
-    expect(result).toEqual({ accepted: false, reason: "placeholder" });
+    expect(result).toEqual({ accepted: false, reason: "placeholder", details: ["-{{name}}"] });
   });
 
   it("always accepts message validity for a non-ICU format regardless of content", () => {
@@ -91,7 +91,7 @@ describe("gateCandidateValue: ICU-capable formats (branch-aware comparePlacehold
     const source = entry("{count, plural, one {# item} other {# items}}", ["{count}"]);
     const candidate = "{count, plural, one {# item} other {# items by {author}}}";
     const result = gateCandidateValue(source, candidate, adapter, "de");
-    expect(result).toEqual({ accepted: false, reason: "placeholder" });
+    expect(result).toEqual({ accepted: false, reason: "placeholder", details: ["+{author}"] });
   });
 
   it("accepts a well-formed ICU candidate whose branch-aware placeholders match", () => {
@@ -137,7 +137,7 @@ describe("gateCandidateValue: an empty candidate for a non-empty source", () => 
 
   it("keeps reporting placeholder for an empty candidate whose source carries a placeholder", () => {
     const result = gateCandidateValue(entry("Hello {{name}}", ["{{name}}"]), "", adapter, "de");
-    expect(result).toEqual({ accepted: false, reason: "placeholder" });
+    expect(result).toEqual({ accepted: false, reason: "placeholder", details: ["-{{name}}"] });
   });
 });
 

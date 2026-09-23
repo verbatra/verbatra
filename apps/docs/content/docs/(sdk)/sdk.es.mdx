@@ -456,8 +456,9 @@ escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un orige
 una edición no puede expresar el vaciado de una clave, así que usa para eso el centinela `[[CLEAR]]`
 del libro. El conjunto de motivos se publica como la tupla `INTEGRITY_GATE_REASONS`, así que
 construye cualquier esquema en tiempo de ejecución o tabla exhaustiva a partir de ella en lugar de
-reescribir sus miembros. Un rechazo `markup` lleva además `details`, las etiquetas causantes, cada
-una con `-` si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+reescribir sus miembros. Un rechazo `placeholder` o `markup` lleva además
+`details`: los marcadores o etiquetas causantes, cada uno con `-` si el origen lo tenía y la
+candidata lo perdió o `+` si la candidata lo inventó.
 
 El valor escrito queda registrado en `verbatra.provenance.json` con el origen `human`. Pasa
 `actor: "agent"` cuando lo escribió un agente de IA, para que el registro lo diga; lo afirma la

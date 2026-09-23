@@ -465,9 +465,9 @@ wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitesp
 für eine Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze
 dafür also das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
 `INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
-daraus, statt die Mitglieder abzutippen. Eine `markup`-Ablehnung trägt zusätzlich `details`, die
-betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat,
-oder `+` für eines, das der Kandidat erfunden hat.
+daraus, statt die Mitglieder abzutippen. Eine `placeholder`- oder `markup`-Ablehnung trägt
+zusätzlich `details`: die betroffenen Platzhalter oder Tags, jeweils mit `-` für einen, den die
+Quelle hatte und der Kandidat weggelassen hat, oder `+` für einen, den der Kandidat erfunden hat.
 
 Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten.
 Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die

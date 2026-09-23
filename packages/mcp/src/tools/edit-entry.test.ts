@@ -48,8 +48,13 @@ describe("translation.editEntry", () => {
 
     expect(outcome).toEqual({
       kind: "ok",
-      result: { accepted: false, reason: "placeholder", value: "Hallo" },
-      structuredContent: { accepted: false, reason: "placeholder", value: "Hallo" },
+      result: { accepted: false, reason: "placeholder", details: ["-{{name}}"], value: "Hallo" },
+      structuredContent: {
+        accepted: false,
+        reason: "placeholder",
+        details: ["-{{name}}"],
+        value: "Hallo",
+      },
     });
   });
 

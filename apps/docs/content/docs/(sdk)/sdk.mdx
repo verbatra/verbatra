@@ -430,9 +430,9 @@ Input: `{ config, cwd?, locale, key, value }`. Returns a two-armed result:
 nothing written. `"empty"` covers an empty or whitespace-only value for a source that has text: an
 edit cannot express clearing a key, so use the workbook's `[[CLEAR]]` sentinel for that. The reason
 set is published as the `INTEGRITY_GATE_REASONS` tuple, so build any runtime schema or exhaustive
-lookup from it rather than retyping the members. A `markup` refusal also carries `details`, the tags
-behind it, each prefixed with `-` for one the source had and the candidate dropped or `+` for one
-the candidate invented.
+lookup from it rather than retyping the members. A `placeholder` or `markup` refusal also carries
+`details`: the placeholders or tags behind it, each prefixed with `-` for one the source had and
+the candidate dropped or `+` for one the candidate invented.
 
 The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
 `actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface

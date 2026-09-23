@@ -3,11 +3,7 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import {
-  comparePlaceholdersWith,
-  gateCandidateValue,
-  type IntegrityGateReason,
-} from "./integrity-gate.js";
+import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
 import { planPluralGeneration } from "./plural-categories.js";
 
 /**
@@ -146,30 +142,20 @@ function addedPluralFormPairs(
   return pairs;
 }
 
-function placeholderDetails(context: QaContext, pair: QaPair): readonly string[] {
-  const result = comparePlaceholdersWith(pair.sourceEntry, pair.value, context.adapter);
-  return [
-    ...result.missing.map((placeholder) => `-${placeholder}`),
-    ...result.extra.map((placeholder) => `+${placeholder}`),
-  ];
-}
-
 function integrityFinding(
-  context: QaContext,
-  pair: QaPair,
+  key: string,
   reason: IntegrityGateReason,
-  gateDetails: readonly string[] | undefined,
+  details: readonly string[] | undefined,
 ): QaIntegrityFinding {
-  const details = reason === "placeholder" ? placeholderDetails(context, pair) : gateDetails;
   return details !== undefined && details.length > 0
-    ? { key: pair.key, severity: "error", reason, details }
-    : { key: pair.key, severity: "error", reason };
+    ? { key, severity: "error", reason, details }
+    : { key, severity: "error", reason };
 }
 
 function findingsFor(context: QaContext, locale: string, pair: QaPair): readonly QaFinding[] {
   const gate = gateCandidateValue(pair.sourceEntry, pair.value, context.adapter, locale);
   if (!gate.accepted) {
-    return [integrityFinding(context, pair, gate.reason, gate.details)];
+    return [integrityFinding(pair.key, gate.reason, gate.details)];
   }
   if (context.severity === "error") {
     return [];
@@ -187,7 +173,7 @@ function findingsFor(context: QaContext, locale: string, pair: QaPair): readonly
 }
 
 function byKey(a: QaPair, b: QaPair): number {
-  return a.key < b.key ? -1 : 1;
+  return a.key.localeCompare(b.key);
 }
 
 export function qaLocale(

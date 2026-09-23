@@ -21,7 +21,9 @@ import { pluralCategoryLookupFor } from "./plural-rules.js";
  * - `placeholder`: the candidate does not carry the same placeholders as the source, so
  *   interpolation would break at runtime. For the double-brace formats (i18next, ngx-translate, and
  *   YAML) this also covers a single-brace `{name}`-shaped token the candidate invented and the
- *   source never had, which is a fabrication whichever interpolation delimiters the project uses.
+ *   source never had, which is a fabrication whichever interpolation delimiters the project uses. The
+ *   refusal's `details` names each placeholder the candidate dropped, prefixed with `-`, and each
+ *   one it added, prefixed with `+`.
  * - `markup`: the candidate does not carry the same inline HTML or XML tags as the source, or it
  *   carries them unbalanced, mis-nested, or newly nested inside another tag of the same name, any
  *   of which breaks the rendering of the string the way a dropped placeholder breaks its
@@ -132,15 +134,11 @@ function branchArmProblems(
   );
 }
 
-export function comparePlaceholdersWith(
-  sourceEntry: TranslationEntry,
-  candidateValue: string,
-  adapter: FormatAdapter,
-): PlaceholderIntegrityResult {
-  return (
-    adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
-    checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue))
-  );
+function placeholderDetails(result: PlaceholderIntegrityResult): readonly string[] {
+  return [
+    ...result.missing.map((placeholder) => `-${placeholder}`),
+    ...result.extra.map((placeholder) => `+${placeholder}`),
+  ];
 }
 
 export function gateCandidateValue(
@@ -149,9 +147,14 @@ export function gateCandidateValue(
   adapter: FormatAdapter,
   targetLocale: string | undefined,
 ): IntegrityGateResult {
-  const placeholderResult = comparePlaceholdersWith(sourceEntry, candidateValue, adapter);
+  const placeholderResult =
+    adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
+    checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue));
   if (!placeholderResult.matches) {
-    return { accepted: false, reason: "placeholder" };
+    const details = placeholderDetails(placeholderResult);
+    return details.length > 0
+      ? { accepted: false, reason: "placeholder", details }
+      : { accepted: false, reason: "placeholder" };
   }
   const markup = judgeEntryMarkup(sourceEntry, candidateValue);
   if (!markup.matches) {

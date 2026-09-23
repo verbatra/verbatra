@@ -12,3 +12,7 @@ committed target value, keyless and without writing anything, and reports each g
 error and each review reason as a warning, per locale and key. It exits `1` on an error, and on a
 warning too with `--strict`; `--severity error` reports errors only. The SDK's `check` takes
 `qa` and `qaSeverity` and returns the report on each locale and the totals on the summary.
+
+A `placeholder` refusal from the integrity gate now carries `details` too, naming each dropped
+placeholder with `-` and each invented one with `+`, so `editEntry` and `retranslateEntry` report
+it the way they already report `markup`.

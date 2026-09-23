@@ -51,7 +51,7 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     const adapter = createXliffAdapter();
     const source = entryFor(adapter, 'Hello <g id="1">world</g>');
     const result = gateCandidateValue(source, "Hallo Welt", adapter, "de");
-    expect(result).toEqual({ accepted: false, reason: "placeholder" });
+    expect(result).toEqual({ accepted: false, reason: "placeholder", details: ['-<g id="1">'] });
   });
 
   it("accepts an XLIFF value whose inline element survives, with no markup opinion of its own", () => {
@@ -127,6 +127,7 @@ describe("gateCandidateValue: a format whose adapter already tokenises its own i
     expect(gateCandidateValue(source, "Lies die Doku und das", adapter, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ['-<g id="1">'],
     });
   });
 
@@ -443,18 +444,19 @@ describe("the markup gate covers every registered format", () => {
   });
 
   it.each([
-    ["xliff", 'Read <g id="1">the docs</g>'],
-    ["next-intl-json", "Read <b>the docs</b>"],
-    ["arb", "Read <b>the docs</b>"],
+    ["xliff", 'Read <g id="1">the docs</g>', '-<g id="1">'],
+    ["next-intl-json", "Read <b>the docs</b>", "-<b>"],
+    ["arb", "Read <b>the docs</b>", "-<b>"],
   ] as const)(
     "%s reports a dropped tag it tokenises itself as a placeholder, never twice",
-    (format, sourceValue) => {
+    (format, sourceValue, detail) => {
       const adapter = adapterFor(format);
       const source = entryFor(adapter, sourceValue);
       expect(source.placeholders.some((token) => token.startsWith("<"))).toBe(true);
       expect(gateCandidateValue(source, "Lies die Doku", adapter, "de")).toEqual({
         accepted: false,
         reason: "placeholder",
+        details: [detail],
       });
     },
   );
@@ -659,7 +661,7 @@ describe("the tags behind a refusal reach the single-key write paths", () => {
     });
   });
 
-  it("editEntry carries no details for a reason that has no tag to name", async () => {
+  it("editEntry carries the dropped placeholder behind a placeholder refusal", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, "locales"));
     await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello {{name}}" });
@@ -670,7 +672,12 @@ describe("the tags behind a refusal reach the single-key write paths", () => {
       key: "greeting",
       value: "Hallo",
     });
-    expect(result).toEqual({ accepted: false, reason: "placeholder", value: "Hallo" });
+    expect(result).toEqual({
+      accepted: false,
+      reason: "placeholder",
+      details: ["-{{name}}"],
+      value: "Hallo",
+    });
   });
 });
 

@@ -85,11 +85,14 @@ export type RetranslateEntryResult =
       /** Which integrity rule the provider's value broke. */
       readonly reason: IntegrityGateReason;
       /**
-       * The specific tags behind a `markup` refusal, each prefixed with `-` for one the source had
-       * and the candidate dropped or `+` for one the candidate invented. A candidate carrying more
-       * than twice its source's inline tags and constructs is named as `+more than N inline tags`
-       * instead, where N is at least 256. Absent when no single tag is at fault, such as markup
-       * that came back mis-nested, and absent for every other reason.
+       * What is behind a `placeholder`, `markup`, or `icu` refusal. For `placeholder`, each
+       * placeholder the source had and the candidate dropped, prefixed with `-`, then each one the
+       * candidate invented, prefixed with `+`. For `markup`, the specific tags in the same notation;
+       * a candidate carrying more than twice its source's inline tags and constructs is named as
+       * `+more than N inline tags` instead, where N is at least 256, and the field is absent when no
+       * single tag is at fault, such as markup that came back mis-nested. For `icu`, each branch arm
+       * that does not fit the target language, absent when the message itself is invalid. Absent
+       * for every other reason.
        */
       readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */

@@ -81,6 +81,7 @@ describe.each([
     expect(gateCandidateValue(EN, candidate, adapter, "ru")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ["+{x}"],
     });
   });
 });
