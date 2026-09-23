@@ -601,3 +601,20 @@ describe("doctor: it reports every independent problem and spends nothing", () =
     ]);
   });
 });
+
+describe("doctor: human-only mode", () => {
+  it("passes the provider and key checks, reporting machine translation disabled by policy", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", undefined);
+    await writeConfig(validConfig({ provider: { id: "none" } }));
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    expect(result.ok).toBe(true);
+    expect(statusOf(result, "provider")).toBe("pass");
+    expect(detailOf(result, "provider")).toContain("Machine translation disabled by policy");
+    expect(statusOf(result, "api-key")).toBe("pass");
+    expect(detailOf(result, "api-key")).toContain("No API key is needed");
+    expect(providerFactoryCalls).toEqual([]);
+  });
+});

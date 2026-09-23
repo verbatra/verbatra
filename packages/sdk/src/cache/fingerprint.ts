@@ -4,6 +4,9 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { sortRecordKeys } from "../record-utils.js";
 
 function fingerprintModel(provider: ProviderConfig): string | null {
+  if (!("options" in provider)) {
+    return null;
+  }
   const options: Record<string, unknown> = provider.options;
   const model = options.model;
   return typeof model === "string" ? model : null;

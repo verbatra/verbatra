@@ -23,6 +23,13 @@ describe("computeFingerprint", () => {
     expect(computeFingerprint(a)).not.toBe(computeFingerprint(b));
   });
 
+  it("gives human-only mode its own stable fingerprint, with no model to read", () => {
+    const none = cfg({ provider: { id: "none" } });
+    expect(computeFingerprint(none)).toMatch(/^[0-9a-f]{16}$/);
+    expect(computeFingerprint(none)).toBe(computeFingerprint(cfg({ provider: { id: "none" } })));
+    expect(computeFingerprint(none)).not.toBe(computeFingerprint(cfg()));
+  });
+
   it("changes when the provider id changes", () => {
     const anthropic = cfg();
     const deepl = cfg({ provider: { id: "deepl", options: {} } });

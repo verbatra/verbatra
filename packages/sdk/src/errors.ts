@@ -34,6 +34,12 @@
  * - `PROVIDER_CONSTRUCTION_FAILED`: the provider factory threw. Wraps the provider's own error,
  *   including a missing `*_API_KEY` environment variable. Thrown by a non-dry-run
  *   {@link translate} and by {@link retranslateEntry}.
+ * - `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`, so machine
+ *   translation is disabled by policy and a provider-spending action was refused before any
+ *   provider was constructed or any API key read. Thrown by {@link retranslateEntry} and by
+ *   {@link assertMachineTranslationEnabled}. {@link translate} and {@link watch} do not throw it:
+ *   in human-only mode they fill from the translation memory alone and report every other key as
+ *   `unfilled` on its {@link LocaleSummary}.
  * - `SOURCE_UNREADABLE`: the source locale file is absent. Thrown by every entry point that reads
  *   the source, including {@link importWorkbook}, and by {@link watch} at startup.
  *   {@link importWorkbook} and {@link importTmx} additionally throw it when the handoff or TMX file
@@ -114,6 +120,7 @@ export type SdkErrorCode =
   | "UNKNOWN_LOCALE"
   | "UNKNOWN_KEY"
   | "PROVIDER_CONSTRUCTION_FAILED"
+  | "MACHINE_TRANSLATION_DISABLED"
   | "SOURCE_UNREADABLE"
   | "SOURCE_INVALID"
   | "LOCK_FILE_INVALID"

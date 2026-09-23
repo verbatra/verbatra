@@ -117,7 +117,7 @@ describe("provider model authoring suggestions (type-level)", () => {
       files: { pattern: "locales/{locale}.json" },
       provider: { id: "anthropic", options: { model: "claude-opus-4-8", maxTokens: 256 } },
     });
-    expect(config.provider.options).toMatchObject({ model: "claude-opus-4-8" });
+    expect(config.provider).toMatchObject({ options: { model: "claude-opus-4-8" } });
   });
 
   it("defineConfig rejects a foreign provider's model at author time (type error)", () => {
@@ -152,6 +152,9 @@ describe("an unknown model still loads at runtime and reaches provider construct
         provider: { id: "anthropic", options: { model: "some-future-model-2099", maxTokens: 8 } },
       }),
     });
-    expect(config.provider.options).toEqual({ model: "some-future-model-2099", maxTokens: 8 });
+    expect(config.provider).toEqual({
+      id: "anthropic",
+      options: { model: "some-future-model-2099", maxTokens: 8 },
+    });
   });
 });

@@ -4,7 +4,11 @@ import { PROVIDER_IDS } from "./provider-config.js";
 
 describe("PROVIDER_BILLING", () => {
   it("addresses every provider id, so a new provider cannot ship without a billing decision", () => {
-    expect(Object.keys(PROVIDER_BILLING).sort()).toEqual([...PROVIDER_IDS].sort());
+    expect(Object.keys(PROVIDER_BILLING).sort()).toEqual([...PROVIDER_IDS, "none"].sort());
+  });
+
+  it("records that nothing bills human-only mode, which sends nothing anywhere", () => {
+    expect(billingFor("none").billedByApi).toBe(false);
   });
 
   it("bills the two machine-translation providers by source characters", () => {
@@ -33,6 +37,7 @@ describe("modelOf", () => {
   it("reports no model for a provider whose config has no model field", () => {
     expect(modelOf({ id: "deepl", options: {} })).toBeUndefined();
     expect(modelOf({ id: "google-translate", options: {} })).toBeUndefined();
+    expect(modelOf({ id: "none" })).toBeUndefined();
   });
 });
 

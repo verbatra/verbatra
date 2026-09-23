@@ -68,7 +68,8 @@ export interface LocaleRunParams {
   readonly baseline: ReadonlyMap<string, string>;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
-  readonly providerKind: ProviderKind;
+  readonly providerKind: ProviderKind | undefined;
+  readonly memoryOnly?: boolean;
   readonly cwd: string;
   readonly resolver: LocalePathResolver;
   readonly sourceLocale: string;
@@ -413,7 +414,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
 
   const provider = params.provider;
-  if (provider === undefined) {
+  if (provider === undefined && params.memoryOnly !== true) {
     const planned = plannedGenerationKeys(params, new Set(target.entries.keys()));
     const projected = [...target.entries.keys(), ...toTranslate, ...planned].filter(
       (key) => !pruned.includes(key),
@@ -453,17 +454,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
-  const translation = await translateAndCheck(
-    provider,
-    params,
-    entries,
-    accepted,
-    integrityMismatches,
-    providerFailures,
-    budgetWithheld,
-    reviewFlags,
-  );
-  fanOutContentDuplicates(params, missGroups, {
+  const unfilled = unfilledKeys(provider, partition);
+  const translation = await translateMisses(provider, params, missGroups, entries, {
     accepted,
     integrityMismatches,
     providerFailures,
@@ -525,6 +517,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...generation.providerFailures,
     ...budgetWithheld,
     ...fuzzyKeys,
+    ...unfilled,
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {
@@ -544,6 +537,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
       pruned,
       notices,
+      unfilled,
       needsReview: needsReviewFor(accepted.keys(), reviewFlags),
       ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
     }),
@@ -588,10 +582,10 @@ function plannedGenerationKeys(
 
 async function runGeneration(
   params: LocaleRunParams,
-  provider: TranslationProvider,
+  provider: TranslationProvider | undefined,
   targetKeys: ReadonlySet<string>,
 ): Promise<PluralGenerationResult> {
-  if (!generationEnabled(params)) {
+  if (provider === undefined || !generationEnabled(params)) {
     return NO_GENERATION_RESULT;
   }
   return generatePluralForms({
@@ -661,6 +655,7 @@ interface SummaryParts {
   readonly notices: readonly LocaleNotice[];
   readonly usage?: UsageSummary;
   readonly needsReview?: readonly NeedsReviewEntry[];
+  readonly unfilled?: readonly string[];
 }
 
 function baseSummary(parts: SummaryParts): LocaleSummary {
@@ -680,7 +675,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     generated: parts.generated,
     notices: parts.notices,
     needsReview: parts.needsReview ?? [],
-    unfilled: [],
+    unfilled: parts.unfilled ?? [],
     malformedRows: [],
     duplicateKeys: [],
     ...(parts.usage !== undefined ? { usage: parts.usage } : {}),
@@ -707,6 +702,45 @@ interface TranslateAndCheckResult {
   readonly refusedProjection: number | undefined;
   readonly counted: boolean;
   readonly usage: UsageSummary | undefined;
+}
+
+const NO_TRANSLATION: TranslateAndCheckResult = {
+  notices: [],
+  withheldByBudget: false,
+  refusedProjection: undefined,
+  counted: false,
+  usage: undefined,
+};
+
+function unfilledKeys(
+  provider: TranslationProvider | undefined,
+  partition: CachePartition,
+): readonly string[] {
+  return provider === undefined ? [...partition.misses].sort() : [];
+}
+
+async function translateMisses(
+  provider: TranslationProvider | undefined,
+  params: LocaleRunParams,
+  missGroups: readonly MissGroup[],
+  entries: readonly TranslationEntry[],
+  outcome: TranslationOutcome,
+): Promise<TranslateAndCheckResult> {
+  if (provider === undefined) {
+    return NO_TRANSLATION;
+  }
+  const translation = await translateAndCheck(
+    provider,
+    params,
+    entries,
+    outcome.accepted,
+    outcome.integrityMismatches,
+    outcome.providerFailures,
+    outcome.budgetWithheld,
+    outcome.reviewFlags,
+  );
+  fanOutContentDuplicates(params, missGroups, outcome);
+  return translation;
 }
 
 async function translateAndCheck(

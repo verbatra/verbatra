@@ -11,6 +11,7 @@ import {
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import { toMaxLengthMap } from "../config/max-length.js";
+import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
@@ -220,7 +221,8 @@ interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
   readonly provider: TranslationProvider | undefined;
-  readonly providerKind: ProviderKind;
+  readonly providerKind: ProviderKind | undefined;
+  readonly humanOnly: boolean;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -273,13 +275,18 @@ function buildLocaleRunParams(
   };
 }
 
+function asHumanOnlyPlan(summary: LocaleSummary): LocaleSummary {
+  return { ...summary, translated: [], unfilled: [...summary.translated].sort() };
+}
+
 async function runDryLocale(
   context: LocaleRunContext,
   targetLocale: string,
   lock: LockFile,
 ): Promise<LocaleSummary> {
   const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
-  return (await runLocale(params)).summary;
+  const { summary } = await runLocale(params);
+  return context.humanOnly ? asHumanOnlyPlan(summary) : summary;
 }
 
 async function runLiveLocale(
@@ -299,7 +306,7 @@ async function runLiveLocale(
     async () => {
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
       const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
-      const result = await runLocale(params);
+      const result = await runLocale({ ...params, memoryOnly: context.humanOnly });
       await updateLockFileLocale(context.cwd, context.fs, targetLocale, {
         mode: "replace",
         entries: result.lockEntries,
@@ -476,6 +483,30 @@ export function resolveDryRun(input: {
   return input.dryRun === true || input.estimate === true;
 }
 
+type RunProviderSelection = Pick<LocaleRunContext, "provider" | "providerKind" | "humanOnly">;
+
+const HUMAN_ONLY_SELECTION: RunProviderSelection = {
+  provider: undefined,
+  providerKind: undefined,
+  humanOnly: true,
+};
+
+function selectRunProvider(
+  config: VerbatraConfig,
+  dryRun: boolean,
+  createProvider: CreateProvider | undefined,
+): RunProviderSelection {
+  const machineProvider = isMachineProvider(config.provider) ? config.provider : undefined;
+  if (machineProvider === undefined) {
+    return HUMAN_ONLY_SELECTION;
+  }
+  return {
+    provider: dryRun ? undefined : selectProvider(machineProvider, createProvider),
+    providerKind: kindOf(machineProvider.id),
+    humanOnly: false,
+  };
+}
+
 function estimateFields(
   requested: boolean,
   params: EstimateForRunInput,
@@ -512,6 +543,14 @@ function estimateFields(
  * refused rather than written, leaving the previous value intact.
  *
  * Set `dryRun` to compute the whole plan without writing or spending anything.
+ *
+ * A config whose provider is `none` runs in human-only mode. No provider is constructed and no API
+ * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written
+ * as usual; every other missing or stale key is left untouched, keeps its lock-file baseline, and is
+ * listed in {@link LocaleSummary.unfilled} for a human to translate, through `exportWorkbook` and
+ * {@link importWorkbook} for instance. Such keys do not change a locale's status. A human-only dry
+ * run reads no memory, so it lists every key a live run would look up as `unfilled`, and an
+ * estimate reports nothing to send and nothing billed.
  *
  * @param input - The config and the per-run options.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
@@ -578,15 +617,14 @@ export async function translate(
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const provider = dryRun ? undefined : selectProvider(config.provider, deps.createProvider);
+  const selection = selectRunProvider(config, dryRun, deps.createProvider);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
   const context: LocaleRunContext = {
     source,
     adapter,
-    provider,
-    providerKind: kindOf(config.provider.id),
+    ...selection,
     cwd,
     config,
     resolver,

@@ -3,6 +3,7 @@ import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { assertMachineTranslationEnabled } from "../config/machine-translation.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
@@ -113,6 +114,8 @@ export type RetranslateEntryResult =
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
  * @returns Whether the new value was accepted, with review reasons or the rejection reason.
  *
+ * @throws {@link SdkError} `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`.
+ * Thrown first, before anything is read, locked, or constructed.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -142,6 +145,7 @@ export async function retranslateEntry(
   deps: RetranslateEntryDeps = {},
 ): Promise<RetranslateEntryResult> {
   const config = input.config;
+  assertMachineTranslationEnabled(config, "retranslating a key");
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);

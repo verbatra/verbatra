@@ -378,3 +378,25 @@ describe("retranslateEntry: the token budget does not reach this path", () => {
     expect(stub.calls).toHaveLength(1);
   });
 });
+
+describe("retranslateEntry: human-only mode", () => {
+  it("refuses with MACHINE_TRANSLATION_DISABLED before constructing a provider or writing", async () => {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const factoryCalls: string[] = [];
+
+    const error = await retranslateEntry(
+      { config: cfg({ provider: { id: "none" } }), cwd: dir, locale: "de", key: "greeting" },
+      {
+        createProvider: (config) => {
+          factoryCalls.push(config.id);
+          return makeStubProvider().provider;
+        },
+      },
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("MACHINE_TRANSLATION_DISABLED");
+    expect(factoryCalls).toEqual([]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
+  });
+});

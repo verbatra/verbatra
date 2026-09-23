@@ -24,10 +24,10 @@ describe("scaffoldingMetadata", () => {
     });
   });
 
-  it("covers every ProviderId in providerEnv except openai-compatible", () => {
+  it("covers every ProviderId in providerEnv except openai-compatible and none", () => {
     const providerIds = providerConfigSchema.options
       .map((variant) => variant.shape.id.value as ProviderId)
-      .filter((id) => id !== "openai-compatible");
+      .filter((id) => id !== "openai-compatible" && id !== "none");
     for (const id of providerIds) {
       const envVar = scaffoldingMetadata.providerEnv[id as ScaffoldableProviderId];
       expect(envVar).toBeTypeOf("string");
@@ -40,6 +40,12 @@ describe("scaffoldingMetadata", () => {
     const providerIds = providerConfigSchema.options.map((variant) => variant.shape.id.value);
     expect(providerIds).toContain("openai-compatible");
     expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("openai-compatible");
+  });
+
+  it("omits none: human-only mode reads no API key at all", () => {
+    const providerIds = providerConfigSchema.options.map((variant) => variant.shape.id.value);
+    expect(providerIds).toContain("none");
+    expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("none");
   });
 
   it("exposes the three LLM scaffold models (DeepL omitted)", () => {

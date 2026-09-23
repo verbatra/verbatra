@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SdkError } from "../errors.js";
 import {
   buildProvider,
   hasProviderFactory,
@@ -111,14 +112,37 @@ describe("buildProvider: google-translate", () => {
 });
 
 describe("hasProviderFactory: membership without construction", () => {
-  it("answers true for every id the schema accepts, so the two can never drift apart", () => {
+  it("answers true for every id the schema accepts but none, so the two can never drift apart", () => {
     const ids = providerConfigSchema.options.map((option) => option.shape.id.value);
-    expect(ids.filter((id) => !hasProviderFactory(id))).toEqual([]);
-    expect(ids.sort()).toEqual([...PROVIDER_IDS].sort());
+    expect(ids.filter((id) => !hasProviderFactory(id))).toEqual(["none"]);
+    expect(ids.filter((id) => id !== "none").sort()).toEqual([...PROVIDER_IDS].sort());
   });
 
   it("answers false for an id no factory is registered under", () => {
     expect(hasProviderFactory("mistral")).toBe(false);
     expect(hasProviderFactory("toString")).toBe(false);
+  });
+});
+
+describe("providerConfigSchema: none", () => {
+  it("accepts a bare none provider", () => {
+    expect(providerConfigSchema.safeParse({ id: "none" }).success).toBe(true);
+  });
+
+  it("rejects options on none, since human-only mode has nothing to configure", () => {
+    expect(providerConfigSchema.safeParse({ id: "none", options: {} }).success).toBe(false);
+  });
+});
+
+describe("buildProvider: none", () => {
+  it("refuses with MACHINE_TRANSLATION_DISABLED instead of reaching a factory", () => {
+    let caught: unknown;
+    try {
+      buildProvider({ id: "none" });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(SdkError);
+    expect(caught).toMatchObject({ code: "MACHINE_TRANSLATION_DISABLED" });
   });
 });
