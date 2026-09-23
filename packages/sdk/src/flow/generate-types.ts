@@ -12,7 +12,12 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
-import { type ReservedPath, reservedPathAt, reservedProjectPaths } from "./reserved-output.js";
+import {
+  namesNoFile,
+  type ReservedPath,
+  reservedPathAt,
+  reservedProjectPaths,
+} from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
   type DeclaredMessage,
@@ -150,7 +155,7 @@ function resolveOutputPath(
   reserved: ReadonlyMap<string, ReservedPath>,
 ): string {
   const requested = out ?? DEFAULT_TYPES_PATH;
-  if (requested.trim() === "") {
+  if (namesNoFile(requested)) {
     refuseOutput(requested, "names-no-file", "names no file.");
   }
   if (isAbsolute(requested)) {

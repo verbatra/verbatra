@@ -1,5 +1,5 @@
 import { chmod, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CACHE_FILE_NAME } from "../../cache/translation-memory.js";
 import { CONFIG_SEARCH_PLACES } from "../../config/load-config.js";
@@ -79,6 +79,20 @@ describe("exportTmx: an output path outside the working directory", () => {
       ).rejects.toMatchObject({ code: "TMX_OUTPUT_CONFLICT" });
       expect(counting.reads()).toBe(0);
       expect(await readdir(dir)).not.toContain("escaped.tmx");
+    },
+  );
+
+  it.each(["out/", "memory.tmx/", `out${sep}`])(
+    "refuses %j, which ends in a path separator and so names no file",
+    async (out) => {
+      const dir = await seed();
+
+      await expect(exportTmx({ config: cfg(), cwd: dir, out })).rejects.toMatchObject({
+        code: "TMX_OUTPUT_CONFLICT",
+        message: expect.stringContaining("names no file."),
+      });
+      expect(await readdir(dir)).not.toContain("memory.tmx");
+      expect(await readdir(dir)).not.toContain("out");
     },
   );
 

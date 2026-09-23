@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
 import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -61,4 +61,8 @@ export function reservedPathAt(
   path: string,
 ): ReservedPath | undefined {
   return reserved.get(path.toLowerCase());
+}
+
+export function namesNoFile(requested: string): boolean {
+  return requested.trim() === "" || requested.endsWith("/") || requested.endsWith(sep);
 }

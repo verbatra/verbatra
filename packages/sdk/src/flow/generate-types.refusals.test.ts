@@ -64,3 +64,14 @@ describe("every refusal the output guard declares", () => {
     });
   });
 });
+
+describe("an output path ending in a path separator", () => {
+  it.each(["types.d.ts/", "generated/"])("names no file: %j", async (out) => {
+    const dir = await seed();
+
+    await expect(generateTypes({ config: baseConfig(), cwd: dir, out })).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+      message: expect.stringContaining("names no file."),
+    });
+  });
+});

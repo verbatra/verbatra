@@ -13,7 +13,12 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
-import { type ReservedPath, reservedPathAt, reservedProjectPaths } from "../reserved-output.js";
+import {
+  namesNoFile,
+  type ReservedPath,
+  reservedPathAt,
+  reservedProjectPaths,
+} from "../reserved-output.js";
 import { selectLocales } from "../select-locales.js";
 import { escapesWorkingDirectory, unwritableFileMessage } from "../write-target.js";
 import { assertDistinctLocales } from "./locale-match.js";
@@ -148,7 +153,7 @@ function resolveOutputPath(
   reserved: ReadonlyMap<string, ReservedPath>,
 ): string {
   const requested = out ?? DEFAULT_TMX_PATH;
-  if (requested.trim() === "") {
+  if (namesNoFile(requested)) {
     refuseOutput(requested, "names no file.");
   }
   const outputPath = resolve(cwd, requested);
