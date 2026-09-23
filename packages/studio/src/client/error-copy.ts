@@ -17,6 +17,16 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   LOCK_FILE_INVALID: "The lock file is missing, corrupt, or at an unsupported version.",
   PROVENANCE_FILE_INVALID:
     "verbatra.provenance.json is corrupt, oversized, or not shaped as verbatra expects, so nothing was written. Restore it from version control and try again.",
+  PROVENANCE_FILE_UNWRITABLE:
+    "The decision was not saved: verbatra.provenance.json was written by a newer verbatra, or saving the decision would make it too large. Nothing was changed.",
+  REVIEW_VALUE_CHANGED:
+    "This translation changed since the queue was loaded, so nothing was saved. Look at the current value and decide again.",
+  REVIEW_SOURCE_CHANGED:
+    "The source text changed since this translation was written, so it cannot be approved as it stands. Edit it to confirm it against the new source.",
+  REVIEW_RESTORE_FAILED:
+    "The rejection failed partway and the files could not be put back. Restore the locale file and verbatra.provenance.json from version control.",
+  REVIEW_REJECT_UNSUPPORTED:
+    "This project's file format cannot drop a single translation, so the file was left as it was. Edit the translation instead.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
   UNKNOWN_KEY: "The requested key was not found in the source resource. It may have been removed.",
   KEY_PROTECTED:

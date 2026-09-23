@@ -4,8 +4,14 @@ import { describe, expect, it } from "vitest";
 import { SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir, readTextFile } from "../test-support.js";
-import { baselineFor, lockFilePath, readLockFile, updateLockFileLocale } from "./lock-file.js";
-import { PROVENANCE_FILE_NAME } from "./provenance-file.js";
+import {
+  baselineFor,
+  lockFilePath,
+  readLockFile,
+  updateLockFileLocale,
+  updateLockFileLocaleUnguarded,
+} from "./lock-file.js";
+import { PROVENANCE_FILE_NAME, valueHash } from "./provenance-file.js";
 
 const NO_PROVENANCE = { records: new Map() };
 
@@ -348,5 +354,63 @@ describe("updateLockFileLocale: the internal lock-file guard serializes concurre
     const final = JSON.parse(content) as { locales: Record<string, Record<string, string>> };
     expect(final.locales.de).toEqual({ greeting: "hde" });
     expect(final.locales.fr).toEqual({ greeting: "hfr" });
+  });
+});
+
+describe("updateLockFileLocale: remove mode", () => {
+  it("drops the named keys and keeps the rest of the locale", async () => {
+    const dir = await makeTempDir();
+    await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      { mode: "merge", entries: { a: "1", b: "2" } },
+      { records: new Map() },
+    );
+
+    const { lock } = await updateLockFileLocale(
+      dir,
+      defaultFs,
+      "de",
+      { mode: "remove", keys: ["a", "missing"] },
+      { records: new Map() },
+    );
+
+    expect(lock.locales.de).toEqual({ b: "2" });
+  });
+});
+
+describe("updateLockFileLocaleUnguarded: a required provenance record", () => {
+  it("fails before writing the lock when the provenance file is from a newer verbatra", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, PROVENANCE_FILE_NAME), JSON.stringify({ version: 9, locales: {} }));
+
+    await expect(
+      updateLockFileLocaleUnguarded(
+        dir,
+        defaultFs,
+        "de",
+        { mode: "merge", entries: { a: "1" } },
+        { records: new Map([["a", { origin: "human", valueHash: valueHash("x") }]]) },
+        { requireProvenance: true },
+      ),
+    ).rejects.toMatchObject({ code: "PROVENANCE_FILE_UNWRITABLE" });
+    expect(await readdir(dir)).not.toContain("verbatra.lock.json");
+  });
+
+  it("writes the lock anyway when the record is not required", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, PROVENANCE_FILE_NAME), JSON.stringify({ version: 9, locales: {} }));
+
+    const update = await updateLockFileLocaleUnguarded(
+      dir,
+      defaultFs,
+      "de",
+      { mode: "merge", entries: { a: "1" } },
+      { records: new Map([["a", { origin: "human", valueHash: valueHash("x") }]]) },
+    );
+
+    expect(update.provenance).toBe("newer-version");
+    expect(await readdir(dir)).toContain("verbatra.lock.json");
   });
 });

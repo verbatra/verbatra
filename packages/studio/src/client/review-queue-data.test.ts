@@ -3,6 +3,7 @@ import { createReviewOverlayStore } from "./review-overlay.js";
 import {
   flattenReviewQueue,
   type ReviewQueueData,
+  reviewedValueFor,
   toReviewQueueOutcome,
   visibleReviewQueueRows,
 } from "./review-queue-data.js";
@@ -102,5 +103,21 @@ describe("toReviewQueueOutcome", () => {
       error: { code: "SESSION_EXPIRED", message: "expired" },
     });
     expect(outcome).toEqual({ ok: false, error: { code: "SESSION_EXPIRED", message: "expired" } });
+  });
+});
+
+describe("reviewedValueFor", () => {
+  const values = new Map([
+    ["de\tgreeting", { source: "Hello", target: "Hallo" }],
+    ["de\tfarewell", { source: "Bye" }],
+  ]);
+
+  it("returns the translation the row's locale holds for its key", () => {
+    expect(reviewedValueFor(values, { locale: "de", key: "greeting" })).toBe("Hallo");
+  });
+
+  it("returns nothing for a key without a translation or a row with no loaded value", () => {
+    expect(reviewedValueFor(values, { locale: "de", key: "farewell" })).toBeUndefined();
+    expect(reviewedValueFor(values, { locale: "fr", key: "greeting" })).toBeUndefined();
   });
 });

@@ -9,6 +9,7 @@ import {
   CACHE_FILE_NAME,
   CURRENT_CACHE_VERSION,
   cacheFilePath,
+  evictMemoryValue,
   feedTranslationMemory,
   lookupMemory,
   lookupSource,
@@ -304,6 +305,74 @@ describe("feedTranslationMemory", () => {
     await expect(
       feedTranslationMemory("/x", fs, "fp1", new Map([["de", added("h3", "Neu", "New")]])),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("evictMemoryValue", () => {
+  function storing(initial: string): { fs: ReturnType<typeof makeFakeFs>; read: () => string } {
+    let stored = initial;
+    const fs = makeFakeFs({
+      readFileBounded: async () => okRead(stored),
+      writeFile: async (_path, data) => {
+        stored = data;
+      },
+    });
+    return { fs, read: () => stored };
+  }
+
+  it("drops the matching value under every fingerprint and keeps everything else", async () => {
+    const store = storing(
+      JSON.stringify(
+        memory({
+          fp1: { de: { h1: "Hallo", h2: "Tschuss" }, fr: { h1: "Hallo" } },
+          fp2: { de: { h1: "Hallo" } },
+          fp3: { de: { h1: "Servus" } },
+          fp4: { fr: { h9: "Salut" } },
+        }),
+      ),
+    );
+
+    await evictMemoryValue("/x", store.fs, "de", "h1", (value) => value === "Hallo");
+
+    expect((JSON.parse(store.read()) as TranslationMemory).entries).toEqual({
+      fp1: { de: { h2: "Tschuss" }, fr: { h1: "Hallo" } },
+      fp2: { de: {} },
+      fp3: { de: { h1: "Servus" } },
+      fp4: { fr: { h9: "Salut" } },
+    });
+  });
+
+  it("writes nothing when no entry matches", async () => {
+    const writeFile = vi.fn(async () => {});
+    const fs = makeFakeFs({
+      readFileBounded: async () => okRead(JSON.stringify(SAMPLE)),
+      writeFile,
+    });
+
+    await evictMemoryValue("/x", fs, "de", "h1", () => false);
+
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("leaves a memory from a newer version untouched", async () => {
+    const writeFile = vi.fn(async () => {});
+    const newer = JSON.stringify({ ...SAMPLE, version: CURRENT_CACHE_VERSION + 1 });
+    const fs = makeFakeFs({ readFileBounded: async () => okRead(newer), writeFile });
+
+    await evictMemoryValue("/x", fs, "de", "h1", () => true);
+
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("swallows a write failure so a cache problem never propagates", async () => {
+    const fs = makeFakeFs({
+      readFileBounded: async () => okRead(JSON.stringify(SAMPLE)),
+      writeFile: async () => {
+        throw new Error("disk full");
+      },
+    });
+
+    await expect(evictMemoryValue("/x", fs, "de", "h1", () => true)).resolves.toBeUndefined();
   });
 });
 

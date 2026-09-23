@@ -163,6 +163,39 @@ Keys behält sie stillschweigend. Der Eintrag sagt, welcher Schreibweg
 von verbatra einen Wert erzeugt hat; fälschungssicher ist er nicht, denn wer die Locale-Dateien
 bearbeiten kann, kann auch ihn bearbeiten.
 
+### Review-Entscheidungen
+
+<AvailableFrom version="0.12.0" />
+
+Ein Eintrag kann auch eine Review-Entscheidung tragen: `approved` oder `rejected`, optional mit dem
+Namen unter `reviewer`. Die Seite Review in Verbatra Studio schreibt sie, ebenso `approveEntry` und
+`rejectEntry` aus dem SDK. Beide beziehen sich auf genau den Wert, den die prüfende Person gesehen
+hat, und werden abgelehnt, wenn sich der Wert seitdem geändert hat. Keine der beiden meldet eine
+Entscheidung als gespeichert, die sich nicht festhalten ließ: Eine Provenance-Datei aus einer
+neueren verbatra-Version, oder eine, die durch die Entscheidung über die Größe wachsen würde, die
+verbatra wieder einliest, lässt den Aufruf mit `PROVENANCE_FILE_UNWRITABLE` scheitern, und nichts
+ändert sich.
+
+- **Eine Freigabe** ändert nur die Provenance-Datei. Sie speichert zusätzlich den Hash des
+  Quelltexts, gegen den sie erteilt wurde, sodass eine Freigabe wieder als ungeprüft gilt, wenn
+  sich der Quelltext seitdem geändert hat. Einen Wert, dessen Quelle sich seit dem Schreiben
+  geändert hat, kannst du nicht freigeben; bearbeite ihn oder übersetze ihn vorher neu.
+- **Eine Ablehnung** entfernt den Wert aus der Locale-Datei und seinen Eintrag aus der Lock-Datei,
+  sodass der Key als fehlend gilt, bis der nächste Lauf von `translate` oder eine Person einen neuen
+  Wert schreibt. Der Eintrag bleibt mit einem Hash des entfernten Texts bestehen, und der passende
+  Eintrag im Translation Memory auf diesem Rechner wird gelöscht, damit der nächste Lauf denselben
+  Text nicht gleich wieder einsetzt. Schlägt ein Schritt fehl, werden
+  Locale-Datei und Provenance-Datei bei einem Fehler wiederhergestellt; scheitert auch das, meldet der
+  Aufruf `REVIEW_RESTORE_FAILED` und nennt die Dateien, die du aus der Versionskontrolle holst. Ein
+  Prozess, der mitten im Schreiben beendet wird, lässt sich so nicht rückgängig machen. Ein Format, das keine einzelne Übersetzung entfernen kann, lehnt die
+  Ablehnung mit `REVIEW_REJECT_UNSUPPORTED` ab und lässt die Datei unverändert: XLIFF, wo eine Unit
+  ohne Target als ihr Quelltext gelesen wird, und Flutter ARB, dessen Writer jede vorhandene
+  Nachricht behält.
+
+Jeder spätere Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag. Wenn
+du einen freigegebenen Wert bearbeitest, geht er also zurück ins Review. Der Name unter `reviewer`
+landet in einer committeten Datei und ist damit öffentlich; verbatra füllt ihn nie selbst aus.
+
 ## Committe sie
 
 Committe `verbatra.lock.json` und `verbatra.provenance.json` zusammen mit deinen Locale-Dateien. Diese Datei ist die gemeinsame

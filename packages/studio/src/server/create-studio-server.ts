@@ -5,6 +5,7 @@ import { declareProviderKeyEnvVar, type LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
 import { resolveCapabilities } from "./capabilities.js";
@@ -34,6 +35,8 @@ const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_MAX = 5;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
 function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
   return createRpcRateLimiter({
@@ -55,12 +58,31 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
         options.glossaryWriteRateLimitWindowMs ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.glossaryWriteRateLimitMax ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX,
     },
+    [REVIEW_APPROVE_METHOD]: reviewDecisionLimit(options),
+    [REVIEW_REJECT_METHOD]: reviewDecisionLimit(options),
   });
+}
+
+function reviewDecisionLimit(options: StudioServerOptions): {
+  readonly windowMs: number;
+  readonly maxCalls: number;
+} {
+  return {
+    windowMs:
+      options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
+    maxCalls: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
+  };
 }
 
 function buildInFlightGuard(): RpcInFlightGuard {
   return createRpcInFlightGuard(
-    new Set([TRANSLATE_PENDING_METHOD, RETRANSLATE_ENTRY_METHOD, EDIT_ENTRY_METHOD]),
+    new Set([
+      TRANSLATE_PENDING_METHOD,
+      RETRANSLATE_ENTRY_METHOD,
+      EDIT_ENTRY_METHOD,
+      REVIEW_APPROVE_METHOD,
+      REVIEW_REJECT_METHOD,
+    ]),
   );
 }
 

@@ -25,7 +25,7 @@ describe("ReviewRowActions", () => {
     expect(view.all("button").map((button) => button.textContent)).toEqual([
       "Edit",
       "Approve",
-      "Reject",
+      "Reject…",
     ]);
   });
 
@@ -55,7 +55,7 @@ describe("ReviewRowActions", () => {
     const spies = handlers();
     const view = render(<ReviewRowActions {...spies} />);
 
-    click(view.getByText("button", "Reject"));
+    click(view.getByText("button", "Reject…"));
 
     expect(spies.onReject).toHaveBeenCalledTimes(1);
     expect(spies.onApprove).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe("ReviewRowActions", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
     expect(view.getByText("button", "Approve").className).toContain("text-success");
-    expect(view.getByText("button", "Reject").className).toContain("text-danger");
+    expect(view.getByText("button", "Reject…").className).toContain("text-danger");
   });
 
   it("uses non-submitting buttons, since a review row can sit inside a form", () => {
@@ -75,5 +75,34 @@ describe("ReviewRowActions", () => {
     for (const button of view.all("button")) {
       expect(button.getAttribute("type")).toBe("button");
     }
+  });
+
+  it("disables approve and reject, never edit, while no decision can be made", () => {
+    const spies = handlers();
+    const view = render(<ReviewRowActions {...spies} decisionDisabled />);
+
+    click(view.getByText("button", "Approve"));
+    click(view.getByText("button", "Reject…"));
+    click(view.getByText("button", "Edit"));
+
+    expect(spies.onApprove).not.toHaveBeenCalled();
+    expect(spies.onReject).not.toHaveBeenCalled();
+    expect(spies.onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables every action and announces the pending decision while a row is busy", () => {
+    const spies = handlers();
+    const view = render(<ReviewRowActions {...spies} pendingLabel="Approving…" />);
+
+    for (const name of ["Edit", "Approve", "Reject…"]) {
+      expect((view.getByText("button", name) as HTMLButtonElement).disabled).toBe(true);
+    }
+    expect(view.get('[role="status"]').textContent).toBe("Approving…");
+  });
+
+  it("wraps its actions onto a new line in a narrow cell", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(view.get("span").className).toContain("flex-wrap");
   });
 });

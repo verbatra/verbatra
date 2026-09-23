@@ -74,10 +74,16 @@ Les raisons liées au budget de longueur et à la réutilisation du cache porten
 Filtre par locale, ou par sous-chaîne de la clé, du texte source ou du texte cible d'une ligne ; la barre de filtre compte les entrées correspondantes au fil de la saisie, et quand rien ne correspond, **Clear filters** réinitialise les deux. Puis traite les lignes :
 
 - **Edit** ouvre le même éditeur protégé par la barrière d'intégrité que la page Translations. Une modification acceptée retire la ligne de la file.
-- **Approve** écarte la ligne comme "vue, très bien telle quelle".
-- **Reject** écarte la ligne aussi ; associe-la à une modification ou une retraduction quand la valeur doit vraiment changer.
+- **Approve** enregistre que tu as regardé la valeur et que tu l'acceptes telle quelle.
+- **Reject** supprime la valeur pour qu'elle soit remplacée ; Studio te demande d'abord de confirmer.
 
-Approve et Reject ne masquent la ligne que dans la mémoire de l'onglet ouvert et n'écrivent rien sur le disque : la ligne reste masquée à travers les rafraîchissements en direct, mais recharger l'onglet la fait revenir. Les façons durables d'effacer un signalement sont de corriger la valeur ou de relancer une traduction.
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Les deux décisions sont enregistrées dans [`verbatra.provenance.json`](/docs/the-lock-file#décisions-de-revue) : elles survivent à un rechargement et parviennent à ton équipe dès que tu commites le fichier. La file ne liste que les entrées sur lesquelles personne n'a encore tranché : une ligne en sort dès que sa valeur est approuvée, rejetée ou réécrite par une personne (une modification faite via les outils d'agent reste listée, car elle a encore besoin du regard d'une personne). Une ligne au-dessus du tableau confirme chaque décision enregistrée.
+
+Chaque ligne affiche la traduction actuelle sous la clé (survole-la pour voir le texte complet), et chaque décision porte exactement sur ce texte. Si la valeur a changé depuis le chargement de la page, par exemple parce qu'une exécution l'a réécrite, la décision est refusée et rien n'est enregistré ; regarde la valeur actuelle et décide à nouveau. Pour approuver, la valeur doit aussi être à jour avec son texte source : après une modification de la source, corrige ou retraduis la valeur.
+
+Reject supprime la traduction du fichier de locale et retire son entrée du [fichier de verrouillage](/docs/the-lock-file), si bien que la clé compte comme manquante : `verbatra check` la signale, et la prochaine exécution de `verbatra translate` ou **Translate pending changes across all locales** la remplit à nouveau. D'ici là, ton application affiche sa valeur de repli pour cette clé. Avec le fournisseur `none`, la clé reste manquante jusqu'à ce que quelqu'un écrive une nouvelle valeur. Le texte rejeté est aussi retiré de la mémoire de traduction de cette machine, pour que la prochaine exécution ne le remette pas aussitôt. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; si un rejet échoue en cours de route, Studio restaure les fichiers en cas d'échec. Un format qui ne peut pas supprimer une seule traduction, XLIFF ou Flutter ARB, refuse le rejet et laisse le fichier tel quel ; modifie plutôt la valeur.
 
 Les signalements de révision sont consultatifs, distincts de la barrière d'intégrité stricte ; voir [Sûreté de la traduction](/docs/translation-safety) pour la signification de chaque raison.
 
