@@ -92,7 +92,7 @@
         },
         "languages": {
           "question": "¿Qué idiomas admite verbatra?",
-          "answer": "Cualquier idioma que admita tu proveedor. verbatra acepta cualquier código de locale BCP 47 válido, como pt-BR, sr-Latn o zh-Hant, y lee las reglas de plural de CLDR, así que cada idioma que cubre CLDR recibe las formas de plural correctas. DeepL y Google Cloud Translation tienen listas de idiomas fijas; los proveedores LLM, ninguna. La página de <languages>soporte de idiomas</languages> enlaza la lista de cada proveedor y cubre escrituras, variantes regionales y texto de derecha a izquierda."
+          "answer": "Cualquier idioma que admita tu proveedor. verbatra acepta cualquier código de locale BCP 47 válido, como pt-BR, sr-Latn o zh-Hant, y comprueba las formas de plural con las reglas de plural de CLDR de cada idioma. DeepL y Google Cloud Translation tienen listas de idiomas fijas; los proveedores LLM, ninguna. La página de <languages>soporte de idiomas</languages> enlaza la lista de cada proveedor y cubre escrituras, variantes regionales y texto de derecha a izquierda."
         },
         "formats": {
           "question": "¿Qué formatos y frameworks soporta verbatra?",

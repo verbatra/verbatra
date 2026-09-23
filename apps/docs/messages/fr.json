@@ -92,7 +92,7 @@
         },
         "languages": {
           "question": "Quelles langues verbatra prend-il en charge ?",
-          "answer": "Toutes celles que ton fournisseur prend en charge. verbatra accepte n'importe quel code de locale BCP 47 valide, comme pt-BR, sr-Latn ou zh-Hant, et lit les règles de pluriel dans CLDR, donc chaque langue couverte par CLDR reçoit les bonnes formes de pluriel. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n'en ont pas. La page <languages>Prise en charge des langues</languages> renvoie vers la liste de chaque fournisseur et couvre les écritures, les variantes régionales et le texte de droite à gauche."
+          "answer": "Toutes celles que ton fournisseur prend en charge. verbatra accepte n'importe quel code de locale BCP 47 valide, comme pt-BR, sr-Latn ou zh-Hant, et contrôle les formes de pluriel selon les règles de pluriel CLDR de chaque langue. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n'en ont pas. La page <languages>Prise en charge des langues</languages> renvoie vers la liste de chaque fournisseur et couvre les écritures, les variantes régionales et le texte de droite à gauche."
         },
         "formats": {
           "question": "Quels formats et frameworks verbatra prend-il en charge ?",

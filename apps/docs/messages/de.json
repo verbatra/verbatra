@@ -92,7 +92,7 @@
         },
         "languages": {
           "question": "Welche Sprachen unterstützt verbatra?",
-          "answer": "Jede Sprache, die dein Provider unterstützt. verbatra akzeptiert jeden gültigen BCP-47-Locale-Code, etwa pt-BR, sr-Latn oder zh-Hant, und liest die Pluralregeln aus CLDR, sodass jede Sprache, die CLDR abdeckt, die richtigen Pluralformen bekommt. DeepL und Google Cloud Translation haben feste Sprachlisten, die LLM-Provider keine. Die Seite <languages>Sprachunterstützung</languages> verlinkt die Liste jedes Anbieters und behandelt Schriften, regionale Varianten und Rechts-nach-links-Text."
+          "answer": "Jede Sprache, die dein Provider unterstützt. verbatra akzeptiert jeden gültigen BCP-47-Locale-Code, etwa pt-BR, sr-Latn oder zh-Hant, und prüft Pluralformen gegen die CLDR-Pluralregeln der jeweiligen Sprache. DeepL und Google Cloud Translation haben feste Sprachlisten, die LLM-Provider keine. Die Seite <languages>Sprachunterstützung</languages> verlinkt die Liste jedes Anbieters und behandelt Schriften, regionale Varianten und Rechts-nach-links-Text."
         },
         "formats": {
           "question": "Welche Formate und Frameworks unterstützt verbatra?",
