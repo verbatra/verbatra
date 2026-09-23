@@ -207,18 +207,21 @@ Bereichs werden mit ihren Argumenten in `unresolved` deklariert, statt still als
 gelten. Plural-Geschwister werden nie zusammengefasst: Jedes wird für sich deklariert, und die vom
 Adapter als Plural markierten werden aufgelistet.
 
-Eingabe: `{ config, cwd?, out?, configPath?, check? }`. `out` fällt auf `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben wird, weist
-`TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt, absolut ist, mit `..` aus `cwd`
-herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte
-Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, in der verbatra nach seiner
-Konfiguration sucht, oder `configPath` benennt, die Konfigurationsdatei, aus der `config` geladen
-wurde; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen. Ein generierender Lauf
-weist mit demselben Code außerdem zurück, eine bestehende Datei zu ersetzen, die nicht mit der
-Kopfzeile beginnt, die verbatra schreibt, und lässt diese Datei unangetastet. Die vollständige Liste
-steht auf der Seite zu [`verbatra types`](/docs/cli/types). Mit gesetztem `check` wird überhaupt
-nichts geschrieben, nichts wegen seines Inhalts zurückgewiesen, und der Lauf meldet nur, ob die
-committete Datei noch passt, und genau das braucht ein CI-Gate.
+Eingabe: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` fällt auf
+`DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben
+wird, weist `TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf
+ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`,
+`.mts` oder `.cts` endet, und eines, das eine konfigurierte Locale-Datei, die Lock-Datei, den
+Übersetzungsspeicher-Cache, eine Datei, in der verbatra nach seiner Konfiguration sucht,
+`configPath`, die Konfigurationsdatei, aus der `config` geladen wurde, oder `glossaryPath` benennt,
+die Glossardatei, auf die sie zeigt; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung
+verglichen, und wenn `deps.fs` `realpath` implementiert, wie es die Voreinstellung tut, laufen
+dieselben Prüfungen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links
+landet. Ein generierender Lauf weist mit demselben Code außerdem zurück, eine bestehende Datei zu
+ersetzen, die nicht mit der Kopfzeile beginnt, die verbatra schreibt, und lässt diese Datei
+unangetastet. Die vollständige Liste steht auf der Seite zu [`verbatra types`](/docs/cli/types). Mit
+gesetztem `check` wird überhaupt nichts geschrieben, nichts wegen seines Inhalts zurückgewiesen, und
+der Lauf meldet nur, ob die committete Datei noch passt, und genau das braucht ein CI-Gate.
 
 Gibt ein `GenerateTypesResult` zurück: den absoluten `path`, den `sourcePath`, aus dem es gebaut
 wurde, wie viele `keys` deklariert wurden und wie viele davon mindestens ein Argument nehmen, das
@@ -579,22 +582,25 @@ try {
 ### exportTmx
 
 Schreibt den Übersetzungsspeicher als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, configPath?,
-locales?, toolVersion? }`, wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`) zurückfällt,
-das als Konstante exportiert wird. Bevor der Übersetzungsspeicher gelesen wird, weist
-`TMX_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt, außerhalb von `cwd` oder auf `cwd`
-selbst landet oder eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache,
-eine Datei, nach der verbatra seine Konfiguration sucht, oder die `configPath`-Datei benennt, ohne
-Beachtung der Groß- und Kleinschreibung. Scheitert das Schreiben, weil das Verzeichnis nicht
-schreibbar ist, an dem Pfad ein Verzeichnis liegt oder die Platte voll ist, wirft es
-`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Message. Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe
-Menge, die ein Lauf wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US`
-wird zu `en-US`), was nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein
-leerer Übersetzungsspeicher ergibt eine gültige, leere Datei statt eines Fehlers. Gibt
-`{ path, units, locales, withoutSource, illegalCharactersRemoved }` zurück; `withoutSource` zählt
-Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was
-nur bei Einträgen aus einem Cache passiert, der noch vor
-dem Speichern des Quelltexts geschrieben wurde, und `illegalCharactersRemoved` zählt die Zeichen,
-die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
+glossaryPath?, locales?, toolVersion? }`, wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`)
+zurückfällt, das als Konstante exportiert wird. Bevor der Übersetzungsspeicher gelesen wird, weist
+`TMX_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf ein
+Pfadtrennzeichen endet), außerhalb von `cwd` oder auf `cwd` selbst landet oder eine konfigurierte
+Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine
+Konfiguration sucht, die `configPath`-Datei oder die `glossaryPath`-Datei benennt, ohne Beachtung
+der Groß- und Kleinschreibung und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung,
+noch einmal nach dem Auflösen symbolischer Links. Scheitert das Schreiben, weil das Verzeichnis
+nicht schreibbar ist, an dem Pfad ein Verzeichnis liegt oder die Platte voll ist, wirft es
+`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Message. Geschrieben werden nur
+Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe Menge, die ein Lauf
+wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US` wird zu `en-US`), was
+nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein leerer
+Übersetzungsspeicher ergibt eine gültige, leere Datei statt eines Fehlers. Gibt `{ path, units,
+locales, withoutSource, illegalCharactersRemoved }` zurück; `withoutSource` zählt Einträge, die
+ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei
+Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, und
+`illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem
+Segmenttext entfernt wurden.
 
 ## Konfiguration
 
@@ -776,6 +782,12 @@ eines Verzeichnisses als `{ name, kind }` auf, wobei `kind` `"file"`, `"director
 ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und genau das hält ihn
 innerhalb der übergebenen Roots.
 
+`realpath` ist ebenfalls optional. Es löst jeden symbolischen Link in einem bestehenden Pfad auf,
+und die Ausgabe-Guards von [`generateTypes`](#generatetypes) und [`exportTmx`](#exporttmx) sehen
+damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
+hinaus noch auf eine Datei tragen kann, von der das Projekt abhängt. Ohne es vergleichen diese
+Guards die Pfade so, wie sie geschrieben sind.
+
 Das Einzige, was `deps.fs` nicht erreicht, ist eine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
@@ -910,9 +922,9 @@ geworfen.
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
 | `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt, absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, oder die geladene Konfigurationsdatei benennt; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
-| `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll) |
-| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, oder die geladene Konfigurationsdatei benennt; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
+| `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
 | `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 

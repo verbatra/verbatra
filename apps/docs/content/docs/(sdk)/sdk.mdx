@@ -188,16 +188,19 @@ and one whose placeholder index is out of range are declared with their argument
 `unresolved` rather than silently declared as taking none. Plural siblings are never collapsed: each
 is declared on its own, and the ones the adapter marked plural are listed.
 
-Input: `{ config, cwd?, out?, configPath?, check? }`. `out` defaults to `DEFAULT_TYPES_PATH`
-(`verbatra-types.d.ts`). Before anything is read or written, `TYPES_OUTPUT_CONFLICT` refuses an
-`out` that names no file, is absolute, climbs out of `cwd` with `..`, or does not end in `.ts`,
-`.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory
-cache, a file verbatra searches for its configuration, or `configPath`, the configuration file
-`config` was loaded from; names are compared case-insensitively. A generating run also refuses, with
-the same code, to replace an existing file that does not begin with the header line verbatra writes,
-and leaves that file untouched. The full list is on the [`verbatra types`](/docs/cli/types) page.
-With `check` set nothing is written at all, nothing is refused for its content, and the run only
-reports whether the committed file still matches, which is the shape a CI gate wants.
+Input: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` defaults to
+`DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Before anything is read or written,
+`TYPES_OUTPUT_CONFLICT` refuses an `out` that names no file (including one ending in a path
+separator), is absolute, climbs out of `cwd` with `..`, or does not end in `.ts`, `.mts` or `.cts`,
+and one naming a configured locale file, the lock file, the translation-memory cache, a file
+verbatra searches for its configuration, `configPath`, the configuration file `config` was loaded
+from, or `glossaryPath`, the glossary file it names; names are compared case-insensitively, and when
+`deps.fs` implements `realpath`, as the default does, the same checks run again on where the path
+lands once symbolic links are resolved. A generating run also refuses, with the same code, to
+replace an existing file that does not begin with the header line verbatra writes, and leaves that
+file untouched. The full list is on the [`verbatra types`](/docs/cli/types) page. With `check` set
+nothing is written at all, nothing is refused for its content, and the run only reports whether the
+committed file still matches, which is the shape a CI gate wants.
 
 Returns a `GenerateTypesResult`: the absolute `path`, the `sourcePath` it was built from, how many
 `keys` were declared and how many of those take at least one argument verbatra could determine
@@ -529,21 +532,23 @@ try {
 
 ### exportTmx
 
-Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, locales?,
-toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exported as a
-constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names no file,
-resolves outside `cwd` or to `cwd` itself, or names a configured locale file, the lock file, the
-translation-memory cache, a file verbatra searches for its configuration, or the `configPath` file,
-compared case-insensitively. A write that fails, because the directory is not writable, a directory
+Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, glossaryPath?,
+locales?, toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`),
+exported as a constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names
+no file (including one ending in a path separator), resolves outside `cwd` or to `cwd` itself, or
+names a configured locale file, the lock file, the translation-memory cache, a file verbatra
+searches for its configuration, the `configPath` file, or the `glossaryPath` file, compared
+case-insensitively and, when `deps.fs` implements `realpath` as the default does, again after
+symbolic links are resolved. A write that fails, because the directory is not writable, a directory
 sits at that path, or the disk is full, throws `TMX_UNWRITABLE` naming the file and the file-system
-code. Only entries
-under the current configuration fingerprint are written, which is the same set a run would reuse.
-Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not change how the
-memory is keyed. An empty memory produces a valid, empty file rather than an error. Returns `{ path,
-units, locales, withoutSource, illegalCharactersRemoved }`; `withoutSource` counts entries left out
-because the memory holds no source text for them, which happens only for entries carried forward
-from a cache written before the memory stored source text, and `illegalCharactersRemoved` counts the
-characters XML 1.0 cannot represent that were removed from segment text.
+code. Only entries under the current configuration fingerprint are written, which is the same set a
+run would reuse. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not
+change how the memory is keyed. An empty memory produces a valid, empty file rather than an error.
+Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved }`; `withoutSource` counts
+entries left out because the memory holds no source text for them, which happens only for entries
+carried forward from a cache written before the memory stored source text, and
+`illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from
+segment text.
 
 ## Config
 
@@ -711,6 +716,11 @@ compiling. [`extract`](#extract) is the only entry point that needs it, and repo
 `kind` is `"file"`, `"directory"`, or `"other"`. A symbolic link belongs in `"other"`: the scan
 never follows one, which is what keeps it inside the roots it was given.
 
+`realpath` is optional too. It resolves every symbolic link in an existing path, and the output
+guards of [`generateTypes`](#generatetypes) and [`exportTmx`](#exporttmx) use it to see where an
+output path really lands, so a link cannot carry a written file outside `cwd` or onto a file the
+project depends on. Without it, those guards compare paths as written.
+
 The one thing `deps.fs` cannot reach is a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
 Supplying both means the caller owns that wiring.
@@ -839,9 +849,9 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |
 | `EXTRACT_NOT_CONFIGURED` | `extract` was called with a config that carries no `extract` block |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file, is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run loaded; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
-| `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space) |
-| `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, or the config file the run loaded; refused before the memory is read |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
+| `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space); the message names the file and the file-system code |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read |
 | `TMX_UNWRITABLE` | the TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
