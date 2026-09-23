@@ -142,6 +142,8 @@ verbatra translate --locales de --max-tokens 40000
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
 Ein Agent bekommt dieselben zwei Schritte. Das Tool `translation.estimate` des MCP-Servers und `verbatra_translation_estimate` in [Studios Agent-Tools](/docs/agent-tools-in-studio) liefern genau das, was `translate --estimate --json` ausgibt, optional für eine Teilmenge der `locales`, und rufen nie einen Provider auf. Sie stehen auch dann zur Verfügung, wenn Ausgaben nicht erlaubt sind. `translation.translatePending` nimmt danach dieselben `locales` und eine `maxTokens`-Obergrenze. Siehe [`verbatra mcp`](/docs/cli/mcp#erst-schätzen-dann-ausgeben).
 
 ## Ein durchgerechnetes Beispiel

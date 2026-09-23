@@ -53,6 +53,7 @@ const UNTRUSTED_TOOLS = [
   "translation.editEntry",
   "translation.retranslateEntry",
   "translation.translatePending",
+  "translation.estimate",
   "glossary.write",
 ] as const;
 
@@ -61,7 +62,6 @@ const TEXT_FREE_TOOLS = [
   "status.check",
   "lock.state",
   "usage.summary",
-  "translation.estimate",
 ] as const;
 
 function makeSnapshotResult(overrides: Partial<ProjectSnapshotResult> = {}): ProjectSnapshotResult {
