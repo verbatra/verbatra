@@ -8,7 +8,7 @@ const FAKE_KEY = "fake provider key env value";
 
 function declaredCount(): number {
   const registry = (globalThis as unknown as Record<symbol, Set<string> | undefined>)[
-    Symbol.for("verbatra.keyEnvVars")
+    Symbol.for("verbatra.keyEnvVars.v1")
   ];
   return registry?.size ?? 0;
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { declareKeyEnvVar } from "./key-env-vars.js";
+import { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 import { redactKeys } from "./redaction.js";
 import { resetDeclaredKeyEnvVars } from "./test-support.js";
 
@@ -82,16 +82,8 @@ describe("redactKeys: key shapes", () => {
 });
 
 describe("redactKeys: exact key values", () => {
-  const NAMES = [
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
-    "GEMINI_API_KEY",
-    "DEEPL_API_KEY",
-    "GOOGLE_TRANSLATE_API_KEY",
-    "OPENAI_COMPATIBLE_API_KEY",
-    "REDACT_KEYS_CUSTOM",
-    "REDACT_KEYS_OTHER",
-  ];
+  const BUILT_IN_NAMES = [...Object.values(PROVIDER_ENV), OPENAI_COMPATIBLE_ENV_VAR];
+  const NAMES = [...BUILT_IN_NAMES, "REDACT_KEYS_CUSTOM", "REDACT_KEYS_OTHER"];
   const saved: Record<string, string | undefined> = {};
 
   beforeEach(() => {
@@ -114,7 +106,7 @@ describe("redactKeys: exact key values", () => {
     }
   });
 
-  it.each(NAMES.slice(0, 6))("scrubs the exact value of the built-in %s", (name) => {
+  it.each(BUILT_IN_NAMES)("scrubs the exact value of the built-in %s", (name) => {
     process.env[name] = "fake-builtin-value";
     expect(redactKeys("leak fake-builtin-value here")).toBe("leak [REDACTED] here");
   });

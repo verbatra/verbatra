@@ -697,6 +697,8 @@ nunca puede borrar texto ajeno.
 
 ### declareProviderKeyEnvVar
 
+<AvailableFrom version="0.12.0" />
+
 Declara la variable que un bloque `provider` nombra como origen de la clave, para que `redact`
 elimine su valor. Hoy solo un proveedor `openai-compatible` con `apiKeyEnvVar` nombra una; con
 cualquier otro proveedor no hace nada. `loadConfig` y la construcción del proveedor ya lo hacen, y

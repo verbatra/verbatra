@@ -8,7 +8,7 @@ export const PROVIDER_ENV = {
 
 export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";
 
-export const DECLARED_KEY_ENV_VARS = Symbol.for("verbatra.keyEnvVars");
+export const DECLARED_KEY_ENV_VARS = Symbol.for("verbatra.keyEnvVars.v1");
 
 type RegistryScope = Record<typeof DECLARED_KEY_ENV_VARS, Set<string> | undefined>;
 

@@ -660,6 +660,8 @@ unrelated text.
 
 ### declareProviderKeyEnvVar
 
+<AvailableFrom version="0.12.0" />
+
 Declares the variable a `provider` block names as its key source, so `redact` scrubs its value.
 Today only an `openai-compatible` provider with `apiKeyEnvVar` names one; any other provider is a
 no-op. `loadConfig` and building the provider already do this, and Studio and the MCP server also

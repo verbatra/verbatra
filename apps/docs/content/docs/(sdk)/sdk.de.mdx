@@ -720,6 +720,8 @@ Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
 
 ### declareProviderKeyEnvVar
 
+<AvailableFrom version="0.12.0" />
+
 Deklariert die Variable, die ein `provider`-Block als Key-Quelle nennt, damit `redact` ihren Wert
 schwärzt. Derzeit nennt nur ein `openai-compatible`-Provider mit `apiKeyEnvVar` eine; bei jedem
 anderen Provider passiert nichts. `loadConfig` und das Bauen des Providers erledigen das bereits,
