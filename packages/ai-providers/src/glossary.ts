@@ -58,3 +58,14 @@ export function appliesTerms(glossary: LocaleGlossary | undefined): boolean {
     (glossary.doNotTranslate.length > 0 || glossary.terms.some((term) => term.target !== undefined))
   );
 }
+
+export function foldGlossaryCase(text: string, locale: string, caseSensitive: boolean): string {
+  if (caseSensitive) {
+    return text;
+  }
+  try {
+    return text.toLocaleLowerCase(locale);
+  } catch {
+    return text.toLowerCase();
+  }
+}

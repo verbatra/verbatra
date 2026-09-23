@@ -1,5 +1,5 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
-import type { DoNotTranslateTerm, LocaleGlossary } from "./glossary.js";
+import { type DoNotTranslateTerm, foldGlossaryCase, type LocaleGlossary } from "./glossary.js";
 import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js";
 
 const LENGTH_RATIO_MIN = 0.35;
@@ -76,17 +76,6 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
-function foldCase(text: string, locale: string, caseSensitive: boolean): string {
-  if (caseSensitive) {
-    return text;
-  }
-  try {
-    return text.toLocaleLowerCase(locale);
-  } catch {
-    return text.toLowerCase();
-  }
-}
-
 function removeAll(text: string, term: string): string {
   return term === "" ? text : text.split(term).join(" ");
 }
@@ -110,9 +99,9 @@ function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
   for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
     remaining = removeAll(remaining, term);
   }
-  remaining = foldCase(remaining, input.sourceLocale, false);
+  remaining = foldGlossaryCase(remaining, input.sourceLocale, false);
   for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
-    remaining = removeAll(remaining, foldCase(term, input.sourceLocale, false));
+    remaining = removeAll(remaining, foldGlossaryCase(term, input.sourceLocale, false));
   }
   return !UNICODE_LETTER.test(remaining);
 }
@@ -178,13 +167,13 @@ function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   }
   return expectedTermsOf(input.glossary).some(({ source, target, caseSensitive }) => {
     const sourceHit = occursAsWholeTerm(
-      foldCase(input.sourceValue, input.sourceLocale, caseSensitive),
-      foldCase(source, input.sourceLocale, caseSensitive),
+      foldGlossaryCase(input.sourceValue, input.sourceLocale, caseSensitive),
+      foldGlossaryCase(source, input.sourceLocale, caseSensitive),
     );
     return (
       sourceHit &&
-      !foldCase(input.translatedValue, input.targetLocale, caseSensitive).includes(
-        foldCase(target, input.targetLocale, caseSensitive),
+      !foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive).includes(
+        foldGlossaryCase(target, input.targetLocale, caseSensitive),
       )
     );
   });
@@ -198,12 +187,12 @@ function isForbiddenTermUsed(input: ReviewFlagInput): boolean {
     forbidden.some(
       (rendering) =>
         occursAsWholeTerm(
-          foldCase(input.translatedValue, input.targetLocale, caseSensitive),
-          foldCase(rendering, input.targetLocale, caseSensitive),
+          foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive),
+          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
         ) &&
         !occursAsWholeTerm(
-          foldCase(input.sourceValue, input.targetLocale, caseSensitive),
-          foldCase(rendering, input.targetLocale, caseSensitive),
+          foldGlossaryCase(input.sourceValue, input.targetLocale, caseSensitive),
+          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
         ),
     ),
   );

@@ -158,7 +158,7 @@ describe("glossaryDefinitionSchema", () => {
     [
       "a forbidden rendering equal to the required one",
       { version: 2, terms: [{ source: "A", target: "B", forbidden: { de: ["B"] } }] },
-      'forbids "B", which is also its required translation',
+      'forbids "B" for "de", where "B" is its required translation',
     ],
     [
       "a locale named twice",
@@ -177,6 +177,45 @@ describe("glossaryDefinitionSchema", () => {
     ],
   ])("refuses %s", (_label, definition, message) => {
     expect(issuesOf(definition)).toContain(message);
+  });
+
+  it.each([
+    [
+      "a regional forbidden list against the base language's translation",
+      {
+        version: 2,
+        terms: [
+          { source: "A", targets: { de: "Übersicht" }, forbidden: { "de-AT": ["Übersicht"] } },
+        ],
+      },
+      'forbids "Übersicht" for "de-AT", where "Übersicht" is its required translation',
+    ],
+    [
+      "a base-language forbidden list against a regional translation",
+      {
+        version: 2,
+        terms: [{ source: "A", targets: { "de-AT": "Tafel" }, forbidden: { de: ["Tafel"] } }],
+      },
+      'forbids "Tafel" for "de-AT", where "Tafel" is its required translation',
+    ],
+    [
+      "a forbidden rendering that differs from the shared translation only in case",
+      { version: 2, terms: [{ source: "A", target: "Board", forbidden: { de: ["board"] } }] },
+      'forbids "board" for "de", where "Board" is its required translation',
+    ],
+  ])("refuses %s, resolved the way a run resolves it", (_label, definition, message) => {
+    expect(issuesOf(definition)).toContain(message);
+  });
+
+  it("accepts a forbidden rendering that differs in case from the translation of a case-sensitive term", () => {
+    expect(
+      issuesOf({
+        version: 2,
+        terms: [
+          { source: "A", target: "Board", forbidden: { de: ["board"] }, caseSensitive: true },
+        ],
+      }),
+    ).toEqual([]);
   });
 
   it.each([

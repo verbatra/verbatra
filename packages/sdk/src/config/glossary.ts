@@ -1,7 +1,8 @@
-import type {
-  DoNotTranslateTerm,
-  LocaleGlossary,
-  LocaleGlossaryTerm,
+import {
+  type DoNotTranslateTerm,
+  foldGlossaryCase,
+  type LocaleGlossary,
+  type LocaleGlossaryTerm,
 } from "@verbatra/ai-providers";
 import { z } from "zod";
 import { localeCodeSchema } from "./locale-code.js";
@@ -147,18 +148,32 @@ function duplicateLocaleIssues(
   return issues;
 }
 
-function termTargetFor(term: GlossaryTermDefinition, locale: string): string | undefined {
-  return term.targets?.[locale] ?? term.target;
+function localesNamedBy(term: GlossaryTerm): readonly string[] {
+  const byKey = new Map<string, string>();
+  for (const locale of [...Object.keys(term.targets), ...Object.keys(term.forbidden)]) {
+    if (!byKey.has(localeKey(locale))) {
+      byKey.set(localeKey(locale), locale);
+    }
+  }
+  return [...byKey.values()];
 }
 
-function forbiddenTargetIssues(term: GlossaryTermDefinition, index: number): GlossaryIssue[] {
+function forbiddenTargetIssues(definition: GlossaryTermDefinition, index: number): GlossaryIssue[] {
+  const term = normalizeTerm(definition);
   const issues: GlossaryIssue[] = [];
-  for (const [locale, renderings] of Object.entries(term.forbidden ?? {})) {
-    const target = termTargetFor(term, locale);
-    if (target !== undefined && renderings.includes(target)) {
+  for (const locale of localesNamedBy(term)) {
+    const target = resolveTarget(term, localeKey(locale));
+    if (target === undefined) {
+      continue;
+    }
+    const folded = foldGlossaryCase(target, locale, term.caseSensitive);
+    const clash = resolveForbidden(term, localeKey(locale)).find(
+      (rendering) => foldGlossaryCase(rendering, locale, term.caseSensitive) === folded,
+    );
+    if (clash !== undefined) {
       issues.push({
-        message: `forbids "${target}", which is also its required translation`,
-        path: ["terms", index, "forbidden", locale],
+        message: `forbids "${clash}" for "${locale}", where "${target}" is its required translation`,
+        path: ["terms", index, "forbidden"],
       });
     }
   }

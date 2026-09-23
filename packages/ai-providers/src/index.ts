@@ -27,7 +27,12 @@ export {
   type GeminiDeps,
 } from "./gemini/gemini-provider.js";
 export type { GeminiModel } from "./gemini/models.js";
-export type { DoNotTranslateTerm, LocaleGlossary, LocaleGlossaryTerm } from "./glossary.js";
+export {
+  type DoNotTranslateTerm,
+  foldGlossaryCase,
+  type LocaleGlossary,
+  type LocaleGlossaryTerm,
+} from "./glossary.js";
 export {
   type GoogleTranslateConfig,
   googleTranslateConfigSchema,
