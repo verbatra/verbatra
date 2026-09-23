@@ -117,8 +117,8 @@ die Baseline zu verlieren.
 
 Neben der Lock-Datei führt verbatra `verbatra.provenance.json`. Wo die Lock-Datei festhält, aus
 welchem Quelltext eine Übersetzung stammt, hält die Herkunftsdatei fest, welcher Schreibweg den Wert
-erzeugt hat, der jetzt in der Locale-Datei steht, und ob ihn jemand geprüft hat. Sie ist bewusst
-eine eigene Datei: Format und Version der Lock-Datei bleiben unverändert, sodass ein älteres
+erzeugt hat, der jetzt in der Locale-Datei steht, und ob ihn jemand geprüft hat. Die Herkunft steht
+bewusst in einer eigenen Datei: Format und Version der Lock-Datei bleiben unverändert, sodass ein älteres
 verbatra, etwa eines, das in einer CI-Action fest eingestellt ist, die Lock-Datei weiter liest und
 die Herkunftsdatei einfach ignoriert.
 
@@ -150,9 +150,15 @@ die falsche Wahl nur Information kostet und nie den falschen Urheber nennt. Ein 
 einen Wert und seinen Quelltext unverändert lässt, behält den Eintrag, wie er ist; jeder andere
 ersetzt ihn durch einen neuen, ungeprüften.
 
-Eine beschädigte Herkunftsdatei lässt den Lauf mit `PROVENANCE_FILE_INVALID` fehlschlagen, statt
-überschrieben zu werden. Eine, die ein neueres verbatra geschrieben hat, bleibt unangetastet, und
-der Lauf meldet die Notice `PROVENANCE_VERSION_UNRECOGNIZED`. Der Eintrag sagt, welcher Schreibweg
+Eine beschädigte Herkunftsdatei stoppt jeden Schreibvorgang mit `PROVENANCE_FILE_INVALID`, bevor
+sich eine Locale-Datei ändert oder ein Provider aufgerufen wird, statt überschrieben zu werden.
+`check`, `diff` und die anderen Berichte scheitern nie an ihr: Sie lassen ihre Herkunftsfelder weg,
+bis die Datei repariert ist. Eine Datei, die ein neueres verbatra geschrieben hat, bleibt
+unangetastet; `translate`, `watch` und `import` melden die Notice
+`PROVENANCE_VERSION_UNRECOGNIZED`, und eine Bearbeitung eines einzelnen Keys hält einfach nichts
+fest. verbatra schreibt nie eine Herkunftsdatei, die größer ist, als es selbst zurücklesen kann:
+Würde das Festhalten einer Locale die Datei über diese Größe wachsen lassen, bleibt die bisherige
+Datei stehen und der Lauf meldet `PROVENANCE_FILE_TOO_LARGE`. Der Eintrag sagt, welcher Schreibweg
 von verbatra einen Wert erzeugt hat; fälschungssicher ist er nicht, denn wer die Locale-Dateien
 bearbeiten kann, kann auch ihn bearbeiten.
 

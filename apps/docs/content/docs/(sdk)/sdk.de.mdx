@@ -307,6 +307,8 @@ keinen Provider auf.
 Jede `LocaleCheckSummary` trägt außerdem `provenance`: Zähler `byOrigin` und `byReviewState` über
 die Keys, für die die Locale einen Wert hat, gelesen aus `verbatra.provenance.json`. Was jede
 Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+Dieses und jedes andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die
+Datei beschädigt ist oder von einem neueren verbatra stammt.
 
 ### diff
 
@@ -442,7 +444,10 @@ oder `+` für eines, das der Kandidat erfunden hat.
 
 Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten.
 Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die
-aufrufende Oberfläche behauptet das, geprüft wird es nicht.
+aufrufende Oberfläche behauptet das, geprüft wird es nicht. Die Herkunftsdatei wird geprüft, bevor
+der Wert das Gate durchläuft: Eine beschädigte wirft `PROVENANCE_FILE_INVALID` und nichts wird
+geschrieben, eine von einem neueren verbatra bleibt unangetastet und der Wert wird ohne Eintrag
+geschrieben.
 
 ### retranslateEntry
 
@@ -458,7 +463,8 @@ Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderErro
 `@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
 
 Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit dem konfigurierten
-Provider und Modell.
+Provider und Modell. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
+Provider aufgerufen wird.
 
 ## Inhalte in großen Mengen lesen
 
@@ -906,7 +912,9 @@ Die Teile, die du kennen solltest:
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED` und `PROVENANCE_VERSION_UNRECOGNIZED` ab. Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED` und `PROVENANCE_FILE_TOO_LARGE`
+  ab (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
+  die verbatra zurückliest, daher blieb die Datei, wie sie war). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
   sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
@@ -971,7 +979,7 @@ geworfen.
 | `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |
 | `SOURCE_INVALID` | die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters |
 | `LOCK_FILE_INVALID` | die Lock-Datei ist vorhanden, aber korrupt, übergroß oder in einer nicht unterstützten Version |
-| `PROVENANCE_FILE_INVALID` | die Herkunftsdatei ist vorhanden, aber korrupt, übergroß oder falsch aufgebaut; eine von einem neueren verbatra bleibt stattdessen unangetastet und wird als Notice `PROVENANCE_VERSION_UNRECOGNIZED` gemeldet |
+| `PROVENANCE_FILE_INVALID` | die Herkunftsdatei ist vorhanden, aber korrupt, übergroß oder falsch aufgebaut; geworfen von einem Schreibvorgang (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`), bevor er etwas ändert, und von `loadProvenance`, nie von einem Bericht; eine von einem neueren verbatra bleibt stattdessen unangetastet, und `translate`, `watch` und `importWorkbook` melden die Notice `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `LOCK_CONTENDED` | das Schreib-Lock einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben werden (`updateGlossaryTerm`) |

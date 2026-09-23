@@ -17,8 +17,7 @@ A `translate`, `watch`, or `import` run writes two files a rollback has to care 
 <AvailableFrom version="0.12.0" />
 
 It also writes `verbatra.provenance.json`, which records which write path produced each value.
-Restore it in the same operation as the other two, as the commands below do. Forgetting it breaks
-nothing: a record that no longer matches its value reads as `external`, so a mismatch only loses
+Restore it together with the other two, as described below. Forgetting it breaks nothing: a record that no longer matches its value reads as `external`, so a mismatch only loses
 information and never claims the wrong author.
 
 The rest of what it writes is regenerable sidecar state you never restore: `verbatra.cache.json`
@@ -35,7 +34,15 @@ repair.
 If the run is not committed yet, discard both files together:
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
+git checkout HEAD -- locales verbatra.lock.json
+```
+
+If `verbatra.provenance.json` is already committed, restore it the same way. If this run created it
+for the first time, git has no committed version to restore, so delete it instead:
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
 ```
 
 If the run is already committed, revert that commit:

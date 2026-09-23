@@ -19,8 +19,8 @@ kümmern muss:
 <AvailableFrom version="0.12.0" />
 
 Außerdem schreibt er `verbatra.provenance.json`, die festhält, welcher Schreibweg jeden Wert erzeugt
-hat. Stelle sie im selben Schritt wie die beiden anderen wieder her, wie es die Befehle unten tun.
-Vergisst du sie, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, liest sich
+hat. Stelle sie zusammen mit den beiden anderen wieder her, wie unten beschrieben. Vergisst du sie, geht
+nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, liest sich
 als `external`, sodass eine Abweichung nur Information kostet und nie den falschen Urheber nennt.
 
 Alles Weitere, was er schreibt, ist regenerierbarer Zustand in Nebendateien, den du nie
@@ -37,7 +37,16 @@ keine unvollständige Datei zu reparieren.
 Wenn der Lauf noch nicht committet ist, verwirf beide Dateien gemeinsam:
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
+git checkout HEAD -- locales verbatra.lock.json
+```
+
+Ist `verbatra.provenance.json` bereits committet, stellst du sie genauso wieder her. Hat dieser Lauf
+sie zum ersten Mal angelegt, hat git keine committete Fassung, die es wiederherstellen könnte;
+lösche sie dann stattdessen:
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # bereits committet
+rm verbatra.provenance.json                      # von diesem Lauf angelegt
 ```
 
 Wenn der Lauf bereits committet ist, mache diesen Commit rückgängig:

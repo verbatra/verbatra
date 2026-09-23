@@ -19,8 +19,7 @@ reversión:
 <AvailableFrom version="0.12.0" />
 
 También escribe `verbatra.provenance.json`, que registra qué vía de escritura produjo cada valor.
-Restáuralo en la misma operación que los otros dos, como hacen los comandos de abajo. Olvidarlo no
-rompe nada: un registro que ya no coincide con su valor se lee como `external`, así que una
+Restáuralo junto con los otros dos, como se describe abajo. Olvidarlo no rompe nada: un registro que ya no coincide con su valor se lee como `external`, así que una
 discrepancia solo pierde información y nunca atribuye el valor a quien no lo escribió.
 
 Lo demás que escribe es estado auxiliar regenerable que nunca restauras: `verbatra.cache.json` y el
@@ -37,7 +36,15 @@ ningún archivo parcial que reparar.
 Si la ejecución todavía no está confirmada, descarta ambos archivos juntos:
 
 ```bash
-git checkout HEAD -- locales verbatra.lock.json verbatra.provenance.json
+git checkout HEAD -- locales verbatra.lock.json
+```
+
+Si `verbatra.provenance.json` ya está confirmado, restáuralo de la misma forma. Si esta ejecución lo
+creó por primera vez, git no tiene ninguna versión confirmada que restaurar, así que bórralo:
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # ya confirmado
+rm verbatra.provenance.json                      # creado por esta ejecución
 ```
 
 Si la ejecución ya está confirmada, revierte esa confirmación:

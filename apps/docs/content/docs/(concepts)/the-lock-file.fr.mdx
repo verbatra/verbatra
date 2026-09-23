@@ -121,7 +121,7 @@ restaurer plutôt que de perdre la référence.
 À côté du fichier de verrouillage, verbatra tient `verbatra.provenance.json`. Là où le fichier de
 verrouillage enregistre de quel texte source vient une traduction, le fichier de provenance
 enregistre quel chemin d'écriture a produit la valeur qui se trouve maintenant dans le fichier de
-locale, et si quelqu'un l'a relue. C'est un fichier séparé à dessein : le format et la version du
+locale, et si quelqu'un l'a relue. La provenance a son propre fichier à dessein : le format et la version du
 fichier de verrouillage ne changent pas, si bien qu'un verbatra plus ancien, par exemple épinglé
 dans une action de CI, continue de lire le fichier de verrouillage et ignore simplement le fichier
 de provenance.
@@ -154,9 +154,15 @@ que le mauvais choix ne fait que perdre de l'information et n'attribue jamais la
 auteur. Une écriture qui laisse inchangés une valeur et son texte source garde l'enregistrement tel
 quel ; toute autre le remplace par un nouvel enregistrement, non relu.
 
-Un fichier de provenance corrompu fait échouer l'exécution avec `PROVENANCE_FILE_INVALID` au lieu
-d'être écrasé. Celui qu'a écrit un verbatra plus récent est laissé intact et l'exécution signale
-l'avis `PROVENANCE_VERSION_UNRECOGNIZED`. L'enregistrement dit quel chemin d'écriture de verbatra a
+Un fichier de provenance corrompu arrête chaque écriture avec `PROVENANCE_FILE_INVALID` avant
+qu'un fichier de locale ne change ou qu'un fournisseur ne soit appelé, au lieu d'être écrasé.
+`check`, `diff` et les autres rapports n'échouent jamais à cause de lui : ils omettent leurs champs
+de provenance jusqu'à ce que le fichier soit réparé. Un fichier écrit par un verbatra plus récent
+est laissé intact ; `translate`, `watch` et `import` signalent l'avis
+`PROVENANCE_VERSION_UNRECOGNIZED`, et la modification d'une seule clé n'enregistre simplement rien.
+verbatra n'écrit jamais un fichier de provenance plus gros que ce qu'il peut relire : quand
+enregistrer une locale ferait dépasser cette taille au fichier, l'ancien fichier est conservé et
+l'exécution signale `PROVENANCE_FILE_TOO_LARGE`. L'enregistrement dit quel chemin d'écriture de verbatra a
 produit une valeur ; il n'est pas infalsifiable, puisque quiconque peut éditer les fichiers de
 locale peut aussi l'éditer.
 

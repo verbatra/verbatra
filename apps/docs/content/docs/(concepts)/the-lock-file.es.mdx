@@ -118,8 +118,8 @@ la línea base.
 
 Junto al archivo de bloqueo, verbatra mantiene `verbatra.provenance.json`. Donde el archivo de
 bloqueo registra de qué texto de origen salió una traducción, el archivo de procedencia registra qué
-vía de escritura produjo el valor que está ahora en el archivo de locale y si alguien lo revisó. Es
-un archivo aparte a propósito: el formato y la versión del archivo de bloqueo no cambian, así que un
+vía de escritura produjo el valor que está ahora en el archivo de locale y si alguien lo revisó. La
+procedencia va en su propio archivo a propósito: el formato y la versión del archivo de bloqueo no cambian, así que un
 verbatra más antiguo, por ejemplo uno fijado en una acción de CI, sigue leyendo el archivo de
 bloqueo y simplemente ignora el de procedencia.
 
@@ -150,9 +150,14 @@ equivocada solo pierde información y nunca atribuye el valor a quien no lo escr
 que deja sin cambios un valor y su texto de origen conserva el registro tal cual; cualquier otra lo
 sustituye por uno nuevo, sin revisar.
 
-Un archivo de procedencia corrupto hace fallar la ejecución con `PROVENANCE_FILE_INVALID` en lugar
-de sobrescribirse. Uno escrito por un verbatra más nuevo se deja intacto y la ejecución informa el
-aviso `PROVENANCE_VERSION_UNRECOGNIZED`. El registro dice qué vía de escritura de verbatra produjo
+Un archivo de procedencia corrupto detiene cada escritura con `PROVENANCE_FILE_INVALID` antes de
+que cambie un archivo de locale o se llame a un proveedor, en lugar de sobrescribirse. `check`,
+`diff` y los demás informes nunca fallan por él: omiten sus campos de procedencia hasta que el
+archivo se repare. Un archivo escrito por un verbatra más nuevo se deja intacto; `translate`,
+`watch` e `import` informan el aviso `PROVENANCE_VERSION_UNRECOGNIZED`, y la edición de una sola
+clave simplemente no registra nada. verbatra nunca escribe un archivo de procedencia más grande de
+lo que puede volver a leer: cuando registrar un locale haría crecer el archivo por encima de ese
+tamaño, se conserva el archivo anterior y la ejecución informa `PROVENANCE_FILE_TOO_LARGE`. El registro dice qué vía de escritura de verbatra produjo
 un valor; no es a prueba de manipulaciones, porque quien puede editar los archivos de locale también
 puede editarlo a él.
 

@@ -281,6 +281,8 @@ forms stored under their own keys are compared per form. It is a report only: it
 Each `LocaleCheckSummary` also carries `provenance`: counts `byOrigin` and `byReviewState` over the
 keys the locale has a value for, read from `verbatra.provenance.json`. See
 [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
+This and every other provenance field in a report is left out, never an error, when the file is
+corrupt or was written by a newer verbatra.
 
 ### diff
 
@@ -408,7 +410,9 @@ the candidate invented.
 
 The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
 `actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface
-asserts it and nothing verifies it.
+asserts it and nothing verifies it. The provenance file is checked before the value is gated: a
+corrupt one throws `PROVENANCE_FILE_INVALID` and nothing is written, and one from a newer verbatra
+is left untouched while the value is written without a record.
 
 ### retranslateEntry
 
@@ -423,7 +427,7 @@ Unlike `translate`, a provider failure here throws: a `ProviderError` from `@ver
 with a stable code such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
 
 The new value is recorded in `verbatra.provenance.json` as `machine`, with the configured provider
-and model.
+and model. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
 
 ## Bulk content reads
 
@@ -834,8 +838,9 @@ The parts worth knowing:
   [Review in Studio](/docs/review-in-studio) for working the queue.
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
-  `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`, and
-  `PROVENANCE_VERSION_UNRECOGNIZED`. The
+  `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
+  `PROVENANCE_VERSION_UNRECOGNIZED`, and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.
 - **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
@@ -896,7 +901,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |
-| `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; one from a newer verbatra is left untouched and reported as the notice `PROVENANCE_VERSION_UNRECOGNIZED` instead |
+| `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written (`updateGlossaryTerm`) |

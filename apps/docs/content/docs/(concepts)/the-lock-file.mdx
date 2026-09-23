@@ -109,8 +109,8 @@ inspect or restore it rather than losing the baseline.
 
 Next to the lock file, verbatra keeps `verbatra.provenance.json`. Where the lock records which
 source text a translation came from, the provenance file records which write path produced the
-value that is in the locale file now, and whether anyone reviewed it. It is a separate file on
-purpose: the lock file's format and version are unchanged, so an older verbatra, for example one
+value that is in the locale file now, and whether anyone reviewed it. Provenance lives in its own
+file on purpose: the lock file's format and version are unchanged, so an older verbatra, for example one
 pinned in a CI action, keeps reading the lock file and simply ignores the provenance file.
 
 Each record names an origin:
@@ -139,9 +139,14 @@ value next to it reads as `external`, so the wrong pick only loses information a
 wrong author. A write that leaves a value and its source text unchanged keeps the record as it is;
 any other write replaces it with a fresh, unreviewed one.
 
-A provenance file that is corrupt fails the run with `PROVENANCE_FILE_INVALID` rather than being
-overwritten. One written by a newer verbatra is left untouched and the run reports the notice
-`PROVENANCE_VERSION_UNRECOGNIZED`. The record says which verbatra write path produced a value; it
+A provenance file that is corrupt stops every write with `PROVENANCE_FILE_INVALID` before a locale
+file changes or a provider is called, rather than being overwritten. `check`, `diff`, and the other
+reports never fail over it: they leave their provenance fields out until the file is repaired. A
+file written by a newer verbatra is left untouched; `translate`, `watch`, and `import` report the
+notice `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit simply records nothing. verbatra
+never writes a provenance file larger than it can read back: when recording a locale would grow
+the file past that size, the previous file is kept and the run reports
+`PROVENANCE_FILE_TOO_LARGE`. The record says which verbatra write path produced a value; it
 is not tamper-proof, since anyone who can edit the locale files can edit it too.
 
 ## Commit it
