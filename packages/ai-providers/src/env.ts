@@ -1,5 +1,10 @@
 import { ProviderError } from "./errors.js";
 import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+import type { EnvironmentSource } from "./network/environment-rule.js";
+
+export function processEnvironment(): EnvironmentSource {
+  return process.env;
+}
 
 function readRequiredEnv(name: string): string {
   const value = process.env[name];

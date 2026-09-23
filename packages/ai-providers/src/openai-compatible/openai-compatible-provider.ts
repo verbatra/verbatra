@@ -1,6 +1,7 @@
 import type { ProviderCallContext } from "../guard.js";
 import { declareKeyEnvVar } from "../key-env-vars.js";
 import { type LlmMechanism, runLlmTranslation } from "../llm/run.js";
+import type { ProviderNetwork } from "../network/transport.js";
 import { buildOpenAiRequest, type OpenAiRequest } from "../openai/request.js";
 import { extractOpenAiResult } from "../openai/response.js";
 import type { OpenAiClient, OpenAiCompletion } from "../openai/types.js";
@@ -17,6 +18,7 @@ const PROVIDER_ID = "openai-compatible";
 
 export interface OpenAiCompatibleDeps {
   readonly client?: OpenAiClient;
+  readonly network?: ProviderNetwork;
 }
 
 export function createOpenAiCompatibleProvider(
@@ -27,7 +29,7 @@ export function createOpenAiCompatibleProvider(
   if (validConfig.apiKeyEnvVar !== undefined) {
     declareKeyEnvVar(validConfig.apiKeyEnvVar);
   }
-  const client = deps.client ?? createDefaultClient(validConfig);
+  const client = deps.client ?? createDefaultClient(validConfig, deps.network);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,

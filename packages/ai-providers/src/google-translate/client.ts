@@ -1,12 +1,13 @@
 import { requireGoogleTranslateKey } from "../env.js";
+import { type ProviderNetwork, pinnedTransport } from "../network/transport.js";
+import { GOOGLE_TRANSLATE_ENDPOINT } from "./endpoint.js";
 import type {
   GoogleTranslateClient,
   GoogleTranslateClientBundle,
   GoogleTranslateHttpResponse,
 } from "./types.js";
 
-export const GOOGLE_TRANSLATE_ENDPOINT = "https://translation.googleapis.com/language/translate/v2";
-export const GOOGLE_TRANSLATE_ENDPOINT_HOST = "translation.googleapis.com";
+const globalFetch = (input: string, init: RequestInit): Promise<Response> => fetch(input, init);
 
 async function parseJsonBody(response: Response): Promise<unknown> {
   try {
@@ -16,8 +17,9 @@ async function parseJsonBody(response: Response): Promise<unknown> {
   }
 }
 
-export function createDefaultClient(): GoogleTranslateClientBundle {
+export function createDefaultClient(network?: ProviderNetwork): GoogleTranslateClientBundle {
   const apiKey = requireGoogleTranslateKey();
+  const send = pinnedTransport({ id: "google-translate" }, network)?.fetch ?? globalFetch;
   const client: GoogleTranslateClient = {
     translate: async (
       texts,
@@ -25,7 +27,7 @@ export function createDefaultClient(): GoogleTranslateClientBundle {
       targetLang,
       signal,
     ): Promise<GoogleTranslateHttpResponse> => {
-      const response = await fetch(
+      const response = await send(
         `${GOOGLE_TRANSLATE_ENDPOINT}?key=${encodeURIComponent(apiKey)}`,
         {
           method: "POST",

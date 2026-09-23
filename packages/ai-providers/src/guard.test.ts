@@ -8,6 +8,7 @@ import {
   RATE_LIMITED_MESSAGE,
   TIMEOUT_MESSAGE,
 } from "./guard.js";
+import { NetworkPolicyViolation } from "./network/guarded-fetch.js";
 
 class StatusError extends Error {
   readonly status: number;
@@ -257,5 +258,17 @@ describe("guardProviderCall: true abort per provider SDK shape", () => {
     expect(rejection).not.toBe(raw);
     expect(rejection).toBeInstanceOf(ProviderError);
     expect((rejection as ProviderError).code).toBe("TIMEOUT");
+  });
+});
+
+describe("guardProviderCall: network policy", () => {
+  it("surfaces a blocked request as NETWORK_POLICY_VIOLATION, keeping its message", async () => {
+    const violation = new NetworkPolicyViolation("api.example.com", "The request was blocked.");
+    const wrapped = new Error("Connection error.", { cause: violation });
+    await expect(guardProviderCall(() => Promise.reject(wrapped))).rejects.toMatchObject({
+      name: "ProviderError",
+      code: "NETWORK_POLICY_VIOLATION",
+      message: "The request was blocked.",
+    });
   });
 });

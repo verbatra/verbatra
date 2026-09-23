@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
+  processEnvironment,
   requireAnthropicKey,
   requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
@@ -169,5 +170,11 @@ describe("resolveOpenAiCompatibleKey", () => {
   it("never reads OPENAI_API_KEY at any tier", () => {
     process.env.OPENAI_API_KEY = "hosted-key-should-never-be-used";
     expect(resolveOpenAiCompatibleKey()).toBe(OPENAI_COMPATIBLE_KEY_PLACEHOLDER);
+  });
+});
+
+describe("processEnvironment", () => {
+  it("returns the live process environment", () => {
+    expect(processEnvironment()).toBe(process.env);
   });
 });

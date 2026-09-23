@@ -1,6 +1,7 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
+import type { ProviderNetwork } from "../network/transport.js";
 import {
   type PlaceholderComparator,
   type PlaceholderExtractor,
@@ -11,8 +12,9 @@ import {
 } from "../provider.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
 import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
-import { createDefaultClient, GOOGLE_TRANSLATE_ENDPOINT_HOST } from "./client.js";
+import { createDefaultClient } from "./client.js";
 import { type GoogleTranslateConfig, googleTranslateConfigSchema } from "./config.js";
+import { GOOGLE_TRANSLATE_ENDPOINT_HOST } from "./endpoint.js";
 import { chunkTextsForGoogleTranslate } from "./limits.js";
 import { toGoogleTranslateCode } from "./locale-codes.js";
 import { assertValidGoogleTranslateLocale } from "./locale-validation.js";
@@ -35,6 +37,7 @@ interface GoogleLanguages {
 
 export interface GoogleTranslateDeps {
   readonly client?: GoogleTranslateClient;
+  readonly network?: ProviderNetwork;
 }
 
 export function createGoogleTranslateProvider(
@@ -56,7 +59,7 @@ function resolveClient(deps: GoogleTranslateDeps): GoogleTranslateClientBundle {
   if (deps.client !== undefined) {
     return { client: deps.client };
   }
-  return createDefaultClient();
+  return createDefaultClient(deps.network);
 }
 
 async function translate(
