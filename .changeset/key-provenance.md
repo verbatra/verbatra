@@ -20,6 +20,6 @@ the file is corrupt or from a newer verbatra. The new `loadProvenance` reads the
 A write fails with `PROVENANCE_FILE_INVALID` before touching anything when the file is corrupt. A
 file from a newer verbatra is left untouched: `translate`, `watch`, and `import` report the notice
 `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit records nothing. A write that would grow
-the file past the size verbatra reads back keeps the previous file and reports
-`PROVENANCE_FILE_TOO_LARGE`. `types --out` and `tmx export --out` refuse to overwrite the file. The
+the file past the size verbatra reads back keeps the previous file: `translate`, `watch`, and
+`import` report `PROVENANCE_FILE_TOO_LARGE`, and a single-key edit records nothing. `types --out` and `tmx export --out` refuse to overwrite the file. The
 lock file itself is unchanged.

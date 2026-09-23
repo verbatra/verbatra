@@ -158,7 +158,8 @@ unangetastet; `translate`, `watch` und `import` melden die Notice
 `PROVENANCE_VERSION_UNRECOGNIZED`, und eine Bearbeitung eines einzelnen Keys hält einfach nichts
 fest. verbatra schreibt nie eine Herkunftsdatei, die größer ist, als es selbst zurücklesen kann:
 Würde das Festhalten einer Locale die Datei über diese Größe wachsen lassen, bleibt die bisherige
-Datei stehen und der Lauf meldet `PROVENANCE_FILE_TOO_LARGE`. Der Eintrag sagt, welcher Schreibweg
+Datei stehen und der Lauf meldet `PROVENANCE_FILE_TOO_LARGE`; eine Bearbeitung eines einzelnen
+Keys behält sie stillschweigend. Der Eintrag sagt, welcher Schreibweg
 von verbatra einen Wert erzeugt hat; fälschungssicher ist er nicht, denn wer die Locale-Dateien
 bearbeiten kann, kann auch ihn bearbeiten.
 

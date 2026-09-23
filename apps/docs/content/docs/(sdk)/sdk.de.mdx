@@ -446,8 +446,8 @@ Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human
 Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die
 aufrufende Oberfläche behauptet das, geprüft wird es nicht. Die Herkunftsdatei wird geprüft, bevor
 der Wert das Gate durchläuft: Eine beschädigte wirft `PROVENANCE_FILE_INVALID` und nichts wird
-geschrieben, eine von einem neueren verbatra bleibt unangetastet und der Wert wird ohne Eintrag
-geschrieben.
+geschrieben, eine von einem neueren verbatra, oder eine, die der Eintrag über die Größe wachsen
+ließe, die verbatra zurückliest, bleibt unangetastet und der Wert wird ohne Eintrag geschrieben.
 
 ### retranslateEntry
 

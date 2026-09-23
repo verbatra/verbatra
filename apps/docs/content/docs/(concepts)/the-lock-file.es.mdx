@@ -157,7 +157,8 @@ archivo se repare. Un archivo escrito por un verbatra más nuevo se deja intacto
 `watch` e `import` informan el aviso `PROVENANCE_VERSION_UNRECOGNIZED`, y la edición de una sola
 clave simplemente no registra nada. verbatra nunca escribe un archivo de procedencia más grande de
 lo que puede volver a leer: cuando registrar un locale haría crecer el archivo por encima de ese
-tamaño, se conserva el archivo anterior y la ejecución informa `PROVENANCE_FILE_TOO_LARGE`. El registro dice qué vía de escritura de verbatra produjo
+tamaño, se conserva el archivo anterior y la ejecución informa `PROVENANCE_FILE_TOO_LARGE`; la
+edición de una sola clave lo conserva sin avisar. El registro dice qué vía de escritura de verbatra produjo
 un valor; no es a prueba de manipulaciones, porque quien puede editar los archivos de locale también
 puede editarlo a él.
 

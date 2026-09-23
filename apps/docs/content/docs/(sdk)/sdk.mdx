@@ -411,8 +411,9 @@ the candidate invented.
 The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
 `actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface
 asserts it and nothing verifies it. The provenance file is checked before the value is gated: a
-corrupt one throws `PROVENANCE_FILE_INVALID` and nothing is written, and one from a newer verbatra
-is left untouched while the value is written without a record.
+corrupt one throws `PROVENANCE_FILE_INVALID` and nothing is written, and one from a newer verbatra,
+or one the record would grow past the size verbatra reads back, is left untouched while the value
+is written without a record.
 
 ### retranslateEntry
 

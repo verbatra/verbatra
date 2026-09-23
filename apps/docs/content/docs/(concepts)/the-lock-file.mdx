@@ -146,7 +146,7 @@ file written by a newer verbatra is left untouched; `translate`, `watch`, and `i
 notice `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit simply records nothing. verbatra
 never writes a provenance file larger than it can read back: when recording a locale would grow
 the file past that size, the previous file is kept and the run reports
-`PROVENANCE_FILE_TOO_LARGE`. The record says which verbatra write path produced a value; it
+`PROVENANCE_FILE_TOO_LARGE`; a single-key edit keeps it silently. The record says which verbatra write path produced a value; it
 is not tamper-proof, since anyone who can edit the locale files can edit it too.
 
 ## Commit it

@@ -436,7 +436,8 @@ El valor escrito queda registrado en `verbatra.provenance.json` con el origen `h
 `actor: "agent"` cuando lo escribió un agente de IA, para que el registro lo diga; lo afirma la
 superficie que llama y nada lo verifica. El archivo de procedencia se comprueba antes de pasar el
 valor por la puerta: uno corrupto lanza `PROVENANCE_FILE_INVALID` y no se escribe nada, y uno de un
-verbatra más nuevo se deja intacto mientras el valor se escribe sin registro.
+verbatra más nuevo, o uno que el registro haría crecer por encima de lo que verbatra vuelve a leer,
+se deja intacto mientras el valor se escribe sin registro.
 
 ### retranslateEntry
 

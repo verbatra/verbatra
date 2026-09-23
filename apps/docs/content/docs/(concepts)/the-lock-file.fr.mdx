@@ -162,7 +162,8 @@ est laissé intact ; `translate`, `watch` et `import` signalent l'avis
 `PROVENANCE_VERSION_UNRECOGNIZED`, et la modification d'une seule clé n'enregistre simplement rien.
 verbatra n'écrit jamais un fichier de provenance plus gros que ce qu'il peut relire : quand
 enregistrer une locale ferait dépasser cette taille au fichier, l'ancien fichier est conservé et
-l'exécution signale `PROVENANCE_FILE_TOO_LARGE`. L'enregistrement dit quel chemin d'écriture de verbatra a
+l'exécution signale `PROVENANCE_FILE_TOO_LARGE` ; la modification d'une seule clé le conserve
+sans rien signaler. L'enregistrement dit quel chemin d'écriture de verbatra a
 produit une valeur ; il n'est pas infalsifiable, puisque quiconque peut éditer les fichiers de
 locale peut aussi l'éditer.
 
