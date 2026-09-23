@@ -201,7 +201,7 @@ Entrée : `{ config, cwd?, dryRun? }`, où `config.extract` nomme le framework e
 
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme garde-fou de CI.
 
-Entrée : `{ config, cwd?, locales?, consistency? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
+Entrée : `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
 
 <AvailableFrom version="0.11.0" />
 
@@ -214,6 +214,19 @@ Chaque `LocaleCheckSummary` porte aussi `provenance` : des comptes `byOrigin` et
 <AvailableFrom version="0.12.0" />
 
 Chaque `LocaleCheckSummary` porte aussi `protected` : combien de ses clés manquantes et obsolètes une exécution de `translate` laisserait à une personne selon le `humanEdits` et les `pinnedKeys` de la config. Elles comptent toujours comme manquantes ou obsolètes, donc `inSync` reste à false jusqu'à ce qu'une personne les résolve. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées sont comptées.
+
+<AvailableFrom version="0.12.0" />
+
+Avec `qa: true`, `check` lance aussi le contrôle qualité sur chaque valeur commitée, sans clé et
+sans rien écrire : chaque `LocaleCheckSummary` porte un rapport `qa` de
+`{ checked, errors, warnings, findings }`, et le résumé porte les totaux `qa` de
+`{ errors, warnings, invalidSourceKeys }`. Un constat vaut `{ key, severity: "error", reason, details? }`
+pour une valeur que la barrière d'intégrité refuserait (`reason` issu de `INTEGRITY_GATE_REASONS`),
+ou `{ key, severity: "warning", reason }` pour une valeur qui passe mais porte un motif de révision
+issu de `REVIEW_REASON_CODES`. `qaSeverity: "error"` ignore les motifs de révision. Les gravités
+sont publiées sous la forme du tuple `QA_SEVERITIES` (`"error"`, `"warning"`). Le rapport ne change
+jamais `inSync` ; un contrôle CI lit `qa.errors`, et `qa.warnings` pour un contrôle strict. Voir
+[le contrôle qualité](/docs/cli/check#contrôle-qualité) pour savoir quelles valeurs sont vérifiées.
 
 ### diff
 

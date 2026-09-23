@@ -126,7 +126,8 @@ DeepL and Google Cloud Translation cannot restructure an ICU message, so they ke
 ICU value untranslated (the `PLACEHOLDER_UNSUPPORTED` notice). A target value written before this
 check, for example a French plural without the CLDR `many` arm, stays in the file until its source
 changes; when a cached or imported copy of it is offered again, it is refused and the key is
-translated anew.
+translated anew. [`verbatra check --qa`](/docs/cli/check#quality-check) finds such a value without
+waiting for that.
 
 ### Inline markup parity
 
@@ -389,3 +390,11 @@ All of this is data on the run summary, per locale: translated keys, integrity m
 provider failures, budget-withheld keys, invalid-ICU source keys, review flags, and notices.
 Nothing is hidden, and one locale's failure never stops the others. See
 [How it works](/docs/how-it-works) for where each check sits in the pipeline.
+
+<AvailableFrom version="0.12.0" />
+
+The gate and the review flags also run over what is already committed:
+[`verbatra check --qa`](/docs/cli/check#quality-check) checks every target value in your locale
+files, however it got there, reports a gate refusal as an error and a review reason as a warning,
+and exits `1` on an error, so a hand-edited translation can gate a pull request without any
+provider call.

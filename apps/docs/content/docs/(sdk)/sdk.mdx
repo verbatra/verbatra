@@ -267,7 +267,7 @@ a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
 changed since last translated), and `upToDate`. Use it as a CI gate.
 
-Input: `{ config, cwd?, locales?, consistency? }`. Returns a `CheckSummary` whose `inSync` is true
+Input: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Returns a `CheckSummary` whose `inSync` is true
 exactly when every checked locale has nothing missing and nothing stale.
 
 <AvailableFrom version="0.11.0" />
@@ -292,6 +292,19 @@ corrupt or was written by a newer verbatra.
 <AvailableFrom version="0.12.0" />
 
 Each `LocaleCheckSummary` also carries `protected`, how many of its missing and stale keys a `translate` run would leave for a person under the config's `humanEdits` and `pinnedKeys`. They still count as missing or stale, so `inSync` stays false until a person resolves them. When `verbatra.provenance.json` is corrupt or from a newer verbatra, no origin can be read and only pinned keys are counted.
+
+<AvailableFrom version="0.12.0" />
+
+With `qa: true`, `check` also runs the quality check over every committed value, keyless and
+without writing anything: each `LocaleCheckSummary` carries a `qa` report of
+`{ checked, errors, warnings, findings }`, and the summary carries `qa` totals of
+`{ errors, warnings, invalidSourceKeys }`. A finding is `{ key, severity: "error", reason, details? }`
+for a value the integrity gate would refuse (`reason` from `INTEGRITY_GATE_REASONS`), or
+`{ key, severity: "warning", reason }` for a value that passes but carries a review reason from
+`REVIEW_REASON_CODES`. `qaSeverity: "error"` skips the review reasons. The severities are published
+as the `QA_SEVERITIES` tuple (`"error"`, `"warning"`). The report never changes `inSync`; a CI gate
+reads `qa.errors`, and `qa.warnings` for a strict gate. See
+[the quality check](/docs/cli/check#quality-check) for which values are checked.
 
 ### diff
 

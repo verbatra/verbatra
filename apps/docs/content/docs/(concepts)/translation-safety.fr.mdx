@@ -141,6 +141,8 @@ laisser chaque valeur ICU non traduite (la notice `PLACEHOLDER_UNSUPPORTED`). Un
 avant cette vérification, par exemple un pluriel français sans la branche CLDR `many`, reste dans le
 fichier jusqu'à ce que sa source change ; quand une copie en cache ou importée est proposée à
 nouveau, elle est rejetée et la clé est retraduite.
+[`verbatra check --qa`](/docs/cli/check#contrôle-qualité) trouve une telle valeur sans attendre
+cela.
 
 ### Parité du balisage en ligne
 
@@ -431,3 +433,11 @@ défauts d'intégrité, échecs fournisseur, clés retenues par le budget, clés
 signalements de révision, et avis. Rien n'est caché, et l'échec d'une locale n'arrête jamais les
 autres. Voir [Comment ça marche](/docs/how-it-works) pour la place de chaque contrôle dans le
 pipeline.
+
+<AvailableFrom version="0.12.0" />
+
+La barrière et les signalements de révision s'appliquent aussi à ce qui est déjà commité :
+[`verbatra check --qa`](/docs/cli/check#contrôle-qualité) vérifie chaque valeur cible de tes
+fichiers de locale, quelle que soit sa provenance, signale un refus de la barrière comme une erreur
+et un motif de révision comme un avertissement, et sort avec `1` en cas d'erreur : une traduction
+modifiée à la main peut donc bloquer une pull request sans aucun appel à un fournisseur.
