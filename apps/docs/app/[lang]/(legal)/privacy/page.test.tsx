@@ -61,6 +61,27 @@ const OBJECTION_CROSS_REFERENCE: Record<Locale, RegExp> = {
   fr: /\bsection 9\b/,
 };
 
+const ARCJET_RETENTION: Record<Locale, RegExp> = {
+  en: /retains this request data for 30 days and retains aggregated data derived from it for longer/,
+  de: /speichert Arcjet diese Anfragedaten 30 Tage lang und daraus abgeleitete aggregierte Daten länger/,
+  es: /conserva estos datos de la solicitud durante 30 días y conserva durante más tiempo los datos agregados/,
+  fr: /conserve ces données de requête pendant 30 jours et conserve plus longtemps les données agrégées/,
+};
+
+const ARCJET_THIRD_COUNTRY: Record<Locale, RegExp> = {
+  en: /transferred to the United States, a third country \(Art\. 44 ff\. GDPR\)/,
+  de: /in die USA, ein Drittland, übermittelt werden \(Art\. 44 ff\. DSGVO\)/,
+  es: /transferirse a Estados Unidos, un tercer país \(art\. 44 y ss\. del RGPD\)/,
+  fr: /transférées vers les États-Unis, un pays tiers \(art\. 44 et suivants du RGPD\)/,
+};
+
+const ARCJET_SAFEGUARD: Record<Locale, RegExp> = {
+  en: /not certified under the EU-U\.S\. Data Privacy Framework.*EU Standard Contractual Clauses \(Art\. 46\(2\)\(c\) GDPR\)/,
+  de: /nicht unter dem EU-US-Datenschutzrahmen zertifiziert.*EU-Standardvertragsklauseln \(Art\. 46 Abs\. 2 lit\. c DSGVO\)/,
+  es: /no está certificada en el marco del EU-U\.S\. Data Privacy Framework.*cláusulas contractuales tipo de la UE \(art\. 46\.2\.c\) del RGPD\)/,
+  fr: /n'est pas certifiée au titre de l'EU-U\.S\. Data Privacy Framework.*clauses contractuelles types de l'UE \(art\. 46, § 2, point c\) du RGPD\)/,
+};
+
 function imprintFacts(): string[] {
   const source = readFileSync(IMPRINT_PAGE, "utf8")
     .replaceAll("&ouml;", "ö")
@@ -144,5 +165,28 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       byNumber(12)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
     ).not.toBeNull();
     expect(sectionText(doc, /^8\. /)).toMatch(OBJECTION_CROSS_REFERENCE[locale]);
+  });
+
+  it("states Arcjet's documented 30-day retention and links to its privacy documentation", async () => {
+    const doc = await renderPrivacy(locale);
+    const contactForm = sectionText(doc, /^12\. /);
+
+    expect(contactForm).toMatch(ARCJET_RETENTION[locale]);
+    expect(contactForm).not.toMatch(/\b(one hour|einer Stunde|una hora|une heure)\b/);
+    expect(
+      sectionNumbered(doc, 12)?.querySelector('a[href="https://docs.arcjet.com/privacy"]'),
+    ).not.toBeNull();
+  });
+
+  it("discloses the transfer to the United States and the safeguard it relies on", async () => {
+    const doc = await renderPrivacy(locale);
+    const contactForm = sectionText(doc, /^12\. /);
+
+    expect(contactForm).toContain("Arcjet Labs, Inc., San Francisco");
+    expect(contactForm).toMatch(ARCJET_THIRD_COUNTRY[locale]);
+    expect(contactForm).toMatch(ARCJET_SAFEGUARD[locale]);
+    expect(
+      sectionNumbered(doc, 12)?.querySelector('a[href="mailto:info@kreitz-webdev.de"]'),
+    ).not.toBeNull();
   });
 });
