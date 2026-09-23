@@ -191,6 +191,15 @@ export {
   pseudolocalize,
 } from "./flow/pseudo.js";
 export {
+  type CheckQaSummary,
+  type LocaleQaReport,
+  QA_SEVERITIES,
+  type QaFinding,
+  type QaIntegrityFinding,
+  type QaReviewFinding,
+  type QaSeverity,
+} from "./flow/qa-check.js";
+export {
   type RetranslateEntryDeps,
   type RetranslateEntryInput,
   type RetranslateEntryResult,

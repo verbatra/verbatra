@@ -132,15 +132,24 @@ function branchArmProblems(
   );
 }
 
+export function comparePlaceholdersWith(
+  sourceEntry: TranslationEntry,
+  candidateValue: string,
+  adapter: FormatAdapter,
+): PlaceholderIntegrityResult {
+  return (
+    adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
+    checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue))
+  );
+}
+
 export function gateCandidateValue(
   sourceEntry: TranslationEntry,
   candidateValue: string,
   adapter: FormatAdapter,
   targetLocale: string | undefined,
 ): IntegrityGateResult {
-  const placeholderResult =
-    adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
-    checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue));
+  const placeholderResult = comparePlaceholdersWith(sourceEntry, candidateValue, adapter);
   if (!placeholderResult.matches) {
     return { accepted: false, reason: "placeholder" };
   }
