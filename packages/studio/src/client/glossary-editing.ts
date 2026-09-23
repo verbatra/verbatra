@@ -1,4 +1,9 @@
-import type { GlossaryIndicator, GlossaryWriteResult } from "../shared/rpc/glossary.js";
+import type {
+  GlossaryIndicator,
+  GlossaryTermView,
+  GlossaryWriteParams,
+  GlossaryWriteResult,
+} from "../shared/rpc/glossary.js";
 import { resolveErrorCopy } from "./error-copy.js";
 import type { RpcCallResult } from "./rpc-client.js";
 
@@ -25,8 +30,9 @@ export function glossaryReadOnlyReason(indicator: GlossaryIndicator): string | u
   }
   if (indicator.source === "none") {
     return (
-      "This project has no glossary yet. Create a JSON file of term to translation pairs and set " +
-      "the config's glossary to that path to manage the terms here."
+      "This project has no glossary yet. Create a JSON file, either term to translation pairs or " +
+      'a version 2 glossary with "version": 2, and set the config\'s glossary to that path to ' +
+      "manage the terms here."
     );
   }
   return undefined;
@@ -34,4 +40,113 @@ export function glossaryReadOnlyReason(indicator: GlossaryIndicator): string | u
 
 export function isGlossaryEditable(indicator: GlossaryIndicator): boolean {
   return glossaryReadOnlyReason(indicator) === undefined;
+}
+
+export const ALL_LOCALES = "all";
+
+export interface ScopeValue {
+  readonly translation: string | undefined;
+  readonly inherited: boolean;
+  readonly forbidden: readonly string[];
+}
+
+export function scopeValue(term: GlossaryTermView, scope: string): ScopeValue {
+  if (scope === ALL_LOCALES) {
+    return { translation: term.target, inherited: false, forbidden: [] };
+  }
+  const view = term.byLocale[scope];
+  return {
+    translation: view?.target,
+    inherited: view?.inherited ?? true,
+    forbidden: view?.forbidden ?? [],
+  };
+}
+
+function ownEntry<T>(record: Readonly<Record<string, T>>, locale: string): T | undefined {
+  const wanted = locale.toLowerCase();
+  return Object.entries(record).find(([key]) => key.toLowerCase() === wanted)?.[1];
+}
+
+export interface TermDraft {
+  readonly translation: string;
+  readonly forbidden: string;
+  readonly note: string;
+  readonly partOfSpeech: string;
+  readonly caseSensitive: boolean;
+}
+
+export function parseRenderings(text: string): readonly string[] {
+  const renderings = text
+    .split(/[,\n]/)
+    .map((rendering) => rendering.trim())
+    .filter((rendering) => rendering.length > 0);
+  return [...new Set(renderings)];
+}
+
+function ownTranslation(term: GlossaryTermView, scope: string): string {
+  return (scope === ALL_LOCALES ? term.target : ownEntry(term.targets, scope)) ?? "";
+}
+
+function ownForbidden(term: GlossaryTermView, scope: string): readonly string[] {
+  return scope === ALL_LOCALES ? [] : (ownEntry(term.forbidden, scope) ?? []);
+}
+
+export function draftFor(term: GlossaryTermView, scope: string): TermDraft {
+  return {
+    translation: ownTranslation(term, scope),
+    forbidden: ownForbidden(term, scope).join(", "),
+    note: term.note ?? "",
+    partOfSpeech: term.partOfSpeech ?? "",
+    caseSensitive: term.caseSensitive,
+  };
+}
+
+function clearable(next: string, current: string): string | null | undefined {
+  const trimmed = next.trim();
+  if (trimmed === current) {
+    return undefined;
+  }
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function forbiddenEdit(
+  term: GlossaryTermView,
+  scope: string,
+  draft: TermDraft,
+): readonly string[] | null | undefined {
+  if (scope === ALL_LOCALES) {
+    return undefined;
+  }
+  const next = parseRenderings(draft.forbidden);
+  const current = ownForbidden(term, scope);
+  if (next.join("\n") === current.join("\n")) {
+    return undefined;
+  }
+  return next.length === 0 ? null : next;
+}
+
+export function buildTermEdit(
+  term: GlossaryTermView,
+  scope: string,
+  draft: TermDraft,
+): GlossaryWriteParams | undefined {
+  const translation = clearable(draft.translation, ownTranslation(term, scope));
+  const forbidden = forbiddenEdit(term, scope, draft);
+  const note = clearable(draft.note, term.note ?? "");
+  const partOfSpeech = clearable(draft.partOfSpeech, term.partOfSpeech ?? "");
+  const perLocale = translation !== undefined || forbidden !== undefined;
+  const edit: GlossaryWriteParams = {
+    term: term.source,
+    ...(translation !== undefined ? { translation } : {}),
+    ...(perLocale && scope !== ALL_LOCALES ? { locale: scope } : {}),
+    ...(forbidden !== undefined ? { forbidden: forbidden === null ? null : [...forbidden] } : {}),
+    ...(note !== undefined ? { note } : {}),
+    ...(partOfSpeech !== undefined ? { partOfSpeech } : {}),
+    ...(draft.caseSensitive !== term.caseSensitive ? { caseSensitive: draft.caseSensitive } : {}),
+  };
+  return Object.keys(edit).length > 1 ? edit : undefined;
+}
+
+export function hasPerLocaleData(term: GlossaryTermView): boolean {
+  return Object.keys(term.targets).length > 0 || Object.keys(term.forbidden).length > 0;
 }
