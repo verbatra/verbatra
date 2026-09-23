@@ -3,7 +3,7 @@ import { SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { createRpcInFlightGuard } from "./in-flight-guard.js";
 import { createRpcRateLimiter } from "./rate-limiter.js";
-import { createRpcHandlers, type RpcHandlerDeps } from "./rpc.js";
+import { createRpcHandlers, type HandlersRegistry, type RpcHandlerDeps } from "./rpc.js";
 import { dispatchRpc } from "./rpc-gate.js";
 import { baseStudioConfig } from "./test-support.js";
 
@@ -522,5 +522,48 @@ describe("dispatchRpc envelope", () => {
     );
 
     expect(enterKeys).toEqual([undefined]);
+  });
+
+  it("refuses a second translation.translatePending for a different locale subset while one is in flight", async () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.translatePending"]));
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const seenLocales: (readonly string[] | undefined)[] = [];
+    const handlers: HandlersRegistry = {
+      "translation.translatePending": async (params) => {
+        seenLocales.push(params.locales);
+        await held;
+        return { dryRun: false, locales: [], succeeded: [], partial: [], failed: [] };
+      },
+    };
+
+    const first = dispatchRpc(
+      body({ method: "translation.translatePending", params: { locales: ["de"] } }),
+      deps(),
+      handlers,
+      undefined,
+      guard,
+    );
+    while (seenLocales.length === 0) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    const second = await dispatchRpc(
+      body({ method: "translation.translatePending", params: { locales: ["fr"] } }),
+      deps(),
+      handlers,
+      undefined,
+      guard,
+    );
+
+    expect(second.statusCode).toBe(409);
+    expect(await parseBody(second)).toMatchObject({
+      ok: false,
+      error: { code: "ALREADY_IN_PROGRESS" },
+    });
+    release();
+    expect((await first).statusCode).toBe(200);
+    expect(seenLocales).toEqual([["de"]]);
   });
 });

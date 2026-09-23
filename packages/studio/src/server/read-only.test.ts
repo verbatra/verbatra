@@ -32,15 +32,22 @@ function collectSourceFiles(root: string): string[] {
 }
 
 describe("static proof: no write-capable sdk call is ever referenced", () => {
-  it("never calls watch(, importWorkbook(, or exportWorkbook( anywhere in studio's own source, and calls translate( only from the one handler that is meant to", () => {
+  it("never calls watch(, importWorkbook(, or exportWorkbook( anywhere in studio's own source, and calls translate( only from the one handler that is meant to or from the estimate handler as a dry run", () => {
     const forbidden = ["watch", "importWorkbook", "exportWorkbook", "translate"].map((name) => ({
       name,
       pattern: new RegExp(`(?<![.\\w])${name}\\(`),
     }));
     const allowedTranslateCaller = join(SRC_ROOT, "server", "methods", "translate-pending.ts");
+    const dryRunTranslateCaller = join(SRC_ROOT, "server", "methods", "estimate.ts");
     const offenders: string[] = [];
     for (const file of collectSourceFiles(SRC_ROOT)) {
       if (file === allowedTranslateCaller) {
+        continue;
+      }
+      if (file === dryRunTranslateCaller) {
+        const content = readFileSync(file, "utf8");
+        expect(content).toMatch(/estimate: true/);
+        expect(content).not.toMatch(/createProvider|dryRun: false/);
         continue;
       }
       const content = readFileSync(file, "utf8");

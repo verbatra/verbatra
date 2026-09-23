@@ -41,9 +41,9 @@ Flag und Umgebungsvariable werden genau wie bei `--allow-spend` aufgelöst: `1`,
 
 ## Der Tool-Katalog
 
-Mit aktiviertem Opt-in registriert Studio fünfzehn Tools, eines pro Dashboard-Aktion. Ohne `--allow-spend` sind es dreizehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
+Mit aktiviertem Opt-in registriert Studio sechzehn Tools. Ohne `--allow-spend` sind es vierzehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
 
-### Lese-Tools (elf)
+### Lese-Tools (zwölf)
 
 Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend markiert.
 
@@ -60,6 +60,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
 | `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
+| `verbatra_translation_estimate` | was `verbatra_translation_translatePending` senden und kosten würde, optional für eine Teilmenge der `locales`, ohne einen Provider aufzurufen |
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -90,6 +91,10 @@ Diese rufen einen Übersetzungs-Provider auf und werden nur registriert, wenn St
 - `verbatra_translation_retranslateEntry`: übersetzt einen Key und eine Locale neu.
 - `verbatra_translation_translatePending`: übersetzt alles derzeit Ausstehende.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_translation_translatePending` nimmt zwei optionale Parameter. `locales` grenzt den Lauf auf diese konfigurierten Ziel-Locales ein und lässt die anderen unberührt; eine unbekannte Locale wird mit `UNKNOWN_LOCALE` abgelehnt, bevor irgendetwas ausgegeben wird. `maxTokens` ist eine harte Token-Obergrenze für den Aufruf, genau wie [`verbatra translate --max-tokens`](/docs/cli/translate): Eine Anfrage, die sie überschreiten würde, wird zurückgehalten statt gesendet, und setzt die Konfiguration ebenfalls `maxTokens`, gilt der niedrigere der beiden Werte. Frag die Zahl vorher mit `verbatra_translation_estimate` ab: Es liefert dasselbe Ergebnis wie `translate --estimate --json`, wird mit oder ohne `--allow-spend` registriert und ruft nie einen Provider auf. Siehe [Kosten abschätzen](/docs/estimating-cost).
+
 Beide schicken ihre Ergebnisse durch das Integritäts-Gate, bevor irgendetwas die Platte erreicht, und für beide gelten Studios bestehende Ratenlimits (Neuübersetzen 20 pro gleitender Minute, Translate-pending 5 pro gleitender Minute plus eine Sperre gegen parallele Läufe). `verbatra_translation_retranslateEntry` trägt zusätzlich dieselbe Sperre pro Eintrag wie das Bearbeiten: ein gleichzeitiger zweiter Aufruf für dieselbe Locale und denselben Key wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt. Ohne `--allow-spend` fehlen sie im Tool-Set, und der Server registriert die zugrunde liegenden Endpunkte gar nicht erst: Ausgaben, die du beim Start nicht gewährt hast, sind für einen Agenten nicht erreichbar.
 
 ### Wenn ein Aufruf fehlschlägt
@@ -107,7 +112,7 @@ Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Prob
 
 **Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du das Opt-in nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
 
-**Dreizehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio dreizehn Registrierungen statt fünfzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Dreizehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
+**Vierzehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio vierzehn Registrierungen statt sechzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Vierzehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
 
 **Der Hinweis.** Hat Studio eine Registrierung versucht und der Browser sie abgelehnt, zeigt das Dashboard oben im Inhaltsbereich eine Warnung, auf jeder Ansicht:
 
@@ -124,10 +129,10 @@ Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool
 Studio schreibt eine einzige zusammengefasste Zeile auf Error-Ebene, nicht eine Zeile pro Tool, denn eine gemeinsame Ursache lässt jedes Tool identisch scheitern:
 
 ```text
-Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 16 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier fünfzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und dreizehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
+Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier sechzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und vierzehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
 
 Ein Durchlauf, der die Tool-Schleife nie erreicht hat, meldet eine andere Zeile und löst den Hinweis nicht aus:
 

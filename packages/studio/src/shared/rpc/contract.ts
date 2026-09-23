@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { STATUS_CHECK_METHOD, type StatusCheckResult, statusCheckParamsSchema } from "./check.js";
 import { STATUS_DIFF_METHOD, type StatusDiffResult, statusDiffParamsSchema } from "./diff.js";
 import { EDIT_ENTRY_METHOD, type EditEntryResult, editEntryParamsSchema } from "./edit-entry.js";
+import { ESTIMATE_METHOD, type EstimateResult, estimateParamsSchema } from "./estimate.js";
 import {
   GLOSSARY_GET_METHOD,
   GLOSSARY_WRITE_METHOD,
@@ -71,6 +72,7 @@ export const rpcParamsSchemas = {
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
+  [ESTIMATE_METHOD]: estimateParamsSchema,
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
 } as const;
@@ -95,6 +97,7 @@ export interface RpcResultMap {
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
+  readonly [ESTIMATE_METHOD]: EstimateResult;
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
 }

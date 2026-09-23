@@ -1,5 +1,6 @@
 import type { RegisteredMcpTool } from "./define-tool.js";
 import { editEntryTool } from "./edit-entry.js";
+import { estimateTool } from "./estimate.js";
 import { glossaryGetTool, glossaryWriteTool } from "./glossary.js";
 import { keyIntegrityTool } from "./key-integrity.js";
 import { keyValueTool } from "./key-value.js";
@@ -27,6 +28,7 @@ const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   keyIntegrityTool,
   keyValueTool,
   editEntryTool,
+  estimateTool,
   retranslateEntryTool,
   translatePendingTool,
   reviewQueueTool,

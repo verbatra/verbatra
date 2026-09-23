@@ -58,7 +58,7 @@ That configuration is read-only plus local editing: no provider is called and no
 
 ## Tools
 
-Thirteen tools, listed here in the order the server advertises them.
+Fourteen tools, listed here in the order the server advertises them.
 
 | Tool | What it does |
 | --- | --- |
@@ -71,8 +71,9 @@ Thirteen tools, listed here in the order the server advertises them.
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
 | `key.value` | One key's current source text and, if translated, its current text in one target locale |
 | `translation.editEntry` | Write a manual translation for one key in one locale, accepted only if it passes the integrity gate |
+| `translation.estimate` | Estimate what `translation.translatePending` would send and cost, optionally for a subset of locales, without calling a provider |
 | `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |
-| `translation.translatePending` | Translate every missing or stale key across every configured target locale in one run |
+| `translation.translatePending` | Translate every missing or stale key across the configured target locales, or a named subset, in one run, within an optional `maxTokens` ceiling |
 | `review.queue` | The keys the last run flagged for human review, with the reason for each |
 | `usage.summary` | Token usage and budget status left behind by the last run |
 

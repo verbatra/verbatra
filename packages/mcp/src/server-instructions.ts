@@ -14,7 +14,13 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "They are listed only when the operator started the server with --allow-spend (or VERBATRA_MCP_ALLOW_SPEND) " +
     "and the config's provider is not none. If they are absent, the operator chose not to spend: nothing is broken, " +
     "and enabling spend is the operator's decision, never a workaround. When they are present, show the status.diff " +
-    "result to the user and get an explicit yes before calling one. translation.translatePending is not idempotent: " +
+    "result to the user and get an explicit yes before calling one. Estimate before you spend: translation.estimate " +
+    "is always listed, is free, calls no provider, and reports the keys, requests, tokens or characters, and, when " +
+    "the config carries rates, the cost a translation.translatePending call with the same locales would incur. " +
+    "Show that figure with the diff. translation.translatePending takes an optional locales list to translate only " +
+    "those target locales, and an optional maxTokens hard ceiling for the call; the lower of it and the config's " +
+    "maxTokens applies, and keys the ceiling withheld are listed under budgetWithheld. " +
+    "translation.translatePending is not idempotent: " +
     "every call bills again for whatever is still pending, and it deletes orphaned keys when project.snapshot " +
     "reports prune: true.",
   "Protected keys: keys matching pinnedKeys are always left for a person. Values a person wrote or imported, " +
