@@ -46,20 +46,35 @@ export const ALL_LOCALES = "all";
 
 export interface ScopeValue {
   readonly translation: string | undefined;
-  readonly inherited: boolean;
+  readonly inheritedFrom: string | undefined;
   readonly forbidden: readonly string[];
+}
+
+function inheritedFrom(term: GlossaryTermView, locale: string): string {
+  const base = locale.split("-")[0] ?? locale;
+  return base !== locale && ownEntry(term.targets, base) !== undefined ? base : "all locales";
 }
 
 export function scopeValue(term: GlossaryTermView, scope: string): ScopeValue {
   if (scope === ALL_LOCALES) {
-    return { translation: term.target, inherited: false, forbidden: [] };
+    return { translation: term.target, inheritedFrom: undefined, forbidden: [] };
   }
   const view = term.byLocale[scope];
+  const inherited = view?.target !== undefined && view.inherited;
   return {
     translation: view?.target,
-    inherited: view?.inherited ?? true,
+    inheritedFrom: inherited ? inheritedFrom(term, scope) : undefined,
     forbidden: view?.forbidden ?? [],
   };
+}
+
+export function forbiddenRuleCount(term: GlossaryTermView): number {
+  return Object.values(term.forbidden).reduce((total, renderings) => total + renderings.length, 0);
+}
+
+export function isTargetLocale(locales: readonly string[], locale: string): boolean {
+  const wanted = locale.toLowerCase();
+  return locales.some((candidate) => candidate.toLowerCase() === wanted);
 }
 
 function ownEntry<T>(record: Readonly<Record<string, T>>, locale: string): T | undefined {

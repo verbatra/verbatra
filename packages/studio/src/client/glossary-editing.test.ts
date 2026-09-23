@@ -5,9 +5,11 @@ import {
   buildTermEdit,
   deriveGlossaryWriteOutcome,
   draftFor,
+  forbiddenRuleCount,
   glossaryReadOnlyReason,
   hasPerLocaleData,
   isGlossaryEditable,
+  isTargetLocale,
   parseRenderings,
   scopeValue,
 } from "./glossary-editing.js";
@@ -88,7 +90,7 @@ describe("scopeValue", () => {
   it("shows the translation for all locales in the all-locales scope, with nothing forbidden", () => {
     expect(scopeValue(TERM, ALL_LOCALES)).toEqual({
       translation: "Dashboard",
-      inherited: false,
+      inheritedFrom: undefined,
       forbidden: [],
     });
   });
@@ -96,15 +98,25 @@ describe("scopeValue", () => {
   it("shows a locale's resolved translation and every rendering it forbids", () => {
     expect(scopeValue(TERM, "de")).toEqual({
       translation: "Übersicht",
-      inherited: false,
+      inheritedFrom: undefined,
       forbidden: ["Instrumententafel", "Tafel"],
     });
+  });
+
+  it("names where an inherited translation comes from", () => {
+    expect(scopeValue(TERM, "fr").inheritedFrom).toBe("all locales");
+    const regional: GlossaryTermView = {
+      ...TERM,
+      targets: { de: "Übersicht" },
+      byLocale: { "de-AT": { target: "Übersicht", inherited: true, forbidden: [] } },
+    };
+    expect(scopeValue(regional, "de-AT").inheritedFrom).toBe("de");
   });
 
   it("treats a locale the term has nothing for as inheriting nothing", () => {
     expect(scopeValue(TERM, "it")).toEqual({
       translation: undefined,
-      inherited: true,
+      inheritedFrom: undefined,
       forbidden: [],
     });
   });
@@ -185,5 +197,18 @@ describe("hasPerLocaleData", () => {
   it("is true for a term with a per-locale translation or forbidden list", () => {
     expect(hasPerLocaleData(TERM)).toBe(true);
     expect(hasPerLocaleData({ ...TERM, targets: {}, forbidden: {} })).toBe(false);
+  });
+});
+
+describe("forbiddenRuleCount", () => {
+  it("counts every forbidden rendering across locales", () => {
+    expect(forbiddenRuleCount({ ...TERM, forbidden: { de: ["a", "b"], fr: ["c"] } })).toBe(3);
+  });
+});
+
+describe("isTargetLocale", () => {
+  it("matches a configured target locale regardless of case", () => {
+    expect(isTargetLocale(["de", "fr"], "DE")).toBe(true);
+    expect(isTargetLocale(["de", "fr"], "de-AT")).toBe(false);
   });
 });

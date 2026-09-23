@@ -16,7 +16,7 @@ import {
 import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
-import { GlossaryDoNotTranslate } from "./GlossaryDoNotTranslate.js";
+import { GlossaryDoNotTranslate, glossarySubheadingClassName } from "./GlossaryDoNotTranslate.js";
 import { GlossaryTermRow, type GlossaryWriter } from "./GlossaryTermRow.js";
 import { TextField } from "./Input.js";
 import { Select } from "./Select.js";
@@ -60,7 +60,7 @@ function ScopeSelect({
 }): ReactNode {
   const id = useId();
   return (
-    <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
       <label htmlFor={id}>Show translations for</label>
       <Select id={id} value={scope} onChange={(event) => onScope(event.target.value)}>
         <option value={ALL_LOCALES}>All locales</option>
@@ -104,13 +104,14 @@ function GlossaryAddForm({
 
   return (
     <div className="mt-4 border-border border-t pt-4">
-      <p className="m-0 mb-2 font-medium text-sm text-foreground">
+      <h3 className={glossarySubheadingClassName}>
         {scope === ALL_LOCALES ? "Add a term" : `Add a term for ${scope}`}
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
+      </h3>
+      <div className="grid items-end gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <TextField
           aria-label="New glossary term"
           placeholder="Source term"
+          className="max-w-none"
           value={term}
           disabled={busy}
           onChange={(event) => setTerm(event.target.value)}
@@ -121,6 +122,7 @@ function GlossaryAddForm({
             scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
           }
           dir="auto"
+          className="max-w-none"
           value={translation}
           disabled={busy}
           onChange={(event) => setTranslation(event.target.value)}
@@ -170,12 +172,13 @@ export function GlossarySection({
           Add a glossary to keep brand terms and fixed vocabulary consistent across locales.
         </EmptyState>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
           {glossary.terms.map((term) => (
             <GlossaryTermRow
               key={`${scope}:${term.source}`}
               term={term}
               scope={scope}
+              locales={glossary.locales}
               redacted={glossary.redactedTerms.includes(term.source)}
               editable={editable}
               writer={writer}
@@ -183,12 +186,12 @@ export function GlossarySection({
           ))}
         </ul>
       )}
+      {editable ? <GlossaryAddForm scope={scope} writer={writer} /> : null}
       <GlossaryDoNotTranslate
         entries={glossary.doNotTranslate}
         editable={editable}
         writer={writer}
       />
-      {editable ? <GlossaryAddForm scope={scope} writer={writer} /> : null}
       {writer.error !== undefined ? (
         <p className="m-0 mt-3 text-danger text-sm" role="alert">
           {writer.error}

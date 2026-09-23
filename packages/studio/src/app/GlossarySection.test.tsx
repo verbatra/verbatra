@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   GlossaryGetResult,
@@ -19,6 +20,11 @@ import {
 } from "./test-support.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
+
+function Stateful({ initial }: { readonly initial: GlossaryGetResult }): ReactNode {
+  const [glossary, setGlossary] = useState(initial);
+  return <GlossarySection glossary={glossary} onChange={setGlossary} />;
+}
 
 function sharedTerm(source: string, target: string): GlossaryTermView {
   return {
@@ -72,6 +78,15 @@ function field(view: RenderResult, label: string): HTMLInputElement {
   return view.get(`input[aria-label="${label}"]`) as HTMLInputElement;
 }
 
+function labeled(view: RenderResult, text: string): HTMLInputElement {
+  const label = view.all("label").find((candidate) => candidate.textContent === text);
+  const id = label?.getAttribute("for");
+  if (id === null || id === undefined) {
+    throw new Error(`no label reading "${text}"`);
+  }
+  return view.get(`[id="${id}"]`) as HTMLInputElement;
+}
+
 async function showLocale(view: RenderResult, locale: string): Promise<void> {
   selectOption(view.get("select") as HTMLSelectElement, locale);
   await clickAsync(view.get("ul"));
@@ -107,7 +122,7 @@ describe("GlossarySection, file-backed", () => {
 
     await showLocale(view, "fr");
 
-    expect(view.text()).toContain("inherited");
+    expect(view.text()).toContain("inherited from all locales");
     expect(view.text()).not.toContain("Instrumententafel");
   });
 
@@ -202,10 +217,10 @@ describe("GlossarySection, file-backed", () => {
     const view = render(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
     await showLocale(view, "de");
     await clickAsync(buttonLabeled(view, "Edit Dashboard"));
-    expect(field(view, "Translation of Dashboard for de").value).toBe("Übersicht");
-    typeInto(field(view, "Translation of Dashboard for de"), "Startseite");
-    typeInto(field(view, "Forbidden renderings of Dashboard for de"), "Instrumententafel, Tafel");
-    typeInto(field(view, "Part of speech of Dashboard"), "");
+    expect(labeled(view, "Translation (de)").value).toBe("Übersicht");
+    typeInto(labeled(view, "Translation (de)"), "Startseite");
+    typeInto(labeled(view, "Never use (de)"), "Instrumententafel, Tafel");
+    typeInto(labeled(view, "Part of speech"), "");
     await clickAsync(view.getByText("button", "Save"));
 
     expect(rpcCalls).toEqual([
@@ -227,9 +242,9 @@ describe("GlossarySection, file-backed", () => {
 
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
     await clickAsync(buttonLabeled(view, "Edit checkout"));
-    expect(
-      view.query('input[aria-label="Forbidden renderings of checkout for all locales"]'),
-    ).toBeNull();
+    expect(view.all("label").some((label) => label.textContent?.startsWith("Never use"))).toBe(
+      false,
+    );
     await clickAsync(view.get('input[aria-label="Match case for checkout"]'));
     await clickAsync(view.getByText("button", "Save"));
 
@@ -246,8 +261,88 @@ describe("GlossarySection, file-backed", () => {
 
     await clickAsync(view.getByText("button", "Cancel"));
 
-    expect(view.query('input[aria-label="Translation of checkout for all locales"]')).toBeNull();
+    expect(
+      view.all("label").some((label) => label.textContent === "Translation (all locales)"),
+    ).toBe(false);
     expect(rpcCalls).toEqual([]);
+  });
+
+  it("labels every editor field visibly and groups them by locale and whole term", async () => {
+    const view = render(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+    await showLocale(view, "de");
+    await clickAsync(buttonLabeled(view, "Edit Dashboard"));
+
+    expect(view.all("legend").map((legend) => legend.textContent)).toEqual([
+      "For de",
+      "Whole term",
+    ]);
+    for (const text of ["Translation (de)", "Never use (de)", "Note", "Part of speech"]) {
+      expect(labeled(view, text).hasAttribute("aria-label")).toBe(false);
+    }
+  });
+
+  it("moves focus into the translation field on edit and back to Edit on cancel or save", async () => {
+    stubRpc({ "glossary.write": writeAnswer(FILE_BACKED) });
+    const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+
+    await clickAsync(buttonLabeled(view, "Edit checkout"));
+    expect(document.activeElement).toBe(labeled(view, "Translation (all locales)"));
+
+    await clickAsync(view.getByText("button", "Cancel"));
+    expect(document.activeElement).toBe(buttonLabeled(view, "Edit checkout"));
+
+    await clickAsync(buttonLabeled(view, "Edit checkout"));
+    typeInto(labeled(view, "Translation (all locales)"), "Bezahlung");
+    await clickAsync(view.getByText("button", "Save"));
+    expect(document.activeElement).toBe(buttonLabeled(view, "Edit checkout"));
+  });
+
+  it("shows each locale's own translation with its code and counts the never-use rules", async () => {
+    const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+
+    expect(view.text()).toContain("1 never-use rule; choose a locale to see them");
+    expect(view.all(".bg-neutral-soft").some((badge) => badge.textContent === "de")).toBe(true);
+    expect(view.text()).not.toContain("not target locales");
+  });
+
+  it("marks a stored locale that is not a target locale as read-only", async () => {
+    const regional: GlossaryTermView = {
+      ...DASHBOARD,
+      targets: { "de-AT": "Armaturenbrett" },
+      forbidden: {},
+    };
+    const view = await renderAsync(
+      <GlossarySection glossary={{ ...FILE_BACKED, terms: [regional] }} onChange={() => {}} />,
+    );
+
+    expect(view.text()).toContain("Armaturenbrett");
+    expect(view.text()).toContain("not target locales of this project");
+  });
+
+  it("lets a long unbroken value wrap instead of overflowing", async () => {
+    const long = "x".repeat(300);
+    const view = render(
+      <GlossarySection
+        glossary={{
+          ...FILE_BACKED,
+          terms: [
+            {
+              ...DASHBOARD,
+              source: long,
+              note: long,
+              byLocale: { de: { target: long, inherited: false, forbidden: [long] } },
+            },
+          ],
+        }}
+        onChange={() => {}}
+      />,
+    );
+    await showLocale(view, "de");
+
+    const wrapping = view
+      .all('[class*="[overflow-wrap:anywhere]"]')
+      .map((node) => node.textContent);
+    expect(wrapping.filter((text) => text === long).length).toBeGreaterThanOrEqual(4);
   });
 
   it("removes a shared-only term by clearing its translation", async () => {
@@ -293,12 +388,61 @@ describe("GlossarySection, do-not-translate terms", () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
 
     expect(view.text()).toContain("Northwind");
-    expect(view.text()).toContain("match case");
+    expect(view.text()).toContain("Match case");
     await clickAsync(buttonLabeled(view, "Remove Northwind from do not translate"));
 
     expect(rpcCalls).toEqual([
       { method: "glossary.write", params: { term: "Northwind", doNotTranslate: false } },
     ]);
+  });
+
+  it("moves focus to the next kept term after a removal, and to the input after the last", async () => {
+    const two: GlossaryGetResult = {
+      ...FILE_BACKED,
+      doNotTranslate: [
+        { term: "Northwind", caseSensitive: true },
+        { term: "Acme", caseSensitive: false },
+      ],
+    };
+    const one: GlossaryGetResult = {
+      ...FILE_BACKED,
+      doNotTranslate: [{ term: "Acme", caseSensitive: false }],
+    };
+    const none: GlossaryGetResult = { ...FILE_BACKED, doNotTranslate: [] };
+    let current = two;
+    stubRpc({
+      "glossary.write": () => {
+        current = current === two ? one : none;
+        return Promise.resolve(writeAnswer(current));
+      },
+    });
+    const view = render(<Stateful initial={two} />);
+
+    await clickAsync(buttonLabeled(view, "Remove Northwind from do not translate"));
+    expect(document.activeElement).toBe(buttonLabeled(view, "Remove Acme from do not translate"));
+
+    await clickAsync(buttonLabeled(view, "Remove Acme from do not translate"));
+    expect(document.activeElement).toBe(field(view, "New do-not-translate term"));
+  });
+
+  it("shows Match case on a kept term only when it is on", async () => {
+    const view = await renderAsync(
+      <GlossarySection
+        glossary={{
+          ...FILE_BACKED,
+          terms: [],
+          doNotTranslate: [
+            { term: "Northwind", caseSensitive: true },
+            { term: "Acme", caseSensitive: false },
+          ],
+        }}
+        onChange={() => {}}
+      />,
+    );
+    const items = view.all("ul li").map((item) => item.textContent ?? "");
+
+    expect(items.find((text) => text.includes("Northwind"))).toContain("Match case");
+    expect(items.find((text) => text.includes("Acme"))).not.toContain("Match case");
   });
 
   it("keeps a new term untranslated, matching case unless told otherwise", async () => {
@@ -319,6 +463,13 @@ describe("GlossarySection, do-not-translate terms", () => {
       },
     ]);
     expect(field(view, "New do-not-translate term").value).toBe("");
+    expect(
+      (
+        view.get(
+          'input[aria-label="Match case for the new do-not-translate term"]',
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
   });
 
   it("invites the first kept term when there is none yet", async () => {

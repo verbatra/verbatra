@@ -235,7 +235,7 @@ describe("SettingsPanel", () => {
     expect(terms).toHaveLength(2);
     expect(terms[1]?.textContent).toContain("checkout");
     expect(terms[1]?.textContent).toContain("Kasse");
-    expect(view.all('li span[dir="auto"]').map((node) => node.textContent)).toEqual([
+    expect(view.all('li p > span[dir="auto"]').map((node) => node.textContent)).toEqual([
       "Verbatra",
       "Kasse",
     ]);
