@@ -5,6 +5,8 @@ export interface LocaleNames {
 }
 
 const DISPLAY_LOCALE = "en";
+const UNKNOWN_SCRIPT = "Zzzz";
+const UNKNOWN_REGION = "ZZ";
 
 const languageNames = new Intl.DisplayNames(DISPLAY_LOCALE, {
   type: "language",
@@ -14,6 +16,10 @@ const languageNames = new Intl.DisplayNames(DISPLAY_LOCALE, {
 const scriptNames = new Intl.DisplayNames(DISPLAY_LOCALE, { type: "script", fallback: "none" });
 const regionNames = new Intl.DisplayNames(DISPLAY_LOCALE, { type: "region", fallback: "none" });
 
+function knownSubtag(subtag: string | undefined, unknown: string): string | undefined {
+  return subtag === unknown ? undefined : subtag;
+}
+
 function displayName(names: Intl.DisplayNames, code: string | undefined): string | undefined {
   return code === undefined ? undefined : names.of(code);
 }
@@ -21,12 +27,18 @@ function displayName(names: Intl.DisplayNames, code: string | undefined): string
 export function localeNamesOf(locale: string): LocaleNames | undefined {
   try {
     const parsed = new Intl.Locale(locale);
-    const name = languageNames.of(parsed.baseName);
+    const scriptCode = knownSubtag(parsed.script, UNKNOWN_SCRIPT);
+    const regionCode = knownSubtag(parsed.region, UNKNOWN_REGION);
+    const namedTag = parsed.baseName
+      .split("-")
+      .filter((subtag) => subtag !== UNKNOWN_SCRIPT && subtag !== UNKNOWN_REGION)
+      .join("-");
+    const name = languageNames.of(namedTag);
     if (name === undefined) {
       return undefined;
     }
-    const script = displayName(scriptNames, parsed.script);
-    const region = displayName(regionNames, parsed.region);
+    const script = displayName(scriptNames, scriptCode);
+    const region = displayName(regionNames, regionCode);
     return {
       name,
       ...(script !== undefined ? { script } : {}),

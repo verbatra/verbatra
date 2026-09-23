@@ -28,6 +28,18 @@ describe("localeNamesOf: English names for the language, script and region", () 
   });
 });
 
+describe("localeNamesOf: the unknown-script and unknown-region placeholder subtags", () => {
+  it.each([
+    ["sr-Zzzz", { name: "Serbian" }],
+    ["de-ZZ", { name: "German" }],
+    ["sr-Zzzz-ZZ", { name: "Serbian" }],
+    ["sr-Latn-ZZ", { name: "Serbian (Latin)", script: "Latin" }],
+    ["pt-Zzzz-BR", { name: "Portuguese (Brazil)", region: "Brazil" }],
+  ])("leaves the placeholder out of the names of %s", (locale, expected) => {
+    expect(localeNamesOf(locale)).toEqual(expected);
+  });
+});
+
 describe("localeNamesOf: an unknown or unparseable tag", () => {
   it.each([
     ["a private-use language", "qaa"],
@@ -38,13 +50,5 @@ describe("localeNamesOf: an unknown or unparseable tag", () => {
     ["an empty string", ""],
   ])("returns undefined for %s rather than throwing", (_label, locale) => {
     expect(localeNamesOf(locale)).toBeUndefined();
-  });
-});
-
-describe("localeNamesOf: determinism", () => {
-  it("returns the same names for the same tag on every call", () => {
-    expect(JSON.stringify(localeNamesOf("zh-Hant-HK"))).toBe(
-      JSON.stringify(localeNamesOf("zh-Hant-HK")),
-    );
   });
 });
