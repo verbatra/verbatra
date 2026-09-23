@@ -184,9 +184,11 @@ verbatra wieder einliest, lässt den Aufruf mit `PROVENANCE_FILE_UNWRITABLE` sch
   sodass der Key als fehlend gilt, bis der nächste Lauf von `translate` oder eine Person einen neuen
   Wert schreibt. Der Eintrag bleibt mit einem Hash des entfernten Texts bestehen, und der passende
   Eintrag im Translation Memory auf diesem Rechner wird gelöscht, damit der nächste Lauf denselben
-  Text nicht gleich wieder einsetzt. Ein Format, das keine einzelne Übersetzung entfernen kann, etwa
-  XLIFF, wo eine Unit ohne Target als ihr Quelltext gelesen wird, lehnt die Ablehnung mit
-  `REVIEW_REJECT_UNSUPPORTED` ab und lässt die Datei unverändert.
+  Text nicht gleich wieder einsetzt. Locale-Datei, Lock-Datei und Provenance-Datei ändern sich
+  gemeinsam oder gar nicht. Ein Format, das keine einzelne Übersetzung entfernen kann, lehnt die
+  Ablehnung mit `REVIEW_REJECT_UNSUPPORTED` ab und lässt die Datei unverändert: XLIFF, wo eine Unit
+  ohne Target als ihr Quelltext gelesen wird, und Flutter ARB, dessen Writer jede vorhandene
+  Nachricht behält.
 
 Jeder spätere Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag. Wenn
 du einen freigegebenen Wert bearbeitest, geht er also zurück ins Review. Der Name unter `reviewer`

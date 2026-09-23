@@ -480,7 +480,7 @@ this machine is dropped. Calls no provider.
 
 Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, checked like `approveEntry`
 except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A
-format that keeps a key it was not given, such as XLIFF, throws `REVIEW_REJECT_UNSUPPORTED` after
+format that keeps a key it was not given, XLIFF or Flutter ARB, throws `REVIEW_REJECT_UNSUPPORTED` after
 restoring the file.
 
 Both calls check the provenance file before anything is written and never report a decision they
@@ -963,7 +963,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `PROVENANCE_FILE_UNWRITABLE` | a review decision could not be saved because the provenance file is from a newer verbatra or would grow past the size verbatra reads back (`approveEntry`, `rejectEntry`); nothing is written |
 | `REVIEW_VALUE_CHANGED` | the key has no value, or its value is not the `expectedValue` the reviewer saw (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | the source changed since the value was written, so it cannot be approved as it stands (`approveEntry`) |
-| `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, so `rejectEntry` restored the file instead |
+| `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF and Flutter ARB do, so `rejectEntry` restored the file instead |
 | `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |

@@ -187,9 +187,11 @@ que la décision ferait grossir au-delà de la taille que verbatra relit, fait �
   bien que la clé compte comme manquante jusqu'à ce que la prochaine exécution de `translate`, ou
   une personne, écrive une nouvelle valeur. L'enregistrement reste avec un hash du texte supprimé,
   et l'entrée correspondante de la mémoire de traduction de cette machine est retirée pour que la
-  prochaine exécution ne remette pas le même texte aussitôt. Un format qui ne peut pas supprimer une
-  seule traduction, comme XLIFF, où une unité sans cible se lit comme son texte source, refuse le
-  rejet avec `REVIEW_REJECT_UNSUPPORTED` et laisse le fichier tel quel.
+  prochaine exécution ne remette pas le même texte aussitôt. Le fichier de locale, le fichier de
+  verrouillage et le fichier de provenance changent ensemble ou pas du tout. Un format qui ne peut
+  pas supprimer une seule traduction refuse le rejet avec `REVIEW_REJECT_UNSUPPORTED` et laisse le
+  fichier tel quel : XLIFF, où une unité sans cible se lit comme son texte source, et Flutter ARB,
+  dont l'écrivain garde tous les messages existants.
 
 Toute écriture ultérieure qui change la valeur démarre un nouvel enregistrement non relu : modifier
 une valeur approuvée la renvoie donc en revue. Le nom dans `reviewer` est stocké dans un fichier

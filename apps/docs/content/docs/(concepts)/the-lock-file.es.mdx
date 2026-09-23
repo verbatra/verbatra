@@ -182,9 +182,11 @@ cambia nada.
   que la clave cuenta como faltante hasta que la siguiente ejecución de `translate`, o una persona,
   escriba un valor nuevo. El registro se queda con un hash del texto eliminado, y la entrada
   correspondiente de la memoria de traducción de esta máquina se borra para que la siguiente
-  ejecución no vuelva a poner el mismo texto. Un formato que no puede eliminar una sola traducción,
-  como XLIFF, donde una unidad sin destino se lee como su texto de origen, rechaza el rechazo con
-  `REVIEW_REJECT_UNSUPPORTED` y deja el archivo como estaba.
+  ejecución no vuelva a poner el mismo texto. El archivo de locale, el archivo de bloqueo y el
+  archivo de procedencia cambian juntos o no cambian. Un formato que no puede eliminar una sola
+  traducción rechaza el rechazo con `REVIEW_REJECT_UNSUPPORTED` y deja el archivo como estaba: XLIFF,
+  donde una unidad sin destino se lee como su texto de origen, y Flutter ARB, cuyo escritor conserva
+  todos los mensajes existentes.
 
 Cualquier escritura posterior que cambie el valor empieza un registro nuevo, sin revisar, así que
 editar un valor aprobado lo devuelve a revisión. El nombre en `reviewer` se guarda en un archivo con

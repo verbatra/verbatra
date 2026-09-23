@@ -269,9 +269,13 @@ How the actions are carried out, as delivered:
 - **Reject** (`rejectEntry`) removes the value from the locale file and its lock entry, so the key
   reads as missing and the next run, or a person, writes a new value. The `rejected` record stays
   as the tombstone above, and the exact translation-memory entry for the key's source is dropped on
-  the machine that rejected it. A format whose writer keeps a key it was not given, such as XLIFF,
-  where a unit without a target reads as its source text, cannot express a removed value: the file
-  is restored and the call fails with `REVIEW_REJECT_UNSUPPORTED`. Keeping the value in place and
+  the machine that rejected it, once everything else has succeeded. The lock file is validated and
+  the record planned under the lock-file guard before the locale file is touched, and the lock and
+  provenance files are written under that same guard; any failure after the locale file was
+  rewritten restores the locale file and the provenance file byte for byte. A format whose writer
+  keeps a key it was not given cannot express a removed value: XLIFF, where a unit without a
+  target reads as its source text, and Flutter ARB, whose writer keeps every existing message. The
+  file is restored and the call fails with `REVIEW_REJECT_UNSUPPORTED`. Keeping the value in place and
   marking it for retranslation was rejected because it keeps shipping text a reviewer refused and
   needs every run to learn the rule; reverting to an earlier value from git was deferred, because
   this file stores no text and the earlier value may itself be unreviewed machine output.
@@ -295,7 +299,9 @@ can take it from the commit.
 from `git config user.email`, the operating-system user, or an MCP client identity, because the
 file is committed and shared. It is bounded (at most 64 characters, no control characters) and
 documented as public. An email address is not rejected (a team may choose one), but nothing
-defaults to one.
+defaults to one. Repeating the same decision on the same value without a reviewer keeps the
+reviewer the earlier decision named, so a second click from a surface that sends no name does not
+erase attribution; a decision that names a reviewer replaces it.
 
 ## Decision 7: versioning and compatibility
 

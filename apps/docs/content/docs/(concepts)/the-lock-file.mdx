@@ -166,9 +166,11 @@ verbatra, or one the decision would grow past the size verbatra reads back, fail
 - **A rejection** removes the value from the locale file and its entry from the lock file, so the
   key reads as missing until the next `translate` run, or a person, writes a new value. The record
   stays behind with a hash of the removed text, and the matching translation-memory entry on this
-  machine is dropped so the next run does not put the same text straight back. A format that cannot
-  drop one translation, such as XLIFF, where a unit without a target reads as its source text,
-  refuses the rejection with `REVIEW_REJECT_UNSUPPORTED` and leaves the file as it was.
+  machine is dropped so the next run does not put the same text straight back. The locale file, the
+  lock file and the provenance file change together or not at all. A format that cannot drop one
+  translation refuses the rejection with `REVIEW_REJECT_UNSUPPORTED` and leaves the file as it was:
+  XLIFF, where a unit without a target reads as its source text, and Flutter ARB, whose writer keeps
+  every existing message.
 
 Any later write that changes the value starts a fresh, unreviewed record, so editing an approved
 value sends it back for review. The `reviewer` name is stored in a committed file, so it is public;

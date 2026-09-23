@@ -308,7 +308,7 @@ Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedVa
 
 Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et la refuse, et supprime cette valeur pour qu'elle soit remplacée. La clé est retirée du fichier de locale et son entrée de verrou est supprimée : `check` et `diff` la signalent comme manquante et la prochaine exécution de `translate` la remplit à nouveau (avec `provider: { id: "none" }`, elle reste manquante jusqu'à ce que quelqu'un écrive une valeur). L'enregistrement de provenance est conservé comme `rejected` avec un hash du texte supprimé, et l'entrée correspondante de la mémoire de traduction de cette machine est retirée. N'appelle aucun fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`, vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, comme XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
+Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`, vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF ou Flutter ARB, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
 
 Les deux appels vérifient le fichier de provenance avant d'écrire quoi que ce soit et ne signalent jamais une décision qu'ils n'ont pas pu enregistrer : un fichier écrit par un verbatra plus récent, ou un fichier que la décision ferait grossir au-delà de la taille que verbatra relit, lève `PROVENANCE_FILE_UNWRITABLE`.
 
@@ -683,7 +683,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `PROVENANCE_FILE_UNWRITABLE` | une décision de revue n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit |
 | `REVIEW_VALUE_CHANGED` | la clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | la source a changé depuis l'écriture de la valeur, qui ne peut donc pas être approuvée telle quelle (`approveEntry`) |
-| `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF, donc `rejectEntry` a restauré le fichier à la place |
+| `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF et Flutter ARB, donc `rejectEntry` a restauré le fichier à la place |
 | `REVIEWER_INVALID` | `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | le verrou d'écriture d'une locale n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
 | `GLOSSARY_NOT_FILE_BACKED` | le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`) |
