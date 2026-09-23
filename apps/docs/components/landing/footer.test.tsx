@@ -4,9 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
 
+const localeState = vi.hoisted(() => ({ current: "en" }));
+
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string, values?: Record<string, string>) =>
     values?.name ?? key,
+  getLocale: async () => localeState.current,
 }));
 
 const { FullFooter } = await import("./footer");
@@ -32,6 +35,25 @@ describe("FullFooter", () => {
 
     for (const contributor of CONTRIBUTORS) {
       expect(doc.querySelector(`img[alt="${contributor.login}"]`)).not.toBeNull();
+    }
+  });
+
+  it.each([
+    ["en", ""],
+    ["de", "/de"],
+    ["es", "/es"],
+    ["fr", "/fr"],
+  ])("keeps the %s reader's locale in the legal links", async (locale, prefix) => {
+    localeState.current = locale;
+    try {
+      const doc = await renderFooter();
+      for (const key of ["privacy", "imprint", "contact"]) {
+        const link = doc.querySelector(`a[href$="/${key}"]`);
+        expect(link?.getAttribute("href")).toBe(`${prefix}/${key}`);
+        expect(link?.textContent).toBe(`cols.legal.${key}`);
+      }
+    } finally {
+      localeState.current = "en";
     }
   });
 
