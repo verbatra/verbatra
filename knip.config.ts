@@ -14,8 +14,10 @@ const config: KnipConfig = {
   // and this boolean is the only granularity there is.
   ignoreExportsUsedInFile: true,
 
-  // `printf` in the check:no-em-dash script is a shell builtin, not an installable binary.
-  ignoreBinaries: ["printf"],
+  // `printf` in the check:no-em-dash script is a shell builtin, not an installable binary. `jq` is
+  // preinstalled on the GitHub-hosted runners; verify-skills-dispatch.test.mjs executes the
+  // workflow's own jq program with it and skips that one case where jq is not installed.
+  ignoreBinaries: ["printf", "jq"],
 
   workspaces: {
     ".": {
@@ -31,6 +33,9 @@ const config: KnipConfig = {
       // The CLI reaches the studio dashboard through a dynamic import, so no source file in the
       // docs app names the package. scripts/check-build-output.mjs guards that indirection.
       ignoreDependencies: ["@verbatra/studio"],
+      // tsc resolves every `./security-headers.mjs` import to this declaration, which types the
+      // plain-JS module next.config.mjs needs. knip follows the import to the .mjs instead.
+      ignoreFiles: ["lib/security-headers.d.mts"],
     },
 
     "packages/sdk": {
