@@ -11,6 +11,7 @@ import { i18n, type Locale } from "@/lib/i18n";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
 const IMPRINT_PAGE = join(HERE, "../imprint/page.tsx");
+const COMPOSE_FILE = join(HERE, "../../../../../../docker-compose.yml");
 
 function loadMessages(locale: string): Record<string, unknown> {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
@@ -129,6 +130,30 @@ const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
   ],
 };
 
+const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
+  en: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Germany.*as a processor \(Art\. 28 GDPR\)/,
+  de: /Contabo GmbH, Welfenstraße 22, 81541 München, Deutschland.*als Auftragsverarbeiter \(Art\. 28 DSGVO\)/,
+  es: /Contabo GmbH, Welfenstraße 22, 81541 Múnich, Alemania.*como encargado del tratamiento \(art\. 28 del RGPD\)/,
+  fr: /Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne.*en tant que sous-traitant \(art\. 28 du RGPD\)/,
+};
+
+const CONTAINER_LOG_BOUND: Record<Locale, (files: string, megabytes: string) => string> = {
+  en: (files, megabytes) => `limited to ${files} files of ${megabytes} MB each`,
+  de: (files, megabytes) => `auf ${files} Dateien mit je ${megabytes} MB begrenzt`,
+  es: (files, megabytes) => `limitado a ${files} archivos de ${megabytes} MB cada uno`,
+  fr: (files, megabytes) => `limité à ${files} fichiers de ${megabytes} Mo chacun`,
+};
+
+const ACCESS_LOG_DELETION: Record<Locale, RegExp> = {
+  en: /access logs are deleted as soon as they are no longer needed/,
+  de: /Zugriffs-Logs des Webservers werden gelöscht, sobald sie für diese Zwecke nicht mehr benötigt werden/,
+  es: /registros de acceso del servidor web se eliminan en cuanto dejan de ser necesarios/,
+  fr: /journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires/,
+};
+
+const RETIRED_SHORT_PERIOD_CLAIM =
+  /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période/;
+
 const UMAMI_RETIRED_CLAIM =
   /does not collect personal data|erhebt keine personenbezogenen Daten|no recopila datos personales|ne collecte pas de données personnelles/;
 
@@ -139,6 +164,13 @@ function imprintFacts(): string[] {
   const street = source.match(/Mönchfeldstraße \d+/)?.[0];
   const city = source.match(/\d{5} Stuttgart/)?.[0];
   return [street ?? "missing street", city ?? "missing city"];
+}
+
+function composeLogBound(): { files: string; megabytes: string } {
+  const compose = readFileSync(COMPOSE_FILE, "utf8");
+  const megabytes = compose.match(/max-size: "(\d+)m"/)?.[1] ?? "missing max-size";
+  const files = compose.match(/max-file: "(\d+)"/)?.[1] ?? "missing max-file";
+  return { files, megabytes };
 }
 
 describe.each(i18n.languages)("privacy page (%s)", (locale) => {
@@ -215,6 +247,25 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       byNumber(12)?.querySelector(`a[href="${expectedHref(locale, "/contact")}"]`),
     ).not.toBeNull();
     expect(sectionText(doc, /^8\. /)).toMatch(OBJECTION_CROSS_REFERENCE[locale]);
+  });
+
+  it("names Contabo as the hosting processor with its legal entity and address", async () => {
+    const doc = await renderPrivacy(locale);
+    const hosting = sectionText(doc, /^3\. /);
+
+    expect(hosting).toMatch(HOSTING_PROCESSOR[locale]);
+    expect(
+      sectionNumbered(doc, 3)?.querySelector('a[href^="https://contabo.com/"]'),
+    ).not.toBeNull();
+  });
+
+  it("states the container log bound that docker-compose.yml actually configures", async () => {
+    const hosting = sectionText(await renderPrivacy(locale), /^3\. /);
+    const { files, megabytes } = composeLogBound();
+
+    expect(hosting).toContain(CONTAINER_LOG_BOUND[locale](files, megabytes));
+    expect(hosting).toMatch(ACCESS_LOG_DELETION[locale]);
+    expect(hosting).not.toMatch(RETIRED_SHORT_PERIOD_CLAIM);
   });
 
   it("describes what Umami reads and processes instead of claiming it collects no personal data", async () => {
