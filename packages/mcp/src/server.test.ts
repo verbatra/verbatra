@@ -87,6 +87,22 @@ describe("createMcpServer: handshake and tools/list", () => {
     expect(names).toContain("translation.retranslateEntry");
     expect(names).toContain("translation.translatePending");
   });
+
+  it("omits the two spend tools under provider none even with spending allowed", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+    const client = await connectedClient({
+      config: baseLoadedConfig({ config: baseVerbatraConfig({ provider: { id: "none" } }) }),
+      cwd: dir,
+      allowSpend: true,
+    });
+
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name);
+
+    expect(names).not.toContain("translation.retranslateEntry");
+    expect(names).not.toContain("translation.translatePending");
+    expect(names).toContain("translation.editEntry");
+  });
 });
 
 describe("createMcpServer: tools/call", () => {

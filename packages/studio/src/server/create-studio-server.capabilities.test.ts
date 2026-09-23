@@ -126,6 +126,44 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
   });
 });
 
+describe("provider none withholds the spend capability even when it was granted", () => {
+  const humanOnlyLoader = async () => ({
+    config: { ...(await stubLoader()()).config, provider: { id: "none" as const } },
+    source: { kind: "override" as const },
+    glossary: { source: "none" as const },
+  });
+
+  it("reports spend false on the snapshot with spend set", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "project.snapshot");
+        expect(body).toMatchObject({
+          ok: true,
+          result: { capabilities: { spend: false, writeToDisk: true } },
+        });
+      },
+      { token: TOKEN, loader: humanOnlyLoader, spend: true },
+    );
+  });
+
+  it.each(["translation.retranslateEntry", "translation.translatePending"])(
+    "answers METHOD_UNKNOWN for %s with spend set",
+    async (method) => {
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const { body } = await postRpc(server.url, cookie, method, {
+            ...(method === "translation.retranslateEntry" ? { locale: "de", key: "greeting" } : {}),
+          });
+          expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        },
+        { token: TOKEN, loader: humanOnlyLoader, spend: true },
+      );
+    },
+  );
+});
+
 describe("translation.editEntry and key.value reachability on a default server", () => {
   it("reaches the real handlers (not METHOD_UNKNOWN) on a default server, no flag needed", async () => {
     await withServer(

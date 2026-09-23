@@ -8,7 +8,7 @@ import {
   McpError,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { redact } from "@verbatra/sdk";
+import { isMachineTranslationEnabled, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import type { McpToolOutcome } from "./tools/define-tool.js";
@@ -59,7 +59,9 @@ function toOkResult(outcome: Extract<McpToolOutcome, { kind: "ok" }>): CallToolR
 export function createMcpServer(options: McpServerOptions): Server {
   const manifest = readPackageManifest();
   const context = buildContext(options);
-  const tools = buildToolRegistry(options.allowSpend ?? false);
+  const tools = buildToolRegistry(
+    (options.allowSpend ?? false) && isMachineTranslationEnabled(options.config.config),
+  );
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool] as const));
   const inFlightGuard = createMcpInFlightGuard(GUARDED_TOOL_NAMES);
 

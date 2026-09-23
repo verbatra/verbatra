@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { isMachineTranslationEnabled, type LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
@@ -168,7 +168,8 @@ async function closeServer(server: Server, sseHub: SseHub, watcher: ProjectWatch
  * calls are allowed only when {@link StudioServerDeps.spend} is set, so nothing the project's own
  * config module does can widen what this process was granted. Then `options.loader` resolves,
  * exactly once, before the server listens; every RPC handler reuses that one config for the life of
- * the process.
+ * the process. The config can only narrow the grant: a provider of `none` disables machine
+ * translation by policy, and then the provider-calling methods are absent even with `spend` set.
  *
  * @param options - The loader, where to bind and run, the granted capabilities, and any injection seams.
  * @returns The running server: its loopback URL, the port actually bound, and a `close` to stop it.
@@ -200,12 +201,13 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const assetsRootPath = fileURLToPath(options.assetsRoot ?? defaultAssetsRoot());
   const output = options.output ?? defaultOutput;
   const token = options.token ?? generateToken();
-  const capabilities: StudioCapabilities = {
-    spend: options.spend ?? false,
-    writeToDisk: true,
-  };
+  const granted = options.spend ?? false;
   const exposeAgentTools = options.exposeAgentTools ?? false;
   const config = await options.loader();
+  const capabilities: StudioCapabilities = {
+    spend: granted && isMachineTranslationEnabled(config.config),
+    writeToDisk: true,
+  };
   const projectRoot = options.cwd ?? process.cwd();
 
   const watcher = await createProjectWatcher(

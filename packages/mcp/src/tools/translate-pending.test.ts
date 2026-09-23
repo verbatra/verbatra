@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  baseLoadedConfig,
+  baseVerbatraConfig,
   defaultAdapterRegistry,
   makeContext,
   makeProject,
@@ -41,5 +43,26 @@ describe("translation.translatePending", () => {
     const outcome = await translatePendingTool.execute({ bogus: true }, makeContext());
 
     expect(outcome.kind).toBe("invalid");
+  });
+
+  it("returns a MACHINE_TRANSLATION_DISABLED error under provider none, calling no provider", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+    const factoryCalls: string[] = [];
+    const context = makeContext({
+      cwd: dir,
+      config: baseLoadedConfig({ config: baseVerbatraConfig({ provider: { id: "none" } }) }),
+      createProvider: (config) => {
+        factoryCalls.push(config.id);
+        return makeStubProvider();
+      },
+    });
+
+    const outcome = await translatePendingTool.execute({}, context);
+
+    expect(outcome).toMatchObject({
+      kind: "error",
+      message: expect.stringContaining("MACHINE_TRANSLATION_DISABLED"),
+    });
+    expect(factoryCalls).toEqual([]);
   });
 });

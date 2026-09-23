@@ -18,7 +18,8 @@ export interface StartMcpServerOptions {
   /**
    * Whether to advertise the provider-spending tools, `translation.retranslateEntry` and
    * `translation.translatePending`. When off, the default, they are absent from the tool list and a
-   * call to either is rejected as an unknown tool.
+   * call to either is rejected as an unknown tool. A config whose provider is `none` disables
+   * machine translation by policy, and then they are absent even when this is on.
    */
   readonly allowSpend?: boolean;
   /**
