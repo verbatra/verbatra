@@ -306,7 +306,7 @@
       "disclaimer": "Ceci est une traduction fournie par commodité. En cas de divergence, la version anglaise prévaut.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>."
+        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Allemagne (les mêmes coordonnées que dans les <imprint>mentions légales</imprint>). Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>. Aucun délégué à la protection des données n'a été désigné, car ni l'art. 37 du RGPD ni le § 38 de la BDSG (loi fédérale allemande sur la protection des données) n'en exigent un pour ce site."
       },
       "s2": {
         "heading": "2. Aperçu",
@@ -334,22 +334,26 @@
       },
       "s8": {
         "heading": "8. Tes droits",
-        "body": "En vertu du RGPD, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition et de portabilité des données (art. 15 à 21 du RGPD). Tu as également le droit d'introduire une réclamation auprès d'une autorité de contrôle. Pour exercer l'un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
+        "body": "En vertu du RGPD, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition et de portabilité des données (art. 15 à 21 du RGPD) ; le droit d'opposition est présenté séparément à la section 9. Tu as également le droit d'introduire une réclamation auprès d'une autorité de contrôle (art. 77 du RGPD). L'autorité de contrôle compétente à notre égard est « Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg » (commissaire à la protection des données et à la liberté d'information du Bade-Wurtemberg), Heilbronner Straße 35, 70191 Stuttgart, Allemagne, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Pour exercer l'un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
+      },
+      "objection": {
+        "heading": "9. Droit d'opposition (art. 21 du RGPD)",
+        "body": "Lorsque nous traitons tes données personnelles sur la base de l'art. 6, § 1, point f) du RGPD (intérêts légitimes), comme décrit aux sections 3, 4 et 12, <strong>tu as le droit de t'opposer à tout moment à ce traitement</strong>, pour des raisons tenant à ta situation particulière. Si tu t'y opposes, nous ne traiterons plus les données personnelles concernées, à moins que nous ne démontrions des motifs légitimes et impérieux pour le traitement qui prévalent sur tes intérêts, droits et libertés, ou que le traitement serve à la constatation, à l'exercice ou à la défense de droits en justice. Pour t'opposer, un simple message informel à <email>info@kreitz-webdev.de</email> suffit."
       },
       "s9": {
-        "heading": "9. Contact",
+        "heading": "10. Contact",
         "body": "Pour toute question ou demande relative à la confidentialité, envoie un e-mail à <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Modifications de cette politique",
+        "heading": "11. Modifications de cette politique",
         "body": "Nous pouvons mettre à jour cette politique de confidentialité à mesure que le site évolue ou que les exigences légales changent. La date ci-dessous reflète la révision la plus récente."
       },
       "s11": {
-        "heading": "11. Formulaire de contact",
+        "heading": "12. Formulaire de contact",
         "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers au sens de l'art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une durée fixée par notre offre Arcjet, actuellement jusqu'à une heure sur l'offre gratuite. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont conservés que le temps nécessaire au traitement de la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
       },
       "s12": {
-        "heading": "12. Traduction assistée par IA",
+        "heading": "13. Traduction assistée par IA",
         "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l'utilise aussi sur lui-même : l'interface est traduite en allemand, en espagnol et en français à l'aide de modèles de langage IA. Les pages de documentation plus longues sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Le contenu traduit est relu avant sa publication. Nous le mentionnons ici volontairement, par souci de transparence, et non parce qu'une obligation légale de divulgation spécifique s'appliquerait."
       }
     },

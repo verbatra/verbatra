@@ -1,10 +1,11 @@
 import { SiNpm } from "@icons-pack/react-simple-icons";
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
+import { type Locale, localizedPath } from "@/lib/i18n";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
@@ -25,6 +26,7 @@ type FooterLink = {
   external?: boolean;
   trackingTarget?: string;
   isNew?: boolean;
+  localized?: boolean;
 };
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
@@ -33,12 +35,12 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "product",
     titleKey: "cols.product.title",
     links: [
-      { labelKey: "cols.product.documentation", href: "/docs" },
-      { labelKey: "cols.product.cliReference", href: "/docs/cli" },
-      { labelKey: "cols.product.sdk", href: "/docs/sdk" },
-      { labelKey: "cols.product.studio", href: "/docs/cli/studio" },
-      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true },
-      { labelKey: "cols.product.githubAction", href: "/docs/github-action" },
+      { labelKey: "cols.product.documentation", href: "/docs", localized: true },
+      { labelKey: "cols.product.cliReference", href: "/docs/cli", localized: true },
+      { labelKey: "cols.product.sdk", href: "/docs/sdk", localized: true },
+      { labelKey: "cols.product.studio", href: "/docs/cli/studio", localized: true },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true, localized: true },
+      { labelKey: "cols.product.githubAction", href: "/docs/github-action", localized: true },
     ],
   },
   {
@@ -54,11 +56,11 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "learn",
     titleKey: "cols.learn.title",
     links: [
-      { labelKey: "cols.learn.howItWorks", href: "/docs/how-it-works" },
-      { labelKey: "cols.learn.providers", href: "/docs/providers" },
-      { labelKey: "cols.learn.formats", href: "/docs/formats" },
-      { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file" },
-      { labelKey: "cols.learn.configFile", href: "/docs/config-file" },
+      { labelKey: "cols.learn.howItWorks", href: "/docs/how-it-works", localized: true },
+      { labelKey: "cols.learn.providers", href: "/docs/providers", localized: true },
+      { labelKey: "cols.learn.formats", href: "/docs/formats", localized: true },
+      { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file", localized: true },
+      { labelKey: "cols.learn.configFile", href: "/docs/config-file", localized: true },
     ],
   },
   {
@@ -109,9 +111,9 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         external: true,
         trackingTarget: "license",
       },
-      { labelKey: "cols.legal.privacy", href: "/privacy" },
-      { labelKey: "cols.legal.imprint", href: "/imprint" },
-      { labelKey: "cols.legal.contact", href: "/contact" },
+      { labelKey: "cols.legal.privacy", href: "/privacy", localized: true },
+      { labelKey: "cols.legal.imprint", href: "/imprint", localized: true },
+      { labelKey: "cols.legal.contact", href: "/contact", localized: true },
     ],
   },
 ];
@@ -119,7 +121,15 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 const LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
 
-function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): ReactNode {
+function FooterLinkItem({
+  link,
+  label,
+  locale,
+}: {
+  link: FooterLink;
+  label: string;
+  locale: Locale;
+}): ReactNode {
   if (link.external) {
     return (
       <a
@@ -135,8 +145,9 @@ function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): R
       </a>
     );
   }
+  const href = link.localized ? localizedPath(locale, link.href) : link.href;
   return (
-    <a href={link.href} className={LINK_CLASS}>
+    <a href={href} className={LINK_CLASS}>
       {label}
       {link.isNew ? <NewBadge>new</NewBadge> : null}
     </a>
@@ -187,6 +198,7 @@ function ContributorsRow({
 
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
+  const locale = (await getLocale()) as Locale;
   return (
     <footer
       className="relative overflow-hidden"
@@ -295,7 +307,11 @@ export async function FullFooter(): Promise<ReactNode> {
                 <ul className="flex flex-col gap-2.5 text-sm text-fd-muted-foreground">
                   {col.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
-                      <FooterLinkItem link={link} label={link.literal ?? t(link.labelKey ?? "")} />
+                      <FooterLinkItem
+                        link={link}
+                        label={link.literal ?? t(link.labelKey ?? "")}
+                        locale={locale}
+                      />
                     </li>
                   ))}
                 </ul>

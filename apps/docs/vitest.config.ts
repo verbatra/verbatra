@@ -18,6 +18,7 @@ export default defineConfig({
       "lib/**/*.test.tsx",
       "components/**/*.test.tsx",
       "app/**/*.test.ts",
+      "app/**/*.test.tsx",
       "proxy.test.ts",
       "proxy.cookies.test.ts",
     ],

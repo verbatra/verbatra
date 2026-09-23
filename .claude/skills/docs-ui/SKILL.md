@@ -220,10 +220,11 @@ touches `messages/en.json` and needs the other three updated in the same change,
   intent. Preserve reasoning as a test, not a comment.
 - No emojis and no decorative formatting.
 - Tests are co-located. `apps/docs/vitest.config.ts` includes `lib/**/*.test.ts`,
-  `lib/**/*.test.tsx`, `components/**/*.test.tsx`, `app/**/*.test.ts`, and `proxy.test.ts`;
-  existing examples are
-  `components/landing/faq.test.tsx`, `lib/landing-messages.test.ts`, and
-  `app/[lang]/docs.mdx/[[...slug]]/route.test.ts`.
+  `lib/**/*.test.tsx`, `components/**/*.test.tsx`, `app/**/*.test.ts`, `app/**/*.test.tsx`,
+  `proxy.test.ts`, and `proxy.cookies.test.ts`; existing examples are
+  `components/landing/faq.test.tsx`, `lib/landing-messages.test.ts`,
+  `app/[lang]/docs.mdx/[[...slug]]/route.test.ts`, and
+  `app/[lang]/(legal)/privacy/page.test.tsx`.
 - Run `pnpm check` or `pnpm format` for Biome before committing.
 
 ## Verify before you trust this file
