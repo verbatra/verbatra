@@ -11,6 +11,7 @@ export type ProviderErrorCode =
   | "TIMEOUT"
   | "AUTH_FAILED"
   | "PROVIDER_UNAVAILABLE"
+  | "NETWORK_POLICY_VIOLATION"
   | "PROVIDER_ERROR";
 
 export class ProviderError extends Error {

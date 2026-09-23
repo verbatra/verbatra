@@ -18,7 +18,10 @@
  *   source locale and a target locale are the same language tag once case and separators are
  *   normalized, since a TMX segment could not be attributed to either. {@link importWorkbook} does
  *   not throw it: when a handoff sheet or file names a locale that is not a configured target
- *   locale, it records this code on that locale's {@link LocaleSummary} instead.
+ *   locale, it records this code on that locale's {@link LocaleSummary} instead. A non-dry-run
+ *   {@link translate} and {@link retranslateEntry} also throw it, before any provider is
+ *   constructed, when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value
+ *   that is not valid, so a mistyped pin fails closed instead of allowing every host.
  * - `UNKNOWN_FORMAT`: no adapter is registered for the configured format. Thrown by every entry
  *   point that selects an adapter, before any file is read. {@link doctor} is the exception: it
  *   reports an unresolvable format as a failed `format-adapter` check instead, since reporting that
@@ -46,6 +49,13 @@
  *   {@link assertMachineTranslationEnabled}. {@link translate} and {@link watch} do not throw it:
  *   in human-only mode they fill from the translation memory alone and report every other key as
  *   `unfilled` on its {@link LocaleSummary}.
+ * - `NETWORK_POLICY_VIOLATION`: the effective network policy, from the config's `network` block and
+ *   the `VERBATRA_NETWORK_POLICY` environment variable, does not permit the provider's endpoint or
+ *   the proxy it would use. Thrown by a non-dry-run {@link translate}, by {@link watch} at startup,
+ *   and by {@link retranslateEntry}, before the provider is constructed, any API key is read, or
+ *   any request is sent. A request that is refused later, for instance because a host name
+ *   resolved to a public address or a response redirected to a refused host, is a provider failure
+ *   with the same code, recorded on the {@link LocaleSummary} rather than thrown.
  * - `SOURCE_UNREADABLE`: the source locale file is absent. Thrown by every entry point that reads
  *   the source, including {@link importWorkbook}, and by {@link watch} at startup.
  *   {@link importWorkbook} and {@link importTmx} additionally throw it when the handoff or TMX file
@@ -174,6 +184,7 @@ export type SdkErrorCode =
   | "KEY_PINNED"
   | "PROVIDER_CONSTRUCTION_FAILED"
   | "MACHINE_TRANSLATION_DISABLED"
+  | "NETWORK_POLICY_VIOLATION"
   | "SOURCE_UNREADABLE"
   | "SOURCE_INVALID"
   | "LOCK_FILE_INVALID"

@@ -157,6 +157,11 @@ function machinePending(value: string, config: VerbatraConfig): PendingProvenanc
  * the write lock, before the provider is called.
  * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the provider could not be constructed,
  * most often because its API key environment variable is unset.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown before the provider is constructed or any
+ * API key is read.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
  * the timeout elapsed.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
@@ -202,7 +207,9 @@ export async function retranslateEntry(
 
   const policy = protectionPolicy(config, input.includeHuman === true ? "overwrite" : undefined);
   assertNotPinned(policy, input.key);
-  const provider = selectProvider(config.provider, deps.createProvider);
+  const provider = selectProvider(config.provider, deps.createProvider, {
+    network: config.network,
+  });
   await assertProvenanceReadable(cwd, fs);
 
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {

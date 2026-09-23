@@ -351,7 +351,7 @@ export type {
 export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
-export type { CreateProvider } from "./selection/select-provider.js";
+export type { CreateProvider, CreateProviderContext } from "./selection/select-provider.js";
 export {
   type CreateWatcher,
   type RunTranslate,

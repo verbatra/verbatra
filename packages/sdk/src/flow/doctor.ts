@@ -1,4 +1,8 @@
-import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "@verbatra/ai-providers";
+import {
+  OPENAI_COMPATIBLE_ENV_VAR,
+  PROVIDER_ENV,
+  processEnvironment,
+} from "@verbatra/ai-providers";
 import type { LiteralScan } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import {
@@ -20,6 +24,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
+import { checkNetworkPolicy } from "./network-doctor.js";
 import { describePluralRules } from "./plural-rules.js";
 import { readSourceResource } from "./source.js";
 
@@ -32,6 +37,11 @@ import { readSourceResource } from "./source.js";
  *   reporting that machine translation is disabled by policy.
  * - `api-key`: the environment variable the configured provider reads its key from is set. It
  *   passes for `none`, which reads no API key.
+ * - `network-policy`: the effective network policy, from the config's `network` block and the
+ *   `VERBATRA_NETWORK_POLICY` environment variable, permits the configured provider's endpoint and
+ *   any proxy it would use. The detail names the effective policy, both of its sources, and the host
+ *   the provider connects to. It fails when that host is refused or when either environment
+ *   variable holds an invalid value, and passes for `none`. It resolves no host name.
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
@@ -49,6 +59,7 @@ export type DoctorCheckId =
   | "format-adapter"
   | "provider"
   | "api-key"
+  | "network-policy"
   | "source-file"
   | "plural-rules"
   | "locale-codes"
@@ -131,6 +142,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "format-adapter": "Format adapter",
   provider: "Provider",
   "api-key": "API key environment variable",
+  "network-policy": "Network policy",
   "source-file": "Source locale file",
   "plural-rules": "Plural rules",
   "locale-codes": "Locale codes",
@@ -141,6 +153,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "format-adapter",
   "provider",
   "api-key",
+  "network-policy",
   "source-file",
   "plural-rules",
   "locale-codes",
@@ -267,6 +280,11 @@ function checkApiKey(provider: ProviderConfig): DoctorCheck {
     : envVarVerdict(PROVIDER_ENV[provider.id]);
 }
 
+function networkPolicyCheck(config: VerbatraConfig): DoctorCheck {
+  const outcome = checkNetworkPolicy(config.provider, config.network, processEnvironment());
+  return verdict("network-policy", outcome.passed, outcome.detail);
+}
+
 const NOT_PARSED_DETAIL =
   "Its contents were not checked, because the configured format resolves to no adapter.";
 
@@ -353,6 +371,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * placeholder key, so a missing variable passes unless the config names its own variable through
  * `provider.options.apiKeyEnvVar`, which then has to be set.
  *
+ * A network-policy check reports the effective network policy and the host the configured
+ * provider connects to, and fails when the policy refuses that host, exactly as {@link translate}
+ * would. It resolves no host name, so a name that only a DNS answer can classify passes here and
+ * is checked before each request instead.
+ *
  * A sixth, informational check never fails: it names the ICU and CLDR versions the runtime derives
  * each target language's plural categories from, and lists any target locale ICU has no plural
  * rules for.
@@ -368,7 +391,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * {@link translate} creates it. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the six config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the seven config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -422,6 +445,7 @@ export async function doctor(
     checkAdapter(config, adapter),
     checkProvider(config.provider),
     checkApiKey(config.provider),
+    networkPolicyCheck(config),
     await checkSourceFile(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs, adapter),
     verdict("plural-rules", true, describePluralRules(config.targetLocales)),
     verdict(

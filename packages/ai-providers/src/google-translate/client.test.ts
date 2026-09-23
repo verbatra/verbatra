@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
-import { createDefaultClient, GOOGLE_TRANSLATE_ENDPOINT } from "./client.js";
+import { createDefaultClient } from "./client.js";
+import { GOOGLE_TRANSLATE_ENDPOINT } from "./endpoint.js";
 
 describe("createDefaultClient", () => {
   let saved: string | undefined;

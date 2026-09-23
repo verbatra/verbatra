@@ -303,6 +303,7 @@ Un fallo de proveedor nunca aflora como un error en bruto del SDK, que podría l
 | `PROVIDER_REFUSED` | El modelo se negó a responder. |
 | `PROVIDER_BLOCKED` | La petición o la respuesta fue bloqueada o filtrada por seguridad. |
 | `PROVIDER_ERROR` | Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reconocible, el mensaje lo nombra (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) y dice qué comprobar; si no, recurre a un mensaje estático y sin secretos. |
+| `NETWORK_POLICY_VIOLATION` | La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda. |
 
 Un fallo solo afecta a su propio sublote: las claves fallidas se retienen y se recogen de nuevo en la siguiente ejecución.
 

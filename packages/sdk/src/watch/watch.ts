@@ -1,4 +1,5 @@
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { assertProviderNetworkPermitted } from "../config/network-policy.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { describeError, SdkError } from "../errors.js";
 import { selectLocales } from "../flow/select-locales.js";
@@ -148,6 +149,11 @@ export interface WatchController {
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist when watching
  * starts.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown once at startup, before any watching
+ * begins or any API key is read.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws Whatever the watcher factory raised, unwrapped, when it could not build a watcher over
  * the source file. It is not wrapped as an {@link SdkError}. No run has started at that point, so
  * nothing is watched and `onRun` is never called.
@@ -178,6 +184,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
 
   selectLocales(input.config, input.locales);
   resolveRunConcurrency(input.concurrency, false, input.config);
+  assertProviderNetworkPermitted(input.config);
 
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);

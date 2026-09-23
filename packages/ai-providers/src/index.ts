@@ -16,6 +16,7 @@ export {
   type DeepLDeps,
 } from "./deepl/deepl-provider.js";
 export type { DeepLTranslateResult } from "./deepl/types.js";
+export { processEnvironment } from "./env.js";
 export { ProviderError, type ProviderErrorCode } from "./errors.js";
 export {
   type GeminiConfig,
@@ -42,6 +43,33 @@ export {
   resultPayloadCharacters,
   type TranslationItem,
 } from "./llm/payload.js";
+export {
+  type EndpointTarget,
+  type ProviderEndpoint,
+  resolveProviderEndpoint,
+} from "./network/endpoints.js";
+export {
+  type EnvironmentRule,
+  type EnvironmentSource,
+  NETWORK_ALLOWED_HOSTS_ENV_VAR,
+  NETWORK_POLICY_ENV_VAR,
+  readEnvironmentRule,
+} from "./network/environment-rule.js";
+export {
+  NETWORK_POLICY_MODES,
+  type NetworkConfig,
+  type NetworkPolicyMode,
+  networkConfigSchema,
+} from "./network/network-config.js";
+export {
+  describeRule,
+  isRestrictive,
+  type NetworkPolicy,
+  type NetworkRule,
+  type NetworkRuleSource,
+} from "./network/policy.js";
+export { type EndpointJudgement, judgeProviderEndpoint } from "./network/preflight.js";
+export type { ProviderNetwork } from "./network/transport.js";
 export {
   type OpenAiConfig,
   openAiConfigSchema,

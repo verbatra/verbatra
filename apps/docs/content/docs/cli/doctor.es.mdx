@@ -31,6 +31,7 @@ verbatra doctor [flags]
 | Format adapter | el `format` configurado resuelve a un adaptador de archivo |
 | Provider | el `provider.id` configurado resuelve a una fábrica de proveedores |
 | API key environment variable | la variable de la que ese proveedor lee su clave está definida |
+| Network policy | la [política de red](/docs/network-policy) efectiva permite el host al que se conecta el proveedor configurado y cualquier proxy que usaría; el detalle nombra la política, de dónde viene y el host |
 | Source locale file | el archivo del locale de origen existe en su ruta resuelta, es un archivo regular y se analiza con el formato configurado |
 | Plural rules | siempre (informativa): nombra las versiones de ICU y CLDR de las que verbatra lee las categorías de plural, y cualquier locale de destino para el que ICU no tiene reglas de plural |
 | Locale codes | siempre (informativa): nombra cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, con la forma canónica que conviene usar |
@@ -43,7 +44,7 @@ La comprobación Plural rules es informativa y nunca falla: un locale de destino
 
 La comprobación Locale codes también es informativa y nunca falla. Un código como `zh-hant-tw`, `en-us` o los obsoletos `iw`, `in` o `tl` es válido, así que se carga y se traduce tal como está escrito, y esta comprobación sugiere en su lugar `zh-Hant-TW`, `en-US`, `he`, `id` o `fil`. Los nombres de archivo siguen el código de tu configuración, así que nada se renombra hasta que lo cambies tú. Un código que no es BCP 47 válido en absoluto, como `en_US`, nunca llega a esta comprobación: hace fallar la comprobación Configuration. Consulta [Códigos de locale](/docs/config-file#códigos-de-locale).
 
-Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las seis comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
+Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las siete comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
 
 Cuatro detalles que conviene conocer:
 

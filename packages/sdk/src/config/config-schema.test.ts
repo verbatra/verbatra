@@ -87,7 +87,20 @@ describe("the config JSON Schema document: refinements that cannot be expressed"
       "<root>",
       "sourceLocale",
       "provider[5].options.apiKeyEnvVar.innerType",
+      "network.innerType[0].allowedHosts.innerType.element",
     ]);
+  });
+});
+
+describe("the config JSON Schema document: the network block", () => {
+  it("states that an allowlist policy needs at least one allowed host", () => {
+    const network = propertyOf(document, "network");
+    const variants = (network?.oneOf ?? network?.anyOf) as JsonSchemaObject[] | undefined;
+    const allowlist = variants?.find(
+      (variant) => propertyOf(variant, "policy")?.const === "allowlist",
+    );
+    expect(allowlist?.required).toEqual(["policy", "allowedHosts"]);
+    expect(propertyOf(allowlist ?? {}, "allowedHosts")?.minItems).toBe(1);
   });
 });
 

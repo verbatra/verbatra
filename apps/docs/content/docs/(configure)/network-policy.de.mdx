@@ -1,0 +1,83 @@
+---
+title: Netzwerkrichtlinie
+description: Lege fest, zu welchen Hosts sich ein Übersetzungs-Provider verbinden darf, damit verbatra ein rein lokales Setup durchsetzt, statt dass es auf einer Konvention beruht.
+---
+<AvailableFrom version="0.12.0" />
+
+Ein selbst gehostetes Modell hinter `openai-compatible` hält deine Strings in deinem eigenen Netzwerk, aber nur, solange jede Einstellung stimmt. Eine vertippte `baseUrl`, ein vergessenes `OPENAI_BASE_URL` in irgendeiner Shell oder ein Teammitglied, das den Provider auf einen gehosteten umstellt, reicht aus, um Strings an einen öffentlichen Endpunkt zu schicken. Eine Netzwerkrichtlinie macht die Regel explizit: verbatra weigert sich, mit einem Host zu sprechen, den die Richtlinie nicht erlaubt, und sagt das, bevor irgendeine Anfrage die Maschine verlässt.
+
+## Einrichten
+
+```ts
+network: {
+  policy: "local-only",
+}
+```
+
+`policy` nimmt einen von drei Werten:
+
+| Richtlinie | Erlaubt |
+| --- | --- |
+| `any` | jeden Host. Das ist der Standard, wenn es keinen `network`-Block gibt, und verbatra verhält sich genau wie vor der Richtlinie. |
+| `local-only` | Loopback (`127.0.0.0/8`, `::1`, `localhost` und `*.localhost`, wenn jede Adresse, zu der sie auflösen, Loopback ist), private IPv4-Adressen (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), Unique-Local-IPv6-Adressen (`fc00::/7`) und alles in `allowedHosts`. |
+| `allowlist` | nur, was `allowedHosts` auflistet. Mindestens ein Eintrag ist Pflicht. |
+
+`allowedHosts` ist eine Liste von Einträgen, jeder davon eines von:
+
+- ein Hostname wie `llm.internal`, exakt und ohne Rücksicht auf Groß- und Kleinschreibung verglichen;
+- ein Platzhalter wie `*.corp.example`, der jede Subdomain trifft, aber nicht `corp.example` selbst. Nach `*.` müssen mindestens zwei Labels folgen, `*.com` wird also abgelehnt;
+- eine IP-Adresse wie `203.0.113.7` oder `fd00::5`;
+- ein CIDR-Bereich wie `100.64.0.0/10` für ein Tailscale-Netz oder `2001:db8::/32`.
+
+Schreib kein Schema, keinen Port und keinen Pfad: `https://llm.internal:8443` wird beim Laden der Konfiguration abgelehnt.
+
+`local-only` lässt bewusst Link-Local-Adressen weg (`169.254.0.0/16`, das die Cloud-Metadatenadresse enthält, und `fe80::/10`), den Carrier-Grade-NAT-Bereich `100.64.0.0/10` und die unspezifizierten Adressen `0.0.0.0` und `::`. Richte einen Server, der auf `0.0.0.0` lauscht, stattdessen auf `127.0.0.1` aus, und trag einen VPN-Bereich in `allowedHosts` ein, wenn du ihn brauchst. Eine IPv6-Adresse mit Zonen-ID wie `fe80::1%en0` wird ohne die Zone beurteilt, eine Link-Local-Adresse bleibt also abgelehnt.
+
+## Gehostete Provider
+
+Unter `local-only` werden `anthropic`, `openai`, `gemini`, `deepl` und `google-translate` abgelehnt, weil ihre Endpunkte öffentlich sind. Um einen davon trotzdem zu erlauben, trag seinen Host ein:
+
+```ts
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+Die Hosts sind `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` für einen Key, der auf `:fx` endet) und `translation.googleapis.com`. Ist `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` oder `GOOGLE_GEMINI_BASE_URL` gesetzt, nutzt der Provider stattdessen diesen Endpunkt, und verbatra prüft stattdessen ihn. Gemini im Vertex-AI-Modus (`GOOGLE_GENAI_USE_VERTEXAI` oder `GOOGLE_GENAI_USE_ENTERPRISE` auf `true`) wird unter einer einschränkenden Richtlinie immer abgelehnt, weil seine Anmeldeanfragen nicht durch die Prüfungen unten laufen.
+
+## Aus der Umgebung festlegen
+
+Eine Organisation kann eine Richtlinie in der CI durchsetzen, egal was die Konfiguration im Repository sagt:
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_POLICY` nimmt dieselben drei Werte. `VERBATRA_NETWORK_ALLOWED_HOSTS` ist eine kommagetrennte Liste derselben Einträge wie `allowedHosts`. Setzen sowohl die Konfiguration als auch die Umgebung eine Richtlinie, muss ein Host beide erfüllen, also gewinnt immer die strengere: Eine Konfiguration kann nicht lockern, was die Umgebung festlegt, und die `allowedHosts` einer Konfiguration erweitern keine `allowlist` aus der Umgebung.
+
+Ein Wert, den verbatra nicht kennt, etwa `local_only`, lässt den Lauf mit `CONFIG_INVALID` scheitern, statt ignoriert zu werden, damit ein Tippfehler nie stillschweigend jeden Host erlaubt. `VERBATRA_NETWORK_ALLOWED_HOSTS` ohne `VERBATRA_NETWORK_POLICY` scheitert genauso.
+
+## Wann und wie geprüft wird
+
+Bevor ein Provider gebaut wird, ermittelt verbatra den Host, zu dem er sich verbinden würde, und prüft ihn gegen die Richtlinie. Ein abgelehnter Host stoppt `translate`, `watch` (beim Start), `retranslate` in Studio und MCP sowie `retranslateEntry` im SDK mit `NETWORK_POLICY_VIOLATION` und Exit-Code `2`. Kein API-Key wird gelesen und nichts wird gesendet. Ein Probelauf und `--estimate` rufen keinen Provider auf, deshalb werden sie nicht abgelehnt; nutze [`verbatra doctor`](/docs/cli/doctor), um die Richtlinie zu prüfen, ohne etwas zu übersetzen.
+
+Weil diese erste Prüfung keine Namen auflöst, besteht ein Hostname, den sie allein nicht einordnen kann, etwa `llm.internal` unter `local-only`, diese Prüfung. Das gilt auch für `localhost`: Es wird wie jeder andere Name aufgelöst und muss ausschließlich mit Loopback-Adressen antworten. Jede Anfrage von `anthropic`, `openai`, `gemini`, `google-translate` und `openai-compatible` wird dann direkt vor dem Senden erneut geprüft:
+
+- ein Hostname wird aufgelöst, und jede Adresse, zu der er auflöst, muss erlaubt sein;
+- einer Weiterleitung wird nicht automatisch gefolgt. Nur einem `307` oder `308` zum selben Ursprung (gleiches Schema, gleicher Host, gleicher Port) wird gefolgt, bis zu fünfmal hintereinander; ein sechstes `307` oder `308` zum selben Ursprung geht ungefolgt an den Provider zurück, der es als Fehler meldet. Eine Weiterleitung zu jedem anderen Ursprung lässt die Anfrage scheitern, egal ob dieser Ursprung erlaubt wäre, und das schließt einen Wechsel von `https` zu `http` auf demselben Host ein, damit eine Anfrage und ihre Zugangsdaten nie einen zweiten Ursprung erreichen. Eine Weiterleitung zum selben Ursprung mit einem anderen Status geht ungefolgt an den Provider zurück, der sie als Fehler meldet.
+
+Eine Anfrage, die an dieser Stelle abgelehnt wird, lässt ihren Teil-Batch mit dem Provider-Fehler `NETWORK_POLICY_VIOLATION` scheitern, wie jeder andere [Provider-Fehler](/docs/providers#strukturierte-fehler), und die Meldung nennt nur den Host. Der Client des Providers wiederholt sie nicht: Die Anfrage scheitert einmal, und zwar sofort.
+
+## Grenzen
+
+- **Die Auflösung passiert zweimal.** Der Name wird zur Prüfung aufgelöst und beim Verbindungsaufbau noch einmal. Ein DNS-Server, der beim zweiten Mal anders antwortet (DNS-Rebinding), kann an der Prüfung vorbeikommen. Wenn das zählt, schreib eine IP-Adresse oder trag den Host mit Namen in `allowedHosts` ein, denn einem eingetragenen Namen wird ohne Auflösung vertraut.
+- **Keine Wiederholungen.** Eine Anfrage, die die Richtlinie abgelehnt hat, wird nie wiederholt, weder von verbatra noch vom Client des Providers, eine Ablehnung kostet also eine Prüfung und keine Wartezeit.
+- **DeepL wird einmal geprüft.** Der DeepL-Client stellt seine Anfragen selbst, deshalb prüft verbatra seinen Host, bevor der Provider gebaut wird, aber nicht pro Anfrage oder Weiterleitung.
+- **Proxys.** Unter einer einschränkenden Richtlinie muss der Host jedes Proxys, den der Provider nutzen würde, selbst erlaubt sein: eine IP-Adresse oder ein Name aus `allowedHosts`. Proxy-Namen werden nie aufgelöst. DeepL nutzt `HTTPS_PROXY`, `HTTP_PROXY` und `ALL_PROXY` (in beiden Schreibweisen), sobald eine davon gesetzt ist. Die anderen Provider nutzen das eingebaute `fetch` von Node, das diese Variablen unter Node 22.20 und älter ignoriert und unter Node 24 nur nutzt, wenn der Umgebungs-Proxy von Node eingeschaltet ist, deshalb prüft verbatra den Proxy für sie nur dann. Als eingeschaltet gilt er, wenn `NODE_USE_ENV_PROXY=1` gesetzt ist oder `--use-env-proxy` in `NODE_OPTIONS` oder auf der Kommandozeile von `node` steht. `NO_PROXY` wird bei der Prüfung ignoriert.
+- **Eigene Provider.** Ein Provider, den du dem SDK über `createProvider` übergibst, wird vor dem Bauen gegen den Endpunkt des konfigurierten Providers geprüft und bekommt die wirksame Richtlinie. Es liegt an diesem Code, die Richtlinie auf seine eigenen Anfragen anzuwenden.
+
+## Mit doctor prüfen
+
+[`verbatra doctor`](/docs/cli/doctor) meldet die wirksame Richtlinie, woher jeder Teil davon kommt, den Host, zu dem sich der konfigurierte Provider verbindet, und ob dieser Host erlaubt ist. Die Prüfung scheitert, wenn der Host abgelehnt wird oder eine Umgebungsvariable einen ungültigen Wert hat, und wie der Rest von `doctor` löst sie keine Namen auf und sendet nichts.

@@ -1031,6 +1031,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `KEY_PINNED` | la clave coincide con los `pinnedKeys` de la configuración, así que se rechazó una escritura automática (`retranslateEntry`, y `editEntry` con `actor: "agent"`) |
 | `PROVIDER_CONSTRUCTION_FAILED` | el proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente |
 | `MACHINE_TRANSLATION_DISABLED` | la configuración fija `provider: { id: "none" }`, así que se rechazó una acción que gasta en el proveedor antes de construir ningún proveedor (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` y `watch` nunca lo lanzan |
+| `NETWORK_POLICY_VIOLATION` | la [política de red](/docs/network-policy) efectiva no permite el endpoint del proveedor ni su proxy; lo lanzan `translate` fuera de una ejecución de prueba, `watch` al arrancar y `retranslateEntry`, antes de construir el proveedor o leer ninguna clave de API |
 | `SOURCE_UNREADABLE` | el archivo del locale de origen no existe |
 | `SOURCE_INVALID` | el archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador |
 | `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida |
