@@ -83,6 +83,7 @@ const CALLS_IN_ORDER: readonly { name: string; arguments: Record<string, unknown
   { name: "usage.summary", arguments: {} },
   { name: "status.check", arguments: {} },
   { name: "status.diff", arguments: {} },
+  { name: "translation.estimate", arguments: {} },
   { name: "translation.translatePending", arguments: {} },
   { name: "status.check", arguments: {} },
   { name: "status.diff", arguments: {} },
@@ -117,6 +118,10 @@ describe("createMcpServer: instructions", () => {
     expect(MCP_SERVER_INSTRUCTIONS).toContain("[REDACTED]");
   });
 
+  it("recommends the free estimate before a spend call", () => {
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("Estimate before you spend: translation.estimate");
+  });
+
   it("mentions only tool names the server actually registers", async () => {
     const client = await connectedClient(await richProjectOptions());
     const { tools } = await client.listTools();
@@ -140,7 +145,7 @@ describe("createMcpServer: output schemas", () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools).toHaveLength(13);
+    expect(tools).toHaveLength(14);
     for (const tool of tools) {
       expect(tool.outputSchema?.type, tool.name).toBe("object");
     }
