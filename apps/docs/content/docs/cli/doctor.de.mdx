@@ -4,7 +4,7 @@ description: Prüfe die Projekteinrichtung, ohne einen Provider aufzurufen oder 
 ---
 <AvailableFrom version="0.9.0" />
 
-Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable und die Quell-Locale-Datei und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen.
+Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable, die Netzwerkrichtlinie und die Quell-Locale-Datei und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen.
 
 Nimm ihn bei einem frischen Checkout, direkt nach [`verbatra init`](/docs/cli/init), oder immer dann, wenn ein anderer Befehl fehlgeschlagen ist und du die vollständige Liste statt des ersten Fehlers willst. [`verbatra check`](/docs/cli/check) ist die günstigste Prüfung, sobald ein Projekt schon funktioniert, aber es liest die Locale-Dateien und bricht beim ersten Fehler des gesamten Laufs ab, kann dir also nicht sagen, was an einem Projekt falsch ist, das noch keine Quelldatei hat.
 

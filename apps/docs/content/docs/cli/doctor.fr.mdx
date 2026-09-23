@@ -4,7 +4,7 @@ description: Valide la configuration du projet sans appeler de fournisseur ni li
 ---
 <AvailableFrom version="0.9.0" />
 
-Réponds à une question avant de lancer quoi que ce soit d'autre : ce projet est-il correctement configuré ? `doctor` valide la config, l'adaptateur de format, le fournisseur, la variable de clé d'API et le fichier de locale source, puis signale d'un coup tous les problèmes trouvés. Il ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite, aucun fichier n'est écrit, et aucune valeur de clé d'API n'est jamais lue.
+Réponds à une question avant de lancer quoi que ce soit d'autre : ce projet est-il correctement configuré ? `doctor` valide la config, l'adaptateur de format, le fournisseur, la variable de clé d'API, la politique réseau et le fichier de locale source, puis signale d'un coup tous les problèmes trouvés. Il ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite, aucun fichier n'est écrit, et aucune valeur de clé d'API n'est jamais lue.
 
 Utilise-le sur un checkout tout neuf, juste après [`verbatra init`](/docs/cli/init), ou chaque fois qu'une autre commande a échoué et que tu veux la liste complète plutôt que la première erreur. [`verbatra check`](/docs/cli/check) est la validation la moins chère une fois le projet fonctionnel, mais il lit les fichiers de locale et s'arrête à la première erreur globale : il ne peut donc pas te dire ce qui cloche dans un projet qui n'a pas encore de fichier source.
 

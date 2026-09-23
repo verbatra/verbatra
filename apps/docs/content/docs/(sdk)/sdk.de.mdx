@@ -256,20 +256,31 @@ an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier 
 
 <AvailableFrom version="0.12.0" />
 
-Eine sechste Prüfung, `plural-rules`, ist rein informativ und besteht immer: Ihr Detail nennt die
+Eine sechste Prüfung, `network-policy`, besteht, wenn die wirksame
+[Netzwerkrichtlinie](/docs/network-policy) aus dem `network`-Block der Konfiguration und der
+Umgebungsvariable `VERBATRA_NETWORK_POLICY` den Host erlaubt, zu dem sich der konfigurierte Provider
+verbindet, und jeden Proxy, den er nutzen würde. Ihr Detail nennt die Richtlinie, ihre beiden
+Quellen und den Host. Sie schlägt fehl, wenn dieser Host abgewiesen wird oder eine
+Netzwerk-Umgebungsvariable einen ungültigen Wert hat, besteht für den Provider `none` und löst
+keinen Hostnamen auf.
+
+Eine siebte Prüfung, `plural-rules`, ist rein informativ und besteht immer: Ihr Detail nennt die
 ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
 und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
 
-Eine siebte Prüfung, `locale-codes`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
+Eine achte Prüfung, `locale-codes`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
 nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
 `zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
 vorschlägt. Umbenannt wird nichts.
 
-Eingabe: `{ cwd?, configPath? }`. Keine geladene Konfiguration nötig: `doctor` lädt sie selbst, ein
-Projekt ganz ohne Konfiguration bekommt also trotzdem einen Bericht statt eines geworfenen Fehlers.
-Gibt ein `DoctorResult` zurück, dessen `ok` genau dann true ist, wenn keine Prüfung fehlgeschlagen
-ist. Es wirft `CONFIG_NOT_FOUND` nur für einen explizit angegebenen `configPath`, der nicht
-existiert.
+Eingabe: `{ cwd?, configPath?, literals? }`. Mit gesetztem `literals` führt `doctor` nur die
+Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
+Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
+[`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
+Konfiguration nötig: `doctor` lädt sie selbst, ein Projekt ganz ohne Konfiguration bekommt also
+trotzdem einen Bericht statt eines geworfenen Fehlers. Gibt ein `DoctorResult` zurück, dessen `ok`
+genau dann true ist, wenn keine Prüfung fehlgeschlagen ist. Es wirft `CONFIG_NOT_FOUND` nur für
+einen explizit angegebenen `configPath`, der nicht existiert.
 
 ### extract
 
