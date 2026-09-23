@@ -172,12 +172,12 @@ jobs:
           private-key: ${{ secrets.SKILLS_DISPATCH_APP_PRIVATE_KEY }}
           owner: verbatra
           repositories: skills
-          permission-contents: write
+          permission-actions: write
 
-      - name: Send source-changed to verbatra/skills
+      - name: Run the verbatra/skills tool parity workflow against this commit
         env:
           GH_TOKEN: ${{ steps.skills-token.outputs.token }}
           SOURCE_REF: ${{ github.event.workflow_run.head_sha }}
         run: |
-          jq -n --arg source_ref "$SOURCE_REF" '{event_type: "source-changed", client_payload: {source_ref: $source_ref}}' \
-            | gh api --method POST repos/verbatra/skills/dispatches --input -
+          jq -n --arg source_ref "$SOURCE_REF" '{ref: "main", inputs: {source_ref: $source_ref}}' \
+            | gh api --method POST repos/verbatra/skills/actions/workflows/parity.yml/dispatches --input -
