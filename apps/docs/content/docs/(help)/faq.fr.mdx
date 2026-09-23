@@ -19,7 +19,9 @@ Quatre leviers, tous sans appel au fournisseur tant que tu n'en décides pas aut
   signale et continue, `"stop"` retient chaque clé pas encore tentée ; les clés retenues sont
   retentées automatiquement à l'exécution suivante.
 - Gemini a une vraie offre d'API gratuite, et le fournisseur `openai-compatible` fonctionne avec un
-  modèle local à coût d'API nul.
+  modèle local à coût d'API nul. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les
+  requêtes de l'offre gratuite pour améliorer ses produits : garde donc les textes confidentiels
+  hors de celle-ci ; voir [Traitement des données et confidentialité](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
 
 ## Combien coûte réellement une exécution ?
 
@@ -54,7 +56,10 @@ Gemini : il a une offre d'API gratuite, donc tu peux traduire un projet entier s
 changer plus tard revient à modifier un seul `id` dans la configuration. Anthropic et OpenAI sont
 les choix qualité en LLM payant, DeepL et Google Cloud Translation sont les options de traduction
 automatique dédiées, et `openai-compatible` garde tout sur ton propre matériel. Voir
-[Fournisseurs](/docs/providers) pour la comparaison complète.
+[Fournisseurs](/docs/providers) pour la comparaison complète. Garde les textes confidentiels hors de
+l'offre gratuite de Gemini : hors EEE, Suisse et Royaume-Uni, Google peut utiliser ses requêtes pour
+améliorer ses produits. Voir
+[Traitement des données et confidentialité](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
 
 ## Je peux faire tourner un modèle local ?
 
@@ -143,6 +148,16 @@ pour `openai-compatible`. `translate`, `watch`, `doctor`, `studio` et `mcp` char
 travail (les vraies variables d'environnement gagnent). Le schéma de configuration rejette les clés
 inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les
 messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs](/docs/providers).
+
+## verbatra envoie-t-il mes textes quelque part ?
+
+Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit.
+verbatra n'a ni télémétrie, ni analytics, ni vérification de mise à jour. Avec
+`provider: { id: "none" }`, rien ne quitte la machine, et un modèle `openai-compatible`
+auto-hébergé garde les textes sur ton réseau. Voir
+[Traitement des données et confidentialité](/docs/data-handling) pour ce que reçoit chaque
+fournisseur, les conditions de conservation des éditeurs et une liste de contrôle pour une revue
+DPA ou NDA.
 
 ## Que vérifie réellement verbatra doctor ?
 

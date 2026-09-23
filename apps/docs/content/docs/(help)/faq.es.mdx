@@ -19,7 +19,9 @@ Cuatro palancas, todas libres de llamadas al proveedor hasta que tú decidas lo 
   clave aún no intentada; las claves retenidas se reintentan automáticamente en la siguiente
   ejecución.
 - Gemini tiene un nivel de API gratuito de verdad, y el proveedor `openai-compatible` se ejecuta
-  contra un modelo local a coste de API cero.
+  contra un modelo local a coste de API cero. Fuera del EEE, Suiza y el Reino Unido, Google puede
+  usar las peticiones del nivel gratuito para mejorar sus productos, así que no pongas ahí textos
+  confidenciales; consulta [Tratamiento de datos y privacidad](/docs/data-handling#retención-y-tratamiento-de-datos-del-proveedor).
 
 ## ¿Cuánto cuesta realmente una ejecución?
 
@@ -53,7 +55,10 @@ Gemini: tiene un nivel de API gratuito, así que puedes traducir un proyecto ent
 cambiar más tarde es editar un solo `id` en la configuración. Anthropic y OpenAI son las opciones de
 calidad de LLM de pago, DeepL y Google Cloud Translation son las opciones dedicadas de traducción
 automática, y `openai-compatible` mantiene todo en tu propio hardware. Consulta
-[Proveedores](/docs/providers) para la comparación completa.
+[Proveedores](/docs/providers) para la comparación completa. No pongas textos confidenciales en el
+nivel gratuito de Gemini: fuera del EEE, Suiza y el Reino Unido, Google puede usar sus peticiones
+para mejorar sus productos. Consulta
+[Tratamiento de datos y privacidad](/docs/data-handling#retención-y-tratamiento-de-datos-del-proveedor).
 
 ## ¿Puedo usar un modelo local?
 
@@ -140,6 +145,15 @@ desde el directorio de trabajo (las variables del entorno real ganan). El esquem
 rechaza las claves desconocidas precisamente para que un secreto no pueda acabar en un archivo
 confirmado, y los mensajes de error nombran la variable pero nunca un valor. Consulta
 [Proveedores](/docs/providers).
+
+## ¿verbatra envía mis textos a algún sitio?
+
+Solo al proveedor de traducción que configures, y solo cuando un comando traduce. verbatra no
+tiene telemetría, ni analítica, ni comprobación de actualizaciones. Con `provider: { id: "none" }`
+no sale nada de la máquina, y un modelo `openai-compatible` autoalojado mantiene los textos en tu
+red. Consulta [Tratamiento de datos y privacidad](/docs/data-handling) para ver qué recibe cada
+proveedor, las condiciones de retención de cada empresa y una lista de comprobación para una
+revisión de DPA o NDA.
 
 ## ¿Qué comprueba realmente verbatra doctor?
 

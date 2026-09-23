@@ -102,9 +102,13 @@
           "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
           "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime, invente ou réordonne un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
         },
+        "privacy": {
+          "question": "verbatra envoie-t-il mes textes quelque part ?",
+          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. verbatra n'a ni télémétrie, ni analytics, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
+        },
         "cost": {
           "question": "Combien coûte verbatra ?",
-          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l'usage de ton fournisseur, et c'est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l'offre gratuite de Gemini ou sur un modèle local compatible OpenAI."
+          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l'usage de ton fournisseur, et c'est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l'offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les requêtes de l'offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> donne les détails."
         }
       }
     },

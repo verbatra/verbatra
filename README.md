@@ -100,6 +100,8 @@ API keys are read only from environment variables, never from the config file, a
 
 `verbatra init` adds the local files a verbatra project must not commit to your `.gitignore`, `.env` and `.env.local` among them, and later runs top up an existing `.gitignore` that is missing one.
 
+verbatra has no telemetry, analytics, or update check. The only network requests it makes go to the translation provider you configure, and only when a command translates. [Data handling and privacy](https://verbatra.kreitz-webdev.de/docs/data-handling) lists what each provider receives, what stays local, and each vendor's retention terms.
+
 To report a vulnerability, see [SECURITY.md](./SECURITY.md).
 
 ## Documentation
