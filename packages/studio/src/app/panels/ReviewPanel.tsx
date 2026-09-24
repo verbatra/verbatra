@@ -46,7 +46,11 @@ import { RejectEntryDialog } from "../RejectEntryDialog.js";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
 import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
 import { ReviewReasonChips } from "../ReviewReasonChips.js";
-import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
+import {
+  RETRANSLATE_ACTIONS_COLUMN_CLASSNAME,
+  ReviewRowActions,
+  type RowBusy,
+} from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
 import { Select } from "../Select.js";
 import { TableSkeleton } from "../Skeleton.js";
@@ -268,7 +272,18 @@ function ReviewTable({
             <TableHeaderCell>Locale</TableHeaderCell>
             <TableHeaderCell>{wide ? "Key" : "Entry"}</TableHeaderCell>
             {wide ? <TableHeaderCell>Reasons</TableHeaderCell> : null}
-            {wide && canWrite ? <TableHeaderCell>Actions</TableHeaderCell> : null}
+            {wide && canWrite ? (
+              <TableHeaderCell
+                className={
+                  actions.onRetranslate !== undefined
+                    ? RETRANSLATE_ACTIONS_COLUMN_CLASSNAME
+                    : undefined
+                }
+                data-actions-column=""
+              >
+                Actions
+              </TableHeaderCell>
+            ) : null}
           </tr>
         </TableHead>
         <TableBody>
@@ -792,6 +807,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const decisions = useReviewDecisions(() => setReloadToken((current) => current + 1), {
     trackServer: spend,
     refreshToken,
+    limits: capabilities?.limits,
   });
   const now = useNow(hasRunningRetranslation(decisions.pending));
   const settleReload = decisions.reloaded;

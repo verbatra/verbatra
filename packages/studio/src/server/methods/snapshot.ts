@@ -6,6 +6,9 @@ export const snapshotHandler: RpcHandler<"project.snapshot"> = async (_params, d
   buildProjectSnapshot(
     deps.config,
     deps.projectRoot,
-    resolveCapabilities(deps.spend ?? false, deps.config.config),
+    {
+      ...resolveCapabilities(deps.spend ?? false, deps.config.config),
+      ...(deps.rateLimits !== undefined ? { limits: deps.rateLimits } : {}),
+    },
     deps.exposeAgentTools ?? false,
   );

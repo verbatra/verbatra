@@ -319,6 +319,19 @@ describe("ReviewPanel", () => {
     expect(rowAction(view, "cart.badge", "Approve")).toBeTruthy();
   });
 
+  it("sizes the actions column for a running retranslation up front, so a busy row never shifts the table", async () => {
+    stubReview(QUEUE, SPEND_SNAPSHOT);
+    const withSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(withSpend.get("th[data-actions-column]").className.split(" ")).toContain("w-110");
+    withSpend.unmount();
+
+    stubReview();
+    const withoutSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(withoutSpend.get("th[data-actions-column]").className).not.toContain("w-110");
+  });
+
   it("hides the row actions when the server would refuse a write", async () => {
     stubReview(QUEUE, { ...SNAPSHOT, capabilities: { spend: false, writeToDisk: false } });
 
@@ -1391,6 +1404,77 @@ describe("ReviewPanel: bulk actions", () => {
       "Could not approve the selected entries: Studio is limiting how often",
     );
     expect((rowAction(view, "cart.badge", "Approve") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("blocks a bulk approval its own recent calls have used the budget for, without sending it", async () => {
+    stubKeyboardReady({
+      ...SNAPSHOT,
+      capabilities: {
+        spend: false,
+        writeToDisk: true,
+        limits: {
+          retranslate: { windowMs: 60_000, max: 20 },
+          reviewDecision: { windowMs: 60_000, max: 1 },
+        },
+      },
+    });
+    stubRpc({
+      "review.approveMany": {
+        ok: true,
+        result: { results: [{ ok: true, ...decided("fr", "cart.badge", "approved") }] },
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+    await clickAsync(rowCheckbox(view, "checkout.title"));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "review.approveMany")).toHaveLength(1);
+    expect(view.get('[role="alert"]').textContent).toMatch(
+      /Could not approve the selected entries: Studio is limiting how often this action can run\. Try again in (59|60) seconds\./,
+    );
+    expect(rowCheckbox(view, "checkout.title").checked).toBe(true);
+  });
+
+  it("blocks a bulk retranslation larger than the whole window, without sending it", async () => {
+    stubKeyboardReady({
+      ...SPEND_SNAPSHOT,
+      capabilities: {
+        spend: true,
+        writeToDisk: true,
+        limits: {
+          retranslate: { windowMs: 60_000, max: 1 },
+          reviewDecision: { windowMs: 60_000, max: 60 },
+        },
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(selectAll(view));
+
+    await clickAsync(bulkButton(view, "Retranslate selected"));
+    await flush();
+
+    expect(rpcCalls.some((call) => call.method === "translation.retranslateEntries")).toBe(false);
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "This batch has more entries than Studio allows in one rate-limit window.",
+    );
+  });
+
+  it("sends a bulk action as before when the snapshot names no limits", async () => {
+    stubKeyboardReady();
+    stubRpc({ "review.approveMany": rpcError("METHOD_RATE_LIMITED") });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "review.approveMany")).toHaveLength(2);
   });
 
   it("holds approve and reject until the selected values have loaded", async () => {

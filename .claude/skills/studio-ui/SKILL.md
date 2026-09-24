@@ -228,7 +228,10 @@ co-located test). Compose these before writing anything new.
 ## Capabilities are two flags, and the decision is a pure function
 
 `StudioCapabilities` (`src/shared/rpc/snapshot.ts`) is
-`{ spend: boolean; writeToDisk: boolean }`. Do not conflate them:
+`{ spend: boolean; writeToDisk: boolean }`, plus a `spendWithheld` reason and the read-only
+`limits` the server enforces (`retranslate` and `reviewDecision`, each `{ windowMs, max }`), which
+`src/client/rate-budget.ts` checks a bulk action against before sending it. Do not conflate the
+two flags:
 
 - `spend` costs provider tokens and is off unless the server was started with
   `--allow-spend` (`packages/cli/src/studio-command.ts`). Retranslate and

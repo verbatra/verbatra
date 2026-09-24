@@ -28,6 +28,20 @@ type RetranslateBatchOutcome = Extract<
   { ok: true }
 >["result"]["results"][number];
 
+export const LOCALE_BUSY_SKIP_MESSAGE = "Skipped: the locale was busy.";
+
+function failureMessage(outcome: {
+  readonly code: string;
+  readonly message: string;
+  readonly skipped?: true;
+}): string {
+  if (outcome.skipped === true && outcome.code === "LOCK_CONTENDED") {
+    return LOCALE_BUSY_SKIP_MESSAGE;
+  }
+  const copy = resolveErrorCopy({ code: outcome.code, message: outcome.message });
+  return outcome.skipped === true ? `Not attempted after an earlier failure: ${copy}` : copy;
+}
+
 function failureOf(outcome: {
   readonly locale: string;
   readonly key: string;
@@ -35,12 +49,7 @@ function failureOf(outcome: {
   readonly message: string;
   readonly skipped?: true;
 }): BatchFailure {
-  const copy = resolveErrorCopy({ code: outcome.code, message: outcome.message });
-  return {
-    locale: outcome.locale,
-    key: outcome.key,
-    message: outcome.skipped === true ? `Not attempted after an earlier failure: ${copy}` : copy,
-  };
+  return { locale: outcome.locale, key: outcome.key, message: failureMessage(outcome) };
 }
 
 function summarize(

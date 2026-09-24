@@ -118,6 +118,37 @@ describe("createRpcRateLimiter: weighted calls and shared buckets", () => {
   });
 });
 
+describe("createRpcRateLimiter: how long until a call would fit", () => {
+  it("names the time until enough of the oldest calls leave the window", () => {
+    let now = 0;
+    const limiter = createRpcRateLimiter(
+      { "translation.retranslateEntries": { windowMs: 1000, maxCalls: 3, perEntry: true } },
+      () => now,
+    );
+
+    expect(limiter.retryAfterMs("translation.retranslateEntries", 3)).toBe(0);
+    limiter.tryAcquire("translation.retranslateEntries", 1);
+    now = 200;
+    limiter.tryAcquire("translation.retranslateEntries", 2);
+    now = 500;
+
+    expect(limiter.retryAfterMs("translation.retranslateEntries", 1)).toBe(500);
+    expect(limiter.retryAfterMs("translation.retranslateEntries", 2)).toBe(700);
+    expect(limiter.retryAfterMs("translation.retranslateEntries", 5)).toBe(700);
+  });
+
+  it("answers 0 for a method with no rule or with room left", () => {
+    const limiter = createRpcRateLimiter(
+      { "review.approveMany": { windowMs: 1000, maxCalls: 2 } },
+      () => 0,
+    );
+    limiter.tryAcquire("review.approveMany");
+
+    expect(limiter.retryAfterMs("status.check")).toBe(0);
+    expect(limiter.retryAfterMs("review.approveMany")).toBe(0);
+  });
+});
+
 describe("createRpcRateLimiter: calls that can never fit", () => {
   it("reports a per-entry call heavier than the whole window budget, and nothing else", () => {
     const limiter = createRpcRateLimiter({

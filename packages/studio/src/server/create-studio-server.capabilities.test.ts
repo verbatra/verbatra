@@ -12,7 +12,7 @@ import {
 
 interface RpcResponseBody {
   readonly ok: boolean;
-  readonly error?: { readonly code: string };
+  readonly error?: { readonly code: string; readonly retryAfterSeconds?: number };
   readonly result?: unknown;
 }
 
@@ -21,7 +21,7 @@ async function postRpc(
   cookie: string,
   method: string,
   params: Record<string, unknown> = {},
-): Promise<{ status: number; body: RpcResponseBody }> {
+): Promise<{ status: number; body: RpcResponseBody; retryAfter: string | null }> {
   const response = await fetch(new URL("/rpc", url), {
     method: "POST",
     headers: {
@@ -31,7 +31,11 @@ async function postRpc(
     },
     body: JSON.stringify({ method, params }),
   });
-  return { status: response.status, body: (await response.json()) as RpcResponseBody };
+  return {
+    status: response.status,
+    body: (await response.json()) as RpcResponseBody,
+    retryAfter: response.headers.get("retry-after"),
+  };
 }
 
 const TOKEN = "capabilities-test-token-0123456789abcdef";
@@ -108,6 +112,32 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
         });
       },
       { token: TOKEN, loader: stubLoader() },
+    );
+  });
+
+  it("reports the retranslate and review decision limits, defaulted and configured", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "project.snapshot");
+        expect(body).toMatchObject({
+          ok: true,
+          result: {
+            capabilities: {
+              limits: {
+                retranslate: { windowMs: 60_000, max: 20 },
+                reviewDecision: { windowMs: 30_000, max: 7 },
+              },
+            },
+          },
+        });
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        reviewDecisionRateLimitWindowMs: 30_000,
+        reviewDecisionRateLimitMax: 7,
+      },
     );
   });
 
@@ -259,6 +289,11 @@ describe("translation.editEntry's dispatch-layer rate limit, wired end to end", 
         });
         expect(third.status).toBe(429);
         expect(third.body).toMatchObject({ ok: false, error: { code: "METHOD_RATE_LIMITED" } });
+        const retryAfterSeconds = third.body.error?.retryAfterSeconds;
+        expect(retryAfterSeconds).toBeGreaterThanOrEqual(59);
+        expect(retryAfterSeconds).toBeLessThanOrEqual(60);
+        expect(third.retryAfter).toBe(String(retryAfterSeconds));
+        expect(first.retryAfter).toBeNull();
       },
       {
         token: TOKEN,

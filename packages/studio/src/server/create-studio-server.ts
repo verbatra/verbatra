@@ -11,6 +11,7 @@ import {
   REVIEW_REJECT_MANY_METHOD,
 } from "../shared/rpc/review-batch.js";
 import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import type { StudioRateLimit, StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
 import { resolveCapabilities } from "./capabilities.js";
@@ -19,7 +20,7 @@ import { resolvePort } from "./default-port.js";
 import { type DispatchContext, handleRequest } from "./dispatch.js";
 import { StudioServerStartError } from "./errors.js";
 import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
-import { createRpcRateLimiter, type RpcRateLimiter } from "./rate-limiter.js";
+import { createRpcRateLimiter, type RateLimitRule, type RpcRateLimiter } from "./rate-limiter.js";
 import { resolveBoundAddress } from "./resolve-bound-port.js";
 import { createRpcHandlers, type RpcHandlerDeps } from "./rpc.js";
 import { createSseHub, type SseHub } from "./sse.js";
@@ -43,21 +44,30 @@ const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
-function retranslateLimit(options: StudioServerOptions): {
-  readonly windowMs: number;
-  readonly maxCalls: number;
-} {
+export function studioRateLimits(options: StudioServerOptions): StudioRateLimits {
   return {
-    windowMs: options.retranslateRateLimitWindowMs ?? DEFAULT_RETRANSLATE_RATE_LIMIT_WINDOW_MS,
-    maxCalls: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+    retranslate: {
+      windowMs: options.retranslateRateLimitWindowMs ?? DEFAULT_RETRANSLATE_RATE_LIMIT_WINDOW_MS,
+      max: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+    },
+    reviewDecision: {
+      windowMs:
+        options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
+      max: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
+    },
   };
 }
 
-function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
+function ruleOf(limit: StudioRateLimit): RateLimitRule {
+  return { windowMs: limit.windowMs, maxCalls: limit.max };
+}
+
+function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits): RpcRateLimiter {
+  const reviewDecision = ruleOf(limits.reviewDecision);
   return createRpcRateLimiter({
-    [RETRANSLATE_ENTRY_METHOD]: retranslateLimit(options),
+    [RETRANSLATE_ENTRY_METHOD]: ruleOf(limits.retranslate),
     [RETRANSLATE_ENTRIES_METHOD]: {
-      ...retranslateLimit(options),
+      ...ruleOf(limits.retranslate),
       bucket: RETRANSLATE_ENTRY_METHOD,
       perEntry: true,
     },
@@ -75,22 +85,11 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
         options.glossaryWriteRateLimitWindowMs ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.glossaryWriteRateLimitMax ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX,
     },
-    [REVIEW_APPROVE_METHOD]: reviewDecisionLimit(options),
-    [REVIEW_REJECT_METHOD]: reviewDecisionLimit(options),
-    [REVIEW_APPROVE_MANY_METHOD]: reviewDecisionLimit(options),
-    [REVIEW_REJECT_MANY_METHOD]: reviewDecisionLimit(options),
+    [REVIEW_APPROVE_METHOD]: reviewDecision,
+    [REVIEW_REJECT_METHOD]: reviewDecision,
+    [REVIEW_APPROVE_MANY_METHOD]: reviewDecision,
+    [REVIEW_REJECT_MANY_METHOD]: reviewDecision,
   });
-}
-
-function reviewDecisionLimit(options: StudioServerOptions): {
-  readonly windowMs: number;
-  readonly maxCalls: number;
-} {
-  return {
-    windowMs:
-      options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
-    maxCalls: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
-  };
 }
 
 function buildInFlightGuard(): RpcInFlightGuard {
@@ -273,7 +272,8 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   watcher.onRefresh((event) => sseHub.broadcastRefresh(event));
 
   const handlers = createRpcHandlers(capabilities);
-  const rateLimiter = buildRateLimiter(options);
+  const rateLimits = studioRateLimits(options);
+  const rateLimiter = buildRateLimiter(options, rateLimits);
   const inFlightGuard = buildInFlightGuard();
 
   const server = createServer();
@@ -290,6 +290,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     log: output,
     rpcDeps: {
       ...buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
+      rateLimits,
       inFlightEntries: () => inFlightGuard.entries(),
       log: output,
     },

@@ -10,10 +10,21 @@ export type ProjectSnapshotParams = z.infer<typeof projectSnapshotParamsSchema>;
 
 export type SpendWithheldReason = "flag" | "policy";
 
+export interface StudioRateLimit {
+  readonly windowMs: number;
+  readonly max: number;
+}
+
+export interface StudioRateLimits {
+  readonly retranslate: StudioRateLimit;
+  readonly reviewDecision: StudioRateLimit;
+}
+
 export interface StudioCapabilities {
   readonly spend: boolean;
   readonly spendWithheld?: SpendWithheldReason;
   readonly writeToDisk: boolean;
+  readonly limits?: StudioRateLimits;
 }
 
 export interface ProjectSnapshotResult {

@@ -122,6 +122,10 @@ Jedes Tool liefert den RPC-Envelope des Dashboards selbst als JSON, ein fehlgesc
 - `PARAMS_INVALID`: Die Parameter haben die Validierung nicht bestanden; der Fehler trägt eine `issues`-Liste, die jedes fehlerhafte Feld nennt.
 - `SESSION_EXPIRED`: Der Server akzeptiert das Sitzungscookie des Tabs nicht mehr, meist weil Studio mit einem neuen Token neu gestartet wurde. Der Tab ruft den Server nicht mehr auf und zeigt den Bildschirm Session expired; öffne die URL, die das laufende Studio ausgegeben hat, um eine neue Sitzung zu starten.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Eine Ablehnung mit `METHOD_RATE_LIMITED` trägt zusätzlich `retryAfterSeconds` in `error`, mit derselben Zahl im `Retry-After`-Header der Antwort: die Sekunden, bis der Aufruf wieder passt. Eine Ablehnung mit `BATCH_TOO_LARGE`, für einen Stapel mit mehr Einträgen, als ein Fenster erlaubt, trägt beides ebenfalls und zählt die Sekunden, bis das ganze Fenster frei ist; ein Stapel dieser Größe passt auch dann nicht, schick also weniger Einträge. `verbatra_project_snapshot` meldet die Limits für Neuübersetzen und Review-Entscheidungen unter `capabilities.limits`, jeweils als `{ windowMs, max }`, damit ein Agent seine Aufrufe takten kann, statt in die Limits zu laufen.
+
 ## Der Degraded-Mode-Hinweis
 
 Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Problem.

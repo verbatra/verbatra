@@ -21,7 +21,11 @@ import {
 } from "../shared/rpc/review-batch.js";
 import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
-import { PROJECT_SNAPSHOT_METHOD, type StudioCapabilities } from "../shared/rpc/snapshot.js";
+import {
+  PROJECT_SNAPSHOT_METHOD,
+  type StudioCapabilities,
+  type StudioRateLimits,
+} from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { USAGE_SUMMARY_METHOD } from "../shared/rpc/usage-summary.js";
 import type { InFlightEntry } from "./in-flight-guard.js";
@@ -58,6 +62,7 @@ export interface RpcHandlerDeps
   readonly config: LoadedConfig;
   readonly projectRoot: string;
   readonly inFlightEntries?: () => readonly InFlightEntry[];
+  readonly rateLimits?: StudioRateLimits;
   readonly log?: (line: string) => void;
 }
 
