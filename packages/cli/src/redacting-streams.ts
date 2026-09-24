@@ -10,10 +10,19 @@ function redactJsonValue(value: unknown): unknown {
   }
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([key, member]) => [redact(key), redactJsonValue(member)]),
+      Object.entries(value).map(([key, member]) => [redact(key), redactMember(key, member)]),
     );
   }
   return value;
+}
+
+function redactMember(name: string, member: unknown): unknown {
+  if (typeof member !== "string") {
+    return redactJsonValue(member);
+  }
+  const prefix = `${name}: `;
+  const paired = redact(`${prefix}${member}`);
+  return paired.startsWith(prefix) ? paired.slice(prefix.length) : redact(member);
 }
 
 function parsedCompactJson(document: string): object | undefined {
