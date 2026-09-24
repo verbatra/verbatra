@@ -31,6 +31,20 @@ function documentedErrorCodes(suffix) {
   return [...page.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((match) => match[1]).sort();
 }
 
+function cliErrorCodes() {
+  const source = readRepoFile("packages/cli/src/cli-error-codes.ts");
+  const list = /export const CLI_ERROR_CODES = \[([\s\S]*?)\] as const;/.exec(source);
+  if (list?.[1] === undefined) {
+    throw new Error("the CLI_ERROR_CODES list could not be located in cli-error-codes.ts");
+  }
+  return [...list[1].matchAll(/"([A-Z_]+)"/g)].map((match) => match[1]);
+}
+
+function documentedCliErrorCodes(suffix) {
+  const page = readDocPage("(guides)/ci-and-exit-codes", suffix);
+  return [...page.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((match) => match[1]);
+}
+
 function blockExportNames(members) {
   const names = [];
   for (const raw of members.split(",")) {
@@ -86,6 +100,22 @@ describe("the providers page documents every provider error code", () => {
   it.each(LOCALE_SUFFIXES)("has one table row per code in providers%s.mdx", (suffix) => {
     expect(documentedErrorCodes(suffix)).toEqual(codes);
   });
+});
+
+describe("the CI guide documents every code the CLI raises itself", () => {
+  const codes = cliErrorCodes();
+
+  it("extracts a non-trivial list, so the comparisons cannot pass vacuously", () => {
+    expect(codes.length).toBeGreaterThanOrEqual(10);
+    expect(codes).toContain("USAGE_ERROR");
+  });
+
+  it.each(LOCALE_SUFFIXES)(
+    "has one table row per code, in list order, in ci-and-exit-codes%s.mdx",
+    (suffix) => {
+      expect(documentedCliErrorCodes(suffix)).toEqual(codes);
+    },
+  );
 });
 
 describe("the SDK reference catalogs the whole public surface", () => {

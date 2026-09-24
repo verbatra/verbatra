@@ -7,6 +7,7 @@ import {
   verbatraConfigSchema,
 } from "@verbatra/sdk";
 import { z } from "zod";
+import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import {
   buildProviderOptions,
@@ -292,7 +293,7 @@ function ambiguousCandidates(
 }
 
 function ambiguityError(
-  code: string,
+  code: CliErrorCode,
   subject: string,
   flag: string,
   candidates: readonly string[],
