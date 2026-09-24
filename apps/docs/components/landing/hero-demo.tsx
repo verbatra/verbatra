@@ -56,7 +56,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
         className="overflow-hidden rounded-xl border border-fd-border text-left"
         style={{ background: "var(--v-void)", boxShadow: "var(--shadow-panel)" }}
       >
-        <div className="flex items-center gap-3 border-b border-fd-border px-2 py-1.5">
+        <div className="flex items-center gap-3 border-b border-fd-border px-2.5 py-2">
           <TabList
             tabs={PANELS.map((id) => ({ id, label: labels[id] }))}
             active={active}
@@ -84,6 +84,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
               delayBetweenCommands={700}
               fitContent
               bare
+              playThreshold={0.1}
             />
           </div>
           <div
@@ -103,7 +104,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-sm leading-relaxed text-[color:var(--text-faint)]">
+      <figcaption className="mt-4 text-center text-sm leading-relaxed text-[color:var(--text-faint)]">
         {active === "cli" ? labels.captionCli : labels.captionStudio}
       </figcaption>
     </figure>

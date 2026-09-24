@@ -20,6 +20,7 @@ export type TerminalProps = {
   fitContent?: boolean;
   headerAction?: ReactNode;
   bare?: boolean;
+  playThreshold?: number;
   className?: string;
 };
 
@@ -181,9 +182,10 @@ export function Terminal({
   fitContent = false,
   headerAction,
   bare = false,
+  playThreshold = 0.4,
   className,
 }: TerminalProps): ReactNode {
-  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(0.4);
+  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(playThreshold);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<Line[]>([]);
   const [typing, setTyping] = useState<string | null>(null);

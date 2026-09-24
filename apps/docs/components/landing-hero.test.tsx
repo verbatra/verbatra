@@ -9,9 +9,11 @@ vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
   getLocale: async () => "en",
 }));
-vi.mock("@/components/landing/hero-demo", () => ({ HeroDemo: () => null }));
-vi.mock("@/components/landing/hero-facts", () => ({ HeroFacts: () => null }));
-vi.mock("@/components/landing/package-install", () => ({ PackageInstall: () => null }));
+vi.mock("@/components/landing/hero-demo", () => ({ HeroDemo: () => <figure data-part="demo" /> }));
+vi.mock("@/components/landing/hero-facts", () => ({ HeroFacts: () => <dl data-part="facts" /> }));
+vi.mock("@/components/landing/package-install", () => ({
+  PackageInstall: () => <div data-part="install" />,
+}));
 
 const { LandingHero } = await import("./landing-hero");
 
@@ -42,5 +44,20 @@ describe("LandingHero: largest contentful paint", () => {
   it("settles by transform only, so the text is painted from the first frame", () => {
     expect(keyframes("vk-rise-settle")).not.toMatch(/opacity/);
     expect(keyframes("vk-rise")).toMatch(/opacity: 0/);
+  });
+});
+
+describe("LandingHero: centered stack", () => {
+  it("orders headline, lead, calls to action, install, demo and facts in one column", async () => {
+    const doc = await renderHero();
+    const parts = Array.from(
+      doc.querySelectorAll("h1, p.vk-lead, a[data-umami-event], [data-part]"),
+    ).map((element) => element.getAttribute("data-part") ?? element.tagName.toLowerCase());
+    expect(parts).toEqual(["h1", "p", "a", "install", "demo", "facts"]);
+  });
+
+  it("centers the headline column", async () => {
+    const doc = await renderHero();
+    expect(doc.querySelector("h1")?.closest(".text-center")).not.toBeNull();
   });
 });
