@@ -18,7 +18,7 @@ import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { ogAlternateLocales, ogLocale } from "@/lib/site";
+import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
 import {
   type BreadcrumbLdItem,
@@ -182,21 +182,13 @@ export async function generateMetadata(props: {
     title: page.data.title,
     description: page.data.description,
     alternates: { canonical: page.url, languages },
-    openGraph: {
+    ...socialMetadata({
+      locale: lang,
+      path: page.url,
       type: "article",
-      siteName: "verbatra",
-      locale: ogLocale(lang),
-      alternateLocale: ogAlternateLocales(lang),
       title: page.data.title,
       description: page.data.description,
-      url: page.url,
-      images: [{ url: ogImagePath, width: 1200, height: 630, alt: page.data.title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: page.data.title,
-      description: page.data.description,
-      images: [ogImagePath],
-    },
+      image: { path: ogImagePath, alt: page.data.title },
+    }),
   };
 }

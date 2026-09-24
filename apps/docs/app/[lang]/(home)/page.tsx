@@ -10,16 +10,9 @@ import { Marquee } from "@/components/landing/marquee";
 import { Proof } from "@/components/landing/proof";
 import { Providers } from "@/components/landing/providers";
 import { LandingHero } from "@/components/landing-hero";
-import { localizedPath, toLocale } from "@/lib/i18n";
-import {
-  homeAlternates,
-  MCP_VERSION,
-  ogAlternateLocales,
-  ogLocale,
-  PACKAGE_VERSION,
-  SITE_URL,
-  STUDIO_VERSION,
-} from "@/lib/site";
+import { toLocale } from "@/lib/i18n";
+import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
   type FaqItem,
   faqPageLd,
@@ -88,26 +81,15 @@ export async function generateMetadata(props: {
   const ogDescription = t("ogDescription");
   const ogImageAlt = t("ogImageAlt");
   const { canonical } = homeAlternates(locale);
-  const ogImagePath = localizedPath(locale, "/home-og");
 
-  return {
-    openGraph: {
-      type: "website",
-      siteName: "verbatra",
-      locale: ogLocale(locale),
-      alternateLocale: ogAlternateLocales(locale),
-      url: new URL(canonical, SITE_URL).href,
-      title: ogTitle,
-      description: ogDescription,
-      images: [{ url: ogImagePath, width: 1200, height: 630, alt: ogImageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      site: "@mariokreitz",
-      creator: "@mariokreitz",
-      title,
-      description,
-      images: [ogImagePath],
-    },
-  };
+  return socialMetadata({
+    locale,
+    path: canonical,
+    type: "website",
+    title: ogTitle,
+    description: ogDescription,
+    image: { path: homeOgImagePath(locale), alt: ogImageAlt },
+    twitterTitle: title,
+    twitterDescription: description,
+  });
 }

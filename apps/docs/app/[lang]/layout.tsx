@@ -11,7 +11,8 @@ import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
 import { i18nConfig } from "@/lib/layout.shared";
 import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
-import { homeAlternates, ogAlternateLocales, ogLocale, SITE_URL } from "@/lib/site";
+import { homeAlternates, SITE_URL } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -56,24 +57,16 @@ export async function generateMetadata(props: {
       },
     },
     alternates: { canonical, languages },
-    openGraph: {
+    ...socialMetadata({
+      locale,
+      path: canonical,
       type: "website",
-      siteName: "verbatra",
-      locale: ogLocale(locale),
-      alternateLocale: ogAlternateLocales(locale),
-      url: new URL(canonical, SITE_URL).href,
       title: ogTitle,
       description: ogDescription,
-      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: ogImageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      site: "@mariokreitz",
-      creator: "@mariokreitz",
-      title,
-      description,
-      images: ["/og-image.png"],
-    },
+      image: { path: homeOgImagePath(locale), alt: ogImageAlt },
+      twitterTitle: title,
+      twitterDescription: description,
+    }),
   };
 }
 
