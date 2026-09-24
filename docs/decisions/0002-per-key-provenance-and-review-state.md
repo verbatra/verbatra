@@ -439,13 +439,15 @@ Delivered next:
   and Reject buttons; and a review queue (`reviewQueue`, Studio, MCP `review.queue`) that leaves
   out every flag decided since the run (Decisions 5, 6 and 8).
 
-- The `rejected` handling in a run: `translate` and `watch` skip an exact or fuzzy memory hit
-  whose `valueHash` equals the key's `rejected` record, under every `humanEdits` setting, and send
-  the key to the provider instead; in human-only mode the key stays unfilled. The exception is a
-  provenance file the run cannot read: one written by a newer schema version under any setting, or
-  a corrupt one under `overwrite`, which reads it leniently rather than failing the run. The run
-  then knows no rejection and may reuse a rejected hit. `retranslateEntry`
-  and plural generation never read the memory, so the rule has nothing to guard there (Decision 5).
+- The `rejected` handling in a run: `translate` and `watch` skip an exact or fuzzy memory hit whose
+  `valueHash` equals the key's `rejected` record, under every `humanEdits` setting, and send the key
+  to the provider instead; in human-only mode the key stays unfilled. A fuzzy lookup passes over
+  every candidate carrying the rejected text, so the best remaining one above the threshold can
+  still fill the key. The exception is a provenance file the run cannot read: one written by a newer
+  schema version under any setting, or a corrupt one under `overwrite`, which reads it leniently
+  rather than failing the run. The run then knows no rejection and may reuse a rejected hit.
+  `retranslateEntry` and plural generation never read the memory, so the rule has nothing to guard
+  there (Decision 5).
 
 Specified here, delivered later:
 
