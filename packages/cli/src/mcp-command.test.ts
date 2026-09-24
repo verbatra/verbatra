@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SdkError } from "@verbatra/sdk";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
 import {
   captureStreams,
@@ -11,7 +11,7 @@ import {
   makeMcpModule,
   recordingDeps,
 } from "./test-support.js";
-import type { RunHooks, Session } from "./types.js";
+import type { CliDeps, RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
   return Object.assign(
@@ -45,7 +45,16 @@ describe("run mcp: .env read failure", () => {
 
   it("a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
     mkdirSync(join(dir, ".env"));
-    const { deps, calls } = recordingDeps();
+    let started = false;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async () => {
+            started = true;
+            return makeMcpHandle();
+          },
+        }),
+    });
     const cap = captureStreams();
 
     const code = await run(["mcp", "--cwd", dir], deps, cap.streams);
@@ -53,7 +62,7 @@ describe("run mcp: .env read failure", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.importMcp).toHaveLength(0);
+    expect(started).toBe(false);
   });
 });
 
@@ -115,6 +124,64 @@ describe("run mcp: option passthrough", () => {
   });
 });
 
+describe("run mcp: project directory resolution", () => {
+  function recordStartCwd(resolveServerCwd?: (cwd?: string) => string): {
+    deps: CliDeps;
+    startCwds: string[];
+  } {
+    const startCwds: string[] = [];
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          ...(resolveServerCwd !== undefined ? { resolveServerCwd } : {}),
+          startMcpServer: async (options) => {
+            startCwds.push(options.cwd ?? "");
+            return makeMcpHandle();
+          },
+        }),
+    });
+    return { deps, startCwds };
+  }
+
+  async function startAndStop(args: string[], deps: CliDeps): Promise<void> {
+    const captured = captureMcpSession();
+    const donePromise = run(args, deps, captureStreams().streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+  }
+
+  it("starts the server in the directory @verbatra/mcp resolves when no --cwd is given", async () => {
+    const resolveServerCwd = vi.fn((cwd?: string) => cwd ?? "/claude/project");
+    const { deps, startCwds } = recordStartCwd(resolveServerCwd);
+
+    await startAndStop(["mcp"], deps);
+
+    expect(resolveServerCwd.mock.calls).toEqual([[undefined]]);
+    expect(startCwds).toEqual(["/claude/project"]);
+  });
+
+  it("hands an explicit --cwd to @verbatra/mcp's resolver", async () => {
+    const resolveServerCwd = vi.fn((cwd?: string) => cwd ?? "/claude/project");
+    const { deps, startCwds } = recordStartCwd(resolveServerCwd);
+
+    await startAndStop(["mcp", "--cwd", "/explicit"], deps);
+
+    expect(resolveServerCwd.mock.calls).toEqual([["/explicit"]]);
+    expect(startCwds).toEqual(["/explicit"]);
+  });
+
+  it("falls back to --cwd, then process.cwd(), with an @verbatra/mcp that has no resolver", async () => {
+    const withFlag = recordStartCwd();
+    await startAndStop(["mcp", "--cwd", "/explicit"], withFlag.deps);
+    const withoutFlag = recordStartCwd();
+    await startAndStop(["mcp"], withoutFlag.deps);
+
+    expect(withFlag.startCwds).toEqual(["/explicit"]);
+    expect(withoutFlag.startCwds).toEqual([process.cwd()]);
+  });
+});
+
 describe("run mcp: @verbatra/mcp not installed", () => {
   it("prints the canonical install hint and exits 2 when the missing specifier is @verbatra/mcp itself", async () => {
     const { deps, calls } = recordingDeps({
@@ -127,9 +194,9 @@ describe("run mcp: @verbatra/mcp not installed", () => {
     const code = await run(["mcp"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).toContain(
-      "Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp",
-    );
+    expect(cap.err()).toContain("Verbatra's MCP server requires @verbatra/mcp.");
+    expect(cap.err()).toContain("npx -y @verbatra/mcp");
+    expect(cap.err()).toContain("npm install --save-dev @verbatra/mcp");
     expect(cap.out()).toBe("");
     expect(calls.importMcp).toHaveLength(1);
   });
@@ -147,7 +214,7 @@ describe("run mcp: @verbatra/mcp not installed", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(importedFrom);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/mcp");
+    expect(cap.err()).not.toContain("npx -y @verbatra/mcp");
     expect(cap.err()).toContain("ERR_MODULE_NOT_FOUND");
   });
 
@@ -162,7 +229,7 @@ describe("run mcp: @verbatra/mcp not installed", () => {
     const code = await run(["mcp"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/mcp");
+    expect(cap.err()).not.toContain("npx -y @verbatra/mcp");
     expect(cap.err()).toContain("unexpected dynamic import failure");
   });
 });
