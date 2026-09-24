@@ -500,6 +500,10 @@
       "dark": "Oscuro",
       "light": "Claro"
     },
+    "diffPanel": {
+      "label": "Un diff en el que solo se vuelve a traducir la clave de traducción modificada",
+      "caption": "Solo la clave modificada se envía al proveedor. Las claves actuales no se tocan."
+    },
     "statusBadges": {
       "new": "nuevo"
     }

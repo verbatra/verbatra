@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInViewOnce } from "@/lib/use-in-view-once";
@@ -28,6 +29,7 @@ export function DiffPanel({
   targetFile?: string;
   tag?: string;
 }) {
+  const t = useTranslations("docs.diffPanel");
   const changed = rows.find((r) => r.changed);
   const full = changed?.target ?? "";
 
@@ -72,7 +74,7 @@ export function DiffPanel({
   return (
     <figure
       ref={ref}
-      aria-label="A diff showing only the changed translation key being re-translated"
+      aria-label={t("label")}
       className="not-prose relative my-8 rounded-xl border border-fd-border bg-fd-card p-5 font-mono text-sm sm:p-7"
       style={{
         borderInlineStart: "2px solid var(--v-glow)",
@@ -96,9 +98,7 @@ export function DiffPanel({
           />
         ))}
       </div>
-      <figcaption className="mt-4 text-xs text-fd-muted-foreground">
-        Only the changed key is sent to the provider. Current keys are left untouched.
-      </figcaption>
+      <figcaption className="mt-4 text-xs text-fd-muted-foreground">{t("caption")}</figcaption>
     </figure>
   );
 }

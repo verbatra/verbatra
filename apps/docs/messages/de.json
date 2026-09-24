@@ -500,6 +500,10 @@
       "dark": "Dunkel",
       "light": "Hell"
     },
+    "diffPanel": {
+      "label": "Ein Diff, in dem nur der geänderte Übersetzungs-Key neu übersetzt wird",
+      "caption": "Nur der geänderte Key geht an den Provider. Aktuelle Keys bleiben unverändert."
+    },
     "statusBadges": {
       "new": "neu"
     }
