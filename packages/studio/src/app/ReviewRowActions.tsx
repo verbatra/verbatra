@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import { type RowBusyAction, rowBusyLabel, rowBusyStatus } from "../client/review-in-flight.js";
+import {
+  compactElapsed,
+  type RowBusyAction,
+  rowBusyLabel,
+  rowBusyStatus,
+} from "../client/review-in-flight.js";
 import { type ReviewShortcutAction, shortcutKeysFor } from "../client/review-shortcuts.js";
 import { Button } from "./Button.js";
 import { cn } from "./lib/cn.js";
@@ -69,12 +74,20 @@ export function ReviewRowActions({
       </Button>
       {onRetranslate !== undefined ? (
         <Button
-          className="w-30"
+          className="w-40"
           onClick={onRetranslate}
           disabled={busy !== undefined}
           aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}
         >
           {label("retranslate", "Retranslate")}
+          {running === "retranslate" && busy?.elapsedSeconds !== undefined ? (
+            <>
+              {" "}
+              <span className="font-mono tabular-nums text-muted-foreground" data-busy-elapsed="">
+                {compactElapsed(busy.elapsedSeconds)}
+              </span>
+            </>
+          ) : null}
         </Button>
       ) : null}
       <span className="sr-only" role="status">

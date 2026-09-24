@@ -13,6 +13,40 @@ function corePositionalPrintfSource(): string {
   return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
 }
 
+const LINEAR_BASE_SIZE = 25_000;
+const LINEAR_SCALE = 8;
+const LINEAR_MAX_RATIO = 24;
+const LINEAR_RUNS = 7;
+const MIN_SAMPLE_MS = 5;
+
+function elapsedMs(value: string, repetitions: number): number {
+  const started = process.cpuUsage();
+  for (let repetition = 0; repetition < repetitions; repetition += 1) {
+    segmentValue(value);
+  }
+  const used = process.cpuUsage(started);
+  return (used.user + used.system) / 1_000;
+}
+
+function repetitionsFor(value: string): number {
+  let repetitions = 1;
+  while (elapsedMs(value, repetitions) < MIN_SAMPLE_MS) {
+    repetitions *= 2;
+  }
+  return repetitions;
+}
+
+function scalingRatio(small: string, large: string): number {
+  const repetitions = repetitionsFor(small);
+  let fastestSmall = Number.POSITIVE_INFINITY;
+  let fastestLarge = Number.POSITIVE_INFINITY;
+  for (let run = 0; run < LINEAR_RUNS; run += 1) {
+    fastestSmall = Math.min(fastestSmall, elapsedMs(small, repetitions));
+    fastestLarge = Math.min(fastestLarge, elapsedMs(large, repetitions));
+  }
+  return fastestLarge / fastestSmall;
+}
+
 function tokens(value: string): readonly string[] {
   return segmentValue(value)
     .filter((segment) => segment.kind === "token")
@@ -175,20 +209,24 @@ describe("segmentValue", () => {
   });
 
   it.each([
-    ["unclosed ICU heads", "{a, plural, one {".repeat(20_000)],
-    ["unbalanced opening braces", "{ ".repeat(50_000)],
-    ["unterminated quotes", `{n, plural, other {${"'{".repeat(50_000)}`],
-    ["an unmatched opening brace flood", "{".repeat(100_000)],
-    ["an unmatched sigil brace flood", "#{".repeat(50_000)],
-    ["a printf zero-flag flood", `%${"0".repeat(100_000)}`],
-    ["a positional printf digit flood", `%${"1".repeat(100_000)}`],
-    ["nested simple placeholders", `{n, plural, other {${"{x}".repeat(50_000)}}}`],
-  ])("segments %s in linear time", (_label, value) => {
-    const started = performance.now();
-    const segments = segmentValue(value);
+    ["unclosed ICU heads", (n: number) => "{a, plural, one {".repeat(n / 5)],
+    ["unbalanced opening braces", (n: number) => "{ ".repeat(n / 2)],
+    ["unterminated quotes", (n: number) => `{n, plural, other {${"'{".repeat(n / 2)}`],
+    ["an unmatched opening brace flood", (n: number) => "{".repeat(n)],
+    ["an unmatched sigil brace flood", (n: number) => "#{".repeat(n / 2)],
+    ["a printf zero-flag flood", (n: number) => `%${"0".repeat(n)}`],
+    ["a positional printf digit flood", (n: number) => `%${"1".repeat(n)}`],
+    ["nested simple placeholders", (n: number) => `{n, plural, other {${"{x}".repeat(n / 4)}}}`],
+  ])("segments %s in linear time", (_label, build) => {
+    const small = build(LINEAR_BASE_SIZE);
+    const large = build(LINEAR_BASE_SIZE * LINEAR_SCALE);
 
-    expect(segments.map((segment) => segment.text).join("")).toBe(value);
-    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(
+      segmentValue(large)
+        .map((segment) => segment.text)
+        .join(""),
+    ).toBe(large);
+    expect(scalingRatio(small, large)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 
   it("treats an unbalanced brace as plain text", () => {

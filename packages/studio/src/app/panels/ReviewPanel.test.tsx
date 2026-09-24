@@ -133,6 +133,17 @@ function rowAction(view: RenderResult, key: string, name: string): HTMLElement {
   return button;
 }
 
+function busyRetranslate(view: RenderResult, key: string): HTMLElement {
+  const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === key);
+  const button = [...(row?.querySelectorAll<HTMLElement>("button") ?? [])].find((candidate) =>
+    candidate.textContent?.startsWith("Retranslating…"),
+  );
+  if (button === undefined) {
+    throw new Error(`no running Retranslate button in the row for ${JSON.stringify(key)}`);
+  }
+  return button;
+}
+
 async function openEditor(view: RenderResult, key: string): Promise<void> {
   stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
   await clickAsync(rowAction(view, key, "Edit"));
@@ -729,19 +740,22 @@ describe("ReviewPanel", () => {
     );
   });
 
-  it("moves focus to the page status after a rejection, not back to the removed row", async () => {
+  it("focuses the next row once a rejection from the row button settles, not the removed trigger", async () => {
     stubDecisionReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    await clickAsync(rowAction(view, "cart.badge", "Reject…"));
+    await clickAsync(rowAction(view, "checkout.title", "Reject…"));
     stubRpc({
-      "review.reject": { ok: true, result: decided("fr", "cart.badge", "rejected") },
-      "review.queue": queueAnswer(without("cart.badge")),
+      "review.reject": { ok: true, result: decided("de", "checkout.title", "rejected") },
+      "review.queue": queueAnswer(without("checkout.title")),
     });
 
     await clickAsync(view.getByText("button", "Reject and remove"));
     await flush();
 
-    expect(document.activeElement?.textContent).toContain("Rejected cart.badge (fr).");
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement?.tagName).toBe("TR");
+    expect(document.activeElement?.getAttribute("aria-current")).toBe("true");
+    expect(rowKeyOf(document.activeElement as Element)).toBe("checkout.subtitle");
   });
 
   it("keeps the reject dialog open with the reason when the rejection fails", async () => {
@@ -974,6 +988,26 @@ describe("ReviewPanel: keyboard queue", () => {
     );
   });
 
+  it("focuses the next row once a rejection opened with r settles", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("j");
+    pressKey("j");
+    pressKey("r");
+    await flush();
+    stubRpc({
+      "review.reject": { ok: true, result: decided("de", "checkout.subtitle", "rejected") },
+      "review.queue": queueAnswer(without("checkout.subtitle")),
+    });
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(document.activeElement?.getAttribute("aria-current")).toBe("true");
+    expect(rowKeyOf(document.activeElement as Element)).toBe("cart.badge");
+  });
+
   it("does not approve or reject a row whose current value has not loaded", async () => {
     stubRpc({
       "review.queue": queueAnswer(QUEUE),
@@ -1139,7 +1173,7 @@ describe("ReviewPanel: keyboard queue", () => {
 
     await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
 
-    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+    expect(busyRetranslate(view, "cart.badge")).toBeDefined();
   });
 
   it.each([
@@ -1471,7 +1505,7 @@ describe("ReviewPanel: review workflow", () => {
 
     expect(bulkButton(view, "Retranslating…").disabled).toBe(true);
     expect(bulkButton(view, "Approve selected").disabled).toBe(true);
-    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+    expect(busyRetranslate(view, "cart.badge")).toBeDefined();
     expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
   });
 
@@ -1570,17 +1604,26 @@ describe("ReviewPanel: retranslations the server is still running", () => {
       const view = await renderAsync(<ReviewPanel refreshToken={0} />);
       await flush();
 
-      expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+      expect(busyRetranslate(view, "cart.badge")).toBeDefined();
       expect((rowAction(view, "cart.badge", "Edit") as HTMLButtonElement).disabled).toBe(true);
       const status = (): string =>
         view
           .all("tbody tr")
           .find((row) => rowKeyOf(row) === "cart.badge")
           ?.querySelector('[role="status"]')?.textContent ?? "";
-      expect(status()).toBe("Retranslating… 5 seconds so far");
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 5s");
+      expect(status()).toBe("Retranslating…");
 
       act(() => vi.advanceTimersByTime(1_000));
-      expect(status()).toBe("Retranslating… 6 seconds so far");
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 6s");
+      expect(status()).toBe("Retranslating…");
+
+      await act(async () => {
+        vi.advanceTimersByTime(9_000);
+      });
+      await flush();
+      expect(busyRetranslate(view, "cart.badge").textContent).toBe("Retranslating… 15s");
+      expect(status()).toBe("Retranslating… 15 seconds so far");
 
       running = [];
       const queueReads = rpcCalls.filter((call) => call.method === "review.queue").length;
@@ -1614,6 +1657,6 @@ describe("ReviewPanel: retranslations the server is still running", () => {
     expect(view.get("[data-decision-status]").textContent).toContain(
       "cart.badge (fr) is already being retranslated",
     );
-    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+    expect(busyRetranslate(view, "cart.badge")).toBeDefined();
   });
 });

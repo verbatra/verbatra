@@ -473,6 +473,10 @@ describe("EditEntryDialog", () => {
       "orderNever Befehl",
       "Verbatra keep as written",
     ]);
+    for (const rule of view.all("[data-glossary-forbidden]")) {
+      expect(rule.className).toContain("text-muted-foreground");
+      expect(rule.className).not.toContain("text-danger");
+    }
   });
 
   it("checks the draft against the glossary as you type and flags each term", async () => {
@@ -526,6 +530,11 @@ describe("EditEntryDialog", () => {
       });
 
       expect(flags()).toEqual(["MissingForbidden: Karren", "Missing"]);
+      const violation = view
+        .all("[data-draft-flags] *")
+        .find((node) => node.textContent === "Forbidden: Karren");
+      expect(violation?.className).toContain("text-danger");
+      expect(view.get("[data-glossary-forbidden]").className).not.toContain("text-danger");
       expect(rpcCalls.at(-1)).toEqual({
         method: "key.context",
         params: { locale: LOCALE, key: KEY, draft: "Dein Karren bei verbatra" },

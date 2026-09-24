@@ -217,6 +217,24 @@ describe("useDialogA11y", () => {
     opener.remove();
   });
 
+  it("does not restore focus to an opener that left the document while the dialog was open", () => {
+    const opener = document.createElement("button");
+    opener.type = "button";
+    document.body.appendChild(opener);
+    opener.focus();
+    const focus = vi.spyOn(opener, "focus");
+    const view = render(
+      <Dialog isOpen onClose={vi.fn()}>
+        {CONTENT}
+      </Dialog>,
+    );
+
+    opener.remove();
+    view.unmount();
+
+    expect(focus).not.toHaveBeenCalled();
+  });
+
   it("calls the callback from the latest render, not the one the trap was built with", () => {
     const first = vi.fn();
     const second = vi.fn();
