@@ -9,6 +9,8 @@ import {
   realpath,
   rename,
   rm,
+  stat,
+  utimes,
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
@@ -135,14 +137,26 @@ export interface SdkFs {
    * SDK only ever renames within one directory. Optional, so an implementation written before it
    * existed keeps compiling.
    *
-   * The write lock uses it to remove a lock or reclaim guard left by a process that is gone: it
-   * moves the file aside under a unique name and deletes it only when what it moved is the
-   * abandoned record it observed. Anything else, such as a lock another process took in the
-   * meantime, is put back with {@link SdkFs.createExclusive}, and when a third process has taken the
-   * path in between, it is left aside rather than deleted. Without it, the lock reads the file and
-   * deletes it when unchanged, and clears an abandoned reclaim guard only after seeing it unchanged
-   * across two polls, which narrows but cannot close the window in which a lock another process
-   * just took is deleted.
+   * The write lock uses it to remove a lock or reclaim guard left by a process that is gone, and to
+   * release its own lock: it moves the file aside under a unique
+   * `<name>.<pid>.<host tag>.<uuid>.stale` name and deletes it only when what it moved is the record
+   * it expected. Anything else, such as a lock another process took in the meantime, is put back
+   * with {@link SdkFs.createExclusive}. An abandoned reclaim guard is cleared only after it is seen
+   * unchanged across two polls, unless its heartbeat shows it is stale.
+   *
+   * A rename that fails with `EPERM`, `EBUSY`, or `EACCES`, as Windows reports for a file another
+   * process has open, is treated as "not reclaimed this poll" and retried until the lock timeout.
+   *
+   * Each lock records a random ownership token, and before every write it protects the holder checks
+   * that the lock file still holds its token, failing with `LOCK_CONTENDED` and writing nothing when
+   * it does not. That check and the write are two steps, so the lock narrows but cannot close the
+   * window in which a holder that just passed the check races a process that took the lock over in
+   * the same instant. Without `rename`, the lock reads the file and deletes it when unchanged, a
+   * second such window.
+   *
+   * A `.stale` file left in `.verbatra-local/locks` by a process that crashed mid-move is safe to
+   * delete by hand; the next lock acquisition deletes it once the process that moved it is gone or
+   * it is older than the stale threshold.
    *
    * @param from - The file to move.
    * @param to - Its new path, in the same directory.
@@ -150,6 +164,30 @@ export interface SdkFs {
    * no file exists at `from`.
    */
   rename?(from: string, to: string): Promise<void>;
+  /**
+   * Sets the modification time of an existing file to now. Optional. Together with
+   * {@link SdkFs.mtimeMs} it is the write lock's heartbeat: a holder whose file system implements
+   * `touch` records a heartbeat interval (10 seconds) in its lock and refreshes the lock file's
+   * modification time at that interval while it holds the lock.
+   *
+   * @param path - The file to touch.
+   * @returns Resolves once the modification time is updated. Rejects when no file exists at the
+   * path.
+   */
+  touch?(path: string): Promise<void>;
+  /**
+   * Reads a file's modification time. Optional. A waiting process whose file system implements it
+   * treats a lock on its own machine whose holder recorded a heartbeat interval but has not
+   * refreshed the file for three intervals (30 seconds by default) as abandoned, even when the
+   * recorded process is still running, such as a long-lived Studio, `watch`, or MCP server whose
+   * lock record outlived its hold. Without `touch` and `mtimeMs`, a lock is judged abandoned only
+   * when its recorded process is provably gone.
+   *
+   * @param path - The file to inspect.
+   * @returns The modification time in milliseconds since the Unix epoch, or `undefined` when no
+   * file exists at the path.
+   */
+  mtimeMs?(path: string): Promise<number | undefined>;
 }
 
 function entryKind(entry: Dirent): DirectoryEntry["kind"] {
@@ -285,6 +323,20 @@ export const defaultFs: SdkFs = {
   },
   realpath: (path: string): Promise<string> => realpath(path),
   rename: (from: string, to: string): Promise<void> => rename(from, to),
+  touch: async (path: string): Promise<void> => {
+    const now = new Date();
+    await utimes(path, now, now);
+  },
+  mtimeMs: async (path: string): Promise<number | undefined> => {
+    try {
+      return (await stat(path)).mtimeMs;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return undefined;
+      }
+      throw error;
+    }
+  },
   readDirectory: async (path: string): Promise<readonly DirectoryEntry[]> => {
     const entries = await readdir(path, { withFileTypes: true });
     return entries.map((entry) => ({ name: entry.name, kind: entryKind(entry) }));

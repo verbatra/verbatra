@@ -2,7 +2,9 @@ import { hostname } from "node:os";
 import { describe, expect, it } from "vitest";
 import {
   currentHostLiveness,
+  identityTag,
   isHolderProvablyDead,
+  isLocalPidGone,
   type LivenessContext,
   type SignalProbe,
 } from "./holder-liveness.js";
@@ -129,5 +131,38 @@ describe("currentHostLiveness", () => {
 
   it("reads the machine identity once and reuses it", () => {
     expect(currentHostLiveness()).toBe(currentHostLiveness());
+  });
+});
+
+describe("identityTag", () => {
+  it("is twelve hex characters, stable for the same machine identity", () => {
+    const tag = identityTag(context(aliveProbe));
+
+    expect(tag).toMatch(/^[0-9a-f]{12}$/);
+    expect(identityTag(context(errnoProbe("ESRCH")))).toBe(tag);
+  });
+
+  it.each([
+    ["host", { host: "other-host" }],
+    ["boot ID", { bootId: "boot-2" }],
+    ["PID namespace", { pidNamespace: "pid:[2]" }],
+  ])("differs when the %s differs", (_label, change) => {
+    const base: LivenessContext = {
+      ...context(aliveProbe),
+      bootId: "boot-1",
+      pidNamespace: "pid:[1]",
+    };
+
+    expect(identityTag({ ...base, ...change })).not.toBe(identityTag(base));
+  });
+});
+
+describe("isLocalPidGone", () => {
+  it("is true only for a positive integer pid the probe reports gone", () => {
+    const gone = context(errnoProbe("ESRCH"));
+
+    expect(isLocalPidGone(4242, gone)).toBe(true);
+    expect(isLocalPidGone(0, gone)).toBe(false);
+    expect(isLocalPidGone(4242, context(aliveProbe))).toBe(false);
   });
 });

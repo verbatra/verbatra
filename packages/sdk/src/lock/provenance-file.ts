@@ -4,6 +4,7 @@ import { type LocaleResource, normalizeText, stableStringHash } from "@verbatra/
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { ownValue, renameRecordKeys, sortRecordKeys } from "../record-utils.js";
+import { assertLocksHeld } from "./lock-ownership.js";
 
 /**
  * The file name of the project's provenance record, resolved against the run's working directory.
@@ -402,6 +403,7 @@ export async function writeProvenanceLocale(
   if (Buffer.byteLength(serialized, "utf8") > maxBytes) {
     return "too-large";
   }
+  await assertLocksHeld();
   await fs.writeFile(path, serialized);
   return "written";
 }

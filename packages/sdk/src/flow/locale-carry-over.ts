@@ -24,6 +24,7 @@ import {
   withLockLocalesMoved,
   writeLockFile,
 } from "../lock/lock-file.js";
+import { assertLocksHeld } from "../lock/lock-ownership.js";
 import {
   PROVENANCE_FILE_NAME,
   type ProvenanceRead,
@@ -179,14 +180,15 @@ async function writeStateFiles(
   targetLocales: readonly string[],
 ): Promise<readonly [FileCarry, FileCarry]> {
   const current = await readStateFiles(cwd, fs, targetLocales);
-  const provenance = await attemptWrite(PROVENANCE_FILE_NAME, current.provenanceMoves, () =>
-    fs.writeFile(
+  const provenance = await attemptWrite(PROVENANCE_FILE_NAME, current.provenanceMoves, async () => {
+    await assertLocksHeld();
+    await fs.writeFile(
       provenanceFilePath(cwd),
       serializeProvenanceFile(
         withProvenanceLocalesMoved(current.provenance.file, current.provenanceMoves),
       ),
-    ),
-  );
+    );
+  });
   const lock = await attemptWrite(LOCK_FILE_NAME, current.lockMoves, () =>
     writeLockFile(lockFilePath(cwd), withLockLocalesMoved(current.lock, current.lockMoves), fs),
   );

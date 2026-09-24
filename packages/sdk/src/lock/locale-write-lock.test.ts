@@ -21,19 +21,28 @@ function sleep(ms: number): Promise<void> {
 }
 
 function makeLockFs(): SdkFs {
-  const held = new Set<string>();
-  return makeFakeFs({
-    createExclusive: async (path: string): Promise<boolean> => {
-      if (held.has(path)) {
+  return makeFakeFs();
+}
+
+function scriptedUntilCreated(
+  succeeds: () => boolean,
+  payload: SdkFs["readFileBounded"],
+): Partial<SdkFs> {
+  let created: string | undefined;
+  return {
+    createExclusive: async (_path, data): Promise<boolean> => {
+      if (!succeeds()) {
         return false;
       }
-      held.add(path);
+      created = data;
       return true;
     },
-    deleteFile: async (path: string): Promise<void> => {
-      held.delete(path);
+    readFileBounded: async (path, maxBytes): Promise<BoundedFileRead> =>
+      created !== undefined ? { kind: "ok", content: created } : payload(path, maxBytes),
+    deleteFile: async (): Promise<void> => {
+      created = undefined;
     },
-  });
+  };
 }
 
 describe("localeLockPath", () => {
@@ -246,13 +255,12 @@ describe("withLocaleWriteLock: wait progress", () => {
 
   function makeContendedFs(failures: number, payload: SdkFs["readFileBounded"]): SdkFs {
     let attempts = 0;
-    return makeFakeFs({
-      createExclusive: async (): Promise<boolean> => {
+    return makeFakeFs(
+      scriptedUntilCreated(() => {
         attempts += 1;
         return attempts > failures;
-      },
-      readFileBounded: payload,
-    });
+      }, payload),
+    );
   }
 
   const PAST_GRACE_FAILURES = 25;
@@ -351,16 +359,15 @@ describe("withLocaleWriteLock: wait progress", () => {
     vi.setSystemTime(0);
     const events: LockWaitEvent[] = [];
     let attempts = 0;
-    const fs = makeFakeFs({
-      createExclusive: async (): Promise<boolean> => {
+    const fs = makeFakeFs(
+      scriptedUntilCreated(() => {
         attempts += 1;
         if (attempts === 1) {
           vi.setSystemTime(1_500);
         }
         return attempts > 2;
-      },
-      readFileBounded: releasedThenEmpty,
-    });
+      }, releasedThenEmpty),
+    );
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
       pollIntervalMs: 50,
@@ -385,17 +392,19 @@ describe("withLocaleWriteLock: wait progress", () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const readsAtEvent: number[] = [];
-    const fs = makeFakeFs({
-      createExclusive: async (): Promise<boolean> => {
-        vi.setSystemTime(1_500);
-        return reads >= states.length;
-      },
-      readFileBounded: async (): Promise<BoundedFileRead> => {
-        const state = states[reads] ?? { kind: "missing" };
-        reads += 1;
-        return state;
-      },
-    });
+    const fs = makeFakeFs(
+      scriptedUntilCreated(
+        () => {
+          vi.setSystemTime(1_500);
+          return reads >= states.length;
+        },
+        async (): Promise<BoundedFileRead> => {
+          const state = states[reads] ?? { kind: "missing" };
+          reads += 1;
+          return state;
+        },
+      ),
+    );
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
       pollIntervalMs: 50,

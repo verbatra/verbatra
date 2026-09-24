@@ -300,13 +300,17 @@ describe("updateLockFileLocale: merge mode", () => {
 describe("updateLockFileLocale: the internal lock-file guard serializes concurrent different-locale writers", () => {
   it("never overlaps two read-modify-write steps, even across two different locales (regression guard for the shared lock-file race)", async () => {
     let content = `${JSON.stringify({ version: 1, locales: {} })}\n`;
-    const held = new Set<string>();
+    const held = new Map<string, string>();
     let insideCount = 0;
     let maxInsideCount = 0;
 
     const fs: SdkFs = {
       fileExists: async () => true,
       readFileBounded: async (path: string): Promise<BoundedFileRead> => {
+        const lock = held.get(path);
+        if (lock !== undefined) {
+          return { kind: "ok", content: lock };
+        }
         if (path.endsWith(PROVENANCE_FILE_NAME) || path.endsWith(".lock")) {
           return { kind: "missing" };
         }
@@ -321,11 +325,11 @@ describe("updateLockFileLocale: the internal lock-file guard serializes concurre
         insideCount -= 1;
       },
       writeBytes: async () => {},
-      createExclusive: async (path: string): Promise<boolean> => {
+      createExclusive: async (path: string, data: string): Promise<boolean> => {
         if (held.has(path)) {
           return false;
         }
-        held.add(path);
+        held.set(path, data);
         return true;
       },
       deleteFile: async (path: string): Promise<void> => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { hostname } from "node:os";
 import { type KernelIdentity, readKernelIdentity } from "../fs.js";
 
@@ -26,7 +27,7 @@ export interface RecordedHolder extends KernelIdentity {
   readonly hostname?: string;
 }
 
-function sharesProcessTable(holder: RecordedHolder, context: LivenessContext): boolean {
+export function sharesProcessTable(holder: RecordedHolder, context: LivenessContext): boolean {
   return (
     holder.hostname === context.host &&
     holder.bootId === context.bootId &&
@@ -43,14 +44,24 @@ function isProcessGone(pid: number, probe: SignalProbe): boolean {
   }
 }
 
+export function isLocalPidGone(pid: number, context: LivenessContext): boolean {
+  return Number.isSafeInteger(pid) && pid > 0 && isProcessGone(pid, context.probe);
+}
+
 export function isHolderProvablyDead(holder: RecordedHolder, context: LivenessContext): boolean {
   if (holder.pid === undefined || !sharesProcessTable(holder, context)) {
     return false;
   }
-  if (!Number.isSafeInteger(holder.pid) || holder.pid <= 0) {
-    return false;
-  }
-  return isProcessGone(holder.pid, context.probe);
+  return isLocalPidGone(holder.pid, context);
+}
+
+const IDENTITY_TAG_LENGTH = 12;
+
+export function identityTag(context: LivenessContext): string {
+  return createHash("sha256")
+    .update([context.host, context.bootId ?? "", context.pidNamespace ?? ""].join("\0"))
+    .digest("hex")
+    .slice(0, IDENTITY_TAG_LENGTH);
 }
 
 export function isHeldByThisProcess(holder: RecordedHolder, context: LivenessContext): boolean {

@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type {
   LocaleGlossary,
   ProviderNotice,
@@ -176,8 +176,30 @@ export function realDiskReads(): Pick<
   };
 }
 
-export function makeFakeFs(overrides: Partial<SdkFs> = {}): SdkFs {
+function withExclusiveFiles(fs: SdkFs): SdkFs {
+  const created = new Map<string, string>();
   return {
+    ...fs,
+    readFileBounded: async (path, maxBytes): Promise<BoundedFileRead> => {
+      const content = created.get(path);
+      return content !== undefined ? { kind: "ok", content } : fs.readFileBounded(path, maxBytes);
+    },
+    createExclusive: async (path, data): Promise<boolean> => {
+      if (created.has(path)) {
+        return false;
+      }
+      created.set(path, data);
+      return true;
+    },
+    deleteFile: async (path): Promise<void> => {
+      created.delete(path);
+      await fs.deleteFile(path);
+    },
+  };
+}
+
+export function makeFakeFs(overrides: Partial<SdkFs> = {}): SdkFs {
+  const fs: SdkFs = {
     fileExists: async (): Promise<boolean> => false,
     readFileBounded: async (): Promise<BoundedFileRead> => ({ kind: "missing" }),
     readBytesBounded: async (): Promise<BoundedBytesRead> => ({ kind: "missing" }),
@@ -187,6 +209,7 @@ export function makeFakeFs(overrides: Partial<SdkFs> = {}): SdkFs {
     deleteFile: async (): Promise<void> => {},
     ...overrides,
   };
+  return overrides.createExclusive === undefined ? withExclusiveFiles(fs) : fs;
 }
 
 export function localeGlossaryOf(glossary: GlossaryInput, locale = "de"): LocaleGlossary {
@@ -195,4 +218,98 @@ export function localeGlossaryOf(glossary: GlossaryInput, locale = "de"): Locale
     throw new Error(`the glossary has nothing for ${locale}`);
   }
   return resolved;
+}
+
+export interface MemoryFile {
+  content: string;
+  mtime: number;
+}
+
+export interface MemoryLockFsHooks {
+  readonly beforeRename?: (from: string, to: string) => Promise<void> | void;
+  readonly afterRename?: (from: string, to: string) => Promise<void> | void;
+}
+
+export interface MemoryLockFs {
+  readonly fs: SdkFs;
+  readonly files: Map<string, MemoryFile>;
+  readonly renames: [string, string][];
+  readonly deleted: string[];
+  readonly touched: string[];
+  put(path: string, content: string, mtime?: number): void;
+  content(path: string): string | undefined;
+}
+
+function missingFile(path: string): NodeJS.ErrnoException {
+  return Object.assign(new Error(`no such file: ${path}`), { code: "ENOENT" });
+}
+
+export function memoryLockFs(
+  hooks: MemoryLockFsHooks = {},
+  overrides: Partial<SdkFs> = {},
+): MemoryLockFs {
+  const files = new Map<string, MemoryFile>();
+  const renames: [string, string][] = [];
+  const deleted: string[] = [];
+  const touched: string[] = [];
+  const put = (path: string, content: string, mtime = Date.now()): void => {
+    files.set(path, { content, mtime });
+  };
+  const fs: SdkFs = {
+    fileExists: async (path) => files.has(path),
+    readFileBounded: async (path): Promise<BoundedFileRead> => {
+      const file = files.get(path);
+      return file === undefined ? { kind: "missing" } : { kind: "ok", content: file.content };
+    },
+    readBytesBounded: async (): Promise<BoundedBytesRead> => ({ kind: "missing" }),
+    writeFile: async (path, data) => {
+      put(path, data);
+    },
+    writeBytes: async () => {},
+    createExclusive: async (path, data) => {
+      if (files.has(path)) {
+        return false;
+      }
+      put(path, data);
+      return true;
+    },
+    deleteFile: async (path) => {
+      deleted.push(path);
+      files.delete(path);
+    },
+    rename: async (from, to) => {
+      await hooks.beforeRename?.(from, to);
+      const file = files.get(from);
+      if (file === undefined) {
+        throw missingFile(from);
+      }
+      files.delete(from);
+      files.set(to, file);
+      renames.push([from, to]);
+      await hooks.afterRename?.(from, to);
+    },
+    touch: async (path) => {
+      const file = files.get(path);
+      if (file === undefined) {
+        throw missingFile(path);
+      }
+      file.mtime = Date.now();
+      touched.push(path);
+    },
+    mtimeMs: async (path) => files.get(path)?.mtime,
+    readDirectory: async (directory) =>
+      [...files.keys()]
+        .filter((path) => dirname(path) === directory)
+        .map((path) => ({ name: basename(path), kind: "file" as const })),
+    ...overrides,
+  };
+  return {
+    fs,
+    files,
+    renames,
+    deleted,
+    touched,
+    put,
+    content: (path) => files.get(path)?.content,
+  };
 }

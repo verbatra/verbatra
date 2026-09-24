@@ -4,6 +4,7 @@ import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { ownValue, renameRecordKeys, sortRecordKeys } from "../record-utils.js";
 import { type LocaleWriteLockOptions, withLockFileGuard } from "./locale-write-lock.js";
+import { assertLocksHeld } from "./lock-ownership.js";
 import {
   type ProvenancePatch,
   type ProvenanceWriteOutcome,
@@ -105,6 +106,7 @@ function serializeLockFile(lock: LockFile): string {
 }
 
 export async function writeLockFile(path: string, lock: LockFile, fs: SdkFs): Promise<void> {
+  await assertLocksHeld();
   await fs.writeFile(path, serializeLockFile(lock));
 }
 
@@ -175,7 +177,7 @@ export async function updateLockFileLocaleUnguarded(
     throw unrecordedProvenance(outcome);
   }
   const next = updateLockLocale(lock, locale, nextEntries);
-  await fs.writeFile(path, serializeLockFile(next));
+  await writeLockFile(path, next, fs);
   return { lock: next, provenance: outcome };
 }
 
