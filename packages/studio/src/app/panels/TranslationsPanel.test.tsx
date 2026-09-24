@@ -124,6 +124,10 @@ function drawerStubs(): Stubs {
     "project.snapshot": { ok: true, result: { capabilities: { spend: false, writeToDisk: true } } },
     "key.integrity": { ok: true, result: { locales: [] } },
     "key.value": { ok: true, result: { source: "Hello", target: "Hallo" } },
+    "key.context": {
+      ok: true,
+      result: { source: "Hello", target: "Hallo", glossary: { terms: [], doNotTranslate: [] } },
+    },
     "history.list": { ok: true, result: { available: false } },
   };
 }

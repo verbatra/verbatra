@@ -3,7 +3,7 @@ import { Button } from "./Button.js";
 import { Card } from "./Card.js";
 import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
-import { Sheet } from "./Sheet.js";
+import { Sheet, type SheetSize } from "./Sheet.js";
 
 export function MonoValue({ children }: { readonly children: ReactNode }): ReactNode {
   return <span className="font-mono">{children}</span>;
@@ -52,6 +52,7 @@ export function DialogCloseButton({
 }
 
 export function DrawerShell(props: {
+  readonly size?: SheetSize;
   readonly kicker?: string;
   readonly title: ReactNode;
   readonly ariaLabel: string;

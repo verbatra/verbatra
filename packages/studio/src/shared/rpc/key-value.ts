@@ -13,5 +13,6 @@ export type KeyValueParams = z.infer<typeof keyValueParamsSchema>;
 export interface KeyValueResult {
   readonly source: string;
   readonly target?: string;
+  readonly description?: string;
   readonly provenance?: KeyProvenance;
 }

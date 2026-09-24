@@ -63,6 +63,10 @@ The editor shows the source string and a text area pre-filled with the current t
 
 Editing needs no flag. It touches only your local files and never calls a provider.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+The editor opens wide, with the source and the translation side by side. The source column shows the source text with its placeholders, ICU syntax, and inline markup highlighted, the key's description when the source file gives one (ARB, XLIFF, gettext, Apple `.strings`, and .NET `.resx` can carry one), and the glossary terms the source uses: the translation this locale must use, the renderings it must never use, the term's note, and the terms to keep as written. The translation column shows who wrote the current value and its integrity indicator, the text area, the length of your draft against the source's, and a preview with the same highlighting that follows your typing. Press Ctrl or Cmd with Enter in the text area to save.
+
 ## Work the Review queue
 
 The Review page lists every entry the review heuristics flagged in the most recent `translate` or `watch` run: one row per locale and key, with an indicator per reason (translation far shorter or longer than the source, longer than the key's configured length budget, identical to the source, a missed glossary term, reordered placeholders, a degraded provider batch, or a value reused from the cache after its source was edited). Until a run has been recorded, the page says so and stays empty; run `verbatra translate` or `verbatra watch` to populate it.

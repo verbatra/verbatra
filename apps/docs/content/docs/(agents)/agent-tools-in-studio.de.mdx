@@ -41,9 +41,9 @@ Flag und Umgebungsvariable werden genau wie bei `--allow-spend` aufgelöst: `1`,
 
 ## Der Tool-Katalog
 
-Mit aktiviertem Opt-in registriert Studio siebzehn Tools. Ohne `--allow-spend` sind es fünfzehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
+Mit aktiviertem Opt-in registriert Studio achtzehn Tools. Ohne `--allow-spend` sind es sechzehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
 
-### Lese-Tools (dreizehn)
+### Lese-Tools (vierzehn)
 
 Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend markiert.
 
@@ -61,6 +61,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
 | `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
 | `verbatra_locale_integrity` | Integrität von Platzhaltern, Inline-Markup, ICU und ICU-Zweigen für jeden geänderten Key, pro Ziel-Locale |
+| `verbatra_key_context` | Quell- und Zielwert eines Keys, seine Beschreibung und die Glossareinträge, die seine Quelle verwendet |
 | `verbatra_translation_estimate` | was `verbatra_translation_translatePending` senden und kosten würde, optional für eine Teilmenge der `locales`, ohne einen Provider aufzurufen |
 
 `verbatra_key_integrity` ist anders geformt als `key.integrity` des stdio-MCP-Servers. Sein `result` ist `{ locales: [...] }`, und jede Zeile trägt `locale` direkt neben den Prüffeldern (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), ohne `entries`-Array. Eine Locale erscheint nur, wenn sich die Quelle des Keys dort seit der Baseline geändert hat: Eine Locale, in der der Key noch keinen Baseline-Eintrag hat, unverändert ist oder fehlt, hat gar keine Zeile. Eine leere `locales`-Liste heißt also, dass nichts zu prüfen war, nicht dass der Key bestanden hat. [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) liefert dagegen eine Zeile für jede Locale im Umfang und verschachtelt dieselben Felder in einem `entries`-Array, das in diesen Fällen leer ist.
@@ -72,6 +73,10 @@ Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_v
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 `verbatra_locale_integrity` führt dieselben Prüfungen wie `verbatra_key_integrity` für alle geänderten Keys auf einmal aus und liefert die Daten für den Filter **Integrity problems** auf der Seite Translations. Sein `result` ist `{ locales: [{ locale, entries }] }`, und jeder Eintrag trägt `key` und die Prüffelder. Jeder geänderte Key wird aufgeführt, ob er die Prüfung besteht oder nicht, also lies die Felder, statt das bloße Vorkommen als Fehler zu werten; ein fehlender, verwaister oder synchroner Key taucht nie auf. Der optionale Parameter `locales` beschränkt den Bericht auf die genannten Ziel-Locales.
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_key_context` liefert, was der Editor des Dashboards für einen Key und eine Locale zeigt: `source`, `target` und seine `provenance`, wenn ein Wert existiert, `description`, wenn die Quelldatei eine angibt, und `glossary`, die Begriffe, deren Quelle im Quelltext vorkommt, als `{ terms, doNotTranslate }` mit der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist. Glossarwerte laufen durch dieselbe Schwärzung wie bei `verbatra_glossary_get`.
 
 Die Buttons **Approve** und **Reject** im Dashboard haben kein Agent-Tool, mit oder ohne Spend: Eine Review-Entscheidung trifft eine Person. `verbatra_review_queue` lässt jeden seit dem Lauf entschiedenen Eintrag weg, behält aber einen, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht.
 
@@ -123,7 +128,7 @@ Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Prob
 
 **Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du das Opt-in nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
 
-**Fünfzehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio fünfzehn Registrierungen statt siebzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Fünfzehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
+**Sechzehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio sechzehn Registrierungen statt achtzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Sechzehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
 
 **Der Hinweis.** Hat Studio eine Registrierung versucht und der Browser sie abgelehnt, zeigt das Dashboard oben im Inhaltsbereich eine Warnung, auf jeder Ansicht:
 
@@ -140,10 +145,10 @@ Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool
 Studio schreibt eine einzige zusammengefasste Zeile auf Error-Ebene, nicht eine Zeile pro Tool, denn eine gemeinsame Ursache lässt jedes Tool identisch scheitern:
 
 ```text
-Verbatra agent tools: 2 of 17 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier siebzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und fünfzehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
+Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier achtzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und sechzehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
 
 Ein Durchlauf, der die Tool-Schleife nie erreicht hat, meldet eine andere Zeile und löst den Hinweis nicht aus:
 

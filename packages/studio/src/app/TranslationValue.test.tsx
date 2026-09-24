@@ -120,4 +120,13 @@ describe("TranslationValue", () => {
     expect(view.get("span").className).not.toContain("overflow-x-auto");
     expect(view.get("span").className).not.toContain("focus-visible");
   });
+
+  it("marks the tokens visually only when asked to highlight them", () => {
+    const plain = render(<TranslationValue value="Hi {name}" />);
+    const highlighted = render(<TranslationValue value="Hi {name}" highlightTokens />);
+
+    expect(plain.get("bdi").className).toBe("whitespace-nowrap");
+    expect(highlighted.get("bdi").className).toContain("bg-accent");
+    expect(highlighted.text()).toBe("Hi {name}");
+  });
 });

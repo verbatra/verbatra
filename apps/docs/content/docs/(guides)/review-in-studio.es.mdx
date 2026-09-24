@@ -63,6 +63,10 @@ El editor muestra la cadena de origen y un área de texto prellenada con la trad
 
 Editar no necesita ningún flag. Toca solo tus archivos locales y nunca llama a un proveedor.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+El editor se abre en ancho, con el origen y la traducción uno junto al otro. La columna de origen muestra el texto de origen con sus placeholders, la sintaxis ICU y el marcado en línea resaltados, la descripción de la clave cuando el archivo de origen da una (ARB, XLIFF, gettext, `.strings` de Apple y `.resx` de .NET pueden llevarla) y los términos del glosario que usa el origen: la traducción que este locale debe usar, las traducciones que nunca debe usar, la nota del término y los términos que se mantienen tal cual. La columna de traducción muestra quién escribió el valor actual y su indicador de integridad, el área de texto, la longitud de tu borrador frente a la del origen y una vista previa con el mismo resaltado que sigue lo que escribes. Pulsa Ctrl o Cmd junto con Enter en el área de texto para guardar.
+
 ## Trabaja la cola de Review
 
 La página Review lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, placeholders reordenados, un lote degradado del proveedor o un valor reutilizado de la caché cuyo origen se editó después). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para llenarla.
