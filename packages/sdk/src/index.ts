@@ -66,6 +66,7 @@ export {
   type TreeFileAdapterOptions,
   type ValidateMessage,
   type ValidateTree,
+  type WriteContext,
 } from "@verbatra/format-adapters";
 export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";

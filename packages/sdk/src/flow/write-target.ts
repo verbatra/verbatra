@@ -1,6 +1,6 @@
 import { isAbsolute, relative, sep } from "node:path";
 import type { LocaleResource } from "@verbatra/core";
-import { AdapterError, type FormatAdapter } from "@verbatra/format-adapters";
+import { AdapterError, type FormatAdapter, type WriteContext } from "@verbatra/format-adapters";
 import { SdkError } from "../errors.js";
 
 const REMEDY_BY_CODE: Readonly<Record<string, string>> = {
@@ -55,9 +55,10 @@ export async function writeTargetResource(
   resource: LocaleResource,
   targetPath: string,
   cwd: string,
+  context: WriteContext = {},
 ): Promise<void> {
   try {
-    await adapter.write(resource, targetPath);
+    await adapter.write(resource, targetPath, context);
   } catch (error) {
     if (error instanceof AdapterError || error instanceof SdkError) {
       throw error;
