@@ -125,6 +125,19 @@ throws `CONCURRENCY_INVALID`, a `concurrency` above 1 against a config that sets
 and a missing source file throws `SOURCE_UNREADABLE`. Every failure after startup is surfaced
 through `onRun` and watching continues.
 
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+Deletes every write lock the current process holds, for a process about to exit without letting
+its in-flight runs finish: the CLI calls it when an interrupt stops `translate` or `import`, and
+when a second interrupt force-stops `watch`. The runs that took those locks lose their protection,
+so call it only immediately before the process exits. It takes no arguments and never rejects.
+
+A lock left behind anyway, by a process killed outright, does not need it: a waiting run on the
+same machine sees that the recorded process is gone and reclaims the lock itself. See
+[the write lock](/docs/the-lock-file#the-write-lock).
+
 ## Pseudolocalization
 
 ### pseudolocalize

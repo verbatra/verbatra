@@ -132,6 +132,20 @@ rechaza en lugar de devolver un controlador: un `concurrency` que no es un enter
 se aplica), y un archivo de origen ausente lanza `SOURCE_UNREADABLE`. Todo fallo posterior al arranque se
 comunica a través de `onRun` y la vigilancia continúa.
 
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+Elimina todos los bloqueos de escritura que tiene el proceso actual, para un proceso que va a
+terminar sin dejar que acaben sus ejecuciones en curso: la CLI lo llama cuando una interrupción
+detiene `translate` o `import`, y cuando una segunda interrupción fuerza la parada de `watch`. Las
+ejecuciones que tomaron esos bloqueos pierden su protección, así que llámalo solo justo antes de
+que el proceso termine. No recibe argumentos y nunca rechaza.
+
+Un bloqueo que queda atrás de todos modos, porque un proceso se mató de golpe, no lo necesita: una
+ejecución en espera en la misma máquina ve que el proceso registrado ya no existe y recupera el
+bloqueo por sí misma. Consulta [el bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura).
+
 ## Pseudolocalización
 
 ### pseudolocalize

@@ -96,10 +96,20 @@ die bereits laufenden fertig sind; so wird jede Sperre, die der Lauf genommen ha
 bevor der Befehl endet. Nach dem Fehlschlag des Laufs wird keine Locale mehr gestartet, und der
 Fehlschlag selbst lässt keine Sperre verwaist zurück.
 
+Jede Sperrdatei hält die Prozess-ID und den Hostnamen des Prozesses fest, der sie hält. Ein hart
+abgeschossener Prozess kann trotzdem eine zurücklassen, deshalb prüft ein wartender Lauf den
+eingetragenen Prozess: Lief er auf dieser Maschine und existiert nicht mehr, übernimmt der Lauf die
+Sperre sofort, statt `--lock-timeout` abzuwarten. Das Übernehmen ist serialisiert, sodass nie zwei
+wartende Läufe dieselbe verwaiste Sperre gleichzeitig übernehmen. Eine Sperre, die auf einer anderen
+Maschine (einem geteilten Netzlaufwerk) oder von einer verbatra-Version vor 0.12.0 geschrieben
+wurde, enthält nichts, was sich sicher prüfen lässt, und wird deshalb nie übernommen.
+
+Ein Interrupt gibt die Sperren eines Laufs frei, bevor der Prozess endet: Ctrl-C oder SIGTERM
+während `translate` oder `import` und der zweite Interrupt, der `watch` hart beendet.
+
 Kann eine Sperre nicht erworben werden, schlägt der Lauf mit `LOCK_CONTENDED` fehl und nennt den
-Pfad der Sperrdatei (im gitignorierten Verzeichnis `.verbatra-local/`). Läuft gerade kein
-verbatra-Prozess, wurde diese Datei von einem abgeschossenen Prozess zurückgelassen: Lösche sie
-und versuche es erneut.
+Pfad der Sperrdatei (im gitignorierten Verzeichnis `.verbatra-local/`). Läuft nirgends ein
+verbatra-Prozess, lösche diese Datei und versuche es erneut.
 
 ## Fehlend oder beschädigt
 

@@ -104,8 +104,9 @@
  *   control character. Thrown by {@link approveEntry} and {@link rejectEntry} before anything is
  *   read.
  * - `LOCK_CONTENDED`: a write lock could not be acquired before its timeout elapsed, because
- *   another process holds it or a killed process left the lock file behind. The message
- *   names the lock file's path. Thrown by {@link editEntry}, {@link retranslateEntry},
+ *   another process holds it, or a lock file was left behind by a process on another machine or
+ *   by an older version (a same-machine holder that is gone is reclaimed automatically). The
+ *   message names the lock file's path. Thrown by {@link editEntry}, {@link retranslateEntry},
  *   {@link approveEntry}, and {@link rejectEntry}, which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
  *   {@link translate} and {@link importWorkbook} do not throw it: they record it
  *   on the contended locale's {@link LocaleSummary} and carry on with the other locales.

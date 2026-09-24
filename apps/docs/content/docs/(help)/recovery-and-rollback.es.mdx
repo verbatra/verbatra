@@ -122,8 +122,11 @@ conservan su hash anterior en vez de registrarse como hechas, así que la siguie
 reintenta. Consulta [Solución de problemas](/docs/troubleshooting) para saber qué significa cada uno
 de esos casos.
 
-Si el proceso interrumpido se cerró de forma abrupta, puede haber dejado un bloqueo de escritura
-bajo `.verbatra-local/`. La siguiente ejecución informa de `LOCK_CONTENDED` e imprime la ruta que
+Una ejecución interrumpida libera sus bloqueos de escritura antes de terminar. Un proceso cerrado
+de forma abrupta (`kill -9`, un fallo) aún puede dejar uno bajo `.verbatra-local/`; la siguiente
+ejecución en la misma máquina ve que el proceso registrado ya no existe y recupera el bloqueo por sí
+misma. Solo un bloqueo que no puede comprobar (registrado en otra máquina, o por una versión
+anterior a 0.12.0) hace que la ejecución espere y luego informe de `LOCK_CONTENDED` con la ruta que
 hay que borrar.
 
 ## Antes de una ejecución que no puedas deshacer con facilidad

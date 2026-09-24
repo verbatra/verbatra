@@ -12,10 +12,15 @@ import {
   loadConfig,
   loadConfigWithMeta,
   pseudolocalize,
+  releaseHeldLocks,
   translate,
   watch,
 } from "@verbatra/sdk";
 import { run } from "./run.js";
+
+function exitAfterReleasingLocks(code: number): void {
+  void releaseHeldLocks().finally(() => process.exit(code));
+}
 
 const code = await run(
   process.argv.slice(2),
@@ -46,6 +51,10 @@ const code = await run(
     },
   },
   {
+    onLockingCommand: () => {
+      process.once("SIGINT", () => exitAfterReleasingLocks(130));
+      process.once("SIGTERM", () => exitAfterReleasingLocks(143));
+    },
     onWatchSession: (session) => {
       process.on("SIGINT", () => session.requestStop());
       process.on("SIGTERM", () => session.requestStop());
@@ -61,4 +70,5 @@ const code = await run(
   },
 );
 
+await releaseHeldLocks();
 process.exit(code);
