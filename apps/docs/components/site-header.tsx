@@ -19,7 +19,7 @@ export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "langua
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
 const TEXT_LINK =
-  "vk-header-link text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
+  "vk-header-link whitespace-nowrap text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
