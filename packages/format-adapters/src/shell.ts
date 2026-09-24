@@ -129,11 +129,17 @@ export function isEnoent(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
+export class ForeignThrowError extends AdapterError {
+  constructor(message: string, cause: unknown) {
+    super("INVALID_STRUCTURE", message, { cause });
+  }
+}
+
 export function rethrowStructured(error: unknown, message: string): never {
   if (error instanceof AdapterError) {
     throw error;
   }
-  throw new AdapterError("INVALID_STRUCTURE", message);
+  throw new ForeignThrowError(message, error);
 }
 
 export function computeIcu(
