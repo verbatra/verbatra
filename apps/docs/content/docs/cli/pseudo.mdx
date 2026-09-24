@@ -55,7 +55,7 @@ Your configured `files.pattern` is expanded inside that directory, so the file k
 Three rules keep it from ever standing in for a real translation:
 
 - A pseudolocale that names your source locale or one of your target locales is refused with `PSEUDO_OUTPUT_CONFLICT`, before anything is read or written.
-- An `--out` that would place the file on top of a configured locale file is refused the same way.
+- An `--out` that would place the file in the same directory as a configured locale file is refused the same way, not only one that would overwrite a locale file.
 - An `--out` that is absolute, or that climbs out of the working directory with `..`, is refused as well, so a generated pseudolocale never lands outside the project it came from. The same checks run again on where `--out` really lands once symbolic links are resolved, so a linked directory that points outside the project, at the project root, or at the directory that holds your locale files, or a linked file that points at a locale file, the lock file, or another file the project depends on, is refused with `PSEUDO_OUTPUT_CONFLICT` too, and nothing is written.
 
 Because the file lives outside `files.pattern`, [`verbatra translate`](/docs/cli/translate) never sees it and never spends on it, and [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) never report it as missing or stale. There is nothing to add to `targetLocales` and nothing to exclude from CI.

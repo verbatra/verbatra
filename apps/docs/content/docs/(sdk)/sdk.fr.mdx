@@ -696,9 +696,12 @@ guillemets, y compris dans du JSON sérialisé dans une chaîne. Tout autre UUID
 chemin de fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans
 `DEEPL_API_KEY` est toujours retirée par sa valeur, où qu'elle apparaisse.
 
-Une clé `sk-` de style OpenAI ou Anthropic est reconnue quand sa partie aléatoire contient une suite
-d'au moins 20 lettres et chiffres, comme toute vraie clé. Un chemin ou une clé de locale slovaque
-comme `locales/sk-SK.json` ou `sk-banner_headline` reste lisible.
+Un token qui commence par un préfixe de clé connu d'OpenAI ou d'Anthropic (`sk-ant-`, `sk-proj-`,
+`sk-svcacct-`, `sk-admin-`) est toujours masqué. Tout autre token `sk-` est masqué dès qu'il contient
+au moins 32 lettres et chiffres au total, comptés sur tous ses segments `-` et `_`, ce qui couvre les
+anciennes clés OpenAI. Un chemin ou une clé de locale slovaque comme `locales/sk-SK.json` ou
+`sk-banner_headline` reste lisible, mais une longue clé camelCase comme
+`sk-onboardingWelcomeScreenPrimaryButton` atteint le seuil et est aussi masquée.
 
 ### declareProviderKeyEnvVar
 

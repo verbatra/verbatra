@@ -27,6 +27,11 @@ function parsedCompactJson(document: string): object | undefined {
   }
 }
 
+function redactSerialized(document: string): string {
+  const scrubbed = redact(document);
+  return parsedCompactJson(scrubbed) === undefined ? document : scrubbed;
+}
+
 function redactOutput(text: string): string {
   let end = text.length;
   while (end > 0 && text.charAt(end - 1) === "\n") {
@@ -37,7 +42,7 @@ function redactOutput(text: string): string {
   if (parsed === undefined) {
     return redact(text);
   }
-  return `${JSON.stringify(redactJsonValue(parsed))}${text.slice(end)}`;
+  return `${redactSerialized(JSON.stringify(redactJsonValue(parsed)))}${text.slice(end)}`;
 }
 
 export function redactingStreams(streams: Streams): Streams {

@@ -13,14 +13,13 @@ import {
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
 import {
+  asWrittenRefusal,
   createOutputPathGuard,
   namesNoFile,
+  type OutputPathRefusal,
   outputRefusalReason,
   type ReservedPath,
-  reservedPathAt,
   reservedProjectPaths,
-  WORKING_DIRECTORY_REASON,
-  workingDirectoryConflict,
 } from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
@@ -162,6 +161,14 @@ function refuseOutput(requested: string, refusal: TypesOutputRefusal, why: strin
   );
 }
 
+function refuseGuardedOutput(requested: string, refusal: OutputPathRefusal): never {
+  refuseOutput(
+    requested,
+    refusal.kind === "reserved" ? refusal.reserved.kind : "outside-working-directory",
+    outputRefusalReason(refusal),
+  );
+}
+
 const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
 
 function resolveOutputPath(
@@ -177,19 +184,9 @@ function resolveOutputPath(
     refuseOutput(requested, "absolute", "is absolute.");
   }
   const outputPath = resolve(cwd, requested);
-  const place = workingDirectoryConflict(cwd, outputPath);
-  if (place !== undefined) {
-    refuseOutput(
-      requested,
-      "outside-working-directory",
-      place === "working-directory"
-        ? WORKING_DIRECTORY_REASON
-        : "is not inside the working directory.",
-    );
-  }
-  const claimed = reservedPathAt(reserved, outputPath);
-  if (claimed !== undefined) {
-    refuseOutput(requested, claimed.kind, `is ${claimed.what}.`);
+  const asWritten = asWrittenRefusal(cwd, outputPath, reserved);
+  if (asWritten !== undefined) {
+    refuseGuardedOutput(requested, asWritten);
   }
   const name = basename(requested).toLowerCase();
   if (!TYPESCRIPT_EXTENSIONS.some((extension) => name.endsWith(extension))) {
@@ -211,11 +208,7 @@ async function refuseLinkedOutput(
 ): Promise<void> {
   const refusal = await createOutputPathGuard(fs, cwd, reserved).refusal(outputPath);
   if (refusal !== undefined) {
-    refuseOutput(
-      requested,
-      refusal.kind === "reserved" ? refusal.reserved.kind : "outside-working-directory",
-      outputRefusalReason(refusal),
-    );
+    refuseGuardedOutput(requested, refusal);
   }
 }
 

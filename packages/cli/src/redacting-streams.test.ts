@@ -40,6 +40,31 @@ describe("redactingStreams: a compact JSON document", () => {
       "[REDACTED]": true,
     });
   });
+
+  it.each([
+    [
+      "a top-level member",
+      { auth_key: "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" },
+      { auth_key: "[REDACTED]" },
+    ],
+    [
+      "a nested member",
+      { config: { deeplKey: "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0", id: 1 } },
+      { config: { deeplKey: "[REDACTED]", id: 1 } },
+    ],
+  ])("scrubs a DeepL key named by %s object key", (_what, document, expected) => {
+    const out = written(`${JSON.stringify(document)}\n`);
+
+    expect(out.endsWith("}\n")).toBe(true);
+    expect(JSON.parse(out)).toEqual(expected);
+  });
+
+  it("keeps the value-by-value result when a whole-document match would break the JSON", () => {
+    vi.stubEnv("OPENAI_API_KEY", '1,"zzzzzzzz');
+    const document = '{"a":1,"zzzzzzzz":2}';
+
+    expect(written(document)).toBe(document);
+  });
 });
 
 describe("redactingStreams: text that is not a compact JSON document", () => {

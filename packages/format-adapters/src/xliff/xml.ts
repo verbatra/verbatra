@@ -79,7 +79,7 @@ export function parseXliffEntries(
       key: unit.key,
       namespace,
       value,
-      placeholders: extractXliffPlaceholders(value, version),
+      placeholders: extractXliffPlaceholders(value),
       isPlural: false,
       ...(unit.description !== undefined ? { description: unit.description } : {}),
     });
@@ -134,6 +134,7 @@ async function readSourceRoot(sourcePath: string, fs: AdapterFs): Promise<Elemen
     throw new AdapterError(
       "INVALID_STRUCTURE",
       `The source XLIFF file is not a valid XLIFF document, so units the destination lacks cannot be copied from it: ${failureReason(error)}`,
+      { cause: error },
     );
   }
 }

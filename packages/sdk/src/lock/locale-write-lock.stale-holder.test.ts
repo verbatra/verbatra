@@ -286,6 +286,57 @@ describe("withLocaleWriteLock: abandoned lock reclaim", () => {
   });
 });
 
+describe("withLocaleWriteLock: a reclaim the file system refuses", () => {
+  it("maps a failure to delete the abandoned lock to LOCK_CONTENDED", async () => {
+    const refusal = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const files = new Map([[LOCK, JSON.stringify(holder(DEAD_PID))]]);
+    const fs = memoryFs(files, {
+      deleteFile: async (path) => {
+        if (path === LOCK) {
+          throw refusal;
+        }
+        files.delete(path);
+      },
+    });
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", fs, async () => undefined, FAST),
+    ).rejects.toMatchObject({
+      code: "LOCK_CONTENDED",
+      message: expect.stringContaining(LOCK),
+      cause: refusal,
+    });
+    expect(files.has(GUARD)).toBe(false);
+  });
+
+  it("maps a failure to delete an abandoned reclaim guard to LOCK_CONTENDED", async () => {
+    const refusal = Object.assign(new Error("permission denied"), { code: "EACCES" });
+    const files = new Map([
+      [LOCK, JSON.stringify(holder(DEAD_PID))],
+      [GUARD, JSON.stringify(holder(SECOND_DEAD_PID))],
+    ]);
+    const fs = memoryFs(files, {
+      deleteFile: async (path) => {
+        if (path === GUARD) {
+          throw refusal;
+        }
+        files.delete(path);
+      },
+    });
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", fs, async () => undefined, {
+        ...FAST,
+        acquireTimeoutMs: 60_000,
+      }),
+    ).rejects.toMatchObject({
+      code: "LOCK_CONTENDED",
+      message: expect.stringContaining(GUARD),
+      cause: refusal,
+    });
+  });
+});
+
 describe("withLocaleWriteLock: clearing an abandoned reclaim guard", () => {
   const POLL = 100;
   const G1 = JSON.stringify(holder(SECOND_DEAD_PID));
