@@ -171,8 +171,8 @@ Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un ar
 configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
 puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
 absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`, y, cuando `deps.fs` implementa `realpath` como el valor por
-defecto, con uno que acaba así, o sobre otro archivo del que depende el proyecto, una vez resueltos
-los enlaces simbólicos. Como el archivo vive fuera de
+defecto, con uno que acaba así, en el directorio de un archivo de locale configurado o sobre otro
+archivo del que depende el proyecto, una vez resueltos los enlaces simbólicos. Como el archivo vive fuera de
 `files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como
 desfasado.
 
@@ -837,7 +837,7 @@ Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de conv
 de un módulo de configuración ejecutable. Un campo vacío, una edición que no fija ningún campo o que mezcla
 `doNotTranslate` con los campos del término, traducciones prohibidas sin locale, un locale no válido,
 una edición que dejaría un glosario no válido y una edición cuyo resultado superaría el límite de
-1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluido un bloqueo de escritura del glosario que no se puede crear en un proyecto de solo lectura, es `GLOSSARY_UNWRITABLE`, con el error del sistema de archivos como `cause`.
+1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluido un bloqueo de escritura del glosario que no se puede crear en un proyecto de solo lectura o liberar tras una edición guardada, es `GLOSSARY_UNWRITABLE`, con el error del sistema de archivos como `cause`.
 Una edición que deja el glosario tal como ya está tiene éxito y no escribe nada.
 
 ### glossaryForLocale
@@ -1021,10 +1021,16 @@ retiran. Un valor de menos de ocho caracteres no se elimina por su valor, así q
 nunca puede borrar texto ajeno.
 
 Una clave de DeepL se reconoce solo por su forma únicamente cuando lleva el sufijo `:fx` de una
-clave gratuita, o cuando un UUID suelto está en un contexto de clave: tras `DeepL-Auth-Key`, como
-parámetro `auth_key` o asignado a `DEEPL_API_KEY`. Cualquier otro UUID, como uno en una ruta de
-archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY` se sigue
-eliminando por su valor dondequiera que aparezca.
+clave gratuita, o cuando un UUID suelto está en un contexto de clave: tras una cabecera
+`DeepL-Auth-Key`, o tras un nombre como `auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`,
+`DEEPL_API_KEY` o `DEEPL_AUTH_KEY` seguido de `:`, `=`, un `%3D` codificado en URL o un espacio, con
+o sin comillas, también dentro de JSON serializado en una cadena. Cualquier otro UUID, como uno en
+una ruta de archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY`
+se sigue eliminando por su valor dondequiera que aparezca.
+
+Una clave `sk-` al estilo de OpenAI o Anthropic se reconoce cuando su parte aleatoria contiene una
+secuencia de al menos 20 letras y dígitos, como toda clave real. Una ruta o clave de locale eslovaco
+como `locales/sk-SK.json` o `sk-banner_headline` sigue legible.
 
 ### declareProviderKeyEnvVar
 
@@ -1071,11 +1077,12 @@ simbólico pertenece a `"other"`: el análisis nunca lo sigue, y eso es lo que l
 las raíces que recibió.
 
 `realpath` también es opcional. Resuelve todos los enlaces simbólicos de una ruta existente, y las
-guardas de salida de [`generateTypes`](#generatetypes) y [`exportTmx`](#exporttmx) lo usan para ver
+guardas de salida de [`generateTypes`](#generatetypes), [`exportTmx`](#exporttmx),
+[`exportWorkbook`](#exportworkbook) y [`pseudolocalize`](#pseudolocalize) lo usan para ver
 dónde cae de verdad una ruta de salida, así que un enlace no puede llevar un archivo escrito fuera
 de `cwd` ni sobre un archivo del que depende el proyecto. Sin él, esas guardas comparan las rutas
 tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe no se puede resolver,
-así que las guardas dan por hecho que `writeFile` reemplaza ese enlace en lugar de escribir a través
+así que las guardas dan por hecho que `writeFile` y `writeBytes` reemplazan ese enlace en lugar de escribir a través
 de él, como hace la escritura atómica por defecto.
 
 `deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
@@ -1227,7 +1234,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `REVIEWER_INVALID` | `reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | el bloqueo de escritura de un locale no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura (`updateGlossaryTerm`); el error del sistema de archivos es la `cause` |
+| `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura, o liberarlo tras una edición guardada (`updateGlossaryTerm`); el error del sistema de archivos es la `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |
 | `LOCALE_PATH_COLLISION` | dos locales configurados resuelven al mismo archivo absoluto |
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
@@ -1249,11 +1256,14 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
 falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
 `PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
-pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` (el error del sistema de archivos) y
+pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` y `GLOSSARY_UNWRITABLE` (el error del sistema de archivos) y
 `REVIEW_RESTORE_FAILED` (el fallo que interrumpió la decisión). `CONFIG_NOT_FOUND` y
 `CONFIG_INVALID` no llevan ninguno a propósito, porque el error de un analizador de configuración
 puede citar el contenido del archivo, y una clave escrita en la configuración no debe viajar con el
-error.
+error. En `PROVIDER_CONSTRUCTION_FAILED` solo se redacta el mensaje: su `cause` es el error original,
+intacto. Las factorías de proveedor integradas lanzan errores sin secretos, y un error lanzado por un
+`createProvider` que pasas tú vuelve exactamente como lo lanzaste, así que mantén los secretos fuera
+de él o redáctalo tú antes de registrar el `cause`.
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`
 propio del proveedor cuando la llamada única falla, y `runStatus` no lanza nunca. Para cómo estos

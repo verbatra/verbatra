@@ -65,7 +65,7 @@ describe.each(cases)("a %s-factory plugin whose parser throws", (_kind, format, 
     expect(failure).toBeInstanceOf(AdapterError);
     expect(failure).toMatchObject({ code: "ADAPTER_FAILED" });
     expect((failure as AdapterError).message).toContain(`"${format}"`);
-    expect((failure as AdapterError).message).toContain("cannot read properties of undefined");
+    expect((failure as AdapterError).message).not.toContain("cannot read properties of undefined");
     expect((failure as AdapterError).cause).toBe(original);
   });
 

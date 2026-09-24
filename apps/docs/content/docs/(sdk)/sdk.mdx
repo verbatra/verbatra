@@ -162,8 +162,8 @@ pseudolocale that names a configured locale, or that would land on a configured 
 refused with `PSEUDO_OUTPUT_CONFLICT` before anything is read or written, so it can neither
 overwrite a real translation nor stand in for one; so is an `out` that is absolute, climbs out of
 `cwd`, or names `cwd` itself, such as `.`, and, when `deps.fs` implements `realpath` as the
-default does, one that does any of this, or lands on another file the project depends on, once
-symbolic links are resolved. Because the file lives outside `files.pattern`,
+default does, one that does any of this, lands in the directory of a configured locale file, or
+lands on another file the project depends on, once symbolic links are resolved. Because the file lives outside `files.pattern`,
 `translate` never spends on it and `check` and `diff` never report it as drifted.
 
 Returns a `PseudolocalizeResult`: the `locale`, the absolute `path`, how many `entries` were
@@ -788,7 +788,7 @@ An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than conver
 an executable config module. A blank field, an edit that sets no field or mixes `doNotTranslate`
 with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
 leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are
-refused with `CONFIG_INVALID`; a failed write, including a glossary write lock that cannot be created in a read-only project, is `GLOSSARY_UNWRITABLE`, with the file-system error as its `cause`. An edit that leaves the
+refused with `CONFIG_INVALID`; a failed write, including a glossary write lock that cannot be created in a read-only project or cannot be released after a saved edit, is `GLOSSARY_UNWRITABLE`, with the file-system error as its `cause`. An edit that leaves the
 glossary as it already is succeeds and writes nothing.
 
 ### glossaryForLocale
@@ -965,9 +965,15 @@ shorter than eight characters is not scrubbed by value, so a short variable can 
 unrelated text.
 
 A DeepL key is recognized by its shape alone only when it carries the `:fx` suffix of a free key,
-or when a bare UUID sits in a key context: after `DeepL-Auth-Key`, as an `auth_key` parameter, or
-assigned to `DEEPL_API_KEY`. Any other UUID, such as one in a file path or a request id, stays
+or when a bare UUID sits in a key context: after a `DeepL-Auth-Key` header, or after a name such as
+`auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`, or `DEEPL_AUTH_KEY`
+followed by `:`, `=`, a URL-encoded `%3D`, or a space, quoted or not, also inside JSON that was
+serialized into a string. Any other UUID, such as one in a file path or a request id, stays
 readable. A Pro key held in `DEEPL_API_KEY` is still scrubbed wherever it appears, by its value.
+
+An OpenAI- or Anthropic-style `sk-` key is recognized when its random part holds a run of at least
+20 letters and digits, as every real key does. A Slovak locale path or key such as
+`locales/sk-SK.json` or `sk-banner_headline` stays readable.
 
 ### declareProviderKeyEnvVar
 
@@ -1010,11 +1016,12 @@ compiling. [`extract`](#extract) is the only entry point that needs it, and repo
 never follows one, which is what keeps it inside the roots it was given.
 
 `realpath` is optional too. It resolves every symbolic link in an existing path, and the output
-guards of [`generateTypes`](#generatetypes) and [`exportTmx`](#exporttmx) use it to see where an
+guards of [`generateTypes`](#generatetypes), [`exportTmx`](#exporttmx),
+[`exportWorkbook`](#exportworkbook), and [`pseudolocalize`](#pseudolocalize) use it to see where an
 output path really lands, so a link cannot carry a written file outside `cwd` or onto a file the
 project depends on. Without it, those guards compare paths as written. A link at the output path
-whose target does not exist cannot be resolved, so the guards assume `writeFile` replaces a link
-there rather than writing through it, as the default atomic write does.
+whose target does not exist cannot be resolved, so the guards assume `writeFile` and `writeBytes`
+replace a link there rather than writing through it, as the default atomic write does.
 
 `deps.fs` cannot reach a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
@@ -1161,7 +1168,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project (`updateGlossaryTerm`); the file-system error is the `cause` |
+| `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project, or released after a saved edit (`updateGlossaryTerm`); the file-system error is the `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` and `files.localeStyle` cannot be combined, or the style has no valid path spelling for a configured locale |
 | `LOCALE_PATH_COLLISION` | two configured locales resolve to the same absolute file path |
 | `CONCURRENCY_INVALID` | `concurrency` was set but is not an integer of at least 1; raised before any locale runs |
@@ -1183,10 +1190,13 @@ are surfaced as data on the `RunSummary`, never thrown.
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
 parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
 (the provider factory's own error, whose message is also redacted into the `SdkError` message),
-`EXPORT_UNWRITABLE` (the file-system error), and `REVIEW_RESTORE_FAILED` (the failure that
+`EXPORT_UNWRITABLE` and `GLOSSARY_UNWRITABLE` (the file-system error), and `REVIEW_RESTORE_FAILED` (the failure that
 interrupted the decision). `CONFIG_NOT_FOUND` and `CONFIG_INVALID` deliberately carry none, because
 a config parser's error can quote the file's content, and a key written into the config must not
-travel with the error.
+travel with the error. Only the message of a `PROVIDER_CONSTRUCTION_FAILED` error is redacted: its
+`cause` is the original error, untouched. The built-in provider factories throw errors that carry
+no secret, and an error thrown by a `createProvider` you supply comes back exactly as you threw it,
+so keep secrets out of it or redact it yourself before you log the `cause`.
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own
 `ProviderError` when the single call fails, and `runStatus` never throws at all. For how these

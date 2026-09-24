@@ -203,7 +203,7 @@ describe("glossary.get", () => {
   );
 
   it("redacts every secret-shaped value and names the terms that had one", async () => {
-    const secret = "sk-abcdEFGH12345678";
+    const secret = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
     const outcome = await glossaryGetTool.execute(
       { locale: "de" },
       inline({

@@ -51,7 +51,9 @@ export class AdapterError extends Error {
    * @param code - The stable code for this failure.
    * @param message - A human-readable description. Never include a secret or a file's contents.
    * @param options - `cause` carries the error this one wraps. An `ADAPTER_FAILED` error raised for
-   * a `custom:` adapter carries the adapter's original throw here.
+   * a `custom:` adapter carries the adapter's original throw here, and its message never repeats
+   * that throw's message, which can quote the file being parsed. An `INVALID_STRUCTURE` error a
+   * built-in adapter raises because its parser threw carries the parser's error here.
    */
   constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown }) {
     super(message, options);

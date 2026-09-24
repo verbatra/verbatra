@@ -22,9 +22,10 @@ import { baselineFor, lockFilePath, readLockFile } from "../../lock/lock-file.js
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { readTargetResource } from "../read-target.js";
 import {
+  createOutputPathGuard,
   namesNoFile,
+  type OutputPathGuard,
   type OutputPathRefusal,
-  outputPathRefusal,
   outputRefusalReason,
   type ReservedPath,
   reservedProjectPaths,
@@ -221,9 +222,8 @@ function displayName(path: string, cwd: string): string {
 }
 
 interface OutputGuard {
-  readonly fs: SdkFs;
   readonly cwd: string;
-  readonly reserved: ReadonlyMap<string, ReservedPath>;
+  readonly paths: OutputPathGuard;
 }
 
 async function resolveWorkbookPath(guard: OutputGuard, requested: string): Promise<string> {
@@ -231,7 +231,7 @@ async function resolveWorkbookPath(guard: OutputGuard, requested: string): Promi
     refuseOutput(requested, "names no file.", false);
   }
   const outputPath = resolve(guard.cwd, requested);
-  const refusal = await outputPathRefusal(guard.fs, guard.cwd, outputPath, guard.reserved);
+  const refusal = await guard.paths.refusal(outputPath);
   if (refusal !== undefined) {
     refuseOutput(requested, outputRefusalReason(refusal), false);
   }
@@ -251,15 +251,13 @@ async function resolveDelimitedDirectory(
     refuseOutput(requested, "names no directory.", true);
   }
   const directory = resolve(guard.cwd, requested);
-  const refusal = directoryRefusal(
-    await outputPathRefusal(guard.fs, guard.cwd, directory, guard.reserved),
-  );
+  const refusal = directoryRefusal(await guard.paths.refusal(directory));
   if (refusal !== undefined) {
     refuseOutput(requested, outputRefusalReason(refusal), true);
   }
   for (const fileName of fileNames) {
     const filePath = join(directory, fileName);
-    const fileRefusal = await outputPathRefusal(guard.fs, guard.cwd, filePath, guard.reserved);
+    const fileRefusal = await guard.paths.refusal(filePath);
     if (fileRefusal !== undefined) {
       refuseOutput(
         requested,
@@ -412,7 +410,7 @@ export async function exportWorkbook(
   const locales = selectLocales(config, input.locales);
   const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
   const path = await resolveHandoffPath(
-    { fs, cwd, reserved: reservedFor(input, cwd) },
+    { cwd, paths: createOutputPathGuard(fs, cwd, reservedFor(input, cwd)) },
     input,
     format,
     locales,

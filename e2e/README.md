@@ -49,8 +49,11 @@ deterministic test joins the required gate automatically.
   planned for translation again only with `--include-human`), and `init` for agents
   (`tests/init-for-agents.e2e.test.ts`: a flags-only `init --json` whose config `doctor` passes
   with no hand edit, detection of an existing YAML layout, a `CONFIG_EXISTS` refusal on a second
-  run, and the `FORMAT_AMBIGUOUS` and `MISSING_OPTIONS` error envelopes). It makes no provider call and no network request, so it is
-  deterministic and free.
+  run, and the `FORMAT_AMBIGUOUS` and `MISSING_OPTIONS` error envelopes), and interrupt handling
+  (`tests/interrupt-releases-locks.e2e.test.ts`: a `translate` run held mid-request by a loopback
+  endpoint the test serves, which never answers, exits 130 on SIGINT and 143 on SIGTERM and leaves
+  no `*.lock` file behind). It makes no provider call and no network request beyond that loopback
+  endpoint, so it is deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
   `.github/workflows/ci.yml`, feeds the `Build and test gate` job, and `release.yml` publishes only
