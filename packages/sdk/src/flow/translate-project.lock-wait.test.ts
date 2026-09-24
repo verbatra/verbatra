@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs } from "../fs.js";
+import { currentHostLiveness } from "../lock/holder-liveness.js";
 import {
   type LockWaitEvent,
   localeLockPath,
@@ -37,6 +38,17 @@ function foreignHolder(pid: number): Record<string, unknown> {
   return { pid, acquiredAt: "2026-07-18T00:00:00.000Z" };
 }
 
+function selfHolder(): Record<string, unknown> {
+  const liveness = currentHostLiveness();
+  return {
+    pid: process.pid,
+    hostname: liveness.host,
+    ...(liveness.bootId !== undefined ? { bootId: liveness.bootId } : {}),
+    ...(liveness.pidNamespace !== undefined ? { pidNamespace: liveness.pidNamespace } : {}),
+    acquiredAt: "2026-07-18T00:00:00.000Z",
+  };
+}
+
 async function projectWithSource(): Promise<string> {
   const dir = await makeTempDir();
   await mkdir(join(dir, "locales"));
@@ -64,7 +76,7 @@ describe("translate: lockAcquireTimeoutMs bounds the locale write lock taken bef
         config: baseConfig({ targetLocales: ["de"] }),
         cwd: dir,
         onLockWait: (event) => events.push(event),
-        lockAcquireTimeoutMs: 50,
+        lockAcquireTimeoutMs: 1_300,
       },
       { createProvider: () => provider },
     );
@@ -79,6 +91,8 @@ describe("translate: lockAcquireTimeoutMs bounds the locale write lock taken bef
     expect(await defaultFs.fileExists(join(dir, "locales", "de.json"))).toBe(false);
     expect(await defaultFs.fileExists(lockFilePath(dir))).toBe(false);
     expect(await defaultFs.fileExists(provenanceFilePath(dir))).toBe(false);
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    expect(events[0]).toMatchObject({ lockPath, holder: { pid: 9999 } });
   });
 });
 
@@ -109,5 +123,48 @@ describe("translate: the record step after the target is written ignores lockAcq
     expect(await readJsonFile(provenanceFilePath(dir))).toMatchObject({
       locales: { de: { greeting: expect.objectContaining({ origin: expect.any(String) }) } },
     });
+  });
+});
+
+describe("translate: onLockWait never reports a lock this process holds", () => {
+  it("reports no wait for a lock-file guard held by this process on a concurrent run", async () => {
+    const dir = await projectWithSource();
+    const guardPath = await holdLockAt(lockFileGuardPath(dir), selfHolder());
+    const { provider } = makeStubProvider();
+    const release = releaseAfter(guardPath, 1_500);
+
+    const events: LockWaitEvent[] = [];
+    const summary = await translate(
+      {
+        config: baseConfig({ targetLocales: ["de", "fr", "es"] }),
+        cwd: dir,
+        concurrency: 3,
+        onLockWait: (event) => events.push(event),
+      },
+      { createProvider: () => provider },
+    );
+    await release;
+
+    expect(summary.failed).toEqual([]);
+    expect(events).toEqual([]);
+  });
+
+  it("reports no wait while sibling locales share the lock-file guard", async () => {
+    const dir = await projectWithSource();
+    const { provider } = makeStubProvider();
+
+    const events: LockWaitEvent[] = [];
+    const summary = await translate(
+      {
+        config: baseConfig({ targetLocales: ["de", "fr", "es", "it", "nl", "pl"] }),
+        cwd: dir,
+        concurrency: 6,
+        onLockWait: (event) => events.push(event),
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(summary.failed).toEqual([]);
+    expect(events).toEqual([]);
   });
 });

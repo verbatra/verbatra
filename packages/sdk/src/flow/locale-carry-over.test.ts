@@ -168,7 +168,7 @@ describe("carryOverRespelledLocales: the lock-file guard", () => {
 
     const plan = await carryOverRespelledLocales(dir, defaultFs, ["pt-BR"], {
       ...live,
-      lock: { acquireTimeoutMs: 20, onWait: (event) => waits.push(event) },
+      lock: { acquireTimeoutMs: 1_200, onWait: (event) => waits.push(event) },
     });
 
     expect(plan.carried).toEqual([]);
