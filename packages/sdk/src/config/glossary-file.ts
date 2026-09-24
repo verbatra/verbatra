@@ -1,7 +1,8 @@
 import { SdkError } from "../errors.js";
 import { selectLocales } from "../flow/select-locales.js";
+import { unwritableFileMessage } from "../flow/write-target.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { withGlossaryGuard } from "../lock/locale-write-lock.js";
+import { glossaryGuardPath, withGlossaryGuard } from "../lock/locale-write-lock.js";
 import {
   describeGlossaryIssues,
   type Glossary,
@@ -180,6 +181,7 @@ async function writeGlossary(path: string, serialized: string, fs: SdkFs): Promi
     throw new SdkError(
       "GLOSSARY_UNWRITABLE",
       `The glossary file at ${path} could not be written: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -295,7 +297,9 @@ export async function readGlossaryFile(
  * glossary would exceed the maximum glossary file size.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's glossary write lock could not be acquired
  * before the timeout elapsed.
- * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written.
+ * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
+ * project's glossary write lock could not be created, for instance because the project directory
+ * is read-only. The file-system error is the `cause`.
  *
  * @example
  * ```ts
@@ -322,14 +326,27 @@ export async function updateGlossaryTerm(
   const fs = deps.fs ?? defaultFs;
   const cwd = inputCwd ?? process.cwd();
 
-  return withGlossaryGuard(cwd, fs, async () => {
-    const document = await readGlossaryDocument(path, fs);
-    const content = editedContent(document.content, edit);
-    if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
-      await writeGlossary(path, serializeGlossary(content, document, path), fs);
+  let locked = false;
+  try {
+    return await withGlossaryGuard(cwd, fs, async () => {
+      locked = true;
+      const document = await readGlossaryDocument(path, fs);
+      const content = editedContent(document.content, edit);
+      if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
+        await writeGlossary(path, serializeGlossary(content, document, path), fs);
+      }
+      return normalizeGlossary(inputOf(content));
+    });
+  } catch (error) {
+    if (locked || error instanceof SdkError) {
+      throw error;
     }
-    return normalizeGlossary(inputOf(content));
-  });
+    throw new SdkError(
+      "GLOSSARY_UNWRITABLE",
+      unwritableFileMessage("the glossary write lock", glossaryGuardPath(cwd), cwd, error),
+      { cause: error },
+    );
+  }
 }
 
 /** The loaded config a glossary tool works on: the resolved config and its glossary provenance. */
