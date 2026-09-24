@@ -365,11 +365,15 @@ describe("xliff round-trip: escaped text shaped like an inline element", () => {
   });
 });
 
-describe("xliff read: placeholders follow the document's XLIFF version", () => {
+describe("xliff read: placeholders match the adapter's own comparison", () => {
   it.each([
-    [XLIFF_12, '<target>&lt;em&gt;w&lt;/em&gt; <x id="1"/></target>', ['<x id="1"/>']],
-    [XLIFF_20, '<target><em startRef="1"/> &lt;x id="1"/&gt;</target>', ['<em startRef="1"/>']],
-  ])("extracts only the version's own inline elements", async (document, target, expected) => {
+    [XLIFF_12, '<target>&lt;em&gt;w&lt;/em&gt; <x id="1"/></target>', ["<em>", '<x id="1"/>']],
+    [
+      XLIFF_20,
+      '<target><em startRef="1"/> &lt;x id="1"/&gt;</target>',
+      ['<em startRef="1"/>', '<x id="1"/>'],
+    ],
+  ])("extracts the inline elements of either version", async (document, target, expected) => {
     const content = document.replace("<target>Ziel</target>", target);
     const adapter = createXliffAdapter(createMemoryAdapterFs({ "m.xlf": content }));
     const { resource } = await adapter.read("m.xlf", "de");

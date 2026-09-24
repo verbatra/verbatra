@@ -1,12 +1,11 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Document, Element, Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
+import { isElement, TEXT_NODE } from "../xml/document.js";
 import {
   childByName,
   collectByTag,
   elementChildren,
-  isElement,
-  TEXT_NODE,
   type Unit,
   type XliffVersion,
 } from "./document.js";

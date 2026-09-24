@@ -27,6 +27,7 @@ import { createBudgetTracker } from "./budget.js";
 import { editEntry } from "./edit-entry.js";
 import { gateCandidateValue } from "./integrity-gate.js";
 import { type LocaleRunParams, runLocale } from "./locale-run.js";
+import { judgeEntryMarkup } from "./markup-verdict.js";
 
 function i18nextAdapter(): FormatAdapter {
   const resolution = createDefaultRegistry().resolve("", { format: "i18next-json" });
@@ -45,6 +46,35 @@ function entryFor(adapter: FormatAdapter, value: string): TranslationEntry {
     isPlural: false,
   };
 }
+
+describe("xliff 2.0: an element only XLIFF 1.2 defines is reported once", () => {
+  it("reports a dropped `<x/>` as a placeholder and not again as markup", async () => {
+    const dir = await makeTempDir();
+    const path = join(dir, "messages.xlf");
+    await writeFile(
+      path,
+      '<?xml version="1.0" encoding="UTF-8"?>\n<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.0" srcLang="en" trgLang="de"><file id="f"><unit id="k"><segment><source>Hello &lt;x id="1"/&gt; world</source></segment></unit></file></xliff>',
+    );
+    const adapter = createXliffAdapter();
+    const { resource } = await adapter.read(path, "en");
+    const source = resource.entries.get("k");
+    if (source === undefined) {
+      throw new Error("the XLIFF 2.0 unit was not read");
+    }
+
+    expect(source.placeholders).toEqual(['<x id="1"/>']);
+    expect(adapter.comparePlaceholders?.(source.value, "Hallo Welt")).toMatchObject({
+      matches: false,
+      missing: ['<x id="1"/>'],
+    });
+    expect(judgeEntryMarkup(source, "Hallo Welt")).toEqual({ matches: true, details: [] });
+    expect(gateCandidateValue(source, "Hallo Welt", adapter, "de")).toEqual({
+      accepted: false,
+      reason: "placeholder",
+      details: ['-<x id="1"/>'],
+    });
+  });
+});
 
 describe("gateCandidateValue: a format whose adapter already tokenises its own inline markup", () => {
   it("refuses a dropped XLIFF inline element once, as a placeholder mismatch and not as markup", () => {
