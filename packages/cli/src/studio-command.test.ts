@@ -384,6 +384,44 @@ describe("run studio: success path and shutdown", () => {
     await donePromise;
   });
 
+  it("forwards request lines under --verbose but never Studio's own startup banner", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            options.output?.(
+              `Verbatra Studio running at http://127.0.0.1:5849/?token=${options.token}`,
+            );
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+
+    expect(cap.err()).toContain("GET / 200");
+    expect(cap.err()).not.toContain("Verbatra Studio running at");
+    expect(cap.out().match(/Verbatra Studio running at/g)).toHaveLength(1);
+
+    captured.session()?.requestStop();
+    await donePromise;
+  });
+
+  it("describes --verbose as what it forwards, not the startup banner", async () => {
+    const cap = captureStreams();
+
+    await run(["studio", "--help"], recordingDeps().deps, cap.streams);
+
+    const help = cap.out().replace(/\s+/g, " ");
+    expect(help).toContain(
+      "also print one stderr line per request, token masked (never Studio's startup banner)",
+    );
+  });
+
   it("a second requestStop while the first is closing forces exit 130", async () => {
     const { deps } = recordingDeps({
       importStudio: async () =>

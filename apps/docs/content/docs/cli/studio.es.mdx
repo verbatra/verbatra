@@ -21,7 +21,7 @@ verbatra studio [flags]
 | `--port` | `<n>` | `5849` | escucha en este puerto; debe ser un entero de 1 a 65535 |
 | `--allow-spend` | ninguno | desactivado | permite a Studio llamar a un proveedor de traducción (retraducir una clave, traducir los cambios pendientes) |
 | `--expose-agent-tools` | ninguno | desactivado | registra las acciones de revisión de Studio como herramientas WebMCP para que un agente de IA del navegador pueda operarlas |
-| `--verbose` | ninguno | desactivado | imprime también una línea en stderr por petición, con el token de sesión enmascarado |
+| `--verbose` | ninguno | desactivado | imprime también una línea en stderr por petición, con el token de sesión enmascarado; la línea de arranque propia de Studio nunca se reenvía |
 
 Cuando el flag `--allow-spend` está ausente, Studio lee en su lugar la variable de entorno `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado. El flag de la CLI siempre gana sobre la variable de entorno. Sin ninguno de los dos, Studio nunca contacta con un proveedor; la edición local no necesita ningún flag. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, y entonces Studio retiene el gasto en el proveedor incluso con `--allow-spend`: la página de Settings lo indica en lugar de remitir al flag.
 

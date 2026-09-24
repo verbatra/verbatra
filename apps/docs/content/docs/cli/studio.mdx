@@ -21,7 +21,7 @@ verbatra studio [flags]
 | `--port` | `<n>` | `5849` | listen on this port; must be an integer from 1 to 65535 |
 | `--allow-spend` | none | off | allow Studio to call a translation provider (retranslate a key, translate pending changes) |
 | `--expose-agent-tools` | none | off | register Studio's review actions as WebMCP tools so a browser AI agent can operate them |
-| `--verbose` | none | off | also print one stderr line per request, with the session token masked |
+| `--verbose` | none | off | also print one stderr line per request, with the session token masked; Studio's own startup banner is never forwarded |
 
 When the `--allow-spend` flag is absent, Studio reads the `VERBATRA_STUDIO_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, Studio never contacts a provider; local editing needs no flag. A config with `provider: { id: "none" }` disables machine translation by policy, and then Studio withholds provider spend even with `--allow-spend`: the Settings page says so instead of pointing at the flag.
 

@@ -1640,7 +1640,10 @@ function registerStudioCommand(program: Command, ctx: ProgramContext): void {
       "--expose-agent-tools",
       "register Studio's RPC methods as WebMCP agent tools in the browser (also: VERBATRA_STUDIO_AGENT_TOOLS)",
     )
-    .option("--verbose", "also print Studio's own startup banner and one stderr line per request")
+    .option(
+      "--verbose",
+      "also print one stderr line per request, token masked (never Studio's startup banner)",
+    )
     .action(async (opts: unknown) => {
       ctx.setCode(await runStudioCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })
