@@ -46,6 +46,26 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
   - `mcp` n'écrit jamais rien sur stdout, puisque stdout est le canal du protocole MCP ; voir [`verbatra mcp`](/docs/cli/mcp).
 - `--help` et `--version` affichent leur sortie et terminent avec `0`. Une commande ou une option inconnue termine avec `2`.
 
+## Sortie dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+Les résultats vont sur stdout. La progression, les avis, les suggestions, les avertissements et les erreurs vont sur stderr, et verbatra les adapte selon la destination de stderr :
+
+- Dans un terminal interactif, les libellés fixes comme `error`, `[ok]` et `next:` sont colorés, et une étape qui dure plus de 300 ms affiche un spinner ASCII (`| / - \`).
+- Quand stderr est redirigé ou envoyé dans un pipe, que `CI` est défini ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
+- `--json` n'ajoute jamais de couleur, d'animation ni de nouvelles lignes : stdout et stderr restent exactement comme décrit dans [Sortie JSON](/docs/ci-and-exit-codes#sortie-json).
+
+| Flag ou variable | Effet |
+| --- | --- |
+| `-q`, `--quiet` | n'affiche que les résultats, les avertissements et les erreurs : pas de lignes de progression, d'avis ni de suggestions `next:`. Il fonctionne avant ou après le nom de la commande |
+| `--no-color` | ne colore jamais la sortie |
+| `NO_COLOR`, `VERBATRA_NO_COLOR` | toute valeur non vide désactive la couleur ; `VERBATRA_NO_COLOR` l'emporte aussi sur `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` ou une valeur vide active la couleur même quand stderr n'est pas un terminal, et `0` la désactive ; `--no-color` et `VERBATRA_NO_COLOR` restent prioritaires |
+| `VERBATRA_NO_SPINNER` | toute valeur non vide remplace le spinner par des lignes statiques `label... done (1.2s)`, pour les lecteurs d'écran et les enregistrements de terminal |
+
+Les mots d'état sont en ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), pour que la sortie se lise de la même façon dans tout terminal et tout journal. Chaque ligne passe par le même masquage des clés que le reste de la sortie, et seuls les libellés fixes sont colorés, jamais une clé, un chemin ni un message.
+
 ## Fichiers d'environnement
 
 `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter. `doctor --literals` fait exception : il ne lit aucune clé d'API, donc il ne charge aucun des deux fichiers. Une variable déjà définie dans ton environnement réel l'emporte toujours. Les clés d'API sont lues uniquement depuis l'environnement, jamais depuis le fichier de config ni une option : voir [Fournisseurs](/docs/providers). Les commandes en lecture seule (`check`, `diff`), les commandes de remise (`export`, `import`), `extract`, `pseudo`, `types` et `tmx` n'appellent jamais de fournisseur et ne chargent aucun fichier `.env`.

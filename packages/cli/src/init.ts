@@ -290,7 +290,7 @@ export async function runInit(
     const prompter = {
       interactive: interactiveMode(opts, deps.isTty ?? stdinIsTty),
       acceptDefaults: opts.yes === true,
-      ask: deps.ask ?? askLine,
+      ask: deps.ask ?? ((question: string) => askLine(question, streams)),
     };
     const plan = await planInit(opts, cwd, prompter, deps.detect ?? detectProject);
     const files = writePlan(plan, cwd, opts.force === true, json ? SILENT_STREAMS : streams);

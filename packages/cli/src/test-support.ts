@@ -30,7 +30,10 @@ import type {
   WatchInput,
 } from "@verbatra/sdk";
 import { DEFAULT_STUDIO_PORT } from "@verbatra/studio";
+import type { SpinnerClock, TimerHandle } from "./spinner.js";
+import { NON_INTERACTIVE_FACTS, resolveTerminalMode } from "./terminal-mode.js";
 import type { CliDeps, McpModule, Streams, StudioModule } from "./types.js";
+import { createUi, type Ui } from "./ui.js";
 
 export function makeConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
   return {
@@ -352,4 +355,67 @@ export async function flush(times = 8): Promise<void> {
   for (let i = 0; i < times; i += 1) {
     await Promise.resolve();
   }
+}
+
+export function plainUi(streams: Streams, json = false): Ui {
+  return createUi(
+    streams,
+    resolveTerminalMode(NON_INTERACTIVE_FACTS, { json, quiet: false, color: true }),
+  );
+}
+
+interface FakeTimer extends TimerHandle {
+  readonly callback: () => void;
+  readonly ms: number;
+  readonly repeat: boolean;
+  cleared: boolean;
+  unrefCalls: number;
+}
+
+export function fakeClock(): SpinnerClock & {
+  readonly timers: FakeTimer[];
+  fireDelay(): void;
+  tick(times?: number): void;
+} {
+  const timers: FakeTimer[] = [];
+  const add = (callback: () => void, ms: number, repeat: boolean): FakeTimer => {
+    const timer: FakeTimer = {
+      callback,
+      ms,
+      repeat,
+      cleared: false,
+      unrefCalls: 0,
+      unref() {
+        timer.unrefCalls += 1;
+      },
+    };
+    timers.push(timer);
+    return timer;
+  };
+  const live = (repeat: boolean): FakeTimer[] =>
+    timers.filter((timer) => timer.repeat === repeat && !timer.cleared);
+  return {
+    timers,
+    setTimeout: (callback, ms) => add(callback, ms, false),
+    clearTimeout: (handle) => {
+      (handle as FakeTimer).cleared = true;
+    },
+    setInterval: (callback, ms) => add(callback, ms, true),
+    clearInterval: (handle) => {
+      (handle as FakeTimer).cleared = true;
+    },
+    fireDelay: () => {
+      for (const timer of live(false)) {
+        timer.cleared = true;
+        timer.callback();
+      }
+    },
+    tick: (times = 1) => {
+      for (let index = 0; index < times; index += 1) {
+        for (const timer of live(true)) {
+          timer.callback();
+        }
+      }
+    },
+  };
 }

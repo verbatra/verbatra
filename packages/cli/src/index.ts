@@ -68,6 +68,11 @@ const code = await run(
       process.on("SIGTERM", () => session.requestStop());
     },
   },
+  {
+    env: process.env,
+    stdinIsTty: process.stdin.isTTY === true,
+    stderrIsTty: process.stderr.isTTY === true,
+  },
 );
 
 await releaseHeldLocks();
