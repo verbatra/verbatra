@@ -147,6 +147,39 @@ describe("redactKeys: key shapes", () => {
     },
   );
 
+  it.each([
+    ["a percent-encoded equals sign", "q%3D"],
+    ["a percent-encoded space", "Bearer%20"],
+    ["a percent-encoded quote", "%22"],
+    ["a percent-encoded key assignment", "key%3D"],
+    ["an ANSI color sequence", "\x1b[31m"],
+  ])("redacts a key right after %s", (_what, before) => {
+    for (const key of [
+      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h",
+      "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd_Ef6hIj9kLm2n-AA",
+      "sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab",
+    ]) {
+      expect(redactKeys(`${before}${key} end`)).toBe(`${before}[REDACTED] end`);
+    }
+  });
+
+  it("redacts a key after an ANSI color sequence once the text is serialized as JSON", () => {
+    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+    const serialized = JSON.stringify({ message: `\x1b[1;31m${key}\x1b[0m failed` });
+
+    const out = redactKeys(serialized);
+
+    expect(out).not.toContain(key);
+    expect(JSON.parse(out)).toEqual({ message: "\x1b[1;31m[REDACTED]\x1b[0m failed" });
+  });
+
+  it("returns promptly on long ANSI and percent-encoded near-miss runs (ReDoS-safe)", () => {
+    const nearMiss = `\x1b[${"1;".repeat(20000)}m sk %3D${"%20".repeat(20000)}m`;
+    const start = Date.now();
+    expect(redactKeys(nearMiss)).toBe(nearMiss);
+    expect(Date.now() - start).toBeLessThan(1000);
+  });
+
   it("redacts a genuine sk-ant key sitting at a word boundary", () => {
     const out = redactKeys("auth failed for sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
     expect(out).not.toContain("sk-ant-api03");

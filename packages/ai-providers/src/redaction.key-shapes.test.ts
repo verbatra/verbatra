@@ -50,6 +50,39 @@ describe("redactKeys: random real key shapes", () => {
   });
 });
 
+const BOUNDARIES_PER_SHAPE = 500;
+
+const BOUNDARY_CONTEXTS: readonly (readonly [string, string, string])[] = [
+  ["a percent-encoded equals sign", "q%3D", ""],
+  ["a percent-encoded space", "Bearer%20", ""],
+  ["a percent-encoded quote", "%22", "%22"],
+  ["a percent-encoded key assignment", "api_key%3D", "%26x%3D1"],
+  ["an ANSI color sequence", "\x1b[31m", "\x1b[0m"],
+  ["an ANSI sequence without parameters", "\x1b[m", ""],
+  ["a JSON-escaped ANSI color sequence", "\\u001b[1;31m", "\\u001b[0m"],
+  ["an upper-case JSON-escaped ANSI sequence", "\\u001B[31m", ""],
+];
+
+describe("redactKeys: real key shapes after an encoded boundary", () => {
+  const cases = KEY_SHAPES.flatMap(([shape, generate]) =>
+    BOUNDARY_CONTEXTS.map(
+      ([where, before, after]) => [shape, where, generate, before, after] as const,
+    ),
+  );
+
+  it.each(cases)("redacts every sampled %s after %s", (_shape, _where, generate, before, after) => {
+    const next = seededRandom(0xb0d);
+    const misses: string[] = [];
+    for (let i = 0; i < BOUNDARIES_PER_SHAPE; i += 1) {
+      const key = generate(next);
+      if (redactKeys(`${before}${key}${after}`) !== `${before}[REDACTED]${after}`) {
+        misses.push(key);
+      }
+    }
+    expect(misses).toEqual([]);
+  });
+});
+
 describe("redactKeys: Slovak locale-shaped tokens", () => {
   it.each([
     "sk-SK_formal",
@@ -64,13 +97,20 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
     "sk-proj-overview_heading",
     "sk-svcacct-settings",
     "sk-ant-banner_title_short",
+    "sk-admin-dashboard_welcome_message",
+    "sk-proj-settings_account_billing_title",
+    "sk-ant-hero_section_subtitle_text",
+    "locales%2Fsk-SK_formal.json",
+    "\x1b[32msk-proj-settings_account_billing_title\x1b[0m",
   ])("leaves %s readable", (text) => {
     expect(redactKeys(text)).toBe(text);
   });
 
-  it("redacts a known prefix once 20 letters and digits follow it", () => {
-    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5q")).toBe("[REDACTED]");
-    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5")).toBe("sk-proj-Ab3dEf6hIj9kLm2nOp5");
+  it("redacts a known prefix only once 32 letters and digits follow `sk-`", () => {
+    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1w")).toBe("[REDACTED]");
+    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1")).toBe(
+      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1",
+    );
   });
 
   it("redacts a camelCase `sk-` key once it reaches 32 letters and digits", () => {
