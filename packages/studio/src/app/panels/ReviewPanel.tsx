@@ -1,6 +1,7 @@
 import type { ReviewReasonCode } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { KeyValuePair } from "../../client/filter.js";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
 import {
@@ -9,6 +10,13 @@ import {
   type RetranslateOutcome,
 } from "../../client/retranslate-outcome.js";
 import {
+  type BatchSummary,
+  batchSummaryFailed,
+  batchSummaryText,
+  summarizeRetranslateBatch,
+  summarizeReviewBatch,
+} from "../../client/review-batch-outcome.js";
+import {
   deriveReviewDecisionOutcome,
   isStaleValueOutcome,
 } from "../../client/review-decision-outcome.js";
@@ -16,6 +24,15 @@ import { filterReviewRows, uniqueReviewLocales } from "../../client/review-filte
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import { reviewedValueFor, visibleReviewQueueRows } from "../../client/review-queue-data.js";
 import { reviewReasonLabel } from "../../client/review-reason-labels.js";
+import {
+  bulkDecisionBlocker,
+  bulkRetranslateBlocker,
+  type SelectionState,
+  selectedAmong,
+  selectionState,
+  toggleSelected,
+  withAllSelected,
+} from "../../client/review-selection.js";
 import {
   clampIndex,
   classifyShortcutTarget,
@@ -26,10 +43,14 @@ import {
   stepIndex,
 } from "../../client/review-shortcuts.js";
 import { settledActionStatusLabel } from "../../client/settled-action-status.js";
+import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entries.js";
+import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
 import { reviewOverlayStore, rpcClient } from "../api.js";
 import { Badge } from "../Badge.js";
+import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
 import { Button } from "../Button.js";
+import { Checkbox } from "../Checkbox.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { SearchInput } from "../Input.js";
@@ -38,6 +59,7 @@ import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { RejectEntryDialog } from "../RejectEntryDialog.js";
+import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
 import { ReviewRowActions } from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
 import { Select } from "../Select.js";
@@ -78,6 +100,8 @@ interface RowActions {
   readonly pending: ReadonlyMap<string, string>;
   readonly activeId: string | null;
   readonly rowRefs: Map<string, HTMLTableRowElement>;
+  readonly selected: ReadonlySet<string>;
+  readonly onToggleSelected: (row: ReviewQueueRow) => void;
 }
 
 type DecisionNotice =
@@ -90,7 +114,8 @@ type DecisionNotice =
       readonly locale: string;
       readonly key: string;
       readonly message: string;
-    };
+    }
+  | { readonly kind: "batch"; readonly summary: BatchSummary };
 
 function rowId(row: EditingTarget): string {
   return `${row.locale}\u0000${row.key}`;
@@ -175,6 +200,15 @@ function ReviewRow({
       onFocus={() => actions.onActivate(row)}
       onClick={() => actions.onActivate(row)}
     >
+      {capabilities?.writeToDisk === true ? (
+        <TableCell className="w-8 pe-0">
+          <Checkbox
+            checked={actions.selected.has(id)}
+            aria-label={`Select ${row.key} (${row.locale})`}
+            onChange={() => actions.onToggleSelected(row)}
+          />
+        </TableCell>
+      ) : null}
       <TableCell mono>{row.locale}</TableCell>
       <ReviewKeyCell row={row} value={value} />
       <TableCell>
@@ -208,10 +242,14 @@ function ReviewTable({
   rows,
   capabilities,
   actions,
+  selection,
+  onSelectAll,
 }: {
   readonly rows: readonly ReviewQueueRow[];
   readonly capabilities: StudioCapabilities | undefined;
   readonly actions: RowActions;
+  readonly selection: SelectionState;
+  readonly onSelectAll: (on: boolean) => void;
 }): ReactNode {
   const showActions = capabilities?.writeToDisk === true;
   return (
@@ -219,6 +257,16 @@ function ReviewTable({
       <Table>
         <TableHead>
           <tr>
+            {showActions ? (
+              <TableHeaderCell className="w-8 pe-0">
+                <Checkbox
+                  checked={selection === "all"}
+                  indeterminate={selection === "some"}
+                  aria-label="Select every shown entry"
+                  onChange={() => onSelectAll(selection !== "all")}
+                />
+              </TableHeaderCell>
+            ) : null}
             <TableHeaderCell>Locale</TableHeaderCell>
             <TableHeaderCell>Key</TableHeaderCell>
             <TableHeaderCell>Reasons</TableHeaderCell>
@@ -241,6 +289,9 @@ function ReviewTable({
 }
 
 function noticeText(notice: DecisionNotice): string {
+  if (notice.kind === "batch") {
+    return batchSummaryText(notice.summary);
+  }
   const target = `${notice.key} (${notice.locale})`;
   if (notice.kind === "approved") {
     return `Approved ${target}. The decision is saved in verbatra.provenance.json.`;
@@ -254,6 +305,10 @@ function noticeText(notice: DecisionNotice): string {
   return `Could not ${notice.action} ${target}: ${notice.message}`;
 }
 
+function noticeFailed(notice: DecisionNotice): boolean {
+  return notice.kind === "batch" ? batchSummaryFailed(notice.summary) : notice.kind === "failed";
+}
+
 function DecisionStatus({
   notice,
   statusRef,
@@ -261,7 +316,7 @@ function DecisionStatus({
   readonly notice: DecisionNotice | null;
   readonly statusRef: RefObject<HTMLParagraphElement | null>;
 }): ReactNode {
-  const failed = notice?.kind === "failed";
+  const failed = notice !== null && noticeFailed(notice);
   return (
     <p
       ref={statusRef}
@@ -356,6 +411,9 @@ function useDecisions(onDecided: () => void): {
   readonly notice: DecisionNotice | null;
   readonly approve: (row: ReviewQueueRow, value: string) => void;
   readonly retranslate: (row: ReviewQueueRow) => void;
+  readonly approveMany: (targets: readonly BulkRejectEntry[]) => void;
+  readonly rejectMany: (targets: readonly BulkRejectEntry[]) => void;
+  readonly retranslateMany: (rows: readonly ReviewQueueRow[]) => void;
   readonly rejected: (target: EditingTarget) => void;
   readonly rejectStale: (target: EditingTarget, message: string) => void;
   readonly reloaded: () => void;
@@ -364,16 +422,57 @@ function useDecisions(onDecided: () => void): {
   const awaitingReload = useRef<Set<string>>(new Set());
   const [notice, setNotice] = useState<DecisionNotice | null>(null);
 
-  function setRowPending(row: EditingTarget, label: string | undefined): void {
+  function setRowsPending(rows: readonly EditingTarget[], label: string | undefined): void {
     setPending((current) => {
       const next = new Map(current);
-      if (label === undefined) {
-        next.delete(rowId(row));
-      } else {
-        next.set(rowId(row), label);
+      for (const row of rows) {
+        if (label === undefined) {
+          next.delete(rowId(row));
+        } else {
+          next.set(rowId(row), label);
+        }
       }
       return next;
     });
+  }
+
+  function setRowPending(row: EditingTarget, label: string | undefined): void {
+    setRowsPending([row], label);
+  }
+
+  function settleBatch(rows: readonly EditingTarget[], summary: BatchSummary): void {
+    setNotice({ kind: "batch", summary });
+    if (summary.kind === "error") {
+      setRowsPending(rows, undefined);
+      return;
+    }
+    for (const row of rows) {
+      awaitingReload.current.add(rowId(row));
+    }
+    onDecided();
+  }
+
+  async function decideMany(
+    action: "approve" | "reject",
+    targets: readonly BulkRejectEntry[],
+  ): Promise<void> {
+    setRowsPending(targets, action === "approve" ? "Approving…" : "Rejecting…");
+    const params = {
+      entries: targets.map(({ locale, key, value }) => ({ locale, key, expectedValue: value })),
+    };
+    const response =
+      action === "approve"
+        ? await rpcClient.call("review.approveMany", params)
+        : await rpcClient.call("review.rejectMany", params);
+    settleBatch(targets, summarizeReviewBatch(action, response));
+  }
+
+  async function retranslateMany(rows: readonly ReviewQueueRow[]): Promise<void> {
+    setRowsPending(rows, "Retranslating…");
+    const response = await rpcClient.call("translation.retranslateEntries", {
+      entries: rows.map(({ locale, key }) => ({ locale, key })),
+    });
+    settleBatch(rows, summarizeRetranslateBatch(response));
   }
 
   function reloadThenSettle(row: EditingTarget): void {
@@ -449,6 +548,9 @@ function useDecisions(onDecided: () => void): {
     notice,
     approve: (row, value) => void approve(row, value),
     retranslate: (row) => void retranslate(row),
+    approveMany: (targets) => void decideMany("approve", targets),
+    rejectMany: (targets) => void decideMany("reject", targets),
+    retranslateMany: (rows) => void retranslateMany(rows),
     rejected: (target) => {
       setNotice({ kind: "rejected", locale: target.locale, key: target.key });
       onDecided();
@@ -553,7 +655,7 @@ function useReviewShortcuts(
 }
 
 function runRowShortcut(
-  action: Exclude<ReviewShortcutAction, "next" | "previous" | "help">,
+  action: Exclude<ReviewShortcutAction, "next" | "previous" | "help" | "select">,
   row: ReviewQueueRow,
   actions: RowActions,
 ): void {
@@ -583,6 +685,9 @@ function ReviewDialogs({
   onCloseHelp,
   onCloseEditor,
   onCloseReject,
+  bulkRejecting,
+  onConfirmBulkReject,
+  onCloseBulkReject,
 }: {
   readonly helpOpen: boolean;
   readonly spend: boolean;
@@ -592,9 +697,19 @@ function ReviewDialogs({
   readonly onCloseHelp: () => void;
   readonly onCloseEditor: () => void;
   readonly onCloseReject: () => void;
+  readonly bulkRejecting: readonly BulkRejectEntry[] | null;
+  readonly onConfirmBulkReject: (entries: readonly BulkRejectEntry[]) => void;
+  readonly onCloseBulkReject: () => void;
 }): ReactNode {
   return (
     <>
+      {bulkRejecting !== null ? (
+        <BulkRejectDialog
+          entries={bulkRejecting}
+          onConfirm={() => onConfirmBulkReject(bulkRejecting)}
+          onClose={onCloseBulkReject}
+        />
+      ) : null}
       {helpOpen ? <ReviewShortcutsDialog spend={spend} onClose={onCloseHelp} /> : null}
       {editing !== null ? (
         <EditEntryDialog
@@ -623,6 +738,188 @@ function ReviewDialogs({
           }}
         />
       ) : null}
+    </>
+  );
+}
+
+interface BulkSelection {
+  readonly selected: ReadonlySet<string>;
+  readonly state: SelectionState;
+  readonly toggle: (row: ReviewQueueRow) => void;
+  readonly setAll: (on: boolean) => void;
+  readonly bar: ReviewBulkBarProps | null;
+  readonly rejecting: readonly BulkRejectEntry[] | null;
+  readonly confirmReject: (entries: readonly BulkRejectEntry[]) => void;
+  readonly closeReject: () => void;
+}
+
+function bulkTargetsOf(
+  rows: readonly ReviewQueueRow[],
+  values: ReadonlyMap<string, KeyValuePair>,
+): readonly BulkRejectEntry[] {
+  return rows.flatMap((row) => {
+    const value = reviewedValueFor(values, row);
+    return value === undefined ? [] : [{ locale: row.locale, key: row.key, value }];
+  });
+}
+
+function useBulkSelection(
+  rows: readonly ReviewQueueRow[],
+  values: ReadonlyMap<string, KeyValuePair>,
+  decisions: Decisions,
+  spend: boolean,
+): BulkSelection {
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [rejecting, setRejecting] = useState<readonly BulkRejectEntry[] | null>(null);
+  const ids = rows.map(rowId);
+  const selectedIds = new Set(selectedAmong(ids, selected));
+  const selectedRows = rows.filter((row) => selectedIds.has(rowId(row)));
+  const targets = bulkTargetsOf(selectedRows, values);
+  const clear = (): void => setSelected(new Set());
+  const bar: ReviewBulkBarProps | null =
+    selectedRows.length === 0
+      ? null
+      : {
+          count: selectedRows.length,
+          busy: selectedRows.some((row) => decisions.pending.has(rowId(row))),
+          decisionBlocker: bulkDecisionBlocker(
+            selectedRows.length,
+            targets.length,
+            MAX_REVIEW_BATCH_ENTRIES,
+          ),
+          retranslateBlocker: bulkRetranslateBlocker(
+            selectedRows.length,
+            MAX_RETRANSLATE_BATCH_ENTRIES,
+          ),
+          onApprove: () => {
+            decisions.approveMany(targets);
+            clear();
+          },
+          onReject: () => setRejecting(targets),
+          onRetranslate: spend
+            ? () => {
+                decisions.retranslateMany(selectedRows);
+                clear();
+              }
+            : undefined,
+          onClear: clear,
+        };
+  return {
+    selected,
+    state: selectionState(ids, selected),
+    toggle: (row) => setSelected((current) => toggleSelected(current, rowId(row))),
+    setAll: (on) => setSelected((current) => withAllSelected(current, ids, on)),
+    bar,
+    rejecting,
+    confirmReject: (entries) => {
+      decisions.rejectMany(entries);
+      setRejecting(null);
+      clear();
+    },
+    closeReject: () => setRejecting(null),
+  };
+}
+
+interface ShortcutContext {
+  readonly helpOpen: boolean;
+  readonly setHelpOpen: (open: boolean) => void;
+  readonly active: ActiveRow;
+  readonly canWrite: boolean;
+  readonly actions: RowActions;
+  readonly toggleSelected: (row: ReviewQueueRow) => void;
+}
+
+function handleShortcut(action: ReviewShortcutAction, context: ShortcutContext): void {
+  if (action === "help") {
+    context.setHelpOpen(!context.helpOpen);
+    return;
+  }
+  if (context.helpOpen) {
+    return;
+  }
+  if (action === "next" || action === "previous") {
+    context.active.move(action === "next" ? 1 : -1);
+    return;
+  }
+  const row = context.active.activeRow;
+  if (row === undefined || !context.canWrite) {
+    return;
+  }
+  if (action === "select") {
+    context.toggleSelected(row);
+  } else {
+    runRowShortcut(action, row, context.actions);
+  }
+}
+
+function ReviewQueueContent({
+  rows,
+  filtered,
+  locale,
+  query,
+  onLocaleChange,
+  onQueryChange,
+  onShowShortcuts,
+  bulk,
+  capabilities,
+  actions,
+}: {
+  readonly rows: readonly ReviewQueueRow[];
+  readonly filtered: readonly ReviewQueueRow[];
+  readonly locale: string;
+  readonly query: string;
+  readonly onLocaleChange: (locale: string) => void;
+  readonly onQueryChange: (query: string) => void;
+  readonly onShowShortcuts: () => void;
+  readonly bulk: BulkSelection;
+  readonly capabilities: StudioCapabilities | undefined;
+  readonly actions: RowActions;
+}): ReactNode {
+  if (rows.length === 0) {
+    return (
+      <EmptyState icon="review" title="All clear">
+        Nothing to review right now.
+      </EmptyState>
+    );
+  }
+  return (
+    <>
+      <ReviewFilterBar
+        locales={uniqueReviewLocales(rows)}
+        locale={locale}
+        query={query}
+        onLocaleChange={(event) => onLocaleChange(event.target.value)}
+        onQueryChange={(event) => onQueryChange(event.target.value)}
+        onShowShortcuts={onShowShortcuts}
+        matchCount={filtered.length}
+      />
+      {bulk.bar !== null ? <ReviewBulkBar {...bulk.bar} /> : null}
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon="search"
+          title="No matching entries"
+          action={
+            <Button
+              onClick={() => {
+                onLocaleChange("");
+                onQueryChange("");
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        >
+          No flagged entry matches the current filters.
+        </EmptyState>
+      ) : (
+        <ReviewTable
+          rows={filtered}
+          capabilities={capabilities}
+          actions={actions}
+          selection={bulk.state}
+          onSelectAll={bulk.setAll}
+        />
+      )}
     </>
   );
 }
@@ -661,6 +958,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       : [];
   const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query }, values);
   const active = useActiveRow(filtered);
+  const bulk = useBulkSelection(filtered, values, decisions, canRetranslateReviewed(capabilities));
   const actions: RowActions = {
     onEdit: setEditing,
     onApprove: decisions.approve,
@@ -671,24 +969,20 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     pending: decisions.pending,
     activeId: active.activeRow === undefined ? null : rowId(active.activeRow),
     rowRefs: active.rowRefs,
+    selected: bulk.selected,
+    onToggleSelected: bulk.toggle,
   };
 
-  useReviewShortcuts(editing === null && rejecting === null, (action) => {
-    if (action === "help") {
-      setHelpOpen(!helpOpen);
-      return;
-    }
-    if (helpOpen) {
-      return;
-    }
-    if (action === "next" || action === "previous") {
-      active.move(action === "next" ? 1 : -1);
-      return;
-    }
-    if (active.activeRow !== undefined && capabilities?.writeToDisk === true) {
-      runRowShortcut(action, active.activeRow, actions);
-    }
-  });
+  useReviewShortcuts(editing === null && rejecting === null && bulk.rejecting === null, (action) =>
+    handleShortcut(action, {
+      helpOpen,
+      setHelpOpen,
+      active,
+      canWrite: capabilities?.writeToDisk === true,
+      actions,
+      toggleSelected: bulk.toggle,
+    }),
+  );
 
   if (view.kind === "loading") {
     return (
@@ -713,43 +1007,18 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     <div>
       {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known queue." />}
       <DecisionStatus notice={decisions.notice} statusRef={statusRef} />
-      {rows.length === 0 ? (
-        <EmptyState icon="review" title="All clear">
-          Nothing to review right now.
-        </EmptyState>
-      ) : (
-        <>
-          <ReviewFilterBar
-            locales={uniqueReviewLocales(rows)}
-            locale={locale}
-            query={query}
-            onLocaleChange={(event) => setLocale(event.target.value)}
-            onQueryChange={(event) => setQuery(event.target.value)}
-            onShowShortcuts={() => setHelpOpen(true)}
-            matchCount={filtered.length}
-          />
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon="search"
-              title="No matching entries"
-              action={
-                <Button
-                  onClick={() => {
-                    setLocale("");
-                    setQuery("");
-                  }}
-                >
-                  Clear filters
-                </Button>
-              }
-            >
-              No flagged entry matches the current filters.
-            </EmptyState>
-          ) : (
-            <ReviewTable rows={filtered} capabilities={capabilities} actions={actions} />
-          )}
-        </>
-      )}
+      <ReviewQueueContent
+        rows={rows}
+        filtered={filtered}
+        locale={locale}
+        query={query}
+        onLocaleChange={setLocale}
+        onQueryChange={setQuery}
+        onShowShortcuts={() => setHelpOpen(true)}
+        bulk={bulk}
+        capabilities={capabilities}
+        actions={actions}
+      />
       <ReviewDialogs
         helpOpen={helpOpen}
         spend={canRetranslateReviewed(capabilities)}
@@ -759,6 +1028,9 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
         onCloseHelp={() => setHelpOpen(false)}
         onCloseEditor={() => setEditing(null)}
         onCloseReject={() => setRejecting(null)}
+        bulkRejecting={bulk.rejecting}
+        onConfirmBulkReject={bulk.confirmReject}
+        onCloseBulkReject={bulk.closeReject}
       />
     </div>
   );

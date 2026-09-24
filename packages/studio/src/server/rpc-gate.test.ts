@@ -571,3 +571,91 @@ describe("dispatchRpc envelope", () => {
     expect(seenLocales).toEqual([["de"]]);
   });
 });
+
+describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
+  it("passes a batch's entry count, and 1 for a single-entry call", async () => {
+    const seen: [string, number | undefined][] = [];
+    const limiter = {
+      tryAcquire: (method: string, entries?: number): boolean => {
+        seen.push([method, entries]);
+        return true;
+      },
+    };
+    const handlers: HandlersRegistry = {
+      "translation.retranslateEntries": async () => ({ results: [] }),
+      "translation.retranslateEntry": async () => ({
+        accepted: true,
+        value: "x",
+        reviewReasons: [],
+      }),
+    };
+
+    await dispatchRpc(
+      body({
+        method: "translation.retranslateEntries",
+        params: {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+            { locale: "de", key: "c" },
+          ],
+        },
+      }),
+      deps(),
+      handlers,
+      limiter,
+    );
+    await dispatchRpc(
+      body({ method: "translation.retranslateEntry", params: { locale: "de", key: "a" } }),
+      deps(),
+      handlers,
+      limiter,
+    );
+
+    expect(seen).toEqual([
+      ["translation.retranslateEntries", 3],
+      ["translation.retranslateEntry", 1],
+    ]);
+  });
+
+  it("refuses a batch retranslation that would overrun the single-retranslate budget", async () => {
+    const limiter = createRpcRateLimiter(
+      {
+        "translation.retranslateEntry": { windowMs: 60_000, maxCalls: 2 },
+        "translation.retranslateEntries": {
+          windowMs: 60_000,
+          maxCalls: 2,
+          bucket: "translation.retranslateEntry",
+          perEntry: true,
+        },
+      },
+      () => 0,
+    );
+    let calls = 0;
+    const handlers: HandlersRegistry = {
+      "translation.retranslateEntries": async () => {
+        calls += 1;
+        return { results: [] };
+      },
+    };
+
+    const result = await dispatchRpc(
+      body({
+        method: "translation.retranslateEntries",
+        params: {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+            { locale: "de", key: "c" },
+          ],
+        },
+      }),
+      deps(),
+      handlers,
+      limiter,
+    );
+
+    expect(result.statusCode).toBe(429);
+    expect(calls).toBe(0);
+  });
+});

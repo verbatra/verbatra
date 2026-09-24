@@ -17,6 +17,7 @@ describe("ReviewShortcutsDialog", () => {
       "reject",
       "edit",
       "retranslate",
+      "select",
       "help",
     ]);
   });

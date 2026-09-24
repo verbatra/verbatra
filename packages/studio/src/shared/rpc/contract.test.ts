@@ -20,10 +20,13 @@ const EXPECTED_METHOD_NAMES = [
   "usage.summary",
   "review.approve",
   "review.reject",
+  "review.approveMany",
+  "review.rejectMany",
+  "translation.retranslateEntries",
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the eighteen agreed method names, no more, no fewer", () => {
+  it("contains exactly the twenty-one agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -76,6 +79,21 @@ describe("rpcParamsSchemas", () => {
       { locale: "de", key: "greeting", expectedValue: "" },
       { locale: "de", key: "greeting" },
     ],
+    [
+      "review.approveMany",
+      { entries: [{ locale: "de", key: "greeting", expectedValue: "Hallo" }] },
+      { entries: [] },
+    ],
+    [
+      "review.rejectMany",
+      { entries: [{ locale: "de", key: "greeting", expectedValue: "" }] },
+      { entries: [{ locale: "de", key: "greeting" }] },
+    ],
+    [
+      "translation.retranslateEntries",
+      { entries: [{ locale: "de", key: "greeting" }] },
+      { entries: [{ locale: "de", key: "greeting" }], includeHuman: true },
+    ],
   ] as const)("%s accepts a valid shape and rejects an invalid shape", (method, valid, invalid) => {
     const schema = rpcParamsSchemas[method];
     expect(schema.safeParse(valid).success).toBe(true);
@@ -122,5 +140,27 @@ describe("rpcParamsSchemas", () => {
       writeToDisk: true,
     });
     expect(result.success).toBe(false);
+  });
+
+  it("caps a review batch at 100 entries and a retranslate batch at 20", () => {
+    const review = (count: number) => ({
+      entries: Array.from({ length: count }, (_, index) => ({
+        locale: "de",
+        key: `k${index}`,
+        expectedValue: "v",
+      })),
+    });
+    const retranslate = (count: number) => ({
+      entries: Array.from({ length: count }, (_, index) => ({ locale: "de", key: `k${index}` })),
+    });
+
+    expect(rpcParamsSchemas["review.approveMany"].safeParse(review(100)).success).toBe(true);
+    expect(rpcParamsSchemas["review.approveMany"].safeParse(review(101)).success).toBe(false);
+    expect(
+      rpcParamsSchemas["translation.retranslateEntries"].safeParse(retranslate(20)).success,
+    ).toBe(true);
+    expect(
+      rpcParamsSchemas["translation.retranslateEntries"].safeParse(retranslate(21)).success,
+    ).toBe(false);
   });
 });

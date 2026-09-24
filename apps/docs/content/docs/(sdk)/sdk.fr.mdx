@@ -361,6 +361,36 @@ Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`, vérifiée 
 
 Les deux appels vérifient le fichier de provenance avant d'écrire quoi que ce soit et ne signalent jamais une décision qu'ils n'ont pas pu enregistrer : un fichier écrit par un verbatra plus récent, ou un fichier que la décision ferait grossir au-delà de la taille que verbatra relit, lève `PROVENANCE_FILE_UNWRITABLE`.
 
+## Révision et retraduction par lots
+
+<AvailableFrom version="0.12.0" />
+
+Chacun de ces appels exécute l'appel à clé unique correspondant une fois par entrée, dans l'ordre
+donné, et renvoie `{ results }` avec un résultat par entrée dans cet ordre. Une entrée qui échoue
+n'arrête pas le lot : son résultat est `{ locale, key, ok: false, code, message }`, avec le code du
+`SdkError`, de l'erreur d'adaptateur ou du `ProviderError` qui l'a arrêtée et un message expurgé, et
+l'entrée suivante s'exécute. Toute autre erreur est levée, et les entrées suivantes ne s'exécutent
+pas. Une liste `entries` vide renvoie des `results` vides.
+
+### approveEntries
+
+Entrée : `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Exécute
+`approveEntry` pour chaque entrée avec les mêmes vérifications ; `reviewer` s'applique à chaque
+entrée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
+
+### rejectEntries
+
+Entrée : la même que pour `approveEntries`. Exécute `rejectEntry` pour chaque entrée et retire
+chaque valeur rejetée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
+
+### retranslateEntries
+
+Entrée : `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Exécute `retranslateEntry`
+pour chaque entrée, et fait donc jusqu'à un appel au fournisseur par entrée. Un résultat terminé est
+`{ ok: true, locale, key, result }`, où `result` est ce que `retranslateEntry` a renvoyé, y compris
+une valeur refusée par la barrière d'intégrité. Une valeur écrite par une personne échoue avec
+`KEY_PROTECTED`, sauf si tu passes `includeHuman: true`.
+
 ## Lectures de contenu en masse
 
 <AvailableFrom version="0.10.0" />
