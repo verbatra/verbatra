@@ -34,7 +34,7 @@ Both forms take the same three flags and start the same server, but the wrappers
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--allow-spend` | none | off | advertise the two tools that call a translation provider |
 
-When `--cwd` is absent and the `CLAUDE_PROJECT_DIR` environment variable names an existing directory, the server uses that directory as the project root instead of the one it was started in. Claude Code sets `CLAUDE_PROJECT_DIR` to the project root for every stdio server it spawns, so a session started from a subdirectory still finds the project config. An explicit `--cwd` always wins, and `verbatra-mcp` and `verbatra mcp` apply the same rule. With `verbatra mcp`, the `.env.local` and `.env` files are read from that directory too.
+When `--cwd` is absent and the `CLAUDE_PROJECT_DIR` environment variable names an existing directory, the server uses that directory as the project root instead of the one it was started in. Claude Code sets `CLAUDE_PROJECT_DIR` to the project root for every stdio server it spawns, so a session started from a subdirectory still finds the project config. An explicit `--cwd` always wins, and `verbatra-mcp` and `verbatra mcp` apply the same rule. With `verbatra mcp`, the `.env.local` and `.env` files are read from that directory too. A `CLAUDE_PROJECT_DIR` set only in `.env` or `.env.local` is ignored, because the project root is resolved before those files are read.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

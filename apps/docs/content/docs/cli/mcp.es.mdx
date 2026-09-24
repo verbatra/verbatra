@@ -34,7 +34,7 @@ Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--allow-spend` | ninguno | desactivado | expone las dos herramientas que llaman a un proveedor de traducción |
 
-Si falta `--cwd` y la variable de entorno `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor usa ese directorio como raíz del proyecto en lugar del directorio en el que se inició. Claude Code fija `CLAUDE_PROJECT_DIR` a la raíz del proyecto para cada servidor stdio que lanza, así que una sesión iniciada desde un subdirectorio sigue encontrando la configuración del proyecto. Un `--cwd` explícito siempre tiene prioridad, y `verbatra-mcp` y `verbatra mcp` aplican la misma regla. Con `verbatra mcp`, los archivos `.env.local` y `.env` también se leen desde ese directorio.
+Si falta `--cwd` y la variable de entorno `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor usa ese directorio como raíz del proyecto en lugar del directorio en el que se inició. Claude Code fija `CLAUDE_PROJECT_DIR` a la raíz del proyecto para cada servidor stdio que lanza, así que una sesión iniciada desde un subdirectorio sigue encontrando la configuración del proyecto. Un `--cwd` explícito siempre tiene prioridad, y `verbatra-mcp` y `verbatra mcp` aplican la misma regla. Con `verbatra mcp`, los archivos `.env.local` y `.env` también se leen desde ese directorio. Un `CLAUDE_PROJECT_DIR` definido solo en `.env` o `.env.local` se ignora, porque la raíz del proyecto se resuelve antes de leer esos archivos.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

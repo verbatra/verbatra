@@ -34,7 +34,7 @@ Beide Formen nehmen dieselben drei Flags und starten denselben Server, aber die 
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--allow-spend` | keins | aus | die beiden Tools bereitstellen, die einen Übersetzungs-Provider aufrufen |
 
-Fehlt `--cwd` und nennt die Umgebungsvariable `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server dieses Verzeichnis als Projektwurzel statt des Verzeichnisses, in dem er gestartet wurde. Claude Code setzt `CLAUDE_PROJECT_DIR` für jeden stdio-Server, den es startet, auf die Projektwurzel, sodass eine Sitzung, die in einem Unterverzeichnis gestartet wurde, trotzdem die Projektkonfiguration findet. Ein explizites `--cwd` gewinnt immer, und `verbatra-mcp` und `verbatra mcp` wenden dieselbe Regel an. Bei `verbatra mcp` werden auch `.env.local` und `.env` aus diesem Verzeichnis gelesen.
+Fehlt `--cwd` und nennt die Umgebungsvariable `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server dieses Verzeichnis als Projektwurzel statt des Verzeichnisses, in dem er gestartet wurde. Claude Code setzt `CLAUDE_PROJECT_DIR` für jeden stdio-Server, den es startet, auf die Projektwurzel, sodass eine Sitzung, die in einem Unterverzeichnis gestartet wurde, trotzdem die Projektkonfiguration findet. Ein explizites `--cwd` gewinnt immer, und `verbatra-mcp` und `verbatra mcp` wenden dieselbe Regel an. Bei `verbatra mcp` werden auch `.env.local` und `.env` aus diesem Verzeichnis gelesen. Ein `CLAUDE_PROJECT_DIR`, das nur in `.env` oder `.env.local` steht, wird ignoriert, weil die Projektwurzel feststeht, bevor diese Dateien gelesen werden.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

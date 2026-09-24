@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { resolveServerCwd } from "@verbatra/mcp";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -179,6 +180,54 @@ describe("run mcp: project directory resolution", () => {
 
     expect(withFlag.startCwds).toEqual(["/explicit"]);
     expect(withoutFlag.startCwds).toEqual([process.cwd()]);
+  });
+});
+
+describe("run mcp: CLAUDE_PROJECT_DIR from .env", () => {
+  let project: string;
+  let elsewhere: string;
+  let previous: string | undefined;
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "verbatra-mcp-project-"));
+    elsewhere = mkdtempSync(join(tmpdir(), "verbatra-mcp-elsewhere-"));
+    previous = process.env.CLAUDE_PROJECT_DIR;
+    delete process.env.CLAUDE_PROJECT_DIR;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (previous === undefined) {
+      delete process.env.CLAUDE_PROJECT_DIR;
+    } else {
+      process.env.CLAUDE_PROJECT_DIR = previous;
+    }
+    rmSync(project, { recursive: true, force: true });
+    rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  it("ignores a CLAUDE_PROJECT_DIR set only in .env, resolving the root before .env is read", async () => {
+    writeFileSync(join(project, ".env"), `CLAUDE_PROJECT_DIR=${elsewhere}\n`);
+    vi.spyOn(process, "cwd").mockReturnValue(project);
+    const startCwds: string[] = [];
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          resolveServerCwd,
+          startMcpServer: async (options) => {
+            startCwds.push(options.cwd ?? "");
+            return makeMcpHandle();
+          },
+        }),
+    });
+    const captured = captureMcpSession();
+
+    const donePromise = run(["mcp"], deps, captureStreams().streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(startCwds).toEqual([project]);
   });
 });
 
