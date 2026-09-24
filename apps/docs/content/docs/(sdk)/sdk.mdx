@@ -84,6 +84,33 @@ Returns a `RunSummary` (see [its anatomy below](#the-runsummary-anatomy)). Whole
 an `SdkError`; a single locale failing never throws and lands as `status: "failed"` on that
 locale's entry while the run continues.
 
+### Progress events
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` receives a `ProgressEvent`, a union discriminated on `type`. A minor version may add types, so ignore one you do not recognize.
+
+| `type` | When | Fields |
+| --- | --- | --- |
+| `locale-started` | a locale's work begins | `locale`, `localeIndex`, `totalLocales` |
+| `locale-planned` | after the translation memory is consulted, before the first batch is sent; only when a provider is called | `locale`, `keys`, `batches`, `cacheHits` |
+| `sub-batch` | just before each translation batch is attempted | `locale`, `batchIndex`, `totalBatches` |
+| `provider-retry` | a built-in provider retries a request that failed with a retryable status | `attempt`, `delayMs?`, `status?` |
+| `repair` | an LLM provider re-requests the keys its first response left out | `locale`, `keys` |
+| `split-retry` | a batch whose output was cut off is retried in two halves | `locale`, `keys` |
+| `batch-finished` | a batch has finished, whether it succeeded or not | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
+| `writing` | just before a locale's file is written | `locale` |
+| `locale-finished` | a locale's work ends | `locale`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | every locale has finished | `localesCompleted` |
+| `change-detected` | `watch` only: a change to the source file has settled | `paths` |
+| `idle` | `watch` only: a run finished and none is queued | none |
+
+`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL and Google Cloud Translation report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
+
+`extract`, `diff` with `unused`, and `doctor` with `literals` take an `onProgress` of their own. It receives a `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, once after each application source file the scan reads.
+
+A custom `CreateProvider` receives a third argument, `CreateProviderHooks`, whenever a run reports progress. Call its `onRetry` with `{ attempt, delayMs?, status? }` and your provider's retries show up as `provider-retry` events.
+
 ### resolveDryRun
 
 <AvailableFrom version="0.11.0" />
@@ -269,7 +296,7 @@ locale the lock file, the translation memory, or the provenance file holds state
 does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
 `translate` run carries it over. A file it cannot read is named in the detail.
 
-Input: `{ cwd?, configPath?, literals? }`. With `literals` set, `doctor` runs only the `config`
+Input: `{ cwd?, configPath?, literals?, onProgress? }`. With `literals` set, `doctor` runs only the `config`
 check and an `untranslated-literals` check instead, scanning the source roots of the config's
 `extract` block, as [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. No
 loaded config needed: `doctor` loads it itself, so a project with no config at all still gets a
@@ -293,7 +320,7 @@ found with two different defaults in `conflicts` (neither value is written), and
 in `diagnostics`. The result carries keys, values, and file and line locations only, never a source
 file's contents.
 
-Input: `{ config, cwd?, dryRun? }`, where `config.extract` names the framework and the source roots.
+Input: `{ config, cwd?, dryRun?, onProgress? }`, where `config.extract` names the framework and the source roots.
 Returns an `ExtractResult`. Discovery goes through the optional `readDirectory` member of `SdkFs`;
 a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 
@@ -359,7 +386,7 @@ or `not-run` (with a `reason` and no key list). See [Unused source
 keys](/docs/cli/diff#unused-source-keys) for every reason. The report never flips
 `hasPendingChanges`.
 
-Input: `{ config, cwd?, locales?, unused? }`. Returns a `DiffSummary`.
+Input: `{ config, cwd?, locales?, unused?, onProgress? }`. Returns a `DiffSummary`.
 
 <AvailableFrom version="0.12.0" />
 
