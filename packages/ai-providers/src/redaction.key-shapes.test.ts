@@ -61,6 +61,12 @@ const BOUNDARY_CONTEXTS: readonly (readonly [string, string, string])[] = [
   ["an ANSI sequence without parameters", "\x1b[m", ""],
   ["a JSON-escaped ANSI color sequence", "\\u001b[1;31m", "\\u001b[0m"],
   ["an upper-case JSON-escaped ANSI sequence", "\\u001B[31m", ""],
+  ["an ANSI erase-line sequence", "\x1b[2K", ""],
+  ["an ANSI cursor-column sequence", "\x1b[1G", ""],
+  ["an ANSI erase-to-end sequence", "\x1b[K", ""],
+  ["an ANSI private-mode sequence", "\x1b[?25h", ""],
+  ["a JSON-escaped ANSI erase-line sequence", "\\u001b[2K", ""],
+  ["an ANSI charset designation", "\x1b(B", ""],
 ];
 
 describe("redactKeys: real key shapes after an encoded boundary", () => {
@@ -98,12 +104,21 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
     "sk-svcacct-settings",
     "sk-ant-banner_title_short",
     "sk-admin-dashboard_welcome_message",
-    "sk-proj-settings_account_billing_title",
     "sk-ant-hero_section_subtitle_text",
     "locales%2Fsk-SK_formal.json",
-    "\x1b[32msk-proj-settings_account_billing_title\x1b[0m",
   ])("leaves %s readable", (text) => {
     expect(redactKeys(text)).toBe(text);
+  });
+
+  it.each([
+    "sk-proj-settings_account_billing_title",
+    "\x1b[32msk-proj-settings_account_billing_title\x1b[0m",
+  ])("leaves the 31-alphanumeric boundary case %s readable", (text) => {
+    expect(redactKeys(text)).toBe(text);
+  });
+
+  it("redacts a Slovak-like token once 32 letters and digits follow `sk-`", () => {
+    expect(redactKeys("sk-SK_settings_notifications_email_digest")).toBe("[REDACTED]");
   });
 
   it("redacts a known prefix only once 32 letters and digits follow `sk-`", () => {

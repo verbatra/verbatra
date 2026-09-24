@@ -153,6 +153,10 @@ describe("redactKeys: key shapes", () => {
     ["a percent-encoded quote", "%22"],
     ["a percent-encoded key assignment", "key%3D"],
     ["an ANSI color sequence", "\x1b[31m"],
+    ["an ANSI erase-line sequence", "\x1b[2K"],
+    ["an ANSI cursor sequence", "\x1b[1G"],
+    ["an ANSI private-mode sequence", "\x1b[?25h"],
+    ["an ANSI charset designation", "\x1b(B"],
   ])("redacts a key right after %s", (_what, before) => {
     for (const key of [
       "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h",

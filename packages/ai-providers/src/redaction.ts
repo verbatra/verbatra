@@ -13,7 +13,7 @@ const KEY_PATTERNS: readonly RegExp[] = [
 
 const SK_TOKEN =
   // biome-ignore lint/suspicious/noControlCharactersInRegex: an ANSI escape is a key boundary
-  /(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4})|(?<=%[0-9A-Fa-f]{2})|(?<=\x1b\[[0-9;]*m)|(?<=\\u001[bB]\[[0-9;]*m))sk-[A-Za-z0-9_-]+/g;
+  /(?=sk-)(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4})|(?<=%[0-9A-Fa-f]{2})|(?<=\x1b\[[0-9;?]*[@-~])|(?<=\\u001[bB]\[[0-9;?]*[@-~])|(?<=\x1b\([A-Za-z0-9])|(?<=\\u001[bB]\([A-Za-z0-9]))sk-[A-Za-z0-9_-]+/g;
 
 const MIN_SK_ALPHANUMERICS = 32;
 
