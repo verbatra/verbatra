@@ -133,6 +133,8 @@ The inline markup checks in `key.integrity` (`markupMatches`, `markupDetails`) a
 
 `key.value` also returns `provenance` whenever `target` is present: `origin`, `provider` and `model` for machine output, `reviewState`, and `reviewer` when one was recorded. Each `lock.state` and `status.check` locale carries `provenance` counts (`byOrigin`, `byReviewState`), and each `status.diff` locale carries `changedOrigins`, the origin of every changed key's current value. All of them are left out when `verbatra.provenance.json` is corrupt or was written by a newer verbatra; see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
 
+`key.value` also returns `description`, the context the source file gives translators for the key (an ARB `@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET `.resx` comment), and leaves it out when the format or the file carries none.
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Each `key.integrity` entry also carries `icuArmsMatch` and `icuArmDetails`: whether the value's ICU `plural`, `selectordinal`, and `select` arms fit the target language, judged by the same rule that makes `translation.editEntry` refuse a value with the `icu` reason, and one short problem per missing or extra arm.
