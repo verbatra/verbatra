@@ -15,14 +15,20 @@ const XLIFF_12 = `<?xml version="1.0" encoding="UTF-8"?>
 <trans-unit id="bye"><source>Bye</source><target>Tschuess</target></trans-unit>
 </body></file></xliff>`;
 
+const XLIFF_12_SOURCE = `<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2"><file source-language="en" datatype="plaintext"><body>
+<trans-unit id="greeting" resname="greet"><source>Hello <x id="1"/></source><note priority="1">be friendly</note></trans-unit>
+<trans-unit id="bye"><source>Bye</source></trans-unit>
+</body></file></xliff>`;
+
 const XLIFF_20 = `<?xml version="1.0" encoding="UTF-8"?>
 <xliff version="2.0" srcLang="en" trgLang="fr"><file id="f1"><unit id="u1"><segment><source>Hello {name}</source><target>Bonjour {name}</target></segment></unit></file></xliff>`;
 
 const XLIFF_20_WITH_NOTE = `<?xml version="1.0" encoding="UTF-8"?>
-<xliff version="2.0" srcLang="en" trgLang="fr"><file id="f1"><unit id="u1"><notes><note category="description">be friendly</note></notes><segment><source>Hi {name}</source></segment></unit></file></xliff>`;
+<xliff version="2.0" srcLang="en" trgLang="fr"><file id="f1"><unit id="u1"><notes><note category="description">be friendly</note></notes><segment><source>Hi {name}</source><target>Salut {name}</target></segment></unit></file></xliff>`;
 
 const XLIFF_12_NAMESPACED = `<?xml version="1.0" encoding="UTF-8"?>
-<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2"><file source-language="en" target-language="de"><body>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2"><file source-language="en"><body>
 <trans-unit id="g1"><source>Hi <g id="1">there</g></source></trans-unit>
 </body></file></xliff>`;
 
@@ -55,19 +61,25 @@ describe("createXliffAdapter detection", () => {
 });
 
 describe("createXliffAdapter read", () => {
-  it("parses XLIFF 1.2, reading source when no target and target when present", async () => {
+  it("parses a target XLIFF 1.2 document, reading each target and leaving a unit without one out", async () => {
     const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12), "de");
-    expect(resource.entries.get("greeting")?.value).toBe('Hello <x id="1"/>');
+    expect(resource.entries.has("greeting")).toBe(false);
     expect(resource.entries.get("bye")?.value).toBe("Tschuess");
   });
 
+  it("parses a source XLIFF 1.2 document, reading every source", async () => {
+    const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12_SOURCE), "en");
+    expect(resource.entries.get("greeting")?.value).toBe('Hello <x id="1"/>');
+    expect(resource.entries.get("bye")?.value).toBe("Bye");
+  });
+
   it("extracts inline placeholder ids", async () => {
-    const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12), "de");
+    const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12_SOURCE), "en");
     expect(resource.entries.get("greeting")?.placeholders).toEqual(['<x id="1"/>']);
   });
 
   it("populates entry.description from a 1.2 trans-unit's <note>", async () => {
-    const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12), "de");
+    const { resource } = await adapter.read(await tempFile("m.xlf", XLIFF_12_SOURCE), "en");
     expect(resource.entries.get("greeting")?.description).toBe("be friendly");
     expect(resource.entries.get("bye")?.description).toBeUndefined();
   });
@@ -166,12 +178,34 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect(reread.resource.entries.get("bye")?.value).toBe("Tschuess");
   });
 
-  it("creates a <target> for a unit that lacks one, seeding it from the read value", async () => {
+  it("never seeds a missing <target> from the source when writing back what it read", async () => {
     const path = await tempFile("m.xlf", XLIFF_12);
     const { resource } = await adapter.read(path, "de");
     await adapter.write(resource, path);
     const written = await readFile(path, "utf8");
-    expect(written).toContain('<target>Hello <x id="1"/></target>');
+    expect(written).not.toContain('<target>Hello <x id="1"/></target>');
+    expect((await adapter.read(path, "de")).resource.entries.has("greeting")).toBe(false);
+  });
+
+  it("creates a <target> right after <source> for a unit that lacks one, ahead of its notes", async () => {
+    const path = await tempFile("m.xlf", XLIFF_12);
+    const { resource } = await adapter.read(path, "de");
+    const entries = new Map(resource.entries);
+    entries.set("greeting", {
+      key: "greeting",
+      namespace: resource.namespace,
+      value: 'Hallo <x id="1"/>',
+      placeholders: ['<x id="1"/>'],
+      isPlural: false,
+    });
+    await adapter.write({ ...resource, entries }, path);
+    const written = await readFile(path, "utf8");
+    expect(written).toContain(
+      '<source>Hello <x id="1"/></source><target>Hallo <x id="1"/></target><note priority="1">',
+    );
+    expect((await adapter.read(path, "de")).resource.entries.get("greeting")?.value).toBe(
+      'Hallo <x id="1"/>',
+    );
   });
 
   it("writes a translated target value into an existing target", async () => {
@@ -209,10 +243,10 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect((error as AdapterError).message).not.toMatch(/does not exist/);
   });
 
-  it("falls back to the source value when the target is empty", async () => {
+  it("reads an empty target as missing instead of falling back to the source", async () => {
     const doc = `<xliff version="1.2"><file><body><trans-unit id="e"><source>Src</source><target></target></trans-unit></body></file></xliff>`;
     const { resource } = await adapter.read(await tempFile("e.xlf", doc), "de");
-    expect(resource.entries.get("e")?.value).toBe("Src");
+    expect(resource.entries.has("e")).toBe(false);
   });
 
   it("keys by resname when there is no id, and by index when there is neither", async () => {
@@ -432,7 +466,7 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
 
   it("keeps an inline allow-listed element live when the source document declares the XLIFF namespace", async () => {
     const path = await tempFile("ns.xlf", XLIFF_12_NAMESPACED);
-    const { resource } = await adapter.read(path, "de");
+    const { resource } = await adapter.read(path, "en");
     expect(resource.entries.get("g1")?.value).toBe('Hi <g id="1">there</g>');
     await adapter.write(resource, path);
     const reread = await adapter.read(path, "de");
