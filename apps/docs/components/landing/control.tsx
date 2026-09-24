@@ -1,61 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { CONTROL_GROUPS, controlHref } from "@/lib/control-items";
+import type { Locale } from "@/lib/i18n";
 import { Evidence } from "./evidence";
 import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
-
-type ControlItem = { key: string; evidence: string; path: string };
-
-type ControlGroup = { key: "people" | "correct" | "network"; items: ReadonlyArray<ControlItem> };
-
-export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
-  {
-    key: "people",
-    items: [
-      { key: "humanOnly", evidence: 'provider: { id: "none" }', path: "/docs/human-only-workflow" },
-      {
-        key: "protect",
-        evidence: 'humanEdits: "protect"',
-        path: "/docs/protecting-human-translations",
-      },
-      {
-        key: "review",
-        evidence: "verbatra.provenance.json",
-        path: "/docs/the-lock-file#review-decisions",
-      },
-      {
-        key: "glossary",
-        evidence: '"version": 2',
-        path: "/docs/config-file#per-locale-glossary-version-2",
-      },
-    ],
-  },
-  {
-    key: "correct",
-    items: [
-      { key: "plurals", evidence: "one, few, many, other", path: "/docs/language-support#plurals" },
-      {
-        key: "locales",
-        evidence: "pt-BR, sr-Latn, es-419",
-        path: "/docs/language-support#locale-codes",
-      },
-      { key: "qa", evidence: "verbatra check --qa", path: "/docs/cli/check#quality-check" },
-    ],
-  },
-  {
-    key: "network",
-    items: [
-      {
-        key: "policy",
-        evidence: 'network: { policy: "local-only" }',
-        path: "/docs/network-policy",
-      },
-      { key: "private", evidence: "openai-compatible", path: "/docs/data-handling" },
-    ],
-  },
-];
 
 export async function Control(): Promise<ReactNode> {
   const t = await getTranslations("landing.control");
@@ -86,7 +36,7 @@ export async function Control(): Promise<ReactNode> {
                     {t(`groups.${group.key}.items.${item.key}.body`)}
                   </span>
                   <span className="mt-1">
-                    <Evidence text={item.evidence} href={localizedPath(locale, item.path)} />
+                    <Evidence text={item.evidence} href={controlHref(locale, item)} />
                   </span>
                 </li>
               ))}
