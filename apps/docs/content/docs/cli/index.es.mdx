@@ -46,6 +46,26 @@ Necesitas Node.js `>=22.14.0`.
   - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
+## Salida en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+Los resultados van a stdout. El progreso, los avisos, las sugerencias, las advertencias y los errores van a stderr, y verbatra los adapta según a dónde vaya stderr:
+
+- En un terminal interactivo, las etiquetas fijas como `error`, `[ok]` y `next:` llevan color, y un paso que tarda más de 300 ms muestra un spinner ASCII (`| / - \`).
+- Cuando stderr se redirige o va a una tubería, `CI` está definida o `TERM` vale `dumb`, la salida son líneas simples que solo se añaden, sin color ni animación.
+- `--json` nunca añade color, animación ni líneas nuevas: stdout y stderr quedan exactamente como se describe en [Salida JSON](/docs/ci-and-exit-codes#salida-json).
+
+| Flag o variable | Efecto |
+| --- | --- |
+| `-q`, `--quiet` | muestra solo resultados, advertencias y errores: sin líneas de progreso, avisos ni sugerencias `next:`. Funciona antes o después del nombre del comando |
+| `--no-color` | nunca colorea la salida |
+| `NO_COLOR`, `VERBATRA_NO_COLOR` | cualquier valor no vacío desactiva el color; `VERBATRA_NO_COLOR` también se impone a `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` o un valor vacío activa el color aunque stderr no sea un terminal, y `0` lo desactiva; `--no-color` y `VERBATRA_NO_COLOR` siguen teniendo prioridad |
+| `VERBATRA_NO_SPINNER` | cualquier valor no vacío sustituye el spinner por líneas estáticas `label... done (1.2s)`, para lectores de pantalla y grabaciones del terminal |
+
+Las palabras de estado son ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), así que la salida se lee igual en cualquier terminal y registro. Cada línea pasa por la misma ocultación de claves que el resto de la salida, y solo se colorean las etiquetas fijas, nunca una clave, una ruta ni un mensaje.
+
 ## Archivos de entorno
 
 `translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.

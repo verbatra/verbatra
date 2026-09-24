@@ -34,12 +34,12 @@ import {
   renderCheckHuman,
   renderDiffHuman,
   renderDoctorHuman,
-  renderError,
   renderExportHuman,
   renderExtractHuman,
   renderHuman,
   renderLockWait,
-  renderProgress,
+  renderProgressHuman,
+  renderProgressJson,
   renderPseudoHuman,
   renderTmxExportHuman,
   renderTmxImportHuman,
@@ -47,7 +47,14 @@ import {
   toRenderableError,
 } from "./render.js";
 import { runStudio } from "./studio-command.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalFacts,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { CliDeps, InitOpts, RunHooks, Streams } from "./types.js";
+import { createUi, type Ui } from "./ui.js";
 import { runWatch } from "./watch-session.js";
 
 const CLI_VERSION = readPackageManifest().version;
@@ -271,11 +278,11 @@ function renderNeedsHumanHint(
   config: TranslateInput["config"],
   summary: RunSummary,
   includeHuman: boolean,
-  streams: Streams,
+  ui: Ui,
 ): void {
   if (isMachineTranslationEnabled(config)) {
     if (!includeHuman) {
-      renderProtectedHint(summary, streams);
+      renderProtectedHint(summary, ui);
     }
     return;
   }
@@ -283,8 +290,8 @@ function renderNeedsHumanHint(
   if (count === 0) {
     return;
   }
-  streams.err(
-    `verbatra: machine translation is disabled by policy; ${keysPhrase(count, "key needs", "keys need")} a human translation (hand them off with verbatra export)\n`,
+  ui.warn(
+    `machine translation is disabled by policy; ${keysPhrase(count, "key needs", "keys need")} a human translation (hand them off with verbatra export)`,
   );
 }
 
@@ -295,39 +302,50 @@ function reviewableProtectedKeyCount(summary: RunSummary): number {
   );
 }
 
-function renderProtectedHint(summary: RunSummary, streams: Streams): void {
+function renderProtectedHint(summary: RunSummary, ui: Ui): void {
   const count = reviewableProtectedKeyCount(summary);
   if (count === 0) {
     return;
   }
-  streams.err(
-    `verbatra: ${keysPhrase(count, "protected key was", "protected keys were")} left for a person to review (hand them off with verbatra export, or retranslate with --include-human)\n`,
+  ui.warn(
+    `${keysPhrase(count, "protected key was", "protected keys were")} left for a person to review (hand them off with verbatra export, or retranslate with --include-human)`,
   );
 }
 
 interface CommandContext {
   readonly streams: Streams;
+  readonly ui: Ui;
   readonly command: string | null;
   readonly json: boolean;
 }
 
 const jsonFlagSchema = z.object({ json: z.boolean().optional() });
 
-function commandContext(command: string, rawOpts: unknown, streams: Streams): CommandContext {
+function commandContext(
+  command: string,
+  rawOpts: unknown,
+  streams: Streams,
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
+): CommandContext {
   const parsed = jsonFlagSchema.safeParse(rawOpts);
-  return { streams, command, json: parsed.success && parsed.data.json === true };
+  const json = parsed.success && parsed.data.json === true;
+  const ui = createUi(
+    streams,
+    resolveTerminalMode(settings.facts, { json, quiet: settings.quiet, color: settings.color }),
+  );
+  return { streams: ui.streams, ui, command, json };
 }
 
 function topUpGitignore(cwd: string, context: CommandContext, dryRun?: boolean): void {
   const added = appendMissingGitignoreEntries(cwd, dryRun);
   if (added.length > 0 && !context.json) {
-    context.streams.err(`verbatra: updated .gitignore (added ${added.join(", ")})\n`);
+    context.ui.info(`updated .gitignore (added ${added.join(", ")})`);
   }
 }
 
 function renderFailureExit2(error: unknown, context: CommandContext): number {
   const renderable = toRenderableError(error);
-  context.streams.err(`${renderError(renderable)}\n`);
+  context.ui.error(renderable);
   if (context.json) {
     context.streams.out(`${renderErrorEnvelope(context.command, renderable)}\n`);
   }
@@ -511,15 +529,19 @@ function parseTranslateCommandOpts(rawOpts: unknown): ParsedTranslateOpts {
   };
 }
 
-function lockWaitReporter(streams: Streams, json: boolean): (event: LockWaitEvent) => void {
+function lockWaitReporter(context: CommandContext): (event: LockWaitEvent) => void {
   return (event) => {
-    streams.err(`${renderLockWait(event, json)}\n`);
+    context.streams.err(`${renderLockWait(event, context.json)}\n`);
   };
 }
 
-function progressReporter(streams: Streams, json: boolean): (event: ProgressEvent) => void {
+function progressReporter(context: CommandContext): (event: ProgressEvent) => void {
   return (event) => {
-    streams.err(`${renderProgress(event, json)}\n`);
+    if (context.json) {
+      context.streams.err(`${renderProgressJson(event)}\n`);
+      return;
+    }
+    context.ui.line(renderProgressHuman(event));
   };
 }
 
@@ -527,14 +549,13 @@ function buildTranslateInput(
   opts: ParsedTranslateOpts,
   config: TranslateInput["config"],
   cwd: string,
-  streams: Streams,
+  context: CommandContext,
 ): TranslateInput {
-  const json = opts.json === true;
   return {
     config,
     cwd,
-    onLockWait: lockWaitReporter(streams, json),
-    onProgress: progressReporter(streams, json),
+    onLockWait: lockWaitReporter(context),
+    onProgress: progressReporter(context),
     ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
     ...(opts.dryRun === true ? { dryRun: true } : {}),
     ...(opts.prune === true ? { prune: true } : {}),
@@ -553,8 +574,9 @@ export async function runTranslate(
   rawOpts: unknown,
   deps: CliDeps,
   streams: Streams,
+  settings?: TerminalSettings,
 ): Promise<number> {
-  const context = commandContext("translate", rawOpts, streams);
+  const context = commandContext("translate", rawOpts, streams, settings);
   return withParsedOpts(
     () => parseTranslateCommandOpts(rawOpts),
     context,
@@ -566,13 +588,13 @@ export async function runTranslate(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
-          const summary = await deps.translate(buildTranslateInput(opts, config, cwd, streams));
-          streams.out(
+          const summary = await deps.translate(buildTranslateInput(opts, config, cwd, context));
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("translate", summary)}\n`
               : `${renderHuman(summary)}\n`,
           );
-          renderNeedsHumanHint(config, summary, opts.includeHuman === true, streams);
+          renderNeedsHumanHint(config, summary, opts.includeHuman === true, context.ui);
           return translateExitCode(config, summary);
         },
         () => loadEnvFiles(cwd),
@@ -605,8 +627,9 @@ async function runWatchCommand(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks,
+  settings?: TerminalSettings,
 ): Promise<number> {
-  const context = commandContext("watch", rawOpts, streams);
+  const context = commandContext("watch", rawOpts, streams, settings);
   return withParsedOpts(
     () => parseWatchCommandOpts(rawOpts),
     context,
@@ -636,7 +659,7 @@ async function runWatchCommand(
           ...(opts.cache === false ? { cache: false } : {}),
         },
         deps,
-        streams,
+        context.ui,
       );
       hooks.onWatchSession?.(session);
       return session.done;
@@ -666,8 +689,13 @@ async function runMcpCommand(
   return session.done;
 }
 
-async function runExport(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("export", rawOpts, streams);
+async function runExport(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("export", rawOpts, streams, settings);
   return withParsedOpts(
     () => {
       const opts = parseLocaleCommandOpts(exportOptsSchema, rawOpts);
@@ -692,7 +720,7 @@ async function runExport(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
             ...(opts.includeUnchanged === true ? { includeUnchanged: true } : {}),
             ...(opts.format !== undefined ? { format: opts.format } : {}),
           });
-          streams.out(
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("export", result)}\n`
               : `${renderExportHuman(result, process.cwd())}\n`,
@@ -709,8 +737,9 @@ export async function runImport(
   rawOpts: unknown,
   deps: CliDeps,
   streams: Streams,
+  settings?: TerminalSettings,
 ): Promise<number> {
-  const context = commandContext("import", rawOpts, streams);
+  const context = commandContext("import", rawOpts, streams, settings);
   return withParsedOpts(
     () => {
       const opts = importOptsSchema.parse(rawOpts);
@@ -733,14 +762,14 @@ export async function runImport(
             config,
             workbook,
             cwd,
-            onLockWait: lockWaitReporter(streams, context.json),
+            onLockWait: lockWaitReporter(context),
             ...(opts.dryRun === true ? { dryRun: true } : {}),
             ...(opts.format !== undefined ? { format: opts.format } : {}),
             ...(opts.lockAcquireTimeoutMs !== undefined
               ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
               : {}),
           });
-          streams.out(
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("import", summary)}\n`
               : `${renderHuman(summary, "import")}\n`,
@@ -757,7 +786,6 @@ async function runTmxImport(
   opts: z.infer<typeof tmxOptsSchema>,
   cwd: string,
   deps: CliDeps,
-  streams: Streams,
   context: CommandContext,
 ): Promise<number> {
   return withWholeRunErrors(
@@ -773,7 +801,7 @@ async function runTmxImport(
         ...(opts.overwrite === true ? { overwrite: true } : {}),
         ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
       });
-      streams.out(
+      context.streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
           : `${renderTmxImportHuman(result, process.cwd())}\n`,
@@ -788,7 +816,6 @@ async function runTmxExport(
   opts: z.infer<typeof tmxOptsSchema>,
   cwd: string,
   deps: CliDeps,
-  streams: Streams,
   context: CommandContext,
 ): Promise<number> {
   return withLoadedRunErrors(
@@ -806,7 +833,7 @@ async function runTmxExport(
         ...(file !== undefined ? { out: file } : {}),
         ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
       });
-      streams.out(
+      context.streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
           : `${renderTmxExportHuman(result, process.cwd())}\n`,
@@ -822,8 +849,9 @@ export async function runTmx(
   rawOpts: unknown,
   deps: CliDeps,
   streams: Streams,
+  settings?: TerminalSettings,
 ): Promise<number> {
-  const context = commandContext("tmx", rawOpts, streams);
+  const context = commandContext("tmx", rawOpts, streams, settings);
   return withParsedOpts(
     () => {
       const direction = parseTmxDirection(rawDirection);
@@ -837,16 +865,21 @@ export async function runTmx(
     async ({ direction, opts }) => {
       const cwd = opts.cwd ?? process.cwd();
       if (direction === "export") {
-        return runTmxExport(file, opts, cwd, deps, streams, context);
+        return runTmxExport(file, opts, cwd, deps, context);
       }
       topUpGitignore(cwd, context, opts.dryRun);
-      return runTmxImport(file, opts, cwd, deps, streams, context);
+      return runTmxImport(file, opts, cwd, deps, context);
     },
   );
 }
 
-async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("check", rawOpts, streams);
+async function runCheck(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("check", rawOpts, streams, settings);
   return withParsedOpts(
     () => parseCheckOpts(rawOpts),
     context,
@@ -865,7 +898,7 @@ async function runCheck(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
             ...(opts.qa === true ? { qa: true } : {}),
             ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
           });
-          streams.out(
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("check", summary)}\n`
               : `${renderCheckHuman(summary)}\n`,
@@ -881,8 +914,13 @@ function hasConfirmedUnusedKeys(summary: DiffSummary): boolean {
   return summary.unused?.status === "complete" && summary.unused.unused.length > 0;
 }
 
-async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("diff", rawOpts, streams);
+async function runDiff(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("diff", rawOpts, streams, settings);
   return withLocaleOpts(diffOptsSchema, rawOpts, context, async (opts) => {
     const cwd = opts.cwd ?? process.cwd();
     return withWholeRunErrors(
@@ -896,7 +934,7 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
           ...(opts.unused === true ? { unused: true } : {}),
         });
-        streams.out(
+        context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("diff", summary)}\n`
             : `${renderDiffHuman(summary)}\n`,
@@ -907,8 +945,13 @@ async function runDiff(rawOpts: unknown, deps: CliDeps, streams: Streams): Promi
   });
 }
 
-async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("pseudo", rawOpts, streams);
+async function runPseudo(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("pseudo", rawOpts, streams, settings);
   return withParsedOpts(
     () => parsePseudoCommandOpts(rawOpts),
     context,
@@ -926,7 +969,7 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
             ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
             ...(opts.out !== undefined ? { out: opts.out } : {}),
           });
-          streams.out(
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("pseudo", result)}\n`
               : `${renderPseudoHuman(result, process.cwd())}\n`,
@@ -962,8 +1005,13 @@ function typesInput(
   };
 }
 
-async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("types", rawOpts, streams);
+async function runTypes(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("types", rawOpts, streams, settings);
   return withParsedOpts(
     () => parseTypesCommandOpts(rawOpts),
     context,
@@ -977,7 +1025,7 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
           ),
         async (loaded) => {
           const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
-          streams.out(
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("types", result)}\n`
               : `${renderTypesHuman(result, process.cwd())}\n`,
@@ -993,8 +1041,13 @@ const doctorOptsSchema = sharedCommandOptsSchema.extend({
   literals: z.boolean().optional(),
 });
 
-async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("doctor", rawOpts, streams);
+async function runDoctor(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("doctor", rawOpts, streams, settings);
   return withParsedOpts(
     () => doctorOptsSchema.parse(rawOpts),
     context,
@@ -1010,7 +1063,7 @@ async function runDoctor(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
           ...(opts.config !== undefined ? { configPath: opts.config } : {}),
           ...(literals ? { literals: true } : {}),
         });
-        streams.out(
+        context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("doctor", result)}\n`
             : `${renderDoctorHuman(result)}\n`,
@@ -1028,6 +1081,7 @@ interface ProgramContext {
   readonly streams: Streams;
   readonly hooks: RunHooks;
   readonly setCode: (code: number) => void;
+  readonly settings: () => TerminalSettings;
 }
 
 function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
@@ -1069,7 +1123,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
     )
     .action(async (opts: unknown) => {
       ctx.hooks.onLockingCommand?.();
-      ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1121,7 +1175,7 @@ function registerWatchCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print each run as one NDJSON record")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runWatchCommand(opts, ctx.deps, ctx.streams, ctx.hooks));
+      ctx.setCode(await runWatchCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     });
 }
 
@@ -1142,7 +1196,7 @@ function registerExportCommand(program: Command, ctx: ProgramContext): void {
     .option("--format <format>", FORMAT_OPTION_DESCRIPTION)
     .option("--json", "print the export result as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runExport(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runExport(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1178,7 +1232,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .option("--json", "print the run summary as JSON")
     .action(async (workbook: string, opts: unknown) => {
       ctx.hooks.onLockingCommand?.();
-      ctx.setCode(await runImport(workbook, opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runImport(workbook, opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1213,7 +1267,7 @@ function registerTmxCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print the result as JSON")
     .action(async (direction: string, file: string | undefined, opts: unknown) => {
-      ctx.setCode(await runTmx(direction, file, opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runTmx(direction, file, opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1248,7 +1302,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
     .option("--strict", "with --qa, also exit 1 when the quality check reports warnings")
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1280,7 +1334,7 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print the diff summary as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runDiff(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runDiff(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1308,7 +1362,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print the pseudolocale result as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runPseudo(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runPseudo(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1339,7 +1393,7 @@ function registerTypesCommand(program: Command, ctx: ProgramContext): void {
     .option("--check", "report whether the committed declaration is current, writing nothing")
     .option("--json", "print the generation result as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runTypes(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runTypes(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1369,7 +1423,7 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print the doctor report as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1500,8 +1554,13 @@ const extractOptsSchema = sharedCommandOptsSchema.extend({
   dryRun: z.boolean().optional(),
 });
 
-async function runExtract(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<number> {
-  const context = commandContext("extract", rawOpts, streams);
+async function runExtract(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("extract", rawOpts, streams, settings);
   return withParsedOpts(
     () => extractOptsSchema.parse(rawOpts),
     context,
@@ -1540,7 +1599,7 @@ function registerExtractCommand(program: Command, ctx: ProgramContext): void {
     .option("--dry-run", "report what would be added without writing the source locale file")
     .option("--json", "print the extraction result as JSON")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runExtract(opts, ctx.deps, ctx.streams));
+      ctx.setCode(await runExtract(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1554,11 +1613,17 @@ function registerExtractCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+const globalOptsSchema = z.object({
+  quiet: z.boolean().optional(),
+  color: z.boolean().optional(),
+});
+
 function buildProgram(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks,
   setCode: (code: number) => void,
+  facts: TerminalFacts,
 ): Command {
   const program = new Command();
   program
@@ -1567,10 +1632,16 @@ function buildProgram(
       "Automate i18n translation and keep your locale files in sync, using a hosted or local AI or machine-translation provider",
     )
     .version(CLI_VERSION)
+    .option("-q, --quiet", "print only results and errors: no progress, notices or hints")
+    .option("--no-color", "never color the output (also: NO_COLOR, VERBATRA_NO_COLOR)")
     .exitOverride()
     .configureOutput({ writeOut: (s) => streams.out(s), writeErr: (s) => streams.err(s) });
 
-  const ctx: ProgramContext = { deps, streams, hooks, setCode };
+  const settings = (): TerminalSettings => {
+    const global = globalOptsSchema.parse(program.opts());
+    return { facts, quiet: global.quiet === true, color: global.color !== false };
+  };
+  const ctx: ProgramContext = { deps, streams, hooks, setCode, settings };
   registerTranslateCommand(program, ctx);
   registerWatchCommand(program, ctx);
   registerExportCommand(program, ctx);
@@ -1594,8 +1665,9 @@ export async function run(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks = {},
+  facts: TerminalFacts = DEFAULT_TERMINAL_SETTINGS.facts,
 ): Promise<number> {
-  return runRedacted(argv, deps, redactingStreams(streams), hooks);
+  return runRedacted(argv, deps, redactingStreams(streams), hooks, facts);
 }
 
 const CONFIG_NOT_FOUND_CODE: SdkErrorCode = "CONFIG_NOT_FOUND";
@@ -1617,11 +1689,18 @@ async function runRedacted(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks,
+  facts: TerminalFacts,
 ): Promise<number> {
   let code = 0;
-  const program = buildProgram(deps, streams, hooks, (c) => {
-    code = c;
-  });
+  const program = buildProgram(
+    deps,
+    streams,
+    hooks,
+    (c) => {
+      code = c;
+    },
+    facts,
+  );
   try {
     await program.parseAsync([...argv], { from: "user" });
   } catch (error) {

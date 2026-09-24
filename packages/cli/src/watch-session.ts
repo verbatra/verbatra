@@ -1,14 +1,15 @@
 import type { VerbatraConfig, WatchController, WatchInput, WatchRunResult } from "@verbatra/sdk";
 import { renderErrorEnvelope, renderRunResultEnvelope } from "./json-envelope.js";
 import {
-  renderError,
   renderHuman,
   renderLockWait,
-  renderProgress,
+  renderProgressHuman,
+  renderProgressJson,
   toRenderableError,
 } from "./render.js";
 import { stoppableSession } from "./stoppable-session.js";
-import type { CliDeps, Session, Streams } from "./types.js";
+import type { CliDeps, Session } from "./types.js";
+import type { Ui } from "./ui.js";
 
 export interface WatchOptions {
   readonly config: VerbatraConfig;
@@ -21,14 +22,15 @@ export interface WatchOptions {
   readonly json: boolean;
 }
 
-export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams): Session {
+export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session {
+  const streams = ui.streams;
   const onRun = (result: WatchRunResult): void => {
     if (options.json) {
       streams.out(`${renderRunResultEnvelope(result)}\n`);
     } else if (result.status === "succeeded") {
       streams.out(`${renderHuman(result.summary)}\n`);
     } else {
-      streams.err(`${renderError(result.error)}\n`);
+      ui.error(result.error);
     }
   };
 
@@ -40,7 +42,11 @@ export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams)
       streams.err(`${renderLockWait(event, options.json)}\n`);
     },
     onProgress: (event) => {
-      streams.err(`${renderProgress(event, options.json)}\n`);
+      if (options.json) {
+        streams.err(`${renderProgressJson(event)}\n`);
+      } else {
+        ui.line(renderProgressHuman(event));
+      }
     },
     ...(options.locales !== undefined ? { locales: options.locales } : {}),
     ...(options.debounceMs !== undefined ? { debounceMs: options.debounceMs } : {}),
@@ -64,7 +70,7 @@ export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams)
     },
     onFailure: (error) => {
       const renderable = toRenderableError(error);
-      streams.err(`${renderError(renderable)}\n`);
+      ui.error(renderable);
       if (options.json) {
         streams.out(`${renderErrorEnvelope("watch", renderable)}\n`);
       }
