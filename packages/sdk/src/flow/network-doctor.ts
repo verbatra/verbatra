@@ -34,7 +34,7 @@ function describePolicy(policy: NetworkPolicy): string {
   const effective = isRestrictive(policy)
     ? "restricted: a host must satisfy every policy below"
     : "any host";
-  return `Network policy: ${effective} (config: ${ruleLabel(policy, "config")}; ${NETWORK_POLICY_ENV_VAR}: ${ruleLabel(policy, "environment")}).`;
+  return `${effective} (config: ${ruleLabel(policy, "config")}; ${NETWORK_POLICY_ENV_VAR}: ${ruleLabel(policy, "environment")}).`;
 }
 
 function describeEndpoint(providerId: string, judgement: EndpointJudgement): string {
