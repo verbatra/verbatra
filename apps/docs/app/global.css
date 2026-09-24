@@ -90,7 +90,7 @@ samp {
 }
 
 :root {
-  --text-display: clamp(2.75rem, 1.4rem + 5.4vw, 5.75rem);
+  --text-display: clamp(3.25rem, 1.4rem + 5.4vw, 5.75rem);
   --text-h2: clamp(2.1rem, 1.3rem + 3.2vw, 3.8rem);
   --text-h3: clamp(1.4rem, 1.1rem + 1.2vw, 1.95rem);
   --text-h4: 1.25rem;
