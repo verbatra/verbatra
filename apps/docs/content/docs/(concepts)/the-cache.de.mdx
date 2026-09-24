@@ -13,6 +13,8 @@ Bei einem Lauf schlägt verbatra einen Key im Cache nach, bevor er zum Provider 
 
 Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft weiterhin dieselben [Integritätsprüfungen](/docs/translation-safety) gegen den aktuellen Quelltext, bevor er geschrieben wird, ein gecachter Wert, der nicht mehr zu seinem Key passt, wird also verworfen und der Key frisch übersetzt. Cache-Treffer werden pro Locale in der Laufzusammenfassung ausgewiesen, getrennt von den in diesem Lauf übersetzten Keys.
 
+Ein Wert, den jemand beim Review [abgelehnt](/docs/review-in-studio) hat, wird für diesen Key ebenfalls nie wiederverwendet. Die Ablehnung hält in `verbatra.provenance.json` einen Hash des abgelehnten Texts fest, und ein Lauf überspringt jeden exakten oder unscharfen Treffer, dessen Text dazu passt, sodass der Cache eines Teammitglieds den Text nicht zurückbringen kann. Der Key geht stattdessen an den Provider oder bleibt mit dem Provider `none` ungefüllt, bis jemand einen Wert schreibt.
+
 ## Unscharfe Wiederverwendung
 
 <AvailableFrom version="0.11.0" />
