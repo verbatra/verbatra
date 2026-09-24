@@ -39,13 +39,13 @@ const {
   STUDIO_BATCH_LOCK_TIMEOUT_MS,
 } = await import("./review-batch.js");
 
-function deps(): RpcHandlerDeps {
+function deps(log?: (line: string) => void): RpcHandlerDeps {
   const loaded: LoadedConfig = {
     config: baseStudioConfig(),
     source: { kind: "override" },
     glossary: { source: "none" },
   };
-  return { config: loaded, projectRoot: "/project" };
+  return { config: loaded, projectRoot: "/project", ...(log !== undefined ? { log } : {}) };
 }
 
 beforeEach(() => {
@@ -106,8 +106,9 @@ describe("batch handlers: a batch interrupted part way", () => {
     calls.failure = new BatchInterruptedError(
       [done],
       { locale: "de", key: "b" },
-      new Error("EIO sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
+      new Error("EIO /home/me/project/locales/de.json sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
     );
+    const logged: string[] = [];
 
     const result = await retranslateEntriesHandler(
       {
@@ -117,15 +118,45 @@ describe("batch handlers: a batch interrupted part way", () => {
           { locale: "de", key: "c" },
         ],
       },
-      deps(),
+      deps((line) => logged.push(line)),
     );
 
     expect(result.results[0]).toEqual(done);
-    expect(result.results.slice(1)).toEqual([
-      expect.objectContaining({ locale: "de", key: "b", ok: false, code: "BATCH_INTERRUPTED" }),
-      expect.objectContaining({ locale: "de", key: "c", ok: false, code: "BATCH_INTERRUPTED" }),
-    ]);
+    expect(result.results.slice(1)).toEqual(
+      ["b", "c"].map((key) => ({
+        locale: "de",
+        key,
+        ok: false,
+        code: "BATCH_INTERRUPTED",
+        message: "The batch stopped before this entry because of an unexpected server error.",
+      })),
+    );
+    expect(JSON.stringify(result)).not.toContain("EIO");
+    expect(JSON.stringify(result)).not.toContain("/home/me");
     expect(JSON.stringify(result)).not.toContain("sk-ant-api03");
+    expect(logged).toEqual([
+      'studio error: translation.retranslateEntries stopped at "b" in de after 1 completed: ' +
+        "EIO /home/me/project/locales/de.json [REDACTED]",
+    ]);
+  });
+
+  it("neutralizes control characters in the logged line and logs a non-error cause", async () => {
+    calls.failure = new BatchInterruptedError(
+      [],
+      { locale: "de", key: "a\u001b[2Jb" },
+      "raw\nfailure",
+    );
+    const logged: string[] = [];
+
+    await reviewApproveManyHandler(
+      { entries: [{ locale: "de", key: "a", expectedValue: "x" }] },
+      deps((line) => logged.push(line)),
+    );
+
+    expect(logged).toHaveLength(1);
+    expect(logged[0]).toContain("review.approveMany");
+    expect(logged[0]).toContain("raw failure");
+    expect(logged[0]).not.toMatch(/\p{Cc}/u);
   });
 
   it("surfaces an interrupted review batch the same way", async () => {

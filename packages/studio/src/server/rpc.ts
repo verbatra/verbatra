@@ -58,6 +58,7 @@ export interface RpcHandlerDeps
   readonly config: LoadedConfig;
   readonly projectRoot: string;
   readonly inFlightEntries?: () => readonly InFlightEntry[];
+  readonly log?: (line: string) => void;
 }
 
 export type RpcHandler<M extends RpcMethodName> = (

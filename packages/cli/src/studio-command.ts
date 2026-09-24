@@ -43,16 +43,23 @@ const AGENT_TOOLS_ENV_VAR = "VERBATRA_STUDIO_AGENT_TOOLS";
 
 const REQUEST_LOG_LINE = /^[A-Z]+ \S+ \d{3}$/;
 
+const SERVER_ERROR_LINE = /^studio error: /;
+
 const TOKEN_QUERY = /token=[0-9a-fA-F]+/g;
 
 const MASKED_TOKEN = "[REDACTED]";
 
-function requestLogForwarder(ui: Ui, token: string): (line: string) => void {
+function masked(line: string, token: string): string {
+  return line.replaceAll(token, MASKED_TOKEN).replace(TOKEN_QUERY, `token=${MASKED_TOKEN}`);
+}
+
+function serverOutputForwarder(ui: Ui, token: string, verbose: boolean): (line: string) => void {
   return (line) => {
-    if (!REQUEST_LOG_LINE.test(line)) {
-      return;
+    if (SERVER_ERROR_LINE.test(line)) {
+      ui.warn(masked(line, token));
+    } else if (verbose && REQUEST_LOG_LINE.test(line)) {
+      ui.line(masked(line, token));
     }
-    ui.line(line.replaceAll(token, MASKED_TOKEN).replace(TOKEN_QUERY, `token=${MASKED_TOKEN}`));
   };
 }
 
@@ -127,7 +134,7 @@ export async function runStudio(
         loader: () => Promise.resolve(config),
         token,
         cwd,
-        output: opts.verbose === true ? requestLogForwarder(ui, token) : () => {},
+        output: serverOutputForwarder(ui, token, opts.verbose === true),
         spend,
         exposeAgentTools,
         ...(opts.port !== undefined ? { port: opts.port } : {}),

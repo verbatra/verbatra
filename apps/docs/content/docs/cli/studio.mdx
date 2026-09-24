@@ -52,7 +52,7 @@ verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
 verbatra: agent tools off (pass --expose-agent-tools to register them)
 ```
 
-On an interactive terminal it adds `verbatra: press Ctrl-C to stop`, and it prints `verbatra: Studio stopped` once the server has shut down. With `--verbose`, one line per request (such as `GET / 200`) is forwarded to stderr as well, with any session token masked; Studio's own startup line is always dropped, since stdout already carries the URL. `--quiet` keeps only the URL line.
+On an interactive terminal it adds `verbatra: press Ctrl-C to stop`, and it prints `verbatra: Studio stopped` once the server has shut down. With `--verbose`, one line per request (such as `GET / 200`) is forwarded to stderr as well, with any session token masked; Studio's own startup line is always dropped, since stdout already carries the URL. `--quiet` keeps only the URL line. A `verbatra: studio error: ...` line is the exception: when a batch action in the dashboard stops on an unexpected server error, Studio names the entry and the error on stderr, with or without `--verbose` and even under `--quiet`.
 
 ## Installation
 

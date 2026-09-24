@@ -354,6 +354,36 @@ describe("run studio: success path and shutdown", () => {
     await donePromise;
   });
 
+  it("forwards the studio server's error lines to stderr without --verbose, token masked", async () => {
+    let token = "";
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            token = options.token ?? "";
+            options.output?.(`studio error: translation.retranslateEntries stopped: EIO ${token}`);
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio"], deps, cap.streams, captured.hooks);
+    await flush();
+
+    expect(cap.err()).toContain(
+      "verbatra: studio error: translation.retranslateEntries stopped: EIO [REDACTED]\n",
+    );
+    expect(cap.err()).not.toContain(token);
+    expect(cap.err()).not.toContain("GET / 200");
+    expect(cap.out()).not.toContain("studio error");
+
+    captured.session()?.requestStop();
+    await donePromise;
+  });
+
   it("a second requestStop while the first is closing forces exit 130", async () => {
     const { deps } = recordingDeps({
       importStudio: async () =>

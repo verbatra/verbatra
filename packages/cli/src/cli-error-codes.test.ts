@@ -15,7 +15,10 @@ const CODE_POSITIONS: readonly RegExp[] = [
   new RegExp(String.raw`\b[A-Za-z]*Error\(\s*${CODE}`, "g"),
   new RegExp(String.raw`\bcode:\s*${CODE}`, "g"),
   new RegExp(String.raw`:\s*CliErrorCode\s*=\s*${CODE}`, "g"),
+  new RegExp(String.raw`\?\s*${CODE}\s*:\s*${CODE}`, "g"),
 ];
+
+const CODE_RECORD = /CliErrorCode>+\s*=\s*\{([^}]*)\}/g;
 
 function productionSources(): string[] {
   return readdirSync(SRC_ROOT, { recursive: true, encoding: "utf8" })
@@ -24,10 +27,17 @@ function productionSources(): string[] {
     .sort();
 }
 
-function codesIn(source: string): string[] {
-  return CODE_POSITIONS.flatMap((pattern) =>
-    [...source.matchAll(pattern)].flatMap((match) => (match[1] === undefined ? [] : [match[1]])),
+function captured(source: string, pattern: RegExp): string[] {
+  return [...source.matchAll(pattern)].flatMap((match) =>
+    match.slice(1).filter((group): group is string => group !== undefined),
   );
+}
+
+function codesIn(source: string): string[] {
+  return [
+    ...CODE_POSITIONS.flatMap((pattern) => captured(source, pattern)),
+    ...captured(source, CODE_RECORD).flatMap((body) => captured(body, new RegExp(CODE, "g"))),
+  ];
 }
 
 function emittedCodes(): ReadonlySet<string> {
@@ -58,6 +68,26 @@ describe("the code-position scan behind the parity check", () => {
     ["an environment variable name", 'process.env["OPENAI_API_KEY"]', []],
     ["a code the CLI only compares against", 'if (error.code === "CONFIG_NOT_FOUND") {', []],
     ["an upper-snake literal in prose", 'const hint = "Set VERBATRA_NETWORK_POLICY";', []],
+    [
+      "both arms of a ternary that picks the code",
+      'new CliUsageError(bad ? "INVALID_PORT" : "INVALID_OPTION", message)',
+      ["INVALID_PORT", "INVALID_OPTION"],
+    ],
+    [
+      "both arms of a ternary behind a code property",
+      '{ code: missing ? "MISSING_OPTIONS" : "USAGE_ERROR" }',
+      ["MISSING_OPTIONS", "USAGE_ERROR"],
+    ],
+    [
+      "every value of a record typed as CLI codes",
+      'const BY_FLAG: Readonly<Record<string, CliErrorCode>> = {\n  port: "INVALID_PORT",\n  out: "INVALID_OUT",\n};',
+      ["INVALID_PORT", "INVALID_OUT"],
+    ],
+    [
+      "nothing of a code built at runtime, a limit the list owner has to cover by hand",
+      "new CliUsageError(`INVALID_` + name, message)",
+      [],
+    ],
   ])("reads %s", (_label, source, expected) => {
     expect(codesIn(source)).toEqual(expected);
   });
