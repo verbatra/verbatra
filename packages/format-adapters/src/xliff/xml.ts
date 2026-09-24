@@ -5,6 +5,12 @@ import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
 import { assertNoDoctype, readInlineValue, writeInlineValue, type XliffVersion } from "./inline.js";
+import {
+  type DeclaredLanguages,
+  readsTargets,
+  xliff12Languages,
+  xliff20Languages,
+} from "./languages.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
 const ELEMENT_NODE = 1;
@@ -14,8 +20,12 @@ interface Unit {
   readonly source: Element;
   readonly target: Element | null;
   readonly container: Element;
+  readonly languages: DeclaredLanguages;
+  readonly scope: Element;
   readonly description?: string;
 }
+
+const UNTRANSLATED_STATES = new Set(["new", "needs-translation"]);
 
 function isElement(node: Node): node is Element {
   return node.nodeType === ELEMENT_NODE;
@@ -78,24 +88,32 @@ function unitDescription(unit: Element): string | undefined {
 
 function walkXliff12(root: Element): Unit[] {
   const units: Unit[] = [];
-  collectByTag(root, "trans-unit").forEach((tu, index) => {
-    const source = childByName(tu, "source");
-    if (source !== null) {
-      const description = transUnitDescription(tu);
-      units.push({
-        key: unitKey(tu, index),
-        source,
-        target: childByName(tu, "target"),
-        container: tu,
-        ...(description !== undefined ? { description } : {}),
-      });
+  let index = 0;
+  for (const file of collectByTag(root, "file")) {
+    const languages = xliff12Languages(file);
+    for (const tu of collectByTag(file, "trans-unit")) {
+      const source = childByName(tu, "source");
+      if (source !== null) {
+        const description = transUnitDescription(tu);
+        units.push({
+          key: unitKey(tu, index),
+          source,
+          target: childByName(tu, "target"),
+          container: tu,
+          languages,
+          scope: file,
+          ...(description !== undefined ? { description } : {}),
+        });
+      }
+      index += 1;
     }
-  });
+  }
   return units;
 }
 
 function walkXliff20(root: Element): Unit[] {
   const units: Unit[] = [];
+  const languages = xliff20Languages(root);
   collectByTag(root, "unit").forEach((unit, index) => {
     const baseKey = unitKey(unit, index);
     const description = unitDescription(unit);
@@ -109,6 +127,8 @@ function walkXliff20(root: Element): Unit[] {
           source,
           target: childByName(segment, "target"),
           container: segment,
+          languages,
+          scope: root,
           ...(description !== undefined ? { description } : {}),
         });
       }
@@ -125,30 +145,55 @@ function walkUnits(root: Element): Unit[] {
   return documentVersion(root) === "2.0" ? walkXliff20(root) : walkXliff12(root);
 }
 
-function unitValue(unit: Unit): string {
-  if (unit.target !== null) {
-    const targetValue = readInlineValue(unit.target);
-    if (targetValue.trim() !== "") {
-      return targetValue;
-    }
+function isUntranslatedTarget(target: Element): boolean {
+  return UNTRANSLATED_STATES.has(target.getAttribute("state") ?? "");
+}
+
+function targetValue(target: Element | null): string | undefined {
+  if (target === null || isUntranslatedTarget(target)) {
+    return undefined;
   }
-  return readInlineValue(unit.source);
+  const value = readInlineValue(target);
+  return value.trim() === "" ? undefined : value;
+}
+
+function createRoleResolver(locale: string): (unit: Unit) => boolean {
+  const byScope = new Map<Element, boolean>();
+  return (unit) => {
+    const known = byScope.get(unit.scope);
+    if (known !== undefined) {
+      return known;
+    }
+    const hasTargets = collectByTag(unit.scope, "target").length > 0;
+    const role = readsTargets(unit.languages, locale, hasTargets);
+    byScope.set(unit.scope, role);
+    return role;
+  };
 }
 
 export function parseXliffEntries(
   content: string,
   namespace: string,
+  _filePath: string,
+  _fs: AdapterFs,
+  locale: string,
 ): Map<string, TranslationEntry> {
   const { root } = parseXml(content);
+  const readsTargetOf = createRoleResolver(locale);
   const out = new Map<string, TranslationEntry>();
+  const seen = new Set<string>();
   for (const unit of walkUnits(root)) {
-    if (out.has(unit.key)) {
+    if (seen.has(unit.key)) {
       throw new AdapterError(
         "INVALID_STRUCTURE",
         "The XLIFF file has two trans-units with the same id.",
       );
     }
-    const value = unitValue(unit);
+    seen.add(unit.key);
+    const value = readsTargetOf(unit) ? targetValue(unit.target) : readInlineValue(unit.source);
+    if (value === undefined) {
+      continue;
+    }
     out.set(unit.key, {
       key: unit.key,
       namespace,
@@ -179,6 +224,19 @@ async function readDestination(filePath: string, fs: AdapterFs): Promise<string>
   return outcomeToContent(outcome, "The destination path is not a regular file.");
 }
 
+function insertTarget(doc: Document, unit: Unit): Element {
+  const target = doc.createElementNS(unit.source.namespaceURI, "target");
+  const anchor = childByName(unit.container, "seg-source") ?? unit.source;
+  unit.container.insertBefore(target, anchor.nextSibling);
+  return target;
+}
+
+function markTranslated(target: Element): void {
+  if (isUntranslatedTarget(target)) {
+    target.setAttribute("state", "translated");
+  }
+}
+
 export async function serializeXliffEntries(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
@@ -189,11 +247,9 @@ export async function serializeXliffEntries(
   for (const unit of walkUnits(root)) {
     const entry = entries.get(unit.key);
     if (entry !== undefined) {
-      const target = unit.target ?? doc.createElement("target");
-      if (unit.target === null) {
-        unit.container.appendChild(target);
-      }
+      const target = unit.target ?? insertTarget(doc, unit);
       writeInlineValue(doc, target, entry.value, version);
+      markTranslated(target);
     }
   }
   return new XMLSerializer().serializeToString(doc);
