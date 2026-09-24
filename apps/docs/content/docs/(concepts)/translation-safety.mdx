@@ -344,14 +344,19 @@ carries one or more reason codes:
 `MAX_LENGTH_EXCEEDED` and `FUZZY_CACHE_REUSE` are the two newest reasons; a run on an earlier
 release never carries them.
 
+<AvailableFrom version="0.12.0" />
+
+`GLOSSARY_FORBIDDEN_TERM` is newer still; a run on a release before 0.12.0 never carries it.
+
 A value reused from [the cache](/docs/the-cache), and a value fanned out to a key that shares its
 source text, run through the same review heuristics as a freshly translated one.
 
 Flagged keys surface per locale as `needsReview` on the run summary, and they feed the
 needs-review queue: the CLI prints the count, the Excel workbook carries the same signal in its
 review columns, and Studio's Review page lists the flagged keys for working through; see
-[Review in Studio](/docs/review-in-studio). The only way to clear a flag is to fix the underlying
-translation.
+[Review in Studio](/docs/review-in-studio). A flagged key leaves the queue once a person approves or rejects its
+current value (on Studio's Review page, or with the SDK's `approveEntry` and `rejectEntry`) or
+rewrites it; see [Review decisions](/docs/the-lock-file#review-decisions).
 
 ## The token budget
 

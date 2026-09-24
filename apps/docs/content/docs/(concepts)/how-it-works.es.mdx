@@ -41,6 +41,10 @@ cambios se quedan intactas. Las claves huérfanas se notifican y, por defecto, s
 con `--prune` (o `prune: true` en la configuración) se eliminan exactamente esas claves del archivo
 de destino y del bloqueo, y nada más.
 
+<AvailableFrom version="0.12.0" />
+
+Dos tipos de candidatas se retienen. Una clave modificada cuyo valor actual escribió o importó una persona está protegida por defecto (`humanEdits`), y una clave que coincide con `pinnedKeys` nunca se traduce automáticamente; ambas siguen desactualizadas hasta que una persona las resuelve. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
 ## Enviar lotes al proveedor
 
 Antes de enviar nada, cada candidata se busca en la caché local de memoria de traducción

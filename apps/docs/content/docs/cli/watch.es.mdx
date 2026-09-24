@@ -35,6 +35,10 @@ Con `--json`, cada ejecución emite un registro [envoltorio](/docs/ci-and-exit-c
 
 La primera interrupción (Ctrl-C, o SIGTERM) deja terminar la ejecución en curso, detiene el watcher limpiamente y sale con `0`. Una segunda interrupción mientras esa parada sigue en curso fuerza la detención con salida `130`. La parada forzada libera los bloqueos de escritura de la sesión antes de que termine el proceso, así que la siguiente ejecución no tiene que esperarlos.
 
+<AvailableFrom version="0.12.0" />
+
+Sin `--json`, `watch` te dice en stderr en qué punto está: tras cada ejecución imprime `verbatra: waiting for changes...`, en un terminal interactivo añade `verbatra: press Ctrl-C to stop` después de la línea de arranque y, cuando termina el cierre, imprime `verbatra: stopped`. Con `--json` no se añade ninguna de estas líneas, así que stderr queda exactamente como antes.
+
 ## Ejemplos
 
 ```bash

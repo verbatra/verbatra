@@ -64,7 +64,9 @@ Die Paketversionen in der Meldung folgen dem Release; die Lösung bleibt dieselb
 
 **Ursache**: Die Konfiguration wurde gefunden, besteht aber die Schemavalidierung nicht: ein
 fehlendes Pflichtfeld, ein `files.pattern` ohne das `{locale}`-Token, eine Quell-Locale in
-`targetLocales` oder ein unbekannter Top-Level-Key. Ein unbekannter Key bekommt den Hinweis
+`targetLocales`, ein Locale-Code, der kein gültiges BCP 47 ist (etwa `en_US`), ein
+`localeMap`-Key, der keine konfigurierte Locale ist, oder ein unbekannter Key auf oberster Ebene
+oder im `provider`-Block neben `id` und `options`. Ein unbekannter Key bekommt den Hinweis
 `API keys are read from the environment, not the config`: Das Schema ist genau deshalb strikt,
 damit sich kein Secret in einer committeten Datei verstecken kann.
 
@@ -261,7 +263,7 @@ fällt gar nicht darunter.
 seine bisherige Übersetzung, oder der Integritätsbericht pro Key meldet eine
 Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. Dieser Bericht ist
 `markupMatches: false` aus `keyIntegrity` im SDK, aus dem Tool `key.integrity` des MCP-Servers und
-aus der Key-Anzeige in Studio (`Inline markup mismatch`); `verbatra check` meldet kein Markup. In
+aus der Key-Anzeige in Studio (`Inline markup mismatch`); ein einfaches `verbatra check` meldet kein Markup, `verbatra check --qa` schon. In
 Studio kommt ein Retranslate oder eine Bearbeitung als `Rejected: inline markup mismatch` zurück,
 gefolgt von den betroffenen Tags: `-<a href>` für eines, das die Quelle hatte und der Kandidat
 weggelassen hat, `+<i>` für eines, das der Kandidat erfunden hat.
@@ -324,7 +326,9 @@ Translate-Pending-Aktionen erscheinen nicht.
 
 **Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst.
 Ohne sie werden die kostenpflichtigen Methoden gar nicht erst registriert; das lokale Bearbeiten
-von Dateien ist immer an und braucht kein Flag.
+von Dateien ist immer an und braucht kein Flag. In einem
+[rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) bleibt die Fähigkeit
+auch mit `--allow-spend` gesperrt, und das Settings-Panel nennt diesen Grund.
 
 **Lösung**: Starte Studio neu mit `verbatra studio --allow-spend`, oder setze
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Schnelle wiederholte Aktionen
@@ -356,7 +360,9 @@ ein Aufruf unter einem der beiden Namen schlägt als unbekanntes Tool fehl.
 **Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst, und
 das bereitgestellte Tool-Set des MCP-Servers darf sich nicht pro Verbindung ändern, also fehlen die
 beiden kostenpflichtigen Tools in der Liste ganz. Sie werden nie erst angeboten und dann
-abgelehnt: Wenn Ausgaben nicht erlaubt sind, tauchen sie einfach gar nicht auf.
+abgelehnt: Wenn Ausgaben nicht erlaubt sind, tauchen sie einfach gar nicht auf. In einem
+[rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) fehlen sie auch mit
+`--allow-spend` in der Liste.
 
 **Lösung**: Starte den Server neu mit `verbatra mcp --allow-spend` (oder `verbatra-mcp
 --allow-spend`), oder setze `VERBATRA_MCP_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Siehe

@@ -373,6 +373,10 @@ revisión nunca retiene una clave y lleva uno o más códigos de motivo:
 `MAX_LENGTH_EXCEEDED` y `FUZZY_CACHE_REUSE` son los dos motivos más recientes; una ejecución con una
 versión anterior nunca los lleva.
 
+<AvailableFrom version="0.12.0" />
+
+`GLOSSARY_FORBIDDEN_TERM` es aún más reciente; una ejecución con una versión anterior a 0.12.0 nunca lo lleva.
+
 Un valor reutilizado desde [la caché](/docs/the-cache), y un valor propagado a una clave que
 comparte su texto de origen, pasan por las mismas heurísticas de revisión que uno recién
 traducido.
@@ -380,8 +384,10 @@ traducido.
 Las claves marcadas afloran por locale como `needsReview` en el resumen de la ejecución, y
 alimentan la cola de revisión: la CLI imprime el recuento, el libro de Excel lleva la misma señal
 en sus columnas de revisión, y la página Review de Studio lista las claves marcadas para irlas
-trabajando; consulta [Revisión en Studio](/docs/review-in-studio). La única forma de limpiar una
-señal es corregir la traducción subyacente.
+trabajando; consulta [Revisión en Studio](/docs/review-in-studio). Una clave marcada sale de la
+cola en cuanto una persona aprueba o rechaza su valor actual (en la página Review de Studio, o con
+`approveEntry` y `rejectEntry` del SDK) o lo reescribe; consulta
+[Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión).
 
 ## El presupuesto de tokens
 

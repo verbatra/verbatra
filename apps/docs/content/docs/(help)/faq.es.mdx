@@ -7,13 +7,19 @@ síntomas con mensajes de error, consulta [Solución de problemas](/docs/trouble
 
 ## ¿Cómo controlo el coste?
 
-Cuatro palancas, todas libres de llamadas al proveedor hasta que tú decidas lo contrario:
+Seis palancas, todas libres de llamadas al proveedor hasta que tú decidas lo contrario:
 
 - Las ejecuciones son incrementales por defecto: solo se envían al proveedor las claves faltantes o
   cuyo origen cambió desde la línea base del archivo de bloqueo. Volver a ejecutar un proyecto sin
   cambios no cuesta nada.
 - `--dry-run` (o `translate({ config, dryRun: true })`) previsualiza exactamente qué se enviaría,
   sin llamada al proveedor y sin escrituras.
+- `verbatra translate --estimate` dimensiona la ejecución sobre ese dry run: claves, peticiones al
+  proveedor, la cantidad facturada y una cifra en moneda cuando la configuración tiene `rates` para
+  el proveedor. Consulta [Estimar el coste](/docs/estimating-cost).
+- `verbatra translate --max-tokens <n>` fija un techo duro de tokens para una sola ejecución sin
+  tocar la configuración; si la configuración también fija `maxTokens`, se aplica el menor de los
+  dos.
 - `maxTokens` en la configuración fija un techo de tokens para toda la ejecución, y `budgetBehavior`
   decide qué pasa al alcanzarlo: `"warn"` (por defecto) lo señala y continúa, `"stop"` retiene cada
   clave aún no intentada; las claves retenidas se reintentan automáticamente en la siguiente
@@ -133,8 +139,8 @@ cuyo texto de origen cambió, simplemente ejecuta `translate`: esa es la ruta in
 
 `@verbatra/cli` depende de `@verbatra/sdk`, así que instalar la CLI trae el SDK consigo
 automáticamente; no hay nada extra que instalar. Lo inverso también vale: el SDK funciona solo en
-tus propios scripts sin la CLI. Solo `@verbatra/studio` es una instalación aparte y opcional,
-cargada dinámicamente por el comando `studio`.
+tus propios scripts sin la CLI. Solo `@verbatra/studio` y `@verbatra/mcp` son
+instalaciones aparte y opcionales, cargadas dinámicamente por los comandos `studio` y `mcp`.
 
 ## ¿Dónde viven las claves de API?
 
@@ -159,20 +165,26 @@ revisión de DPA o NDA.
 
 <AvailableFrom version="0.9.0" />
 
-Cinco cosas, todas sin llamar al proveedor, sin petición de red y sin leer el valor de una clave de
-API:
+Nueve cosas, todas sin llamar al proveedor, sin petición de red y sin leer el valor de una clave de
+API. Las seis primeras pueden fallar; las tres últimas son informativas y nunca fallan:
 
 - Configuration: la configuración carga y pasa la validación.
 - Format adapter: el `format` configurado se resuelve a un adaptador de archivo.
 - Provider: el `provider.id` configurado se resuelve a una fábrica de proveedores.
 - API key environment variable: la variable de entorno de la que ese proveedor lee su clave está
   definida (comprobada solo por nombre, nunca por valor).
+- Network policy: la [política de red](/docs/network-policy) efectiva permite el host al que se
+  conecta el proveedor configurado y cualquier proxy que usaría.
 - Source locale file: el archivo del locale de origen existe en su ruta resuelta, es un archivo
   regular y se analiza con el formato configurado.
+- Plural rules, Locale codes y Locale state: las versiones de ICU y CLDR de las que salen las
+  categorías de plural, los códigos de locale configurados que no están en forma BCP 47 canónica y
+  el estado que quedó de un locale que la configuración ya no incluye. Consulta
+  [verbatra doctor](/docs/cli/doctor).
 
 Cada comprobación se ejecuta incluso si una anterior falló, así que una sola ejecución informa de
 todos los problemas independientes a la vez; la excepción es la propia configuración: si falla al
-cargar, se omiten las cuatro comprobaciones que la necesitan.
+cargar, se omiten las ocho comprobaciones que la necesitan.
 
 ```bash
 verbatra doctor

@@ -57,8 +57,9 @@ in the message track the release; the fix does not change.
 **Symptom**: `The verbatra configuration is invalid: ...`, listing one issue per field.
 
 **Cause**: the config was found but fails schema validation: a missing required field, a
-`files.pattern` without the `{locale}` token, a source locale listed in `targetLocales`, or an
-unrecognized top-level key. An unrecognized key gains the hint `API keys are read from the
+`files.pattern` without the `{locale}` token, a source locale listed in `targetLocales`, a locale code that is
+not valid BCP 47 (such as `en_US`), a `localeMap` key that is not a configured locale, or an
+unrecognized key at the top level or in the `provider` block beside `id` and `options`. An unrecognized key gains the hint `API keys are read from the
 environment, not the config`: the schema is strict precisely so a secret cannot hide in a
 committed file.
 
@@ -236,7 +237,7 @@ agent tools is not covered by it at all.
 translation, or the per-key integrity report flags an inline markup mismatch for a translation that
 is already on disk. That report is `markupMatches: false` from the SDK's `keyIntegrity`, the MCP
 server's `key.integrity` tool, and Studio's per-key indicator (`Inline markup mismatch`);
-`verbatra check` does not report markup. In Studio, a retranslate or an edit comes back as
+a plain `verbatra check` does not report markup, but `verbatra check --qa` does. In Studio, a retranslate or an edit comes back as
 `Rejected: inline markup mismatch`, followed by the tags at fault: `-<a href>` for one the source
 had and the candidate dropped, `+<i>` for one the candidate invented.
 
@@ -293,7 +294,9 @@ first.
 appear.
 
 **Cause**: provider spend is a capability you grant at startup. Without it, the spend-gated
-methods are not registered at all; local file editing is always on and needs no flag.
+methods are not registered at all; local file editing is always on and needs no flag. In a
+[human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) the capability is
+withheld even with `--allow-spend`, and the settings panel names that reason.
 
 **Fix**: restart Studio with `verbatra studio --allow-spend`, or set
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (also `true`, `yes`, or `on`). Rapid repeated actions can also hit
@@ -324,6 +327,8 @@ calling either by name fails as an unknown tool.
 **Cause**: provider spend is a capability you grant at startup, and the MCP server's advertised tool
 set must not vary per connection, so the two spend-gated tools are left out of the list entirely.
 They are never advertised and then refused: if spending isn't allowed, they simply don't appear.
+In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) they stay out of
+the list even with `--allow-spend`.
 
 **Fix**: restart the server with `verbatra mcp --allow-spend` (or `verbatra-mcp --allow-spend`), or
 set `VERBATRA_MCP_ALLOW_SPEND=1` (also `true`, `yes`, or `on`). See [`verbatra mcp`](/docs/cli/mcp).

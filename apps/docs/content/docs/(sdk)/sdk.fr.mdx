@@ -562,7 +562,7 @@ retirés du texte des segments.
 
 ### loadConfig
 
-Trouve, charge et valide la config du projet, en renvoyant une `VerbatraConfig`. Options : `{ cwd?, configPath?, configOverride? }`, par ordre de priorité : `configOverride` (valider un objet en mémoire), puis `configPath` (charger un fichier explicite), puis la recherche. La recherche démarre à `cwd` et couvre `verbatra.config.ts` (aussi `.js`/`.cjs`), la famille `.verbatrarc` (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) et une propriété `"verbatra"` dans `package.json`. Un `glossary` donné comme chemin de fichier est lu et validé ici, donc le code en aval voit toujours un simple objet clé/valeur.
+Trouve, charge et valide la config du projet, en renvoyant une `VerbatraConfig`. Options : `{ cwd?, configPath?, configOverride? }`, par ordre de priorité : `configOverride` (valider un objet en mémoire), puis `configPath` (charger un fichier explicite), puis la recherche. La recherche démarre à `cwd` et couvre `verbatra.config.ts` (aussi `.js`/`.cjs`), la famille `.verbatrarc` (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) et une propriété `"verbatra"` dans `package.json`. Un `glossary` donné comme chemin de fichier est lu et validé ici, donc le code en aval voit toujours un glossaire en mémoire : une table de version 1 du terme source vers sa traduction, ou une définition de version 2.
 
 Lève `CONFIG_NOT_FOUND` quand rien n'est trouvé, `CONFIG_INVALID` quand une config est trouvée mais invalide. Voir [Le fichier de configuration](/docs/config-file) pour le schéma.
 
@@ -640,7 +640,7 @@ Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre out
 
 ### scaffoldingMetadata
 
-Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL n'a pas d'entrée car il ne prend aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "none">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
+Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL et Google Cloud Translation n'ont pas d'entrée car ils ne prennent aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "none">` et couvre donc les cinq fournisseurs hébergés ; `openai-compatible` en est exclu parce qu'il n'a pas de variable d'environnement unique requise.
 
 `scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
 
@@ -824,7 +824,7 @@ interface LocaleSummary {
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
   invalidIcuSource: string[];    // source keys skipped for invalid ICU
   integrityMismatches: string[]; // translations the integrity gate withheld
-  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate and watch only
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
@@ -862,7 +862,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | Code | Quand |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | aucune config trouvée par la recherche, ou un `configPath` explicite n'existe pas (levé par `loadConfig`) |
-| `CONFIG_INVALID` | une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu |
+| `CONFIG_INVALID` | une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu ; un `translate` hors dry run et `retranslateEntry` le lèvent aussi quand `VERBATRA_NETWORK_POLICY` ou `VERBATRA_NETWORK_ALLOWED_HOSTS` contient une valeur invalide, avant qu'aucun fournisseur ne soit construit |
 | `UNKNOWN_FORMAT` | aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute lecture de fichier |
 | `UNKNOWN_LOCALE` | une locale demandée n'est pas parmi les locales cibles configurées |
 | `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
@@ -874,14 +874,14 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `SOURCE_UNREADABLE` | le fichier de la locale source n'existe pas |
 | `SOURCE_INVALID` | le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'erreur de lecture de l'adaptateur |
 | `LOCK_FILE_INVALID` | le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une version non prise en charge |
-| `PROVENANCE_FILE_INVALID` | le fichier de provenance est présent mais corrompu, trop volumineux ou mal formé ; levé par une écriture (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`) avant qu'elle ne change quoi que ce soit, et par `loadProvenance`, jamais par un rapport ; celui d'un verbatra plus récent est laissé intact à la place, et `translate`, `watch` et `importWorkbook` signalent l'avis `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_INVALID` | le fichier de provenance est présent mais corrompu, trop volumineux ou mal formé ; levé par une écriture (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) avant qu'elle ne change quoi que ce soit, et par `loadProvenance`, jamais par un rapport ; celui d'un verbatra plus récent est laissé intact à la place, et `translate`, `watch` et `importWorkbook` signalent l'avis `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `PROVENANCE_FILE_UNWRITABLE` | une décision de revue n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit |
 | `REVIEW_VALUE_CHANGED` | la clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | la source a changé depuis l'écriture de la valeur, qui ne peut donc pas être approuvée telle quelle (`approveEntry`) |
-| `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF, donc `rejectEntry` a restauré le fichier à la place |
+| `REVIEW_REJECT_UNSUPPORTED` | le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF, ou le fichier de locale est trop volumineux pour en garder une copie à restaurer, donc `rejectEntry` a laissé le fichier tel quel |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` a échoué après avoir réécrit le fichier de locale, et la restauration du fichier de locale ou du fichier de provenance a échoué aussi ; le message nomme l'échec d'origine (aussi la `cause`) et les fichiers à récupérer depuis le contrôle de version |
 | `REVIEWER_INVALID` | `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | le verrou d'écriture d'une locale n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
+| `LOCK_CONTENDED` | le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
 | `GLOSSARY_NOT_FILE_BACKED` | le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glossaire n'a pas pu être créé, par exemple dans un projet en lecture seule, ou libéré après une modification enregistrée (`updateGlossaryTerm`) ; l'erreur du système de fichiers est la `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` et `files.localeStyle` ne peuvent pas être combinés, ou le style n'a pas d'écriture de chemin valide pour une locale configurée |

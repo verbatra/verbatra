@@ -8,9 +8,12 @@ export interface StoppableSession {
   requestStop(): void;
 }
 
+export type StopCause = "requested" | "ended";
+
 export interface StoppableSessionOptions<C extends StoppableController> {
   getController(): Promise<C>;
   onStopRequested?: () => void;
+  onStopped?: (cause: StopCause) => void;
   onFailure(error: unknown): number;
 }
 
@@ -30,7 +33,10 @@ export function stoppableSession<C extends StoppableController>(
   const stopController = (c: C): void => {
     void c
       .stop()
-      .then(() => resolveDone(0))
+      .then(() => {
+        options.onStopped?.("requested");
+        resolveDone(0);
+      })
       .catch((error: unknown) => resolveDone(options.onFailure(error)));
   };
 
@@ -43,6 +49,7 @@ export function stoppableSession<C extends StoppableController>(
           return;
         }
         endedCleanly = true;
+        options.onStopped?.("ended");
         resolveDone(0);
       });
       if (stopping) {

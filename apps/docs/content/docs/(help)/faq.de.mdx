@@ -7,13 +7,19 @@ symptomorientierte Hilfe bei Fehlermeldungen siehe [Fehlerbehebung](/docs/troubl
 
 ## Wie kontrolliere ich die Kosten?
 
-Vier Hebel, alle ohne Provider-Aufruf, bis du dich anders entscheidest:
+Sechs Hebel, alle ohne Provider-Aufruf, bis du dich anders entscheidest:
 
 - Läufe sind standardmäßig inkrementell: Nur Keys, die fehlen oder deren Quelle sich seit der
   Lock-Baseline geändert hat, gehen an den Provider. Ein unverändertes Projekt kostet beim
   erneuten Lauf nichts.
 - `--dry-run` (oder `translate({ config, dryRun: true })`) zeigt exakt, was gesendet würde, ohne
   Provider-Aufruf und ohne Schreibvorgänge.
+- `verbatra translate --estimate` bemisst den Lauf zusätzlich zu diesem Dry Run: Keys,
+  Provider-Anfragen, die abgerechnete Menge und einen Betrag in einer Währung, wenn die
+  Konfiguration `rates` für den Provider enthält. Siehe [Kosten abschätzen](/docs/estimating-cost).
+- `verbatra translate --max-tokens <n>` setzt eine harte Token-Obergrenze für einen einzelnen Lauf,
+  ohne die Konfiguration anzufassen; setzt die Konfiguration auch `maxTokens`, gilt der kleinere
+  der beiden Werte.
 - `maxTokens` in der Konfiguration setzt eine Token-Obergrenze für den ganzen Lauf, und
   `budgetBehavior` entscheidet, was bei Erreichen passiert: `"warn"` (Default) vermerkt es und
   macht weiter, `"stop"` hält jeden noch nicht versuchten Key zurück; zurückgehaltene Keys werden
@@ -134,8 +140,9 @@ sich geändert hat, führe einfach `translate` aus: Das ist der normale inkremen
 
 `@verbatra/cli` hängt von `@verbatra/sdk` ab; die Installation der CLI bringt das SDK also
 automatisch mit, es gibt nichts extra zu installieren. Umgekehrt gilt das auch: Das SDK
-funktioniert eigenständig in deinen eigenen Skripten ohne CLI. Nur `@verbatra/studio` ist eine
-separate, optionale Installation, dynamisch geladen vom `studio`-Befehl.
+funktioniert eigenständig in deinen eigenen Skripten ohne CLI. Nur `@verbatra/studio` und
+`@verbatra/mcp` sind separate, optionale Installationen, dynamisch geladen von den Befehlen `studio`
+und `mcp`.
 
 ## Wo leben API-Schlüssel?
 
@@ -160,20 +167,26 @@ die Aufbewahrungsbedingungen der Anbieter und eine Checkliste für ein AVV- oder
 
 <AvailableFrom version="0.9.0" />
 
-Fünf Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
-lesen:
+Neun Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
+lesen. Die ersten sechs können fehlschlagen; die letzten drei sind rein informativ und tun das nie:
 
 - Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
 - Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
 - Provider: Die konfigurierte `provider.id` löst sich zu einer Provider-Factory auf.
 - API key environment variable: Die Variable, aus der dieser Provider seinen API-Schlüssel liest, ist
   gesetzt (nur dem Namen nach geprüft, nie am Wert).
+- Network policy: Die wirksame [Netzwerkrichtlinie](/docs/network-policy) erlaubt den Host, zu dem
+  sich der konfigurierte Provider verbindet, und jeden Proxy, den er nutzen würde.
 - Source locale file: Die Quell-Locale-Datei existiert unter ihrem aufgelösten Pfad, ist eine
   reguläre Datei und lässt sich im konfigurierten Format parsen.
+- Plural rules, Locale codes und Locale state: die ICU- und CLDR-Versionen, aus denen die
+  Pluralkategorien stammen, konfigurierte Locale-Codes, die nicht in kanonischer BCP-47-Form sind,
+  und Zustand, der für eine Locale zurückgeblieben ist, die die Konfiguration nicht mehr aufführt.
+  Siehe [verbatra doctor](/docs/cli/doctor).
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes
 unabhängige Problem auf einmal. Die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
-fehl, werden die vier Prüfungen übersprungen, die sie brauchen.
+fehl, werden die acht Prüfungen übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor

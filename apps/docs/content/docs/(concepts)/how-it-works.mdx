@@ -37,6 +37,10 @@ Only missing and changed keys become translation candidates. Unchanged keys are 
 Orphaned keys are reported and, by default, left in place; with `--prune` (or `prune: true` in the
 config) exactly those keys are removed from the target file and the lock, and nothing else.
 
+<AvailableFrom version="0.12.0" />
+
+Two kinds of candidate are held back. A changed key whose current value a person wrote or imported is protected by default (`humanEdits`), and a key matching `pinnedKeys` is never machine-translated; both stay stale until a person resolves them. See [Protecting human translations](/docs/protecting-human-translations).
+
 ## Batch to the provider
 
 Before anything is sent, every candidate is looked up in the local translation-memory cache

@@ -797,7 +797,8 @@ Finds, loads, and validates the project config, returning a `VerbatraConfig`. Op
 object) over `configPath` (load one explicit file) over search. The search starts at `cwd` and
 covers `verbatra.config.ts` (also `.js`/`.cjs`), the `.verbatrarc` family (`.json`, `.yaml`,
 `.yml`, `.js`, `.cjs`, `.ts`), and a `"verbatra"` property in `package.json`. A `glossary` given as
-a file path is read and validated here, so downstream code always sees a plain record.
+a file path is read and validated here, so downstream code always sees an in-memory glossary: a
+version 1 map from source term to translation, or a version 2 definition.
 
 Throws `CONFIG_NOT_FOUND` when nothing is found, `CONFIG_INVALID` when a config is found but
 invalid. See [The config file](/docs/config-file) for the schema.
@@ -936,8 +937,8 @@ the environment variable its key is read from), `scaffoldModels` (a default scaf
 provider), `providerTokenLimitKeys` (the option key each LLM provider takes its output token limit
 under), and `supportedFormats` (the closed set of format ids). Read the token-limit key from
 `providerTokenLimitKeys` rather than assuming one: Anthropic calls it `maxTokens` and the others
-`maxOutputTokens`, the schema validates each provider's options strictly, and DeepL has no entry
-because it takes no token limit. The `ScaffoldableProviderId` type is
+`maxOutputTokens`, the schema validates each provider's options strictly, and DeepL and Google Cloud
+Translation have no entry because they take no token limit. The `ScaffoldableProviderId` type is
 `Exclude<ProviderId, "openai-compatible" | "none">`, so it covers the five hosted providers;
 `openai-compatible` is excluded because it has no single required environment variable.
 
@@ -1146,7 +1147,7 @@ interface LocaleSummary {
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
   invalidIcuSource: string[];    // source keys skipped for invalid ICU
   integrityMismatches: string[]; // translations the integrity gate withheld
-  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate and watch only
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run
@@ -1233,7 +1234,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | Code | When |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | no config was found by search, or an explicit `configPath` does not exist (thrown by `loadConfig`) |
-| `CONFIG_INVALID` | a config was found but is unparseable or fails validation, or its glossary file could not be resolved |
+| `CONFIG_INVALID` | a config was found but is unparseable or fails validation, or its glossary file could not be resolved; a non-dry-run `translate` and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built |
 | `UNKNOWN_FORMAT` | no adapter is registered for the configured format; thrown before any file is read |
 | `UNKNOWN_LOCALE` | a requested locale is not among the configured target locales |
 | `UNKNOWN_KEY` | a requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
@@ -1245,14 +1246,14 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNREADABLE` | the source locale file does not exist |
 | `SOURCE_INVALID` | the source locale file could not be read or parsed; wraps the adapter's read error |
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |
-| `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `PROVENANCE_FILE_UNWRITABLE` | a review decision could not be saved because the provenance file is from a newer verbatra or would grow past the size verbatra reads back (`approveEntry`, `rejectEntry`); nothing is written |
 | `REVIEW_VALUE_CHANGED` | the key has no value, or its value is not the `expectedValue` the reviewer saw (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | the source changed since the value was written, so it cannot be approved as it stands (`approveEntry`) |
-| `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, so `rejectEntry` restored the file instead |
+| `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, or the locale file is too large to keep a copy to restore, so `rejectEntry` left the file as it was |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control |
 | `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
+| `LOCK_CONTENDED` | a locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project, or released after a saved edit (`updateGlossaryTerm`); the file-system error is the `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` and `files.localeStyle` cannot be combined, or the style has no valid path spelling for a configured locale |

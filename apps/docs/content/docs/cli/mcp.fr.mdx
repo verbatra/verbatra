@@ -170,6 +170,19 @@ Chaque résultat d'outil et chaque ligne de log passe par la même expurgation d
 
 Le transport stdio de MCP utilise stdout exclusivement pour les messages du protocole. `verbatra mcp` et `verbatra-mcp` n'impriment jamais de bannière, de ligne de log ni rien d'autre sur stdout ; tous les logs et diagnostics vont sur stderr à la place. Le serveur charge la config avant de connecter le transport, donc une erreur de config est écrite sur stderr immédiatement et le processus sort sans jamais parler le protocole. Une fois en marche, les diagnostics par appel (un appel échoué, un appel rejeté parce qu'un appel correspondant est en cours, un outil inconnu) vont aussi sur stderr.
 
+### Ce qu'il affiche sur stderr
+
+<AvailableFrom version="0.12.0" />
+
+Une fois le serveur connecté, `verbatra mcp` écrit une ligne de disponibilité sur stderr, comme le font les serveurs MCP de référence, et une ligne quand il s'arrête :
+
+```text
+verbatra MCP server running on stdio (project ., spend tools off)
+verbatra MCP server stopped (client closed stdin)
+```
+
+Le projet est affiché relativement au répertoire depuis lequel tu l'as lancé, et `spend tools` indique si `--allow-spend` est actif. La ligne d'arrêt indique `client closed stdin` quand le client s'est déconnecté et `interrupted` après Ctrl-C ou SIGTERM. Si tu lances le serveur à la main, de sorte que stdin est un terminal et non un client, il explique en plus qu'un client MCP doit le lancer, comment l'ajouter à un client, comment l'ouvrir dans le MCP Inspector (`npx @modelcontextprotocol/inspector npx verbatra mcp`) et que Ctrl-C l'arrête. `verbatra mcp --quiet` n'affiche aucune de ces lignes. `verbatra-mcp` affiche les mêmes lignes à partir de `@verbatra/mcp` 0.3.0.
+
 ## Installation
 
 `@verbatra/mcp` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra mcp` sort avec le code `2` en affichant :
