@@ -307,7 +307,7 @@ describe("updateLockFileLocale: the internal lock-file guard serializes concurre
     const fs: SdkFs = {
       fileExists: async () => true,
       readFileBounded: async (path: string): Promise<BoundedFileRead> => {
-        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+        if (path.endsWith(PROVENANCE_FILE_NAME) || path.endsWith(".lock")) {
           return { kind: "missing" };
         }
         insideCount += 1;

@@ -41,7 +41,7 @@ In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`
 
 `--locales de,fr` narrows the run to a subset of the configured targets. Locales left out are untouched: their files, their lock entries, and their cache entries all stay as they were. It is the flag to reach for on a rate-limited free tier, where translating one locale at a time is the only way through, and it is also the fastest way to re-run a single locale that came out partial. The run-status snapshot always describes the most recent run alone, so a subset run narrows it to that subset.
 
-`--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file) before that locale fails with `LOCK_CONTENDED`. The other locales still run, and the command exits `1` with the code on that locale's summary, like any other failed locale. Raise it when another run legitimately holds the lock for a while, lower it to fail fast in CI.
+`--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file) before that locale fails with `LOCK_CONTENDED`. The other locales still run, and the command exits `1` with the code on that locale's summary, like any other failed locale. Raise it when another run legitimately holds the lock for a while, lower it to fail fast in CI. A lock left behind by a verbatra process that is no longer running on this machine is reclaimed at once rather than waited out, and Ctrl-C or SIGTERM releases the run's locks before the command exits `130` (`143` for SIGTERM).
 
 <AvailableFrom version="0.12.0" />
 

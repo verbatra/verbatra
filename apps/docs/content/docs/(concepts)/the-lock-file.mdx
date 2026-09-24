@@ -90,9 +90,19 @@ lock file), it stops claiming new locales and waits for the ones already running
 every lock the run took is released before the command exits. No locale is started after the run
 has already failed, and no lock is orphaned by the failure itself.
 
+Each lock file records the process ID and the host name of the process holding it. A process
+killed hard can still leave one behind, so a waiting run checks the recorded process: when it ran
+on this machine and no longer exists, the run reclaims the lock at once instead of waiting out
+`--lock-timeout`. Reclaiming is serialized, so two waiting runs never both take over the same
+abandoned lock. A lock recorded on another machine (a shared network drive) or by a verbatra
+version older than 0.12.0 carries nothing that can be checked safely, so it is never reclaimed.
+
+An interrupt releases the locks a run holds before the process exits: Ctrl-C or SIGTERM during
+`translate` or `import`, and the second interrupt that force-stops `watch`.
+
 If a lock cannot be acquired, the run fails with `LOCK_CONTENDED` and names the lock file's path
-(under the gitignored `.verbatra-local/` directory). If no verbatra process is running, that file
-was left behind by a killed one: delete it and retry.
+(under the gitignored `.verbatra-local/` directory). If no verbatra process is running anywhere,
+delete that file and retry.
 
 ## Missing or corrupt
 

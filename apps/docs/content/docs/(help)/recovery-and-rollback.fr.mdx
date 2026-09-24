@@ -124,8 +124,12 @@ une source ICU invalide, ou un budget de tokens arrêté) conservent leur hash p
 enregistrées comme faites, si bien que l'exécution suivante les réessaie. Voir
 [Dépannage](/docs/troubleshooting) pour ce que signifie chacun de ces cas.
 
-Si le processus interrompu a été tué brutalement, il a pu laisser un verrou d'écriture sous
-`.verbatra-local/`. L'exécution suivante signale `LOCK_CONTENDED` et affiche le chemin à supprimer.
+Une exécution interrompue libère ses verrous d'écriture avant de se terminer. Un processus tué
+brutalement (`kill -9`, un plantage) peut quand même en laisser un sous `.verbatra-local/` ;
+l'exécution suivante sur la même machine voit que le processus enregistré n'existe plus et reprend
+le verrou elle-même. Seul un verrou qu'elle ne peut pas vérifier (enregistré sur une autre machine,
+ou par une version antérieure à 0.12.0) la fait attendre puis signaler `LOCK_CONTENDED` avec le
+chemin à supprimer.
 
 ## Avant une exécution difficile à annuler
 

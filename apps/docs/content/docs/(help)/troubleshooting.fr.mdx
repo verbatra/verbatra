@@ -190,16 +190,18 @@ précédents, donc rien n'est écrit à moitié.
 
 ## Un autre processus détient le verrou d'écriture (LOCK_CONTENDED)
 
-**Symptôme** : `Could not acquire the write lock at <path>: another process may be holding it. If no
-verbatra process is currently running, this lock file was likely left behind by one that was
-killed; delete it and retry.`
+**Symptôme** : `Could not acquire the write lock at <path>: another process is holding it. A lock left
+behind by a process that is no longer running on this machine is reclaimed automatically, so this
+one belongs to a live process, a process on another machine, or an older verbatra version. If no
+verbatra process is running anywhere, delete it and retry.`
 
 **Cause** : les écritures d'une locale sont sérialisées via un fichier de verrouillage par locale. Un
-`translate`, `watch`, `import` ou une écriture Studio concurrente le détient, ou un processus tué
-a laissé le fichier de verrouillage derrière lui.
+`translate`, `watch`, `import` ou une écriture Studio concurrente le détient. Un verrou laissé par un
+processus terminé sur cette machine est repris automatiquement, donc un verrou qui persiste a été
+enregistré sur une autre machine ou par une version de verbatra antérieure à 0.12.0.
 
-**Solution** : exactement ce que dit le message : attends que l'autre exécution finisse, ou, si
-aucune ne tourne, supprime le fichier de verrouillage au chemin affiché et réessaie. Pour changer combien
+**Solution** : attends que l'autre exécution finisse, ou, si aucun processus verbatra ne tourne
+nulle part, supprime le fichier de verrouillage au chemin affiché et réessaie. Pour changer combien
 de temps une exécution attend avant d'abandonner, passe `--lock-timeout <seconds>` à
 [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) ; la valeur par défaut est `600`
 secondes.
