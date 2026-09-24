@@ -519,7 +519,7 @@ describe("integrity gate: an empty provider value never reaches disk or the cach
     expect(summary.locales[0]?.integrityMismatches).toEqual(["a"]);
     expect(summary.locales[0]?.translated).toEqual([]);
     expect(summary.succeeded).toEqual([]);
-    expect(await readTarget(dir, "de")).not.toHaveProperty("a");
+    expect(await defaultFs.fileExists(targetPath(dir, "de"))).toBe(false);
   });
 
   it("never overwrites an existing good translation of a changed key with an empty value", async () => {
