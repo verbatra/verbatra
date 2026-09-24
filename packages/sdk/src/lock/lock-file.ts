@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { ownValue, sortRecordKeys } from "../record-utils.js";
+import { ownValue, renameRecordKeys, sortRecordKeys } from "../record-utils.js";
 import { withLockFileGuard } from "./locale-write-lock.js";
 import {
   type ProvenancePatch,
@@ -72,6 +72,18 @@ export async function readLockFile(path: string, fs: SdkFs): Promise<LockFile> {
   return parseLockFileRead(await fs.readFileBounded(path, MAX_LOCK_FILE_BYTES), path);
 }
 
+export function lockLocalesWithState(lock: LockFile): ReadonlySet<string> {
+  return new Set(
+    Object.entries(lock.locales)
+      .filter(([, entries]) => Object.keys(entries).length > 0)
+      .map(([locale]) => locale),
+  );
+}
+
+export function withLockLocalesMoved(lock: LockFile, moves: ReadonlyMap<string, string>): LockFile {
+  return { version: lock.version, locales: renameRecordKeys(lock.locales, moves) };
+}
+
 export function baselineFor(lock: LockFile, locale: string): ReadonlyMap<string, string> {
   return new Map(Object.entries(lock.locales[locale] ?? {}));
 }
@@ -90,6 +102,10 @@ function serializeLockFile(lock: LockFile): string {
   }
   const ordered = { version: lock.version, locales };
   return `${JSON.stringify(ordered, null, 2)}\n`;
+}
+
+export async function writeLockFile(path: string, lock: LockFile, fs: SdkFs): Promise<void> {
+  await fs.writeFile(path, serializeLockFile(lock));
 }
 
 export type LockLocalePatch =

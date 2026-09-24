@@ -24,6 +24,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
+import { describeLocaleState } from "./locale-state-doctor.js";
 import { checkNetworkPolicy } from "./network-doctor.js";
 import { describePluralRules } from "./plural-rules.js";
 import { readSourceResource } from "./source.js";
@@ -50,6 +51,11 @@ import { readSourceResource } from "./source.js";
  * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
  *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
  *   canonical form `Intl.getCanonicalLocales` suggests for it.
+ * - `locale-state`: informational, never fails. Names every locale that has state in the lock
+ *   file, the translation memory, or the provenance file but is not configured, such as `pt_BR`
+ *   left behind after the config respelled it `pt-BR`, says whether the next {@link translate} run
+ *   carries it over to the configured spelling, and suggests removing it or respelling the
+ *   configured locale otherwise.
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
@@ -63,6 +69,7 @@ export type DoctorCheckId =
   | "source-file"
   | "plural-rules"
   | "locale-codes"
+  | "locale-state"
   | "untranslated-literals";
 
 /**
@@ -95,7 +102,7 @@ export interface DoctorResult {
   /**
    * Every check that ran, always in the same order. A setup run has one entry per setup check:
    * `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
-   * `plural-rules`, and `locale-codes`. A literal run ({@link DoctorInput.literals}) has exactly
+   * `plural-rules`, `locale-codes`, and `locale-state`. A literal run ({@link DoctorInput.literals}) has exactly
    * two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
@@ -118,7 +125,7 @@ export interface DoctorInput {
    * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
    * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
    * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
-   * `source-file`, `plural-rules`, `locale-codes`), so no API key environment variable is looked
+   * `source-file`, `plural-rules`, `locale-codes`, `locale-state`), so no API key environment variable is looked
    * at and a run with no key set can pass.
    */
   readonly literals?: boolean;
@@ -147,6 +154,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "source-file": "Source locale file",
   "plural-rules": "Plural rules",
   "locale-codes": "Locale codes",
+  "locale-state": "Locale state",
   "untranslated-literals": "Untranslated literals",
 };
 
@@ -158,6 +166,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "source-file",
   "plural-rules",
   "locale-codes",
+  "locale-state",
 ];
 
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
@@ -385,6 +394,10 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
  * configured code, so nothing is renamed.
  *
+ * An eighth, informational check never fails either: it reads the lock file, the translation
+ * memory, and the provenance file, and names every locale they hold state for that the config does
+ * not list, with what the next {@link translate} run will do about it.
+ *
  * A config whose provider is `none` passes both the provider and the key check: its provider check
  * reports that machine translation is disabled by policy, and no key variable is looked at.
  *
@@ -392,7 +405,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * {@link translate} creates it. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the seven config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the eight config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -441,18 +454,21 @@ export async function doctor(
   }
   const { config, source } = outcome.loaded;
   const adapter = resolveAdapter(config, deps);
+  const cwd = input.cwd ?? process.cwd();
+  const fs = deps.fs ?? defaultFs;
   return toResult([
     verdict("config", true, configDetail(source)),
     checkAdapter(config, adapter),
     checkProvider(config.provider),
     checkApiKey(config.provider),
     networkPolicyCheck(config),
-    await checkSourceFile(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs, adapter),
+    await checkSourceFile(config, cwd, fs, adapter),
     verdict("plural-rules", true, describePluralRules(config.targetLocales)),
     verdict(
       "locale-codes",
       true,
       describeLocaleCodes([config.sourceLocale, ...config.targetLocales]),
     ),
+    verdict("locale-state", true, await describeLocaleState(config, cwd, fs)),
   ]);
 }

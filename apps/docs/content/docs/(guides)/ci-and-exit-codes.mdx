@@ -200,6 +200,7 @@ interface DoctorCheck {
     | "source-file"
     | "plural-rules"
     | "locale-codes"
+    | "locale-state"
     | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false

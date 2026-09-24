@@ -90,7 +90,7 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
 
 <AvailableFrom version="0.12.0" />
 
-Every locale code, source and target alike, must be a well-formed tag that `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag. An invalid code fails the config load with `CONFIG_INVALID`, naming the field and the code. Underscores are not part of BCP 47, so `pt_BR` is rejected: write `pt-BR` and set `files.localeStyle` to `posix` if your file names use `pt_BR`. A language name such as `german` is rejected too. A code that is valid but not in canonical form, such as `zh-hant-tw` or the deprecated `iw` (now `he`), still loads and works as written; [`verbatra doctor`](/docs/cli/doctor) names it and suggests the canonical form. verbatra never renames a file for you.
+Every locale code, source and target alike, must be a well-formed tag that `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag. An invalid code fails the config load with `CONFIG_INVALID`, naming the field and the code. Underscores are not part of BCP 47, so `pt_BR` is rejected: write `pt-BR` and set `files.localeStyle` to `posix` if your file names use `pt_BR`. A language name such as `german` is rejected too. A code that is valid but not in canonical form, such as `zh-hant-tw` or the deprecated `iw` (now `he`), still loads and works as written; [`verbatra doctor`](/docs/cli/doctor) names it and suggests the canonical form. verbatra never renames a file for you. When you respell a code you already translate, the next `translate` run carries its lock-file, translation-memory, and provenance state over to the new spelling; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code).
 
 ### provider
 
