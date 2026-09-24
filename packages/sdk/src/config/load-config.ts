@@ -16,6 +16,7 @@ import {
 import { configLoadFailure } from "./load-failure.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
 import { declareProviderKeyEnvVar } from "./provider-key-env.js";
+import { findDroppedLocaleMapKeys } from "./provider-locale-map.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
 import { type ParsedVerbatraConfig, type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
 
@@ -152,6 +153,17 @@ function parseConfig(input: unknown): ParsedVerbatraConfig {
     throw new SdkError(
       "CONFIG_INVALID",
       `The verbatra configuration is invalid: ${formatIssues(parsed.error)}`,
+    );
+  }
+  const dropped = findDroppedLocaleMapKeys(parsed.data, input);
+  if (dropped.length > 0) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      `The verbatra configuration is invalid: ${redact(
+        dropped
+          .map(({ key, message }) => `provider.options.localeMap.${key}: ${message}`)
+          .join("; "),
+      )}`,
     );
   }
   return withRawInlineGlossary(parsed.data, input);
