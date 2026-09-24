@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+/** Every {@link HumanEditsPolicy}, in the order the config schema lists them. */
 export const HUMAN_EDITS_POLICIES = ["protect", "suggest", "overwrite"] as const;
 
 /**

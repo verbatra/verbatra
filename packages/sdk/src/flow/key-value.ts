@@ -63,7 +63,8 @@ export interface KeyValueResult {
  *
  * @param input - The config, locale, and key to read.
  * @param deps - Optional adapter registry and file-system overrides.
- * @returns The key's source text and, when present, its current translation.
+ * @returns The key's source text, its description when the source locale file gives one, and,
+ * when present, its current translation with that translation's provenance.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.

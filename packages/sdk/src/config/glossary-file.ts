@@ -414,6 +414,7 @@ export async function readCurrentGlossary(
   return inline === undefined ? undefined : normalizeGlossary(inline);
 }
 
+/** `T` with every field optional and accepting an explicit `undefined`. */
 type OptionalFields<T> = { readonly [K in keyof T]?: T[K] | undefined };
 
 /** Input for {@link editConfiguredGlossaryTerm}. */
