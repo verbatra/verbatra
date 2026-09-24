@@ -105,6 +105,41 @@ describe("EditEntryDialog", () => {
     expect(editor(arabic).getAttribute("dir")).toBe("rtl");
   });
 
+  it("shows a labelled, read-only preview under the editor for a right-to-left locale that follows typing", async () => {
+    stubRpc({ "key.value": keyValue("Hello {name}", "مرحبا {name}") });
+
+    const view = await renderAsync(
+      <EditEntryDialog locale="ps" keyName={KEY} onClose={vi.fn()} onAccepted={vi.fn()} />,
+    );
+    const preview = view.get("figure[data-edit-preview]");
+
+    expect(preview.querySelector("figcaption")?.textContent).toBe("Preview");
+    expect(preview.querySelector("textarea, input")).toBeNull();
+    expect(preview.querySelector("p[dir]")?.getAttribute("dir")).toBe("rtl");
+    expect(preview.querySelector("bdi")?.textContent).toBe("{name}");
+
+    typeInto(editor(view), "{n, plural, one {# ورځ} other {# ورځې}}");
+
+    const tokens = Array.from(view.get("[data-edit-preview]").querySelectorAll("bdi"));
+    expect(tokens.map((node) => node.textContent)).toEqual([
+      "{n, plural,",
+      "one {",
+      "#",
+      "} other {",
+      "#",
+      "}",
+      "}",
+    ]);
+  });
+
+  it("shows no preview for a left-to-right locale", async () => {
+    stubRpc({ "key.value": keyValue("Hello {name}", "Hallo {name}") });
+
+    const view = await renderAsync(dialog());
+
+    expect(view.query("[data-edit-preview]")).toBeNull();
+  });
+
   it("writes a left-to-right translation left to right and isolates the source's placeholders", async () => {
     stubRpc({ "key.value": keyValue("Hello {name}", "Hallo {name}") });
 
