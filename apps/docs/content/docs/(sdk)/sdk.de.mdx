@@ -1278,11 +1278,15 @@ geworfen.
 Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
 `SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
 Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
-Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` (der
-Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` und
+`GLOSSARY_UNWRITABLE` (der Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
 `CONFIG_NOT_FOUND` und `CONFIG_INVALID` tragen bewusst keinen, weil der Fehler eines Config-Parsers
 den Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
-mitreisen darf.
+mitreisen darf. Geschwärzt wird bei `PROVIDER_CONSTRUCTION_FAILED` nur die Meldung: Der `cause` ist
+der ursprüngliche Fehler, unverändert. Die eingebauten Provider-Factories werfen Fehler ohne
+Geheimnis, und ein Fehler aus einem `createProvider`, das du selbst übergibst, kommt genau so zurück,
+wie du ihn geworfen hast. Halte also Geheimnisse aus ihm heraus oder schwärze ihn selbst, bevor du
+den `cause` loggst.
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen
 `ProviderError` des Providers weiter, wenn der einzelne Aufruf fehlschlägt, und `runStatus` wirft

@@ -38,7 +38,9 @@ export interface CreateProviderContext {
  * seam for injecting a stub in a test or a provider the SDK does not ship.
  *
  * The default implementation dispatches on the provider ID and reads the API key from the
- * environment. A factory that throws is reported as `PROVIDER_CONSTRUCTION_FAILED`. It is never
+ * environment. A factory that throws is reported as `PROVIDER_CONSTRUCTION_FAILED`, whose message
+ * redacts the thrown error's message and whose `cause` is the thrown error itself, not redacted, so a
+ * factory you supply should keep secrets out of what it throws. It is never
  * called for a config whose provider is `none`: that is refused as `MACHINE_TRANSLATION_DISABLED`
  * before any factory runs. Nor is it called when the network policy refuses the provider's
  * endpoint: that is refused as `NETWORK_POLICY_VIOLATION` before any API key is read.

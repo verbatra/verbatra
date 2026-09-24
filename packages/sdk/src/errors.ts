@@ -44,7 +44,10 @@
  *   by {@link retranslateEntry}, and by {@link editEntry} for an `agent` actor.
  * - `PROVIDER_CONSTRUCTION_FAILED`: the provider factory threw. Wraps the provider's own error,
  *   including a missing `*_API_KEY` environment variable, as the `cause`, with its message redacted
- *   into this one. Thrown by a non-dry-run {@link translate} and by {@link retranslateEntry}.
+ *   into this one. The `cause` itself is the original error, not redacted: the built-in factories
+ *   throw errors that carry no secret, and an error thrown by a caller-supplied `createProvider` is
+ *   returned exactly as it was thrown. Thrown by a non-dry-run {@link translate} and by
+ *   {@link retranslateEntry}.
  * - `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`, so machine
  *   translation is disabled by policy and a provider-spending action was refused before any
  *   provider was constructed or any API key read. Thrown by {@link retranslateEntry} and by
@@ -272,9 +275,9 @@ export class SdkError extends Error {
    * @param options - `cause` carries the error this one wraps, such as the interchange reader's
    * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
    * `tmxErrorLocation` rather than from the cause directly. Only `SOURCE_INVALID`,
-   * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE` and `REVIEW_RESTORE_FAILED` carry one;
-   * `CONFIG_NOT_FOUND` and `CONFIG_INVALID` never do, because a config parser's error can quote
-   * the file's content.
+   * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE` and
+   * `REVIEW_RESTORE_FAILED` carry one; `CONFIG_NOT_FOUND` and `CONFIG_INVALID` never do, because a
+   * config parser's error can quote the file's content.
    */
   constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown }) {
     super(message, options);
