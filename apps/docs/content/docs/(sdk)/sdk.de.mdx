@@ -507,8 +507,8 @@ Ist `target` vorhanden, trägt das Ergebnis außerdem `provenance`, die ausgewer
 
 Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
 durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irgendetwas die Platte
-erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb des
-Schreibsperres dieser Locale aktualisiert. Ruft nie einen Provider auf.
+erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
+Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, value }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
@@ -1260,7 +1260,7 @@ geworfen.
 | `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF und Flutter ARB, also hat `rejectEntry` die Datei stattdessen wiederhergestellt |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` ist nach dem Umschreiben der Locale-Datei gescheitert, und auch das Wiederherstellen der Locale-Datei oder der Herkunftsdatei schlug fehl; die Message nennt den ursprünglichen Fehler (auch die `cause`) und die Dateien, die du aus der Versionskontrolle wiederherstellst |
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | das Schreibsperre einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
+| `LOCK_CONTENDED` | die Schreibsperre einer Locale konnte nicht vor ihrem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt, oder nach einer gespeicherten Änderung nicht freigegeben werden (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |
@@ -1284,11 +1284,15 @@ geworfen.
 Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
 `SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
 Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
-Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` (der
-Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` und
+`GLOSSARY_UNWRITABLE` (der Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
 `CONFIG_NOT_FOUND` und `CONFIG_INVALID` tragen bewusst keinen, weil der Fehler eines Config-Parsers
 den Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
-mitreisen darf.
+mitreisen darf. Geschwärzt wird bei `PROVIDER_CONSTRUCTION_FAILED` nur die Meldung: Der `cause` ist
+der ursprüngliche Fehler, unverändert. Die eingebauten Provider-Factories werfen Fehler ohne
+Geheimnis, und ein Fehler aus einem `createProvider`, das du selbst übergibst, kommt genau so zurück,
+wie du ihn geworfen hast. Halte also Geheimnisse aus ihm heraus oder schwärze ihn selbst, bevor du
+den `cause` loggst.
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen
 `ProviderError` des Providers weiter, wenn der einzelne Aufruf fehlschlägt, und `runStatus` wirft

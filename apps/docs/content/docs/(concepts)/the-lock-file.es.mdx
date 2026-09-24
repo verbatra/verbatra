@@ -97,14 +97,25 @@ terminen los que ya están en marcha, así que cada bloqueo que tomó la ejecuci
 que el comando salga. Ningún locale se inicia después de que la ejecución ya haya fallado, y el
 fallo en sí no deja huérfano ningún bloqueo.
 
-Cada archivo de bloqueo registra el ID de proceso y el nombre de host del proceso que lo tiene. Un
-proceso terminado a la fuerza puede dejar uno atrás igualmente, así que una ejecución en espera
-comprueba el proceso registrado: si se ejecutaba en esta máquina y ya no existe, la ejecución
+Cada archivo de bloqueo registra el ID de proceso y el nombre de host del proceso que lo tiene, y en
+Linux también el ID de arranque del kernel y el espacio de nombres de PID del proceso. Un proceso
+terminado a la fuerza puede dejar uno atrás igualmente, así que una ejecución en espera comprueba el
+proceso registrado: si cada campo de identidad del bloqueo coincide con el de la ejecución en
+espera (así que el proceso se ejecutaba en esta máquina, en la misma tabla de procesos) y ese
+proceso ya no existe, la ejecución
 recupera el bloqueo al instante en lugar de agotar `--lock-timeout`. La recuperación está
 serializada, así que dos ejecuciones en espera nunca se quedan a la vez con el mismo bloqueo
 abandonado. Un bloqueo registrado en otra máquina (una unidad de red compartida) o por una versión
 de verbatra anterior a 0.12.0 no contiene nada que se pueda comprobar con seguridad, así que nunca
-se recupera.
+se recupera. Lo mismo vale para un bloqueo que registra un campo de identidad que la ejecución en
+espera no puede leer, o al que le falta uno que sí puede: se trata como si lo tuviera un proceso
+vivo.
+
+Queda un límite. Fuera de Linux, el nombre de host es la única identidad de máquina que verbatra
+registra, así que dos contenedores o máquinas virtuales que comparten nombre de host y el mismo
+directorio `.verbatra-local/` (un volumen compartido), pero no una tabla de procesos, pueden tomar
+el bloqueo vivo del otro por abandonado. Dale a cada uno su propio nombre de host o su propia copia
+de trabajo.
 
 Una interrupción libera los bloqueos de una ejecución antes de que termine el proceso: Ctrl-C o
 SIGTERM durante `translate` o `import`, y la segunda interrupción que fuerza la parada de `watch`.

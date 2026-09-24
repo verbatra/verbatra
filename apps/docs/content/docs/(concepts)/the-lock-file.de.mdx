@@ -96,13 +96,24 @@ die bereits laufenden fertig sind; so wird jede Sperre, die der Lauf genommen ha
 bevor der Befehl endet. Nach dem Fehlschlag des Laufs wird keine Locale mehr gestartet, und der
 Fehlschlag selbst lässt keine Sperre verwaist zurück.
 
-Jede Sperrdatei hält die Prozess-ID und den Hostnamen des Prozesses fest, der sie hält. Ein hart
-abgeschossener Prozess kann trotzdem eine zurücklassen, deshalb prüft ein wartender Lauf den
-eingetragenen Prozess: Lief er auf dieser Maschine und existiert nicht mehr, übernimmt der Lauf die
+Jede Sperrdatei hält die Prozess-ID und den Hostnamen des Prozesses fest, der sie hält, unter Linux
+außerdem die Boot-ID des Kernels und den PID-Namespace des Prozesses. Ein hart abgeschossener
+Prozess kann trotzdem eine zurücklassen, deshalb prüft ein wartender Lauf den eingetragenen
+Prozess: Stimmt jedes Identitätsfeld der Sperre mit dem des wartenden Laufs überein (lief der
+Prozess also auf dieser Maschine, in derselben Prozesstabelle) und existiert dieser Prozess nicht
+mehr, übernimmt der Lauf die
 Sperre sofort, statt `--lock-timeout` abzuwarten. Das Übernehmen ist serialisiert, sodass nie zwei
 wartende Läufe dieselbe verwaiste Sperre gleichzeitig übernehmen. Eine Sperre, die auf einer anderen
 Maschine (einem geteilten Netzlaufwerk) oder von einer verbatra-Version vor 0.12.0 geschrieben
-wurde, enthält nichts, was sich sicher prüfen lässt, und wird deshalb nie übernommen.
+wurde, enthält nichts, was sich sicher prüfen lässt, und wird deshalb nie übernommen. Dasselbe gilt
+für eine Sperre, die ein Identitätsfeld festhält, das der wartende Lauf nicht lesen kann, oder der
+eines fehlt, das er lesen kann: Sie gilt als von einem lebenden Prozess gehalten.
+
+Eine Grenze bleibt. Außerhalb von Linux ist der Hostname die einzige Maschinenidentität, die
+verbatra festhält. Zwei Container oder virtuelle Maschinen, die sich einen Hostnamen und dasselbe
+Verzeichnis `.verbatra-local/` (ein geteiltes Volume) teilen, aber keine Prozesstabelle, können
+deshalb die lebende Sperre des anderen für verwaist halten. Gib jedem von ihnen einen eigenen
+Hostnamen oder eine eigene Arbeitskopie.
 
 Ein Interrupt gibt die Sperren eines Laufs frei, bevor der Prozess endet: Ctrl-C oder SIGTERM
 während `translate` oder `import` und der zweite Interrupt, der `watch` hart beendet.

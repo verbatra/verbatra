@@ -175,7 +175,7 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
       expect((failure as AdapterError).code).toBe("ADAPTER_FAILED");
       expect((failure as AdapterError).message).toContain("custom:toml");
       expect((failure as AdapterError).message).toContain(method);
-      expect((failure as AdapterError).message).toContain("boom");
+      expect((failure as AdapterError).message).not.toContain("boom");
     },
   );
 
@@ -407,14 +407,16 @@ describe("attributeAdapterFailures and the shape of what a plugin throws", () =>
     expect(failure.message).toContain("read");
   });
 
-  it("describes an Error with an empty message by its string form, not as an empty detail", async () => {
+  it("never repeats the plugin's message, which can quote the file being parsed", async () => {
+    const original = new SyntaxError('Unexpected token in "api_secret = hunter2"');
     const adapter = attributeAdapterFailures(
-      throwingAdapter({ read: () => Promise.reject(new Error("")) }),
+      throwingAdapter({ read: () => Promise.reject(original) }),
     );
 
     const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
 
-    expect(failure.message).toContain("Error");
+    expect(failure.message).not.toContain("hunter2");
+    expect(failure.cause).toBe(original);
   });
 });
 

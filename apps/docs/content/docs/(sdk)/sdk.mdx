@@ -1190,10 +1190,13 @@ are surfaced as data on the `RunSummary`, never thrown.
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
 parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
 (the provider factory's own error, whose message is also redacted into the `SdkError` message),
-`EXPORT_UNWRITABLE` (the file-system error), and `REVIEW_RESTORE_FAILED` (the failure that
+`EXPORT_UNWRITABLE` and `GLOSSARY_UNWRITABLE` (the file-system error), and `REVIEW_RESTORE_FAILED` (the failure that
 interrupted the decision). `CONFIG_NOT_FOUND` and `CONFIG_INVALID` deliberately carry none, because
 a config parser's error can quote the file's content, and a key written into the config must not
-travel with the error.
+travel with the error. Only the message of a `PROVIDER_CONSTRUCTION_FAILED` error is redacted: its
+`cause` is the original error, untouched. The built-in provider factories throw errors that carry
+no secret, and an error thrown by a `createProvider` you supply comes back exactly as you threw it,
+so keep secrets out of it or redact it yourself before you log the `cause`.
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own
 `ProviderError` when the single call fails, and `runStatus` never throws at all. For how these
