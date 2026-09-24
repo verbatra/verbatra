@@ -20,6 +20,7 @@ import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import { baselineFor, lockFilePath, readLockFile } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
+import { branchArmProblems } from "../integrity-gate.js";
 import { readTargetResource } from "../read-target.js";
 import {
   createOutputPathGuard,
@@ -118,14 +119,18 @@ function reasonLabel(reason: string): string {
   return reason.toLowerCase().replace(/_/g, "-");
 }
 
-function reviewColumns(flag: ReviewFlag | undefined): {
-  reviewStatus: ReviewStatus;
-  reviewReasons: string;
-} {
-  if (flag === undefined) {
-    return { reviewStatus: "ok", reviewReasons: "" };
-  }
-  return { reviewStatus: "review", reviewReasons: flag.reasons.map(reasonLabel).join(", ") };
+function armLabel(armProblems: readonly string[]): readonly string[] {
+  return armProblems.length === 0 ? [] : [`icu-arms: ${armProblems.join("; ")}`];
+}
+
+function reviewColumns(
+  flag: ReviewFlag | undefined,
+  armProblems: readonly string[],
+): { reviewStatus: ReviewStatus; reviewReasons: string } {
+  const labels = [...(flag?.reasons ?? []).map(reasonLabel), ...armLabel(armProblems)];
+  return labels.length === 0
+    ? { reviewStatus: "ok", reviewReasons: "" }
+    : { reviewStatus: "review", reviewReasons: labels.join(", ") };
 }
 
 function computeRowReview(
@@ -155,7 +160,7 @@ function computeRowReview(
     glossary,
     maxLength,
   });
-  return reviewColumns(flag);
+  return reviewColumns(flag, branchArmProblems(sourceValue, currentTarget, adapter, targetLocale));
 }
 
 function buildRows(
@@ -359,7 +364,8 @@ async function resolveHandoffPath(
  * By default only missing and stale keys are exported, which is what makes the handoff a work list
  * rather than a dump of the whole project. Each row carries the source text alongside any existing
  * translation and a review status, so the translator sees what changed and why a string was
- * flagged.
+ * flagged. An existing translation whose ICU branch arms do not fit the target language, the check
+ * the write-time gate applies, is flagged `icu-arms` with each wrong arm named.
  *
  * This is the outbound half of the exchange; {@link importWorkbook} reads the filled handoff back
  * through the same diff, lock, and integrity checks. It writes only the handoff file and never

@@ -132,6 +132,7 @@ Utilise `--include-unchanged` quand un traducteur veut le contexte complet d'une
 - `glossary-term-missed` : la traduction d'un terme du glossaire pour cette locale, ou un terme de `doNotTranslate`, n'est pas arrivée dans la traduction.
 - `glossary-forbidden-term` : la traduction utilise une traduction que le glossaire interdit pour cette locale.
 - `integrity-reordered` : les placeholders correspondent mais ont atterri dans un ordre différent de la source.
+- `icu-arms` : les branches ICU `plural`, `selectordinal` ou `select` de la traduction ne conviennent pas à la langue cible, suivi de chaque branche manquante ou en trop. Contrairement aux autres, c'est une valeur que la barrière d'intégrité refuserait, alors corrige-la avant que la ligne revienne (à partir de 0.12.0).
 
 Deux autres raisons complètent l'ensemble de huit, et toutes deux n'existent qu'au moment d'un `translate` : `provider-degraded` (un avis de formalité dégradée ou de glossaire ignoré sur le lot d'où vient une clé) et `fuzzy-cache-reuse` (la valeur a été réutilisée depuis la mémoire de traduction pour une source antérieure presque identique, modifiée depuis). L'export recalcule les colonnes à partir des seules valeurs source et cible, donc ni l'une ni l'autre n'apparaît jamais sur une ligne exportée. Une ligne sans traduction exporte toujours `ok` ; il n'y a rien à réviser. Voir [Sûreté de la traduction](/docs/translation-safety) pour la relation entre ces signalements et les contrôles d'intégrité stricts.
 

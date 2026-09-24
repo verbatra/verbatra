@@ -132,8 +132,8 @@ export function refusalOf(key: string, rejection: IntegrityGateRejection): Integ
     : { key, reason: rejection.reason, details: rejection.details };
 }
 
-function branchArmProblems(
-  sourceEntry: TranslationEntry,
+export function branchArmProblems(
+  sourceValue: string,
   candidateValue: string,
   adapter: FormatAdapter,
   targetLocale: string | undefined,
@@ -142,7 +142,7 @@ function branchArmProblems(
     return [];
   }
   return adapter.compareBranchArms(
-    sourceEntry.value,
+    sourceValue,
     candidateValue,
     pluralCategoryLookupFor(targetLocale),
   );
@@ -182,7 +182,7 @@ export function gateCandidateValue(
       ? { accepted: false, reason: "markup", details: markup.details }
       : { accepted: false, reason: "markup" };
   }
-  const armProblems = branchArmProblems(sourceEntry, candidateValue, adapter, targetLocale);
+  const armProblems = branchArmProblems(sourceEntry.value, candidateValue, adapter, targetLocale);
   if (armProblems.length > 0) {
     return { accepted: false, reason: "icu", details: armProblems };
   }

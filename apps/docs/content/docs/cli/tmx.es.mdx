@@ -61,6 +61,10 @@ Además, una unidad con el segmento de origen en blanco no identifica ninguna ca
 
 Nada desaparece en silencio. Cada rechazo se cuenta por motivo, igual que cada unidad que el lector no pudo aprovechar, cada unidad sin segmento en tu locale de origen, cada unidad cuyo marcado se aplanó y cada unidad cuyo texto `sub` se dejó fuera.
 
+<AvailableFrom version="0.12.0" />
+
+Una unidad que la puerta de integridad rechaza también se lista con su posición en el archivo y lo que falla, así que `verbatra tmx import` imprime, por ejemplo, `unit 12: icu ({count} plural: missing arm "few" required by the target language)` bajo el locale que la rechazó.
+
 ## Emparejar etiquetas de idioma
 
 Un archivo TMX escribe sus idiomas como los escribió la herramienta de su autor, y eso rara vez coincide con cómo los escribe tu configuración. La regla es explícita y nunca adivina:

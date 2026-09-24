@@ -102,6 +102,7 @@ describe("render: tmx import summary", () => {
               empty: 4,
               sourceBlank: 5,
             },
+            refusals: [],
           },
         ],
       }),
@@ -113,6 +114,45 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("4 blank translation of a source that has text");
     expect(text).toContain("5 blank source segment");
     expect(text).toContain("6 inline markup does not match the source");
+  });
+
+  it("names the wrong ICU arms of each refused unit and skips a refusal with no details", () => {
+    const text = renderTmxImportHuman(
+      makeImportTmxResult({
+        locales: [
+          {
+            locale: "ru",
+            added: 0,
+            unchanged: 0,
+            overwritten: 0,
+            kept: 0,
+            duplicates: 0,
+            conflicting: 0,
+            rejected: {
+              placeholder: 0,
+              markup: 0,
+              icu: 2,
+              degenerate: 0,
+              empty: 0,
+              sourceBlank: 0,
+            },
+            refusals: [
+              {
+                unit: 3,
+                reason: "icu",
+                details: ['{count} plural: missing arm "few" required by the target language'],
+              },
+              { unit: 5, reason: "icu" },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(text).toContain(
+      '        unit 3: icu ({count} plural: missing arm "few" required by the target language)',
+    );
+    expect(text).not.toContain("unit 5");
   });
 
   it.each(INTEGRITY_GATE_REASONS)("prints a line for a %s rejection", (reason) => {
@@ -129,6 +169,7 @@ describe("render: tmx import summary", () => {
             duplicates: 0,
             conflicting: 0,
             rejected: { ...none, [reason]: 7 },
+            refusals: [],
           },
         ],
       }),
@@ -157,6 +198,7 @@ describe("render: tmx import summary", () => {
               empty: 0,
               sourceBlank: 0,
             },
+            refusals: [],
           },
         ],
       }),
@@ -187,6 +229,7 @@ describe("render: tmx import summary", () => {
               empty: 0,
               sourceBlank: 0,
             },
+            refusals: [],
           },
         ],
       }),
@@ -215,6 +258,7 @@ describe("render: tmx import summary", () => {
               empty: 0,
               sourceBlank: 0,
             },
+            refusals: [],
           },
         ],
       }),

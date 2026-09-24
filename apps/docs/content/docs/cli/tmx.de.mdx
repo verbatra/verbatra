@@ -61,6 +61,10 @@ Dazu kommt: Eine Einheit mit leerem Quellsegment bezeichnet überhaupt keinen St
 
 Nichts verschwindet stillschweigend. Jede Ablehnung wird nach Grund gezählt, ebenso jede Einheit, die der Leser gar nicht verwerten konnte, jede Einheit ohne Segment in deiner Quell-Locale, jede Einheit, deren Markup eingeebnet wurde, und jede Einheit, deren `sub`-Text weggelassen wurde.
 
+<AvailableFrom version="0.12.0" />
+
+Eine Einheit, die das Integritäts-Gate ablehnt, wird außerdem mit ihrer Position in der Datei und dem Fehler aufgeführt, sodass `verbatra tmx import` unter der ablehnenden Locale zum Beispiel `unit 12: icu ({count} plural: missing arm "few" required by the target language)` ausgibt.
+
 ## Sprach-Tags zuordnen
 
 Eine TMX-Datei schreibt ihre Sprachen so, wie das Werkzeug ihrer Autorin sie geschrieben hat, und das ist selten so, wie deine Konfiguration sie schreibt. Die Regel ist ausdrücklich, und sie rät nie:

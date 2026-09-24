@@ -606,6 +606,40 @@ describe("render: human run summary", () => {
     expect(text).toContain("      greeting: empty");
   });
 
+  it("lists a withheld key the refusals do not cover beside the refused ones, in key order", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            locale: "ru",
+            status: "partial",
+            translated: ["a"],
+            integrityMismatches: ["drifted", "files", "title"],
+            integrityRefusals: [
+              {
+                key: "files",
+                reason: "icu",
+                details: ['{n} plural: missing arm "few" required by the target language'],
+              },
+              { key: "title", reason: "empty" },
+            ],
+          }),
+        ],
+        partial: ["ru"],
+      }),
+      "import",
+    );
+
+    expect(text).toContain(
+      [
+        "    integrity-withheld:",
+        "      drifted",
+        '      files: icu ({n} plural: missing arm "few" required by the target language)',
+        "      title: empty",
+      ].join("\n"),
+    );
+  });
+
   it("lists withheld keys without reasons when the summary carries none", () => {
     const text = renderHuman(
       makeSummary({
