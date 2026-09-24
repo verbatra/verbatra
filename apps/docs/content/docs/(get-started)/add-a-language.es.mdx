@@ -50,7 +50,7 @@ El nuevo locale aún no tiene archivo de destino, así que verbatra lo trata com
 verbatra translate
 ```
 
-La ejecución traduce cada clave de origen al nuevo locale y escribe el archivo en tu `files.pattern` (aquí `locales/fr.json`). Un origen grande se divide en sublotes de como mucho 50 claves por petición al proveedor (configurable con `maxBatchSize`), así que una petición sobredimensionada no puede echar a perder el locale entero.
+La ejecución traduce cada clave de origen al nuevo locale y escribe el archivo en tu `files.pattern` (aquí `locales/fr.json`). Un origen grande se divide en sublotes de como mucho 50 claves por petición al proveedor (configurable con `maxBatchSize`), así que una petición sobredimensionada no puede echar a perder el locale entero. Si la ejecución no conserva nada para el nuevo locale, porque cada clave falló la comprobación de integridad, sus peticiones al proveedor fallaron o el presupuesto de tokens la retuvo, no se crea ningún archivo: uno vacío solo ocultaría que el locale aún no tiene traducciones. Las claves siguen como faltantes y la siguiente ejecución las reintenta.
 
 Este es el comportamiento incremental en acción: solo el nuevo locale dispara llamadas al proveedor. Para cada locale existente, verbatra hace diff del origen contra la línea base de ese locale en `verbatra.lock.json`, no encuentra claves faltantes ni modificadas, y no envía nada. Después, `verbatra check` sale con `0`: todos los locales, incluido el nuevo, están sincronizados.
 

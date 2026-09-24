@@ -142,9 +142,10 @@
  *   {@link rejectEntry}, which act on one locale, and by {@link pseudolocalize} for the pseudolocale file. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
  * - `PSEUDO_OUTPUT_CONFLICT`: {@link pseudolocalize} was asked to generate a pseudolocale that
- *   names a configured locale, or to write one onto a configured locale file. Refused before
- *   anything is read or written, so a generated pseudolocale can never overwrite a real
- *   translation or stand in for one.
+ *   names a configured locale, or to write one onto a configured locale file or outside the
+ *   working directory, checked again after symbolic links are resolved through a file-system port
+ *   that implements `realpath`. Refused before anything is read or written, so a generated
+ *   pseudolocale can never overwrite a real translation, stand in for one, or leave the project.
  * - `SOURCE_UNWRITABLE`: the source locale file could not be written. Thrown by {@link extract}
  *   alone, since it is the only entry point that writes the source locale. The `xliff` and
  *   `apple-xcstrings` formats reach it when no catalog exists yet, because neither is created from

@@ -127,7 +127,10 @@ async function runEdit(
       },
     ),
   );
-  const written = (await readJsonFile(join(dir, "locales", "de.json"))) as Record<string, string>;
+  const targetPath = join(dir, "locales", "de.json");
+  const written = (
+    (await defaultFs.fileExists(targetPath)) ? await readJsonFile(targetPath) : {}
+  ) as Record<string, string>;
   return { result, requests: stub.requests, written };
 }
 
