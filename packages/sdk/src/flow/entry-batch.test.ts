@@ -1,10 +1,14 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { ProviderError } from "@verbatra/ai-providers";
 import { AdapterError, AdapterRegistry, createDefaultRegistry } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
+import { SdkError } from "../errors.js";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { loadProvenance } from "../lock/load-provenance.js";
+import { localeLockPath } from "../lock/locale-write-lock.js";
+import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
 import type { CreateProvider } from "../selection/select-provider.js";
 import {
   baseConfig,
@@ -14,7 +18,13 @@ import {
   writeJsonFile,
 } from "../test-support.js";
 import { editEntry } from "./edit-entry.js";
-import { approveEntries, rejectEntries, retranslateEntries } from "./entry-batch.js";
+import {
+  approveEntries,
+  BatchInterruptedError,
+  type RetranslateBatchOutcome,
+  rejectEntries,
+  retranslateEntries,
+} from "./entry-batch.js";
 import { translate } from "./translate-project.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
@@ -246,27 +256,206 @@ describe("retranslateEntries", () => {
     expect(results[0]?.ok).toBe(true);
   });
 
-  it("throws an error that is not an outcome of one entry and stops the batch there", async () => {
-    const dir = await translated({ greeting: "Hello", farewell: "Bye" });
-    const stub = makeStubProvider({
-      throwForLocales: new Set(["de"]),
-      error: new TypeError("programming error"),
-    });
+  it("stops at an error that is not an outcome of one entry, carrying what was already done", async () => {
+    const dir = await translated({ greeting: "Hello", farewell: "Bye", later: "Later" });
+    const base = makeStubProvider({ translate: (value) => `neu ${value}` });
+    let calls = 0;
+    const failure = new TypeError("programming error sk-ant-api03-abcdefghijklmnopqrstuvwxyz");
+    const provider = {
+      ...base.provider,
+      translateBatch: async (request: Parameters<typeof base.provider.translateBatch>[0]) => {
+        calls += 1;
+        if (calls === 2) {
+          throw failure;
+        }
+        return base.provider.translateBatch(request);
+      },
+    };
 
-    await expect(
-      retranslateEntries(
+    const error = await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "greeting" },
+          { locale: "de", key: "farewell" },
+          { locale: "de", key: "later" },
+        ],
+      },
+      { createProvider: () => provider },
+    ).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(BatchInterruptedError);
+    const interrupted = error as BatchInterruptedError<RetranslateBatchOutcome>;
+    expect(interrupted.name).toBe("BatchInterruptedError");
+    expect(interrupted.cause).toBe(failure);
+    expect(interrupted.entry).toEqual({ locale: "de", key: "farewell" });
+    expect(interrupted.results).toEqual([
+      {
+        locale: "de",
+        key: "greeting",
+        ok: true,
+        result: { accepted: true, value: "neu Hello", reviewReasons: [] },
+      },
+    ]);
+    expect(interrupted.message).toContain('stopped at "farewell" in de after 1 completed entry');
+    expect(interrupted.message).not.toContain("sk-ant-api03");
+    expect(calls).toBe(2);
+    expect((await targetValues(dir)).greeting).toBe("neu Hello");
+  });
+
+  it("stops a review batch the same way, naming the first entry when nothing was done yet", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const fs: SdkFs = {
+      ...defaultFs,
+      writeFile: async (path, data) => {
+        if (path.endsWith(PROVENANCE_FILE_NAME)) {
+          throw new RangeError("unexpected");
+        }
+        await defaultFs.writeFile(path, data);
+      },
+    };
+
+    const error = await approveEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [{ locale: "de", key: "greeting", expectedValue: "[de] Hello" }],
+      },
+      { fs },
+    ).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(BatchInterruptedError);
+    expect((error as BatchInterruptedError).results).toEqual([]);
+    expect((error as Error).message).toContain("after 0 completed entries");
+  });
+
+  it.each([
+    ["MISSING_API_KEY"],
+    ["AUTH_FAILED"],
+    ["RATE_LIMITED"],
+    ["NETWORK_POLICY_VIOLATION"],
+  ] as const)(
+    "skips the rest of the batch after a %s provider error, without calling the provider again",
+    async (code) => {
+      const dir = await translated({ greeting: "Hello", farewell: "Bye", later: "Later" });
+      const stub = makeStubProvider({
+        throwForLocales: new Set(["de"]),
+        error: new ProviderError(code, "no"),
+      });
+
+      const { results } = await retranslateEntries(
         {
           config: cfg(),
           cwd: dir,
           entries: [
             { locale: "de", key: "greeting" },
             { locale: "de", key: "farewell" },
+            { locale: "de", key: "later" },
           ],
         },
         { createProvider: () => stub.provider },
-      ),
-    ).rejects.toThrow("programming error");
-    expect(stub.calls).toHaveLength(1);
+      );
+
+      expect(stub.calls).toHaveLength(1);
+      expect(results[0]).toEqual({ locale: "de", key: "greeting", ok: false, code, message: "no" });
+      expect(results.slice(1)).toEqual(
+        ["farewell", "later"].map((key) => ({
+          locale: "de",
+          key,
+          ok: false,
+          skipped: true,
+          code,
+          message: `Not attempted: an earlier entry failed with ${code}, which would fail this one too.`,
+        })),
+      );
+    },
+  );
+
+  it.each<[string, Partial<VerbatraConfig>, CreateProvider]>([
+    ["MACHINE_TRANSLATION_DISABLED", { provider: { id: "none", options: {} } }, stubCreate],
+    [
+      "PROVIDER_CONSTRUCTION_FAILED",
+      {},
+      () => {
+        throw new SdkError("PROVIDER_CONSTRUCTION_FAILED", "no key");
+      },
+    ],
+  ])("skips the rest of the batch after %s", async (code, overrides, createProvider) => {
+    const dir = await translated({ greeting: "Hello", farewell: "Bye" });
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg(overrides),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "greeting" },
+          { locale: "de", key: "farewell" },
+        ],
+      },
+      { createProvider },
+    );
+
+    expect(
+      results.map((outcome) => [outcome.ok, "skipped" in outcome, outcome.ok ? "" : outcome.code]),
+    ).toEqual([
+      [false, false, code],
+      [false, true, code],
+    ]);
+  });
+
+  it("carries on after a provider error that concerns only one entry", async () => {
+    const dir = await translated({ greeting: "Hello", farewell: "Bye" });
+    const base = makeStubProvider();
+    let calls = 0;
+    const provider = {
+      ...base.provider,
+      translateBatch: async (request: Parameters<typeof base.provider.translateBatch>[0]) => {
+        calls += 1;
+        if (calls === 1) {
+          throw new ProviderError("TIMEOUT", "slow");
+        }
+        return base.provider.translateBatch(request);
+      },
+    };
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "greeting" },
+          { locale: "de", key: "farewell" },
+        ],
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(results.map((outcome) => outcome.ok)).toEqual([false, true]);
+  });
+
+  it("bounds each entry's wait for its locale lock and reports the wait", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const lock = localeLockPath(dir, "de");
+    await mkdir(dirname(lock), { recursive: true });
+    await writeFile(lock, JSON.stringify({ pid: 1, hostname: "another-machine" }), "utf8");
+    const stub = makeStubProvider();
+    const waits: string[] = [];
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [{ locale: "de", key: "greeting" }],
+        lockAcquireTimeoutMs: 1_200,
+        onLockWait: (event) => waits.push(event.lockPath),
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(results[0]).toMatchObject({ ok: false, code: "LOCK_CONTENDED" });
+    expect(waits).toEqual([lock]);
+    expect(stub.calls).toHaveLength(0);
   });
 });
 

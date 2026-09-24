@@ -561,7 +561,7 @@ Re-runs the provider for exactly one key and locale: a single-entry call through
 path `translate` uses, gated through the same integrity checks. On acceptance it writes the
 locale file and lock entry for that key only.
 
-Input: `{ config, cwd?, locale, key, includeHuman? }`. Returns `{ accepted: true, value, reviewReasons }` (the
+Input: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Returns `{ accepted: true, value, reviewReasons }` (the
 review reason codes, if any, that apply to the new value) or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
@@ -622,7 +622,8 @@ Each of these runs the matching single-key call once per entry, in the order giv
 `{ results }` with one outcome per entry in that order. An entry that fails does not stop the
 batch: its outcome is `{ locale, key, ok: false, code, message }`, carrying the code of the
 `SdkError`, adapter error, or `ProviderError` that stopped it and a redacted message, and the next
-entry runs. Any other error is thrown, and the entries after it do not run. An empty `entries` list
+entry runs. Any other error stops the batch with a `BatchInterruptedError` that carries the
+outcomes of the entries already carried out, whose writes are on disk. An empty `entries` list
 returns an empty `results`.
 
 ### approveEntries
@@ -638,11 +639,31 @@ successful outcome is `{ ok: true, locale, key, provenance }`.
 
 ### retranslateEntries
 
-Input: `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Runs `retranslateEntry` per
-entry, so it makes up to one provider call per entry. A completed outcome is
-`{ ok: true, locale, key, result }`, where `result` is what `retranslateEntry` returned, including a
-value the integrity gate refused. A value a person wrote fails with `KEY_PROTECTED` unless
-`includeHuman: true` is passed.
+Input: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
+Runs `retranslateEntry` per entry, so it makes up to one provider call per entry. It is not a
+`translate` run: `maxTokens` and `budgetBehavior` do not apply, and the number of entries is the
+only bound on what it spends. A completed outcome is `{ ok: true, locale, key, result }`, where
+`result` is what `retranslateEntry` returned, including a value the integrity gate refused. A value
+a person wrote fails with `KEY_PROTECTED` unless `includeHuman: true` is passed.
+`lockAcquireTimeoutMs` bounds each entry's wait for its locale's write lock, before the provider
+is called, and `onLockWait` reports that wait.
+
+<AvailableFrom version="0.12.0" />
+
+An error that would fail every entry alike stops the provider calls: `MISSING_API_KEY`,
+`AUTH_FAILED`, `RATE_LIMITED` (which covers an exhausted quota), `NETWORK_POLICY_VIOLATION`,
+`PROVIDER_CONSTRUCTION_FAILED`, `CONFIG_INVALID`, or `MACHINE_TRANSLATION_DISABLED`. The entry that
+hit it fails as usual, and every entry after it gets `{ locale, key, ok: false, skipped: true,
+code, message }` naming that code, without another provider call.
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+Thrown by `approveEntries`, `rejectEntries`, and `retranslateEntries` when an error that is not the
+outcome of one entry, such as an unexpected file-system failure, stops a batch part way. `results`
+holds the outcomes of the entries completed before it, in order, `entry` names the `{ locale, key }`
+that was running, and `cause` is the original error. Entries after `entry` did not run.
 
 ## Bulk content reads
 
@@ -735,6 +756,8 @@ one interchange file or the directory holding one per locale, and the locale com
 name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
 a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
+
+<AvailableFrom version="0.12.0" />
 
 `onLockWait` and `lockAcquireTimeoutMs` behave exactly as on `translate`. `lockAcquireTimeoutMs`
 bounds the wait for a locale's write lock, taken before that locale's file is written, and a locale
