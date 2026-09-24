@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "./run.js";
-import { captureStreams, flush, makeMcpModule, recordingDeps } from "./test-support.js";
+import {
+  captureStreams,
+  flush,
+  makeMcpHandle,
+  makeMcpModule,
+  recordingDeps,
+} from "./test-support.js";
 import type { RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
@@ -64,7 +70,7 @@ describe("run mcp: option passthrough", () => {
               configPath: options.configPath,
               allowSpend: options.allowSpend ?? false,
             });
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -93,7 +99,7 @@ describe("run mcp: option passthrough", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             hasConfigPathKey.push(Object.hasOwn(options, "configPath"));
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -201,7 +207,7 @@ describe("run mcp: stdout purity", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             options.onLog?.("tool call log line");
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -232,11 +238,32 @@ describe("run mcp: success path and shutdown", () => {
     expect(code).toBe(0);
   });
 
+  it("exits 0 without a stop request when the server closes because the client closed stdin", async () => {
+    let clientClosedStdin = (): void => {};
+    const closed = new Promise<void>((resolve) => {
+      clientClosedStdin = resolve;
+    });
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => makeMcpHandle({ closed }) }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const donePromise = run(["mcp"], deps, cap.streams, captured.hooks);
+    await flush();
+    clientClosedStdin();
+    const code = await donePromise;
+
+    expect(code).toBe(0);
+    expect(cap.out()).toBe("");
+  });
+
   it("a second requestStop while the first is closing forces exit 130", async () => {
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => ({ close: () => new Promise(() => {}) }),
+          startMcpServer: async () => makeMcpHandle({ close: () => new Promise(() => {}) }),
         }),
     });
     const cap = captureStreams();
@@ -256,11 +283,12 @@ describe("run mcp: success path and shutdown", () => {
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => ({
-            close: async () => {
-              throw Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
-            },
-          }),
+          startMcpServer: async () =>
+            makeMcpHandle({
+              close: async () => {
+                throw Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
+              },
+            }),
         }),
     });
     const cap = captureStreams();
@@ -300,7 +328,7 @@ describe("run mcp: --allow-spend capability resolution", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             resolved = options.allowSpend;
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });

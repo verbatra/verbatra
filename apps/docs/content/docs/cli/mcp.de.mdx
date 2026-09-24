@@ -194,7 +194,7 @@ Das sind die Exit-Codes von `verbatra mcp`; das eigenständige `verbatra-mcp` we
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | sauber gestoppt durch einen einzelnen Interrupt (Ctrl-C oder SIGTERM) |
+| `0` | sauber gestoppt durch einen einzelnen Interrupt (Ctrl-C oder SIGTERM) oder weil der Client stdin geschlossen hat |
 | `1` | Stoppen fehlgeschlagen: das Schließen des Servers warf beim Herunterfahren einen Fehler |
 | `2` | konnte nicht starten: ein Konfigurationsfehler, `@verbatra/mcp` nicht installiert, oder ein Verwendungsfehler |
 | `130` | zwangsbeendet durch einen zweiten Interrupt, während das Herunterfahren noch lief |

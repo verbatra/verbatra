@@ -194,7 +194,7 @@ Voici les codes de sortie de `verbatra mcp` ; le binaire autonome `verbatra-mcp`
 
 | Code | Signification |
 | --- | --- |
-| `0` | arrêté proprement par une seule interruption (Ctrl-C ou SIGTERM) |
+| `0` | arrêté proprement par une seule interruption (Ctrl-C ou SIGTERM), ou parce que le client a fermé stdin |
 | `1` | l'arrêt a échoué : la fermeture du serveur a levé une erreur pendant l'extinction |
 | `2` | n'a pas pu démarrer : une erreur de config, `@verbatra/mcp` non installé, ou une erreur d'utilisation |
 | `130` | arrêté de force par une seconde interruption pendant que l'extinction était en cours |
