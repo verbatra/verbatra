@@ -1,6 +1,17 @@
 import type { ReactNode } from "react";
-import { shortcutKeysFor } from "../client/review-shortcuts.js";
+import { type RowBusyAction, rowBusyLabel, rowBusyStatus } from "../client/review-in-flight.js";
+import { type ReviewShortcutAction, shortcutKeysFor } from "../client/review-shortcuts.js";
 import { Button } from "./Button.js";
+import { cn } from "./lib/cn.js";
+
+export interface RowBusy {
+  readonly action: RowBusyAction;
+  readonly elapsedSeconds?: number | undefined;
+}
+
+function shortcutFor(action: ReviewShortcutAction, active: boolean): string | undefined {
+  return active ? shortcutKeysFor(action) : undefined;
+}
 
 export function ReviewRowActions({
   onApprove,
@@ -8,48 +19,66 @@ export function ReviewRowActions({
   onEdit,
   onRetranslate,
   decisionDisabled = false,
-  pendingLabel,
+  busy,
+  shortcutsActive = false,
+  wrap = false,
 }: {
   readonly onApprove: () => void;
   readonly onReject: () => void;
   readonly onEdit: () => void;
   readonly onRetranslate?: (() => void) | undefined;
   readonly decisionDisabled?: boolean;
-  readonly pendingLabel?: string;
+  readonly busy?: RowBusy | undefined;
+  readonly shortcutsActive?: boolean;
+  readonly wrap?: boolean;
 }): ReactNode {
-  const busy = pendingLabel !== undefined;
+  const running = busy?.action;
+  const label = (action: RowBusyAction, idle: string): string =>
+    running === action ? rowBusyLabel(action) : idle;
   return (
-    <span className="relative ms-2 inline-flex items-center gap-2 whitespace-nowrap">
-      <Button onClick={onEdit} disabled={busy} aria-keyshortcuts={shortcutKeysFor("edit")}>
+    <span
+      className={cn(
+        "relative inline-flex items-center gap-2 whitespace-nowrap",
+        wrap ? "flex-wrap" : "flex-nowrap",
+      )}
+    >
+      <Button
+        onClick={onEdit}
+        disabled={busy !== undefined}
+        aria-keyshortcuts={shortcutFor("edit", shortcutsActive)}
+      >
         Edit
       </Button>
       <Button
-        className="min-w-[5.75rem] text-success"
+        variant="secondary-success"
+        className="w-24"
         onClick={onApprove}
-        disabled={busy || decisionDisabled}
-        aria-keyshortcuts={shortcutKeysFor("approve")}
+        disabled={busy !== undefined || decisionDisabled}
+        aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
       >
-        {busy ? pendingLabel : "Approve"}
+        {label("approve", "Approve")}
       </Button>
       <Button
-        className="text-danger"
+        variant="secondary-danger"
+        className="w-24"
         onClick={onReject}
-        disabled={busy || decisionDisabled}
-        aria-keyshortcuts={shortcutKeysFor("reject")}
+        disabled={busy !== undefined || decisionDisabled}
+        aria-keyshortcuts={shortcutFor("reject", shortcutsActive)}
       >
-        Reject…
+        {label("reject", "Reject…")}
       </Button>
       {onRetranslate !== undefined ? (
         <Button
+          className="w-30"
           onClick={onRetranslate}
-          disabled={busy}
-          aria-keyshortcuts={shortcutKeysFor("retranslate")}
+          disabled={busy !== undefined}
+          aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}
         >
-          Retranslate
+          {label("retranslate", "Retranslate")}
         </Button>
       ) : null}
       <span className="sr-only" role="status">
-        {busy ? pendingLabel : ""}
+        {busy === undefined ? "" : rowBusyStatus(busy.action, busy.elapsedSeconds)}
       </span>
     </span>
   );

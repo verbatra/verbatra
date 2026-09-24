@@ -10,6 +10,7 @@ import {
   keyGroupsFor,
   type LocaleIntegrityData,
   listedStatuses,
+  queryMatcher,
   statusCounts,
   toggleStatus,
 } from "./key-status-filter.js";
@@ -147,5 +148,40 @@ describe("filter state", () => {
     expect(isKeyFilterActive(filter(null))).toBe(false);
     expect(isKeyFilterActive(filter("de"))).toBe(true);
     expect(isKeyFilterActive(filter(null, ["review"]))).toBe(true);
+  });
+});
+
+describe("key status filter: search", () => {
+  const values = [
+    { locale: "de", values: { "a.missing": { source: "Cart" }, "a.changed": { target: "Korb" } } },
+    { locale: "fr", values: { "a.old": { target: "Panier" } } },
+  ];
+
+  it("matches keys, source and target text per locale, and everything for an empty query", () => {
+    const matches = queryMatcher(values, "korb");
+
+    expect(matches("de", "a.changed")).toBe(true);
+    expect(matches("de", "a.missing")).toBe(false);
+    expect(matches("fr", "a.changed")).toBe(false);
+    expect(queryMatcher(values, "  ")("fr", "anything")).toBe(true);
+  });
+
+  it("counts only the keys the search matches", () => {
+    const counts = statusCounts([DE, FR], SOURCES, null, queryMatcher(values, "cart"));
+
+    expect(counts.missing).toBe(1);
+    expect(counts.changed).toBe(0);
+    expect(counts.orphaned).toBe(0);
+  });
+
+  it("hides a locale without a match and lists only the groups that have one", () => {
+    const matches = queryMatcher(values, "panier");
+    const filter: KeyStatusFilter = { locale: null, statuses: new Set() };
+    const de = keyGroupsFor(DE, SOURCES, matches);
+    const fr = keyGroupsFor(FR, SOURCES, matches);
+
+    expect(isLocaleListed("de", de, filter, true)).toBe(false);
+    expect(isLocaleListed("fr", fr, filter, true)).toBe(true);
+    expect(listedStatuses(fr, filter, true)).toEqual(["orphaned"]);
   });
 });

@@ -1,8 +1,8 @@
-import { keyIntegrity } from "@verbatra/sdk";
+import { localeIntegrity } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
 
 export const localeIntegrityHandler: RpcHandler<"locale.integrity"> = async (params, deps) => ({
-  locales: await keyIntegrity(
+  locales: await localeIntegrity(
     {
       config: deps.config.config,
       cwd: deps.projectRoot,

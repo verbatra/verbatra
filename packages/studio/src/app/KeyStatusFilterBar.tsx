@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { KEY_STATUS_LABELS, KEY_STATUSES, type KeyStatus } from "../client/key-status-filter.js";
 import { SearchInput } from "./Input.js";
 import { cn } from "./lib/cn.js";
@@ -15,6 +15,7 @@ export interface KeyStatusFilterBarProps {
   readonly onLocaleChange: (locale: string) => void;
   readonly onToggleStatus: (status: KeyStatus) => void;
   readonly onQueryChange: (query: string) => void;
+  readonly searchRef?: Ref<HTMLInputElement>;
 }
 
 const TOGGLE_CLASSNAME =
@@ -32,10 +33,12 @@ export function KeyStatusFilterBar({
   onLocaleChange,
   onToggleStatus,
   onQueryChange,
+  searchRef,
 }: KeyStatusFilterBarProps): ReactNode {
   return (
     <FilterBar label="Key filters" className="mb-4">
       <SearchInput
+        ref={searchRef}
         aria-label="Filter by key or translation text"
         placeholder="Filter by key or text…"
         value={query}

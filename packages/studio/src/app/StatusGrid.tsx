@@ -7,8 +7,7 @@ import { filterAndCapKeys, MAX_RENDERED_KEYS } from "../client/filter.js";
 import type { GridArrowKey, GridPosition } from "../client/roving-tabindex.js";
 import { clampGridPosition, moveGridFocus } from "../client/roving-tabindex.js";
 import type { RefreshableView } from "../client/state.js";
-import { Badge } from "./Badge.js";
-import { DiffBadge } from "./DiffBadge.js";
+import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { cn } from "./lib/cn.js";
 import { ProgressBar } from "./ProgressBar.js";
@@ -117,9 +116,9 @@ function GridCell({
         onFocus={() => onFocusCell(row, col)}
         onKeyDown={handleKeyDown}
         onClick={() => onActivate(keyName)}
-        aria-label={`${keyName} in ${localeName}: ${status === "protected" ? "needs review" : status}`}
+        aria-label={`${keyName} in ${localeName}: ${status}`}
       >
-        {status === "in-sync" ? <Badge tone="success">In sync</Badge> : <DiffBadge tone={status} />}
+        <KeyLocaleStatusBadge status={status} />
       </button>
     </td>
   );

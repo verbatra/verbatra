@@ -15,7 +15,7 @@ import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
 import { CommitList } from "./CommitList.js";
-import { DiffBadge } from "./DiffBadge.js";
+import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
 import { TranslationValue } from "./TranslationValue.js";
@@ -102,7 +102,7 @@ function LocaleValue({
       as="p"
       value={value}
       locale={locale}
-      className="m-0 mt-2 break-words font-mono text-sm text-foreground"
+      className="m-0 mt-2 break-words text-sm text-foreground"
     />
   );
 }
@@ -188,11 +188,7 @@ function LocaleBlock({
     <li className="border-b border-border py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-semibold text-foreground">{row.locale}</span>
-        {row.status === "in-sync" ? (
-          <Badge tone="success">In sync</Badge>
-        ) : (
-          <DiffBadge tone={row.status} />
-        )}
+        <KeyLocaleStatusBadge status={row.status} />
         <IntegrityCell
           pill={pill}
           locale={row.locale}
@@ -248,7 +244,7 @@ export function KeyDetailDrawer({
           <TranslationValue
             as="p"
             value={values.source}
-            className="m-0 break-words font-mono text-sm text-foreground"
+            className="m-0 break-words text-sm text-foreground"
           />
         ) : (
           <p className="m-0 text-sm text-muted-foreground">

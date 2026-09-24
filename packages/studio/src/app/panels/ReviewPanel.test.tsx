@@ -592,10 +592,11 @@ describe("ReviewPanel", () => {
     const shown = view.get("[data-row-value]");
 
     expect(shown.getAttribute("dir")).toBe("rtl");
+    expect(shown.getAttribute("lang")).toBe("ar");
     expect(shown.className).toContain("w-fit");
     expect(shown.className).toContain("text-start");
-    expect(shown.className).toContain("max-w-[240px]");
-    expect(shown.className).toContain("sm:max-w-md");
+    expect(shown.className).toContain("max-w-full");
+    expect(shown.className).not.toContain("font-mono");
     expect(
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
     ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
@@ -640,7 +641,7 @@ describe("ReviewPanel", () => {
     expect((rowAction(view, "checkout.title", "Edit") as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("moves focus to the saved decision's status line", async () => {
+  it("announces the decision and moves focus to the next row once the reload settles", async () => {
     stubDecisionReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     stubRpc({
@@ -651,7 +652,27 @@ describe("ReviewPanel", () => {
     await clickAsync(rowAction(view, "checkout.title", "Approve"));
     await flush();
 
-    expect(document.activeElement?.textContent).toContain("Approved checkout.title (de).");
+    expect(view.get('[role="status"][data-decision-status]').textContent).toContain(
+      "Approved checkout.title (de).",
+    );
+    expect(document.activeElement?.tagName).toBe("TR");
+    expect(document.activeElement?.getAttribute("aria-current")).toBe("true");
+    expect(document.activeElement?.querySelector("[data-row-key]")?.textContent).not.toBe(
+      "checkout.title",
+    );
+  });
+
+  it("keeps focus on the row after a refused approval", async () => {
+    stubDecisionReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": rpcError("LOCK_CONTENDED", "busy") });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect(document.activeElement?.querySelector("[data-row-key]")?.textContent).toBe(
+      "checkout.title",
+    );
   });
 
   it("frees the row again after a refusal that is not about a changed value", async () => {
@@ -1183,17 +1204,16 @@ function bulkButton(view: RenderResult, name: string): HTMLButtonElement {
 }
 
 describe("ReviewPanel: bulk actions", () => {
-  it("shows the bulk bar only once something is selected, and counts the selection", async () => {
+  it("keeps the bulk bar in place and counts the selection", async () => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    expect(bulkBar(view)).toBeNull();
+    expect(bulkBar(view)?.textContent).toContain("None selected");
     await clickAsync(rowCheckbox(view, "checkout.title"));
     await clickAsync(rowCheckbox(view, "cart.badge"));
 
     expect(bulkBar(view)?.textContent).toContain("2 selected");
     expect(selectAll(view).indeterminate).toBe(true);
-    expect(selectAll(view).getAttribute("aria-checked")).toBe("mixed");
   });
 
   it("selects and clears every shown entry from the header checkbox", async () => {
@@ -1205,7 +1225,7 @@ describe("ReviewPanel: bulk actions", () => {
     expect(selectAll(view).checked).toBe(true);
 
     await clickAsync(selectAll(view));
-    expect(bulkBar(view)).toBeNull();
+    expect(bulkBar(view)?.textContent).toContain("None selected");
   });
 
   it("counts and acts on only the selected entries the filter still shows", async () => {
@@ -1238,7 +1258,7 @@ describe("ReviewPanel: bulk actions", () => {
 
     await clickAsync(bulkButton(view, "Clear selection"));
 
-    expect(bulkBar(view)).toBeNull();
+    expect(bulkBar(view)?.textContent).toContain("None selected");
   });
 
   it("approves the selection in one call against the values on screen", async () => {
@@ -1271,7 +1291,7 @@ describe("ReviewPanel: bulk actions", () => {
     expect(view.get('[role="status"]').textContent).toBe(
       "Approved 2 entries. The decisions are saved in verbatra.provenance.json.",
     );
-    expect(bulkBar(view)).toBeNull();
+    expect(bulkBar(view)?.textContent).toContain("None selected");
   });
 
   it("marks the selected rows busy while the batch runs", async () => {
@@ -1314,8 +1334,14 @@ describe("ReviewPanel: bulk actions", () => {
     await flush();
 
     expect(view.get('[role="alert"]').textContent).toContain(
-      "Could not approve 1 entry: cart.badge (fr): The source text changed",
+      "Could not approve 1 entry; they stay selected.",
     );
+    const failures = view.all("[data-batch-failures] li");
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.textContent).toContain("The source text changed");
+    expect(failures[0]?.textContent).toContain("cart.badge (fr)");
+    expect(rowCheckbox(view, "cart.badge").checked).toBe(true);
+    expect(rowCheckbox(view, "checkout.title").checked).toBe(false);
   });
 
   it("frees the rows and reports a batch the server refused outright", async () => {
@@ -1385,7 +1411,7 @@ describe("ReviewPanel: bulk actions", () => {
       entries: [{ locale: "fr", key: "cart.badge", expectedValue: "Panier" }],
     });
     expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle"]);
-    expect(bulkBar(view)).toBeNull();
+    expect(bulkBar(view)?.textContent).toContain("None selected");
   });
 
   it("offers bulk retranslation only with spend, through one batch call", async () => {
@@ -1423,5 +1449,171 @@ describe("ReviewPanel: bulk actions", () => {
     expect(view.get('[role="status"]').textContent).toBe(
       "Retranslated 1 entry. Review the new values, then approve or reject them.",
     );
+  });
+});
+
+function stubMatchMedia(matches: boolean): void {
+  window.matchMedia = vi.fn(() => ({
+    matches,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
+describe("ReviewPanel: review workflow", () => {
+  it("shows a bulk retranslation on its own button, never on Approve", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    stubRpc({ "translation.retranslateEntries": () => new Promise(() => {}) });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Retranslate selected"));
+
+    expect(bulkButton(view, "Retranslating…").disabled).toBe(true);
+    expect(bulkButton(view, "Approve selected").disabled).toBe(true);
+    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+    expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
+  });
+
+  it("names the keyboard shortcuts on the highlighted row only", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+
+    expect(rowAction(view, "checkout.title", "Approve").getAttribute("aria-keyshortcuts")).toBe(
+      "a",
+    );
+    expect(rowAction(view, "cart.badge", "Approve").hasAttribute("aria-keyshortcuts")).toBe(false);
+  });
+
+  it("returns focus to the highlighted row after clearing the selection", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("j");
+    pressKey("x");
+
+    await clickAsync(bulkButton(view, "Clear selection"));
+
+    expect(document.activeElement?.getAttribute("aria-current")).toBe("true");
+    expect(rowKeyOf(document.activeElement as Element)).toBe("checkout.title");
+  });
+
+  it("returns focus to the search field after clearing the filters", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "nothing matches this");
+
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(document.activeElement).toBe(keyFilter(view));
+    expect(rowKeys(view)).toHaveLength(3);
+  });
+
+  it("focuses the translation field when the editor opens from the keyboard, and shows the row's reasons", async () => {
+    stubKeyboardReady();
+    stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("e");
+    await flush();
+
+    expect(document.activeElement?.tagName).toBe("TEXTAREA");
+    expect(view.get('[role="dialog"]').textContent).toContain("Matches source text");
+  });
+
+  it("writes an Updated notice after an editor save and focuses the next row", async () => {
+    stubKeyboardReady();
+    stubRpc({
+      "key.context": { ok: true, result: KEY_VALUE },
+      "translation.editEntry": { ok: true, result: { accepted: true, value: "Zur Kasse" } },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("j");
+    pressKey("e");
+    await flush();
+
+    await clickAsync(view.getByText("button", "Save"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(view.get("[data-decision-status]").textContent).toBe("Updated checkout.title (de).");
+    expect(rowKeyOf(document.activeElement as Element)).toBe("checkout.subtitle");
+  });
+
+  it("stacks the reasons and actions under the key on a narrow screen", async () => {
+    stubMatchMedia(false);
+    try {
+      stubKeyboardReady();
+      const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+      expect(view.all("thead th").map((cell) => cell.textContent)).toEqual(["", "Locale", "Entry"]);
+      expect(view.all("[data-row-stacked]")).toHaveLength(3);
+      expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
+    } finally {
+      Reflect.deleteProperty(window, "matchMedia");
+    }
+  });
+});
+
+describe("ReviewPanel: retranslations the server is still running", () => {
+  it("restores a running retranslation after a reload and shows how long it has run", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "setInterval", "Date"] });
+    try {
+      vi.setSystemTime(100_000);
+      stubKeyboardReady(SPEND_SNAPSHOT);
+      let running = [{ locale: "fr", key: "cart.badge", elapsedMs: 5_000 }];
+      stubRpc({
+        "translation.inFlight": () => ({ ok: true, result: { retranslating: running } }),
+      });
+      const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+      await flush();
+
+      expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+      expect((rowAction(view, "cart.badge", "Edit") as HTMLButtonElement).disabled).toBe(true);
+      const status = (): string =>
+        view
+          .all("tbody tr")
+          .find((row) => rowKeyOf(row) === "cart.badge")
+          ?.querySelector('[role="status"]')?.textContent ?? "";
+      expect(status()).toBe("Retranslating… 5 seconds so far");
+
+      act(() => vi.advanceTimersByTime(1_000));
+      expect(status()).toBe("Retranslating… 6 seconds so far");
+
+      running = [];
+      const queueReads = rpcCalls.filter((call) => call.method === "review.queue").length;
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
+      await flush();
+      await flush();
+
+      expect(rowAction(view, "cart.badge", "Retranslate")).toBeDefined();
+      expect(rpcCalls.filter((call) => call.method === "review.queue").length).toBe(queueReads + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("treats an already running retranslation as progress rather than an error", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    let running: { locale: string; key: string; elapsedMs: number }[] = [];
+    stubRpc({
+      "translation.retranslateEntry": rpcError("ALREADY_IN_PROGRESS", "busy"),
+      "translation.inFlight": () => ({ ok: true, result: { retranslating: running } }),
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    running = [{ locale: "fr", key: "cart.badge", elapsedMs: 0 }];
+
+    await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
+    await flush();
+
+    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.get("[data-decision-status]").textContent).toContain(
+      "cart.badge (fr) is already being retranslated",
+    );
+    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
   });
 });

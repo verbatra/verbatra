@@ -37,7 +37,7 @@ Translations is the working view: everything pending across your target locales,
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The List view also filters by state and by locale. Next to the text filter, pick one locale, or toggle one or more states, each with its count: **Missing**, **Changed** (stale against its source), **Orphaned**, **Needs review** (the protected and pinned keys a run leaves for a person), **Review queue** (the entries the last run flagged, as on the Review page), and **Integrity problems** (a changed key whose translation fails the placeholder, markup, or ICU checks). With states chosen, each locale lists only those groups and a locale with none of them is hidden; the text filter still applies inside them. **Review queue** and **Integrity problems** also appear as their own groups whenever they hold a key, and a state whose data cannot be read right now is shown disabled.
+The List view also filters by state and by locale. Next to the text filter, pick one locale, or toggle one or more states, each with its count: **Missing**, **Changed** (stale against its source), **Orphaned**, **Protected** (the protected and pinned keys a run leaves for a person), **Review queue** (the entries the last run flagged, as on the Review page), and **Integrity problems** (any translated key whose value fails the placeholder, markup, or ICU checks, plural arms included, whatever its sync state). With states chosen, each locale lists only those groups and a locale with none of them is hidden; the text filter still applies inside them. **Review queue** and **Integrity problems** also appear as their own groups whenever they hold a key, and a state whose data cannot be read right now is shown disabled. The counts follow the text filter too, and when nothing matches, the page says so; **Clear filters** then resets the locale, the states, and the text and puts you back in the search field. In Grid, a key the source no longer has reads **Absent** in every locale that does not carry it.
 
 **Copy as review report** in the page header copies a Markdown report to the clipboard: one section per locale listing its missing, changed, and orphaned keys, ready to paste into a pull request or an issue.
 
@@ -66,6 +66,8 @@ Editing needs no flag. It touches only your local files and never calls a provid
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 The editor opens wide, with the source and the translation side by side. The source column shows the source text with its placeholders, ICU syntax, and inline markup highlighted, the key's description when the source file gives one (ARB, XLIFF, gettext, Apple `.strings`, and .NET `.resx` can carry one), and the glossary terms the source uses: the translation this locale must use, the renderings it must never use, the term's note, and the terms to keep as written. The translation column shows who wrote the current value and its integrity indicator, the text area, the length of your draft against the source's, and a preview with the same highlighting that follows your typing. Press Ctrl or Cmd with Enter in the text area to save.
+
+While you type, each glossary term is checked against your draft: **Used** or **Missing** for the translation it requires, **Forbidden** with the rendering for one the locale must never use, and **Kept** or **Missing** for a term to keep as written. Opened from the Review page, the source column also lists why the entry was flagged. The length line counts your draft's characters against the source and, when the config sets a `maxLength` for the key, against that budget, and turns red once the draft is over it.
 
 ## Work the Review queue
 
@@ -111,22 +113,22 @@ You can work the Review queue without the mouse. Press `j` or the down arrow to 
 | `k` or up arrow | previous entry |
 | `a` | approve the highlighted entry |
 | `r` | reject it (the confirmation still opens) |
-| `e` or Enter | open it in the editor |
-| `t` | retranslate it (only with `--allow-spend`) |
+| `e` or Enter | open it in the editor, with the cursor in the translation |
+| `t` | retranslate it (only with `--allow-spend`; calls your provider) |
 | `x` | select or unselect it for a bulk action |
 | `?` | show or hide the shortcut list |
 
-**Keyboard shortcuts** in the filter bar opens the same list. A shortcut acts only on the highlighted entry. Shortcuts pause while you type in the filter, while a dialog is open, and while you hold Ctrl, Cmd, or Alt, so browser shortcuts keep working; Escape closes the open dialog. The highlighted row is also where keyboard focus sits, so Tab moves into its buttons, and clicking a row highlights it. After an approval or a rejection, the entry that moves up into its place is highlighted, so pressing `a` again works your way down the queue.
+**Keyboard shortcuts** in the filter bar opens the same list. A shortcut acts only on the highlighted entry. Shortcuts pause while you type in the filter, while a dialog is open, and while you hold Ctrl, Cmd, or Alt, so browser shortcuts keep working; Escape closes the open dialog. The highlighted row is also where keyboard focus sits, so Tab moves into its buttons, and clicking a row highlights it. After an approval or a rejection, the entry that moves up into its place is highlighted, so pressing `a` again works your way down the queue. Focus moves there once the queue has reloaded, while the line above the table announces the result; saving in the editor does the same and confirms with **Updated** and the key. **Clear selection** returns focus to the highlighted row.
 
-With `--allow-spend`, each row also carries a **Retranslate** button. It makes one provider call for that locale and key, runs the result through the same integrity gate, and reports the outcome on the line above the table. The new value stays in the queue until you approve or reject it. A value a person wrote is not replaced from here: open the key on Translations and choose **Replace anyway** there.
+With `--allow-spend`, each row also carries a **Retranslate** button. It makes one provider call for that locale and key, runs the result through the same integrity gate, and reports the outcome on the line above the table. While it runs, the **Retranslate** button shows the progress and the row's other actions wait. The call keeps running on the server if you reload the page: the row picks it up again and counts how long it has run. The new value stays in the queue until you approve or reject it. A value a person wrote is not replaced from here: open the key on Translations and choose **Replace anyway** there.
 
 ### Act on several entries at once
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Each row starts with a checkbox, and the one in the table header selects or clears every entry the filter shows. As soon as something is selected, a bar above the table counts the selection and offers **Approve selected**, **Reject selected**, **Retranslate selected** (only with `--allow-spend`), and **Clear selection**. A bulk action covers only the selected entries the filter still shows.
+Each row starts with a checkbox, and the one in the table header selects or clears every entry the filter shows. A bar above the table counts the selection and offers **Approve selected**, **Reject selected**, **Retranslate selected** (only with `--allow-spend`), and **Clear selection**, active once something is selected. A bulk action covers only the selected entries the filter still shows.
 
-Each entry in a batch is decided exactly as it would be on its own: against the value on screen, with the same checks, and saved in `verbatra.provenance.json`. **Reject selected** lists the entries and asks for confirmation first. An entry that cannot be decided, for example because its value changed since the page loaded, does not stop the others; the line above the table names every entry that failed and why. One batch holds at most 100 entries to approve or reject, or 20 to retranslate. A batch retranslation counts each entry against the same limit as a single retranslation, 20 per rolling minute by default.
+Each entry in a batch is decided exactly as it would be on its own: against the value on screen, with the same checks, and saved in `verbatra.provenance.json`. **Reject selected** lists the entries and asks for confirmation first. An entry that cannot be decided, for example because its value changed since the page loaded, does not stop the others; the line above the table lists the failures grouped by cause, with a **Show all** toggle for a long list. The entries that failed stay selected so you can try again; the others leave the selection. One batch holds at most 100 entries to approve or reject, or 20 to retranslate. A batch retranslation counts each entry against the same limit as a single retranslation, 20 per rolling minute by default.
 
 ## Retranslate a flagged key
 

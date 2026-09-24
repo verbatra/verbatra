@@ -9,6 +9,7 @@ import { rpcClient } from "./api.js";
 import { Button } from "./Button.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
+import { TranslationValue } from "./TranslationValue.js";
 import { DrawerShell, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
@@ -159,9 +160,12 @@ export function RejectEntryDialog({
       containerRef={containerRef}
     >
       <Section title="Translation to reject">
-        <p className="m-0 whitespace-pre-wrap break-words font-mono text-sm text-foreground">
-          {value}
-        </p>
+        <TranslationValue
+          as="p"
+          value={value}
+          locale={locale}
+          className="m-0 whitespace-pre-wrap break-words text-sm text-foreground"
+        />
       </Section>
       <Section title="What happens">
         <ul className="m-0 list-disc space-y-1 ps-5 text-sm text-muted-foreground">

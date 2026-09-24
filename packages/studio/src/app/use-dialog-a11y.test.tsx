@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { pressKey, render } from "./test-support.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
@@ -235,5 +235,45 @@ describe("useDialogA11y", () => {
 
     expect(second).toHaveBeenCalledTimes(1);
     expect(first).not.toHaveBeenCalled();
+  });
+});
+
+function LateFieldDialog({ ready }: { readonly ready: boolean }): ReactNode {
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose: () => {},
+    initialFocus: fieldRef,
+  });
+  return (
+    <div ref={containerRef}>
+      <button type="button" id="close">
+        Close
+      </button>
+      {ready ? <textarea id="field" ref={fieldRef} /> : null}
+    </div>
+  );
+}
+
+describe("useDialogA11y: initial focus", () => {
+  it("focuses and scrolls to the requested element when it is there at open", () => {
+    const scrolled = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrolled;
+    const view = render(<LateFieldDialog ready />);
+
+    expect(document.activeElement).toBe(view.get("#field"));
+    expect(scrolled).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("waits for an element that mounts after open, then focuses it once", () => {
+    const view = render(<LateFieldDialog ready={false} />);
+    expect(document.activeElement).toBe(view.get("#close"));
+
+    view.rerender(<LateFieldDialog ready />);
+    expect(document.activeElement).toBe(view.get("#field"));
+
+    view.get("#close").focus();
+    view.rerender(<LateFieldDialog ready />);
+    expect(document.activeElement).toBe(view.get("#close"));
   });
 });

@@ -1,7 +1,7 @@
 import { AdapterError } from "@verbatra/format-adapters";
 import { SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
-import { createRpcInFlightGuard } from "./in-flight-guard.js";
+import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
 import { createRpcRateLimiter } from "./rate-limiter.js";
 import { createRpcHandlers, type HandlersRegistry, type RpcHandlerDeps } from "./rpc.js";
 import { dispatchRpc } from "./rpc-gate.js";
@@ -322,9 +322,10 @@ describe("dispatchRpc envelope", () => {
 
   it("answers 409 ALREADY_IN_PROGRESS once the in-flight guard rejects the call, without ever invoking the handler", async () => {
     let calls = 0;
-    const guard: { tryEnter: (method: string) => boolean; leave: (method: string) => void } = {
+    const guard: RpcInFlightGuard = {
       tryEnter: () => false,
       leave: () => {},
+      entries: () => [],
     };
 
     const result = await dispatchRpc(
@@ -384,6 +385,7 @@ describe("dispatchRpc envelope", () => {
       leave: (method: string): void => {
         leaveCalls.push(method);
       },
+      entries: () => [],
     };
 
     await dispatchRpc(
@@ -417,6 +419,50 @@ describe("dispatchRpc envelope", () => {
     expect(leaveCalls).toEqual(["translation.translatePending", "translation.translatePending"]);
   });
 
+  it("records the entries of a running single or batch retranslation on the guard, and forgets them once it settles", async () => {
+    const guard = createRpcInFlightGuard(
+      new Set(["translation.retranslateEntry", "translation.retranslateEntries"]),
+    );
+    let seenDuringSingle: readonly string[] = [];
+    let seenDuringBatch: readonly string[] = [];
+    await dispatchRpc(
+      body({ method: "translation.retranslateEntry", params: { locale: "de", key: "a" } }),
+      deps(),
+      {
+        "translation.retranslateEntry": async () => {
+          seenDuringSingle = guard.entries().map((entry) => `${entry.locale}:${entry.key}`);
+          return { accepted: true, value: "A", reviewReasons: [] };
+        },
+      },
+      undefined,
+      guard,
+    );
+    await dispatchRpc(
+      body({
+        method: "translation.retranslateEntries",
+        params: {
+          entries: [
+            { locale: "fr", key: "b" },
+            { locale: "fr", key: "c" },
+          ],
+        },
+      }),
+      deps(),
+      {
+        "translation.retranslateEntries": async () => {
+          seenDuringBatch = guard.entries().map((entry) => `${entry.locale}:${entry.key}`);
+          return { results: [] };
+        },
+      },
+      undefined,
+      guard,
+    );
+
+    expect(seenDuringSingle).toEqual(["de:a"]);
+    expect(seenDuringBatch).toEqual(["fr:b", "fr:c"]);
+    expect(guard.entries()).toEqual([]);
+  });
+
   it("passes a locale/key dedupe key to the guard for translation.retranslateEntry, so two different keys never collide on the same lock", async () => {
     const enterKeys: (string | undefined)[] = [];
     const guard = {
@@ -425,6 +471,7 @@ describe("dispatchRpc envelope", () => {
         return true;
       },
       leave: (): void => {},
+      entries: () => [],
     };
 
     await dispatchRpc(
@@ -467,6 +514,7 @@ describe("dispatchRpc envelope", () => {
         return true;
       },
       leave: (): void => {},
+      entries: () => [],
     };
 
     await dispatchRpc(
@@ -507,6 +555,7 @@ describe("dispatchRpc envelope", () => {
         return true;
       },
       leave: (): void => {},
+      entries: () => [],
     };
 
     await dispatchRpc(

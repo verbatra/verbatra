@@ -286,7 +286,10 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     cookieName: cookieName(port),
     assetsRootPath,
     log: output,
-    rpcDeps: buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
+    rpcDeps: {
+      ...buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
+      inFlightEntries: () => inFlightGuard.entries(),
+    },
     handlers,
     rateLimiter,
     inFlightGuard,

@@ -1,7 +1,13 @@
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { cn } from "./lib/cn.js";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "secondary-success"
+  | "secondary-danger"
+  | "ghost"
+  | "danger";
 
 export type ButtonSize = "sm" | "md";
 
@@ -18,6 +24,10 @@ const VARIANT_CLASSNAME: Readonly<Record<ButtonVariant, string>> = {
     "border border-transparent bg-primary font-medium text-primary-foreground shadow-panel hover:not-disabled:bg-primary-strong",
   secondary:
     "border border-border bg-card font-medium text-foreground hover:not-disabled:bg-accent hover:not-disabled:text-accent-foreground",
+  "secondary-success":
+    "border border-border bg-card font-medium text-success hover:not-disabled:bg-success-soft",
+  "secondary-danger":
+    "border border-border bg-card font-medium text-danger hover:not-disabled:bg-danger-soft",
   ghost:
     "border border-transparent bg-transparent text-muted-foreground hover:not-disabled:bg-accent hover:not-disabled:text-accent-foreground",
   danger:

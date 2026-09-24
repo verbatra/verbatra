@@ -60,7 +60,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
 | `verbatra_key_value` | los valores de origen y destino para una clave y un locale |
 | `verbatra_locale_values` | los valores de origen y destino de cada clave en cada locale de destino |
-| `verbatra_locale_integrity` | la integridad de placeholders, marcado en línea, ICU y ramas ICU de cada clave cambiada, por locale de destino |
+| `verbatra_locale_integrity` | cada clave traducida que no pasa las comprobaciones de placeholders, marcado en línea, ICU o ramas ICU, por locale de destino |
 | `verbatra_key_context` | los valores de origen y destino de una clave, su descripción y las entradas del glosario que usa su origen |
 | `verbatra_translation_estimate` | lo que `verbatra_translation_translatePending` enviaría y costaría, opcionalmente para un subconjunto de `locales`, sin llamar a ningún proveedor |
 
@@ -72,11 +72,11 @@ Desde `@verbatra/studio` 0.6.0, `verbatra_key_value` y `verbatra_locale_values` 
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_locale_integrity` ejecuta las mismas comprobaciones que `verbatra_key_integrity` sobre todas las claves cambiadas a la vez, y alimenta el filtro **Integrity problems** de la página Translations. Su `result` es `{ locales: [{ locale, entries }] }`, y cada entrada lleva `key` y los campos del veredicto. Se lista cada clave cambiada, haya pasado o no, así que revisa los campos en lugar de tomar su presencia como un fallo; una clave que falta, huérfana o sincronizada nunca aparece. El parámetro opcional `locales` limita el informe a los locales de destino indicados.
+`verbatra_locale_integrity` ejecuta las mismas comprobaciones que `verbatra_key_integrity` sobre cada clave presente tanto en el origen como en un locale de destino, sea cual sea su estado de sincronización, y alimenta el filtro **Integrity problems** de la página Translations. Su `result` es `{ locales: [{ locale, entries }] }`, y cada entrada lleva `key` y los campos del veredicto. Solo se listan las claves que fallan, así que una lista `entries` vacía significa que todas las traducciones de ese locale pasan; una clave que falta no tiene traducción que comprobar y nunca aparece. Cada llamada lee y analiza cada archivo de locale una vez. El parámetro opcional `locales` limita el informe a los locales de destino indicados.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_key_context` devuelve lo que muestra el editor del panel para una clave y un locale: `source`, `target` y su `provenance` cuando existe un valor, `description` cuando el archivo de origen da una, y `glossary`, los términos cuyo origen aparece en el texto de origen, como `{ terms, doNotTranslate }` con la traducción y las traducciones prohibidas a las que está sujeto ese locale. Los valores del glosario pasan por la misma censura que en `verbatra_glossary_get`.
+`verbatra_key_context` devuelve lo que muestra el editor del panel para una clave y un locale: `source`, `target` y su `provenance` cuando existe un valor, `description` cuando el archivo de origen da una, y `glossary`, los términos cuyo origen aparece en el texto de origen, como `{ terms, doNotTranslate }` con la traducción y las traducciones prohibidas a las que está sujeto ese locale, y `maxLength` cuando la config fija un presupuesto de longitud para la clave. Pasa el valor que piensas escribir en el parámetro opcional `draft` y el resultado lleva también `draftCheck`: para cada término aplicable, `targetUsed` y `forbiddenUsed`, y para cada término que se mantiene sin traducir, `kept`, juzgados con las reglas con las que una ejecución de traducción marca una traducción para revisión. Los valores del glosario pasan por la misma censura que en `verbatra_glossary_get`.
 
 Los botones **Approve** y **Reject** del panel no tienen herramienta de agente, con o sin gasto: una decisión de revisión la toma una persona. `verbatra_review_queue` omite cada entrada decidida desde la ejecución, pero conserva una que editó un agente, porque esa edición todavía necesita que la mire una persona.
 

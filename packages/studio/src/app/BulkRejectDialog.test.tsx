@@ -22,6 +22,7 @@ describe("BulkRejectDialog", () => {
     ]);
     expect(items[1]?.querySelector('[dir="rtl"]')?.textContent).toBe("سلة {count}");
     expect(view.getByText("button", "Reject and remove 2 entries")).toBeDefined();
+    expect(view.text()).not.toContain("Reject translations");
   });
 
   it("uses the singular for one entry", () => {
