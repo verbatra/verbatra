@@ -373,10 +373,11 @@ export {
   type LoadProvenanceInput,
   loadProvenance,
 } from "./lock/load-provenance.js";
-export type {
-  LockHolder,
-  LockWaitEvent,
-  LockWaitListener,
+export {
+  type LockHolder,
+  type LockWaitEvent,
+  type LockWaitListener,
+  releaseHeldLocks,
 } from "./lock/locale-write-lock.js";
 export { LOCK_FILE_NAME } from "./lock/lock-file.js";
 export {

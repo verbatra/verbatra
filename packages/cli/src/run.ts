@@ -1046,6 +1046,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "estimate what the run would send and cost, then exit without calling a provider (implies --dry-run)",
     )
     .action(async (opts: unknown) => {
+      ctx.hooks.onLockingCommand?.();
       ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams));
     })
     .addHelpText(
@@ -1150,6 +1151,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .option("--format <format>", FORMAT_OPTION_DESCRIPTION)
     .option("--json", "print the run summary as JSON")
     .action(async (workbook: string, opts: unknown) => {
+      ctx.hooks.onLockingCommand?.();
       ctx.setCode(await runImport(workbook, opts, ctx.deps, ctx.streams));
     })
     .addHelpText(
