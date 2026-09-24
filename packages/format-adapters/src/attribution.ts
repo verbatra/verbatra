@@ -14,13 +14,6 @@ function carriesErrnoCode(error: unknown): boolean {
   );
 }
 
-function detailOf(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) {
-    return error.message;
-  }
-  return String(error);
-}
-
 function attribute(format: string, method: string, error: unknown): never {
   const original = error instanceof ForeignThrowError ? error.cause : error;
   if (original instanceof AdapterError || carriesErrnoCode(original)) {
@@ -28,7 +21,7 @@ function attribute(format: string, method: string, error: unknown): never {
   }
   throw new AdapterError(
     "ADAPTER_FAILED",
-    `The "${format}" adapter failed in ${method}(): ${detailOf(original)}.`,
+    `The "${format}" adapter failed in ${method}(). The adapter's own error is attached as the cause.`,
     { cause: original },
   );
 }
