@@ -10,8 +10,9 @@ resolves the real tarballs instead of workspace symlinks.
 
 ## How it works
 
-`src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, and `@verbatra/studio` once (or
-reuses the paths in `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` / `VERBATRA_STUDIO_TARBALL`).
+`src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`, and
+`@verbatra/mcp` once (or reuses the paths in `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` /
+`VERBATRA_STUDIO_TARBALL` / `VERBATRA_MCP_TARBALL`).
 Each test builds a temp project, `npm install`s the tarballs, and runs the binary via
 `src/harness.ts`.
 
@@ -52,7 +53,9 @@ deterministic test joins the required gate automatically.
   run, and the `FORMAT_AMBIGUOUS` and `MISSING_OPTIONS` error envelopes), and interrupt handling
   (`tests/interrupt-releases-locks.e2e.test.ts`: a `translate` run held mid-request by a loopback
   endpoint the test serves, which never answers, exits 130 on SIGINT and 143 on SIGTERM and leaves
-  no `*.lock` file behind). It makes no provider call and no network request beyond that loopback
+  no `*.lock` file behind), and the MCP server's disconnect path (`tests/mcp.e2e.test.ts`: both
+  `verbatra mcp` and `verbatra-mcp` answer `initialize` over stdio and exit 0 without an
+  unsettled top-level await warning once the client closes stdin). It makes no provider call and no network request beyond that loopback
   endpoint, so it is deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
@@ -90,12 +93,13 @@ npm run test:nokey
 E2E_PROVIDER=gemini GEMINI_API_KEY=... npm test
 ```
 
-Without `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` / `VERBATRA_STUDIO_TARBALL`, global setup
-builds `@verbatra/sdk`, `@verbatra/cli`, and their workspace dependencies (which include
-`@verbatra/studio`), then packs the three tarballs itself via pnpm, so a stale local `dist/` is
-never packed by accident. To reuse tarballs you packed yourself (the CI path), set all three
-variables; setting only some of them fails setup. The variables must hold concrete paths (the
-harness does not expand globs), so resolve them with `$(ls ...)`:
+Without `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` / `VERBATRA_STUDIO_TARBALL` /
+`VERBATRA_MCP_TARBALL`, global setup builds `@verbatra/sdk`, `@verbatra/cli`, and their workspace
+dependencies (which include `@verbatra/studio` and `@verbatra/mcp`), then packs the four tarballs
+itself via pnpm, so a stale local `dist/` is never packed by accident. To reuse tarballs you packed
+yourself (the CI path), set all four variables; setting only some of them fails setup. The
+variables must hold concrete paths (the harness does not expand globs), so resolve them with
+`$(ls ...)`:
 
 ```sh
 # from the repo root
@@ -104,11 +108,13 @@ mkdir -p /tmp/packs
 pnpm --filter @verbatra/sdk pack --pack-destination /tmp/packs
 pnpm --filter @verbatra/cli pack --pack-destination /tmp/packs
 pnpm --filter @verbatra/studio pack --pack-destination /tmp/packs
+pnpm --filter @verbatra/mcp pack --pack-destination /tmp/packs
 
 cd e2e
 VERBATRA_SDK_TARBALL=$(ls /tmp/packs/verbatra-sdk-*.tgz) \
 VERBATRA_CLI_TARBALL=$(ls /tmp/packs/verbatra-cli-*.tgz) \
 VERBATRA_STUDIO_TARBALL=$(ls /tmp/packs/verbatra-studio-*.tgz) \
+VERBATRA_MCP_TARBALL=$(ls /tmp/packs/verbatra-mcp-*.tgz) \
   npm run test:nokey
 ```
 
