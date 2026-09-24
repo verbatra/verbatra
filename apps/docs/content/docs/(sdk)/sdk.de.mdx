@@ -70,7 +70,7 @@ Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
 - `cache` ist standardmäßig true und verwendet den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache)
   (`verbatra.cache.json`, ebenfalls exportiert als `CACHE_FILE_NAME`) wieder; setze ihn auf false, um
   den Cache für den Lauf zu umgehen (das `--no-cache` der CLI).
-- `humanEdits` übersteuert das `humanEdits` der Konfiguration für diesen Lauf: `"overwrite"` übersetzt auch veraltete Keys neu, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat (das `--include-human` der CLI). Standardmäßig bleiben solche Keys erhalten und werden in `LocaleSummary.protected` gelistet; Keys, die auf `pinnedKeys` passen, bleiben geschützt, egal was hier steht. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations). Ein Dry Run liest jetzt auch `verbatra.provenance.json`, außer `humanEdits` ergibt `"overwrite"`.
+- `humanEdits` (ab 0.12.0) übersteuert das `humanEdits` der Konfiguration für diesen Lauf: `"overwrite"` übersetzt auch veraltete Keys neu, deren Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat (das `--include-human` der CLI). Standardmäßig bleiben solche Keys erhalten und werden in `LocaleSummary.protected` gelistet; Keys, die auf `pinnedKeys` passen, bleiben geschützt, egal was hier steht. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations). Ein Dry Run liest jetzt auch `verbatra.provenance.json`, außer `humanEdits` ergibt `"overwrite"`.
 - `onProgress` wird aufgerufen, während der Lauf fortschreitet (pro Locale-Start und -Ende sowie pro
   Provider-Sub-Batch), und `onLockWait` feuert, während die Schreibsperre einer Locale umkämpft
   ist. Beides sind Benachrichtigungs-Callbacks; das SDK gibt selbst nichts aus. `lockAcquireTimeoutMs`
@@ -291,10 +291,10 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 
 Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
 Netzwerkanfrage und liest nie einen API-Key-Wert. Neun Prüfungen laufen, jede mit ihrem eigenen
-Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert, das konfigurierte
-Format löst zu einem Adapter auf, die konfigurierte Provider-ID löst zu einer Factory auf, die
-Umgebungsvariable, aus der dieser Provider seinen Key liest, ist gesetzt, und die Quell-Locale-Datei
-lässt sich lesen. Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Aufruf
+Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert (`config`), das
+konfigurierte Format löst zu einem Adapter auf (`format-adapter`), die konfigurierte Provider-ID
+löst zu einer Factory auf (`provider`), die Umgebungsvariable, aus der dieser Provider seinen Key
+liest, ist gesetzt (`api-key`), und die Quell-Locale-Datei lässt sich lesen (`source-file`). Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Aufruf
 meldet also jedes unabhängige Problem. Der API-Key wird nur über den Namen geprüft. Die
 Quelldatei-Prüfung liest und parst die Datei, statt nur ihre Existenz zu sondieren: Ein Verzeichnis
 an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier gemeldet.
@@ -633,7 +633,7 @@ ruft keinen Provider auf. Die Freigabe speichert zusätzlich den Quell-Hash des 
 Lock-Datei, sodass sie wieder als ungeprüft gilt, sobald sich die Quelle ändert; jeder spätere
 Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag.
 
-Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedValue` ist der Text,
+Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` ist der Text,
 den die prüfende Person gesehen hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
 oder einen anderen Wert hat, und `REVIEW_SOURCE_CHANGED`, wenn sich die Quelle geändert hat, seit
 der Wert geschrieben wurde. `reviewer` ist optionaler Freitext mit höchstens 64 Zeichen ohne
@@ -655,7 +655,7 @@ späteres `translate` überspringt jeden exakten oder unscharfen Memory-Treffer 
 Text zu diesem Hash passt, sodass auch das Memory eines anderen Rechners den Text nicht
 zurückbringt. Ruft keinen Provider auf.
 
-Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, geprüft wie bei `approveEntry`,
+Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, geprüft wie bei `approveEntry`,
 nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`
 zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF, wirft
 `REVIEW_REJECT_UNSUPPORTED`, nachdem es die Datei wiederhergestellt hat.
@@ -961,7 +961,7 @@ Segmenttext entfernt wurden.
 ### loadConfig
 
 Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.
-Optionen: `{ cwd?, configPath?, configOverride? }`, mit der Vorrangfolge `configOverride` (ein
+Optionen: `{ cwd?, configPath?, configOverride?, fs? }`, mit der Vorrangfolge `configOverride` (ein
 Objekt im Speicher validieren) vor `configPath` (eine explizite Datei laden) vor der Suche. Die
 Suche beginnt bei `cwd` und deckt `verbatra.config.ts` (auch `.js`/`.cjs`), die
 `.verbatrarc`-Familie (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) und eine
@@ -970,7 +970,9 @@ gelesen und validiert, sodass nachgelagerter Code immer ein Glossar im Speicher 
 Version-1-Zuordnung vom Quellbegriff zur Übersetzung oder eine Version-2-Definition.
 
 Wirft `CONFIG_NOT_FOUND`, wenn nichts gefunden wird, `CONFIG_INVALID`, wenn eine Konfiguration
-gefunden, aber ungültig ist. Das Schema steht in [Konfigurationsdatei](/docs/config-file).
+gefunden, aber ungültig ist. Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
+ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
+[Die Abhängigkeits-Nahtstelle](#die-abhängigkeits-nahtstelle) beschrieben.
 
 ### loadConfigWithMeta
 
@@ -1202,11 +1204,11 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält, und `serializeEntries` bekommt den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
+Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält, und `serializeEntries` bekommt den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen. Die optionalen Hooks sind `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` und, ab 0.12.0, `compareBranchArms`; `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
 
 ### createTreeFileAdapter
 
-Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` und `keyMode`.
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
 
 ### nodeAdapterFs
 

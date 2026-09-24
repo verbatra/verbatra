@@ -64,7 +64,7 @@ Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, 
 - `cache` defaults to true and reuses the local [translation-memory cache](/docs/the-cache)
   (`verbatra.cache.json`, also exported as `CACHE_FILE_NAME`); set it to false to bypass the cache
   for the run (the CLI's `--no-cache`).
-- `humanEdits` overrides the config's `humanEdits` for this run: `"overwrite"` also retranslates stale keys whose value a person wrote, imported, or changed outside verbatra (the CLI's `--include-human`). By default such keys are kept and listed in `LocaleSummary.protected`; keys matching `pinnedKeys` stay protected whatever this says. See [Protecting human translations](/docs/protecting-human-translations). A dry run now reads `verbatra.provenance.json` too, unless `humanEdits` resolves to `"overwrite"`.
+- `humanEdits` (from 0.12.0) overrides the config's `humanEdits` for this run: `"overwrite"` also retranslates stale keys whose value a person wrote, imported, or changed outside verbatra (the CLI's `--include-human`). By default such keys are kept and listed in `LocaleSummary.protected`; keys matching `pinnedKeys` stay protected whatever this says. See [Protecting human translations](/docs/protecting-human-translations). A dry run now reads `verbatra.provenance.json` too, unless `humanEdits` resolves to `"overwrite"`.
 - `onProgress` is called as the run advances (per locale start and finish, and per provider
   sub-batch), and `onLockWait` fires while a locale's write lock is contended. Both are
   notification callbacks; the SDK writes no output itself. `lockAcquireTimeoutMs` overrides how long
@@ -268,9 +268,10 @@ None of these call a provider, write a file, or mutate the lock.
 
 Validates the project setup and spends nothing: it constructs no provider, makes no network
 request, and never reads an API key value. Nine checks run, each with its own `pass`, `fail`, or
-`skipped` verdict. Five cover the basics: the config loads and validates, the configured format resolves to an adapter,
-the configured provider ID resolves to a factory, the environment variable that provider reads its
-key from is set, and the source locale file can be read. Every check runs even when an earlier one
+`skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
+adapter (`format-adapter`), the configured provider ID resolves to a factory (`provider`), the
+environment variable that provider reads its key from is set (`api-key`), and the source locale file
+can be read (`source-file`). Every check runs even when an earlier one
 failed, so one call reports every independent problem. The API key is checked by name only. The
 source-file check reads and parses the file rather than only probing for it, so a directory in its
 place, an empty file, and malformed content are all reported here.
@@ -585,7 +586,7 @@ Records that a person reviewed one key's current value in one locale and accepts
 approval also stores the lock file's source hash for the key, so it reads as unreviewed again once
 the source changes; any later write that changes the value starts a fresh, unreviewed record.
 
-Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedValue` is the text the
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` is the text the
 reviewer saw: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
 and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
 optional free text of at most 64 characters with no control characters (`REVIEWER_INVALID`
@@ -606,7 +607,7 @@ this machine is dropped. A later `translate` skips any exact or fuzzy memory hit
 text matches that hash, so another machine's memory cannot bring the text back either. Calls no
 provider.
 
-Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, checked like `approveEntry`
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, checked like `approveEntry`
 except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A
 format that keeps a key it was not given, XLIFF, throws `REVIEW_REJECT_UNSUPPORTED` after
 restoring the file.
@@ -879,7 +880,7 @@ segment text.
 ### loadConfig
 
 Finds, loads, and validates the project config, returning a `VerbatraConfig`. Options:
-`{ cwd?, configPath?, configOverride? }`, with precedence `configOverride` (validate an in-memory
+`{ cwd?, configPath?, configOverride?, fs? }`, with precedence `configOverride` (validate an in-memory
 object) over `configPath` (load one explicit file) over search. The search starts at `cwd` and
 covers `verbatra.config.ts` (also `.js`/`.cjs`), the `.verbatrarc` family (`.json`, `.yaml`,
 `.yml`, `.js`, `.cjs`, `.ts`), and a `"verbatra"` property in `package.json`. A `glossary` given as
@@ -887,7 +888,8 @@ a file path is read and validated here, so downstream code always sees an in-mem
 version 1 map from source term to translation, or a version 2 definition.
 
 Throws `CONFIG_NOT_FOUND` when nothing is found, `CONFIG_INVALID` when a config is found but
-invalid. See [The config file](/docs/config-file) for the schema.
+invalid. See [The config file](/docs/config-file) for the schema. `fs` is the file-system port a
+glossary file is read through, as described under [The dependency seam](#the-dependency-seam).
 
 ### loadConfigWithMeta
 
@@ -1104,11 +1106,11 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Builds a `FormatAdapter` for a flat key/value format, one where every entry is addressed by a single key with no nesting. You supply the format's own `parseEntries`, `serializeEntries` and `extractPlaceholders`; the factory supplies the size-bounded read, the atomic write, extension detection and the structured error handling. `parseEntries` also receives the locale the file is read as, for a format whose one file holds both source and target text, and `serializeEntries` receives the caller's write context, whose optional `sourcePath` names the source-locale file. Give it a `sniff` whenever your extension is a generic one, or your adapter claims every file that shares it and detection reports an ambiguity instead of choosing.
+Builds a `FormatAdapter` for a flat key/value format, one where every entry is addressed by a single key with no nesting. You supply the format's own `parseEntries`, `serializeEntries` and `extractPlaceholders`; the factory supplies the size-bounded read, the atomic write, extension detection and the structured error handling. `parseEntries` also receives the locale the file is read as, for a format whose one file holds both source and target text, and `serializeEntries` receives the caller's write context, whose optional `sourcePath` names the source-locale file. Give it a `sniff` whenever your extension is a generic one, or your adapter claims every file that shares it and detection reports an ambiguity instead of choosing. The optional hooks are `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` and, from 0.12.0, `compareBranchArms`; `fs` replaces the file-system port, `nodeAdapterFs` by default.
 
 ### createTreeFileAdapter
 
-Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and handles flattening and unflattening itself. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` and `keyMode`.
+Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and `extractPlaceholders` for one value, and handles flattening and unflattening itself. Like the flat factory it takes `format`, `extensions` and an optional `sniff`. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (from 0.12.0), `deriveDescriptions`, `buildWriteTree` and `keyMode`, and `fs` replaces the file-system port, `nodeAdapterFs` by default.
 
 ### nodeAdapterFs
 
