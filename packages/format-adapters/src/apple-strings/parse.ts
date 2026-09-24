@@ -189,30 +189,52 @@ interface BlockComment {
   readonly inner: string;
 }
 
-function nextCommentStart(text: string, from: number): number {
-  const block = text.indexOf("/*", from);
-  const line = text.indexOf("//", from);
-  if (block === -1 || line === -1) {
-    return Math.max(block, line);
+const SLASH = 0x2f;
+const STAR = 0x2a;
+const LINE_FEED = 0x0a;
+
+function lineCommentEnd(text: string, from: number): number {
+  let i = from;
+  while (i < text.length && text.charCodeAt(i) !== LINE_FEED) {
+    i += 1;
   }
-  return Math.min(block, line);
+  return i;
+}
+
+function blockCommentClose(text: string, from: number): number {
+  let previous = -1;
+  for (let i = from; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (previous === STAR && code === SLASH) {
+      return i - 1;
+    }
+    previous = code;
+  }
+  return -1;
 }
 
 function lastBlockComment(text: string): BlockComment | null {
   let last: BlockComment | null = null;
-  let start = nextCommentStart(text, 0);
-  while (start !== -1) {
-    if (text.startsWith("//", start)) {
-      const lineEnd = text.indexOf("\n", start);
-      start = lineEnd === -1 ? -1 : nextCommentStart(text, lineEnd);
+  let previous = -1;
+  let i = 0;
+  while (i < text.length) {
+    const code = text.charCodeAt(i);
+    if (previous !== SLASH || (code !== SLASH && code !== STAR)) {
+      previous = code;
+      i += 1;
       continue;
     }
-    const close = text.indexOf("*/", start + 2);
-    if (close === -1) {
-      break;
+    previous = -1;
+    if (code === SLASH) {
+      i = lineCommentEnd(text, i + 1);
+      continue;
     }
-    last = { end: close + 2, inner: text.slice(start + 2, close) };
-    start = nextCommentStart(text, close + 2);
+    const close = blockCommentClose(text, i + 1);
+    if (close === -1) {
+      return last;
+    }
+    last = { end: close + 2, inner: text.slice(i + 1, close) };
+    i = close + 2;
   }
   return last;
 }
