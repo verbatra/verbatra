@@ -96,30 +96,15 @@ describe("extractXliffPlaceholders: bounded work", () => {
   });
 });
 
-describe("extractXliffPlaceholders: per XLIFF version", () => {
-  it.each([
-    [
-      "1.2",
-      '<em>word</em> <pc id="1">b</pc> <x id="2"/> <bpt id="3">',
-      ['<x id="2"/>', '<bpt id="3">'],
-    ],
-    [
-      "2.0",
-      '<em startRef="1"/> <pc id="1">b</pc> <x id="2"/> <bpt id="3">',
-      ['<em startRef="1"/>', '<pc id="1">'],
-    ],
-  ] as const)("extracts only the inline elements XLIFF %s defines", (version, value, expected) => {
-    expect(extractXliffPlaceholders(value, version)).toEqual(expected);
+describe("extractXliffPlaceholders: both XLIFF versions", () => {
+  it("extracts the inline elements either XLIFF version defines", () => {
+    expect(
+      extractXliffPlaceholders('<em startRef="1"/> <pc id="1">b</pc> <x id="2"/> <bpt id="3">'),
+    ).toEqual(['<em startRef="1"/>', '<pc id="1">', '<x id="2"/>', '<bpt id="3">']);
   });
 
   it("does not treat an XLIFF 1.2 sub-flow as a placeholder", () => {
-    expect(extractXliffPlaceholders('<ph id="1"><sub>T</sub></ph>', "1.2")).toEqual([
-      '<ph id="1">',
-    ]);
-  });
-
-  it("extracts the elements of both versions when no version is known", () => {
-    expect(extractXliffPlaceholders('<em>w</em> <x id="1"/>')).toEqual(["<em>", '<x id="1"/>']);
+    expect(extractXliffPlaceholders('<ph id="1"><sub>T</sub></ph>')).toEqual(['<ph id="1">']);
   });
 });
 

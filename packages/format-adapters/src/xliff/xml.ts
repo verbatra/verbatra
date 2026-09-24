@@ -79,7 +79,7 @@ export function parseXliffEntries(
       key: unit.key,
       namespace,
       value,
-      placeholders: extractXliffPlaceholders(value, version),
+      placeholders: extractXliffPlaceholders(value),
       isPlural: false,
       ...(unit.description !== undefined ? { description: unit.description } : {}),
     });
