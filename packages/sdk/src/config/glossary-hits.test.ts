@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GlossaryDefinition } from "./glossary.js";
-import { glossaryHits } from "./glossary-hits.js";
+import { glossaryDraftCheck, glossaryHits } from "./glossary-hits.js";
 
 const GLOSSARY: GlossaryDefinition = {
   version: 2,
@@ -45,5 +45,36 @@ describe("glossaryHits", () => {
 
   it("finds nothing without a glossary", () => {
     expect(glossaryHits(undefined, "de", "en", "cart")).toEqual({ terms: [], doNotTranslate: [] });
+  });
+});
+
+describe("glossaryDraftCheck", () => {
+  it("checks a draft against the terms its source text carries", () => {
+    expect(
+      glossaryDraftCheck({
+        glossary: GLOSSARY,
+        locale: "de",
+        sourceLocale: "en",
+        source: "Your cart at Verbatra",
+        draft: "Dein Karren bei verbatra",
+      }),
+    ).toEqual({
+      terms: [
+        { source: "cart", target: "Warenkorb", targetUsed: false, forbiddenUsed: ["Karren"] },
+      ],
+      doNotTranslate: [{ term: "Verbatra", kept: false }],
+    });
+  });
+
+  it("finds nothing to check without a glossary", () => {
+    expect(
+      glossaryDraftCheck({
+        glossary: undefined,
+        locale: "de",
+        sourceLocale: "en",
+        source: "cart",
+        draft: "Wagen",
+      }),
+    ).toEqual({ terms: [], doNotTranslate: [] });
   });
 });

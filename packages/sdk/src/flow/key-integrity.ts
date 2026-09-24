@@ -67,7 +67,10 @@ export interface KeyIntegrityEntry {
 export interface LocaleKeyIntegrity {
   /** The target locale these verdicts describe. */
   readonly locale: string;
-  /** Verdicts for the changed keys that exist in both the source and this locale. */
+  /**
+   * The verdicts for this locale: from {@link keyIntegrity}, one per changed key that exists in both
+   * the source and this locale; from {@link localeIntegrity}, one per failing key only.
+   */
   readonly entries: readonly KeyIntegrityEntry[];
 }
 
@@ -95,7 +98,7 @@ export interface KeyIntegrityDeps {
   readonly fs?: SdkFs;
 }
 
-function checkEntryIntegrity(
+export function checkEntryIntegrity(
   adapter: FormatAdapter,
   locale: string,
   sourceEntry: TranslationEntry,
@@ -129,6 +132,10 @@ function selectChangedKeys(
   }
   const wanted = new Set(requested);
   return changed.filter((key) => wanted.has(key));
+}
+
+export function hasIntegrityProblem(entry: KeyIntegrityEntry): boolean {
+  return !entry.matches || !entry.icuValid || !entry.icuArmsMatch || !entry.markupMatches;
 }
 
 function integrityEntriesFor(
