@@ -133,6 +133,8 @@ Las comprobaciones de marcado en línea en `key.integrity` (`markupMatches`, `ma
 
 `key.value` también devuelve `provenance` siempre que `target` está presente: `origin`, `provider` y `model` para la traducción automática, `reviewState` y `reviewer` cuando se registró uno. Cada locale de `lock.state` y `status.check` lleva contadores `provenance` (`byOrigin`, `byReviewState`), y cada locale de `status.diff` lleva `changedOrigins`, el origen del valor actual de cada clave cambiada. Todos se omiten cuando `verbatra.provenance.json` está corrupto o lo escribió un verbatra más nuevo; qué significa cada origen está en [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 
+`key.value` también devuelve `description`, el contexto que el archivo de origen da a los traductores para la clave (un `@key.description` de ARB, una nota de XLIFF, un comentario de gettext, un comentario de `.strings` de Apple o de `.resx` de .NET), y lo omite cuando el formato o el archivo no lleva ninguno.
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Cada entrada de `key.integrity` lleva además `icuArmsMatch` e `icuArmDetails`: si las ramas ICU de `plural`, `selectordinal` y `select` del valor encajan con el idioma de destino, juzgadas con la misma regla por la que `translation.editEntry` rechaza un valor con el motivo `icu`, y un problema breve por cada rama que falta o sobra.

@@ -12,6 +12,7 @@ const paramsSchema = z.strictObject({
 const keyValueResultSchema = z.object({
   source: z.string(),
   target: z.string().optional(),
+  description: z.string().optional(),
   provenance: keyProvenanceSchema.optional(),
 });
 
@@ -42,6 +43,9 @@ export const keyValueTool = defineTool({
     "target locale and the required key parameter must exist in the source; an unknown one " +
     "fails with an error rather than an empty result. target is absent when the key has not " +
     "been translated into that locale yet, while an empty string is a real stored value. " +
+    "description is the context the source file gives translators for the key (an ARB " +
+    "@key.description, an XLIFF note, a gettext comment, an Apple .strings comment, or a " +
+    ".NET .resx comment), absent when the format or the file carries none. " +
     "When target is present, provenance says who wrote it, read from " +
     "verbatra.provenance.json: origin (machine, memory, fuzzy, agent, human, import, " +
     "unknown, unrecorded when nothing was recorded, or external when the value was edited " +

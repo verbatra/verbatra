@@ -13,16 +13,16 @@ describe("Checkbox", () => {
 
     expect(input(view).type).toBe("checkbox");
     expect(input(view).checked).toBe(true);
-    expect(input(view).getAttribute("aria-checked")).toBe("true");
+    expect(input(view).hasAttribute("aria-checked")).toBe(false);
   });
 
-  it("shows and announces a mixed state", () => {
+  it("shows a mixed state through the native indeterminate property", () => {
     const view = render(
       <Checkbox checked={false} indeterminate aria-label="All" onChange={vi.fn()} />,
     );
 
     expect(input(view).indeterminate).toBe(true);
-    expect(input(view).getAttribute("aria-checked")).toBe("mixed");
+    expect(input(view).hasAttribute("aria-checked")).toBe(false);
     view.rerender(<Checkbox checked={false} aria-label="All" onChange={vi.fn()} />);
     expect(input(view).indeterminate).toBe(false);
   });

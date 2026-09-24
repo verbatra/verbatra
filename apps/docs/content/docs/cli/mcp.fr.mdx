@@ -133,6 +133,8 @@ Les contrôles de balisage en ligne dans `key.integrity` (`markupMatches`, `mark
 
 `key.value` renvoie aussi `provenance` dès que `target` est présent : `origin`, `provider` et `model` pour la traduction automatique, `reviewState` et `reviewer` quand un relecteur a été enregistré. Chaque locale de `lock.state` et `status.check` porte des comptes `provenance` (`byOrigin`, `byReviewState`), et chaque locale de `status.diff` porte `changedOrigins`, l'origine de la valeur actuelle de chaque clé modifiée. Tous sont omis quand `verbatra.provenance.json` est corrompu ou écrit par un verbatra plus récent ; ce que signifie chaque origine est expliqué dans [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur).
 
+`key.value` renvoie aussi `description`, le contexte que le fichier source donne aux traducteurs pour la clé (un `@key.description` ARB, une note XLIFF, un commentaire gettext, un commentaire `.strings` d'Apple ou `.resx` .NET), et l'omet quand le format ou le fichier n'en porte pas.
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et `icuArmDetails` : si les branches ICU `plural`, `selectordinal` et `select` de la valeur conviennent à la langue cible, jugées selon la même règle qui fait refuser une valeur par `translation.editEntry` avec le motif `icu`, et un problème court par branche manquante ou en trop.
