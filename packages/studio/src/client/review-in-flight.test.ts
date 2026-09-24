@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUSY_ANNOUNCE_STEP_SECONDS,
+  compactElapsed,
   elapsedSeconds,
   hasRunningRetranslation,
   mergeServerInFlight,
@@ -56,8 +58,27 @@ describe("row busy copy", () => {
   it("names the running action and, for a timed one, how long it has run", () => {
     expect(rowBusyLabel("approve")).toBe("Approving…");
     expect(rowBusyStatus("reject", undefined)).toBe("Rejecting…");
-    expect(rowBusyStatus("retranslate", 1)).toBe("Retranslating… 1 second so far");
-    expect(rowBusyStatus("retranslate", 12)).toBe("Retranslating… 12 seconds so far");
+    expect(rowBusyStatus("retranslate", 0)).toBe("Retranslating…");
+    expect(rowBusyStatus("retranslate", 14)).toBe("Retranslating…");
+    expect(rowBusyStatus("retranslate", 15)).toBe("Retranslating… 15 seconds so far");
+    expect(rowBusyStatus("retranslate", 29)).toBe("Retranslating… 15 seconds so far");
+    expect(rowBusyStatus("retranslate", 30)).toBe("Retranslating… 30 seconds so far");
+  });
+
+  it("announces in steps of fifteen seconds, so a live region changes only at those steps", () => {
+    const distinct = new Set(
+      Array.from({ length: 61 }, (_unused, seconds) => rowBusyStatus("retranslate", seconds)),
+    );
+
+    expect(BUSY_ANNOUNCE_STEP_SECONDS).toBe(15);
+    expect(distinct.size).toBe(5);
+  });
+
+  it("formats the visible elapsed time compactly, switching to minutes at one minute", () => {
+    expect(compactElapsed(0)).toBe("0s");
+    expect(compactElapsed(59)).toBe("59s");
+    expect(compactElapsed(60)).toBe("1:00");
+    expect(compactElapsed(125)).toBe("2:05");
   });
 
   it("tells whether any retranslation is running", () => {

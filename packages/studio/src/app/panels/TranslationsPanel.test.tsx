@@ -970,7 +970,7 @@ describe("TranslationsPanel key explorer", () => {
       "Orphaned(0)",
       "Protected(1)",
     ]);
-    expect(view.get("details summary").textContent).toContain("1 protected");
+    expect(view.get("details summary").textContent).toContain("Protected 1");
   });
 
   it("narrows every list to the keys matching the filter, leaving out groups without a match", async () => {
@@ -991,6 +991,7 @@ describe("TranslationsPanel key explorer", () => {
 
     expect(view.all("h4").map((heading) => heading.textContent)).toEqual(["Changed(1)"]);
     expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.cta"]);
+    expect(view.get("[data-locale-summary]").textContent).toBe("Changed 1");
   });
 
   it("matches a query found only in a key's value, not its key name", async () => {
@@ -1204,8 +1205,12 @@ describe("TranslationsPanel key explorer", () => {
     await switchToList(view);
 
     expect(view.all("summary")[0]?.textContent).toBe(
-      "dePending changes1 missing · 1 changed · 0 orphaned",
+      "dePending changesMissing 1Changed 1Orphaned 0",
     );
+    const pair = view.get("[data-locale-summary] > span");
+    expect(pair.firstElementChild?.className).toContain("text-muted-foreground");
+    expect(pair.lastElementChild?.className).toContain("tabular-nums");
+    expect(view.all("summary")[0]?.textContent).not.toContain("\u00b7");
   });
 
   it("marks a locale with nothing pending as up to date, with no drift counts", async () => {
@@ -1472,6 +1477,7 @@ describe("TranslationsPanel key filters", () => {
 
     expect(listedSections(view)).toEqual(["fr"]);
     expect(headings(view)).toEqual(["Orphaned(1)", "Review queue(1)"]);
+    expect(view.get("[data-locale-summary]").textContent).toBe("Orphaned 1Review queue 1");
   });
 
   it("narrows to one locale, counting only that locale", async () => {

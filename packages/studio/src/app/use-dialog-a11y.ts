@@ -99,8 +99,8 @@ export function useDialogA11y<T extends HTMLElement>({
     return () => {
       initialPending.current = false;
       document.removeEventListener("keydown", onKeyDown);
-      if (shouldRestoreFocusRef.current?.() !== false) {
-        previouslyFocused?.focus();
+      if (shouldRestoreFocusRef.current?.() !== false && previouslyFocused?.isConnected === true) {
+        previouslyFocused.focus();
       }
     };
   }, [isOpen]);

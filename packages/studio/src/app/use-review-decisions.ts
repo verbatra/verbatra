@@ -291,7 +291,7 @@ export function useReviewDecisions(
     retranslateMany: (rows, onSettled) => void retranslateMany(rows, onSettled),
     rejected: (target) => {
       settle({ kind: "rejected", locale: target.locale, key: target.key });
-      onDecided();
+      reloadThenSettle([target]);
     },
     rejectStale: (target, message) => {
       settle({ kind: "failed", action: "reject", ...target, message });

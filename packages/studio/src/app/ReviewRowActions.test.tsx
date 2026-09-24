@@ -114,10 +114,50 @@ describe("ReviewRowActions", () => {
       "Edit",
       "Approve",
       "Reject…",
-      "Retranslating…",
+      "Retranslating… 7s",
     ]);
     expect(view.all("button").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
-    expect(view.get('[role="status"]').textContent).toBe("Retranslating… 7 seconds so far");
+    expect(view.get("[data-busy-elapsed]").className).toContain("tabular-nums");
+    expect(view.get('[role="status"]').textContent).toBe("Retranslating…");
+  });
+
+  it("keeps the elapsed time inside the fixed-width Retranslate button", () => {
+    const view = render(
+      <ReviewRowActions
+        {...handlers()}
+        onRetranslate={vi.fn()}
+        busy={{ action: "retranslate", elapsedSeconds: 754 }}
+      />,
+    );
+
+    const button = view.getByText("button", "Retranslating… 12:34");
+    expect(button.className).toContain("w-40");
+    expect(button.contains(view.get("[data-busy-elapsed]"))).toBe(true);
+  });
+
+  it("announces a running retranslation at the start and then every fifteen seconds only", () => {
+    const status = (seconds: number): string =>
+      render(
+        <ReviewRowActions
+          {...handlers()}
+          onRetranslate={vi.fn()}
+          busy={{ action: "retranslate", elapsedSeconds: seconds }}
+        />,
+      ).get('[role="status"]').textContent ?? "";
+
+    expect(status(0)).toBe("Retranslating…");
+    expect(status(14)).toBe("Retranslating…");
+    expect(status(16)).toBe("Retranslating… 15 seconds so far");
+    expect(status(31)).toBe("Retranslating… 30 seconds so far");
+  });
+
+  it("shows no elapsed time on a retranslation whose start is unknown", () => {
+    const view = render(
+      <ReviewRowActions {...handlers()} onRetranslate={vi.fn()} busy={{ action: "retranslate" }} />,
+    );
+
+    expect(view.query("[data-busy-elapsed]")).toBeNull();
+    expect(view.getByText("button", "Retranslating…")).toBeDefined();
   });
 
   it("shows a running bulk rejection on the Reject button", () => {
@@ -131,7 +171,7 @@ describe("ReviewRowActions", () => {
 
     expect(view.getByText("button", "Approve").className).toContain("w-24");
     expect(view.getByText("button", "Reject…").className).toContain("w-24");
-    expect(view.getByText("button", "Retranslate").className).toContain("w-30");
+    expect(view.getByText("button", "Retranslate").className).toContain("w-40");
     expect(view.get('[role="status"]').textContent).toBe("");
   });
 

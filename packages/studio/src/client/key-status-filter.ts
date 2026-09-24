@@ -96,6 +96,23 @@ export function listedStatuses(
   );
 }
 
+export interface StatusSummaryItem {
+  readonly status: KeyStatus;
+  readonly count: number;
+}
+
+export function localeStatusSummary(
+  groups: KeyGroups,
+  filter: KeyStatusFilter,
+  searching: boolean,
+  hasPendingChanges: boolean,
+): readonly StatusSummaryItem[] {
+  const narrowed = searching || filter.statuses.size > 0;
+  return listedStatuses(groups, filter, searching)
+    .map((status) => ({ status, count: groups[status].length }))
+    .filter((item) => narrowed || hasPendingChanges || item.count > 0);
+}
+
 export function isLocaleListed(
   locale: string,
   groups: KeyGroups,

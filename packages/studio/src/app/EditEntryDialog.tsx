@@ -140,7 +140,7 @@ function GlossaryHitList({
             flags={draftTermFlags(check?.terms.find((entry) => entry.source === term.source))}
           />
           {term.forbidden.length > 0 ? (
-            <span className="block text-xs text-danger">
+            <span className="block text-xs text-muted-foreground" data-glossary-forbidden="">
               Never{" "}
               <span lang={locale} dir="auto">
                 {term.forbidden.join(", ")}
