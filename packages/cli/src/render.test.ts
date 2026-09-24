@@ -1056,7 +1056,7 @@ describe("render: progress", () => {
 
   it("renders every event type human-readably, prefixed with verbatra:", () => {
     for (const [event, fragment] of cases) {
-      const line = renderProgressHuman(event);
+      const line = renderProgressHuman(event) ?? "";
       expect(line.startsWith("verbatra:")).toBe(true);
       expect(line).toContain(fragment);
     }
@@ -1064,15 +1064,35 @@ describe("render: progress", () => {
 
   it("renders every event type as its verbatim JSON record", () => {
     for (const [event] of cases) {
-      expect(JSON.parse(renderProgressJson(event))).toEqual(event);
+      expect(JSON.parse(renderProgressJson(event) ?? "")).toEqual(event);
     }
   });
 
   it("renderProgress dispatches to JSON under json mode and to the human line otherwise", () => {
     const event: ProgressEvent = { type: "run-finished", localesCompleted: 1 };
-    expect(JSON.parse(renderProgress(event, true))).toEqual(event);
+    expect(JSON.parse(renderProgress(event, true) ?? "")).toEqual(event);
     expect(renderProgress(event, false)).toContain("run finished");
   });
+
+  const laterEvents: readonly ProgressEvent[] = [
+    { type: "locale-planned", locale: "de", keys: 3, batches: 1, cacheHits: 0 },
+    { type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 1, durationMs: 5 },
+    { type: "provider-retry", attempt: 2, delayMs: 250, status: 429 },
+    { type: "repair", locale: "de", keys: 1 },
+    { type: "split-retry", locale: "de", keys: 4 },
+    { type: "writing", locale: "de" },
+    { type: "change-detected", paths: ["/p/locales/en.json"] },
+    { type: "idle" },
+  ];
+
+  it.each(laterEvents)(
+    "renders no plain line and no JSON record for the finer-grained $type event",
+    (event) => {
+      expect(renderProgressHuman(event)).toBeUndefined();
+      expect(renderProgressJson(event)).toBeUndefined();
+      expect(renderProgress(event, true)).toBeUndefined();
+    },
+  );
 });
 
 describe("renderHuman: pre-run estimate", () => {
