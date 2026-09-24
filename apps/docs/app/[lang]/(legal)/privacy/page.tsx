@@ -6,6 +6,7 @@ import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analyt
 import { CALLOUT_CLASS } from "@/components/mdx";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
 const UMAMI_DOCS = "https://umami.is/docs/";
 const GITHUB_REPO = "https://github.com/verbatra/verbatra";
@@ -63,11 +64,21 @@ export async function generateMetadata(props: {
   const { lang } = await props.params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.privacy.meta" });
+  const tMeta = await getTranslations({ locale, namespace: "landing.meta" });
+  const alternates = localeAlternates(locale, "/privacy");
   return {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates: localeAlternates(locale, "/privacy"),
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      type: "website",
+      title: t("title"),
+      description: t("description"),
+      image: { path: homeOgImagePath(locale), alt: tMeta("ogImageAlt") },
+    }),
   };
 }
 

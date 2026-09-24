@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ContactForm } from "@/components/contact-form";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -11,11 +12,21 @@ export async function generateMetadata(props: {
   const { lang } = await props.params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.contact.meta" });
+  const tMeta = await getTranslations({ locale, namespace: "landing.meta" });
+  const alternates = localeAlternates(locale, "/contact");
   return {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates: localeAlternates(locale, "/contact"),
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      type: "website",
+      title: t("title"),
+      description: t("description"),
+      image: { path: homeOgImagePath(locale), alt: tMeta("ogImageAlt") },
+    }),
   };
 }
 

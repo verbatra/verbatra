@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
 const linkTagsFor = (locale: Locale) => ({
   link: (chunks: ReactNode) => <a href={localizedPath(locale, "/contact")}>{chunks}</a>,
@@ -14,11 +15,21 @@ export async function generateMetadata(props: {
   const { lang } = await props.params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.imprint.meta" });
+  const tMeta = await getTranslations({ locale, namespace: "landing.meta" });
+  const alternates = localeAlternates(locale, "/imprint");
   return {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates: localeAlternates(locale, "/imprint"),
+    alternates,
+    ...socialMetadata({
+      locale,
+      path: alternates.canonical,
+      type: "website",
+      title: t("title"),
+      description: t("description"),
+      image: { path: homeOgImagePath(locale), alt: tMeta("ogImageAlt") },
+    }),
   };
 }
 
