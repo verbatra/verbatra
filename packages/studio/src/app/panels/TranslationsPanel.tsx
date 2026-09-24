@@ -20,7 +20,9 @@ import {
   keyGroupsFor,
   type LocaleIntegrityData,
   listedStatuses,
+  localeStatusSummary,
   queryMatcher,
+  type StatusSummaryItem,
   statusCounts,
   toggleStatus,
 } from "../../client/key-status-filter.js";
@@ -359,17 +361,25 @@ function KeyList({
   );
 }
 
-function LocaleSectionCounts({ locale }: { readonly locale: DiffLocale }): ReactNode {
-  if (!locale.hasPendingChanges) {
+function LocaleSectionCounts({
+  items,
+}: {
+  readonly items: readonly StatusSummaryItem[];
+}): ReactNode {
+  if (items.length === 0) {
     return null;
   }
   return (
-    <span className="text-xs text-muted-foreground">
-      {locale.missing.length} missing &middot; {locale.changed.length} changed &middot;{" "}
-      {locale.orphaned.length} orphaned
-      {locale.protected !== undefined && locale.protected.length > 0 ? (
-        <> &middot; {locale.protected.length} protected</>
-      ) : null}
+    <span
+      className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs"
+      data-locale-summary=""
+    >
+      {items.map((item) => (
+        <span key={item.status} className="inline-flex items-baseline gap-1 whitespace-nowrap">
+          <span className="text-muted-foreground">{KEY_STATUS_LABELS[item.status]}</span>{" "}
+          <span className="font-mono font-semibold tabular-nums text-foreground">{item.count}</span>
+        </span>
+      ))}
     </span>
   );
 }
@@ -393,9 +403,10 @@ function LocaleSection({
     () => valuesForLocale(localeValues, locale.locale),
     [localeValues, locale.locale],
   );
+  const searching = query.trim() !== "";
   return (
     <AccordionItem
-      defaultOpen={locale.hasPendingChanges || filter.statuses.size > 0 || query.trim() !== ""}
+      defaultOpen={locale.hasPendingChanges || filter.statuses.size > 0 || searching}
       summary={
         <span className="inline-flex flex-wrap items-center gap-2">
           {locale.locale}
@@ -404,11 +415,13 @@ function LocaleSection({
           ) : (
             <Badge tone="success">Up to date</Badge>
           )}
-          <LocaleSectionCounts locale={locale} />
+          <LocaleSectionCounts
+            items={localeStatusSummary(groups, filter, searching, locale.hasPendingChanges)}
+          />
         </span>
       }
     >
-      {listedStatuses(groups, filter, query.trim() !== "").map((status) => (
+      {listedStatuses(groups, filter, searching).map((status) => (
         <KeyList
           key={status}
           status={status}

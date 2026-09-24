@@ -10,6 +10,7 @@ import {
   keyGroupsFor,
   type LocaleIntegrityData,
   listedStatuses,
+  localeStatusSummary,
   queryMatcher,
   statusCounts,
   toggleStatus,
@@ -99,6 +100,51 @@ describe("listedStatuses", () => {
     expect(listedStatuses(groups, filter(null, ["integrity", "missing"]))).toEqual([
       "missing",
       "integrity",
+    ]);
+  });
+});
+
+describe("localeStatusSummary", () => {
+  const de = keyGroupsFor(DE, SOURCES);
+  const matchesBroken = keyGroupsFor(DE, SOURCES, (_locale, key) => key === "a.broken");
+
+  it("counts every listed status of a pending locale, zeros included for the diff groups", () => {
+    expect(
+      localeStatusSummary(
+        keyGroupsFor(FR, { review: [], integrity: [] }),
+        filter(null),
+        false,
+        true,
+      ),
+    ).toEqual([
+      { status: "missing", count: 1 },
+      { status: "changed", count: 0 },
+      { status: "orphaned", count: 1 },
+    ]);
+  });
+
+  it("leaves out the empty groups of a locale with nothing pending", () => {
+    const upToDate = keyGroupsFor(
+      { ...FR, missing: [], orphaned: [], hasPendingChanges: false },
+      SOURCES,
+    );
+
+    expect(localeStatusSummary(upToDate, filter(null), false, false)).toEqual([
+      { status: "review", count: 1 },
+    ]);
+  });
+
+  it("counts only the keys the search matches", () => {
+    expect(localeStatusSummary(matchesBroken, filter(null), true, true)).toEqual([
+      { status: "changed", count: 1 },
+      { status: "integrity", count: 1 },
+    ]);
+  });
+
+  it("counts only the chosen statuses, zeros included", () => {
+    expect(localeStatusSummary(de, filter(null, ["orphaned", "review"]), false, false)).toEqual([
+      { status: "orphaned", count: 0 },
+      { status: "review", count: 1 },
     ]);
   });
 });

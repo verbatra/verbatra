@@ -808,7 +808,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query }, values);
   const active = useActiveRow(filtered);
   const settledFocus = useSettledFocus(
-    view.kind === "data" && !decisions.awaitingReload(),
+    view.kind === "data" && !decisions.awaitingReload() && editing === null && rejecting === null,
     active.focusActive,
   );
   const settledCount = decisions.settledCount;
