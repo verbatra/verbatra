@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { IntegrityPillView } from "./integrity-pill.js";
-import { canRetranslate, type RetranslateCapabilities } from "./retranslate-eligibility.js";
+import {
+  canRetranslate,
+  canRetranslateReviewed,
+  type RetranslateCapabilities,
+} from "./retranslate-eligibility.js";
 
 const BOTH_ON: RetranslateCapabilities = { spend: true, writeToDisk: true };
 const DANGER_PILL: IntegrityPillView = {
@@ -46,5 +50,16 @@ describe("canRetranslate", () => {
   it("is false when the pill reports neutral (no placeholders, trivially matching)", () => {
     const neutral: IntegrityPillView = { tone: "neutral", label: "No placeholders", detail: null };
     expect(canRetranslate(BOTH_ON, neutral)).toBe(false);
+  });
+});
+
+describe("canRetranslateReviewed", () => {
+  it.each([
+    [undefined, false],
+    [{ spend: false, writeToDisk: true }, false],
+    [{ spend: true, writeToDisk: false }, false],
+    [{ spend: true, writeToDisk: true }, true],
+  ] as const)("answers %j with %s", (capabilities, expected) => {
+    expect(canRetranslateReviewed(capabilities)).toBe(expected);
   });
 });

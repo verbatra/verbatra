@@ -6,6 +6,7 @@ import {
   GATE_LOCK_FILE,
   GATE_LOCK_LINES,
   GATE_REFUSAL,
+  GATE_RUN_LINES,
   GATE_TARGET_LINES,
   type GateLine,
 } from "@/lib/gate-demo";
@@ -21,6 +22,8 @@ const HIGHLIGHT_STYLE = {
   background: "color-mix(in srgb, var(--v-purple) 22%, transparent)",
   borderInlineStart: "3px solid var(--v-purple)",
 } as const;
+
+const GATE_OUTPUTS = { 0: GATE_RUN_LINES } as const;
 
 const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
@@ -47,16 +50,7 @@ function Panel({
       style={{ background: "var(--surface-bg)" }}
     >
       <div className="px-6 pt-[22px] pb-[18px]">
-        <h3
-          className="font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "1.2rem",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {title}
-        </h3>
+        <h3 className="vk-h4">{title}</h3>
         <p className="mt-1.5 max-w-[48ch] text-sm text-fd-muted-foreground">{body}</p>
       </div>
       <div
@@ -108,7 +102,6 @@ export async function Proof(): Promise<ReactNode> {
   const tGate = await getTranslations("landing.gate");
   const tTerminal = await getTranslations("landing.terminal");
 
-  const runLines = Object.values(tTerminal.raw("transcript.run") as Record<string, string>);
   const annotations = { new: tGate("annotations.new"), kept: tGate("annotations.kept") };
   const refusalRows = [
     [tGate("rows.key"), GATE_REFUSAL.key],
@@ -127,13 +120,13 @@ export async function Proof(): Promise<ReactNode> {
         <Reveal order={0} className="min-w-0 lg:col-span-8">
           <Terminal
             commands={[GATE_CLI_COMMAND]}
-            outputs={{ 0: runLines }}
+            outputs={GATE_OUTPUTS}
             title={GATE_CLI_COMMAND}
             sessionLabel={tTerminal("sessionLabel")}
             loop={false}
             typingSpeed={32}
             initialDelay={350}
-            highlight={runLines[0]}
+            highlight={GATE_RUN_LINES[2]}
             fitContent
             className="h-full"
             headerAction={
@@ -191,10 +184,7 @@ export async function Proof(): Promise<ReactNode> {
         <ol className="mt-5 grid list-none gap-4 md:grid-cols-4">
           {STEP_KEYS.map((key, index) => (
             <li key={key} className="border-t border-fd-border pt-[18px]">
-              <h3
-                className="font-semibold text-fd-foreground"
-                style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem" }}
-              >
+              <h3 className="vk-h4">
                 <span style={{ color: "var(--accent)" }}>{index + 1}. </span>
                 {tHow(`steps.${key}.title`)}
               </h3>
