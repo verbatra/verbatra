@@ -19,7 +19,7 @@ export function escapesWorkingDirectory(inside: string): boolean {
   return inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
 }
 
-function displayPath(targetPath: string, cwd: string): string {
+export function displayPath(targetPath: string, cwd: string): string {
   const relativePath = relative(cwd, targetPath);
   if (escapesWorkingDirectory(relativePath)) {
     return targetPath;

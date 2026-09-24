@@ -82,7 +82,10 @@ describe("run: output redaction on the error path", () => {
   it("scrubs a key shape nobody configured, as the provider error scrub would", async () => {
     const { deps } = recordingDeps({
       loadConfig: async () => {
-        throw new SdkError("CONFIG_INVALID", "apiKey sk-abcdEFGH12345678 is not allowed here");
+        throw new SdkError(
+          "CONFIG_INVALID",
+          "apiKey sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z is not allowed here",
+        );
       },
     });
     const cap = captureStreams();
@@ -90,6 +93,47 @@ describe("run: output redaction on the error path", () => {
     await run(["check"], deps, cap.streams);
 
     expect(cap.err()).toContain(`apiKey ${REDACTED} is not allowed here`);
+  });
+
+  it("scrubs a DeepL Pro key in a key context from the --json failure envelope", async () => {
+    const deeplKey = "12345678-1234-1234-1234-123456789012";
+    const { deps } = recordingDeps({
+      exportWorkbook: async () => {
+        throw new SdkError(
+          "EXPORT_UNWRITABLE",
+          `Upstream rejected {"auth_key": "${deeplKey}"} with 403.`,
+        );
+      },
+    });
+    const cap = captureStreams();
+
+    expect(await run(["export", "--json"], deps, cap.streams)).toBe(2);
+
+    expect(cap.out()).not.toContain(deeplKey);
+    expect(cap.err()).not.toContain(deeplKey);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      code: "EXPORT_UNWRITABLE",
+      message: `Upstream rejected {"auth_key": "${REDACTED}"} with 403.`,
+    });
+  });
+
+  it("keeps the --json envelope valid JSON when a key value holds a quote", async () => {
+    const quotedKey = 'fake-quoted-key"';
+    vi.stubEnv("OPENAI_API_KEY", quotedKey);
+    const { deps } = recordingDeps({
+      exportWorkbook: async () => {
+        throw new SdkError("EXPORT_UNWRITABLE", `Could not write "${quotedKey}".`);
+      },
+    });
+    const cap = captureStreams();
+
+    expect(await run(["export", "--json"], deps, cap.streams)).toBe(2);
+
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      message: `Could not write "${REDACTED}".`,
+    });
   });
 
   it("scrubs a usage error that echoes a key value back from the command line", async () => {

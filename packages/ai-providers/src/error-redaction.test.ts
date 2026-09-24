@@ -133,8 +133,8 @@ describe("ProviderError messages never carry variable input across every error p
 
 describe("ProviderError constructor scrubs key shapes as a defense-in-depth backstop", () => {
   it("redacts all four v1 key shapes from a key-bearing message", () => {
-    const openAiKey = "sk-proj-ABCDEFGH1234567890";
-    const anthropicKey = "sk-ant-api03-ABCdef12345_-XYZ";
+    const openAiKey = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    const anthropicKey = "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd";
     const geminiKey = "AIzaabcdefghijklmnopqrstuvwxyz012345678";
     const deepLKey = "abcdef12-3456-7890-abcd-ef1234567890:fx";
     const error = new ProviderError(

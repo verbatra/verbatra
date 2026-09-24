@@ -12,9 +12,15 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
-import { outputPathRefusal, outputRefusalReason, reservedProjectPaths } from "./reserved-output.js";
+import {
+  createOutputPathGuard,
+  type OutputPathGuard,
+  outputRefusalReason,
+  reservedProjectPaths,
+} from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
+  displayPath,
   escapesWorkingDirectory,
   targetUnwritableMessage,
   writeTargetResource,
@@ -59,7 +65,8 @@ export interface PseudolocalizeInput {
    * `cwd` itself are all refused, as is a directory under which the expanded pattern would place
    * the pseudolocale file beside a configured locale file, so a generated pseudolocale never lands
    * outside the project or beside the real translations where nothing ignores it. The same holds
-   * after symbolic links are resolved, so a linked directory cannot carry the file outside `cwd`.
+   * after symbolic links are resolved, so a linked directory cannot carry the file outside `cwd` or
+   * into the directory of a configured locale file.
    */
   readonly out?: string;
 }
@@ -123,7 +130,7 @@ interface LinkedOutputCheck {
 
 async function assertOutputStaysInsideThroughLinks(check: LinkedOutputCheck): Promise<void> {
   const { fs, cwd } = check;
-  const rootRefusal = await outputPathRefusal(fs, cwd, check.root, new Map());
+  const rootRefusal = await createOutputPathGuard(fs, cwd, new Map()).refusal(check.root);
   if (rootRefusal !== undefined) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
@@ -131,12 +138,29 @@ async function assertOutputStaysInsideThroughLinks(check: LinkedOutputCheck): Pr
     );
   }
   const reserved = reservedProjectPaths({ cwd, config: check.config, resolver: check.resolver });
-  const fileRefusal = await outputPathRefusal(fs, cwd, check.outputPath, reserved);
+  const guard = createOutputPathGuard(fs, cwd, reserved);
+  const fileRefusal = await guard.refusal(check.outputPath);
   if (fileRefusal !== undefined) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
-      `The pseudolocale would be written to ${check.outputPath}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the working directory that holds no project file.`,
+      `The pseudolocale would be written to ${displayPath(check.outputPath, cwd)}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the working directory that holds no project file.`,
     );
+  }
+  await assertOutputIsAwayFromTheLocaleFilesThroughLinks(check, guard);
+}
+
+async function assertOutputIsAwayFromTheLocaleFilesThroughLinks(
+  check: LinkedOutputCheck,
+  guard: OutputPathGuard,
+): Promise<void> {
+  const outputDirectory = await guard.canonical(dirname(check.outputPath));
+  for (const locale of configuredLocales(check.config)) {
+    if ((await guard.canonical(dirname(check.resolver.pathFor(locale)))) === outputDirectory) {
+      throw new SdkError(
+        "PSEUDO_OUTPUT_CONFLICT",
+        `The pseudolocale would be written to ${displayPath(check.outputPath, check.cwd)}, which resolves through a symbolic link to the directory holding the locale file for "${locale}", where it is not covered by the scaffolded ignore list. Choose an output directory that holds no real locale file.`,
+      );
+    }
   }
 }
 
@@ -339,10 +363,10 @@ function sameValues(
  * file would land in the same directory as a configured locale file, or the output directory is not
  * a relative path naming a directory inside `cwd`. When the file-system port implements `realpath`,
  * as the default does, the directory and the file are checked again after symbolic links are
- * resolved, so a link that carries either outside `cwd`, onto `cwd` itself, or onto a configured
- * locale file, the lock file, the provenance file, the translation-memory cache, or a file verbatra
- * searches for its configuration is refused the same way. Refused before anything is read or
- * written.
+ * resolved, so a link that carries either outside `cwd`, onto `cwd` itself, into the directory of a
+ * configured locale file, or onto a configured locale file, the lock file, the provenance file, the
+ * translation-memory cache, or a file verbatra searches for its configuration is refused the same
+ * way. Refused before anything is read or written.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.

@@ -272,7 +272,7 @@ describe("rawLocaleKeyIssues", () => {
 });
 
 describe("redactGlossary", () => {
-  const SECRET = "sk-abcdEFGH12345678";
+  const SECRET = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
 
   it("redacts every secret-shaped value and names the terms that had one", () => {
     const { glossary, redactedTerms } = redactGlossary(

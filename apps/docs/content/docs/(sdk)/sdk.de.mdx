@@ -177,8 +177,8 @@ Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, b
 gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
 eine einstehen. Ebenso ein `out`, das absolut ist, aus `cwd` herausklettert oder `cwd` selbst
 benennt, etwa `.`, und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung, eines,
-das nach dem Auflösen symbolischer Links so landet oder auf einer anderen Datei, von der das
-Projekt abhängt. Weil die Datei
+das nach dem Auflösen symbolischer Links so landet, im Verzeichnis einer konfigurierten
+Locale-Datei oder auf einer anderen Datei, von der das Projekt abhängt. Weil die Datei
 außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für sie aus, und `check` und `diff`
 melden sie nie als abgedriftet.
 
@@ -864,7 +864,7 @@ einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die ke
 `doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
 Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
 die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
-fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
+fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen oder nach einer gespeicherten Änderung nicht freigeben lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
 wie es schon ist, gelingt und schreibt nichts.
 
 ### glossaryForLocale
@@ -1048,10 +1048,16 @@ Deklarationen werden nie entfernt. Ein Wert mit weniger als acht Zeichen wird ni
 Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
 
 Einen DeepL-Key erkennt es allein an seiner Form nur, wenn er das `:fx`-Suffix eines Free-Keys
-trägt oder eine nackte UUID in einem Key-Kontext steht: nach `DeepL-Auth-Key`, als
-`auth_key`-Parameter oder als Wert von `DEEPL_API_KEY`. Jede andere UUID, etwa in einem Dateipfad
-oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird weiterhin überall über
-seinen Wert geschwärzt.
+trägt oder eine nackte UUID in einem Key-Kontext steht: nach einem `DeepL-Auth-Key`-Header oder
+nach einem Namen wie `auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`
+oder `DEEPL_AUTH_KEY`, gefolgt von `:`, `=`, einem URL-kodierten `%3D` oder einem Leerzeichen, mit
+oder ohne Anführungszeichen, auch in JSON, das in einen String serialisiert wurde. Jede andere UUID,
+etwa in einem Dateipfad oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird
+weiterhin überall über seinen Wert geschwärzt.
+
+Einen `sk-`-Key im Stil von OpenAI oder Anthropic erkennt es, wenn sein zufälliger Teil eine Folge
+von mindestens 20 Buchstaben und Ziffern enthält, wie jeder echte Key. Ein slowakischer Locale-Pfad
+oder Key wie `locales/sk-SK.json` oder `sk-banner_headline` bleibt lesbar.
 
 ### declareProviderKeyEnvVar
 
@@ -1098,12 +1104,12 @@ ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und gen
 innerhalb der übergebenen Roots.
 
 `realpath` ist ebenfalls optional. Es löst jeden symbolischen Link in einem bestehenden Pfad auf,
-und die Ausgabe-Guards von [`generateTypes`](#generatetypes) und [`exportTmx`](#exporttmx) sehen
-damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
+und die Ausgabe-Guards von [`generateTypes`](#generatetypes), [`exportTmx`](#exporttmx),
+[`exportWorkbook`](#exportworkbook) und [`pseudolocalize`](#pseudolocalize) sehen damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
 hinaus noch auf eine Datei tragen kann, von der das Projekt abhängt. Ohne es vergleichen diese
 Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Ziel nicht existiert,
-lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` einen Link dort
-ersetzt, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
+lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` und `writeBytes`
+einen Link dort ersetzen, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
 
 `deps.fs` erreicht keine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
@@ -1256,7 +1262,7 @@ geworfen.
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | das Schreibsperre einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
+| `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt, oder nach einer gespeicherten Änderung nicht freigegeben werden (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |
 | `LOCALE_PATH_COLLISION` | zwei konfigurierte Locales lösen auf denselben absoluten Dateipfad auf |
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor eine Locale läuft |

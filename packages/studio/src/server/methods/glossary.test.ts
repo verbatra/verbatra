@@ -107,7 +107,9 @@ describe("glossaryGetHandler", () => {
 
   it("redacts a secret-shaped glossary value before it leaves the handler and names the term", async () => {
     const loaded: LoadedConfig = {
-      config: baseStudioConfig({ glossary: { apiTerm: "sk-abcdEFGH12345678", hello: "hola" } }),
+      config: baseStudioConfig({
+        glossary: { apiTerm: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z", hello: "hola" },
+      }),
       source: { kind: "override" },
       glossary: { source: "inline" },
     };
@@ -214,13 +216,15 @@ describe("glossaryWriteHandler", () => {
     const store = new Map([["/project/glossary.json", '{"hello":"hola"}']]);
 
     const result = await glossaryWriteHandler(
-      { term: "apiTerm", translation: "sk-abcdEFGH12345678" },
+      { term: "apiTerm", translation: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z" },
       deps(fileBacked({ hello: "hola" }), "/project", fakeGlossaryFs(store)),
     );
 
     expect(termMapOf(result).apiTerm).toBe("[REDACTED]");
     expect(result.redactedTerms).toEqual(["apiTerm"]);
-    expect(store.get("/project/glossary.json")).toContain("sk-abcdEFGH12345678");
+    expect(store.get("/project/glossary.json")).toContain(
+      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z",
+    );
   });
 });
 

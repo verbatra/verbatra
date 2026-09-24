@@ -111,7 +111,7 @@ configuré y est développé, le fichier garde donc la disposition qu'attend l'a
 pseudo-locale qui nomme une locale configurée, ou qui se poserait sur un fichier de locale
 configuré, est refusée avec `PSEUDO_OUTPUT_CONFLICT` avant que quoi que ce soit ne soit lu ou
 écrit, elle ne peut donc ni écraser une vraie traduction ni en tenir lieu ; il en va de même d'un
-`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui y aboutit, ou sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
+`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui y aboutit, dans le dossier d'un fichier de locale configuré ou sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
 ne dépense jamais pour lui et `check` et `diff` ne le signalent jamais comme désynchronisé.
 
 Renvoie un `PseudolocalizeResult` : la `locale`, le `path` absolu, combien d'`entries` ont été
@@ -547,7 +547,7 @@ Ajoute, modifie ou supprime exactement un terme d'un glossaire stocké dans un f
 
 Il prend aussi `locale` (`translation` est alors la traduction propre à cette locale et `null` ne supprime qu'elle), `forbidden` (les traductions que `locale` ne doit jamais utiliser ; `null` ou `[]` les supprime), `note`, `partOfSpeech` (chacun `null` pour le supprimer), `caseSensitive` et `doNotTranslate` (`true` ajoute le terme aux termes à ne pas traduire, `false` l'en retire ; il ne se combine pas avec les champs du terme). Un fichier version 1 reste en version 1 tant qu'une modification ne fait que définir ou supprimer une traduction pour toutes les locales ; toute autre modification le réécrit en version 2, chaque terme existant gardant sa traduction comme `target`. `translation: null` sans `locale` ne supprime désormais que la traduction partagée ; le terme lui-même est supprimé dès qu'il n'a plus ni traduction ni traduction interdite, donc aussitôt pour un terme version 1.
 
-Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que converti : il vit dans un module de config exécutable. Un champ vide, une modification qui ne fixe aucun champ ou qui mélange `doNotTranslate` avec les champs du terme, des traductions interdites sans locale, une locale invalide, une modification qui laisserait un glossaire invalide et une modification dont le résultat dépasserait la limite de 1 Mio du glossaire sont refusés avec `CONFIG_INVALID` ; une écriture en échec, y compris un verrou d'écriture du glossaire impossible à créer dans un projet en lecture seule, donne `GLOSSARY_UNWRITABLE`, avec l'erreur du système de fichiers comme `cause`. Une modification qui laisse le glossaire tel qu'il est déjà réussit et n'écrit rien.
+Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que converti : il vit dans un module de config exécutable. Un champ vide, une modification qui ne fixe aucun champ ou qui mélange `doNotTranslate` avec les champs du terme, des traductions interdites sans locale, une locale invalide, une modification qui laisserait un glossaire invalide et une modification dont le résultat dépasserait la limite de 1 Mio du glossaire sont refusés avec `CONFIG_INVALID` ; une écriture en échec, y compris un verrou d'écriture du glossaire impossible à créer dans un projet en lecture seule ou à libérer après une modification enregistrée, donne `GLOSSARY_UNWRITABLE`, avec l'erreur du système de fichiers comme `cause`. Une modification qui laisse le glossaire tel qu'il est déjà réussit et n'écrit rien.
 
 ### glossaryForLocale
 
@@ -687,10 +687,16 @@ sont jamais supprimées. Une valeur de moins de huit caractères n'est pas retir
 qu'une variable courte ne puisse jamais effacer du texte sans rapport.
 
 Une clé DeepL n'est reconnue à sa seule forme que lorsqu'elle porte le suffixe `:fx` d'une clé
-gratuite, ou quand un UUID nu se trouve dans un contexte de clé : après `DeepL-Auth-Key`, comme
-paramètre `auth_key` ou affecté à `DEEPL_API_KEY`. Tout autre UUID, par exemple dans un chemin de
-fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans `DEEPL_API_KEY` est
-toujours retirée par sa valeur, où qu'elle apparaisse.
+gratuite, ou quand un UUID nu se trouve dans un contexte de clé : après un en-tête `DeepL-Auth-Key`,
+ou après un nom comme `auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`
+ou `DEEPL_AUTH_KEY` suivi de `:`, `=`, d'un `%3D` encodé en URL ou d'un espace, avec ou sans
+guillemets, y compris dans du JSON sérialisé dans une chaîne. Tout autre UUID, par exemple dans un
+chemin de fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans
+`DEEPL_API_KEY` est toujours retirée par sa valeur, où qu'elle apparaisse.
+
+Une clé `sk-` de style OpenAI ou Anthropic est reconnue quand sa partie aléatoire contient une suite
+d'au moins 20 lettres et chiffres, comme toute vraie clé. Un chemin ou une clé de locale slovaque
+comme `locales/sk-SK.json` ou `sk-banner_headline` reste lisible.
 
 ### declareProviderKeyEnvVar
 
@@ -720,11 +726,12 @@ Une implémentation doit respecter deux points du contrat. Les lectures sont bor
 `readDirectory` est optionnel, pour qu'une implémentation écrite avant l'extraction depuis le code continue de compiler. [`extract`](#extract) est le seul point d'entrée qui en a besoin, et signale son absence par `EXTRACT_FS_UNSUPPORTED`. Il liste les entrées immédiates d'un répertoire sous la forme `{ name, kind }`, où `kind` vaut `"file"`, `"directory"` ou `"other"`. Un lien symbolique relève de `"other"` : l'analyse ne le suit jamais, et c'est ce qui la maintient à l'intérieur des racines qu'on lui a données.
 
 `realpath` est lui aussi optionnel. Il résout tous les liens symboliques d'un chemin existant, et
-les gardes de sortie de [`generateTypes`](#generatetypes) et [`exportTmx`](#exporttmx) s'en servent
+les gardes de sortie de [`generateTypes`](#generatetypes), [`exportTmx`](#exporttmx),
+[`exportWorkbook`](#exportworkbook) et [`pseudolocalize`](#pseudolocalize) s'en servent
 pour voir où un chemin de sortie aboutit vraiment, si bien qu'un lien ne peut porter un fichier
 écrit ni hors de `cwd` ni sur un fichier dont le projet dépend. Sans lui, ces gardes comparent les
 chemins tels qu'ils sont écrits. Un lien au chemin de sortie dont la cible n'existe pas ne peut pas
-être résolu, donc les gardes supposent que `writeFile` remplace ce lien au lieu d'écrire à travers
+être résolu, donc les gardes supposent que `writeFile` et `writeBytes` remplacent ce lien au lieu d'écrire à travers
 lui, comme le fait l'écriture atomique par défaut.
 
 `deps.fs` n'atteint pas un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
@@ -817,7 +824,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `REVIEWER_INVALID` | `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | le verrou d'écriture d'une locale n'a pas pu être acquis avant l'expiration de son délai ; le message nomme le chemin du fichier de verrouillage |
 | `GLOSSARY_NOT_FILE_BACKED` | le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glossaire n'a pas pu être créé, par exemple dans un projet en lecture seule (`updateGlossaryTerm`) ; l'erreur du système de fichiers est la `cause` |
+| `GLOSSARY_UNWRITABLE` | le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glossaire n'a pas pu être créé, par exemple dans un projet en lecture seule, ou libéré après une modification enregistrée (`updateGlossaryTerm`) ; l'erreur du système de fichiers est la `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` et `files.localeStyle` ne peuvent pas être combinés, ou le style n'a pas d'écriture de chemin valide pour une locale configurée |
 | `LOCALE_PATH_COLLISION` | deux locales configurées résolvent vers le même chemin absolu |
 | `CONCURRENCY_INVALID` | `concurrency` a été défini mais n'est pas un entier d'au moins 1 ; levé avant l'exécution de toute locale |

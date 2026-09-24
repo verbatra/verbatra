@@ -129,14 +129,18 @@ describe("dispatchRpc envelope", () => {
   it("maps a handler throw shaped like an SdkError to 200 ok:false with its code and redacted message", async () => {
     const result = await dispatchRpc(body({ method: "project.snapshot", params: {} }), deps(), {
       "project.snapshot": async () => {
-        throw new FakeDomainError("SdkError", "CONFIG_NOT_FOUND", "sk-abcd1234efgh5678 leaked");
+        throw new FakeDomainError(
+          "SdkError",
+          "CONFIG_NOT_FOUND",
+          "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z leaked",
+        );
       },
     });
 
     expect(result.statusCode).toBe(200);
     const parsed = await parseBody(result);
     expect(parsed).toMatchObject({ ok: false, error: { code: "CONFIG_NOT_FOUND" } });
-    expect(result.body).not.toContain("sk-abcd1234efgh5678");
+    expect(result.body).not.toContain("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
     expect(result.body).toContain("[REDACTED]");
   });
 

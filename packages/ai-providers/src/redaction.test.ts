@@ -5,19 +5,21 @@ import { resetDeclaredKeyEnvVars } from "./test-support.js";
 
 describe("redactKeys: key shapes", () => {
   it("removes OpenAI sk- key tokens", () => {
-    const out = redactKeys("token sk-ABCDEFGH1234567890 here");
+    const out = redactKeys("token sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab here");
     expect(out).not.toContain("sk-ABCDEFGH");
     expect(out).toContain("[REDACTED]");
   });
 
   it("removes OpenAI sk-proj- key tokens", () => {
-    const out = redactKeys("token sk-proj-ABCDEFGH1234 here");
+    const out = redactKeys("token sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k here");
     expect(out).not.toContain("sk-proj");
     expect(out).toContain("[REDACTED]");
   });
 
   it("removes Anthropic sk-ant- key tokens", () => {
-    const out = redactKeys("auth failed for sk-ant-api03-ABCdef12345_-XYZ in request");
+    const out = redactKeys(
+      "auth failed for sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd_Ef6h in request",
+    );
     expect(out).not.toContain("sk-ant-api03");
     expect(out).toContain("[REDACTED]");
   });
@@ -44,6 +46,21 @@ describe("redactKeys: key shapes", () => {
     ["an env assignment", "DEEPL_API_KEY={key}", "DEEPL_API_KEY=[REDACTED]"],
     ["a quoted JSON field", '{"auth_key": "{key}"}', '{"auth_key": "[REDACTED]"}'],
     ["a YAML-style field", "deepl_api_key: {key}", "deepl_api_key: [REDACTED]"],
+    [
+      "a JSON field serialized inside a JSON string",
+      '{\\"auth_key\\": \\"{key}\\"}',
+      '{\\"auth_key\\": \\"[REDACTED]\\"}',
+    ],
+    ["a DEEPL_AUTH_KEY assignment", "DEEPL_AUTH_KEY={key}", "DEEPL_AUTH_KEY=[REDACTED]"],
+    ["a camelCase authKey field", 'authKey: "{key}"', 'authKey: "[REDACTED]"'],
+    ["a quoted deeplKey field", '"deeplKey": "{key}"', '"deeplKey": "[REDACTED]"'],
+    ["a header written without whitespace", "DeepL-Auth-Key:{key}", "DeepL-Auth-Key:[REDACTED]"],
+    ["a command-line flag", "--auth-key {key} --verbose", "--auth-key [REDACTED] --verbose"],
+    [
+      "a URL-encoded form parameter",
+      "body=auth_key%3D{key}%26text%3Dhi",
+      "body=auth_key%3D[REDACTED]%26text%3Dhi",
+    ],
   ])("removes a DeepL Pro key (a bare UUID) that sits in %s", (_where, template, expected) => {
     const key = "12345678-1234-1234-1234-123456789012";
     expect(redactKeys(template.replace("{key}", key))).toBe(expected);
@@ -80,6 +97,24 @@ describe("redactKeys: key shapes", () => {
     expect(redactKeys(input)).toBe(input);
   });
 
+  it.each([
+    "locales/sk-SK_formal.json",
+    '{"key":"sk-banner_headline"}',
+    "sk-SK",
+    "sk-onboarding_step_2_title",
+  ])("leaves a Slovak locale path or key alone: %s", (text) => {
+    expect(redactKeys(text)).toBe(text);
+  });
+
+  it.each([
+    ["a legacy OpenAI key", "sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab"],
+    ["an OpenAI project key", "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k-Lm2nOp"],
+    ["an OpenAI service-account key", "sk-svcacct-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z"],
+    ["an Anthropic key", "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd_Ef6hIj9kLm2n-AA"],
+  ])("redacts %s whole", (_what, key) => {
+    expect(redactKeys(`failed for ${key}.`)).toBe("failed for [REDACTED].");
+  });
+
   it("does not redact `sk-` runs that sit mid-word (no word boundary)", () => {
     for (const word of ["risk-assessment", "task-management", "desk-organizer", "ask-question"]) {
       expect(redactKeys(word)).toBe(word);
@@ -87,13 +122,13 @@ describe("redactKeys: key shapes", () => {
   });
 
   it("redacts a genuine sk-ant key sitting at a word boundary", () => {
-    const out = redactKeys("auth failed for sk-ant-api03-ABCdef12345_-XYZ");
+    const out = redactKeys("auth failed for sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
     expect(out).not.toContain("sk-ant-api03");
     expect(out).toContain("[REDACTED]");
   });
 
   it("redacts an inline key after punctuation (punctuation is a word boundary)", () => {
-    const out = redactKeys("key=sk-proj-ABCDEFGH1234 here");
+    const out = redactKeys("key=sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here");
     expect(out).not.toContain("sk-proj");
     expect(out).toContain("[REDACTED]");
   });
@@ -187,6 +222,19 @@ describe("redactKeys: exact key values", () => {
     process.env.REDACT_KEYS_CUSTOM = "fake-first-value";
     process.env.REDACT_KEYS_OTHER = "REDACTED";
     expect(redactKeys("a fake-first-value b REDACTED")).toBe("a [REDACTED] b [REDACTED]");
+  });
+
+  it.each([
+    ["a double quote", 'fake-"quoted"-key'],
+    ["a backslash", "fake\\back\\slash-key"],
+    ["a trailing backslash", "fake-trailing-key\\"],
+  ])("scrubs a value holding %s from serialized JSON and keeps it parseable", (_what, value) => {
+    process.env.ANTHROPIC_API_KEY = value;
+    const serialized = JSON.stringify({ message: `rejected ${value}`, path: `/p/${value}` });
+
+    const out = redactKeys(serialized);
+
+    expect(JSON.parse(out)).toEqual({ message: "rejected [REDACTED]", path: "/p/[REDACTED]" });
   });
 
   it("treats regular-expression metacharacters in a value literally", () => {
