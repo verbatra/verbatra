@@ -24,4 +24,5 @@ was busy." and the other locales carry on. Entries skipped after a batch-wide pr
 so. A batch stopped by an unexpected error reports the entries it completed and marks the rest
 `BATCH_INTERRUPTED` with a fixed message, while the error itself is written to the server's output
 as a `studio error: ` line. The line above the table lists every entry a batch could not decide,
-grouped by cause, and only the failed entries stay selected.
+grouped by cause, and only the failed entries stay selected. A selected entry whose own action is
+still running is left out of a bulk action, and the bar says so.

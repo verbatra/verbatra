@@ -5,7 +5,9 @@ import { Card } from "./Card.js";
 
 export interface ReviewBulkBarProps {
   readonly count: number;
+  readonly actionable: number;
   readonly busyAction: RowBusyAction | undefined;
+  readonly busyNote: string | null;
   readonly decisionBlocker: string | null;
   readonly retranslateBlocker: string | null;
   readonly onApprove: () => void;
@@ -16,22 +18,18 @@ export interface ReviewBulkBarProps {
 
 const EMPTY_HINT = "Select entries with the checkboxes, or press x on the highlighted entry.";
 
-function bulkHint(
-  count: number,
-  decisionBlocker: string | null,
-  retranslateBlocker: string | null,
-): string {
+function bulkHint(count: number, hints: readonly (string | null)[]): string {
   if (count === 0) {
     return EMPTY_HINT;
   }
-  return [decisionBlocker, retranslateBlocker]
-    .filter((hint): hint is string => hint !== null)
-    .join(" ");
+  return hints.filter((hint): hint is string => hint !== null).join(" ");
 }
 
 export function ReviewBulkBar({
   count,
+  actionable,
   busyAction,
+  busyNote,
   decisionBlocker,
   retranslateBlocker,
   onApprove,
@@ -39,7 +37,8 @@ export function ReviewBulkBar({
   onRetranslate,
   onClear,
 }: ReviewBulkBarProps): ReactNode {
-  const idle = count === 0 || busyAction !== undefined;
+  const running = busyAction !== undefined;
+  const idle = actionable === 0 || running;
   const label = (action: RowBusyAction, text: string): string =>
     busyAction === action ? rowBusyLabel(action) : text;
   return (
@@ -81,12 +80,16 @@ export function ReviewBulkBar({
             {label("retranslate", "Retranslate selected")}
           </Button>
         ) : null}
-        <Button variant="ghost" disabled={idle} onClick={onClear}>
+        <Button variant="ghost" disabled={count === 0 || running} onClick={onClear}>
           Clear selection
         </Button>
       </span>
       <p className="m-0 min-h-4 w-full text-xs text-muted-foreground" data-bulk-hint="">
-        {bulkHint(count, decisionBlocker, onRetranslate === undefined ? null : retranslateBlocker)}
+        {bulkHint(count, [
+          busyNote,
+          decisionBlocker,
+          onRetranslate === undefined ? null : retranslateBlocker,
+        ])}
       </p>
     </Card>
   );

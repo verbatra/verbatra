@@ -8,10 +8,12 @@ import {
   elapsedSeconds,
   hasRunningRetranslation,
   type PendingRow,
+  type RowBusyAction,
 } from "../../client/review-in-flight.js";
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import { reviewedValueFor, visibleReviewQueueRows } from "../../client/review-queue-data.js";
 import {
+  bulkBusyNote,
   bulkDecisionBlocker,
   bulkRetranslateBlocker,
   type SelectionState,
@@ -46,11 +48,7 @@ import { RejectEntryDialog } from "../RejectEntryDialog.js";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
 import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
 import { ReviewReasonChips } from "../ReviewReasonChips.js";
-import {
-  RETRANSLATE_ACTIONS_COLUMN_CLASSNAME,
-  ReviewRowActions,
-  type RowBusy,
-} from "../ReviewRowActions.js";
+import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
 import { Select } from "../Select.js";
 import { TableSkeleton } from "../Skeleton.js";
@@ -256,7 +254,7 @@ function ReviewTable({
   const wide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   return (
     <TableCard>
-      <Table>
+      <Table className={wide ? undefined : "min-w-0"}>
         <TableHead>
           <tr>
             {canWrite ? (
@@ -273,16 +271,7 @@ function ReviewTable({
             <TableHeaderCell>{wide ? "Key" : "Entry"}</TableHeaderCell>
             {wide ? <TableHeaderCell>Reasons</TableHeaderCell> : null}
             {wide && canWrite ? (
-              <TableHeaderCell
-                className={
-                  actions.onRetranslate !== undefined
-                    ? RETRANSLATE_ACTIONS_COLUMN_CLASSNAME
-                    : undefined
-                }
-                data-actions-column=""
-              >
-                Actions
-              </TableHeaderCell>
+              <TableHeaderCell data-actions-column="">Actions</TableHeaderCell>
             ) : null}
           </tr>
         </TableHead>
@@ -577,19 +566,6 @@ function bulkTargetsOf(
   });
 }
 
-function sharedBusyAction(
-  rows: readonly ReviewQueueRow[],
-  pending: ReadonlyMap<string, PendingRow>,
-): PendingRow["action"] | undefined {
-  for (const row of rows) {
-    const busy = pending.get(rowId(row));
-    if (busy !== undefined) {
-      return busy.action;
-    }
-  }
-  return undefined;
-}
-
 function useBulkSelection(
   rows: readonly ReviewQueueRow[],
   values: ReadonlyMap<string, KeyValuePair>,
@@ -599,11 +575,14 @@ function useBulkSelection(
 ): BulkSelection {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [rejecting, setRejecting] = useState<readonly BulkRejectEntry[] | null>(null);
+  const [running, setRunning] = useState<RowBusyAction | undefined>(undefined);
   const ids = rows.map(rowId);
   const selectedIds = new Set(selectedAmong(ids, selected));
   const selectedRows = rows.filter((row) => selectedIds.has(rowId(row)));
-  const targets = bulkTargetsOf(selectedRows, values);
+  const actionableRows = selectedRows.filter((row) => !decisions.pending.has(rowId(row)));
+  const targets = bulkTargetsOf(actionableRows, values);
   const keepFailures: BatchSettled = (failed) => {
+    setRunning(undefined);
     setSelected((current) => new Set([...current].filter((id) => failed.has(id))));
   };
   return {
@@ -613,20 +592,29 @@ function useBulkSelection(
     setAll: (on) => setSelected((current) => withAllSelected(current, ids, on)),
     bar: {
       count: selectedRows.length,
-      busyAction: sharedBusyAction(selectedRows, decisions.pending),
+      actionable: actionableRows.length,
+      busyAction: running,
+      busyNote:
+        running === undefined ? bulkBusyNote(selectedRows.length - actionableRows.length) : null,
       decisionBlocker: bulkDecisionBlocker(
-        selectedRows.length,
+        actionableRows.length,
         targets.length,
         MAX_REVIEW_BATCH_ENTRIES,
       ),
       retranslateBlocker: bulkRetranslateBlocker(
-        selectedRows.length,
+        actionableRows.length,
         MAX_RETRANSLATE_BATCH_ENTRIES,
       ),
-      onApprove: () => decisions.approveMany(targets, keepFailures),
+      onApprove: () => {
+        setRunning("approve");
+        decisions.approveMany(targets, keepFailures);
+      },
       onReject: () => setRejecting(targets),
       onRetranslate: spend
-        ? () => decisions.retranslateMany(selectedRows, keepFailures)
+        ? () => {
+            setRunning("retranslate");
+            decisions.retranslateMany(actionableRows, keepFailures);
+          }
         : undefined,
       onClear: () => {
         setSelected(new Set());
@@ -635,6 +623,7 @@ function useBulkSelection(
     },
     rejecting,
     confirmReject: (entries) => {
+      setRunning("reject");
       decisions.rejectMany(entries, keepFailures);
       setRejecting(null);
     },

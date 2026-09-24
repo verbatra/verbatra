@@ -169,6 +169,7 @@ describe("ReviewRowActions", () => {
   it("reserves a fixed width for each labelled action so a busy label never moves the row", () => {
     const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
 
+    expect(view.getByText("button", "Edit").className.split(" ")).toContain("w-12");
     expect(view.getByText("button", "Approve").className).toContain("w-24");
     expect(view.getByText("button", "Reject…").className).toContain("w-24");
     expect(view.get('[role="status"]').textContent).toBe("");
@@ -195,6 +196,22 @@ describe("ReviewRowActions", () => {
 
     expect(busy).toContain("min-w-40");
     expect(busy).not.toContain("min-w-0");
+  });
+
+  it("keeps a running Retranslate button at full opacity so its elapsed time stays readable", () => {
+    const view = render(
+      <ReviewRowActions
+        {...handlers()}
+        onRetranslate={vi.fn()}
+        busy={{ action: "retranslate", elapsedSeconds: 5 }}
+      />,
+    );
+    const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
+
+    expect(busy).toContain("disabled:opacity-100");
+    expect(busy).not.toContain("disabled:opacity-60");
+    expect(view.getByText("button", "Edit").className.split(" ")).toContain("disabled:opacity-60");
+    expect(view.get("[data-busy-elapsed]").className.split(" ")).toContain("text-muted-foreground");
   });
 
   it("anchors the visually hidden status inside its own wrapper, so it never widens the page", () => {
@@ -255,5 +272,21 @@ describe("ReviewRowActions: layout", () => {
 
     expect(inline.get("span").className).toContain("flex-nowrap");
     expect(stacked.get("span").className).toContain("flex-wrap");
+  });
+
+  it("reserves a running retranslation's width in a table column, so a busy row never resizes it", () => {
+    const withRetranslate = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />)
+      .get("span")
+      .className.split(" ");
+    const stacked = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} wrap />)
+      .get("span")
+      .className.split(" ");
+    const withoutRetranslate = render(<ReviewRowActions {...handlers()} />)
+      .get("span")
+      .className.split(" ");
+
+    expect(withRetranslate).toContain("min-w-106");
+    expect(stacked).not.toContain("min-w-106");
+    expect(withoutRetranslate).not.toContain("min-w-106");
   });
 });
