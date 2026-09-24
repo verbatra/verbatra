@@ -1,5 +1,5 @@
 import type { FormatId, LocaleResource, TranslationEntry } from "@verbatra/core";
-import type { FormatAdapter, ReadResult } from "../adapter.js";
+import type { FormatAdapter, ReadResult, WriteContext } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { readFileContent } from "../json/bounded-read.js";
 import {
@@ -60,13 +60,15 @@ export interface FlatFileAdapterOptions {
     locale: string,
   ) => FlatParseOutcome | Promise<FlatParseOutcome>;
   /**
-   * Render entries back to the format's text, preserving key order. Receives the destination path
-   * and the port, for a format that has to consult the existing file to write in place.
+   * Render entries back to the format's text, preserving key order. Receives the destination path,
+   * the port and the caller's write context, for a format that has to consult the existing file,
+   * or the source-locale file, to write in place.
    */
   readonly serializeEntries: (
     entries: ReadonlyMap<string, TranslationEntry>,
     filePath: string,
     fs: AdapterFs,
+    context: WriteContext,
   ) => Promise<string> | string;
   /** Find this format's placeholder tokens in one value. */
   readonly extractPlaceholders: ExtractPlaceholders;
@@ -171,8 +173,8 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
       const invalidIcuKeys = computeIcu(entries, computeInvalidIcuKeys);
       return { resource, invalidIcuKeys, excludedLeafPaths };
     },
-    async write(resource, filePath): Promise<void> {
-      const data = await serializeEntries(resource.entries, filePath, fs);
+    async write(resource, filePath, context = {}): Promise<void> {
+      const data = await serializeEntries(resource.entries, filePath, fs, context);
       await fs.writeFileAtomic(filePath, data);
     },
   };

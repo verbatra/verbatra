@@ -1,149 +1,25 @@
+import { resolve } from "node:path";
 import type { TranslationEntry } from "@verbatra/core";
-import { DOMParser, type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
+import { type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
+import type { WriteContext } from "../adapter.js";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
-import { assertNoDoctype, readInlineValue, writeInlineValue, type XliffVersion } from "./inline.js";
+import { appendMissingUnits } from "./append-units.js";
 import {
-  type DeclaredLanguages,
-  readsTargets,
-  xliff12Languages,
-  xliff20Languages,
-} from "./languages.js";
+  childByName,
+  collectByTag,
+  documentVersion,
+  parseXml,
+  type Unit,
+  walkUnits,
+} from "./document.js";
+import { readInlineValue, writeInlineValue, type XliffVersion } from "./inline.js";
+import { readsTargets } from "./languages.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
-const ELEMENT_NODE = 1;
-
-interface Unit {
-  readonly key: string;
-  readonly source: Element;
-  readonly target: Element | null;
-  readonly container: Element;
-  readonly languages: DeclaredLanguages;
-  readonly scope: Element;
-  readonly description?: string;
-}
-
 const UNTRANSLATED_STATES = new Set(["new", "needs-translation"]);
-
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
-}
-
-function elementChildren(parent: Element): Element[] {
-  return Array.from(parent.childNodes).filter(isElement);
-}
-
-function childByName(parent: Element, name: string): Element | null {
-  return elementChildren(parent).find((el) => el.localName === name) ?? null;
-}
-
-function collectByTag(root: Element, name: string): Element[] {
-  return Array.from(root.getElementsByTagName(name));
-}
-
-function unitKey(element: Element, index: number): string {
-  return element.getAttribute("id") ?? element.getAttribute("resname") ?? `unit-${index}`;
-}
-
-function onFatal(level: "warning" | "error" | "fatalError"): void {
-  if (level === "fatalError") {
-    throw new Error("malformed XML");
-  }
-}
-
-function parseXml(content: string): { doc: Document; root: Element } {
-  assertNoDoctype(content);
-  let doc: Document;
-  try {
-    doc = new DOMParser({ onError: onFatal }).parseFromString(content, "text/xml");
-  } catch {
-    throw new AdapterError("INVALID_XML", "The file is not valid XML.");
-  }
-  const root = doc.documentElement;
-  if (root === null || root.localName !== "xliff") {
-    throw new AdapterError("INVALID_STRUCTURE", "The file is not an XLIFF document.");
-  }
-  return { doc, root };
-}
-
-function firstNoteText(parent: Element): string | undefined {
-  const note = childByName(parent, "note");
-  if (note === null) {
-    return undefined;
-  }
-  const text = (note.textContent ?? "").trim();
-  return text === "" ? undefined : text;
-}
-
-function transUnitDescription(tu: Element): string | undefined {
-  return firstNoteText(tu);
-}
-
-function unitDescription(unit: Element): string | undefined {
-  const notes = childByName(unit, "notes");
-  return notes === null ? undefined : firstNoteText(notes);
-}
-
-function walkXliff12(root: Element): Unit[] {
-  const units: Unit[] = [];
-  let index = 0;
-  for (const file of collectByTag(root, "file")) {
-    const languages = xliff12Languages(file);
-    for (const tu of collectByTag(file, "trans-unit")) {
-      const source = childByName(tu, "source");
-      if (source !== null) {
-        const description = transUnitDescription(tu);
-        units.push({
-          key: unitKey(tu, index),
-          source,
-          target: childByName(tu, "target"),
-          container: tu,
-          languages,
-          scope: file,
-          ...(description !== undefined ? { description } : {}),
-        });
-      }
-      index += 1;
-    }
-  }
-  return units;
-}
-
-function walkXliff20(root: Element): Unit[] {
-  const units: Unit[] = [];
-  const languages = xliff20Languages(root);
-  collectByTag(root, "unit").forEach((unit, index) => {
-    const baseKey = unitKey(unit, index);
-    const description = unitDescription(unit);
-    const segments = elementChildren(unit).filter((el) => el.localName === "segment");
-    segments.forEach((segment, segIndex) => {
-      const source = childByName(segment, "source");
-      if (source !== null) {
-        const key = segments.length > 1 ? `${baseKey}#${segIndex}` : baseKey;
-        units.push({
-          key,
-          source,
-          target: childByName(segment, "target"),
-          container: segment,
-          languages,
-          scope: root,
-          ...(description !== undefined ? { description } : {}),
-        });
-      }
-    });
-  });
-  return units;
-}
-
-function documentVersion(root: Element): XliffVersion {
-  return (root.getAttribute("version") ?? "1.2").startsWith("2") ? "2.0" : "1.2";
-}
-
-function walkUnits(root: Element): Unit[] {
-  return documentVersion(root) === "2.0" ? walkXliff20(root) : walkXliff12(root);
-}
 
 function isUntranslatedTarget(target: Element): boolean {
   return UNTRANSLATED_STATES.has(target.getAttribute("state") ?? "");
@@ -237,20 +113,67 @@ function markTranslated(target: Element): void {
   }
 }
 
+async function readSourceUnits(
+  context: WriteContext,
+  fs: AdapterFs,
+  version: XliffVersion,
+): Promise<ReadonlyMap<string, Unit>> {
+  if (context.sourcePath === undefined) {
+    return new Map();
+  }
+  let content: string;
+  try {
+    content = outcomeToContent(await readBoundedFile(fs, context.sourcePath), "");
+  } catch {
+    return new Map();
+  }
+  const { root } = parseXml(content);
+  if (documentVersion(root) !== version) {
+    return new Map();
+  }
+  return new Map(walkUnits(root).map((unit) => [unit.key, unit]));
+}
+
+function isSourceDestination(filePath: string, context: WriteContext): boolean {
+  return context.sourcePath !== undefined && resolve(context.sourcePath) === resolve(filePath);
+}
+
+function holderElement(doc: Document, unit: Unit, writingSource: boolean): Element {
+  if (writingSource) {
+    return unit.source;
+  }
+  return unit.target ?? insertTarget(doc, unit);
+}
+
 export async function serializeXliffEntries(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  context: WriteContext,
 ): Promise<string> {
   const { doc, root } = parseXml(await readDestination(filePath, fs));
   const version = documentVersion(root);
+  const writingSource = isSourceDestination(filePath, context);
+  const written = new Set<string>();
   for (const unit of walkUnits(root)) {
     const entry = entries.get(unit.key);
     if (entry !== undefined) {
-      const target = unit.target ?? insertTarget(doc, unit);
-      writeInlineValue(doc, target, entry.value, version);
-      markTranslated(target);
+      const holder = holderElement(doc, unit, writingSource);
+      writeInlineValue(doc, holder, entry.value, version);
+      markTranslated(holder);
+      written.add(unit.key);
     }
+  }
+  const missing = [...entries.values()].filter((entry) => !written.has(entry.key));
+  if (missing.length > 0) {
+    appendMissingUnits({
+      doc,
+      root,
+      version,
+      missing,
+      sourceUnits: writingSource ? new Map() : await readSourceUnits(context, fs, version),
+      writingSource,
+    });
   }
   return new XMLSerializer().serializeToString(doc);
 }

@@ -493,7 +493,7 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
   });
 
-  it("ignores entries whose key matches no trans-unit", async () => {
+  it("refuses an entry it has no unit for and no source unit to copy, writing nothing", async () => {
     const path = await tempFile("m.xlf", XLIFF_12);
     const stray: TranslationEntry = {
       key: "ghost",
@@ -508,7 +508,10 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
       format: "xliff",
       entries: new Map([["ghost", stray]]),
     };
-    await adapter.write(resource, path);
-    expect(await readFile(path, "utf8")).not.toContain("boo");
+    const before = await readFile(path, "utf8");
+    const error = await readError(adapter.write(resource, path));
+    expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+    expect((error as AdapterError).message).toContain('"ghost"');
+    expect(await readFile(path, "utf8")).toBe(before);
   });
 });
