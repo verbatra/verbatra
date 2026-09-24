@@ -13,6 +13,35 @@ function corePositionalPrintfSource(): string {
   return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
 }
 
+const LINEAR_BASE_SIZE = 20_000;
+const LINEAR_SCALE = 4;
+const LINEAR_MAX_RATIO = 10;
+const LINEAR_RUNS = 7;
+const TIMER_FLOOR_MS = 0.05;
+
+function elapsedMs(value: string): number {
+  const started = performance.now();
+  segmentValue(value);
+  return Math.max(performance.now() - started, TIMER_FLOOR_MS);
+}
+
+function median(samples: readonly number[]): number {
+  const sorted = [...samples].sort((left, right) => left - right);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+}
+
+function scalingRatio(small: string, large: string): number {
+  segmentValue(small);
+  segmentValue(large);
+  const smallRuns: number[] = [];
+  const largeRuns: number[] = [];
+  for (let run = 0; run < LINEAR_RUNS; run += 1) {
+    smallRuns.push(elapsedMs(small));
+    largeRuns.push(elapsedMs(large));
+  }
+  return median(largeRuns) / median(smallRuns);
+}
+
 function tokens(value: string): readonly string[] {
   return segmentValue(value)
     .filter((segment) => segment.kind === "token")
@@ -175,20 +204,24 @@ describe("segmentValue", () => {
   });
 
   it.each([
-    ["unclosed ICU heads", "{a, plural, one {".repeat(20_000)],
-    ["unbalanced opening braces", "{ ".repeat(50_000)],
-    ["unterminated quotes", `{n, plural, other {${"'{".repeat(50_000)}`],
-    ["an unmatched opening brace flood", "{".repeat(100_000)],
-    ["an unmatched sigil brace flood", "#{".repeat(50_000)],
-    ["a printf zero-flag flood", `%${"0".repeat(100_000)}`],
-    ["a positional printf digit flood", `%${"1".repeat(100_000)}`],
-    ["nested simple placeholders", `{n, plural, other {${"{x}".repeat(50_000)}}}`],
-  ])("segments %s in linear time", (_label, value) => {
-    const started = performance.now();
-    const segments = segmentValue(value);
+    ["unclosed ICU heads", (n: number) => "{a, plural, one {".repeat(n / 5)],
+    ["unbalanced opening braces", (n: number) => "{ ".repeat(n / 2)],
+    ["unterminated quotes", (n: number) => `{n, plural, other {${"'{".repeat(n / 2)}`],
+    ["an unmatched opening brace flood", (n: number) => "{".repeat(n)],
+    ["an unmatched sigil brace flood", (n: number) => "#{".repeat(n / 2)],
+    ["a printf zero-flag flood", (n: number) => `%${"0".repeat(n)}`],
+    ["a positional printf digit flood", (n: number) => `%${"1".repeat(n)}`],
+    ["nested simple placeholders", (n: number) => `{n, plural, other {${"{x}".repeat(n / 4)}}}`],
+  ])("segments %s in linear time", (_label, build) => {
+    const small = build(LINEAR_BASE_SIZE);
+    const large = build(LINEAR_BASE_SIZE * LINEAR_SCALE);
 
-    expect(segments.map((segment) => segment.text).join("")).toBe(value);
-    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(
+      segmentValue(large)
+        .map((segment) => segment.text)
+        .join(""),
+    ).toBe(large);
+    expect(scalingRatio(small, large)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 
   it("treats an unbalanced brace as plain text", () => {
