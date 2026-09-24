@@ -1,5 +1,5 @@
 ---
-"@verbatra/sdk": patch
+"@verbatra/sdk": minor
 ---
 
 Start a new Flutter ARB target file with `@@locale` and keep an existing `@@locale` first.
