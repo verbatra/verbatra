@@ -20,8 +20,8 @@ import { SdkError } from "../errors.js";
 /**
  * The zod schema for the `provider` block, discriminated on `id`. Each variant and its options are
  * validated strictly, so a key beside `id` and `options`, or an option that belongs to a different
- * provider, is reported as an error naming the key rather than ignored. It is embedded in {@link verbatraConfigSchema} and produces
- * {@link ProviderConfig}.
+ * provider, is reported as an error naming the key rather than ignored. It is embedded in
+ * {@link verbatraConfigSchema} and produces {@link ProviderConfig}.
  */
 export const providerConfigSchema = z.discriminatedUnion("id", [
   z.strictObject({ id: z.literal("anthropic"), options: anthropicConfigSchema.strict() }),

@@ -107,11 +107,11 @@ function flutterLocale(locale: string): string {
 
 function localeFirst(
   tree: Map<string, OrderedValue>,
-  pairs: ReadonlyArray<[string, OrderedValue]> | null,
+  isNewFile: boolean,
   locale: string,
 ): OrderedRecord {
   const existing = tree.get(LOCALE_KEY);
-  if (existing === undefined && pairs !== null) {
+  if (existing === undefined && !isNewFile) {
     return tree;
   }
   tree.delete(LOCALE_KEY);
@@ -144,5 +144,5 @@ export async function buildArbWriteTree(
       out.set(key, value);
     }
   }
-  return localeFirst(out, pairs, locale);
+  return localeFirst(out, pairs === null, locale);
 }

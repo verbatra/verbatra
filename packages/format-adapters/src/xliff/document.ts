@@ -1,6 +1,6 @@
 import { DOMParser, type Document, type Element } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { isElement, onFatal } from "../xml/document.js";
+import { elementChildren, onFatal } from "../xml/document.js";
 import { type DeclaredLanguages, xliff12Languages, xliff20Languages } from "./languages.js";
 
 export type XliffVersion = "1.2" | "2.0";
@@ -14,10 +14,6 @@ export interface Unit {
   readonly languages: DeclaredLanguages;
   readonly scope: Element;
   readonly description?: string;
-}
-
-export function elementChildren(parent: Element): Element[] {
-  return Array.from(parent.childNodes).filter(isElement);
 }
 
 export function childByName(parent: Element, name: string): Element | null {

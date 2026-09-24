@@ -65,6 +65,25 @@ describe("redactingStreams: a compact JSON document", () => {
 
     expect(written(document)).toBe(document);
   });
+
+  it("keeps a DeepL key named by its member scrubbed when the whole-document match is dropped", () => {
+    vi.stubEnv("OPENAI_API_KEY", '1,"zzzzzzzz');
+    const document = '{"a":1,"zzzzzzzz":2,"auth_key":"0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"}';
+
+    expect(JSON.parse(written(document))).toEqual({
+      a: 1,
+      zzzzzzzz: 2,
+      auth_key: "[REDACTED]",
+    });
+  });
+
+  it("scrubs a member whose name is itself a key value without pairing it", () => {
+    vi.stubEnv("OPENAI_API_KEY", "fake-openai-key-value");
+
+    expect(JSON.parse(written(JSON.stringify({ "fake-openai-key-value": "plain" })))).toEqual({
+      "[REDACTED]": "plain",
+    });
+  });
 });
 
 describe("redactingStreams: text that is not a compact JSON document", () => {

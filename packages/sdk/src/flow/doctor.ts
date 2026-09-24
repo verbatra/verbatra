@@ -100,10 +100,10 @@ export interface DoctorResult {
   /** True only when no check failed. This is the value a script should branch on. */
   readonly ok: boolean;
   /**
-   * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
-   * `plural-rules`, `locale-codes`, and `locale-state`. A literal run ({@link DoctorInput.literals}) has exactly
-   * two: `config` and `untranslated-literals`.
+   * Every check that ran, always in the same order. A setup run has nine entries, one per setup
+   * check: `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
+   * `plural-rules`, `locale-codes`, and `locale-state`. A literal run
+   * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
   /**
@@ -125,8 +125,8 @@ export interface DoctorInput {
    * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
    * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
    * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
-   * `source-file`, `plural-rules`, `locale-codes`, `locale-state`), so no API key environment variable is looked
-   * at and a run with no key set can pass.
+   * `source-file`, `plural-rules`, `locale-codes`, `locale-state`), so no API key environment
+   * variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
 }
@@ -364,9 +364,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * made, and no file is written. Run it before {@link translate} on a fresh project, or when a run
  * failed and you want the whole list of problems rather than the first one.
  *
- * Five checks run: the config loads and validates, the configured format resolves to an adapter,
- * the configured provider ID resolves to a factory, the environment variable that provider reads
- * its API key from is set, and the source locale file can be read. Every check runs even when an
+ * A setup run reports the nine checks {@link DoctorResult.checks} lists. Six of them can fail: the
+ * config loads and validates, the configured format resolves to an adapter, the configured
+ * provider ID resolves to a factory, the environment variable that provider reads its API key from
+ * is set, the network policy permits the provider's host, and the source locale file can be read.
+ * The other three are informational and never fail. Every check runs even when an
  * earlier one failed, so one call reports every independent problem. The API key is checked by
  * variable name only: its value is never read, never returned, and never validated against a
  * provider.
@@ -381,20 +383,20 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * placeholder key, so a missing variable passes unless the config names its own variable through
  * `provider.options.apiKeyEnvVar`, which then has to be set.
  *
- * A network-policy check reports the effective network policy and the host the configured
+ * The `network-policy` check reports the effective network policy and the host the configured
  * provider connects to, and fails when the policy refuses that host, exactly as {@link translate}
  * would. It resolves no host name, so a name that only a DNS answer can classify passes here and
  * is checked before each request instead.
  *
- * A sixth, informational check never fails: it names the ICU and CLDR versions the runtime derives
+ * The informational `plural-rules` check names the ICU and CLDR versions the runtime derives
  * each target language's plural categories from, and lists any target locale ICU has no plural
  * rules for.
  *
- * A seventh, informational check never fails either: it names every configured locale code that is
+ * The informational `locale-codes` check names every configured locale code that is
  * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
  * configured code, so nothing is renamed.
  *
- * An eighth, informational check never fails either: it reads the lock file, the translation
+ * The informational `locale-state` check reads the lock file, the translation
  * memory, and the provenance file, and names every locale they hold state for that the config does
  * not list, with what the next {@link translate} run will do about it.
  *

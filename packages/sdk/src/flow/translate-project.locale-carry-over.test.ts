@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { defaultFs, type SdkFs } from "../fs.js";
+import { type LockWaitEvent, lockFileGuardPath } from "../lock/locale-write-lock.js";
+import { valueHash } from "../lock/provenance-file.js";
 import {
   baseConfig,
   makeStubProvider,
@@ -203,12 +206,66 @@ describe("translate: carrying state over from a respelled locale code", () => {
 
     expect(summary.locales[0]?.translated).toEqual(["greeting"]);
     expect(carryNotices(summary.locales[0])).toEqual([
-      'The state recorded under "pt_BR" in verbatra.lock.json would be moved to "pt-BR" on a ' +
-        "live run, the configured spelling of the same locale, so its lock-file baseline and " +
-        "cached translations apply to it again.",
+      'The state recorded under "pt_BR" in verbatra.lock.json, verbatra.provenance.json would be ' +
+        'moved to "pt-BR" on a live run, the configured spelling of the same locale, so its ' +
+        "lock-file baseline and cached translations apply to it again.",
     ]);
     expect(await localesOf(lockPath(dir))).toEqual(["pt_BR"]);
     expect(await memoryLocalesOf(dir)).toEqual(["pt_BR"]);
+    expect(await localesOf(provenancePath(dir))).toEqual(["pt_BR"]);
+  });
+
+  it("protects a key a person wrote under the old code on a dry run as on a live run", async () => {
+    const dir = await respelledProject();
+    const provenance = (await readJsonFile(provenancePath(dir))) as LockDocument;
+    await writeJsonFile(provenancePath(dir), {
+      ...provenance,
+      locales: {
+        pt_BR: {
+          ...(provenance.locales.pt_BR as LocaleBlocks),
+          greeting: { origin: "human", valueHash: valueHash("[pt-BR] Hello") },
+        },
+      },
+    });
+    await changeSource(dir);
+    const { provider } = makeStubProvider();
+
+    const dry = await translate({ config: cfg(), cwd: dir, dryRun: true });
+    const live = await translate({ config: cfg(), cwd: dir }, { createProvider: () => provider });
+
+    expect(dry.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
+    expect(live.locales[0]?.protected).toEqual(dry.locales[0]?.protected);
+    expect(dry.locales[0]?.translated).toEqual(live.locales[0]?.translated);
+  });
+
+  it("goes on without the move when the lock-file guard stays contended", async () => {
+    const dir = await respelledProject();
+    const guard = lockFileGuardPath(dir);
+    let refusals = 2;
+    const fs: SdkFs = {
+      ...defaultFs,
+      createExclusive: async (path, data) => {
+        if (path === guard && refusals > 0) {
+          refusals -= 1;
+          return false;
+        }
+        return defaultFs.createExclusive(path, data);
+      },
+    };
+    const { provider } = makeStubProvider();
+    const waits: LockWaitEvent[] = [];
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir, lockAcquireTimeoutMs: 20, onLockWait: (e) => waits.push(e) },
+      { createProvider: () => provider, fs },
+    );
+
+    expect(summary.locales[0]?.status).toBe("succeeded");
+    expect(summary.locales[0]?.notices.map((notice) => notice.code)).toContain(
+      "LOCALE_STATE_CARRY_OVER_SKIPPED",
+    );
+    expect(waits[0]?.lockPath).toBe(guard);
+    expect(await localesOf(provenancePath(dir))).toContain("pt_BR");
   });
 
   it("plans with the moved memory on a human-only dry run", async () => {

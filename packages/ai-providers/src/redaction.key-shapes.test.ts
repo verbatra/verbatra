@@ -58,8 +58,19 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
     "sk-SK",
     "sk-onboarding_step_2_title",
     "sk-checkout-summary_total_label",
+    "sk-admin-panel_title",
+    "sk-proj-",
+    "sk-ant-x",
+    "sk-proj-overview_heading",
+    "sk-svcacct-settings",
+    "sk-ant-banner_title_short",
   ])("leaves %s readable", (text) => {
     expect(redactKeys(text)).toBe(text);
+  });
+
+  it("redacts a known prefix once 20 letters and digits follow it", () => {
+    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5q")).toBe("[REDACTED]");
+    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5")).toBe("sk-proj-Ab3dEf6hIj9kLm2nOp5");
   });
 
   it("redacts a camelCase `sk-` key once it reaches 32 letters and digits", () => {

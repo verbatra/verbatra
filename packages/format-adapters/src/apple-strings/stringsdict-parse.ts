@@ -10,7 +10,7 @@ import {
 } from "../i18next/plural.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
-import { isElement, onFatal } from "../xml/document.js";
+import { elementChildren, onFatal } from "../xml/document.js";
 import { extractAppleStringsPlaceholders } from "./placeholders.js";
 
 const PLURAL_CATEGORIES: readonly I18nextPluralCategory[] = [
@@ -37,10 +37,6 @@ export interface StringsDictEntry {
   readonly variableName: string;
   readonly valueType: string | undefined;
   readonly categories: ReadonlyMap<I18nextPluralCategory, string>;
-}
-
-function elementChildren(parent: Element): Element[] {
-  return Array.from(parent.childNodes).filter(isElement);
 }
 
 function doctypeHasInternalSubset(content: string): boolean {

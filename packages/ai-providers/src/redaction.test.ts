@@ -121,6 +121,32 @@ describe("redactKeys: key shapes", () => {
     }
   });
 
+  it.each([
+    ["a newline", "line\n"],
+    ["a tab", "cell\t"],
+    ["a carriage return", "row\r"],
+    ["a form feed", "page\f"],
+    ["a backspace", "back\b"],
+    ["a control character escaped as \\u", "bell\u0007"],
+    ["a quote", 'say "'],
+  ])("redacts a key after %s once the text is serialized as JSON", (_what, before) => {
+    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+    const serialized = JSON.stringify({ message: `${before}${key} failed` });
+
+    const out = redactKeys(serialized);
+
+    expect(out).not.toContain(key);
+    expect(JSON.parse(out)).toEqual({ message: `${before}[REDACTED] failed` });
+  });
+
+  it.each(["prefix_", "cache.", "path/", "é"])(
+    "redacts a key right after %s, which is not a letter or digit",
+    (before) => {
+      const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+      expect(redactKeys(`${before}${key}`)).toBe(`${before}[REDACTED]`);
+    },
+  );
+
   it("redacts a genuine sk-ant key sitting at a word boundary", () => {
     const out = redactKeys("auth failed for sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
     expect(out).not.toContain("sk-ant-api03");

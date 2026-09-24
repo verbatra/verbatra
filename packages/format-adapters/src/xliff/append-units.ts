@@ -1,14 +1,8 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Document, Element, Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { isElement, TEXT_NODE } from "../xml/document.js";
-import {
-  childByName,
-  collectByTag,
-  elementChildren,
-  type Unit,
-  type XliffVersion,
-} from "./document.js";
+import { elementChildren, isElement, TEXT_NODE } from "../xml/document.js";
+import { childByName, collectByTag, type Unit, type XliffVersion } from "./document.js";
 import { writeInlineValue } from "./inline.js";
 import { markTranslated } from "./state.js";
 

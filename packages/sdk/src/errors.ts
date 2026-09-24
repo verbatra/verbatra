@@ -110,8 +110,9 @@
  *   another process holds it, or a lock file was left behind by a process on another machine or
  *   by an older version (a same-machine holder that is gone is reclaimed automatically), or
  *   because such an abandoned lock could not be deleted, with the file-system error as its
- *   `cause`. The message names the lock file's path. Thrown by {@link editEntry}, {@link retranslateEntry},
- *   {@link approveEntry}, and {@link rejectEntry}, which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
+ *   `cause`. The message names the lock file's path. Thrown by {@link editEntry},
+ *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}, which act on one
+ *   locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
  *   {@link translate} and {@link importWorkbook} do not throw it: they record it
  *   on the contended locale's {@link LocaleSummary} and carry on with the other locales.
  * - `GLOSSARY_NOT_FILE_BACKED`: the loaded config's glossary is written inline or absent, so there

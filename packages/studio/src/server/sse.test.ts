@@ -86,6 +86,19 @@ describe("createSseHub: broadcast and heartbeat", () => {
     hub.closeAll();
   });
 
+  it("redacts a key that follows a JSON escape in the serialized frame", () => {
+    const hub = createSseHub();
+    const response = fakeResponse();
+    hub.register(response);
+    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+
+    hub.broadcastRefresh({ reason: "source", at: `line\n${key}` });
+
+    expect(response.writes[0]).not.toContain(key);
+    expect(response.writes[0]).toContain("line\\n[REDACTED]");
+    hub.closeAll();
+  });
+
   it("a broadcast write failure deregisters the client instead of throwing", () => {
     const hub = createSseHub();
     const response = fakeResponse();
