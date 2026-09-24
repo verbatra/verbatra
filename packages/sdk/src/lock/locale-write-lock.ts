@@ -397,6 +397,9 @@ export async function probeLock(
   } catch {
     return "unreadable";
   }
+  if (read.kind === "too-large") {
+    return "unreadable";
+  }
   return read.kind === "missing" || isAbandoned(observedFrom(read), liveness) ? "free" : "held";
 }
 

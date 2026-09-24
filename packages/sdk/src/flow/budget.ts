@@ -186,12 +186,13 @@ export function toBudgetSummary(tracker: BudgetTracker): RunBudget | undefined {
   };
 }
 
-function tokenCount(count: number | undefined): string {
+function tokenCount(count: number): string {
   return `${count} ${count === 1 ? "token" : "tokens"}`;
 }
 
 function budgetLabel(tracker: BudgetTracker): string {
-  return tracker.source === "run" ? "the run's own budget" : "the configured budget";
+  const label = tracker.source === "run" ? "the run's own budget" : "the configured budget";
+  return tracker.maxTokens === undefined ? label : `${label} of ${tokenCount(tracker.maxTokens)}`;
 }
 
 function raiseCeilingAdvice(tracker: BudgetTracker): string {
@@ -204,8 +205,8 @@ export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run's cumulative token usage (${tracker.tokensUsed}) reached ${budgetLabel(tracker)} of ` +
-      `${tokenCount(tracker.maxTokens)} (behavior: ${tracker.behavior}).`,
+      `The run's cumulative token usage (${tracker.tokensUsed}) reached ${budgetLabel(tracker)} ` +
+      `(behavior: ${tracker.behavior}).`,
   };
 }
 
@@ -221,8 +222,8 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
       `The run's next provider request was projected at ${tokenCount(projected)} on top of the ` +
-      `${tracker.tokensUsed} already counted, which would have crossed ${budgetLabel(tracker)} of ` +
-      `${tokenCount(tracker.maxTokens)}, so it was withheld rather than sent ` +
+      `${tracker.tokensUsed} already counted, which would have crossed ${budgetLabel(tracker)}, ` +
+      "so it was withheld rather than sent " +
       `(behavior: ${tracker.behavior}).${oversizedRequestHint(tracker, projected)}`,
   };
 }
@@ -237,7 +238,7 @@ export function budgetAlreadyStoppedNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run had already ${stoppedStanding(tracker)} ${budgetLabel(tracker)} of ${tokenCount(tracker.maxTokens)} ` +
+      `The run had already ${stoppedStanding(tracker)} ${budgetLabel(tracker)} ` +
       `(${tracker.tokensUsed} counted, behavior: ${tracker.behavior}), ` +
       "so this locale's keys were withheld rather than sent.",
   };

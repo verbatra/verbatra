@@ -549,6 +549,7 @@ describe("probeLock: probing a lock without taking it", () => {
     ["a live holder on this machine", JSON.stringify(holder(LIVE_PID)), "held"],
     ["a holder on another machine", JSON.stringify(holder(DEAD_PID, "elsewhere")), "held"],
     ["an unparsable payload", "{", "held"],
+    ["an empty payload", "", "held"],
     ["a holder that exited on this machine", JSON.stringify(holder(DEAD_PID)), "free"],
   ])("reports %s as %s", async (_, content, held) => {
     const files = new Map<string, string>(content === undefined ? [] : [[LOCK, content]]);
@@ -556,10 +557,10 @@ describe("probeLock: probing a lock without taking it", () => {
     expect(await probeLock(LOCK, memoryFs(files), liveness)).toBe(held);
   });
 
-  it("reports a lock file too large to read as held", async () => {
+  it("reports a lock file too large to read as unreadable", async () => {
     const fs = makeFakeFs({ readFileBounded: async () => ({ kind: "too-large" }) });
 
-    expect(await probeLock(LOCK, fs, liveness)).toBe("held");
+    expect(await probeLock(LOCK, fs, liveness)).toBe("unreadable");
   });
 
   it.each(["EACCES", "EISDIR"])(

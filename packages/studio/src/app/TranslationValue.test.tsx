@@ -103,9 +103,22 @@ describe("TranslationValue", () => {
     expect(view.get("bdi").textContent).toBe(longToken);
   });
 
+  it("draws the focus ring of a button on a paragraph value a keyboard can scroll", () => {
+    const view = render(<TranslationValue as="p" value="{name}" />);
+
+    expect(view.get("p").className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "focus-visible:outline-2",
+        "focus-visible:outline-offset-1",
+        "focus-visible:outline-ring",
+      ]),
+    );
+  });
+
   it("leaves an inline value's overflow to its caller", () => {
     const view = render(<TranslationValue value="{name}" className="truncate" />);
 
     expect(view.get("span").className).not.toContain("overflow-x-auto");
+    expect(view.get("span").className).not.toContain("focus-visible");
   });
 });

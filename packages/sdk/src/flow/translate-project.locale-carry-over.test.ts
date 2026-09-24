@@ -469,4 +469,55 @@ describe("translate: a locale whose respelled state could not be moved", () => {
       "greeting",
     ]);
   });
+
+  it.each([
+    ["reading it", "read"],
+    ["creating it", "create"],
+  ] as const)(
+    "withholds the locale without rejecting when %s fails with EACCES on a live run",
+    async (_, step) => {
+      const dir = await respelledProject(["de", "pt-BR"]);
+      await changeSource(dir);
+      const guard = lockFileGuardPath(dir);
+      const denied = (): Error =>
+        Object.assign(new Error("EACCES: permission denied"), {
+          code: "EACCES",
+        });
+      const fs: SdkFs = {
+        ...defaultFs,
+        createExclusive: async (path, data) => {
+          if (path !== guard) {
+            return defaultFs.createExclusive(path, data);
+          }
+          if (step === "create") {
+            throw denied();
+          }
+          return false;
+        },
+        readFileBounded: async (path, maxBytes) => {
+          if (path === guard) {
+            throw denied();
+          }
+          return defaultFs.readFileBounded(path, maxBytes);
+        },
+      };
+      const { provider, calls } = makeStubProvider();
+
+      const summary = await translate(
+        { config: cfg(["de", "pt-BR"]), cwd: dir },
+        { createProvider: () => provider, fs },
+      );
+
+      const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
+      const reason = `the lock-file guard at ${guard} could not be read.`;
+      expect(summary.failed).toEqual(["de", "pt-BR"]);
+      expect(summary.locales[0]?.error?.code).toBe("EACCES");
+      expect(ptBr?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
+      expect(ptBr?.error?.message).toContain(reason);
+      expect(ptBr?.error?.message).not.toContain("EACCES");
+      expect(skipNotices(ptBr)[0]).toContain(reason);
+      expect(calls.every((call) => call.request.targetLocale === "de")).toBe(true);
+      expect(await localesOf(lockPath(dir))).toEqual(["de", "pt_BR"]);
+    },
+  );
 });

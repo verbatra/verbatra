@@ -46,10 +46,18 @@ repository's layout genuinely explains the finding, and record that reason here:
 
 - `ignoreExportsUsedInFile`: an export its own module uses is over-exported, not
   dead, and the no-prose-comments rule rules out knip's per-symbol comment tags.
+- `ignoreBinaries: ["jq"]`: `release.yml` runs `jq` on the GitHub-hosted runners,
+  which preinstall it, and `scripts/verify-skills-dispatch.test.mjs` executes that
+  workflow's own `jq` program, skipping that one case where `jq` is not installed.
+  No package provides it.
 - Root `entry`: `scripts/*.mjs` are the guards `pnpm verify` runs, and the
   `scripts/dts-fixture` consumers are compiled by `check:dts`, never imported.
 - `apps/docs`: `verbatra.config.ts` is loaded at runtime by `verbatra translate`,
   and `@verbatra/studio` is reached only through the CLI's dynamic import.
+- `apps/docs` `ignoreFiles: ["lib/security-headers.d.mts"]`: `tsc` resolves every
+  `./security-headers.mjs` import to this declaration, which types the plain-JS
+  module `next.config.mjs` needs, while knip follows the import to the `.mjs` and
+  reports the declaration as unused.
 - `packages/sdk` `ignoreDependencies`: every `catalog:bundled` runtime dependency
   no sdk source imports directly. tsup bundles the internal packages that import
   them, so they ship to consumers; all are listed so the result is the same with

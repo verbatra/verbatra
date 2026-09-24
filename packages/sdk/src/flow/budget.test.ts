@@ -372,6 +372,21 @@ describe("budgetExceededNotice", () => {
     expect(budgetWithheldNotice(tracker, projected).message).not.toContain("maxBatchSize");
   });
 
+  it("never renders an undefined ceiling when the tracker has no token budget", () => {
+    const tracker = createBudgetTracker(undefined, "stop");
+
+    const messages = [
+      budgetExceededNotice(tracker).message,
+      budgetWithheldNotice(tracker, 5).message,
+      budgetAlreadyStoppedNotice(tracker).message,
+    ];
+
+    for (const message of messages) {
+      expect(message).not.toContain("undefined");
+      expect(message).toMatch(/the configured budget[ ,]/);
+    }
+  });
+
   it("adds the hint only once the refused projection is strictly above the budget", () => {
     const tracker = createBudgetTracker(1_000, "stop");
     const hint = "refused on every run";
