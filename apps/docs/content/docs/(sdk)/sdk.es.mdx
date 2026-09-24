@@ -837,7 +837,7 @@ Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de conv
 de un módulo de configuración ejecutable. Un campo vacío, una edición que no fija ningún campo o que mezcla
 `doNotTranslate` con los campos del término, traducciones prohibidas sin locale, un locale no válido,
 una edición que dejaría un glosario no válido y una edición cuyo resultado superaría el límite de
-1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida es `GLOSSARY_UNWRITABLE`.
+1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluido un bloqueo de escritura del glosario que no se puede crear en un proyecto de solo lectura, es `GLOSSARY_UNWRITABLE`, con el error del sistema de archivos como `cause`.
 Una edición que deja el glosario tal como ya está tiene éxito y no escribe nada.
 
 ### glossaryForLocale
@@ -1227,7 +1227,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `REVIEWER_INVALID` | `reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | el bloqueo de escritura de un locale no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir (`updateGlossaryTerm`) |
+| `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura (`updateGlossaryTerm`); el error del sistema de archivos es la `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |
 | `LOCALE_PATH_COLLISION` | dos locales configurados resuelven al mismo archivo absoluto |
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |

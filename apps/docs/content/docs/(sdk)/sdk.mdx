@@ -788,7 +788,7 @@ An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than conver
 an executable config module. A blank field, an edit that sets no field or mixes `doNotTranslate`
 with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
 leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are
-refused with `CONFIG_INVALID`; a failed write is `GLOSSARY_UNWRITABLE`. An edit that leaves the
+refused with `CONFIG_INVALID`; a failed write, including a glossary write lock that cannot be created in a read-only project, is `GLOSSARY_UNWRITABLE`, with the file-system error as its `cause`. An edit that leaves the
 glossary as it already is succeeds and writes nothing.
 
 ### glossaryForLocale
@@ -1161,7 +1161,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | a locale's write lock could not be acquired before its timeout; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | the glossary file could not be written (`updateGlossaryTerm`) |
+| `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project (`updateGlossaryTerm`); the file-system error is the `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` and `files.localeStyle` cannot be combined, or the style has no valid path spelling for a configured locale |
 | `LOCALE_PATH_COLLISION` | two configured locales resolve to the same absolute file path |
 | `CONCURRENCY_INVALID` | `concurrency` was set but is not an integer of at least 1; raised before any locale runs |
