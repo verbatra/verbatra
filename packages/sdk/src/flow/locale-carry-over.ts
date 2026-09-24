@@ -199,6 +199,10 @@ function isStateFileInvalid(error: unknown): boolean {
   );
 }
 
+function unreadableGuardReason(cwd: string): string {
+  return `the lock-file guard at ${lockFileGuardPath(cwd)} could not be read`;
+}
+
 async function carryLockAndProvenance(
   cwd: string,
   fs: SdkFs,
@@ -212,12 +216,15 @@ async function carryLockAndProvenance(
       { file: PROVENANCE_FILE_NAME, moved: NO_MOVES },
     ];
   }
-  const outcome: { written?: readonly [FileCarry, FileCarry] } = {};
+  const outcome: { entered: boolean; written?: readonly [FileCarry, FileCarry] } = {
+    entered: false,
+  };
   try {
     return await withLockFileGuard(
       cwd,
       fs,
       async () => {
+        outcome.entered = true;
         outcome.written = await writeStateFiles(cwd, fs, targetLocales);
         return outcome.written;
       },
@@ -227,10 +234,12 @@ async function carryLockAndProvenance(
     if (isStateFileInvalid(error)) {
       throw error;
     }
+    const reason =
+      outcome.entered || error instanceof SdkError ? error : unreadableGuardReason(cwd);
     return (
       outcome.written ?? [
-        skippedCarry(LOCK_FILE_NAME, planned.lockMoves, error),
-        skippedCarry(PROVENANCE_FILE_NAME, planned.provenanceMoves, error),
+        skippedCarry(LOCK_FILE_NAME, planned.lockMoves, reason),
+        skippedCarry(PROVENANCE_FILE_NAME, planned.provenanceMoves, reason),
       ]
     );
   }
@@ -275,7 +284,7 @@ async function planLockAndProvenance(
   const reason =
     probe === "held"
       ? `another process holds the lock-file guard at ${guard}`
-      : `the lock-file guard at ${guard} could not be read`;
+      : unreadableGuardReason(cwd);
   return [
     skippedCarry(LOCK_FILE_NAME, lockMoves, reason),
     skippedCarry(PROVENANCE_FILE_NAME, provenanceMoves, reason),
