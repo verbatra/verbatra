@@ -10,6 +10,7 @@ import {
   type LockWaitEvent,
   localeLockPath,
   lockFileGuardPath,
+  unacquiredLockPath,
   withLocaleWriteLock,
   withLockFileGuard,
 } from "./locale-write-lock.js";
@@ -244,6 +245,46 @@ describe("withLocaleWriteLock: a lock file too large to be a lock", () => {
     expect((timeout as SdkError).code).toBe("LOCK_CONTENDED");
     expect(isUnreadableLockError(timeout)).toBe(false);
     expect(isUnreadableLockError(new Error("too large"))).toBe(false);
+  });
+});
+
+describe("unacquiredLockPath: only an acquire timeout marks a lock as busy", () => {
+  it("names the lock path of a contention timeout", async () => {
+    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 5,
+      acquireTimeoutMs: 20,
+    }).catch((e: unknown) => e);
+
+    expect(unacquiredLockPath(error)).toBe(localeLockPath("/proj", "de"));
+  });
+
+  it("names no path for a lock file too large to be a lock", async () => {
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => false,
+      readFileBounded: async (): Promise<BoundedFileRead> => ({ kind: "too-large" }),
+    });
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      acquireTimeoutMs: 600_000,
+    }).catch((e: unknown) => e);
+
+    expect((error as SdkError).code).toBe("LOCK_CONTENDED");
+    expect(unacquiredLockPath(error)).toBeUndefined();
+  });
+
+  it("names no path for an error thrown inside the lock or for a non-SdkError", async () => {
+    const fs = makeFakeFs();
+    const inside = new SdkError("LOCK_CONTENDED", "taken over");
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {
+      throw inside;
+    }).catch((e: unknown) => e);
+
+    expect(error).toBe(inside);
+    expect(unacquiredLockPath(error)).toBeUndefined();
+    expect(unacquiredLockPath(new Error("busy"))).toBeUndefined();
   });
 });
 

@@ -384,6 +384,28 @@ describe("run studio: success path and shutdown", () => {
     await donePromise;
   });
 
+  it("keeps forwarding the studio server's error lines to stderr under --quiet", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            options.output?.("studio error: project.snapshot failed: EIO");
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--quiet", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(cap.err()).toBe("verbatra: studio error: project.snapshot failed: EIO\n");
+  });
+
   it("forwards request lines under --verbose but never Studio's own startup banner", async () => {
     const { deps } = recordingDeps({
       importStudio: async () =>

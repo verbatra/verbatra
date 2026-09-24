@@ -92,8 +92,10 @@ export interface StudioServerDeps {
    */
   readonly token?: string;
   /**
-   * Sink for the startup banner and the per-request log line. Defaults to writing to the console.
-   * Pass a no-op when the caller prints its own banner, as the verbatra CLI does.
+   * Sink for every line the server writes: the startup banner, which carries the session token;
+   * one `<METHOD> <path> <status>` line per request, its path without the query string; and a
+   * line starting `studio error: ` for an unexpected server error or an interrupted batch, redacted
+   * with every control character replaced by a space. Defaults to writing to the console.
    */
   readonly output?: (line: string) => void;
   /**
