@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -52,6 +52,23 @@ describe("startMcpServer", () => {
     await handle.close();
 
     await expect(handle.closed).resolves.toBeUndefined();
+  });
+
+  it("resolves the project from CLAUDE_PROJECT_DIR when no cwd is given", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+    await rename(configPath, join(dir, ".verbatrarc.json"));
+    const previous = process.env.CLAUDE_PROJECT_DIR;
+    process.env.CLAUDE_PROJECT_DIR = dir;
+    try {
+      const handle = await startMcpServer({});
+      await handle.close();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLAUDE_PROJECT_DIR;
+      } else {
+        process.env.CLAUDE_PROJECT_DIR = previous;
+      }
+    }
   });
 
   it("propagates a config-not-found error rather than swallowing it", async () => {
