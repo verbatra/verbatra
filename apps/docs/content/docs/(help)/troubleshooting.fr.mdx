@@ -60,7 +60,9 @@ normalement. Les versions de paquets du message suivent la release ; la solution
 
 **Cause** : la configuration a été trouvée mais échoue à la validation de schéma : un champ requis
 manquant, un `files.pattern` sans le jeton `{locale}`, une locale source listée dans
-`targetLocales`, ou une clé de premier niveau non reconnue. Une clé non reconnue reçoit l'indice
+`targetLocales`, un code de locale qui n'est pas du BCP 47 valide (comme `en_US`), une clé de
+`localeMap` qui n'est pas une locale configurée, ou une clé non reconnue au premier niveau ou dans
+le bloc `provider` à côté de `id` et `options`. Une clé non reconnue reçoit l'indice
 `API keys are read from the environment, not the config` : le schéma est strict précisément pour
 qu'un secret ne puisse pas se cacher dans un fichier commité.
 
@@ -253,7 +255,7 @@ Studio ou depuis les outils d'agent n'est pas couvert du tout.
 traduction précédente, ou le rapport d'intégrité par clé signale une discordance de balisage en
 ligne pour une traduction déjà présente sur le disque. Ce rapport est `markupMatches: false` de
 `keyIntegrity` dans le SDK, de l'outil `key.integrity` du serveur MCP et de l'indicateur par clé de
-Studio (`Inline markup mismatch`) ; `verbatra check` ne signale pas le balisage. Dans Studio, un
+Studio (`Inline markup mismatch`) ; un simple `verbatra check` ne signale pas le balisage, mais `verbatra check --qa` le fait. Dans Studio, un
 retranslate ou une modification revient en `Rejected: inline markup mismatch`, suivi des balises en
 cause : `-<a href>` pour une que la source avait et que la candidate a perdue, `+<i>` pour une que
 la candidate a inventée.
@@ -314,7 +316,9 @@ traduction des changements en attente n'apparaissent pas.
 
 **Cause** : la dépense fournisseur est une capacité que tu accordes au démarrage. Sans elle, les
 méthodes conditionnées à la dépense ne sont pas enregistrées du tout ; l'édition locale des
-fichiers est toujours active et n'a besoin d'aucune option.
+fichiers est toujours active et n'a besoin d'aucune option. Dans un projet
+[100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`), la capacité reste
+retenue même avec `--allow-spend`, et le panneau des réglages nomme cette raison.
 
 **Solution** : redémarre Studio avec `verbatra studio --allow-spend`, ou définis
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (aussi `true`, `yes` ou `on`). Des actions rapides et répétées
@@ -345,7 +349,9 @@ outils, et les appeler par leur nom échoue comme un outil inconnu.
 **Cause** : la dépense fournisseur est une capacité que tu accordes au démarrage, et l'ensemble
 d'outils exposé par le serveur MCP ne doit pas varier selon la connexion, donc les deux outils
 conditionnés à la dépense sont entièrement absents de la liste. Ils ne sont jamais annoncés puis
-refusés : si la dépense n'est pas autorisée, ils n'apparaissent tout simplement pas.
+refusés : si la dépense n'est pas autorisée, ils n'apparaissent tout simplement pas. Dans un
+projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`), ils restent
+absents de la liste même avec `--allow-spend`.
 
 **Solution** : redémarre le serveur avec `verbatra mcp --allow-spend` (ou `verbatra-mcp
 --allow-spend`), ou définis `VERBATRA_MCP_ALLOW_SPEND=1` (aussi `true`, `yes` ou `on`). Voir

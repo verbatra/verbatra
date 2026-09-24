@@ -7,12 +7,17 @@ messages, see [Troubleshooting](/docs/troubleshooting).
 
 ## How do I control cost?
 
-Four levers, all free of a provider call until you decide otherwise:
+Six levers, all free of a provider call until you decide otherwise:
 
 - Runs are incremental by default: only keys that are missing or whose source changed since the
   lock baseline are sent to the provider. An unchanged project costs nothing to re-run.
 - `--dry-run` (or `translate({ config, dryRun: true })`) previews exactly what would be sent,
   with no provider call and no writes.
+- `verbatra translate --estimate` sizes the run on top of that dry run: keys, provider requests,
+  the billed quantity, and a currency figure when the config has `rates` for the provider. See
+  [Estimating cost](/docs/estimating-cost).
+- `verbatra translate --max-tokens <n>` sets a hard token ceiling for one run without touching the
+  config; when the config also sets `maxTokens`, the lower of the two applies.
 - `maxTokens` in the config sets a whole-run token ceiling, with `budgetBehavior` deciding what
   happens when it is reached: `"warn"` (default) flags it and continues, `"stop"` withholds every
   key not yet attempted; withheld keys are retried automatically next run.
@@ -126,8 +131,8 @@ the normal incremental path.
 
 `@verbatra/cli` depends on `@verbatra/sdk`, so installing the CLI brings the SDK along
 automatically; there is nothing extra to install. The reverse also holds: the SDK works standalone
-in your own scripts with no CLI. Only `@verbatra/studio` is a separate, optional install, loaded
-dynamically by the `studio` command.
+in your own scripts with no CLI. Only `@verbatra/studio` and `@verbatra/mcp` are separate, optional
+installs, loaded dynamically by the `studio` and `mcp` commands.
 
 ## Where do API keys live?
 
@@ -150,18 +155,24 @@ retention terms, and a checklist for a DPA or NDA review.
 
 <AvailableFrom version="0.9.0" />
 
-Five things, all without a provider call, a network request, or reading an API key value:
+Nine things, all without a provider call, a network request, or reading an API key value. The
+first six can fail; the last three are informational and never do:
 
 - Configuration: a config file was found and passes validation.
 - Format adapter: the configured `format` resolves to a file adapter.
 - Provider: the configured `provider.id` resolves to a provider factory.
 - API key environment variable: the variable that provider reads its key from is set (checked by
   name only, never by value).
+- Network policy: the effective [network policy](/docs/network-policy) permits the host the
+  configured provider connects to, and any proxy it would use.
 - Source locale file: the source locale file exists at its resolved path, is a regular file, and
   parses under the configured format.
+- Plural rules, Locale codes, and Locale state: the ICU and CLDR versions plural categories come
+  from, configured locale codes not in canonical BCP 47 form, and state left behind for a locale
+  the config no longer lists. See [verbatra doctor](/docs/cli/doctor).
 
 Every check runs even after an earlier one fails, so one run reports every independent problem at
-once; the exception is the config itself, where a failure to load skips the four checks that need
+once; the exception is the config itself, where a failure to load skips the eight checks that need
 it.
 
 ```bash

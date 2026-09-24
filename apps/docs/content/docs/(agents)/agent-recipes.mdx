@@ -60,7 +60,7 @@ verbatra check --json 2>/dev/null
 ```
 
 ```json
-{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false}]}}
+{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0}]}}
 ```
 
 The command exits `1`, because `inSync` is false. That is the cheapest gate there is: the exit code alone tells you whether to read the payload at all.
@@ -72,7 +72,7 @@ verbatra diff --json 2>/dev/null
 ```
 
 ```json
-{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true}]}}
+{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
 Also exit `1`. Use `diff` when the agent has to name the keys (to write a pull request comment, or to decide whether the work is worth spending on); use `check` when a yes or no is enough.
@@ -113,6 +113,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
         "notices": [],
         "needsReview": [],
         "unfilled": [],
+        "protected": [],
         "malformedRows": [],
         "duplicateKeys": []
       }
@@ -188,16 +189,16 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Do not run this under `set -e`: a non-zero exit is the signal you came for, not a crash. Code `130` never appears here, because only the three long-running commands (`watch`, `studio` and `mcp`) can be force-stopped by a second interrupt. See [CI and exit codes](/docs/ci-and-exit-codes) for the full table.
+Do not run this under `set -e`: a non-zero exit is the signal you came for, not a crash. Code `130` never appears here, because `check` does not use it: only `translate` and `import` exit `130` on Ctrl-C, after releasing their write locks, and the three long-running commands (`watch`, `studio` and `mcp`) when a second interrupt force-stops them. See [CI and exit codes](/docs/ci-and-exit-codes) for the full table.
 
 ## `watch` is a stream, not a payload
 
-`watch --json` is different in kind from the other ten. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
+`watch --json` is different in kind from the other eleven. It prints one envelope per run for the life of the process, as NDJSON: one JSON object per line, no wrapping array, no terminator. A consumer reads it line by line and keeps reading.
 
 Raw, two runs of one session (the second after the source file was saved with a syntax error):
 
 ```json
-{"ok":true,"version":1,"command":"watch","result":{"dryRun":false,"locales":[{"locale":"de","status":"succeeded","translated":["app.greeting"],"unchanged":["app.title"],"orphaned":[],"pruned":[],"invalidIcuSource":[],"cacheHits":[],"fuzzyHits":[],"integrityMismatches":[],"integrityRefusals":[],"providerFailures":[],"budgetWithheld":[],"generated":[],"notices":[],"needsReview":[],"unfilled":[],"malformedRows":[],"duplicateKeys":[],"usage":{"inputTokens":120,"outputTokens":40}}],"succeeded":["de"],"partial":[],"failed":[],"usage":{"inputTokens":120,"outputTokens":40}}}
+{"ok":true,"version":1,"command":"watch","result":{"dryRun":false,"locales":[{"locale":"de","status":"succeeded","translated":["app.greeting"],"unchanged":["app.title"],"orphaned":[],"pruned":[],"invalidIcuSource":[],"cacheHits":[],"fuzzyHits":[],"integrityMismatches":[],"integrityRefusals":[],"providerFailures":[],"budgetWithheld":[],"generated":[],"notices":[],"needsReview":[],"unfilled":[],"protected":[],"malformedRows":[],"duplicateKeys":[],"usage":{"inputTokens":120,"outputTokens":40}}],"succeeded":["de"],"partial":[],"failed":[],"usage":{"inputTokens":120,"outputTokens":40}}}
 {"ok":false,"version":1,"command":"watch","code":"SOURCE_INVALID","message":"The source locale file at /home/dev/app/locales/en.json could not be read: The file is not valid JSON."}
 ```
 

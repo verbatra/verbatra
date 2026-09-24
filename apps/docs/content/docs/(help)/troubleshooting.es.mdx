@@ -60,7 +60,9 @@ Las versiones de los paquetes del mensaje siguen al lanzamiento; la solución no
 
 **Causa**: la configuración se encontró pero falla la validación de esquema: un campo obligatorio
 ausente, un `files.pattern` sin el token `{locale}`, un locale de origen listado en
-`targetLocales`, o una clave de nivel superior no reconocida. Una clave no reconocida recibe la pista
+`targetLocales`, un código de locale que no es BCP 47 válido (como `en_US`), una clave de
+`localeMap` que no es un locale configurado, o una clave no reconocida en el nivel superior o en el
+bloque `provider` junto a `id` y `options`. Una clave no reconocida recibe la pista
 `API keys are read from the environment, not the config`: el esquema es estricto precisamente para
 que un secreto no pueda esconderse en un archivo confirmado.
 
@@ -250,7 +252,7 @@ no queda cubierto por él.
 su traducción anterior, o el informe de integridad por clave señala una discordancia de marcado en
 línea para una traducción que ya está en disco. Ese informe es `markupMatches: false` de
 `keyIntegrity` en el SDK, de la herramienta `key.integrity` del servidor MCP y del indicador por
-clave de Studio (`Inline markup mismatch`); `verbatra check` no informa del marcado. En Studio, un
+clave de Studio (`Inline markup mismatch`); un `verbatra check` simple no informa del marcado, pero `verbatra check --qa` sí. En Studio, un
 retranslate o una edición vuelve como `Rejected: inline markup mismatch`, seguido de las etiquetas
 causantes: `-<a href>` para una que el origen tenía y la candidata perdió, `+<i>` para una que la
 candidata inventó.
@@ -311,7 +313,9 @@ aparecen.
 
 **Causa**: el gasto de proveedor es una capacidad que concedes al arrancar. Sin ella, los métodos
 con puerta de gasto ni siquiera se registran; la edición local de archivos siempre está activa y no
-necesita ningún flag.
+necesita ningún flag. En un proyecto [solo humano](/docs/human-only-workflow)
+(`provider: { id: "none" }`) la capacidad se retiene incluso con `--allow-spend`, y el panel de
+ajustes nombra ese motivo.
 
 **Solución**: reinicia Studio con `verbatra studio --allow-spend`, o define
 `VERBATRA_STUDIO_ALLOW_SPEND=1` (también `true`, `yes` u `on`). Las acciones rápidas y repetidas
@@ -342,7 +346,9 @@ herramientas, y llamarlas por nombre falla como herramienta desconocida.
 **Causa**: el gasto de proveedor es una capacidad que concedes al arrancar, y el conjunto de
 herramientas que expone el servidor MCP no puede variar por conexión, así que las dos herramientas
 con puerta de gasto quedan fuera de la lista por completo. Nunca se anuncian para luego
-rechazarse: si el gasto no está permitido, simplemente no aparecen.
+rechazarse: si el gasto no está permitido, simplemente no aparecen. En un proyecto
+[solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) quedan fuera de la lista
+incluso con `--allow-spend`.
 
 **Solución**: reinicia el servidor con `verbatra mcp --allow-spend` (o `verbatra-mcp
 --allow-spend`), o define `VERBATRA_MCP_ALLOW_SPEND=1` (también `true`, `yes` u `on`). Consulta

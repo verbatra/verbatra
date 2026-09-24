@@ -318,7 +318,10 @@ if (retry.accepted) {
 ```
 
 An unknown locale or key throws `UNKNOWN_LOCALE` or `UNKNOWN_KEY`, and `retranslateEntry` throws
-the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails. See
+the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails. Before
+any provider is built it also throws `MACHINE_TRANSLATION_DISABLED` in a
+[human-only](/docs/human-only-workflow) project, and `NETWORK_POLICY_VIOLATION` when the
+[network policy](/docs/network-policy) does not permit the provider's endpoint. See
 [Review in Studio](/docs/review-in-studio) for the same seams behind a UI.
 
 <AvailableFrom version="0.12.0" />

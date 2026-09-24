@@ -2,7 +2,7 @@
 title: Set up verbatra with an AI agent
 description: A copy-pasteable prompt for Claude Code, Cursor, or any AI coding agent to add verbatra to a project that already has an i18n setup, gated behind an explicit human confirmation before it ever spends.
 ---
-This page is for a project that already has locale files: i18next, vue-i18n, next-intl, ngx-translate, or raw JSON, YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog `.xcstrings`, Android `strings.xml`, or gettext `.po`/`.pot` files, already committed and already in use. Paste the prompt below into your AI coding agent (Claude Code, Cursor, or any agent that can read your project and run shell commands), and it walks itself through inspecting your setup, installing verbatra, scaffolding a config that matches what it found, and previewing a run, then stops and asks you to confirm before it ever calls a provider for real.
+This page is for a project that already has locale files: i18next, vue-i18n, next-intl, ngx-translate, or raw JSON, YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog `.xcstrings`, Android `strings.xml`, gettext `.po`/`.pot`, INI, or .NET `.resx` files, already committed and already in use. Paste the prompt below into your AI coding agent (Claude Code, Cursor, or any agent that can read your project and run shell commands), and it walks itself through inspecting your setup, installing verbatra, scaffolding a config that matches what it found, and previewing a run, then stops and asks you to confirm before it ever calls a provider for real.
 
 If you are setting verbatra up yourself instead of handing it to an agent, [Your first translation](/docs/your-first-translation) is the human version of the same walkthrough.
 
@@ -119,8 +119,10 @@ server needs a key. Never pass a key value to `init`.
 
 npx verbatra doctor
 
-`doctor` runs five checks: the config, the format, the provider id, the API-key
-environment variable that provider reads, and the source file. It makes no network
+`doctor` runs nine checks. Six can fail: the config, the format, the provider id, the
+API-key environment variable that provider reads, the network policy, and the source
+file. The last three (plural rules, locale codes, locale state) are informational and
+never fail. It makes no network
 call and reads no key value, only the variable's name. Fix whatever it reports by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
 or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run

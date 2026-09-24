@@ -301,7 +301,7 @@ if (retry.accepted) {
 }
 ```
 
-Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
+Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue. Avant qu'aucun fournisseur ne soit construit, `retranslateEntry` lève aussi `MACHINE_TRANSLATION_DISABLED` dans un projet [100 % humain](/docs/human-only-workflow), et `NETWORK_POLICY_VIOLATION` quand la [politique réseau](/docs/network-policy) n'autorise pas le point de terminaison du fournisseur. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
 
 <AvailableFrom version="0.12.0" />
 

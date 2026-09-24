@@ -8,7 +8,7 @@ verbatra is a dev dependency, so the commands you run locally run the same in CI
 
 - **Gate a pull request** with [`verbatra check`](/docs/cli/check) or [`verbatra diff`](/docs/cli/diff), either directly (this page) or through the [GitHub Action](/docs/github-action) with `command: check` or `command: diff`. Both are read-only: no provider call, no API key needed, exit `1` on drift.
 - **Translate on a push** with [`verbatra translate`](/docs/cli/translate), either directly (this page) or through the [GitHub Action](/docs/github-action).
-- **Preflight either one** with [`verbatra doctor`](/docs/cli/doctor). It is the cheapest step of all: it validates the config, the format, the provider, the key variable, and the source file, never calls a provider, and never reads a key value. It also still reports on a project whose locale files are not in place yet, where the other commands can only fail as a whole.
+- **Preflight either one** with [`verbatra doctor`](/docs/cli/doctor). It is the cheapest step of all: it validates the config, the format, the provider, the key variable, the network policy, and the source file, adds three informational reports (plural rules, locale codes, and leftover locale state) that never fail, never calls a provider, and never reads a key value. It also still reports on a project whose locale files are not in place yet, where the other commands can only fail as a whole.
 
 ## The exit codes
 
@@ -33,7 +33,7 @@ Some edge cases worth knowing:
 - A failed run during `watch` shows up as a record on the output stream, never as a non-zero exit code.
 - `export` has no per-locale failure mode: it exits `0` or `2`, never `1`.
 - `doctor` reads a broken config differently from every other command: a config the search does not find, or one that fails validation, is a failed check and exit `1`, because reporting exactly that is the command's job. It exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist.
-- One failure mode sits outside the contract: a parse failure that is not a usage error is re-thrown, and the binary does not catch it, so Node's default handling of an unhandled rejection applies instead of any of the five codes.
+- One failure mode sits outside the contract: a parse failure that is not a usage error is re-thrown, and the binary does not catch it, so Node's default handling of an unhandled rejection applies instead of any of the six codes.
 - A [protected](/docs/protecting-human-translations) key (a stale value a person wrote, imported, or changed outside verbatra, or a pinned key) does not change the exit code of `translate` in a project with a provider: it exits `0` and says on stderr how many keys it left. `check` still exits `1` for it, because the key stays stale until a person resolves it. In a human-only project it counts toward exit `3`.
 
 ## check or diff: picking the gate
@@ -154,6 +154,9 @@ interface LocaleCheckSummary {
   stale: number;               // source changed since last translated
   upToDate: number;            // target matches the recorded baseline
   inSync: boolean;             // missing === 0 && stale === 0
+  provenance?: ProvenanceSummary; // counts by origin and review state; absent when the provenance file is unreadable
+  protected?: number;          // missing and stale keys translate would leave alone (human edits, pinned keys)
+  inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
 }
 ```
@@ -164,6 +167,7 @@ interface LocaleCheckSummary {
 interface DiffSummary {
   hasPendingChanges: boolean;  // true exactly when the command exits 1
   locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // only with --unused
 }
 
 interface LocaleDiff {
@@ -172,6 +176,8 @@ interface LocaleDiff {
   changed: string[];           // source changed since last translated: would be re-translated
   orphaned: string[];          // in target, absent from source: reported only
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // origin of each changed key's value; absent when the provenance file is unreadable
+  protected?: string[];        // missing and changed keys translate would leave alone (human edits, pinned keys)
 }
 ```
 

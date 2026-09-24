@@ -8,7 +8,7 @@ verbatra es una dependencia de desarrollo, así que los comandos que ejecutas en
 
 - **Bloquea un pull request** con [`verbatra check`](/docs/cli/check) o [`verbatra diff`](/docs/cli/diff), ya sea directamente (esta página) o a través de la [GitHub Action](/docs/github-action) con `command: check` o `command: diff`. Ambos son de solo lectura: sin llamada al proveedor, sin clave de API, salen con `1` si hay desfase.
 - **Traduce en cada push** con [`verbatra translate`](/docs/cli/translate), ya sea directamente (esta página) o a través de la [GitHub Action](/docs/github-action).
-- **Haz una comprobación previa de cualquiera de los dos** con [`verbatra doctor`](/docs/cli/doctor). Es el paso más barato de todos: valida la configuración, el formato, el proveedor, la variable de la clave y el archivo de origen, nunca llama a un proveedor y nunca lee el valor de una clave. Además sigue dando un informe en un proyecto cuyos archivos de locale todavía no están en su sitio, donde los demás comandos solo pueden fallar por completo.
+- **Haz una comprobación previa de cualquiera de los dos** con [`verbatra doctor`](/docs/cli/doctor). Es el paso más barato de todos: valida la configuración, el formato, el proveedor, la variable de la clave, la política de red y el archivo de origen, añade tres informes meramente informativos (reglas de plural, códigos de locale y estado de locale sobrante) que nunca fallan, nunca llama a un proveedor y nunca lee el valor de una clave. Además sigue dando un informe en un proyecto cuyos archivos de locale todavía no están en su sitio, donde los demás comandos solo pueden fallar por completo.
 
 ## Los códigos de salida
 
@@ -33,7 +33,7 @@ Algunos casos límite que conviene conocer:
 - Una ejecución fallida durante `watch` aparece como un registro en el flujo de salida, nunca como un código de salida distinto de cero.
 - `export` no tiene modo de fallo por locale: sale con `0` o `2`, nunca con `1`.
 - `doctor` lee una configuración rota de forma distinta al resto de comandos: una configuración que la búsqueda no encuentra, o una que no supera la validación, es una comprobación fallida y da `1`, porque informar precisamente de eso es el trabajo del comando. Sale con `2` solo cuando no puede ejecutarse en absoluto, por ejemplo con una ruta `--config` explícita que no existe.
-- Hay un modo de fallo que queda fuera del contrato: un fallo de análisis que no es un error de uso se vuelve a lanzar, y el binario no lo captura, así que se aplica el comportamiento por defecto de Node ante un rechazo no gestionado en lugar de cualquiera de los cinco códigos.
+- Hay un modo de fallo que queda fuera del contrato: un fallo de análisis que no es un error de uso se vuelve a lanzar, y el binario no lo captura, así que se aplica el comportamiento por defecto de Node ante un rechazo no gestionado en lugar de cualquiera de los seis códigos.
 - Una clave [protegida](/docs/protecting-human-translations) (un valor obsoleto que escribió, importó o cambió una persona fuera de verbatra, o una clave fijada) no cambia el código de salida de `translate` en un proyecto con proveedor: sale con `0` e indica en stderr cuántas claves dejó. `check` sigue saliendo con `1` por ella, porque la clave sigue obsoleta hasta que una persona la resuelva. En un proyecto solo humano cuenta para la salida `3`.
 
 ## check o diff: elegir la puerta
@@ -154,6 +154,9 @@ interface LocaleCheckSummary {
   stale: number;               // source changed since last translated
   upToDate: number;            // target matches the recorded baseline
   inSync: boolean;             // missing === 0 && stale === 0
+  provenance?: ProvenanceSummary; // counts by origin and review state; absent when the provenance file is unreadable
+  protected?: number;          // missing and stale keys translate would leave alone (human edits, pinned keys)
+  inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
 }
 ```
@@ -164,6 +167,7 @@ interface LocaleCheckSummary {
 interface DiffSummary {
   hasPendingChanges: boolean;  // true exactly when the command exits 1
   locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // only with --unused
 }
 
 interface LocaleDiff {
@@ -172,6 +176,8 @@ interface LocaleDiff {
   changed: string[];           // source changed since last translated: would be re-translated
   orphaned: string[];          // in target, absent from source: reported only
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // origin of each changed key's value; absent when the provenance file is unreadable
+  protected?: string[];        // missing and changed keys translate would leave alone (human edits, pinned keys)
 }
 ```
 

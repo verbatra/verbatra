@@ -7,13 +7,19 @@ des symptômes et des messages d'erreur, voir [Dépannage](/docs/troubleshooting
 
 ## Comment je contrôle le coût ?
 
-Quatre leviers, tous sans appel au fournisseur tant que tu n'en décides pas autrement :
+Six leviers, tous sans appel au fournisseur tant que tu n'en décides pas autrement :
 
 - Les exécutions sont incrémentales par défaut : seules les clés manquantes ou dont la source a
   changé depuis la référence du fichier de verrouillage sont envoyées au fournisseur. Un projet
   inchangé ne coûte rien à relancer.
 - `--dry-run` (ou `translate({ config, dryRun: true })`) prévisualise exactement ce qui serait
   envoyé, sans appel au fournisseur et sans écriture.
+- `verbatra translate --estimate` dimensionne l'exécution en plus de ce dry run : clés, requêtes au
+  fournisseur, quantité facturée et un montant en devise quand la configuration a des `rates` pour
+  le fournisseur. Voir [Estimer le coût](/docs/estimating-cost).
+- `verbatra translate --max-tokens <n>` fixe un plafond de tokens strict pour une seule exécution
+  sans toucher à la configuration ; si la configuration fixe aussi `maxTokens`, le plus bas des
+  deux s'applique.
 - `maxTokens` dans la configuration fixe un plafond de tokens pour toute l'exécution, avec
   `budgetBehavior` qui décide de ce qui se passe quand il est atteint : `"warn"` (le défaut) le
   signale et continue, `"stop"` retient chaque clé pas encore tentée ; les clés retenues sont
@@ -136,8 +142,8 @@ le chemin incrémental normal.
 
 `@verbatra/cli` dépend de `@verbatra/sdk`, donc installer la CLI amène le SDK automatiquement ; il
 n'y a rien de plus à installer. L'inverse tient aussi : le SDK fonctionne seul dans tes propres
-scripts, sans CLI. Seul `@verbatra/studio` est une installation séparée, optionnelle, chargée
-dynamiquement par la commande `studio`.
+scripts, sans CLI. Seuls `@verbatra/studio` et `@verbatra/mcp` sont des installations
+séparées, optionnelles, chargées dynamiquement par les commandes `studio` et `mcp`.
 
 ## Où vivent les clés d'API ?
 
@@ -163,20 +169,27 @@ DPA ou NDA.
 
 <AvailableFrom version="0.9.0" />
 
-Cinq choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
-clé d'API :
+Neuf choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
+clé d'API. Les six premières peuvent échouer ; les trois dernières sont informatives et n'échouent
+jamais :
 
 - Configuration : un fichier de config a été trouvé et passe la validation.
 - Format adapter : le `format` configuré se résout en un adaptateur de fichier.
 - Provider : le `provider.id` configuré se résout en une fabrique de fournisseur.
 - API key environment variable : la variable d'environnement dans laquelle ce fournisseur lit sa
   clé est définie (vérifiée seulement par son nom, jamais par sa valeur).
+- Network policy : la [politique réseau](/docs/network-policy) effective autorise l'hôte auquel se
+  connecte le fournisseur configuré, et tout proxy qu'il utiliserait.
 - Source locale file : le fichier de la locale source existe à son chemin résolu, est un fichier
   ordinaire et s'analyse correctement avec le format configuré.
+- Plural rules, Locale codes et Locale state : les versions d'ICU et de CLDR d'où viennent les
+  catégories de pluriel, les codes de locale configurés qui ne sont pas en forme BCP 47 canonique, et
+  l'état laissé pour une locale que la configuration ne liste plus. Voir
+  [verbatra doctor](/docs/cli/doctor).
 
 Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
 les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
-au chargement, les quatre vérifications qui en ont besoin sont sautées.
+au chargement, les huit vérifications qui en ont besoin sont sautées.
 
 ```bash
 verbatra doctor
