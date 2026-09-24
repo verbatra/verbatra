@@ -290,6 +290,12 @@ nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer B
 `zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
 vorschlägt. Umbenannt wird nichts.
 
+Eine neunte Prüfung, `locale-state`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
+nennt jede Locale, für die Lock-Datei, Translation Memory oder Provenance-Datei Zustand halten, die
+die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu `pt-BR`, und sagt,
+ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das
+Detail.
+
 Eingabe: `{ cwd?, configPath?, literals? }`. Mit gesetztem `literals` führt `doctor` nur die
 Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
 Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
@@ -1183,7 +1189,7 @@ Die Teile, die du kennen solltest:
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED` und `PROVENANCE_FILE_TOO_LARGE`
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)) und `PROVENANCE_FILE_TOO_LARGE`
   ab (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
   die verbatra zurückliest, daher blieb die Datei, wie sie war). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
   sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.
