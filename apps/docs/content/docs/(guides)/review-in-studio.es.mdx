@@ -91,6 +91,26 @@ Reject elimina la traducción del archivo de locale y borra su entrada en el [ar
 
 Las señales de revisión son orientativas, distintas de la puerta dura de integridad; consulta [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada motivo.
 
+### Trabaja la cola con el teclado
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Puedes trabajar la cola de Review sin el ratón. Pulsa `j` o la flecha hacia abajo para resaltar la primera entrada y después:
+
+| Tecla | Acción |
+| --- | --- |
+| `j` o flecha hacia abajo | entrada siguiente |
+| `k` o flecha hacia arriba | entrada anterior |
+| `a` | aprobar la entrada resaltada |
+| `r` | rechazarla (la confirmación se abre igualmente) |
+| `e` o Enter | abrirla en el editor |
+| `t` | retraducirla (solo con `--allow-spend`) |
+| `?` | mostrar u ocultar la lista de atajos |
+
+**Keyboard shortcuts** en la barra de filtros abre la misma lista. Un atajo actúa solo sobre la entrada resaltada. Los atajos se pausan mientras escribes en el filtro, mientras hay un diálogo abierto y mientras mantienes pulsado Ctrl, Cmd o Alt, para que los atajos del navegador sigan funcionando; Escape cierra el diálogo abierto. La fila resaltada es también la que tiene el foco del teclado, así que Tab pasa a sus botones, y un clic en una fila la resalta. Después de una aprobación o un rechazo se resalta la entrada que ocupa su lugar, así que pulsando `a` otra vez avanzas por la cola.
+
+Con `--allow-spend`, cada fila lleva además un botón **Retranslate**. Hace una sola llamada al proveedor para ese locale y esa clave, pasa el resultado por la misma puerta de integridad e informa del resultado en la línea sobre la tabla. El valor nuevo se queda en la cola hasta que lo apruebes o lo rechaces. Un valor que escribió una persona no se reemplaza desde aquí: abre la clave en Translations y elige allí **Replace anyway**.
+
 ## Retraduce una clave marcada
 
 Arranca Studio con el gasto permitido:
