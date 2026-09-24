@@ -5,8 +5,8 @@
 
 Report ICU plural arms that do not fit the target language in every read-only report and import.
 
-Previously `keyIntegrity` and the export review columns judged only placeholders and ICU syntax, so
-an existing value with the wrong arms looked fine, and an import reported a refused value without
+Previously `keyIntegrity` and the export review columns never compared ICU plural arms, so an
+existing value with the wrong arms looked fine, and an import reported a refused value without
 saying what was wrong.
 
 Now `keyIntegrity` entries carry `icuArmsMatch` and `icuArmDetails`, and an exported row whose

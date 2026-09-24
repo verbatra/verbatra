@@ -17,6 +17,4 @@ from a value is reported once, as a placeholder. A value quoting `<!DOCTYPE` or 
 written as text, a written segment in state `initial` becomes `translated` and loses its
 `subState`, a target equal to its source in an explicitly `initial` segment reads as missing, and
 an unreadable or invalid source file gets its own `INVALID_STRUCTURE` message, carrying the
-parser's error as its `cause`. A copied unit drops only its own targets and `alt-trans`, and a key
-that is not a valid XLIFF 2.0 unit id, such as `u1#0`, is refused rather than written as a new
-source unit.
+parser's error as its `cause`.

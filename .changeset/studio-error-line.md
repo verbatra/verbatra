@@ -1,11 +1,15 @@
 ---
 "@verbatra/cli": patch
+"@verbatra/studio": patch
 ---
 
-Print the error behind an interrupted Studio batch in the terminal running `verbatra studio`.
+Print the cause of an unexpected Studio server error in the terminal running Studio.
 
-Previously the CLI dropped every line Studio's server wrote except the request log under
-`--verbose`, so the dashboard's "check the terminal running Studio" pointed at nothing.
+Previously an RPC call that failed with an unexpected error answered `INTERNAL`, which the
+dashboard shows as "Check the terminal running Studio for details.", but the server wrote only its
+request line there, and `verbatra studio` dropped every line the server wrote.
 
-Now a `studio error: ...` line from the server is shown on stderr as a `verbatra:` warning, with
-the session token masked, with or without `--verbose` and under `--quiet`.
+Now the server writes one `studio error: <method> failed: <message>` line to its output for such
+an error, redacted and with every control character replaced by a space, and the CLI shows every
+`studio error: ` line on stderr as a `verbatra:` warning, with the session token masked, with or
+without `--verbose` and under `--quiet`.

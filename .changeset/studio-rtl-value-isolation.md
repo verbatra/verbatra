@@ -19,6 +19,5 @@ line, while the text of each plural or select branch follows the value's directi
 syntax is wider than its container scrolls sideways instead of overflowing, with the dashboard's
 focus ring when the browser lets a keyboard focus it to scroll. Printf placeholders are recognised
 with the same length modifiers and conversions the pseudo-locale transform protects, such as
-`%hhd`, `%zu` and `%1$s`. The edit dialog's text area follows the locale and shows a live read-only
-preview for right-to-left locales, and the integrity pill shows its label with the detail wrapping
-below.
+`%hhd`, `%zu` and `%1$s`. The edit dialog's text area follows the locale, and the integrity pill
+shows its label with the detail wrapping below.

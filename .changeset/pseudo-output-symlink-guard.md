@@ -15,5 +15,4 @@ Now the output directory and the pseudolocale file are checked again after symbo
 resolved. A link that carries either outside the working directory, onto the working directory
 itself, beside a configured locale file, or onto a locale file, the lock file or another file the
 project depends on is refused with `PSEUDO_OUTPUT_CONFLICT` before anything is read or written, and
-the message names the file relative to `cwd`. The output guards also resolve the working directory
-and the reserved project files once per run instead of once per checked path.
+the message names the file relative to `cwd`.

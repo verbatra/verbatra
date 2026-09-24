@@ -12,4 +12,5 @@ runs with `--allow-spend`. `?` or the new **Keyboard shortcuts** button lists th
 pause while a field has focus, a dialog is open, or a modifier key is held; the highlighted row
 takes keyboard focus and each action button names its shortcut in `aria-keyshortcuts`. With
 `--allow-spend`, each row also carries a **Retranslate** button that calls the existing
-`translation.retranslateEntry` method and reports the outcome above the table.
+`translation.retranslateEntry` method and reports the outcome above the table; the actions column
+keeps the width of a running retranslation, and an idle **Retranslate** button fits its label.

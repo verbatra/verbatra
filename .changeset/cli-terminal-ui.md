@@ -9,6 +9,7 @@ way to silence progress output.
 
 Now `--quiet` keeps only results, warnings and errors, `--no-color` or `VERBATRA_NO_COLOR` turns
 color off, `NO_COLOR` and `FORCE_COLOR` are honored, and fixed labels such as `error` are colored
-on an interactive terminal. `VERBATRA_NO_SPINNER` replaces animated progress with static lines.
+on an interactive terminal. Color is off when `CI` is set unless `FORCE_COLOR` asks for it.
+`VERBATRA_NO_SPINNER` replaces animated progress with static lines.
 Piped, CI and `--json` output are unchanged, and the `init` prompts now pass through the same
 redacting output as every other line.
