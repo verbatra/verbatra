@@ -115,8 +115,9 @@
  *   {@link updateGlossaryTerm}, which work on a file-backed glossary alone and never rewrite the
  *   config module itself.
  * - `GLOSSARY_UNWRITABLE`: the glossary file could not be written, because it or its directory is
- *   read-only, has been removed, or the disk is out of space. Thrown by
- *   {@link updateGlossaryTerm}.
+ *   read-only, has been removed, or the disk is out of space, or the project's glossary write lock
+ *   could not be created, for instance in a read-only project. The file-system error is the
+ *   `cause`. Thrown by {@link updateGlossaryTerm}.
  * - `LOCALE_LAYOUT_INVALID`: the configured `files.pattern` and `files.localeStyle` cannot be
  *   combined, or the style has no valid path spelling for a configured locale. Thrown by
  *   {@link createLocalePathResolver}, and so by every entry point that maps a locale to a path,
