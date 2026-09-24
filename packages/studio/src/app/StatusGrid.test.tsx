@@ -96,7 +96,7 @@ describe("StatusGrid", () => {
       "b.changed in de: changed",
       "b.changed in fr: in-sync",
       "c.orphaned in de: orphaned",
-      "c.orphaned in fr: in-sync",
+      "c.orphaned in fr: absent",
     ]);
   });
 
@@ -111,9 +111,10 @@ describe("StatusGrid", () => {
     expect(cellFor(view, "b.changed in de: changed").textContent).toBe("Changed");
     expect(cellFor(view, "c.orphaned in de: orphaned").textContent).toBe("Orphaned");
     expect(cellFor(view, "a.missing in fr: in-sync").textContent).toBe("In sync");
+    expect(cellFor(view, "c.orphaned in fr: absent").textContent).toBe("Absent");
   });
 
-  it("labels a protected key as needing review, in words as well as color", async () => {
+  it("labels a protected key as protected, in words as well as color", async () => {
     stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
     const protectedDiff = { ...localeDiff("de", [], ["b.changed"]), protected: ["b.changed"] };
 
@@ -121,7 +122,7 @@ describe("StatusGrid", () => {
       <StatusGrid locales={[protectedDiff]} refreshToken={0} onSelectKey={vi.fn()} />,
     );
 
-    expect(cellFor(view, "b.changed in de: needs review").textContent).toBe("Needs review");
+    expect(cellFor(view, "b.changed in de: protected").textContent).toBe("Protected");
   });
 
   it("shows a loading note per locale header while the coverage call is still open", () => {
@@ -316,7 +317,7 @@ describe("StatusGrid", () => {
     const view = await renderAsync(
       <StatusGrid locales={[DE_DRIFT, FR_CLEAN]} refreshToken={0} onSelectKey={vi.fn()} />,
     );
-    const target = cellFor(view, "c.orphaned in fr: in-sync");
+    const target = cellFor(view, "c.orphaned in fr: absent");
     act(() => {
       target.focus();
     });

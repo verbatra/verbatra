@@ -12,6 +12,7 @@ import {
   glossaryWriteParamsSchema,
 } from "./glossary.js";
 import { HISTORY_LIST_METHOD, type HistoryListResult, historyListParamsSchema } from "./history.js";
+import { IN_FLIGHT_METHOD, type InFlightResult, inFlightParamsSchema } from "./in-flight.js";
 import {
   KEY_CONTEXT_METHOD,
   type KeyContextResult,
@@ -93,6 +94,7 @@ export const rpcParamsSchemas = {
   [REVIEW_APPROVE_MANY_METHOD]: reviewBatchParamsSchema,
   [REVIEW_REJECT_MANY_METHOD]: reviewBatchParamsSchema,
   [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesParamsSchema,
+  [IN_FLIGHT_METHOD]: inFlightParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [KEY_CONTEXT_METHOD]: keyContextParamsSchema,
@@ -123,6 +125,7 @@ export interface RpcResultMap {
   readonly [REVIEW_APPROVE_MANY_METHOD]: ReviewBatchResult;
   readonly [REVIEW_REJECT_MANY_METHOD]: ReviewBatchResult;
   readonly [RETRANSLATE_ENTRIES_METHOD]: RetranslateEntriesResult;
+  readonly [IN_FLIGHT_METHOD]: InFlightResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [KEY_CONTEXT_METHOD]: KeyContextResult;

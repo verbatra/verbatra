@@ -763,3 +763,32 @@ describe("KeyDetailDrawer: provenance", () => {
     expect(block?.querySelector("dl")).toBeNull();
   });
 });
+
+describe("KeyDetailDrawer: source context", () => {
+  it("shows the description the source file gives for the key, as the editor does", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": {
+        ok: true,
+        result: { source: "Hello", target: "Hallo", description: "Shown on the home page" },
+      },
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.get("[data-key-description]").textContent).toBe("Shown on the home page");
+  });
+
+  it("leaves the context out when the source file gives no description", async () => {
+    stubBackground();
+    stubRpc({ "key.value": value("Hello", "Hallo") });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.query("[data-key-description]")).toBeNull();
+  });
+});

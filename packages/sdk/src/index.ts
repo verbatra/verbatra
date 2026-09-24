@@ -1,5 +1,8 @@
 export {
   type DoNotTranslateTerm,
+  type GlossaryDraftCheck,
+  type GlossaryDraftDoNotTranslateCheck,
+  type GlossaryDraftTermCheck,
   type LocaleGlossary,
   type LocaleGlossaryTerm,
   ProviderError,
@@ -97,7 +100,11 @@ export {
   type UpdateGlossaryTermInput,
   updateGlossaryTerm,
 } from "./config/glossary-file.js";
-export { glossaryHits } from "./config/glossary-hits.js";
+export {
+  type GlossaryDraftCheckInput,
+  glossaryDraftCheck,
+  glossaryHits,
+} from "./config/glossary-hits.js";
 export type { HumanEditsPolicy } from "./config/human-edits.js";
 export {
   type ConfigSource,
@@ -214,6 +221,11 @@ export {
   type KeyValueResult,
   keyValue,
 } from "./flow/key-value.js";
+export {
+  type LocaleIntegrityDeps,
+  type LocaleIntegrityInput,
+  localeIntegrity,
+} from "./flow/locale-integrity.js";
 export {
   diffLocaleSnapshots,
   type LocaleFileSnapshot,

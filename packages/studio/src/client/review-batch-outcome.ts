@@ -112,17 +112,28 @@ function entries(count: number): string {
   return `${count} ${count === 1 ? "entry" : "entries"}`;
 }
 
-function failureList(failures: readonly BatchFailure[]): string {
-  return failures
-    .map((failure) => `${failure.key} (${failure.locale}): ${failure.message}`)
-    .join("; ");
+export interface BatchFailureGroup {
+  readonly message: string;
+  readonly entries: readonly { readonly locale: string; readonly key: string }[];
+}
+
+export function groupBatchFailures(
+  failures: readonly BatchFailure[],
+): readonly BatchFailureGroup[] {
+  const groups = new Map<string, { locale: string; key: string }[]>();
+  for (const failure of failures) {
+    const entries = groups.get(failure.message) ?? [];
+    entries.push({ locale: failure.locale, key: failure.key });
+    groups.set(failure.message, entries);
+  }
+  return [...groups].map(([message, entries]) => ({ message, entries }));
 }
 
 export function batchSummaryFailed(summary: BatchSummary): boolean {
   return summary.kind === "error" || summary.failures.length > 0;
 }
 
-export function batchSummaryText(summary: BatchSummary): string {
+export function batchSummaryHeadline(summary: BatchSummary): string {
   if (summary.kind === "error") {
     return `Could not ${summary.action} the selected entries: ${summary.message}`;
   }
@@ -133,6 +144,17 @@ export function batchSummaryText(summary: BatchSummary): string {
   if (summary.failures.length === 0) {
     return done;
   }
-  const failed = `Could not ${summary.action} ${entries(summary.failures.length)}: ${failureList(summary.failures)}`;
+  const failed = `Could not ${summary.action} ${entries(summary.failures.length)}; they stay selected.`;
   return done === "" ? failed : `${done} ${failed}`;
+}
+
+export function failedBatchEntryIds(
+  summary: BatchSummary,
+  attempted: readonly string[],
+  idOf: (entry: { readonly locale: string; readonly key: string }) => string,
+): ReadonlySet<string> {
+  if (summary.kind === "error") {
+    return new Set(attempted);
+  }
+  return new Set(summary.failures.map(idOf));
 }

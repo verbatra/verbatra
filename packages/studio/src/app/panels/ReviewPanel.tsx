@@ -1,29 +1,16 @@
-import type { ReviewReasonCode } from "@verbatra/sdk";
-import type { ChangeEvent, ReactNode, RefObject } from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ReactNode, Ref } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyValuePair } from "../../client/filter.js";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
-import {
-  deriveRetranslateOutcome,
-  isProtectedRefusal,
-  type RetranslateOutcome,
-} from "../../client/retranslate-outcome.js";
-import {
-  type BatchSummary,
-  batchSummaryFailed,
-  batchSummaryText,
-  summarizeRetranslateBatch,
-  summarizeReviewBatch,
-} from "../../client/review-batch-outcome.js";
-import {
-  deriveReviewDecisionOutcome,
-  isStaleValueOutcome,
-} from "../../client/review-decision-outcome.js";
 import { filterReviewRows, uniqueReviewLocales } from "../../client/review-filter.js";
+import {
+  elapsedSeconds,
+  hasRunningRetranslation,
+  type PendingRow,
+} from "../../client/review-in-flight.js";
 import type { ReviewQueueRow } from "../../client/review-queue-data.js";
 import { reviewedValueFor, visibleReviewQueueRows } from "../../client/review-queue-data.js";
-import { reviewReasonLabel } from "../../client/review-reason-labels.js";
 import {
   bulkDecisionBlocker,
   bulkRetranslateBlocker,
@@ -42,25 +29,24 @@ import {
   shortcutKeysFor,
   stepIndex,
 } from "../../client/review-shortcuts.js";
-import { settledActionStatusLabel } from "../../client/settled-action-status.js";
 import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entries.js";
 import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
-import { reviewOverlayStore, rpcClient } from "../api.js";
-import { Badge } from "../Badge.js";
+import { reviewOverlayStore } from "../api.js";
 import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
 import { Button } from "../Button.js";
 import { Checkbox } from "../Checkbox.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { SearchInput } from "../Input.js";
-import { actionStatusTextClassName } from "../lib/action-status-classes.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
 import type { PanelProps } from "../panel-props.js";
 import { RejectEntryDialog } from "../RejectEntryDialog.js";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
-import { ReviewRowActions } from "../ReviewRowActions.js";
+import { ReviewDecisionStatus } from "../ReviewDecisionStatus.js";
+import { ReviewReasonChips } from "../ReviewReasonChips.js";
+import { ReviewRowActions, type RowBusy } from "../ReviewRowActions.js";
 import { ReviewShortcutsDialog } from "../ReviewShortcutsDialog.js";
 import { Select } from "../Select.js";
 import { TableSkeleton } from "../Skeleton.js";
@@ -78,65 +64,52 @@ import { TranslationValue } from "../TranslationValue.js";
 import { EmptyState } from "../ui.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
+import { useMediaQuery } from "../use-media-query.js";
+import { useNow } from "../use-now.js";
+import {
+  type BatchSettled,
+  type ReviewDecisions,
+  rowId,
+  useReviewDecisions,
+} from "../use-review-decisions.js";
 import { useReviewOverlaySignal } from "../use-review-overlay-signal.js";
 import { useReviewQueue } from "../use-review-queue.js";
 
 interface EditingTarget {
   readonly locale: string;
   readonly key: string;
+  readonly reasons: ReviewQueueRow["reasons"];
+  readonly viaShortcut: boolean;
 }
 
-interface RejectingTarget extends EditingTarget {
+interface RejectingTarget {
+  readonly locale: string;
+  readonly key: string;
   readonly value: string;
 }
 
 interface RowActions {
-  readonly onEdit: (target: EditingTarget) => void;
+  readonly onEdit: (row: ReviewQueueRow, viaShortcut: boolean) => void;
   readonly onApprove: (row: ReviewQueueRow, value: string) => void;
   readonly onReject: (target: RejectingTarget) => void;
   readonly onRetranslate: ((row: ReviewQueueRow) => void) | undefined;
   readonly onActivate: (row: ReviewQueueRow) => void;
   readonly currentValueOf: (row: ReviewQueueRow) => string | undefined;
-  readonly pending: ReadonlyMap<string, string>;
+  readonly busyOf: (row: ReviewQueueRow) => RowBusy | undefined;
   readonly activeId: string | null;
   readonly rowRefs: Map<string, HTMLTableRowElement>;
   readonly selected: ReadonlySet<string>;
   readonly onToggleSelected: (row: ReviewQueueRow) => void;
 }
 
-type DecisionNotice =
-  | { readonly kind: "approved"; readonly locale: string; readonly key: string }
-  | { readonly kind: "rejected"; readonly locale: string; readonly key: string }
-  | { readonly kind: "retranslated"; readonly locale: string; readonly key: string }
-  | {
-      readonly kind: "failed";
-      readonly action: "approve" | "reject" | "retranslate";
-      readonly locale: string;
-      readonly key: string;
-      readonly message: string;
-    }
-  | { readonly kind: "batch"; readonly summary: BatchSummary };
+const WIDE_LAYOUT_QUERY = "(min-width: 1280px)";
 
-function rowId(row: EditingTarget): string {
-  return `${row.locale}\u0000${row.key}`;
-}
+const ACTIVE_ROW_CLASSNAME = "bg-accent/60";
 
-function ReasonChips({ reasons }: { readonly reasons: readonly ReviewReasonCode[] }): ReactNode {
-  return (
-    <span className="flex flex-wrap gap-1">
-      {reasons.map((reason) => {
-        const view = reviewReasonLabel(reason);
-        return (
-          <Badge tone={view.tone} key={reason}>
-            {view.label}
-          </Badge>
-        );
-      })}
-    </span>
-  );
-}
+const ROW_FOCUS_CLASSNAME =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
-function ReviewKeyCell({
+function ReviewEntry({
   row,
   value,
 }: {
@@ -144,46 +117,75 @@ function ReviewKeyCell({
   readonly value: string | undefined;
 }): ReactNode {
   return (
-    <TableCell mono>
-      <span className="block" data-row-key="">
+    <>
+      <span className="block break-all font-mono" data-row-key="">
         {row.key}
       </span>
       {value === undefined ? (
-        <span className="block font-sans text-xs text-muted-foreground">
+        <span className="block text-xs text-muted-foreground">
           Loading the current translation…
         </span>
       ) : (
         <TranslationValue
           value={value}
           locale={row.locale}
-          className="block w-fit max-w-[240px] truncate text-xs text-muted-foreground sm:max-w-md"
+          className="block w-fit max-w-full truncate text-xs text-muted-foreground"
           title={value}
           data-row-value=""
         />
       )}
-    </TableCell>
+    </>
   );
 }
 
-const ACTIVE_ROW_CLASSNAME = "bg-accent/60";
-
-const ROW_FOCUS_CLASSNAME =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
+function RowActionsFor({
+  row,
+  value,
+  actions,
+  wrap,
+}: {
+  readonly row: ReviewQueueRow;
+  readonly value: string | undefined;
+  readonly actions: RowActions;
+  readonly wrap: boolean;
+}): ReactNode {
+  const onRetranslate = actions.onRetranslate;
+  return (
+    <ReviewRowActions
+      wrap={wrap}
+      decisionDisabled={value === undefined}
+      busy={actions.busyOf(row)}
+      shortcutsActive={actions.activeId === rowId(row)}
+      onApprove={() => {
+        if (value !== undefined) {
+          actions.onApprove(row, value);
+        }
+      }}
+      onReject={() => {
+        if (value !== undefined) {
+          actions.onReject({ locale: row.locale, key: row.key, value });
+        }
+      }}
+      onEdit={() => actions.onEdit(row, false)}
+      onRetranslate={onRetranslate === undefined ? undefined : () => onRetranslate(row)}
+    />
+  );
+}
 
 function ReviewRow({
   row,
-  capabilities,
+  canWrite,
+  wide,
   actions,
 }: {
   readonly row: ReviewQueueRow;
-  readonly capabilities: StudioCapabilities | undefined;
+  readonly canWrite: boolean;
+  readonly wide: boolean;
   readonly actions: RowActions;
 }): ReactNode {
   const value = actions.currentValueOf(row);
   const id = rowId(row);
-  const pending = actions.pending.get(id);
   const active = actions.activeId === id;
-  const onRetranslate = actions.onRetranslate;
   return (
     <TableRow
       ref={(element) => {
@@ -196,11 +198,11 @@ function ReviewRow({
       tabIndex={active ? 0 : -1}
       aria-current={active ? "true" : undefined}
       data-active={active ? "" : undefined}
-      className={cn(ROW_FOCUS_CLASSNAME, active && ACTIVE_ROW_CLASSNAME)}
+      className={cn("align-top", ROW_FOCUS_CLASSNAME, active && ACTIVE_ROW_CLASSNAME)}
       onFocus={() => actions.onActivate(row)}
       onClick={() => actions.onActivate(row)}
     >
-      {capabilities?.writeToDisk === true ? (
+      {canWrite ? (
         <TableCell className="w-8 pe-0">
           <Checkbox
             checked={actions.selected.has(id)}
@@ -210,28 +212,23 @@ function ReviewRow({
         </TableCell>
       ) : null}
       <TableCell mono>{row.locale}</TableCell>
-      <ReviewKeyCell row={row} value={value} />
-      <TableCell>
-        <ReasonChips reasons={row.reasons} />
+      <TableCell className="w-full max-w-0">
+        <ReviewEntry row={row} value={value} />
+        {wide ? null : (
+          <div className="mt-2 space-y-2" data-row-stacked="">
+            <ReviewReasonChips reasons={row.reasons} />
+            {canWrite ? <RowActionsFor row={row} value={value} actions={actions} wrap /> : null}
+          </div>
+        )}
       </TableCell>
-      {capabilities?.writeToDisk === true ? (
-        <TableCell className="whitespace-nowrap">
-          <ReviewRowActions
-            decisionDisabled={value === undefined}
-            {...(pending !== undefined ? { pendingLabel: pending } : {})}
-            onApprove={() => {
-              if (value !== undefined) {
-                actions.onApprove(row, value);
-              }
-            }}
-            onReject={() => {
-              if (value !== undefined) {
-                actions.onReject({ locale: row.locale, key: row.key, value });
-              }
-            }}
-            onEdit={() => actions.onEdit({ locale: row.locale, key: row.key })}
-            onRetranslate={onRetranslate === undefined ? undefined : () => onRetranslate(row)}
-          />
+      {wide ? (
+        <TableCell>
+          <ReviewReasonChips reasons={row.reasons} />
+        </TableCell>
+      ) : null}
+      {wide && canWrite ? (
+        <TableCell>
+          <RowActionsFor row={row} value={value} actions={actions} wrap={false} />
         </TableCell>
       ) : null}
     </TableRow>
@@ -251,13 +248,14 @@ function ReviewTable({
   readonly selection: SelectionState;
   readonly onSelectAll: (on: boolean) => void;
 }): ReactNode {
-  const showActions = capabilities?.writeToDisk === true;
+  const canWrite = capabilities?.writeToDisk === true;
+  const wide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   return (
     <TableCard>
       <Table>
         <TableHead>
           <tr>
-            {showActions ? (
+            {canWrite ? (
               <TableHeaderCell className="w-8 pe-0">
                 <Checkbox
                   checked={selection === "all"}
@@ -268,16 +266,17 @@ function ReviewTable({
               </TableHeaderCell>
             ) : null}
             <TableHeaderCell>Locale</TableHeaderCell>
-            <TableHeaderCell>Key</TableHeaderCell>
-            <TableHeaderCell>Reasons</TableHeaderCell>
-            {showActions ? <TableHeaderCell>Actions</TableHeaderCell> : null}
+            <TableHeaderCell>{wide ? "Key" : "Entry"}</TableHeaderCell>
+            {wide ? <TableHeaderCell>Reasons</TableHeaderCell> : null}
+            {wide && canWrite ? <TableHeaderCell>Actions</TableHeaderCell> : null}
           </tr>
         </TableHead>
         <TableBody>
           {rows.map((row) => (
             <ReviewRow
               row={row}
-              capabilities={capabilities}
+              canWrite={canWrite}
+              wide={wide}
               actions={actions}
               key={`${row.locale} ${row.key}`}
             />
@@ -285,50 +284,6 @@ function ReviewTable({
         </TableBody>
       </Table>
     </TableCard>
-  );
-}
-
-function noticeText(notice: DecisionNotice): string {
-  if (notice.kind === "batch") {
-    return batchSummaryText(notice.summary);
-  }
-  const target = `${notice.key} (${notice.locale})`;
-  if (notice.kind === "approved") {
-    return `Approved ${target}. The decision is saved in verbatra.provenance.json.`;
-  }
-  if (notice.kind === "rejected") {
-    return `Rejected ${target}. Its translation was removed and the decision is saved in verbatra.provenance.json.`;
-  }
-  if (notice.kind === "retranslated") {
-    return `Retranslated ${target}. Review the new value, then approve or reject it.`;
-  }
-  return `Could not ${notice.action} ${target}: ${notice.message}`;
-}
-
-function noticeFailed(notice: DecisionNotice): boolean {
-  return notice.kind === "batch" ? batchSummaryFailed(notice.summary) : notice.kind === "failed";
-}
-
-function DecisionStatus({
-  notice,
-  statusRef,
-}: {
-  readonly notice: DecisionNotice | null;
-  readonly statusRef: RefObject<HTMLParagraphElement | null>;
-}): ReactNode {
-  const failed = notice !== null && noticeFailed(notice);
-  return (
-    <p
-      ref={statusRef}
-      tabIndex={-1}
-      className={cn(
-        "mb-3 min-h-4 focus-visible:outline-none",
-        actionStatusTextClassName(notice === null ? undefined : failed ? "failure" : "success"),
-      )}
-      role={failed ? "alert" : "status"}
-    >
-      {notice === null ? null : noticeText(notice)}
-    </p>
   );
 }
 
@@ -340,6 +295,7 @@ function ReviewFilterBar({
   onQueryChange,
   onShowShortcuts,
   matchCount,
+  searchRef,
 }: {
   readonly locales: readonly string[];
   readonly locale: string;
@@ -348,6 +304,7 @@ function ReviewFilterBar({
   readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onShowShortcuts: () => void;
   readonly matchCount: number;
+  readonly searchRef: Ref<HTMLInputElement>;
 }): ReactNode {
   return (
     <FilterBar label="Review queue filters">
@@ -360,6 +317,7 @@ function ReviewFilterBar({
         ))}
       </Select>
       <SearchInput
+        ref={searchRef}
         aria-label="Filter by key or translation text"
         placeholder="Filter by key or text…"
         value={query}
@@ -375,7 +333,7 @@ function ReviewFilterBar({
         aria-keyshortcuts={shortcutKeysFor("help")}
       >
         Keyboard shortcuts
-        <kbd className="rounded-sm border border-border bg-muted px-1 font-mono text-[11px] text-muted-foreground">
+        <kbd className="rounded-sm border border-border bg-muted px-1 font-mono text-xs text-muted-foreground">
           ?
         </kbd>
       </Button>
@@ -396,178 +354,12 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
   );
 }
 
-const PROTECTED_RETRANSLATE_MESSAGE =
-  "a person wrote this value. Open the key on the Translations page to replace it anyway.";
-
-function retranslateFailure(protectedValue: boolean, outcome: RetranslateOutcome): string {
-  if (protectedValue) {
-    return PROTECTED_RETRANSLATE_MESSAGE;
-  }
-  return outcome.kind === "error" ? outcome.message : settledActionStatusLabel(outcome, "");
-}
-
-function useDecisions(onDecided: () => void): {
-  readonly pending: ReadonlyMap<string, string>;
-  readonly notice: DecisionNotice | null;
-  readonly approve: (row: ReviewQueueRow, value: string) => void;
-  readonly retranslate: (row: ReviewQueueRow) => void;
-  readonly approveMany: (targets: readonly BulkRejectEntry[]) => void;
-  readonly rejectMany: (targets: readonly BulkRejectEntry[]) => void;
-  readonly retranslateMany: (rows: readonly ReviewQueueRow[]) => void;
-  readonly rejected: (target: EditingTarget) => void;
-  readonly rejectStale: (target: EditingTarget, message: string) => void;
-  readonly reloaded: () => void;
-} {
-  const [pending, setPending] = useState<ReadonlyMap<string, string>>(new Map());
-  const awaitingReload = useRef<Set<string>>(new Set());
-  const [notice, setNotice] = useState<DecisionNotice | null>(null);
-
-  function setRowsPending(rows: readonly EditingTarget[], label: string | undefined): void {
-    setPending((current) => {
-      const next = new Map(current);
-      for (const row of rows) {
-        if (label === undefined) {
-          next.delete(rowId(row));
-        } else {
-          next.set(rowId(row), label);
-        }
-      }
-      return next;
-    });
-  }
-
-  function setRowPending(row: EditingTarget, label: string | undefined): void {
-    setRowsPending([row], label);
-  }
-
-  function settleBatch(rows: readonly EditingTarget[], summary: BatchSummary): void {
-    setNotice({ kind: "batch", summary });
-    if (summary.kind === "error") {
-      setRowsPending(rows, undefined);
-      return;
-    }
-    for (const row of rows) {
-      awaitingReload.current.add(rowId(row));
-    }
-    onDecided();
-  }
-
-  async function decideMany(
-    action: "approve" | "reject",
-    targets: readonly BulkRejectEntry[],
-  ): Promise<void> {
-    setRowsPending(targets, action === "approve" ? "Approving…" : "Rejecting…");
-    const params = {
-      entries: targets.map(({ locale, key, value }) => ({ locale, key, expectedValue: value })),
-    };
-    const response =
-      action === "approve"
-        ? await rpcClient.call("review.approveMany", params)
-        : await rpcClient.call("review.rejectMany", params);
-    settleBatch(targets, summarizeReviewBatch(action, response));
-  }
-
-  async function retranslateMany(rows: readonly ReviewQueueRow[]): Promise<void> {
-    setRowsPending(rows, "Retranslating…");
-    const response = await rpcClient.call("translation.retranslateEntries", {
-      entries: rows.map(({ locale, key }) => ({ locale, key })),
-    });
-    settleBatch(rows, summarizeRetranslateBatch(response));
-  }
-
-  function reloadThenSettle(row: EditingTarget): void {
-    awaitingReload.current.add(rowId(row));
-    onDecided();
-  }
-
-  async function approve(row: ReviewQueueRow, value: string): Promise<void> {
-    setRowPending(row, "Approving…");
-    const response = await rpcClient.call("review.approve", {
-      locale: row.locale,
-      key: row.key,
-      expectedValue: value,
-    });
-    const outcome = deriveReviewDecisionOutcome(response);
-    setNotice(
-      outcome.kind === "success"
-        ? { kind: "approved", locale: row.locale, key: row.key }
-        : {
-            kind: "failed",
-            action: "approve",
-            locale: row.locale,
-            key: row.key,
-            message: outcome.message,
-          },
-    );
-    if (outcome.kind === "success" || isStaleValueOutcome(outcome)) {
-      reloadThenSettle(row);
-    } else {
-      setRowPending(row, undefined);
-    }
-  }
-
-  async function retranslate(row: ReviewQueueRow): Promise<void> {
-    setRowPending(row, "Retranslating…");
-    const response = await rpcClient.call("translation.retranslateEntry", {
-      locale: row.locale,
-      key: row.key,
-    });
-    const outcome = deriveRetranslateOutcome(response);
-    if (outcome.kind === "success") {
-      setNotice({ kind: "retranslated", locale: row.locale, key: row.key });
-      reloadThenSettle(row);
-      return;
-    }
-    setNotice({
-      kind: "failed",
-      action: "retranslate",
-      locale: row.locale,
-      key: row.key,
-      message: retranslateFailure(isProtectedRefusal(response), outcome),
-    });
-    setRowPending(row, undefined);
-  }
-
-  const reloaded = useCallback((): void => {
-    const settled = awaitingReload.current;
-    if (settled.size === 0) {
-      return;
-    }
-    awaitingReload.current = new Set();
-    setPending((current) => {
-      const next = new Map(current);
-      for (const id of settled) {
-        next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
-  return {
-    pending,
-    notice,
-    approve: (row, value) => void approve(row, value),
-    retranslate: (row) => void retranslate(row),
-    approveMany: (targets) => void decideMany("approve", targets),
-    rejectMany: (targets) => void decideMany("reject", targets),
-    retranslateMany: (rows) => void retranslateMany(rows),
-    rejected: (target) => {
-      setNotice({ kind: "rejected", locale: target.locale, key: target.key });
-      onDecided();
-    },
-    rejectStale: (target, message) => {
-      setNotice({ kind: "failed", action: "reject", ...target, message });
-      onDecided();
-    },
-    reloaded,
-  };
-}
-
 interface ActiveRow {
   readonly activeRow: ReviewQueueRow | undefined;
   readonly rowRefs: Map<string, HTMLTableRowElement>;
   readonly activate: (row: ReviewQueueRow) => void;
   readonly move: (delta: number) => void;
+  readonly focusActive: () => void;
 }
 
 function resolveActiveIndex(
@@ -605,6 +397,12 @@ function useActiveRow(rows: readonly ReviewQueueRow[]): ActiveRow {
     },
     move: (delta) => {
       const row = select(activeRow === undefined ? 0 : stepIndex(index, delta, rows.length));
+      if (row !== undefined) {
+        rowRefs.get(rowId(row))?.focus();
+      }
+    },
+    focusActive: () => {
+      const row = activeRow ?? rows[0];
       if (row !== undefined) {
         rowRefs.get(rowId(row))?.focus();
       }
@@ -659,12 +457,12 @@ function runRowShortcut(
   row: ReviewQueueRow,
   actions: RowActions,
 ): void {
-  if (actions.pending.has(rowId(row))) {
+  if (actions.busyOf(row) !== undefined) {
     return;
   }
   const value = actions.currentValueOf(row);
   if (action === "edit") {
-    actions.onEdit({ locale: row.locale, key: row.key });
+    actions.onEdit(row, true);
   } else if (action === "retranslate") {
     actions.onRetranslate?.(row);
   } else if (value !== undefined && action === "approve") {
@@ -673,8 +471,6 @@ function runRowShortcut(
     actions.onReject({ locale: row.locale, key: row.key, value });
   }
 }
-
-type Decisions = ReturnType<typeof useDecisions>;
 
 function ReviewDialogs({
   helpOpen,
@@ -693,7 +489,7 @@ function ReviewDialogs({
   readonly spend: boolean;
   readonly editing: EditingTarget | null;
   readonly rejecting: RejectingTarget | null;
-  readonly decisions: Decisions;
+  readonly decisions: ReviewDecisions;
   readonly onCloseHelp: () => void;
   readonly onCloseEditor: () => void;
   readonly onCloseReject: () => void;
@@ -715,9 +511,12 @@ function ReviewDialogs({
         <EditEntryDialog
           locale={editing.locale}
           keyName={editing.key}
+          focusTranslation={editing.viaShortcut}
+          reviewReasons={editing.reasons}
           onClose={onCloseEditor}
           onAccepted={(acceptedLocale, key) => {
             reviewOverlayStore.markActioned({ locale: acceptedLocale, key });
+            decisions.updated({ locale: acceptedLocale, key });
             onCloseEditor();
           }}
         />
@@ -747,7 +546,7 @@ interface BulkSelection {
   readonly state: SelectionState;
   readonly toggle: (row: ReviewQueueRow) => void;
   readonly setAll: (on: boolean) => void;
-  readonly bar: ReviewBulkBarProps | null;
+  readonly bar: ReviewBulkBarProps;
   readonly rejecting: readonly BulkRejectEntry[] | null;
   readonly confirmReject: (entries: readonly BulkRejectEntry[]) => void;
   readonly closeReject: () => void;
@@ -763,11 +562,25 @@ function bulkTargetsOf(
   });
 }
 
+function sharedBusyAction(
+  rows: readonly ReviewQueueRow[],
+  pending: ReadonlyMap<string, PendingRow>,
+): PendingRow["action"] | undefined {
+  for (const row of rows) {
+    const busy = pending.get(rowId(row));
+    if (busy !== undefined) {
+      return busy.action;
+    }
+  }
+  return undefined;
+}
+
 function useBulkSelection(
   rows: readonly ReviewQueueRow[],
   values: ReadonlyMap<string, KeyValuePair>,
-  decisions: Decisions,
+  decisions: ReviewDecisions,
   spend: boolean,
+  onCleared: () => void,
 ): BulkSelection {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [rejecting, setRejecting] = useState<readonly BulkRejectEntry[] | null>(null);
@@ -775,46 +588,40 @@ function useBulkSelection(
   const selectedIds = new Set(selectedAmong(ids, selected));
   const selectedRows = rows.filter((row) => selectedIds.has(rowId(row)));
   const targets = bulkTargetsOf(selectedRows, values);
-  const clear = (): void => setSelected(new Set());
-  const bar: ReviewBulkBarProps | null =
-    selectedRows.length === 0
-      ? null
-      : {
-          count: selectedRows.length,
-          busy: selectedRows.some((row) => decisions.pending.has(rowId(row))),
-          decisionBlocker: bulkDecisionBlocker(
-            selectedRows.length,
-            targets.length,
-            MAX_REVIEW_BATCH_ENTRIES,
-          ),
-          retranslateBlocker: bulkRetranslateBlocker(
-            selectedRows.length,
-            MAX_RETRANSLATE_BATCH_ENTRIES,
-          ),
-          onApprove: () => {
-            decisions.approveMany(targets);
-            clear();
-          },
-          onReject: () => setRejecting(targets),
-          onRetranslate: spend
-            ? () => {
-                decisions.retranslateMany(selectedRows);
-                clear();
-              }
-            : undefined,
-          onClear: clear,
-        };
+  const keepFailures: BatchSettled = (failed) => {
+    setSelected((current) => new Set([...current].filter((id) => failed.has(id))));
+  };
   return {
     selected,
     state: selectionState(ids, selected),
     toggle: (row) => setSelected((current) => toggleSelected(current, rowId(row))),
     setAll: (on) => setSelected((current) => withAllSelected(current, ids, on)),
-    bar,
+    bar: {
+      count: selectedRows.length,
+      busyAction: sharedBusyAction(selectedRows, decisions.pending),
+      decisionBlocker: bulkDecisionBlocker(
+        selectedRows.length,
+        targets.length,
+        MAX_REVIEW_BATCH_ENTRIES,
+      ),
+      retranslateBlocker: bulkRetranslateBlocker(
+        selectedRows.length,
+        MAX_RETRANSLATE_BATCH_ENTRIES,
+      ),
+      onApprove: () => decisions.approveMany(targets, keepFailures),
+      onReject: () => setRejecting(targets),
+      onRetranslate: spend
+        ? () => decisions.retranslateMany(selectedRows, keepFailures)
+        : undefined,
+      onClear: () => {
+        setSelected(new Set());
+        onCleared();
+      },
+    },
     rejecting,
     confirmReject: (entries) => {
-      decisions.rejectMany(entries);
+      decisions.rejectMany(entries, keepFailures);
       setRejecting(null);
-      clear();
     },
     closeReject: () => setRejecting(null),
   };
@@ -875,6 +682,7 @@ function ReviewQueueContent({
   readonly capabilities: StudioCapabilities | undefined;
   readonly actions: RowActions;
 }): ReactNode {
+  const searchRef = useRef<HTMLInputElement | null>(null);
   if (rows.length === 0) {
     return (
       <EmptyState icon="review" title="All clear">
@@ -892,8 +700,9 @@ function ReviewQueueContent({
         onQueryChange={(event) => onQueryChange(event.target.value)}
         onShowShortcuts={onShowShortcuts}
         matchCount={filtered.length}
+        searchRef={searchRef}
       />
-      {bulk.bar !== null ? <ReviewBulkBar {...bulk.bar} /> : null}
+      {capabilities?.writeToDisk === true ? <ReviewBulkBar {...bulk.bar} /> : null}
       {filtered.length === 0 ? (
         <EmptyState
           icon="search"
@@ -903,6 +712,7 @@ function ReviewQueueContent({
               onClick={() => {
                 onLocaleChange("");
                 onQueryChange("");
+                searchRef.current?.focus();
               }}
             >
               Clear filters
@@ -924,12 +734,53 @@ function ReviewQueueContent({
   );
 }
 
+function isTypingElsewhere(active: Element | null): boolean {
+  if (!(active instanceof HTMLElement) || active.closest("tr") !== null) {
+    return false;
+  }
+  return classifyShortcutTarget(shortcutTargetOf(active)) === "editable";
+}
+
+function useSettledFocus(
+  ready: boolean,
+  focusActive: () => void,
+): { readonly request: () => void } {
+  const [requested, setRequested] = useState(0);
+  const handled = useRef(0);
+  useEffect(() => {
+    if (requested === handled.current || !ready) {
+      return;
+    }
+    handled.current = requested;
+    if (!isTypingElsewhere(document.activeElement)) {
+      focusActive();
+    }
+  });
+  return { request: () => setRequested((count) => count + 1) };
+}
+
+function busyFor(
+  pending: ReadonlyMap<string, PendingRow>,
+  now: number,
+): (row: ReviewQueueRow) => RowBusy | undefined {
+  return (row) => {
+    const busy = pending.get(rowId(row));
+    if (busy === undefined) {
+      return undefined;
+    }
+    return busy.action === "retranslate"
+      ? { action: busy.action, elapsedSeconds: elapsedSeconds(busy.startedAt, now) }
+      : { action: busy.action };
+  };
+}
+
 function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [reloadToken, setReloadToken] = useState(0);
   const view = useReviewQueue(refreshToken, reloadToken);
   const capabilitiesState = useCapabilities();
   const capabilities =
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
+  const spend = canRetranslateReviewed(capabilities);
   useReviewOverlaySignal();
   const [editing, setEditing] = useState<EditingTarget | null>(null);
   const [rejecting, setRejecting] = useState<RejectingTarget | null>(null);
@@ -938,19 +789,17 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [query, setQuery] = useState("");
   const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
   const values = useMemo(() => valuesIndex(localeValues), [localeValues]);
-  const decisions = useDecisions(() => setReloadToken((current) => current + 1));
-  const statusRef = useRef<HTMLParagraphElement | null>(null);
+  const decisions = useReviewDecisions(() => setReloadToken((current) => current + 1), {
+    trackServer: spend,
+    refreshToken,
+  });
+  const now = useNow(hasRunningRetranslation(decisions.pending));
   const settleReload = decisions.reloaded;
   useEffect(() => {
     if (view.kind === "data") {
       settleReload();
     }
   }, [view, settleReload]);
-  useEffect(() => {
-    if (decisions.notice !== null) {
-      statusRef.current?.focus();
-    }
-  }, [decisions.notice]);
 
   const rows =
     view.kind === "data" && view.data.available
@@ -958,15 +807,29 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       : [];
   const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query }, values);
   const active = useActiveRow(filtered);
-  const bulk = useBulkSelection(filtered, values, decisions, canRetranslateReviewed(capabilities));
+  const settledFocus = useSettledFocus(
+    view.kind === "data" && !decisions.awaitingReload(),
+    active.focusActive,
+  );
+  const settledCount = decisions.settledCount;
+  const requestFocus = settledFocus.request;
+  const lastSettled = useRef(settledCount);
+  useEffect(() => {
+    if (settledCount !== lastSettled.current) {
+      lastSettled.current = settledCount;
+      requestFocus();
+    }
+  }, [settledCount, requestFocus]);
+  const bulk = useBulkSelection(filtered, values, decisions, spend, requestFocus);
   const actions: RowActions = {
-    onEdit: setEditing,
+    onEdit: (row, viaShortcut) =>
+      setEditing({ locale: row.locale, key: row.key, reasons: row.reasons, viaShortcut }),
     onApprove: decisions.approve,
     onReject: setRejecting,
-    onRetranslate: canRetranslateReviewed(capabilities) ? decisions.retranslate : undefined,
+    onRetranslate: spend ? decisions.retranslate : undefined,
     onActivate: active.activate,
     currentValueOf: (row) => reviewedValueFor(values, row),
-    pending: decisions.pending,
+    busyOf: busyFor(decisions.pending, now),
     activeId: active.activeRow === undefined ? null : rowId(active.activeRow),
     rowRefs: active.rowRefs,
     selected: bulk.selected,
@@ -1006,7 +869,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   return (
     <div>
       {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known queue." />}
-      <DecisionStatus notice={decisions.notice} statusRef={statusRef} />
+      <ReviewDecisionStatus notice={decisions.notice} />
       <ReviewQueueContent
         rows={rows}
         filtered={filtered}
@@ -1021,7 +884,7 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       />
       <ReviewDialogs
         helpOpen={helpOpen}
-        spend={canRetranslateReviewed(capabilities)}
+        spend={spend}
         editing={editing}
         rejecting={rejecting}
         decisions={decisions}

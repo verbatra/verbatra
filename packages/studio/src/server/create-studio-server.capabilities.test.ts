@@ -841,3 +841,28 @@ describe("review batches need no spend and count one call per batch", () => {
     );
   });
 });
+
+describe("translation.inFlight", () => {
+  it("answers with no running retranslation on a spend server that is idle", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { status, body } = await postRpc(server.url, cookie, "translation.inFlight");
+        expect(status).toBe(200);
+        expect(body).toEqual({ ok: true, result: { retranslating: [] } });
+      },
+      { token: TOKEN, loader: stubLoader(), spend: true },
+    );
+  });
+
+  it("is not registered without spend", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "translation.inFlight");
+        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
+  });
+});

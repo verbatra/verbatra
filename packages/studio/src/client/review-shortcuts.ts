@@ -32,7 +32,7 @@ const SHORTCUT_LABELS: Readonly<Record<ReviewShortcutAction, string>> = {
   approve: "Approve the entry",
   reject: "Reject the entry",
   edit: "Edit the entry",
-  retranslate: "Retranslate the entry",
+  retranslate: "Retranslate the entry (calls your provider)",
   select: "Select or unselect the entry for a bulk action",
   help: "Show or hide these shortcuts",
 };

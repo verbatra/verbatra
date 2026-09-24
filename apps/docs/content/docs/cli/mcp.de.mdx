@@ -133,6 +133,8 @@ Die Inline-Markup-Prüfungen in `key.integrity` (`markupMatches`, `markupDetails
 
 `key.value` liefert außerdem `provenance`, sobald `target` vorhanden ist: `origin`, `provider` und `model` bei Maschinenübersetzung, `reviewState` und `reviewer`, falls einer festgehalten wurde. Jede Locale von `lock.state` und `status.check` trägt `provenance`-Zähler (`byOrigin`, `byReviewState`), und jede Locale von `status.diff` trägt `changedOrigins`, die Herkunft des aktuellen Werts jedes geänderten Keys. Alle fehlen, wenn `verbatra.provenance.json` beschädigt ist oder von einem neueren verbatra stammt; was jede Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 
+`key.value` liefert außerdem `description`, den Kontext, den die Quelldatei Übersetzern für den Key mitgibt (eine ARB-`@key.description`, eine XLIFF-Notiz, ein gettext-Kommentar, ein Kommentar in Apples `.strings` oder in .NET-`.resx`), und lässt ihn weg, wenn das Format oder die Datei keinen trägt.
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Jeder Eintrag von `key.integrity` trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`, `selectordinal` und `select` des Werts zur Zielsprache passen, beurteilt nach derselben Regel, nach der `translation.editEntry` einen Wert mit dem Grund `icu` ablehnt, und ein kurzes Problem pro fehlendem oder überzähligem Zweig.

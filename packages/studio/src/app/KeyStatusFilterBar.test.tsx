@@ -40,7 +40,7 @@ describe("KeyStatusFilterBar", () => {
       "Missing3",
       "Changed2",
       "Orphaned0",
-      "Needs review1",
+      "Protected1",
       "Review queue4",
       "Integrity problems5",
     ]);

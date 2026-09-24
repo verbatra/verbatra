@@ -953,7 +953,7 @@ describe("TranslationsPanel key explorer", () => {
     ]);
   });
 
-  it("lists the keys a run would leave for a person under Needs review, with a count", async () => {
+  it("lists the keys a run would leave for a person under Protected, with a count", async () => {
     stubPage({
       "status.diff": diffResult([
         localeDiff("de", { changed: ["app.cta", "app.terms"], protected: ["app.terms"] }),
@@ -968,12 +968,12 @@ describe("TranslationsPanel key explorer", () => {
       "Missing(0)",
       "Changed(2)",
       "Orphaned(0)",
-      "Needs review(1)",
+      "Protected(1)",
     ]);
-    expect(view.get("details summary").textContent).toContain("1 need review");
+    expect(view.get("details summary").textContent).toContain("1 protected");
   });
 
-  it("narrows every list to the keys matching the filter", async () => {
+  it("narrows every list to the keys matching the filter, leaving out groups without a match", async () => {
     stubPage({
       "status.diff": diffResult([
         localeDiff("de", {
@@ -989,11 +989,7 @@ describe("TranslationsPanel key explorer", () => {
 
     typeInto(filterInput(view), "cta");
 
-    expect(view.all("h4").map((heading) => heading.textContent)).toEqual([
-      "Missing(0)",
-      "Changed(1)",
-      "Orphaned(0)",
-    ]);
+    expect(view.all("h4").map((heading) => heading.textContent)).toEqual(["Changed(1)"]);
     expect(view.all("details ul button").map((button) => button.textContent)).toEqual(["app.cta"]);
   });
 
@@ -1397,7 +1393,7 @@ describe("TranslationsPanel key filters", () => {
       "Missing2",
       "Changed2",
       "Orphaned1",
-      "Needs review1",
+      "Protected1",
       "Review queue1",
       "Integrity problems1",
     ]);
@@ -1427,7 +1423,7 @@ describe("TranslationsPanel key filters", () => {
       "Missing(1)",
       "Changed(2)",
       "Orphaned(0)",
-      "Needs review(1)",
+      "Protected(1)",
       "Integrity problems(1)",
       "Missing(1)",
       "Changed(0)",
@@ -1517,6 +1513,45 @@ describe("TranslationsPanel key filters", () => {
 
     expect(listedSections(view)).toEqual(["de", "fr"]);
     expect(statusToggle(view, "integrity").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("shows the empty state for a search without hits, and clearing filters focuses the search", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    typeInto(filterInput(view), "no-such-text");
+
+    expect(listedSections(view)).toEqual([]);
+    expect(view.text()).toContain("No matching keys");
+    expect(view.text()).toContain("matches the search");
+    expect(view.all("[data-status-filter]").map((toggle) => toggle.textContent)).toEqual([
+      "Missing0",
+      "Changed0",
+      "Orphaned0",
+      "Protected0",
+      "Review queue0",
+      "Integrity problems0",
+    ]);
+
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(filterInput(view).value).toBe("");
+    expect(document.activeElement).toBe(filterInput(view));
+    expect(listedSections(view)).toEqual(["de", "fr"]);
+  });
+
+  it("counts only the keys the search matches on each status chip", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    typeInto(filterInput(view), "cta");
+
+    expect(statusToggle(view, "changed").textContent).toBe("Changed1");
+    expect(statusToggle(view, "missing").textContent).toBe("Missing0");
   });
 
   it("disables the review and integrity statuses while their reads fail", async () => {

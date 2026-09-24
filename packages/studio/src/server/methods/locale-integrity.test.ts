@@ -41,20 +41,32 @@ async function driftedProject(): Promise<FixtureProject> {
 }
 
 describe("localeIntegrityHandler", () => {
-  it("reports every changed key per locale, passing and failing alike", async () => {
+  it("reports only failing keys, in sync or not, per locale", async () => {
     const project = await driftedProject();
     try {
       const result = await localeIntegrityHandler({}, deps(project));
 
       expect(result.locales.map((locale) => locale.locale)).toEqual(["de", "fr"]);
       const de = result.locales[0]?.entries ?? [];
-      expect(de.map((entry) => [entry.key, entry.matches])).toEqual([
-        ["greeting", false],
-        ["title", true],
-      ]);
+      expect(de.map((entry) => [entry.key, entry.matches])).toEqual([["greeting", false]]);
       expect(de[0]?.missing).toEqual(["{{name}}"]);
-      expect(result.locales[1]?.entries.map((entry) => [entry.key, entry.matches])).toEqual([
-        ["greeting", true],
+      expect(result.locales[1]?.entries).toEqual([]);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("finds a broken translation whose key is in sync", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      { total: "Total: {{amount}}" },
+    );
+    try {
+      await writeJson(project, "locales/de.json", { total: "Summe: {{betrag}}" });
+      const result = await localeIntegrityHandler({}, deps(project));
+
+      expect(result.locales[0]?.entries).toEqual([
+        expect.objectContaining({ key: "total", missing: ["{{amount}}"], extra: ["{{betrag}}"] }),
       ]);
     } finally {
       await project.cleanup();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { characterCount, compareLength, lengthComparisonText } from "./length-compare.js";
+import { characterCount, compareLength, lengthSummary } from "./length-compare.js";
 
 describe("characterCount", () => {
   it("counts user-perceived characters, not code units", () => {
@@ -24,19 +24,29 @@ describe("compareLength", () => {
   });
 });
 
-describe("lengthComparisonText", () => {
-  it("names the count and how it compares to the source", () => {
-    expect(lengthComparisonText(compareLength("Hello", "Hallo"))).toBe(
-      "5 characters, 100% of the source's 5",
-    );
-    expect(lengthComparisonText(compareLength("Hi", "A"))).toBe(
-      "1 character, 50% of the source's 2",
+describe("lengthSummary", () => {
+  it("names the count and how it compares to the source in a few words", () => {
+    expect(lengthSummary(compareLength("Hello", "Hallo"), undefined)).toEqual({
+      text: "5 characters, 100% of source",
+      overBudget: false,
+    });
+    expect(lengthSummary(compareLength("Hi", "A"), undefined).text).toBe(
+      "1 character, 50% of source",
     );
   });
 
-  it("says so when the source is empty", () => {
-    expect(lengthComparisonText(compareLength("", "Hallo"))).toBe(
-      "5 characters; the source is empty",
-    );
+  it("drops the ratio when the source is empty", () => {
+    expect(lengthSummary(compareLength("", "Hallo"), undefined).text).toBe("5 characters");
+  });
+
+  it("counts against the key's budget and flags a value over it", () => {
+    expect(lengthSummary(compareLength("Hello", "Hallo"), 5)).toEqual({
+      text: "5 of 5 characters, 100% of source",
+      overBudget: false,
+    });
+    expect(lengthSummary(compareLength("Hello", "Hallo!"), 5)).toEqual({
+      text: "6 of 5 characters, 120% of source, over budget",
+      overBudget: true,
+    });
   });
 });

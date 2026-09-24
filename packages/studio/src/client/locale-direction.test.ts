@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-let isRtlLocale: (tag: string) => boolean;
+type DirectionModule = typeof import("./locale-direction.js");
+
+let isRtlLocale: DirectionModule["isRtlLocale"];
+let directionForValue: DirectionModule["directionForValue"];
+let hasStrongRtl: DirectionModule["hasStrongRtl"];
 
 beforeEach(async () => {
   vi.resetModules();
-  ({ isRtlLocale } = await import("./locale-direction.js"));
+  ({ isRtlLocale, directionForValue, hasStrongRtl } = await import("./locale-direction.js"));
 });
 
 const RTL_TAGS = [
@@ -145,5 +149,23 @@ describe("isRtlLocale: caching", () => {
 
     expect(isRtlLocale("ar")).toBe(true);
     expect(isRtlLocale("ar-EG")).toBe(false);
+  });
+});
+
+describe("directionForValue", () => {
+  it.each([
+    [undefined, undefined, "auto"],
+    ["Hello", "de", "ltr"],
+    [undefined, "ar", "rtl"],
+    ["مرحبا", "ar", "rtl"],
+    ["Checkout", "ps", "auto"],
+    ["ߒߞߏ", "nqo", "rtl"],
+  ] as const)("resolves %s in %s to %s", (value, locale, expected) => {
+    expect(directionForValue(value, locale)).toBe(expected);
+  });
+
+  it("finds strong right-to-left letters only", () => {
+    expect(hasStrongRtl("{count} 12")).toBe(false);
+    expect(hasStrongRtl("x שלום")).toBe(true);
   });
 });
