@@ -163,10 +163,58 @@ describe("buildArbWriteTree", () => {
     expect([...placeholders.keys()]).toEqual(["1", "0"]);
   });
 
-  it("keeps a destination message that was not translated", async () => {
-    const path = await tempArb({ a: "A", b: "B" });
+  it("drops a destination message left out of the write, together with its @key metadata", async () => {
+    const path = await tempArb({
+      a: "A",
+      "@a": { description: "a" },
+      b: "B",
+      "@b": { description: "b" },
+    });
     const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
-    expect(plain(tree)).toMatchObject({ a: "AA", b: "B" });
+    expect(plain(tree)).toEqual({ a: "AA", "@a": { description: "a" } });
+  });
+
+  it("drops @key metadata whose message is in neither the destination nor the write", async () => {
+    const path = await tempArb({ a: "A", "@orphan": { description: "gone" } });
+    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    expect(plain(tree)).toEqual({ a: "AA" });
+  });
+
+  it("keeps @key metadata placed before its message when the message is written", async () => {
+    const path = await tempArb({ "@a": { description: "a" }, a: "A" });
+    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    expect([...tree.keys()]).toEqual(["@a", "a"]);
+  });
+
+  it("keeps @key metadata for a message the destination lacks but the write adds", async () => {
+    const path = await tempArb({ "@a": { description: "a" } });
+    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    expect(plain(tree)).toEqual({ "@a": { description: "a" }, a: "AA" });
+  });
+
+  it("keeps every @@ global metadata key even when no message is written", async () => {
+    const path = await tempArb({
+      "@@locale": "de",
+      "@@last_modified": "2026-01-01T00:00:00Z",
+      "@@context": "app",
+      a: "A",
+    });
+    const tree = await buildArbWriteTree(new Map(), path, nodeAdapterFs);
+    expect(plain(tree)).toEqual({
+      "@@locale": "de",
+      "@@last_modified": "2026-01-01T00:00:00Z",
+      "@@context": "app",
+    });
+  });
+
+  it("matches a literal dotted message key to its @key metadata", async () => {
+    const path = await tempArb({ "a.b": "A", "@a.b": { description: "d" }, c: "C", "@c": {} });
+    const tree = await buildArbWriteTree(
+      new Map([["a\\.b", entry("a\\.b", "AA")]]),
+      path,
+      nodeAdapterFs,
+    );
+    expect(plain(tree)).toEqual({ "a.b": "AA", "@a.b": { description: "d" } });
   });
 
   it("drops a stray non-string, non-metadata destination leaf instead of carrying it over", async () => {

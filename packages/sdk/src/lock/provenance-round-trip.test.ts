@@ -173,7 +173,7 @@ describe("provenance: a value written through every built-in adapter reads back 
   );
 });
 
-const KEEPS_DROPPED_KEYS: ReadonlySet<SupportedFormat> = new Set(["xliff", "arb"]);
+const KEEPS_DROPPED_KEYS: ReadonlySet<SupportedFormat> = new Set(["xliff"]);
 
 async function rejectedProject(format: SupportedFormat) {
   const dir = await makeTempDir();

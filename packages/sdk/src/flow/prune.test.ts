@@ -229,3 +229,56 @@ describe("translate: orphan pruning (--prune)", () => {
     expect(de.y).toBe("Y");
   });
 });
+
+describe("translate: orphan pruning on Flutter ARB", () => {
+  const arbConfig = (): VerbatraConfig =>
+    cfg({ format: "arb", files: { pattern: "l10n/app_{locale}.arb" } });
+
+  async function arbProject(): Promise<string> {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "l10n"));
+    await writeJsonFile(join(dir, "l10n", "app_en.arb"), {
+      "@@locale": "en",
+      greeting: "Hello",
+      "@greeting": { description: "Greets" },
+    });
+    await writeJsonFile(join(dir, "l10n", "app_de.arb"), {
+      "@@locale": "de",
+      "@@last_modified": "2026-01-01T00:00:00Z",
+      greeting: "Hallo",
+      "@greeting": { description: "Greets" },
+      stale: "Alt",
+      "@stale": { description: "Gone from the source" },
+    });
+    return dir;
+  }
+
+  it("removes the orphaned message and its @key block, keeping @@ global metadata", async () => {
+    const dir = await arbProject();
+
+    const summary = await translate(
+      { config: arbConfig(), cwd: dir, prune: true },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect(summary.locales[0]?.pruned).toEqual(["stale"]);
+    expect(await readJsonFile(join(dir, "l10n", "app_de.arb"))).toEqual({
+      "@@locale": "de",
+      "@@last_modified": "2026-01-01T00:00:00Z",
+      greeting: "Hallo",
+      "@greeting": { description: "Greets" },
+    });
+  });
+
+  it("leaves the orphaned message in place when prune is off", async () => {
+    const dir = await arbProject();
+
+    await translate(
+      { config: arbConfig(), cwd: dir },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    const de = (await readJsonFile(join(dir, "l10n", "app_de.arb"))) as Record<string, unknown>;
+    expect(de.stale).toBe("Alt");
+  });
+});

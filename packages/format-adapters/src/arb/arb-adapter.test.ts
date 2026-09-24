@@ -162,6 +162,17 @@ describe("createArbAdapter write (round-trip fidelity)", () => {
     expect(written["@greeting"]).toEqual(SAMPLE["@greeting"]);
   });
 
+  it("removes a message left out of the resource and its @key block, so it reads back missing", async () => {
+    const path = await tempArb("app_de.arb", SAMPLE);
+    const { resource } = await adapter.read(path, "en");
+    const remaining = new Map(resource.entries);
+    remaining.delete("items");
+    await adapter.write({ ...resource, entries: remaining }, path);
+    const written = JSON.parse(await readFile(path, "utf8"));
+    expect(Object.keys(written)).toEqual(["@@locale", "greeting", "@greeting"]);
+    expect((await adapter.read(path, "de")).resource.entries.has("items")).toBe(false);
+  });
+
   it("writes messages only when the destination does not exist (fresh target)", async () => {
     const path = await tempArb("app_en.arb", SAMPLE);
     const { resource } = await adapter.read(path, "en");
