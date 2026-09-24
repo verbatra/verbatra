@@ -26,7 +26,6 @@ export function BulkRejectDialog({
   const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
   return (
     <DrawerShell
-      kicker="Reject translations"
       title={`Reject ${entryCount(entries.length)}`}
       ariaLabel={`Reject ${entryCount(entries.length)}`}
       closeLabel="Keep the selected translations and close"

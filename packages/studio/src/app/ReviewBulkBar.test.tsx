@@ -6,7 +6,7 @@ import { click, render } from "./test-support.js";
 function props(overrides: Partial<ReviewBulkBarProps> = {}): ReviewBulkBarProps {
   return {
     count: 3,
-    busy: false,
+    busyAction: undefined,
     decisionBlocker: null,
     retranslateBlocker: null,
     onApprove: vi.fn(),
@@ -73,11 +73,35 @@ describe("ReviewBulkBar", () => {
     expect(view.text()).toContain("Values are loading. Too many.");
   });
 
-  it("disables every action while a bulk action runs", () => {
-    const view = render(<ReviewBulkBar {...props({ busy: true })} />);
+  it("shows a running bulk action on the button that started it and disables every action", () => {
+    const view = render(<ReviewBulkBar {...props({ busyAction: "retranslate" })} />);
 
+    expect(view.all("button").map((element) => element.textContent)).toEqual([
+      "Approve selected",
+      "Reject selected…",
+      "Retranslating…",
+      "Clear selection",
+    ]);
     for (const element of view.all("button")) {
       expect((element as HTMLButtonElement).disabled).toBe(true);
     }
+  });
+
+  it("stays in place with nothing selected, so selecting never shifts the table", () => {
+    const view = render(<ReviewBulkBar {...props({ count: 0 })} />);
+
+    expect(view.text()).toContain("None selected");
+    expect(view.get("[data-bulk-hint]").textContent).toContain("press x");
+    for (const element of view.all("button")) {
+      expect((element as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it("uses the tinted variants and fixed widths rather than one-off classes", () => {
+    const view = render(<ReviewBulkBar {...props()} />);
+
+    expect(button(view, "Approve selected").className).toContain("text-success");
+    expect(button(view, "Reject selected…").className).toContain("text-danger");
+    expect(view.container.innerHTML).not.toMatch(/-\[/);
   });
 });

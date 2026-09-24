@@ -1,14 +1,17 @@
-import type { LocaleGlossary } from "@verbatra/sdk";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { GlossaryDraftCheck, LocaleGlossary, ReviewReasonCode } from "@verbatra/sdk";
+import type { KeyboardEvent, ReactNode, Ref } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { deriveEditEntryOutcome, type EditEntryOutcome } from "../client/edit-entry-outcome.js";
 import { deriveIntegrityPillView } from "../client/integrity-pill.js";
 import {
+  type DraftFlag,
   deriveKeyValueContext,
+  draftFixedTermFlags,
+  draftTermFlags,
   hasGlossaryHits,
   type KeyValueContext,
 } from "../client/key-value-context.js";
-import { compareLength, lengthComparisonText } from "../client/length-compare.js";
+import { compareLength, lengthSummary } from "../client/length-compare.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
@@ -17,9 +20,11 @@ import { TextArea } from "./Input.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
+import { ReviewReasonChips } from "./ReviewReasonChips.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
 import { DrawerShell, microLabelClassName, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
+import { useDraftCheck } from "./use-draft-check.js";
 import { useKeyIntegrity } from "./use-key-integrity.js";
 
 type SubmitState =
@@ -34,6 +39,8 @@ export interface EditEntryDialogProps {
   readonly keyName: string;
   readonly onClose: () => void;
   readonly onAccepted: (locale: string, keyName: string) => void;
+  readonly focusTranslation?: boolean;
+  readonly reviewReasons?: readonly ReviewReasonCode[];
 }
 
 function useKeyValueContext(locale: string, keyName: string): KeyValueContext {
@@ -88,20 +95,56 @@ function isSaveShortcut(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
   return event.key === "Enter" && (event.ctrlKey || event.metaKey);
 }
 
-function GlossaryHitList({ glossary }: { readonly glossary: LocaleGlossary }): ReactNode {
+function DraftFlags({ flags }: { readonly flags: readonly DraftFlag[] }): ReactNode {
+  if (flags.length === 0) {
+    return null;
+  }
+  return (
+    <span className="ms-2 inline-flex flex-wrap gap-1 align-middle" data-draft-flags="">
+      {flags.map((flag) => (
+        <Badge key={flag.label} tone={flag.tone}>
+          {flag.label}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
+function GlossaryHitList({
+  glossary,
+  locale,
+  check,
+}: {
+  readonly glossary: LocaleGlossary;
+  readonly locale: string;
+  readonly check: GlossaryDraftCheck | undefined;
+}): ReactNode {
   return (
     <ul className="m-0 list-none space-y-2 p-0" data-glossary-hits="">
       {glossary.terms.map((term) => (
         <li key={`term ${term.source}`} className="text-sm">
-          <span className="font-mono font-semibold text-foreground">{term.source}</span>
+          <span className="font-semibold text-foreground" dir="auto">
+            {term.source}
+          </span>
           {term.target !== undefined ? (
             <span className="text-muted-foreground">
               {" "}
-              use <span className="font-mono text-foreground">{term.target}</span>
+              use{" "}
+              <span className="text-foreground" lang={locale} dir="auto">
+                {term.target}
+              </span>
             </span>
           ) : null}
+          <DraftFlags
+            flags={draftTermFlags(check?.terms.find((entry) => entry.source === term.source))}
+          />
           {term.forbidden.length > 0 ? (
-            <span className="block text-xs text-danger">Never {term.forbidden.join(", ")}</span>
+            <span className="block text-xs text-danger">
+              Never{" "}
+              <span lang={locale} dir="auto">
+                {term.forbidden.join(", ")}
+              </span>
+            </span>
           ) : null}
           {term.note !== undefined ? (
             <span className="block text-xs text-muted-foreground">{term.note}</span>
@@ -110,15 +153,32 @@ function GlossaryHitList({ glossary }: { readonly glossary: LocaleGlossary }): R
       ))}
       {glossary.doNotTranslate.map((entry) => (
         <li key={`fixed ${entry.term}`} className="text-sm">
-          <span className="font-mono font-semibold text-foreground">{entry.term}</span>
+          <span className="font-semibold text-foreground" dir="auto">
+            {entry.term}
+          </span>
           <span className="text-muted-foreground"> keep as written</span>
+          <DraftFlags
+            flags={draftFixedTermFlags(
+              check?.doNotTranslate.find((candidate) => candidate.term === entry.term),
+            )}
+          />
         </li>
       ))}
     </ul>
   );
 }
 
-function SourceColumn({ context }: { readonly context: LoadedContext }): ReactNode {
+function SourceColumn({
+  context,
+  locale,
+  check,
+  reviewReasons,
+}: {
+  readonly context: LoadedContext;
+  readonly locale: string;
+  readonly check: GlossaryDraftCheck | undefined;
+  readonly reviewReasons: readonly ReviewReasonCode[] | undefined;
+}): ReactNode {
   return (
     <div className="min-w-0">
       <Section title="Source">
@@ -126,10 +186,15 @@ function SourceColumn({ context }: { readonly context: LoadedContext }): ReactNo
           as="p"
           value={context.source}
           highlightTokens
-          className="m-0 whitespace-pre-wrap break-words font-mono text-sm text-foreground"
+          className="m-0 whitespace-pre-wrap break-words text-sm text-foreground"
           data-edit-source=""
         />
       </Section>
+      {reviewReasons !== undefined && reviewReasons.length > 0 ? (
+        <Section title="Flagged for review">
+          <ReviewReasonChips reasons={reviewReasons} />
+        </Section>
+      ) : null}
       {context.description !== undefined ? (
         <Section title="Context">
           <p className="m-0 whitespace-pre-wrap break-words text-sm text-muted-foreground">
@@ -139,7 +204,7 @@ function SourceColumn({ context }: { readonly context: LoadedContext }): ReactNo
       ) : null}
       {hasGlossaryHits(context.glossary) ? (
         <Section title="Glossary">
-          <GlossaryHitList glossary={context.glossary} />
+          <GlossaryHitList glossary={context.glossary} locale={locale} check={check} />
         </Section>
       ) : null}
     </div>
@@ -170,6 +235,33 @@ function SavedValueStatus({
   );
 }
 
+function LengthLine({
+  id,
+  source,
+  value,
+  maxLength,
+}: {
+  readonly id: string;
+  readonly source: string;
+  readonly value: string;
+  readonly maxLength: number | undefined;
+}): ReactNode {
+  const summary = lengthSummary(compareLength(source, value), maxLength);
+  return (
+    <p
+      id={id}
+      className={cn(
+        "m-0 mt-1 text-xs",
+        summary.overBudget ? "font-semibold text-danger" : "text-muted-foreground",
+      )}
+      data-edit-length=""
+      data-over-budget={summary.overBudget ? "" : undefined}
+    >
+      {summary.text}
+    </p>
+  );
+}
+
 function TranslationColumn({
   locale,
   keyName,
@@ -178,6 +270,7 @@ function TranslationColumn({
   onChangeValue,
   onSave,
   disabled,
+  textAreaRef,
 }: {
   readonly locale: string;
   readonly keyName: string;
@@ -186,7 +279,9 @@ function TranslationColumn({
   readonly onChangeValue: (next: string) => void;
   readonly onSave: () => void;
   readonly disabled: boolean;
+  readonly textAreaRef: Ref<HTMLTextAreaElement>;
 }): ReactNode {
+  const lengthId = useId();
   return (
     <div className="min-w-0">
       <Section title="Translation">
@@ -197,10 +292,13 @@ function TranslationColumn({
           </p>
         ) : null}
         <TextArea
-          aria-label={`Translation for ${context.source}`}
+          ref={textAreaRef}
+          aria-label={`Translation (${locale})`}
+          aria-describedby={lengthId}
           aria-keyshortcuts="Control+Enter Meta+Enter"
           className="max-w-none"
-          dir={valueDirection(locale)}
+          lang={locale}
+          dir={valueDirection(locale, value)}
           value={value}
           onChange={(event) => onChangeValue(event.target.value)}
           onKeyDown={(event) => {
@@ -212,9 +310,12 @@ function TranslationColumn({
           disabled={disabled}
           rows={6}
         />
-        <p className="m-0 mt-1 text-xs text-muted-foreground" data-edit-length="">
-          {lengthComparisonText(compareLength(context.source, value))}
-        </p>
+        <LengthLine
+          id={lengthId}
+          source={context.source}
+          value={value}
+          maxLength={context.maxLength}
+        />
         <figure
           className="m-0 mt-3 rounded-md border border-border bg-muted px-3 py-2"
           data-edit-preview=""
@@ -267,11 +368,24 @@ export function EditEntryDialog({
   keyName,
   onClose,
   onAccepted,
+  focusTranslation = false,
+  reviewReasons,
 }: EditEntryDialogProps): ReactNode {
   const context = useKeyValueContext(locale, keyName);
   const [value, setValue] = useState("");
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen: true, onClose });
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    ...(focusTranslation ? { initialFocus: textAreaRef } : {}),
+  });
+  const draftCheck = useDraftCheck(
+    locale,
+    keyName,
+    value,
+    context.kind === "loaded" && hasGlossaryHits(context.glossary),
+  );
 
   useEffect(() => {
     if (context.kind === "loaded") {
@@ -316,7 +430,12 @@ export function EditEntryDialog({
       {context.kind === "loaded" ? (
         <>
           <div className="grid gap-x-8 md:grid-cols-2">
-            <SourceColumn context={context} />
+            <SourceColumn
+              context={context}
+              locale={locale}
+              check={draftCheck}
+              reviewReasons={reviewReasons}
+            />
             <TranslationColumn
               locale={locale}
               keyName={keyName}
@@ -325,6 +444,7 @@ export function EditEntryDialog({
               onChangeValue={setValue}
               onSave={() => void handleSubmit()}
               disabled={submit.kind === "submitting"}
+              textAreaRef={textAreaRef}
             />
           </div>
           <SaveRow submit={submit} onSave={() => void handleSubmit()} />

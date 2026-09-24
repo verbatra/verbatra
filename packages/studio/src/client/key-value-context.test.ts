@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { deriveKeyValueContext, hasGlossaryHits } from "./key-value-context.js";
+import {
+  deriveKeyValueContext,
+  draftCheckFor,
+  draftFixedTermFlags,
+  draftTermFlags,
+  hasGlossaryHits,
+} from "./key-value-context.js";
 
 const NO_GLOSSARY = { terms: [], doNotTranslate: [] };
 
@@ -26,6 +32,7 @@ describe("deriveKeyValueContext", () => {
       description: "Greets the shopper",
       provenance: { origin: "human", reviewState: "unreviewed" },
       glossary,
+      maxLength: undefined,
     });
   });
 
@@ -59,5 +66,44 @@ describe("hasGlossaryHits", () => {
         doNotTranslate: [],
       }),
     ).toBe(true);
+  });
+});
+
+describe("draft flags", () => {
+  it("flags a used, a missing, and a forbidden rendering", () => {
+    expect(
+      draftTermFlags({ source: "cart", target: "Korb", targetUsed: true, forbiddenUsed: [] }),
+    ).toEqual([{ tone: "success", label: "Used" }]);
+    expect(
+      draftTermFlags({
+        source: "cart",
+        target: "Korb",
+        targetUsed: false,
+        forbiddenUsed: ["Karren"],
+      }),
+    ).toEqual([
+      { tone: "warning", label: "Missing" },
+      { tone: "danger", label: "Forbidden: Karren" },
+    ]);
+    expect(draftTermFlags({ source: "cart", forbiddenUsed: [] })).toEqual([]);
+    expect(draftTermFlags(undefined)).toEqual([]);
+  });
+
+  it("flags a term to keep untranslated as kept or missing", () => {
+    expect(draftFixedTermFlags({ term: "Verbatra", kept: true })).toEqual([
+      { tone: "success", label: "Kept" },
+    ]);
+    expect(draftFixedTermFlags({ term: "Verbatra", kept: false })).toEqual([
+      { tone: "warning", label: "Missing" },
+    ]);
+    expect(draftFixedTermFlags(undefined)).toEqual([]);
+  });
+
+  it("reads the draft check only from a successful response", () => {
+    const draftCheck = { terms: [], doNotTranslate: [] };
+    expect(
+      draftCheckFor({ ok: true, result: { source: "a", glossary: NO_GLOSSARY, draftCheck } }),
+    ).toBe(draftCheck);
+    expect(draftCheckFor({ ok: false, error: { code: "X", message: "y" } })).toBeUndefined();
   });
 });

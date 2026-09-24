@@ -420,6 +420,24 @@ check arms (every shipped format except next-intl and ARB).
 Input: `{ config, cwd?, locales?, keys? }`. `keys` narrows the check; only keys that are "changed"
 for a locale are ever checked. Returns one `LocaleKeyIntegrity` per checked locale.
 
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Finds every translation in the target locales that is broken right now: one that lost or gained a
+placeholder, dropped or added inline markup, no longer parses as ICU, or carries ICU `plural`,
+`selectordinal`, or `select` arms that do not fit the target language. Unlike `keyIntegrity`, it
+judges every key present in both the source and a target locale, whatever its sync state, so a
+defect in a translation nobody touched since it was written is found too. Each key is judged by
+the same rules as `keyIntegrity` and the write-time gate, and only failing keys come back, so an
+empty `entries` list means every translation of that locale passes.
+
+The cost is one read and parse of the source file and of each requested target file, plus one
+check per translated key. Nothing is cached; every call reads fresh from disk.
+
+Input: `{ config, cwd?, locales? }`. Returns one `LocaleKeyIntegrity` per checked locale, holding
+only its failing entries.
+
 ### lockState
 
 Reports the lock file's existence, version, and per-locale drift (baseline key count plus missing,
@@ -912,6 +930,17 @@ returns: every term whose source occurs in `text` as a whole term, with the tran
 forbidden renderings that locale is held to, and every term to keep untranslated that occurs in it.
 A term matches with or without case as it says, with case folded for `sourceLocale`. It uses the
 same matching a translate run applies when it flags a missed glossary term, and reads nothing.
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` checks a draft translation
+against the glossary entries `glossaryHits` finds in the source text, before you write it. Each
+term comes back with `targetUsed` (whether the draft carries the required translation, absent for a
+term that only forbids renderings) and `forbiddenUsed` (the forbidden renderings the draft uses
+and the source does not), and each term to keep untranslated with `kept`. These are the rules a
+translate run uses to flag `GLOSSARY_TERM_MISSED` and `GLOSSARY_FORBIDDEN_TERM`. It reads nothing.
 
 ### normalizeGlossary
 

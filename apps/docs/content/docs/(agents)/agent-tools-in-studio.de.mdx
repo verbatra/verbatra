@@ -60,7 +60,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
 | `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
-| `verbatra_locale_integrity` | Integrität von Platzhaltern, Inline-Markup, ICU und ICU-Zweigen für jeden geänderten Key, pro Ziel-Locale |
+| `verbatra_locale_integrity` | jeder übersetzte Key, der die Prüfungen für Platzhalter, Inline-Markup, ICU oder ICU-Zweige nicht besteht, pro Ziel-Locale |
 | `verbatra_key_context` | Quell- und Zielwert eines Keys, seine Beschreibung und die Glossareinträge, die seine Quelle verwendet |
 | `verbatra_translation_estimate` | was `verbatra_translation_translatePending` senden und kosten würde, optional für eine Teilmenge der `locales`, ohne einen Provider aufzurufen |
 
@@ -72,11 +72,11 @@ Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_v
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_locale_integrity` führt dieselben Prüfungen wie `verbatra_key_integrity` für alle geänderten Keys auf einmal aus und liefert die Daten für den Filter **Integrity problems** auf der Seite Translations. Sein `result` ist `{ locales: [{ locale, entries }] }`, und jeder Eintrag trägt `key` und die Prüffelder. Jeder geänderte Key wird aufgeführt, ob er die Prüfung besteht oder nicht, also lies die Felder, statt das bloße Vorkommen als Fehler zu werten; ein fehlender, verwaister oder synchroner Key taucht nie auf. Der optionale Parameter `locales` beschränkt den Bericht auf die genannten Ziel-Locales.
+`verbatra_locale_integrity` führt dieselben Prüfungen wie `verbatra_key_integrity` für jeden Key aus, der in der Quelle und in einer Ziel-Locale vorkommt, egal wie sein Sync-Zustand ist, und liefert die Daten für den Filter **Integrity problems** auf der Seite Translations. Sein `result` ist `{ locales: [{ locale, entries }] }`, und jeder Eintrag trägt `key` und die Prüffelder. Aufgeführt werden nur fehlerhafte Keys, eine leere `entries`-Liste heißt also, dass jede Übersetzung dieser Locale besteht; ein fehlender Key hat keine Übersetzung zum Prüfen und taucht nie auf. Jeder Aufruf liest und parst jede Locale-Datei einmal. Der optionale Parameter `locales` beschränkt den Bericht auf die genannten Ziel-Locales.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_key_context` liefert, was der Editor des Dashboards für einen Key und eine Locale zeigt: `source`, `target` und seine `provenance`, wenn ein Wert existiert, `description`, wenn die Quelldatei eine angibt, und `glossary`, die Begriffe, deren Quelle im Quelltext vorkommt, als `{ terms, doNotTranslate }` mit der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist. Glossarwerte laufen durch dieselbe Schwärzung wie bei `verbatra_glossary_get`.
+`verbatra_key_context` liefert, was der Editor des Dashboards für einen Key und eine Locale zeigt: `source`, `target` und seine `provenance`, wenn ein Wert existiert, `description`, wenn die Quelldatei eine angibt, und `glossary`, die Begriffe, deren Quelle im Quelltext vorkommt, als `{ terms, doNotTranslate }` mit der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist, und `maxLength`, wenn die Config ein Längenbudget für den Key setzt. Gib den Wert, den du schreiben willst, als optionalen Parameter `draft` mit, dann trägt das Ergebnis auch `draftCheck`: für jeden zutreffenden Begriff `targetUsed` und `forbiddenUsed` und für jeden unübersetzt zu lassenden Begriff `kept`, beurteilt nach den Regeln, mit denen ein Übersetzungslauf eine Übersetzung zur Prüfung markiert. Glossarwerte laufen durch dieselbe Schwärzung wie bei `verbatra_glossary_get`.
 
 Die Buttons **Approve** und **Reject** im Dashboard haben kein Agent-Tool, mit oder ohne Spend: Eine Review-Entscheidung trifft eine Person. `verbatra_review_queue` lässt jeden seit dem Lauf entschiedenen Eintrag weg, behält aber einen, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht.
 

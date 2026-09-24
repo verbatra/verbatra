@@ -48,6 +48,18 @@ describe("deriveKeyLocaleStatus", () => {
     expect(rows).toEqual([{ locale: "de", status: "protected" }]);
   });
 
+  it("reports absent in a locale that lacks a key the source no longer has", () => {
+    const rows = deriveKeyLocaleStatus(
+      [locale({ locale: "de", orphaned: ["gone"] }), locale({ locale: "fr" })],
+      "gone",
+    );
+
+    expect(rows).toEqual([
+      { locale: "de", status: "orphaned" },
+      { locale: "fr", status: "absent" },
+    ]);
+  });
+
   it("reports in-sync when the key is in none of the three lists", () => {
     const rows = deriveKeyLocaleStatus([locale({ locale: "de" })], "greeting");
 

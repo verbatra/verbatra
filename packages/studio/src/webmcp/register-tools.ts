@@ -179,12 +179,12 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [LOCALE_INTEGRITY_METHOD]: {
     description:
-      "Reports, for every changed key across the target locales, whether its current value keeps the source placeholders and inline markup, stays valid ICU MessageFormat, and carries ICU plural, ordinal, and select arms that fit the target language. " +
+      "Lists every translation in the target locales that is broken right now: a value that lost or gained a source placeholder or inline markup, no longer parses as ICU MessageFormat, or carries ICU plural, ordinal, or select arms that do not fit the target language. " +
       "Use it to find every translation with an integrity problem in one call, for instance before deciding which keys to fix or retranslate, rather than calling verbatra_key_integrity key by key. " +
-      "Do not read a key's absence as a pass: only keys that count as changed are judged, so a missing, orphaned, or in-sync key never appears, and an entry is listed whether or not it passed, so check its fields. " +
+      "Every key present in both the source and a target locale is judged, whatever its sync state, and only failing keys are listed, so an empty entries list means every translation of that locale passes; a missing key has no translation to judge and never appears. " +
       "The optional `locales` parameter narrows the report to the named target locales, an omitted `locales` covers every configured target locale, and an explicitly empty array is rejected as invalid params. " +
       "Each entry carries the key, the boolean outcomes, the specific placeholder tokens involved, and one short problem per wrong arm or markup difference, never a full source or target string. " +
-      "Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
+      "Read-only: it reads and parses each locale file once, fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
     spendGated: false,
@@ -229,7 +229,9 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   [KEY_CONTEXT_METHOD]: {
     description:
       "Reads what a translator needs to write one key in one target locale: the current source text, the current target text when it exists with who wrote it, the description the source file gives for the key when its format carries one, and the glossary entries that apply, meaning every term whose source occurs in the source text as a whole term with the translation and forbidden renderings that locale is held to, and every term to keep untranslated that occurs in it. " +
+      "The result also carries the key's configured maxLength budget in characters when the config sets one. " +
       "Use it before writing a value with verbatra_translation_editEntry, so the value follows the project's terminology. " +
+      "Pass the value you intend to write as the optional `draft` parameter and the result gains a draftCheck: for each applying term whether the draft uses the required translation and which forbidden renderings it uses, and for each term to keep untranslated whether the draft kept it, judged by the same rules a translate run uses to flag a translation for review. " +
       "Do not use it for bulk reads or to list the whole glossary: it answers for one key in one locale, and verbatra_glossary_get returns every term. " +
       "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source; an unknown one fails with an error. " +
       "Glossary values pass through secret redaction first, so a value shaped like a provider API key comes back as a placeholder. " +

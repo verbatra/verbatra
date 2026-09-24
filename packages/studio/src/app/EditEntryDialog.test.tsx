@@ -96,13 +96,13 @@ describe("EditEntryDialog", () => {
     ]);
   });
 
-  it("pre-populates the editor with the existing translation and labels it by its source", async () => {
+  it("pre-populates the editor with the existing translation and labels it by its locale", async () => {
     stubRpc({ "key.context": keyValue("Hello there", "Hallo zusammen") });
 
     const view = await renderAsync(dialog());
 
     expect(editor(view).value).toBe("Hallo zusammen");
-    expect(editor(view).getAttribute("aria-label")).toBe("Translation for Hello there");
+    expect(editor(view).getAttribute("aria-label")).toBe("Translation (de)");
     expect(view.text()).toContain("Hello there");
   });
 
@@ -475,6 +475,121 @@ describe("EditEntryDialog", () => {
     ]);
   });
 
+  it("checks the draft against the glossary as you type and flags each term", async () => {
+    vi.useFakeTimers();
+    try {
+      const glossary = {
+        terms: [
+          { source: "cart", target: "Warenkorb", forbidden: ["Karren"], caseSensitive: false },
+        ],
+        doNotTranslate: [{ term: "Verbatra", caseSensitive: true }],
+      };
+      stubRpc({
+        "key.context": (params) => {
+          const draft = (params as { draft?: string }).draft;
+          return {
+            ok: true,
+            result: {
+              source: "Your cart at Verbatra",
+              target: "Dein Warenkorb bei Verbatra",
+              glossary,
+              ...(draft === undefined
+                ? {}
+                : {
+                    draftCheck: {
+                      terms: [
+                        {
+                          source: "cart",
+                          target: "Warenkorb",
+                          targetUsed: draft.includes("Warenkorb"),
+                          forbiddenUsed: draft.includes("Karren") ? ["Karren"] : [],
+                        },
+                      ],
+                      doNotTranslate: [{ term: "Verbatra", kept: draft.includes("Verbatra") }],
+                    },
+                  }),
+            },
+          };
+        },
+      });
+      const view = await renderAsync(dialog());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      const flags = (): string[] =>
+        view.all("[data-draft-flags]").map((node) => node.textContent ?? "");
+      expect(flags()).toEqual(["Used", "Kept"]);
+
+      typeInto(editor(view), "Dein Karren bei verbatra");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+
+      expect(flags()).toEqual(["MissingForbidden: Karren", "Missing"]);
+      expect(rpcCalls.at(-1)).toEqual({
+        method: "key.context",
+        params: { locale: LOCALE, key: KEY, draft: "Dein Karren bei verbatra" },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows why the entry was flagged next to the source", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+
+    const view = await renderAsync(
+      <EditEntryDialog
+        locale={LOCALE}
+        keyName={KEY}
+        onClose={vi.fn()}
+        onAccepted={vi.fn()}
+        reviewReasons={["GLOSSARY_FORBIDDEN_TERM", "MAX_LENGTH_EXCEEDED"]}
+      />,
+    );
+
+    expect(view.text()).toContain("Flagged for review");
+    expect(view.text()).toContain("Forbidden term used");
+    expect(view.text()).toContain("Over length budget");
+  });
+
+  it("focuses the translation field when asked to, instead of the first control", async () => {
+    stubRpc({ "key.context": keyValue("Hello", "Hallo") });
+
+    const view = await renderAsync(
+      <EditEntryDialog
+        locale={LOCALE}
+        keyName={KEY}
+        onClose={vi.fn()}
+        onAccepted={vi.fn()}
+        focusTranslation
+      />,
+    );
+
+    expect(document.activeElement).toBe(editor(view));
+  });
+
+  it("highlights the length line once the draft passes the key's budget, and describes the field with it", async () => {
+    stubRpc({
+      "key.context": {
+        ok: true,
+        result: { source: "Hello", target: "Hallo", maxLength: 6, glossary: NO_GLOSSARY },
+      },
+    });
+
+    const view = await renderAsync(dialog());
+    const line = view.get("[data-edit-length]");
+    expect(editor(view).getAttribute("aria-describedby")).toBe(line.id);
+    expect(line.hasAttribute("data-over-budget")).toBe(false);
+
+    typeInto(editor(view), "Hallo zusammen");
+
+    expect(view.get("[data-edit-length]").textContent).toBe(
+      "14 of 6 characters, 280% of source, over budget",
+    );
+    expect(view.get("[data-edit-length]").className).toContain("text-danger");
+  });
+
   it("leaves the glossary section out when no term applies", async () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 
@@ -487,13 +602,11 @@ describe("EditEntryDialog", () => {
     stubRpc({ "key.context": keyValue("Hello", "Hallo") });
 
     const view = await renderAsync(dialog());
-    expect(view.get("[data-edit-length]").textContent).toBe("5 characters, 100% of the source's 5");
+    expect(view.get("[data-edit-length]").textContent).toBe("5 characters, 100% of source");
 
     typeInto(editor(view), "Hallo zusammen");
 
-    expect(view.get("[data-edit-length]").textContent).toBe(
-      "14 characters, 280% of the source's 5",
-    );
+    expect(view.get("[data-edit-length]").textContent).toBe("14 characters, 280% of source");
   });
 
   it("shows who wrote the saved value and its integrity verdict", async () => {

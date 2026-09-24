@@ -100,3 +100,25 @@ export function isRtlLocale(tag: string): boolean {
   directionCache.set(tag, rtl);
   return rtl;
 }
+
+const STRONG_RTL =
+  /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Adlam}\p{Script=Samaritan}\p{Script=Mandaic}\p{Script=Hanifi_Rohingya}\p{Script=Yezidi}\p{Script=Mende_Kikakui}]/u;
+
+export function hasStrongRtl(text: string): boolean {
+  return STRONG_RTL.test(text);
+}
+
+export type TextDirection = "ltr" | "rtl" | "auto";
+
+export function directionForValue(
+  value: string | undefined,
+  locale: string | undefined,
+): TextDirection {
+  if (locale === undefined) {
+    return "auto";
+  }
+  if (!isRtlLocale(locale)) {
+    return "ltr";
+  }
+  return value === undefined || hasStrongRtl(value) ? "rtl" : "auto";
+}

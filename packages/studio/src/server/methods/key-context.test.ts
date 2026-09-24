@@ -89,6 +89,34 @@ describe("keyContextHandler", () => {
     );
   });
 
+  it("checks a draft against the applying terms and reports the key's length budget", async () => {
+    await withProject(
+      {
+        targetLocales: ["de"],
+        maxLength: { greeting: 12 },
+        glossary: {
+          version: 2,
+          terms: [{ source: "cart", target: "Warenkorb", forbidden: { de: ["Karren"] } }],
+          doNotTranslate: [],
+        },
+      },
+      async (project) => {
+        const result = await keyContextHandler(
+          { locale: "de", key: "greeting", draft: "Leg es in den Karren" },
+          deps(project, { source: "inline" }),
+        );
+
+        expect(result.maxLength).toBe(12);
+        expect(result.draftCheck).toEqual({
+          terms: [
+            { source: "cart", target: "Warenkorb", targetUsed: false, forbiddenUsed: ["Karren"] },
+          ],
+          doNotTranslate: [],
+        });
+      },
+    );
+  });
+
   it("redacts a secret-shaped glossary translation before it leaves the handler", async () => {
     const secret = `sk-${"a1".repeat(24)}`;
     await withProject({ targetLocales: ["de"], glossary: { cart: secret } }, async (project) => {

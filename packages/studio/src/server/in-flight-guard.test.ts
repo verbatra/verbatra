@@ -76,3 +76,37 @@ describe("createRpcInFlightGuard", () => {
     expect(guard.tryEnter("translation.retranslateEntry", "de:greeting")).toBe(true);
   });
 });
+
+describe("createRpcInFlightGuard: entries", () => {
+  it("lists the entries of every call still in flight with the time since it started", () => {
+    let clock = 1_000;
+    const guard = createRpcInFlightGuard(
+      new Set(["translation.retranslateEntry", "translation.retranslateEntries"]),
+      () => clock,
+    );
+    guard.tryEnter("translation.retranslateEntry", "de:a", [{ locale: "de", key: "a" }]);
+    clock = 3_500;
+    guard.tryEnter("translation.retranslateEntries", undefined, [
+      { locale: "fr", key: "b" },
+      { locale: "fr", key: "c" },
+    ]);
+    clock = 4_000;
+
+    expect(guard.entries()).toEqual([
+      { method: "translation.retranslateEntry", locale: "de", key: "a", elapsedMs: 3_000 },
+      { method: "translation.retranslateEntries", locale: "fr", key: "b", elapsedMs: 500 },
+      { method: "translation.retranslateEntries", locale: "fr", key: "c", elapsedMs: 500 },
+    ]);
+
+    guard.leave("translation.retranslateEntry", "de:a");
+    expect(guard.entries().map((entry) => entry.key)).toEqual(["b", "c"]);
+  });
+
+  it("records nothing for a call made without entries or to an unguarded method", () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.translatePending"]));
+    guard.tryEnter("translation.translatePending");
+    guard.tryEnter("project.snapshot", undefined, [{ locale: "de", key: "a" }]);
+
+    expect(guard.entries()).toEqual([]);
+  });
+});

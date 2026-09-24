@@ -62,11 +62,12 @@ describe("ReviewRowActions", () => {
     expect(spies.onEdit).not.toHaveBeenCalled();
   });
 
-  it("tints approve and reject apart, so the two outcomes are not one undifferentiated pair", () => {
+  it("tints approve and reject apart through the tinted button variants", () => {
     const view = render(<ReviewRowActions {...handlers()} />);
 
     expect(view.getByText("button", "Approve").className).toContain("text-success");
     expect(view.getByText("button", "Reject…").className).toContain("text-danger");
+    expect(view.getByText("button", "Approve").className).not.toContain("[");
   });
 
   it("uses non-submitting buttons, since a review row can sit inside a form", () => {
@@ -90,9 +91,8 @@ describe("ReviewRowActions", () => {
     expect(spies.onEdit).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the pending decision inside the Approve button and announces it, disabling every action", () => {
-    const spies = handlers();
-    const view = render(<ReviewRowActions {...spies} pendingLabel="Approving…" />);
+  it("shows a running approval on the Approve button and announces it, disabling every action", () => {
+    const view = render(<ReviewRowActions {...handlers()} busy={{ action: "approve" }} />);
 
     for (const name of ["Edit", "Approving…", "Reject…"]) {
       expect((view.getByText("button", name) as HTMLButtonElement).disabled).toBe(true);
@@ -101,15 +101,38 @@ describe("ReviewRowActions", () => {
     expect(view.get('[role="status"]').className).toContain("sr-only");
   });
 
-  it("keeps the Approve button at one width and every action on one line", () => {
-    const idle = render(<ReviewRowActions {...handlers()} />);
-    const busy = render(<ReviewRowActions {...handlers()} pendingLabel="Approving…" />);
+  it("shows a running retranslation on the Retranslate button, never on Approve", () => {
+    const view = render(
+      <ReviewRowActions
+        {...handlers()}
+        onRetranslate={vi.fn()}
+        busy={{ action: "retranslate", elapsedSeconds: 7 }}
+      />,
+    );
 
-    expect(idle.getByText("button", "Approve").className).toContain("min-w-[5.75rem]");
-    expect(busy.getByText("button", "Approving…").className).toContain("min-w-[5.75rem]");
-    expect(idle.get("span").className).toContain("whitespace-nowrap");
-    expect(idle.get("span").className).not.toContain("flex-wrap");
-    expect(idle.get('[role="status"]').textContent).toBe("");
+    expect(view.all("button").map((button) => button.textContent)).toEqual([
+      "Edit",
+      "Approve",
+      "Reject…",
+      "Retranslating…",
+    ]);
+    expect(view.all("button").every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    expect(view.get('[role="status"]').textContent).toBe("Retranslating… 7 seconds so far");
+  });
+
+  it("shows a running bulk rejection on the Reject button", () => {
+    const view = render(<ReviewRowActions {...handlers()} busy={{ action: "reject" }} />);
+
+    expect(view.getByText("button", "Rejecting…").className).toContain("w-24");
+  });
+
+  it("reserves a fixed width for each labelled action so a busy label never moves the row", () => {
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+
+    expect(view.getByText("button", "Approve").className).toContain("w-24");
+    expect(view.getByText("button", "Reject…").className).toContain("w-24");
+    expect(view.getByText("button", "Retranslate").className).toContain("w-30");
+    expect(view.get('[role="status"]').textContent).toBe("");
   });
 
   it("anchors the visually hidden status inside its own wrapper, so it never widens the page", () => {
@@ -135,20 +158,40 @@ describe("ReviewRowActions", () => {
 
   it("disables Retranslate while a decision is pending", () => {
     const view = render(
-      <ReviewRowActions {...handlers()} onRetranslate={vi.fn()} pendingLabel="Retranslating…" />,
+      <ReviewRowActions {...handlers()} onRetranslate={vi.fn()} busy={{ action: "approve" }} />,
     );
 
     expect((view.getByText("button", "Retranslate") as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("names each action's keyboard shortcut for assistive technology", () => {
-    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+  it("names each action's keyboard shortcut only on the active row", () => {
+    const active = render(
+      <ReviewRowActions {...handlers()} onRetranslate={vi.fn()} shortcutsActive />,
+    );
+    const inactive = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
 
-    expect(view.all("button").map((button) => button.getAttribute("aria-keyshortcuts"))).toEqual([
+    expect(active.all("button").map((button) => button.getAttribute("aria-keyshortcuts"))).toEqual([
       "e Enter",
       "a",
       "r",
       "t",
     ]);
+    expect(inactive.all("button").some((button) => button.hasAttribute("aria-keyshortcuts"))).toBe(
+      false,
+    );
+  });
+});
+
+describe("ReviewRowActions: layout", () => {
+  it("keeps the actions on one line in a table column and lets them wrap when stacked", () => {
+    const inline = render(
+      <ReviewRowActions onApprove={vi.fn()} onReject={vi.fn()} onEdit={vi.fn()} />,
+    );
+    const stacked = render(
+      <ReviewRowActions onApprove={vi.fn()} onReject={vi.fn()} onEdit={vi.fn()} wrap />,
+    );
+
+    expect(inline.get("span").className).toContain("flex-nowrap");
+    expect(stacked.get("span").className).toContain("flex-wrap");
   });
 });

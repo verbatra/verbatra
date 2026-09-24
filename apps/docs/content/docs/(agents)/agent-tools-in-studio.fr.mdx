@@ -60,7 +60,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
 | `verbatra_key_value` | les valeurs source et cible pour une clé et une locale |
 | `verbatra_locale_values` | les valeurs source et cible de chaque clé dans chaque locale cible |
-| `verbatra_locale_integrity` | l'intégrité des placeholders, du balisage en ligne, de l'ICU et des branches ICU de chaque clé modifiée, par locale cible |
+| `verbatra_locale_integrity` | chaque clé traduite qui échoue aux vérifications de placeholders, de balisage en ligne, d'ICU ou de branches ICU, par locale cible |
 | `verbatra_key_context` | les valeurs source et cible d'une clé, sa description et les entrées du glossaire que sa source utilise |
 | `verbatra_translation_estimate` | ce que `verbatra_translation_translatePending` enverrait et coûterait, éventuellement pour un sous-ensemble de `locales`, sans appeler de fournisseur |
 
@@ -72,11 +72,11 @@ Depuis `@verbatra/studio` 0.6.0, `verbatra_key_value` et `verbatra_locale_values
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_locale_integrity` exécute les mêmes vérifications que `verbatra_key_integrity` sur toutes les clés modifiées d'un coup, et alimente le filtre **Integrity problems** de la page Translations. Son `result` est `{ locales: [{ locale, entries }] }`, chaque entrée portant `key` et les champs du verdict. Chaque clé modifiée est listée, qu'elle passe ou non, donc lis les champs plutôt que de prendre sa présence pour un échec ; une clé manquante, orpheline ou synchronisée n'apparaît jamais. Le paramètre optionnel `locales` limite le rapport aux locales cibles nommées.
+`verbatra_locale_integrity` exécute les mêmes vérifications que `verbatra_key_integrity` sur chaque clé présente à la fois dans la source et dans une locale cible, quel que soit son état de synchronisation, et alimente le filtre **Integrity problems** de la page Translations. Son `result` est `{ locales: [{ locale, entries }] }`, chaque entrée portant `key` et les champs du verdict. Seules les clés en échec sont listées, donc une liste `entries` vide signifie que chaque traduction de cette locale passe ; une clé manquante n'a pas de traduction à vérifier et n'apparaît jamais. Chaque appel lit et analyse chaque fichier de locale une fois. Le paramètre optionnel `locales` limite le rapport aux locales cibles nommées.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_key_context` renvoie ce que l'éditeur du tableau de bord montre pour une clé et une locale : `source`, `target` et sa `provenance` quand une valeur existe, `description` quand le fichier source en donne une, et `glossary`, les termes dont la source apparaît dans le texte source, sous la forme `{ terms, doNotTranslate }` avec la traduction et les rendus interdits auxquels cette locale est tenue. Les valeurs du glossaire passent par le même masquage que pour `verbatra_glossary_get`.
+`verbatra_key_context` renvoie ce que l'éditeur du tableau de bord montre pour une clé et une locale : `source`, `target` et sa `provenance` quand une valeur existe, `description` quand le fichier source en donne une, et `glossary`, les termes dont la source apparaît dans le texte source, sous la forme `{ terms, doNotTranslate }` avec la traduction et les rendus interdits auxquels cette locale est tenue, et `maxLength` quand la config fixe un budget de longueur pour la clé. Passe la valeur que tu comptes écrire dans le paramètre optionnel `draft` et le résultat porte aussi `draftCheck` : pour chaque terme applicable, `targetUsed` et `forbiddenUsed`, et pour chaque terme à garder non traduit, `kept`, jugés selon les règles avec lesquelles une exécution de traduction signale une traduction à relire. Les valeurs du glossaire passent par le même masquage que pour `verbatra_glossary_get`.
 
 Les boutons **Approve** et **Reject** du tableau de bord n'ont aucun outil d'agent, avec ou sans dépense : une décision de revue revient à une personne. `verbatra_review_queue` omet chaque entrée tranchée depuis l'exécution, mais garde celle qu'un agent a modifiée, car cette modification a encore besoin du regard d'une personne.
 

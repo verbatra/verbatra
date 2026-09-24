@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
 import { Fragment } from "react";
-import { isRtlLocale } from "../client/locale-direction.js";
+import { directionForValue, type TextDirection } from "../client/locale-direction.js";
 import { segmentValue } from "../client/value-tokens.js";
 import { cn } from "./lib/cn.js";
 
-export type ValueDirection = "ltr" | "rtl" | "auto";
+export type ValueDirection = TextDirection;
 
-export function valueDirection(locale: string | undefined): ValueDirection {
-  if (locale === undefined) {
-    return "auto";
-  }
-  return isRtlLocale(locale) ? "rtl" : "ltr";
+export function valueDirection(locale: string | undefined, value?: string): ValueDirection {
+  return directionForValue(value, locale);
 }
 
 const SCROLLABLE_CLASSES =
@@ -62,7 +59,8 @@ export function TranslationValue({
   return (
     <Element
       className={cn("text-start", Element === "p" && SCROLLABLE_CLASSES, className)}
-      dir={valueDirection(locale)}
+      dir={valueDirection(locale, value)}
+      lang={locale}
       title={title}
       {...dataAttributes}
     >
