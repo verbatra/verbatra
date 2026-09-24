@@ -122,6 +122,14 @@ Kann eine Sperre nicht erworben werden, schlägt der Lauf mit `LOCK_CONTENDED` f
 Pfad der Sperrdatei (im gitignorierten Verzeichnis `.verbatra-local/`). Läuft nirgends ein
 verbatra-Prozess, lösche diese Datei und versuche es erneut.
 
+## Ein umgeschriebener Locale-Code
+
+<AvailableFrom version="0.12.0" />
+
+Lock-Datei, Translation Memory und Provenance-Datei legen ihren Zustand unter dem Locale-Code aus deiner Konfiguration ab. Schreibst du einen Code um, etwa `pt_BR` zu `pt-BR` mit `files.localeStyle` auf `posix`, damit die Datei ihren Namen behält, übernimmt der nächste Lauf von `translate` oder `watch` den alten Zustand einmalig. Das passiert, wenn `pt-BR` in einer Datei noch keinen eigenen Zustand hat und diese Datei Zustand unter genau einer Unterstrich-Schreibweise davon hält, ohne Beachtung der Groß- und Kleinschreibung. Der Zustand wandert zu `pt-BR`, bevor die Locale läuft, und der Lauf meldet für diese Locale eine Notice `LOCALE_STATE_CARRIED_OVER`. Eine Quelländerung von vor der Umbenennung wird dann trotzdem neu übersetzt, und gecachte Übersetzungen werden weiter wiederverwendet.
+
+Zustand, den `pt-BR` schon hat, wird nie überschrieben, und konkurrieren zwei Schreibweisen, etwa `pt_BR` und `pt_br`, wandert gar nichts. Ein mit `--locales` eingeschränkter Lauf übernimmt Zustand nur für die Locales, die er ausführt, `--dry-run` plant mit dem übernommenen Zustand, schreibt aber nichts, und `--no-cache` lässt das Translation Memory, wie es ist. Die Prüfung `locale-state` von [`verbatra doctor`](/docs/cli/doctor) nennt alles, was zurückbleibt, und jede andere Locale, die deine Konfiguration nicht mehr aufführt.
+
 ## Fehlend oder beschädigt
 
 Eine fehlende Lock-Datei ist kein Fehler: Es ist ein erster Lauf, und ohne Baseline kann nichts als
