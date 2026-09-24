@@ -392,6 +392,6 @@ Environment precedence is, highest first: a variable already set in your real en
 Config loading fails with one of two structured error codes:
 
 - **`CONFIG_NOT_FOUND`**: the search found no config in any of the places above, or the explicit `--config` path does not exist.
-- **`CONFIG_INVALID`**: a config was found but could not be used. This covers a file that fails to parse, a config that fails schema validation, and a glossary file path that could not be resolved. The message lists every validation issue with its key path, and an unrecognized top-level key gains the hint that API keys are read from the environment, not the config. A raw parser or file-system error never escapes.
+- **`CONFIG_INVALID`**: a config was found but could not be used. This covers a file that fails to parse, a config that fails schema validation, and a glossary file path that could not be resolved. The message lists every validation issue with its key path, and an unrecognized top-level key gains the hint that API keys are read from the environment, not the config. A raw parser or file-system error never escapes: a file that fails to parse is named, with the line and column for YAML, but none of its content is quoted, and every message passes through the same key redaction as the rest of verbatra.
 
 The CLI reports either failure and exits with code `2`, the boundary-error exit code. See [CI and exit codes](/docs/ci-and-exit-codes).

@@ -34,3 +34,28 @@ export function findUnknownLocaleMapKeys(scope: LocaleMapScope): readonly Unknow
     .filter((key) => !configured.includes(key))
     .map((key) => ({ key, message: unknownKeyMessage(key, configured) }));
 }
+
+function recordAt(value: unknown, key: string): Readonly<Record<string, unknown>> | undefined {
+  const field =
+    typeof value === "object" && value !== null && Object.hasOwn(value, key)
+      ? (value as Readonly<Record<string, unknown>>)[key]
+      : undefined;
+  return typeof field === "object" && field !== null && !Array.isArray(field)
+    ? (field as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+export function findDroppedLocaleMapKeys(
+  scope: LocaleMapScope,
+  rawConfig: unknown,
+): readonly UnknownLocaleMapKey[] {
+  const rawMap = recordAt(recordAt(recordAt(rawConfig, "provider"), "options"), "localeMap");
+  if (rawMap === undefined || !isMachineProvider(scope.provider)) {
+    return [];
+  }
+  const parsedMap = scope.provider.options.localeMap ?? {};
+  const configured = configuredLocales(scope);
+  return Object.keys(rawMap)
+    .filter((key) => !Object.hasOwn(parsedMap, key))
+    .map((key) => ({ key, message: unknownKeyMessage(key, configured) }));
+}

@@ -147,8 +147,8 @@ Input: `{ config, cwd?, locale?, out? }`. `locale` defaults to `en-XA` and `out`
 `files.pattern` is expanded inside it, so the file keeps the layout the application expects. A
 pseudolocale that names a configured locale, or that would land on a configured locale file, is
 refused with `PSEUDO_OUTPUT_CONFLICT` before anything is read or written, so it can neither
-overwrite a real translation nor stand in for one; so is an `out` that is absolute or climbs out
-of `cwd`. Because the file lives outside `files.pattern`,
+overwrite a real translation nor stand in for one; so is an `out` that is absolute, climbs out of
+`cwd`, or names `cwd` itself, such as `.`. Because the file lives outside `files.pattern`,
 `translate` never spends on it and `check` and `diff` never report it as drifted.
 
 Returns a `PseudolocalizeResult`: the `locale`, the absolute `path`, how many `entries` were
@@ -197,7 +197,8 @@ is declared on its own, and the ones the adapter marked plural are listed.
 Input: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` defaults to
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Before anything is read or written,
 `TYPES_OUTPUT_CONFLICT` refuses an `out` that names no file (including one ending in a path
-separator), is absolute, climbs out of `cwd` with `..`, or does not end in `.ts`, `.mts` or `.cts`,
+separator), is absolute, climbs out of `cwd` with `..`, names `cwd` itself (`.`), or does not end
+in `.ts`, `.mts` or `.cts`,
 and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file
 verbatra searches for its configuration, `configPath`, the configuration file `config` was loaded
 from, or `glossaryPath`, the glossary file it names; names are compared case-insensitively, and when
@@ -484,8 +485,8 @@ locale file and lock entry for that key only.
 Input: `{ config, cwd?, locale, key, includeHuman? }`. Returns `{ accepted: true, value, reviewReasons }` (the
 review reason codes, if any, that apply to the new value) or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
-Unlike `translate`, a provider failure here throws: a `ProviderError` from `@verbatra/ai-providers`
-with a stable code such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
+Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
+with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
 
 The new value is recorded in `verbatra.provenance.json` as `machine`, with the configured provider
 and model. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
@@ -759,10 +760,11 @@ locale; any other edit rewrites it as version 2, every existing term keeping its
 `target`. `translation: null` without `locale` now removes only the shared translation; the term itself is removed once it has no translation and no forbidden rendering left, which for a version 1 term is at once.
 
 An inline glossary is refused with `GLOSSARY_NOT_FILE_BACKED` rather than converted: it lives inside
-an executable config module. A blank field, an edit that changes nothing or mixes `doNotTranslate`
+an executable config module. A blank field, an edit that sets no field or mixes `doNotTranslate`
 with the term fields, forbidden renderings without a locale, an invalid locale, an edit that would
 leave an invalid glossary, and an edit whose result would exceed the 1 MiB glossary limit are
-refused with `CONFIG_INVALID`; a failed write is `GLOSSARY_UNWRITABLE`.
+refused with `CONFIG_INVALID`; a failed write is `GLOSSARY_UNWRITABLE`. An edit that leaves the
+glossary as it already is succeeds and writes nothing.
 
 ### glossaryForLocale
 
@@ -807,11 +809,11 @@ tool.
 
 <AvailableFrom version="0.12.0" />
 
-Reads the glossary a loaded config names as it is now: `readCurrentGlossary({ loaded, locale? })`,
+Reads the glossary a loaded config names as it is now: `readCurrentGlossary({ loaded })`,
 where `loaded` is what `loadConfigWithMeta` returns. A file-backed glossary is read fresh from disk,
 an inline one comes from the config, and either way the result is the normalized `Glossary`, or
-`undefined` when the config declares none. When `locale` is given it must be a configured target
-locale, or the call fails with `UNKNOWN_LOCALE` naming the configured ones.
+`undefined` when the config declares none. To see what one target locale is held to, pass the result
+to `glossaryForLocale`.
 
 ### editConfiguredGlossaryTerm
 
@@ -951,8 +953,8 @@ way. The declaration is process-wide and shared by every copy of the SDK loaded 
 <AvailableFrom version="0.9.0" />
 
 `deps.fs` replaces the file-system port the SDK's own I/O travels through, typed as `SdkFs`. The
-seam is complete: the run-status file, the lock file, the config glossary, workbook and interchange
-I/O, and the locale files themselves all go through it, because the format adapters read and write
+seam is complete: the run-status file, the lock file, the glossary file tools, workbook and
+interchange I/O, and the locale files themselves all go through it, because the format adapters read and write
 through a port built from the same object. A whole run can therefore be held in memory, which is
 how the SDK's own tests avoid touching disk and how an embedding application can back part of a
 project with something other than a local disk.
@@ -983,9 +985,15 @@ project depends on. Without it, those guards compare paths as written. A link at
 whose target does not exist cannot be resolved, so the guards assume `writeFile` replaces a link
 there rather than writing through it, as the default atomic write does.
 
-The one thing `deps.fs` cannot reach is a caller-supplied `deps.adapterRegistry`. Those adapters
+`deps.fs` cannot reach a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
 Supplying both means the caller owns that wiring.
+
+Config loading sits outside the seam as well. `loadConfig` and `loadConfigWithMeta` take no `deps`:
+they read the config file itself from the real disk, and a glossary file the config names through
+their own `fs` option, so the `deps.fs` a later flow receives reaches neither read. To keep a whole
+project in memory, pass the same `SdkFs` as `loadConfig({ fs })`, and hand the config in as
+`configOverride` rather than as a file.
 
 ## The RunSummary anatomy
 
@@ -1024,7 +1032,7 @@ interface LocaleSummary {
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
   needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
   usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
-  error?: { code: string; message: string }; // present only when status is "failed"
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
 }
 ```
 
@@ -1063,7 +1071,12 @@ The parts worth knowing:
   reconciliation, and nothing further is admitted once they do. The budget bounds one `translate`
   call: `watch` starts a fresh one per run, and `retranslateEntry` is not covered by it at all.
 - **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
-  with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set.
+  with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set. A `failed` locale
+  does not always carry `error`: one whose every key was withheld, and so listed in
+  `integrityMismatches`, `providerFailures`, or `budgetWithheld`, fails with nothing thrown. Its
+  reason is in those lists and in its `notices`, such as `SUB_BATCH_FAILED` for a failed provider
+  batch or `BUDGET_TOKENS_EXCEEDED` for the token budget. Test `status`, never the presence of
+  `error`.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
   the provider. **fuzzyHits** lists the keys that reused a translation for a source string
   that had changed, each carrying `key`, `similarity`, and the `previousSource` it matched; it is
@@ -1127,7 +1140,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `SOURCE_UNWRITABLE` | the source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing |
 | `EXTRACT_NOT_CONFIGURED` | `extract` was called with a config that carries no `extract` block |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd`, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd` or names `cwd` itself, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line |
 | `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space); the message names the file and the file-system code |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read |
 | `TMX_UNWRITABLE` | the TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code |
@@ -1137,3 +1150,10 @@ Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the pro
 `ProviderError` when the single call fails, and `runStatus` never throws at all. For how these
 codes map to CLI exit codes, see [CI and exit codes](/docs/ci-and-exit-codes); for symptom-first
 help, see [Troubleshooting](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` and its `ProviderErrorCode` type are exported from `@verbatra/sdk`, so test a
+`retranslateEntry` failure with `error instanceof ProviderError` and branch on `error.code`; the
+[providers page](/docs/providers) lists every code. On an older version, which does not export the
+class, check `error.name === "ProviderError"` and read `code`.

@@ -376,7 +376,7 @@ describe("updateGlossaryTerm: edits that change nothing", () => {
 
 describe("updateGlossaryTerm: edits that are refused before the file is read", () => {
   it.each<[string, Omit<UpdateGlossaryTermInput, "glossary" | "cwd">, string]>([
-    ["an edit that changes nothing", { term: "A" }, "changes nothing"],
+    ["an edit that sets no field", { term: "A" }, "sets no field"],
     [
       "doNotTranslate with a translation",
       { term: "A", doNotTranslate: true, translation: "B" },

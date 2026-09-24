@@ -276,9 +276,10 @@ export async function readGlossaryFile(
  * write to; both are refused rather than converted.
  *
  * The whole read-modify-write runs under a project-wide glossary lock, so two concurrent edits are
- * serialized rather than interleaved, and the file itself is replaced atomically. The result is
- * validated to stay within the same size limit {@link loadConfig} enforces when it reads a glossary
- * file back, so an accepted write is always re-readable.
+ * serialized rather than interleaved, and the file itself is replaced atomically. An edit that
+ * leaves the glossary as it already is succeeds and writes nothing. The result is validated to stay
+ * within the same size limit {@link loadConfig} enforces when it reads a glossary file back, so an
+ * accepted write is always re-readable.
  *
  * @param input - The glossary provenance, the term, and what to change about it.
  * @param deps - Optional file-system override.
@@ -287,7 +288,7 @@ export async function readGlossaryFile(
  * @throws {@link SdkError} `GLOSSARY_NOT_FILE_BACKED`: the config's glossary is inline or absent, so
  * there is no file to write.
  * @throws {@link SdkError} `CONFIG_INVALID`: the term, its translation, a forbidden rendering, its
- * note, or its part of speech is blank; the edit changes nothing, combines `doNotTranslate` with a
+ * note, or its part of speech is blank; the edit sets no field, combines `doNotTranslate` with a
  * term field, gives forbidden renderings without a locale, names an invalid locale, or would leave
  * an invalid glossary, such as a new term with no translation or a term kept untranslated that is
  * also a glossary term; the glossary file on disk cannot be read as a glossary; or the updated
@@ -338,32 +339,24 @@ export type GlossaryConfig = Pick<LoadedConfig, "config" | "glossary">;
 export interface ReadCurrentGlossaryInput {
   /** The loaded config, as {@link loadConfigWithMeta} returns it. */
   readonly loaded: GlossaryConfig;
-  /**
-   * A target locale the caller is about to resolve the glossary for. When given it must be one of
-   * the config's target locales.
-   */
-  readonly locale?: string | undefined;
 }
 
 /**
  * Reads the glossary a loaded config names as it is now: a file-backed glossary fresh from disk,
  * an inline one from the config itself, normalized either way. This is the read path behind a
- * glossary viewer that runs longer than one config load.
+ * glossary viewer that runs longer than one config load. To see what applies to one target locale,
+ * pass the result to {@link glossaryForLocale}.
  *
- * @param input - The loaded config and, optionally, the target locale the caller will resolve.
+ * @param input - The loaded config.
  * @param deps - Optional file-system override.
  * @returns The normalized glossary, or `undefined` when the config declares none.
  *
- * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locale` is not one of the configured target locales.
  * @throws {@link SdkError} `CONFIG_INVALID`: the glossary file cannot be read as a glossary.
  */
 export async function readCurrentGlossary(
   input: ReadCurrentGlossaryInput,
   deps: GlossaryFileDeps = {},
 ): Promise<Glossary | undefined> {
-  if (input.locale !== undefined) {
-    selectLocales(input.loaded.config, [input.locale]);
-  }
   if (input.loaded.glossary.source === "file") {
     return readGlossaryFile({ glossary: input.loaded.glossary }, deps);
   }

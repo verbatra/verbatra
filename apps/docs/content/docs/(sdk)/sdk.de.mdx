@@ -161,7 +161,8 @@ Eingabe: `{ config, cwd?, locale?, out? }`. `locale` ist standardmäßig `en-XA`
 erwartet. Eine Pseudo-Locale, die eine konfigurierte Locale benennt oder auf einer konfigurierten
 Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas
 gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
-eine einstehen. Ebenso ein `out`, das absolut ist oder aus `cwd` herausklettert. Weil die Datei
+eine einstehen. Ebenso ein `out`, das absolut ist, aus `cwd` herausklettert oder `cwd` selbst
+benennt, etwa `.`. Weil die Datei
 außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für sie aus, und `check` und `diff`
 melden sie nie als abgedriftet.
 
@@ -217,8 +218,8 @@ Adapter als Plural markierten werden aufgelistet.
 Eingabe: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` fällt auf
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`) zurück. Bevor irgendetwas gelesen oder geschrieben
 wird, weist `TYPES_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf
-ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`,
-`.mts` oder `.cts` endet, und eines, das eine konfigurierte Locale-Datei, die Lock-Datei, den
+ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert, `cwd` selbst benennt (`.`) oder nicht auf
+`.ts`, `.mts` oder `.cts` endet, und eines, das eine konfigurierte Locale-Datei, die Lock-Datei, den
 Übersetzungsspeicher-Cache, eine Datei, in der verbatra nach seiner Konfiguration sucht,
 `configPath`, die Konfigurationsdatei, aus der `config` geladen wurde, oder `glossaryPath` benennt,
 die Glossardatei, auf die sie zeigt; Namen werden ohne Rücksicht auf Groß- und Kleinschreibung
@@ -525,8 +526,8 @@ Key.
 Eingabe: `{ config, cwd?, locale, key, includeHuman? }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
-Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError` aus
-`@verbatra/ai-providers` mit einem stabilen Code wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
+Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
+`@verbatra/sdk`, mit einem stabilen `code` wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
 
 Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit dem konfigurierten
 Provider und Modell. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
@@ -831,11 +832,12 @@ solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfer
 `target` behält. `translation: null` ohne `locale` entfernt jetzt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
 
 Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
-einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die nichts ändert oder
+einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die kein Feld setzt oder
 `doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
 Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
 die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
-fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`.
+fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`. Eine Änderung, die das Glossar so lässt,
+wie es schon ist, gelingt und schreibt nichts.
 
 ### glossaryForLocale
 
@@ -883,11 +885,11 @@ deinem eigenen Werkzeug genauso.
 <AvailableFrom version="0.12.0" />
 
 Liest das Glossar, das eine geladene Konfiguration nennt, so wie es jetzt ist:
-`readCurrentGlossary({ loaded, locale? })`, wobei `loaded` das ist, was `loadConfigWithMeta`
+`readCurrentGlossary({ loaded })`, wobei `loaded` das ist, was `loadConfigWithMeta`
 zurückgibt. Ein dateibasiertes Glossar wird frisch von der Festplatte gelesen, ein Inline-Glossar
 kommt aus der Konfiguration, und in beiden Fällen ist das Ergebnis das normalisierte `Glossary` oder
-`undefined`, wenn die Konfiguration keins angibt. Ist `locale` angegeben, muss es eine konfigurierte
-Ziel-Locale sein, sonst scheitert der Aufruf mit `UNKNOWN_LOCALE` und nennt die konfigurierten.
+`undefined`, wenn die Konfiguration keins angibt. Um zu sehen, woran eine Ziel-Locale gebunden ist,
+gib das Ergebnis an `glossaryForLocale` weiter.
 
 ### editConfiguredGlossaryTerm
 
@@ -1032,8 +1034,8 @@ ganzen Prozess und wird von jeder im Prozess geladenen Kopie des SDK geteilt.
 <AvailableFrom version="0.9.0" />
 
 `deps.fs` ersetzt den Dateisystem-Port, über den die eigene I/O des SDK läuft, typisiert als
-`SdkFs`. Die Nahtstelle ist vollständig: die Run-Status-Datei, die Lock-Datei, das Konfigurations-Glossar,
-Arbeitsmappen- und Austausch-I/O sowie die Locale-Dateien selbst gehen alle darüber, denn die
+`SdkFs`. Die Nahtstelle ist vollständig: die Run-Status-Datei, die Lock-Datei, die Werkzeuge für die
+Glossardatei, Arbeitsmappen- und Austausch-I/O sowie die Locale-Dateien selbst gehen alle darüber, denn die
 Format-Adapter lesen und schreiben über einen Port, der aus demselben Objekt gebaut wird. Ein
 kompletter Lauf lässt sich damit im Speicher halten. Genau so vermeiden die Tests des SDK die
 Platte, und so kann eine einbettende Anwendung einen Teil eines Projekts auf etwas anderem als
@@ -1068,9 +1070,16 @@ Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Z
 lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` einen Link dort
 ersetzt, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
 
-Das Einzige, was `deps.fs` nicht erreicht, ist eine vom Aufrufer übergebene `deps.adapterRegistry`.
+`deps.fs` erreicht keine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
+
+Auch das Laden der Konfiguration liegt außerhalb der Nahtstelle. `loadConfig` und
+`loadConfigWithMeta` nehmen keine `deps`: Sie lesen die Konfigurationsdatei selbst von der echten
+Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Option `fs`, das
+`deps.fs` eines späteren Flows erreicht also keinen der beiden Lesevorgänge. Um ein ganzes Projekt
+im Speicher zu halten, übergib dasselbe `SdkFs` als `loadConfig({ fs })` und reich die
+Konfiguration als `configOverride` statt als Datei herein.
 
 ## Die Anatomie der RunSummary
 
@@ -1109,7 +1118,7 @@ interface LocaleSummary {
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
   needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
   usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
-  error?: { code: string; message: string }; // present only when status is "failed"
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
 }
 ```
 
@@ -1151,7 +1160,11 @@ Die Teile, die du kennen solltest:
   startet je Lauf ein frisches, und `retranslateEntry` fällt gar nicht darunter.
 - **error.code** auf einer fehlgeschlagenen Locale ist ein durchgereichter String (der Code des
   zugrunde liegenden Providers oder Adapters, mit `LOCALE_FAILED` nur als Rückfall); behandle ihn
-  also nicht als geschlossene Menge.
+  also nicht als geschlossene Menge. Eine `failed`-Locale trägt nicht immer ein `error`: Eine, deren
+  Keys alle zurückgehalten wurden und deshalb in `integrityMismatches`, `providerFailures` oder
+  `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
+  Listen und in ihren `notices`, etwa `SUB_BATCH_FAILED` für einen gescheiterten Provider-Batch oder
+  `BUDGET_TOKENS_EXCEEDED` für das Token-Budget. Prüf `status`, nie, ob `error` vorhanden ist.
 - **cacheHits** listet Keys, die aus dem [Übersetzungsspeicher-Cache](/docs/the-cache) statt vom
   Provider bedient wurden. **fuzzyHits** listet die Keys, die eine Übersetzung für einen
   geänderten Quellstring wiederverwendet haben, jeweils mit `key`, `similarity` und dem getroffenen
@@ -1218,7 +1231,7 @@ geworfen.
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
 | `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder `cwd` selbst benennt oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
 | `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
 | `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
@@ -1229,3 +1242,10 @@ Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eige
 überhaupt nie. Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
 [CI und Exit-Codes](/docs/ci-and-exit-codes); Hilfe vom Symptom aus gibt es unter
 [Fehlerbehebung](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` und sein Typ `ProviderErrorCode` werden aus `@verbatra/sdk` exportiert: Prüf einen
+Fehlschlag von `retranslateEntry` also mit `error instanceof ProviderError` und verzweige nach
+`error.code`; die [Provider-Seite](/docs/providers) listet jeden Code. Auf einer älteren Version,
+die die Klasse nicht exportiert, prüf `error.name === "ProviderError"` und lies `code`.

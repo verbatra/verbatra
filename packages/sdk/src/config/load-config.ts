@@ -4,16 +4,19 @@ import { dirname, join, resolve } from "node:path";
 import { cosmiconfig } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import type { z } from "zod";
-import { errorMessage, SdkError } from "../errors.js";
+import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { redact } from "../redact.js";
 import {
   describeGlossaryIssues,
   isGlossaryDefinition,
   rawLocaleKeyIssues,
   version1Entries,
 } from "./glossary.js";
+import { configLoadFailure } from "./load-failure.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
 import { declareProviderKeyEnvVar } from "./provider-key-env.js";
+import { findDroppedLocaleMapKeys } from "./provider-locale-map.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
 import { type ParsedVerbatraConfig, type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
 
@@ -132,7 +135,7 @@ function collectSearchChain(startDir: string, stopDir: string): ReadonlySet<stri
 }
 
 function formatIssues(error: z.ZodError): string {
-  return error.issues
+  const described = error.issues
     .map((issue) => {
       const path = issue.path.join(".");
       const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
@@ -141,6 +144,7 @@ function formatIssues(error: z.ZodError): string {
         : base;
     })
     .join("; ");
+  return redact(described);
 }
 
 function parseConfig(input: unknown): ParsedVerbatraConfig {
@@ -149,6 +153,17 @@ function parseConfig(input: unknown): ParsedVerbatraConfig {
     throw new SdkError(
       "CONFIG_INVALID",
       `The verbatra configuration is invalid: ${formatIssues(parsed.error)}`,
+    );
+  }
+  const dropped = findDroppedLocaleMapKeys(parsed.data, input);
+  if (dropped.length > 0) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      `The verbatra configuration is invalid: ${redact(
+        dropped
+          .map(({ key, message }) => `provider.options.localeMap.${key}: ${message}`)
+          .join("; "),
+      )}`,
     );
   }
   return withRawInlineGlossary(parsed.data, input);
@@ -164,8 +179,10 @@ function withRawInlineGlossary(parsed: ParsedVerbatraConfig, input: unknown): Pa
     if (issues.length > 0) {
       throw new SdkError(
         "CONFIG_INVALID",
-        `The verbatra configuration is invalid: ${describeGlossaryIssues(
-          issues.map((issue) => ({ ...issue, path: ["glossary", ...issue.path] })),
+        `The verbatra configuration is invalid: ${redact(
+          describeGlossaryIssues(
+            issues.map((issue) => ({ ...issue, path: ["glossary", ...issue.path] })),
+          ),
         )}`,
       );
     }
@@ -211,8 +228,7 @@ async function loadExplicitWithMeta(
   try {
     result = await explorer.load(resolved);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   const parsed = parseConfig(result?.config);
@@ -282,8 +298,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
   try {
     result = await explorer.search(cwd);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   if (result !== null && result.isEmpty !== true) {

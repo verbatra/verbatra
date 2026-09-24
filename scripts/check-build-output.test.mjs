@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DECLARATION_SPECIFIER,
   dynamicImportPattern,
+  findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
   staticImportPattern,
@@ -180,5 +182,70 @@ describe("getConfigSchemaFilesPattern", () => {
     };
 
     expect(getConfigSchemaFilesPattern(document)).toBeUndefined();
+  });
+});
+
+describe("findExportTypeMismatches", () => {
+  it("flags a shared types condition that hands ESM declarations to a require consumer", () => {
+    const manifest = {
+      type: "module",
+      exports: {
+        ".": {
+          types: "./dist/index.d.ts",
+          import: "./dist/index.js",
+          require: "./dist/index.cjs",
+        },
+      },
+    };
+
+    expect(findExportTypeMismatches(manifest)).toEqual([
+      "exports > . > require: ./dist/index.cjs (cjs) is typed by ./dist/index.d.ts (esm)",
+    ]);
+  });
+
+  it("accepts per-condition types that match each JavaScript file's module format", () => {
+    const manifest = {
+      type: "module",
+      exports: {
+        ".": {
+          import: { types: "./dist/index.d.ts", default: "./dist/index.js" },
+          require: { types: "./dist/index.d.cts", default: "./dist/index.cjs" },
+        },
+        "./config-schema.json": "./dist/config-schema.json",
+      },
+    };
+
+    expect(findExportTypeMismatches(manifest)).toEqual([]);
+  });
+
+  it("accepts an ESM-only package whose single types entry matches its import", () => {
+    const manifest = {
+      type: "module",
+      exports: { ".": { types: "./dist/index.d.ts", import: "./dist/index.js" } },
+    };
+
+    expect(findExportTypeMismatches(manifest)).toEqual([]);
+  });
+
+  it("flags .d.mts declarations paired with a .js file in a CommonJS package", () => {
+    const manifest = { exports: { ".": { types: "./index.d.mts", default: "./index.js" } } };
+
+    expect(findExportTypeMismatches(manifest)).toEqual([
+      "exports > . > default: ./index.js (cjs) is typed by ./index.d.mts (esm)",
+    ]);
+  });
+
+  it("ignores JavaScript targets that no types condition covers", () => {
+    expect(findExportTypeMismatches({ type: "module", exports: "./index.cjs" })).toEqual([]);
+    expect(findExportTypeMismatches({ type: "module" })).toEqual([]);
+  });
+
+  it("does not report the shipped package manifests", () => {
+    for (const dir of ["sdk", "cli", "studio", "mcp"]) {
+      const manifest = JSON.parse(
+        readFileSync(new URL(`../packages/${dir}/package.json`, import.meta.url), "utf8"),
+      );
+      expect(findExportTypeMismatches(manifest), dir).toEqual([]);
+    }
   });
 });

@@ -2,6 +2,8 @@ export {
   type DoNotTranslateTerm,
   type LocaleGlossary,
   type LocaleGlossaryTerm,
+  ProviderError,
+  type ProviderErrorCode,
   REVIEW_REASON_CODES,
   type ReviewReasonCode,
 } from "@verbatra/ai-providers";
