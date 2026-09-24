@@ -53,14 +53,14 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 Ergebnisse gehen auf stdout. Fortschritt, Hinweise, Tipps, Warnungen und Fehler gehen auf stderr, und verbatra passt sie daran an, wohin stderr geht:
 
 - In einem interaktiven Terminal sind feste Labels wie `error`, `[ok]` und `next:` eingefärbt, und ein Schritt, der länger als 300 ms dauert, zeigt einen ASCII-Spinner (`| / - \`).
-- Wenn stderr umgeleitet oder in eine Pipe geschrieben wird, `CI` gesetzt ist oder `TERM` den Wert `dumb` hat, besteht die Ausgabe aus schlichten, nur angehängten Zeilen ohne Farbe und ohne Animation.
+- Wenn stderr umgeleitet oder in eine Pipe geschrieben wird, `CI` auf einen anderen Wert als `0` oder `false` gesetzt ist oder `TERM` den Wert `dumb` hat, besteht die Ausgabe aus schlichten, nur angehängten Zeilen ohne Farbe und ohne Animation.
 - `--json` fügt nie Farbe, Animation oder neue Zeilen hinzu: stdout und stderr bleiben genau so, wie unter [JSON-Ausgabe](/docs/ci-and-exit-codes#json-ausgabe) beschrieben.
 
 | Flag oder Variable | Wirkung |
 | --- | --- |
 | `-q`, `--quiet` | gibt nur Ergebnisse, Warnungen und Fehler aus: keine Fortschrittszeilen, Hinweise oder `next:`-Tipps. Es wirkt vor oder nach dem Befehlsnamen |
 | `--no-color` | färbt die Ausgabe nie ein |
-| `NO_COLOR`, `VERBATRA_NO_COLOR` | jeder nicht leere Wert schaltet die Farbe ab; `VERBATRA_NO_COLOR` übersteuert auch `FORCE_COLOR` |
+| `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | jeder nicht leere Wert schaltet die Farbe ab; `VERBATRA_NO_COLOR` übersteuert auch `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` oder ein leerer Wert schaltet die Farbe ein, auch wenn stderr kein Terminal ist, und `0` schaltet sie ab; `--no-color` und `VERBATRA_NO_COLOR` haben trotzdem Vorrang |
 | `VERBATRA_NO_SPINNER` | jeder nicht leere Wert ersetzt den Spinner durch statische Zeilen `label... done (1.2s)`, für Screenreader und Terminalaufzeichnungen |
 
@@ -79,6 +79,7 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | `0` | Erfolg (auch `--help` und `--version`) |
 | `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben unvollständig, `check` fand ein Locale, das nicht synchron ist, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand ein Einrichtungsproblem oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
+| `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `translate` oder `import` wurde mit Ctrl-C (SIGINT) abgebrochen, nachdem die Schreibsperren freigegeben waren, oder `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 | `143` | `translate` oder `import` wurde mit SIGTERM beendet, nachdem die Schreibsperren freigegeben waren |
 

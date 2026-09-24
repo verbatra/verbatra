@@ -53,10 +53,11 @@ Auch die Prüfung Locale state ist rein informativ und schlägt nie fehl. Sie li
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die acht Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 
-Vier Details sind wichtig:
+Fünf Details sind wichtig:
 
 - Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
 - Der Provider `openai-compatible` ist die Ausnahme. Er fällt auf einen Platzhalter-Key zurück, eine fehlende Variable ist also in Ordnung. Er schlägt nur fehl, wenn deine Konfiguration über `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist.
+- Mit [`provider: { id: "none" }`](/docs/human-only-workflow) besteht der Provider-Check und meldet, dass maschinelle Übersetzung per Richtlinie abgeschaltet ist, der API-Key-Check besteht, ohne eine Variable anzusehen, und der Network-Policy-Check besteht, weil nie ein Provider aufgerufen wird.
 - Eine fehlende **Ziel**-Locale-Datei ist kein Problem: [`verbatra translate`](/docs/cli/translate) legt sie an. Ziel-Dateien werden überhaupt nicht geprüft.
 - Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt scheitern alle an dieser Prüfung, mit derselben Meldung, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
 

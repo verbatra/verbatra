@@ -53,10 +53,11 @@ La vérification Locale state est elle aussi informative et n'échoue jamais. El
 
 Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les huit vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
 
-Quatre détails comptent :
+Cinq détails comptent :
 
 - La clé d'API est vérifiée **par son nom uniquement**. `doctor` demande si la variable est définie, jamais ce qu'elle contient. La valeur n'est pas lue, pas affichée, et n'est envoyée nulle part. Voir [Fournisseurs](/docs/providers) pour la variable utilisée par chaque fournisseur.
 - Le fournisseur `openai-compatible` fait exception. Il retombe sur une clé placeholder : une variable absente ne pose donc pas de problème. Il échoue seulement quand ta config nomme sa propre variable via `provider.options.apiKeyEnvVar` et que cette variable n'est pas définie.
+- Avec [`provider: { id: "none" }`](/docs/human-only-workflow), la vérification du fournisseur réussit et indique que la traduction automatique est désactivée par politique, celle de la clé d'API réussit sans regarder aucune variable, et celle de la politique réseau réussit, car aucun fournisseur n'est jamais appelé.
 - Un fichier de locale **cible** manquant n'est pas un problème : [`verbatra translate`](/docs/cli/translate) le crée. Les fichiers cibles ne sont pas vérifiés du tout.
 - Le fichier de locale **source** est lu et analysé, pas seulement recherché. Un répertoire à sa place, un fichier vide et un contenu malformé font tous échouer cette vérification avec le message que [`verbatra check`](/docs/cli/check) donnerait, car ce sont exactement les cas qui font échouer toutes les autres commandes. Quand le `format` configuré ne résout aucun adaptateur, il n'y a rien pour l'analyser, donc la vérification retombe sur la seule existence et le signale.
 
