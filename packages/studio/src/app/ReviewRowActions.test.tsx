@@ -111,4 +111,11 @@ describe("ReviewRowActions", () => {
     expect(idle.get("span").className).not.toContain("flex-wrap");
     expect(idle.get('[role="status"]').textContent).toBe("");
   });
+
+  it("anchors the visually hidden status inside its own wrapper, so it never widens the page", () => {
+    const view = render(<ReviewRowActions {...handlers()} />);
+
+    expect(view.get("span").className).toContain("relative");
+    expect(view.get('[role="status"]').parentElement).toBe(view.get("span"));
+  });
 });
