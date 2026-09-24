@@ -1,3 +1,4 @@
+import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { type CreateProvider, loadConfigWithMeta } from "@verbatra/sdk";
 import { connectMcpServer } from "./server.js";
@@ -51,11 +52,17 @@ export interface McpServerHandle {
    * @returns Resolves once the server is closed.
    */
   close(): Promise<void>;
+  /**
+   * Settles once the server has closed, whether through `close()` or because the client closed
+   * stdin. Never rejects.
+   */
+  readonly closed: Promise<void>;
 }
 
 /**
  * Starts verbatra's stdio MCP server: loads the project config, connects an MCP `Server` over
- * `process.stdin`/`process.stdout`, and returns a handle to stop it. Use this to embed the server
+ * `process.stdin`/`process.stdout`, and returns a handle to stop it. The server closes itself when
+ * the client closes stdin, which settles the handle's `closed` promise. Use this to embed the server
  * in your own process; the `verbatra mcp` CLI command and the `verbatra-mcp` binary both call it.
  *
  * Nothing but valid MCP protocol messages is ever written to stdout; pass `onLog` to receive
@@ -104,7 +111,31 @@ export async function startMcpServer(
     transport,
   );
 
+  const closed = closeOnInputEnd(process.stdin, server);
   return {
     close: () => server.close(),
+    closed,
   };
+}
+
+interface ClosableServer {
+  close(): Promise<void>;
+  onclose?: (() => void) | undefined;
+}
+
+export function closeOnInputEnd(input: Readable, server: ClosableServer): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const closeServer = (): void => {
+      void server.close();
+    };
+    const previousOnClose = server.onclose;
+    server.onclose = () => {
+      input.off("end", closeServer);
+      input.off("close", closeServer);
+      previousOnClose?.();
+      resolve();
+    };
+    input.once("end", closeServer);
+    input.once("close", closeServer);
+  });
 }

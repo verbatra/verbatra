@@ -198,7 +198,7 @@ Estos son los códigos de salida de `verbatra mcp`; el `verbatra-mcp` independie
 
 | Código | Significado |
 | --- | --- |
-| `0` | detenido limpiamente por una sola interrupción (Ctrl-C, o SIGTERM) |
+| `0` | detenido limpiamente por una sola interrupción (Ctrl-C, o SIGTERM), o porque el cliente cerró stdin |
 | `1` | la parada falló: cerrar el servidor lanzó un error durante el apagado |
 | `2` | no se pudo arrancar: un error de configuración, `@verbatra/mcp` no instalado, o un error de uso |
 | `130` | detenido a la fuerza por una segunda interrupción mientras el apagado estaba en curso |

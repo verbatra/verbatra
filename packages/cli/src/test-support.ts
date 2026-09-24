@@ -1,3 +1,4 @@
+import type { McpServerHandle } from "@verbatra/mcp";
 import type {
   CheckInput,
   CheckSummary,
@@ -199,9 +200,13 @@ export function makeStudioModule(overrides: Partial<StudioModule> = {}): StudioM
   };
 }
 
+export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServerHandle {
+  return { close: async () => {}, closed: new Promise<void>(() => {}), ...overrides };
+}
+
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
   return {
-    startMcpServer: async () => ({ close: async () => {} }),
+    startMcpServer: async () => makeMcpHandle(),
     ...overrides,
   };
 }

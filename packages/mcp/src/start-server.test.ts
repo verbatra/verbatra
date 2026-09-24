@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SdkError } from "@verbatra/sdk";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
 import { connectMcpServer } from "./server.js";
-import { startMcpServer } from "./start-server.js";
+import { closeOnInputEnd, startMcpServer } from "./start-server.js";
 import {
   baseLoadedConfig,
   defaultAdapterRegistry,
@@ -34,6 +34,24 @@ describe("startMcpServer", () => {
 
     const handle = await startMcpServer({ cwd: dir, configPath });
     await handle.close();
+  });
+
+  it("closes itself and settles closed when the client closes stdin", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    process.stdin.emit("end");
+
+    await expect(handle.closed).resolves.toBeUndefined();
+  });
+
+  it("settles closed after an explicit close()", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    await handle.close();
+
+    await expect(handle.closed).resolves.toBeUndefined();
   });
 
   it("propagates a config-not-found error rather than swallowing it", async () => {
@@ -155,5 +173,49 @@ describe("stdio transport: stdout purity", () => {
       const message = JSON.parse(line) as { jsonrpc: string };
       expect(message.jsonrpc).toBe("2.0");
     }
+  });
+});
+
+describe("closeOnInputEnd", () => {
+  interface FakeServer {
+    close: Mock<() => Promise<void>>;
+    onclose?: (() => void) | undefined;
+  }
+
+  function fakeServer(): FakeServer {
+    const server: FakeServer = {
+      close: vi.fn(async () => {
+        server.onclose?.();
+      }),
+    };
+    return server;
+  }
+
+  it.each(["end", "close"])("closes the server once when the input emits %s", async (event) => {
+    const input = new PassThrough();
+    const server = fakeServer();
+
+    const closed = closeOnInputEnd(input, server);
+    input.emit(event);
+    await closed;
+    input.emit("end");
+    input.emit("close");
+
+    expect(server.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("chains an onclose handler that was already set", async () => {
+    const input = new PassThrough();
+    const server = fakeServer();
+    const previous = vi.fn();
+    server.onclose = previous;
+
+    const closed = closeOnInputEnd(input, server);
+    await server.close();
+    await closed;
+
+    expect(previous).toHaveBeenCalledTimes(1);
+    expect(input.listenerCount("end")).toBe(0);
+    expect(input.listenerCount("close")).toBe(0);
   });
 });

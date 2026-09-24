@@ -198,7 +198,7 @@ These are the exit codes of `verbatra mcp`; the standalone `verbatra-mcp` differ
 
 | Code | Meaning |
 | --- | --- |
-| `0` | stopped cleanly by a single interrupt (Ctrl-C, or SIGTERM) |
+| `0` | stopped cleanly by a single interrupt (Ctrl-C, or SIGTERM), or because the client closed stdin |
 | `1` | stopping failed: closing the server threw during shutdown |
 | `2` | could not start: a config error, `@verbatra/mcp` not installed, or a usage error |
 | `130` | force-stopped by a second interrupt while shutdown was in flight |
