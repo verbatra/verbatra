@@ -95,9 +95,9 @@
  *   the key first.
  * - `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps a key's translation in the file when
  *   verbatra writes the file without it, so {@link rejectEntry} cannot remove the value. XLIFF,
- *   where a unit without a target reads as its source text, and Flutter ARB, whose writer keeps
- *   every existing message, are such formats. It is also thrown when the locale file is too large to
- *   keep a copy to restore. The locale file is left as it was, and nothing else is written.
+ *   where a unit without a target reads as its source text, is such a format. It is also thrown
+ *   when the locale file is too large to keep a copy to restore. The locale file is left as it
+ *   was, and nothing else is written.
  * - `REVIEW_RESTORE_FAILED`: {@link rejectEntry} failed after it changed the locale file or the
  *   provenance file, and putting a changed file back failed as well. Only a file that differs from
  *   its copy taken before the rejection is restored or named. The message names the original

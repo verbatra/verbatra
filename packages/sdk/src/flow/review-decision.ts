@@ -552,8 +552,8 @@ export async function approveEntry(
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure.
  * @throws {@link SdkError} `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps the translation
- * when the file is written without it, as XLIFF and Flutter ARB do, or the locale file is too large
- * to keep a copy to restore. The locale file is left as it was and nothing else is written.
+ * when the file is written without it, as XLIFF does, or the locale file is too large to keep a
+ * copy to restore. The locale file is left as it was and nothing else is written.
  * @throws {@link SdkError} `REVIEW_RESTORE_FAILED`: a step failed after the locale file or the
  * provenance file changed, and putting a changed file back failed too. The message names the
  * original failure and the files that may no longer match the lock-file; the original error is the

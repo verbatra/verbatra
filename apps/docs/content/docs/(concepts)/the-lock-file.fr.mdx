@@ -214,8 +214,7 @@ que la décision ferait grossir au-delà de la taille que verbatra relit, fait �
   l'appel signale `REVIEW_RESTORE_FAILED` et nomme les fichiers à récupérer depuis le contrôle de
   version. Un processus interrompu en pleine écriture ne peut pas être annulé ainsi. Un format qui ne peut
   pas supprimer une seule traduction refuse le rejet avec `REVIEW_REJECT_UNSUPPORTED` et laisse le
-  fichier tel quel : XLIFF, dont l'écrivain ne met à jour que les cibles qu'il reçoit et garde toutes les autres, et Flutter ARB,
-  dont l'écrivain garde tous les messages existants.
+  fichier tel quel : XLIFF, dont l'écrivain ne met à jour que les cibles qu'il reçoit et garde toutes les autres.
 
 Toute écriture ultérieure qui change la valeur démarre un nouvel enregistrement non relu : modifier
 une valeur approuvée la renvoie donc en revue. Le nom dans `reviewer` est stocké dans un fichier
