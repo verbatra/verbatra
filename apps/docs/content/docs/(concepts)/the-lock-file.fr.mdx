@@ -117,7 +117,9 @@ exécution en attente vérifie le processus enregistré : si chaque champ d'iden
 correspond à celui de l'exécution en attente (le processus tournait donc sur cette machine, dans la
 même table des processus) et que ce processus n'existe plus, l'exécution reprend le verrou tout de suite au lieu d'attendre la fin de `--lock-timeout`. La
 reprise est sérialisée, donc deux exécutions en attente ne reprennent jamais toutes les deux le même
-verrou abandonné. Un verrou enregistré sur une autre machine (un lecteur réseau partagé) ou par une
+verrou abandonné. Le fichier abandonné est mis de côté sous un nom unique en une seule étape
+atomique et supprimé seulement s'il est encore l'enregistrement que l'exécution a vérifié : un
+verrou qu'une autre exécution a pris entre-temps est remis en place au lieu d'être supprimé. Un verrou enregistré sur une autre machine (un lecteur réseau partagé) ou par une
 version de verbatra antérieure à 0.12.0 ne contient rien de vérifiable sans risque, il n'est donc
 jamais repris. Il en va de même pour un verrou qui enregistre un champ d'identité que l'exécution
 en attente ne peut pas lire, ou auquel il en manque un qu'elle peut lire : il est traité comme

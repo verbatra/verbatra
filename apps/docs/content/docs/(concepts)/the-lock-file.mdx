@@ -104,7 +104,9 @@ one behind, so a waiting run checks the recorded process: when every identity fi
 records matches the waiting run's own (so the recorded process ran on this machine, in the same
 process table) and that process no longer exists, the run reclaims the lock at once instead of waiting out
 `--lock-timeout`. Reclaiming is serialized, so two waiting runs never both take over the same
-abandoned lock. A lock recorded on another machine (a shared network drive) or by a verbatra
+abandoned lock. The abandoned file is moved aside under a unique name in one atomic step and deleted
+only when it is still the record the run checked, so a lock another run took in the meantime is put
+back rather than deleted. A lock recorded on another machine (a shared network drive) or by a verbatra
 version older than 0.12.0 carries nothing that can be checked safely, so it is never reclaimed. The
 same goes for a lock that records an identity field the waiting run cannot read, or lacks one it
 can: it is treated as held by a live process.

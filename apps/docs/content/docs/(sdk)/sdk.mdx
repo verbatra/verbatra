@@ -1069,6 +1069,20 @@ project depends on. Without it, those guards compare paths as written. A link at
 whose target does not exist cannot be resolved, so the guards assume `writeFile` and `writeBytes`
 replace a link there rather than writing through it, as the default atomic write does.
 
+`rename` is optional as well.
+
+<AvailableFrom version="0.12.0" />
+
+It moves a file to a new name in the same directory in one atomic step, replacing any file already
+there, and rejects with an error whose `code` is `ENOENT` when the source is missing. The write lock
+uses it to remove a lock or reclaim guard left by a process that is gone: the file is moved aside
+under a unique name and deleted only when it is still the abandoned record the lock observed.
+Anything else, such as a lock another process took in the meantime, is put back with
+`createExclusive`, and when a third process has taken the path in between, it is left aside rather
+than deleted. Without `rename`, the lock reads the file and deletes it when unchanged, and clears an
+abandoned reclaim guard only after seeing it unchanged across two polls, which narrows but cannot
+close the window in which a lock another process just took is deleted.
+
 `deps.fs` cannot reach a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
 Supplying both means the caller owns that wiring.

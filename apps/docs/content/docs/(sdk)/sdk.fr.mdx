@@ -761,6 +761,12 @@ chemins tels qu'ils sont écrits. Un lien au chemin de sortie dont la cible n'ex
 être résolu, donc les gardes supposent que `writeFile` et `writeBytes` remplacent ce lien au lieu d'écrire à travers
 lui, comme le fait l'écriture atomique par défaut.
 
+`rename` est lui aussi optionnel.
+
+<AvailableFrom version="0.12.0" />
+
+Il déplace un fichier vers un nouveau nom dans le même répertoire en une seule étape atomique, en remplaçant tout fichier déjà présent, et rejette avec une erreur dont le `code` est `ENOENT` quand la source manque. Le verrou d'écriture s'en sert pour retirer un verrou ou une garde de reprise laissés par un processus disparu : le fichier est mis de côté sous un nom unique et supprimé seulement s'il est encore l'enregistrement abandonné que le verrou a observé. Tout le reste, comme un verrou qu'un autre processus a pris entre-temps, est remis en place avec `createExclusive`, et si un troisième processus a pris le chemin entre-temps, il reste de côté au lieu d'être supprimé. Sans `rename`, le verrou lit le fichier et le supprime s'il n'a pas changé, et ne retire une garde de reprise abandonnée qu'après l'avoir vue inchangée sur deux sondages, ce qui réduit sans pouvoir la fermer la fenêtre pendant laquelle un verrou qu'un autre processus vient de prendre est supprimé.
+
 `deps.fs` n'atteint pas un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 
 Le chargement de la configuration reste lui aussi hors du point d'injection. `loadConfig` et `loadConfigWithMeta` ne prennent pas de `deps` : ils lisent le fichier de configuration lui-même sur le vrai disque, et un fichier de glossaire que nomme la configuration via leur propre option `fs`, donc le `deps.fs` que reçoit un flux ultérieur n'atteint aucune de ces deux lectures. Pour garder un projet entier en mémoire, passe le même `SdkFs` comme `loadConfig({ fs })` et fournis la configuration comme `configOverride` plutôt que comme fichier.

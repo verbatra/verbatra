@@ -130,6 +130,26 @@ export interface SdkFs {
    * @returns The canonical absolute path. Rejects when the path does not exist.
    */
   realpath?(path: string): Promise<string>;
+  /**
+   * Moves the file at `from` to `to` in one atomic step, replacing any file already at `to`. The
+   * SDK only ever renames within one directory. Optional, so an implementation written before it
+   * existed keeps compiling.
+   *
+   * The write lock uses it to remove a lock or reclaim guard left by a process that is gone: it
+   * moves the file aside under a unique name and deletes it only when what it moved is the
+   * abandoned record it observed. Anything else, such as a lock another process took in the
+   * meantime, is put back with {@link SdkFs.createExclusive}, and when a third process has taken the
+   * path in between, it is left aside rather than deleted. Without it, the lock reads the file and
+   * deletes it when unchanged, and clears an abandoned reclaim guard only after seeing it unchanged
+   * across two polls, which narrows but cannot close the window in which a lock another process
+   * just took is deleted.
+   *
+   * @param from - The file to move.
+   * @param to - Its new path, in the same directory.
+   * @returns Resolves once the file is at `to`. Rejects with an error whose `code` is `ENOENT` when
+   * no file exists at `from`.
+   */
+  rename?(from: string, to: string): Promise<void>;
 }
 
 function entryKind(entry: Dirent): DirectoryEntry["kind"] {
@@ -264,6 +284,7 @@ export const defaultFs: SdkFs = {
     await mkdir(path, { recursive: true });
   },
   realpath: (path: string): Promise<string> => realpath(path),
+  rename: (from: string, to: string): Promise<void> => rename(from, to),
   readDirectory: async (path: string): Promise<readonly DirectoryEntry[]> => {
     const entries = await readdir(path, { withFileTypes: true });
     return entries.map((entry) => ({ name: entry.name, kind: entryKind(entry) }));

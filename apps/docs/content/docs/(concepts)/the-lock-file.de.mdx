@@ -113,7 +113,10 @@ Prozess: Stimmt jedes Identitätsfeld der Sperre mit dem des wartenden Laufs üb
 Prozess also auf dieser Maschine, in derselben Prozesstabelle) und existiert dieser Prozess nicht
 mehr, übernimmt der Lauf die
 Sperre sofort, statt `--lock-timeout` abzuwarten. Das Übernehmen ist serialisiert, sodass nie zwei
-wartende Läufe dieselbe verwaiste Sperre gleichzeitig übernehmen. Eine Sperre, die auf einer anderen
+wartende Läufe dieselbe verwaiste Sperre gleichzeitig übernehmen. Die verwaiste Datei wird in einem
+atomaren Schritt unter einem eindeutigen Namen beiseitegelegt und nur gelöscht, wenn sie noch der
+Eintrag ist, den der Lauf geprüft hat. Eine Sperre, die ein anderer Lauf inzwischen genommen hat,
+wird also zurückgelegt statt gelöscht. Eine Sperre, die auf einer anderen
 Maschine (einem geteilten Netzlaufwerk) oder von einer verbatra-Version vor 0.12.0 geschrieben
 wurde, enthält nichts, was sich sicher prüfen lässt, und wird deshalb nie übernommen. Dasselbe gilt
 für eine Sperre, die ein Identitätsfeld festhält, das der wartende Lauf nicht lesen kann, oder der

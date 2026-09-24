@@ -114,7 +114,9 @@ espera (así que el proceso se ejecutaba en esta máquina, en la misma tabla de 
 proceso ya no existe, la ejecución
 recupera el bloqueo al instante en lugar de agotar `--lock-timeout`. La recuperación está
 serializada, así que dos ejecuciones en espera nunca se quedan a la vez con el mismo bloqueo
-abandonado. Un bloqueo registrado en otra máquina (una unidad de red compartida) o por una versión
+abandonado. El archivo abandonado se aparta con un nombre único en un solo paso atómico y solo se
+borra si sigue siendo el registro que comprobó la ejecución, así que un bloqueo que otra ejecución
+tomó entretanto se devuelve a su sitio en lugar de borrarse. Un bloqueo registrado en otra máquina (una unidad de red compartida) o por una versión
 de verbatra anterior a 0.12.0 no contiene nada que se pueda comprobar con seguridad, así que nunca
 se recupera. Lo mismo vale para un bloqueo que registra un campo de identidad que la ejecución en
 espera no puede leer, o al que le falta uno que sí puede: se trata como si lo tuviera un proceso
