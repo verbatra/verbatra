@@ -587,7 +587,7 @@ describe("ReviewPanel", () => {
     expect(shown.className).toContain("text-start");
     expect(
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
-    ).toEqual(["#{orderId}", "{count, plural, one {# عنصر} other {# عناصر}}"]);
+    ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
     expect(view.all("[dir]").filter((node) => node !== shown && !shown.contains(node))).toEqual([]);
   });
 

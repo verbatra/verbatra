@@ -39,9 +39,29 @@ describe("TranslationValue", () => {
       "#{orderId}",
       "<b>",
       "</b>",
-      "{n, plural, one {#} other {#}}",
+      "{n, plural,",
+      "one {",
+      "#",
+      "} other {",
+      "#",
+      "}",
+      "}",
     ]);
     expect(tokens.every((node) => node.getAttribute("dir") === "ltr")).toBe(true);
+  });
+
+  it("leaves the text inside ICU arms outside any isolate so it follows the value's direction", () => {
+    const value = "{count, plural, one {# ورځ} other {# ورځې}}";
+    const view = render(<TranslationValue value={value} locale="ps" />);
+    const span = view.get("span");
+    const armTexts = Array.from(span.childNodes)
+      .filter((node) => node.nodeType === node.TEXT_NODE)
+      .map((node) => node.textContent);
+
+    expect(span.getAttribute("dir")).toBe("rtl");
+    expect(view.text()).toBe(value);
+    expect(armTexts).toEqual([" ", " ورځ", " ورځې"]);
+    expect(view.all("bdi")[0]?.textContent).toBe("{count, plural,");
   });
 
   it("renders as a paragraph when asked and forwards title, class and data attributes", () => {
