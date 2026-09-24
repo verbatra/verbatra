@@ -40,7 +40,7 @@
       "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
       "pnpmNote": "pnpm installe correctement mais sort avec le code 1 et ERR_PNPM_IGNORED_BUILDS, car il bloque les scripts d'installation d'une dépendance. Lance pnpm approve-builds une fois, ou consulte la page",
       "pnpmNoteLink": "Dépannage",
-      "aiSwitch": "Prompt pour l'IA",
+      "aiSwitch": "Prompt IA",
       "aiCaption": "Ceci est un aperçu tronqué. Le prompt complet et la marche à suivre sont dans",
       "aiCaptionLink": "le guide de configuration",
       "copyCommand": "Copier {command}"

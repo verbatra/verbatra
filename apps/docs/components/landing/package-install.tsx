@@ -71,7 +71,7 @@ function AiSwitch({
       aria-controls={AI_PANEL_ID}
       onClick={onToggle}
       className={cn(
-        "ms-auto inline-flex min-h-8 items-center gap-2 rounded-md px-2 font-mono text-xs transition-colors",
+        "ms-auto inline-flex min-h-8 items-center gap-2 whitespace-nowrap rounded-md px-2 font-mono text-xs transition-colors",
         checked ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
       )}
     >
