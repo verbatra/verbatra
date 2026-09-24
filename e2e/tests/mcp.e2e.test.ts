@@ -146,6 +146,11 @@ describe("mcp (no key)", () => {
     expect(result.signal).toBeUndefined();
     expect(result.exitCode).toBe(0);
     expect(result.stderr).not.toMatch(/unsettled top-level await/i);
+    expect(result.stderr).toContain(
+      "verbatra MCP server running on stdio (project mcp-project, spend tools off)\n",
+    );
+    expect(result.stderr).toContain("verbatra MCP server stopped (client closed stdin)");
+    expect(result.stderr).not.toContain("Ctrl-C");
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 
@@ -194,6 +199,9 @@ describe("mcp (no key)", () => {
       );
 
       expect(responseTo(stdout, 2)).toBeUndefined();
+      expect(result.stderr).toContain(
+        "verbatra MCP server running on stdio (project mcp-held-lock, spend tools on)\n",
+      );
       expect(result.signal).toBeUndefined();
       expect(result.exitCode).toBe(0);
       expect(await lockFilesUnder(stalledDir)).toEqual([]);
@@ -214,6 +222,10 @@ describe("mcp (no key)", () => {
     expect(result.signal).toBeUndefined();
     expect(result.exitCode).toBe(0);
     expect(result.stderr).not.toMatch(/unsettled top-level await/i);
+    expect(result.stderr).toContain(
+      "verbatra MCP server running on stdio (project mcp-project, spend tools off)\n",
+    );
+    expect(result.stderr).toContain("verbatra MCP server stopped (client closed stdin)");
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 });
