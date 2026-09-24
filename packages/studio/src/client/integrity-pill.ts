@@ -42,7 +42,7 @@ export function deriveIntegrityPillView(
   if (!entry.icuArmsMatch) {
     return {
       tone: "danger",
-      label: "Plural arms mismatch",
+      label: "ICU arms mismatch",
       detail: entry.icuArmDetails.length > 0 ? entry.icuArmDetails.join("; ") : null,
     };
   }
