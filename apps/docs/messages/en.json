@@ -11,7 +11,7 @@
     },
     "availableFrom": {
       "title": "Available from {version}",
-      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with verbatra --version and upgrade if it is older.",
+      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with <code>verbatra --version</code> and upgrade if it is older.",
       "packageTitle": "Available from {version}",
       "packageText": "This needs {version} or newer. Earlier releases do not have it, so upgrade that package if yours is older."
     },
@@ -68,7 +68,7 @@
       "copyPromptAria": "Copy the AI agent setup prompt",
       "pnpmNote": "pnpm installs correctly but exits 1 with ERR_PNPM_IGNORED_BUILDS, because it gates a dependency's install scripts. Run pnpm approve-builds once, or see",
       "pnpmNoteLink": "Troubleshooting",
-      "aiTabLabel": "AI",
+      "aiSwitch": "AI prompt",
       "aiCaption": "This is a truncated preview. Read the full prompt and setup walkthrough on",
       "aiCaptionLink": "the setup guide",
       "copyCommand": "Copy {command}"
@@ -141,7 +141,7 @@
       }
     },
     "finalClose": {
-      "heading": "Stop hand-syncing locale files.",
+      "heading": "Stop hand‑syncing locale files.",
       "docs": "Read the docs"
     },
     "footer": {
@@ -276,10 +276,6 @@
             "review": {
               "title": "Approve or reject what a run flagged",
               "body": "Decisions are saved next to the lock file, so the review queue only lists what nobody has looked at yet."
-            },
-            "glossary": {
-              "title": "A glossary with a translation per locale",
-              "body": "Per-locale terms, forbidden renderings and do-not-translate names, checked against every result."
             }
           }
         },
@@ -306,6 +302,10 @@
             "policy": {
               "title": "A network policy verbatra enforces",
               "body": "Local-only or an allowlist: a host you did not permit is refused before any request leaves the machine."
+            },
+            "preview": {
+              "title": "See what a run would send first",
+              "body": "A dry run needs no API key and writes nothing: it lists exactly which keys a real run would send."
             },
             "private": {
               "title": "No telemetry, and local models welcome",

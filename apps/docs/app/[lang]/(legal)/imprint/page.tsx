@@ -29,7 +29,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
   const linkTags = linkTagsFor(locale);
 
   return (
-    <main className="container mx-auto max-w-3xl px-6 py-16 prose">
+    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
       <h1>Impressum</h1>
       <p>{t("intro")}</p>
       <p>
@@ -107,6 +107,6 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer
         Verbraucherschlichtungsstelle teilzunehmen.
       </p>
-    </main>
+    </article>
   );
 }

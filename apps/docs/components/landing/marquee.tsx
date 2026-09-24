@@ -122,7 +122,7 @@ function Track({
             href={href}
             data-tip={item.tip}
             tabIndex={hidden ? -1 : undefined}
-            className="vk-tip inline-flex min-h-9 items-center gap-2.5 px-1 text-[15px] font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
+            className="vk-tip inline-flex min-h-9 items-center gap-2.5 px-1 text-base font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
             <span className="shrink-0 text-fd-foreground opacity-85">{item.icon}</span>
@@ -171,7 +171,7 @@ export async function Marquee(): Promise<ReactNode> {
 
   return (
     <section aria-label={t("label")} className="pt-14">
-      <p className="px-6 text-center text-[15px] text-fd-muted-foreground">{t("intro")}</p>
+      <p className="px-6 text-center text-base text-fd-muted-foreground">{t("intro")}</p>
       <div className="mt-[22px]">
         <Row items={frameworks} href={formatsHref} label={t("frameworksLabel")} direction="left" />
         <Row items={formats} href={formatsHref} label={t("formatsLabel")} direction="right" />

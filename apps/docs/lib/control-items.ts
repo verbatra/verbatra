@@ -33,17 +33,6 @@ export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
           fr: "décisions-de-revue",
         },
       },
-      {
-        key: "glossary",
-        evidence: '"version": 2',
-        page: "/docs/config-file",
-        anchors: {
-          en: "per-locale-glossary-version-2",
-          de: "glossar-pro-locale-version-2",
-          es: "glosario-por-locale-versión-2",
-          fr: "glossaire-par-locale-version-2",
-        },
-      },
     ],
   },
   {
@@ -86,6 +75,11 @@ export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
         key: "policy",
         evidence: 'network: { policy: "local-only" }',
         page: "/docs/network-policy",
+      },
+      {
+        key: "preview",
+        evidence: "verbatra translate --dry-run",
+        page: "/docs/cli/translate",
       },
       { key: "private", evidence: "openai-compatible", page: "/docs/data-handling" },
     ],

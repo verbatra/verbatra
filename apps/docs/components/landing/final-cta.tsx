@@ -1,12 +1,10 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { CommandBox } from "./command-box";
 import { NPM_CLI } from "./links";
 import { Reveal } from "./reveal";
-
-const INSTALL_COMMAND = "npm i -D @verbatra/cli";
-const CLI_TOKEN = "@verbatra/cli";
 
 const CLOSE_BACKGROUND = [
   "radial-gradient(ellipse 62% 72% at 50% 104%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
@@ -29,9 +27,9 @@ export async function FinalCta(): Promise<ReactNode> {
         <div className="mt-8 flex w-full justify-center">
           <div className="w-full max-w-[28rem]">
             <CommandBox
-              command={INSTALL_COMMAND}
+              command={NPM_INSTALL_COMMAND}
               label={tInstall("copyAria")}
-              link={{ token: CLI_TOKEN, href: NPM_CLI }}
+              link={{ token: CLI_PACKAGE, href: NPM_CLI }}
             />
           </div>
         </div>

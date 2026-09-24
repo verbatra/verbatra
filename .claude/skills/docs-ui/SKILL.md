@@ -121,8 +121,11 @@ footer's oversized watermark only; do not clip it onto a heading.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `loop.tsx`,
   `providers.tsx`, `control.tsx`, `gains.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`,
   `marquee.tsx`) plus the shared building blocks: `section.tsx` and `section-head.tsx` for
-  structure, `terminal.tsx` (with a `bare` variant), `hero-demo.tsx` (the hero's Terminal /
-  Studio tabs), `evidence.tsx` (the mono evidence chip), `package-install.tsx`,
+  structure, `terminal.tsx` (with a `bare` variant; lines never
+  wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
+  more to see), `hero-demo.tsx` (the hero's Terminal /
+  Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
+  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx`,
   `command-box.tsx`, `reveal.tsx`, `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
@@ -138,6 +141,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
   `content/docs/index.mdx` and its three locale siblings.
 
+## Fumadocs UI strings
+
+Fumadocs' own chrome (search, "On this page", page actions, sidebar aria-labels, pagination) is
+translated in `lib/ui-translations.ts`, added to `translations` in `lib/layout.shared.tsx`. The
+object is typed against `fumadocs-ui/i18n`'s `Translations`, and `lib/ui-translations.test.ts`
+fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
+
 ## One header for both surfaces
 
 `components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
@@ -147,7 +157,11 @@ and two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from
 the docs use) and `DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and
 drawer triggers). They are wired through `slots.header` in `lib/locale-home-layout.tsx` and
 `app/[lang]/docs/layout.tsx`; `lib/layout.shared.tsx` still supplies the links, title and
-language select for both. Fumadocs' own `HomeLayout` and notebook headers are never rendered,
+language select for both. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
+(`components/home-container.tsx`) and renders its own `<main>` around the page, with the landing
+footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
+contentinfo landmarks; a page under that layout must not render another `<main>`.
+Fumadocs' own `HomeLayout` and notebook headers are never rendered,
 so do not style `#nd-nav` or `#nd-subnav`; style `.vk-header` and `.vk-header-link` instead,
 and change the header in one place.
 
@@ -197,15 +211,21 @@ comes from:
   warn callout stay distinguishable without a third hue.
 - **Cards**: MDX `<Cards>` / `<Card>` are Fumadocs' own, mapped in `components/mdx.tsx` to add
   `.vk-link-card` (flat panel, glow border on hover, no prose underline) and to localize `href`.
-  "Next" sections end in a `<Cards>` block.
+  "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
+  target is dropped at render time (`lib/docs-neighbours.ts`, passed to `getMDXComponents` by the
+  docs page), so the footer and the cards never link the same page twice.
 - **Package-manager tabs**: a fenced block with the `npm` language becomes npm / pnpm / yarn / bun
-  tabs through Fumadocs' remark-npm (persisted as `package-manager` in `source.config.ts`);
+  tabs through Fumadocs' remark-npm (persisted as `package-manager` in `source.config.ts`; the
+  landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
+  and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
   Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
-  a visible frame at phone width. Inline code in cells never wraps.
+  a visible frame at phone width, with a thin scrollbar. Short inline code (up to
+  `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX
+  `code` mapping and never wraps; longer inline code wraps, in cells and in prose alike.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the
   same `LINK_CLASS` the landing rows use. Heading anchors are explicitly exempt so a
   section title never renders as a link. `.vk-prose-link` shares that exact rule in

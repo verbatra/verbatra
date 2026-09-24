@@ -71,6 +71,16 @@ h6 {
   font-family: var(--font-display);
 }
 
+code,
+pre,
+kbd,
+samp {
+  font-variant-ligatures: none;
+  font-feature-settings:
+    "calt" 0,
+    "liga" 0;
+}
+
 :root {
   --text-display: clamp(2.75rem, 1.4rem + 5.4vw, 5.75rem);
   --text-h2: clamp(2.1rem, 1.3rem + 3.2vw, 3.8rem);
@@ -460,12 +470,13 @@ h6 {
 
 #nd-page .prose :where(th code, td code):not(:where(.not-prose, .not-prose *)) {
   text-transform: none;
-  white-space: nowrap;
 }
 
 #nd-page .prose :where(div:has(> table)):not(:where(.not-prose, .not-prose *)) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
 }
 
 #nd-page .prose :where(table):not(:where(.not-prose, .not-prose *)) {
@@ -529,6 +540,10 @@ figure.shiki {
   color: var(--text-strong);
 }
 
+.vk-code-tabs [role="tab"]:focus-visible {
+  outline-offset: -2px;
+}
+
 .vk-code-tabs figure.shiki {
   margin: 0;
   border: 0;
@@ -566,8 +581,21 @@ figure.shiki {
   color: var(--text-strong);
 }
 
+.vk-evidence-link {
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+
+.vk-evidence-link:hover,
+.vk-evidence-link:focus-visible {
+  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  color: var(--text-strong);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vk-link-card {
+  .vk-link-card,
+  .vk-evidence-link {
     transition: none;
   }
 }
@@ -586,6 +614,11 @@ figure.shiki > pre {
 
 .prose :where(code):not(:where(.not-prose, .not-prose *, pre *)) {
   border-radius: var(--radius-sm);
+  overflow-wrap: break-word;
+}
+
+.vk-code-short {
+  white-space: nowrap;
 }
 
 .shiki span[style*="#6A737D" i] {
@@ -609,12 +642,26 @@ figure.shiki > pre {
   }
 }
 
+@keyframes vk-rise-settle {
+  from {
+    transform: translateY(14px);
+  }
+  to {
+    transform: none;
+  }
+}
+
 .vk-rise {
   animation: vk-rise 720ms var(--ease-out) both;
 }
 
+.vk-rise-settle {
+  animation: vk-rise-settle 720ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vk-rise {
+  .vk-rise,
+  .vk-rise-settle {
     animation: none;
   }
 }
@@ -696,7 +743,7 @@ figure.shiki > pre {
   border-radius: var(--radius-sm);
   background: var(--surface-card);
   color: var(--text-strong);
-  font: 12px / 1.3 var(--font-mono);
+  font: var(--text-xs) / 1.3 var(--font-mono);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
@@ -865,4 +912,17 @@ figure.shiki > pre {
 
 .vk-scroll::-webkit-scrollbar {
   display: none;
+}
+
+.vk-terminal-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+  background:
+    linear-gradient(to left, var(--v-void) 40%, transparent) right center / 48px 100% no-repeat
+    local,
+    linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
+    center / 20px 100% no-repeat scroll,
+    var(--v-void);
 }

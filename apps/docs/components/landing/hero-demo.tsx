@@ -103,7 +103,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-[13px] leading-relaxed text-[color:var(--text-faint)]">
+      <figcaption className="mt-3 text-sm leading-relaxed text-[color:var(--text-faint)]">
         {active === "cli" ? labels.captionCli : labels.captionStudio}
       </figcaption>
     </figure>

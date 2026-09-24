@@ -16,23 +16,26 @@ export async function Control(): Promise<ReactNode> {
       <Reveal>
         <SectionHead title={t("heading")} lead={t("lead")} />
       </Reveal>
-      <Reveal order={1} className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-3">
+      <Reveal
+        order={1}
+        className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-3 lg:grid-rows-[repeat(4,auto)] lg:gap-y-7"
+      >
         {CONTROL_GROUPS.map((group) => (
           <section
             key={group.key}
             aria-labelledby={`control-${group.key}`}
-            className="min-w-0 border-t border-fd-border pt-6"
+            className="grid min-w-0 gap-y-6 border-t border-fd-border pt-6 lg:row-span-4 lg:grid-rows-subgrid"
           >
             <h3 id={`control-${group.key}`} className="vk-h4">
               {t(`groups.${group.key}.title`)}
             </h3>
-            <ul className="mt-6 grid list-none gap-7 p-0">
+            <ul className="grid list-none gap-7 p-0 lg:row-span-3 lg:grid-rows-subgrid">
               {group.items.map((item) => (
-                <li key={item.key} className="grid gap-2">
+                <li key={item.key} className="grid content-start gap-2">
                   <span className="font-medium text-fd-foreground">
                     {t(`groups.${group.key}.items.${item.key}.title`)}
                   </span>
-                  <span className="max-w-[46ch] text-[15px] leading-relaxed text-fd-muted-foreground">
+                  <span className="max-w-[46ch] text-sm leading-relaxed text-fd-muted-foreground">
                     {t(`groups.${group.key}.items.${item.key}.body`)}
                   </span>
                   <span className="mt-1">

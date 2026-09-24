@@ -59,9 +59,7 @@ export function DocsHomeHero({
           >
             {headline}
           </h1>
-          <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-fd-muted-foreground md:text-[19px]">
-            {lead}
-          </p>
+          <p className="mt-5 max-w-[54ch] vk-lead text-fd-muted-foreground">{lead}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
             <Button
               href={localizedPath(locale, primary.href)}
@@ -121,7 +119,7 @@ export function DocsHomeSection({
           {title}
         </h2>
         {lead ? (
-          <p className="max-w-[46ch] text-[17px] leading-relaxed text-fd-muted-foreground lg:justify-self-end lg:pb-1">
+          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground lg:justify-self-end lg:pb-1">
             {lead}
           </p>
         ) : null}
@@ -230,9 +228,7 @@ export function DocsHomeFeatures({
         const content = (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-[13.5px] text-[color:var(--accent)]">
-                {feature.title}
-              </span>
+              <span className="font-mono text-sm text-[color:var(--accent)]">{feature.title}</span>
               {version ? (
                 <span className="font-mono text-xs text-[color:var(--text-faint)] tabular-nums">
                   {version}
