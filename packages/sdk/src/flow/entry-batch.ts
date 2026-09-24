@@ -51,10 +51,10 @@ export interface BatchEntryFailure extends BatchEntry {
 }
 
 /**
- * An entry of {@link retranslateEntries} that was not attempted, because an earlier entry failed
- * with an error that would fail this one too: an error that would fail every entry, such as a
- * missing API key, or a write lock the earlier entry could not acquire before its timeout and this
- * entry needs as well.
+ * An entry of a batch that was not attempted, because an earlier entry failed with an error that
+ * would fail this one too: a write lock the earlier entry could not acquire before its timeout and
+ * this entry needs as well, or, for {@link retranslateEntries}, an error that would fail every
+ * entry, such as a missing API key.
  */
 export interface BatchEntrySkipped extends BatchEntry {
   /** Always `false`: the entry was not carried out. */
@@ -73,7 +73,8 @@ export type ReviewBatchOutcome =
       /** Always `true`: the decision was recorded. */
       readonly ok: true;
     } & ReviewDecisionResult)
-  | BatchEntryFailure;
+  | BatchEntryFailure
+  | BatchEntrySkipped;
 
 /** Input for {@link approveEntries} and {@link rejectEntries}. */
 export interface ReviewEntriesInput {
@@ -88,6 +89,17 @@ export interface ReviewEntriesInput {
    * {@link ReviewDecisionInput.reviewer}.
    */
   readonly reviewer?: string;
+  /**
+   * Called while an entry waits on another process's write lock for its locale. Never called for
+   * a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, each entry waits for its locale's write lock before it fails with
+   * `LOCK_CONTENDED`, as {@link ReviewDecisionInput.lockAcquireTimeoutMs} does for one entry.
+   * Defaults to ten minutes per entry.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** The outcome of {@link approveEntries} or {@link rejectEntries}. */
@@ -239,22 +251,14 @@ interface SkipPolicy<E> {
   ) => readonly BatchEntrySkipped[] | undefined;
 }
 
-const NEVER_SKIP: SkipPolicy<BatchEntry> = {
-  blockedBy: () => undefined,
-  afterFailure: () => undefined,
-};
-
-function retranslationSkips<E extends BatchEntry>(lockPathOf: (entry: E) => string): SkipPolicy<E> {
+function lockTimeoutSkips<E extends BatchEntry>(lockPathOf: (entry: E) => string): SkipPolicy<E> {
   const unreachable = new Set<string>();
   return {
     blockedBy: (entry) => {
       const own = lockPathOf(entry);
       return unreachable.has(own) ? lockedOut(entry, own) : undefined;
     },
-    afterFailure: (entry, error, rest) => {
-      if (isBatchWide(error)) {
-        return skippedAfter(rest, error);
-      }
+    afterFailure: (entry, error) => {
       const path = unacquiredLockPath(error);
       if (path !== undefined && path === lockPathOf(entry)) {
         unreachable.add(path);
@@ -264,10 +268,23 @@ function retranslationSkips<E extends BatchEntry>(lockPathOf: (entry: E) => stri
   };
 }
 
+function retranslationSkips<E extends BatchEntry>(lockPathOf: (entry: E) => string): SkipPolicy<E> {
+  const locks = lockTimeoutSkips(lockPathOf);
+  return {
+    blockedBy: locks.blockedBy,
+    afterFailure: (entry, error, rest) =>
+      isBatchWide(error) ? skippedAfter(rest, error) : locks.afterFailure(entry, error, rest),
+  };
+}
+
+function entryLockPath(config: VerbatraConfig, cwd: string): (entry: BatchEntry) => string {
+  return (entry) => localeLockPath(cwd, writeLockKeyFor(config.format, entry.locale));
+}
+
 async function runEntries<E extends BatchEntry, R>(
   entries: readonly E[],
   run: (entry: E) => Promise<R>,
-  policy: SkipPolicy<E> = NEVER_SKIP,
+  policy: SkipPolicy<E>,
 ): Promise<readonly (R | BatchEntryFailure | BatchEntrySkipped)[]> {
   const outcomes: (R | BatchEntryFailure | BatchEntrySkipped)[] = [];
   for (const [index, entry] of entries.entries()) {
@@ -303,20 +320,29 @@ async function decideEntries(
   input: ReviewEntriesInput,
   deps: ReviewDecisionDeps,
 ): Promise<ReviewEntriesResult> {
-  const results = await runEntries(input.entries, async (entry) => {
-    const result = await decide(
-      {
-        config: input.config,
-        ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
-        locale: entry.locale,
-        key: entry.key,
-        expectedValue: entry.expectedValue,
-        ...(input.reviewer !== undefined ? { reviewer: input.reviewer } : {}),
-      },
-      deps,
-    );
-    return { ok: true as const, ...result };
-  });
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  const results = await runEntries(
+    input.entries,
+    async (entry) => {
+      const result = await decide(
+        {
+          config: input.config,
+          ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
+          locale: entry.locale,
+          key: entry.key,
+          expectedValue: entry.expectedValue,
+          ...(input.reviewer !== undefined ? { reviewer: input.reviewer } : {}),
+          ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
+          ...(input.lockAcquireTimeoutMs !== undefined
+            ? { lockAcquireTimeoutMs: input.lockAcquireTimeoutMs }
+            : {}),
+        },
+        deps,
+      );
+      return { ok: true as const, ...result };
+    },
+    lockTimeoutSkips(entryLockPath(input.config, input.cwd ?? process.cwd())),
+  );
   return { results };
 }
 
@@ -327,15 +353,20 @@ async function decideEntries(
  * Every entry is decided on its own, with the rules of {@link approveEntry}: it is refused unless
  * the key's current translation is its `expectedValue` and is up to date with its source. A
  * refused entry does not stop the batch; it is reported in `results` with the code and message
- * of the error that refused it, the message redacted, and the next entry is decided. An error
- * that is not an {@link SdkError}, an adapter error, or a provider error is not an outcome of one
- * entry, so the batch stops there and throws a {@link BatchInterruptedError} carrying the outcomes
- * of the entries already decided, with that error as its `cause`.
+ * of the error that refused it, the message redacted, and the next entry is decided. An entry that
+ * fails with `LOCK_CONTENDED` because its locale's write lock could not be acquired before
+ * `lockAcquireTimeoutMs` is reported as failed, and every later entry that needs the same lock as
+ * a {@link BatchEntrySkipped} with that code, without waiting again; entries of other locales are
+ * still decided. An error that is not an {@link SdkError}, an adapter error, or a provider error is
+ * not an outcome of one entry, so the batch stops there and throws a {@link BatchInterruptedError}
+ * carrying the outcomes of the entries already decided, with that error as its `cause`.
  *
- * @param input - The config, the entries with the values the reviewer saw, and an optional
- * reviewer.
+ * @param input - The config, the entries with the values the reviewer saw, an optional reviewer,
+ * and how long each entry may wait for its locale's write lock.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns One outcome per entry, in the order the entries were given.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before any entry runs.
  * @throws {@link BatchInterruptedError}: an unexpected error stopped the batch part way.
  */
 export async function approveEntries(
@@ -353,14 +384,17 @@ export async function approveEntries(
  * the key's current translation is its `expectedValue`, and a format that cannot drop a single
  * translation refuses it. A refused entry does not stop the batch; it is reported in `results`
  * with the code and message of the error that refused it, the message redacted, and the next
- * entry is decided. An error that is not an {@link SdkError}, an adapter error, or a provider
- * error stops the batch with a {@link BatchInterruptedError} carrying the outcomes of the entries
- * already decided, with that error as its `cause`.
+ * entry is decided. A locale write lock that times out skips the later entries needing it, as
+ * {@link approveEntries} does. An error that is not an {@link SdkError}, an adapter error, or a
+ * provider error stops the batch with a {@link BatchInterruptedError} carrying the outcomes of the
+ * entries already decided, with that error as its `cause`.
  *
- * @param input - The config, the entries with the values the reviewer saw, and an optional
- * reviewer.
+ * @param input - The config, the entries with the values the reviewer saw, an optional reviewer,
+ * and how long each entry may wait for its locale's write lock.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns One outcome per entry, in the order the entries were given.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before any entry runs.
  * @throws {@link BatchInterruptedError}: an unexpected error stopped the batch part way.
  */
 export async function rejectEntries(
@@ -427,9 +461,7 @@ export async function retranslateEntries(
       );
       return { locale: entry.locale, key: entry.key, ok: true as const, result };
     },
-    retranslationSkips((entry) =>
-      localeLockPath(cwd, writeLockKeyFor(input.config.format, entry.locale)),
-    ),
+    retranslationSkips(entryLockPath(input.config, cwd)),
   );
   return { results };
 }

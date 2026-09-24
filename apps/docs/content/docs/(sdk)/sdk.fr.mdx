@@ -416,14 +416,22 @@ liste `entries` vide renvoie des `results` vides.
 
 ### approveEntries
 
-Entrée : `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Exécute
-`approveEntry` pour chaque entrée avec les mêmes vérifications ; `reviewer` s'applique à chaque
-entrée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
+Entrée : `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Exécute `approveEntry` pour chaque entrée avec les mêmes vérifications ; `reviewer` s'applique à
+chaque entrée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
+`lockAcquireTimeoutMs` borne l'attente de chaque entrée pour le verrou d'écriture de sa locale, et
+`onLockWait` signale cette attente. Une entrée dont le verrou reste pris au-delà du délai échoue
+avec `LOCK_CONTENDED`, et chaque entrée suivante qui a besoin du même verrou reçoit
+`{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` au lieu d'attendre à
+nouveau ; les entrées des autres locales sont toujours décidées. Les appels à une seule entrée
+`approveEntry` et `rejectEntry` acceptent les deux mêmes options.
 
 ### rejectEntries
 
 Entrée : la même que pour `approveEntries`. Exécute `rejectEntry` pour chaque entrée et retire
-chaque valeur rejetée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
+chaque valeur rejetée. Un résultat réussi est `{ ok: true, locale, key, provenance }`. Un délai de
+verrou dépassé fait ignorer les entrées suivantes qui ont besoin de ce verrou, comme pour
+`approveEntries`.
 
 ### retranslateEntries
 
