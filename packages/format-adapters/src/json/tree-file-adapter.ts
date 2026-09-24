@@ -22,12 +22,14 @@ import { unflattenEntries } from "./unflatten.js";
 
 /**
  * Builds the tree to serialize from the entries about to be written, for a format that patches an
- * existing document rather than rebuilding it from the entries alone.
+ * existing document rather than rebuilding it from the entries alone. It also receives the locale
+ * of the resource being written, for a format that records its locale inside the file.
  */
 export type BuildWriteTree = (
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  locale: string,
 ) => OrderedRecord | Promise<OrderedRecord>;
 
 /**
@@ -189,7 +191,7 @@ export function createTreeFileAdapter(options: TreeFileAdapterOptions): FormatAd
     },
     async write(resource, filePath): Promise<void> {
       const tree = buildWriteTree
-        ? await buildWriteTree(resource.entries, filePath, fs)
+        ? await buildWriteTree(resource.entries, filePath, fs, resource.locale)
         : unflattenEntries(resource.entries);
       await fs.writeFileAtomic(filePath, serialize(tree));
     },

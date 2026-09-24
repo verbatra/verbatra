@@ -173,13 +173,21 @@ describe("createArbAdapter write (round-trip fidelity)", () => {
     expect((await adapter.read(path, "de")).resource.entries.has("items")).toBe(false);
   });
 
-  it("writes messages only when the destination does not exist (fresh target)", async () => {
+  it("starts a fresh target with @@locale for its locale, then the messages", async () => {
     const path = await tempArb("app_en.arb", SAMPLE);
     const { resource } = await adapter.read(path, "en");
     const fresh = join(await mkdtemp(join(tmpdir(), "verbatra-arb-")), "app_fr.arb");
-    await adapter.write(resource, fresh);
+    await adapter.write({ ...resource, locale: "fr" }, fresh);
     const written = JSON.parse(await readFile(fresh, "utf8"));
-    expect(Object.keys(written)).toEqual(["greeting", "items"]);
+    expect(Object.keys(written)).toEqual(["@@locale", "greeting", "items"]);
+    expect(written["@@locale"]).toBe("fr");
+  });
+
+  it("moves a hand-added @@locale to the top on rewrite, keeping its value", async () => {
+    const path = await tempArb("app_de.arb", { greeting: "Hallo {name}", "@@locale": "de" });
+    const { resource } = await adapter.read(path, "de");
+    await adapter.write(resource, path);
+    expect(Object.keys(JSON.parse(await readFile(path, "utf8")))).toEqual(["@@locale", "greeting"]);
   });
 
   it("round-trips metadata that carries numeric and nested leaves verbatim", async () => {

@@ -138,7 +138,7 @@ describe("buildArbWriteTree", () => {
       ["a", entry("a", "AA")],
       ["b", entry("b", "BB")],
     ]);
-    const tree = await buildArbWriteTree(entries, path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(entries, path, nodeAdapterFs, "de");
     expect([...tree.keys()]).toEqual(["@@locale", "a", "@a", "b"]);
     expect(tree.get("a")).toBe("AA");
     expect(tree.get("b")).toBe("BB");
@@ -155,6 +155,7 @@ describe("buildArbWriteTree", () => {
       new Map([["count", entry("count", "{1} von {0}")]]),
       path,
       nodeAdapterFs,
+      "de",
     );
     const serialized = serializeJsonTree(tree);
     expect(serialized.indexOf('"1"')).toBeLessThan(serialized.indexOf('"0"'));
@@ -170,25 +171,45 @@ describe("buildArbWriteTree", () => {
       b: "B",
       "@b": { description: "b" },
     });
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
     expect(plain(tree)).toEqual({ a: "AA", "@a": { description: "a" } });
   });
 
   it("drops @key metadata whose message is in neither the destination nor the write", async () => {
     const path = await tempArb({ a: "A", "@orphan": { description: "gone" } });
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
     expect(plain(tree)).toEqual({ a: "AA" });
   });
 
   it("keeps @key metadata placed before its message when the message is written", async () => {
     const path = await tempArb({ "@a": { description: "a" }, a: "A" });
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
     expect([...tree.keys()]).toEqual(["@a", "a"]);
   });
 
   it("keeps @key metadata for a message the destination lacks but the write adds", async () => {
     const path = await tempArb({ "@a": { description: "a" } });
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
     expect(plain(tree)).toEqual({ "@a": { description: "a" }, a: "AA" });
   });
 
@@ -199,7 +220,7 @@ describe("buildArbWriteTree", () => {
       "@@context": "app",
       a: "A",
     });
-    const tree = await buildArbWriteTree(new Map(), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(new Map(), path, nodeAdapterFs, "de");
     expect(plain(tree)).toEqual({
       "@@locale": "de",
       "@@last_modified": "2026-01-01T00:00:00Z",
@@ -213,13 +234,19 @@ describe("buildArbWriteTree", () => {
       new Map([["a\\.b", entry("a\\.b", "AA")]]),
       path,
       nodeAdapterFs,
+      "de",
     );
     expect(plain(tree)).toEqual({ "a.b": "AA", "@a.b": { description: "d" } });
   });
 
   it("drops a stray non-string, non-metadata destination leaf instead of carrying it over", async () => {
     const path = await tempArb({ a: "A", revision: 3 });
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
     expect(plain(tree)).toEqual({ a: "AA" });
   });
 
@@ -229,20 +256,73 @@ describe("buildArbWriteTree", () => {
       ["a", entry("a", "AA")],
       ["c", entry("c", "CC")],
     ]);
-    const tree = await buildArbWriteTree(entries, path, nodeAdapterFs);
+    const tree = await buildArbWriteTree(entries, path, nodeAdapterFs, "de");
     expect([...tree.keys()]).toEqual(["a", "c"]);
   });
 
-  it("emits messages only when the destination is missing", async () => {
+  it("starts a missing destination with @@locale for the written locale, then the messages", async () => {
     const missing = join(await mkdtemp(join(tmpdir(), "verbatra-arbmeta-")), "absent.arb");
-    const tree = await buildArbWriteTree(new Map([["a", entry("a", "A")]]), missing, nodeAdapterFs);
-    expect(plain(tree)).toEqual({ a: "A" });
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "A")]]),
+      missing,
+      nodeAdapterFs,
+      "de",
+    );
+    expect([...tree.keys()]).toEqual(["@@locale", "a"]);
+    expect(plain(tree)).toEqual({ "@@locale": "de", a: "A" });
+  });
+
+  it.each([
+    ["pt-BR", "pt_BR"],
+    ["zh-Hant-TW", "zh_Hant_TW"],
+    ["es-419", "es_419"],
+  ])(
+    "spells a new file's @@locale for %s the way Flutter parses the file name, %s",
+    async (locale, expected) => {
+      const missing = join(await mkdtemp(join(tmpdir(), "verbatra-arbmeta-")), "absent.arb");
+      const tree = await buildArbWriteTree(new Map(), missing, nodeAdapterFs, locale);
+      expect(tree.get("@@locale")).toBe(expected);
+    },
+  );
+
+  it("moves an existing @@locale to the first position, keeping its value", async () => {
+    const path = await tempArb({ a: "A", "@a": { description: "d" }, "@@locale": "de_AT" });
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
+    expect([...tree.keys()]).toEqual(["@@locale", "a", "@a"]);
+    expect(tree.get("@@locale")).toBe("de_AT");
+  });
+
+  it("keeps an existing @@locale first when it already is", async () => {
+    const path = await tempArb({ "@@locale": "de", a: "A" });
+    const tree = await buildArbWriteTree(
+      new Map([["b", entry("b", "B")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
+    expect([...tree.keys()]).toEqual(["@@locale", "b"]);
+  });
+
+  it("adds no @@locale to an existing file that has none", async () => {
+    const path = await tempArb({ a: "A" });
+    const tree = await buildArbWriteTree(
+      new Map([["a", entry("a", "AA")]]),
+      path,
+      nodeAdapterFs,
+      "de",
+    );
+    expect(tree.has("@@locale")).toBe(false);
   });
 
   it("throws INVALID_STRUCTURE instead of silently discarding a destination that is not a JSON object", async () => {
     const path = await tempArb(["not", "an", "object"]);
     try {
-      await buildArbWriteTree(new Map([["a", entry("a", "A")]]), path, nodeAdapterFs);
+      await buildArbWriteTree(new Map([["a", entry("a", "A")]]), path, nodeAdapterFs, "de");
       expect.unreachable("expected a throw");
     } catch (error) {
       expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
@@ -253,7 +333,7 @@ describe("buildArbWriteTree", () => {
     const path = join(await mkdtemp(join(tmpdir(), "verbatra-arbmeta-")), "app.arb");
     await writeFile(path, '{"@@locale": "en", "a": "A", not valid json');
     try {
-      await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs);
+      await buildArbWriteTree(new Map([["a", entry("a", "AA")]]), path, nodeAdapterFs, "de");
       expect.unreachable("expected a throw");
     } catch (error) {
       expect((error as AdapterError).code).toBe("INVALID_JSON");
@@ -263,7 +343,7 @@ describe("buildArbWriteTree", () => {
   it("throws INVALID_STRUCTURE instead of silently proceeding when the destination path is a directory", async () => {
     const dir = await mkdtemp(join(tmpdir(), "verbatra-arbmeta-"));
     try {
-      await buildArbWriteTree(new Map([["a", entry("a", "A")]]), dir, nodeAdapterFs);
+      await buildArbWriteTree(new Map([["a", entry("a", "A")]]), dir, nodeAdapterFs, "de");
       expect.unreachable("expected a throw");
     } catch (error) {
       expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
