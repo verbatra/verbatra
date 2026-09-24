@@ -537,7 +537,9 @@ that value so it gets replaced. The key is dropped from the locale file and its 
 removed, so `check` and `diff` report it as missing and the next `translate` fills it again (under
 `provider: { id: "none" }` it stays missing until someone writes a value). The provenance record is
 kept as `rejected` with a hash of the removed text, and the matching translation-memory entry on
-this machine is dropped. Calls no provider.
+this machine is dropped. A later `translate` skips any exact or fuzzy memory hit for the key whose
+text matches that hash, so another machine's memory cannot bring the text back either. Calls no
+provider.
 
 Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, checked like `approveEntry`
 except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A

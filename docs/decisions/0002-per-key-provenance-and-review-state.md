@@ -439,10 +439,13 @@ Delivered next:
   and Reject buttons; and a review queue (`reviewQueue`, Studio, MCP `review.queue`) that leaves
   out every flag decided since the run (Decisions 5, 6 and 8).
 
+- The `rejected` handling in a run: `translate` and `watch` skip an exact or fuzzy memory hit
+  whose `valueHash` equals the key's `rejected` record, under every `humanEdits` setting, and send
+  the key to the provider instead; in human-only mode the key stays unfilled. `retranslateEntry`
+  and plural generation never read the memory, so the rule has nothing to guard there (Decision 5).
+
 Specified here, delivered later:
 
-- The `rejected` handling in a run: skipping an exact or fuzzy memory hit whose value hash equals a
-  `rejected` record's hash, so a teammate's memory cannot reinstate the text (Decision 5).
 - A review queue built from committed state alone (every machine-class, unreviewed value), bulk
   approval, and a CI gate on unreviewed machine values.
 - The Studio origin badge, the key-drawer record, the lock-card counts, and watching

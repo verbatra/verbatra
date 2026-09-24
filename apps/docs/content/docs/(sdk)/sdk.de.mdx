@@ -582,8 +582,10 @@ ablehnt, und entfernt diesen Wert, damit er ersetzt wird. Der Key fliegt aus der
 sein Lock-Eintrag wird entfernt, sodass `check` und `diff` ihn als fehlend melden und der nächste
 `translate`-Lauf ihn wieder füllt (unter `provider: { id: "none" }` bleibt er fehlend, bis jemand
 einen Wert schreibt). Der Herkunftseintrag bleibt als `rejected` mit einem Hash des entfernten Texts
-erhalten, und der passende Eintrag im Translation Memory auf diesem Rechner wird gelöscht. Ruft
-keinen Provider auf.
+erhalten, und der passende Eintrag im Translation Memory auf diesem Rechner wird gelöscht. Ein
+späteres `translate` überspringt jeden exakten oder unscharfen Memory-Treffer für den Key, dessen
+Text zu diesem Hash passt, sodass auch das Memory eines anderen Rechners den Text nicht
+zurückbringt. Ruft keinen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, geprüft wie bei `approveEntry`,
 nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`

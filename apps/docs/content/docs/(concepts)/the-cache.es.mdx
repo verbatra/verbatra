@@ -13,6 +13,8 @@ En una ejecución, antes de que una clave vaya al proveedor, verbatra la busca e
 
 Un valor reutilizado no se acepta a ciegas. Sigue pasando las mismas [comprobaciones de integridad](/docs/translation-safety) contra el origen actual antes de escribirse, así que un valor en caché que ya no encaja con su clave se descarta y la clave se traduce de nuevo. Los aciertos de caché se recogen por locale en el resumen de la ejecución, aparte de las claves traducidas en esa ejecución.
 
+Un valor que alguien [rechazó](/docs/review-in-studio) en la revisión tampoco se reutiliza nunca para esa clave. El rechazo guarda en `verbatra.provenance.json` un hash del texto rechazado, y una ejecución omite cualquier acierto exacto o difuso cuyo texto coincida con él, así que la caché de un compañero no puede devolver ese texto. La clave va al proveedor, o, con el proveedor `none`, se queda sin rellenar hasta que alguien escriba un valor.
+
 ## Reutilización difusa
 
 <AvailableFrom version="0.11.0" />

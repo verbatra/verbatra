@@ -568,7 +568,9 @@ ese valor para que se reemplace. La clave sale del archivo de locale y se borra 
 bloqueo, así que `check` y `diff` la reportan como faltante y la siguiente ejecución de `translate`
 la vuelve a llenar (con `provider: { id: "none" }` sigue faltando hasta que alguien escriba un
 valor). El registro de procedencia se queda como `rejected` con un hash del texto eliminado, y la
-entrada correspondiente de la memoria de traducción de esta máquina se borra. No llama a ningún
+entrada correspondiente de la memoria de traducción de esta máquina se borra. Un `translate`
+posterior omite cualquier acierto exacto o difuso de la memoria para la clave cuyo texto coincida
+con ese hash, así que la memoria de otra máquina tampoco puede devolver el texto. No llama a ningún
 proveedor.
 
 Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, comprobada como en

@@ -58,7 +58,13 @@ import {
   type PluralGenerationResult,
   pendingPluralForms,
 } from "./plural-generation.js";
-import { type ProtectionPolicy, type ProvenanceView, protectedKeys } from "./protection.js";
+import {
+  isRejectedValue,
+  type ProtectionPolicy,
+  type ProvenanceView,
+  protectedKeys,
+  type RejectedValueHashes,
+} from "./protection.js";
 import { readTargetResource } from "./read-target.js";
 import type {
   FuzzyCacheHit,
@@ -113,6 +119,7 @@ export interface LocaleRunParams {
     readonly policy: ProtectionPolicy;
     readonly provenance: ProvenanceView;
   };
+  readonly rejected?: RejectedValueHashes;
   readonly onProgress?: ProgressListener;
 }
 
@@ -191,7 +198,7 @@ function acceptFuzzyFromCache(
     source.value,
     { threshold: fuzzy.threshold },
   );
-  if (match === undefined) {
+  if (match === undefined || isRejectedValue(params.rejected, source.key, match.value)) {
     return undefined;
   }
   const gate = gateCandidateValue(source, match.value, params.adapter, params.targetLocale);
@@ -210,7 +217,7 @@ function acceptFromCache(
     params.targetLocale,
     contentHash(source),
   );
-  if (cached === undefined) {
+  if (cached === undefined || isRejectedValue(params.rejected, source.key, cached)) {
     return allowFuzzy ? acceptFuzzyFromCache(params, cache, source) : undefined;
   }
   const gate = gateCandidateValue(source, cached, params.adapter, params.targetLocale);
