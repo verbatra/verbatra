@@ -79,9 +79,9 @@ describe("createSseHub: broadcast and heartbeat", () => {
     const response = fakeResponse();
     hub.register(response);
 
-    hub.broadcastRefresh({ reason: "source", at: "sk-abcdefgh12345678" });
+    hub.broadcastRefresh({ reason: "source", at: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z" });
 
-    expect(response.writes[0]).not.toContain("sk-abcdefgh12345678");
+    expect(response.writes[0]).not.toContain("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
     expect(response.writes[0]).toContain("[REDACTED]");
     hub.closeAll();
   });

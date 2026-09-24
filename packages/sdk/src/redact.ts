@@ -5,10 +5,13 @@ import { redactKeys } from "@verbatra/ai-providers";
  * out of a string, replacing each match with `[REDACTED]`.
  *
  * Two independent passes run: a set of shape patterns for the major providers (OpenAI-style `sk-`
- * keys, Gemini-style `AIza` keys, a DeepL free key's hex UUID with its `:fx` suffix anywhere, and a
- * bare hex UUID only in a key context such as a `DeepL-Auth-Key` header, an `auth_key` parameter,
- * or a `DEEPL_API_KEY` assignment, so an unrelated UUID in a path or an id stays readable), and an
- * exact-value scrub of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
+ * keys whose random part holds a run of at least 20 letters and digits, so a Slovak `sk-SK` locale
+ * path or key stays readable; Gemini-style `AIza` keys; a DeepL free key's hex UUID with its `:fx`
+ * suffix anywhere; and a bare hex UUID only in a key context, a `DeepL-Auth-Key` header or an
+ * `auth_key`, `authKey`, `auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`, or `DEEPL_AUTH_KEY`
+ * name followed by `:`, `=`, URL-encoded `%3D`, or whitespace, quoted or with JSON-escaped quotes,
+ * so an unrelated UUID in a path or an id stays readable), and an exact-value scrub, in raw and in
+ * JSON-escaped form, of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
  * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` currently holds in
  * the process environment, plus any variable declared as a key source: the one an
  * `openai-compatible` provider names through `apiKeyEnvVar` is declared when {@link loadConfig}
@@ -27,7 +30,7 @@ import { redactKeys } from "@verbatra/ai-providers";
  * ```ts
  * import { redact } from "@verbatra/sdk";
  *
- * redact("key is sk-abcdEFGH12345678 in the log");
+ * redact("key is sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z in the log");
  * // "key is [REDACTED] in the log"
  * ```
  */

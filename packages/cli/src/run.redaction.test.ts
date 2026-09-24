@@ -82,7 +82,10 @@ describe("run: output redaction on the error path", () => {
   it("scrubs a key shape nobody configured, as the provider error scrub would", async () => {
     const { deps } = recordingDeps({
       loadConfig: async () => {
-        throw new SdkError("CONFIG_INVALID", "apiKey sk-abcdEFGH12345678 is not allowed here");
+        throw new SdkError(
+          "CONFIG_INVALID",
+          "apiKey sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z is not allowed here",
+        );
       },
     });
     const cap = captureStreams();

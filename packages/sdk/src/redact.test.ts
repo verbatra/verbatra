@@ -8,7 +8,9 @@ describe("redact", () => {
   });
 
   it("redacts an OpenAI-style sk- key", () => {
-    expect(redact("key is sk-abcdEFGH12345678 in the log")).toBe("key is [REDACTED] in the log");
+    expect(redact("key is sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z in the log")).toBe(
+      "key is [REDACTED] in the log",
+    );
   });
 
   it("does not redact a hyphenated word that merely starts with sk-", () => {
