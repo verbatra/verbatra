@@ -13,6 +13,7 @@ export interface Tarballs {
   sdk: string;
   cli: string;
   studio: string;
+  mcp: string;
 }
 
 interface Manifest extends Tarballs {
@@ -40,14 +41,21 @@ export async function readSharedConsumer(): Promise<Consumer> {
   };
 }
 
-export async function makeConsumer(options: { withStudio?: boolean } = {}): Promise<Consumer> {
-  const { sdk, cli, studio } = await readTarballs();
+export async function makeConsumer(
+  options: { withStudio?: boolean; withMcp?: boolean } = {},
+): Promise<Consumer> {
+  const { sdk, cli, studio, mcp } = await readTarballs();
   const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-consumer-"));
   await writeFile(
     join(dir, "package.json"),
     JSON.stringify({ name: "verbatra-e2e-consumer", version: "0.0.0", private: true }, null, 2),
   );
-  const packs = options.withStudio === true ? [sdk, cli, studio] : [sdk, cli];
+  const packs = [
+    sdk,
+    cli,
+    ...(options.withStudio === true ? [studio] : []),
+    ...(options.withMcp === true ? [mcp] : []),
+  ];
   await execa("npm", ["install", "--no-audit", "--no-fund", "--no-package-lock", ...packs], {
     cwd: dir,
   });

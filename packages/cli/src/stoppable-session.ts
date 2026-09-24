@@ -1,5 +1,6 @@
 export interface StoppableController {
   stop(): Promise<void>;
+  readonly ended?: Promise<void>;
 }
 
 export interface StoppableSession {
@@ -36,6 +37,7 @@ export function stoppableSession<C extends StoppableController>(
     .getController()
     .then((c) => {
       controller = c;
+      void c.ended?.then(() => resolveDone(0));
       if (stopping) {
         stopController(c);
       }

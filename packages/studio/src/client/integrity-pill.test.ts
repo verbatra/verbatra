@@ -9,6 +9,8 @@ function entry(overrides: Partial<KeyIntegrityLocaleEntry> = {}): KeyIntegrityLo
     missing: [],
     extra: [],
     icuValid: true,
+    icuArmsMatch: true,
+    icuArmDetails: [],
     markupMatches: true,
     markupDetails: [],
     ...overrides,
@@ -87,6 +89,30 @@ describe("deriveIntegrityPillView", () => {
       label: "Invalid message syntax",
       detail: null,
     });
+  });
+
+  it("renders danger naming each wrong arm when the ICU plural arms do not fit the target language", () => {
+    const details = [
+      '{count} plural: missing arm "few" required by the target language',
+      '{count} plural: missing arm "many" required by the target language',
+    ];
+    expect(
+      deriveIntegrityPillView([entry({ icuArmsMatch: false, icuArmDetails: details })], "de"),
+    ).toEqual({ tone: "danger", label: "Plural arms mismatch", detail: details.join("; ") });
+  });
+
+  it("renders the arms mismatch without detail when no single arm is named", () => {
+    expect(deriveIntegrityPillView([entry({ icuArmsMatch: false })], "de")).toEqual({
+      tone: "danger",
+      label: "Plural arms mismatch",
+      detail: null,
+    });
+  });
+
+  it("renders danger for wrong arms even on a key whose source has no placeholders", () => {
+    expect(
+      deriveIntegrityPillView([entry({ hasPlaceholders: false, icuArmsMatch: false })], "de"),
+    ).toMatchObject({ tone: "danger", label: "Plural arms mismatch" });
   });
 
   it("renders danger, not neutral, when a placeholder-free source received an ICU-invalid target", () => {

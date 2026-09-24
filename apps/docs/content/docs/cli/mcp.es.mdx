@@ -30,9 +30,13 @@ Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
+| `--cwd` | `<path>` | `CLAUDE_PROJECT_DIR`, si no el directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--allow-spend` | ninguno | desactivado | expone las dos herramientas que llaman a un proveedor de traducción |
+
+Si falta `--cwd` y la variable de entorno `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor usa ese directorio como raíz del proyecto en lugar del directorio en el que se inició. Claude Code fija `CLAUDE_PROJECT_DIR` a la raíz del proyecto para cada servidor stdio que lanza, así que una sesión iniciada desde un subdirectorio sigue encontrando la configuración del proyecto. Un `--cwd` explícito siempre tiene prioridad, y `verbatra-mcp` y `verbatra mcp` aplican la misma regla. Con `verbatra mcp`, los archivos `.env.local` y `.env` también se leen desde ese directorio.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Cuando falta `--allow-spend`, el servidor lee en su lugar la variable de entorno `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado. El flag de la CLI siempre gana sobre la variable de entorno. Sin ninguno de los dos, `translation.retranslateEntry` y `translation.translatePending` no se exponen en absoluto: un cliente MCP que liste las herramientas nunca las ve, y llamarlas por nombre falla como herramienta desconocida. Esta es una garantía por proceso, no una comprobación por llamada, así que una herramienta bloqueada por gasto es estructuralmente imposible de llamar, no simplemente rechazada en el momento de la llamada. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, y entonces las dos herramientas nunca se exponen, ni siquiera con `--allow-spend`.
 
@@ -86,7 +90,7 @@ El texto es el mismo para cada proyecto y cada arranque del servidor, así que n
 | `glossary.get` | cada término del glosario con sus traducciones por locale, traducciones prohibidas y contexto, los términos que no se traducen y, opcionalmente, a qué se atiene un locale, con los secretos redactados | sí | no |
 | `glossary.write` | cambia un término del glosario: una traducción, datos por locale, contexto o si se queda sin traducir | no | no |
 | `lock.state` | versión del archivo de bloqueo y, por locale de destino, su recuento de claves registradas más los recuentos de faltantes, obsoletas y al día | sí | no |
-| `key.integrity` | desfase de placeholders, marcado en línea e ICU de una clave respecto a la línea base del archivo de bloqueo, por locale (solo revisa claves cuyo texto de origen cambió desde la línea base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
+| `key.integrity` | desfase de placeholders, marcado en línea, sintaxis ICU y ramas ICU de una clave respecto a la línea base del archivo de bloqueo, por locale (solo revisa claves cuyo texto de origen cambió desde la línea base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
 | `key.value` | texto de origen y destino actual de una clave | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, verificada por la puerta de integridad de placeholders, marcado en línea e ICU | no | no |
 | `translation.estimate` | lo que `translation.translatePending` enviaría y costaría, el mismo resultado que `translate --estimate --json`, opcionalmente para un subconjunto de `locales` | sí | no |
@@ -130,6 +134,10 @@ Las comprobaciones de marcado en línea en `key.integrity` (`markupMatches`, `ma
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
+Cada entrada de `key.integrity` lleva además `icuArmsMatch` e `icuArmDetails`: si las ramas ICU de `plural`, `selectordinal` y `select` del valor encajan con el idioma de destino, juzgadas con la misma regla por la que `translation.editEntry` rechaza un valor con el motivo `icu`, y un problema breve por cada rama que falta o sobra.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
 Cada herramienta declara ahora un `outputSchema`, incluidas las cinco que antes no tenían:
 
 - `project.snapshot` devuelve `sourceLocale`, `targetLocales`, `format`, `files.pattern`, `provider.id`, `configSource`, `glossary` (`source` es `none`, `inline` o `file` con su `path`), `humanEdits` (`protect`, `suggest` u `overwrite`; `protect` si no está definido) y `prune` (`false` si no está definido).
@@ -166,7 +174,7 @@ El transporte stdio de MCP usa stdout exclusivamente para mensajes de protocolo.
 `@verbatra/mcp` es un paquete aparte, al que se llega mediante un import dinámico para que el resto de la CLI funcione sin él. Si no está instalado, `verbatra mcp` sale con `2` y este mensaje:
 
 ```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
 Ejecutar `verbatra-mcp` directamente no necesita la CLI en absoluto: instala `@verbatra/mcp` por separado, o deja que `npx` lo obtenga bajo demanda como se muestra arriba.
@@ -194,7 +202,7 @@ Estos son los códigos de salida de `verbatra mcp`; el `verbatra-mcp` independie
 
 | Código | Significado |
 | --- | --- |
-| `0` | detenido limpiamente por una sola interrupción (Ctrl-C, o SIGTERM) |
+| `0` | detenido limpiamente por una sola interrupción (Ctrl-C, o SIGTERM), o porque el cliente cerró stdin |
 | `1` | la parada falló: cerrar el servidor lanzó un error durante el apagado |
 | `2` | no se pudo arrancar: un error de configuración, `@verbatra/mcp` no instalado, o un error de uso |
 | `130` | detenido a la fuerza por una segunda interrupción mientras el apagado estaba en curso |

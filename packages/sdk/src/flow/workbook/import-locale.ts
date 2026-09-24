@@ -6,10 +6,11 @@ import {
 } from "@verbatra/core";
 import type { WorkbookRow, WorkbookSheet } from "@verbatra/exchange";
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
+import { gateCandidateValue, type IntegrityGateRejection, refusalOf } from "../integrity-gate.js";
 import { deriveLocaleStatus } from "../locale-failure.js";
 import type {
   DuplicateKeyReport,
+  IntegrityRefusal,
   LocaleSummary,
   MalformedRowReport,
   SdkNotice,
@@ -50,24 +51,25 @@ function isUnknownKey(row: WorkbookRow, source: LocaleResource, target: LocaleRe
   return !source.entries.has(row.key) && !target.entries.has(row.key);
 }
 
-type Reason = "drift" | IntegrityGateReason;
+type Verdict = "accepted" | "drift" | IntegrityGateRejection;
 
 function judge(
   row: WorkbookRow,
   sourceEntry: TranslationEntry,
   adapter: FormatAdapter,
   targetLocale: string,
-): Reason | undefined {
+): Verdict {
   if (contentHash(sourceEntry) !== row.sourceHash) {
     return "drift";
   }
   const gate = gateCandidateValue(sourceEntry, row.translation, adapter, targetLocale);
-  return gate.accepted ? undefined : gate.reason;
+  return gate.accepted ? "accepted" : gate;
 }
 
 interface Buckets {
   readonly accepted: Map<string, { value: string; source: TranslationEntry; cleared: boolean }>;
   readonly mismatches: string[];
+  readonly refusals: IntegrityRefusal[];
   readonly withheld: Set<string>;
   readonly blankDrifted: Set<string>;
   readonly unfilled: string[];
@@ -91,6 +93,24 @@ function classifyClear(row: WorkbookRow, sourceEntry: TranslationEntry, buckets:
     return;
   }
   buckets.accepted.set(row.key, { value: "", source: sourceEntry, cleared: true });
+}
+
+function classifyTranslation(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+): void {
+  const verdict = judge(row, sourceEntry, params.adapter, params.target.locale);
+  if (verdict === "accepted") {
+    buckets.accepted.set(row.key, { value: row.translation, source: sourceEntry, cleared: false });
+    return;
+  }
+  buckets.mismatches.push(row.key);
+  buckets.withheld.add(row.key);
+  if (verdict !== "drift") {
+    buckets.refusals.push(refusalOf(row.key, verdict));
+  }
 }
 
 function classifyRows(
@@ -117,17 +137,7 @@ function classifyRows(
       classifyClear(row, sourceEntry, buckets);
       continue;
     }
-    const reason = judge(row, sourceEntry, params.adapter, params.target.locale);
-    if (reason === undefined) {
-      buckets.accepted.set(row.key, {
-        value: row.translation,
-        source: sourceEntry,
-        cleared: false,
-      });
-    } else {
-      buckets.mismatches.push(row.key);
-      buckets.withheld.add(row.key);
-    }
+    classifyTranslation(row, sourceEntry, params, buckets);
   }
 }
 
@@ -145,6 +155,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
   const buckets: Buckets = {
     accepted: new Map(),
     mismatches: [],
+    refusals: [],
     withheld: new Set(),
     blankDrifted: new Set(),
     unfilled: [],
@@ -179,6 +190,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     cacheHits: [],
     fuzzyHits: [],
     integrityMismatches,
+    integrityRefusals: [...buckets.refusals].sort((left, right) => (left.key < right.key ? -1 : 1)),
     providerFailures: [],
     budgetWithheld: [],
     generated: [],

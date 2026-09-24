@@ -132,6 +132,7 @@ Reach for `--include-unchanged` when a translator wants the full context of a lo
 - `glossary-term-missed`: a glossary term's translation for this locale, or a `doNotTranslate` term, did not make it into the translation.
 - `glossary-forbidden-term`: the translation uses a rendering the glossary forbids for this locale.
 - `integrity-reordered`: the placeholders match but landed in a different order than the source.
+- `icu-arms`: the translation's ICU `plural`, `selectordinal`, or `select` arms do not fit the target language, followed by each missing or extra arm. Unlike the others this is a value the integrity gate would refuse, so fix it before the row comes back (from 0.12.0).
 
 Two more reasons round out the set of eight, and both exist only at translate time: `provider-degraded` (a formality-downgraded or glossary-ignored notice on the batch a key came from) and `fuzzy-cache-reuse` (the value was reused from the translation memory for an earlier, near-identical source that has since been edited). Export recomputes the columns from the source and target values alone, so neither one ever appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
 

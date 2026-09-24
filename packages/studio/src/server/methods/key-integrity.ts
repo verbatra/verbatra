@@ -23,6 +23,8 @@ export const keyIntegrityHandler: RpcHandler<"key.integrity"> = async (params, d
       missing: entry.missing,
       extra: entry.extra,
       icuValid: entry.icuValid,
+      icuArmsMatch: entry.icuArmsMatch,
+      icuArmDetails: entry.icuArmDetails,
       markupMatches: entry.markupMatches,
       markupDetails: entry.markupDetails,
     });

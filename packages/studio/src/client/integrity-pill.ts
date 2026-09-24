@@ -39,6 +39,13 @@ export function deriveIntegrityPillView(
   if (!entry.icuValid) {
     return { tone: "danger", label: "Invalid message syntax", detail: null };
   }
+  if (!entry.icuArmsMatch) {
+    return {
+      tone: "danger",
+      label: "Plural arms mismatch",
+      detail: entry.icuArmDetails.length > 0 ? entry.icuArmDetails.join("; ") : null,
+    };
+  }
   if (!entry.markupMatches) {
     return {
       tone: "danger",

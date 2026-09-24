@@ -267,6 +267,10 @@ Chaque `LocaleDiff` porte aussi `protected`, les clés manquantes et modifiées 
 
 Rapporte, pour les clés modifiées de chaque locale, si la valeur cible actuelle correspond toujours aux placeholders de la source, si elle porte toujours le balisage en ligne de la source et si elle est de l'ICU valide. Chaque entrée porte `key`, `hasPlaceholders`, `matches`, les jetons de placeholder `missing` et `extra` en cas de discordance, `icuValid`, `markupMatches` et `markupDetails` qui nomme les balises à l'origine d'une discordance de balisage. Les entrées ne portent jamais de valeur de chaîne source ou cible. Rapporter le balisage ici est ce qui rend visible la dérive antérieure à la barrière d'intégrité appliquée à l'écriture : une traduction écrite avant que le contrôle existe, modifiée hors de verbatra, ou produite par un chemin qui n'a jamais franchi la barrière est jugée ici selon la même règle. C'est le rapport d'intégrité par clé que Studio affiche.
 
+<AvailableFrom version="0.12.0" />
+
+Chaque entrée porte aussi `icuArmsMatch` et `icuArmDetails` : si les branches ICU `plural`, `selectordinal` et `select` de la valeur conviennent à la langue cible, jugées exactement comme la barrière appliquée à l'écriture les juge, et un problème court par branche manquante ou en trop, comme `{count} plural: missing arm "few" required by the target language`. `icuArmsMatch` vaut toujours true pour un format qui ne vérifie pas les branches (tous les formats fournis sauf next-intl et ARB).
+
 Entrée : `{ config, cwd?, locales?, keys? }`. `keys` restreint la vérification ; seules les clés "modifiées" pour une locale sont vérifiées. Renvoie un `LocaleKeyIntegrity` par locale vérifiée.
 
 ### lockState
@@ -422,6 +426,10 @@ Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes c
 
 Entrée : `{ config, workbook, cwd?, dryRun?, format? }`. Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le répertoire qui en contient un par locale, et la locale vient du nom du fichier. Renvoie la même forme `RunSummary` que `translate` (avec `needsReview` toujours vide, puisqu'aucun fournisseur n'intervient). Une feuille pour une locale qui n'est pas une cible configurée fait échouer cette locale avec `CONFIG_INVALID` comme donnée sur le résumé, pas comme exception.
 
+<AvailableFrom version="0.12.0" />
+
+`integrityRefusals` de chaque locale nomme les lignes que la barrière d'intégrité a refusées, avec le motif et ses `details`, comme chaque branche ICU qui ne convient pas à la langue cible. Une ligne retenue parce que sa source a changé depuis l'export n'apparaît que dans `integrityMismatches`. `exportWorkbook` signale comme `icu-arms` dans ses colonnes de révision une traduction actuelle aux branches incorrectes.
+
 ## La paire TMX
 
 <AvailableFrom version="0.11.0" />
@@ -475,6 +483,13 @@ langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut 
 de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact. Les décomptes
 par locale sont tout de même renvoyés, comme lors d'une exécution à blanc, donc `added` et
 `overwritten` décrivent ce qui serait entré ; avec `memoryWritable` à false, rien n'est entré.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque locale liste aussi ses `refusals`, un `TmxUnitRefusal` par unité comptée sous un motif de la
+barrière : `{ unit, reason, details? }`, où `unit` est la position de l'unité dans le fichier, à
+partir de 1, et `details` nomme ce qui ne va pas, comme chaque branche ICU qui ne convient pas à la
+langue cible.
 
 ### tmxErrorLocation
 

@@ -105,7 +105,7 @@ describe("studio (no key, @verbatra/studio not installed)", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("@verbatra/studio");
-    expect(result.stderr).toContain("pnpm add -D @verbatra/studio");
+    expect(result.stderr).toContain("npm install --save-dev @verbatra/studio");
     expect(result.stdout).not.toContain("Verbatra Studio running at");
   }, 120_000);
 });

@@ -40,9 +40,18 @@ export function failedSession(code: number): Session {
   return { done: Promise.resolve(code), requestStop: () => {} };
 }
 
-export function watchForStop(server: { close(): Promise<void> }, streams: Streams): Session {
+export interface StoppableServer {
+  close(): Promise<void>;
+  readonly closed?: Promise<void>;
+}
+
+export function watchForStop(server: StoppableServer, streams: Streams): Session {
   return stoppableSession({
-    getController: () => Promise.resolve({ stop: () => server.close() }),
+    getController: () =>
+      Promise.resolve({
+        stop: () => server.close(),
+        ...(server.closed !== undefined ? { ended: server.closed } : {}),
+      }),
     onFailure: (error) => {
       streams.err(`${renderError(toRenderableError(error))}\n`);
       return 1;

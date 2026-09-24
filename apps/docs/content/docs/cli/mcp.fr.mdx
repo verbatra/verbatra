@@ -30,9 +30,13 @@ Les deux formes prennent les trois mêmes options et démarrent le même serveur
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
+| `--cwd` | `<path>` | `CLAUDE_PROJECT_DIR`, sinon le répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--allow-spend` | aucun | désactivé | expose les deux outils qui appellent un fournisseur de traduction |
+
+Sans `--cwd`, si la variable d'environnement `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur prend ce répertoire comme racine du projet au lieu de celui dans lequel il a été lancé. Claude Code définit `CLAUDE_PROJECT_DIR` sur la racine du projet pour chaque serveur stdio qu'il lance, donc une session démarrée depuis un sous-répertoire trouve quand même la config du projet. Un `--cwd` explicite l'emporte toujours, et `verbatra-mcp` et `verbatra mcp` appliquent la même règle. Avec `verbatra mcp`, les fichiers `.env.local` et `.env` sont aussi lus depuis ce répertoire.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Quand `--allow-spend` est absente, le serveur lit à la place la variable d'environnement `VERBATRA_MCP_ALLOW_SPEND` : `1`, `true`, `yes` ou `on` (insensible à la casse) compte comme activé. L'option CLI l'emporte toujours sur la variable d'environnement. Sans l'une ni l'autre, `translation.retranslateEntry` et `translation.translatePending` ne sont pas exposés du tout : un client MCP qui liste les outils ne les voit jamais, et les appeler par leur nom échoue comme un outil inconnu. C'est une garantie par processus, pas une vérification par appel : un outil soumis à l'autorisation de dépense est donc structurellement impossible à appeler, et pas seulement refusé au moment de l'appel. Une configuration avec `provider: { id: "none" }` désactive la traduction automatique par principe, et les deux outils ne sont alors jamais exposés, même avec `--allow-spend`.
 
@@ -86,7 +90,7 @@ Le texte est le même pour chaque projet et chaque démarrage du serveur, il ne 
 | `glossary.get` | chaque terme du glossaire avec ses traductions par locale, ses traductions interdites et son contexte, les termes à ne pas traduire et, en option, ce à quoi une locale est tenue, expurgé des secrets | oui | non |
 | `glossary.write` | modifie un terme du glossaire : une traduction, des données par locale, un contexte ou le fait qu'il reste non traduit | non | non |
 | `lock.state` | version du fichier de verrouillage et, par locale cible, son nombre de clés enregistrées ainsi que ses décomptes de clés manquantes, obsolètes et à jour | oui | non |
-| `key.integrity` | dérive des placeholders, du balisage en ligne et d'ICU d'une clé par rapport à la référence du fichier de verrouillage, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
+| `key.integrity` | dérive des placeholders, du balisage en ligne, de la syntaxe ICU et des branches ICU d'une clé par rapport à la référence du fichier de verrouillage, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
 | `key.value` | texte source et cible actuel d'une clé | oui | non |
 | `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, soumise à la barrière d'intégrité des placeholders, du balisage en ligne et d'ICU | non | non |
 | `translation.estimate` | ce que `translation.translatePending` enverrait et coûterait, le même résultat que `translate --estimate --json`, éventuellement pour un sous-ensemble de `locales` | oui | non |
@@ -130,6 +134,10 @@ Les contrôles de balisage en ligne dans `key.integrity` (`markupMatches`, `mark
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
+Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et `icuArmDetails` : si les branches ICU `plural`, `selectordinal` et `select` de la valeur conviennent à la langue cible, jugées selon la même règle qui fait refuser une valeur par `translation.editEntry` avec le motif `icu`, et un problème court par branche manquante ou en trop.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
 Chaque outil déclare désormais un `outputSchema`, y compris les cinq qui n'en avaient pas :
 
 - `project.snapshot` renvoie `sourceLocale`, `targetLocales`, `format`, `files.pattern`, `provider.id`, `configSource`, `glossary` (`source` vaut `none`, `inline` ou `file` avec son `path`), `humanEdits` (`protect`, `suggest` ou `overwrite` ; `protect` si non défini) et `prune` (`false` si non défini).
@@ -166,7 +174,7 @@ Le transport stdio de MCP utilise stdout exclusivement pour les messages du prot
 `@verbatra/mcp` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra mcp` sort avec le code `2` en affichant :
 
 ```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
 Lancer `verbatra-mcp` directement ne nécessite aucune CLI : installe `@verbatra/mcp` seul, ou laisse `npx` le récupérer à la demande comme montré ci-dessus.
@@ -194,7 +202,7 @@ Voici les codes de sortie de `verbatra mcp` ; le binaire autonome `verbatra-mcp`
 
 | Code | Signification |
 | --- | --- |
-| `0` | arrêté proprement par une seule interruption (Ctrl-C ou SIGTERM) |
+| `0` | arrêté proprement par une seule interruption (Ctrl-C ou SIGTERM), ou parce que le client a fermé stdin |
 | `1` | l'arrêt a échoué : la fermeture du serveur a levé une erreur pendant l'extinction |
 | `2` | n'a pas pu démarrer : une erreur de config, `@verbatra/mcp` non installé, ou une erreur d'utilisation |
 | `130` | arrêté de force par une seconde interruption pendant que l'extinction était en cours |

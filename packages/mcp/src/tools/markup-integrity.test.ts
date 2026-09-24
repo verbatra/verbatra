@@ -77,6 +77,8 @@ describe("key.integrity: markup drift already on disk reaches the agent", () => 
               {
                 matches: true,
                 icuValid: true,
+                icuArmsMatch: true,
+                icuArmDetails: [],
                 markupMatches: false,
                 markupDetails: ["-</b>", "-<b>"],
               },

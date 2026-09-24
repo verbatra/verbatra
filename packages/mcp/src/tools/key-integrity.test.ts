@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { LOCK_FILE_NAME } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
+  baseLoadedConfig,
+  baseVerbatraConfig,
   defaultAdapterRegistry,
   makeContext,
   makeProject,
@@ -36,6 +38,43 @@ describe("key.integrity", () => {
           {
             locale: "de",
             entries: [{ hasPlaceholders: true, matches: true, missing: [], extra: [] }],
+          },
+        ],
+      },
+    });
+  });
+
+  it("names each ICU plural arm that does not fit the target language", async () => {
+    const dir = await makeProject(
+      { files: "{count, plural, one {# file} other {# files}}" },
+      { ru: { files: "{count, plural, one {# файл} other {# файлов}}" } },
+    );
+    await markStale(dir, "ru", "files");
+    const config = baseLoadedConfig({
+      config: { ...baseVerbatraConfig(), format: "next-intl-json", targetLocales: ["ru"] },
+    });
+
+    const outcome = await keyIntegrityTool.execute(
+      { key: "files" },
+      makeContext({ cwd: dir, config }),
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        locales: [
+          {
+            locale: "ru",
+            entries: [
+              {
+                icuValid: true,
+                icuArmsMatch: false,
+                icuArmDetails: [
+                  '{count} plural: missing arm "few" required by the target language',
+                  '{count} plural: missing arm "many" required by the target language',
+                ],
+              },
+            ],
           },
         ],
       },
@@ -139,9 +178,9 @@ describe("key.integrity", () => {
     expect(keyIntegrityTool.description).not.toContain("verify a specific key");
   });
 
-  it("names inline markup beside placeholders and ICU as drift it reports", () => {
+  it("names inline markup and ICU arms beside placeholders and ICU as drift it reports", () => {
     expect(keyIntegrityTool.description).toMatch(
-      /^Reports one key's placeholder, inline markup, and ICU drift against the lock-file baseline, per target locale\. /,
+      /^Reports one key's placeholder, inline markup, ICU syntax, and ICU plural, ordinal, and select arm drift against the lock-file baseline, per target locale\. /,
     );
   });
 });

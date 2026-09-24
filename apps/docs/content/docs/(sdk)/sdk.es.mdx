@@ -406,6 +406,14 @@ del momento de escritura: una traducción escrita antes de que existiera la comp
 verbatra o producida por una ruta que nunca pasó por la puerta se juzga aquí con la misma regla.
 Este es el informe de integridad por clave que muestra Studio.
 
+<AvailableFrom version="0.12.0" />
+
+Cada entrada lleva además `icuArmsMatch` e `icuArmDetails`: si las ramas ICU de `plural`,
+`selectordinal` y `select` del valor encajan con el idioma de destino, juzgadas exactamente como las
+juzga la puerta del momento de escritura, y un problema breve por cada rama que falta o sobra, como
+`{count} plural: missing arm "few" required by the target language`. `icuArmsMatch` siempre es true
+para un formato que no comprueba ramas (todos los formatos incluidos salvo next-intl y ARB).
+
 Entrada: `{ config, cwd?, locales?, keys? }`. `keys` acota la comprobación; solo se comprueban las
 claves que están "modificadas" para un locale. Devuelve un `LocaleKeyIntegrity` por locale comprobado.
 
@@ -688,6 +696,13 @@ archivo. Devuelve la misma forma `RunSummary` que `translate`
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
 excepción.
 
+<AvailableFrom version="0.12.0" />
+
+`integrityRefusals` de cada locale nombra las filas que rechazó la puerta de integridad, con el motivo
+y sus `details`, como cada rama ICU que no encaja con el idioma de destino. Una fila retenida porque su
+origen cambió desde la exportación aparece solo en `integrityMismatches`. `exportWorkbook` marca como
+`icu-arms` en sus columnas de revisión una traducción actual con ramas incorrectas.
+
 ## El par TMX
 
 <AvailableFrom version="0.11.0" />
@@ -738,6 +753,13 @@ coincidieron de forma ambigua. `memoryWritable` es `false` cuando el archivo de 
 un verbatra más nuevo, en cuyo caso se deja intacto. Los recuentos por locale se siguen informando
 entonces, como en una ejecución de prueba, así que `added` y `overwritten` describen lo que habría
 entrado; con `memoryWritable` en `false`, no entró nada.
+
+<AvailableFrom version="0.12.0" />
+
+Cada locale lista además sus `refusals`, un `TmxUnitRefusal` por cada unidad contada bajo un motivo
+de la puerta: `{ unit, reason, details? }`, donde `unit` es la posición de la unidad en el archivo,
+empezando en 1, y `details` nombra lo que falla, como cada rama ICU que no encaja con el idioma de
+destino.
 
 ### tmxErrorLocation
 
