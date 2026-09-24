@@ -9,6 +9,8 @@ for every locale plus the locales with their own. Choosing a locale shows the tr
 locale uses, marked when it is inherited, and the renderings it must never use. The editor sets a
 translation for all locales or for the chosen one, that locale's forbidden renderings, a note, a
 part of speech and case sensitivity, and a new "Do not translate" list keeps brand names
-untranslated in every locale. The `glossary.get` and `glossary.write` agent tools carry the same
-data and parameters. A glossary term named `__proto__`, `constructor` or `prototype` is no longer
-dropped from the panel.
+untranslated in every locale. Removing a term's translation for all locales keeps a term that
+still has per-locale translations or forbidden renderings. The review page labels the new
+`GLOSSARY_FORBIDDEN_TERM` reason "Forbidden term used". The `glossary.get` and `glossary.write`
+agent tools carry the same data and parameters. A glossary term named `__proto__`, `constructor` or
+`prototype` is no longer dropped from the panel.
