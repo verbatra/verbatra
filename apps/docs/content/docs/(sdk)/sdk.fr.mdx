@@ -711,12 +711,17 @@ guillemets, y compris dans du JSON sérialisé dans une chaîne. Tout autre UUID
 chemin de fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans
 `DEEPL_API_KEY` est toujours retirée par sa valeur, où qu'elle apparaisse.
 
-Un token qui commence par un préfixe de clé connu d'OpenAI ou d'Anthropic (`sk-ant-`, `sk-proj-`,
-`sk-svcacct-`, `sk-admin-`) est toujours masqué. Tout autre token `sk-` est masqué dès qu'il contient
-au moins 32 lettres et chiffres au total, comptés sur tous ses segments `-` et `_`, ce qui couvre les
-anciennes clés OpenAI. Un chemin ou une clé de locale slovaque comme `locales/sk-SK.json` ou
-`sk-banner_headline` reste lisible, mais une longue clé camelCase comme
-`sk-onboardingWelcomeScreenPrimaryButton` atteint le seuil et est aussi masquée.
+Un token `sk-` est masqué dès qu'au moins 32 lettres et chiffres suivent `sk-`, comptés sur tous
+ses segments `-` et `_`, quel que soit son préfixe. Cette seule règle couvre toutes les formes de clé
+d'OpenAI et d'Anthropic ; un préfixe connu comme `sk-proj-` ou `sk-ant-` ne masque pas à lui seul un
+token plus court. Le token ne compte que si aucune lettre ni aucun chiffre ne le précède directement :
+un échappement JSON comme `\n` ou `\u0007`, un caractère encodé en pourcentage comme `%3D`, une
+séquence ANSI CSI comme `\x1b[31m`, `\x1b[2K` ou `\x1b[?25h`, une désignation de jeu de caractères
+ANSI comme `\x1b(B`, ou l'une de ces deux formes ANSI échappée en JSON comme `\u001b` sert aussi de
+limite. Un chemin ou une clé de locale slovaque comme `locales/sk-SK.json` ou `sk-banner_headline`
+reste lisible. Mais une longue clé qui ressemble à du slovaque atteint le seuil et est masquée :
+`sk-SK_settings_notifications_email_digest` contient 34 lettres et chiffres après `sk-`, tout comme
+une longue clé camelCase comme `sk-onboardingWelcomeScreenPrimaryButton`.
 
 ### declareProviderKeyEnvVar
 
