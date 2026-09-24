@@ -16,13 +16,13 @@ verbatra translate --dry-run
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-On a dry run, the `translated` count is the number of keys that **would** be sent to the provider: the keys missing from the target file plus the keys whose source text changed since the lock baseline, minus any skipped for invalid ICU. That count is the input to everything below.
+On a dry run, the `would translate` count (the `translated` list with `--json`) is the number of keys that **would** be sent to the provider: the keys missing from the target file plus the keys whose source text changed since the lock baseline, minus any skipped for invalid ICU. That count is the input to everything below.
 
 Treat it as an **upper bound**, for two reasons. A dry run never reads [the cache](/docs/the-cache), so keys a live run would serve from translation memory are still counted here. And a dry run does not deduplicate: on a live run, keys whose source text is identical are grouped and only one representative is sent, so a file with repeated strings bills for fewer keys than the dry run shows.
 
@@ -86,9 +86,9 @@ verbatra translate --estimate
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
   estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests

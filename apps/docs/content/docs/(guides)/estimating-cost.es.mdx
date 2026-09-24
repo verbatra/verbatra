@@ -16,13 +16,13 @@ verbatra translate --dry-run
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-En un dry run, el recuento de `translated` es el número de claves que **se enviarían** al proveedor: las claves que faltan en el archivo de destino más las claves cuyo texto de origen ha cambiado desde la línea base del archivo de bloqueo, menos las omitidas por ICU no válido. Ese recuento es la entrada de todo lo demás.
+En un dry run, el recuento de `would translate` (con `--json`, la lista `translated`) es el número de claves que **se enviarían** al proveedor: las claves que faltan en el archivo de destino más las claves cuyo texto de origen ha cambiado desde la línea base del archivo de bloqueo, menos las omitidas por ICU no válido. Ese recuento es la entrada de todo lo demás.
 
 Trátalo como un **límite superior**, por dos razones. Un dry run nunca lee [la caché](/docs/the-cache), así que las claves que una ejecución real serviría desde la memoria de traducción se siguen contando aquí. Y un dry run no deduplica: en una ejecución real, las claves cuyo texto de origen es idéntico se agrupan y solo se envía un representante, de modo que un archivo con cadenas repetidas factura menos claves de las que muestra el dry run.
 
@@ -86,9 +86,9 @@ verbatra translate --estimate
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
   estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests

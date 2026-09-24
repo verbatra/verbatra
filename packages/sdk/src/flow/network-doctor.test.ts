@@ -13,7 +13,7 @@ describe("checkNetworkPolicy", () => {
     expect(checkNetworkPolicy(anthropic, undefined, {})).toEqual({
       passed: true,
       detail:
-        'Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.',
+        'any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.',
     });
   });
 
@@ -21,7 +21,7 @@ describe("checkNetworkPolicy", () => {
     const verdict = checkNetworkPolicy(anthropic, { policy: "local-only" }, {});
     expect(verdict.passed).toBe(false);
     expect(verdict.detail).toContain(
-      "Network policy: restricted: a host must satisfy every policy below (config: local-only; VERBATRA_NETWORK_POLICY: unset).",
+      "restricted: a host must satisfy every policy below (config: local-only; VERBATRA_NETWORK_POLICY: unset).",
     );
     expect(verdict.detail).toContain(
       'refused: the endpoint host api.anthropic.com is not permitted by the "local-only" network policy',

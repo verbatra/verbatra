@@ -91,6 +91,26 @@ Reject removes the translation from the locale file and drops its [lock file](/d
 
 Review flags are advisory, distinct from the hard integrity gate; see [Translation safety](/docs/translation-safety) for what each reason means.
 
+### Work the queue from the keyboard
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+You can work the Review queue without the mouse. Press `j` or the down arrow to highlight the first entry, then:
+
+| Key | Action |
+| --- | --- |
+| `j` or down arrow | next entry |
+| `k` or up arrow | previous entry |
+| `a` | approve the highlighted entry |
+| `r` | reject it (the confirmation still opens) |
+| `e` or Enter | open it in the editor |
+| `t` | retranslate it (only with `--allow-spend`) |
+| `?` | show or hide the shortcut list |
+
+**Keyboard shortcuts** in the filter bar opens the same list. A shortcut acts only on the highlighted entry. Shortcuts pause while you type in the filter, while a dialog is open, and while you hold Ctrl, Cmd, or Alt, so browser shortcuts keep working; Escape closes the open dialog. The highlighted row is also where keyboard focus sits, so Tab moves into its buttons, and clicking a row highlights it. After an approval or a rejection, the entry that moves up into its place is highlighted, so pressing `a` again works your way down the queue.
+
+With `--allow-spend`, each row also carries a **Retranslate** button. It makes one provider call for that locale and key, runs the result through the same integrity gate, and reports the outcome on the line above the table. The new value stays in the queue until you approve or reject it. A value a person wrote is not replaced from here: open the key on Translations and choose **Replace anyway** there.
+
 ## Retranslate a flagged key
 
 Start Studio with spend allowed:

@@ -1,3 +1,4 @@
+import { join, resolve } from "node:path";
 import type {
   EstimateCaveatCode,
   LockWaitEvent,
@@ -5,10 +6,10 @@ import type {
   ProgressEvent,
   RunEstimate,
   UnpricedRunEstimate,
-  WatchRunResult,
 } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
+  displayPath,
   renderCheckHuman,
   renderDiffHuman,
   renderError,
@@ -20,10 +21,84 @@ import {
   renderProgress,
   renderProgressHuman,
   renderProgressJson,
-  renderRunResultHuman,
+  renderPseudoHuman,
+  renderTmxExportHuman,
+  renderTmxImportHuman,
+  renderTypesHuman,
   toRenderableError,
 } from "./render.js";
-import { makeLocale, makeSummary } from "./test-support.js";
+import {
+  makeExportTmxResult,
+  makeImportTmxResult,
+  makeLocale,
+  makeSummary,
+} from "./test-support.js";
+
+describe("displayPath: paths relative to the working directory", () => {
+  const base = resolve("/work/app");
+
+  it.each([
+    ["a file inside the base", join(base, "out", "wb.xlsx"), join("out", "wb.xlsx")],
+    ["a file directly in the base", join(base, "wb.xlsx"), "wb.xlsx"],
+    ["the base itself", base, base],
+    ["a sibling directory", resolve("/work/other/wb.xlsx"), resolve("/work/other/wb.xlsx")],
+    ["the parent directory", resolve("/work"), resolve("/work")],
+    ["a relative path", "out/wb.xlsx", "out/wb.xlsx"],
+  ])("renders %s as expected", (_label, path, expected) => {
+    expect(displayPath(path, base)).toBe(expected);
+  });
+
+  it("keeps a name that merely starts with two dots inside the base", () => {
+    expect(displayPath(join(base, "..cache"), base)).toBe("..cache");
+  });
+
+  it("returns the path unchanged when no base is given", () => {
+    expect(displayPath(join(base, "wb.xlsx"), undefined)).toBe(join(base, "wb.xlsx"));
+  });
+
+  it("shortens every path-bearing human renderer when a base is given", () => {
+    const inBase = (name: string): string => join(base, name);
+    expect(renderExportHuman({ path: inBase("wb.xlsx"), locales: [] }, base)).toContain(
+      "verbatra export -> wb.xlsx",
+    );
+    expect(renderTmxExportHuman(makeExportTmxResult({ path: inBase("m.tmx") }), base)).toContain(
+      "verbatra tmx export -> m.tmx",
+    );
+    expect(renderTmxImportHuman(makeImportTmxResult({ file: inBase("in.tmx") }), base)).toContain(
+      "verbatra tmx import <- in.tmx",
+    );
+    expect(
+      renderPseudoHuman(
+        {
+          locale: "en-XA",
+          entries: 1,
+          transformed: 1,
+          copied: [],
+          written: true,
+          path: inBase("p.json"),
+        },
+        base,
+      ),
+    ).toContain("  wrote p.json");
+    expect(
+      renderTypesHuman(
+        {
+          path: inBase("t.d.ts"),
+          sourcePath: "locales/en.json",
+          keys: 1,
+          withArguments: 0,
+          unresolved: [],
+          excluded: [],
+          plural: [],
+          check: true,
+          stale: true,
+          written: false,
+        },
+        base,
+      ),
+    ).toContain("  t.d.ts is out of date");
+  });
+});
 
 describe("render: export result", () => {
   it("renders the path, one line per locale, and a total", () => {
@@ -325,6 +400,15 @@ describe("render: human run summary", () => {
     expect(text).toContain("de: 2 translated, 1 unchanged");
     expect(text).toContain("1 succeeded, 0 partial, 0 failed");
     expect(text).not.toContain("dry run");
+  });
+
+  it("words a dry run's counts as what would happen, not what happened", () => {
+    const locales = [makeLocale({ translated: ["a", "b"], pruned: ["old"], unchanged: ["c"] })];
+    const translate = renderHuman(makeSummary({ dryRun: true, locales }));
+    expect(translate).toContain("de: 2 would translate, 1 unchanged, 1 would prune");
+    expect(translate).not.toContain("translated");
+    const imported = renderHuman(makeSummary({ dryRun: true, locales }), "import");
+    expect(imported).toContain("de: 2 would import, 1 unchanged, 1 would prune");
   });
 
   it("marks a dry run and shows nothing-written in the aggregate", () => {
@@ -988,18 +1072,6 @@ describe("render: progress", () => {
     const event: ProgressEvent = { type: "run-finished", localesCompleted: 1 };
     expect(JSON.parse(renderProgress(event, true))).toEqual(event);
     expect(renderProgress(event, false)).toContain("run finished");
-  });
-});
-
-describe("render: watch run result", () => {
-  it("renders the summary on success and the one-line error on failure", () => {
-    const ok: WatchRunResult = { status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) };
-    const bad: WatchRunResult = {
-      status: "failed",
-      error: { code: "SOURCE_INVALID", message: "x" },
-    };
-    expect(renderRunResultHuman(ok)).toContain("1 succeeded");
-    expect(renderRunResultHuman(bad)).toBe("verbatra: error [SOURCE_INVALID] x");
   });
 });
 

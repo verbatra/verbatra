@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyValueResult } from "../../shared/rpc/key-value.js";
 import type { LocaleValuesResult } from "../../shared/rpc/locale-values.js";
@@ -809,4 +810,338 @@ describe("ReviewPanel", () => {
     );
     expect(rowKeys(view)).toHaveLength(3);
   });
+});
+
+const SPEND_SNAPSHOT: ProjectSnapshotResult = {
+  ...SNAPSHOT,
+  capabilities: { spend: true, writeToDisk: true },
+};
+
+function stubKeyboardReady(snapshot: ProjectSnapshotResult = SNAPSHOT): void {
+  stubRpc({
+    "review.queue": queueAnswer(QUEUE),
+    "project.snapshot": snapshotAnswer(snapshot),
+    "locale.values": { ok: true, result: LOCALE_VALUES },
+  });
+}
+
+function activeRowKey(view: RenderResult): string | null {
+  const row = view.query("tbody tr[data-active]");
+  return row === null ? null : rowKeyOf(row);
+}
+
+function pressOn(element: Element, key: string): void {
+  act(() => {
+    element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  });
+}
+
+describe("ReviewPanel: keyboard queue", () => {
+  it("highlights no row until a navigation key is pressed, then walks the rows and moves focus", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(activeRowKey(view)).toBeNull();
+    pressKey("j");
+    expect(activeRowKey(view)).toBe("checkout.title");
+    expect(document.activeElement).toBe(view.get("tbody tr[data-active]"));
+    pressKey("ArrowDown");
+    pressKey("j");
+    pressKey("j");
+    expect(activeRowKey(view)).toBe("cart.badge");
+    pressKey("k");
+    expect(activeRowKey(view)).toBe("checkout.subtitle");
+    pressKey("ArrowUp");
+    pressKey("ArrowUp");
+    expect(activeRowKey(view)).toBe("checkout.title");
+  });
+
+  it("moves nowhere when the filter leaves no row", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    typeInto(keyFilter(view), "no such key");
+    await flush();
+
+    pressKey("j");
+    pressKey("a");
+
+    expect(view.query("tbody")).toBeNull();
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+  });
+
+  it("makes exactly the highlighted row tabbable and marks it current", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("j");
+
+    expect(view.all("tbody tr").map((row) => row.getAttribute("tabindex"))).toEqual([
+      "-1",
+      "0",
+      "-1",
+    ]);
+    expect(view.get("tbody tr[data-active]").getAttribute("aria-current")).toBe("true");
+  });
+
+  it("highlights the row that was clicked", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+
+    await clickAsync(row as HTMLElement);
+
+    expect(activeRowKey(view)).toBe("cart.badge");
+  });
+
+  it("approves the highlighted row with a, against the value on screen", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.approve": { ok: true, result: decided("de", "checkout.subtitle", "approved") },
+      "review.queue": queueAnswer(without("checkout.subtitle")),
+    });
+
+    pressKey("j");
+    pressKey("j");
+    pressKey("a");
+    await flush();
+    await flush();
+
+    expect(rpcCalls.find((call) => call.method === "review.approve")?.params).toEqual({
+      locale: "de",
+      key: "checkout.subtitle",
+      expectedValue: "Bestellung prüfen",
+    });
+    expect(rowKeys(view)).toEqual(["checkout.title", "cart.badge"]);
+    expect(activeRowKey(view)).toBe("cart.badge");
+  });
+
+  it("ignores a second decision on a row that is still being approved", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": () => new Promise(() => {}) });
+
+    pressKey("j");
+    pressKey("a");
+    await flush();
+    pressKey("a");
+    pressKey("e");
+    await flush();
+
+    expect(rpcCalls.filter((call) => call.method === "review.approve")).toHaveLength(1);
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("opens the reject confirmation for the highlighted row with r", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("r");
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe(
+      "Reject checkout.title in de",
+    );
+  });
+
+  it("does not approve or reject a row whose current value has not loaded", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": () => new Promise(() => {}),
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("a");
+    pressKey("r");
+    await flush();
+
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it.each(["e", "Enter"])("opens the editor for the highlighted row with %s", async (key) => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
+
+    pressKey("j");
+    pressOn(view.get("tbody tr[data-active]"), key);
+    await flush();
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe(
+      "Edit checkout.title in de",
+    );
+  });
+
+  it("leaves Enter on a focused button to that button", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressOn(rowAction(view, "checkout.title", "Approve"), "Enter");
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("pauses every shortcut while typing in the filter", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressOn(keyFilter(view), "j");
+
+    expect(activeRowKey(view)).toBeNull();
+  });
+
+  it("ignores a shortcut pressed with a modifier, so browser shortcuts keep working", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j", { ctrlKey: true });
+    pressKey("j", { metaKey: true });
+    pressKey("j", { altKey: true });
+
+    expect(activeRowKey(view)).toBeNull();
+  });
+
+  it("pauses the queue shortcuts while a dialog is open", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
+
+    pressKey("j");
+    pressKey("e");
+    await flush();
+    pressKey("a");
+    pressKey("j");
+
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+    expect(activeRowKey(view)).toBe("checkout.title");
+  });
+
+  it("offers no row shortcut when the session may not write to disk", async () => {
+    stubKeyboardReady({ ...SNAPSHOT, capabilities: { spend: false, writeToDisk: false } });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("e");
+    pressKey("r");
+
+    expect(activeRowKey(view)).toBe("checkout.title");
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("opens and closes the shortcut help with ?, and from the filter bar button", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("?");
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe(
+      "Keyboard shortcuts for the review queue",
+    );
+    pressKey("j");
+    expect(activeRowKey(view)).toBeNull();
+    pressKey("?");
+    expect(view.query('[role="dialog"]')).toBeNull();
+
+    await clickAsync(view.getByText("button", "Keyboard shortcuts?"));
+    expect(view.query('[role="dialog"]')).not.toBeNull();
+    pressKey("Escape");
+    await flush();
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+
+  it("lists retranslate in the help only when spend is allowed", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("?");
+    expect(view.query('[data-shortcut="retranslate"]')).toBeNull();
+    view.unmount();
+
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    const spendView = await renderAsync(<ReviewPanel refreshToken={0} />);
+    pressKey("?");
+    expect(spendView.query('[data-shortcut="retranslate"]')).not.toBeNull();
+  });
+
+  it("offers no retranslate action or shortcut without spend", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("t");
+    await flush();
+
+    expect(view.text()).not.toContain("Retranslate");
+    expect(rpcCalls.some((call) => call.method === "translation.retranslateEntry")).toBe(false);
+  });
+
+  it("retranslates the highlighted row with t and reloads the queue and values", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "translation.retranslateEntry": {
+        ok: true,
+        result: { accepted: true, value: "Kasse", reviewReasons: [] },
+      },
+    });
+    const before = rpcCalls.filter((call) => call.method === "review.queue").length;
+
+    pressKey("j");
+    pressKey("t");
+    await flush();
+    await flush();
+
+    expect(rpcCalls.find((call) => call.method === "translation.retranslateEntry")?.params).toEqual(
+      { locale: "de", key: "checkout.title" },
+    );
+    expect(rpcCalls.filter((call) => call.method === "review.queue").length).toBe(before + 1);
+    expect(view.get('[role="status"]').textContent).toBe(
+      "Retranslated checkout.title (de). Review the new value, then approve or reject it.",
+    );
+  });
+
+  it("retranslates from the row's Retranslate button", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "translation.retranslateEntry": () => new Promise(() => {}) });
+
+    await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
+
+    expect(rowAction(view, "cart.badge", "Retranslating…")).toBeDefined();
+  });
+
+  it.each([
+    [
+      "a protected value",
+      rpcError("KEY_PROTECTED", "protected"),
+      "Could not retranslate checkout.title (de): a person wrote this value. Open the key on the Translations page to replace it anyway.",
+    ],
+    [
+      "a gate refusal",
+      { ok: true, result: { accepted: false, reason: "placeholder", value: "x" } },
+      "Could not retranslate checkout.title (de): Rejected: placeholder mismatch",
+    ],
+    [
+      "a failed call",
+      rpcError("PROVIDER_UNAVAILABLE", "the provider timed out"),
+      "Could not retranslate checkout.title (de): the provider timed out",
+    ],
+  ] as const)(
+    "names the reason when retranslating fails on %s, and frees the row",
+    async (_case, answer, message) => {
+      stubKeyboardReady(SPEND_SNAPSHOT);
+      const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+      stubRpc({ "translation.retranslateEntry": answer });
+
+      pressKey("j");
+      pressKey("t");
+      await flush();
+
+      expect(view.get('[role="alert"]').textContent).toBe(message);
+      expect((rowAction(view, "checkout.title", "Edit") as HTMLButtonElement).disabled).toBe(false);
+    },
+  );
 });

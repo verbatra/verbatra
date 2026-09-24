@@ -37,19 +37,22 @@ export function ensureGitignore(cwd: string, streams: Streams): GitignoreAction 
   return "updated";
 }
 
-export function appendMissingGitignoreEntries(cwd: string, dryRun = false): void {
+export function appendMissingGitignoreEntries(cwd: string, dryRun = false): readonly string[] {
   if (dryRun) {
-    return;
+    return [];
   }
   try {
     const gitignorePath = resolve(cwd, ".gitignore");
     if (!existsSync(gitignorePath)) {
-      return;
+      return [];
     }
     const content = readFileSync(gitignorePath, "utf8");
     const missing = missingEntries(content);
     if (missing.length > 0) {
       appendEntries(gitignorePath, content, missing);
     }
-  } catch {}
+    return missing;
+  } catch {
+    return [];
+  }
 }

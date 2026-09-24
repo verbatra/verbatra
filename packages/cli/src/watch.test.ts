@@ -125,7 +125,7 @@ describe("run watch: wiring and rendering", () => {
     await done;
   });
 
-  it("a failing run is rendered and watching continues (no exit; a later run still renders)", async () => {
+  it("a failing run is rendered on stderr and watching continues (no exit; a later run still renders)", async () => {
     const h = watchHarness();
     const { deps } = recordingDeps({ watch: h.watch });
     const cap = captureStreams();
@@ -137,7 +137,8 @@ describe("run watch: wiring and rendering", () => {
       settled = true;
     });
     await flush();
-    expect(cap.out()).toContain("[SOURCE_INVALID] bad");
+    expect(cap.err()).toContain("verbatra: error [SOURCE_INVALID] bad");
+    expect(cap.out()).not.toContain("SOURCE_INVALID");
     expect(settled).toBe(false);
 
     h.fire({ status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) });
