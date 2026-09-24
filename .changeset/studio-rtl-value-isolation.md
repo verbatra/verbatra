@@ -17,7 +17,8 @@ that cannot be parsed is left to right. Only the element holding a translated va
 direction. Placeholders, markup and ICU syntax inside it are isolated left to right and kept on one
 line, while the text of each plural or select branch follows the value's direction; a value whose
 syntax is wider than its container scrolls sideways instead of overflowing, with the dashboard's
-focus ring when a keyboard focuses it to scroll. Printf placeholders are recognised with the same
-length modifiers and conversions the pseudo-locale transform protects, such as `%hhd`, `%zu` and
-`%1$s`. The edit dialog's text area follows the locale and shows a live read-only preview for
-right-to-left locales, and the integrity pill shows its label with the detail wrapping below.
+focus ring when the browser lets a keyboard focus it to scroll. Printf placeholders are recognised
+with the same length modifiers and conversions the pseudo-locale transform protects, such as
+`%hhd`, `%zu` and `%1$s`. The edit dialog's text area follows the locale and shows a live read-only
+preview for right-to-left locales, and the integrity pill shows its label with the detail wrapping
+below.

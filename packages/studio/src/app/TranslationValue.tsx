@@ -14,7 +14,7 @@ export function valueDirection(locale: string | undefined): ValueDirection {
 }
 
 const SCROLLABLE_CLASSES =
-  "overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
 function renderSegments(value: string): ReactNode[] {
   const nodes: ReactNode[] = [];

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { Button } from "./Button.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
 import { render } from "./test-support.js";
 
@@ -104,15 +105,13 @@ describe("TranslationValue", () => {
   });
 
   it("draws the focus ring of a button on a paragraph value a keyboard can scroll", () => {
-    const view = render(<TranslationValue as="p" value="{name}" />);
+    const focusClasses = (element: Element): readonly string[] =>
+      element.className.split(" ").filter((name) => name.startsWith("focus-visible:"));
+    const value = render(<TranslationValue as="p" value="{name}" />);
+    const button = render(<Button>Edit</Button>);
 
-    expect(view.get("p").className.split(" ")).toEqual(
-      expect.arrayContaining([
-        "focus-visible:outline-2",
-        "focus-visible:outline-offset-1",
-        "focus-visible:outline-ring",
-      ]),
-    );
+    expect(focusClasses(value.get("p"))).toEqual(focusClasses(button.get("button")));
+    expect(focusClasses(value.get("p"))).toContain("focus-visible:outline-ring");
   });
 
   it("leaves an inline value's overflow to its caller", () => {

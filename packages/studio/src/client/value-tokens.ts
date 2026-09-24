@@ -2,7 +2,8 @@ export type ValueSegment =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "token"; readonly text: string };
 
-const PRINTF_TOKEN = /%(?:\d+\$)?[-+0#]*(?:[1-9]\d*)?(?:\.\d+)?(?:hh|h|ll|l|q|z|j|t|L)?[A-Za-z@]/y;
+export const PRINTF_TOKEN =
+  /%(?:\d+\$)?[-+0#]*(?:[1-9]\d*)?(?:\.\d+)?(?:hh|h|ll|l|q|z|j|t|L)?[A-Za-z@]/y;
 const MARKUP_TOKEN = /<\/?(?:[A-Za-z][\w:.-]*|\d+)(?:\s[^<>]*)?\/?>/y;
 const ICU_HEAD = /\{\s*[^\s{},]+\s*,\s*(plural|selectordinal|select)\s*,(?:\s*offset:\s*\d+)?/y;
 const ICU_SELECTOR = /[^\s{}]+\s*\{/y;
