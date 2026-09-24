@@ -50,7 +50,9 @@ export async function Providers(): Promise<ReactNode> {
         <Reveal>
           <h2 className="vk-h2 max-w-[13ch]">{t("heading")}</h2>
           <p className="vk-lead mt-5 max-w-[44ch]">{t("lead")}</p>
-          <p className="mt-3.5 text-sm text-[color:var(--text-faint)]">{t("hint")}</p>
+          <p className="mt-3.5 hidden text-sm text-[color:var(--text-faint)] md:pointer-fine:block">
+            {t("hint")}
+          </p>
         </Reveal>
         <Reveal order={1} className="vk-deck">
           {PROVIDERS.map((provider, index) => (
