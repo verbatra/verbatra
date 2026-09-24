@@ -149,7 +149,7 @@ describe("mcp (no key)", () => {
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 
-  it("verbatra mcp writes a keyless editEntry and releases its locale lock once the client closes stdin", async () => {
+  it("verbatra mcp writes a keyless editEntry, leaves no locale lock, and exits 0 when the client closes stdin", async () => {
     const { result, stdout } = await exchangeThenCloseStdin(
       spawnVerbatra(consumer, ["mcp", "--cwd", dir]),
       [

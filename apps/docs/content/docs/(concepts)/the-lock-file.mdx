@@ -119,7 +119,8 @@ An interrupt releases the locks a run holds before the process exits: Ctrl-C or 
 
 If a lock cannot be acquired, the run fails with `LOCK_CONTENDED` and names the lock file's path
 (under the gitignored `.verbatra-local/` directory). If no verbatra process is running anywhere,
-delete that file and retry.
+delete that file and retry. A lock file too large to be a lock cannot be read, so the run fails with
+`LOCK_CONTENDED` at once instead of waiting out the timeout; delete it the same way.
 
 ## A respelled locale code
 
@@ -127,7 +128,7 @@ delete that file and retry.
 
 The lock file, the translation memory, and the provenance file key their state by the locale code in your config. When you respell a code, for example `pt_BR` to `pt-BR` with `files.localeStyle` set to `posix` so the file keeps its name, the next `translate` or `watch` run carries the old state over once. It does so when `pt-BR` has no state of its own in a file and that file holds state under exactly one underscore spelling of it, compared case-insensitively. The state moves to `pt-BR` before the locale runs, and the run reports a `LOCALE_STATE_CARRIED_OVER` notice on that locale. A source change made before the rename is then still retranslated, and cached translations are still reused.
 
-State that `pt-BR` already has is never overwritten, and when two spellings compete, such as `pt_BR` and `pt_br`, nothing moves. A run limited with `--locales` moves state only for the locales it runs, `--dry-run` plans with the moved state but writes nothing, and `--no-cache` leaves the translation memory as it is. The `locale-state` check of [`verbatra doctor`](/docs/cli/doctor) names whatever stays behind, and any other locale your config no longer lists. If another process holds the lock-file guard past `lockAcquireTimeoutMs`, the lock file or the provenance file cannot be written, or its guard cannot be read, the state stays where it is and that locale does not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER`, reports `LOCALE_STATE_CARRY_OVER_SKIPPED`, and nothing is recorded under `pt-BR`, so the next run tries the move again and your protected keys and rejected text still apply. The other locales run as usual. `--dry-run` reports the locale the same way while another process holds the guard or the guard cannot be read. If only the translation memory cannot be written, the locale still runs, just without those cached translations.
+State that `pt-BR` already has is never overwritten, and when two spellings compete, such as `pt_BR` and `pt_br`, nothing moves. A run limited with `--locales` moves state only for the locales it runs, `--dry-run` plans with the moved state but writes nothing, and `--no-cache` leaves the translation memory as it is. The `locale-state` check of [`verbatra doctor`](/docs/cli/doctor) names whatever stays behind, and any other locale your config no longer lists. If another process holds the lock-file guard past `lockAcquireTimeoutMs`, the lock file or the provenance file cannot be written, or its guard cannot be read or created, the state stays where it is and that locale does not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER`, reports `LOCALE_STATE_CARRY_OVER_SKIPPED`, and nothing is recorded under `pt-BR`, so the next run tries the move again and your protected keys and rejected text still apply. The other locales run as usual. `--dry-run` reports the locale the same way while another process holds the guard or the guard cannot be read. If only the translation memory cannot be written, the locale still runs, just without those cached translations.
 
 ## Missing or corrupt
 

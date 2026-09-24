@@ -110,7 +110,8 @@
  *   another process holds it, or a lock file was left behind by a process on another machine or
  *   by an older version (a same-machine holder that is gone is reclaimed automatically), or
  *   because such an abandoned lock could not be deleted, with the file-system error as its
- *   `cause`. The message names the lock file's path. Thrown by {@link editEntry},
+ *   `cause`. A lock file too large to be a lock cannot be read, so it fails at once rather than
+ *   after the timeout. The message names the lock file's path. Thrown by {@link editEntry},
  *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}, which act on one
  *   locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
  *   {@link translate} and {@link importWorkbook} do not throw it: they record it
@@ -204,7 +205,8 @@
  *   {@link LocaleSummary} of a locale {@link translate} or {@link watch} did not run because the
  *   state recorded under a respelled code of it, such as `pt_BR` for `pt-BR`, could not be moved
  *   to it in the lock file or the provenance file: another process held the lock-file guard past
- *   `lockAcquireTimeoutMs`, or a file could not be written. Running the locale anyway would record
+ *   `lockAcquireTimeoutMs`, the guard could not be read or created, or a file could not be
+ *   written. Running the locale anyway would record
  *   its results under the new code and leave the protection and rejection records under the old
  *   one unapplied, so the next run tries the move again. A dry run records it when another process
  *   holds the lock-file guard at the time.

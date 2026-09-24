@@ -1,5 +1,17 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { segmentValue } from "./value-tokens.js";
+import { PRINTF_TOKEN, segmentValue } from "./value-tokens.js";
+
+const CORE_PSEUDO_TRANSFORM = new URL(
+  "../../../core/src/pseudo/pseudo-transform.ts",
+  import.meta.url,
+);
+
+function corePositionalPrintfSource(): string {
+  const literals = readFileSync(CORE_PSEUDO_TRANSFORM, "utf8").match(/^\s*"%\(\?:.*",$/gm) ?? [];
+  expect(literals).toHaveLength(1);
+  return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
+}
 
 function tokens(value: string): readonly string[] {
   return segmentValue(value)
@@ -201,6 +213,10 @@ describe("segmentValue", () => {
 });
 
 describe("segmentValue: printf parity with the core placeholder pattern", () => {
+  it("uses the same printf pattern source as the core pseudo-locale transform", () => {
+    expect(PRINTF_TOKEN.source).toBe(corePositionalPrintfSource());
+  });
+
   it.each([
     ["positional printf", "Hello, %1$s! You have %2$d messages.", ["%1$s", "%2$d"]],
     ["apple printf", "Welcome back, %@", ["%@"]],
