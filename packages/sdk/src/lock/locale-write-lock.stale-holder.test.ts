@@ -562,6 +562,19 @@ describe("isLockHeld: probing a lock without taking it", () => {
     expect(await isLockHeld(LOCK, fs, liveness)).toBe(true);
   });
 
+  it.each(["EACCES", "EISDIR"])(
+    "reports a lock whose read rejects with %s as held",
+    async (code) => {
+      const fs = makeFakeFs({
+        readFileBounded: async () => {
+          throw Object.assign(new Error(code), { code });
+        },
+      });
+
+      await expect(isLockHeld(LOCK, fs, liveness)).resolves.toBe(true);
+    },
+  );
+
   it("probes with the current machine's liveness by default", async () => {
     const files = new Map([[LOCK, JSON.stringify(holder(LIVE_PID, "elsewhere"))]]);
 

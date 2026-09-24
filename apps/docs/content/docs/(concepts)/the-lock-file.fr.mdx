@@ -94,6 +94,16 @@ second processus en écriture sur la même locale attend, puis relit le fichier 
 depuis le disque et compare avec une référence qui inclut déjà le résultat du premier. Des locales
 différentes ne se bloquent pas entre elles.
 
+Enregistrer le résultat d'une locale dans le fichier de verrouillage et le fichier de provenance
+prend aussi brièvement le verrou de garde du fichier de verrouillage, commun à tout le projet. `--lock-timeout` (`lockAcquireTimeoutMs` dans
+le SDK) ne borne que l'attente du verrou d'écriture de la locale, qui a lieu avant tout appel
+fournisseur, donc une locale qui expire à ce moment n'a rien dépensé ni rien écrit. Une fois le
+fichier d'une locale écrit, son enregistrement attend le verrou de garde avec la valeur par défaut de dix
+minutes, quoi que dise `--lock-timeout`, pour qu'un fichier écrit ne reste jamais sans trace. Le
+message d'attente apparaît une fois qu'une attente dure depuis une seconde, et jamais pour un verrou
+que la même exécution détient, comme le verrou de garde d'une locale sœur quand tu lances avec `--concurrency`
+au-dessus de 1.
+
 Quand une exécution traduit plusieurs locales à la fois et rencontre une erreur globale (en
 pratique un fichier de verrouillage corrompu), elle arrête de réclamer de nouvelles locales et
 attend la fin de celles qui tournent déjà, donc chaque verrou pris par l'exécution est libéré avant

@@ -5,6 +5,7 @@ import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import {
   currentHostLiveness,
+  isHeldByThisProcess,
   isHolderProvablyDead,
   type LivenessContext,
   type RecordedHolder,
@@ -47,8 +48,9 @@ export interface LockWaitEvent {
 }
 
 /**
- * Called on each poll while waiting for a locale's write lock. Passed as `onLockWait` to
- * {@link translate} and {@link watch}.
+ * Called while waiting for a write lock another process holds: first once the wait has lasted a
+ * second, then at most once a second. Never called for a lock this process holds itself. Passed
+ * as `onLockWait` to {@link translate} and {@link watch}.
  */
 export type LockWaitListener = (event: LockWaitEvent) => void;
 
@@ -268,21 +270,26 @@ function makeWaitNotifier(
   path: string,
   onWait: LockWaitListener,
   start: number,
-): (holder: LockHolder | undefined) => void {
-  let lastEmit: number | undefined;
-  return (holder: LockHolder | undefined): void => {
+  liveness: LivenessContext,
+): (observed: ObservedLock) => void {
+  let lastEmit = 0;
+  return (observed: ObservedLock): void => {
+    if (observed.recorded !== undefined && isHeldByThisProcess(observed.recorded, liveness)) {
+      return;
+    }
     const elapsedMs = Date.now() - start;
-    if (lastEmit !== undefined && elapsedMs - lastEmit < WAIT_NOTICE_INTERVAL_MS) {
+    if (elapsedMs - lastEmit < WAIT_NOTICE_INTERVAL_MS) {
       return;
     }
     lastEmit = elapsedMs;
+    const holder = observed.holder;
     onWait({ lockPath: path, elapsedMs, ...(holder !== undefined ? { holder } : {}) });
   };
 }
 
 interface AcquireSettings extends ReclaimSettings {
   readonly deadline: number;
-  readonly notify?: (holder: LockHolder | undefined) => void;
+  readonly notify?: (observed: ObservedLock) => void;
 }
 
 async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): Promise<void> {
@@ -295,7 +302,7 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
     if (await reclaimAbandonedLock(path, fs, observed, settings, guardWatch)) {
       continue;
     }
-    settings.notify?.(observed.holder);
+    settings.notify?.(observed);
     if (Date.now() >= settings.deadline) {
       throw new SdkError(
         "LOCK_CONTENDED",
@@ -319,12 +326,13 @@ async function withFileLock<T>(
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   const acquireTimeoutMs = options.acquireTimeoutMs ?? DEFAULT_ACQUIRE_TIMEOUT_MS;
   const start = Date.now();
+  const liveness = options.liveness ?? currentHostLiveness();
   await acquireLock(path, fs, {
     pollIntervalMs,
     deadline: start + acquireTimeoutMs,
-    liveness: options.liveness ?? currentHostLiveness(),
+    liveness,
     ...(options.onWait !== undefined
-      ? { notify: makeWaitNotifier(path, options.onWait, start) }
+      ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
       : {}),
   });
   const held: HeldLock = { path, fs };
@@ -358,7 +366,12 @@ export async function isLockHeld(
   fs: SdkFs,
   liveness: LivenessContext = currentHostLiveness(),
 ): Promise<boolean> {
-  const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  let read: BoundedFileRead;
+  try {
+    read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  } catch {
+    return true;
+  }
   return read.kind !== "missing" && !isAbandoned(observedFrom(read), liveness);
 }
 

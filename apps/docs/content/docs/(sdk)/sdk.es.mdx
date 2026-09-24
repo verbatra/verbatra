@@ -77,7 +77,12 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   sub-lote del proveedor), y `onLockWait` se dispara mientras el bloqueo de escritura de un locale
   está en disputa. Ambos son callbacks de notificación; el SDK no escribe nada por sí mismo.
   `lockAcquireTimeoutMs` anula cuánto tiempo reintenta un bloqueo de escritura en disputa antes de
-  fallar con `LOCK_CONTENDED`.
+  fallar con `LOCK_CONTENDED`. Solo limita el bloqueo de escritura del locale tomado antes de
+  cualquier llamada al proveedor; el guard del archivo de bloqueo que registra un locale cuyo
+  archivo ya está escrito siempre espera hasta el valor por defecto de diez minutos, para que un
+  archivo escrito nunca quede sin registrar. `onLockWait` se dispara cuando una espera ya dura un
+  segundo, y nunca para un bloqueo que tiene el mismo proceso, como el guard de un locale hermano
+  con `concurrency` mayor que 1.
 - `maxTokens` (desde 0.12.0) fija un techo de tokens solo para esta ejecución (el `--max-tokens` de la
   CLI). Siempre actúa como `budgetBehavior: "stop"`, y cuando la configuración también fija
   `maxTokens` se aplica el menor de los dos, así que puede endurecer el presupuesto configurado pero
