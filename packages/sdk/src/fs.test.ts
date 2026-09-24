@@ -84,6 +84,40 @@ describe("defaultFs.deleteFile", () => {
   });
 });
 
+describe("defaultFs.rename", () => {
+  it("moves a file to a new name in the same directory", async () => {
+    const dir = await makeTempDir();
+    const from = join(dir, "de.lock");
+    const to = join(dir, "de.lock.aside");
+    await writeFile(from, "held", "utf8");
+
+    await defaultFs.rename?.(from, to);
+
+    expect(await defaultFs.fileExists(from)).toBe(false);
+    expect(await readFile(to, "utf8")).toBe("held");
+  });
+
+  it("replaces a file already at the destination", async () => {
+    const dir = await makeTempDir();
+    const from = join(dir, "a");
+    const to = join(dir, "b");
+    await writeFile(from, "new", "utf8");
+    await writeFile(to, "old", "utf8");
+
+    await defaultFs.rename?.(from, to);
+
+    expect(await readFile(to, "utf8")).toBe("new");
+  });
+
+  it("rejects with ENOENT when nothing is at the source", async () => {
+    const dir = await makeTempDir();
+
+    await expect(defaultFs.rename?.(join(dir, "gone"), join(dir, "b"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+});
+
 describe("defaultFs.mkdir", () => {
   it("creates the directory and every missing parent, then writes into it", async () => {
     const dir = await makeTempDir();

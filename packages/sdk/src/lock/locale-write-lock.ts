@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import type { FormatId } from "@verbatra/core";
 import { errorMessage, SdkError } from "../errors.js";
@@ -187,19 +188,65 @@ function isAbandoned(
   );
 }
 
+function reclaimError(path: string, error: unknown): SdkError {
+  return new SdkError(
+    "LOCK_CONTENDED",
+    `Could not reclaim the abandoned write lock at ${path}: ${errorMessage(error)}. Delete it and retry.`,
+    { cause: error },
+  );
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
+}
+
+function asideName(path: string): string {
+  return `${path}.${process.pid}.${randomUUID()}.stale`;
+}
+
+async function restoreDisplaced(path: string, aside: string, fs: SdkFs): Promise<void> {
+  const moved = await fs.readFileBounded(aside, MAX_LOCK_PAYLOAD_BYTES);
+  if (moved.kind === "ok" && (await fs.createExclusive(path, moved.content))) {
+    await fs.deleteFile(aside);
+  }
+}
+
+async function moveAsideIfUnchanged(
+  path: string,
+  fs: SdkFs,
+  rename: (from: string, to: string) => Promise<void>,
+  content: string,
+): Promise<boolean> {
+  const aside = asideName(path);
+  try {
+    await rename(path, aside);
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return false;
+    }
+    throw error;
+  }
+  const moved = await fs.readFileBounded(aside, MAX_LOCK_PAYLOAD_BYTES);
+  if (moved.kind === "ok" && moved.content === content) {
+    await fs.deleteFile(aside).catch(() => undefined);
+    return true;
+  }
+  await restoreDisplaced(path, aside, fs);
+  return false;
+}
+
 async function deleteIfUnchanged(path: string, fs: SdkFs, content: string): Promise<boolean> {
   const again = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
   if (again.kind !== "ok" || again.content !== content) {
     return false;
   }
   try {
+    if (fs.rename !== undefined) {
+      return await moveAsideIfUnchanged(path, fs, fs.rename.bind(fs), content);
+    }
     await fs.deleteFile(path);
   } catch (error) {
-    throw new SdkError(
-      "LOCK_CONTENDED",
-      `Could not reclaim the abandoned write lock at ${path}: ${errorMessage(error)}. Delete it and retry.`,
-      { cause: error },
-    );
+    throw reclaimError(path, error);
   }
   return true;
 }
@@ -227,6 +274,10 @@ async function clearAbandonedGuard(
   const observed = await observeLock(guard, fs);
   if (!isAbandoned(observed, settings.liveness)) {
     guardWatch.sighting = undefined;
+    return;
+  }
+  if (fs.rename !== undefined) {
+    await deleteIfUnchanged(guard, fs, observed.content);
     return;
   }
   const now = Date.now();
