@@ -198,8 +198,8 @@ verbatra wieder einliest, lässt den Aufruf mit `PROVENANCE_FILE_UNWRITABLE` sch
   Locale-Datei und Provenance-Datei bei einem Fehler wiederhergestellt; scheitert auch das, meldet der
   Aufruf `REVIEW_RESTORE_FAILED` und nennt die Dateien, die du aus der Versionskontrolle holst. Ein
   Prozess, der mitten im Schreiben beendet wird, lässt sich so nicht rückgängig machen. Ein Format, das keine einzelne Übersetzung entfernen kann, lehnt die
-  Ablehnung mit `REVIEW_REJECT_UNSUPPORTED` ab und lässt die Datei unverändert: XLIFF, wo eine Unit
-  ohne Target als ihr Quelltext gelesen wird, und Flutter ARB, dessen Writer jede vorhandene
+  Ablehnung mit `REVIEW_REJECT_UNSUPPORTED` ab und lässt die Datei unverändert: XLIFF, dessen Writer
+  nur die übergebenen Targets aktualisiert und alle anderen behält, und Flutter ARB, dessen Writer jede vorhandene
   Nachricht behält.
 
 Jeder spätere Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag. Wenn

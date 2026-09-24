@@ -651,7 +651,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée est adressée par une seule clé sans imbrication. Tu fournis les `parseEntries`, `serializeEntries` et `extractPlaceholders` propres à ton format ; la fabrique fournit la lecture bornée en taille, l'écriture atomique, la détection par extension et la gestion structurée des erreurs. Donne-lui un `sniff` dès que ton extension est générique, sinon ton adaptateur revendique tous les fichiers qui la partagent et la détection signale une ambiguïté au lieu de choisir.
+Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée est adressée par une seule clé sans imbrication. Tu fournis les `parseEntries`, `serializeEntries` et `extractPlaceholders` propres à ton format ; la fabrique fournit la lecture bornée en taille, l'écriture atomique, la détection par extension et la gestion structurée des erreurs. `parseEntries` reçoit aussi la locale sous laquelle le fichier est lu, pour un format dont l'unique fichier contient à la fois le texte source et le texte cible. Donne-lui un `sniff` dès que ton extension est générique, sinon ton adaptateur revendique tous les fichiers qui la partagent et la détection signale une ambiguïté au lieu de choisir.
 
 ### createTreeFileAdapter
 
