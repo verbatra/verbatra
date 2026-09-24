@@ -60,7 +60,7 @@ verbatra check --json 2>/dev/null
 ```
 
 ```json
-{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false}]}}
+{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0}]}}
 ```
 
 Der Befehl endet mit `1`, weil `inSync` false ist. Das ist das günstigste Gate überhaupt: Der Exit-Code allein sagt dir, ob du den Payload überhaupt lesen musst.
@@ -72,7 +72,7 @@ verbatra diff --json 2>/dev/null
 ```
 
 ```json
-{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true}]}}
+{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
 Ebenfalls Exit `1`. Nimm `diff`, wenn der Agent die Keys benennen muss (um einen Pull-Request-Kommentar zu schreiben oder um zu entscheiden, ob sich die Arbeit lohnt); nimm `check`, wenn ein Ja oder Nein reicht.
@@ -113,6 +113,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
         "notices": [],
         "needsReview": [],
         "unfilled": [],
+        "protected": [],
         "malformedRows": [],
         "duplicateKeys": []
       }
@@ -188,16 +189,16 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn nur die drei langlaufenden Befehle (`watch`, `studio` und `mcp`) lassen sich durch einen zweiten Interrupt zwangsbeenden. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn `check` nutzt ihn nicht: Nur `translate` und `import` enden mit `130` bei Strg+C, nachdem sie ihre Schreibsperren freigegeben haben, und die drei langlaufenden Befehle (`watch`, `studio` und `mcp`), wenn ein zweiter Interrupt sie zwangsbeendet. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
 ## `watch` ist ein Strom, kein einzelner Payload
 
-`watch --json` ist von anderer Art als die übrigen zehn. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
+`watch --json` ist von anderer Art als die übrigen elf. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
 
 Roh, zwei Läufe einer Sitzung (der zweite, nachdem die Quelldatei mit einem Syntaxfehler gespeichert wurde):
 
 ```json
-{"ok":true,"version":1,"command":"watch","result":{"dryRun":false,"locales":[{"locale":"de","status":"succeeded","translated":["app.greeting"],"unchanged":["app.title"],"orphaned":[],"pruned":[],"invalidIcuSource":[],"cacheHits":[],"fuzzyHits":[],"integrityMismatches":[],"integrityRefusals":[],"providerFailures":[],"budgetWithheld":[],"generated":[],"notices":[],"needsReview":[],"unfilled":[],"malformedRows":[],"duplicateKeys":[],"usage":{"inputTokens":120,"outputTokens":40}}],"succeeded":["de"],"partial":[],"failed":[],"usage":{"inputTokens":120,"outputTokens":40}}}
+{"ok":true,"version":1,"command":"watch","result":{"dryRun":false,"locales":[{"locale":"de","status":"succeeded","translated":["app.greeting"],"unchanged":["app.title"],"orphaned":[],"pruned":[],"invalidIcuSource":[],"cacheHits":[],"fuzzyHits":[],"integrityMismatches":[],"integrityRefusals":[],"providerFailures":[],"budgetWithheld":[],"generated":[],"notices":[],"needsReview":[],"unfilled":[],"protected":[],"malformedRows":[],"duplicateKeys":[],"usage":{"inputTokens":120,"outputTokens":40}}],"succeeded":["de"],"partial":[],"failed":[],"usage":{"inputTokens":120,"outputTokens":40}}}
 {"ok":false,"version":1,"command":"watch","code":"SOURCE_INVALID","message":"The source locale file at /home/dev/app/locales/en.json could not be read: The file is not valid JSON."}
 ```
 

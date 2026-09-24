@@ -329,7 +329,10 @@ if (retry.accepted) {
 
 Eine unbekannte Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, und
 `retranslateEntry` wirft den eigenen `ProviderError` des Providers (zum Beispiel `RATE_LIMITED`),
-wenn der Aufruf selbst fehlschlägt. Dieselben Nahtstellen hinter einer Oberfläche zeigt
+wenn der Aufruf selbst fehlschlägt. Bevor ein Provider gebaut wird, wirft es außerdem
+`MACHINE_TRANSLATION_DISABLED` in einem [rein menschlichen](/docs/human-only-workflow) Projekt und
+`NETWORK_POLICY_VIOLATION`, wenn die [Netzwerkrichtlinie](/docs/network-policy) den Endpunkt des
+Providers nicht erlaubt. Dieselben Nahtstellen hinter einer Oberfläche zeigt
 [Review in Studio](/docs/review-in-studio).
 
 <AvailableFrom version="0.12.0" />

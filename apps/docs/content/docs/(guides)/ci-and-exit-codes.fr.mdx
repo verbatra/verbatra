@@ -8,7 +8,7 @@ verbatra est une dépendance de développement, donc les commandes que tu lances
 
 - **Contrôle une pull request** avec [`verbatra check`](/docs/cli/check) ou [`verbatra diff`](/docs/cli/diff), soit directement (cette page), soit via la [GitHub Action](/docs/github-action) avec `command: check` ou `command: diff`. Les deux sont en lecture seule : aucun appel au fournisseur, aucune clé d'API requise, sortie `1` en cas de dérive.
 - **Traduis lors d'un push** avec [`verbatra translate`](/docs/cli/translate), soit directement (cette page), soit via la [GitHub Action](/docs/github-action).
-- **Fais précéder l'un ou l'autre d'une vérification préalable** avec [`verbatra doctor`](/docs/cli/doctor). C'est l'étape la moins chère de toutes : il valide la config, le format, le fournisseur, la variable de clé et le fichier source, n'appelle jamais de fournisseur et ne lit jamais une valeur de clé. Il rend aussi un rapport sur un projet dont les fichiers de locale ne sont pas encore en place, là où les autres commandes ne peuvent qu'échouer globalement.
+- **Fais précéder l'un ou l'autre d'une vérification préalable** avec [`verbatra doctor`](/docs/cli/doctor). C'est l'étape la moins chère de toutes : il valide la config, le format, le fournisseur, la variable de clé, la politique réseau et le fichier source, ajoute trois rapports informatifs (règles de pluriel, codes de locale et état de locale résiduel) qui n'échouent jamais, n'appelle jamais de fournisseur et ne lit jamais une valeur de clé. Il rend aussi un rapport sur un projet dont les fichiers de locale ne sont pas encore en place, là où les autres commandes ne peuvent qu'échouer globalement.
 
 ## Les codes de sortie
 
@@ -33,7 +33,7 @@ Quelques cas limites à connaître :
 - Une exécution échouée pendant `watch` apparaît comme un enregistrement sur le flux de sortie, jamais comme un code de sortie non nul.
 - `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
 - `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
-- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des cinq codes.
+- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des six codes.
 - Une clé [protégée](/docs/protecting-human-translations) (une valeur obsolète écrite, importée ou modifiée hors de verbatra par une personne, ou une clé épinglée) ne change pas le code de sortie de `translate` dans un projet avec fournisseur : il sort avec `0` et indique sur stderr combien de clés il a laissées. `check` sort quand même avec `1` pour elle, car la clé reste obsolète jusqu'à ce qu'une personne la résolve. Dans un projet 100 % humain, elle compte pour la sortie `3`.
 
 ## check ou diff : choisir le contrôle
@@ -154,6 +154,9 @@ interface LocaleCheckSummary {
   stale: number;               // source changed since last translated
   upToDate: number;            // target matches the recorded baseline
   inSync: boolean;             // missing === 0 && stale === 0
+  provenance?: ProvenanceSummary; // counts by origin and review state; absent when the provenance file is unreadable
+  protected?: number;          // missing and stale keys translate would leave alone (human edits, pinned keys)
+  inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
 }
 ```
@@ -164,6 +167,7 @@ interface LocaleCheckSummary {
 interface DiffSummary {
   hasPendingChanges: boolean;  // true exactly when the command exits 1
   locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // only with --unused
 }
 
 interface LocaleDiff {
@@ -172,6 +176,8 @@ interface LocaleDiff {
   changed: string[];           // source changed since last translated: would be re-translated
   orphaned: string[];          // in target, absent from source: reported only
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // origin of each changed key's value; absent when the provenance file is unreadable
+  protected?: string[];        // missing and changed keys translate would leave alone (human edits, pinned keys)
 }
 ```
 
