@@ -52,3 +52,7 @@ export function isHolderProvablyDead(holder: RecordedHolder, context: LivenessCo
   }
   return isProcessGone(holder.pid, context.probe);
 }
+
+export function isHeldByThisProcess(holder: RecordedHolder, context: LivenessContext): boolean {
+  return holder.pid === process.pid && sharesProcessTable(holder, context);
+}

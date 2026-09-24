@@ -91,6 +91,15 @@ mismo locale espera, luego vuelve a leer el archivo de bloqueo desde cero y hace
 línea base que ya incluye el resultado del primer escritor. Locales distintos no se bloquean
 entre sí.
 
+Registrar el resultado de un locale en el archivo de bloqueo y en el archivo de procedencia también
+toma brevemente el guard del archivo de bloqueo, común a todo el proyecto. `--lock-timeout` (`lockAcquireTimeoutMs` en el SDK) solo
+limita la espera del bloqueo de escritura del locale, que ocurre antes de cualquier llamada al
+proveedor, así que un locale que agota el tiempo ahí no ha gastado nada ni escrito nada. Una vez
+escrito el archivo de un locale, registrarlo espera el guard con el valor por defecto de diez
+minutos, diga lo que diga `--lock-timeout`, para que un archivo escrito nunca quede sin registrar. El
+mensaje de espera aparece cuando una espera ya dura un segundo, y nunca para un bloqueo que tiene la
+misma ejecución, como el guard de un locale hermano mientras ejecutas con `--concurrency` mayor que 1.
+
 Cuando una ejecución traduce varios locales a la vez y se topa con un error de toda la ejecución (en
 la práctica, un archivo de bloqueo corrupto), deja de reclamar locales nuevos y espera a que
 terminen los que ya están en marcha, así que cada bloqueo que tomó la ejecución se libera antes de

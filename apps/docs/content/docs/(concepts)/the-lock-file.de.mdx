@@ -90,6 +90,16 @@ ein zweiter Schreiber für dieselbe Locale wartet, liest die Lock-Datei dann fri
 vergleicht mit einer Baseline, die das Ergebnis des ersten Schreibers schon enthält. Verschiedene
 Locales blockieren einander nicht.
 
+Das Festhalten des Ergebnisses einer Locale in der Lock-Datei und der Provenance-Datei nimmt
+außerdem kurz den projektweiten Guard der Lock-Datei. `--lock-timeout` (`lockAcquireTimeoutMs` im
+SDK) begrenzt nur das Warten auf die Schreibsperre der Locale, das vor jedem Provider-Aufruf
+passiert; eine Locale, die dort in das Timeout läuft, hat also nichts bezahlt und nichts
+geschrieben. Ist die Datei einer Locale erst geschrieben, wartet das Festhalten mit dem Standard von
+zehn Minuten auf den Guard, egal was `--lock-timeout` sagt, damit eine geschriebene Datei nie
+unerfasst bleibt. Die Warte-Meldung erscheint erst, wenn ein Warten eine Sekunde gedauert hat, und
+nie für eine Sperre, die derselbe Lauf hält, etwa den Guard, den eine Geschwister-Locale hält,
+während du mit `--concurrency` über 1 arbeitest.
+
 Übersetzt ein Lauf mehrere Locales gleichzeitig und trifft auf einen Fehler des gesamten Laufs (in
 der Praxis eine beschädigte Lock-Datei), beansprucht er keine neuen Locales mehr und wartet, bis
 die bereits laufenden fertig sind; so wird jede Sperre, die der Lauf genommen hat, freigegeben,
