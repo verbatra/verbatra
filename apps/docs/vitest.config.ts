@@ -21,6 +21,7 @@ export default defineConfig({
       "app/**/*.test.tsx",
       "proxy.test.ts",
       "proxy.cookies.test.ts",
+      "next.config.test.ts",
     ],
   },
 });
