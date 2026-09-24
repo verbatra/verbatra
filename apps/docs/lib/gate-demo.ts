@@ -5,8 +5,6 @@ export type GateLine = {
   readonly annotation?: GateAnnotation;
 };
 
-export const GATE_TARGET_FILE = "de.json";
-
 export const GATE_TARGET_LINES: ReadonlyArray<GateLine> = [
   { text: "{" },
   { text: '  "inbox": {' },
