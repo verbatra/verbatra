@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { deriveIntegrityPillView, type KeyIntegrityLocaleEntry } from "./integrity-pill.js";
+import {
+  deriveIntegrityPillView,
+  hasIntegrityProblem,
+  type KeyIntegrityLocaleEntry,
+} from "./integrity-pill.js";
 
 function entry(overrides: Partial<KeyIntegrityLocaleEntry> = {}): KeyIntegrityLocaleEntry {
   return {
@@ -178,5 +182,18 @@ describe("deriveIntegrityPillView: inline markup already on disk", () => {
       "de",
     );
     expect(view?.label).toBe("Placeholder mismatch");
+  });
+});
+
+describe("hasIntegrityProblem", () => {
+  it.each([
+    [{}, false],
+    [{ hasPlaceholders: false }, false],
+    [{ matches: false }, true],
+    [{ icuValid: false }, true],
+    [{ icuArmsMatch: false }, true],
+    [{ markupMatches: false }, true],
+  ] as const)("reads %j as a problem: %s", (overrides, expected) => {
+    expect(hasIntegrityProblem(entry(overrides))).toBe(expected);
   });
 });

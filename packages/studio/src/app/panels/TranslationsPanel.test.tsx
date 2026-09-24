@@ -13,6 +13,7 @@ import {
   reviewOverlayStore,
   rpcCalls,
   rpcError,
+  selectOption,
   stubRpc,
   typeInto,
 } from "../test-support.js";
@@ -1305,5 +1306,238 @@ describe("TranslationsPanel key overlays", () => {
 
     expect(reviewOverlayStore.isActioned({ locale: "de", key: "app.title" })).toBe(true);
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
+  });
+});
+
+function integrityEntry(key: string, matches: boolean) {
+  return {
+    key,
+    hasPlaceholders: true,
+    matches,
+    missing: matches ? [] : ["{name}"],
+    extra: [],
+    icuValid: true,
+    icuArmsMatch: true,
+    icuArmDetails: [],
+    markupMatches: true,
+    markupDetails: [],
+  };
+}
+
+const FILTER_LOCALES: readonly DiffLocale[] = [
+  localeDiff("de", {
+    missing: ["app.title"],
+    changed: ["app.body", "app.cta"],
+    protected: ["app.cta"],
+  }),
+  localeDiff("fr", { missing: ["app.title"], orphaned: ["app.legacy"] }),
+];
+
+function stubFilterPage(overrides: Stubs = {}): void {
+  stubPage({
+    "status.diff": diffResult(FILTER_LOCALES),
+    "review.queue": {
+      ok: true,
+      result: {
+        available: true,
+        version: 1,
+        generatedAt: "2026-05-04T10:15:00.000Z",
+        locales: [
+          {
+            locale: "fr",
+            status: "succeeded",
+            needsReview: [{ key: "app.subtitle", reasons: ["EQUALS_SOURCE"] }],
+          },
+        ],
+      },
+    },
+    "locale.integrity": {
+      ok: true,
+      result: {
+        locales: [
+          {
+            locale: "de",
+            entries: [integrityEntry("app.body", false), integrityEntry("app.cta", true)],
+          },
+          { locale: "fr", entries: [] },
+        ],
+      },
+    },
+    ...overrides,
+  });
+}
+
+function statusToggle(view: RenderResult, status: string): HTMLButtonElement {
+  return view.get(`[data-status-filter="${status}"]`) as HTMLButtonElement;
+}
+
+function listedSections(view: RenderResult): string[] {
+  return view
+    .all("details summary")
+    .map((summary) => summary.textContent?.split(/Pending|Up to/)[0] ?? "");
+}
+
+function headings(view: RenderResult): string[] {
+  return view.all("h4").map((heading) => heading.textContent ?? "");
+}
+
+describe("TranslationsPanel key filters", () => {
+  it("counts every status across the locales, the review queue and integrity included", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    await switchToList(view);
+    await flush();
+
+    expect(view.all("[data-status-filter]").map((toggle) => toggle.textContent)).toEqual([
+      "Missing2",
+      "Changed2",
+      "Orphaned1",
+      "Needs review1",
+      "Review queue1",
+      "Integrity problems1",
+    ]);
+  });
+
+  it("reads the review queue and the integrity report only once the list is shown", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    expect(rpcCalls.some((call) => call.method === "locale.integrity")).toBe(false);
+
+    await switchToList(view);
+
+    expect(rpcCalls.filter((call) => call.method === "locale.integrity")).toEqual([
+      { method: "locale.integrity", params: {} },
+    ]);
+    expect(rpcCalls.some((call) => call.method === "review.queue")).toBe(true);
+  });
+
+  it("lists the review queue and the integrity problems as their own groups", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+
+    await switchToList(view);
+    await flush();
+
+    expect(headings(view)).toEqual([
+      "Missing(1)",
+      "Changed(2)",
+      "Orphaned(0)",
+      "Needs review(1)",
+      "Integrity problems(1)",
+      "Missing(1)",
+      "Changed(0)",
+      "Orphaned(1)",
+      "Review queue(1)",
+    ]);
+  });
+
+  it("leaves out an entry decided in this tab from the review queue group", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    act(() => {
+      reviewOverlayStore.markActioned({ locale: "fr", key: "app.subtitle" });
+    });
+
+    expect(statusToggle(view, "review").textContent).toBe("Review queue0");
+  });
+
+  it("narrows the lists to the chosen statuses and hides a locale with none of them", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    await clickAsync(statusToggle(view, "integrity"));
+
+    expect(statusToggle(view, "integrity").getAttribute("aria-pressed")).toBe("true");
+    expect(listedSections(view)).toEqual(["de"]);
+    expect(headings(view)).toEqual(["Integrity problems(1)"]);
+    expect(
+      view.all("details ul button").map((button) => button.querySelector("span span")?.textContent),
+    ).toEqual(["app.body"]);
+  });
+
+  it("combines several statuses", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    await clickAsync(statusToggle(view, "orphaned"));
+    await clickAsync(statusToggle(view, "review"));
+
+    expect(listedSections(view)).toEqual(["fr"]);
+    expect(headings(view)).toEqual(["Orphaned(1)", "Review queue(1)"]);
+  });
+
+  it("narrows to one locale, counting only that locale", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    selectOption(view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement, "fr");
+    await flush();
+
+    expect(listedSections(view)).toEqual(["fr"]);
+    expect(statusToggle(view, "missing").textContent).toBe("Missing1");
+    expect(statusToggle(view, "integrity").textContent).toBe("Integrity problems0");
+  });
+
+  it("applies the text filter inside the chosen statuses", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    await clickAsync(statusToggle(view, "changed"));
+    typeInto(filterInput(view), "cta");
+
+    expect(headings(view)).toEqual(["Changed(1)"]);
+  });
+
+  it("explains an empty result and clears the locale and statuses on request", async () => {
+    stubFilterPage();
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+    selectOption(view.get('select[aria-label="Filter by locale"]') as HTMLSelectElement, "fr");
+    await clickAsync(statusToggle(view, "integrity"));
+
+    expect(view.text()).toContain("No locale has a key in the chosen states.");
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(listedSections(view)).toEqual(["de", "fr"]);
+    expect(statusToggle(view, "integrity").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("disables the review and integrity statuses while their reads fail", async () => {
+    stubFilterPage({
+      "review.queue": rpcError("QUEUE_UNREADABLE"),
+      "locale.integrity": rpcError("LOCK_FILE_INVALID"),
+    });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+
+    expect(statusToggle(view, "review").disabled).toBe(true);
+    expect(statusToggle(view, "integrity").disabled).toBe(true);
+    expect(statusToggle(view, "missing").disabled).toBe(false);
+  });
+
+  it("opens the key drawer from an integrity problem", async () => {
+    stubFilterPage({ "key.integrity": { ok: true, result: { locales: [] } } });
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await switchToList(view);
+    await flush();
+    await clickAsync(statusToggle(view, "integrity"));
+
+    await clickAsync(view.get("details ul button"));
+
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.body");
   });
 });

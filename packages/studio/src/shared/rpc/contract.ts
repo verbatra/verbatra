@@ -19,6 +19,11 @@ import {
 } from "./key-integrity.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
 import {
+  LOCALE_INTEGRITY_METHOD,
+  type LocaleIntegrityResult,
+  localeIntegrityParamsSchema,
+} from "./locale-integrity.js";
+import {
   LOCALE_VALUES_METHOD,
   type LocaleValuesResult,
   localeValuesParamsSchema,
@@ -86,6 +91,7 @@ export const rpcParamsSchemas = {
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
+  [LOCALE_INTEGRITY_METHOD]: localeIntegrityParamsSchema,
   [ESTIMATE_METHOD]: estimateParamsSchema,
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
@@ -114,6 +120,7 @@ export interface RpcResultMap {
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
+  readonly [LOCALE_INTEGRITY_METHOD]: LocaleIntegrityResult;
   readonly [ESTIMATE_METHOD]: EstimateResult;
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
