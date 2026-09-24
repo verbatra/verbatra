@@ -314,6 +314,28 @@ describe("redactKeys: exact key values", () => {
     expect(redactKeys("a fake-second-value")).toBe("a fake-second-value");
   });
 
+  it("drops the cached value pattern once every key variable is unset", () => {
+    const NativeRegExp = RegExp;
+    let constructed = 0;
+    globalThis.RegExp = new Proxy(NativeRegExp, {
+      construct(target, args: [string, string]) {
+        constructed += 1;
+        return Reflect.construct(target, args);
+      },
+    });
+    try {
+      process.env.ANTHROPIC_API_KEY = "fake-cached-value";
+      redactKeys("a fake-cached-value");
+      delete process.env.ANTHROPIC_API_KEY;
+      redactKeys("b");
+      process.env.ANTHROPIC_API_KEY = "fake-cached-value";
+      expect(redactKeys("c fake-cached-value")).toBe("c [REDACTED]");
+    } finally {
+      globalThis.RegExp = NativeRegExp;
+    }
+    expect(constructed).toBe(2);
+  });
+
   it("treats regular-expression metacharacters in a value literally", () => {
     process.env.ANTHROPIC_API_KEY = "fake.key+(value)";
     expect(redactKeys("x fake.key+(value) fakeXkeyy(value)")).toBe("x [REDACTED] fakeXkeyy(value)");

@@ -64,6 +64,7 @@ let cachedValuePattern: { readonly snapshot: string; readonly pattern: RegExp } 
 function configuredValuePattern(): RegExp | undefined {
   const values = configuredKeyValues();
   if (values.length === 0) {
+    cachedValuePattern = undefined;
     return undefined;
   }
   const snapshot = values.join("\0");
