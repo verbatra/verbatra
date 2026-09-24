@@ -21,7 +21,6 @@ type Node =
     };
 
 const UNICODE_ESCAPE = /^[0-9a-fA-F]{4}$/;
-const TRAILING_BLOCK_COMMENT = /\/\*([\s\S]*?)\*\//g;
 
 function isInlineWhitespace(char: string | undefined): boolean {
   return char === " " || char === "\t" || char === "\r" || char === "\n";
@@ -185,20 +184,49 @@ interface LeadingSplit {
   readonly description?: string;
 }
 
-function splitLeading(leading: string): LeadingSplit {
-  let lastMatch: RegExpExecArray | null = null;
-  for (const match of leading.matchAll(TRAILING_BLOCK_COMMENT)) {
-    lastMatch = match;
+interface BlockComment {
+  readonly end: number;
+  readonly inner: string;
+}
+
+function nextCommentStart(text: string, from: number): number {
+  const block = text.indexOf("/*", from);
+  const line = text.indexOf("//", from);
+  if (block === -1 || line === -1) {
+    return Math.max(block, line);
   }
-  if (lastMatch === null) {
+  return Math.min(block, line);
+}
+
+function lastBlockComment(text: string): BlockComment | null {
+  let last: BlockComment | null = null;
+  let start = nextCommentStart(text, 0);
+  while (start !== -1) {
+    if (text.startsWith("//", start)) {
+      const lineEnd = text.indexOf("\n", start);
+      start = lineEnd === -1 ? -1 : nextCommentStart(text, lineEnd);
+      continue;
+    }
+    const close = text.indexOf("*/", start + 2);
+    if (close === -1) {
+      break;
+    }
+    last = { end: close + 2, inner: text.slice(start + 2, close) };
+    start = nextCommentStart(text, close + 2);
+  }
+  return last;
+}
+
+function splitLeading(leading: string): LeadingSplit {
+  const comment = lastBlockComment(leading);
+  if (comment === null) {
     return { alwaysPreserved: "", ownedByEntry: leading };
   }
-  const commentEnd = lastMatch.index + lastMatch[0].length;
-  const tail = leading.slice(commentEnd);
+  const tail = leading.slice(comment.end);
   if (!isAttachedTail(tail)) {
-    return { alwaysPreserved: leading.slice(0, commentEnd), ownedByEntry: tail };
+    return { alwaysPreserved: leading.slice(0, comment.end), ownedByEntry: tail };
   }
-  const inner = (lastMatch[1] ?? "").trim();
+  const inner = comment.inner.trim();
   return {
     alwaysPreserved: "",
     ownedByEntry: leading,

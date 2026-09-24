@@ -100,3 +100,35 @@ describe("parseAppleStringsEntries: bounded attachment work", () => {
     },
   );
 });
+
+describe("parseAppleStringsEntries: block comments inside line comments", () => {
+  it.each([
+    [
+      "a block comment quoted in a later line comment",
+      '/* note */\n// see /* not a note */\n"a" = "1";\n',
+      undefined,
+    ],
+    [
+      "a block comment quoted in an earlier line comment",
+      '// see /* not a note */\n/* note */\n"a" = "1";\n',
+      "note",
+    ],
+    [
+      "a line-comment marker inside a block comment",
+      '/* note // still note */\n"a" = "1";\n',
+      "note // still note",
+    ],
+    [
+      "only a line comment quoting a block comment",
+      '// see /* not a note */\n"a" = "1";\n',
+      undefined,
+    ],
+    ["an unterminated block comment", '/* open\n"a" = "1";\n', undefined],
+  ])(
+    "takes the description from real block comments only, given %s",
+    (_label, content, description) => {
+      const entry = parseAppleStringsEntries(content, "m").get("a");
+      expect(entry?.description).toBe(description);
+    },
+  );
+});
