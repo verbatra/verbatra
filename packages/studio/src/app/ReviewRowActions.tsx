@@ -16,7 +16,7 @@ export function ReviewRowActions({
 }): ReactNode {
   const busy = pendingLabel !== undefined;
   return (
-    <span className="ms-2 inline-flex items-center gap-2 whitespace-nowrap">
+    <span className="relative ms-2 inline-flex items-center gap-2 whitespace-nowrap">
       <Button onClick={onEdit} disabled={busy}>
         Edit
       </Button>

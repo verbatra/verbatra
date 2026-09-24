@@ -7,6 +7,7 @@ import { rpcClient } from "./api.js";
 import { Button } from "./Button.js";
 import { TextArea } from "./Input.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
+import { TranslationValue, valueDirection } from "./TranslationValue.js";
 import { DrawerShell, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
@@ -71,11 +72,13 @@ function clearRemediationHint(state: SubmitState): string | undefined {
 }
 
 function EditorFields({
+  locale,
   context,
   value,
   onChangeValue,
   disabled,
 }: {
+  readonly locale: string;
   readonly context: Extract<KeyValueContext, { kind: "loaded" }>;
   readonly value: string;
   readonly onChangeValue: (next: string) => void;
@@ -84,7 +87,11 @@ function EditorFields({
   return (
     <>
       <Section title="Source">
-        <p className="m-0 font-mono text-sm text-muted-foreground">{context.source}</p>
+        <TranslationValue
+          as="p"
+          value={context.source}
+          className="m-0 break-words font-mono text-sm text-muted-foreground"
+        />
       </Section>
       <Section title="Translation">
         {context.target === undefined ? (
@@ -95,6 +102,7 @@ function EditorFields({
         <TextArea
           aria-label={`Translation for ${context.source}`}
           className="max-w-none"
+          dir={valueDirection(locale)}
           value={value}
           onChange={(event) => onChangeValue(event.target.value)}
           disabled={disabled}
@@ -158,6 +166,7 @@ export function EditEntryDialog({
       {context.kind === "loaded" ? (
         <>
           <EditorFields
+            locale={locale}
             context={context}
             value={value}
             onChangeValue={setValue}

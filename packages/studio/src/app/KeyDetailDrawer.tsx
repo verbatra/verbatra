@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
-import { deriveIntegrityPillView, type KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
-import { isRtlLocale } from "../client/locale-direction.js";
+import {
+  deriveIntegrityPillView,
+  type IntegrityPillView,
+  type KeyIntegrityLocaleEntry,
+} from "../client/integrity-pill.js";
 import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
@@ -15,6 +18,7 @@ import { CommitList } from "./CommitList.js";
 import { DiffBadge } from "./DiffBadge.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
+import { TranslationValue } from "./TranslationValue.js";
 import { DetailList, DrawerShell, MonoValue, Section } from "./ui.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
@@ -94,9 +98,12 @@ function LocaleValue({
     return <p className="m-0 mt-2 text-sm text-muted-foreground">No translation yet.</p>;
   }
   return (
-    <p className="m-0 mt-2 break-words font-mono text-sm text-foreground" dir="auto">
-      {value}
-    </p>
+    <TranslationValue
+      as="p"
+      value={value}
+      locale={locale}
+      className="m-0 mt-2 break-words font-mono text-sm text-foreground"
+    />
   );
 }
 
@@ -126,30 +133,37 @@ function LocaleProvenance({
 }
 
 function IntegrityCell({
-  integrity,
+  pill,
   locale,
   keyName,
   capabilities,
 }: {
-  readonly integrity: readonly KeyIntegrityLocaleEntry[];
+  readonly pill: IntegrityPillView | null;
   readonly locale: string;
   readonly keyName: string;
   readonly capabilities: StudioCapabilities | undefined;
 }): ReactNode {
-  const pill = deriveIntegrityPillView(integrity, locale);
   if (pill === null) {
     return null;
   }
   return (
     <>
-      <Badge tone={pill.tone}>
-        {pill.label}
-        {pill.detail !== null ? `: ${pill.detail}` : ""}
-      </Badge>
+      <Badge tone={pill.tone}>{pill.label}</Badge>
       {canRetranslate(capabilities, pill) ? (
         <RetranslateButton locale={locale} keyName={keyName} />
       ) : null}
     </>
+  );
+}
+
+function IntegrityDetail({ pill }: { readonly pill: IntegrityPillView | null }): ReactNode {
+  if (pill === null || pill.detail === null) {
+    return null;
+  }
+  return (
+    <p className="m-0 mt-1 break-words text-xs text-muted-foreground" data-integrity-detail="">
+      {pill.detail}
+    </p>
   );
 }
 
@@ -169,11 +183,9 @@ function LocaleBlock({
   readonly onEditLocale?: ((locale: string) => void) | undefined;
 }): ReactNode {
   const canEdit = capabilities?.writeToDisk === true && onEditLocale !== undefined;
+  const pill = deriveIntegrityPillView(integrity, row.locale);
   return (
-    <li
-      className="border-b border-border py-3 last:border-b-0"
-      dir={isRtlLocale(row.locale) ? "rtl" : undefined}
-    >
+    <li className="border-b border-border py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-semibold text-foreground">{row.locale}</span>
         {row.status === "in-sync" ? (
@@ -182,7 +194,7 @@ function LocaleBlock({
           <DiffBadge tone={row.status} />
         )}
         <IntegrityCell
-          integrity={integrity}
+          pill={pill}
           locale={row.locale}
           keyName={keyName}
           capabilities={capabilities}
@@ -193,6 +205,7 @@ function LocaleBlock({
           </Button>
         ) : null}
       </div>
+      <IntegrityDetail pill={pill} />
       <LocaleValue values={values} locale={row.locale} />
       <LocaleProvenance values={values} locale={row.locale} />
     </li>
@@ -232,9 +245,11 @@ export function KeyDetailDrawer({
     >
       <Section title="Source">
         {values.kind === "loaded" && values.source !== undefined ? (
-          <p className="m-0 break-words font-mono text-sm text-foreground" dir="auto">
-            {values.source}
-          </p>
+          <TranslationValue
+            as="p"
+            value={values.source}
+            className="m-0 break-words font-mono text-sm text-foreground"
+          />
         ) : (
           <p className="m-0 text-sm text-muted-foreground">
             {values.kind === "loading" ? "Loading value…" : "No current source value."}
