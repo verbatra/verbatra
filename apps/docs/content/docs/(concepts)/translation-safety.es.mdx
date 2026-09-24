@@ -93,6 +93,13 @@ nuevo por clave.
   Vaciar una traducción es un acto aparte y deliberado, y el centinela `[[CLEAR]]` del libro de
   Excel es la forma de hacerlo; consulta [Traducción manual](/docs/manual-translation).
 
+Una candidata que incumple más de una regla se rechaza con un único motivo, el primero que se
+aplica en este orden: `empty`, luego `icu` para un mensaje que no se puede analizar (incluido un
+`plural` sin su rama `other`), luego `placeholder`, `markup`, `icu` para ramas que no encajan con el
+idioma de destino, y `degenerate`. Por eso un valor vacío se informa como `empty` aunque su origen
+lleve placeholders o etiquetas, y un mensaje ICU roto como `icu` en lugar de como los placeholders
+que un analizador ya no encuentra en él.
+
 Una candidata rechazada se retiene como datos, nunca se escribe: aparece en el resumen de la
 ejecución como una discordancia de integridad, conserva su hash anterior en
 [el archivo de bloqueo](/docs/the-lock-file) y se reintenta en la siguiente ejecución. Retenida
