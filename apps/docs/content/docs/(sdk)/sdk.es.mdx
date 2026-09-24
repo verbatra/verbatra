@@ -630,12 +630,24 @@ Escribe las cadenas que todavía necesitan traducción (claves faltantes y modif
 las sin cambios con `includeUnchanged`) en un libro `.xlsx` con estilos. Las filas llevan la misma señal
 de revisión que calcula una ejecución de translate. Sin llamada al proveedor, sin escritura del bloqueo.
 
-Entrada: `{ config, cwd?, out?, locales?, includeUnchanged?, format? }`. `format` es `xlsx` por
+Entrada: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` es `xlsx` por
 defecto; `csv` y `tsv` escriben en su lugar un `<locale>.csv` o `<locale>.tsv` por locale, así que `out`
 nombra un directorio para ellos (creado si falta) y una ruta de archivo para `xlsx`. `out` es por
 defecto `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) o `DEFAULT_DELIMITED_PATH`
 (`verbatra-translations`), ambos exportados como constantes. Los valores aceptados se exportan como `EXCHANGE_FORMATS` y el valor por defecto como `DEFAULT_EXCHANGE_FORMAT`, para que una herramienta que envuelve el SDK pueda validar un argumento de formato sin fijar la lista en el código. Devuelve `{ path, locales }`: la ruta
 absoluta escrita y un número de filas por locale.
+
+Antes de leer nada, `EXPORT_OUTPUT_CONFLICT` rechaza un `out` que queda fuera de `cwd`, y uno que,
+por sí mismo o a través de un archivo que la exportación escribiría dentro, nombra un archivo de
+locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de
+traducción, un archivo que verbatra busca para su configuración, el archivo `configPath` o el
+archivo `glossaryPath`, sin distinguir mayúsculas de minúsculas y, cuando `deps.fs` implementa
+`realpath` como el valor por defecto, otra vez tras resolver los enlaces simbólicos. Una ruta
+`xlsx` también se rechaza cuando no nombra ningún archivo (también una que termina en un separador
+de ruta) o nombra el propio `cwd`; un directorio `csv` o `tsv` puede ser `cwd`. Una escritura que
+falla, porque el directorio no es escribible, hay un directorio o un archivo en medio o el disco
+está lleno, lanza `EXPORT_UNWRITABLE` con el archivo y el código del sistema de archivos en el
+mensaje, y el error del sistema de archivos como `cause`.
 
 ### importWorkbook
 
@@ -1206,6 +1218,8 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria |
 | `TMX_UNWRITABLE` | el archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
+| `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada |
+| `EXPORT_UNWRITABLE` | el archivo de entrega que produce `exportWorkbook` no se pudo escribir (su directorio no es escribible, hay un directorio o un archivo en medio, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos, y el error del sistema de archivos es la `cause` |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`

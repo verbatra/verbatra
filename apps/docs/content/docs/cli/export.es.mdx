@@ -45,12 +45,18 @@ Un archivo delimitado se puede comparar con diff y se abre en cualquier parte, p
 
 Cada exportación delimitada escribe además un manifiesto oculto en el directorio, `.verbatra-export-csv.json` o `.verbatra-export-tsv.json`, que nombra los locales que acaba de escribir. Es lo que permite que una reexportación con una selección `--locales` más estrecha retire los locales que ha dejado fuera: sus archivos siguen en disco, y [`verbatra import`](/docs/cli/import) los rechaza como restos en lugar de aplicar una traducción desactualizada. La exportación no borra nada del directorio de salida, así que un archivo tuyo que esté ahí nunca corre peligro.
 
+## Dónde se escribe la entrega
+
+La entrega solo se escribe dentro del directorio de trabajo. Antes de leer nada, un `--out` que sale del directorio de trabajo se rechaza con `EXPORT_OUTPUT_CONFLICT`, y también uno que, por sí mismo o a través de un archivo que la exportación escribiría dentro, nombra un archivo del que depende el proyecto: un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario al que apunta `glossary` en tu configuración. Con `xlsx` también se rechaza una ruta que no nombra ningún archivo (también una que termina en un separador de ruta, como `out/`) o que nombra el propio directorio de trabajo; un directorio `csv` o `tsv` puede ser el directorio de trabajo. Los nombres se comparan sin distinguir mayúsculas de minúsculas, y las mismas comprobaciones se repiten sobre el destino real de la ruta una vez resueltos los enlaces simbólicos, así que un directorio o un archivo enlazado no puede llevar la entrega fuera del directorio de trabajo ni sobre un archivo protegido, y no se escribe nada.
+
+Una ruta que pasa esas comprobaciones aún puede fallar al escribir: cuando el directorio no es escribible, hay un directorio o un archivo en medio, o el disco está lleno, la ejecución se detiene con `EXPORT_UNWRITABLE`, nombra el archivo y el código del sistema de archivos, y sale con `2`.
+
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
 | `0` | la entrega se escribió |
-| `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido) |
+| `2` | no se pudo ejecutar: un error de toda la ejecución, una ruta de salida rechazada (`EXPORT_OUTPUT_CONFLICT`), una entrega que no se pudo escribir (`EXPORT_UNWRITABLE`), o un error de uso (incluido un valor `--locales` vacío o desconocido) |
 
 `export` no tiene modo de fallo por locale, así que nunca sale con `1`.
 

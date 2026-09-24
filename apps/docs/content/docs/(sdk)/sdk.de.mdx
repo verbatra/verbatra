@@ -648,12 +648,24 @@ kommen mit `includeUnchanged` dazu) in eine formatierte `.xlsx`-Arbeitsmappe. Di
 dasselbe Review-Flag-Signal, das ein translate-Lauf berechnet. Kein Provider-Aufruf, kein
 Lock-Schreiben.
 
-Eingabe: `{ config, cwd?, out?, locales?, includeUnchanged?, format? }`. `format` ist standardmäßig
+Eingabe: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` ist standardmäßig
 `xlsx`; `csv` und `tsv` schreiben stattdessen eine `<locale>.csv` bzw. `<locale>.tsv` pro Locale, `out`
 benennt dafür also ein Verzeichnis (das angelegt wird, falls es fehlt) und bei `xlsx` einen Dateipfad.
 `out` ist standardmäßig `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) oder
 `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
 `{ path, locales }` zurück: den absoluten geschriebenen Pfad und eine Zeilenzahl pro Locale.
+
+Bevor irgendetwas gelesen wird, weist `EXPORT_OUTPUT_CONFLICT` ein `out` zurück, das außerhalb von
+`cwd` landet, und eines, das selbst oder über eine Datei, die der Export hineinschreiben würde, eine
+konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine
+Datei, nach der verbatra seine Konfiguration sucht, die `configPath`-Datei oder die
+`glossaryPath`-Datei benennt, ohne Beachtung der Groß- und Kleinschreibung und, wenn `deps.fs`
+`realpath` implementiert wie die Voreinstellung, noch einmal nach dem Auflösen symbolischer Links.
+Ein `xlsx`-Pfad wird außerdem abgelehnt, wenn er keine Datei benennt (auch einer, der auf ein
+Pfadtrennzeichen endet) oder `cwd` selbst benennt; ein `csv`- oder `tsv`-Verzeichnis darf `cwd`
+sein. Scheitert das Schreiben, weil das Verzeichnis nicht schreibbar ist, ein Verzeichnis oder eine
+Datei im Weg liegt oder die Platte voll ist, wirft es `EXPORT_UNWRITABLE` mit der Datei und dem
+Dateisystem-Code in der Message und dem Dateisystem-Fehler als `cause`.
 
 ### importWorkbook
 
@@ -1236,6 +1248,8 @@ geworfen.
 | `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
 | `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
+| `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird |
+| `EXPORT_UNWRITABLE` | die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, ein Verzeichnis oder eine Datei liegt im Weg, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code, und der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen

@@ -595,12 +595,22 @@ Writes the strings that still need translating (missing and changed keys per loc
 ones with `includeUnchanged`) into a styled `.xlsx` workbook. Rows carry the same review-flag
 signal a translate run computes. No provider call, no lock write.
 
-Input: `{ config, cwd?, out?, locales?, includeUnchanged?, format? }`. `format` is `xlsx` by
+Input: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` is `xlsx` by
 default; `csv` and `tsv` write one `<locale>.csv` or `<locale>.tsv` per locale instead, so `out`
 names a directory for them (created if missing) and a file path for `xlsx`. `out` defaults to
 `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) or `DEFAULT_DELIMITED_PATH`
 (`verbatra-translations`), both exported as constants. The accepted values are exported as `EXCHANGE_FORMATS` and the default as `DEFAULT_EXCHANGE_FORMAT`, so a tool that wraps the SDK can validate a format argument without hardcoding the list. Returns `{ path, locales }`: the absolute
 path written and a per-locale row count.
+
+Before anything is read, `EXPORT_OUTPUT_CONFLICT` refuses an `out` that resolves outside `cwd`, and
+one that, or a file the export would write into it, names a configured locale file, the lock file,
+the provenance file, the translation-memory cache, a file verbatra searches for its configuration,
+the `configPath` file, or the `glossaryPath` file, compared case-insensitively and, when `deps.fs`
+implements `realpath` as the default does, again after symbolic links are resolved. An `xlsx` path
+is also refused when it names no file (including one ending in a path separator) or names `cwd`
+itself; a `csv` or `tsv` directory may be `cwd`. A write that fails, because the directory is not
+writable, a directory or file is in the way, or the disk is full, throws `EXPORT_UNWRITABLE` naming
+the file and the file-system code, with the file-system error as its `cause`.
 
 ### importWorkbook
 
@@ -1145,6 +1155,8 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `TYPES_UNWRITABLE` | the declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space); the message names the file and the file-system code |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read |
 | `TMX_UNWRITABLE` | the TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code |
+| `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read |
+| `EXPORT_UNWRITABLE` | the handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause` |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own

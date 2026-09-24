@@ -120,6 +120,8 @@ verbatra export --out handoff/round-2.xlsx
 
 Greife zu `--include-unchanged`, wenn eine Übersetzerin den vollen Kontext eines Locales will, nicht nur das Delta. Alle Flags stehen unter [`verbatra export`](/docs/cli/export).
 
+`--out` muss im Projekt bleiben: Ein Pfad außerhalb des Arbeitsverzeichnisses oder einer, der eine Locale-Datei, die Lock-Datei, die Konfiguration oder eine andere Datei überschreiben würde, von der das Projekt abhängt, wird mit `EXPORT_OUTPUT_CONFLICT` abgelehnt, bevor etwas geschrieben wird, auch wenn ein symbolischer Link ihn dorthin tragen würde. Scheitert das Schreiben, bricht der Lauf mit `EXPORT_UNWRITABLE` ab.
+
 ## Die Review-Spalten
 
 `Review status` und `Review reasons` sind eine nicht blockierende Schicht über den Prüfungen oben: die Heuristiken von verbatra, um eine Übersetzung zu erkennen, die strukturell in Ordnung ist, aber einen zweiten Blick verdient. Diese Spalten halten nie eine Zeile zurück, und Import liest sie nie; ein Flag verschwindet nur, indem du die Übersetzung reparierst. Beide Spalten werden beim Export frisch aus der Quelle und den aktuellen Zielwerten berechnet:
