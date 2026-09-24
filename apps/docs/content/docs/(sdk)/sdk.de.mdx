@@ -712,12 +712,20 @@ Quelldrift und Integrität aus wie `translate`. Nur akzeptierte Zeilen rücken i
 Lock-Baseline vor; eine leere oder abgelehnte Zeile wird weiter exportiert, bis sie wirklich
 erledigt ist.
 
-Eingabe: `{ config, workbook, cwd?, dryRun?, format? }`. Bei `csv` und `tsv` ist `workbook` entweder
+Eingabe: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs? }`. Bei `csv` und `tsv` ist `workbook` entweder
 eine einzelne Übergabedatei oder das Verzeichnis mit einer Datei pro Locale, und die Locale kommt aus
 dem Dateinamen. Gibt dieselbe `RunSummary`-Form zurück wie
 `translate` (mit `needsReview` immer leer, da kein Provider beteiligt ist). Ein Blatt für eine
 Locale, die kein konfiguriertes Ziel ist, lässt diese Locale mit `CONFIG_INVALID` als Daten auf der
 Zusammenfassung fehlschlagen, statt zu werfen.
+
+`onLockWait` und `lockAcquireTimeoutMs` verhalten sich genau wie bei `translate`.
+`lockAcquireTimeoutMs` begrenzt das Warten auf die Schreibsperre einer Locale, die genommen wird,
+bevor die Datei dieser Locale geschrieben wird. Eine Locale, deren Sperre danach noch belegt ist,
+schlägt mit `LOCK_CONTENDED` auf ihrer eigenen Zusammenfassung fehl, während die anderen Locales
+importiert werden. Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum
+Standard von zehn Minuten. Ein Dry-Run nimmt keine Sperre, daher gilt keine der beiden Optionen für
+ihn.
 
 <AvailableFrom version="0.12.0" />
 

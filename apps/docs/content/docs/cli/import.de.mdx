@@ -20,6 +20,7 @@ verbatra import <workbook> [flags]
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--dry-run` | keins | aus | validieren und melden, ohne Locale-Dateien zu schreiben oder das Lock zu aktualisieren |
 | `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder Dateien mit Trennzeichen (`csv`, `tsv`) lesen |
+| `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit und höchstens `3600` sein (ein Wert wie `60s`, `0`, `-1` oder `7200` ist ein Verwendungsfehler, Exit `2`) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Lauf-Zusammenfassung unter `result` trägt (dieselbe [`RunSummary`-Form](/docs/sdk) wie bei `translate`), oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Beispiele
@@ -38,6 +39,10 @@ verbatra import handoff --format csv
 Bei `csv` und `tsv` kommt die Locale aus dem Dateinamen, nicht aus einem Blattnamen. Lass also jede Datei genau so heißen, wie sie exportiert wurde. Eine konfigurierte Ziel-Locale ohne Datei (oder, in einer Arbeitsmappe, ohne Blatt) wird als Fehler dieser Locale mit `WORKBOOK_SHEET_MISSING` gemeldet, nie stillschweigend übersprungen.
 
 Eine Datei aus einem früheren Export mit einer breiteren `--locales`-Auswahl wird nie angewendet. Der Import gleicht das Verzeichnis mit dem Manifest ab, das der jüngste Export dorthin geschrieben hat, und meldet eine solche Locale als Fehler mit `HANDOFF_FILE_STALE`. So kann sich keine veraltete Übersetzung unbemerkt zurückschleichen. Exportiere die Locale neu, um ihre Datei aufzufrischen, oder lösche die Datei. Ein Verzeichnis ohne lesbares Manifest (von Hand zusammengestellt oder auf dem Weg durch ein Archiv um die versteckte Datei gebracht) wird wie bisher gelesen, jede vorhandene Datei wird importiert. Eine direkt benannte Einzeldatei wird ebenso beim Wort genommen.
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` legt fest, wie lange eine Locale auf eine belegte [Schreibsperre](/docs/the-lock-file#die-schreibsperre) wartet, bevor sie mit `LOCK_CONTENDED` scheitert, genau wie bei [`verbatra translate`](/docs/cli/translate). Das Warten passiert, bevor die Datei der Locale geschrieben wird. Eine Locale, die in das Zeitlimit läuft, bleibt also unberührt, die anderen Locales werden trotzdem importiert, und der Befehl endet mit `1`. Ist die Datei einer Locale einmal geschrieben, wartet das Eintragen in die Lock-Datei bis zum Standard von zehn Minuten, egal was `--lock-timeout` sagt. Dauert ein Warten länger als eine Sekunde, nennt eine Zeile auf stderr die Sperrdatei und ihren Halter, unter `--json` ein `lock-wait`-JSON-Eintrag. `--dry-run` nimmt keine Sperre und wartet daher nie.
 
 ## Exit-Codes
 

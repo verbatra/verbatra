@@ -50,7 +50,7 @@ export interface LockWaitEvent {
 /**
  * Called while waiting for a write lock another process holds: first once the wait has lasted a
  * second, then at most once a second. Never called for a lock this process holds itself. Passed
- * as `onLockWait` to {@link translate} and {@link watch}.
+ * as `onLockWait` to {@link translate}, {@link watch}, and {@link importWorkbook}.
  */
 export type LockWaitListener = (event: LockWaitEvent) => void;
 
@@ -59,6 +59,24 @@ export interface LocaleWriteLockOptions {
   readonly acquireTimeoutMs?: number;
   readonly onWait?: LockWaitListener;
   readonly liveness?: LivenessContext;
+}
+
+export interface RunLockInput {
+  readonly onLockWait?: LockWaitListener;
+  readonly lockAcquireTimeoutMs?: number;
+}
+
+export function writeLockOptions(input: RunLockInput): LocaleWriteLockOptions {
+  return {
+    ...(input.onLockWait !== undefined ? { onWait: input.onLockWait } : {}),
+    ...(input.lockAcquireTimeoutMs !== undefined
+      ? { acquireTimeoutMs: input.lockAcquireTimeoutMs }
+      : {}),
+  };
+}
+
+export function recordLockOptions(input: RunLockInput): LocaleWriteLockOptions {
+  return input.onLockWait !== undefined ? { onWait: input.onLockWait } : {};
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 100;

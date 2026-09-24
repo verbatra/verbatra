@@ -19,7 +19,13 @@ import { errorMessage, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
-import { withLocaleWriteLock, writeLockKeyFor } from "../../lock/locale-write-lock.js";
+import {
+  type LockWaitListener,
+  recordLockOptions,
+  withLocaleWriteLock,
+  writeLockKeyFor,
+  writeLockOptions,
+} from "../../lock/locale-write-lock.js";
 import {
   baselineFor,
   lockFilePath,
@@ -76,6 +82,19 @@ export interface ImportWorkbookInput {
   readonly dryRun?: boolean;
   /** The handoff shape to read. Defaults to `xlsx`. */
   readonly format?: ExchangeFormat;
+  /**
+   * Called while waiting on another process's write lock, so a CLI can explain a stall instead of
+   * appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
+   * `LOCK_CONTENDED`. The wait happens before the locale file is written. Defaults to ten minutes.
+   * It does not bound the lock-file guard a locale takes to record its result once its target file
+   * is written: that wait always allows the ten-minute default, so a written file is not left
+   * unrecorded. Not used on a dry run, which takes no lock.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** Injectable dependencies for {@link importWorkbook}. Every field has a working default. */
@@ -455,7 +474,10 @@ async function runSheet(
  * with `HANDOFF_FILE_STALE` without being applied, and a row naming a key neither the source nor
  * the target holds fails its locale. Once the handoff has been read, every per-locale failure is
  * isolated this way, so callers should inspect {@link RunSummary.failed} and
- * {@link RunSummary.partial} rather than relying on a thrown error. A corrupt lock-file is the one exception, because it is a single
+ * {@link RunSummary.partial} rather than relying on a thrown error. A locale whose write lock stays
+ * contended past `lockAcquireTimeoutMs` is one of these per-locale failures: it is recorded with
+ * code `LOCK_CONTENDED` on that locale's summary, before its file is written, rather than thrown.
+ * A corrupt lock-file is the one exception, because it is a single
  * shared file rather than a per-locale one: it aborts the whole run even when it is discovered
  * after a locale has been applied, so the locales still to come are not written at all.
  *
@@ -515,6 +537,8 @@ export async function importWorkbook(
     format,
   };
 
+  const lockOptions = writeLockOptions(input);
+  const recordOptions = recordLockOptions(input);
   const summaries: LocaleSummary[] = [];
   const cacheAdditions = new Map<string, Record<string, CacheAddition>>();
   for (const sheet of data.sheets) {
@@ -535,10 +559,12 @@ export async function importWorkbook(
               sheet.locale,
               { mode: "replace", entries: result.lockEntries },
               result.provenance,
+              recordOptions,
             );
             collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
             return withProvenanceWriteNotice(result.summary, update.provenance);
           },
+          lockOptions,
         );
       }
       summaries.push(summary);

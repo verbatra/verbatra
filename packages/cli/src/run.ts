@@ -106,6 +106,7 @@ const exportOptsSchema = sharedCommandOptsSchema.extend({
 const importOptsSchema = sharedCommandOptsSchema.extend({
   dryRun: z.boolean().optional(),
   format: exchangeFormatSchema,
+  lockTimeout: z.string().optional(),
 });
 
 const TMX_DIRECTIONS = ["import", "export"] as const;
@@ -704,7 +705,11 @@ export async function runImport(
   return withParsedOpts(
     () => {
       const opts = importOptsSchema.parse(rawOpts);
-      return { ...opts, format: parseExchangeFormat(opts.format) };
+      return {
+        ...opts,
+        format: parseExchangeFormat(opts.format),
+        lockAcquireTimeoutMs: parseLockTimeout(opts.lockTimeout),
+      };
     },
     context,
     async (opts) => {
@@ -719,8 +724,12 @@ export async function runImport(
             config,
             workbook,
             cwd,
+            onLockWait: lockWaitReporter(streams, context.json),
             ...(opts.dryRun === true ? { dryRun: true } : {}),
             ...(opts.format !== undefined ? { format: opts.format } : {}),
+            ...(opts.lockAcquireTimeoutMs !== undefined
+              ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
+              : {}),
           });
           streams.out(
             context.json
@@ -1153,6 +1162,10 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--dry-run", "validate and report without writing locale files or updating the lock")
     .option("--format <format>", FORMAT_OPTION_DESCRIPTION)
+    .option(
+      "--lock-timeout <seconds>",
+      "how long to wait for a held per-locale write lock before failing (default 600)",
+    )
     .option("--json", "print the run summary as JSON")
     .action(async (workbook: string, opts: unknown) => {
       ctx.hooks.onLockingCommand?.();

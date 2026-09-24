@@ -20,6 +20,7 @@ verbatra import <workbook> [flags]
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--dry-run` | none | off | validate and report without writing locale files or updating the lock |
 | `--format` | `<format>` | `xlsx` | read an Excel workbook (`xlsx`) or delimited files (`csv`, `tsv`) |
+| `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock before failing; must be a bare positive integer of seconds no greater than `3600` (a value like `60s`, `0`, `-1`, or `7200` is a usage error, exit `2`) |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the run summary under `result` (the same [`RunSummary` shape](/docs/sdk) as `translate`), or the error code on a failed run; the human-readable error line still goes to stderr |
 
 ## Examples
@@ -38,6 +39,10 @@ verbatra import handoff --format csv
 With `csv` or `tsv` the locale comes from the file name, not from a sheet name, so keep every file named exactly as it was exported. A configured target locale with no file (or, in a workbook, no sheet) is reported as that locale's failure with `WORKBOOK_SHEET_MISSING`, never silently skipped.
 
 A file left over from an earlier export with a wider `--locales` selection is never applied. Import reconciles the directory against the manifest the most recent export wrote there and reports such a locale as failed with `HANDOFF_FILE_STALE`, so an outdated translation cannot slip back in unnoticed. Re-export that locale to refresh its file, or delete the file. A directory with no readable manifest (one assembled by hand, or one that lost the hidden file on its way through an archive) is read as it always was, every present file is imported. Naming a single file directly is likewise taken at face value.
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file#the-write-lock) before that locale fails with `LOCK_CONTENDED`, exactly as on [`verbatra translate`](/docs/cli/translate). The wait happens before the locale's file is written, so a locale that times out is left untouched while the other locales still import, and the command exits `1`. Once a locale's file is written, recording it in the lock file waits up to the ten-minute default whatever `--lock-timeout` says. While a wait lasts longer than a second, a line on stderr names the lock file and its holder, or a `lock-wait` JSON record under `--json`. `--dry-run` takes no lock, so it never waits.
 
 ## Exit codes
 

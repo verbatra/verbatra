@@ -116,9 +116,9 @@
  *   locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
  *   {@link translate} and {@link importWorkbook} do not throw it: they record it
  *   on the contended locale's {@link LocaleSummary} and carry on with the other locales. For
- *   {@link translate} and {@link watch}, `lockAcquireTimeoutMs` bounds only the locale write lock
- *   taken before any provider call, so a locale that fails with it after that timeout has called
- *   no provider and written no file. The lock-file guard taken to record a written file is not
+ *   {@link translate}, {@link watch}, and {@link importWorkbook}, `lockAcquireTimeoutMs` bounds
+ *   only the locale write lock taken before any provider call or file write, so a locale that fails
+ *   with it after that timeout has called no provider and written no file. The lock-file guard taken to record a written file is not
  *   bounded by it and always allows the ten-minute default.
  * - `GLOSSARY_NOT_FILE_BACKED`: the loaded config's glossary is written inline or absent, so there
  *   is no glossary file to read or rewrite. Thrown by {@link readGlossaryFile} and
