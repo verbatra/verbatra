@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import type { FormatId } from "@verbatra/core";
-import { SdkError } from "../errors.js";
+import { errorMessage, SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import {
@@ -147,7 +147,15 @@ async function deleteIfUnchanged(path: string, fs: SdkFs, content: string): Prom
   if (again.kind !== "ok" || again.content !== content) {
     return false;
   }
-  await fs.deleteFile(path);
+  try {
+    await fs.deleteFile(path);
+  } catch (error) {
+    throw new SdkError(
+      "LOCK_CONTENDED",
+      `Could not reclaim the abandoned write lock at ${path}: ${errorMessage(error)}. Delete it and retry.`,
+      { cause: error },
+    );
+  }
   return true;
 }
 

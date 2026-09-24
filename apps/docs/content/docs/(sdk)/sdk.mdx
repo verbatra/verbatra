@@ -542,7 +542,9 @@ that value so it gets replaced. The key is dropped from the locale file and its 
 removed, so `check` and `diff` report it as missing and the next `translate` fills it again (under
 `provider: { id: "none" }` it stays missing until someone writes a value). The provenance record is
 kept as `rejected` with a hash of the removed text, and the matching translation-memory entry on
-this machine is dropped. Calls no provider.
+this machine is dropped. A later `translate` skips any exact or fuzzy memory hit for the key whose
+text matches that hash, so another machine's memory cannot bring the text back either. Calls no
+provider.
 
 Input: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, checked like `approveEntry`
 except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A
@@ -977,9 +979,12 @@ followed by `:`, `=`, a URL-encoded `%3D`, or a space, quoted or not, also insid
 serialized into a string. Any other UUID, such as one in a file path or a request id, stays
 readable. A Pro key held in `DEEPL_API_KEY` is still scrubbed wherever it appears, by its value.
 
-An OpenAI- or Anthropic-style `sk-` key is recognized when its random part holds a run of at least
-20 letters and digits, as every real key does. A Slovak locale path or key such as
-`locales/sk-SK.json` or `sk-banner_headline` stays readable.
+A token starting with a known OpenAI or Anthropic key prefix (`sk-ant-`, `sk-proj-`,
+`sk-svcacct-`, `sk-admin-`) is always redacted. Any other `sk-` token is redacted once it holds at
+least 32 letters and digits in total, counted across its `-` and `_` segments, which covers legacy
+OpenAI keys. A Slovak locale path or key such as `locales/sk-SK.json` or `sk-banner_headline` stays
+readable, but a long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton` reaches the
+threshold and is redacted too.
 
 ### declareProviderKeyEnvVar
 

@@ -1,5 +1,4 @@
 import { checkPlaceholders, type PlaceholderIntegrityResult } from "@verbatra/core";
-import type { XliffVersion } from "./document.js";
 import { INLINE_ELEMENT_NAMES } from "./inline.js";
 
 const ANY_VERSION_INLINE_NAMES: ReadonlySet<string> = new Set([
@@ -38,12 +37,12 @@ function scanUntil(value: string, from: number, close: number, abort: number): n
   return i;
 }
 
-function scanTag(value: string, start: number, names: ReadonlySet<string>): Scan {
+function scanTag(value: string, start: number): Scan {
   let nameEnd = start + 1;
   while (nameEnd < value.length && isWordCode(value.charCodeAt(nameEnd))) {
     nameEnd += 1;
   }
-  if (!names.has(value.slice(start + 1, nameEnd))) {
+  if (!ANY_VERSION_INLINE_NAMES.has(value.slice(start + 1, nameEnd))) {
     return { next: start + 1 };
   }
   const stop = scanUntil(value, nameEnd, GREATER_THAN, LESS_THAN);
@@ -61,8 +60,7 @@ function scanBraces(value: string, start: number): Scan {
   return { next: start + 1 };
 }
 
-export function extractXliffPlaceholders(value: string, version?: XliffVersion): readonly string[] {
-  const names = version === undefined ? ANY_VERSION_INLINE_NAMES : INLINE_ELEMENT_NAMES[version];
+export function extractXliffPlaceholders(value: string): readonly string[] {
   const tokens: string[] = [];
   let i = 0;
   while (i < value.length) {
@@ -71,7 +69,7 @@ export function extractXliffPlaceholders(value: string, version?: XliffVersion):
       i += 1;
       continue;
     }
-    const scan = code === LESS_THAN ? scanTag(value, i, names) : scanBraces(value, i);
+    const scan = code === LESS_THAN ? scanTag(value, i) : scanBraces(value, i);
     if (scan.token !== undefined) {
       tokens.push(scan.token);
     }

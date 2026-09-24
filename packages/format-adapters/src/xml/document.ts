@@ -4,7 +4,7 @@ import type { AdapterFs } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent, type LineTerminator } from "../shell.js";
 
-export const ELEMENT_NODE = 1;
+const ELEMENT_NODE = 1;
 export const TEXT_NODE = 3;
 
 export const XML_PROLOG = '<?xml version="1.0" encoding="utf-8"?>\n';
@@ -15,7 +15,7 @@ export interface XmlDocumentLabels {
   readonly notRoot: string;
 }
 
-function onFatal(level: "warning" | "error" | "fatalError", message: string): void {
+export function onFatal(level: "warning" | "error" | "fatalError", message: string): void {
   if (level === "fatalError") {
     throw new Error(message);
   }

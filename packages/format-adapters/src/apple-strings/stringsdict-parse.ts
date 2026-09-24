@@ -1,5 +1,5 @@
 import type { TranslationEntry } from "@verbatra/core";
-import { DOMParser, type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
+import { DOMParser, type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
 import {
@@ -10,9 +10,8 @@ import {
 } from "../i18next/plural.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
+import { isElement, onFatal } from "../xml/document.js";
 import { extractAppleStringsPlaceholders } from "./placeholders.js";
-
-const ELEMENT_NODE = 1;
 
 const PLURAL_CATEGORIES: readonly I18nextPluralCategory[] = [
   "zero",
@@ -38,10 +37,6 @@ export interface StringsDictEntry {
   readonly variableName: string;
   readonly valueType: string | undefined;
   readonly categories: ReadonlyMap<I18nextPluralCategory, string>;
-}
-
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
 }
 
 function elementChildren(parent: Element): Element[] {
@@ -77,12 +72,6 @@ function assertSafePlist(content: string, filePath: string): void {
       "INVALID_XML",
       `${filePath}: the plist's <!DOCTYPE> declares an internal subset, which is rejected before parsing.`,
     );
-  }
-}
-
-function onFatal(level: "warning" | "error" | "fatalError"): void {
-  if (level === "fatalError") {
-    throw new Error("malformed XML");
   }
 }
 

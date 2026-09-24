@@ -1,11 +1,9 @@
-import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
+import { DOMParser, type Document, type Element } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
+import { isElement, onFatal } from "../xml/document.js";
 import { type DeclaredLanguages, xliff12Languages, xliff20Languages } from "./languages.js";
 
 export type XliffVersion = "1.2" | "2.0";
-
-export const ELEMENT_NODE = 1;
-export const TEXT_NODE = 3;
 
 export interface Unit {
   readonly key: string;
@@ -16,10 +14,6 @@ export interface Unit {
   readonly languages: DeclaredLanguages;
   readonly scope: Element;
   readonly description?: string;
-}
-
-export function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
 }
 
 export function elementChildren(parent: Element): Element[] {
@@ -36,12 +30,6 @@ export function collectByTag(root: Element, name: string): Element[] {
 
 function unitKey(element: Element, index: number): string {
   return element.getAttribute("id") ?? element.getAttribute("resname") ?? `unit-${index}`;
-}
-
-export function onFatal(level: "warning" | "error" | "fatalError"): void {
-  if (level === "fatalError") {
-    throw new Error("malformed XML");
-  }
 }
 
 function assertNoDoctype(content: string): void {

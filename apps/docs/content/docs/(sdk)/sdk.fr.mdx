@@ -355,7 +355,7 @@ Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedVa
 
 <AvailableFrom version="0.12.0" />
 
-Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et la refuse, et supprime cette valeur pour qu'elle soit remplacée. La clé est retirée du fichier de locale et son entrée de verrou est supprimée : `check` et `diff` la signalent comme manquante et la prochaine exécution de `translate` la remplit à nouveau (avec `provider: { id: "none" }`, elle reste manquante jusqu'à ce que quelqu'un écrive une valeur). L'enregistrement de provenance est conservé comme `rejected` avec un hash du texte supprimé, et l'entrée correspondante de la mémoire de traduction de cette machine est retirée. N'appelle aucun fournisseur.
+Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et la refuse, et supprime cette valeur pour qu'elle soit remplacée. La clé est retirée du fichier de locale et son entrée de verrou est supprimée : `check` et `diff` la signalent comme manquante et la prochaine exécution de `translate` la remplit à nouveau (avec `provider: { id: "none" }`, elle reste manquante jusqu'à ce que quelqu'un écrive une valeur). L'enregistrement de provenance est conservé comme `rejected` avec un hash du texte supprimé, et l'entrée correspondante de la mémoire de traduction de cette machine est retirée. Un `translate` ultérieur ignore tout succès exact ou approximatif de la mémoire pour la clé dont le texte correspond à ce hash, si bien que la mémoire d'une autre machine ne peut pas non plus ramener le texte. N'appelle aucun fournisseur.
 
 Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer? }`, vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
 
@@ -696,9 +696,12 @@ guillemets, y compris dans du JSON sérialisé dans une chaîne. Tout autre UUID
 chemin de fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans
 `DEEPL_API_KEY` est toujours retirée par sa valeur, où qu'elle apparaisse.
 
-Une clé `sk-` de style OpenAI ou Anthropic est reconnue quand sa partie aléatoire contient une suite
-d'au moins 20 lettres et chiffres, comme toute vraie clé. Un chemin ou une clé de locale slovaque
-comme `locales/sk-SK.json` ou `sk-banner_headline` reste lisible.
+Un token qui commence par un préfixe de clé connu d'OpenAI ou d'Anthropic (`sk-ant-`, `sk-proj-`,
+`sk-svcacct-`, `sk-admin-`) est toujours masqué. Tout autre token `sk-` est masqué dès qu'il contient
+au moins 32 lettres et chiffres au total, comptés sur tous ses segments `-` et `_`, ce qui couvre les
+anciennes clés OpenAI. Un chemin ou une clé de locale slovaque comme `locales/sk-SK.json` ou
+`sk-banner_headline` reste lisible, mais une longue clé camelCase comme
+`sk-onboardingWelcomeScreenPrimaryButton` atteint le seuil et est aussi masquée.
 
 ### declareProviderKeyEnvVar
 

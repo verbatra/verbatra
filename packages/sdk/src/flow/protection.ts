@@ -9,6 +9,7 @@ import {
   type ProvenanceRecord,
   provenanceFilePath,
   readProvenanceFile,
+  valueHash,
 } from "../lock/provenance-file.js";
 import type { LocaleDiffResult } from "./diff-locales.js";
 import { matchesKeyGlob } from "./key-glob.js";
@@ -85,6 +86,58 @@ export function protectedKeys(
     }
   }
   return reasons;
+}
+
+export type RejectedValueHashes = ReadonlyMap<string, string>;
+
+function rejectedIn(records: ReadonlyMap<string, ProvenanceRecord>): RejectedValueHashes {
+  const rejected = new Map<string, string>();
+  for (const [key, record] of records) {
+    if (record.reviewState === "rejected") {
+      rejected.set(key, record.valueHash);
+    }
+  }
+  return rejected;
+}
+
+async function readRecordsLeniently(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+): Promise<ReadonlyMap<string, ProvenanceRecord>> {
+  try {
+    const { file, writable } = await readProvenanceFile(provenanceFilePath(cwd), fs);
+    return writable ? localeRecords(file, locale) : new Map();
+  } catch (error) {
+    if (error instanceof SdkError && error.code === "PROVENANCE_FILE_INVALID") {
+      return new Map();
+    }
+    throw error;
+  }
+}
+
+export async function readRejectedValueHashes(
+  policy: ProtectionPolicy,
+  provenance: ProvenanceView,
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+): Promise<RejectedValueHashes> {
+  if (provenance === "unreadable") {
+    return new Map();
+  }
+  return rejectedIn(
+    needsProvenance(policy) ? provenance : await readRecordsLeniently(cwd, fs, locale),
+  );
+}
+
+export function isRejectedValue(
+  rejected: RejectedValueHashes | undefined,
+  key: string,
+  value: string,
+): boolean {
+  const hash = rejected?.get(key);
+  return hash !== undefined && hash === valueHash(value);
 }
 
 export async function readProvenanceView(

@@ -374,7 +374,7 @@ function glossaryGuardFailure(
   return new SdkError(
     "GLOSSARY_UNWRITABLE",
     locked
-      ? `${message} The glossary edit was saved, but the lock could not be released and stays in place until this process exits.`
+      ? `${message} The glossary edit was saved, but the lock could not be released and stays in place until a later run reclaims it after this process exits.`
       : message,
     { cause: error },
   );

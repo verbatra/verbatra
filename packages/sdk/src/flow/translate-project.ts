@@ -62,7 +62,12 @@ import {
 } from "./locale-carry-over.js";
 import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
-import { type ProtectionPolicy, protectionPolicy, readProvenanceView } from "./protection.js";
+import {
+  type ProtectionPolicy,
+  protectionPolicy,
+  readProvenanceView,
+  readRejectedValueHashes,
+} from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
@@ -305,6 +310,13 @@ async function buildLocaleRunParams(
     budget: context.budget,
     ...(context.machine !== undefined ? { machine: context.machine } : {}),
     protection: { policy: context.protection, provenance },
+    rejected: await readRejectedValueHashes(
+      context.protection,
+      provenance,
+      context.cwd,
+      context.fs,
+      targetLocale,
+    ),
     ...(context.cache !== undefined
       ? {
           cache: {
@@ -610,6 +622,11 @@ function estimateFields(
  * `overwrite` retranslates it. A key matching `pinnedKeys` is never sent or written, whatever the
  * setting. When the provenance file was written by a newer verbatra, every stale key with a value
  * is protected, since its origin cannot be read. Protected keys do not change a locale's status.
+ *
+ * A translation-memory hit, exact or fuzzy, is never reused for a key whose `rejected` provenance
+ * record, left by {@link rejectEntry}, holds the hash of that same text, so another machine's memory
+ * cannot reinstate a value a reviewer refused. The key goes to the provider instead, or stays
+ * unfilled in human-only mode. This holds under every `humanEdits` setting.
  *
  * A config whose provider is `none` runs in human-only mode. No provider is constructed and no API
  * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written

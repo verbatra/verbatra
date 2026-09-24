@@ -574,7 +574,9 @@ ese valor para que se reemplace. La clave sale del archivo de locale y se borra 
 bloqueo, así que `check` y `diff` la reportan como faltante y la siguiente ejecución de `translate`
 la vuelve a llenar (con `provider: { id: "none" }` sigue faltando hasta que alguien escriba un
 valor). El registro de procedencia se queda como `rejected` con un hash del texto eliminado, y la
-entrada correspondiente de la memoria de traducción de esta máquina se borra. No llama a ningún
+entrada correspondiente de la memoria de traducción de esta máquina se borra. Un `translate`
+posterior omite cualquier acierto exacto o difuso de la memoria para la clave cuyo texto coincida
+con ese hash, así que la memoria de otra máquina tampoco puede devolver el texto. No llama a ningún
 proveedor.
 
 Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, comprobada como en
@@ -1035,9 +1037,12 @@ o sin comillas, también dentro de JSON serializado en una cadena. Cualquier otr
 una ruta de archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY`
 se sigue eliminando por su valor dondequiera que aparezca.
 
-Una clave `sk-` al estilo de OpenAI o Anthropic se reconoce cuando su parte aleatoria contiene una
-secuencia de al menos 20 letras y dígitos, como toda clave real. Una ruta o clave de locale eslovaco
-como `locales/sk-SK.json` o `sk-banner_headline` sigue legible.
+Un token que empieza con un prefijo de clave conocido de OpenAI o Anthropic (`sk-ant-`, `sk-proj-`,
+`sk-svcacct-`, `sk-admin-`) se redacta siempre. Cualquier otro token `sk-` se redacta en cuanto
+contiene al menos 32 letras y dígitos en total, contados en todos sus segmentos `-` y `_`, lo que
+cubre las claves antiguas de OpenAI. Una ruta o clave de locale eslovaco como `locales/sk-SK.json`
+o `sk-banner_headline` sigue legible, pero una clave camelCase larga como
+`sk-onboardingWelcomeScreenPrimaryButton` alcanza el umbral y también se redacta.
 
 ### declareProviderKeyEnvVar
 

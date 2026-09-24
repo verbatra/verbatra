@@ -10,6 +10,9 @@ space, `--auth-key`, a URL-encoded `auth_key%3D`, and JSON serialized into a str
 quotes all leaked it. Any `sk-` run of eight characters was redacted, which rewrote Slovak paths
 and keys such as `locales/sk-SK_formal.json` or `sk-banner_headline`.
 
-Now `redact` accepts those names and separators, and an `sk-` token is redacted only when its
-random part holds a run of at least 20 letters and digits, as every real OpenAI or Anthropic key
-does. A configured key value is also scrubbed in its JSON-escaped form.
+Now `redact` accepts those names and separators. A token with a known OpenAI or Anthropic key
+prefix (`sk-ant-`, `sk-proj-`, `sk-svcacct-`, `sk-admin-`) is always redacted, and any other `sk-`
+token is redacted once it holds at least 32 letters and digits across its segments, which covers
+legacy OpenAI keys. Short Slovak paths and keys stay readable, but a long camelCase key such as
+`sk-onboardingWelcomeScreenPrimaryButton` is redacted. A configured key value is also scrubbed in
+its JSON-escaped form.
