@@ -1190,3 +1190,34 @@ describe("run: translate --estimate", () => {
     expect(envelope.result.estimate.locales).toHaveLength(1);
   });
 });
+
+describe("run: commands that hold write locks announce themselves to the process entry point", () => {
+  it.each([[["translate"]], [["translate", "--dry-run"]], [["import", "handoff.xlsx"]]])(
+    "calls onLockingCommand once for %j, so an interrupt can release held locks",
+    async (argv) => {
+      const { deps } = recordingDeps();
+      let announced = 0;
+
+      await run(argv, deps, captureStreams().streams, {
+        onLockingCommand: () => {
+          announced += 1;
+        },
+      });
+
+      expect(announced).toBe(1);
+    },
+  );
+
+  it.each([[["check"]], [["diff"]]])("does not call onLockingCommand for %j", async (argv) => {
+    const { deps } = recordingDeps();
+    let announced = 0;
+
+    await run(argv, deps, captureStreams().streams, {
+      onLockingCommand: () => {
+        announced += 1;
+      },
+    });
+
+    expect(announced).toBe(0);
+  });
+});

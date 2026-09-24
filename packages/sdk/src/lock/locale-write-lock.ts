@@ -3,6 +3,11 @@ import type { FormatId } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
+import {
+  currentHostLiveness,
+  isHolderProvablyDead,
+  type LivenessContext,
+} from "./holder-liveness.js";
 
 const LOCAL_DIR_NAME = ".verbatra-local";
 
@@ -13,13 +18,15 @@ const GLOSSARY_GUARD_STEM = "_glossary";
 const SHARED_CATALOGUE_STEM = "_catalogue";
 
 /**
- * Whatever could be read about the process currently holding a write lock. Both fields are optional
- * because a lock file left behind by a killed process may be truncated or unreadable, and reporting
- * a partial holder is more useful than reporting none.
+ * Whatever could be read about the process currently holding a write lock. Every field is optional
+ * because a lock file left behind by a killed process may be truncated or unreadable, or written by
+ * an older version, and reporting a partial holder is more useful than reporting none.
  */
 export interface LockHolder {
   /** The process ID recorded when the lock was taken. */
   readonly pid?: number;
+  /** The host name of the machine the holding process runs on. */
+  readonly hostname?: string;
   /** When the lock was taken, as an ISO 8601 timestamp. */
   readonly acquiredAt?: string;
 }
@@ -48,6 +55,7 @@ export interface LocaleWriteLockOptions {
   readonly pollIntervalMs?: number;
   readonly acquireTimeoutMs?: number;
   readonly onWait?: LockWaitListener;
+  readonly liveness?: LivenessContext;
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 100;
@@ -83,8 +91,73 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function lockPayload(): string {
-  return JSON.stringify({ pid: process.pid, acquiredAt: new Date().toISOString() });
+interface HeldLock {
+  readonly path: string;
+  readonly fs: SdkFs;
+}
+
+const heldLocks = new Set<HeldLock>();
+
+function lockPayload(host: string): string {
+  return JSON.stringify({ pid: process.pid, hostname: host, acquiredAt: new Date().toISOString() });
+}
+
+interface ObservedLock {
+  readonly content?: string;
+  readonly holder?: LockHolder;
+}
+
+async function observeLock(path: string, fs: SdkFs): Promise<ObservedLock> {
+  const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  const holder = parseHolder(read);
+  return {
+    ...(read.kind === "ok" ? { content: read.content } : {}),
+    ...(holder !== undefined ? { holder } : {}),
+  };
+}
+
+function isAbandoned(
+  observed: ObservedLock,
+  liveness: LivenessContext,
+): observed is Required<ObservedLock> {
+  return (
+    observed.content !== undefined &&
+    observed.holder !== undefined &&
+    isHolderProvablyDead(observed.holder, liveness)
+  );
+}
+
+async function deleteIfUnchanged(path: string, fs: SdkFs, content: string): Promise<boolean> {
+  const again = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  if (again.kind !== "ok" || again.content !== content) {
+    return false;
+  }
+  await fs.deleteFile(path);
+  return true;
+}
+
+async function reclaimAbandonedLock(
+  path: string,
+  fs: SdkFs,
+  observed: ObservedLock,
+  liveness: LivenessContext,
+): Promise<boolean> {
+  if (!isAbandoned(observed, liveness)) {
+    return false;
+  }
+  const guard = `${path}.reclaim`;
+  if (!(await fs.createExclusive(guard, lockPayload(liveness.host)))) {
+    const guardHolder = await observeLock(guard, fs);
+    if (isAbandoned(guardHolder, liveness)) {
+      await deleteIfUnchanged(guard, fs, guardHolder.content);
+    }
+    return false;
+  }
+  try {
+    return await deleteIfUnchanged(path, fs, observed.content);
+  } finally {
+    await fs.deleteFile(guard);
+  }
 }
 
 function parseHolder(read: BoundedFileRead): LockHolder | undefined {
@@ -101,9 +174,12 @@ function parseHolder(read: BoundedFileRead): LockHolder | undefined {
     return undefined;
   }
   const record = parsed as Record<string, unknown>;
-  const holder: { pid?: number; acquiredAt?: string } = {};
+  const holder: { pid?: number; hostname?: string; acquiredAt?: string } = {};
   if (typeof record.pid === "number") {
     holder.pid = record.pid;
+  }
+  if (typeof record.hostname === "string") {
+    holder.hostname = record.hostname;
   }
   if (typeof record.acquiredAt === "string") {
     holder.acquiredAt = record.acquiredAt;
@@ -113,18 +189,11 @@ function parseHolder(read: BoundedFileRead): LockHolder | undefined {
 
 function makeWaitNotifier(
   path: string,
-  fs: SdkFs,
   onWait: LockWaitListener,
   start: number,
-): () => Promise<void> {
-  let holder: LockHolder | undefined;
-  let holderRead = false;
+): (holder: LockHolder | undefined) => void {
   let lastEmit: number | undefined;
-  return async (): Promise<void> => {
-    if (!holderRead) {
-      holderRead = true;
-      holder = parseHolder(await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES));
-    }
+  return (holder: LockHolder | undefined): void => {
     const elapsedMs = Date.now() - start;
     if (lastEmit !== undefined && elapsedMs - lastEmit < WAIT_NOTICE_INTERVAL_MS) {
       return;
@@ -134,30 +203,36 @@ function makeWaitNotifier(
   };
 }
 
-async function acquireLock(
-  path: string,
-  fs: SdkFs,
-  pollIntervalMs: number,
-  deadline: number,
-  notify?: () => Promise<void>,
-): Promise<void> {
+interface AcquireSettings {
+  readonly pollIntervalMs: number;
+  readonly deadline: number;
+  readonly liveness: LivenessContext;
+  readonly notify?: (holder: LockHolder | undefined) => void;
+}
+
+async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): Promise<void> {
   for (;;) {
-    if (await fs.createExclusive(path, lockPayload())) {
+    if (await fs.createExclusive(path, lockPayload(settings.liveness.host))) {
       return;
     }
-    if (notify !== undefined) {
-      await notify();
+    const observed = await observeLock(path, fs);
+    const reclaimed = await reclaimAbandonedLock(path, fs, observed, settings.liveness);
+    if (!reclaimed) {
+      settings.notify?.(observed.holder);
     }
-    if (Date.now() >= deadline) {
+    if (Date.now() >= settings.deadline) {
       throw new SdkError(
         "LOCK_CONTENDED",
-        `Could not acquire the write lock at ${path}: another process may be holding it. If no ` +
-          "verbatra process is currently running, this lock file was likely left behind by one " +
-          "that was killed; delete it and retry.",
+        `Could not acquire the write lock at ${path}: another process is holding it. A lock left ` +
+          "behind by a process that is no longer running on this machine is reclaimed " +
+          "automatically, so this one belongs to a live process, a process on another machine, " +
+          "or an older verbatra version. If no verbatra process is running anywhere, delete it " +
+          "and retry.",
       );
     }
-    const jitter = Math.random() * pollIntervalMs;
-    await sleep(pollIntervalMs + jitter);
+    if (!reclaimed) {
+      await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs);
+    }
   }
 }
 
@@ -170,15 +245,38 @@ async function withFileLock<T>(
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
   const acquireTimeoutMs = options.acquireTimeoutMs ?? DEFAULT_ACQUIRE_TIMEOUT_MS;
   const start = Date.now();
-  const notify =
-    options.onWait !== undefined ? makeWaitNotifier(path, fs, options.onWait, start) : undefined;
-
-  await acquireLock(path, fs, pollIntervalMs, start + acquireTimeoutMs, notify);
+  await acquireLock(path, fs, {
+    pollIntervalMs,
+    deadline: start + acquireTimeoutMs,
+    liveness: options.liveness ?? currentHostLiveness,
+    ...(options.onWait !== undefined
+      ? { notify: makeWaitNotifier(path, options.onWait, start) }
+      : {}),
+  });
+  const held: HeldLock = { path, fs };
+  heldLocks.add(held);
   try {
     return await fn();
   } finally {
-    await fs.deleteFile(path);
+    if (heldLocks.delete(held)) {
+      await fs.deleteFile(path);
+    }
   }
+}
+
+/**
+ * Deletes every write lock this process currently holds, for a process that is about to exit
+ * without letting its in-flight operations finish, such as a CLI force-stopped by a second
+ * interrupt. The operations that took those locks lose their protection, so call it only
+ * immediately before the process exits. A lock left behind anyway, by a process killed outright,
+ * is reclaimed by the next run on the same machine once the holding process is gone.
+ *
+ * @returns Resolves once every held lock file has been deleted; never rejects.
+ */
+export async function releaseHeldLocks(): Promise<void> {
+  const locks = [...heldLocks];
+  heldLocks.clear();
+  await Promise.allSettled(locks.map((lock) => lock.fs.deleteFile(lock.path)));
 }
 
 export async function withLocaleWriteLock<T>(

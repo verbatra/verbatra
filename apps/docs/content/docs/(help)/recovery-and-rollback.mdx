@@ -116,8 +116,11 @@ source, or a stopped token budget) keep their previous hash rather than being re
 the next run retries them. See [Troubleshooting](/docs/troubleshooting) for what each of those
 means.
 
-If the interrupted process was killed hard, it may have left a write lock behind under
-`.verbatra-local/`. The next run reports `LOCK_CONTENDED` and prints the path to delete.
+An interrupted run releases its write locks before it exits. A process killed hard (`kill -9`, a
+crash) can still leave one behind under `.verbatra-local/`; the next run on the same machine sees
+that the recorded process is gone and reclaims the lock itself. Only a lock it cannot check (one
+recorded on another machine, or by a version older than 0.12.0) makes the run wait and then report
+`LOCK_CONTENDED` with the path to delete.
 
 ## Before a run you cannot easily undo
 

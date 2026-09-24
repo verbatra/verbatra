@@ -332,6 +332,9 @@ describe("updateGlossaryTerm", () => {
     const locks = new Set<string>();
     const fs: SdkFs = makeFakeFs({
       readFileBounded: async (path: string) => {
+        if (path.endsWith(".lock")) {
+          return { kind: "missing" };
+        }
         inside += 1;
         peak = Math.max(peak, inside);
         const content = store.get(path);

@@ -195,16 +195,19 @@ ihre Lock-Baseline, es bleibt also nichts halb geschrieben zurück.
 
 ## Ein anderer Prozess hält die Schreibsperre (LOCK_CONTENDED)
 
-**Symptom**: `Could not acquire the write lock at <path>: another process may be holding it. If no
-verbatra process is currently running, this lock file was likely left behind by one that was
-killed; delete it and retry.`
+**Symptom**: `Could not acquire the write lock at <path>: another process is holding it. A lock left
+behind by a process that is no longer running on this machine is reclaimed automatically, so this
+one belongs to a live process, a process on another machine, or an older verbatra version. If no
+verbatra process is running anywhere, delete it and retry.`
 
 **Ursache**: Schreibvorgänge an einer Locale werden über eine Sperrdatei pro Locale serialisiert.
-Ein gleichzeitiges `translate`, `watch`, `import` oder ein Studio-Schreibvorgang hält sie, oder
-ein abgeschossener Prozess hat die Sperrdatei zurückgelassen.
+Ein gleichzeitiges `translate`, `watch`, `import` oder ein Studio-Schreibvorgang hält sie. Eine
+Sperre, die ein auf dieser Maschine beendeter Prozess hinterlassen hat, wird automatisch
+übernommen; eine, die liegen bleibt, stammt also von einer anderen Maschine oder von einer
+verbatra-Version vor 0.12.0.
 
-**Lösung**: Genau, was die Meldung sagt: Warte, bis der andere Lauf fertig ist, oder, wenn keiner
-läuft, lösche die Sperrdatei am ausgegebenen Pfad und versuche es erneut. Um zu ändern, wie lange
+**Lösung**: Warte, bis der andere Lauf fertig ist, oder, wenn nirgends ein verbatra-Prozess läuft,
+lösche die Sperrdatei am ausgegebenen Pfad und versuche es erneut. Um zu ändern, wie lange
 ein Lauf wartet, bevor er aufgibt, gib `--lock-timeout <seconds>` an
 [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch); der Standard sind `600`
 Sekunden.

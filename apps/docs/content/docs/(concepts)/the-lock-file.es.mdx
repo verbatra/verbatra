@@ -97,10 +97,21 @@ terminen los que ya están en marcha, así que cada bloqueo que tomó la ejecuci
 que el comando salga. Ningún locale se inicia después de que la ejecución ya haya fallado, y el
 fallo en sí no deja huérfano ningún bloqueo.
 
+Cada archivo de bloqueo registra el ID de proceso y el nombre de host del proceso que lo tiene. Un
+proceso terminado a la fuerza puede dejar uno atrás igualmente, así que una ejecución en espera
+comprueba el proceso registrado: si se ejecutaba en esta máquina y ya no existe, la ejecución
+recupera el bloqueo al instante en lugar de agotar `--lock-timeout`. La recuperación está
+serializada, así que dos ejecuciones en espera nunca se quedan a la vez con el mismo bloqueo
+abandonado. Un bloqueo registrado en otra máquina (una unidad de red compartida) o por una versión
+de verbatra anterior a 0.12.0 no contiene nada que se pueda comprobar con seguridad, así que nunca
+se recupera.
+
+Una interrupción libera los bloqueos de una ejecución antes de que termine el proceso: Ctrl-C o
+SIGTERM durante `translate` o `import`, y la segunda interrupción que fuerza la parada de `watch`.
+
 Si un bloqueo no se puede adquirir, la ejecución falla con `LOCK_CONTENDED` y nombra la ruta del
 archivo de bloqueo (bajo el directorio `.verbatra-local/`, ignorado por git). Si no hay ningún
-proceso de verbatra en marcha, ese archivo lo dejó atrás uno que se terminó a la fuerza: bórralo
-y reinténtalo.
+proceso de verbatra en marcha en ninguna parte, borra ese archivo y reinténtalo.
 
 ## Ausente o corrupto
 
