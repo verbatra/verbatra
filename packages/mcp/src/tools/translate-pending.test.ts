@@ -28,6 +28,40 @@ describe("translation.translatePending", () => {
     expect(outcome).toMatchObject({ result: { succeeded: ["de"] } });
   });
 
+  it("reports each integrity refusal with its reason and details in the declared output", async () => {
+    const dir = await makeProject({ greeting: "Hello {{name}}", title: "Title" }, { de: {} });
+    const context = makeContext({
+      cwd: dir,
+      createProvider: () =>
+        makeStubProvider({
+          translate: (value, key) => (key === "greeting" ? "Hallo" : `[de] ${value}`),
+        }),
+    });
+
+    const outcome = await translatePendingTool.execute({}, context);
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        locales: [
+          {
+            locale: "de",
+            integrityMismatches: ["greeting"],
+            integrityRefusals: [{ key: "greeting", reason: "placeholder", details: ["-{{name}}"] }],
+          },
+        ],
+      },
+    });
+  });
+
+  it("declares integrityRefusals on each locale of its output schema", () => {
+    const locales = translatePendingTool.outputSchema.properties as Record<
+      string,
+      { readonly items: { readonly properties: Record<string, unknown> } }
+    >;
+    expect(locales.locales?.items.properties).toHaveProperty("integrityRefusals");
+  });
+
   it("returns an error outcome when the provider fails for every key", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const context = makeContext({
