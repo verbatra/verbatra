@@ -79,6 +79,8 @@ verbatra translate --include-human
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, source, format, provider, or a corrupt lock file), or a usage error |
 | `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
+| `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first |
+| `143` | stopped with SIGTERM; the run's write locks are released first |
 
 <AvailableFrom version="0.9.0" />
 

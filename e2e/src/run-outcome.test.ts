@@ -10,7 +10,7 @@ import {
 const TARGET = { locale: "de", key: "welcome" } as const;
 
 const REAL_RATE_LIMIT_NOTICE =
-  "A sub-batch of 1 entries failed (RATE_LIMITED: The translation provider rate-limited this request.) and was withheld; it will be retried next run.";
+  "A sub-batch of 1 entry failed (RATE_LIMITED: The translation provider rate-limited this request.) and was withheld; it will be retried next run.";
 
 function locale(overrides: Partial<RunLocaleSummary> = {}): RunLocaleSummary {
   return {
@@ -71,7 +71,7 @@ describe("classifyRunEnvelope", () => {
             {
               code: "SUB_BATCH_FAILED",
               message:
-                "A sub-batch of 1 entries failed (AUTH_FAILED: The translation provider rejected the credentials.) and was withheld; it will be retried next run.",
+                "A sub-batch of 1 entry failed (AUTH_FAILED: The translation provider rejected the credentials.) and was withheld; it will be retried next run.",
             },
           ],
         }),
@@ -98,7 +98,7 @@ describe("classifyRunEnvelope", () => {
             {
               code: "SUB_BATCH_FAILED",
               message:
-                "A sub-batch of 1 entries failed (PROVIDER_ERROR: the response mentioned RATE_LIMITED handling) and was withheld; it will be retried next run.",
+                "A sub-batch of 1 entry failed (PROVIDER_ERROR: the response mentioned RATE_LIMITED handling) and was withheld; it will be retried next run.",
             },
           ],
         }),
@@ -216,7 +216,7 @@ describe("classifyLiveRun", () => {
               {
                 code: "SUB_BATCH_FAILED",
                 message:
-                  "A sub-batch of 1 entries failed (PROVIDER_REFUSED: The translation provider refused the request.) and was withheld; it will be retried next run.",
+                  "A sub-batch of 1 entry failed (PROVIDER_REFUSED: The translation provider refused the request.) and was withheld; it will be retried next run.",
               },
             ],
           }),
@@ -338,7 +338,7 @@ const TRANSIENT_CODES = ["RATE_LIMITED", "PROVIDER_UNAVAILABLE", "TIMEOUT"] as c
 function subBatchNotice(code: string, message = "The translation provider failed.") {
   return {
     code: "SUB_BATCH_FAILED",
-    message: `A sub-batch of 1 entries failed (${code}: ${message}) and was withheld; it will be retried next run.`,
+    message: `A sub-batch of 1 entry failed (${code}: ${message}) and was withheld; it will be retried next run.`,
   };
 }
 
@@ -353,6 +353,28 @@ describe("classifyRunEnvelope: transient provider faults", () => {
       expect(outcome).toMatchObject({ kind: "throttled", detail: expect.stringContaining(code) });
     },
   );
+
+  it("reads a multi-entry sub-batch withheld on a transient code as throttled", () => {
+    const outcome = classifyRunEnvelope(
+      record(
+        locale({
+          providerFailures: ["welcome"],
+          notices: [
+            {
+              code: "SUB_BATCH_FAILED",
+              message:
+                "A sub-batch of 3 entries failed (TIMEOUT: The translation provider timed out.) and was withheld; it will be retried next run.",
+            },
+          ],
+        }),
+      ),
+      TARGET,
+    );
+    expect(outcome).toMatchObject({
+      kind: "throttled",
+      detail: expect.stringContaining("TIMEOUT"),
+    });
+  });
 
   it.each(TRANSIENT_CODES)("reads a locale that threw %s as throttled, naming the code", (code) => {
     const outcome = classifyRunEnvelope(

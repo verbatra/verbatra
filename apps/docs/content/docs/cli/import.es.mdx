@@ -46,6 +46,8 @@ Un archivo que quedó de una exportación anterior con una selección `--locales
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, libro, formato o bloqueo) o un error de uso |
+| `130` | interrumpido con Ctrl-C (SIGINT); antes se liberan los bloqueos de escritura de la ejecución |
+| `143` | detenido con SIGTERM; antes se liberan los bloqueos de escritura de la ejecución |
 
 Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, un archivo que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba. Una sola fila ilegible no lo es: se informa como fila mal formada y el resto del locale se importa igualmente.
 

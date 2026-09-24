@@ -62,6 +62,8 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_locale_values` | les valeurs source et cible de chaque clé dans chaque locale cible |
 | `verbatra_translation_estimate` | ce que `verbatra_translation_translatePending` enverrait et coûterait, éventuellement pour un sous-ensemble de `locales`, sans appeler de fournisseur |
 
+`verbatra_key_integrity` n'a pas la même forme que `key.integrity` du serveur MCP stdio. Son `result` est `{ locales: [...] }`, et chaque ligne porte `locale` à côté des champs de vérification eux-mêmes (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), sans tableau `entries`. Une locale n'apparaît que si la source de la clé y a changé depuis la référence : une locale où la clé n'a pas encore d'entrée de référence, est inchangée ou manque n'a aucune ligne, donc une liste `locales` vide signifie qu'il n'y avait rien à vérifier, pas que la clé a réussi. [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) renvoie au contraire une ligne pour chaque locale concernée et imbrique les mêmes champs dans un tableau `entries`, vide dans ces cas.
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Depuis `@verbatra/studio` 0.6.0, `verbatra_key_value` et `verbatra_locale_values` indiquent aussi qui a écrit chaque valeur présente (son origine, le fournisseur et le modèle pour la traduction automatique, et son état de relecture), `verbatra_status_check` et `verbatra_lock_state` comptent les valeurs de chaque locale par origine, et `verbatra_status_diff` nomme l'origine de la valeur actuelle de chaque clé modifiée. Voir [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur).

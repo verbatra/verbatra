@@ -62,6 +62,8 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
 | `verbatra_translation_estimate` | was `verbatra_translation_translatePending` senden und kosten würde, optional für eine Teilmenge der `locales`, ohne einen Provider aufzurufen |
 
+`verbatra_key_integrity` ist anders geformt als `key.integrity` des stdio-MCP-Servers. Sein `result` ist `{ locales: [...] }`, und jede Zeile trägt `locale` direkt neben den Prüffeldern (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), ohne `entries`-Array. Eine Locale erscheint nur, wenn sich die Quelle des Keys dort seit der Baseline geändert hat: Eine Locale, in der der Key noch keinen Baseline-Eintrag hat, unverändert ist oder fehlt, hat gar keine Zeile. Eine leere `locales`-Liste heißt also, dass nichts zu prüfen war, nicht dass der Key bestanden hat. [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) liefert dagegen eine Zeile für jede Locale im Umfang und verschachtelt dieselben Felder in einem `entries`-Array, das in diesen Fällen leer ist.
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_values` außerdem, wer jeden vorhandenen Wert geschrieben hat (Herkunft, Provider und Modell bei Maschinenübersetzung sowie Prüfstatus), `verbatra_status_check` und `verbatra_lock_state` zählen die Werte jeder Locale nach Herkunft, und `verbatra_status_diff` nennt die Herkunft des aktuellen Werts jedes geänderten Keys. Siehe [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
