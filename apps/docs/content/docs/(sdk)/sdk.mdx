@@ -653,11 +653,17 @@ Reads a filled workbook back into the locale files, running the same source-drif
 checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected
 row keeps re-exporting until it is genuinely resolved.
 
-Input: `{ config, workbook, cwd?, dryRun?, format? }`. With `csv` or `tsv`, `workbook` is either
+Input: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs? }`. With `csv` or `tsv`, `workbook` is either
 one interchange file or the directory holding one per locale, and the locale comes from the file
 name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
 a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
+
+`onLockWait` and `lockAcquireTimeoutMs` behave exactly as on `translate`. `lockAcquireTimeoutMs`
+bounds the wait for a locale's write lock, taken before that locale's file is written, and a locale
+still contended after it fails with `LOCK_CONTENDED` on its own summary while the other locales
+import. Recording a written file in the lock file always allows the ten-minute default. A dry run
+takes no lock, so neither option applies to it.
 
 <AvailableFrom version="0.12.0" />
 

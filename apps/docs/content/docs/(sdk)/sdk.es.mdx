@@ -694,12 +694,19 @@ desfase del origen e integridad que `translate`. Solo las filas aceptadas avanza
 línea base del bloqueo; una fila en blanco o rechazada se sigue exportando hasta que se resuelve de
 verdad.
 
-Entrada: `{ config, workbook, cwd?, dryRun?, format? }`. Con `csv` o `tsv`, `workbook` es un solo
+Entrada: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs? }`. Con `csv` o `tsv`, `workbook` es un solo
 archivo de entrega o el directorio que contiene uno por locale, y el locale viene del nombre del
 archivo. Devuelve la misma forma `RunSummary` que `translate`
 (con `needsReview` siempre vacío, ya que no interviene ningún proveedor). Una hoja de un locale que no
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
 excepción.
+
+`onLockWait` y `lockAcquireTimeoutMs` se comportan exactamente como en `translate`.
+`lockAcquireTimeoutMs` limita la espera por el bloqueo de escritura de un locale, que se toma antes
+de escribir el archivo de ese locale, y un locale que sigue bloqueado después falla con
+`LOCK_CONTENDED` en su propio resumen mientras los demás locales se importan. Registrar un archivo ya
+escrito en el archivo de bloqueo siempre admite la espera predeterminada de diez minutos. Un dry run
+no toma ningún bloqueo, así que ninguna de las dos opciones se le aplica.
 
 <AvailableFrom version="0.12.0" />
 

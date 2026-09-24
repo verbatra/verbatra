@@ -20,6 +20,7 @@ verbatra import <workbook> [flags]
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--dry-run` | aucun | désactivé | valide et rapporte sans écrire les fichiers de locale ni mettre à jour le verrou |
 | `--format` | `<format>` | `xlsx` | lit un classeur Excel (`xlsx`) ou des fichiers délimités (`csv`, `tsv`) |
+| `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité, d'au plus `3600` (une valeur comme `60s`, `0`, `-1` ou `7200` est une erreur d'utilisation, sortie `2`) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la même [forme `RunSummary`](/docs/sdk) que `translate`), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 ## Exemples
@@ -38,6 +39,10 @@ verbatra import handoff --format csv
 Avec `csv` ou `tsv`, la locale vient du nom du fichier et non d'un nom de feuille : garde donc chaque fichier nommé exactement comme il a été exporté. Une locale cible configurée sans fichier (ou, dans un classeur, sans feuille) est rapportée comme l'échec de cette locale avec `WORKBOOK_SHEET_MISSING`, jamais ignorée en silence.
 
 Un fichier laissé par un export antérieur avec une sélection `--locales` plus large n'est jamais appliqué. L'import rapproche le répertoire du manifeste que l'export le plus récent y a écrit et rapporte une telle locale en échec avec `HANDOFF_FILE_STALE`, si bien qu'une traduction périmée ne peut pas se glisser à nouveau sans qu'on la voie. Réexporte cette locale pour rafraîchir son fichier, ou supprime le fichier. Un répertoire sans manifeste lisible (assemblé à la main, ou ayant perdu le fichier caché en passant par une archive) est lu comme il l'a toujours été, chaque fichier présent est importé. De même, un fichier unique nommé directement est pris tel quel.
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) occupé avant d'échouer avec `LOCK_CONTENDED`, exactement comme pour [`verbatra translate`](/docs/cli/translate). L'attente a lieu avant l'écriture du fichier de la locale : une locale qui dépasse le délai reste intacte pendant que les autres locales s'importent quand même, et la commande sort avec `1`. Une fois le fichier d'une locale écrit, son enregistrement dans le fichier de verrouillage attend jusqu'au délai par défaut de dix minutes, quoi que dise `--lock-timeout`. Tant qu'une attente dure plus d'une seconde, une ligne sur stderr nomme le fichier de verrou et son détenteur, ou un enregistrement JSON `lock-wait` avec `--json`. `--dry-run` ne prend aucun verrou et n'attend donc jamais.
 
 ## Codes de sortie
 
