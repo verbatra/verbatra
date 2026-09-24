@@ -52,11 +52,27 @@ describe("redactingStreams: a compact JSON document", () => {
       { config: { deeplKey: "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0", id: 1 } },
       { config: { deeplKey: "[REDACTED]", id: 1 } },
     ],
+    [
+      "an array member",
+      { auth_key: ["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0", 2] },
+      { auth_key: ["[REDACTED]", 2] },
+    ],
+    [
+      "a nested array member",
+      { deepl_api_key: [["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"], { id: 1 }] },
+      { deepl_api_key: [["[REDACTED]"], { id: 1 }] },
+    ],
   ])("scrubs a DeepL key named by %s object key", (_what, document, expected) => {
     const out = written(`${JSON.stringify(document)}\n`);
 
     expect(out.endsWith("}\n")).toBe(true);
     expect(JSON.parse(out)).toEqual(expected);
+  });
+
+  it("leaves a bare UUID in an array readable when its member names no key", () => {
+    const document = '{"ids":["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"]}';
+
+    expect(written(document)).toBe(document);
   });
 
   it("keeps the value-by-value result when a whole-document match would break the JSON", () => {

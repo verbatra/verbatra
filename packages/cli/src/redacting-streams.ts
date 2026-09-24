@@ -17,6 +17,9 @@ function redactJsonValue(value: unknown): unknown {
 }
 
 function redactMember(name: string, member: unknown): unknown {
+  if (Array.isArray(member)) {
+    return member.map((element) => redactMember(name, element));
+  }
   if (typeof member !== "string") {
     return redactJsonValue(member);
   }
