@@ -53,10 +53,11 @@ The Locale state check is informational and never fails either. It reads `verbat
 
 Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the eight checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
 
-Four details are worth knowing:
+Five details are worth knowing:
 
 - The API key is checked **by name only**. `doctor` asks whether the variable is set, never what it holds. The value is not read, not printed, and never sent anywhere. See [Providers](/docs/providers) for which variable each provider uses.
 - The `openai-compatible` provider is the exception. It falls back to a placeholder key, so a missing variable is fine. It only fails when your config names its own variable through `provider.options.apiKeyEnvVar` and that variable is unset.
+- With [`provider: { id: "none" }`](/docs/human-only-workflow), the Provider check passes and reports that machine translation is disabled by policy, the API key check passes without looking at any variable, and the Network policy check passes because no provider is ever called.
 - A missing **target** locale file is not a problem: [`verbatra translate`](/docs/cli/translate) creates it. Target files are not checked at all.
 - The **source** locale file is read and parsed, not merely probed for. A directory standing in for it, an empty file, and malformed content all fail this check with the same message [`verbatra check`](/docs/cli/check) would give, because those are exactly the cases that make every other command fail. When the configured `format` resolves to no adapter there is nothing to parse with, so the check falls back to existence alone and says so.
 

@@ -53,10 +53,11 @@ La comprobación Locale state también es informativa y nunca falla. Lee `verbat
 
 Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las ocho comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
 
-Cuatro detalles que conviene conocer:
+Cinco detalles que conviene conocer:
 
 - La clave de API se comprueba **solo por nombre**. `doctor` pregunta si la variable está definida, nunca qué contiene. El valor no se lee, no se imprime y no se envía a ninguna parte. Consulta [Proveedores](/docs/providers) para saber qué variable usa cada proveedor.
 - El proveedor `openai-compatible` es la excepción. Recurre a una clave placeholder, así que una variable ausente no es problema. Solo falla cuando tu configuración nombra su propia variable con `provider.options.apiKeyEnvVar` y esa variable no está definida.
+- Con [`provider: { id: "none" }`](/docs/human-only-workflow), la comprobación del proveedor pasa e indica que la traducción automática está desactivada por política, la de la clave de API pasa sin mirar ninguna variable, y la de la política de red pasa porque nunca se llama a ningún proveedor.
 - Un archivo de locale de **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Los archivos de destino no se comprueban en absoluto.
 - El archivo del locale de **origen** se lee y se analiza, no solo se comprueba su existencia. Un directorio en su lugar, un archivo vacío y contenido malformado fallan esta comprobación con el mismo mensaje que daría [`verbatra check`](/docs/cli/check), porque esos son justo los casos que hacen fallar a todos los demás comandos. Cuando el `format` configurado no resuelve a ningún adaptador no hay con qué analizarlo, así que la comprobación vuelve a la mera existencia y lo indica.
 

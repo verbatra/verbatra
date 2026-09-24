@@ -53,14 +53,14 @@ Tu veux essayer une commande avant d'installer ? `npx @verbatra/cli <command>` (
 Les résultats vont sur stdout. La progression, les avis, les suggestions, les avertissements et les erreurs vont sur stderr, et verbatra les adapte selon la destination de stderr :
 
 - Dans un terminal interactif, les libellés fixes comme `error`, `[ok]` et `next:` sont colorés, et une étape qui dure plus de 300 ms affiche un spinner ASCII (`| / - \`).
-- Quand stderr est redirigé ou envoyé dans un pipe, que `CI` est défini ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
+- Quand stderr est redirigé ou envoyé dans un pipe, que `CI` a une valeur autre que `0` ou `false`, ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
 - `--json` n'ajoute jamais de couleur, d'animation ni de nouvelles lignes : stdout et stderr restent exactement comme décrit dans [Sortie JSON](/docs/ci-and-exit-codes#sortie-json).
 
 | Flag ou variable | Effet |
 | --- | --- |
 | `-q`, `--quiet` | n'affiche que les résultats, les avertissements et les erreurs : pas de lignes de progression, d'avis ni de suggestions `next:`. Il fonctionne avant ou après le nom de la commande |
 | `--no-color` | ne colore jamais la sortie |
-| `NO_COLOR`, `VERBATRA_NO_COLOR` | toute valeur non vide désactive la couleur ; `VERBATRA_NO_COLOR` l'emporte aussi sur `FORCE_COLOR` |
+| `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | toute valeur non vide désactive la couleur ; `VERBATRA_NO_COLOR` l'emporte aussi sur `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` ou une valeur vide active la couleur même quand stderr n'est pas un terminal, et `0` la désactive ; `--no-color` et `VERBATRA_NO_COLOR` restent prioritaires |
 | `VERBATRA_NO_SPINNER` | toute valeur non vide remplace le spinner par des lignes statiques `label... done (1.2s)`, pour les lecteurs d'écran et les enregistrements de terminal |
 
@@ -79,6 +79,7 @@ Le code de sortie est le contrat sur lequel une étape CI ou un script se branch
 | `0` | succès (aussi `--help` et `--version`) |
 | `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé un problème de configuration ou, avec `--literals`, un littéral non traduit, ou `types --check` a trouvé la déclaration commitée obsolète |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, fournisseur, verrou) ou une erreur d'utilisation |
+| `3` | `translate` dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine |
 | `130` | `translate` ou `import` a été interrompu avec Ctrl-C (SIGINT) après avoir libéré ses verrous d'écriture, ou `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
 | `143` | `translate` ou `import` a été arrêté avec SIGTERM après avoir libéré ses verrous d'écriture |
 

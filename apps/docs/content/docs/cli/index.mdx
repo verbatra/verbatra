@@ -53,14 +53,14 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
 Results go to stdout. Progress, notices, hints, warnings and errors go to stderr, and verbatra adapts them to where stderr is going:
 
 - On an interactive terminal, fixed labels such as `error`, `[ok]` and `next:` are colored, and a step that takes longer than 300 ms shows an ASCII spinner (`| / - \`).
-- When stderr is piped or redirected, `CI` is set, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
+- When stderr is piped or redirected, `CI` is set to anything but `0` or `false`, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
 - `--json` never adds color, animation or new lines: stdout and stderr stay exactly as described in [JSON output](/docs/ci-and-exit-codes#json-output).
 
 | Flag or variable | Effect |
 | --- | --- |
 | `-q`, `--quiet` | print only results, warnings and errors: no progress lines, notices or `next:` hints. It works before or after the command name |
 | `--no-color` | never color the output |
-| `NO_COLOR`, `VERBATRA_NO_COLOR` | any non-empty value turns color off; `VERBATRA_NO_COLOR` also overrides `FORCE_COLOR` |
+| `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | any non-empty value turns color off; `VERBATRA_NO_COLOR` also overrides `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` or an empty value turns color on even when stderr is not a terminal, and `0` turns it off; `--no-color` and `VERBATRA_NO_COLOR` still win |
 | `VERBATRA_NO_SPINNER` | any non-empty value replaces the spinner with static `label... done (1.2s)` lines, for screen readers and terminal recordings |
 
@@ -79,6 +79,7 @@ The exit code is the contract a CI step or script branches on:
 | `0` | success (also `--help` and `--version`) |
 | `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes (or, with `--unused`, a complete scan found an unused source key), `doctor` found a setup problem or, with `--literals`, an untranslated literal, or `types --check` found the committed declaration out of date |
 | `2` | could not run: a whole-run error (config, source, provider, lock), or a usage error |
+| `3` | `translate` in a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) finished cleanly, but left keys for a human translation |
 | `130` | `translate` or `import` was interrupted with Ctrl-C (SIGINT) after releasing its write locks, or `watch`, `studio`, or `mcp` was force-stopped by a second interrupt |
 | `143` | `translate` or `import` was stopped with SIGTERM after releasing its write locks |
 
