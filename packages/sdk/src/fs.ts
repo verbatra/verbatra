@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Dirent } from "node:fs";
+import { type Dirent, readFileSync, readlinkSync } from "node:fs";
 import {
   access,
   type FileHandle,
@@ -269,3 +269,30 @@ export const defaultFs: SdkFs = {
     return entries.map((entry) => ({ name: entry.name, kind: entryKind(entry) }));
   },
 };
+
+export interface KernelIdentity {
+  readonly bootId?: string;
+  readonly pidNamespace?: string;
+}
+
+const MAX_KERNEL_IDENTITY_LENGTH = 256;
+
+function readIdentityValue(read: () => string): string | undefined {
+  try {
+    const value = read().trim();
+    return value.length > 0 && value.length <= MAX_KERNEL_IDENTITY_LENGTH ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function readKernelIdentity(procRoot = "/proc"): KernelIdentity {
+  const bootId = readIdentityValue(() =>
+    readFileSync(join(procRoot, "sys", "kernel", "random", "boot_id"), "utf8"),
+  );
+  const pidNamespace = readIdentityValue(() => readlinkSync(join(procRoot, "self", "ns", "pid")));
+  return {
+    ...(bootId !== undefined ? { bootId } : {}),
+    ...(pidNamespace !== undefined ? { pidNamespace } : {}),
+  };
+}
