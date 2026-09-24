@@ -235,4 +235,34 @@ describe("closeOnInputEnd", () => {
     expect(input.listenerCount("end")).toBe(0);
     expect(input.listenerCount("close")).toBe(0);
   });
+
+  it.each([
+    [new Error("transport broke"), "transport broke"],
+    ["plain failure", "plain failure"],
+  ])(
+    "settles closed and reports through onLog when closing after stdin ended rejects (%s)",
+    async (failure, expected) => {
+      const input = new PassThrough();
+      const server: FakeServer = { close: vi.fn(async () => Promise.reject(failure)) };
+      const lines: string[] = [];
+
+      const closed = closeOnInputEnd(input, server, (line) => lines.push(line));
+      input.emit("end");
+      input.emit("close");
+
+      await expect(closed).resolves.toBeUndefined();
+      expect(server.close).toHaveBeenCalledTimes(1);
+      expect(lines).toEqual([`Closing the server after stdin ended failed: ${expected}`]);
+    },
+  );
+
+  it("settles closed without an onLog when closing after stdin ended rejects", async () => {
+    const input = new PassThrough();
+    const server: FakeServer = { close: vi.fn(async () => Promise.reject(new Error("broke"))) };
+
+    const closed = closeOnInputEnd(input, server);
+    input.emit("close");
+
+    await expect(closed).resolves.toBeUndefined();
+  });
 });
