@@ -129,7 +129,7 @@ describe("selectProvider", () => {
     const error = (() => {
       try {
         selectProvider({ id: "anthropic", options: { model: "m", maxTokens: 1 } }, () => {
-          throw new Error("rejected sk-ant-abcdEFGH12345678abcd");
+          throw new Error("rejected sk-ant-api03-abcdEFGH12345678abcdEFGH12345678");
         });
         return undefined;
       } catch (e) {
