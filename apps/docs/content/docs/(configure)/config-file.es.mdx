@@ -156,7 +156,7 @@ Un archivo de la versión 1 sigue funcionando sin cambios, con la misma huella d
 
 Las dos formas también se diferencian en quién puede cambiarlas. Solo la forma de archivo se puede editar desde [Verbatra Studio](/docs/review-in-studio), que reescribe ese archivo JSON término a término y nunca toca tu módulo de configuración; un glosario en línea se queda de solo lectura allí, porque vive dentro de código ejecutable. Prefiere la forma de archivo si quieres gestionar los términos desde el panel.
 
-Cómo se aplica el glosario depende del proveedor: los proveedores LLM reciben los términos del locale con la petición y se les instruye para tratar sus traducciones como vinculantes, no usar nunca una traducción prohibida y dejar los términos de `doNotTranslate` tal como están, mientras que DeepL y Google Cloud Translation no pueden aplicarlos. La salida de cada proveedor se comprueba después contra el glosario y se marca para revisión (`GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`); consulta [Seguridad de la traducción](/docs/translation-safety#review-flags) y [Proveedores](/docs/providers).
+Cómo se aplica el glosario depende del proveedor: los proveedores LLM reciben los términos del locale con la petición y se les instruye para tratar sus traducciones como vinculantes, no usar nunca una traducción prohibida y dejar los términos de `doNotTranslate` tal como están, mientras que DeepL y Google Cloud Translation no pueden aplicarlos. La salida de cada proveedor se comprueba después contra el glosario y se marca para revisión (`GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`); consulta [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) y [Proveedores](/docs/providers).
 
 ### tone
 
